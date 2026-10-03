@@ -57,6 +57,15 @@ public struct GeometryProxy: Equatable, Sendable {
         }
     }
 
+    /// The container's frame in the given coordinate space — the protocol form
+    /// SwiftUI moved ``frame(in:)`` to, answered the same way.
+    ///
+    /// - Parameter coordinateSpace: `.local` or `.global`.
+    /// - Returns: The frame, in cells.
+    public func frame(in coordinateSpace: some CoordinateSpaceProtocol) -> CellRect {
+        frame(in: coordinateSpace.coordinateSpace)
+    }
+
     /// Whether ``frame(in:)`` can answer `.global` exactly.
     public var hasGlobalPosition: Bool { globalOrigin != nil }
 }
@@ -132,7 +141,7 @@ public struct CellRect: Equatable, Sendable {
 }
 
 /// The coordinate space a ``GeometryProxy`` frame is measured in.
-public enum CoordinateSpace: Sendable {
+public enum CoordinateSpace: Hashable, Sendable {
     /// Relative to the ``GeometryReader`` itself, whose origin is `(0, 0)`.
     case local
 

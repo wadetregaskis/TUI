@@ -225,6 +225,22 @@ struct GeometryReaderTests {
         #expect(positioned.frame(in: .local).x == 0)
     }
 
+    @Test("The protocol spaces answer as the enum cases they resolve to")
+    func protocolSpaces() {
+        let proxy = GeometryProxy(width: 20, height: 5, globalOrigin: (x: 4, y: 2))
+        #expect(proxy.frame(in: LocalCoordinateSpace()) == proxy.frame(in: CoordinateSpace.local))
+        #expect(proxy.frame(in: GlobalCoordinateSpace()) == CellRect(x: 4, y: 2, width: 20, height: 5))
+        #expect(frame(of: proxy, in: .global) == proxy.frame(in: CoordinateSpace.global))
+        #expect(CoordinateSpace.global.isGlobal && !CoordinateSpace.global.isLocal)
+        #expect(CoordinateSpace.local.isLocal && !CoordinateSpace.local.isGlobal)
+    }
+
+    /// Through the protocol only, so `.global` resolves as SwiftUI's
+    /// `CoordinateSpaceProtocol.global` rather than as the enum case.
+    private func frame(of proxy: GeometryProxy, in space: some CoordinateSpaceProtocol) -> CellRect {
+        proxy.frame(in: space)
+    }
+
     @Test("A negative proposal is clamped before the proxy ever sees it")
     func degenerateSizes() {
         // The negative-size class: chrome subtractions reach zero — and, when
