@@ -3,7 +3,8 @@
 *The Wave 10 companion to
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md),
 in the same three parts and read the same way: once, at the end of the
-straightforward work. Entries are numbered A-W10-1, B-W10-1 and C-W10-1 onwards
+straightforward work. A fourth, short part lists what this wave left to other
+waves and lanes. Entries are numbered A-W10-1, B-W10-1 and C-W10-1 onwards
 so they can sit beside the main document's without colliding.*
 
 - **A. Needs your decision.** Nothing has shipped. Each entry gives the
@@ -21,6 +22,178 @@ offscreen `NSHostingView` (the probes are in the session notes, `w10/probe`).
 ---
 
 ## A. Needs your decision
+
+### A-W10-1. Scroll target behaviours: SwiftUI's protocol, or keep `ScrollGranularity`?
+
+*`View.scrollTargetBehavior(_:)`, `AnyScrollTargetBehavior` (+ `base`, `init(_:)`,
+`properties(context:)`, `updateTarget(_:context:)`), `PagingScrollTargetBehavior`
+(+ `init()`, `properties(context:)`, `updateTarget(_:context:)`), `ScrollTarget`
+(+ `rect`, `anchor`), `ScrollTargetBehaviorContext` (+ `axes`, `containerSize`,
+`contentSize`, `originalTarget`, `velocity`, `subscript(dynamicMember:)`),
+`ScrollTargetBehaviorProperties` (+ `init()`), `ScrollTargetBehaviorPropertiesContext`
+(+ `axes`, `environment`); and the two `renamed` map entries that point
+`ScrollTargetBehavior` and `ViewAlignedScrollTargetBehavior` at `ScrollGranularity`*
+
+SwiftUI calls a behaviour's `updateTarget(_:context:)` when a scroll gesture
+ends, with the rect it would come to rest on, and lets the behaviour move it:
+`.paging` rounds to a page, `.viewAligned` to the edge of a child of the
+`scrollTargetLayout()`. TUIkit's answer today is `ScrollGranularity` — a
+closed `.line`/`.row` choice for `List` and `Table` — and the map calls that a
+rename, so `.scrollTargetBehavior(.paging)` does not compile.
+
+A terminal's gestures end at every step: a wheel tick, a key, a scrollbar
+release. So the protocol maps cleanly — each step proposes its destination as
+a `ScrollTarget`, the behaviour adjusts it, the view lands there — with
+`velocity` the step's direction and rate (a `CellVector`, B-W10-5), and
+`.paging` turning every step into a page. `.viewAligned` needs the children's
+edges: `List` and `Table` have them (that is `ScrollGranularity.row`), a
+windowed `LazyVStack` knows its rows' offsets, an eager stack does not say.
+
+**Options.**
+
+1. **SwiftUI's model, staged.** The protocol and its types, custom behaviours,
+   and `.paging` on `ScrollView`, `List` and `Table` — about a day.
+   `.viewAligned` on `List`/`Table` over `ScrollGranularity.row` — half a day;
+   on a `ScrollView`'s windowed stack — a day, once the lane changing the
+   stack files has landed (the row edges come through the scroll window's
+   reply). `ScrollGranularity` stays as the TUI-specific `.line` knob.
+2. **Keep the rename.** Nothing to do; ported carousels and pagers do not
+   compile.
+
+**Recommendation:** 1. Paging and view-aligned scrolling are common in ported
+code, and the gesture model fits a terminal better than it first looks.
+
+### A-W10-2. Scroll visibility needs a way to find a view inside the scroll content
+
+*`View.onScrollVisibilityChange(threshold:_:)`,
+`View.onScrollTargetVisibilityChange(idType:threshold:_:)`*
+
+Measured in SwiftUI: every observed view reports once when it first appears —
+`true` or `false` — then at each crossing of the threshold (0.5 by default)
+of its fraction inside the scroll view's viewport; a view in no scroll view
+reports its visibility in the window; `onScrollTargetVisibilityChange` reports
+the ordered ids of the `scrollTargetLayout()` children past the threshold.
+
+A view does not know where it is until its ancestors composite it (the A2
+problem), so the scroll view has to find the observed views in its content
+after drawing it. That is A2's question in another form.
+
+**Options.**
+
+1. **Build on A2's G1 markers**, if you choose them: the observed view stamps a
+   marker, the nearest scroll view measures each marker against its viewport
+   (the root against the screen), fires on crossings, and fires `false` for a
+   marker that has vanished — a row windowed out of a lazy stack's band, which
+   has certainly left the viewport. About a day after G1.
+2. **Standalone**, if A2 goes another way: the same, with the marker carried as
+   a hit-test region from a reserved handler-id range that the mouse
+   dispatcher skips (regions already travel through every combinator and are
+   how the focus reveal finds a control). One more test per region in hit
+   testing, and the same day of work.
+3. **Approximate with appearance** (visible ⇔ drawn in a band): wrong for
+   eager content and for thresholds. I don't recommend it.
+
+`onScrollTargetVisibilityChange` also needs the target layout's children and
+their ids, which the stack files carry — the other lane's — so it lands after
+them either way. `scrollTransition` (deferred below) needs the same
+measurement.
+
+**Recommendation:** decide A2 first; then 1, or 2 if A2 does not choose markers.
+
+### A-W10-3. `ScrollAnchorRole.alignment`, and what the unlabelled anchor already means
+
+*`ScrollAnchorRole.alignment`*
+
+Measured in SwiftUI: a `ScrollView` whose content is shorter than its viewport
+places it by the alignment anchor — and the **unlabelled**
+`.defaultScrollAnchor(.bottom)` sets that role too, so three short rows sit at
+the bottom of the viewport (`for: .initialOffset` alone leaves them at the top).
+`List` ignores the role on macOS, unlabelled or not.
+
+TUIkit's unlabelled `.defaultScrollAnchor(.bottom)` keeps short content at the
+top, so a log or a chat with two lines in it draws differently from SwiftUI's
+today, and `.alignment` is absent (the compatibility doc calls it deferred, not
+refused).
+
+**Options.**
+
+1. **Parity:** the role on `ScrollView` (the content drawn at its own height,
+   placed in the viewport by the anchor's `y`, its hit regions moved with it),
+   and the unlabelled modifier setting it, as SwiftUI's does. `List` and
+   `Table` ignore it, as macOS's do. Half a day and a Stress selfcheck; it
+   changes the drawing of every app with a short bottom-anchored scroll view.
+2. **The role only:** `for: .alignment` works; the unlabelled modifier stays as
+   it is, a documented difference. Same cost, no existing drawing changes.
+3. **Leave it absent.**
+
+**Recommendation:** 1. A chat or log that starts at the bottom is what
+`.defaultScrollAnchor(.bottom)` is written for.
+
+### A-W10-4. `scrollContentBackground(_:)`: `.visible` has to paint something
+
+*`View.scrollContentBackground(_:)`*
+
+On macOS `List` and `Form` draw a background of their own, which `.hidden`
+removes, and a `ScrollView` draws none until `.visible` asks for one. TUIkit's
+scrollables draw no background of their own (a `List` paints row highlights,
+nothing behind them), so `.hidden` and `.automatic` are already true here, and
+SwiftUI's commonest use — `.scrollContentBackground(.hidden).background(…)` —
+would draw as it does there. `.visible` is the case with something to do, and
+the `Visibility` type is shared, so it cannot be left out on its own.
+
+**Options.**
+
+1. **Ship it:** `.visible` paints the palette's background behind a
+   `ScrollView`, `List`, `Table`, `Form` or `TextEditor` — the page's own
+   colour, which over a coloured container is what makes the scrollable
+   "opaque". About three hours across the five controls.
+2. **Leave it absent.** The `.hidden` idiom does not compile.
+
+**Recommendation:** 1.
+
+### A-W10-5. `scrollClipDisabled(_:)`: how much may draw outside the viewport?
+
+*`View.scrollClipDisabled(_:)`*
+
+SwiftUI stops clipping, and the content past the scroll view's bounds draws
+over whatever is beside it. Its documented uses are shadows and scaled items
+in a carousel. TUIkit clips a layer that is part of the content (an
+`.offset`, an overlay) to the viewport, and draws only the viewport's lines.
+
+**Options.**
+
+1. **Layers only:** stop clipping the content's floating layers. About an
+   hour, and partial: the content's own lines past the viewport still do not
+   draw.
+2. **Everything:** also draw the rendered content past the viewport as a
+   floating layer around it, over the neighbours, with its hit regions. About
+   a day; a lazy stack's band is what is drawn, as SwiftUI draws its nearby
+   rows.
+3. **Leave it absent until the pixel effects (Wave 16) decide shadows and
+   scaling**, the reasons the modifier exists.
+
+**Recommendation:** 3, then 2 if Wave 16 brings effects that reach past a
+view's frame.
+
+### A-W10-6. `scrollDismissesKeyboard(_:)` joins O8
+
+*`View.scrollDismissesKeyboard(_:)`, `ScrollDismissesKeyboardMode` (+ `.automatic`,
+`.immediately`, `.interactively`, `.never`),
+`EnvironmentValues.scrollDismissesKeyboardMode`*
+
+It is about the software keyboard, which macOS does not have either, so on
+macOS every mode is inert — exactly refusal-review O8's question. Under O8's
+recommended (b) it ships as a recorded, documented-inert value, as macOS's is;
+under (a) it is declined with `submitLabel`. Nothing to decide here apart from
+O8.
+
+### A-W10-7. The scroll edge effects join O7
+
+*`View.scrollEdgeEffectHidden(_:for:)`, `View.scrollEdgeEffectStyle(_:for:)`*
+
+They style content passing under a bar, and nothing passes under a bar here
+(B6). Refusal-review O7 already asks whether to ship them with the safe-area
+design; these two modifiers are that question's modifiers.
 
 ## B. Shipped the safe option
 
@@ -319,3 +492,16 @@ would rather SwiftUI code that reads or writes it compiled.
 
 The `ScrollView.Body` map entry claimed the property was public; it never
 was, and the entry now says so.
+
+## D. Deferred to other waves
+
+- **Scroll transitions** — `View.scrollTransition(_:axis:transition:)`,
+  `View.scrollTransition(topLeading:bottomTrailing:axis:transition:)`,
+  `ScrollTransitionPhase` (+ members), `ScrollTransitionConfiguration`
+  (+ `Threshold` and members). The transition closure takes and returns a
+  `VisualEffect`, which is Wave 12's. They also need each row's visible
+  fraction against the viewport, which is A-W10-2's measurement.
+- **Pinned section headers** — the `pinnedViews:` initializers of `LazyVStack`,
+  `LazyHStack`, `LazyVGrid` and `LazyHGrid`, and `PinnedScrollableViews`
+  (+ members). Left to the lane changing the stack initializers;
+  `SwiftUI-compatibility.md` §2.8 records what pinning needs.
