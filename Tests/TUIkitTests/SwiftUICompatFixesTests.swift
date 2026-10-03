@@ -166,6 +166,6 @@ struct SwiftUICompatFixesTests {
 /// A custom toggle style exercising ``ToggleStyle/makeBody(configuration:)``.
 private struct WordToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Text(configuration.isOn.wrappedValue ? "ON" : "OFF")
+        Text(configuration.isOn ? "ON" : "OFF")
     }
 }

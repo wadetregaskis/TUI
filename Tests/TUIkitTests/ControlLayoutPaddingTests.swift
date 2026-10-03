@@ -15,11 +15,13 @@ import Testing
 @MainActor
 @Suite("Toggle and ProgressView leave no bytes undefined in their common shapes")
 struct ControlLayoutPaddingTests {
-    @Test("A Toggle titled with a string: no padding, 208 → 194 bytes")
+    /// 195 since `Toggle(configuration)` (2026-10-03): its one-byte proxy flags
+    /// go last, after the binding, so they add a byte and no padding.
+    @Test("A Toggle titled with a string: no padding, 208 → 195 bytes")
     func toggle() {
         typealias Titled = Toggle<Text>
         #expect(interiorPadding(of: Titled.self).isEmpty, "\(interiorPadding(of: Titled.self))")
-        #expect(MemoryLayout<Titled>.size == 194)
+        #expect(MemoryLayout<Titled>.size == 195)
     }
 
     @Test("A ProgressView with no labels: no padding, 97 → 90 bytes")

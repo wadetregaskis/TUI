@@ -639,7 +639,7 @@ struct _ButtonAppearance: Equatable {
 ///
 /// - Important: Framework infrastructure. The built-in ``ButtonStyle`` types
 ///   return this from `makeBody`; it is never used directly.
-private struct _ButtonStyleBody: View, Renderable {
+struct _ButtonStyleBody: View, Renderable {
     /// The button being styled.
     let configuration: ButtonStyleConfiguration
 

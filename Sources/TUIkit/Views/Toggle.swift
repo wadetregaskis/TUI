@@ -98,12 +98,19 @@ extension ToggleStyle {
 /// hover / enabled flags, exactly as ``ButtonStyleConfiguration`` does, because
 /// toggle rendering is procedural.
 public struct ToggleStyleConfiguration {
-    /// The toggle's label, type-erased.
-    public let label: AnyView
+    /// A type-erased label of a toggle.
+    public typealias Label = AnyView
 
-    /// A binding to the toggle's on/off state. Read `isOn.wrappedValue`; write it
-    /// to flip the toggle.
-    public let isOn: Binding<Bool>
+    /// A view that describes the effect of switching the toggle between states.
+    public let label: Label
+
+    /// Whether the toggle is currently on — and, through `$isOn`, a binding to
+    /// it, as in SwiftUI: `configuration.isOn.toggle()` flips the toggle.
+    @Binding public var isOn: Bool
+
+    /// Whether the toggle is in a mixed state: one standing for several values
+    /// that disagree. `false` for a toggle bound to one value.
+    public var isMixed: Bool
 
     /// Whether the toggle currently holds keyboard focus. (Terminal-specific
     /// addition, like ``ButtonStyleConfiguration/isFocused``.)
@@ -114,6 +121,32 @@ public struct ToggleStyleConfiguration {
 
     /// Whether the toggle is enabled. (Terminal-specific.)
     public let isEnabled: Bool
+
+    init(
+        label: Label, isOn: Binding<Bool>, isMixed: Bool = false,
+        isFocused: Bool, isHovered: Bool, isEnabled: Bool
+    ) {
+        self.label = label
+        self._isOn = isOn
+        self.isMixed = isMixed
+        self.isFocused = isFocused
+        self.isHovered = isHovered
+        self.isEnabled = isEnabled
+    }
+}
+
+/// What a toggle built with ``Toggle/init(_:)`` was told about the toggle it
+/// draws for: that it is such a stand-in, and the state of the real one. One
+/// byte, so `Toggle` stays free of padding (`ControlLayoutPaddingTests`).
+struct ToggleProxy: OptionSet, Sendable {
+    let rawValue: UInt8
+
+    /// This toggle draws for another, which holds the focus, keys and click.
+    static let isProxy = Self(rawValue: 1 << 0)
+    static let isFocused = Self(rawValue: 1 << 1)
+    static let isHovered = Self(rawValue: 1 << 2)
+    static let isEnabled = Self(rawValue: 1 << 3)
+    static let isMixed = Self(rawValue: 1 << 4)
 }
 
 // MARK: - Built-in Toggle Styles
@@ -128,6 +161,11 @@ public struct ToggleStyleConfiguration {
 /// every instance styles a toggle identically.
 public struct DefaultToggleStyle: ToggleStyle, Equatable {
     public init() {}
+
+    /// The toggle in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Toggle(configuration).toggleStyle(self)
+    }
 }
 
 /// A toggle style that displays a checkbox followed by its label.
@@ -145,6 +183,11 @@ public struct DefaultToggleStyle: ToggleStyle, Equatable {
 /// entry that would have been good.
 public struct CheckboxToggleStyle: ToggleStyle, Equatable {
     public init() {}
+
+    /// The toggle in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Toggle(configuration).toggleStyle(self)
+    }
 }
 
 /// A toggle style that displays the toggle as a two-position switch.
@@ -163,9 +206,40 @@ public struct CheckboxToggleStyle: ToggleStyle, Equatable {
 /// for this one is a change, and the comparison's downcast is what says so.
 public struct SwitchToggleStyle: ToggleStyle, Equatable {
     public init() {}
+
+    /// The toggle in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Toggle(configuration).toggleStyle(self)
+    }
+}
+
+/// A toggle style that displays as a button with its label as the title: the
+/// bracketed button, drawn bold and in the accent colour while the toggle is on.
+public struct ButtonToggleStyle: ToggleStyle, Equatable {
+    /// Creates a button toggle style.
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        // Bold as well as accented while on: a view label takes the colour of
+        // the prominent appearance but not its weight, and colour alone is a
+        // faint way to say a button is pressed in.
+        _ButtonStyleBody(
+            configuration: ButtonStyleConfiguration(
+                title: "",
+                labelView: configuration.isOn ? AnyView(configuration.label.bold()) : configuration.label,
+                role: nil, isPressed: false,
+                isFocused: configuration.isFocused, isHovered: configuration.isHovered,
+                isEnabled: configuration.isEnabled, keyboardShortcut: nil),
+            appearance: configuration.isOn ? .primary : .default)
+    }
 }
 
 // MARK: - ToggleStyle Static Extensions
+
+extension ToggleStyle where Self == ButtonToggleStyle {
+    /// A toggle style that displays as a button with its label as the title.
+    public static var button: ButtonToggleStyle { ButtonToggleStyle() }
+}
 
 extension ToggleStyle where Self == DefaultToggleStyle {
     /// The default toggle style.
@@ -187,18 +261,61 @@ extension ToggleStyle where Self == SwitchToggleStyle {
 
 // MARK: - Environment Key
 
+/// The toggle style in force, and the one in force where it was set — which is
+/// what a custom style's body draws ``Toggle/init(_:)`` with, so a style that
+/// decorates the current toggle gets the toggle it was applied over rather than
+/// itself again.
+struct ToggleStyleEntry: Equatable, Sendable {
+    let style: any ToggleStyle
+    let outer: Box?
+
+    /// The outer entry, boxed because a struct cannot hold itself.
+    final class Box: Equatable, Sendable {
+        let entry: ToggleStyleEntry
+
+        init(_ entry: ToggleStyleEntry) {
+            self.entry = entry
+        }
+
+        static func == (lhs: Box, rhs: Box) -> Bool {
+            lhs === rhs || lhs.entry == rhs.entry
+        }
+    }
+
+    init(style: any ToggleStyle, outer: Self?) {
+        self.style = style
+        self.outer = outer.map(Box.init)
+    }
+
+    /// Equal when both styles are `Equatable`, of one type, and equal, and so
+    /// are the entries outside them; see ``ToggleStyle`` on why that matters.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        guard let left = lhs.style as? any Equatable, left.isEqual(to: rhs.style) else { return false }
+        return lhs.outer == rhs.outer
+    }
+}
+
 /// Environment key for toggle style.
 private struct ToggleStyleKey: EnvironmentKey {
-    static let defaultValue: any ToggleStyle = DefaultToggleStyle()
+    static let defaultValue = ToggleStyleEntry(style: DefaultToggleStyle(), outer: nil)
 }
 
 extension EnvironmentValues {
     /// The toggle style for this environment.
     ///
+    /// Setting it puts a style in force over the one before, which a custom
+    /// style's ``Toggle/init(_:)`` then draws with.
+    ///
     /// The render cache compares this value between frames to decide whether
     /// what it memoized below is still good, so a style that is not `Equatable`
     /// turns memoization off in its subtree — see ``ToggleStyle``.
     public var toggleStyle: any ToggleStyle {
+        get { self[ToggleStyleKey.self].style }
+        set { self[ToggleStyleKey.self] = ToggleStyleEntry(style: newValue, outer: self[ToggleStyleKey.self]) }
+    }
+
+    /// The whole chain: the style in force and the ones outside it.
+    var toggleStyleEntry: ToggleStyleEntry {
         get { self[ToggleStyleKey.self] }
         set { self[ToggleStyleKey.self] = newValue }
     }
@@ -323,14 +440,57 @@ public struct Toggle<Label: View>: View {
     /// The binding to the toggle's boolean state.
     let isOn: Binding<Bool>
 
+    /// Set by ``init(_:)``: this toggle only draws, for the one whose style's
+    /// body it is in. Last, and one byte, so the layout above keeps no padding.
+    var proxy: ToggleProxy = []
+
     public var body: some View {
         _ToggleCore(
             focusID: focusID,
             content: content,
             label: label,
             isDisabled: isDisabled,
-            isOn: isOn
+            isOn: isOn,
+            proxy: proxy
         )
+    }
+}
+
+// MARK: - Toggle Initializer (Configuration)
+
+extension Toggle where Label == ToggleStyleConfiguration.Label {
+    /// Creates a toggle based on a toggle style configuration.
+    ///
+    /// Use it inside a ``ToggleStyle``'s ``ToggleStyle/makeBody(configuration:)``
+    /// to draw the toggle the style was applied over — the style in force
+    /// outside it, not the style itself — and add to it:
+    ///
+    /// ```swift
+    /// struct RedBorderToggleStyle: ToggleStyle {
+    ///     func makeBody(configuration: Configuration) -> some View {
+    ///         Toggle(configuration)
+    ///             .border(.red)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// It draws the toggle as the configuration describes it — on or off,
+    /// focused or not — and takes no focus, keys or click of its own: those
+    /// belong to the toggle whose style this is, which is still one control.
+    ///
+    /// - Parameter configuration: The properties of the toggle being styled.
+    public init(_ configuration: ToggleStyleConfiguration) {
+        self.isOn = configuration.$isOn
+        self.label = configuration.label
+        self.focusID = nil
+        self.isDisabled = !configuration.isEnabled
+        self.content = nil
+        var proxy: ToggleProxy = [.isProxy]
+        if configuration.isFocused { proxy.insert(.isFocused) }
+        if configuration.isHovered { proxy.insert(.isHovered) }
+        if configuration.isEnabled { proxy.insert(.isEnabled) }
+        if configuration.isMixed { proxy.insert(.isMixed) }
+        self.proxy = proxy
     }
 }
 

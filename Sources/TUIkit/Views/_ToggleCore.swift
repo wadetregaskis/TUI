@@ -66,6 +66,10 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     let isDisabled: Bool
     let isOn: Binding<Bool>
 
+    /// Set for a toggle built by ``Toggle/init(_:)``: draw only, in the state
+    /// given, and register nothing — see ``ToggleProxy``.
+    var proxy: ToggleProxy = []
+
     var body: Never {
         fatalError("_ToggleCore renders via Renderable")
     }
@@ -630,6 +634,72 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         context.withChildIdentity(erasedType: Label.self, index: ChildIndex.menuRow)
     }
 
+    /// What this toggle's focus and pointer state is, registering it with the
+    /// focus system as it goes — or, for a stand-in, what it was told.
+    private struct Interaction {
+        let isProxy: Bool
+        let focusID: String
+        let isFocused: Bool
+        let hoverBox: StateBox<Bool>
+        let isHovered: Bool
+    }
+
+    @MainActor
+    private func interactionState(isDisabled: Bool, context: RenderContext) -> Interaction {
+        // A stand-in drawn by a custom style's body (``Toggle/init(_:)``) has
+        // the real toggle's state handed to it and registers nothing: the focus,
+        // the keys and the click are the real toggle's, and one control must be
+        // one focus stop.
+        let isProxy = proxy.contains(.isProxy)
+        let persistedFocusID: String
+        let isFocused: Bool
+        let hoverBox: StateBox<Bool>
+        let isHovered: Bool
+        let stateStorage = context.stateStorage!
+        if isProxy {
+            persistedFocusID = ""
+            isFocused = proxy.contains(.isFocused)
+            hoverBox = StateBox(false)
+            isHovered = proxy.contains(.isHovered)
+        } else {
+            persistedFocusID = FocusRegistration.persistFocusID(
+                context: context,
+                explicitFocusID: focusID,
+                defaultPrefix: "toggle",
+                propertyIndex: StateIndex.focusID
+            )
+            let binding = isOn
+            let handler = ActionHandler(
+                focusID: persistedFocusID,
+                action: { binding.wrappedValue.toggle() },
+                canBeFocused: !isDisabled
+            )
+            FocusRegistration.register(
+                context: context, handler: handler, focusID: persistedFocusID)
+            // Drawing only — see `RenderContext.indicatesFocus(_:)`. Space still
+            // flips it.
+            isFocused = context.indicatesFocus(
+                FocusRegistration.isFocused(context: context, focusID: persistedFocusID))
+            FocusRegistration.publishActivationLabel(
+                LocalizationService.shared.string(for: LocalizationKey.StatusBar.toggle),
+                context: context, isFocused: isFocused)
+
+            // Hover state — flipped by the dispatcher on .entered / .exited events
+            // synthesised from motion. Not suppressed by focus: the two say
+            // different things (where the keyboard is, where the mouse is) and the
+            // toggle answers them in different ink — the brackets pulse for focus,
+            // the label and the mark lift for the pointer. Suppressed when
+            // disabled, which has nothing to answer with.
+            let hoverKey = StateStorage.StateKey(
+                identity: context.identity, propertyIndex: StateIndex.isHovered)
+            hoverBox = stateStorage.storage(for: hoverKey, default: false)
+            isHovered = !isDisabled && hoverBox.value
+        }
+        return Interaction(
+            isProxy: isProxy, focusID: persistedFocusID, isFocused: isFocused,
+            hoverBox: hoverBox, isHovered: isHovered)
+    }
+
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if context.environment.menuRowSink != nil {
             return TUIkitView.renderToBuffer(
@@ -637,42 +707,12 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         }
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let palette = context.environment.palette
-        let stateStorage = context.stateStorage!
 
-        let persistedFocusID = FocusRegistration.persistFocusID(
-            context: context,
-            explicitFocusID: focusID,
-            defaultPrefix: "toggle",
-            propertyIndex: StateIndex.focusID
-        )
-        let binding = isOn
-        let handler = ActionHandler(
-            focusID: persistedFocusID,
-            action: { binding.wrappedValue.toggle() },
-            canBeFocused: !isDisabled
-        )
-        FocusRegistration.register(
-            context: context, handler: handler, focusID: persistedFocusID)
-        // Drawing only — see `RenderContext.indicatesFocus(_:)`. Space still
-        // flips it.
-        let isFocused = context.indicatesFocus(
-            FocusRegistration.isFocused(context: context, focusID: persistedFocusID))
-        FocusRegistration.publishActivationLabel(
-            LocalizationService.shared.string(for: LocalizationKey.StatusBar.toggle),
-            context: context, isFocused: isFocused)
+        let interaction = interactionState(isDisabled: isDisabled, context: context)
+        let (isProxy, persistedFocusID, isFocused, hoverBox, isHovered) = (
+            interaction.isProxy, interaction.focusID, interaction.isFocused,
+            interaction.hoverBox, interaction.isHovered)
         let isOnValue = isOn.wrappedValue
-
-        // Hover state — flipped by the dispatcher on .entered / .exited events
-        // synthesised from motion. Not suppressed by focus: the two say
-        // different things (where the keyboard is, where the mouse is) and the
-        // toggle answers them in different ink — the brackets pulse for focus,
-        // the label and the mark lift for the pointer. Suppressed when
-        // disabled, which has nothing to answer with.
-        let hoverKey = StateStorage.StateKey(
-            identity: context.identity, propertyIndex: StateIndex.isHovered)
-        let hoverBox: StateBox<Bool> = stateStorage.storage(
-            for: hoverKey, default: false)
-        let isHovered = !isDisabled && hoverBox.value
 
         // The built-in styles render procedurally (focus glow + `ToggleCharacterSet`
         // glyphs); a custom `ToggleStyle` renders through its `makeBody`. Either
@@ -728,10 +768,18 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             let configuration = ToggleStyleConfiguration(
                 label: AnyView(label),
                 isOn: isOn,
+                isMixed: proxy.contains(.isMixed),
                 isFocused: isFocused && !isDisabled,
                 isHovered: isHovered,
                 isEnabled: !isDisabled)
-            buffer = toggleStyle.makeBuffer(configuration: configuration, context: context)
+            // The body sees the style that was in force where this one was set,
+            // so a `Toggle(configuration)` in it draws the toggle this style was
+            // applied over rather than recursing into this style again.
+            var bodyContext = context
+            if let outer = context.environment.toggleStyleEntry.outer?.entry {
+                bodyContext.environment.toggleStyleEntry = outer
+            }
+            buffer = toggleStyle.makeBuffer(configuration: configuration, context: bodyContext)
             clickWidth = buffer.width
             clickHeight = buffer.height
             // A custom style draws its own indicator — there is nothing here to
@@ -756,10 +804,12 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                         erasedType: AnyView.self, index: ChildIndex.governedContent)))
         }
 
-        registerPointer(
-            on: &buffer, focusID: persistedFocusID, hoverBox: hoverBox,
-            clickWidth: clickWidth, clickHeight: clickHeight, isDisabled: isDisabled,
-            context: context)
+        if !isProxy {
+            registerPointer(
+                on: &buffer, focusID: persistedFocusID, hoverBox: hoverBox,
+                clickWidth: clickWidth, clickHeight: clickHeight, isDisabled: isDisabled,
+                context: context)
+        }
 
         return buffer
     }
