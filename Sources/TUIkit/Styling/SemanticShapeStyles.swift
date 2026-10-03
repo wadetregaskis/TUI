@@ -126,6 +126,22 @@ public struct HierarchicalShapeStyle: ShapeStyle, Equatable {
     static let opacities: [Double] = [1, 0.5, 0.26, 0.1, 0.05]
 }
 
+// SwiftUI declares the five on the type as well as on `ShapeStyle`: these are
+// what `HierarchicalShapeStyle.secondary` names, and the ones below are what a
+// leading dot finds where a generic style is expected.
+extension HierarchicalShapeStyle {
+    /// A shape style that maps to the first level of the current content style.
+    public static let primary = HierarchicalShapeStyle(level: 0)
+    /// A shape style that maps to the second level of the current content style.
+    public static let secondary = HierarchicalShapeStyle(level: 1)
+    /// A shape style that maps to the third level of the current content style.
+    public static let tertiary = HierarchicalShapeStyle(level: 2)
+    /// A shape style that maps to the fourth level of the current content style.
+    public static let quaternary = HierarchicalShapeStyle(level: 3)
+    /// A shape style that maps to the fifth level of the current content style.
+    public static let quinary = HierarchicalShapeStyle(level: 4)
+}
+
 extension ShapeStyle where Self == HierarchicalShapeStyle {
     /// A shape style that maps to the first level of the current content style.
     public static var primary: HierarchicalShapeStyle { HierarchicalShapeStyle(level: 0) }

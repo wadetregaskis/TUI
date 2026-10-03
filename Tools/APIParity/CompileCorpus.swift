@@ -357,6 +357,7 @@ private struct SemanticShapeStyleShapes: View {
             HStack { Text("c") }.foregroundStyle(.red.secondary)
             HStack { Text("d") }.foregroundStyle(.primary, .secondary, .quinary)
             Color.clear.background(.selection)
+            HStack { Text("e") }.foregroundStyle(HierarchicalShapeStyle.secondary)
         }
         .foregroundStyle(.foreground)
     }
