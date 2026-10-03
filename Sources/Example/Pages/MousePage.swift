@@ -159,15 +159,15 @@ struct MousePage: View {
                         .foregroundStyle(.palette.accent)
                         .padding(EdgeInsets(horizontal: 2, vertical: 0))
                         .border(.palette.border)
-                        .onTapGesture { x, y in
+                        .onTapGesture { cell in
                             tapCount += 1
                             // Coordinates are local but the box's own
                             // border + padding mean the reported x/y
                             // can range up to the buffer's full width/
                             // height. Clamp to the visible interior so
                             // the readout is intuitive.
-                            let cx = max(0, min(tapBoxWidth - 1, x))
-                            let cy = max(0, min(tapBoxHeight - 1, y))
+                            let cx = max(0, min(tapBoxWidth - 1, cell.x))
+                            let cy = max(0, min(tapBoxHeight - 1, cell.y))
                             lastTapAt = "(\(cx), \(cy))"
                         }
                     HStack(spacing: 2) {

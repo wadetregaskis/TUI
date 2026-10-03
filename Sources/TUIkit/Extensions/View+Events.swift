@@ -122,36 +122,6 @@ extension View {
         OnMouseEventModifier(content: self, handler: handler)
     }
 
-    /// Adds an action that fires on a left-click inside this view.
-    ///
-    /// Equivalent to listening for a `.released` event of the left
-    /// button after a matching `.pressed` event on the same view.
-    /// The action receives the absolute screen position of the click.
-    ///
-    /// ```swift
-    /// Text("Click me")
-    ///     .onTapGesture { _ in clicked() }
-    /// ```
-    ///
-    /// - Parameter action: The action to run on click. Receives the
-    ///   `(x, y)` of the release.
-    /// - Returns: A view that consumes left-click releases.
-    public func onTapGesture(_ action: @escaping (_ x: Int, _ y: Int) -> Void) -> some View {
-        onMouseEvent { event in
-            if event.button == .left, event.phase == .released {
-                action(event.x, event.y)
-                return true
-            }
-            // Still claim the press so the dispatcher routes the
-            // release back to us even if the cursor moves off-view
-            // during the drag.
-            if event.button == .left, event.phase == .pressed {
-                return true
-            }
-            return false
-        }
-    }
-
     /// Adds an action that fires when this view is tapped `count` times in quick
     /// succession — e.g. `count: 2` for a double-click.
     ///

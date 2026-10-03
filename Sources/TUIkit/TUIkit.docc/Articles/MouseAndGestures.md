@@ -44,8 +44,14 @@ High-level gesture modifiers cover the common cases:
 
 ```swift
 Text("Click me")
-    .onTapGesture { x, y in
-        // a left-click release at terminal cell (x, y)
+    .onTapGesture {
+        // a left-click release on the view
+    }
+
+Text("Click me")
+    .onTapGesture { cell in
+        // the same, given the cell it landed on: cell.x, cell.y in the
+        // view's own cells, or the terminal's with coordinateSpace: .global
     }
 
 Text("Double-click me")

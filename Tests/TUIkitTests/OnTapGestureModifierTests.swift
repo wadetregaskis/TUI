@@ -9,7 +9,7 @@ import Testing
 @testable import TUIkit
 @testable import TUIkitCore
 
-/// Tests for the `.onTapGesture(_:)` modifier.
+/// Tests for the located `.onTapGesture { cell in … }` modifier.
 ///
 /// A tap is a left-button press followed by a release. The modifier is
 /// built on `.onMouseEvent`: it claims the press (so the release routes
@@ -45,7 +45,7 @@ struct OnTapGestureModifierTests {
     func pressReleaseFiresTap() {
         let ctx = context()
         let recorder = Recorder()
-        let view = Text("btn").onTapGesture { x, y in recorder.taps.append((x, y)) }
+        let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
         let (region, dispatcher) = regionAndDispatcher(view, ctx)
 
         _ = dispatcher.dispatch(
@@ -65,7 +65,7 @@ struct OnTapGestureModifierTests {
     func releaseOutsideStillTaps() {
         let ctx = context()
         let recorder = Recorder()
-        let view = Text("btn").onTapGesture { x, y in recorder.taps.append((x, y)) }
+        let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
         let (region, dispatcher) = regionAndDispatcher(view, ctx)
 
         _ = dispatcher.dispatch(
@@ -83,7 +83,7 @@ struct OnTapGestureModifierTests {
     func rightClickIgnored() {
         let ctx = context()
         let recorder = Recorder()
-        let view = Text("btn").onTapGesture { x, y in recorder.taps.append((x, y)) }
+        let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
         let (region, dispatcher) = regionAndDispatcher(view, ctx)
 
         _ = dispatcher.dispatch(

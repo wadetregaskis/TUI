@@ -576,7 +576,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
             // glyph is padded to keep the column it had.
             glyph
                 .padding(.leading, BorderRenderer.focusIndicatorWidth)
-                .onTapGesture { _, _ in toggle() }
+                .onTapGesture { toggle() }
         } else {
             Button(action: toggle, label: { glyph })
                 .buttonStyle(.borderless)

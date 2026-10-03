@@ -1069,7 +1069,7 @@ extension MouseEventDispatcher {
     ///
     /// Not done for the handler, on the release of any consumed double-click,
     /// because only the handler knows whether the gesture was spent — and an
-    /// automatic reset would put ``View/onTapGesture(count:_:)``
+    /// automatic reset would put ``View/onTapGesture(count:perform:)``
     /// with a count of three out of reach, its third click always arriving as
     /// the first of a new sequence.
     func endMultiClickSequence() {
