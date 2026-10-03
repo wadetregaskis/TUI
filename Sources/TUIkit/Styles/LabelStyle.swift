@@ -122,16 +122,37 @@ public struct DefaultLabelStyle: LabelStyle, Equatable {
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
+        _IconAndTitle(configuration: configuration)
+    }
+}
+
+/// The icon, a gap, then the title — the default style's arrangement, with the
+/// gap and the icon's reserved width read from the environment
+/// (``View/labelIconToTitleSpacing(_:)``, ``View/labelReservedIconWidth(_:)``).
+private struct _IconAndTitle: View {
+    let configuration: LabelStyleConfiguration
+    @Environment(\.labelIconToTitleSpacing) private var spacing
+    @Environment(\.labelReservedIconWidth) private var reservedIconWidth
+
+    @ViewBuilder var body: some View {
         if configuration.iconIsVisible {
-            HStack(spacing: 1) {
-                configuration.icon
-                    .underline(false)
-                    .strikethrough(false)
+            HStack(spacing: max(0, spacing)) {
+                if let reservedIconWidth {
+                    icon.frame(width: max(0, reservedIconWidth), alignment: .leading)
+                } else {
+                    icon
+                }
                 configuration.title
             }
         } else {
             configuration.title
         }
+    }
+
+    private var icon: some View {
+        configuration.icon
+            .underline(false)
+            .strikethrough(false)
     }
 }
 
@@ -260,5 +281,51 @@ extension View {
     /// - Returns: A view whose labels use the specified style.
     public func labelStyle<S: LabelStyle>(_ style: S) -> some View {
         environment(\.labelStyle, style)
+    }
+}
+
+// MARK: - Spacing
+
+private struct LabelIconToTitleSpacingKey: EnvironmentKey {
+    static let defaultValue = 1
+}
+
+private struct LabelReservedIconWidthKey: EnvironmentKey {
+    static let defaultValue: Int? = nil
+}
+
+extension EnvironmentValues {
+    /// The gap, in cells, between a label's icon and its title — one unless
+    /// something sets it.
+    public var labelIconToTitleSpacing: Int {
+        get { self[LabelIconToTitleSpacingKey.self] }
+        set { self[LabelIconToTitleSpacingKey.self] = newValue }
+    }
+
+    /// The width, in cells, reserved for a label's icon, or `nil` for the
+    /// icon's own width.
+    public var labelReservedIconWidth: Int? {
+        get { self[LabelReservedIconWidthKey.self] }
+        set { self[LabelReservedIconWidthKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Sets the spacing between the icon and title in labels.
+    ///
+    /// - Parameter spacing: The gap, in cells — TUIkit measures in whole cells
+    ///   where SwiftUI measures in points.
+    /// - Returns: A view whose labels use `spacing`.
+    public func labelIconToTitleSpacing(_ spacing: Int) -> some View {
+        environment(\.labelIconToTitleSpacing, spacing)
+    }
+
+    /// Sets the width reserved for icons in labels, so that titles beside
+    /// icons of different widths line up.
+    ///
+    /// - Parameter value: The width, in cells, the icon is placed in, leading.
+    /// - Returns: A view whose labels reserve `value` cells for their icons.
+    public func labelReservedIconWidth(_ value: Int) -> some View {
+        environment(\.labelReservedIconWidth, value)
     }
 }

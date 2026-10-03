@@ -91,3 +91,33 @@ struct LabeledContentStyleTests {
                 "inside, the title-only style that was in force outside")
     }
 }
+
+@MainActor
+@Suite("Label spacing")
+struct LabelSpacingTests {
+    private func line<V: View>(_ view: V) -> String {
+        renderToBuffer(view, context: makeRenderContext(width: 24, height: 1))
+            .lines.first?.stripped.replacingOccurrences(of: #" +$"#, with: "", options: .regularExpression) ?? ""
+    }
+
+    private func titleColumn(_ drawn: String) -> Int? {
+        drawn.range(of: "Star").map { drawn[..<$0.lowerBound].count }
+    }
+
+    @Test("The gap between icon and title is one cell unless set")
+    func spacing() {
+        let label = Label { Text("Star") } icon: { Text("*") }
+        #expect(line(label) == "* Star")
+        #expect(line(label.labelIconToTitleSpacing(3)) == "*   Star")
+        #expect(line(label.labelIconToTitleSpacing(0)) == "*Star")
+    }
+
+    @Test("A reserved icon width lines titles up beside icons of different widths")
+    func reservedWidth() {
+        let narrow = Label { Text("Star") } icon: { Text("*") }
+        let wide = Label { Text("Star") } icon: { Text("**") }
+        #expect(titleColumn(line(narrow.labelReservedIconWidth(3)))
+            == titleColumn(line(wide.labelReservedIconWidth(3))))
+        #expect(titleColumn(line(narrow)) != titleColumn(line(wide)))
+    }
+}
