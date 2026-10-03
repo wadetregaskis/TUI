@@ -606,6 +606,28 @@ and again even under `.disabled`. Telling a repeat from a fresh press needs
 the kitty keyboard protocol's repeat and release events (A4); with A4, this
 becomes exact.
 
+### B13. A segmented picker's segments are each a focus stop
+
+*`SegmentedPickerStyle` / `.segmented`, `PalettePickerStyle` / `.palette`,
+`PaletteSelectionEffect`, `View.paletteSelectionEffect(_:)`*
+
+**Shipped:** the options side by side as touching bordered buttons, the
+selected one bordered-prominent — `ControlGroup`'s strip, and the look a
+group of buttons already has here. Tab walks the segments and Return, Space or
+a click picks one. A palette lays out the same way, its marking set by the
+selection effect.
+
+**What differs:** a macOS segmented control is one focus stop whose segments
+the arrow keys walk. Here each segment is a stop, so Tab takes as many presses
+to cross a segmented picker as it has options.
+
+**The fuller version** draws the strip as one control — `▐ S │ M │ L ▌` on
+one face, the selected segment in the accent — and keys it as the horizontal
+radio group already is: one stop, Left and Right moving within it, Return
+choosing (or choosing as the arrows move, as macOS does for a single-choice
+segmented control). The radio group's handler is that model already; the
+work is the drawing, about half a day.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`

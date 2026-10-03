@@ -255,7 +255,14 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// this is an `HStack(spacing: 0)`.
     @ViewBuilder private var pickerBody: some View {
         let entries = resolvedEntries()
-        if pickerStyle.resolvesToMenu {
+        if pickerStyle.resolvesToSegments {
+            HStack(alignment: .top, spacing: 0) {
+                _CollapsingLabel(label: label, controlDisabled: isDisabled)
+                _PickerSegments(
+                    entries: entries, selection: selection, isPalette: pickerStyle is PalettePickerStyle)
+                    .disabled(isDisabled)
+            }
+        } else if pickerStyle.resolvesToMenu {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: isDisabled)
                 _PickerMenuCore(
