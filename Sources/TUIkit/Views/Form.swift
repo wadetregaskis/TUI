@@ -480,18 +480,29 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         // edge buttons right-align to; in grouped it's the shared box width.
         let contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
 
-        return AnyView(
-            VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
-                ForEach(_indexed(elements)) { entry in
-                    if grouped {
-                        groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth)
-                    } else {
-                        columnsElementView(
-                            entry.value, pillar: pillar, contentWidth: contentWidth,
-                            isFirst: entry.id == 0)
-                    }
+        let column = VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
+            ForEach(_indexed(elements)) { entry in
+                if grouped {
+                    groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth)
+                } else {
+                    columnsElementView(
+                        entry.value, pillar: pillar, contentWidth: contentWidth,
+                        isFirst: entry.id == 0)
                 }
-            })
+            }
+        }
+        // A grouped form is a scroll view on macOS, and takes `contentMargins`
+        // as one does (measured): around its sections, and not passed on to
+        // them. TUIkit's form does not scroll, so they are its padding. A
+        // columns form ignores them, as macOS's does.
+        let margins = context.environment.contentMargins
+        if grouped, !margins.isEmpty, !margins.content.isZero {
+            return AnyView(
+                column
+                    .transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
+                    .padding(margins.content))
+        }
+        return AnyView(column)
     }
 
     /// The shared pillar: the widest field label across every row (sections

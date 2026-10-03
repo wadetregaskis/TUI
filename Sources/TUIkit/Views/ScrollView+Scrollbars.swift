@@ -92,12 +92,18 @@ extension _ScrollViewCore {
         let heightens =
             proposal.height == nil && mayDrawHorizontalBar && content.height < context.availableHeight
         guard widens || heightens else { return content }
+        // A bar's indicator margin across its axis is part of what it adds.
+        let indicatorMargins = indicatorMargins(context)
         let viewportWidth =
             proposal.width
-            ?? min(content.width + (mayDrawVerticalBar ? 1 : 0), context.availableWidth)
+            ?? min(
+                content.width + (mayDrawVerticalBar ? 1 + indicatorMargins.trailing : 0),
+                context.availableWidth)
         let viewportHeight =
             proposal.height
-            ?? min(content.height + (mayDrawHorizontalBar ? 1 : 0), context.availableHeight)
+            ?? min(
+                content.height + (mayDrawHorizontalBar ? 1 + indicatorMargins.bottom : 0),
+                context.availableHeight)
         let bars: (vertical: Bool, horizontal: Bool)
         if wantsHorizontal {
             let resolved = resolveScrollbars(
@@ -184,7 +190,7 @@ extension _ScrollViewCore {
     /// viewport for its column (the viewport still wins everywhere else).
     @MainActor
     func attachScrollbarMouseHandler(
-        to buffer: inout FrameBuffer, contentWidth: Int,
+        to buffer: inout FrameBuffer, contentWidth: Int, margins: EdgeInsets = EdgeInsets(),
         handler: ScrollViewHandler, focusID persistedFocusID: String, context: RenderContext
     ) {
         guard !context.isMeasuring,
@@ -193,8 +199,10 @@ extension _ScrollViewCore {
         else { return }
         // The bar's arrows and thumb answer the pointer, which needs motion.
         mouseDispatcher.requestFeature(.motion, in: context)
+        // The bar's own rows: the column less its indicator margins.
+        let span = verticalBarSpan(rows: buffer.height, margins: margins)
         let barHandler = ScrollbarRenderer.verticalMouseHandler(
-            for: handler, length: buffer.height,
+            for: handler, length: span.length,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
             behavior: context.environment.scrollbarClickBehavior)
@@ -205,7 +213,7 @@ extension _ScrollViewCore {
                 focusManager: context.environment.focusManager))
         buffer.hitTestRegions.insert(
             HitTestRegion(
-                offsetX: contentWidth, offsetY: 0, width: 1, height: buffer.height,
+                offsetX: contentWidth, offsetY: span.top, width: 1, height: span.length,
                 handlerID: barHandlerID),
             at: 0
         )
@@ -267,7 +275,7 @@ extension _ScrollViewCore {
     /// inert. A distinct repeat token lets both axes auto-repeat independently.
     @MainActor
     func attachHorizontalScrollbarMouseHandler(
-        to buffer: inout FrameBuffer, contentWidth: Int,
+        to buffer: inout FrameBuffer, contentWidth: Int, margins: EdgeInsets = EdgeInsets(),
         handler: ScrollViewHandler, focusID persistedFocusID: String, context: RenderContext
     ) {
         guard !context.isMeasuring,
@@ -275,8 +283,10 @@ extension _ScrollViewCore {
               !isDisabled(in: context)
         else { return }
         mouseDispatcher.requestFeature(.motion, in: context)
+        // The bar's own columns, and its row: above the bottom margin.
+        let span = horizontalBarSpan(contentWidth: contentWidth, margins: margins)
         let barHandler = ScrollbarRenderer.horizontalMouseHandler(
-            for: handler.horizontal, length: contentWidth,
+            for: handler.horizontal, length: span.length,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
             behavior: context.environment.scrollbarClickBehavior)
@@ -287,8 +297,8 @@ extension _ScrollViewCore {
                 focusManager: context.environment.focusManager))
         buffer.hitTestRegions.insert(
             HitTestRegion(
-                offsetX: 0, offsetY: max(0, buffer.height - 1), width: contentWidth, height: 1,
-                handlerID: barHandlerID),
+                offsetX: span.leading, offsetY: max(0, buffer.height - 1 - margins.bottom),
+                width: span.length, height: 1, handlerID: barHandlerID),
             at: 0
         )
         ScrollbarRenderer.driveAutoRepeat(
@@ -302,11 +312,16 @@ extension _ScrollViewCore {
     /// content's hit-test regions sit at `x < contentWidth`, so the appended
     /// column never disturbs them.
     func appendVerticalScrollbar(
-        to buffer: FrameBuffer, contentWidth: Int,
+        to buffer: FrameBuffer, contentWidth: Int, margins: EdgeInsets = EdgeInsets(),
         handler: ScrollViewHandler, isFocused: Bool, context: RenderContext
     ) -> FrameBuffer {
-        let height = buffer.height
-        guard height > 0 else { return buffer }
+        let rows = buffer.height
+        guard rows > 0 else { return buffer }
+        // Under indicator margins the bar is shorter than the column it sits
+        // in, and starts below the top margin; the rows either side of it and
+        // the trailing margin's columns are blank.
+        let span = verticalBarSpan(rows: rows, margins: margins)
+        let height = span.length
         let palette = context.environment.palette
         // The same hovered cell the draw lifts. The runs REPLACE those cells
         // from the first tick, so a pulse that does not know about the
@@ -363,23 +378,27 @@ extension _ScrollViewCore {
         // at is the fallback, not the rule.
         let uniformPad = buffer.linesAreUniformWidth ? max(0, contentWidth - buffer.width) : nil
         let lineWidths = buffer.lineWidths
-        for index in 0..<height {
+        let trailing = String(repeating: " ", count: margins.trailing)
+        for index in 0..<rows {
             let content = index < lines.count ? lines[index] : ""
             let known: Int? =
                 index < lines.count
                 ? (uniformPad ?? lineWidths.map { max(0, contentWidth - $0[index]) })
                 : contentWidth
             let pad = known ?? max(0, contentWidth - content.strippedLength)
-            lines[index] = content + String(repeating: " ", count: pad) + bar.lines[index]
+            let barRow = index - span.top
+            let cell = barRow >= 0 && barRow < height ? bar.lines[barRow] : " "
+            lines[index] = content + String(repeating: " ", count: pad) + cell + trailing
         }
-        var result = buffer.replacingLines(lines, width: contentWidth + 1, uniformWidth: true)
-        result.opacityRegions += bar.claims(atColumn: contentWidth)
+        var result = buffer.replacingLines(
+            lines, width: contentWidth + 1 + margins.trailing, uniformWidth: true)
+        result.opacityRegions += bar.claims(atColumn: contentWidth, row: span.top)
         // The bar's own cells, handed to the run loop. Its column is the last
         // one — the content was padded out to `contentWidth` above — and only
         // the rows that actually change earn a run, so a tall bar does not
         // repaint its whole length to move a two-cell thumb.
         if !context.isMeasuring, pulse != nil {
-            result.animatedCells += memo.runs.map { $0.shifted(byX: contentWidth, y: 0) }
+            result.animatedCells += memo.runs.map { $0.shifted(byX: contentWidth, y: span.top) }
         }
         return result
     }
@@ -388,11 +407,15 @@ extension _ScrollViewCore {
     /// vertical bar is also present, a track-styled corner cell fills the
     /// bottom-right where the two meet.
     func appendHorizontalScrollbar(
-        to buffer: FrameBuffer, contentWidth: Int, hasVerticalBar: Bool,
-        handler: ScrollViewHandler, isFocused: Bool, context: RenderContext
+        to buffer: FrameBuffer, contentWidth: Int, margins: EdgeInsets = EdgeInsets(),
+        hasVerticalBar: Bool, handler: ScrollViewHandler, isFocused: Bool, context: RenderContext
     ) -> FrameBuffer {
         let palette = context.environment.palette
         let axis = handler.horizontal
+        // Under indicator margins the bar is shorter than the row it sits in,
+        // and the row is lifted above the bottom margin's blank rows.
+        let span = horizontalBarSpan(contentWidth: contentWidth, margins: margins)
+        let length = span.length
         // Kept as the vertical bar is kept, and for its reason: a focused bar
         // pulses, and the run that pulses it is one bar render per frame of the
         // pulse cycle. Drawn afresh every frame, the horizontal bar was 35.6% of
@@ -400,7 +423,7 @@ extension _ScrollViewCore {
         let pulse = ScrollbarColors.focusPulse(
             isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context)
         let key = ScrollbarMemo<ClaimingRow>.Key(
-            length: contentWidth, extent: axis.extent, viewport: axis.viewportHeight,
+            length: length, extent: axis.extent, viewport: axis.viewportHeight,
             offset: axis.scrollOffset, arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
@@ -413,7 +436,7 @@ extension _ScrollViewCore {
             memo = remembered
         } else {
             let bar = ScrollbarRenderer.horizontalScrollbar(
-                width: contentWidth,
+                width: length,
                 extent: axis.extent,
                 viewport: axis.viewportHeight,
                 offset: axis.scrollOffset,
@@ -423,7 +446,7 @@ extension _ScrollViewCore {
                     isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context))
             let run = pulse.flatMap { pulse in
                 ScrollbarRenderer.horizontalScrollbarRun(
-                    width: contentWidth,
+                    width: length,
                     extent: axis.extent,
                     viewport: axis.viewportHeight,
                     offset: axis.scrollOffset,
@@ -434,20 +457,42 @@ extension _ScrollViewCore {
             memo = ScrollbarMemo(key: key, bar: bar, runs: run.map { [$0] } ?? [])
             handler.horizontalScrollbarMemo = memo
         }
-        var bar = memo.bar
+        var row = ClaimingRow()
+        row.skip(cells: span.leading)
+        row.append(contentsOf: memo.bar)
+        row.skip(cells: contentWidth - span.leading - length)
         if hasVerticalBar {
-            bar.append(" ", cells: 1, ink: nil, field: ScrollbarColors.track(in: palette))
+            row.append(" ", cells: 1, ink: nil, field: ScrollbarColors.track(in: palette))
+            row.skip(cells: margins.trailing)
         }
+        let width = row.cells
         var lines = buffer.lines
-        lines.append(bar.text)
-        var result = buffer.replacingLines(
-            lines, width: contentWidth + (hasVerticalBar ? 1 : 0), uniformWidth: true)
-        result.opacityRegions += bar.claims.map { $0.shifted(byX: 0, y: lines.count - 1) }
-        // The bar occupies the row just appended.
+        lines.append(row.text)
+        let barRow = lines.count - 1
+        lines.append(contentsOf: repeatElement(String(repeating: " ", count: width), count: margins.bottom))
+        var result = buffer.replacingLines(lines, width: width, uniformWidth: true)
+        result.opacityRegions += row.claims.map { $0.shifted(byX: 0, y: barRow) }
+        // The bar occupies the row just appended, from its leading margin.
         if !context.isMeasuring, pulse != nil {
-            result.animatedCells += memo.runs.map { $0.shifted(byX: 0, y: lines.count - 1) }
+            result.animatedCells += memo.runs.map { $0.shifted(byX: span.leading, y: barRow) }
         }
         return result
+    }
+
+    /// Where a vertical bar sits in a column of `rows` under `margins`: below
+    /// the top margin and above the bottom one, but never shorter than a row —
+    /// margins that leave no room give up rows of their own, as padding's do,
+    /// rather than take away the bar.
+    func verticalBarSpan(rows: Int, margins: EdgeInsets) -> (top: Int, length: Int) {
+        let top = min(margins.top, max(0, rows - 1))
+        return (top, max(min(1, rows), rows - top - margins.bottom))
+    }
+
+    /// Where a horizontal bar sits in a row of `contentWidth` under `margins`,
+    /// by the same rule.
+    func horizontalBarSpan(contentWidth: Int, margins: EdgeInsets) -> (leading: Int, length: Int) {
+        let leading = min(margins.leading, max(0, contentWidth - 1))
+        return (leading, max(min(1, contentWidth), contentWidth - leading - margins.trailing))
     }
 }
 

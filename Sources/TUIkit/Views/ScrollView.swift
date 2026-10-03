@@ -244,6 +244,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     let explicitFocusID: String?
     let isDisabled: Bool
     var isFocusStop = true
+    /// Whether this is the copy of a scroll view that draws its content inside
+    /// its content margins — see ``margined(context:)``. Stops that copy from
+    /// making another of itself.
+    var appliesContentMargins = false
 
     var body: Never { fatalError("_ScrollViewCore renders via Renderable") }
 
@@ -252,6 +256,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     // MARK: Layout
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let margined = margined(context: context) {
+            return margined.sizeThatFits(proposal: proposal, context: context)
+        }
         // A ScrollView takes whatever size the parent *proposes* and scrolls if
         // its content doesn't fit — so it stays width/height-flexible, and a
         // parent that constrains it (a too-short modal) makes it scroll. But its
@@ -263,9 +270,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // The viewport is its content's `containerRelativeFrame` container:
         // what it was proposed, as the render's is what it was given.
         let context = context.publishingContainerSize(
-            CellSize(
-                width: max(0, proposal.width ?? context.availableWidth),
-                height: max(0, proposal.height ?? context.availableHeight)),
+            containerSize(
+                viewport: CellSize(
+                    width: max(0, proposal.width ?? context.availableWidth),
+                    height: max(0, proposal.height ?? context.availableHeight)),
+                context: context),
             noting: false)
         let ideal =
             proposal.width == nil || proposal.height == nil
@@ -405,10 +414,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let viewportWidth = context.availableWidth
-        let viewportHeight = max(0, context.availableHeight)
+        if let margined = margined(context: context) { return margined.renderToBuffer(context: context) }
         // The viewport is its content's `containerRelativeFrame` container.
-        let context = context.publishingContainerSize(CellSize(width: max(0, viewportWidth), height: viewportHeight))
+        let (context, viewportWidth, viewportHeight) = viewport(context)
 
         // Resolve the persistent focus ID and the handler.
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -732,12 +740,18 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // a neighbouring offset; that path still writes over the edge lines. See
         // `reservingScrollIndicators(around:…)` for what went wrong when
         // `.visible` wrote over them too.
-        let text = textLines.fitted(viewportHeight: viewportHeight, horizontalBar: bars.horizontal)
+        // A bar's indicator margin across its axis is cells the bar moves in
+        // by, which come out of the content with the bar's own.
+        let indicatorMargins = indicatorMargins(context)
+        let text = textLines.fitted(
+            viewportHeight: viewportHeight - (bars.horizontal ? indicatorMargins.bottom : 0),
+            horizontalBar: bars.horizontal)
         let contentViewportHeight = text.contentHeight
         handler.viewportHeight = contentViewportHeight
         let chrome = ScrollChrome(
             verticalBar: bars.vertical, horizontalBar: bars.horizontal,
-            textIndicators: text.drawn, reservesIndicatorLines: text.reserved)
+            textIndicators: text.drawn, reservesIndicatorLines: text.reserved,
+            indicatorMargins: indicatorMargins)
         // …and NOT counted twice: the inset is what tells `pageDistance` that an
         // indicator eats into the viewport it can see. Reserved, the lines are
         // already outside it. That is the whole of `ScrollChrome.edgeInset`'s
@@ -745,7 +759,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         handler.textIndicatorInset = chrome.edgeInset
         return (
             chrome,
-            max(1, viewportWidth - (bars.vertical ? 1 : 0)),
+            max(1, viewportWidth - (bars.vertical ? 1 + indicatorMargins.trailing : 0)),
             contentViewportHeight,
             bars.settled)
     }
@@ -763,6 +777,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         /// to a height of its own.
         let textIndicators: Bool
         let reservesIndicatorLines: Bool
+        /// The bars' content margins (``indicatorMargins(_:)``): where along
+        /// their axis they are drawn, and how far in across it.
+        var indicatorMargins = EdgeInsets()
 
         /// Whether the "N more" lines are drawn OVER the viewport's first and
         /// last content line: the one arrangement in which those lines are on
@@ -828,20 +845,20 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         }
         if chrome.verticalBar {
             visibleBuffer = appendVerticalScrollbar(
-                to: visibleBuffer, contentWidth: contentWidth, handler: handler,
-                isFocused: isFocused, context: context)
+                to: visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                handler: handler, isFocused: isFocused, context: context)
             attachScrollbarMouseHandler(
-                to: &visibleBuffer, contentWidth: contentWidth, handler: handler,
-                focusID: persistedFocusID, context: context)
+                to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                handler: handler, focusID: persistedFocusID, context: context)
         }
         if chrome.horizontalBar {
             visibleBuffer = appendHorizontalScrollbar(
-                to: visibleBuffer, contentWidth: contentWidth,
+                to: visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
                 hasVerticalBar: chrome.verticalBar, handler: handler,
                 isFocused: isFocused, context: context)
             attachHorizontalScrollbarMouseHandler(
-                to: &visibleBuffer, contentWidth: contentWidth, handler: handler,
-                focusID: persistedFocusID, context: context)
+                to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                handler: handler, focusID: persistedFocusID, context: context)
         }
     }
 
@@ -1038,14 +1055,16 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             return (wantsScrollbar, wantsHorizontalBar, nil)
         }
         var settled: (width: Int, height: Int)?
+        let indicatorMargins = indicatorMargins(context)
         // ≤2 reservations (one per axis) ⇒ converges in ≤3 measure rounds.
         for _ in 0..<3 {
-            let probeWidth = max(1, viewportWidth - (wantsScrollbar ? 1 : 0))
+            let probeWidth = max(1, viewportWidth - (wantsScrollbar ? 1 + indicatorMargins.trailing : 0))
             // What `resolveChrome` will leave the content at these bars, and not
             // just the bar's row: a round that changes nothing hands its extents
             // to the render, which fills them.
             let probeHeight = textLines.fitted(
-                viewportHeight: viewportHeight, horizontalBar: wantsHorizontalBar
+                viewportHeight: viewportHeight - (wantsHorizontalBar ? indicatorMargins.bottom : 0),
+                horizontalBar: wantsHorizontalBar
             ).contentHeight
             // Does the content overflow at all? A yes needs no climb (see
             // above). Not on a view that also scrolls horizontally: its

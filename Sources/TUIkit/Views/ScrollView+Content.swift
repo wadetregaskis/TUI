@@ -27,7 +27,21 @@ extension _ScrollViewCore {
     /// served the other ask's answer — and the ideal size is the content's own,
     /// as in SwiftUI, which for a nested stack is the height it draws.
     func contentContext(_ context: RenderContext) -> RenderContext {
-        var contentContext = context.withChildIdentity(type: Content.self)
+        // Under the type of the app's content even when margins wrap it, so the
+        // content's identity — its `@State`, its focus — is the same with them
+        // and without. The value is the metatype, which is what the identity
+        // keys on; the cast is made only by the copy that draws margins.
+        let identityType: Any.Type =
+            appliesContentMargins
+            ? (Content.self as? any MarginedScrollContent.Type)?.appContentType ?? Content.self
+            : Content.self
+        var contentContext = context.withChildIdentity(type: identityType)
+        // The content margins are this view's, not its content's: a scroll view
+        // nested in the content has none of its own (measured on SwiftUI).
+        // Written only when set, since almost no scroll view has any.
+        if !contentContext.environment.contentMargins.isEmpty {
+            contentContext.environment.contentMargins = ContentMargins()
+        }
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1

@@ -73,4 +73,39 @@ first frame and the programmatic scrolls report a row today) and take away
 an answer apps can use, for no behaviour SwiftUI code depends on. I don't
 recommend it.
 
+### B-W10-2. Content margins: where TUIkit applies them, and what a scroll indicator's margin moves
+
+*`View.contentMargins(_:_:for:)` (both), `View.contentMargins(_:for:)`,
+`ContentMarginPlacement` (`.automatic`, `.scrollContent`, `.scrollIndicators`)*
+
+Measured in SwiftUI: a `ScrollView` and a grouped `Form` apply content
+margins; `List`, `Table`, `TextEditor` and a columns `Form` ignore them
+entirely on macOS. TUIkit matches that list. Its grouped `Form` does not
+scroll, so there the margins are padding around the sections — the picture a
+scrolled-to-the-top SwiftUI form shows.
+
+**What is a judgement:** the indicator half. SwiftUI's scrollers overlay the
+content, and a margin moves an overlay. TUIkit's bar is a column (or row) of
+the viewport, so:
+
+- a vertical bar is shortened by the top and bottom margins and moved in by
+  the trailing one, and the columns it moves in by come out of the content;
+- a horizontal bar is shortened by the leading and trailing margins and lifted
+  by the bottom one;
+- margins too large for the space leave the bar one cell long rather than
+  removing it;
+- the "N more above / below" lines (`.scrollIndicatorStyle(.text)`, a TUIkit
+  style SwiftUI code never asks for) are lines of the viewport, not a
+  scroller, and do not move.
+
+I did not measure where an overlay scroller goes under a cross-axis margin —
+the probes read geometry, and an idle overlay scroller is not drawn — so
+"moved in" follows `NSScrollView.scrollerInsets`, which insets a scroller
+from every edge.
+
+**The alternative** is to inset the bars along their axis only, and leave a
+trailing margin to the content alone. That keeps every bar at the viewport's
+edge, which a terminal user may find more natural; it is a two-line change if
+you prefer it.
+
 ## C. Declined without asking
