@@ -71,6 +71,78 @@ extension View {
     ) -> some View {
         TransformPreferenceModifier<Self, K>(content: self, transform: callback)
     }
+
+    /// Reads the specified preference value from the view, using it to
+    /// produce a second view that is applied as an overlay to the original
+    /// view.
+    ///
+    /// The overlay is laid out in this view's frame, centred, as
+    /// ``View/overlay(alignment:content:)`` lays its content.
+    ///
+    /// - Parameters:
+    ///   - key: The preference key type whose value is to be read.
+    ///   - transform: A function that produces the overlay view from the
+    ///     preference value read from this view's subtree.
+    /// - Returns: A view that layers a second view in front of this view.
+    public func overlayPreferenceValue<Key: PreferenceKey, T: View>(
+        _ key: Key.Type = Key.self, @ViewBuilder _ transform: @escaping (Key.Value) -> T
+    ) -> some View {
+        PreferenceLayerModifier<Self, Key, T>(
+            base: self, transform: transform, alignment: .center, isBackground: false)
+    }
+
+    /// Reads the specified preference value from the view, using it to
+    /// produce a second view that is applied as an overlay to the original
+    /// view, placed by `alignment`.
+    ///
+    /// - Parameters:
+    ///   - key: The preference key type whose value is to be read.
+    ///   - alignment: Where the overlay goes in this view's frame.
+    ///   - transform: A function that produces the overlay view from the
+    ///     preference value read from this view's subtree.
+    /// - Returns: A view that layers a second view in front of this view.
+    public func overlayPreferenceValue<K: PreferenceKey, V: View>(
+        _ key: K.Type, alignment: Alignment = .center, @ViewBuilder _ transform: @escaping (K.Value) -> V
+    ) -> some View {
+        PreferenceLayerModifier<Self, K, V>(
+            base: self, transform: transform, alignment: alignment, isBackground: false)
+    }
+
+    /// Reads the specified preference value from the view, using it to
+    /// produce a second view that is applied as the background of the
+    /// original view.
+    ///
+    /// The background is laid out in this view's frame, centred, as
+    /// ``View/background(alignment:content:)`` lays its content.
+    ///
+    /// - Parameters:
+    ///   - key: The preference key type whose value is to be read.
+    ///   - transform: A function that produces the background view from the
+    ///     preference value read from this view's subtree.
+    /// - Returns: A view that layers a second view behind this view.
+    public func backgroundPreferenceValue<Key: PreferenceKey, T: View>(
+        _ key: Key.Type = Key.self, @ViewBuilder _ transform: @escaping (Key.Value) -> T
+    ) -> some View {
+        PreferenceLayerModifier<Self, Key, T>(
+            base: self, transform: transform, alignment: .center, isBackground: true)
+    }
+
+    /// Reads the specified preference value from the view, using it to
+    /// produce a second view that is applied as the background of the
+    /// original view, placed by `alignment`.
+    ///
+    /// - Parameters:
+    ///   - key: The preference key type whose value is to be read.
+    ///   - alignment: Where the background goes in this view's frame.
+    ///   - transform: A function that produces the background view from the
+    ///     preference value read from this view's subtree.
+    /// - Returns: A view that layers a second view behind this view.
+    public func backgroundPreferenceValue<K: PreferenceKey, V: View>(
+        _ key: K.Type, alignment: Alignment = .center, @ViewBuilder _ transform: @escaping (K.Value) -> V
+    ) -> some View {
+        PreferenceLayerModifier<Self, K, V>(
+            base: self, transform: transform, alignment: alignment, isBackground: true)
+    }
 }
 
 // MARK: - Navigation Title
