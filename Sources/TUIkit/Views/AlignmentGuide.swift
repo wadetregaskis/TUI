@@ -190,13 +190,16 @@ extension ChildView {
 /// Where a run of siblings sits on one axis once explicit guides are taken into
 /// account.
 ///
-/// This is built **only** when some sibling set a guide. Without one, every
-/// container keeps the arithmetic it always had — a deliberate choice, not an
-/// optimisation: the general guide formula subtracts two guides and floors
-/// once *per run*, whereas the per-child rule floors once *per child*, and the
-/// two disagree by a cell in 190 of 820 centring combinations (see
-/// ``AlignmentID``). Sharing one path would have quietly moved existing
-/// layouts.
+/// This is built **only** when some sibling gives an explicit value for the
+/// guide the container aligns on — decided on the VALUES, not on whether a
+/// sibling carries a guide at all. Without one, every container keeps the
+/// arithmetic it always had: the general guide formula merges the run's guides
+/// and floors once *per run*, the per-child rule floors once *per child*, and
+/// the two need not agree (a child wider than a fixed region is placed
+/// differently, for one). Deciding on the flag instead meant a sibling's
+/// `.alignmentGuide(.leading)` switched a `VStack(alignment: .center)` onto the
+/// run's arithmetic for a guide nobody had set — and it would have done the
+/// same for every container a guide merely passes through.
 struct AlignmentGuideRun {
     /// Each child's leading (or top) offset within ``extent``.
     let offsets: [Int]
@@ -310,8 +313,9 @@ func anyAlignmentGuide(in children: [ChildView]) -> Bool {
     children.contains(where: \.providesAlignmentGuide)
 }
 
-/// The horizontal placement of `children`, or `nil` when none of them set a
-/// guide and the caller should keep its own arithmetic.
+/// The horizontal placement of `children`, or `nil` when none of them gives an
+/// explicit value for `alignment` and the caller should keep its own
+/// arithmetic.
 ///
 /// - Parameters:
 ///   - children: The children being placed, in order.
@@ -330,11 +334,17 @@ func horizontalGuideRun(
     guard children.contains(where: \.providesAlignmentGuide) else { return nil }
     var resolved: [Double] = []
     resolved.reserveCapacity(children.count)
+    var anyExplicit = false
     for (child, size) in zip(children, sizes) {
         let dimensions = ViewDimensions(width: size.width, height: size.height)
-        resolved.append(
-            child.explicitGuide(alignment, at: dimensions) ?? alignment[dimensions: dimensions])
+        if let explicit = child.explicitGuide(alignment, at: dimensions) {
+            anyExplicit = true
+            resolved.append(explicit)
+        } else {
+            resolved.append(alignment[dimensions: dimensions])
+        }
     }
+    guard anyExplicit else { return nil }
     return .resolve(
         resolved: resolved, sizes: sizes.map(\.width),
         fixedExtent: fixedExtent, minimumExtent: minimumExtent
@@ -381,7 +391,8 @@ func verticalGuidePlacement<V: View>(
     ) { alignment[dimensions: ViewDimensions(width: 0, height: $0)] }.offsets[0]
 }
 
-/// The vertical placement of `children`, or `nil` when none of them set a guide.
+/// The vertical placement of `children`, or `nil` when none of them gives an
+/// explicit value for `alignment`.
 ///
 /// The vertical twin of ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:)``.
 @MainActor
@@ -395,11 +406,17 @@ func verticalGuideRun(
     guard children.contains(where: \.providesAlignmentGuide) else { return nil }
     var resolved: [Double] = []
     resolved.reserveCapacity(children.count)
+    var anyExplicit = false
     for (child, size) in zip(children, sizes) {
         let dimensions = ViewDimensions(width: size.width, height: size.height)
-        resolved.append(
-            child.explicitGuide(alignment, at: dimensions) ?? alignment[dimensions: dimensions])
+        if let explicit = child.explicitGuide(alignment, at: dimensions) {
+            anyExplicit = true
+            resolved.append(explicit)
+        } else {
+            resolved.append(alignment[dimensions: dimensions])
+        }
     }
+    guard anyExplicit else { return nil }
     return .resolve(
         resolved: resolved, sizes: sizes.map(\.height),
         fixedExtent: fixedExtent, minimumExtent: minimumExtent

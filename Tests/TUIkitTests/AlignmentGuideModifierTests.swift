@@ -328,6 +328,44 @@ struct AlignmentGuideModifierTests {
         #expect(indents(buffer) == [0, 0])
     }
 
+    @Test("A guide for another alignment leaves the container's own arithmetic in force")
+    func irrelevantGuideChangesNothing() {
+        // The run is decided on the values its children give for the guide
+        // the row aligns on, not on whether a child carries a guide at all.
+        // Here the row is clamped to two lines, where the run's arithmetic (an
+        // extent of the tallest child, three) and the row's own (the two
+        // lines it has) put the short child on different lines: deciding on
+        // the flag, a `.leading` guide — a horizontal one, in a row that
+        // aligns vertically — dropped "a" a line.
+        func row(guided: Bool) -> [String] {
+            renderToBuffer(
+                HStack(alignment: .center, spacing: 1) {
+                    if guided {
+                        Text("a").alignmentGuide(.leading) { _ in 0 }
+                    } else {
+                        Text("a")
+                    }
+                    Text("x\ny\nz")
+                },
+                context: makeRenderContext(width: 10, height: 2)
+            ).lines.map(\.stripped)
+        }
+        #expect(row(guided: true) == row(guided: false))
+        #expect(row(guided: true).first?.hasPrefix("a") == true)
+    }
+
+    @Test("A run is built only when a child gives a value for the guide asked about")
+    func runIsDecidedOnValues() {
+        let children = [
+            ChildView(Text("abc").alignmentGuide(.leading) { _ in 0 }, childIndex: 0),
+            ChildView(Text("abcdef"), childIndex: 1),
+        ]
+        let sizes = [(width: 3, height: 1), (width: 6, height: 1)]
+        #expect(horizontalGuideRun(children, sizes: sizes, alignment: .center) == nil)
+        #expect(verticalGuideRun(children, sizes: sizes, alignment: .top) == nil)
+        #expect(horizontalGuideRun(children, sizes: sizes, alignment: .leading) != nil)
+    }
+
     @Test("Chained guides both apply")
     func chainedGuidesBothApply() {
         // Nested wrappers: the outer must answer for its own guide AND forward
