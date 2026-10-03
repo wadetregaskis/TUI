@@ -48,26 +48,18 @@
 ///
 /// ## With a Description
 ///
-/// The `label` (or string title) describes the slider's purpose. TUIkit does
-/// **not** draw it on the track — only the value readout is drawn. For a
-/// visible caption, place a `Text` (or a `Section` header) next to the slider:
+/// The `label` (or string title) describes the slider's purpose, and is drawn
+/// to the left of the track on the same line, shortening the track to fit — as
+/// macOS SwiftUI draws it (measured by hosting real `Slider`s in an
+/// `NSHostingView`; iOS hides it). With no label the track starts at column 0.
+/// `.labelsHidden()` takes the label's cells away.
 ///
 /// ```swift
-/// VStack(alignment: .leading) {
+/// Slider(value: $volume, in: 0...1) {
 ///     Text("Volume")
-///     Slider(value: $volume, in: 0...1)
 /// }
+/// // Volume ◀ ━━━━━●──── ▶ 50%
 /// ```
-///
-/// > Known deviation from macOS SwiftUI. Measured 2026-07-25 by hosting real
-/// > `Slider`s in an `NSHostingView` and capturing the drawn AppKit controls:
-/// > macOS SwiftUI draws a supplied label to the LEFT of the track on the same
-/// > line, shortening the track to fit; with no label the track spans the full
-/// > width. (Apple's own docs hedge this — "Not all slider styles show the
-/// > label" — because iOS hides it and uses it only for accessibility. On a
-/// > desktop-shaped framework the macOS behaviour is the relevant reference.)
-/// > Matching it is tracked; it changes the width of every existing slider, so
-/// > it is deliberately not a drive-by change.
 ///
 /// ## With Editing Callback
 ///
@@ -86,8 +78,8 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     /// The step size for increment/decrement.
     let step: Double
 
-    /// The label view describing the slider's purpose. As in SwiftUI this is a
-    /// description only — it is not drawn on the track.
+    /// The label view describing the slider's purpose, drawn to the left of
+    /// the track.
     let label: Label?
 
     /// The views drawn at the low and high ends of the track — SwiftUI's
@@ -185,14 +177,13 @@ extension Slider where Label == EmptyView, ValueLabel == EmptyView {
 extension Slider where Label == Text, ValueLabel == EmptyView {
     /// Creates a slider with a title string.
     ///
-    /// The title describes the slider but, as in SwiftUI, is not drawn on the
-    /// track. Pair the slider with a `Text` for a visible caption.
+    /// The title is drawn to the left of the track, as macOS SwiftUI draws it.
     ///
     /// A string **literal** binds here, so it is a lookup key — see
     /// ``LocalizedStringKey``.
     ///
     /// - Parameters:
-    ///   - titleKey: The key describing the slider's purpose (not rendered).
+    ///   - titleKey: The key for the slider's title.
     ///   - value: The selected value within `bounds`.
     ///   - bounds: The range of valid values. Defaults to `0...1`.
     ///   - step: The distance between each valid value. Defaults to `0.01`.
@@ -212,7 +203,7 @@ extension Slider where Label == Text, ValueLabel == EmptyView {
     /// Creates a slider with a title displayed as written.
     ///
     /// - Parameters:
-    ///   - title: A description of the slider's purpose (not rendered).
+    ///   - title: The slider's title.
     ///   - value: The selected value within `bounds`.
     ///   - bounds: The range of valid values. Defaults to `0...1`.
     ///   - step: The distance between each valid value. Defaults to `0.01`.
