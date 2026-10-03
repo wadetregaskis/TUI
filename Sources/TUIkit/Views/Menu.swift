@@ -52,10 +52,9 @@ import TUIkitCore
 /// > drop-down on a line of the menu and the menu's arrows walk straight past
 /// > it. Put the choice on the page, or give each option its own `Button`.
 ///
-/// > Note: SwiftUI's `primaryAction:` initialisers are not offered. They split
-/// > a menu into "click does one thing, a long press or a separate chevron
-/// > opens the rest", and a terminal has neither a long press nor a reliable
-/// > way to aim at part of a one-line control.
+/// A menu with a `primaryAction:` splits its control: the label performs the
+/// action, and the menu opens from the caret beside it or by the Down arrow —
+/// see ``init(content:label:primaryAction:)``.
 public struct Menu<Label: View, Content: View>: View {
     let content: Content
     let label: Label
@@ -63,6 +62,9 @@ public struct Menu<Label: View, Content: View>: View {
     /// The configuration this menu was made from, by ``init(_:)`` — passed on
     /// whole, its items' child resolution included — or `nil`.
     private var configuration: MenuStyleConfiguration?
+
+    /// What a primary interaction does, from a `primaryAction:` initialiser.
+    var primaryAction: (() -> Void)?
 
     /// Creates a menu with a custom label.
     ///
@@ -86,7 +88,8 @@ public struct Menu<Label: View, Content: View>: View {
                     // Captured here, where `Content` is still concrete, so the
                     // items can flatten into the style's column — see the
                     // `ChildViewProvider` conformance on the configuration.
-                    children: { resolveChildViews(from: content, context: $0) })))
+                    children: { resolveChildViews(from: content, context: $0) }),
+                primaryAction: primaryAction))
     }
 }
 
@@ -115,6 +118,115 @@ extension Menu where Label == Text {
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, @ViewBuilder content: () -> Content) {
         self.init(content: content) { Text(String(title)) }
+    }
+}
+
+// MARK: - Primary action
+
+extension Menu {
+    /// Creates a menu with a custom label and a primary action.
+    ///
+    /// The label performs `primaryAction` — Return, Space or a click — and the
+    /// menu opens from the caret beside it (a click) or from the label by the
+    /// Down arrow. Under ``View/menuIndicator(_:)`` `.hidden` the caret goes and
+    /// the arrow remains. The menu stays one focus stop.
+    ///
+    /// ```swift
+    /// Menu {
+    ///     Button("PDF") { export(.pdf) }
+    ///     Button("PNG") { export(.png) }
+    /// } label: {
+    ///     Text("Export")
+    /// } primaryAction: {
+    ///     exportAgain()
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - content: The menu's items — `Button`s, `Toggle`s and `Divider`s.
+    ///   - label: A view describing the menu.
+    ///   - primaryAction: The action to perform on primary interaction with
+    ///     the menu.
+    public init(
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder label: () -> Label,
+        primaryAction: @escaping () -> Void
+    ) {
+        self.init(content: content, label: label)
+        self.primaryAction = primaryAction
+    }
+}
+
+extension Menu where Label == Text {
+    /// Creates a menu with a localized title and a primary action — see
+    /// ``init(content:label:primaryAction:)``.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the menu's title.
+    ///   - content: The menu's items.
+    ///   - primaryAction: The action to perform on primary interaction.
+    public init(
+        _ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content,
+        primaryAction: @escaping () -> Void
+    ) {
+        self.init(content: content, label: { Text(titleKey) }, primaryAction: primaryAction)
+    }
+
+    /// Creates a menu with a title, shown as written, and a primary action —
+    /// see ``init(content:label:primaryAction:)``.
+    ///
+    /// - Parameters:
+    ///   - title: The menu's title.
+    ///   - content: The menu's items.
+    ///   - primaryAction: The action to perform on primary interaction.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S, @ViewBuilder content: () -> Content, primaryAction: @escaping () -> Void
+    ) {
+        self.init(content: content, label: { Text(title) }, primaryAction: primaryAction)
+    }
+}
+
+// MARK: - A title and an SF Symbol
+
+extension Menu where Label == TUIkit.Label<Text, _SymbolIcon> {
+    /// Creates a menu whose label is a localized title and an SF Symbol.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the menu's title.
+    ///   - systemImage: The SF Symbol name for the label's icon.
+    ///   - content: The menu's items.
+    public init(_ titleKey: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> Content) {
+        self.init(content: content) { TUIkit.Label(titleKey, systemImage: systemImage) }
+    }
+
+    /// Creates a menu whose label is a title, shown as written, and an SF
+    /// Symbol.
+    ///
+    /// - Parameters:
+    ///   - title: The menu's title.
+    ///   - systemImage: The SF Symbol name for the label's icon.
+    ///   - content: The menu's items.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, systemImage: String, @ViewBuilder content: () -> Content) {
+        self.init(content: content) { TUIkit.Label(title, systemImage: systemImage) }
+    }
+
+    /// Creates a menu whose label is a localized title and an SF Symbol, with a
+    /// primary action — see ``init(content:label:primaryAction:)``.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the menu's title.
+    ///   - systemImage: The SF Symbol name for the label's icon.
+    ///   - content: The menu's items.
+    ///   - primaryAction: The action to perform on primary interaction.
+    public init(
+        _ titleKey: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> Content,
+        primaryAction: @escaping () -> Void
+    ) {
+        self.init(
+            content: content, label: { TUIkit.Label(titleKey, systemImage: systemImage) },
+            primaryAction: primaryAction)
     }
 }
 

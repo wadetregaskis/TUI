@@ -39,6 +39,13 @@ public struct MenuStyleConfiguration {
 
     /// The menu's items.
     public let content: Content
+
+    /// What a primary interaction with the menu does — `Menu`'s
+    /// `primaryAction:` — or `nil` when the menu has none and every
+    /// interaction opens it. Not public, as SwiftUI's configuration has no such
+    /// member; the default style reads it, and `Menu(configuration)` carries
+    /// it on.
+    var primaryAction: (() -> Void)?
 }
 
 /// The items flatten into whatever stack a style places them in — SwiftUI
@@ -156,7 +163,9 @@ public struct DefaultMenuStyle: MenuStyle, Equatable {
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        _MenuPopupCore(label: configuration.label, content: configuration.content)
+        _MenuPopupCore(
+            label: configuration.label, content: configuration.content,
+            primaryAction: configuration.primaryAction)
     }
 }
 

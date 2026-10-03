@@ -562,6 +562,30 @@ drop completes with `.move` or `.delete`. SwiftUI's is `onDragSessionUpdated`,
 which the `DragSession*` family rule declines. About half a day for the
 badge; the callback belongs with that family's re-examination in Wave 17.
 
+### B11. `Menu(primaryAction:)` draws as two adjoining buttons
+
+*`Menu.init(content:label:primaryAction:)`, `Menu.init(_:content:primaryAction:)`
+(key and string), `Menu.init(_:systemImage:content:primaryAction:)`*
+
+SwiftUI's contract is one line: "the action to perform on primary
+interaction with the menu". macOS draws it as a pull-down button whose body
+runs the action and whose chevron opens the menu. TUIkit's earlier refusal
+named that rendering, not the contract, and both of its stated blockers turned
+out to exist in the package (a 2026-08 audit, finding 102).
+
+**Shipped:** the label performs the action — Return, Space or a click — and
+the menu opens from the caret beside it by a click, or from the label by the
+Down arrow. The caret takes clicks and no focus, so the control is one Tab
+stop. Under `.menuIndicator(.hidden)` the caret goes and the arrow remains.
+Drawn as the label's button and the caret's, side by side:
+`▐ Export ▌▐ ▾ ▌`, against the plain menu's `▐ Export ▾ ▌`.
+
+**The fuller version** is one control face split by a rule —
+`▐ Export │ ▾ ▌` — which needs the button style's caps to frame two hit
+regions in one body; and a press-and-hold on the label to open the menu, as
+macOS does, now that Wave 7's long press exists. Half a day together. The
+status bar's hint for the label says "press" today; it could add "↓ menu".
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`

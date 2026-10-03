@@ -30,6 +30,10 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
     let label: MenuStyleConfiguration.Label
     let content: MenuStyleConfiguration.Content
 
+    /// What a primary interaction does, or `nil` when every interaction opens
+    /// the menu — see `trigger`.
+    var primaryAction: (() -> Void)?
+
     /// StateStorage property indices. A free enum on the type because the
     /// state box is fetched from two different methods.
     private enum StateIndex {
@@ -92,21 +96,80 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
     }
 
     /// The collapsed control: the caller's label plus the closed/open caret
-    /// every TUIkit drop-down uses.
+    /// every TUIkit drop-down uses — or, for a menu with a primary action, the
+    /// two split (see `splitTrigger`).
+    @ViewBuilder
     private func trigger(
         _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?,
         indicator: Visibility
     ) -> some View {
-        Button {
-            state.isOpen.toggle()
-            // A `Button` erases how it was pressed (a click and a Return both
-            // just run the action), so ask the focus manager which device drove
-            // the event — that is what decides whether the menu opens with a row
-            // highlighted.
-            if state.isOpen {
-                state.controller.opened(withSelection: focusManager?.lastInputSource != .pointer)
-                onOpen?()
+        if let primaryAction {
+            splitTrigger(
+                state, focusManager: focusManager, onOpen: onOpen, indicator: indicator,
+                primaryAction: primaryAction)
+        } else {
+            menuTrigger(state, focusManager: focusManager, onOpen: onOpen, indicator: indicator)
+        }
+    }
+
+    /// Opens or closes the menu, as the control's own activation.
+    ///
+    /// A `Button` erases how it was pressed (a click and a Return both just run
+    /// the action), so the focus manager is asked which device drove the event —
+    /// that is what decides whether the menu opens with a row highlighted.
+    private func toggleOpen(
+        _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?
+    ) {
+        state.isOpen.toggle()
+        if state.isOpen {
+            state.controller.opened(withSelection: focusManager?.lastInputSource != .pointer)
+            onOpen?()
+        }
+    }
+
+    /// A menu with a primary action: the label is a button that performs it —
+    /// Return, Space or a click — and the menu opens from the caret beside it,
+    /// by a click, or from the label by the Down arrow. One focus stop: the
+    /// caret takes clicks and no focus, so Tab does not stop on it twice.
+    ///
+    /// SwiftUI's contract is one line, "the action to perform on primary
+    /// interaction with the menu"; the chevron split is how macOS draws it, and
+    /// the arrow key is the keyboard's way to the rest.
+    private func splitTrigger(
+        _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?,
+        indicator: Visibility, primaryAction: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 0) {
+            Button(action: primaryAction) { label }
+                .onKeyPress(.downArrow) {
+                    if !state.isOpen {
+                        state.isOpen = true
+                        state.controller.opened(withSelection: true)
+                        onOpen?()
+                    }
+                    return .handled
+                }
+            // `.menuIndicator(.hidden)` takes the caret away; the Down arrow
+            // still opens the menu.
+            if indicator != .hidden {
+                Button {
+                    toggleOpen(state, focusManager: focusManager, onOpen: onOpen)
+                } label: {
+                    Text(state.isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret)
+                }
+                .menuTrigger()
+                .focusable(false)
             }
+        }
+    }
+
+    /// A menu every interaction opens: the label and caret, one button.
+    private func menuTrigger(
+        _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?,
+        indicator: Visibility
+    ) -> some View {
+        Button {
+            toggleOpen(state, focusManager: focusManager, onOpen: onOpen)
         } label: {
             HStack(spacing: 1) {
                 label
