@@ -400,6 +400,30 @@ extension View {
         return modifier(PaddingModifier(insets: insets))
     }
 
+    /// Adds the padding recommended around a scene's root view to the given
+    /// edges — mirrors SwiftUI's `scenePadding(_:)`.
+    ///
+    /// One cell per edge: the ``padding(_:_:)`` default, which is what SwiftUI
+    /// documents scene padding as everywhere but watchOS. (macOS measures 20 pt
+    /// against `.padding()`'s 16; a cell grid has no size between 1 and 2.)
+    ///
+    /// - Parameter edges: The edges to pad (default: `.all`).
+    /// - Returns: A padded view.
+    public func scenePadding(_ edges: Edge.Set = .all) -> some View {
+        padding(edges)
+    }
+
+    /// Adds a kind of scene padding to the given edges — mirrors SwiftUI's
+    /// `scenePadding(_:edges:)`.
+    ///
+    /// - Parameters:
+    ///   - padding: The kind of padding: ``ScenePadding/minimum``, one cell.
+    ///   - edges: The edges to pad (default: `.all`).
+    /// - Returns: A padded view.
+    public func scenePadding(_ padding: ScenePadding, edges: Edge.Set = .all) -> some View {
+        self.padding(edges, padding.length)
+    }
+
     /// Adds padding with explicit edge insets.
     ///
     /// ```swift
@@ -412,4 +436,15 @@ extension View {
     public func padding(_ insets: EdgeInsets) -> some View {
         modifier(PaddingModifier(insets: insets))
     }
+}
+
+// MARK: - Scene Padding
+
+/// The kind of padding ``View/scenePadding(_:edges:)`` adds.
+public struct ScenePadding: Equatable, Sendable {
+    /// The padding, in cells, on each padded edge.
+    let length: Int
+
+    /// The minimum scene padding: one cell, the ``View/padding(_:_:)`` default.
+    public static let minimum = Self(length: 1)
 }

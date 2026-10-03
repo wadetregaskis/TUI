@@ -161,4 +161,13 @@ struct TextMonospacedTests {
         #expect(makeRenderContext().environment.layoutDirection == .leftToRight)
         #expect(lines(Text("ab").flipsForRightToLeftLayoutDirection(true)) == lines(Text("ab")))
     }
+
+    // MARK: - scenePadding
+
+    @Test("scene padding is the padding() default, on the edges asked for")
+    func scenePadding() {
+        #expect(lines(Text("a").scenePadding()) == lines(Text("a").padding()))
+        #expect(lines(Text("a").scenePadding(.leading)) == lines(Text("a").padding(.leading)))
+        #expect(lines(Text("a").scenePadding(.minimum, edges: .top)) == lines(Text("a").padding(.top, 1)))
+    }
 }

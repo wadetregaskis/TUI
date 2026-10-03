@@ -669,9 +669,6 @@
     "ScaledShape": {
       "why": "A Shape adapter for scaling; neither Shape nor sub-cell scaling exists (glyph size is the terminal's font, see scaleEffect)."
     },
-    "ScenePadding": {
-      "why": "`.minimum`/`.macOS`/`.automatic` name platform margin metrics. A terminal exposes no such metric — see the `scenePadding` entry — and TUIkit's rule for interface measurements is an explicit `Int` of cells (Documentation/SwiftUI-compatibility.md §2.1), realised by `EdgeInsets` of "
-    },
     "ScrollEdgeEffectStyle": {
       "why": "It selects a hard or soft fade of scrolled content passing beneath a bar. In TUIkit no content ever passes beneath chrome — the app header and status bar occupy their own rows and are subtracted from what a view is offered (Documentation/SwiftUI-compatibility.md §4b, safe-area en"
     },
