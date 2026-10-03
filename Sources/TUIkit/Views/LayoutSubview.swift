@@ -187,6 +187,25 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
             rowIDs: rowIDs)
     }
 
+    /// The explicit values the placed subviews give `query`'s guide, each
+    /// moved by where it was placed, merged by the guide's rule — the default
+    /// ``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``.
+    /// A subview placed twice counts twice; one never placed is not drawn and
+    /// counts not at all.
+    func mergedExplicitGuide(_ query: AlignmentGuideQuery) -> Double? {
+        let entries = placements.entries
+        let placedChildren = entries.map { children[$0.index] }
+        let frames = entries.map { entry -> (x: Int, y: Int, width: Int, height: Int) in
+            let size = children[entry.index].measure(proposal: entry.proposal, context: context)
+            return (
+                x: entry.x, y: entry.y,
+                width: Swift.min(size.width, entry.proposal.width ?? size.width),
+                height: Swift.min(size.height, entry.proposal.height ?? size.height)
+            )
+        }
+        return TUIkit.mergedExplicitGuide(query, of: placedChildren, frames: frames, context: context)
+    }
+
     /// The layout direction inherited by the container view — always
     /// left-to-right, until TUIkit supports right-to-left (see
     /// ``EnvironmentValues/layoutDirection``).

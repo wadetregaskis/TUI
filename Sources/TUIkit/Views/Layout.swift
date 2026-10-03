@@ -56,6 +56,15 @@ import TUIkitView
 ///   cell boundary is where the rounding belongs, and
 ///   ``LayoutSubview/place(at:anchor:proposal:)`` does it for you.
 ///
+/// ## Publishing a guide to the parent
+///
+/// ``explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``
+/// and its vertical twin give the layout's own value for a guide, which a
+/// parent aligning on that guide uses to place the whole layout. Left alone,
+/// they merge the guides the subviews set for a custom ``AlignmentID`` — each
+/// moved by where it was placed — and give none for the built-in alignments,
+/// which is what SwiftUI was measured to do.
+///
 /// ## What SwiftUI has here that this does not
 ///
 /// - **`ViewSpacing` / `spacing(subviews:cache:)`.** SwiftUI derives preferred
@@ -63,10 +72,6 @@ import TUIkitView
 ///   spacing between cells is whatever the container decides — so the honest
 ///   answer would be a constant zero, and an API that always says zero is one
 ///   that invites a question it cannot answer.
-/// - **`explicitAlignment(of:in:…)`.** A layout cannot yet publish a guide to
-///   *its* parent. Omitting it keeps conformances source-compatible (an extra
-///   method on your type is simply an extra method) and leaves the door open;
-///   declaring it and ignoring it would be the silently-inert trap.
 /// - **`Animatable`.** There is no tween space in a terminal — see the
 ///   compatibility notes on animation.
 @MainActor
@@ -94,6 +99,61 @@ public protocol Layout {
     func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache)
 
+    /// The position of the given horizontal alignment guide along the x axis,
+    /// or `nil` when the layout gives it no explicit value.
+    ///
+    /// The value places the layout as a whole within its parent; it does not
+    /// change how the layout arranges its subviews. Called after
+    /// ``placeSubviews(in:proposal:subviews:cache:)``, with the same bounds:
+    ///
+    /// ```swift
+    /// func explicitAlignment(
+    ///     of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+    ///     subviews: Subviews, cache: inout ()
+    /// ) -> Double? {
+    ///     guide == .leading ? Double(bounds.x + 10) : nil
+    /// }
+    /// ```
+    ///
+    /// The default merges the explicit values the subviews give a custom
+    /// guide, each moved by where it was placed, by the guide's
+    /// ``HorizontalAlignment/combineExplicit(_:)``; for the built-in guides it
+    /// gives none, as SwiftUI's does.
+    ///
+    /// - Parameters:
+    ///   - guide: The guide to give a position for.
+    ///   - bounds: The region the layout was given, in the parent's space.
+    ///   - proposal: The size proposed to the layout.
+    ///   - subviews: The subviews, already placed.
+    ///   - cache: The layout's cache.
+    /// - Returns: The guide's position, in the coordinate space of `bounds`;
+    ///   `nil` for no explicit value.
+    func explicitAlignment(
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: Subviews, cache: inout Cache
+    ) -> Double?
+
+    /// The position of the given vertical alignment guide along the y axis, or
+    /// `nil` when the layout gives it no explicit value.
+    ///
+    /// The vertical twin of
+    /// ``explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``.
+    func explicitAlignment(
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: Subviews, cache: inout Cache
+    ) -> Double?
+
+    /// Static witness: whether this layout may give a guide an explicit value
+    /// its subviews did not — that is, whether it implements
+    /// ``explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``
+    /// itself.
+    ///
+    /// `true` unless a layout says otherwise, because an override cannot be
+    /// detected. The framework's own layouts keep the default merge and say
+    /// `false`, so a parent aligning on a guide asks them about it only when a
+    /// subview might hold one — the rule every other container follows.
+    static var _definesExplicitAlignment: Bool { get }
+
     /// Properties of this kind of layout: which way it stacks, if it does.
     ///
     /// Its subviews see the ``LayoutProperties/stackOrientation`` as their
@@ -120,6 +180,30 @@ public struct LayoutProperties: Sendable {
 extension Layout {
     /// Default: no stack orientation.
     public static var layoutProperties: LayoutProperties { LayoutProperties() }
+
+    /// Default: the subviews' explicit values for a custom guide, merged, and
+    /// none for a built-in one.
+    public func explicitAlignment(
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: Subviews, cache: inout Cache
+    ) -> Double? {
+        guard !guide.isBuiltIn else { return nil }
+        return subviews.mergedExplicitGuide(.horizontal(guide))
+    }
+
+    /// Default: the subviews' explicit values for a custom guide, merged, and
+    /// none for a built-in one.
+    public func explicitAlignment(
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: Subviews, cache: inout Cache
+    ) -> Double? {
+        guard !guide.isBuiltIn else { return nil }
+        return subviews.mergedExplicitGuide(.vertical(guide))
+    }
+
+    /// Default: a layout may define its own guides — see
+    /// ``Layout/_definesExplicitAlignment``.
+    public static var _definesExplicitAlignment: Bool { true }
 }
 
 extension Layout {
@@ -157,6 +241,13 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
 
     public var body: Never {
         fatalError("_LayoutCore renders via Renderable")
+    }
+
+    /// A layout can give a guide an explicit value of its own, which no
+    /// static fact rules out unless the layout says so; past that, a subview
+    /// may hold one for the default merge to report.
+    public static var _providesAlignmentGuide: Bool {
+        L._definesExplicitAlignment || Content._providesAlignmentGuide
     }
 
     /// The subview proxies and the sink their placements land in.
@@ -295,4 +386,48 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
         }
         return result
     }
+}
+
+// MARK: - Publishing a Guide
+
+extension _LayoutCore: AlignmentGuideQuerying {
+    /// The layout's ``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``
+    /// for the guide asked about, after a layout pass at `dimensions` — the
+    /// pass `renderToBuffer` makes, so the subviews are where they will be
+    /// drawn when the default merges their guides.
+    ///
+    /// Nothing is laid out for a layout that defines no guide of its own and
+    /// whose content can hold none: `AnyLayout` asks what it erased.
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+    ) -> Double? {
+        let defines =
+            (layout as? any ExplicitAlignmentForwarding)?.definesExplicitAlignment
+            ?? L._definesExplicitAlignment
+        guard defines || Content._providesAlignmentGuide else { return nil }
+        let context = publishingChildAxis(context)
+        let (subviews, _) = resolve(context: context)
+        var cache = freshCache(subviews)
+        let proposal = ProposedSize(
+            width: max(0, dimensions.width), height: max(0, dimensions.height))
+        let size = layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
+        let bounds = CellRect(x: 0, y: 0, width: max(0, size.width), height: max(0, size.height))
+        layout.placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+        switch query {
+        case .horizontal(let guide):
+            return layout.explicitAlignment(
+                of: guide, in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+        case .vertical(let guide):
+            return layout.explicitAlignment(
+                of: guide, in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+        }
+    }
+}
+
+/// A layout that knows at run time whether what it wraps defines guides of its
+/// own — `AnyLayout`, whose static answer cannot.
+@MainActor
+protocol ExplicitAlignmentForwarding {
+    /// The wrapped layout's ``Layout/_definesExplicitAlignment``.
+    var definesExplicitAlignment: Bool { get }
 }

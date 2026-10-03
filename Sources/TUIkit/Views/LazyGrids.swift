@@ -35,6 +35,9 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
     /// (``LazyVGrid``), `.horizontal` rightward (``LazyHGrid``).
     let axis: Axis
 
+    /// A lazy grid keeps the default guide merge.
+    static var _definesExplicitAlignment: Bool { false }
+
     /// The track descriptions — columns when vertical, rows when horizontal.
     let items: [GridItem]
 

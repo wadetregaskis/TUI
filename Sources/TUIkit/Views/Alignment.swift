@@ -153,6 +153,10 @@ extension HorizontalAlignment {
 
     /// Aligned to the trailing (right) edge.
     public static let trailing = Self(TrailingID.self)
+
+    /// Whether this is one of the alignments the framework defines, rather
+    /// than one built from an app's own ``AlignmentID``.
+    var isBuiltIn: Bool { self == .leading || self == .center || self == .trailing }
 }
 
 // MARK: - Vertical Alignment
@@ -217,6 +221,13 @@ extension VerticalAlignment {
 
     /// Aligned to the last line of text — the view's last row.
     public static let lastTextBaseline = Self(LastTextBaselineID.self)
+
+    /// Whether this is one of the alignments the framework defines, rather
+    /// than one built from an app's own ``AlignmentID``.
+    var isBuiltIn: Bool {
+        self == .top || self == .center || self == .bottom || self == .firstTextBaseline
+            || self == .lastTextBaseline
+    }
 }
 
 // MARK: - Combining Explicit Values

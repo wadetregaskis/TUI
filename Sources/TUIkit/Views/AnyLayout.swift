@@ -59,6 +59,30 @@ public struct AnyLayout: Layout {
         box.placeSubviews(
             in: bounds, proposal: proposal, subviews: subviews, cache: &cache.base)
     }
+
+    /// The erased layout's answer.
+    public func explicitAlignment(
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: Subviews, cache: inout Cache
+    ) -> Double? {
+        box.explicitAlignment(
+            of: guide, in: bounds, proposal: proposal, subviews: subviews, cache: &cache.base)
+    }
+
+    /// The erased layout's answer.
+    public func explicitAlignment(
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: Subviews, cache: inout Cache
+    ) -> Double? {
+        box.explicitAlignment(
+            of: guide, in: bounds, proposal: proposal, subviews: subviews, cache: &cache.base)
+    }
+}
+
+extension AnyLayout: ExplicitAlignmentForwarding {
+    /// Whether the erased layout defines guides of its own — what the static
+    /// ``Layout/_definesExplicitAlignment``, `true` here, cannot know.
+    var definesExplicitAlignment: Bool { box.definesExplicitAlignment }
 }
 
 /// Animates nothing: no layout animates its properties here yet, so there is
@@ -105,6 +129,15 @@ private protocol AnyLayoutBox {
         proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any) -> ViewSize
     func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any)
+    /// The erased layout's `_definesExplicitAlignment`, through a nested
+    /// `AnyLayout` too.
+    var definesExplicitAlignment: Bool { get }
+    func explicitAlignment(
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: LayoutSubviews, cache: inout Any) -> Double?
+    func explicitAlignment(
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: LayoutSubviews, cache: inout Any) -> Double?
 }
 
 private struct ConcreteBox<L: Layout>: AnyLayoutBox {
@@ -143,5 +176,32 @@ private struct ConcreteBox<L: Layout>: AnyLayoutBox {
         layout.placeSubviews(
             in: bounds, proposal: proposal, subviews: subviews, cache: &typed)
         cache = typed
+    }
+
+    var definesExplicitAlignment: Bool {
+        (layout as? any ExplicitAlignmentForwarding)?.definesExplicitAlignment
+            ?? L._definesExplicitAlignment
+    }
+
+    func explicitAlignment(
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: LayoutSubviews, cache: inout Any
+    ) -> Double? {
+        guard var typed = cache as? L.Cache else { return nil }
+        let value = layout.explicitAlignment(
+            of: guide, in: bounds, proposal: proposal, subviews: subviews, cache: &typed)
+        cache = typed
+        return value
+    }
+
+    func explicitAlignment(
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        subviews: LayoutSubviews, cache: inout Any
+    ) -> Double? {
+        guard var typed = cache as? L.Cache else { return nil }
+        let value = layout.explicitAlignment(
+            of: guide, in: bounds, proposal: proposal, subviews: subviews, cache: &typed)
+        cache = typed
+        return value
     }
 }

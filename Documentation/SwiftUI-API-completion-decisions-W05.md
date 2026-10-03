@@ -85,12 +85,13 @@ start returning what it set.
 
 ### B-W05.5 A guide does not travel out of a view type of the app's own
 
-*`View.alignmentGuide(_:computeValue:)`*
+*`View.alignmentGuide(_:computeValue:)`, `Layout.explicitAlignment(of:in:proposal:subviews:cache:)`*
 
 SwiftUI resolves a guide recursively through everything between it and the
 container aligning on it. TUIkit now does the same through `VStack`,
-`HStack`, `ZStack` and `.padding` (each moving the guide by where it put its
-content), which closes the gap the compatibility notes
+`HStack`, `ZStack`, `.padding` (each moving the guide by where it put its
+content) and a custom `Layout` (`explicitAlignment`), which closes the gap the
+compatibility notes
 recorded: `.alignmentGuide(.decimalPoint)` on a `Text` inside each row of a
 column aligns the rows on the point.
 
@@ -120,4 +121,8 @@ framework subtree's witnesses instead of reading one constant. A tree with no
 guide still pays one stored `Bool` per child at layout time, as before; the
 added cost is in the construction, and it was not measured (no benchmarks on
 a shared machine). `deep` and `kitchensink`, the structure-heavy scenarios,
-are the ones to A/B.
+are the ones to A/B. One more: an app's own `Layout` cannot be known not to
+override `explicitAlignment`, so inside a stack it is laid out once more per
+walk to answer the stack's guide question (the framework's layouts state
+`_definesExplicitAlignment = false` and are asked only when a subview may
+hold a guide). Stress's `customlayout` scenario is the one to A/B for that.

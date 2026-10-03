@@ -258,6 +258,9 @@ public struct HStackLayout: Layout, Sendable, Equatable {
 /// one is the horizontal rule it is outside any stack — which is what a `nil`
 /// axis already means.
 extension VStackLayout {
+    /// The stacks keep the default guide merge.
+    public static var _definesExplicitAlignment: Bool { false }
+
     /// A vertical stack orientation.
     public static var layoutProperties: LayoutProperties {
         var properties = LayoutProperties()
@@ -267,6 +270,9 @@ extension VStackLayout {
 }
 
 extension HStackLayout {
+    /// The stacks keep the default guide merge.
+    public static var _definesExplicitAlignment: Bool { false }
+
     /// A horizontal stack orientation.
     public static var layoutProperties: LayoutProperties {
         var properties = LayoutProperties()
@@ -322,6 +328,9 @@ extension ZStackLayout: Animatable {
 public struct ZStackLayout: Layout, Sendable, Equatable {
     /// Where subviews sit within the stack's own frame.
     public var alignment: Alignment
+
+    /// The stacks keep the default guide merge.
+    public static var _definesExplicitAlignment: Bool { false }
 
     /// Creates an overlay layout.
     ///

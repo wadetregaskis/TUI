@@ -117,7 +117,9 @@ extension View {
     /// the alignment's ``HorizontalAlignment/combineExplicit(_:)`` when several
     /// do), and `.padding` reports its content's moved by the inset. So a
     /// decimal-point guide set on a `Text` inside each row of a column aligns
-    /// the rows on the point.
+    /// the rows on the point. A custom ``Layout`` reports the custom guides its
+    /// subviews set, or one of its own
+    /// (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
     ///
     /// - Important: It stops at any other modifier written after it
     ///   (`.border()`, a `.frame`, `.offset`), and at a view type of your own:

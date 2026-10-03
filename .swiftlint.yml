@@ -222,6 +222,7 @@ identifier_name:
     - _providesAlignmentGuide
     - _providesContainerValues
     - _translatesAlignmentGuides
+    - _definesExplicitAlignment
     - _isAnimatable
     - _animated
     - _isAnimatableModifier
