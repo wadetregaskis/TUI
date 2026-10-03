@@ -47,6 +47,10 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// Whether the picker is disabled.
     let isDisabled: Bool
 
+    /// What the collapsed control shows as the current value, in place of the
+    /// selected option's label — SwiftUI's `currentValueLabel:` — or `nil`.
+    var currentValueLabel: AnyView?
+
     var body: Never {
         fatalError("_PickerMenuCore renders via Renderable")
     }
@@ -101,6 +105,16 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// value". The marker column, the width arithmetic and the ordinal↔row
     /// mapping all come from `DropdownMenu` — the combo box's suggestions menu is
     /// assembled from the same call.
+    /// The `currentValueLabel`, rendered to the one line the collapsed control
+    /// shows, as an option's label is.
+    private func renderedCurrentValueLabel(context: RenderContext) -> String? {
+        guard let currentValueLabel else { return nil }
+        var labelContext = context.withAvailableWidth(
+            max(context.availableWidth, context.environment.terminalWidth))
+        labelContext.leaveScrollCanvas()
+        return currentValueLabel.renderToBuffer(context: labelContext).lines.first ?? ""
+    }
+
     private func dropdownEntries(labels: [String?]) -> [DropdownMenu.Entry] {
         entries.indices.map { index in
             guard let tag = entries[index].tag else { return .divider }
@@ -163,6 +177,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let collapsed = collapsedLine(
             innerWidth: innerWidth,
             renderedLabels: renderedLabels,
+            currentValueText: renderedCurrentValueLabel(context: context),
             isOpen: isOpen,
             isFocused: isFocused,
             isHovered: isHovered,
@@ -399,6 +414,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     private func collapsedLine(
         innerWidth: Int,
         renderedLabels: [String?],
+        currentValueText: String?,
         isOpen: Bool,
         isFocused: Bool,
         isHovered: Bool,
@@ -408,9 +424,12 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // Combine own + cascaded disabled (renderToBuffer's shadowing local does
         // not reach this helper).
         let isDisabled = self.isDisabled || !context.environment.isEnabled
-        // The text of the currently selected option, if any.
+        // The current value's own label, or the text of the currently selected
+        // option, if any.
         let selectedText: String
-        if let index = entries.firstIndex(where: { $0.tag == selection.wrappedValue }) {
+        if let currentValueText {
+            selectedText = currentValueText.stripped
+        } else if let index = entries.firstIndex(where: { $0.tag == selection.wrappedValue }) {
             selectedText = renderedLabels[index]?.stripped ?? ""
         } else {
             selectedText = ""

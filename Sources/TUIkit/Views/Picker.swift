@@ -196,6 +196,11 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// Whether the picker is disabled.
     var isDisabled: Bool
 
+    /// What a menu-style picker shows as its current value, in place of the
+    /// selected option's label — SwiftUI's `currentValueLabel:`. Other styles
+    /// show every option, the current one marked, and have no use for it.
+    var currentValueLabel: AnyView?
+
     /// The active picker style, resolved from the environment.
     @Environment(\.pickerStyle) private var pickerStyle
 
@@ -215,6 +220,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         self.label = label()
         self.focusID = nil
         self.isDisabled = false
+        self.currentValueLabel = nil
     }
 
     public var body: some View {
@@ -252,7 +258,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                     entries: entries,
                     selection: selection,
                     focusID: focusID,
-                    isDisabled: isDisabled
+                    isDisabled: isDisabled,
+                    currentValueLabel: currentValueLabel
                 )
             }
         } else {
