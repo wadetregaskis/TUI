@@ -515,7 +515,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         }
 
         let configuration = ButtonStyleConfiguration(
-            label: label,
+            title: label,
             labelView: labelView,
             role: role,
             isPressed: isPressed,

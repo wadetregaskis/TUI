@@ -189,7 +189,7 @@ struct ResidualButtonStyle: ButtonStyle, Equatable {
     let palette: ResidualPalette
 
     func makeBody(configuration: Configuration) -> some View {
-        Text(verbatim: ResidualText.button(configuration.label, angled: palette.angled, focused: configuration.isFocused))
+        Text(verbatim: ResidualText.button(configuration.title, angled: palette.angled, focused: configuration.isFocused))
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.palette === rhs.palette }

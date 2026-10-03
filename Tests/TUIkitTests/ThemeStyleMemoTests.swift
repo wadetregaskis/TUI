@@ -43,7 +43,7 @@ private struct UncomparableButtonStyle: ButtonStyle {
 /// their TYPE has two types to tell apart.
 private struct OtherUncomparableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Text(verbatim: configuration.label)
+        configuration.label
     }
 }
 

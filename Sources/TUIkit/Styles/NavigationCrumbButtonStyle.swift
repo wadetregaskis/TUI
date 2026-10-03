@@ -116,9 +116,9 @@ private struct _NavigationCrumbLabel: View, Renderable, Layoutable {
     /// measured — but a crumb that overruns would push the rest of the trail
     /// off the row rather than being cut itself.
     private func fitted(to width: Int?) -> String {
-        guard let width, width >= 0 else { return configuration.label }
-        return configuration.label.strippedLength <= width
-            ? configuration.label
-            : configuration.label.truncatedToWidth(width)
+        guard let width, width >= 0 else { return configuration.title }
+        return configuration.title.strippedLength <= width
+            ? configuration.title
+            : configuration.title.truncatedToWidth(width)
     }
 }

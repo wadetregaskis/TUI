@@ -13,14 +13,37 @@
 /// for each ``Button`` and hands it to the active style's
 /// ``ButtonStyle/makeBody(configuration:)`` method.
 public struct ButtonStyleConfiguration {
-    /// The button's label text.
+    /// A type-erased label of a button — the view a style places its label
+    /// with, as in SwiftUI: `configuration.label.padding(1)`.
     ///
-    /// - Note: SwiftUI exposes `label` as a type-erased `View`. TUIkit's default
-    ///   button label is plain text, so the configuration carries the `String`
-    ///   directly for the common case. When the button was built with a
-    ///   `@ViewBuilder` label (`Button(action:label:)`), this is empty and the
-    ///   composed view is in ``labelView`` instead — read that when it's non-nil.
-    public let label: String
+    /// It is the button's `@ViewBuilder` label when it was built with one, and
+    /// otherwise its title as a `Text`.
+    public struct Label: View {
+        let title: String
+        let view: AnyView?
+
+        public var body: some View {
+            if let view {
+                view
+            } else {
+                Text(verbatim: title)
+            }
+        }
+    }
+
+    /// A view that describes the effect of pressing the button: its label.
+    public var label: Label {
+        Label(title: title, view: labelView)
+    }
+
+    /// The button's label text, for a style that draws it itself.
+    ///
+    /// Terminal-specific: SwiftUI hands a style only the label view. TUIkit's
+    /// own styles draw a string label procedurally — the caps, the padding, the
+    /// focus glow — so the configuration also carries the text. Empty when the
+    /// button was built with a `@ViewBuilder` label (`Button(action:label:)`);
+    /// the composed view is then in ``labelView``.
+    public let title: String
 
     /// The composed `@ViewBuilder` label, type-erased, when the button was built
     /// with `Button(action:label:)`; `nil` for a plain string label.
@@ -124,9 +147,9 @@ public struct ButtonStyleConfiguration {
 /// ``makeBody(configuration:)``:
 ///
 /// ```swift
-/// struct LinkButtonStyle: ButtonStyle {
+/// struct QuietButtonStyle: ButtonStyle {
 ///     func makeBody(configuration: Configuration) -> some View {
-///         Text(configuration.label)
+///         configuration.label
 ///             .foregroundStyle(configuration.isFocused ? .palette.accent
 ///                                                       : .palette.foregroundSecondary)
 ///     }
@@ -519,7 +542,7 @@ private struct _ButtonStyleBody: View, Renderable {
         // the caps still align and the truncation is visible to the user.
         let chromeWidth = Self.chromeWidth(for: appearance)
         let labelText = Self.fitLabel(
-            configuration.label, into: context.availableWidth, chrome: chromeWidth)
+            configuration.title, into: context.availableWidth, chrome: chromeWidth)
         let paddedLabel = padding + labelText + padding
 
         // Standard: half-block caps around an accent-tinted
@@ -656,7 +679,7 @@ private struct _ButtonStyleBody: View, Renderable {
         // horizontal padding either side of the label.
         let chromeWidth = Self.chromeWidth(for: appearance)
         let labelText = Self.fitLabel(
-            configuration.label, into: context.availableWidth, chrome: chromeWidth)
+            configuration.title, into: context.availableWidth, chrome: chromeWidth)
         let paddedLabel = padding + labelText + padding
 
         let restingColor: Color =
@@ -1035,7 +1058,7 @@ extension _ButtonStyleBody: Layoutable {
         }
         let chrome = Self.chromeWidth(for: appearance)
         let label = Self.fitLabel(
-            configuration.label, into: context.availableWidth, chrome: chrome)
+            configuration.title, into: context.availableWidth, chrome: chrome)
         return ViewSize.fixed(chrome + label.strippedLength, 1)
     }
 

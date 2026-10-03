@@ -92,7 +92,7 @@ private struct AccumulateButtonStyle: ButtonStyle, Equatable {
     let model: AccumulateModel
 
     func makeBody(configuration: Configuration) -> some View {
-        Text(verbatim: "[\(configuration.label) \(model.never)]")
+        Text(verbatim: "[\(configuration.title) \(model.never)]")
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.model === rhs.model }

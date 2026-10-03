@@ -377,13 +377,8 @@ private struct _MenuItemRow: View {
     /// get the extra space anyway, so adding it here would only make the two
     /// kinds of row disagree. (It used to be written `Text(" \(label)")`, which
     /// drew nothing at all until `Text` stopped swallowing leading spaces.)
-    @ViewBuilder
     private var label: some View {
-        if let labelView = configuration.labelView {
-            labelView
-        } else {
-            Text(configuration.label)
-        }
+        configuration.label
     }
 
     /// The row's text colour. A destructive role keeps its error tint whatever
