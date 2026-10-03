@@ -115,13 +115,19 @@ def extract(modules, out_dir, search_paths, sdk, target):
             sys.exit(f"symbolgraph-extract failed for {module}:\n{result.stderr}")
 
 
-def load_symbols(directory, modules, collect_defaults=False):
+def load_symbols(directory, modules, collect_defaults=False, follow_aliases=False):
     """Every public, live, first-party declaration in these modules.
 
     Keyed by "Owner.name" — a `View` modifier is `View.padding(_:)`, a
     top-level type is just its name. Overloads collapse onto one key on
     purpose: this compares vocabulary, and a signature diff belongs to the
     compile corpus (see the README), not here.
+
+    With `follow_aliases`, a typealias of a type declared here also names that
+    type's members (see the end of this function). TUIkit's graph is read
+    this way and SwiftUI's is not: the question is whether TUIkit offers a
+    spelling, and SwiftUI's own aliases (`Body`, the attribute scopes') would
+    copy whole type trees into the vocabulary being matched.
 
     With `collect_defaults`, also returns which parameters of each function
     carry a default value — what ``source_compatible`` needs to tell an added
@@ -133,6 +139,7 @@ def load_symbols(directory, modules, collect_defaults=False):
     defaults = {}
     keys_by_id = {}
     conformances = []
+    aliases = []
     for entry in sorted(os.listdir(directory)):
         if not entry.endswith(".symbols.json"):
             continue
@@ -160,6 +167,13 @@ def load_symbols(directory, modules, collect_defaults=False):
             keys_by_id[symbol["identifier"]["precise"]] = key
             if collect_defaults:
                 defaults.setdefault(key, []).append(defaulted_parameters(symbol))
+            if follow_aliases and kind == "typealias":
+                target = next(
+                    (fragment.get("preciseIdentifier")
+                     for fragment in symbol.get("declarationFragments", [])
+                     if fragment.get("kind") == "typeIdentifier"), None)
+                if target:
+                    aliases.append((key, target))
         conformances.extend(
             (relation["source"], relation["target"])
             for relation in graph.get("relationships", [])
@@ -176,6 +190,21 @@ def load_symbols(directory, modules, collect_defaults=False):
         if owner:
             for member, kind in SYNTHESIZED_REQUIREMENTS[target]:
                 symbols.setdefault(f"{owner}.{member}", kind)
+    # A typealias names its target's members too: `Text.Case.uppercase` is
+    # written against TUIkit's `Text.Case = TextCase`, whose graph files the
+    # member under `TextCase` alone, so the nested spelling read as a gap.
+    # Only an alias of a type declared in these modules is followed; one of a
+    # standard-library or Foundation type has no members here to copy.
+    for alias, target in aliases:
+        target_key = keys_by_id.get(target)
+        if not target_key or target_key == alias:
+            continue
+        prefix = target_key + "."
+        for key in [key for key in symbols if key.startswith(prefix)]:
+            aliased = alias + key[len(target_key):]
+            symbols.setdefault(aliased, symbols[key])
+            if collect_defaults and key in defaults:
+                defaults.setdefault(aliased, defaults[key])
     return (symbols, defaults) if collect_defaults else symbols
 
 
@@ -599,7 +628,7 @@ def main():
 
         swiftui = load_symbols(swiftui_dir, SWIFTUI_MODULES)
         tuikit, tuikit_defaults = load_symbols(
-            tuikit_dir, TUIKIT_MODULES, collect_defaults=True)
+            tuikit_dir, TUIKIT_MODULES, collect_defaults=True, follow_aliases=True)
         compatible = source_compatible(swiftui, tuikit, tuikit_defaults)
         parity_map = load_map()
 

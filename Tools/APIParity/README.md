@@ -70,6 +70,12 @@ the behaviour genuinely differs too.
 Overloads that differ only in generic constraints collapse onto one key; a
 full signature check belongs in a compile corpus, not here.
 
+A TUIkit typealias of a TUIkit type names that type's members too:
+`Text.Case = TextCase` offers `Text.Case.uppercase`, which the symbol graph
+files under `TextCase` alone. SwiftUI's aliases are not followed, because the
+question is whether TUIkit offers a spelling, and following `Body` and the
+attribute scopes would copy whole type trees into the vocabulary.
+
 ### Extra OPTIONAL arguments are not a difference
 
 The target is *source* compatibility, not identical declarations (see the two
