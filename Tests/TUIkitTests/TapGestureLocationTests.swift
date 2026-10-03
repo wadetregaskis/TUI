@@ -76,6 +76,21 @@ struct TapGestureLocationTests {
         #expect(log.entries == ["local 2,0"])
     }
 
+    @Test("The protocol-typed spaces route as the enum cases do")
+    func protocolSpaces() {
+        let log = TapLog()
+        let harness = InputChainHarness()
+        harness.frame(page(Text("XYZ").onTapGesture(coordinateSpace: GlobalCoordinateSpace()) { cell in
+            log.entries.append("global \(cell.x),\(cell.y)")
+        }))
+        click(harness, 3, 1)
+        harness.frame(page(Text("XYZ").onTapGesture(coordinateSpace: LocalCoordinateSpace()) { cell in
+            log.entries.append("local \(cell.x),\(cell.y)")
+        }))
+        click(harness, 4, 1)
+        #expect(log.entries == ["global 3,1", "local 2,0"])
+    }
+
     /// SwiftUI: a tap gesture inside a disabled view never fires; one attached
     /// outside the disabled scope still does (the 2026-08 audit, #27).
     @Test("A tap inside .disabled(true) never fires; one outside the scope does")

@@ -253,6 +253,22 @@ extension View {
             }
         }
     }
+
+    /// Adds an action to perform when the pointer moves onto, within, or off
+    /// this view, with the space named through ``CoordinateSpaceProtocol`` —
+    /// the spelling SwiftUI moved this modifier to, answering as the
+    /// ``CoordinateSpace`` form does.
+    ///
+    /// - Parameters:
+    ///   - coordinateSpace: `.local`, the default, or `.global`.
+    ///   - action: The action, given the phase.
+    /// - Returns: A view that reports the pointer over it to `action`.
+    public func onContinuousHover(
+        coordinateSpace: some CoordinateSpaceProtocol = .local,
+        perform action: @escaping @MainActor (HoverPhase) -> Void
+    ) -> some View {
+        onContinuousHover(coordinateSpace: coordinateSpace.coordinateSpace, perform: action)
+    }
 }
 
 // MARK: - Seeing Through the Wrapper (the READ direction)

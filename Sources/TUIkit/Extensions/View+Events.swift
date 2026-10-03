@@ -175,6 +175,23 @@ extension View {
             handler: tapHandler(count: count) { event in action(CellPoint(x: event.x, y: event.y)) })
     }
 
+    /// Adds an action to perform when this view recognizes a tap gesture, and
+    /// provides the action with the location of the interaction, in a space
+    /// named through ``CoordinateSpaceProtocol`` — the spelling SwiftUI moved
+    /// this modifier to, answering as the ``CoordinateSpace`` form does.
+    ///
+    /// - Parameters:
+    ///   - count: The number of taps that triggers the action.
+    ///   - coordinateSpace: `.local`, the default, or `.global`.
+    ///   - action: The action, given the location.
+    /// - Returns: A view that fires `action` on the matching multi-click.
+    public func onTapGesture(
+        count: Int = 1, coordinateSpace: some CoordinateSpaceProtocol = .local,
+        perform action: @escaping (CellPoint) -> Void
+    ) -> some View {
+        onTapGesture(count: count, coordinateSpace: coordinateSpace.coordinateSpace, perform: action)
+    }
+
     /// The mouse handler a tap gesture is: it claims the left button's press,
     /// so the release comes back to it wherever the pointer went, and runs
     /// `onTap` with the release of every `count`-th click.

@@ -51,6 +51,22 @@ struct ContinuousHoverTests {
         #expect(log.phases == [.active(CellPoint(x: 3, y: 1)), .active(CellPoint(x: 4, y: 1)), .ended])
     }
 
+    @Test("The protocol-typed .global answers as the enum case does")
+    func protocolGlobal() {
+        let log = PhaseLog()
+        let harness = InputChainHarness()
+        harness.hover([(x: 3, y: 1), (x: 9, y: 5)]) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("0123")
+                HStack(spacing: 0) {
+                    Text("ab")
+                    Text("XYZ").onContinuousHover(coordinateSpace: GlobalCoordinateSpace()) { log.phases.append($0) }
+                }
+            }
+        }
+        #expect(log.phases == [.active(CellPoint(x: 3, y: 1)), .ended])
+    }
+
     @Test("A view inside .disabled(true) hears nothing")
     func disabledHearsNothing() {
         let log = PhaseLog()
