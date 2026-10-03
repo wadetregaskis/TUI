@@ -386,11 +386,12 @@ public struct Toggle<Label: View>: View {
     // Declared so a toggle titled with a string has no padding: the per-pass
     // memos key a view by a hash of its bytes, and padding is whatever the
     // memory held before — skipped by the hash, where a type with none is
-    // plain words. The two word-sized fields, then the label, then the flag —
-    // which fills the byte a `Text` label ends one short of — and the 106-byte
-    // binding last: none over a `Text` (208 → 194 bytes;
-    // `ControlLayoutPaddingTests`). Another label's size can still leave a
-    // gap before the binding.
+    // plain words. The two word-sized fields, then the label, then the
+    // binding, and the one-byte flags last: none over a `Text`, whose 56 bytes
+    // end on a word boundary (208 → 198 bytes; `ControlLayoutPaddingTests`).
+    // The flag sat between the label and the binding while a `Text` was 55
+    // bytes, filling the byte it ended one short of. Another label's size can
+    // still leave a gap before the binding.
 
     /// The unique focus identifier.
     var focusID: String?
@@ -403,11 +404,11 @@ public struct Toggle<Label: View>: View {
     /// The label view.
     let label: Label
 
-    /// Whether the toggle is disabled.
-    var isDisabled: Bool
-
     /// The binding to the toggle's boolean state.
     let isOn: Binding<Bool>
+
+    /// Whether the toggle is disabled.
+    var isDisabled: Bool
 
     /// Set by ``init(_:)``: this toggle only draws, for the one whose style's
     /// body it is in. Last, and one byte, so the layout above keeps no padding.

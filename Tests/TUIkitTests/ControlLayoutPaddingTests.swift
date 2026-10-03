@@ -19,11 +19,13 @@ struct ControlLayoutPaddingTests {
     /// go last, after the binding, so they add a byte and no padding. 197 since
     /// `Transaction.scrollTargetAnchor` (the same day): the binding's
     /// transaction carries the anchor in two bytes, and its switches share one.
-    @Test("A Toggle titled with a string: no padding, 208 → 197 bytes")
+    /// 198 since `Text.textScale` (2026-10-04): a `Text` is 56 bytes, ending
+    /// on a word, so the disabled flag moved from before the binding to after it.
+    @Test("A Toggle titled with a string: no padding, 208 → 198 bytes")
     func toggle() {
         typealias Titled = Toggle<Text>
         #expect(interiorPadding(of: Titled.self).isEmpty, "\(interiorPadding(of: Titled.self))")
-        #expect(MemoryLayout<Titled>.size == 197)
+        #expect(MemoryLayout<Titled>.size == 198)
     }
 
     @Test("A ProgressView with no labels: no padding, 97 → 90 → 106 bytes")
