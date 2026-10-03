@@ -164,9 +164,16 @@ extension PopoverPresentationModifier: Renderable {
         let dismissIsDisabled =
             presentationTrait(InteractiveDismissDisabling.self, of: popover)?
             .interactiveDismissIsDisabled ?? false
+        // Through the gate, so content with a `dismissalConfirmationDialog` can
+        // ask first — see `presentationDismissalGate(context:propertyIndex:)`.
+        let gate = presentationDismissalGate(context: context, propertyIndex: StateIndex.dismissalGate)
+        // A manual box at this identity, which nothing else hydrates: marked
+        // so the end of the pass does not prune it and hand the content a new
+        // gate — a new environment value — every frame.
+        context.stateStorage?.markActive(context.identity)
         let dismiss = {
             guard !dismissIsDisabled else { return }
-            isPresented.wrappedValue = false
+            gate.dismiss { isPresented.wrappedValue = false }
         }
 
         let focusManager = context.environment.focusManager
@@ -214,6 +221,7 @@ extension PopoverPresentationModifier: Renderable {
         popoverContext.environment.dismiss = DismissAction {
             isPresented.wrappedValue = false
         }
+        popoverContext.environment.dismissalGate = gate
 
         var panel = renderPresentedDialog(
             panelView(context: context), context: popoverContext,
@@ -298,4 +306,11 @@ extension PopoverPresentationModifier: Layoutable {
             content, proposal: proposal,
             context: context.withChildIdentity(type: Content.self, index: 0))
     }
+}
+
+/// StateStorage property indices for ``PopoverPresentationModifier``, which
+/// draws its content and its popover at child identities of its own. A free
+/// enum because the modifier is generic.
+private enum StateIndex {
+    static let dismissalGate = 0
 }

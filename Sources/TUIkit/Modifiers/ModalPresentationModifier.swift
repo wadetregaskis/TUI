@@ -132,6 +132,10 @@ extension ModalPresentationModifier: Renderable {
             presentationTrait(InteractiveDismissDisabling.self, of: modal)?
             .interactiveDismissIsDisabled ?? false
 
+        // Kept for the presentation's life, its question cleared each frame —
+        // see `presentationDismissalGate(context:propertyIndex:)`.
+        let gate = presentationDismissalGate(context: context, propertyIndex: StateIndex.dismissalGate)
+
         // Register the modal focus section and activate it FIRST — so the page
         // rendered beneath registers its controls in the now-inactive page
         // section (and can't steal focus or auto-scroll), while the modal's own
@@ -184,13 +188,16 @@ extension ModalPresentationModifier: Renderable {
             // case the item is not published at all: no key binding, and
             // nothing on the status bar offering a way out that does not work.
             let isPresented = self.isPresented
+            // The reader's ways out go through the gate, so content with a
+            // `dismissalConfirmationDialog` can ask first.
+            let interactiveDismiss = { gate.dismiss { isPresented.wrappedValue = false } }
             if !dismissIsDisabled {
                 let dismissItem = StatusBarItem(
                     shortcut: Shortcut.escape,
                     label: LocalizationService.shared.string(
                         for: LocalizationKey.StatusBar.dismiss)
                 ) {
-                    isPresented.wrappedValue = false
+                    interactiveDismiss()
                 }
                 context.environment.statusBar?.registerSectionItems(
                     sectionID: sectionID, items: [dismissItem], composition: .merge)
@@ -206,7 +213,7 @@ extension ModalPresentationModifier: Renderable {
                     sectionID: sectionID
                 ) { event in
                     guard event.key == .escape else { return false }
-                    isPresented.wrappedValue = false
+                    interactiveDismiss()
                     return true
                 }
             }
@@ -286,6 +293,7 @@ extension ModalPresentationModifier: Renderable {
         modalContext.leaveScrollCanvas()
         modalContext.environment.dismiss = dismissAction()
         modalContext.environment.isPresented = true
+        modalContext.environment.dismissalGate = gate
 
         // A detent, if the content named one, decides the height instead of the
         // content's own. It has to be read BEFORE the render — it is the height
@@ -383,6 +391,7 @@ func renderPresentedDialog<V: View>(
 /// because the modifier is generic (which can't hold static stored properties).
 private enum StateIndex {
     static let dragHandler = 0
+    static let dismissalGate = 1
 }
 
 // MARK: - Layoutable

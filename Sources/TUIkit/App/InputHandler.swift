@@ -218,7 +218,9 @@ extension InputHandler {
         // unconditionally.
         if statusBar.quitShortcut.matches(event) {
             if statusBar.isQuitAllowed {
-                onQuit()
+                // Through the bar, so a top-level dismissal confirmation can
+                // ask first.
+                statusBar.requestQuit(onQuit)
             }
             return true
         }

@@ -153,6 +153,25 @@ public final class StatusBarState: @unchecked Sendable {
         quitIsPrevented = true
     }
 
+    /// What asks before the quit key quits — a top-level
+    /// `dismissalConfirmationDialog` whose `shouldPresent` held this frame.
+    /// Cleared before every walk, like ``quitIsPrevented``.
+    private var quitQuestion: ((@escaping () -> Void) -> Void)?
+
+    /// Has the quit key ask `question` first, this frame.
+    func askBeforeQuitting(_ question: @escaping (@escaping () -> Void) -> Void) {
+        quitQuestion = question
+    }
+
+    /// Quits — or asks first, if something on screen asked to be asked.
+    func requestQuit(_ quit: @escaping () -> Void) {
+        if let quitQuestion {
+            quitQuestion(quit)
+        } else {
+            quit()
+        }
+    }
+
     /// The keyboard shortcut used to quit the application.
     ///
     /// Defaults to `.q` (pressing `q` quits). Change this to use a different key:
@@ -498,6 +517,7 @@ extension StatusBarState {
         sectionItems.removeAll()
         declaredGlobalItems.removeAll()
         quitIsPrevented = false
+        quitQuestion = nil
     }
 
     /// Everything a walk of the scene republishes, emptied before the walk:

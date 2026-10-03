@@ -111,6 +111,34 @@ always prevents", which would take the quit key away behind every sheet in
 every app. That is the decision: I would adopt the dialog rule and leave
 sheets at "never".
 
+### B-W09-4 A dismissal confirmation asks before the reader's ways out, not before `dismiss()`
+
+*`View.dismissalConfirmationDialog(_:shouldPresent:actions:)`,
+`View.dismissalConfirmationDialog(_:shouldPresent:actions:message:)`*
+
+SwiftUI's doc says the dialog is presented "when a dismiss action has been
+triggered", and on macOS "when attempting to dismiss the window for this
+view".
+
+**Shipped:** on a presentation's content, the presentation's own ways out ask
+first — Escape, an outside click (a popover), the status-bar item; on an
+app's top-level content, the quit key does, the terminal's nearest thing to
+closing the window. Cancel keeps what was about to go; every other action runs
+and then lets it go.
+
+**What is not intercepted:** an app's own `@Environment(\.dismiss)` call. It
+is a decision the app made in code, and its usual shape — a Save button that
+saves and dismisses — would otherwise ask about the changes it has just saved
+whenever `shouldPresent` lags a frame. Nor is a pushed `NavigationStack`
+screen's Escape (back), or a signal.
+
+**The fuller version** wraps `\.dismiss` for the content too. The catch is
+cost, not code: `DismissAction` is not `Equatable`, so writing one into the
+environment turns the memos off below it, and on a top-level content that is
+the whole app. It wants `DismissAction` made comparable first (an
+identity-compared box, as `searchable`'s dismissal is), which every presenter
+writing one would gain from — half a day with the memo tests.
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`
