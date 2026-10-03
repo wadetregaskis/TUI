@@ -88,6 +88,10 @@ public struct StyleAttributes: Sendable, Hashable {
     /// anchor, and for the same reason.
     public var textCase: TextCase??
 
+    /// The text scale: `.secondary` draws one intensity tier down. See
+    /// ``Text/Scale``.
+    public var textScale: Text.Scale?
+
     public init(
         foreground: Color? = nil,
         background: Color? = nil,
@@ -96,7 +100,8 @@ public struct StyleAttributes: Sendable, Hashable {
         underline: Bool? = nil,
         strikethrough: Bool? = nil,
         dim: Bool? = nil,
-        textCase: TextCase?? = nil
+        textCase: TextCase?? = nil,
+        textScale: Text.Scale? = nil
     ) {
         self.foreground = foreground
         self.background = background
@@ -106,6 +111,7 @@ public struct StyleAttributes: Sendable, Hashable {
         self.strikethrough = strikethrough
         self.dim = dim
         self.textCase = textCase
+        self.textScale = textScale
     }
 
     /// The case transform to actually apply.
@@ -118,6 +124,7 @@ public struct StyleAttributes: Sendable, Hashable {
     public var isEmpty: Bool {
         foreground == nil && background == nil && bold == nil && italic == nil
             && underline == nil && strikethrough == nil && dim == nil && textCase == nil
+            && textScale == nil
     }
 
     /// Returns a copy where `self`'s non-`nil` fields win over `base` — the
@@ -133,6 +140,7 @@ public struct StyleAttributes: Sendable, Hashable {
             underline: underline ?? base.underline,
             strikethrough: strikethrough ?? base.strikethrough,
             dim: dim ?? base.dim,
-            textCase: textCase ?? base.textCase)
+            textCase: textCase ?? base.textCase,
+            textScale: textScale ?? base.textScale)
     }
 }

@@ -110,6 +110,20 @@ extension View {
     public func textCase(_ textCase: TextCase?) -> some View {
         style(.text, StyleAttributes(textCase: .some(textCase)))
     }
+
+    /// Applies a text scale to all text in this view's subtree — mirrors
+    /// SwiftUI's `textScale(_:isEnabled:)`.
+    ///
+    /// `.secondary` draws one intensity tier down: bold becomes plain, plain
+    /// becomes faint (see ``Text/Scale``). A descendant's own scale wins.
+    ///
+    /// - Parameters:
+    ///   - scale: The text scale to apply.
+    ///   - isEnabled: Whether to apply it; `false` leaves the subtree as it was.
+    /// - Returns: A view whose text takes the scale.
+    public func textScale(_ scale: Text.Scale, isEnabled: Bool = true) -> some View {
+        style(.text, isEnabled ? StyleAttributes(textScale: scale) : StyleAttributes())
+    }
 }
 
 // MARK: - Seeing Through the Wrapper

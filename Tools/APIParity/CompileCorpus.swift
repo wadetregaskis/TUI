@@ -381,3 +381,16 @@ private struct ColourComponentShapes: View {
         }
     }
 }
+
+/// Text scales, on a view and on a text, and the nested type names spelled out.
+@MainActor
+private struct TextScaleShapes: View {
+    var body: some View {
+        VStack {
+            Text("Title").font(.headline)
+            Text("Subtitle").textScale(.secondary)
+            Text("Long title").truncationMode(Text.TruncationMode.middle).textCase(Text.Case.uppercase)
+        }
+        .textScale(.secondary, isEnabled: true)
+    }
+}

@@ -37,9 +37,27 @@ public struct Text: View, Equatable {
     /// spelling.
     public typealias TruncationMode = TUIkit.TruncationMode
 
+    /// A scale to apply to text — mirrors SwiftUI's `Text.Scale`.
+    ///
+    /// SwiftUI draws `.secondary` text about a tenth smaller. A terminal has one
+    /// glyph size, so here the scale is the step ``Font`` already takes for
+    /// "smaller": one intensity tier down — bold text becomes plain, and plain
+    /// text faint. Faint text stays faint.
+    public struct Scale: Sendable, Hashable {
+        /// Whether this is the secondary scale.
+        let isSecondary: Bool
+
+        /// The default text scale.
+        public static let `default` = Self(isSecondary: false)
+
+        /// A scale for text secondary to the text around it: one intensity
+        /// tier down.
+        public static let secondary = Self(isSecondary: true)
+    }
+
     // Declared so there is no padding between them for the per-pass memos'
     // value hash to skip (see the note on `TextStyle`'s properties): the two
-    // 8-byte-aligned fields first, then `style`, whose 31 bytes end on a byte
+    // 8-byte-aligned fields first, then `style`, whose 32 bytes end on a byte
     // boundary. Style between them left 7 undefined bytes before `runs`.
 
     /// The text to display.
@@ -244,6 +262,23 @@ extension Text {
     public func dim(_ isActive: Bool = true) -> Text {
         var copy = self
         copy.style.isDim = isActive
+        return copy
+    }
+
+    /// Applies a text scale to this text — mirrors SwiftUI's
+    /// `textScale(_:isEnabled:)`.
+    ///
+    /// `.secondary` draws one intensity tier down (see ``Scale``); a scale on
+    /// the text itself wins over one cascaded from ``View/textScale(_:isEnabled:)``.
+    ///
+    /// - Parameters:
+    ///   - scale: The text scale to apply.
+    ///   - isEnabled: Whether to apply it; `false` leaves the text as it was.
+    /// - Returns: A new text with the scale applied.
+    public func textScale(_ scale: Scale, isEnabled: Bool = true) -> Text {
+        guard isEnabled else { return self }
+        var copy = self
+        copy.style.textScale = scale
         return copy
     }
 
@@ -501,6 +536,9 @@ struct TextStyle: Sendable, Equatable {
     /// Whether the text is dimmed, or `nil` if this `Text` never said.
     var isDim: Bool?
 
+    /// The text scale this `Text` stated, or `nil` if it never said.
+    var textScale: Text.Scale?
+
     /// The semantic font this text stated for itself: the outer `nil` means it
     /// never stated one, the inner `nil` that it stated *none*.
     ///
@@ -651,6 +689,16 @@ extension Text: Renderable, Layoutable {
         result.isUnderlined = own.isUnderlined ?? cascaded.underline
         result.isStrikethrough = own.isStrikethrough ?? cascaded.strikethrough
         result.isDim = own.isDim ?? cascaded.dim
+        // A secondary scale steps the RESOLVED intensity down one tier, so it
+        // is applied after everything else has had its say: bold → plain,
+        // plain → faint, faint stays faint.
+        if (own.textScale ?? cascaded.textScale)?.isSecondary == true {
+            if result.isBold == true {
+                result.isBold = false
+            } else {
+                result.isDim = true
+            }
+        }
         // Redaction is the system speaking, not a style: `.invalidated` says the
         // content is STALE, not absent — so it is shown and dimmed rather than
         // replaced with a skeleton, even where the text asked not to be dimmed.

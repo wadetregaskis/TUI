@@ -39,8 +39,10 @@ struct TextLayoutPaddingTests {
         #expect(plans.plan(for: Text.self).pointee.shape == .dense)
         #expect(plans.plan(for: TextStyle.self).pointee.shape == .dense)
         #expect(plans.plan(for: FlexibleFrameView<Text>.self).pointee.shape == .dense)
-        #expect(MemoryLayout<TextStyle>.size == 31)
-        #expect(MemoryLayout<Text>.size == 55)
+        // 32 and 56 since `textScale` (2026-10-04): one byte at the style's
+        // byte-aligned tail, so one more byte and no padding.
+        #expect(MemoryLayout<TextStyle>.size == 32)
+        #expect(MemoryLayout<Text>.size == 56)
     }
 
     @Test("A style's statements read back as the optionals they stand for")

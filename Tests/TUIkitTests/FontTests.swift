@@ -337,6 +337,34 @@ struct FontTests {
         let row = lines.first { $0.contains("TODAY") } ?? ""
         #expect(!row.contains("\u{1B}[1;2"), "body cleared the header's bold+dim: \(row)")
     }
+
+    // MARK: - Text scale
+
+    /// SwiftUI draws `.secondary` text about a tenth smaller; here it is one
+    /// intensity tier down, measured on the RESOLVED intensity.
+    @Test("A secondary scale steps one tier down: bold to plain, plain to faint")
+    func secondaryStepsDown() {
+        let headline = codes(Text(verbatim: "Hi").font(.headline).textScale(.secondary))
+        #expect(!headline.contains("1") && !headline.contains("2"), "a bold headline becomes plain: \(headline)")
+        #expect(codes(Text(verbatim: "Hi").textScale(.secondary)).contains("2"), "body text becomes faint")
+        let caption = codes(Text(verbatim: "Hi").font(.caption).textScale(.secondary))
+        #expect(caption.contains("2") && !caption.contains("1"), "a caption stays faint: \(caption)")
+    }
+
+    @Test("The view-level scale cascades, and a text's own scale wins")
+    func scaleCascades() {
+        let cascaded = codes(VStack { Text(verbatim: "Hi").font(.headline) }.textScale(.secondary))
+        #expect(!cascaded.contains("1"), "\(cascaded)")
+        let opted = codes(VStack { Text(verbatim: "Hi").font(.headline).textScale(.default) }.textScale(.secondary))
+        #expect(opted.contains("1"), "\(opted)")
+    }
+
+    @Test("A disabled scale changes nothing")
+    func disabledScale() {
+        #expect(codes(Text(verbatim: "Hi").font(.headline).textScale(.secondary, isEnabled: false)).contains("1"))
+        #expect(codes(VStack { Text(verbatim: "Hi").font(.headline) }.textScale(.secondary, isEnabled: false))
+            .contains("1"))
+    }
 }
 
 extension Font {

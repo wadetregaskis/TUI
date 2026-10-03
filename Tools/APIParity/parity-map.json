@@ -751,9 +751,6 @@
     "Text.LayoutKey": {
       "why": "The preference key that publishes anchored Text.Layout values (glyph geometry in a coordinate space) to ancestors. Depends entirely on the glyph-layout model TUIkit does not and cannot have — the app emits characters and the emulator does the typesetting."
     },
-    "Text.Scale": {
-      "why": "The .default/.secondary scale for textScale — it renders at a fraction of the current point size. A terminal has exactly one glyph size, set by the emulator; TUIkit's 'secondary' register is colour/intensity (Text.dim(), Sources/TUIkit/Views/Text.swift:173) and cannot be a size."
-    },
     "TextAttribute": {
       "why": "Marker protocol for values attached via Text.customAttribute and read back inside a TextRenderer's glyph-run walk. It exists only to feed the custom-rendering pipeline, which has no terminal counterpart (no glyph runs, no drawing context)."
     },

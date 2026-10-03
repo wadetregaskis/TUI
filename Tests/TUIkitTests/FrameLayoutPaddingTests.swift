@@ -34,11 +34,11 @@ struct FrameLayoutPaddingTests {
             "\(interiorPadding(of: FlexibleFrameView<Text>.self))")
     }
 
-    @Test("Six words of constraints, the alignment, then the content: 151 bytes over a Text, down from 200")
+    @Test("Six words of constraints, the alignment, then the content: 152 bytes over a Text, down from 200")
     func size() {
         #expect(
             MemoryLayout<FlexibleFrameView<Text>>.size
                 == 6 * 8 + MemoryLayout<Alignment>.size + MemoryLayout<Text>.size)
-        #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 151)
+        #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 152)
     }
 }
