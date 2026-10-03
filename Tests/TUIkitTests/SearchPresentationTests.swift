@@ -136,4 +136,28 @@ struct SearchPresentationTests {
         harness.press(KeyEvent(key: .enter))
         #expect(probe.pressed == 1, "and the focus moved on to the content")
     }
+
+    /// The guarantee `searchPresentationToolbarBehavior(.avoidHidingContent)`
+    /// asks for, asserted rather than the modifier's return: with search
+    /// presented, what is above the field and the content below it are still
+    /// drawn.
+    @Test("Presenting search hides nothing around the field")
+    func presentingHidesNothing() {
+        let harness = InputChainHarness(width: 50, height: 12)
+        let probe = Probe()
+        let page = {
+            VStack {
+                Text("Notes")
+                VStack { Text("first result") }
+                    .searchable(text: probe.text, isPresented: probe.isPresented, placement: .toolbarPrincipal)
+                    .searchToolbarBehavior(.automatic)
+            }
+            .searchPresentationToolbarBehavior(.avoidHidingContent)
+        }
+        harness.frame(page())
+        let lines = harness.frame(page()).lines.map(\.stripped)
+        #expect(probe.presented, "search is presented: the field holds the focus")
+        #expect(lines.contains { $0.contains("Notes") }, "what is above the field is still drawn")
+        #expect(lines.contains { $0.contains("first result") }, "and so is the content")
+    }
 }

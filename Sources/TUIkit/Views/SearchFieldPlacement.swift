@@ -16,12 +16,17 @@ public struct SearchFieldPlacement: Sendable, Equatable {
         case toolbar
         case sidebar
         case navigationBarDrawer
+        case toolbarPrincipal
     }
 
     let kind: Kind
 
     public static let automatic = Self(kind: .automatic)
     public static let toolbar = Self(kind: .toolbar)
+
+    /// The search field in the principal section of the toolbar — drawn, as
+    /// every placement is here, at the top of the searchable subtree.
+    public static var toolbarPrincipal: Self { Self(kind: .toolbarPrincipal) }
     public static let sidebar = Self(kind: .sidebar)
     public static let navigationBarDrawer = Self(kind: .navigationBarDrawer)
 }
