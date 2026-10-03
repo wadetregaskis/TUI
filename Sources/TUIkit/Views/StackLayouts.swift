@@ -257,12 +257,22 @@ public struct HStackLayout: Layout, Sendable, Equatable {
 /// `ZStackLayout` is absent on purpose: a ZStack has no axis, and a divider in
 /// one is the horizontal rule it is outside any stack — which is what a `nil`
 /// axis already means.
-extension VStackLayout: AxisPublishingLayout {
-    var containerAxis: Axis? { .vertical }
+extension VStackLayout {
+    /// A vertical stack orientation.
+    public static var layoutProperties: LayoutProperties {
+        var properties = LayoutProperties()
+        properties.stackOrientation = .vertical
+        return properties
+    }
 }
 
-extension HStackLayout: AxisPublishingLayout {
-    var containerAxis: Axis? { .horizontal }
+extension HStackLayout {
+    /// A horizontal stack orientation.
+    public static var layoutProperties: LayoutProperties {
+        var properties = LayoutProperties()
+        properties.stackOrientation = .horizontal
+        return properties
+    }
 }
 
 // MARK: - The stacks' associated types, spelled out

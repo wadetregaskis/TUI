@@ -154,4 +154,39 @@ struct DividerAxisTests {
         #expect(!lines[1].contains("│"), "and not a vertical bar: \(lines)")
         #expect(lines[2].contains("bb"), "the rule spent one row, not four: \(lines)")
     }
+
+    @Test("A custom layout that states a stack orientation turns its dividers too")
+    func customLayoutStatesItsOrientation() {
+        #expect(HStackLayout.layoutProperties.stackOrientation == .horizontal)
+        #expect(VStackLayout.layoutProperties.stackOrientation == .vertical)
+        #expect(ZStackLayout.layoutProperties.stackOrientation == nil)
+        let lines = render(Row { Text("aa"); Divider(); Text("bb") })
+        #expect(lines[0].trimmingCharacters(in: .whitespaces) == "aa│bb", "\(lines)")
+        #expect(render(AnyLayout(Row()) { Text("aa"); Divider(); Text("bb") }) == lines,
+                "through AnyLayout as well")
+    }
+}
+
+/// Places its subviews side by side, touching, and says so.
+private struct Row: Layout {
+    static var layoutProperties: LayoutProperties {
+        var properties = LayoutProperties()
+        properties.stackOrientation = .horizontal
+        return properties
+    }
+
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        #expect(subviews.layoutDirection == .leftToRight)
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        return ViewSize(
+            width: sizes.reduce(0) { $0 + $1.width }, height: sizes.map(\.height).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.x
+        for subview in subviews {
+            subview.place(at: (x: x, y: bounds.y), proposal: .unspecified)
+            x += subview.sizeThatFits(.unspecified).width
+        }
+    }
 }

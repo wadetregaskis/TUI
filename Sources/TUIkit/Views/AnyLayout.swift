@@ -110,9 +110,12 @@ private protocol AnyLayoutBox {
 private struct ConcreteBox<L: Layout>: AnyLayoutBox {
     let layout: L
 
-    /// `nil` unless the wrapped layout opts in. A nested `AnyLayout` answers
-    /// through its own conformance below, so the forwarding recurses.
-    var containerAxis: Axis? { (layout as? any AxisPublishingLayout)?.containerAxis }
+    /// The wrapped layout's stack orientation. A nested `AnyLayout` states none
+    /// of its own and answers through its `AxisPublishingLayout` conformance
+    /// instead, so the forwarding recurses.
+    var containerAxis: Axis? {
+        L.layoutProperties.stackOrientation ?? (layout as? any AxisPublishingLayout)?.containerAxis
+    }
 
     func makeCache(subviews: LayoutSubviews) -> Any {
         layout.makeCache(subviews: subviews)

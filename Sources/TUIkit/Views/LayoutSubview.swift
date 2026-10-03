@@ -153,6 +153,7 @@ public struct LayoutSubview: @MainActor Equatable {
 public struct LayoutSubviews: @MainActor RandomAccessCollection {
     public typealias Element = LayoutSubview
     public typealias Index = Int
+    public typealias Indices = Range<Int>
 
     let children: [ChildView]
     let context: RenderContext
@@ -164,5 +165,12 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     public subscript(index: Int) -> LayoutSubview {
         LayoutSubview(
             index: index, child: children[index], context: context, placements: placements)
+    }
+
+    /// The layout direction inherited by the container view — always
+    /// left-to-right, until TUIkit supports right-to-left (see
+    /// ``EnvironmentValues/layoutDirection``).
+    public var layoutDirection: LayoutDirection {
+        context.environment.layoutDirection
     }
 }

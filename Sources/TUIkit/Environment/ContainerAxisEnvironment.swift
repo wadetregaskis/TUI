@@ -53,19 +53,12 @@ extension RenderContext {
 
 // MARK: - Layouts With an Axis
 
-/// A ``Layout`` whose arrangement has an axis, and which therefore owes its
-/// subviews the same ``EnvironmentValues/containerAxis`` a stack VIEW publishes.
+/// A layout that forwards an axis it cannot state statically: ``AnyLayout``,
+/// whose ``Layout/layoutProperties`` — a static property — cannot know the
+/// layout it erased. Every other layout states its axis as
+/// ``LayoutProperties/stackOrientation``.
 ///
-/// NOT a requirement on `Layout` itself: a protocol requirement cannot be
-/// narrower than its protocol, so declaring it there would ship public API for
-/// which SwiftUI has only `LayoutProperties.stackOrientation` — a property
-/// TUIkit deliberately does not have (see ``Layout``). An internal protocol the
-/// two stack layouts opt into keeps the hook out of the public surface and
-/// leaves every other conformance — a lattice, a reflowing grid, an app's own
-/// layout — with no axis, which is the honest answer for them.
-///
-/// Optional-valued because ``AnyLayout`` conforms in order to FORWARD, and what
-/// it has erased may well have no axis at all.
+/// Optional-valued because what `AnyLayout` has erased may well have no axis.
 @MainActor
 protocol AxisPublishingLayout {
     /// The axis this layout arranges its subviews along, or `nil` for none.

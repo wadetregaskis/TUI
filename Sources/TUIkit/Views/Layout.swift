@@ -63,16 +63,6 @@ import TUIkitView
 ///   spacing between cells is whatever the container decides — so the honest
 ///   answer would be a constant zero, and an API that always says zero is one
 ///   that invites a question it cannot answer.
-/// - **`LayoutProperties`.** The information is consumed, the property is not.
-///   SwiftUI's `stackOrientation` tells a subview which way its container
-///   stacks — a hint for the handful of views that care (`Divider` picks its
-///   orientation from it), never a claim about placement — and TUIkit needs the
-///   same answer: `HStackLayout` and `VStackLayout` publish their axis to their
-///   subviews, exactly as `HStack`/`VStack` do. They do it through an internal
-///   hook rather than a public property, so the public surface of a `Layout`
-///   stays the arrangement itself; no conformance outside those two owns an
-///   axis, and a custom layout's subviews therefore see none — the same answer
-///   they get from a `ZStack`.
 /// - **`explicitAlignment(of:in:…)`.** A layout cannot yet publish a guide to
 ///   *its* parent. Omitting it keeps conformances source-compatible (an extra
 ///   method on your type is simply an extra method) and leaves the door open;
@@ -103,6 +93,33 @@ public protocol Layout {
     /// deliberately overlap its subviews.
     func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache)
+
+    /// Properties of this kind of layout: which way it stacks, if it does.
+    ///
+    /// Its subviews see the ``LayoutProperties/stackOrientation`` as their
+    /// container's axis, exactly as a stack's children see the stack's — a hint
+    /// for the few views that care (a ``Divider`` picks its orientation from
+    /// it), never a claim about placement. Defaults to no orientation, the
+    /// answer a `ZStack` gives.
+    static var layoutProperties: LayoutProperties { get }
+}
+
+/// Layout-specific properties of a layout container.
+public struct LayoutProperties: Sendable {
+    /// The orientation of the containing stack-like container, or `nil` for a
+    /// container that does not stack along an axis.
+    ///
+    /// A ``Divider`` among the subviews draws across it: a vertical rule in a
+    /// horizontal stack, a horizontal one otherwise.
+    public var stackOrientation: Axis?
+
+    /// Creates properties with no stack orientation.
+    public init() {}
+}
+
+extension Layout {
+    /// Default: no stack orientation.
+    public static var layoutProperties: LayoutProperties { LayoutProperties() }
 }
 
 extension Layout {
@@ -184,9 +201,15 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// rather than the measure and the render answering different questions.
     ///
     /// `nil` for a layout with no axis — `ZStackLayout`, the lazy grids,
-    /// anything an app writes — which leaves the divider its default unchanged.
+    /// anything an app writes that does not state a `stackOrientation` — which
+    /// leaves the divider its default unchanged. ``AnyLayout``'s static
+    /// properties cannot know what it erased, so it forwards through
+    /// `AxisPublishingLayout` instead.
     private func publishingChildAxis(_ context: RenderContext) -> RenderContext {
-        guard let axis = (layout as? any AxisPublishingLayout)?.containerAxis else {
+        guard
+            let axis = L.layoutProperties.stackOrientation
+                ?? (layout as? any AxisPublishingLayout)?.containerAxis
+        else {
             return context
         }
         return context.publishingContainerAxis(axis)
