@@ -182,11 +182,24 @@ extension PreferenceStorage {
 
     /// Pops the current preference context and merges into parent.
     public func pop() -> PreferenceValues {
+        pop { _ in }
+    }
+
+    /// Pops the current preference context, lets `transform` rewrite what it
+    /// collected, and merges the result into the parent — what
+    /// `transformPreference(_:_:)` does to its subtree's values before its
+    /// ancestors see them.
+    ///
+    /// - Parameter transform: Rewrites the popped values in place.
+    /// - Returns: The popped values, as transformed.
+    @discardableResult
+    public func pop(transforming transform: (inout PreferenceValues) -> Void) -> PreferenceValues {
         guard stack.count > 1 else {
             return stack.last ?? PreferenceValues()
         }
 
-        let popped = stack.removeLast()
+        var popped = stack.removeLast()
+        transform(&popped)
 
         // Merge into parent
         if !stack.isEmpty {

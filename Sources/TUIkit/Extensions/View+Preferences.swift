@@ -50,6 +50,27 @@ extension View {
     ) -> some View where K.Value: Equatable {
         OnPreferenceChangeModifier<Self, K>(content: self, action: action)
     }
+
+    /// Applies a transformation to a preference value.
+    ///
+    /// The transform sees the value this view's subtree reduced — the key's
+    /// default when nothing below set it — and what it leaves is what this
+    /// view's ancestors receive.
+    ///
+    /// ```swift
+    /// SectionContent()
+    ///     .transformPreference(RowCountKey.self) { $0 += 1 } // count the header too
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - key: The preference key type.
+    ///   - callback: Rewrites the value in place.
+    /// - Returns: A view that transforms the preference.
+    public func transformPreference<K: PreferenceKey>(
+        _ key: K.Type = K.self, _ callback: @escaping (inout K.Value) -> Void
+    ) -> some View {
+        TransformPreferenceModifier<Self, K>(content: self, transform: callback)
+    }
 }
 
 // MARK: - Navigation Title

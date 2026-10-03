@@ -131,6 +131,54 @@ extension OnPreferenceChangeModifier: Layoutable {
     }
 }
 
+// MARK: - Transform Preference Modifier
+
+/// A modifier that rewrites the value of a preference its subtree reduced,
+/// before its ancestors see it.
+struct TransformPreferenceModifier<Content: View, K: PreferenceKey>: View {
+    /// The content view.
+    let content: Content
+
+    /// Rewrites the subtree's value in place.
+    let transform: (inout K.Value) -> Void
+
+    var body: Never {
+        fatalError("TransformPreferenceModifier renders via Renderable")
+    }
+}
+
+extension TransformPreferenceModifier: Renderable {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A measure collects no preferences, so there is nothing to transform;
+        // and the write below is a render-pass side effect that a cached
+        // buffer cannot reproduce — both as `PreferenceModifier` has it.
+        guard !context.isMeasuring else {
+            return TUIkit.renderToBuffer(content, context: context)
+        }
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        let prefs = context.environment.preferenceStorage!
+
+        prefs.push()
+        let buffer = TUIkit.renderToBuffer(content, context: context)
+        // Measured in SwiftUI: the transform runs on the subtree's REDUCED
+        // value — on the default when no child set one, whose result is then
+        // set — and the result is what the parent receives.
+        prefs.pop { values in
+            var value = values[K.self]
+            transform(&value)
+            values[K.self] = value
+        }
+        return buffer
+    }
+}
+
+extension TransformPreferenceModifier: Layoutable {
+    /// Renders `content` unchanged, so it measures as `content`.
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+}
+
 // MARK: - Common Preference Keys
 
 /// A preference key for the navigation title.
