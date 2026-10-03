@@ -80,6 +80,18 @@ final class SearchDismissal: Equatable {
     /// so the field can be found to give it the focus.
     var fieldIdentity: ViewIdentity?
 
+    /// Where the scopes last rendered, if a `searchScopes` drew any —
+    /// recorded by `_SearchScopeBarFrame`.
+    var scopeBarIdentity: ViewIdentity?
+
+    /// Whether the focus is in the scopes under the field.
+    var focusIsInScopes: Bool {
+        guard let scopes = scopeBarIdentity, let focused = focusManager?.focusedIdentity else {
+            return false
+        }
+        return scopes == focused || scopes.isAncestor(of: focused)
+    }
+
     /// Moves the focus to the search field: what setting a searchable's
     /// `isPresented` to `true` does. Between frames, where the ring is the
     /// last frame's and complete.

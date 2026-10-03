@@ -239,6 +239,9 @@ struct SearchableModifier<Content: View>: View {
     /// query field alone.
     @Environment(\.searchSuggestions) private var suggestions
 
+    /// What ``View/searchScopes(_:scopes:)`` above us offered, if anything.
+    @Environment(\.searchScopeBar) private var scopeBar
+
     /// The magnifier that faces the field from `iconPlacement`'s side: 🔎 is
     /// RIGHT-pointing so it looks rightward into a trailing field, 🔍 is
     /// LEFT-pointing so it looks leftward into a leading one. (The Unicode
@@ -261,18 +264,29 @@ struct SearchableModifier<Content: View>: View {
     /// The field above the content.
     private var searchStack: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 1) {
-                if supportsEmojiChrome, iconPlacement == .leading {
-                    icon
+            // The field, and the scopes under it: one child, so the content
+            // stays the stack's second whether or not scopes show.
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 1) {
+                    if supportsEmojiChrome, iconPlacement == .leading {
+                        icon
+                    }
+                    // Scope ONLY the query field to the `.search` submit role, so a
+                    // Return here fires `.onSubmit(of: .search)` — not `.onSubmit(of:
+                    // .text)`, and a plain text field in `content` (a sibling) still
+                    // consumes `.text`.
+                    queryField
+                        .environment(\.submitTriggerRole, .search)
+                    if supportsEmojiChrome, iconPlacement == .trailing {
+                        icon
+                    }
                 }
-                // Scope ONLY the query field to the `.search` submit role, so a
-                // Return here fires `.onSubmit(of: .search)` — not `.onSubmit(of:
-                // .text)`, and a plain text field in `content` (a sibling) still
-                // consumes `.text`.
-                queryField
-                    .environment(\.submitTriggerRole, .search)
-                if supportsEmojiChrome, iconPlacement == .trailing {
-                    icon
+                if let scopeBar,
+                    scopeBar.activation.showsScopes(
+                        isSearching: isSearching, hasQuery: !text.wrappedValue.isEmpty,
+                        focusInScopes: dismissal.focusIsInScopes)
+                {
+                    _SearchScopeBarFrame(bar: scopeBar, search: dismissal)
                 }
             }
             // Both values reach the CONTENT only, which is where SwiftUI puts
@@ -281,9 +295,11 @@ struct SearchableModifier<Content: View>: View {
             content
                 .environment(\.isSearching, isSearching)
                 .environment(\.searchDismissal, dismissal)
-                // A `searchFocused` written outside binds THIS searchable's
-                // field, and not a searchable's in the content as well.
+                // A `searchFocused` or `searchScopes` written outside belongs to
+                // THIS searchable's field, and not a searchable's in the content
+                // as well.
                 .environment(\.searchFocusOffer, nil)
+                .environment(\.searchScopeBar, nil)
         }
     }
 

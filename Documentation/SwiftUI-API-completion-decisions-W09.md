@@ -139,6 +139,29 @@ the whole app. It wants `DismissAction` made comparable first (an
 identity-compared box, as `searchable`'s dismissal is), which every presenter
 writing one would gain from — half a day with the memo tests.
 
+### B-W09-5 Search scopes show while the search is under way, by a terminal's reading of "presented" and "cancelled"
+
+*`View.searchScopes(_:scopes:)`, `View.searchScopes(_:activation:_:)`,
+`SearchScopeActivation`*
+
+SwiftUI shows the scope bar "when SwiftUI presents search" (macOS) or "when
+someone enters text" (iOS), and hides it "when someone cancels the search".
+On macOS the search field lives in a toolbar and is presented by clicking it.
+Here it is always on screen at the top of the searchable subtree.
+
+**Shipped:** presented is the field holding the focus, as `isSearching` already
+was; cancelled is `dismissSearch` (or `isPresented = false`), or leaving the
+field with nothing typed. So under `.onSearchPresentation` and `.automatic`
+(macOS's default) the scopes show while the field has the focus or the query
+is not empty; under `.onTextEntry`, while the query is not empty. Under both
+they stay while the focus is in them, or Tab from the field would hide the
+picker it was heading for.
+
+**The alternative** is to show the scopes whenever the field is on screen,
+since a terminal's field is never hidden. That reads well for a dedicated
+search page but makes `.onTextEntry` meaningless, so it would have to be a
+TUIkit-only activation rather than a reading of SwiftUI's.
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`
