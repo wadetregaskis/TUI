@@ -242,25 +242,18 @@ struct LayoutPage: View {
             VStack(alignment: .decimalPoint, spacing: 0) {
                 ForEach(Self.amounts, id: \.self) { amount in
                     let parts = localizedParts(of: amount, in: columnLocale)
+                    // The guide sits on the separator itself, as it would in
+                    // SwiftUI: the row reports the guide its child set, moved
+                    // by where the row put that child — exactly past the
+                    // whole part, in CELLS, whatever this locale's grouping
+                    // made of it — and the column lines the rows up on it.
                     HStack(spacing: 0) {
                         Text(parts.whole)
                         Text(parts.separator)
                             .foregroundStyle(.palette.accent)
+                            .alignmentGuide(.decimalPoint) { _ in 0 }
                         Text(parts.fraction)
                             .foregroundStyle(.palette.foregroundSecondary)
-                    }
-                    // The guide sits on the ROW, not on the separator inside
-                    // it: a stack reads the guides of the children it places,
-                    // and a guide set deeper down does not travel up through
-                    // the row to reach it. (SwiftUI resolves a custom alignment
-                    // recursively, so there the guide can sit on the point
-                    // itself — the gap is recorded in
-                    // `SwiftUI-compatibility.md`.) The line is still the
-                    // content's own: the separator sits exactly past the whole
-                    // part, in CELLS, and the whole part is whatever this
-                    // locale's grouping made of it.
-                    .alignmentGuide(.decimalPoint) { _ in
-                        Double(localizedParts(of: amount, in: columnLocale).whole.strippedLength)
                     }
                 }
             }
@@ -471,8 +464,9 @@ struct LayoutPage: View {
                         ForEach(Self.keywordBlocks, id: \.before) { block in
                             KeywordBlock(block: block, width: keywordColumnWidth)
                                 // On the child the STACK places, not inside the
-                                // block's own body — a guide set deeper down
-                                // does not travel up to the stack that reads it.
+                                // block's own body: a guide travels up through
+                                // stacks and padding, but not out of a view type
+                                // of the app's own, which `KeywordBlock` is.
                                 .alignmentGuide(.keywordRow) { _ in
                                     Double(
                                         KeywordBlock.keywordRow(
@@ -780,10 +774,9 @@ private struct KeywordBlock: View {
 
     /// Which wrapped row the keyword landed on — the guide's value.
     ///
-    /// Static, and called from the CALL SITE rather than from `body`: a stack
-    /// reads the guides of the children it places, and a guide set inside a
-    /// child's own body does not travel up to reach it. (The same rule the
-    /// decimal-point column above is written around.)
+    /// Static, and called from the CALL SITE rather than from `body`: a guide
+    /// set inside the body of a view type of the app's own does not travel up
+    /// out of it to the stack that aligns on it.
     static func keywordRow(of block: LayoutPage.Keyworded, width: Int) -> Int {
         rows(of: block, width: width).firstIndex { $0.contains(where: \.isKeyword) } ?? 0
     }

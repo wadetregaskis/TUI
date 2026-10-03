@@ -130,21 +130,22 @@ Two consequences worth knowing before you reach for it:
   its *trailing* edge, so every sibling shifts right to meet it and the column
   ends up wider than the widest line in it. Both passes account for this — the
   measure reports the grown extent, or the parent would reserve too little.
-- **Apply it as the outermost modifier** on the child. A modifier applied
-  *after* it (`.padding()`, a `.frame`) wraps the guide where the container
-  cannot see it, and the guide has no effect. TUIkit's buffers carry no guide
-  metadata for such a wrapper to translate, so the alternative would be a guide
-  reported from the wrong coordinate space — silently wrong instead of visibly
-  absent. This is **not** the rule for ``View/zIndex(_:)`` any more: a z-index
-  is dimension-independent, so it survives any number of wrappers, while a
-  guide is a closure evaluated against the dimensions the view laid out at and
-  cannot.
+- **A guide travels up through the views that know where they put it.** A
+  `VStack`, `HStack` or `ZStack` reports the guides its children set, each
+  moved by where the child sits (several merge by the alignment's
+  `combineExplicit`), `.padding()` reports its content's moved by the inset,
+  and a ``Layout`` reports custom guides its subviews set, or one of its own.
+  So a decimal point marked on a `Text` inside each row of a column lines the
+  rows up on it. A guide stops at any other modifier written after it
+  (`.border()`, a `.frame`, `.offset`) — one that does not translate it would
+  report it from the wrong coordinate space — and at a view type of your own:
+  put the guide on the view the container places, or outside your view.
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and
 `.background(alignment:)`. In a **lazy** stack the run is the realized rows,
 which is the same limit SwiftUI has: prefer guides on content whose realized set
-is stable.
+is stable; a lazy stack reports none of its rows' guides to its own parent.
 
 Custom guides come from ``AlignmentID``, whose `defaultValue(in:)` receives the
 view's ``ViewDimensions``. Note that a guide's value is `Double` even though
@@ -220,7 +221,21 @@ Grid(alignment: .leading) {
 Spacings are whole cells, defaulting to one column and no rows. A cell can span
 with ``View/gridCellColumns(_:)``, and placement precedence runs
 ``View/gridCellAnchor(_:)`` → ``View/gridColumnAlignment(_:)`` → the row's
-alignment → the grid's.
+alignment → the grid's. A cell that should fill its column or row rather than
+size it — a rule, a fill — takes ``View/gridCellUnsizedAxes(_:)``.
+
+A ``GridRow`` is not a container of its own: it hands its cells to whatever lays
+them out, so outside a grid they are simply views. ``GridLayout`` is the same
+lattice as a ``Layout``, for switching with another through ``AnyLayout`` while
+every cell keeps its identity:
+
+```swift
+let layout = isWide ? AnyLayout(GridLayout()) : AnyLayout(VStackLayout())
+layout {
+    GridRow { Text("Name");   Text("Size") }
+    GridRow { Text("README"); Text("2 KB") }
+}
+```
 
 ## Which Views Are Layoutable?
 
