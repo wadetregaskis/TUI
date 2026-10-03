@@ -273,98 +273,20 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
     }
 
     /// The lattice both passes agree on: column widths, row heights, and the
-    /// per-column alignment overrides.
-    ///
-    /// Column widths come from the single-column cells alone. A spanning cell
-    /// that needs more than the columns it covers grows the LAST of them —
-    /// the columns it shares with single-column cells keep the width those
-    /// cells asked for, which is the property that makes a grid look like a
-    /// grid.
-    private func lattice(
-        _ rows: [Row], context: RenderContext
-    ) -> (columns: [Int], heights: [Int], columnAlignment: [Int: HorizontalAlignment]) {
-        var columns: [Int] = []
-        var heights: [Int] = []
-        var columnAlignment: [Int: HorizontalAlignment] = [:]
-
-        func widen(to count: Int) {
-            while columns.count < count { columns.append(0) }
-        }
-
-        // The widest child that spans the whole grid, which belongs to no
-        // column — see Pass C.
-        var fullWidthNeed = 0
-
-        // Pass A: single-column cells set their column's width.
-        for row in rows {
-            var height = 0
-            var index = 0
-            for (cell, span) in zip(row.cells, row.spans) {
-                let size = cell.measure(proposal: .unspecified, context: context)
-                height = max(height, size.height)
-                widen(to: index + span)
-                // `span == 1` is not enough on its own. A child that is not a
-                // `GridRow` arrives here as a one-cell row with span 1, and the
-                // render draws it at `x: 0` across the FULL width — it is not in
-                // column 0, so its width must not become column 0's. It did,
-                // which pushed every other column right by the difference: two
-                // short cells beside a sentence put the second column a
-                // sentence-width away. Pass B already excludes these rows; Pass
-                // A is where it was missed.
-                if span == 1 && !row.spansFullWidth {
-                    columns[index] = max(columns[index], size.width)
-                    if let guide = cell.gridColumnAlignment, columnAlignment[index] == nil {
-                        columnAlignment[index] = guide
-                    }
-                }
-                if row.spansFullWidth {
-                    fullWidthNeed = max(fullWidthNeed, size.width)
-                }
-                index += span
-            }
-            heights.append(height)
-        }
-
-        // Pass B: spanning cells grow their last column if they still overflow.
-        for row in rows where !row.spansFullWidth {
-            var index = 0
-            // Every cell, not just the spanning ones: a `where` on the loop
-            // skips the whole body, `index += span` included, so a spanning
-            // cell preceded by any ordinary one measured its width against the
-            // wrong columns and grew the wrong column. The render loop advances
-            // for every cell; this has to agree with it.
-            for (cell, span) in zip(row.cells, row.spans) {
-                defer { index += span }
-                guard span > 1 else { continue }
-                let size = cell.measure(proposal: .unspecified, context: context)
-                let covered =
-                    columns[index..<(index + span)].reduce(0, +)
-                    + (span - 1) * horizontalSpacing
-                if size.width > covered {
-                    columns[index + span - 1] += size.width - covered
-                }
-            }
-        }
-
-        // Pass C: a full-width child is a cell spanning every column, so it
-        // grows the last one when it still does not fit — exactly what Pass B
-        // does for an explicit `gridCellColumns` span. Excluding it from the
-        // per-column vote must not shrink the grid: the render lays it out at
-        // the grid's own width, and a grid narrower than its widest child would
-        // clip the child instead of moving a column.
-        if fullWidthNeed > 0 {
-            widen(to: 1)
-            let shortfall = fullWidthNeed - totalWidth(columns)
-            if shortfall > 0 {
-                columns[columns.count - 1] += shortfall
-            }
-        }
-        return (columns, heights, columnAlignment)
-    }
-
-    /// The grid's total width for a lattice.
-    private func totalWidth(_ columns: [Int]) -> Int {
-        columns.reduce(0, +) + max(0, columns.count - 1) * horizontalSpacing
+    /// per-column alignment overrides — see ``GridLattice``.
+    private func lattice(_ rows: [Row], context: RenderContext) -> GridLattice {
+        GridLattice(
+            rows: rows.map { row in
+                GridLattice.Row(
+                    cells: zip(row.cells, row.spans).map { cell, span in
+                        GridLattice.Cell(
+                            span: span,
+                            size: cell.measure(proposal: .unspecified, context: context),
+                            columnAlignment: cell.gridColumnAlignment)
+                    },
+                    spansFullWidth: row.spansFullWidth)
+            },
+            horizontalSpacing: horizontalSpacing)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -388,19 +310,18 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         let rows = rows(context: context)
         guard !rows.isEmpty else { return ViewSize.fixed(0, 0) }
         let lattice = lattice(rows, context: context)
-        // `max(1, …)` per row, because that is what `renderToBuffer` draws: it
-        // gives every row a canvas of `max(1, rowHeight)`, so a row is at least
-        // a line whatever it holds. Summing the raw heights made the reported
-        // height one line short for each row that measured zero tall, and the
-        // parent clips what overflows — with one empty row, the grid's LAST row
-        // did not appear. Aligned to the render rather than the other way
-        // round: the render is what anyone has ever seen, so this changes no
-        // pixels, only the number the grid tells its parent about them.
-        let height =
-            lattice.heights.reduce(0) { $0 + max(1, $1) }
-            + max(0, lattice.heights.count - 1) * verticalSpacing
+        // Every row at least a line, because that is what `renderToBuffer`
+        // draws: it gives every row a canvas of `max(1, rowHeight)`, so a row
+        // is at least a line whatever it holds. Summing the raw heights made
+        // the reported height one line short for each row that measured zero
+        // tall, and the parent clips what overflows — with one empty row, the
+        // grid's LAST row did not appear. Aligned to the render rather than
+        // the other way round: the render is what anyone has ever seen, so
+        // this changes no pixels, only the number the grid tells its parent
+        // about them.
+        let height = lattice.totalHeight(spacing: verticalSpacing)
         return ViewSize(
-            width: min(totalWidth(lattice.columns), max(0, proposal.width ?? context.availableWidth)),
+            width: min(lattice.totalWidth, max(0, proposal.width ?? context.availableWidth)),
             height: min(height, max(0, proposal.height ?? context.availableHeight)))
     }
 
@@ -416,18 +337,11 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         let context = context.publishingContainerAxis(.vertical)
         let rows = rows(context: context)
         guard !rows.isEmpty else { return FrameBuffer() }
-        let (columns, heights, columnAlignment) = lattice(rows, context: context)
-        let width = totalWidth(columns)
+        let lattice = lattice(rows, context: context)
+        let heights = lattice.heights
+        let width = lattice.totalWidth
         guard width > 0 else { return FrameBuffer() }
-
-        // Column x-origins, accumulated rather than divided — the integer rule
-        // recorded on `Layout`.
-        var origins: [Int] = []
-        var x = 0
-        for column in columns {
-            origins.append(x)
-            x += column + horizontalSpacing
-        }
+        let origins = lattice.columnOrigins
 
         // A `.gradientExtent(.subtree)` ramp spanning this grid. A grid is the
         // one container that places children two-dimensionally without being a
@@ -435,7 +349,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         // describe — so it cannot inherit `_LayoutCore`'s answer and has to
         // give its own. `nil` when nothing above asked for one, and then every
         // line below is the identity.
-        let rowTops = Self.rowTops(heights, spacing: verticalSpacing)
+        let rowTops = lattice.rowTops(spacing: verticalSpacing)
         let gradientFrame = context.gradientContentFrame(
             width: width,
             height: (rowTops.last ?? 0) + max(1, heights.last ?? 1))
@@ -447,15 +361,12 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
             var index = 0
             for (cell, span) in zip(row.cells, row.spans) {
                 let boxWidth =
-                    row.spansFullWidth
-                    ? width
-                    : columns[index..<min(columns.count, index + span)].reduce(0, +)
-                        + (span - 1) * horizontalSpacing
+                    row.spansFullWidth ? width : lattice.boxWidth(fromColumn: index, span: span)
                 let box = CellRect(
                     x: row.spansFullWidth ? 0 : origins[index], y: 0,
                     width: max(0, boxWidth), height: max(1, rowHeight))
                 let rowAlignment = row.alignment
-                let columnGuide = row.spansFullWidth ? nil : columnAlignment[index]
+                let columnGuide = row.spansFullWidth ? nil : lattice.columnAlignment[index]
                 var childContext = context
                 if let gradientFrame {
                     // Where the cell will land, from its MEASURED size — the
@@ -483,23 +394,6 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
             result.appendVertically(canvas, spacing: rowIndex > 0 ? verticalSpacing : 0)
         }
         return result.clamped(toWidth: context.availableWidth, height: context.availableHeight)
-    }
-
-    /// The y each row starts at within the grid's own content, in cells.
-    ///
-    /// Accumulated rather than multiplied, and clamped the same way the row
-    /// canvases are — a zero-height row still occupies the one line
-    /// `FrameBuffer(emptyWithWidth:height:)` gives it.
-    private static func rowTops(_ heights: [Int], spacing: Int) -> [Int] {
-        var tops: [Int] = []
-        tops.reserveCapacity(heights.count)
-        var y = 0
-        for (index, height) in heights.enumerated() {
-            if index > 0 { y += spacing }
-            tops.append(y)
-            y += max(1, height)
-        }
-        return tops
     }
 
     /// Where a rendered cell sits inside its box.
@@ -550,7 +444,7 @@ extension ChildView {
     }
 
     /// The column alignment this cell set for its column, if any.
-    fileprivate var gridColumnAlignment: HorizontalAlignment? {
+    var gridColumnAlignment: HorizontalAlignment? {
         gridValue(GridColumnAlignmentKey.self).flatMap { $0 }
     }
 
