@@ -7,18 +7,30 @@
 // MARK: - Axis
 
 /// The horizontal or vertical dimension of a layout.
-public enum Axis: Sendable, CaseIterable, Equatable {
+public enum Axis: Int8, CaseIterable, Hashable, Sendable, CustomStringConvertible {
     /// The horizontal dimension.
     case horizontal
 
     /// The vertical dimension.
     case vertical
 
-    /// A set of axes — horizontal, vertical, or both.
-    public struct Set: OptionSet, Sendable, Equatable {
-        public let rawValue: Int
+    /// The axis's name, `"horizontal"` or `"vertical"`, as SwiftUI spells it.
+    public var description: String {
+        switch self {
+        case .horizontal: "horizontal"
+        case .vertical: "vertical"
+        }
+    }
 
-        public init(rawValue: Int) {
+    /// A set of axes — horizontal, vertical, or both.
+    public struct Set: OptionSet, Hashable, Sendable {
+        /// The raw bitmask value for this axis set.
+        public let rawValue: Int8
+
+        /// Creates an axis set from a raw bitmask value.
+        ///
+        /// - Parameter rawValue: The bitmask value.
+        public init(rawValue: Int8) {
             self.rawValue = rawValue
         }
 

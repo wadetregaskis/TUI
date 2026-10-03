@@ -44,10 +44,12 @@ public enum Visibility: Sendable {
 
 // MARK: - Vertical Edge Set
 
-/// A set of vertical edges (top and/or bottom).
+/// An edge on the vertical axis.
 ///
-/// Used for specifying which edges of a list row should have separators.
-public enum VerticalEdge: Sendable {
+/// Used, among other things, for specifying which edges of a list row should
+/// have separators. Raw values and the `Codable` encoding are SwiftUI's; see
+/// `Directions.swift` for its one-axis siblings.
+public enum VerticalEdge: Int8, CaseIterable, Codable, Hashable, Sendable {
     /// The top edge.
     case top
 
@@ -55,10 +57,14 @@ public enum VerticalEdge: Sendable {
     case bottom
 
     /// A set of vertical edges.
-    public struct Set: OptionSet, Sendable {
-        public let rawValue: Int
+    public struct Set: OptionSet, Hashable, Sendable {
+        /// The raw bitmask value for this edge set.
+        public let rawValue: Int8
 
-        public init(rawValue: Int) {
+        /// Creates an edge set from a raw bitmask value.
+        ///
+        /// - Parameter rawValue: The bitmask value.
+        public init(rawValue: Int8) {
             self.rawValue = rawValue
         }
 
