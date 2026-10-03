@@ -109,6 +109,27 @@ struct TerminalURLOpeningTests {
         #expect(sink.url?.absoluteString == "https://swift.org")
     }
 
+    /// The completion form reports what happened: a handler that handled it
+    /// is a yes, one that discarded it a no, and a deferral to the system
+    /// opener a no while the gate is closed, because nothing was started.
+    @Test("The completion form reports whether the URL could be opened")
+    func completionReportsAcceptance() throws {
+        try #require(!TerminalURLOpening.isEnabled, "the fixture: the system opener is gated")
+        let url = URL(string: "https://swift.org")!
+        var answers: [Bool] = []
+        OpenURLAction { _ in .handled }(url) { answers.append($0) }
+        OpenURLAction { _ in .discarded }(url) { answers.append($0) }
+        OpenURLAction { _ in .systemAction(prefersInApp: true) }(url) { answers.append($0) }
+        #expect(answers == [true, false, false])
+    }
+
+    @Test("Preferring an in-app browser still runs the handler")
+    func prefersInAppRunsTheHandler() {
+        let sink = OpenedURL()
+        OpenURLAction { sink.url = $0 }(URL(string: "https://swift.org")!, prefersInApp: true)
+        #expect(sink.url?.absoluteString == "https://swift.org")
+    }
+
     private final class OpenedURL: @unchecked Sendable {
         var url: URL?
     }

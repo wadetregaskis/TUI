@@ -85,6 +85,21 @@ public struct OpenURLAction: Sendable {
         public static func systemAction(_ url: URL) -> Self {
             Self(disposition: .system(url))
         }
+
+        /// Let the system open the URL, or `url` instead, preferring an in-app
+        /// browser.
+        ///
+        /// A terminal app has no in-app browser — nor has a macOS one, where
+        /// SwiftUI opens the default browser too — so this is
+        /// ``systemAction(_:)``.
+        ///
+        /// - Parameters:
+        ///   - url: The URL to open instead, or `nil` for the one given.
+        ///   - prefersInApp: Whether an in-app browser is preferred.
+        /// - Returns: A result deferring to the system opener.
+        public static func systemAction(_ url: URL? = nil, prefersInApp: Bool) -> Self {
+            Self(disposition: .system(url))
+        }
     }
 
     private let handler: @Sendable (URL) -> Result
@@ -116,11 +131,43 @@ public struct OpenURLAction: Sendable {
     ///
     /// - Parameter url: The URL to open.
     public func callAsFunction(_ url: URL) {
+        _ = open(url)
+    }
+
+    /// Opens the URL, and reports whether it could.
+    ///
+    /// `completion` is `true` when a handler dealt with the URL or the system
+    /// opener was started for it, and `false` when a handler discarded it or
+    /// no opener could run — over ssh, say (see ``TerminalURLOpening``).
+    ///
+    /// - Parameters:
+    ///   - url: The URL to open.
+    ///   - completion: Called once it is known whether the URL can be opened.
+    public func callAsFunction(_ url: URL, completion: @escaping (Bool) -> Void) {
+        completion(open(url))
+    }
+
+    /// Opens the URL, preferring an in-app browser.
+    ///
+    /// A terminal app has no in-app browser, as a macOS app has none, so this
+    /// opens the URL as ``callAsFunction(_:)`` does.
+    ///
+    /// - Parameters:
+    ///   - url: The URL to open.
+    ///   - prefersInApp: Whether an in-app browser is preferred.
+    public func callAsFunction(_ url: URL, prefersInApp: Bool) {
+        _ = open(url)
+    }
+
+    /// Opens `url` as the handler says, returning whether it was accepted.
+    private func open(_ url: URL) -> Bool {
         switch result(for: url).disposition {
-        case .handled, .discarded:
-            return
+        case .handled:
+            return true
+        case .discarded:
+            return false
         case .system(let replacement):
-            Self.systemOpen(replacement ?? url)
+            return Self.systemOpen(replacement ?? url)
         }
     }
 
@@ -138,7 +185,7 @@ public struct OpenURLAction: Sendable {
     /// Hands `url` to the system opener. Tries `open` (macOS) then `xdg-open`
     /// (Linux) — whichever exists — passing the URL as a single argument (no
     /// shell, so nothing in the URL is interpreted). A no-op when neither
-    /// opener is present.
+    /// opener is present. Returns whether an opener was started.
     ///
     /// The child's output goes to `/dev/null`. It inherits this process's
     /// descriptors otherwise, and stdout/stderr here are the terminal the app
@@ -146,7 +193,8 @@ public struct OpenURLAction: Sendable {
     /// `open`'s own complaints) would land in the middle of the frame, at
     /// whatever cursor position the renderer was using, with nothing to
     /// repaint over it until the next full redraw.
-    static func systemOpen(_ url: URL) {
+    @discardableResult
+    static func systemOpen(_ url: URL) -> Bool {
         // Not unless something said this machine is the user's. The opener
         // runs HERE, and over ssh "here" is the server: either headless, where
         // the launch is a silent no-op, or somebody's desktop, where the URL
@@ -155,7 +203,7 @@ public struct OpenURLAction: Sendable {
         // nothing when absent, and a multiplexer session outlives the hop that
         // started it — so it declines and the destination is shown instead.
         // See ``TerminalClient/urlOpeningSupport`` and ``LinkDisplay``.
-        guard TerminalURLOpening.isEnabled else { return }
+        guard TerminalURLOpening.isEnabled else { return false }
         // Launching anything is a subprocess, which wasip1 has no way to make.
         // Nothing is lost that the user can act on: a `Link` under a host that
         // cannot open URLs shows its destination instead (``LinkDisplay``), and
@@ -163,7 +211,7 @@ public struct OpenURLAction: Sendable {
         // demo — turns the text itself into something clickable, opened by the
         // terminal rather than by us.
         #if canImport(WASILibc)
-            return
+            return false
         #else
         for opener in ["/usr/bin/open", "/usr/bin/xdg-open"]
         where FileManager.default.fileExists(atPath: opener) {
@@ -172,9 +220,9 @@ public struct OpenURLAction: Sendable {
             process.arguments = [url.absoluteString]
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
-            try? process.run()
-            return
+            return (try? process.run()) != nil
         }
+        return false
         #endif
     }
 }
