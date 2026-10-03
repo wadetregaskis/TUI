@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkit
+@testable import TUIkitView
 
 // MARK: - Fixtures
 
@@ -276,6 +277,21 @@ struct SubviewsTests {
         #expect(captured.count == 1000)
         #expect(captured.tags == [500])
         #expect(built.rows == 0)
+    }
+
+    @Test("The value hash bypasses a subview, and reads the types around it")
+    func valueHashPlans() {
+        // A `Subview` holds a `ChildView`, whose `Any.Type?` the value hash
+        // cannot read safely: a subtree holding one is measured afresh rather
+        // than served from the per-pass memos — slower, never wrong. The
+        // wrappers and layouts this wave added hold nothing of the kind, so
+        // they must not bypass too.
+        let plans = ValueHashPlans()
+        #expect(plans.plan(for: Subview.self).pointee.shape == .bypass)
+        #expect(plans.plan(for: _ContainerValueView<Text>.self).pointee.shape != .bypass)
+        #expect(plans.plan(for: GroupElementsOfContent<Text, Text>.self).pointee.shape != .bypass)
+        #expect(plans.plan(for: GridLayout.self).pointee.shape != .bypass)
+        #expect(plans.plan(for: ViewSpacing.self).pointee.shape != .bypass)
     }
 
     @Test("The sizing options are plain values")
