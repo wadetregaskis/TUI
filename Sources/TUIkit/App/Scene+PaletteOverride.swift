@@ -155,6 +155,10 @@ extension Scene {
     /// for the WHOLE frame — content tree and the out-of-tree app header /
     /// status bar alike. `RenderLoop` calls it once per frame.
     func applyRootOverrides(to environment: inout EnvironmentValues) {
+        // Scene-level `.environment(…)` values first, so a scene palette still
+        // wins over an `.environment(\.palette, …)` written beside it: the
+        // palette modifier is the more specific statement.
+        applyingRootEnvironment(to: &environment)
         if let paletteOverrideScene = primitiveScene as? any RootPaletteOverrideProvidingScene,
             let paletteOverride = paletteOverrideScene.rootPaletteOverride()
         {

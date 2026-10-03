@@ -406,3 +406,22 @@ private struct FontDesignShapes: View {
         .fontDesign(nil)
     }
 }
+
+/// An app-wide model injected on the scene, as SwiftUI's Observation docs write it.
+@Observable
+private final class CorpusLibrary {
+    var books: [String] = []
+}
+
+private struct CorpusLibraryApp: App {
+    @State private var library = CorpusLibrary()
+
+    var body: some Scene {
+        WindowGroup {
+            Text("Library")
+        }
+        .environment(library)
+        .environment(\.lineSpacing, 1)
+        .transformEnvironment(\.locale) { _ in }
+    }
+}
