@@ -165,4 +165,31 @@ That is honest on its own, because neither half has anything to act on:
   have to be inferred per layout. I would not do it: an app that wants
   layout-aware shortcuts in a terminal is better served by bare keys.
 
+### B-W7-3. Copy, cut and paste commands carry text, and exist only where `NSItemProvider` does
+
+*`View.onCopyCommand(perform:)`, `View.onCutCommand(perform:)`,
+`View.onPasteCommand(of:perform:)`, `View.onPasteCommand(of:validator:perform:)`*
+
+**Shipped:**
+
+- On Apple platforms, all four, on the focus path's command stage.
+- The keys are SwiftUI's ⌘C, ⌘X and ⌘V resolved through `\.commandKey`
+  (Control by default). A paste is also the terminal's own bracketed paste.
+- A copy or cut writes the text of every item that loads as a string, one
+  per line. A paste offers one item, the clipboard's text, and triggers only
+  for a type that accepts text.
+
+The terminal's clipboard holds one string, so what does not read as text (an
+image, a file promise) is not written. That is the medium, not a stub: the
+action still runs, and a cut still deletes.
+
+**Absent on Linux**, because swift-corelibs-foundation has no `NSItemProvider`
+and there is no `UniformTypeIdentifiers`. Gated
+`#if canImport(UniformTypeIdentifiers)`, so the same source fails to compile
+there rather than compiling to nothing.
+
+**The fuller version** would be a TUIkit-specific spelling that takes and
+returns `String`s and works on every platform: `onCopyCommand(text:)`, say.
+That is an addition, not a fix, so I have not made it. Say if you want it.
+
 ## C. Declined without asking

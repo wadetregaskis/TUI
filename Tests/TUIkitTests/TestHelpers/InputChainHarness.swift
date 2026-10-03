@@ -28,12 +28,15 @@ final class InputChainHarness {
         var value = 0
     }
 
-    init(width: Int = 40, height: Int = 12) {
+    /// - Parameter configure: Changes the root environment before any frame —
+    ///   to hand the page a fake clipboard, for one.
+    init(width: Int = 40, height: Int = 12, configure: (inout EnvironmentValues) -> Void = { _ in }) {
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
         environment.applyRuntimeServices(from: tui)
         statusBar.focusManager = focusManager
         environment.statusBar = statusBar
+        configure(&environment)
         context = RenderContext(
             availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
         handler = InputHandler(

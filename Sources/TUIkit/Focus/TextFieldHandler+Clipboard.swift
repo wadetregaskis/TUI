@@ -127,6 +127,20 @@ struct ClipboardAccess: Sendable {
     )
 }
 
+private struct ClipboardAccessKey: EnvironmentKey {
+    static let defaultValue = ClipboardAccess.system
+}
+
+extension EnvironmentValues {
+    /// The clipboard the copy, cut and paste commands read and write — the
+    /// system's, unless a test hands its subtree another, for the reason
+    /// ``ClipboardAccess`` gives. A text field keeps its own.
+    var clipboardAccess: ClipboardAccess {
+        get { self[ClipboardAccessKey.self] }
+        set { self[ClipboardAccessKey.self] = newValue }
+    }
+}
+
 extension TextFieldHandler {
     /// Copies text to the clipboard.
     fileprivate func copyToClipboard(_ text: String) {

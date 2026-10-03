@@ -133,6 +133,13 @@ has one — before the focus system spends an arrow on moving the focus, and
 before your `.keyboardShortcut`s, so an exit command takes Escape from a
 cancel button.
 
+On Apple platforms the copy, cut and paste commands —
+`onCopyCommand(perform:)`, `onCutCommand(perform:)` and
+`onPasteCommand(of:perform:)` — ride the same path. Their keys are SwiftUI's
+⌘C, ⌘X and ⌘V resolved through ``EnvironmentValues/commandKey``, and a paste
+is also the terminal's own bracketed paste. Only text crosses: a terminal's
+clipboard holds a string.
+
 ## Registering Key Handlers
 
 To bind a key whatever holds the focus — a page's own shortcuts, a function
