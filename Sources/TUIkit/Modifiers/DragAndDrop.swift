@@ -320,11 +320,50 @@ extension DropDestinationModifier: Renderable, Layoutable {
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIkit.renderToBuffer(content, context: context)
+        guard !context.isMeasuring else { return buffer }
+        let action = self.action
+        DropZone.install(
+            on: &buffer, context: context,
+            accepts: { $0 is Payload },
+            perform: { payload, info in
+                guard let typed = payload as? Payload else { return false }
+                return action([typed], info)
+            },
+            setTargeted: isTargeted)
+        return buffer
+    }
+}
 
-        guard !context.isMeasuring,
-            let dispatcher = context.environment.mouseEventDispatcher,
+// MARK: - Drop Zone
+
+/// The registration every drop destination makes: its rendered rectangle as
+/// a zone the drag session hit-tests, and the target behind it.
+enum DropZone {
+    /// Registers `buffer`'s rectangle as a drop target for this frame.
+    ///
+    /// - Parameters:
+    ///   - buffer: The destination's rendered content, which gains the zone's
+    ///     region.
+    ///   - context: The render context; nothing is registered outside a
+    ///     running app (no dispatcher or no session).
+    ///   - accepts: Whether a drag carrying this payload can land here.
+    ///   - perform: Performs the drop, given the payload and where it landed;
+    ///     answers whether the destination took it.
+    ///   - setTargeted: Told `true` when an accepted drag moves over the zone,
+    ///     `false` when it leaves or drops.
+    ///   - hovering: Told the pointer's cell, local to the zone, on every move
+    ///     while it is the targeted one.
+    @MainActor
+    static func install(
+        on buffer: inout FrameBuffer, context: RenderContext,
+        accepts: @escaping (Any) -> Bool,
+        perform: @escaping (Any, DropInfo) -> Bool,
+        setTargeted: @escaping (Bool) -> Void,
+        hovering: ((_ x: Int, _ y: Int) -> Void)? = nil
+    ) {
+        guard let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
-        else { return buffer }
+        else { return }
 
         // An inert region: it never consumes events itself (so clicks reach
         // the content), but its composited rectangle is the drop zone.
@@ -349,40 +388,35 @@ extension DropDestinationModifier: Renderable, Layoutable {
             at: 0
         )
 
-        let action = self.action
-        let isTargeted = self.isTargeted
-        // The THIRD per-frame write this modifier makes. The handler above is
+        // The THIRD per-frame write a destination makes. The handler above is
         // replayed and the region travels in the buffer, but the session's
         // target registry is emptied every frame exactly as the handler table
         // is — so a served frame that did not register here left hit-testing
         // finding the id and `resolveTarget` finding nothing behind it. Hence
         // the journalled form.
-        session.registerTarget(
-            DragAndDropSession.Target(
-                handlerID: id,
-                accepts: { $0 is Payload },
-                perform: { payload, event in
-                    guard let typed = payload as? Payload else { return false }
-                    // The drop location in the destination's local space:
-                    // the event is absolute, the region offset is known here.
-                    let (dx, dy) = dispatcher.regionOffset(for: id) ?? (0, 0)
-                    // The drag is still active while its drop performs, so
-                    // the preview frame is reportable — localized the same
-                    // way (effects anchor to the image, not the cursor).
-                    let frame = session.previewFrame() ?? (x: event.x, y: event.y, width: 0, height: 0)
-                    return action(
-                        [typed],
-                        DropInfo(
-                            x: event.x - dx, y: event.y - dy,
-                            shift: event.shift, ctrl: event.ctrl, meta: event.meta,
-                            previewX: frame.x - dx, previewY: frame.y - dy,
-                            previewWidth: frame.width, previewHeight: frame.height))
-                },
-                setTargeted: isTargeted
-            ),
-            in: context
+        var target = DragAndDropSession.Target(
+            handlerID: id,
+            accepts: accepts,
+            perform: { payload, event in
+                // The drop location in the destination's local space:
+                // the event is absolute, the region offset is known here.
+                let (dx, dy) = dispatcher.regionOffset(for: id) ?? (0, 0)
+                // The drag is still active while its drop performs, so
+                // the preview frame is reportable — localized the same
+                // way (effects anchor to the image, not the cursor).
+                let frame = session.previewFrame() ?? (x: event.x, y: event.y, width: 0, height: 0)
+                return perform(
+                    payload,
+                    DropInfo(
+                        x: event.x - dx, y: event.y - dy,
+                        shift: event.shift, ctrl: event.ctrl, meta: event.meta,
+                        previewX: frame.x - dx, previewY: frame.y - dy,
+                        previewWidth: frame.width, previewHeight: frame.height))
+            },
+            setTargeted: setTargeted
         )
-        return buffer
+        target.hovering = hovering
+        session.registerTarget(target, in: context)
     }
 }
 
