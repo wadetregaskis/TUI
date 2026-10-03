@@ -301,38 +301,14 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
     /// the row's own identity. Anything else is one child spanning every
     /// column, which is how a `Divider` between rows works.
     private func rows(context: RenderContext) -> [Row] {
-        var rows: [Row] = []
-        var open: (cells: [ChildView], alignment: VerticalAlignment?)?
-        func closeRow() {
-            guard let row = open else { return }
-            rows.append(
-                Row(
-                    cells: row.cells, spans: row.cells.map(\.gridSpan), alignment: row.alignment,
-                    spansFullWidth: false))
-            open = nil
+        let children = resolveChildViews(from: content, context: context)
+        return groupGridRows(
+            children, mark: { $0.gridRowMark }, wholeRow: { wholeGridRow($0, context: context) }
+        ).map { group in
+            Row(
+                cells: group.cells, spans: group.cells.map(\.gridSpan), alignment: group.alignment,
+                spansFullWidth: group.spansFullWidth)
         }
-        for child in resolveChildViews(from: content, context: context) {
-            if let mark = child.gridRowMark {
-                if mark.startsRow || open == nil {
-                    closeRow()
-                    open = ([child], mark.alignment)
-                } else {
-                    open?.cells.append(child)
-                }
-                continue
-            }
-            closeRow()
-            if let row = wholeGridRow(child, context: context) {
-                rows.append(
-                    Row(
-                        cells: row.cells, spans: row.cells.map(\.gridSpan),
-                        alignment: row.alignment, spansFullWidth: false))
-            } else {
-                rows.append(Row(cells: [child], spans: [1], alignment: nil, spansFullWidth: true))
-            }
-        }
-        closeRow()
-        return rows
     }
 
     /// The lattice both passes agree on: column widths, row heights, and the
