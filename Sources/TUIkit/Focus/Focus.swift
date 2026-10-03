@@ -907,6 +907,25 @@ extension FocusManager {
     /// - Returns: True if the event was handled.
     @discardableResult
     public func dispatchKeyEvent(_ event: KeyEvent) -> Bool {
+        dispatchKeyEvent(event, commands: nil)
+    }
+
+    /// Dispatches a key event through the focus system, offering it to
+    /// `commands` between the focused element and the focus system's own use
+    /// of the key.
+    ///
+    /// SwiftUI's move, exit and delete commands go there: after the focused
+    /// control lets the key go, but before this manager spends an arrow on
+    /// moving the focus — a TUI affordance macOS does not have, which would
+    /// otherwise leave `onMoveCommand` nothing to hear.
+    ///
+    /// - Parameters:
+    ///   - event: The key event to dispatch.
+    ///   - commands: Offered the key when the focused element declines it;
+    ///     answers whether it took it.
+    /// - Returns: True if the event was handled.
+    @discardableResult
+    func dispatchKeyEvent(_ event: KeyEvent, commands: ((KeyEvent) -> Bool)?) -> Bool {
         // Dispatch to focused element first — let it handle keys like Up/Down/Left/Right.
         // If element consumes the event, stop here.
         if let focused = currentFocused {
@@ -935,6 +954,8 @@ extension FocusManager {
                   currentFocused: nil
                 """)
         }
+
+        if let commands, commands(event) { return true }
 
         // A Page Up/Down or Home/End the focused element didn't consume scrolls
         // the enclosing scroll container — so the page scrolls even while a

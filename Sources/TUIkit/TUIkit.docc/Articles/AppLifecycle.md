@@ -157,7 +157,7 @@ The `KeyEventDispatcher` iterates handlers registered via `onKeyEvent()` modifie
 
 ### Layer 3: Focus System (conditional)
 
-Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then handles Tab/Shift+Tab for focus cycling, then arrow keys as section navigation fallback.
+Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then offers what it declined to SwiftUI's move, exit and delete commands on the views containing it (innermost first — Layer 0 does the same for a text input), then handles Tab/Shift+Tab for focus cycling, then arrow keys as section navigation fallback.
 
 ### Layer 3.5: Semantic Shortcut Actions
 

@@ -233,6 +233,23 @@ private struct KeyPressShapes: View {
     }
 }
 
+/// The commands take an OPTIONAL closure, so the trailing-closure form has to
+/// bind through the optional, and `nil` has to be spellable.
+@MainActor
+private struct CommandShapes: View {
+    @State private var row = 0
+
+    var body: some View {
+        Text("rows")
+            .focusable()
+            .onMoveCommand { direction in
+                if direction == .down { row += 1 }
+            }
+            .onExitCommand { row = 0 }
+            .onDeleteCommand(perform: nil)
+    }
+}
+
 /// The optional `keyboardShortcut` overload beside the non-optional one, which
 /// a conditional shortcut reaches through `nil`, and the localization form.
 @MainActor

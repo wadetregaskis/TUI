@@ -13,7 +13,11 @@
 /// Ahead of them all comes the **focus path**: SwiftUI's `onKeyPress` handlers
 /// on the views that contain the focused control, outermost first, as SwiftUI
 /// asks them. They are focus-gated, which is what makes it safe to ask them
-/// before even a focused text input.
+/// before even a focused text input. The same path is asked again, innermost
+/// first, for SwiftUI's move, exit and delete **commands**, inside the focus
+/// system's dispatch (Layer 0 or 3): after the focused control lets the key go,
+/// before the focus system moves the focus with an arrow, and so before the
+/// app's shortcuts.
 ///
 /// The dispatch order is:
 /// 0. **Text input** (conditional) — a focused `TextField`/`SecureField`/
@@ -138,7 +142,7 @@ extension InputHandler {
         // gives up to an app shortcut. It goes on down the chain as a chord
         // the input does not bind would, and Layer 3.5 fires the shortcut.
         if focusManager.hasTextInputFocus, !textInputGivesWay(event) {
-            if focusManager.dispatchKeyEvent(event) {
+            if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
                 return true
             }
         }
@@ -159,7 +163,7 @@ extension InputHandler {
         if event.key == .escape, statusBar.escapeLabelOverride != nil,
             !focusManager.hasTextInputFocus
         {
-            if focusManager.dispatchKeyEvent(event) {
+            if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
                 return true
             }
             focusDeclinedEscape = true
@@ -191,7 +195,7 @@ extension InputHandler {
         // above — and when the modal-claimed ESC pre-route already offered
         // this very event and was declined.
         if !focusManager.hasTextInputFocus, !focusDeclinedEscape {
-            if focusManager.dispatchKeyEvent(event) {
+            if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
                 return true
             }
         }
@@ -247,6 +251,18 @@ extension InputHandler {
             statusBar.escapeLabelOverride != nil && statusBar.escapeClaimGrabsInput
         let inputGrabbed = focusManager.activeSectionIsModal || escapeClaimGrabs
         return handleGlobalShortcut(event, inputGrabbed: inputGrabbed)
+    }
+
+    /// Offers `event` to the focused view's commands — SwiftUI's move, exit and
+    /// delete commands — innermost first. The focus system asks this once the
+    /// focused control lets the key go, and before it spends an arrow on moving
+    /// the focus; that is also before the app's shortcuts, as on macOS 15,
+    /// where an exit command takes Escape from the cancel button.
+    private func focusedViewCommands(_ event: KeyEvent) -> Bool {
+        guard focusPathHearsKeys, let press = KeyPress(event),
+            let focused = focusManager.focusedIdentity
+        else { return false }
+        return keyEventDispatcher.dispatchFocusPath(press, focusedIdentity: focused, stage: .command)
     }
 
     /// Whether the focus path is offered keys at all.

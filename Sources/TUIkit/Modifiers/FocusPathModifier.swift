@@ -13,6 +13,12 @@
 enum FocusPathStage: Sendable {
     /// `onKeyPress`: before the focused control has the key, outermost first.
     case keyPress
+
+    /// `onMoveCommand`, `onExitCommand` and `onDeleteCommand`: once the
+    /// focused control has let the key go, innermost first, and before the
+    /// app's keyboard shortcuts — an exit command takes Escape from the cancel
+    /// button.
+    case command
 }
 
 // MARK: - Focus Path Modifier

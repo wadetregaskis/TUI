@@ -153,6 +153,10 @@ extension KeyEventDispatcher {
     /// order is that order, because a modifier registers before its content
     /// renders.
     ///
+    /// Commands are asked INNERMOST first, the responder chain's order: on
+    /// macOS 15 an exit command on the focused view runs and one on its
+    /// container does not. So they are asked in reverse.
+    ///
     /// - Parameters:
     ///   - press: The press.
     ///   - focusedIdentity: Where the focused control rendered. A handler hears
@@ -160,7 +164,23 @@ extension KeyEventDispatcher {
     ///   - stage: Which handlers to ask.
     /// - Returns: Whether some handler answered `.handled`.
     func dispatchFocusPath(_ press: KeyPress, focusedIdentity: ViewIdentity, stage: FocusPathStage) -> Bool {
-        for entry in focusPathHandlers
+        switch stage {
+        case .keyPress:
+            return firstHandling(press, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers)
+        case .command:
+            return firstHandling(
+                press, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers.reversed())
+        }
+    }
+
+    /// Whether one of `entries` of `stage`, scoped over `focusedIdentity` and
+    /// not silenced by an input grab, handled `press` — asked in the order
+    /// given.
+    private func firstHandling(
+        _ press: KeyPress, focusedIdentity: ViewIdentity, stage: FocusPathStage,
+        in entries: some Sequence<FocusPathEntry>
+    ) -> Bool {
+        for entry in entries
         where entry.stage == stage && (grabbingSectionID == nil || entry.sectionID == grabbingSectionID) {
             guard entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity) else {
                 continue

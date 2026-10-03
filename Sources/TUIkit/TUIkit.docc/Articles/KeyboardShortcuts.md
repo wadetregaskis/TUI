@@ -122,6 +122,17 @@ Control, Option and Shift.
 An open drop-down takes every key before the focus path does, as an open menu
 does on macOS, and so does a drag in flight (Layer 0.5).
 
+### Move, exit and delete commands
+
+``View/onMoveCommand(perform:)``, ``View/onExitCommand(perform:)`` and
+``View/onDeleteCommand(perform:)`` ask the same path the other way round:
+innermost first, and only once the focused control has let the key go. A
+`List` keeps its arrows and a ``TextField`` its Backspace; an arrow, Escape or
+Delete the control does not use becomes the command of the nearest view that
+has one — before the focus system spends an arrow on moving the focus, and
+before your `.keyboardShortcut`s, so an exit command takes Escape from a
+cancel button.
+
 ## Registering Key Handlers
 
 To bind a key whatever holds the focus — a page's own shortcuts, a function
