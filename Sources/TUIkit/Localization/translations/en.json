@@ -20,6 +20,7 @@
   "button.back": "Back",
   "button.forward": "Forward",
   "button.refresh": "Refresh",
+  "button.rename": "Rename",
 
   "label.search": "Search",
   "label.name": "Name",

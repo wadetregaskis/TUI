@@ -20,6 +20,7 @@
   "button.back": "Atrás",
   "button.forward": "Adelante",
   "button.refresh": "Actualizar",
+  "button.rename": "Renombrar",
 
   "label.search": "Buscar",
   "label.name": "Nombre",

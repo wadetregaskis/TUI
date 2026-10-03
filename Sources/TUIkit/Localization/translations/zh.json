@@ -20,6 +20,7 @@
   "button.back": "返回",
   "button.forward": "前进",
   "button.refresh": "刷新",
+  "button.rename": "重命名",
 
   "label.search": "搜索",
   "label.name": "名称",

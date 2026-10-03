@@ -123,6 +123,7 @@ final class LocalizationKeyConsistencyTests {
             LocalizationKey.Button.back,
             LocalizationKey.Button.forward,
             LocalizationKey.Button.refresh,
+            LocalizationKey.Button.rename,
         ]
 
         for key in keys {
@@ -298,6 +299,7 @@ final class LocalizationKeyConsistencyTests {
         enumKeys.insert(LocalizationKey.Button.back.rawValue)
         enumKeys.insert(LocalizationKey.Button.forward.rawValue)
         enumKeys.insert(LocalizationKey.Button.refresh.rawValue)
+        enumKeys.insert(LocalizationKey.Button.rename.rawValue)
 
         // Label keys
         for key in LocalizationKey.Label.allCases {
@@ -377,7 +379,7 @@ final class LocalizationKeyConsistencyTests {
         // button + label + error + placeholder + menu + dialog + validation
         //   + statusbar + appearance
         let expectedKeyCount =
-            21 + LocalizationKey.Label.allCases.count + 11 + 6 + 8 + 7 + 4
+            22 + LocalizationKey.Label.allCases.count + 11 + 6 + 8 + 7 + 4
             + LocalizationKey.StatusBar.allCases.count + 6
         #expect(
             englishTranslations.count == expectedKeyCount,
