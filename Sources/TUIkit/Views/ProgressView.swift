@@ -320,7 +320,11 @@ extension ProgressView {
 
 extension ProgressView: @preconcurrency Equatable where Label: Equatable, CurrentValueLabel: Equatable {
     public static func == (lhs: ProgressView<Label, CurrentValueLabel>, rhs: ProgressView<Label, CurrentValueLabel>) -> Bool {
-        lhs.fractionCompleted == rhs.fractionCompleted && lhs.style == rhs.style && lhs.label == rhs.label
+        // Every stored property: two timers over different intervals draw
+        // different bars, and a memo keyed on this answer serves one for the
+        // other if the interval is left out.
+        lhs.fraction == rhs.fraction && lhs.flags == rhs.flags && lhs.timerStart == rhs.timerStart
+            && lhs.timerEnd == rhs.timerEnd && lhs.style == rhs.style && lhs.label == rhs.label
             && lhs.currentValueLabel == rhs.currentValueLabel
     }
 }

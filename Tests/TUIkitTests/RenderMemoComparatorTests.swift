@@ -250,9 +250,25 @@ struct RenderMemoComparatorTests {
                         currentValueLabel: Text("v"))
                 ),
                 (
+                    "timerStart",
+                    {
+                        var view = base
+                        view.timerStart = 5
+                        return view
+                    }()
+                ),
+                (
+                    "timerEnd",
+                    {
+                        var view = base
+                        view.timerEnd = 5
+                        return view
+                    }()
+                ),
+                (
                     // The base is determinate at 0, the stored fraction an
-                    // indeterminate bar also holds: only the flag differs.
-                    "isDeterminate",
+                    // indeterminate bar also holds: only the flags differ.
+                    "flags",
                     ProgressView(
                         fractionCompleted: nil, style: .block, label: Text("l"),
                         currentValueLabel: Text("v"))
