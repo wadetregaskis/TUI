@@ -451,7 +451,7 @@ struct OverlaysPage: View {
                 Button("page.overlays.button.proceed") {
                     showOverlay = false
                 }
-                .buttonStyle(.primary)
+                .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
             }
         }
@@ -552,7 +552,7 @@ struct OverlaysPage: View {
                         authPassword = ""
                         showOverlay = false
                     }
-                    .buttonStyle(.primary)
+                    .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                 }
             }
@@ -628,7 +628,7 @@ struct OverlaysPage: View {
         Button("page.overlays.button.dismiss") {
             showOverlay = false
         }
-        .buttonStyle(.primary)
+        .buttonStyle(.borderedProminent)
     }
 
     /// The "Modal (Custom)" body: an ordinary view presented as a modal, with

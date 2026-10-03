@@ -579,7 +579,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
                 .onTapGesture { _, _ in toggle() }
         } else {
             Button(action: toggle, label: { glyph })
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
                 // Only when the triangle is the focus stop. Inside a list the
                 // row is focusable and the LIST answers these keys, with the
                 // whole ladder — recursive open on Option, and a Left that

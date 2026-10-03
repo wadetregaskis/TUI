@@ -61,7 +61,7 @@ struct ClientPickerView: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderless)
     }
 
     /// One line on what this terminal needs — the reason to pick it, and a

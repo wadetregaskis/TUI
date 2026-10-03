@@ -346,8 +346,8 @@ struct ButtonStyleCascadeTests {
         // .automatic targets the default style → applies.
         let matched = Button("A") {}.buttonTextStyle(.automatic) { $0.foreground = .rgb(7, 8, 9) }
         #expect(renderToBuffer(matched, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"))
-        // .primary targets the primary style → does not apply to a default button.
-        let unmatched = Button("A") {}.buttonTextStyle(.primary) { $0.foreground = .rgb(7, 8, 9) }
+        // .borderedProminent targets the bordered-prominent style → does not apply to a default button.
+        let unmatched = Button("A") {}.buttonTextStyle(.borderedProminent) { $0.foreground = .rgb(7, 8, 9) }
         #expect(!renderToBuffer(unmatched, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"))
     }
 }
@@ -388,7 +388,7 @@ struct ThemeBundleTests {
                     attributes: StyleAttributes(textCase: .uppercase))
             ])
         let view = VStack {
-            Button("Save") {}.buttonStyle(.primary)
+            Button("Save") {}.buttonStyle(.borderedProminent)
             Section("settings") { Text("body") }
         }
         .theme(theme)
@@ -407,7 +407,7 @@ struct ThemeBundleTests {
 
     @Test(".theme installs a control style for the subtree")
     func themeControlStyle() {
-        let theme = Theme(palette: SystemPalette(.green), buttonStyle: PlainButtonStyle())
+        let theme = Theme(palette: SystemPalette(.green), buttonStyle: .plain)
         // Plain buttons have no bracket caps; the default style does. Applying the
         // theme should make the button render plain (no caps).
         let themed = renderToBuffer(
@@ -424,7 +424,7 @@ struct TintTests {
     @Test("tint recolours a control's accent affordance")
     func tintButtonAccent() {
         let context = makeRenderContext()
-        let view = Button("Save") {}.buttonStyle(.primary).tint(.rgb(7, 8, 9))
+        let view = Button("Save") {}.buttonStyle(.borderedProminent).tint(.rgb(7, 8, 9))
         let line = renderToBuffer(view, context: context).lines.joined()
         // The tint shows as the button's face (accent blended over the
         // background); the label is contrast-floored against that face.
@@ -447,7 +447,7 @@ struct TintTests {
         // Regression: a `.semantic` tint reached the ANSI renderer unresolved and
         // trapped (fatalError). TintedPalette now resolves the tint against its base.
         let context = makeRenderContext()
-        let view = Button("Save") {}.buttonStyle(.primary).tint(.palette.success)
+        let view = Button("Save") {}.buttonStyle(.borderedProminent).tint(.palette.success)
         let buffer = renderToBuffer(view, context: context)
         #expect(!buffer.isEmpty)
         // It resolves to the palette's concrete success colour.

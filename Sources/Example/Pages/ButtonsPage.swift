@@ -149,7 +149,7 @@ struct ButtonsPage: View {
                     Button("+1") {
                         clickCount += 1
                     }
-                    .buttonStyle(.primary)
+                    .buttonStyle(.borderedProminent)
                     Button("+10") {
                         clickCount += 10
                     }
@@ -175,7 +175,7 @@ struct ButtonsPage: View {
                     Button("page.buttons.primary") {
                         clickCount += 1
                     }
-                    .buttonStyle(.primary)
+                    .buttonStyle(.borderedProminent)
                     Button("page.buttons.success") {
                         clickCount += 1
                     }
@@ -217,7 +217,7 @@ struct ButtonsPage: View {
                 // drives it: flip it off and the tint (on the button AND on the
                 // toggle's own checkbox) disappears — a live cascade demo.
                 VStack(alignment: .leading, spacing: 1) {
-                    Button("page.buttons.primary") { clickCount += 1 }.buttonStyle(.primary)
+                    Button("page.buttons.primary") { clickCount += 1 }.buttonStyle(.borderedProminent)
                     Toggle("page.buttons.toggle", isOn: $tintToggle)
                 }
                 .tint(tintToggle ? demoTint : nil)
@@ -229,9 +229,9 @@ struct ButtonsPage: View {
             DemoSection("page.buttons.section.plain") {
                 HStack(spacing: 2) {
                     Button("\(L("page.buttons.link")) 1") { clickCount += 1 }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                     Button("\(L("page.buttons.link")) 2") { clickCount += 1 }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                 }
             }
     }
@@ -243,7 +243,7 @@ struct ButtonsPage: View {
                     Button("page.buttons.cancel") { clickCount += 1 }
                     Button("page.buttons.save") { clickCount += 1 }
                 }
-                .buttonStyle(.primary)
+                .buttonStyle(.borderedProminent)
             }
     }
 

@@ -139,7 +139,7 @@ struct ButtonTests {
     func primaryButtonIsBold() {
         let context = createTestContext()
 
-        let button = Button("Submit") {}.buttonStyle(.primary)
+        let button = Button("Submit") {}.buttonStyle(.borderedProminent)
         let buffer = renderToBuffer(button, context: context)
 
         let allContent = buffer.lines.joined()
@@ -230,25 +230,30 @@ struct ButtonTests {
         )
     }
 
-    @Test("A plain button lifts its label colour under the pointer")
-    func plainButtonHoverLiftsTheLabel() {
-        // A plain button draws straight onto the page — no caps, no fill — so
-        // the face swap the standard style uses has nothing to swap. Its label
-        // colour is the whole affordance, and before this it had none at all:
-        // `.buttonStyle(.plain)` (and therefore every `Link`) simply did not
-        // answer the pointer.
+    @Test(
+        "An unbordered button lifts its label colour under the pointer",
+        arguments: [(PlainOrBorderless.plain), (PlainOrBorderless.borderless)])
+    func unborderedButtonHoverLiftsTheLabel(_ kind: PlainOrBorderless) {
+        // An unbordered button draws straight onto the page — no caps, no fill —
+        // so the face swap the standard style uses has nothing to swap. Its
+        // label colour is the whole affordance, and before this it had none at
+        // all: such a button (and therefore every `Link`) simply did not answer
+        // the pointer. Plain's label is the ordinary text colour, borderless's
+        // the accent; each lifts from its own.
         withColorDepth(.truecolor) {
             let context = createTestContext()
             let dispatcher = context.environment.mouseEventDispatcher!
             dispatcher.setActiveSupport(.full)
             context.environment.focusManager!.register(FocusSentinel())
 
-            let view = Button("Plain") {}.buttonStyle(.plain)
+            let view = kind == .plain
+                ? AnyView(Button("Plain") {}.buttonStyle(.plain))
+                : AnyView(Button("Plain") {}.buttonStyle(.borderless))
             let before = ansiRendered(view, context: context)
             let regions = renderToBuffer(view, context: context).hitTestRegions
             dispatcher.setRegions(regions)
             guard let region = regions.first else {
-                Issue.record("expected a hit-test region from a plain Button")
+                Issue.record("expected a hit-test region from an unbordered Button")
                 return
             }
             _ = dispatcher.dispatch(
@@ -262,9 +267,10 @@ struct ButtonTests {
                 let rgb = color.resolve(with: palette).rgbComponents!
                 return "38;2;\(rgb.red);\(rgb.green);\(rgb.blue)"
             }
-            #expect(before.contains(code(palette.accent)), "accent at rest: \(before)")
+            let rest = kind == .plain ? palette.foreground : palette.accent
+            #expect(before.contains(code(rest)), "at rest: \(before)")
             #expect(
-                after.contains(code(palette.hoveredForeground(palette.accent))),
+                after.contains(code(palette.hoveredForeground(rest))),
                 "lifted under the pointer: \(after)")
         }
     }
@@ -684,4 +690,11 @@ struct ButtonRowContentTests {
         let stripped = buffer.lines[0].stripped
         #expect(stripped.contains("…"))
     }
+}
+
+/// The two unbordered button styles, for the hover test's arguments.
+enum PlainOrBorderless: Sendable, CustomStringConvertible {
+    case plain, borderless
+
+    var description: String { self == .plain ? "plain" : "borderless" }
 }

@@ -146,7 +146,7 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
                     }
                 }
             )
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
             // Left closes and Right opens, which is what an outline view does
             // everywhere else in this framework — a `List(_:children:)` has
             // answered these keys since it gained a tree, and a disclosure that

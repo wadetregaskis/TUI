@@ -119,7 +119,7 @@ public struct ButtonStyleConfiguration {
 ///
 /// ```swift
 /// Button("Save") { save() }
-///     .buttonStyle(.primary)
+///     .buttonStyle(.destructive)
 /// ```
 ///
 /// The modifier flows through the environment, so it can also be applied to
@@ -135,11 +135,13 @@ public struct ButtonStyleConfiguration {
 ///
 /// ## Built-in Styles
 ///
-/// - ``DefaultButtonStyle`` (``default``) — bracketed, accent-tinted.
-/// - ``PrimaryButtonStyle`` (``primary``) — bold, emphasised.
+/// SwiftUI's built-in styles are ``PrimitiveButtonStyle``s, and so are
+/// TUIkit's under the same names — `.automatic`, `.bordered`,
+/// `.borderedProminent`, `.borderless`, `.plain`, `.link`, `.accessoryBar` and
+/// `.accessoryBarAction`. Two TUI-specific appearances are `ButtonStyle`s:
+///
 /// - ``DestructiveButtonStyle`` (``destructive``) — error-coloured.
 /// - ``SuccessButtonStyle`` (``success``) — success-coloured.
-/// - ``PlainButtonStyle`` (``plain``) — no brackets, just the label.
 ///
 /// ## Custom Styles
 ///
@@ -247,36 +249,114 @@ extension ButtonStyle {
 }
 
 // MARK: - Built-in Button Styles
+//
+// SwiftUI's built-in button styles are PRIMITIVE styles (see
+// `PrimitiveButtonStyle.swift`), and so are these, under SwiftUI's names. Each
+// stands for a `ButtonStyle` appearance TUIkit draws procedurally, and applying
+// one installs that appearance — so a built-in costs no more than it did when
+// these were appearances themselves, with no view between the button and its
+// drawing. (A type cannot be both kinds of style: each protocol defines its
+// own `Configuration`.) The appearances are reachable by the same names as
+// `ButtonStyle`s, through ``_AppearanceButtonStyle``, which is what lets a
+// `Theme` name one. Two TUI-specific appearances, `.destructive` and
+// `.success`, are `ButtonStyle`s only.
 
-/// The default button style: a single-line bracketed button with an
-/// accent-tinted background.
+/// The default button style, based on the button's context: here, the
+/// bracketed, accent-tinted button — what ``BorderedButtonStyle`` draws, as on
+/// macOS.
 ///
-/// Access this style with the ``ButtonStyle/default`` static property.
-public struct DefaultButtonStyle: ButtonStyle, Equatable {
+/// Access this style with ``PrimitiveButtonStyle/automatic``.
+public struct DefaultButtonStyle: BuiltInButtonStyle, Equatable {
     /// Creates a default button style.
     public init() {}
 
-    public func makeBody(configuration: Configuration) -> some View {
-        _ButtonStyleBody(configuration: configuration, appearance: .default)
-    }
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .default) }
 }
 
-/// A bold, emphasised button style that uses the palette's accent colour.
+/// A button style that applies standard border artwork based on the button's
+/// context: the half-block caps around an accent-tinted face, `▐ Label ▌`.
 ///
-/// Access this style with the ``ButtonStyle/primary`` static property.
-public struct PrimaryButtonStyle: ButtonStyle, Equatable {
-    /// Creates a primary button style.
+/// Access this style with ``PrimitiveButtonStyle/bordered``.
+public struct BorderedButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates a bordered button style.
     public init() {}
 
-    public func makeBody(configuration: Configuration) -> some View {
-        _ButtonStyleBody(configuration: configuration, appearance: .primary)
-    }
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .default) }
+}
+
+/// A button style that applies standard border prominent artwork: the bordered
+/// button, bold and in the accent colour.
+///
+/// Access this style with ``PrimitiveButtonStyle/borderedProminent``.
+public struct BorderedProminentButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates a bordered prominent button style.
+    public init() {}
+
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .primary) }
+}
+
+/// A button style that doesn't apply a border: the label alone, in the accent
+/// colour, behind the plain button's focus marker.
+///
+/// Access this style with ``PrimitiveButtonStyle/borderless``.
+public struct BorderlessButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates a borderless button style.
+    public init() {}
+
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .borderless) }
+}
+
+/// A button style that doesn't style or decorate its content while idle, but
+/// may apply a visual effect to indicate the pressed, focused, or enabled state
+/// of the button: here, a focus marker in front of the label.
+///
+/// Access this style with ``PrimitiveButtonStyle/plain``.
+public struct PlainButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates a plain button style.
+    public init() {}
+
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .plain) }
+}
+
+/// A button style for buttons that emulate links: the label in the accent
+/// colour, underlined as ``Link``'s is, with the focus shown in the words rather
+/// than in front of them.
+///
+/// Access this style with ``PrimitiveButtonStyle/link``.
+public struct LinkButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates a link button style.
+    public init() {}
+
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .link) }
+}
+
+/// A button style for the buttons of an accessory bar: the plain button.
+///
+/// TUIkit draws no accessory bars of its own, so this is the look such a
+/// button takes anywhere: unbordered, as a scope bar's are.
+///
+/// Access this style with ``PrimitiveButtonStyle/accessoryBar``.
+public struct AccessoryBarButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates an accessory bar button style.
+    public init() {}
+
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .plain) }
+}
+
+/// A button style for an accessory bar's action button: the bordered button.
+///
+/// Access this style with ``PrimitiveButtonStyle/accessoryBarAction``.
+public struct AccessoryBarActionButtonStyle: BuiltInButtonStyle, Equatable {
+    /// Creates an accessory bar action button style.
+    public init() {}
+
+    var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .default) }
 }
 
 /// A button style that uses the palette's error colour to signal a
 /// destructive action.
 ///
-/// Access this style with the ``ButtonStyle/destructive`` static property.
+/// TUI-specific. Access this style with ``ButtonStyle/destructive``.
 public struct DestructiveButtonStyle: ButtonStyle, Equatable {
     /// Creates a destructive button style.
     public init() {}
@@ -288,7 +368,7 @@ public struct DestructiveButtonStyle: ButtonStyle, Equatable {
 
 /// A button style that uses the palette's success colour.
 ///
-/// Access this style with the ``ButtonStyle/success`` static property.
+/// TUI-specific. Access this style with ``ButtonStyle/success``.
 public struct SuccessButtonStyle: ButtonStyle, Equatable {
     /// Creates a success button style.
     public init() {}
@@ -298,29 +378,106 @@ public struct SuccessButtonStyle: ButtonStyle, Equatable {
     }
 }
 
-/// A minimal button style with no brackets or background — just the label,
-/// preceded by a focus indicator when focused.
-///
-/// Access this style with the ``ButtonStyle/plain`` static property.
-public struct PlainButtonStyle: ButtonStyle, Equatable {
-    /// Creates a plain button style.
-    public init() {}
+// MARK: - Style Static Accessors
+//
+// On both protocols: `.buttonStyle(.plain)` resolves through the primitive
+// overload (the other is disfavoured), and a `Theme(buttonStyle: .plain)`
+// through `ButtonStyle`, to the appearance the primitive style installs.
 
-    public func makeBody(configuration: Configuration) -> some View {
-        _ButtonStyleBody(configuration: configuration, appearance: .plain)
+extension PrimitiveButtonStyle where Self == DefaultButtonStyle {
+    /// The default button style, based on the button's context.
+    public static var automatic: DefaultButtonStyle { DefaultButtonStyle() }
+}
+
+extension PrimitiveButtonStyle where Self == BorderedButtonStyle {
+    /// A button style that applies standard border artwork based on the
+    /// button's context.
+    public static var bordered: BorderedButtonStyle { BorderedButtonStyle() }
+}
+
+extension PrimitiveButtonStyle where Self == BorderedProminentButtonStyle {
+    /// A button style that applies standard border prominent artwork based on
+    /// the button's context.
+    public static var borderedProminent: BorderedProminentButtonStyle {
+        BorderedProminentButtonStyle()
     }
 }
 
-// MARK: - ButtonStyle Static Accessors
-
-extension ButtonStyle where Self == DefaultButtonStyle {
-    /// The default button style — a bracketed, accent-tinted button.
-    public static var `default`: DefaultButtonStyle { DefaultButtonStyle() }
+extension PrimitiveButtonStyle where Self == BorderlessButtonStyle {
+    /// A button style that doesn't apply a border.
+    public static var borderless: BorderlessButtonStyle { BorderlessButtonStyle() }
 }
 
-extension ButtonStyle where Self == PrimaryButtonStyle {
-    /// A bold, emphasised button style that uses the accent colour.
-    public static var primary: PrimaryButtonStyle { PrimaryButtonStyle() }
+extension PrimitiveButtonStyle where Self == PlainButtonStyle {
+    /// A button style that doesn't style or decorate its content while idle.
+    public static var plain: PlainButtonStyle { PlainButtonStyle() }
+}
+
+extension PrimitiveButtonStyle where Self == LinkButtonStyle {
+    /// A button style for buttons that emulate links.
+    public static var link: LinkButtonStyle { LinkButtonStyle() }
+}
+
+extension PrimitiveButtonStyle where Self == AccessoryBarButtonStyle {
+    /// A button style that is typically used in the context of an accessory
+    /// toolbar.
+    public static var accessoryBar: AccessoryBarButtonStyle { AccessoryBarButtonStyle() }
+}
+
+extension PrimitiveButtonStyle where Self == AccessoryBarActionButtonStyle {
+    /// A button style for an accessory toolbar's action button.
+    public static var accessoryBarAction: AccessoryBarActionButtonStyle {
+        AccessoryBarActionButtonStyle()
+    }
+}
+
+/// A built-in appearance, as a ``ButtonStyle``: what a built-in
+/// ``PrimitiveButtonStyle`` installs when it is applied, and what the
+/// `ButtonStyle` statics of the same names return — so a ``Theme`` can name
+/// one, `Theme(buttonStyle: .plain)`.
+public struct _AppearanceButtonStyle: ButtonStyle, Equatable {
+    let appearance: _ButtonAppearance
+
+    public func makeBody(configuration: Configuration) -> some View {
+        _ButtonStyleBody(
+            configuration: appearance == .link ? Self.linkLabel(configuration) : configuration,
+            appearance: appearance)
+    }
+
+    /// ``LinkButtonStyle``'s label goes through the view path, the one that can
+    /// carry an underline, tinted and underlined as ``Link``'s is.
+    @MainActor
+    private static func linkLabel(_ configuration: Configuration) -> Configuration {
+        ButtonStyleConfiguration(
+            title: "",
+            labelView: AnyView(configuration.label.underline().foregroundStyle(.palette.accent)),
+            role: configuration.role,
+            isPressed: configuration.isPressed,
+            isFocused: configuration.isFocused,
+            isHovered: configuration.isHovered,
+            isEnabled: configuration.isEnabled,
+            keyboardShortcut: configuration.keyboardShortcut)
+    }
+}
+
+extension ButtonStyle where Self == _AppearanceButtonStyle {
+    /// The default appearance (``DefaultButtonStyle``).
+    public static var automatic: Self { Self(appearance: .default) }
+
+    /// The bordered appearance (``BorderedButtonStyle``).
+    public static var bordered: Self { Self(appearance: .default) }
+
+    /// The bordered prominent appearance (``BorderedProminentButtonStyle``).
+    public static var borderedProminent: Self { Self(appearance: .primary) }
+
+    /// The borderless appearance (``BorderlessButtonStyle``).
+    public static var borderless: Self { Self(appearance: .borderless) }
+
+    /// The plain appearance (``PlainButtonStyle``).
+    public static var plain: Self { Self(appearance: .plain) }
+
+    /// The link appearance (``LinkButtonStyle``).
+    public static var link: Self { Self(appearance: .link) }
 }
 
 extension ButtonStyle where Self == DestructiveButtonStyle {
@@ -331,11 +488,6 @@ extension ButtonStyle where Self == DestructiveButtonStyle {
 extension ButtonStyle where Self == SuccessButtonStyle {
     /// A button style that uses the success colour.
     public static var success: SuccessButtonStyle { SuccessButtonStyle() }
-}
-
-extension ButtonStyle where Self == PlainButtonStyle {
-    /// A minimal button style with no brackets or background.
-    public static var plain: PlainButtonStyle { PlainButtonStyle() }
 }
 
 /// A ``Link``'s style: plain, with the focus in the text rather than in front
@@ -361,7 +513,7 @@ struct _LinkButtonStyle: ButtonStyle, Equatable {
     func makeBody(configuration: Configuration) -> some View {
         _ButtonStyleBody(
             configuration: configuration,
-            appearance: indicator == .bullet ? .plain : .link)
+            appearance: indicator == .bullet ? .borderless : .link)
     }
 }
 
@@ -371,7 +523,7 @@ struct _LinkButtonStyle: ButtonStyle, Equatable {
 ///
 /// Framework infrastructure — built-in ``ButtonStyle`` types hand one of
 /// these to ``_ButtonStyleBody`` for procedural rendering.
-private struct _ButtonAppearance {
+struct _ButtonAppearance: Equatable {
     /// The label colour, or `nil` to use the palette accent.
     var foregroundColor: Color?
 
@@ -439,9 +591,26 @@ private struct _ButtonAppearance {
         variant: "success"
     )
 
-    /// The plain appearance — no brackets, no background, no padding.
-    static let plain = Self(
+    /// The borderless appearance — no brackets, no background, no padding, the
+    /// label in the accent colour. What TUIkit called plain until SwiftUI's
+    /// `.plain` (an undecorated label) took the name.
+    ///
+    /// Its variant stays `"plain"`: `.controlVariant(.button, …)` scoping
+    /// treats every unbordered button alike, as it always has.
+    static let borderless = Self(
         foregroundColor: nil,
+        isBold: false,
+        horizontalPadding: 0,
+        isPlain: true,
+        variant: "plain"
+    )
+
+    /// The plain appearance — no brackets, no background, no padding, and the
+    /// label in the ordinary text colour: SwiftUI's plain button "doesn't
+    /// style or decorate its content while idle". Focus still shows, as the
+    /// bullet in front.
+    static let plain = Self(
+        foregroundColor: Color.palette.foreground,
         isBold: false,
         horizontalPadding: 0,
         isPlain: true,
@@ -1128,14 +1297,17 @@ extension _ButtonStyleBody: Layoutable {
 
 /// Environment key for the button style.
 private struct ButtonStyleKey: EnvironmentKey {
-    static let defaultValue: any ButtonStyle = DefaultButtonStyle()
+    static let defaultValue: any ButtonStyle = _AppearanceButtonStyle.automatic
 }
 
 extension EnvironmentValues {
     /// The button style for this environment.
     ///
     /// Controls how ``Button`` views render. Set via the
-    /// ``View/buttonStyle(_:)`` modifier. Default: ``DefaultButtonStyle``.
+    /// ``View/buttonStyle(_:)`` modifier — directly by a ``ButtonStyle``, or to
+    /// the appearance a built-in ``PrimitiveButtonStyle`` stands for. Default:
+    /// the ``DefaultButtonStyle`` appearance. A custom primitive style, while it
+    /// is in force, takes precedence over this.
     ///
     /// The render cache compares this value between frames to decide whether
     /// what it memoized below is still good, so a style that is not `Equatable`
@@ -1161,8 +1333,15 @@ extension View {
     ///
     /// - Parameter style: The button style to apply.
     /// - Returns: A view whose buttons use the specified style.
+    @_disfavoredOverload
     public func buttonStyle<S: ButtonStyle>(_ style: S) -> some View {
+        // Disfavoured so `.buttonStyle(.plain)` and its siblings, which name a
+        // static on both protocols, resolve to the primitive style.
+        //
+        // The nearest `.buttonStyle(_:)` wins whichever kind of style it names,
+        // so this clears a custom primitive style set further out.
         environment(\.buttonStyle, style)
+            .environment(\.primitiveButtonStyleEntry, nil)
     }
 }
 
@@ -1172,22 +1351,23 @@ extension Button {
     /// A built-in button visual variant, used to scope styling to a specific
     /// kind of button via ``View/buttonTextStyle(_:_:)``.
     public enum Variant: Sendable, Hashable {
-        /// The default bracketed style (``DefaultButtonStyle``).
+        /// The default bracketed style (``DefaultButtonStyle``,
+        /// ``BorderedButtonStyle``).
         case automatic
-        /// The bold, accent-emphasised style (``PrimaryButtonStyle``).
-        case primary
+        /// The bold, accent-emphasised style (``BorderedProminentButtonStyle``).
+        case borderedProminent
         /// The error-coloured style (``DestructiveButtonStyle``).
         case destructive
         /// The success-coloured style (``SuccessButtonStyle``).
         case success
-        /// The minimal, bracket-less style (``PlainButtonStyle``).
+        /// The unbordered styles (``PlainButtonStyle``, ``BorderlessButtonStyle``).
         case plain
 
         /// The type-erased token stored in `.controlVariant(.button, _)`.
         var token: String {
             switch self {
             case .automatic: return "default"
-            case .primary: return "primary"
+            case .borderedProminent: return "primary"
             case .destructive: return "destructive"
             case .success: return "success"
             case .plain: return "plain"

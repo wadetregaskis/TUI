@@ -157,7 +157,7 @@ struct CustomClientView: View {
                         Text(describe(option))
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
             }
         }
     }
@@ -220,7 +220,7 @@ struct CustomClientView: View {
                 TextField("e.g. Kitty 0.42.1", text: $terminalName).frame(width: 28)
             }
             Button("Write report to a file") { savedTo = writeReport() }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
             if let savedTo {
                 Text("Written to \(savedTo) — send that file, or paste the text below.")
                     .foregroundStyle(.palette.success)

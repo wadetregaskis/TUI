@@ -49,7 +49,7 @@ public struct ButtonRole: Equatable, Sendable {
 ///
 /// ```swift
 /// Button("Submit") { handleSubmit() }
-///     .buttonStyle(.primary)
+///     .buttonStyle(.borderedProminent)
 /// ```
 ///
 /// The default style renders a single-line bracketed button, `▐ Label ▌`.
@@ -216,6 +216,33 @@ public struct Button: View {
         self.isDisabled = false
     }
 
+    /// Creates a button based on a configuration for a style with a custom
+    /// appearance and custom interaction behavior.
+    ///
+    /// Use it inside a ``PrimitiveButtonStyle``'s
+    /// ``PrimitiveButtonStyle/makeBody(configuration:)`` to build the button the
+    /// style was applied over — the style in force outside it, not the style
+    /// itself — and add to it:
+    ///
+    /// ```swift
+    /// struct RedBorderedButtonStyle: PrimitiveButtonStyle {
+    ///     func makeBody(configuration: Configuration) -> some View {
+    ///         Button(configuration)
+    ///             .border(.red)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter configuration: The properties of the button being styled.
+    public init(_ configuration: PrimitiveButtonStyleConfiguration) {
+        self.label = configuration.label.title
+        self.labelView = configuration.label.view
+        self.action = configuration.action
+        self.role = configuration.role
+        self.focusID = nil
+        self.isDisabled = false
+    }
+
     /// Creates a button with a semantic role and a custom `@ViewBuilder` label.
     ///
     /// Mirrors SwiftUI's `Button(role:action:label:)`.
@@ -302,6 +329,11 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     /// body is structural — `_MenuItemButtonStyle`, whose `_MenuItemRowBar`
     /// answers `sizeThatFits` with `measureChild(row)` — never paints at all.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let entry = context.environment.primitiveButtonStyleEntry {
+            let (configuration, bodyContext) = primitiveStyling(entry, context: context)
+            return entry.style.makeSize(
+                configuration: configuration, proposal: proposal, context: bodyContext)
+        }
         let style = context.environment.buttonStyle
         // A procedural body is going to be drawn to be measured whichever way
         // it is asked, and going through the style would then resolve the
@@ -534,7 +566,36 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             isDisabled: isDisabled)
     }
 
+    /// A custom ``PrimitiveButtonStyle`` is the whole button: its body is
+    /// drawn in place of one, and this core registers nothing — no focus stop,
+    /// no keys, no click — because the body decides how the button is
+    /// operated, and a body that builds `Button(configuration)` registers
+    /// exactly one button through it. The body sees the style that was in
+    /// force where this one was applied, so that inner `Button` draws with it.
+    private func primitiveStyling(
+        _ entry: PrimitiveButtonStyleEntry, context: RenderContext
+    ) -> (PrimitiveButtonStyleConfiguration, RenderContext) {
+        let dismissMenu =
+            context.environment.menuActionDismissBehavior.dismissesMenu
+            ? context.environment.dismissMenu : nil
+        let action = self.action
+        let configuration = PrimitiveButtonStyleConfiguration(
+            role: role,
+            label: ButtonStyleConfiguration.Label(title: label, view: labelView),
+            action: {
+                action()
+                dismissMenu?()
+            })
+        var bodyContext = context.withChildIdentity(type: PrimitiveButtonStyleEntry.self, index: 0)
+        bodyContext.environment.primitiveButtonStyleEntry = entry.outer?.entry
+        return (configuration, bodyContext)
+    }
+
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let entry = context.environment.primitiveButtonStyleEntry {
+            let (configuration, bodyContext) = primitiveStyling(entry, context: context)
+            return entry.style.makeBuffer(configuration: configuration, context: bodyContext)
+        }
         let resolved = resolve(context: context)
         let isDisabled = resolved.isDisabled
         let persistedFocusID = resolved.persistedFocusID

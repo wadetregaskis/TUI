@@ -90,11 +90,11 @@ private struct StyledButtonRow: View {
 
     var body: some View {
         HStack {
-            Button(Synth.name(mix(seed, 1))) {}.buttonStyle(.default)
-            Button(Synth.name(mix(seed, 2))) {}.buttonStyle(.primary)
+            Button(Synth.name(mix(seed, 1))) {}.buttonStyle(.automatic)
+            Button(Synth.name(mix(seed, 2))) {}.buttonStyle(.borderedProminent)
             Button(Synth.name(mix(seed, 3))) {}.buttonStyle(.success)
             Button(Synth.name(mix(seed, 4))) {}.buttonStyle(.destructive)
-            Button(Synth.name(mix(seed, 5))) {}.buttonStyle(.plain)
+            Button(Synth.name(mix(seed, 5))) {}.buttonStyle(.borderless)
         }
         .padding()
     }

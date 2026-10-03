@@ -106,7 +106,7 @@ struct _EditorPanelChrome<Value, Content: View>: View {
                     doneAction()
                     isPresented.wrappedValue = false
                 }
-                .buttonStyle(.primary)
+                .buttonStyle(.borderedProminent)
             }
         }
     }

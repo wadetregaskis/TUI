@@ -438,9 +438,9 @@ struct _ColorPickerBody: View {
         HStack(spacing: 1) {
             Text("██").foregroundStyle(color)
             if isSelected {
-                Button("● " + name) { colorOnly.wrappedValue = concrete }.buttonStyle(.primary)
+                Button("● " + name) { colorOnly.wrappedValue = concrete }.buttonStyle(.borderedProminent)
             } else {
-                Button("  " + name) { colorOnly.wrappedValue = concrete }.buttonStyle(.plain)
+                Button("  " + name) { colorOnly.wrappedValue = concrete }.buttonStyle(.borderless)
             }
         }
     }

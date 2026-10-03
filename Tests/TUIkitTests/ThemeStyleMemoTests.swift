@@ -148,7 +148,8 @@ struct ThemeStyleMemoTests {
             #expect(delta.hits == 0, "\(spelling) served the old buffer: \(delta)")
         }
 
-        typeSwapClears(PlainButtonStyle(), PrimaryButtonStyle(), "two built-in styles")
+        typeSwapClears(
+            _AppearanceButtonStyle.plain, _AppearanceButtonStyle.borderedProminent, "two built-in styles")
         typeSwapClears(
             UncomparableButtonStyle(badge: "x"), OtherUncomparableButtonStyle(),
             "two styles that can only be told apart by type")

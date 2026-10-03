@@ -146,8 +146,8 @@ enum ButtonStyleCase: CustomStringConvertible {
     @MainActor
     func apply(to button: Button) -> AnyView {
         switch self {
-        case .default: AnyView(button.buttonStyle(.default))
-        case .primary: AnyView(button.buttonStyle(.primary))
+        case .default: AnyView(button.buttonStyle(.automatic))
+        case .primary: AnyView(button.buttonStyle(.borderedProminent))
         case .success: AnyView(button.buttonStyle(.success))
         case .destructive: AnyView(button.buttonStyle(.destructive))
         case .plain: AnyView(button.buttonStyle(.plain))

@@ -426,7 +426,7 @@ public struct GradientEditorPanel: View {
         } label: {
             colorCellRow(cells)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderless)
     }
 
     // MARK: Selection plumbing

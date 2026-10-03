@@ -555,7 +555,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
     /// a click, and `.buttonStyle(_:)` above the stack restyles it.
     private func backButton(_ label: String, coordinator: NavigationCoordinator) -> some View {
         Button(label) { coordinator.pop() }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
     }
 
     /// Pads (or clips) a buffer to exactly `width` × `height`, keeping its

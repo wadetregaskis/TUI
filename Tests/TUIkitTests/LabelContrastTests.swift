@@ -125,7 +125,7 @@ struct LabelContrastTests {
             (".destructive style", "Delete", AnyView(Button("Delete") {}.buttonStyle(.destructive))),
             ("role: .destructive", "Erase", AnyView(Button("Erase", role: .destructive) {})),
             (".success style", "Save", AnyView(Button("Save") {}.buttonStyle(.success))),
-            (".primary style", "Go", AnyView(Button("Go") {}.buttonStyle(.primary))),
+            (".primary style", "Go", AnyView(Button("Go") {}.buttonStyle(.borderedProminent))),
             ("default style", "Open", AnyView(Button("Open") {})),
         ]
     }

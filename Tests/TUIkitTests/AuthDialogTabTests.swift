@@ -47,7 +47,7 @@ struct AuthDialogTabTests {
                 Spacer()
                 Button("Cancel") { showOverlay = false }
                 Button("Sign in") { showOverlay = false }
-                    .buttonStyle(.primary)
+                    .buttonStyle(.borderedProminent)
             }
         }
         .frame(width: 50)

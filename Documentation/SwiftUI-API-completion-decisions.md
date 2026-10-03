@@ -190,6 +190,48 @@ It touches the hottest walk in the framework.
 Cost: about half a day, plus a measurement. I would only do it if real code
 turns up that needs it.
 
+### B5. Button styles: SwiftUI's names, and what `.plain` now means
+
+SwiftUI's built-in button styles now exist under SwiftUI's names, as
+`PrimitiveButtonStyle`s, and TUIkit's own `.default` and `.primary` are gone.
+The SwiftUI names were already documented as equivalents, but
+`.buttonStyle(.bordered)` did not compile. The mapping is mine:
+
+| Style | Draws | Note |
+|---|---|---|
+| `.automatic`, `.bordered` | the bracketed button | as on macOS, where automatic resolves to bordered |
+| `.borderedProminent` | the bracketed button, bold, in the accent colour | was `.primary` |
+| `.borderless` | no caps, accent label | **was TUIkit's `.plain`** |
+| `.plain` | no caps, ordinary text colour | SwiftUI: "doesn't style or decorate its content" |
+| `.link` | accent, underlined, focus in the words | like `Link` |
+| `.accessoryBar` / `.accessoryBarAction` | plain / bordered | TUIkit draws no accessory bars of its own |
+
+**What you might want to revisit: `.plain` changed meaning.**
+- TUIkit's old `.plain` tinted its label with the accent colour. SwiftUI's
+  doesn't, and SwiftUI's `.borderless` is the tinted one.
+- Every framework call site that used `.plain` now uses `.borderless`, so
+  nothing TUIkit draws changed: disclosure and outline headers, the colour
+  pickers, client pickers, the Stress menu bar, and the Example demo of
+  "links".
+- An app that wrote `.plain` sees its labels in the ordinary text colour.
+- If you'd rather keep `.plain` tinted, the cost is a known divergence from
+  SwiftUI. That is a one-line change.
+
+**Custom primitive styles follow SwiftUI exactly.**
+- The style's body *is* the button. TUIkit registers no focus stop, keys or
+  click for it, because the body decides how the button is operated.
+- A body that builds `Button(configuration)` gets one ordinary button, drawn
+  in the style the custom one was applied over.
+- A body that draws only the label makes a control that nothing can operate.
+  That is SwiftUI's semantics; it is also the one place a TUIkit style can
+  produce a control the keyboard cannot reach.
+- The alternative is for TUIkit to keep the focus and keys itself and let the
+  body draw. That costs a second code path, and two focus stops whenever the
+  body also builds a `Button`. I don't recommend it.
+
+**Declined (C):** `.glass`, `.glassProminent` and `.glass(_:)` join the
+existing `Glass*` family rule.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`

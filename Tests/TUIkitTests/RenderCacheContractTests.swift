@@ -502,7 +502,7 @@ struct RenderCacheContractTests: RenderCacheHarness {
             hits(Theme(palette: SystemPalette(.blue), buttonStyle: .plain)) >= 1,
             "a new palette is ink, and the size under green is the size under blue")
         #expect(
-            hits(Theme(palette: SystemPalette(.blue), buttonStyle: DefaultButtonStyle())) == 0,
+            hits(Theme(palette: SystemPalette(.blue), buttonStyle: .automatic)) == 0,
             "a new button style can move cells, and was served the old style's size")
     }
 

@@ -173,7 +173,7 @@ struct ScrollViewPage: View {
                         VStack(alignment: .leading) {
                             ForEach(Array(loremLines.prefix(18).enumerated()), id: \.offset) { index, line in
                                 if (index + 3).isMultiple(of: 4) {
-                                    Button(line) {}.buttonStyle(.plain)
+                                    Button(line) {}.buttonStyle(.borderless)
                                 } else {
                                     Text(line)
                                 }

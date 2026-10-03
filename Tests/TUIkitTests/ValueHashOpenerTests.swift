@@ -54,7 +54,7 @@ struct ValueHashOpenerTests {
     @Test("Every opener TUIkit registers mixes the words the cast mixes, and each is checked here")
     func everyOpener() {
         var checked: Set<ObjectIdentifier> = [
-            check(DefaultButtonStyle() as any ButtonStyle),
+            check(_AppearanceButtonStyle.automatic as any ButtonStyle),
             check(AutomaticFormStyle() as any FormStyle),
             check(DefaultGaugeStyle() as any GaugeStyle),
             check(DefaultLabelStyle() as any LabelStyle),
@@ -84,8 +84,8 @@ struct ValueHashOpenerTests {
             hash(Holds(value: DefaultMenuStyle() as any MenuStyle, tail: 0), opened)
                 != hash(Holds(value: InlineMenuStyle() as any MenuStyle, tail: 0), opened))
         #expect(
-            hash(Holds(value: DefaultButtonStyle() as any ButtonStyle, tail: 0), opened)
-                != hash(Holds(value: PlainButtonStyle() as any ButtonStyle, tail: 0), opened))
+            hash(Holds(value: _AppearanceButtonStyle.automatic as any ButtonStyle, tail: 0), opened)
+                != hash(Holds(value: _AppearanceButtonStyle.plain as any ButtonStyle, tail: 0), opened))
         #expect(hash(AnyLayout(HStackLayout()), opened) != hash(AnyLayout(VStackLayout()), opened))
     }
 

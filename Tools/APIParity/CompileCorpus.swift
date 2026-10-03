@@ -167,3 +167,32 @@ private struct UsesBorderedCaption: View {
             .modifier(BorderedCaption().concat(EmptyModifier()))
     }
 }
+
+// MARK: - Button styles under SwiftUI's names
+
+/// SwiftUI's built-in styles are primitive styles and their names live there;
+/// a style written as a value must not be ambiguous between the two
+/// `buttonStyle(_:)` overloads; and the documented `Button(configuration)`
+/// pattern must bind.
+@MainActor
+private struct RedBorderedButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button(configuration)
+            .border(.red)
+    }
+}
+
+@MainActor
+private struct ButtonStyleNames: View {
+    var body: some View {
+        VStack {
+            Button("button.save") {}.buttonStyle(.bordered)
+            Button("button.save") {}.buttonStyle(.borderedProminent)
+            Button("button.save") {}.buttonStyle(.borderless)
+            Button("button.save") {}.buttonStyle(.plain)
+            Button("button.save") {}.buttonStyle(PlainButtonStyle())
+            Button("button.save") {}.buttonStyle(.link)
+            Button("button.save") {}.buttonStyle(RedBorderedButtonStyle())
+        }
+    }
+}
