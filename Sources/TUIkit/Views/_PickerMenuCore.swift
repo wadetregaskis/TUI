@@ -265,7 +265,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             MenuPresentationLabels.dropDown.close
         // ESC alone is not a keyboard grab. While the drop-down is open,
         // every other presented surface takes the whole keyboard; without
-        // the same claim here, a lettered status item or a page onKeyPress
+        // the same claim here, a lettered status item or a page onKeyEvent
         // handler fired BEHIND the open menu — a section switch, quitting a
         // sub-page — out from under the user's arrow-key browsing. The grab
         // names a section no handler belongs to, which silences layer 2

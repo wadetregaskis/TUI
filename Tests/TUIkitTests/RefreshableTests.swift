@@ -505,7 +505,7 @@ struct RefreshableTests {
         // A view that cannot be measured analytically is RENDERED to measure
         // it, with `isMeasuring` set. Without the guard that extra render
         // registers a second Ctrl-R handler and one keypress starts two
-        // refreshes — the exact bug `onKeyPress` had.
+        // refreshes — the exact bug `onKeyEvent` had.
         let harness = Harness()
         nonisolated(unsafe) var refreshes = 0
         var environment = EnvironmentValues()

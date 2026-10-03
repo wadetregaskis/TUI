@@ -13,14 +13,14 @@ import TUIkit
 ///
 /// No other scenario puts a registration under a memo. Every row here is keyed
 /// on an `Equatable` element, so `ForEach` wraps it in `_MemoizedRow`, and every
-/// row registers twice: `.onKeyPress(keys:)` into the key dispatcher and
+/// row registers twice: `.onKeyEvent(keys:)` into the key dispatcher and
 /// `.statusBarItems` into the status bar. The render loop empties both before
 /// every walk, so a row served from the cache has to make them again or they are
 /// gone. The `.focusSection` sits ABOVE the rows, so its own registration never
 /// holds them out of the cache. Beside them, one `.refreshable` panel binds
 /// Ctrl-R.
 ///
-/// It needs the bench's key channels (`HeadlessInputChannels`): an `onKeyPress`
+/// It needs the bench's key channels (`HeadlessInputChannels`): an `onKeyEvent`
 /// with no dispatcher traps.
 enum KeyRowsScenario {
     @MainActor
@@ -73,7 +73,7 @@ private struct KeyRow: View {
     var body: some View {
         let digit = KeyRowKeys.digit(index)
         Text(Synth.name(seed))
-            .onKeyPress(keys: [.character(digit)]) { _ in false }
+            .onKeyEvent(keys: [.character(digit)]) { _ in false }
             .statusBarItems {
                 StatusBarItem(shortcut: String(digit), label: Synth.name(mix(seed, 1)))
             }

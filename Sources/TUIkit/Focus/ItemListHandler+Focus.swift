@@ -19,7 +19,7 @@ extension ItemListHandler {
     /// Publishes this frame's Escape claim when the focused multi-selection
     /// list would act on it (exit extend mode / clear a non-empty selection).
     ///
-    /// Status-bar items and page `onKeyPress` handlers see keys BEFORE the
+    /// Status-bar items and page `onKeyEvent` handlers see keys BEFORE the
     /// focused element, so without a claim a page-level "esc back" would
     /// steal the key and navigate away instead of clearing the selection.
     /// The claim (the same mechanism an open Picker drop-down uses) routes

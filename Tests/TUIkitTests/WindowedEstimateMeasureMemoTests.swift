@@ -45,7 +45,7 @@ private struct EstimatePage: View {
             }
             .defaultScrollAnchor(anchor)
         }
-        .onKeyPress(.character("t")) { tick += 1 }
+        .onKeyEvent(.character("t")) { tick += 1 }
     }
 }
 

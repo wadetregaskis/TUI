@@ -158,7 +158,7 @@ let keyboardEventDispatch = Diagram(
         Node(id: "l05", title: "Layer 0.5 · Drag navigators",
              detail: ["scrolls what the pointer is over", "only while a drag is in flight"]),
         Node(id: "l1", title: "Layer 1 · Status bar items", detail: ["shortcut-triggered actions"]),
-        Node(id: "l2", title: "Layer 2 · View handlers", detail: [".onKeyPress · deepest view first"]),
+        Node(id: "l2", title: "Layer 2 · View handlers", detail: [".onKeyEvent · deepest view first"]),
         Node(id: "g3", title: "still has text focus?", kind: .decision),
         Node(id: "l3", title: "Layer 3 · Focus system",
              detail: ["focused element · Tab / Shift+Tab", "arrow-key fallback"]),

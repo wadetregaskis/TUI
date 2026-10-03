@@ -101,7 +101,7 @@ struct WindowedFocusReachTests {
     /// The probe is a render, not a measure, so every row it asks performs its
     /// render-pass registrations. It used to swap only the focus manager (and
     /// drop the mouse dispatcher), so a row it merely counted on the way to the
-    /// next stop — never drawn, never in the sweep — kept a live `onKeyPress`
+    /// next stop — never drawn, never in the sweep — kept a live `onKeyEvent`
     /// handler, a `.hidden()` button's `.keyboardShortcut` and its
     /// `.statusBarItems` for the rest of the frame. Rows 10, 20 and 30 of the
     /// run lie past the window (rows 0-5, margin row 6) and short of the stop
@@ -117,7 +117,7 @@ struct WindowedFocusReachTests {
         let shortcutFired = tuiContext.keyboardShortcuts.trigger(for: KeyEvent(key: .enter))
         let barShortcuts = statusBar.currentUserItems.map(\.shortcut)
 
-        #expect(!handled, "an undrawn row's onKeyPress took the key")
+        #expect(!handled, "an undrawn row's onKeyEvent took the key")
         #expect(!shortcutFired, "an undrawn row's hidden button answered Return")
         #expect(log.farRan.isEmpty, "undrawn rows acted on a key: \(log.farRan)")
         #expect(!barShortcuts.contains("f"), "an undrawn row's items reached the bar: \(barShortcuts)")
@@ -354,14 +354,14 @@ private struct KeyChannelRow: View {
             Button("stop \(index)") {}
         } else if index == 1 {
             Text("beside the focus")
-                .onKeyPress(keys: [.character("j")]) { _ in
+                .onKeyEvent(keys: [.character("j")]) { _ in
                     log.besideTaps += 1
                     return false
                 }
         } else if index == 10 {
             Text("far handler")
-                .onKeyPress(keys: [.character("d")]) { _ in
-                    log.farRan.append("onKeyPress")
+                .onKeyEvent(keys: [.character("d")]) { _ in
+                    log.farRan.append("onKeyEvent")
                     return true
                 }
         } else if index == 20 {

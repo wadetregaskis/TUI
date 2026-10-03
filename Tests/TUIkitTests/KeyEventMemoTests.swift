@@ -1,9 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  KeyPressMemoTests.swift
+//  KeyEventMemoTests.swift
 //
-//  Tests for onKeyPress interacting with the render memos and the measure
+//  Tests for onKeyEvent interacting with the render memos and the measure
 //  pass. The key dispatcher clears its handlers before every walk, so an
-//  onKeyPress inside a value-memoized row once went dead on the first
+//  onKeyEvent inside a value-memoized row once went dead on the first
 //  cache-hit frame; it then declined the cache instead; and now the memo
 //  stores the row and replays its registration on every hit. A measure-pass
 //  render once registered a second handler, running the action twice per
@@ -76,7 +76,7 @@ private final class LoopHarness {
 @MainActor
 private func loggingRows(_ names: [String], _ log: KeyLog) -> some View {
     ForEach(names, id: \.self) { name in
-        Text(name).onKeyPress { _ in
+        Text(name).onKeyEvent { _ in
             log.entries.append(name)
             return false
         }
@@ -92,7 +92,7 @@ private struct LoggingLeaf: View, @MainActor Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.log === rhs.log }
 
     var body: some View {
-        Text("leaf").onKeyPress { [name, log] _ in
+        Text("leaf").onKeyEvent { [name, log] _ in
             log.entries.append(name)
             return false
         }
@@ -113,7 +113,7 @@ private struct Board: View, @MainActor Equatable {
         VStack {
             Text(title)
             ForEach(names, id: \.self) { name in
-                Text(name).onKeyPress { [title, log] _ in
+                Text(name).onKeyEvent { [title, log] _ in
                     log.entries.append("\(title):\(name)")
                     return false
                 }
@@ -131,7 +131,7 @@ private struct FlagLeaf: View, @MainActor Equatable {
 
     var body: some View {
         if handles {
-            Text("x").onKeyPress { _ in false }
+            Text("x").onKeyEvent { _ in false }
         } else {
             Text("x")
         }
@@ -139,8 +139,8 @@ private struct FlagLeaf: View, @MainActor Equatable {
 }
 
 @MainActor
-@Suite("onKeyPress through the render memos")
-struct KeyPressMemoTests {
+@Suite("onKeyEvent through the render memos")
+struct KeyEventMemoTests {
     @Test("A memoized row's key handler stays registered across cache-hit frames")
     func handlerSurvivesRowMemo() {
         nonisolated(unsafe) var handled = 0
@@ -157,7 +157,7 @@ struct KeyPressMemoTests {
             tuiContext.renderCache.beginRenderPass()
             let view = VStack {
                 ForEach(["row"], id: \.self) { name in
-                    Text(name).onKeyPress { _ in
+                    Text(name).onKeyEvent { _ in
                         handled += 1
                         return true
                     }
@@ -187,7 +187,7 @@ struct KeyPressMemoTests {
             environment: environment, tuiContext: tuiContext)
 
         tuiContext.keyEventDispatcher.clearHandlers()
-        let view = Text("x").onKeyPress { _ in
+        let view = Text("x").onKeyEvent { _ in
             count += 1
             return false
         }
@@ -202,7 +202,7 @@ struct KeyPressMemoTests {
 
     // MARK: - Served and replayed
 
-    @Test("A memoized row with onKeyPress is served, and its handler is live on every frame")
+    @Test("A memoized row with onKeyEvent is served, and its handler is live on every frame")
     func rowWithKeyHandlerIsServed() {
         let harness = LoopHarness()
         let log = KeyLog()
@@ -226,17 +226,17 @@ struct KeyPressMemoTests {
         let harness = LoopHarness()
         let log = KeyLog()
         let view = VStack {
-            Text("before").onKeyPress { _ in
+            Text("before").onKeyEvent { _ in
                 log.entries.append("before")
                 return false
             }
             loggingRows(["r1", "r2"], log)
-            Text("after").onKeyPress { _ in
+            Text("after").onKeyEvent { _ in
                 log.entries.append("after")
                 return false
             }
         }
-        .onKeyPress { _ in
+        .onKeyEvent { _ in
             log.entries.append("outer")
             return false
         }
@@ -337,7 +337,7 @@ struct KeyPressMemoTests {
         let view = VStack {
             ForEach(["row"], id: \.self) { name in
                 Text(name)
-                    .onKeyPress { _ in
+                    .onKeyEvent { _ in
                         log.entries.append(name)
                         return true
                     }
@@ -356,7 +356,7 @@ struct KeyPressMemoTests {
         #expect(!harness.cache.isEmpty, "the dimmed row was never stored")
     }
 
-    @Test("onKeyPress counts as replayable, and cacheUnsafeCount moves on a miss and on a hit")
+    @Test("onKeyEvent counts as replayable, and cacheUnsafeCount moves on a miss and on a hit")
     func keyPressCountsAsReplayable() {
         let harness = LoopHarness()
         let view = VStack { loggingRows(["row"], KeyLog()) }
@@ -442,6 +442,6 @@ struct KeyPressMemoTests {
         harness.frame(FlagLeaf(handles: true).equatable())
         let report = harness.cache.renderMemoMismatches
         #expect(report.count == 1, "\(report)")
-        #expect(report.first?.contains("onKeyPress") == true, "\(report)")
+        #expect(report.first?.contains("onKeyEvent") == true, "\(report)")
     }
 }

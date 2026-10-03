@@ -88,7 +88,7 @@ struct InboxPage: View {
                 ForEach(inbox.suggestedWords, id: \.self) { word in Text(verbatim: word) }
             }
         }
-        .onKeyPress(keys: [.space]) { _ in
+        .onKeyEvent(keys: [.space]) { _ in
             guard let id = inbox.selection, let index = inbox.items.firstIndex(where: { $0.id == id })
             else { return false }
             inbox.items[index].done.toggle()

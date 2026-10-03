@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  KeyPressModifier.swift
+//  KeyEventModifier.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
@@ -8,7 +8,7 @@
 ///
 /// The handler returns a Bool indicating whether the event was consumed.
 /// If false is returned, the event continues to propagate to other handlers.
-public struct KeyPressModifier<Content: View>: View {
+public struct KeyEventModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -20,13 +20,13 @@ public struct KeyPressModifier<Content: View>: View {
     let handler: (KeyEvent) -> Bool
 
     public var body: Never {
-        fatalError("KeyPressModifier renders via Renderable")
+        fatalError("KeyEventModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension KeyPressModifier: Renderable {
+extension KeyEventModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // The registration is a render-pass side effect, twice over:
         // - never during a measure pass — a render-to-measure ancestor would
@@ -44,7 +44,7 @@ extension KeyPressModifier: Renderable {
         context.environment.volatileReadTracker?.recordReplayableEffect()
 
         let sectionID = context.environment.activeFocusSectionID
-        KeyPressRegistrar.register(keys: keys, handler: handler, sectionID: sectionID, context: context)
+        KeyEventRegistrar.register(keys: keys, handler: handler, sectionID: sectionID, context: context)
         if let journal = context.recordingEffectJournal {
             // Built only while a memo records, so the live path allocates no
             // second closure. The section is captured, not looked up: it is
@@ -52,9 +52,9 @@ extension KeyPressModifier: Renderable {
             // section where it is served is the same one.
             journal.append(
                 EffectJournal.Entry(
-                    kind: KeyPressRegistrar.kind, channelToken: context.environment.keyChannelToken
+                    kind: KeyEventRegistrar.kind, channelToken: context.environment.keyChannelToken
                 ) { [keys, handler] replay in
-                    KeyPressRegistrar.register(
+                    KeyEventRegistrar.register(
                         keys: keys, handler: handler, sectionID: sectionID, context: replay)
                 })
         }
@@ -65,11 +65,11 @@ extension KeyPressModifier: Renderable {
 
 // MARK: - Registration
 
-/// The one registration `onKeyPress` makes, shared by the live render and by a
+/// The one registration `onKeyEvent` makes, shared by the live render and by a
 /// value memo replaying it — see `EffectJournal`.
-enum KeyPressRegistrar {
-    /// The journal kind of an `onKeyPress` registration.
-    static let kind = EffectJournal.Kind("onKeyPress")
+enum KeyEventRegistrar {
+    /// The journal kind of an `onKeyEvent` registration.
+    static let kind = EffectJournal.Kind("onKeyEvent")
 
     /// Adds a handler for `keys` (all keys when `nil`) to `context`'s key
     /// dispatcher, in `sectionID`.
@@ -90,7 +90,7 @@ enum KeyPressRegistrar {
 
 // MARK: - Layoutable
 
-extension KeyPressModifier: Layoutable {
+extension KeyEventModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged. Forwarding the
     /// measure keeps it off `measureChild`'s render-to-measure fallback and lets
     /// the wrapped view's flexibility propagate.
@@ -105,7 +105,7 @@ extension KeyPressModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension KeyPressModifier: SingleContentWrapper {
+extension KeyEventModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
 
@@ -113,4 +113,4 @@ extension KeyPressModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension KeyPressModifier: DrawsContentUnchanged {}
+extension KeyEventModifier: DrawsContentUnchanged {}

@@ -259,7 +259,7 @@ extension RefreshableModifier: Renderable {
         // Declared to any value-memoizing ancestor: the dispatcher clears its
         // handlers every frame, so a cached subtree would stop re-registering
         // and Ctrl-R would go dead while still on screen. Declared as
-        // REPLAYABLE, as `onKeyPress` is: the buffer memo stores the entry
+        // REPLAYABLE, as `onKeyEvent` is: the buffer memo stores the entry
         // recorded below and binds Ctrl-R again on every hit. The spinner is
         // the part a hit could get wrong, and the run state invalidates this
         // identity when a run starts or ends (`RunState.bind`).
@@ -302,7 +302,7 @@ extension RefreshableModifier: Renderable {
         // every render-pass side effect below a running refresh ran twice:
         // `.onChange` claims its slot by position (`nextOnChangeIndex`, reset
         // per pass, not per render) so the second walk claimed a fresh slot and
-        // fired for a value that never changed, and an `.onKeyPress` handler
+        // fired for a value that never changed, and an `.onKeyEvent` handler
         // that returns `false` was dispatched twice per keystroke.
         //
         // A blank cell either side, so the indicator reads as a badge sitting

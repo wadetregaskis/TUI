@@ -57,7 +57,7 @@ extension AppHeaderModifier: Renderable {
         // around every screen, and chrome is not a Tab stop. Left on the real
         // focus manager, a `Button` in the header joined the page's focus ring
         // — so Tab walked out of the content and into the title bar, and the
-        // header's `onKeyPress` and `.keyboardShortcut` registrations were live
+        // header's `onKeyEvent` and `.keyboardShortcut` registrations were live
         // alongside the page's. Its buffer still publishes hit-test regions, so
         // it stays clickable, which is the whole point of putting a control
         // there.

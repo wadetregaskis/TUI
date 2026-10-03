@@ -71,7 +71,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "Section A",
             "page.focus.sectionB": "Section B",
             "page.focus.focusedID": "Focused id",
-            "page.focus.keyLoggerSection": "Key logger (.onKeyPress)",
+            "page.focus.keyLoggerSection": "Key logger (.onKeyEvent)",
             "page.focus.keyLoggerDescription": "Every key you press is shown below.",
             "page.focus.lastKey": "Last key",
 
@@ -167,7 +167,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "Bereich A",
             "page.focus.sectionB": "Bereich B",
             "page.focus.focusedID": "Fokussierte id",
-            "page.focus.keyLoggerSection": "Tastenprotokoll (.onKeyPress)",
+            "page.focus.keyLoggerSection": "Tastenprotokoll (.onKeyEvent)",
             "page.focus.keyLoggerDescription": "Jede Taste, die du drückst, wird unten angezeigt.",
             "page.focus.lastKey": "Letzte Taste",
 
@@ -260,7 +260,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "Section A",
             "page.focus.sectionB": "Section B",
             "page.focus.focusedID": "id focalisé",
-            "page.focus.keyLoggerSection": "Enregistreur de touches (.onKeyPress)",
+            "page.focus.keyLoggerSection": "Enregistreur de touches (.onKeyEvent)",
             "page.focus.keyLoggerDescription": "Chaque touche que vous appuyez s'affiche ci-dessous.",
             "page.focus.lastKey": "Dernière touche",
 
@@ -353,7 +353,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "Sezione A",
             "page.focus.sectionB": "Sezione B",
             "page.focus.focusedID": "id con focus",
-            "page.focus.keyLoggerSection": "Registratore tasti (.onKeyPress)",
+            "page.focus.keyLoggerSection": "Registratore tasti (.onKeyEvent)",
             "page.focus.keyLoggerDescription": "Ogni tasto che premi viene mostrato sotto.",
             "page.focus.lastKey": "Ultimo tasto",
 
@@ -446,7 +446,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "Sección A",
             "page.focus.sectionB": "Sección B",
             "page.focus.focusedID": "id enfocado",
-            "page.focus.keyLoggerSection": "Registrador de teclas (.onKeyPress)",
+            "page.focus.keyLoggerSection": "Registrador de teclas (.onKeyEvent)",
             "page.focus.keyLoggerDescription": "Cada tecla que pulsas se muestra abajo.",
             "page.focus.lastKey": "Última tecla",
 
@@ -539,7 +539,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "区域 A",
             "page.focus.sectionB": "区域 B",
             "page.focus.focusedID": "聚焦的 id",
-            "page.focus.keyLoggerSection": "按键记录器（.onKeyPress）",
+            "page.focus.keyLoggerSection": "按键记录器（.onKeyEvent）",
             "page.focus.keyLoggerDescription": "你按下的每个键都会显示在下方。",
             "page.focus.lastKey": "最后按键",
 
@@ -632,7 +632,7 @@ extension ExampleStrings {
             "page.focus.sectionA": "セクション A",
             "page.focus.sectionB": "セクション B",
             "page.focus.focusedID": "フォーカス中の id",
-            "page.focus.keyLoggerSection": "キーロガー（.onKeyPress）",
+            "page.focus.keyLoggerSection": "キーロガー（.onKeyEvent）",
             "page.focus.keyLoggerDescription": "押したすべてのキーが下に表示されます。",
             "page.focus.lastKey": "最後のキー",
 

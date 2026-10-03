@@ -149,7 +149,7 @@ extension View {
     /// escape code — a purely visual change.
     ///
     /// Dimmed content is **inert**: what looks recessive is recessive. It is
-    /// not a Tab stop, its `onKeyPress` and `.keyboardShortcut` do not fire, it
+    /// not a Tab stop, its `onKeyEvent` and `.keyboardShortcut` do not fire, it
     /// publishes no status-bar items, and it is not clickable. Its `@State` and
     /// scroll position survive, so undimming brings it back as it was.
     ///

@@ -13,7 +13,7 @@
 ///
 /// For the `Stress` bench, which renders headless and cannot see these types.
 /// Without them a bench renders a tree whose registrations all go nowhere:
-/// `onKeyPress` traps on its dispatcher, and a `Button` with
+/// `onKeyEvent` traps on its dispatcher, and a `Button` with
 /// `.keyboardShortcut` neither registers nor declares, so the bench measured
 /// cheaper frames than the app draws and could not see a memo that keeps a
 /// subtree's registrations alive.

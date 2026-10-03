@@ -218,7 +218,7 @@ extension ModalPresentationModifier: Renderable {
         // is already active, so a background control rendered into the real focus
         // manager would resolve to that section and steal the focus the modal's
         // own controls should auto-receive — and stay live to hotkeys. Isolation
-        // keeps the real manager seeing only the modal, silences page `onKeyPress`,
+        // keeps the real manager seeing only the modal, silences page `onKeyEvent`,
         // and (via throwaway state) preserves the page's scroll/@State. The root
         // compositor dims this buffer for the backdrop; mouse is isolated by that
         // dimmed backdrop dropping the page's hit-test regions.

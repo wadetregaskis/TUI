@@ -92,7 +92,7 @@ enum Headless {
         // shortcut registry, a status bar and a mouse dispatcher. Without them a
         // bench measures a tree with its input half removed — a `Button`'s
         // `.keyboardShortcut` registered nothing and declared nothing, an
-        // `onKeyPress` trapped on its missing dispatcher, and every control that
+        // `onKeyEvent` trapped on its missing dispatcher, and every control that
         // answers the pointer skipped the hit-test handler, the feature request
         // and the region it emits in an app. Shared across `--cold` contexts,
         // because the frame loop empties them before every walk as `RenderLoop`

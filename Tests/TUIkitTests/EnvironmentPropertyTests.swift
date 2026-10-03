@@ -148,7 +148,7 @@ struct EnvironmentPropertyTests {
     @Test("@Environment resolves inside a closure created during body (event-handler parity)")
     func resolvesInDeferredClosure() {
         // Box the probe stashes a closure into during `body`, mimicking an
-        // .onKeyPress / Button action that runs AFTER render — when the active
+        // .onKeyEvent / Button action that runs AFTER render — when the active
         // environment has been cleared.
         final class Sink { var read: (() -> String)? }
         let sink = Sink()

@@ -92,7 +92,7 @@ import TUIkitCore
 /// ⌃⌘S and ⌥⌘S, which are ⌃S and ⌥⌃S under the default `.control`. They toggle
 /// the sidebar only, as macOS does — two columns `.all` ⇄ `.detailOnly`, three
 /// `.all` ⇄ `.doubleColumn` — wherever the focus is. An app shortcut on the same
-/// keys wins over them (an app's ⌘S is ⌃S too), as does an `onKeyPress` handler
+/// keys wins over them (an app's ⌘S is ⌃S too), as does an `onKeyEvent` handler
 /// or a focused control that uses the key, such as a sortable ``Table``. With
 /// several split views on screen, the one holding the focus toggles, else the
 /// first. The chords stay when the handles are removed, and a `.disabled()` split

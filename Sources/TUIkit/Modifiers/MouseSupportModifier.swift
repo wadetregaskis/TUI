@@ -25,7 +25,7 @@
 /// var body: some View {
 ///     ContentView()
 ///         .mouseSupport(selectingText ? .disabled : .standard)
-///         .onKeyPress(.character("s"), modifiers: .command) {
+///         .onKeyEvent(.character("s"), modifiers: .command) {
 ///             selectingText.toggle()
 ///             return true
 ///         }

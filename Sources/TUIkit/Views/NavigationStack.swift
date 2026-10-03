@@ -432,7 +432,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             // Filed at the slot taken before the screen rendered, not appended.
             // The dispatcher asks the most recent registration first, so an
             // appended pop outranked every handler the screen had just
-            // registered: a screen's `.onKeyPress(keys: [.escape])` never ran,
+            // registered: a screen's `.onKeyEvent(keys: [.escape])` never ran,
             // and a screen that must not be left (the remedy
             // `navigationBarBackButtonHidden(_:)` documents) could not say so.
             // Filed ahead of the screen, going back is what ESC does when

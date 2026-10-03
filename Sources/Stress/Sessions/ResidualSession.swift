@@ -197,7 +197,7 @@ struct ResidualPage<Kind: ResidualRowKind>: View {
             band.frame(height: ResidualColumns.bandHeight, alignment: .top)
             columns
         }
-        .onKeyPress(keys: Set(["j", "k", "b", "h", "g", "f", "t"].map { Key.character($0) })) { event in
+        .onKeyEvent(keys: Set(["j", "k", "b", "h", "g", "f", "t"].map { Key.character($0) })) { event in
             let count = max(1, model.items.count)
             switch event.key {
             case .character("j"): selection = (selection + 1) % count

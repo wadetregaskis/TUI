@@ -86,7 +86,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// again on a cache hit, because the registrar also recorded them in the
     /// render cache's effect journal. Like ``sideEffects``, only ever compared
     /// as a delta. Recorded by:
-    /// - `onKeyPress`, once per registration on a render pass;
+    /// - `onKeyEvent`, once per registration on a render pass;
     /// - `.refreshable`, once per Ctrl-R binding on a render pass;
     /// - `.statusBarItems`, once per registration with a status bar;
     /// - `FocusRegistration.register`, once per interactive control whose

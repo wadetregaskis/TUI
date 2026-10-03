@@ -9,7 +9,7 @@
 //  nothing is ever replayed.
 //
 //  `RegistrationReplayStormTests` is the keyboard twin of this file and covers
-//  `onKeyPress`, `.refreshable` and `.statusBarItems`. What it could not cover is
+//  `onKeyEvent`, `.refreshable` and `.statusBarItems`. What it could not cover is
 //  everything phases 2 and 3 made storable: a control's place in the Tab ring, a
 //  `.keyboardShortcut` planted inside a memo, and the hit-test handler behind a
 //  region baked into a stored buffer. Those are here.

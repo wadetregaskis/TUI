@@ -63,7 +63,7 @@ extension StatusBarItemsModifier: Renderable {
         // rebuilt from scratch every render pass (`beginRenderPass()`), so a
         // subtree served from the cache that did not register again would lose
         // its items from the bar, a disappearance nothing in the buffer reveals.
-        // Declared as REPLAYABLE, as `onKeyPress` is: the buffer memo stores the
+        // Declared as REPLAYABLE, as `onKeyEvent` is: the buffer memo stores the
         // entry recorded below and registers the items again on every hit, at
         // this position in the walk, so a section's last registration still
         // replaces the ones before it.
@@ -75,7 +75,7 @@ extension StatusBarItemsModifier: Renderable {
             sectionID: sectionID, context: renderContext)
         if let journal = renderContext.recordingEffectJournal {
             // Built only while a memo records. The section is captured, as
-            // `onKeyPress` captures it: the memo checks that the section where
+            // `onKeyEvent` captures it: the memo checks that the section where
             // it is served is the one the items were registered in.
             journal.append(
                 EffectJournal.Entry(

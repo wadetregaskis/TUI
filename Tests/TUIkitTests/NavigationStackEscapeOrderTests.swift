@@ -16,7 +16,7 @@ import Testing
 /// already claimed the key — and it used to register its pop handler right
 /// there, AFTER every handler the screen had registered. The dispatcher asks
 /// the most recent registration first, so the pop always answered: a screen's
-/// `.onKeyPress(keys: [.escape])` never ran, and the remedy
+/// `.onKeyEvent(keys: [.escape])` never ran, and the remedy
 /// `navigationBarBackButtonHidden(_:)` documents for a screen that must not be
 /// left, something that consumes Escape, could not be written.
 @MainActor
@@ -49,7 +49,7 @@ struct NavigationStackEscapeOrderTests {
                 .navigationDestination(for: Step.self) { _ in
                     Text("wizard")
                         .navigationBarBackButtonHidden()
-                        .onKeyPress(keys: [.escape]) { _ in
+                        .onKeyEvent(keys: [.escape]) { _ in
                             screenHeard = true
                             return true
                         }
@@ -72,7 +72,7 @@ struct NavigationStackEscapeOrderTests {
             Text("root")
                 .navigationDestination(for: Step.self) { _ in
                     Text("detail")
-                        .onKeyPress(keys: [.escape]) { _ in
+                        .onKeyEvent(keys: [.escape]) { _ in
                             screenAsked = true
                             return false
                         }
@@ -98,7 +98,7 @@ struct NavigationStackEscapeOrderTests {
             Text("root")
                 .navigationDestination(for: Step.self) { _ in Text("detail") }
         }
-        .onKeyPress(keys: [.escape]) { _ in
+        .onKeyEvent(keys: [.escape]) { _ in
             pageHeard = true
             return true
         }

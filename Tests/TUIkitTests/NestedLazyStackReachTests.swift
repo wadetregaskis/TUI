@@ -133,7 +133,7 @@ private struct GroupsPage: View {
                 }
             }
         }
-        .onKeyPress(.character("t")) { tick += 1 }
+        .onKeyEvent(.character("t")) { tick += 1 }
     }
 }
 
@@ -170,7 +170,7 @@ private struct DirectLazyPage: View {
                 }
             }
         }
-        .onKeyPress(.character("t")) { tick += 1 }
+        .onKeyEvent(.character("t")) { tick += 1 }
     }
 }
 
@@ -220,8 +220,8 @@ private struct MovingPage: View {
             }
             .defaultScrollAnchor(.bottom)
         }
-        .onKeyPress(.character("a")) { count += 61 }
-        .onKeyPress(.character("t")) { tick += 1 }
+        .onKeyEvent(.character("a")) { count += 61 }
+        .onKeyEvent(.character("t")) { tick += 1 }
     }
 }
 

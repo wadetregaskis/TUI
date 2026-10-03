@@ -298,7 +298,7 @@ public final class StatusBarState: @unchecked Sendable {
         // do this frame — a focused control's verb, a presented surface's
         // claim. Nothing said, nothing shown: an entry for a key that will not
         // be handled is worse than no entry, and the bar cannot tell what an
-        // undeclared `onKeyPress` closure would do with the key.
+        // undeclared `onKeyEvent` closure would do with the key.
         //
         // A page that publishes its OWN escape or return item wins the shortcut
         // dedup below and keeps its action; these are the fallback for a page

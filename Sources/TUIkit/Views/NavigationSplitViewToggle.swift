@@ -221,7 +221,7 @@ extension _NavigationSplitViewCore {
     /// They work wherever the focus is, as framework defaults
     /// (`KeyboardShortcutRegistry.registerDefault`), so an app shortcut on the
     /// same keys wins, and anything that consumes the key earlier in the input
-    /// chain (`onKeyPress`, a focused sortable Table) does too. Every split
+    /// chain (`onKeyEvent`, a focused sortable Table) does too. Every split
     /// registers them twice: at the start of its render, which makes the first
     /// split in render order the one that toggles when no split holds the focus;
     /// and, if it holds the focus, again once its columns have rendered, which

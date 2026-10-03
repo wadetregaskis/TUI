@@ -16,7 +16,7 @@
 ///    that an app's keyboard shortcut is registered on (see
 ///    `textInputGivesWay(_:)`)
 /// 1. **Status bar** — items with actions
-/// 2. **View handlers** — registered via `onKeyPress` modifiers
+/// 2. **View handlers** — registered via `onKeyEvent` modifiers
 /// 3. **Focus system** (conditional) — Tab/Shift+Tab navigation, Enter/Space
 ///    on focused buttons
 /// 4. **Default bindings** — `q` (quit), Ctrl-Z (re-raised as SIGTSTP, so the
@@ -30,7 +30,7 @@
 ///
 /// The three refinements, all in `handle(_:)`:
 /// - An open modal that has claimed Escape is routed through the focus system
-///   ahead of layer 1, so a page-level `onKeyPress` cannot close the page out
+///   ahead of layer 1, so a page-level `onKeyEvent` cannot close the page out
 ///   from under an open drop-down. Declined there means declined: layer 3 must
 ///   not offer the same event twice.
 /// - **Layer 0.5**, also ahead of the status bar: while a drag is in flight the
@@ -129,7 +129,7 @@ extension InputHandler {
         // transient surface) has signalled "I own ESC for this frame" by
         // setting `escapeLabelOverride`, route the key through the focus
         // system *before* the status bar or any view-registered handler
-        // gets a shot. Otherwise a page-level onKeyPress that returns to
+        // gets a shot. Otherwise a page-level onKeyEvent that returns to
         // the menu (the example app's ContentView, for one) would close
         // the page out from under the open drop-down.
         //
@@ -151,7 +151,7 @@ extension InputHandler {
         // scroll whatever the pointer is over — reaching a destination that is
         // off screen without letting go — and they must beat every layer below,
         // all of which would otherwise spend them on the focused control (a
-        // page-level `onKeyPress` returning to the menu, the source list moving
+        // page-level `onKeyEvent` returning to the menu, the source list moving
         // its own selection). Declines unless a drag is actually in flight AND
         // the pointer is over something that drag could land in.
         if dragAndDropSession?.handleDragNavigator(event) == true {
@@ -163,7 +163,7 @@ extension InputHandler {
             return true
         }
 
-        // Layer 2: View-registered key handlers (onKeyPress, Menu arrow keys)
+        // Layer 2: View-registered key handlers (onKeyEvent, Menu arrow keys)
         if keyEventDispatcher.dispatch(event) {
             return true
         }

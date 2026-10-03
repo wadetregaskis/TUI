@@ -84,7 +84,7 @@ private struct RootView: View {
                     await MainActor.run { if clock.autopilot { clock.tick &+= 1 } }
                 }
             }
-            .onKeyPress { handleKey($0) }
+            .onKeyEvent { handleKey($0) }
     }
 
     @ViewBuilder

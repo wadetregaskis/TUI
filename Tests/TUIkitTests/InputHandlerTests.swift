@@ -12,7 +12,7 @@ import Testing
 /// Tests for `InputHandler`'s five-layer key-dispatch priority chain.
 ///
 /// The chain is: 0 text input (a focused `TextFieldHandler`) → 1 status
-/// bar → 2 view handlers (`onKeyPress`) → 3 focus system → 4 default
+/// bar → 2 view handlers (`onKeyEvent`) → 3 focus system → 4 default
 /// bindings (`q`/`t`/`a`). A consuming layer short-circuits the rest.
 /// These tests wire each layer with a double that records whether it
 /// ran and consumes the event, then assert which layer actually fired.

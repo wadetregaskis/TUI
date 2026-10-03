@@ -113,7 +113,7 @@ struct EditorPage: View {
                 .onChange(of: document.line) { _, line in proxy.scrollTo(line) }
             }
         }
-        .onKeyPress { document.handle($0) }
+        .onKeyEvent { document.handle($0) }
     }
 }
 

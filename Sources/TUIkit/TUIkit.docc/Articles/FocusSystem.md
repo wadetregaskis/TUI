@@ -359,7 +359,7 @@ Focus dispatch happens in Layer 3 of the key event pipeline (see <doc:AppLifecyc
 1. A key event arrives from stdin
 2. Layer 0: text input, when `focusManager.hasTextInputFocus` — mutually exclusive with Layer 3
 3. Layer 1 (status bar) gets first chance at everything else. A presented alert or modal publishes its own `⎋ dismiss` item here, which is what stops a page's `⎋ back` from firing underneath it
-4. Layer 2: `KeyEventDispatcher` dispatches `.onKeyPress` handlers (deepest view first)
+4. Layer 2: `KeyEventDispatcher` dispatches `.onKeyEvent` handlers (deepest view first)
 5. Layer 3: `FocusManager` delegates to the focused view's `handleKeyEvent(_:)`, then handles Tab/Shift+Tab and arrow key fallback
 6. Layer 3.5: semantic shortcut actions — `.defaultAction` (Return) and `.cancelAction` (Escape) — so a default button fires only once the focused control has let the key through
 7. Layer 4 (default bindings) handles quit, theme cycling, etc.

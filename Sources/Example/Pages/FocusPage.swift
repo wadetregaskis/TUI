@@ -9,10 +9,10 @@ import TUIkit
 /// Focus & raw-input demo page.
 ///
 /// Demonstrates explicit focus identity and grouping (`.focusID` / `.focusSection`)
-/// alongside the raw key handler (`.onKeyPress`):
+/// alongside the raw key handler (`.onKeyEvent`):
 /// - Two labelled focus sections you can Tab through, with a live readout of the
 ///   currently focused element's `focusID`.
-/// - A live "last key pressed" logger fed by `.onKeyPress`.
+/// - A live "last key pressed" logger fed by `.onKeyEvent`.
 struct FocusPage: View {
     @State private var lastKey: String = "—"
 
@@ -81,7 +81,7 @@ struct FocusPage: View {
 
             Spacer()
         }
-        .onKeyPress { event in
+        .onKeyEvent { event in
             lastKey = describeKey(event)
             // Don't consume — let Tab (focus), Esc (back) and everything else
             // continue through the dispatch chain.

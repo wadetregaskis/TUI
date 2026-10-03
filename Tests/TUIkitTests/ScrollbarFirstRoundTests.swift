@@ -110,7 +110,7 @@ private struct RoundsPage: View {
             Text("tick \(tick)")
             content
         }
-        .onKeyPress(.character("t")) { tick += 1 }
+        .onKeyEvent(.character("t")) { tick += 1 }
     }
 
     @ViewBuilder private var content: some View {

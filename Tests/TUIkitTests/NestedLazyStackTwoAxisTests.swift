@@ -78,8 +78,8 @@ private struct TwoAxisGroupsPage: View {
                 }
             }
         }
-        .onKeyPress(.character("t")) { tick += 1 }
-        .onKeyPress(.character("w")) { wide = wide == 200 ? 5 : 200 }
+        .onKeyEvent(.character("t")) { tick += 1 }
+        .onKeyEvent(.character("w")) { wide = wide == 200 ? 5 : 200 }
     }
 }
 

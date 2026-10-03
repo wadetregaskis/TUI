@@ -10,7 +10,7 @@ import Testing
 @testable import TUIkit
 
 /// The input dispatcher's layer-0 gate: while a text-consuming handler is
-/// focused, typed keys reach it before status-bar items and `onKeyPress`
+/// focused, typed keys reach it before status-bar items and `onKeyEvent`
 /// handlers. The gate is the marker protocol, not a type test — testing
 /// `is TextFieldHandler` literally is how `TextEditor` shipped with its
 /// keystrokes stealable by any lettered status item.

@@ -288,7 +288,7 @@ struct MeasureRenderEquivalenceTests {
 
         // — Behavioural decorators (now forward measurement to content) —
         check(Text("watched").onChange(of: 0) { }, "Text.onChange")
-        check(Text("keyed").onKeyPress { _ in false }, "Text.onKeyPress")
+        check(Text("keyed").onKeyEvent { _ in false }, "Text.onKeyEvent")
         check(Text("dimmed").selectionDisabled(), "Text.selectionDisabled")
         check(Text("badged").badge(3), "Text.badge")
         check(VStack { Text("a"); Text("bb") }.focusSection("sec"), "VStack.focusSection")
@@ -375,7 +375,7 @@ struct MeasureRenderEquivalenceTests {
                 "AnyView carries the wrapped view's flexibility (a fallback would over-report it flexible)")
     }
 
-    /// Behavioural decorators (`onChange`, `onKeyPress`, `focusSection`,
+    /// Behavioural decorators (`onChange`, `onKeyEvent`, `focusSection`,
     /// `selectionDisabled`, …) render their content unchanged and now forward
     /// measurement to it. A decorator that fell back to render-to-measure would
     /// report a *fixed* size (the fallback never claims flexible without the +8
@@ -396,7 +396,7 @@ struct MeasureRenderEquivalenceTests {
 
         #expect(widthFlexible(flex.onChange(of: 0) { }), "onChange forwards flexible")
         #expect(!widthFlexible(fixed.onChange(of: 0) { }), "onChange forwards fixed")
-        #expect(widthFlexible(flex.onKeyPress { _ in false }), "onKeyPress forwards flexible")
+        #expect(widthFlexible(flex.onKeyEvent { _ in false }), "onKeyEvent forwards flexible")
         #expect(widthFlexible(flex.selectionDisabled()), "selectionDisabled forwards flexible")
         #expect(widthFlexible(flex.focusSection("s")), "focusSection forwards flexible")
         #expect(widthFlexible(Optional(flex)), "Optional(.some) forwards flexible")

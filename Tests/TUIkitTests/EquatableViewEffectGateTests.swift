@@ -127,20 +127,20 @@ struct EquatableViewEffectGateTests {
     func keyPressStores() {
         // The one registration here that the memo records and makes again on
         // every hit (`EffectJournal`), so it no longer has to decline. What
-        // proves the replay is KeyPressMemoTests; this pins the gate.
-        #expect(storesBuffer { EffectLeaf(label: "x") { $0.onKeyPress { _ in false } }.equatable() })
+        // proves the replay is KeyEventMemoTests; this pins the gate.
+        #expect(storesBuffer { EffectLeaf(label: "x") { $0.onKeyEvent { _ in false } }.equatable() })
     }
 
     @Test("A refreshable inside the subtree is stored, because a hit replays its Ctrl-R")
     func refreshableStores() {
-        // Its Ctrl-R handler is recorded and replayed like `onKeyPress`'s. What
+        // Its Ctrl-R handler is recorded and replayed like `onKeyEvent`'s. What
         // proves the replay, and the spinner redrawing, is RefreshableMemoTests.
         #expect(storesBuffer { EffectLeaf(label: "x") { $0.refreshable {} }.equatable() })
     }
 
     @Test("Status bar items inside the subtree are stored, because a hit registers them again")
     func statusBarItemsStore() {
-        // Replayed like `onKeyPress`. What proves the replay, the per-section
+        // Replayed like `onKeyEvent`. What proves the replay, the per-section
         // precedence and the dimmed case is StatusBarItemsMemoTests.
         #expect(
             storesBuffer {
@@ -168,7 +168,7 @@ struct EquatableViewEffectGateTests {
     @Test("A Button's keyboard shortcut inside the subtree is stored, because a hit registers it again")
     func keyboardShortcutStores() {
         // The registry is emptied every pass like the dispatcher, so this is
-        // recorded and replayed as `onKeyPress` is. The stop ahead takes the
+        // recorded and replayed as `onKeyEvent` is. The stop ahead takes the
         // focus, so the button's own focus registration is not what decides
         // this. What proves the replay is KeyboardShortcutMemoTests.
         #expect(
@@ -311,7 +311,7 @@ struct EquatableViewEffectGateTests {
             case 5:
                 (
                     "a key handler inside (replayed on a hit)",
-                    wrapped(EffectLeaf(label: "x") { $0.onKeyPress { _ in false } }), true
+                    wrapped(EffectLeaf(label: "x") { $0.onKeyEvent { _ in false } }), true
                 )
             case 6:
                 (

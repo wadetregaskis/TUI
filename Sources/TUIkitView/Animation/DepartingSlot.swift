@@ -108,7 +108,7 @@ package func departingSlot<Content: View>(
 /// drew the transition's picture there dropped the padding — the view jumped
 /// to the slot's edge on the first frame of its removal. But most of what is
 /// written after a `.transition` draws nothing of its own: `.onAppear`,
-/// `.foregroundStyle`, `.disabled`, `.onKeyPress`. Their picture IS their
+/// `.foregroundStyle`, `.disabled`, `.onKeyEvent`. Their picture IS their
 /// content's, and an exact match of types snapped
 /// `if show { Toast().transition(.opacity).onAppear { … } }` — the commonest
 /// toast there is — although the picture was right. A wrapper that conforms

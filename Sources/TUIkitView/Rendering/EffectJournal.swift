@@ -60,7 +60,7 @@ package final class EffectJournal {
     /// render-memo verifier compares the kinds and the count a fresh render
     /// records against the ones a hit would replay.
     package struct Kind: Equatable, Sendable, CustomStringConvertible {
-        /// A short name for reports, such as `onKeyPress`.
+        /// A short name for reports, such as `onKeyEvent`.
         package let name: String
 
         /// Creates a kind named `name`.

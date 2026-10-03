@@ -141,7 +141,7 @@ One key is not offered to the text input at all: an Emacs editing chord that an 
 
 ### Layer 0.5: Drag Navigators
 
-While something is in hand, the arrow and paging keys scroll whatever the pointer is over — how you reach a drop destination that is off screen without letting go. This has to beat every layer below it, all of which would otherwise spend the key on the focused control: a page-level `onKeyPress` returning to the menu, or the source list moving its own selection. It declines unless a drag is actually in flight *and* the pointer is over something that drag could land in.
+While something is in hand, the arrow and paging keys scroll whatever the pointer is over — how you reach a drop destination that is off screen without letting go. This has to beat every layer below it, all of which would otherwise spend the key on the focused control: a page-level `onKeyEvent` returning to the menu, or the source list moving its own selection. It declines unless a drag is actually in flight *and* the pointer is over something that drag could land in.
 
 ### Layer 1: Status Bar Items
 
@@ -149,7 +149,7 @@ While something is in hand, the arrow and paging keys scroll whatever the pointe
 
 ### Layer 2: View-Registered Handlers
 
-The `KeyEventDispatcher` iterates handlers registered via `onKeyPress()` modifiers: in reverse order (newest first). If a handler returns `true`, dispatch stops.
+The `KeyEventDispatcher` iterates handlers registered via `onKeyEvent()` modifiers: in reverse order (newest first). If a handler returns `true`, dispatch stops.
 
 ### Layer 3: Focus System (conditional)
 

@@ -302,7 +302,7 @@ extension ContextMenuModifier: Renderable {
             handler: ActionHandler(focusID: focusID, action: {}, triggerKeys: []),
             focusID: focusID)
 
-        // Replayable, as `onKeyPress`'s is: a memo serving the content makes the
+        // Replayable, as `onKeyEvent`'s is: a memo serving the content makes the
         // registration again from its journal, in the section it was made in.
         let sectionID = context.environment.activeFocusSectionID
         ContextMenuKeyRegistrar.register(

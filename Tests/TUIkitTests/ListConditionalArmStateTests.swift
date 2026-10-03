@@ -66,7 +66,7 @@ private struct ArmsPage: View {
     @State private var showsFirst = true
 
     var body: some View {
-        list.onKeyPress(.character("f")) { showsFirst.toggle() }
+        list.onKeyEvent(.character("f")) { showsFirst.toggle() }
     }
 
     @ViewBuilder private var list: some View {

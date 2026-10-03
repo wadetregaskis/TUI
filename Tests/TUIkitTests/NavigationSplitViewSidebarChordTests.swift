@@ -4,7 +4,7 @@
 //  SwiftUI's two sidebar chords, View ▸ Show Sidebar ⌃⌘S and the hidden Toggle
 //  Sidebar ⌥⌘S, resolved through `commandKey` (⌃S and ⌥⌃S under the default
 //  `.control`). They toggle the sidebar only, as macOS does, whatever holds the
-//  focus: an app shortcut, an `onKeyPress` handler or a focused control that uses
+//  focus: an app shortcut, an `onKeyEvent` handler or a focused control that uses
 //  the key takes it first; with several split views the focused one, or the one
 //  holding the focus, wins, and otherwise the first in render order.
 //
@@ -206,12 +206,12 @@ struct NavigationSplitViewSidebarChordTests {
         }
     }
 
-    @Test("An onKeyPress handler for ⌃S wins")
-    func onKeyPressWins() {
+    @Test("An onKeyEvent handler for ⌃S wins")
+    func onKeyEventWins() {
         let harness = Harness()
         let box = Box()
         let seen = Counter()
-        let view = split("a", box).onKeyPress { event in
+        let view = split("a", box).onKeyEvent { event in
             guard event == Self.controlS else { return false }
             seen.value += 1
             return true

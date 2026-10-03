@@ -96,7 +96,7 @@ Return and Escape are the only keys the bar carries on their own account. They a
 
 So the question is split. **Whether** the bar carries them is the app's decision, made once with the modifier above. **What they say** is the focused view's, published each render: a `Button` says "activate" (or "choose", in a menu), a `Toggle` says "toggle", a closed pop-up says "open menu", a `TextField` with an `onSubmit` says "submit", a list row says "select" — or "open", where the list has a row action.
 
-An entry appears only while something has said what its key does. Nothing said, nothing shown: a slider does nothing with Return, so on a page whose focus is a slider there is no Return entry at all. The bar cannot know what an undeclared `onKeyPress` closure would do with a key, so it does not guess — a key that works without saying so is a silence, which is better than an entry for a key that will do nothing.
+An entry appears only while something has said what its key does. Nothing said, nothing shown: a slider does nothing with Return, so on a page whose focus is a slider there is no Return entry at all. The bar cannot know what an undeclared `onKeyEvent` closure would do with a key, so it does not guess — a key that works without saying so is a silence, which is better than an entry for a key that will do nothing.
 
 Both entries are **informational**: they carry no action, so they display and do not intercept. Turning one off is a display decision and changes nothing about what the key does.
 

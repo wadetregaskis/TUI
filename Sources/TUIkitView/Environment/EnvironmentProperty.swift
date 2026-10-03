@@ -55,7 +55,7 @@ import TUIkitCore
 /// reference box held by this wrapper — see `resolveEnvironmentProperties(of:in:)`,
 /// which the renderer calls before evaluating a view's `body`. Because the box
 /// is a reference shared with any closure that captures the view (a `Button`
-/// action, an `.onKeyPress` handler, a `Binding`'s `set:`), `@Environment`
+/// action, an `.onKeyEvent` handler, a `Binding`'s `set:`), `@Environment`
 /// resolves correctly **inside those closures too** — not only during `body` —
 /// matching SwiftUI. (Reading the active environment lazily at access time, the
 /// old behaviour, returned defaults in deferred closures.)

@@ -68,7 +68,7 @@ extension DimmedModifier: Renderable {
         // Rendered through the backdrop isolation, so what LOOKS inert IS
         // inert. `.dimmed()` flattens its content to a recessive text layer;
         // that is a statement about the content's role, and content in that
-        // role must not still be reachable by Tab, still run its `onKeyPress`,
+        // role must not still be reachable by Tab, still run its `onKeyEvent`,
         // still fire a `.keyboardShortcut` or still publish status-bar items.
         // It stops being clickable already — the flatten drops the buffer's
         // hit-test regions — so the mouse was the only channel it had closed.

@@ -6,20 +6,24 @@
 
 import Foundation
 
-// MARK: - Key Press
+// MARK: - Key Events
 
 extension View {
-    /// Adds a handler for key press events.
+    /// Adds a handler for the terminal's key events.
     ///
     /// The handler is called when any key is pressed while this view
-    /// is in the view hierarchy. Return `true` to consume the event,
-    /// or `false` to let it propagate to other handlers.
+    /// is in the view hierarchy, wherever the focus is. Return `true` to
+    /// consume the event, or `false` to let it propagate to other handlers.
+    ///
+    /// TUI-specific: it sees the terminal's own ``KeyEvent``, including the
+    /// function keys and bracketed paste, and it is not gated on focus, so
+    /// a page can bind a key whatever holds the focus.
     ///
     /// # Example
     ///
     /// ```swift
     /// Text("Press any key")
-    ///     .onKeyPress { event in
+    ///     .onKeyEvent { event in
     ///         if event.key == .enter {
     ///             doSomething()
     ///             return true  // Consumed
@@ -30,8 +34,8 @@ extension View {
     ///
     /// - Parameter handler: The handler to call on key press. Returns true if handled.
     /// - Returns: A view that handles key presses.
-    public func onKeyPress(_ handler: @escaping (KeyEvent) -> Bool) -> some View {
-        KeyPressModifier(content: self, keys: nil, handler: handler)
+    public func onKeyEvent(_ handler: @escaping (KeyEvent) -> Bool) -> some View {
+        KeyEventModifier(content: self, keys: nil, handler: handler)
     }
 
     /// Adds a handler for specific key press events.
@@ -40,7 +44,7 @@ extension View {
     ///
     /// ```swift
     /// Text("Use arrow keys")
-    ///     .onKeyPress(keys: [.up, .down]) { event in
+    ///     .onKeyEvent(keys: [.up, .down]) { event in
     ///         if event.key == .up {
     ///             moveUp()
     ///         } else {
@@ -54,8 +58,8 @@ extension View {
     ///   - keys: The keys to listen for.
     ///   - handler: The handler to call on key press. Returns true if handled.
     /// - Returns: A view that handles specific key presses.
-    public func onKeyPress(keys: Set<Key>, handler: @escaping (KeyEvent) -> Bool) -> some View {
-        KeyPressModifier(content: self, keys: keys, handler: handler)
+    public func onKeyEvent(keys: Set<Key>, handler: @escaping (KeyEvent) -> Bool) -> some View {
+        KeyEventModifier(content: self, keys: keys, handler: handler)
     }
 
     /// Adds a handler for a single key press.
@@ -66,7 +70,7 @@ extension View {
     ///
     /// ```swift
     /// Text("Press Enter to continue")
-    ///     .onKeyPress(.enter) {
+    ///     .onKeyEvent(.enter) {
     ///         continueAction()
     ///     }
     /// ```
@@ -75,8 +79,8 @@ extension View {
     ///   - key: The key to listen for.
     ///   - action: The action to perform.
     /// - Returns: A view that handles the specific key press.
-    public func onKeyPress(_ key: Key, action: @escaping () -> Void) -> some View {
-        KeyPressModifier(
+    public func onKeyEvent(_ key: Key, action: @escaping () -> Void) -> some View {
+        KeyEventModifier(
             content: self,
             keys: [key],
             handler: { _ in

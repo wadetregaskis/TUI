@@ -57,7 +57,7 @@ extension View {
     /// written outside the transition may stand between it and the `if` only
     /// if it draws nothing of its own: environment and style modifiers
     /// (`.foregroundStyle`, `.tint`, `.disabled`, `.environment`), lifecycle
-    /// and event modifiers (`.onAppear`, `.task`, `.onChange`, `.onKeyPress`,
+    /// and event modifiers (`.onAppear`, `.task`, `.onChange`, `.onKeyEvent`,
     /// `.onHover`), focus modifiers (`.focusable`, `.focused`), and `AnyView`.
     /// `if show { Toast().transition(.opacity).onAppear { … } }` plays.
     ///

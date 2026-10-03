@@ -576,11 +576,11 @@ struct ContextMenuTests {
         let context = context(tui, focusManager: focusManager)
         // Leading-aligned so the target's cells are where the click aims.
         let page = VStack(alignment: .leading) {
-            // A greedy sibling: an `.onKeyPress` handler that answers Down
+            // A greedy sibling: an `.onKeyEvent` handler that answers Down
             // unconditionally, wherever it sits in the tree. `Menu`'s own
             // arrow handler used to be exactly this.
             Text("Somewhere else on the page")
-                .onKeyPress { event in
+                .onKeyEvent { event in
                     guard event.key == .down else { return false }
                     selection.index += 1
                     return true

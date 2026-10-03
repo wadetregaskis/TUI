@@ -87,7 +87,7 @@ scale live · `a` toggle autopilot.
 | `gradients` | ramp quantisation, per-cell geometry, origin propagation, re-ink on move, SGR runs |
 | `alpharamp` | per-cell alpha compositing over a patterned ground, blend arithmetic |
 | `menus` | `ButtonStyle` body measure, menu hug-width pass, shortcut hint column, per-row `@Environment` resolution |
-| `keyrows` | per-row registrations (`onKeyPress`, `.statusBarItems`) under the row memo, per-frame key and status-bar registries, a `.refreshable` panel |
+| `keyrows` | per-row registrations (`onKeyEvent`, `.statusBarItems`) under the row memo, per-frame key and status-bar registries, a `.refreshable` panel |
 | `kitchensink` | split-view + list windowing + container grid simultaneously |
 
 ## Matrix scenarios and variants

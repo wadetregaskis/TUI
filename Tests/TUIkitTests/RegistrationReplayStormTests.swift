@@ -78,7 +78,7 @@ private struct StormRowView: View, @MainActor Equatable {
         var view = AnyView(Text(row.title))
         if let key = row.key {
             view = AnyView(
-                view.onKeyPress(keys: [.character(key)]) { _ in
+                view.onKeyEvent(keys: [.character(key)]) { _ in
                     log.append("key \(row.title)")
                     return row.consumes
                 })

@@ -53,7 +53,7 @@ public enum LinkDisplay: Sendable, Equatable, CaseIterable {
     /// that linkifies text or honours OSC 8 opens it on its own gesture — so
     /// the link takes no place in the Tab order and no click. It is a tinted,
     /// underlined, hyperlinked label; a page that wants it focusable or
-    /// clickable adds `.focusable()`, `.onTapGesture` or `.onKeyPress` to it,
+    /// clickable adds `.focusable()`, `.onTapGesture` or `.onKeyEvent` to it,
     /// exactly as it would to a `Text`.
     case urlInParentheses
 

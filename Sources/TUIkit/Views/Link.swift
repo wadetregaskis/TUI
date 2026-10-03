@@ -27,7 +27,7 @@ import Foundation
 /// no place in the Tab order and no click, because activation would have
 /// nothing left to do that the row does not already do. It is a tinted,
 /// underlined, hyperlinked label, and any interaction it should have is the
-/// caller's to add — `.focusable()`, `.onTapGesture`, `.onKeyPress` — the way
+/// caller's to add — `.focusable()`, `.onTapGesture`, `.onKeyEvent` — the way
 /// it would be added to any other text.
 ///
 /// ```swift
@@ -407,7 +407,7 @@ private struct _Link<Label: View>: View {
         // modes draw the label as text: tinted, underlined, hyperlinked for a
         // host that honours OSC 8, and taking no focus and no click. A caller
         // who wants one of those adds it the way they would to any text —
-        // `.focusable()`, `.onTapGesture`, `.onKeyPress` — and the wrapper,
+        // `.focusable()`, `.onTapGesture`, `.onKeyEvent` — and the wrapper,
         // not the link, is what registers.
         guard display == .popover else {
             return AnyView(

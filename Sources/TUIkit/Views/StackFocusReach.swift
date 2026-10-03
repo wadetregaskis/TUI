@@ -86,7 +86,7 @@ extension _VStackCore {
         // row it asks performs every render-pass registration it has, and the
         // live dispatcher keeps every handler it is handed until the next
         // frame. With only the focus manager swapped, a row the walk merely
-        // counted (never drawn, never in the sweep) held a live `onKeyPress`,
+        // counted (never drawn, never in the sweep) held a live `onKeyEvent`,
         // a `.hidden()` button's `.keyboardShortcut` — hidden registers no
         // focusable, so the walk goes straight past it — and `.statusBarItems`
         // that stood on the bar whenever no drawn row declared its own, all

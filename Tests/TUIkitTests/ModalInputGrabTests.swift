@@ -1,7 +1,7 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ModalInputGrabTests.swift
 //
-//  A presented modal takes the keyboard. The focus ring and `onKeyPress` were
+//  A presented modal takes the keyboard. The focus ring and `onKeyEvent` were
 //  isolated for the page beneath it from the start; these are the other two
 //  channels a page can still be driven through — a `.keyboardShortcut` and a
 //  status-bar item — both of which reach the page BEFORE the modal check.

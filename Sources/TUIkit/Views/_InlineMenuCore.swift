@@ -86,7 +86,7 @@ struct _InlineMenuCore: View, Renderable, Layoutable {
     /// path so a menu beside other controls does not page through them.
     private func registerPagingKeys(context: RenderContext) {
         // Registered straight with the dispatcher rather than through
-        // `.onKeyPress`: a modifier around the column would hide the rows from
+        // `.onKeyEvent`: a modifier around the column would hide the rows from
         // `renderMenuColumn`, which walks the content to find them.
         guard !context.isMeasuring, context.environment.keyEventDispatcher != nil,
             context.environment.focusManager != nil

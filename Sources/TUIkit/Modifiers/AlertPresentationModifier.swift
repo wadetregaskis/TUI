@@ -204,7 +204,7 @@ extension AlertPresentationModifier: Renderable {
         // is already active, so a background control rendered into the real focus
         // manager would resolve to that section and steal the focus the alert's
         // own actions should auto-receive — and stay live to hotkeys. Isolation
-        // keeps the real manager seeing only the alert, silences page `onKeyPress`,
+        // keeps the real manager seeing only the alert, silences page `onKeyEvent`,
         // and (via throwaway state) preserves the page's scroll/@State. The root
         // compositor dims this buffer for the backdrop; mouse is isolated by that
         // dimmed backdrop dropping the page's hit-test regions.

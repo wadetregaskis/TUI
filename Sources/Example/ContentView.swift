@@ -166,7 +166,7 @@ struct ContentView: View {
             // the appearance manager / F2 / F3 / picker), reaching the app header
             // and status bar as well as this content. A local `.appearance(_:)`
             // still overrides per view.
-            .onKeyPress { event in
+            .onKeyEvent { event in
                 switch event.key {
                 case .escape:
                     // ESC goes back to the menu from a sub-page. On the menu it

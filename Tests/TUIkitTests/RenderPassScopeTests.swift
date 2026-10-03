@@ -65,7 +65,7 @@ private struct ProbeApp: App {
                 // Declines the key, like the blessed log-the-key pattern: dispatch
                 // then walks EVERY registered handler, so a duplicate registration
                 // shows up as a doubled side effect.
-                .onKeyPress { _ in
+                .onKeyEvent { _ in
                     ProbeState.shared.keyTaps += 1
                     return false
                 }

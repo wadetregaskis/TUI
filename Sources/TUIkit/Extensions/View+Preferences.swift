@@ -212,7 +212,7 @@ extension View {
     /// the swipe-back gesture, and Escape is this framework's counterpart to
     /// that gesture rather than to the button. A screen that must not be left
     /// at all wants this *and* something that consumes Escape — an
-    /// `.onKeyPress(keys: [.escape])` on the screen, which the stack asks
+    /// `.onKeyEvent(keys: [.escape])` on the screen, which the stack asks
     /// before it pops.
     ///
     /// - Parameter hidesBackButton: Whether to hide the control. Default `true`.

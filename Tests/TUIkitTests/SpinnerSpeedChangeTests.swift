@@ -43,7 +43,7 @@ private struct SpeedSteppingPage: View {
             Spinner("steady", style: .line)
                 .indicatorAnimationSpeed(Self.speed(ticks: frameLengths[0]), for: .spinners)
         }
-        .onKeyPress(.character("s")) { presses += 1 }
+        .onKeyEvent(.character("s")) { presses += 1 }
     }
 
     /// The speed that shows `.line`'s frames for exactly `ticks` ticks — the
@@ -83,7 +83,7 @@ private struct MemoizedRowsPage: View {
                     .indicatorAnimationSpeed(SpeedSteppingPage.speed(ticks: row.ticks), for: .spinners)
             }
         }
-        .onKeyPress(.character("s")) { presses += 1 }
+        .onKeyEvent(.character("s")) { presses += 1 }
     }
 }
 

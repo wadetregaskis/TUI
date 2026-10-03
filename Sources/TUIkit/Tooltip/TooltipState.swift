@@ -113,7 +113,7 @@ public final class TooltipState: @unchecked Sendable {
     /// Settable for the same reason `StatusBarState.quitShortcut` is: the
     /// framework claiming a bare letter has to be something an app can take
     /// back. An app can also simply bind the key itself — a status-bar item, an
-    /// `.onKeyPress`, or a `.keyboardShortcut` all run before this does.
+    /// `.onKeyEvent`, or a `.keyboardShortcut` all run before this does.
     ///
     /// ## Known caveat: a focused text control swallows `?`
     ///

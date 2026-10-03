@@ -42,7 +42,7 @@ Each call to `RenderLoop.render()` executes these steps in order:
 
 Five subsystems are reset at the start of every frame:
 
-- **`KeyEventDispatcher`**: All key handlers are removed. Views re-register them during rendering via `onKeyPress()` modifiers.
+- **`KeyEventDispatcher`**: All key handlers are removed. Views re-register them during rendering via `onKeyEvent()` modifiers.
 - **`PreferenceStorage`**: All preference callbacks are cleared and the stack is reset to a single empty `PreferenceValues`.
 - **`FocusManager`**: All focus registrations are cleared. Focusable views re-register during rendering.
 - **`StatusBarState`**: Section items are cleared. Views re-register them via `.statusBarItems()` modifiers.
@@ -570,7 +570,7 @@ subtree declines the cache.
 
 ### Registrations a Hit Makes Again
 
-A key handler (`onKeyPress`, or the <kbd>Ctrl</kbd>-<kbd>R</kbd> binding of
+A key handler (`onKeyEvent`, or the <kbd>Ctrl</kbd>-<kbd>R</kbd> binding of
 `.refreshable`), a status-bar item (`.statusBarItems`), an unfocused control's
 place in the focus ring (`FocusRegistration.register`), a `.defaultFocus`
 declaration, the binding a `.focused(_:equals:)` makes, an inactive

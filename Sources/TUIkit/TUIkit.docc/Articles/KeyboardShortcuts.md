@@ -21,7 +21,7 @@ The ``Key`` enum defines all keys that TUIkit can recognize from terminal input:
 Any printable character is represented as `.character(Character)`:
 
 ```swift
-.onKeyPress(Key.from("x")) {
+.onKeyEvent(Key.from("x")) {
     // handle "x" key
 }
 ```
@@ -85,13 +85,13 @@ The terminal encodes modifiers differently from GUI frameworks:
 
 ## Registering Key Handlers
 
-Use the `.onKeyPress()` modifier to handle keyboard events in your views:
+Use the `.onKeyEvent()` modifier to handle keyboard events in your views:
 
 ### Handle All Keys
 
 ```swift
 Text("Press any key")
-    .onKeyPress { event in
+    .onKeyEvent { event in
         if event.key == .enter {
             doSomething()
             return true   // consumed: stops propagation
@@ -104,7 +104,7 @@ Text("Press any key")
 
 ```swift
 Text("Use arrow keys")
-    .onKeyPress(keys: [.up, .down]) { event in
+    .onKeyEvent(keys: [.up, .down]) { event in
         if event.key == .up { moveUp() }
         else { moveDown() }
         return true
@@ -117,7 +117,7 @@ The single-key variant always consumes the event:
 
 ```swift
 Text("Press Enter to continue")
-    .onKeyPress(.enter) {
+    .onKeyEvent(.enter) {
         continueAction()
     }
 ```
@@ -129,12 +129,12 @@ Handlers are dispatched in **reverse registration order**: the deepest view in t
 ```swift
 VStack {
     Text("Outer")
-        .onKeyPress(.enter) {
+        .onKeyEvent(.enter) {
             // Only reached if inner handler did NOT consume it
             print("outer enter")
         }
     Text("Inner")
-        .onKeyPress(.enter) {
+        .onKeyEvent(.enter) {
             // Gets the event FIRST
             print("inner enter")
         }
@@ -183,7 +183,7 @@ everything of yours on the same keys comes first:
 - A `.keyboardShortcut` on the same keys wins, wherever its button renders. Under
   `.control`, your ⌘S *is* Ctrl-S, so a Save button takes Ctrl-S and the split
   view keeps Option-Ctrl-S.
-- An `onKeyPress` handler that consumes the key wins.
+- An `onKeyEvent` handler that consumes the key wins.
 - A focused control that uses the key wins: a sortable ``Table`` sorts on
   Ctrl-S. A `TextField`, a `TextEditor` and a `List` do not use it, so the chord
   works while typing. That holds for every framework shortcut, including the
@@ -247,7 +247,7 @@ enabled button on screen, not on a page behind a modal. A framework default,
 such as the split view's sidebar chord above, never takes a key from the
 focused control.
 
-Nor does an `onKeyPress` handler. Layer 0 comes before Layer 2, so a focused
+Nor does an `onKeyEvent` handler. Layer 0 comes before Layer 2, so a focused
 text control keeps its editing chords, and every key it types, from your key
 handlers. SwiftUI orders these the other way round: on macOS 15, an
 `onKeyPress` on a view that contains the focused `TextField` sees even a plain
@@ -259,9 +259,9 @@ focused text control, give it a `.keyboardShortcut`.
 
 A key the control lets go of does pass Layer 2 on its way, though: Ctrl-C and
 Ctrl-X with nothing selected, and an editing chord given up to your shortcut.
-An `onKeyPress` matches a key whatever its modifiers — as SwiftUI's does, whose
-`onKeyPress("c")` also fires for Control-C — so a page's
-`.onKeyPress(.character("c"))` runs on Ctrl-C from a field with nothing
+An `onKeyEvent` matches a key whatever its modifiers — as SwiftUI's
+`onKeyPress` does, whose `onKeyPress("c")` also fires for Control-C — so a page's
+`.onKeyEvent(.character("c"))` runs on Ctrl-C from a field with nothing
 selected, ahead of your ⌘C and of a `.ctrlC` quit. Where that is not what you
 want, use the form whose handler takes the ``KeyEvent``, check its `ctrl`, and
 return `false` to let the key go on.
@@ -283,7 +283,7 @@ Layer 4 provides five built-in key bindings, but only quit, suspend and help are
 `?` toggles the tooltip for whatever holds the focus. It is settable —
 `tooltipState.helpKey = .f1`, or `nil` to claim no key at all — and, like `q`, an
 app beats it at any earlier layer: a status-bar item with shortcut `"?"`, an
-`.onKeyPress`, or a `.keyboardShortcut(KeyboardShortcut("?", modifiers: []))`.
+`.onKeyEvent`, or a `.keyboardShortcut(KeyboardShortcut("?", modifiers: []))`.
 
 > Important: **A focused text control swallows `?`.** It is punctuation, and
 > Layer 0 gives a focused ``TextField``, ``SecureField``, ``TextEditor`` or

@@ -79,7 +79,7 @@ extension RenderContext {
     ///   focused, `onFocusReceived` fired, and a `ScrollView`'s scroll-to-reveal
     ///   rewrote the page's scroll position — dismissing the modal left the page
     ///   scrolled back to the top.
-    /// - **key isolation** stops the background's `onKeyPress` / Menu key handlers
+    /// - **key isolation** stops the background's `onKeyEvent` / Menu key handlers
     ///   from firing while the modal is up.
     ///
     /// **State is deliberately NOT isolated.** A throwaway `StateStorage` used to
@@ -100,7 +100,7 @@ extension RenderContext {
     /// ## Every channel a key can arrive on, not just the focus ring
     ///
     /// The focus manager and the key dispatcher were isolated from the start,
-    /// which covers Tab and `onKeyPress`. They are not the only ways a page can
+    /// which covers Tab and `onKeyEvent`. They are not the only ways a page can
     /// be driven: `InputHandler` runs the status bar as **layer 1** and the
     /// keyboard-shortcut registry as **layer 3.5**, both *ahead* of the check
     /// that suppresses app chrome behind a modal. A page rendered as a backdrop
@@ -137,7 +137,7 @@ extension RenderContext {
     /// One list for both, because two had drifted. The probe kept its own —
     /// focus manager and mouse dispatcher, nothing else — and a probe is a
     /// render, not a measure: every row it walked past on the way to the next
-    /// focus stop registered its `onKeyPress` handler, its `.keyboardShortcut`
+    /// focus stop registered its `onKeyEvent` handler, its `.keyboardShortcut`
     /// (a `.hidden()` holder registers no focusable, so the walk does not stop
     /// at it) and its `.statusBarItems` into the live services, for rows the
     /// frame never drew. A channel added here reaches both.

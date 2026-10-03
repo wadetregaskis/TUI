@@ -183,7 +183,7 @@ struct InlineMenuMemoTests {
         let later = KeyCounter()
         let page = VStack {
             InlineProbeMenu(sink: sink).equatable()
-            Text("after").onKeyPress { [later] _ in
+            Text("after").onKeyEvent { [later] _ in
                 later.count += 1
                 return true
             }

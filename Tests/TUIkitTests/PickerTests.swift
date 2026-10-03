@@ -442,7 +442,7 @@ struct PickerTests {
 
     @Test("An open drop-down holds the whole keyboard, not just ESC")
     func openPickerGrabsTheKeyboard() {
-        // Without the grab, a lettered status-bar item or a page onKeyPress
+        // Without the grab, a lettered status-bar item or a page onKeyEvent
         // handler fired BEHIND the open menu — a section switch, quitting a
         // sub-page — out from under the user's arrow-key browsing.
         let context = createTestContext()

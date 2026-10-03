@@ -70,7 +70,7 @@ extension KeyboardShortcutModifier: Renderable {
 extension KeyboardShortcutModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged. Forwarding the
     /// measure keeps it off `measureChild`'s render-to-measure fallback and lets
-    /// the wrapped view's flexibility propagate, exactly as `KeyPressModifier`
+    /// the wrapped view's flexibility propagate, exactly as `KeyEventModifier`
     /// does.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: planting(into: context))
