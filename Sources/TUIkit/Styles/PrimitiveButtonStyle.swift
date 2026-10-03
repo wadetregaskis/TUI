@@ -84,8 +84,11 @@ protocol BuiltInButtonStyle: PrimitiveButtonStyle {
 
 extension BuiltInButtonStyle {
     /// What a style composing this one gets: a button, drawn with this style.
+    /// Each built-in style's own `makeBody(configuration:)` returns it — on
+    /// the type rather than here, because a public method on an internal
+    /// protocol's extension is not part of the public types' interface.
     @MainActor
-    public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
+    func builtInBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
         Button(configuration)
             .environment(\.buttonStyle, appearance)
             .environment(\.primitiveButtonStyleChain, nil)

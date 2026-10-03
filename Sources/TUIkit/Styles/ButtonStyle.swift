@@ -271,6 +271,14 @@ public struct DefaultButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .default) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style that applies standard border artwork based on the button's
@@ -282,6 +290,14 @@ public struct BorderedButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .default) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style that applies standard border prominent artwork: the bordered
@@ -293,6 +309,14 @@ public struct BorderedProminentButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .primary) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style that doesn't apply a border: the label alone, in the accent
@@ -304,6 +328,14 @@ public struct BorderlessButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .borderless) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style that doesn't style or decorate its content while idle, but
@@ -316,6 +348,14 @@ public struct PlainButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .plain) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style for buttons that emulate links: the label in the accent
@@ -328,6 +368,14 @@ public struct LinkButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .link) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style for the buttons of an accessory bar: the plain button.
@@ -341,6 +389,14 @@ public struct AccessoryBarButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .plain) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style for an accessory bar's action button: the bordered button.
@@ -351,6 +407,14 @@ public struct AccessoryBarActionButtonStyle: BuiltInButtonStyle, Equatable {
     public init() {}
 
     var appearance: any ButtonStyle { _AppearanceButtonStyle(appearance: .default) }
+
+    /// Creates a view that represents the body of a button: the button, drawn
+    /// with this style.
+    ///
+    /// - Parameter configuration: The properties of the button.
+    public func makeBody(configuration: Configuration) -> some View {
+        builtInBody(configuration: configuration)
+    }
 }
 
 /// A button style that uses the palette's error colour to signal a
