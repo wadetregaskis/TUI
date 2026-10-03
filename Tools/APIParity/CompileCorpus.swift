@@ -232,3 +232,23 @@ private struct KeyPressShapes: View {
             .onKeyPress { _ in .ignored }
     }
 }
+
+/// The optional `keyboardShortcut` overload beside the non-optional one, which
+/// a conditional shortcut reaches through `nil`, and the localization form.
+@MainActor
+private struct KeyboardShortcutShapes: View {
+    let isPrimary: Bool
+
+    var body: some View {
+        VStack {
+            Button("Save") {}
+                .keyboardShortcut(isPrimary ? .defaultAction : nil)
+            Button("Align Left") {}
+                .keyboardShortcut("{", modifiers: .option, localization: .withoutMirroring)
+            Button("Close") {}
+                .keyboardShortcut(.cancelAction)
+        }
+    }
+
+    var shortcutKey: KeyEquivalent { KeyboardShortcut("s").key }
+}

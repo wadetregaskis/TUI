@@ -40,8 +40,9 @@ struct KeyboardShortcutModifier<Content: View>: View {
     let content: Content
 
     /// The claim box, built with the view value rather than per pass, so the
-    /// measure and the render of one frame share it.
-    let assignment: KeyboardShortcutAssignment
+    /// measure and the render of one frame share it. `nil` for
+    /// `.keyboardShortcut(nil)`, which leaves the environment as it found it.
+    let assignment: KeyboardShortcutAssignment?
 
     var body: Never {
         fatalError("KeyboardShortcutModifier renders via Renderable")
@@ -50,6 +51,7 @@ struct KeyboardShortcutModifier<Content: View>: View {
     /// The context the content renders or measures under: the carrier in the
     /// environment, stamped with the memo nesting it was planted at.
     private func planting(into context: RenderContext) -> RenderContext {
+        guard let assignment else { return context }
         assignment.planted(atEffectRecordingDepth: context.effectRecordingDepth)
         var planted = context
         planted.environment.assignedKeyboardShortcut = assignment

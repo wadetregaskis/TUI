@@ -59,4 +59,43 @@ compile everywhere. I would answer it the way `EventModifiers.command` was
 answered (it compiles; the documentation says where it fires), but that is a
 change to the rule, so it is yours.
 
+### B-W7-2. `KeyboardShortcut.Localization` is recorded, and every strategy behaves as `.custom`
+
+*`KeyboardShortcut.Localization` (`.automatic`, `.withoutMirroring`,
+`.custom`), `KeyboardShortcut.localization`,
+`KeyboardShortcut.init(_:modifiers:localization:)`,
+`View.keyboardShortcut(_:modifiers:localization:)`*
+
+On macOS, `.automatic` (the default) does two things.
+
+- It remaps a shortcut whose character is awkward on the user's layout. `⌘[`
+  needs ⌥5 on a German keyboard, so it becomes `⌘Ö`.
+- It mirrors a directional shortcut under a right-to-left layout.
+
+`.withoutMirroring` remaps but does not mirror, and `.custom` does neither.
+
+**Shipped:** the type, the three values, the stored property (compared, so
+`KeyboardShortcut("a", localization: .custom) != KeyboardShortcut("a")` as on
+macOS), the initializer and the modifier. All three behave as `.custom`.
+
+That is honest on its own, because neither half has anything to act on:
+
+- A terminal reports the character a key typed, never the key's place on
+  the keyboard. A shortcut already matches its character however the
+  layout types it, and there is no US-layout position to remap from.
+- TUIkit lays out left to right only (B1 in the main decisions doc), so
+  there is nothing to mirror.
+
+**The fuller version:**
+
+- *Mirroring* comes free with right-to-left layout, if B1 is ever taken up.
+  Mirror `[`/`]` and `{`/`}` under `.automatic` and leave them under the
+  other two.
+- *Remapping* would need the key's position. The kitty keyboard protocol's
+  "report alternate keys" enhancement sends the base-layout key alongside
+  the character, so it is the same negotiation B-W7-1 prices, plus a
+  remapping table. That table is AppKit's, and it is not public, so it would
+  have to be inferred per layout. I would not do it: an app that wants
+  layout-aware shortcuts in a terminal is better served by bare keys.
+
 ## C. Declined without asking

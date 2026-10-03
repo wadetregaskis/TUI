@@ -155,15 +155,32 @@ public struct KeyboardShortcut: Hashable, Sendable {
         case key(KeyEquivalent, EventModifiers)
     }
 
-    private(set) var trigger: Trigger
+    /// The key the user presses, with ``modifiers``, to activate the shortcut —
+    /// as written: `"A"` stays `"A"`, which the shortcut reads as Shift-A.
+    public var key: KeyEquivalent
+
+    /// The modifier keys held with ``key``, as written. A `.command` here is the
+    /// Command that SwiftUI source names; what stands in for it in a terminal is
+    /// decided where the shortcut registers (see ``CommandKeyBinding``).
+    public var modifiers: EventModifiers
+
+    /// How the shortcut takes part in keyboard localization. Recorded and
+    /// compared; it changes nothing a terminal does — see ``Localization``.
+    public var localization: Localization
+
+    /// What activates this shortcut: ``key`` and ``modifiers`` in the one
+    /// spelling an incoming event is matched against.
+    var trigger: Trigger { Self.normalised(key, modifiers) }
 
     /// The default button: Return/Enter activates it when the focused control
-    /// lets the key fall through.
-    public static let defaultAction = Self(trigger: .defaultAction)
+    /// lets the key fall through. As in SwiftUI, it is Return with no
+    /// modifiers, and equal to `KeyboardShortcut(.return, modifiers: [])`.
+    public static let defaultAction = Self(.return, modifiers: [])
 
     /// The cancel button: Escape activates it when nothing closer to the user
     /// (an open drop-down, an app-level back binding) consumes the key first.
-    public static let cancelAction = Self(trigger: .cancelAction)
+    /// Escape with no modifiers.
+    public static let cancelAction = Self(.escape, modifiers: [])
 
     /// A key equivalent, à la SwiftUI's `KeyboardShortcut(_:modifiers:)`.
     ///
@@ -172,7 +189,21 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// key. That is the form a terminal menu wants anyway: "press 1 for the
     /// first item".
     public init(_ key: KeyEquivalent, modifiers: EventModifiers = .command) {
-        self.trigger = Self.normalised(key, modifiers)
+        self.init(key, modifiers: modifiers, localization: .automatic)
+    }
+
+    /// A key equivalent with a localization strategy, à la SwiftUI's
+    /// `KeyboardShortcut(_:modifiers:localization:)`.
+    ///
+    /// - Parameters:
+    ///   - key: The key, as for ``init(_:modifiers:)``.
+    ///   - modifiers: The modifiers, as for ``init(_:modifiers:)``.
+    ///   - localization: How the shortcut takes part in keyboard localization;
+    ///     see ``Localization`` for what that means in a terminal.
+    public init(_ key: KeyEquivalent, modifiers: EventModifiers = .command, localization: Localization) {
+        self.key = key
+        self.modifiers = modifiers
+        self.localization = localization
     }
 
     /// What a key and modifiers trigger, in the one spelling an incoming event
@@ -198,20 +229,17 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// This shortcut with ``EventModifiers/command`` replaced per `binding`,
     /// ready to register. Non-command shortcuts pass through untouched.
     func resolved(commandKey binding: CommandKeyBinding) -> Self? {
-        guard case .key(let key, var modifiers) = trigger, modifiers.contains(.command) else {
-            return self
-        }
-        modifiers.remove(.command)
+        guard modifiers.contains(.command) else { return self }
+        var resolved = self
+        resolved.modifiers.remove(.command)
         switch binding {
         case .unavailable: return nil
-        case .control: modifiers.insert(.control)
-        case .option: modifiers.insert(.option)
+        case .control: resolved.modifiers.insert(.control)
+        case .option: resolved.modifiers.insert(.option)
+        // A `.bare` stand-in can strip ⌘⏎ / ⌘⎋ down to the semantic roles' own
+        // keys, which `trigger` then reads as those roles.
         case .bare: break
         }
-        var resolved = self
-        // A `.bare` stand-in can strip ⌘⏎ / ⌘⎋ down to the semantic roles'
-        // own keys — normalise here too, or the resolved form is dead.
-        resolved.trigger = Self.normalised(key, modifiers)
         return resolved
     }
 
@@ -244,10 +272,6 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// The modifiers no terminal reports on a key event, so a shortcut that
     /// needs one can never fire.
     private static let unreportedModifiers: EventModifiers = [.command, .capsLock, .numericPad]
-
-    private init(trigger: Trigger) {
-        self.trigger = trigger
-    }
 
     /// The trigger `event` would fire, or `nil` for a key no shortcut can name.
     ///
@@ -601,19 +625,72 @@ extension EnvironmentValues {
     }
 }
 
+// MARK: - Localization
+
+extension KeyboardShortcut {
+    /// How a shortcut takes part in keyboard localization — SwiftUI's
+    /// `KeyboardShortcut.Localization`.
+    ///
+    /// On macOS, ``automatic`` remaps a shortcut whose character is hard to
+    /// reach on the user's keyboard layout (`⌘[` becomes `⌘Ö` on a German one)
+    /// and mirrors a directional one under a right-to-left layout;
+    /// ``withoutMirroring`` remaps without mirroring, and ``custom`` does
+    /// neither.
+    ///
+    /// A terminal does neither for any of them. It reports the CHARACTER a key
+    /// typed, never the key's place on the keyboard, so a shortcut matches its
+    /// character however the user's layout types it, and there is no layout to
+    /// remap from; and TUIkit lays out left to right only (see
+    /// ``EnvironmentValues/layoutDirection``), so nothing is mirrored. The value
+    /// is recorded, compared and readable, and all three behave as ``custom``
+    /// does.
+    public struct Localization: Hashable, Sendable {
+        /// The three strategies SwiftUI names.
+        enum Style: Hashable, Sendable {
+            case automatic, withoutMirroring, custom
+        }
+
+        let style: Style
+
+        /// Remap to the layout's counterpart, and mirror under right-to-left.
+        /// The default.
+        public static let automatic = Self(style: .automatic)
+
+        /// Remap, but do not mirror: for a shortcut whose direction is absolute,
+        /// such as aligning text to the right.
+        public static let withoutMirroring = Self(style: .withoutMirroring)
+
+        /// Neither remap nor mirror: the app localizes the shortcut itself.
+        public static let custom = Self(style: .custom)
+    }
+}
+
 // MARK: - View Extension
 
 extension View {
-    /// Assigns a semantic keyboard shortcut to the wrapped control —
+    /// Assigns a keyboard shortcut to the wrapped control — a semantic role,
     /// ``KeyboardShortcut/defaultAction`` (Return/Enter) or
-    /// ``KeyboardShortcut/cancelAction`` (Escape). Attach it directly to a
-    /// single `Button`; see ``KeyboardShortcut`` for the fall-through rules.
+    /// ``KeyboardShortcut/cancelAction`` (Escape), or a key equivalent. Attach
+    /// it directly to a single `Button`; see ``KeyboardShortcut`` for the
+    /// fall-through rules.
     public func keyboardShortcut(_ shortcut: KeyboardShortcut) -> some View {
         // Not `environment(\.assignedKeyboardShortcut, …)`: the carrier has to
         // know how deep in the value memos it was planted, and a subtree under
         // an uncomparable environment value can never be cached. See
         // `KeyboardShortcutModifier`.
         KeyboardShortcutModifier(content: self, assignment: KeyboardShortcutAssignment(shortcut))
+    }
+
+    /// Assigns a keyboard shortcut to the wrapped control, or — given `nil` —
+    /// does nothing at all, as SwiftUI's does: a shortcut assigned further out
+    /// still reaches the control.
+    ///
+    /// ```swift
+    /// Button("Save") { save() }
+    ///     .keyboardShortcut(isPrimary ? .defaultAction : nil)
+    /// ```
+    public func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View {
+        KeyboardShortcutModifier(content: self, assignment: shortcut.map(KeyboardShortcutAssignment.init))
     }
 
     /// Assigns a key-equivalent shortcut to the wrapped control — SwiftUI's
@@ -632,21 +709,16 @@ extension View {
     ) -> some View {
         keyboardShortcut(KeyboardShortcut(key, modifiers: modifiers))
     }
-}
 
-// MARK: - Value Hash
-
-/// Read by a `switch` — a key equivalent holds a `Character`, so the enum is
-/// not trivial and its bytes cannot be read whole — and the key's payload by
-/// its own plan. See `_ValueHashing`.
-extension KeyboardShortcut.Trigger: _ValueHashing {
-    package static func _mixValueHash(
-        at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
-    ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
-        case .defaultAction: plans.mixCase(0, (), into: &hash)
-        case .cancelAction: plans.mixCase(1, (), into: &hash)
-        case .key(let key, let modifiers): plans.mixCase(2, (key, modifiers), into: &hash)
-        }
+    /// Assigns a key-equivalent shortcut with a localization strategy to the
+    /// wrapped control — SwiftUI's `keyboardShortcut(_:modifiers:localization:)`.
+    ///
+    /// The strategy is recorded on the shortcut; a terminal remaps and mirrors
+    /// nothing under any of them (see ``KeyboardShortcut/Localization``).
+    public func keyboardShortcut(
+        _ key: KeyEquivalent, modifiers: EventModifiers = .command,
+        localization: KeyboardShortcut.Localization
+    ) -> some View {
+        keyboardShortcut(KeyboardShortcut(key, modifiers: modifiers, localization: localization))
     }
 }

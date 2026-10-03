@@ -679,7 +679,6 @@ struct ValueHashPlanTests {
     func frameworkEnums() {
         let types: [Any.Type] = [
             TrackStyle.self, SegmentColoring.self, StyleScope.self, TrackConfiguration.Background.self,
-            KeyboardShortcut.Trigger.self,
         ]
         for type in types {
             #expect(plan(type).stepDescriptions == ["0: \(type)"], "\(type)")
@@ -701,7 +700,11 @@ struct ValueHashPlanTests {
         let scopeHashes = scopes.map { hash($0, plans: plans) }
         #expect(!scopeHashes.contains(nil))
         #expect(Set(scopeHashes).count == scopes.count, "\(scopeHashes)")
-        let shortcuts: [KeyboardShortcut] = [.defaultAction, .cancelAction, KeyboardShortcut("k"), KeyboardShortcut("j")]
+        // A plain struct now — key, modifiers, localization — read field by field.
+        let shortcuts: [KeyboardShortcut] = [
+            .defaultAction, .cancelAction, KeyboardShortcut("k"), KeyboardShortcut("j"),
+            KeyboardShortcut("K"), KeyboardShortcut("k", localization: .custom),
+        ]
         let shortcutHashes = shortcuts.map { hash($0, plans: plans) }
         #expect(!shortcutHashes.contains(nil))
         #expect(Set(shortcutHashes).count == shortcuts.count, "\(shortcutHashes)")

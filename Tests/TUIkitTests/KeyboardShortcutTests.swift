@@ -536,3 +536,84 @@ struct CommandKeySubstitutionTests {
         }
     }
 }
+
+/// SwiftUI's `KeyboardShortcut` members, read on macOS 15: the key and the
+/// modifiers as written, the semantic roles as Return and Escape with none, and
+/// equality over the three stored values.
+@MainActor
+@Suite("KeyboardShortcut's key, modifiers and localization")
+struct KeyboardShortcutMemberTests {
+    @Test("The key and modifiers read back as written")
+    func membersReadBack() {
+        let upper = KeyboardShortcut("A")
+        #expect(upper.key == "A")
+        #expect(upper.modifiers == .command)
+        #expect(upper.localization == .automatic)
+        #expect(KeyboardShortcut("s", modifiers: [.control, .option]).modifiers == [.control, .option])
+        #expect(KeyboardShortcut("a", modifiers: [], localization: .custom).localization == .custom)
+    }
+
+    @Test("The semantic roles are Return and Escape with no modifiers")
+    func rolesAreKeys() {
+        #expect(KeyboardShortcut.defaultAction.key == .return)
+        #expect(KeyboardShortcut.defaultAction.modifiers.isEmpty)
+        #expect(KeyboardShortcut.cancelAction.key == .escape)
+        #expect(KeyboardShortcut.cancelAction.modifiers.isEmpty)
+        #expect(KeyboardShortcut(.return, modifiers: []) == .defaultAction)
+        #expect(KeyboardShortcut(.escape, modifiers: []) == .cancelAction)
+    }
+
+    /// Equal shortcuts are equal values; two spellings of one chord are not,
+    /// though they fire on the same key.
+    @Test("Equality is over key, modifiers and localization, as SwiftUI's is")
+    func equality() {
+        #expect(KeyboardShortcut("A", modifiers: []) != KeyboardShortcut("a", modifiers: .shift))
+        #expect(KeyboardShortcut("a", localization: .custom) != KeyboardShortcut("a"))
+        #expect(KeyboardShortcut("a", localization: .automatic) == KeyboardShortcut("a"))
+
+        let registry = KeyboardShortcutRegistry()
+        var fired: [String] = []
+        registry.register(KeyboardShortcut("A", modifiers: [])) { fired.append("A") }
+        #expect(registry.trigger(for: KeyEvent(character: "A")))
+        registry.register(KeyboardShortcut("a", modifiers: .shift)) { fired.append("shift a") }
+        #expect(registry.trigger(for: KeyEvent(character: "A")))
+        #expect(fired == ["A", "shift a"], "one chord: the later registration replaced the earlier")
+    }
+
+    @Test("A changed key or modifier changes what the shortcut fires on")
+    func settable() {
+        var shortcut = KeyboardShortcut("a", modifiers: [])
+        shortcut.key = "b"
+        shortcut.modifiers = .control
+        shortcut.localization = .withoutMirroring
+        let registry = KeyboardShortcutRegistry()
+        var fired = 0
+        registry.register(shortcut) { fired += 1 }
+        #expect(!registry.trigger(for: KeyEvent(key: .character("a"))))
+        #expect(registry.trigger(for: KeyEvent(key: .character("b"), ctrl: true)))
+        #expect(fired == 1)
+    }
+
+    @Test("A localized shortcut fires on its key, and a nil one assigns nothing")
+    func viewModifiers() {
+        final class Log { var fired: [String] = [] }
+        let log = Log()
+        let harness = InputChainHarness()
+        harness.play([KeyEvent(key: .character("l")), KeyEvent(key: .character("n")), KeyEvent(key: .character("o"))]) {
+            VStack {
+                Button("Localized") { log.fired.append("localized") }
+                    .keyboardShortcut("l", modifiers: [], localization: .withoutMirroring)
+                Button("Nil") { log.fired.append("nil") }
+                    .keyboardShortcut(nil)
+                // `nil` leaves the environment as it found it: the shortcut
+                // assigned outside still reaches the button.
+                VStack {
+                    Button("Outer") { log.fired.append("outer") }
+                        .keyboardShortcut(nil)
+                }
+                .keyboardShortcut("o", modifiers: [])
+            }
+        }
+        #expect(log.fired == ["localized", "outer"])
+    }
+}
