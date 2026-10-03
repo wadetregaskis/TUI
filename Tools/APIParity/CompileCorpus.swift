@@ -250,6 +250,34 @@ private struct CommandShapes: View {
     }
 }
 
+/// SwiftUI's `dropDestination(for:isEnabled:action:)`, whose action returns
+/// nothing, beside TUIkit's `(for:action:isTargeted:)`, whose action answers
+/// whether it took the drop: each closure shape has to reach its own.
+@MainActor
+private struct DropDestinationShapes: View {
+    @State private var titles: [String] = []
+    let acceptsTitles: Bool
+
+    var body: some View {
+        VStack {
+            Text("enabled")
+                .dropDestination(for: String.self, isEnabled: acceptsTitles) { dropped, session in
+                    titles += dropped
+                    _ = session.location
+                }
+            Text("void")
+                .dropDestination(for: String.self) { dropped, _ in
+                    titles += dropped
+                }
+            Text("answering")
+                .dropDestination(for: String.self) { dropped, _ in
+                    titles += dropped
+                    return !dropped.isEmpty
+                }
+        }
+    }
+}
+
 /// The optional `keyboardShortcut` overload beside the non-optional one, which
 /// a conditional shortcut reaches through `nil`, and the localization form.
 @MainActor

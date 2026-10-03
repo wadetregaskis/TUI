@@ -61,6 +61,7 @@ final class InputChainHarness {
     @discardableResult
     func frame(_ view: some View) -> FrameBuffer {
         tui.mouseEventDispatcher.beginRenderPass()
+        tui.dragAndDropSession.beginFrame()
         tui.keyEventDispatcher.clearHandlers()
         tui.stateStorage.beginRenderPass()
         tui.renderCache.beginRenderPass()

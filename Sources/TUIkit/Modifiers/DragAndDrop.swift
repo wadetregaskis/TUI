@@ -305,6 +305,9 @@ private final class DragScratch {
 /// active drag session can hit-test it.
 public struct DropDestinationModifier<Content: View, Payload>: View {
     let content: Content
+    /// Whether the view takes drops at all. Off, it registers no zone, so a
+    /// drag passes over it as over anything else.
+    var isEnabled = true
     let action: ([Payload], DropInfo) -> Bool
     let isTargeted: (Bool) -> Void
 
@@ -320,7 +323,7 @@ extension DropDestinationModifier: Renderable, Layoutable {
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIkit.renderToBuffer(content, context: context)
-        guard !context.isMeasuring else { return buffer }
+        guard !context.isMeasuring, isEnabled else { return buffer }
         let action = self.action
         DropZone.install(
             on: &buffer, context: context,
@@ -486,6 +489,41 @@ extension View {
     ) -> some View {
         DropDestinationModifier<Self, Payload>(
             content: self, action: action, isTargeted: isTargeted)
+    }
+
+    /// Marks this view as a destination for drags carrying `Payload` values,
+    /// which it takes while `isEnabled` — SwiftUI's
+    /// `dropDestination(for:isEnabled:action:)`.
+    ///
+    /// ```swift
+    /// Color.pink
+    ///     .dropDestination(for: String.self, isEnabled: acceptsTitles) { titles, info in
+    ///         model.add(titles, at: info.location)
+    ///     }
+    /// ```
+    ///
+    /// The action is handed a ``DropInfo`` where SwiftUI's is handed a
+    /// `DropSession`, which TUIkit does not have; the drop's ``DropInfo/location``
+    /// is on both. A drop the action is called for is taken. While
+    /// `isEnabled` is `false` the view is no destination at all: a drag
+    /// passes over it as over anything else.
+    ///
+    /// - Parameters:
+    ///   - payloadType: The payload type this destination accepts.
+    ///   - isEnabled: Whether the view takes drops.
+    ///   - action: Performs the drop, given the values and where they landed.
+    /// - Returns: A view that can receive drops.
+    public func dropDestination<Payload>(
+        for payloadType: Payload.Type = Payload.self, isEnabled: Bool = true,
+        action: @escaping ([Payload], DropInfo) -> Void
+    ) -> some View {
+        DropDestinationModifier<Self, Payload>(
+            content: self, isEnabled: isEnabled,
+            action: { values, info in
+                action(values, info)
+                return true
+            },
+            isTargeted: { _ in })
     }
 }
 

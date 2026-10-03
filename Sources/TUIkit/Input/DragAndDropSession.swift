@@ -52,6 +52,12 @@ public struct DropInfo: Sendable, Equatable {
 
     /// The preview's height in cells.
     public let previewHeight: Int
+
+    /// Where the drop is, in the destination's own cells — SwiftUI's
+    /// `location`, a ``CellPoint`` where SwiftUI's is a `CGPoint` (§2.2 of
+    /// `Documentation/SwiftUI-compatibility.md`). The same cell as ``x`` and
+    /// ``y``.
+    public var location: CellPoint { CellPoint(x: x, y: y) }
 }
 
 // MARK: - Session
