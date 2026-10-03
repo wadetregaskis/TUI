@@ -459,15 +459,8 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         return result.clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 
-    /// Where a rendered cell sits inside its box.
-    ///
-    /// Precedence matches SwiftUI: the cell's own `gridCellAnchor` beats the
-    /// column's `gridColumnAlignment`, which beats the row's alignment, which
-    /// beats the grid's. Each axis floors exactly once — see ``AlignmentID``.
-    /// Takes a size rather than the buffer, because a
-    /// `.gradientExtent(.subtree)` ramp has to know where a cell will land
-    /// BEFORE the cell renders — and the only size available then is the
-    /// measured one.
+    /// Where a cell of this size sits inside its box — see
+    /// ``GridLattice/placement(width:height:in:anchor:rowAlignment:columnAlignment:gridAlignment:)``.
     private func placement(
         width renderedWidth: Int,
         height renderedHeight: Int,
@@ -476,20 +469,9 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         rowAlignment: VerticalAlignment?,
         columnAlignment: HorizontalAlignment?
     ) -> (x: Int, y: Int) {
-        if let anchor = cell.gridCellAnchor {
-            let dx = Int((anchor.x * Double(box.width - renderedWidth)).rounded(.down))
-            let dy = Int((anchor.y * Double(box.height - renderedHeight)).rounded(.down))
-            return (
-                x: box.x + min(max(0, dx), max(0, box.width - renderedWidth)),
-                y: box.y + min(max(0, dy), max(0, box.height - renderedHeight))
-            )
-        }
-        let horizontal = columnAlignment ?? alignment.horizontal
-        let vertical = rowAlignment ?? alignment.vertical
-        return (
-            x: box.x + horizontal.childOffset(childWidth: renderedWidth, in: box.width),
-            y: box.y + vertical.childOffset(childHeight: renderedHeight, in: box.height)
-        )
+        GridLattice.placement(
+            width: renderedWidth, height: renderedHeight, in: box, anchor: cell.gridCellAnchor,
+            rowAlignment: rowAlignment, columnAlignment: columnAlignment, gridAlignment: alignment)
     }
 }
 

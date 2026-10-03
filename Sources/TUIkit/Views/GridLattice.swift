@@ -177,4 +177,37 @@ struct GridLattice {
     func totalHeight(spacing: Int) -> Int {
         heights.reduce(0) { $0 + max(1, $1) } + max(0, heights.count - 1) * spacing
     }
+
+    /// Where a cell of the given size sits inside its box.
+    ///
+    /// Precedence matches SwiftUI: the cell's own `gridCellAnchor` beats the
+    /// column's `gridColumnAlignment`, which beats the row's alignment, which
+    /// beats the grid's. Each axis floors exactly once — see ``AlignmentID``.
+    /// Takes a size rather than a buffer, because a `.gradientExtent(.subtree)`
+    /// ramp has to know where a cell will land BEFORE the cell renders — and
+    /// the only size available then is the measured one.
+    static func placement(
+        width renderedWidth: Int,
+        height renderedHeight: Int,
+        in box: CellRect,
+        anchor: UnitPoint?,
+        rowAlignment: VerticalAlignment?,
+        columnAlignment: HorizontalAlignment?,
+        gridAlignment: Alignment
+    ) -> (x: Int, y: Int) {
+        if let anchor {
+            let dx = Int((anchor.x * Double(box.width - renderedWidth)).rounded(.down))
+            let dy = Int((anchor.y * Double(box.height - renderedHeight)).rounded(.down))
+            return (
+                x: box.x + min(max(0, dx), max(0, box.width - renderedWidth)),
+                y: box.y + min(max(0, dy), max(0, box.height - renderedHeight))
+            )
+        }
+        let horizontal = columnAlignment ?? gridAlignment.horizontal
+        let vertical = rowAlignment ?? gridAlignment.vertical
+        return (
+            x: box.x + horizontal.childOffset(childWidth: renderedWidth, in: box.width),
+            y: box.y + vertical.childOffset(childHeight: renderedHeight, in: box.height)
+        )
+    }
 }
