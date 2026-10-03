@@ -188,18 +188,7 @@ struct _OpacityShapeStyle<Base: ShapeStyle>: ShapeStyle {
     typealias Resolved = Never
 
     func paint(in environment: EnvironmentValues) -> Paint {
-        switch base.paint(in: environment) {
-        case .color(let colour):
-            return .color(colour.opacity(opacity))
-        case .gradient(var ramp):
-            // The stops, not the gradient — see the twin in `PaintAnimation`:
-            // replacing the whole value drops whatever else it carries, which
-            // is how a faded perceptual ramp would come back `.device`.
-            ramp.gradient.stops = ramp.gradient.stops.map {
-                Gradient.Stop(color: $0.color.opacity(opacity), location: $0.location)
-            }
-            return .gradient(ramp)
-        }
+        base.paint(in: environment).faded(opacity)
     }
 }
 

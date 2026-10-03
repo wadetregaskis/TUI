@@ -83,6 +83,24 @@ extension Paint {
         case .gradient(let paint): paint.gradient.isOpaqueThroughout
         }
     }
+
+    /// This paint at `opacity`: the colour, or every stop of a ramp, with its
+    /// alpha scaled — composited at the cell, as ``ShapeStyle/opacity(_:)``
+    /// is.
+    func faded(_ opacity: Double) -> Paint {
+        switch self {
+        case .color(let colour):
+            return .color(colour.opacity(opacity))
+        case .gradient(var ramp):
+            // The stops, not the gradient — see the twin in `PaintAnimation`:
+            // replacing the whole value drops whatever else it carries, which
+            // is how a faded perceptual ramp would come back `.device`.
+            ramp.gradient.stops = ramp.gradient.stops.map {
+                Gradient.Stop(color: $0.color.opacity(opacity), location: $0.location)
+            }
+            return .gradient(ramp)
+        }
+    }
 }
 
 // MARK: - A ramp with a shape
