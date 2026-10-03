@@ -68,6 +68,28 @@ struct ScrollTransactionTests {
         #expect(transaction != Transaction())
     }
 
+    @Test("The members share bytes without touching each other, and the anchor keeps hundredths")
+    func packedStorage() {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        #expect(transaction.scrollContentOffsetAdjustmentBehavior == .automatic)
+        #expect(!transaction.scrollPositionUpdatePreservesVelocity)
+        transaction.scrollContentOffsetAdjustmentBehavior = .disabled
+        transaction.disablesAnimations = false
+        #expect(transaction.scrollContentOffsetAdjustmentBehavior == .disabled)
+        #expect(!transaction.disablesAnimations)
+
+        transaction.scrollTargetAnchor = UnitPoint(x: 0.333, y: 0.7)
+        #expect(transaction.scrollTargetAnchor == UnitPoint(x: 0.33, y: 0.7))
+        transaction.scrollTargetAnchor = .zero
+        #expect(transaction.scrollTargetAnchor == .zero, "zero is a point, not none")
+        transaction.scrollTargetAnchor = nil
+        #expect(transaction.scrollTargetAnchor == nil)
+        // A Binding carries a transaction inline; the anchor costs two bytes.
+        #expect(MemoryLayout<Transaction>.size == 76)
+        #expect(interiorPadding(of: Transaction.self).isEmpty)
+    }
+
     @Test("A transaction's anchor places the row an id binding asks for")
     func anchorForIDBinding() {
         let frames = Frames()

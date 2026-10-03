@@ -430,8 +430,12 @@ frame that renders it, so a scroll view can read all three where it decides.
   medium: no scroll here has momentum, so nothing is moving for a
   programmatic change to stop or spare.
 
-`Transaction` lives below `UnitPoint`, so the anchor is stored as two
-`Double`s under `package` access and surfaced as a `UnitPoint` from TUIkit.
+`Transaction` lives below `UnitPoint`, and every `Binding` carries one
+inline, so the anchor is stored in two bytes — hundredths of the viewport,
+finer than any terminal's row — and the switches share one byte with
+`disablesAnimations`. A binding grows by two bytes and gains no padding (a
+titled `Toggle`: 195 → 197, `ControlLayoutPaddingTests`); stored as two
+`Double`s and three `Bool`s it grew by twenty-four and left five undefined.
 
 ### B-W10-9. Bounce behaviour gates the overscroll allowance
 

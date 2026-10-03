@@ -16,12 +16,40 @@ public struct Transaction: Sendable, Equatable {
     /// The animation to apply to the change, or `nil` for an immediate one.
     public var animation: Animation?
 
+    // Every field after the animation is a byte, and the booleans share one,
+    // so the struct has no interior padding and is 76 bytes: every `Binding`
+    // carries one inline, and the per-pass memos hash a view's bytes, padding
+    // included unless it is skipped (`ControlLayoutPaddingTests`). The scroll
+    // members cost two bytes, the anchor's; as three `Bool`s and two
+    // `Double`s they cost twenty-four and left five undefined.
+
+    /// The transaction's switches, one bit each.
+    private var flags: UInt8 = 0
+
+    /// `scrollTargetAnchor`'s point in hundredths, with `Int8.min` in `x` for
+    /// none.
+    private var scrollAnchorX: Int8 = .min
+    private var scrollAnchorY: Int8 = 0
+
+    private static let disablesAnimationsBit: UInt8 = 1 << 0
+    private static let preservesVelocityBit: UInt8 = 1 << 1
+    private static let disablesScrollAdjustmentBit: UInt8 = 1 << 2
+
+    private func flag(_ bit: UInt8) -> Bool { flags & bit != 0 }
+
+    private mutating func setFlag(_ bit: UInt8, _ on: Bool) {
+        flags = on ? flags | bit : flags & ~bit
+    }
+
     /// Whether animations in the affected subtree are suppressed.
     ///
     /// Set on a *subtree* (via `View.transaction(_:)`) to opt part of the tree
     /// out of an ambient animation — the header should not slide just because
     /// the list below it did.
-    public var disablesAnimations: Bool = false
+    public var disablesAnimations: Bool {
+        get { flag(Self.disablesAnimationsBit) }
+        set { setFlag(Self.disablesAnimationsBit, newValue) }
+    }
 
     /// Whether a programmatic change to a scroll position, made under this
     /// transaction, leaves a scroll already in progress moving. Matches
@@ -30,26 +58,39 @@ public struct Transaction: Sendable, Equatable {
     /// Recorded, and met by the medium: a terminal's scrolling comes in
     /// discrete steps and keeps no momentum, so no scroll is ever still moving
     /// for a programmatic change to stop or to spare.
-    public var scrollPositionUpdatePreservesVelocity: Bool = false
-
-    /// Where TUIkit's `scrollTargetAnchor` keeps its point, as `x` and `y`:
-    /// the property is declared beside `UnitPoint`, which lives above this
-    /// module.
-    package var scrollTargetAnchorStorage: ScrollTargetAnchorStorage?
+    public var scrollPositionUpdatePreservesVelocity: Bool {
+        get { flag(Self.preservesVelocityBit) }
+        set { setFlag(Self.preservesVelocityBit, newValue) }
+    }
 
     /// Where TUIkit's `scrollContentOffsetAdjustmentBehavior` keeps its one
     /// bit: whether a scroll view's own offset adjustments are off for the
     /// change.
-    package var disablesScrollContentOffsetAdjustment = false
+    package var disablesScrollContentOffsetAdjustment: Bool {
+        get { flag(Self.disablesScrollAdjustmentBit) }
+        set { setFlag(Self.disablesScrollAdjustmentBit, newValue) }
+    }
 
-    /// A unit point, as this module can hold one.
-    package struct ScrollTargetAnchorStorage: Sendable, Equatable {
-        package var x: Double
-        package var y: Double
-
-        package init(x: Double, y: Double) {
-            self.x = x
-            self.y = y
+    /// Where TUIkit's `scrollTargetAnchor` keeps its point: the property is
+    /// declared beside `UnitPoint`, which lives above this module.
+    ///
+    /// Kept to a hundredth, within ±1.27 — a hundredth of a viewport is finer
+    /// than a row of any terminal, and an anchor is a fraction of one.
+    package var scrollTargetAnchorStorage: (x: Double, y: Double)? {
+        get {
+            guard scrollAnchorX != .min else { return nil }
+            return (Double(scrollAnchorX) / 100, Double(scrollAnchorY) / 100)
+        }
+        set {
+            guard let point = newValue else {
+                (scrollAnchorX, scrollAnchorY) = (.min, 0)
+                return
+            }
+            func hundredths(_ value: Double) -> Int8 {
+                guard value.isFinite else { return 0 }
+                return Int8(max(-127, min(127, (value * 100).rounded())))
+            }
+            (scrollAnchorX, scrollAnchorY) = (hundredths(point.x), hundredths(point.y))
         }
     }
 

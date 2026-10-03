@@ -48,7 +48,7 @@ extension Transaction {
     /// of its own, the call's anchor wins; one that names none takes this.
     public var scrollTargetAnchor: UnitPoint? {
         get { scrollTargetAnchorStorage.map { UnitPoint(x: $0.x, y: $0.y) } }
-        set { scrollTargetAnchorStorage = newValue.map { ScrollTargetAnchorStorage(x: $0.x, y: $0.y) } }
+        set { scrollTargetAnchorStorage = newValue.map { (x: $0.x, y: $0.y) } }
     }
 
     /// Whether the scroll views a change made under this transaction moves
