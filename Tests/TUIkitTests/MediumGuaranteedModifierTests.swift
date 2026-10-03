@@ -2,8 +2,8 @@
 //  MediumGuaranteedModifierTests.swift
 //
 //  `monospaced(_:)`, `monospacedDigit()`, `autocorrectionDisabled(_:)`,
-//  `geometryGroup()`, `containerCornerOffset(_:sizeToFit:)` and
-//  `flipsForRightToLeftLayoutDirection(_:)` return `self`. Asserting THAT would prove nothing — every unimplemented
+//  `geometryGroup()`, `containerCornerOffset(_:sizeToFit:)`,
+//  `flipsForRightToLeftLayoutDirection(_:)` and `scrollIndicatorsFlash` return `self`. Asserting THAT would prove nothing — every unimplemented
 //  modifier passes such a test.
 //
 //  So these assert the guarantee instead: that equal character counts really
@@ -169,5 +169,31 @@ struct TextMonospacedTests {
         #expect(lines(Text("a").scenePadding()) == lines(Text("a").padding()))
         #expect(lines(Text("a").scenePadding(.leading)) == lines(Text("a").padding(.leading)))
         #expect(lines(Text("a").scenePadding(.minimum, edges: .top)) == lines(Text("a").padding(.top, 1)))
+    }
+
+    // MARK: - scrollIndicatorsFlash
+
+    /// What a flash is for — seeing that the content goes on — holds from the
+    /// first frame: an overflowing scroll view draws its indicator before
+    /// anything has scrolled, in either style.
+    @Test("an overflowing scroll view shows its indicators on its first frame")
+    func indicatorsShowWithoutAFlash() {
+        func firstFrame(_ style: ScrollIndicatorStyle) -> [String] {
+            var environment = EnvironmentValues()
+            environment.scrollIndicatorStyle = style
+            let context = RenderContext(
+                availableWidth: 12, availableHeight: 5, environment: environment, tuiContext: TUIContext()
+            ).isolatingRenderCache()
+            let view = ScrollView {
+                VStack(spacing: 0) { ForEach(0..<20, id: \.self) { Text("row \($0)") } }
+            }
+            .scrollIndicatorsFlash(onAppear: true)
+            .scrollIndicatorsFlash(trigger: 1)
+            return renderToBuffer(view, context: context).lines.map(\.stripped)
+        }
+        let bar = firstFrame(.scrollbar)
+        #expect(bar.contains { $0.contains("▲") } && bar.contains { $0.contains("▼") }, "\(bar)")
+        let text = firstFrame(.text)
+        #expect(text.contains { $0.contains("▼") }, "\(text)")
     }
 }

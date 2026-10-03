@@ -192,4 +192,22 @@ animated `scrollTo` is a jump here and changes no phase. `velocity` is always
   if a use turns up; I did not invent one nobody reads.
 - *`.animating`* comes with animated scrolling, which is its own feature.
 
+### B-W10-6. `scrollIndicatorsFlash` returns the view: the indicators are already showing
+
+*`View.scrollIndicatorsFlash(onAppear:)`, `View.scrollIndicatorsFlash(trigger:)`*
+
+A flash exists because an overlay scroller is hidden until something scrolls.
+A terminal's bar, or its "N more" lines, is drawn on every frame the content
+overflows, from the first — as macOS's legacy ("always show") scrollers are,
+under which a flash changes nothing either. SwiftUI flashes only the
+indicators configured to be visible, and those are the ones already drawn.
+So both join the medium-guaranteed modifiers (`MediumGuaranteedModifiers.swift`),
+with a test of the guarantee: an overflowing view's first frame shows its
+indicator in either style.
+
+**The fuller version** would be a brief highlight of the bar — its focus pulse
+for half a second — to draw the eye, as a flash does. About two hours:
+the bar memo is keyed on the pulse already, and the trigger needs a
+per-view "last value" and a wake. I would only do it if a port asks.
+
 ## C. Declined without asking
