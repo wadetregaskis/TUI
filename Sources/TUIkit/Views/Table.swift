@@ -133,8 +133,8 @@ public struct Table<Value: Identifiable & Sendable>: View where Value.ID: Hashab
     /// The data items to display.
     let data: [Value]
 
-    /// The column definitions.
-    let columns: [TableColumn<Value>]
+    /// The column definitions, as the renderer draws them.
+    let columns: [_TableColumnSpec<Value>]
 
     /// Binding for single selection (optional ID).
     let singleSelection: Binding<Value.ID?>?
@@ -149,7 +149,7 @@ public struct Table<Value: Identifiable & Sendable>: View where Value.ID: Hashab
     /// headers. The table never sorts the data itself; it publishes the order
     /// the user asked for and the app applies it (`data.sort(using:)`), which
     /// is also SwiftUI's division of labour.
-    let sortOrder: Binding<[KeyPathComparator<Value>]>?
+    let sortModel: _TableSortModel<Value>?
 
     /// The selection mode derived from which binding is set.
     var selectionMode: SelectionMode {
@@ -189,7 +189,7 @@ public struct Table<Value: Identifiable & Sendable>: View where Value.ID: Hashab
             columns: columns,
             singleSelection: singleSelection,
             multiSelection: multiSelection,
-            sortOrder: sortOrder,
+            sortModel: sortModel,
             selectionMode: selectionMode,
             focusID: focusID,
             isDisabled: isDisabled,
@@ -330,10 +330,10 @@ extension Table {
         @TableColumnBuilder<Value> columns: () -> [TableColumn<Value>]
     ) {
         self.data = data
-        self.columns = columns()
+        self.columns = columns().map(\.spec)
         self.singleSelection = single
         self.multiSelection = multi
-        self.sortOrder = sortOrder
+        self.sortModel = sortOrder.map(_TableSortModel.init)
         self.focusID = focusID
         self.isDisabled = false
 
@@ -489,10 +489,10 @@ where Value.ID: Hashable {
     static var selectionGutterWidth: Int { 2 }
 
     let data: [Value]
-    let columns: [TableColumn<Value>]
+    let columns: [_TableColumnSpec<Value>]
     let singleSelection: Binding<Value.ID?>?
     let multiSelection: Binding<Set<Value.ID>>?
-    let sortOrder: Binding<[KeyPathComparator<Value>]>?
+    let sortModel: _TableSortModel<Value>?
     let selectionMode: SelectionMode
     let focusID: String?
     let isDisabled: Bool
@@ -2884,7 +2884,7 @@ where Value.ID: Hashable {
         state: PopulatedRenderState,
         mouseDispatcher: MouseEventDispatcher
     ) {
-        guard sortOrder != nil, !state.columnWidths.isEmpty else { return }
+        guard sortModel != nil, !state.columnWidths.isEmpty else { return }
         let focusManager = context.environment.focusManager
         let focusID = state.focusID
         let originX = 1 + Self.containerPadding.leading
@@ -3347,7 +3347,7 @@ where Value.ID: Hashable {
     /// memo would exist to stop repeating. `RenderCache.rowWork` is where it
     /// lands, beside the cache statistics a harness already reads.
     private func cellValue(
-        _ column: TableColumn<Value>, for item: Value, context: RenderContext
+        _ column: _TableColumnSpec<Value>, for item: Value, context: RenderContext
     ) -> String {
         context.renderCache?.rowWork.cellValues += 1
         return column.value(for: item)
@@ -3405,7 +3405,7 @@ where Value.ID: Hashable {
     /// Data that cannot be compared — a row type that is not `Equatable` — has
     /// no signature, so it scans every frame exactly as before.
     private func fitWidth(
-        of column: TableColumn<Value>, at index: Int, cappedAt cap: Int?,
+        of column: _TableColumnSpec<Value>, at index: Int, cappedAt cap: Int?,
         context: RenderContext
     ) -> Int {
         // The cap is in the key: a scan that stopped early answers for the
@@ -3465,7 +3465,7 @@ where Value.ID: Hashable {
 
     /// The widest of `column`'s header and cells, stopping at `cap` — the scan
     /// ``fitWidth(of:at:cappedAt:context:)`` keeps the answer of.
-    private func scanForFitWidth(of column: TableColumn<Value>, cappedAt cap: Int?, context: RenderContext) -> Int {
+    private func scanForFitWidth(of column: _TableColumnSpec<Value>, cappedAt cap: Int?, context: RenderContext) -> Int {
         // The header measured here is the one that will be DRAWN, sort
         // indicator and all: measuring the bare title instead fitted the
         // column two cells short and truncated its own header ("Track…").
@@ -3532,10 +3532,10 @@ where Value.ID: Hashable {
     ///   gives way first: `Tra… ▼`, not `Track…`. The arrow is the part you
     ///   cannot reconstruct by guessing, and one that vanishes exactly when the
     ///   table is cramped hides which column you just sorted by.
-    private func headerTitle(for column: TableColumn<Value>, fittingWidth width: Int? = nil)
+    private func headerTitle(for column: _TableColumnSpec<Value>, fittingWidth width: Int? = nil)
         -> String
     {
-        guard sortOrder != nil, column.sortComparator != nil else { return column.title }
+        guard sortModel != nil, column.sortComparator != nil else { return column.title }
         let indicator = sortIndicator(for: column)
         let suffix = " " + indicator
         guard let width else { return column.title + suffix }
@@ -3560,12 +3560,11 @@ where Value.ID: Hashable {
     /// Only the PRIMARY comparator is marked. Later ones in the sort order are
     /// real — they break the primary's ties — but marking them would say the
     /// rows are ordered by them, which they are not, and macOS marks one too.
-    private func sortIndicator(for column: TableColumn<Value>) -> String {
+    private func sortIndicator(for column: _TableColumnSpec<Value>) -> String {
         guard let comparator = column.sortComparator,
-            let primary = sortOrder?.wrappedValue.first,
-            primary.keyPath == comparator.keyPath
+            let order = sortModel?.primaryOrder(comparator)
         else { return Self.noSortIndicator }
-        return primary.order == .forward ? "▲" : "▼"
+        return order == .forward ? "▲" : "▼"
     }
 
     /// The x range each column's header occupies within the table's buffer,
@@ -3593,8 +3592,10 @@ where Value.ID: Hashable {
     /// The same predicate `sortIndicator(for:)` draws the arrow from, so the
     /// arrow and the chords cannot disagree about which column is primary.
     private var primarySortColumnIndex: Int? {
-        guard let primary = sortOrder?.wrappedValue.first else { return nil }
-        return columns.firstIndex { $0.sortComparator?.keyPath == primary.keyPath }
+        guard let sortModel else { return nil }
+        return columns.firstIndex { column in
+            column.sortComparator.flatMap(sortModel.primaryOrder) != nil
+        }
     }
 
     /// The keyboard half of the header click, handed to the handler each frame
@@ -3617,7 +3618,7 @@ where Value.ID: Hashable {
         // `viewportHeight` above is gated on `isMeasuring`. Building the index
         // list here charged an array allocation per pass to tables that have no
         // `sortOrder` binding at all, which is most of them.
-        guard sortOrder != nil, columns.contains(where: { $0.sortComparator != nil })
+        guard sortModel != nil, columns.contains(where: { $0.sortComparator != nil })
         else { return nil }
         return { action in
             // Walked when a key actually arrives rather than once per pass: a
@@ -3650,18 +3651,9 @@ where Value.ID: Hashable {
     /// what was there down behind it — so the previous sort survives as the
     /// tie-break, which is what a macOS table does and what makes a two-key
     /// sort reachable by clicking two headers in turn.
-    private func toggleSort(column: TableColumn<Value>) {
-        guard let sortOrder, let comparator = column.sortComparator else { return }
-        var order = sortOrder.wrappedValue
-        if let first = order.first, first.keyPath == comparator.keyPath {
-            order[0].order = first.order == .forward ? .reverse : .forward
-        } else {
-            var promoted = comparator
-            promoted.order = .forward
-            order.removeAll { $0.keyPath == comparator.keyPath }
-            order.insert(promoted, at: 0)
-        }
-        sortOrder.wrappedValue = order
+    private func toggleSort(column: _TableColumnSpec<Value>) {
+        guard let sortModel, let comparator = column.sortComparator else { return }
+        sortModel.toggle(comparator)
     }
 
     // MARK: - Row Rendering

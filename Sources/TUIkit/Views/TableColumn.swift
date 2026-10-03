@@ -325,6 +325,15 @@ extension TableColumn {
     func value(for item: Value) -> String {
         valueExtractor(item)
     }
+
+    /// This column as the renderer draws it.
+    var spec: _TableColumnSpec<Value> {
+        _TableColumnSpec(
+            title: title, alignment: alignment, width: width,
+            truncationMode: truncationMode, lineLimit: lineLimit,
+            valueExtractor: valueExtractor, namesAProperty: namesAProperty,
+            sortComparator: sortComparator)
+    }
 }
 
 // MARK: - Table Column Builder
