@@ -31,21 +31,23 @@ func layerContext(_ context: RenderContext, modifierType: Any.Type) -> RenderCon
     context.withChildIdentity(erasedType: modifierType, index: 1)
 }
 
-/// `layer` laid out in `baseBuffer`'s frame, by `alignment`, and composited
-/// over it, cut back to the base's box.
-///
-/// - Parameters:
-///   - layer: The view to lay over the base.
-///   - baseBuffer: The base, already rendered at `context`'s identity.
-///   - alignment: Where the layer goes in the base's frame.
-///   - context: The modifier's context.
-///   - modifierType: The modifier's own type — see ``layerContext(_:modifierType:)``.
-/// - Returns: The composite, the base's size.
+/// Where a layer goes in a base's frame — or why it goes nowhere.
+private enum LayerPlacement {
+    /// The base has nothing at all in it: the layer is what there is to draw.
+    case alone(FrameBuffer)
+    /// The layer has nothing at all in it: the base is unchanged.
+    case baseOnly
+    /// The layer, rendered, and its offset in the base's frame.
+    case placed(FrameBuffer, at: (x: Int, y: Int))
+}
+
+/// `layer` rendered in `baseBuffer`'s frame and placed in it by `alignment` —
+/// the half an overlay and a background share.
 @MainActor
-func compositeLayer<Layer: View>(
-    _ layer: Layer, over baseBuffer: FrameBuffer, alignment: Alignment,
+private func placeLayer<Layer: View>(
+    _ layer: Layer, in baseBuffer: FrameBuffer, alignment: Alignment,
     context: RenderContext, modifierType: Any.Type
-) -> FrameBuffer {
+) -> LayerPlacement {
     let overlayContext = layerContext(context, modifierType: modifierType)
 
     // Shortcut a layer with NOTHING in it — but `isEmpty` only inspects
@@ -59,7 +61,7 @@ func compositeLayer<Layer: View>(
     // layers and regions and lifts the other's, shifted into place, and it
     // already special-cases a line-empty overlay for exactly this reason.
     if baseBuffer.isEmpty, baseBuffer.overlays.isEmpty, baseBuffer.hitTestRegions.isEmpty {
-        return TUIkit.renderToBuffer(layer, context: overlayContext)
+        return .alone(TUIkit.renderToBuffer(layer, context: overlayContext))
     }
 
     // The overlay is laid out IN the base's frame, so it is offered the
@@ -80,67 +82,141 @@ func compositeLayer<Layer: View>(
     if overlayBuffer.isEmpty, overlayBuffer.overlays.isEmpty,
         overlayBuffer.hitTestRegions.isEmpty
     {
-        return baseBuffer
+        return .baseOnly
     }
-
-    // Calculate the position of the overlay based on alignment
-    let baseWidth = baseBuffer.width
-    let baseHeight = baseBuffer.height
-    let overlayWidth = overlayBuffer.width
-    let overlayHeight = overlayBuffer.height
 
     // Calculate horizontal position — from the overlay's own explicit
     // `.alignmentGuide` when it set one, so a badge can hang off the corner
     // it is aligned to rather than sit squarely on it.
-    let overlaySize = (width: overlayWidth, height: overlayHeight)
+    let overlaySize = (width: overlayBuffer.width, height: overlayBuffer.height)
     let horizontalOffset =
         horizontalGuidePlacement(
-            of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseWidth)
-        ?? alignment.horizontal.childOffset(childWidth: overlayWidth, in: baseWidth)
+            of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width)
+        ?? alignment.horizontal.childOffset(childWidth: overlaySize.width, in: baseBuffer.width)
 
     // Calculate vertical position
     let verticalOffset =
         verticalGuidePlacement(
-            of: layer, size: overlaySize, alignment: alignment.vertical, in: baseHeight)
-        ?? alignment.vertical.childOffset(childHeight: overlayHeight, in: baseHeight)
+            of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height)
+        ?? alignment.vertical.childOffset(childHeight: overlaySize.height, in: baseBuffer.height)
+
+    return .placed(overlayBuffer, at: (x: horizontalOffset, y: verticalOffset))
+}
+
+/// `composite` cut back to `baseBuffer`'s box.
+///
+/// `composited` grows to fit a layer that reaches past the base, and a layer
+/// that resizes what it is laid over or under is a `ZStack` — the one thing
+/// `.overlay` and `.background` are not. Cut back to the base's box with the
+/// clamp every container already uses on content that came back larger than
+/// the space it was given; it keeps the free-floating layers (a badge
+/// `.offset()` off the corner still hangs there) and trims the in-flow hit and
+/// opacity regions to what survives.
+///
+/// Per axis, and only where there is a frame to cut to: see `placeLayer` for
+/// the base that has no in-flow lines.
+private func clampedToBase(_ composite: FrameBuffer, _ baseBuffer: FrameBuffer) -> FrameBuffer {
+    composite.clamped(
+        toWidth: baseBuffer.width > 0 ? baseBuffer.width : composite.width,
+        height: baseBuffer.height > 0 ? baseBuffer.height : composite.height)
+}
+
+/// The wake token for runs a layer shows the field of.
+///
+/// Asked under the modifier's type as well as its identity, the key
+/// `AnimationStore` gives a modifier's animations: the base renders at this
+/// identity, so `.overlay { A }.overlay { B }` puts two overlays at one path,
+/// and a wake is kept per token. Under the path alone the outer's request
+/// replaced the inner's, and the inner's label held its field between the
+/// outer run's steps. The outer's `Base` holds the inner's type, so the two
+/// are never one type — unless each one's base is an `AnyView`, which draws
+/// its content at its own identity too. The type is spelled by its metadata
+/// pointer, which no two types share, not by a hash of it, which two could.
+private func layerWakeToken(_ prefix: String, context: RenderContext, modifierType: Any.Type) -> String {
+    "\(prefix)-\(context.identity.path)-\(UInt(bitPattern: ObjectIdentifier(modifierType)))"
+}
+
+/// `layer` laid out in `baseBuffer`'s frame, by `alignment`, and composited
+/// over it, cut back to the base's box.
+///
+/// - Parameters:
+///   - layer: The view to lay over the base.
+///   - baseBuffer: The base, already rendered at `context`'s identity.
+///   - alignment: Where the layer goes in the base's frame.
+///   - context: The modifier's context.
+///   - modifierType: The modifier's own type — see ``layerContext(_:modifierType:)``.
+/// - Returns: The composite, the base's size.
+@MainActor
+func compositeLayer<Layer: View>(
+    _ layer: Layer, over baseBuffer: FrameBuffer, alignment: Alignment,
+    context: RenderContext, modifierType: Any.Type
+) -> FrameBuffer {
+    let (overlayBuffer, offset): (FrameBuffer, (x: Int, y: Int))
+    switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
+    case .alone(let buffer): return buffer
+    case .baseOnly: return baseBuffer
+    case .placed(let buffer, let at): (overlayBuffer, offset) = (buffer, at)
+    }
 
     // Composite the overlay onto the base, asking for a render at each step of a
     // run of the base whose field the overlay shows and whose frames turn it: the
     // composite punches the run there.
-    //
-    // Asked under the modifier's type as well as its identity, the key
-    // `AnimationStore` gives a modifier's animations: the base renders at this
-    // identity, so `.overlay { A }.overlay { B }` puts two overlays at one path,
-    // and a wake is kept per token. Under the path alone the outer's request
-    // replaced the inner's, and the inner's label held its field between the
-    // outer run's steps. The outer's `Base` holds the inner's type, so the two
-    // are never one type — unless each one's base is an `AnyView`, which draws
-    // its content at its own identity too. The type is spelled by its metadata
-    // pointer, which no two types share, not by a hash of it, which two could.
-    let showingThrough = baseBuffer.runsShowingThrough(
-        overlayBuffer, at: (x: horizontalOffset, y: verticalOffset))
+    let showingThrough = baseBuffer.runsShowingThrough(overlayBuffer, at: offset)
     if !showingThrough.isEmpty {
         context.requestWake(
-            token: "overlay-base-run-\(context.identity.path)-\(UInt(bitPattern: ObjectIdentifier(modifierType)))",
+            token: layerWakeToken("overlay-base-run", context: context, modifierType: modifierType),
             forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
     }
-    let composite = baseBuffer.compositedCarryingClaimsOverNothing(
-        with: overlayBuffer, at: (x: horizontalOffset, y: verticalOffset),
-        palette: context.environment.palette)
+    return clampedToBase(
+        baseBuffer.compositedCarryingClaimsOverNothing(
+            with: overlayBuffer, at: offset, palette: context.environment.palette),
+        baseBuffer)
+}
 
-    // `composited` grows to fit an overlay that reaches past the base, and
-    // a layer that resizes what it is laid over is a `ZStack` — the one
-    // thing `.overlay` is not. Cut back to the base's box with the clamp
-    // every container already uses on content that came back larger than
-    // the space it was given; it keeps the free-floating layers (a badge
-    // `.offset()` off the corner still hangs there) and trims the in-flow
-    // hit and opacity regions to what survives.
-    //
-    // Per axis, and only where there is a frame to cut to: see the note on
-    // `framedContext` above for the base that has no in-flow lines.
-    return composite.clamped(
-        toWidth: baseBuffer.width > 0 ? baseBuffer.width : composite.width,
-        height: baseBuffer.height > 0 ? baseBuffer.height : composite.height)
+/// `layer` laid out in `baseBuffer`'s frame, by `alignment`, with the base
+/// composited over it, cut back to the base's box.
+///
+/// "Behind" is exact here because compositing keeps two statements per cell:
+/// a base cell that names no field of its own keeps the layer's field under
+/// it, so `.background { Color.red }` colours every cell the base does not
+/// colour itself, translucent fields included. What a cell cannot hold is two
+/// glyphs, so a background GLYPH under any cell the base draws — a space
+/// included — is covered: `ZStack`'s rule, for the same reason.
+///
+/// - Parameters:
+///   - layer: The view to lay under the base.
+///   - baseBuffer: The base, already rendered at `context`'s identity.
+///   - alignment: Where the layer goes in the base's frame.
+///   - context: The modifier's context.
+///   - modifierType: The modifier's own type — see ``layerContext(_:modifierType:)``.
+/// - Returns: The composite, the base's size.
+@MainActor
+func compositeLayer<Layer: View>(
+    _ layer: Layer, under baseBuffer: FrameBuffer, alignment: Alignment,
+    context: RenderContext, modifierType: Any.Type
+) -> FrameBuffer {
+    let (layerBuffer, offset): (FrameBuffer, (x: Int, y: Int))
+    switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
+    case .alone(let buffer): return buffer
+    case .baseOnly: return baseBuffer
+    case .placed(let buffer, let at): (layerBuffer, offset) = (buffer, at)
+    }
+
+    // `_ZStackCore`'s sequence for two children: a blank canvas the base's
+    // size, the layer onto it at its offset, then the base over both — asking
+    // for a render at each step of a run of the layer whose field the base
+    // shows and whose frames turn it.
+    let palette = context.environment.palette
+    var result = FrameBuffer(emptyWithWidth: baseBuffer.width, height: baseBuffer.height)
+    result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, palette: palette)
+    let showingThrough = result.runsShowingThrough(baseBuffer, at: (x: 0, y: 0))
+    if !showingThrough.isEmpty {
+        context.requestWake(
+            token: layerWakeToken("background-layer-run", context: context, modifierType: modifierType),
+            forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
+    }
+    result.compositeCarryingClaimsOverNothing(with: baseBuffer, at: (x: 0, y: 0), palette: palette)
+    return clampedToBase(result, baseBuffer)
 }
 
 /// The size of a base with `layer` laid in its frame: the base's, flexibility

@@ -124,6 +124,16 @@ would be surprising, or (c) leave it out. I left it out.
 *Meanwhile:* `.overlay(alignment:content:)` already exists and is unambiguous,
 and `.background(_ color:)` covers the common case.
 
+*Reversed, 2026-10-03.* The premise went twelve days later, with 590e71a4f
+("A glyph and the colour behind it are two statements"): a cell that names no
+background now keeps the field under it. That gives "behind" an exact meaning
+— the content composited over the background — and it is what SwiftUI's
+picture comes to in a grid: every cell the content does not colour shows the
+background's colour, translucent ones included, and a background *glyph* is
+covered under any cell the content draws, which is `ZStack`'s rule already. So
+`.background(alignment:content:)` ships, on the composite `.overlay` uses with
+the layers swapped. None of (a)–(c) was needed.
+
 ### Not attempted, and why
 
 - **`deleteDisabled(_:)` / `moveDisabled(_:)`** — these belong on the ROWS of a
