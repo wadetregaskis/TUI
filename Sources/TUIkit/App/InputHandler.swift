@@ -118,7 +118,7 @@ extension InputHandler {
         // it does not contain, as a focus-blind `onKeyEvent` at Layer 2 could.
         if focusPathHearsKeys, let press = KeyPress(event),
             let focused = focusManager.focusedIdentity,
-            keyEventDispatcher.dispatchFocusPath(press, focusedIdentity: focused)
+            keyEventDispatcher.dispatchFocusPath(press, focusedIdentity: focused, stage: .keyPress)
         {
             return true
         }

@@ -1,30 +1,47 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  OnKeyPressModifier.swift
+//  FocusPathModifier.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-/// The modifier behind SwiftUI's `onKeyPress` family: registers a handler that
-/// hears a press only while the focus is on this view or inside it.
+// MARK: - Stage
+
+/// When a handler on the focus path is asked, relative to the focused control.
 ///
-/// The focus-blind TUI handler is ``KeyEventModifier``; the two share the
-/// dispatcher and its per-frame lifecycle, and differ in what a registration
-/// is scoped to and when it is asked (see `InputHandler`).
-struct OnKeyPressModifier<Content: View>: View {
+/// SwiftUI asks two kinds of handler along the path from the focused view to
+/// the root, at two different moments — measured on macOS 15.
+enum FocusPathStage: Sendable {
+    /// `onKeyPress`: before the focused control has the key, outermost first.
+    case keyPress
+}
+
+// MARK: - Focus Path Modifier
+
+/// The modifier behind SwiftUI's handlers that hear a key only while the focus
+/// is on their view or inside it — `onKeyPress` and its siblings.
+///
+/// It registers a handler scoped to its own identity; the dispatcher asks it
+/// only while the focused control renders at that identity or below it. The
+/// focus-blind TUI handler is ``KeyEventModifier``; the two share the
+/// dispatcher and its per-frame lifecycle (see `InputHandler`).
+struct FocusPathModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
-    /// The action, with its own matching of keys, characters and phases.
+    /// When the handler is asked.
+    let stage: FocusPathStage
+
+    /// The handler, with its own matching of keys, characters and phases.
     let handler: (KeyPress) -> KeyPress.Result
 
     var body: Never {
-        fatalError("OnKeyPressModifier renders via Renderable")
+        fatalError("FocusPathModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension OnKeyPressModifier: Renderable {
+extension FocusPathModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A render-pass side effect, under the same two rules as
         // `KeyEventModifier`'s: never while measuring (a render-to-measure
@@ -44,15 +61,17 @@ extension OnKeyPressModifier: Renderable {
         // The modifier's own identity: the content renders at it, and every
         // control inside renders at it or below it.
         let scope = context.identity
-        OnKeyPressRegistrar.register(scope: scope, handler: handler, sectionID: sectionID, context: context)
+        FocusPathRegistrar.register(
+            scope: scope, stage: stage, handler: handler, sectionID: sectionID, context: context)
         if let journal = context.recordingEffectJournal {
             // The scope and section are captured, not looked up: the replay
             // context is the memo root's, whose identity is not this view's.
             journal.append(
                 EffectJournal.Entry(
-                    kind: OnKeyPressRegistrar.kind, channelToken: context.environment.keyChannelToken
-                ) { [handler] replay in
-                    OnKeyPressRegistrar.register(scope: scope, handler: handler, sectionID: sectionID, context: replay)
+                    kind: FocusPathRegistrar.kind, channelToken: context.environment.keyChannelToken
+                ) { [stage, handler] replay in
+                    FocusPathRegistrar.register(
+                        scope: scope, stage: stage, handler: handler, sectionID: sectionID, context: replay)
                 })
         }
 
@@ -62,26 +81,26 @@ extension OnKeyPressModifier: Renderable {
 
 // MARK: - Registration
 
-/// The one registration `onKeyPress` makes, shared by the live render and by a
-/// value memo replaying it — see `EffectJournal`.
-enum OnKeyPressRegistrar {
-    /// The journal kind of an `onKeyPress` registration.
-    static let kind = EffectJournal.Kind("onKeyPress")
+/// The one registration a focus-path handler makes, shared by the live render
+/// and by a value memo replaying it — see `EffectJournal`.
+enum FocusPathRegistrar {
+    /// The journal kind of a focus-path registration.
+    static let kind = EffectJournal.Kind("focusPathKey")
 
     /// Adds `handler` for the subtree at `scope` to `context`'s key dispatcher.
     @MainActor
     static func register(
-        scope: ViewIdentity, handler: @escaping (KeyPress) -> KeyPress.Result, sectionID: String?,
-        context: RenderContext
+        scope: ViewIdentity, stage: FocusPathStage, handler: @escaping (KeyPress) -> KeyPress.Result,
+        sectionID: String?, context: RenderContext
     ) {
         context.environment.keyEventDispatcher?.addFocusPathHandler(
-            scope: scope, sectionID: sectionID, handler)
+            scope: scope, stage: stage, sectionID: sectionID, handler)
     }
 }
 
 // MARK: - Layoutable
 
-extension OnKeyPressModifier: Layoutable {
+extension FocusPathModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged, so it
     /// measures as its content does.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -94,7 +113,7 @@ extension OnKeyPressModifier: Layoutable {
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
-extension OnKeyPressModifier: SingleContentWrapper {
+extension FocusPathModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
 
@@ -102,4 +121,4 @@ extension OnKeyPressModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnKeyPressModifier: DrawsContentUnchanged {}
+extension FocusPathModifier: DrawsContentUnchanged {}

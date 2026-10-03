@@ -87,7 +87,7 @@ extension View {
         keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        OnKeyPressModifier(content: self) { press in
+        FocusPathModifier(content: self, stage: .keyPress) { press in
             guard phases.hearsTerminalPress, keys.contains(press.key) else { return .ignored }
             return action(press)
         }
@@ -109,7 +109,7 @@ extension View {
         characters: CharacterSet, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        OnKeyPressModifier(content: self) { press in
+        FocusPathModifier(content: self, stage: .keyPress) { press in
             guard phases.hearsTerminalPress, !press.characters.isEmpty,
                 press.characters.unicodeScalars.allSatisfy(characters.contains)
             else { return .ignored }
@@ -134,7 +134,7 @@ extension View {
     public func onKeyPress(
         phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        OnKeyPressModifier(content: self) { press in
+        FocusPathModifier(content: self, stage: .keyPress) { press in
             guard phases.hearsTerminalPress else { return .ignored }
             return action(press)
         }

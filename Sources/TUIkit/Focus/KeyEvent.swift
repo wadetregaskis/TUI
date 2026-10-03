@@ -24,19 +24,20 @@ final class KeyEventDispatcher: @unchecked Sendable {
     /// Registered key handlers, in render (outside-in) order.
     private var handlers: [Entry] = []
 
-    /// One SwiftUI `onKeyPress` registration: the handler, the subtree it
-    /// hears for, and the focus section it rendered in.
+    /// One focus-path registration (SwiftUI's `onKeyPress` and its kin): the
+    /// handler, the subtree it hears for, when it is asked, and the focus
+    /// section it rendered in.
     private struct FocusPathEntry {
         /// The identity of the view the modifier is on: the handler hears a
         /// press only while the focus is on this view or inside it.
         let scope: ViewIdentity
+        let stage: FocusPathStage
         let sectionID: String?
         let handler: (KeyPress) -> KeyPress.Result
     }
 
-    /// The `onKeyPress` handlers, in render (outside-in) order — which is the
-    /// order they are asked in, outermost first. See
-    /// ``dispatchFocusPath(_:focusedIdentity:)``.
+    /// The focus-path handlers of every stage, in render (outside-in) order.
+    /// See ``dispatchFocusPath(_:focusedIdentity:stage:)``.
     private var focusPathHandlers: [FocusPathEntry] = []
 
     /// The section that currently owns the keyboard, if any.
@@ -116,45 +117,51 @@ extension KeyEventDispatcher {
         grabbingSectionID = nil
     }
 
-    /// Registers a SwiftUI `onKeyPress` handler, which hears a press only while
-    /// the focus is on the view at `scope` or inside it.
+    /// Registers a focus-path handler — SwiftUI's `onKeyPress` and its kin —
+    /// which hears a press only while the focus is on the view at `scope` or
+    /// inside it.
     ///
     /// - Parameters:
     ///   - scope: The identity of the view the modifier is on.
+    ///   - stage: When it is asked; see ``FocusPathStage``.
     ///   - sectionID: As for ``addHandler(sectionID:_:)``: a handler outside
     ///     the section holding the keyboard is silenced.
     ///   - handler: Answers whether it handled the press. It does its own
     ///     matching of keys, characters and phases.
     func addFocusPathHandler(
-        scope: ViewIdentity, sectionID: String?, _ handler: @escaping (KeyPress) -> KeyPress.Result
+        scope: ViewIdentity, stage: FocusPathStage, sectionID: String?,
+        _ handler: @escaping (KeyPress) -> KeyPress.Result
     ) {
-        focusPathHandlers.append(FocusPathEntry(scope: scope, sectionID: sectionID, handler: handler))
+        focusPathHandlers.append(
+            FocusPathEntry(scope: scope, stage: stage, sectionID: sectionID, handler: handler))
     }
 
-    /// The number of `onKeyPress` handlers registered this frame, for tests.
+    /// The number of focus-path handlers registered this frame, for tests.
     var focusPathHandlerCount: Int { focusPathHandlers.count }
 
-    /// The scopes of this frame's `onKeyPress` handlers, in registration
-    /// order, for tests.
+    /// The scopes of this frame's focus-path handlers, in registration order,
+    /// for tests.
     var focusPathScopes: [ViewIdentity] { focusPathHandlers.map(\.scope) }
 
-    /// Offers `press` to the `onKeyPress` handlers on the path to the focused
-    /// view, OUTERMOST first, until one handles it.
+    /// Offers `press` to the `stage` handlers on the path to the focused view
+    /// until one handles it.
     ///
-    /// Outermost first is SwiftUI's order, measured on macOS 15: a handler on
-    /// a container that answers `.handled` keeps the press from a handler on
-    /// the focused view inside it, and the outer of two modifiers on one view
-    /// is asked before the inner. Render order is that order, because a
-    /// modifier registers before its content renders.
+    /// `onKeyPress` handlers are asked OUTERMOST first, SwiftUI's order
+    /// measured on macOS 15: a handler on a container that answers `.handled`
+    /// keeps the press from a handler on the focused view inside it, and the
+    /// outer of two modifiers on one view is asked before the inner. Render
+    /// order is that order, because a modifier registers before its content
+    /// renders.
     ///
     /// - Parameters:
     ///   - press: The press.
     ///   - focusedIdentity: Where the focused control rendered. A handler hears
     ///     the press when its scope is that identity or an ancestor of it.
+    ///   - stage: Which handlers to ask.
     /// - Returns: Whether some handler answered `.handled`.
-    func dispatchFocusPath(_ press: KeyPress, focusedIdentity: ViewIdentity) -> Bool {
+    func dispatchFocusPath(_ press: KeyPress, focusedIdentity: ViewIdentity, stage: FocusPathStage) -> Bool {
         for entry in focusPathHandlers
-        where grabbingSectionID == nil || entry.sectionID == grabbingSectionID {
+        where entry.stage == stage && (grabbingSectionID == nil || entry.sectionID == grabbingSectionID) {
             guard entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity) else {
                 continue
             }
