@@ -1041,6 +1041,10 @@
       "how": "`EveryMinuteTimelineSchedule.Entries` is a typealias for `PeriodicTimelineSchedule.Entries`, whose `next()` it is",
       "why": "The two schedules yield the same kind of sequence, evenly spaced dates, so TUIkit's EveryMinuteTimelineSchedule.Entries is a typealias for PeriodicTimelineSchedule.Entries where SwiftUI nests a type of its own. The member exists; the symbol graph files it under the alias's target, so the tool cannot see it under this path."
     },
+    "FocusedObject": {
+      "how": "@FocusedValue(Model.self) with an @Observable model",
+      "why": "SwiftUI's @FocusedObject reads an ObservableObject, the Combine-based family TUIkit does not support (Documentation/SwiftUI-compatibility.md §2.3). The same reading of an @Observable model is `@FocusedValue(Model.self)` (Sources/TUIkit/Focus/FocusedValue.swift), which SwiftUI also offers and which tracks the properties the body reads, as the ObservableObject wrapper did through objectWillChange."
+    },
     "ForEach.Body": {
       "how": "ForEach.body: Never",
       "why": "Sources/TUIkit/Views/ForEach.swift:99 declares `public var body: Never`, matching SwiftUI's non-TabContent ForEach. The `Body` typealias is inferred rather than written, so symbolgraph-extract emits it for the SDK's .swiftinterface and not for TUIkit's source — an extraction arti"
@@ -1136,6 +1140,14 @@
     "View.fixedSize()": {
       "how": "View.fixedSize(horizontal:vertical:) — both parameters default to true",
       "why": "SwiftUI declares two overloads; TUIkit's single one has defaults, so `.fixedSize()` compiles and means the same thing (verified by a `swiftc -typecheck` probe against the built module, not by reading). Adding a no-argument overload would be a second spelling of one idea — what the consolidate-before-adding rule exists to prevent — and the extractor cannot see that a defaulted parameter list already covers the shorter call, so it reports the shape difference as a gap."
+    },
+    "View.focusedObject(_:)": {
+      "how": ".focusedValue(_:) with an @Observable object",
+      "why": "Publishes an ObservableObject (§2.3: no Combine-based family). `.focusedValue(_ object:)` publishes an @Observable object under its type, read back with `@FocusedValue(Model.self)` (Sources/TUIkit/Modifiers/FocusedValueModifier.swift)."
+    },
+    "View.focusedSceneObject(_:)": {
+      "how": ".focusedSceneValue(_:) with an @Observable object",
+      "why": "Publishes an ObservableObject for the scene (§2.3: no Combine-based family). `.focusedSceneValue(_ object:)` publishes an @Observable object under its type, seen wherever the focus is (Sources/TUIkit/Modifiers/FocusedValueModifier.swift)."
     }
   }
 }

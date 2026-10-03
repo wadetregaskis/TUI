@@ -119,6 +119,8 @@ extension RenderContext {
         let backdropFocus = FocusManager()
         backdropFocus.suppressesAutoFocus = true
         backdropFocus.isBackdrop = true
+        // Read-only in practice: a backdrop publishes nothing into it.
+        if let live = environment.focusManager { backdropFocus.focusedValues = live.focusedValues }
         copy.environment.focusManager = backdropFocus
         copy.environment.drawsBackdrop = true
         return copy

@@ -184,6 +184,11 @@ extension AppRunner {
             cursorTimer?.restartFocusPhase()
             appState?.setNeedsRender()
         }
+        // A `@FocusedValue` reader drawn ahead of the view that changed what it
+        // reads: one more frame shows the change (`FocusedValueRegistry`).
+        focusManager.focusedValues.requestFrame = { [weak appState] in
+            appState?.setNeedsRender()
+        }
     }
 
     func run() async {

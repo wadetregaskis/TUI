@@ -308,6 +308,15 @@ public final class FocusManager: @unchecked Sendable {
     /// to age out `@FocusState` registry entries whose control stopped rendering.
     private(set) var focusRenderGeneration: UInt64 = 0
 
+    /// What `.focusedValue(_:_:)` and `.focusedSceneValue(_:_:)` publish, and
+    /// `@FocusedValue` reads back for the focus — see `FocusedValueRegistry`.
+    ///
+    /// Settable so a dimmed backdrop's throwaway manager can read the live one's
+    /// (`RenderContext.isolatedForBackground()`): a reader on the page beneath
+    /// a sheet still sees the values the live tree publishes, while the
+    /// backdrop's own publishers are refused (`FocusedValueRegistrar`).
+    var focusedValues = FocusedValueRegistry()
+
     /// Creates a new focus manager instance.
     public init() {}
 
@@ -1340,6 +1349,7 @@ extension FocusManager {
         // Re-posted each render by whatever lays the columns out, for the same reason.
         sectionGroups.removeAll()
         optionalFocusSectionIDs.removeAll()
+        focusedValues.beginWalk()
     }
 
     /// Validates focus state after a render pass.
@@ -1478,6 +1488,10 @@ extension FocusManager {
         // (The helpers above announce their own moves; this catches the paths
         // that only DROP focus, which is just as invisible.)
         if focusedID != focusOnEntry { onFocusChange?() }
+
+        // Last, once the focus is settled: a reader handed a value this frame
+        // went on to change asks for the frame that shows the change.
+        focusedValues.endPass(focusedAt: focusedIdentity)
     }
 }
 
