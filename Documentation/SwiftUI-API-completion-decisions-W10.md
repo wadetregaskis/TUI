@@ -260,4 +260,35 @@ frame that renders it, so a scroll view can read all three where it decides.
 `Transaction` lives below `UnitPoint`, so the anchor is stored as two
 `Double`s under `package` access and surfaced as a `UnitPoint` from TUIkit.
 
+### B-W10-9. Bounce behaviour gates the overscroll allowance
+
+*`ScrollBounceBehavior` (`.automatic`, `.always`, `.basedOnSize`; its
+`differentShape` map entry goes), `View.scrollBounceBehavior(_:axes:)`,
+`EnvironmentValues.verticalScrollBounceBehavior`,
+`EnvironmentValues.horizontalScrollBounceBehavior`*
+
+The refusal review called this a cheap alias over `ScrollOverscroll`, and the
+two are close but not the same: SwiftUI's bounce springs back, TUIkit's
+overscroll stays (that is what makes a deliberate push readable, §1.5 of
+`Scroll-anchoring.md`), and the allowance's size is TUIkit's own setting.
+
+**Shipped:** the behaviour decides *when* the allowance applies, and
+`.scrollOverscroll` keeps deciding *how far*:
+
+- `.basedOnSize` — only while the content overflows, so content that fits
+  sits still. This is the reason the modifier is written in practice, and it
+  is the opt-out from your 2026-07-31 decision that a fitting view may still
+  be pushed.
+- `.always` and `.automatic` — whatever the content's size: TUIkit's default,
+  as `.always` is SwiftUI's.
+
+With no allowance (TUIkit's default) nothing is pushed at all, which is also
+what macOS does under a mouse wheel. The allowance is vertical only, so the
+horizontal value is recorded and decides nothing yet.
+
+**The fuller version** is a real bounce: a default allowance of a line or two
+under `.always`/`.automatic`, sprung back once the scroll phase returns to
+idle (B-W10-5 gives the moment). Half a day, and it changes the default feel
+of every scrollable, so it is yours to want.
+
 ## C. Declined without asking

@@ -902,10 +902,6 @@
       "how": "a plain @Observable reference, or @Bindable for write-through",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitView/State/Bindable.swift:41 (`Bindable`, shipped); §2.3 (Documentation/SwiftUI-compatibility.md:180) maps `@ObservedObject var m: M` to passing the object via `@Environment(M.self)` or init with Observation tracking doing the invalidat"
     },
-    "ScrollBounceBehavior": {
-      "how": "ScrollOverscroll (+ ScrollOverscrollState)",
-      "why": "Sources/TUIkit/Views/ScrollOverscroll.swift:18-29 (.none / .rows(Int) / .viewport(minus:)) and :55 for the live excursion. SwiftUI's automatic/always/basedOnSize become an explicit allowance in rows; `.viewport(minus:)` is the idiom `.basedOnSize` cannot express."
-    },
     "ScrollInputBehavior": {
       "how": "\\.isScrollEnabled (Bool) via View.scrollDisabled(_:)",
       "why": "Sources/TUIkit/Views/ScrollDisabled.swift:66. SwiftUI's automatic/enabled/disabled triple collapses to the Bool environment value; the non-additive nesting semantics match (ScrollDisabled.swift:60-63)."

@@ -454,10 +454,12 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // §1.5: how far past its edges this view may be pushed. Re-resolved every
         // frame because a `.viewport`-relative allowance moves with the terminal,
         // and an existing excursion is pulled back inside a shrunken one.
+        // Gated by `.scrollBounceBehavior`, on whether the content overflowed
+        // when this view last measured it.
+        let allowances = context.environment.overscrollAllowances(
+            overflowing: handler.contentHeight > contentViewportHeight)
         handler.overscrollState.resolve(
-            top: context.environment.scrollOverscrollTop,
-            bottom: context.environment.scrollOverscrollBottom,
-            viewportHeight: contentViewportHeight)
+            top: allowances.top, bottom: allowances.bottom, viewportHeight: contentViewportHeight)
 
         // A freshly WRITTEN edge anchor jumps to that edge (see the helper);
         // must precede the glue check, whose `seekingTail` read is one-shot.

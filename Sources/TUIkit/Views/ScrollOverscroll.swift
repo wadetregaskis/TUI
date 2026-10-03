@@ -198,7 +198,8 @@ extension View {
     /// past an edge writes that binding itself.
     ///
     /// A view whose content already fits its viewport can still be pushed — the
-    /// allowance is not conditional on there being anything to scroll.
+    /// allowance is not conditional on there being anything to scroll — unless
+    /// ``View/scrollBounceBehavior(_:axes:)`` says `.basedOnSize`.
     ///
     /// The "N more above/below" indicators count content, so they ignore the
     /// excursion entirely: pushing past the bottom does not invent rows below.

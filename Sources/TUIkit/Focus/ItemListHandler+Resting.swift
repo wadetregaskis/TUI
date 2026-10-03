@@ -234,9 +234,10 @@ extension ItemListHandler {
         // a scrollbar costs a column rather than a line, a view whose content
         // fits draws no indicator at all, and under `.visible` BOTH lines are
         // out at every offset. One number, on the handler that knows all three.
+        // Gated by `.scrollBounceBehavior`, on whether the rows overflow.
+        let allowances = environment.overscrollAllowances(overflowing: maxOffset > 0)
         overscrollState.resolve(
-            top: environment.scrollOverscrollTop,
-            bottom: environment.scrollOverscrollBottom,
+            top: allowances.top, bottom: allowances.bottom,
             viewportHeight: max(1, contentHeight - reservedIndicatorLines))
     }
 }
