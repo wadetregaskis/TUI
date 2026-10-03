@@ -224,6 +224,8 @@ identifier_name:
     - _animated
     - _isAnimatableModifier
     - _animatedModifier
+    - _isEnvironmentalModifier
+    - _resolvedBody
     - _modify
     - _renderSelf
     - _measureSelf

@@ -73,6 +73,23 @@ public protocol ViewModifier {
     static func _animatedModifier(
         _ modifier: Self, owner: Any.Type, context: RenderContext, isMeasuring: Bool
     ) -> Self?
+
+    /// Static witness: whether this modifier is an ``EnvironmentalModifier``,
+    /// which has no body of its own and is resolved into one where it is
+    /// applied. A constant, so the ordinary modifier's path pays nothing for
+    /// the rare one.
+    ///
+    /// Not to be implemented by hand: conform to ``EnvironmentalModifier``.
+    static var _isEnvironmentalModifier: Bool { get }
+
+    /// Static witness: what an ``EnvironmentalModifier`` resolves to in
+    /// `environment`, applied to `content`; `nil` for any other modifier.
+    ///
+    /// Not to be implemented by hand.
+    @MainActor
+    static func _resolvedBody(
+        _ modifier: Self, content: AnyView, environment: EnvironmentValues
+    ) -> AnyView?
 }
 
 extension ViewModifier {
@@ -86,6 +103,19 @@ extension ViewModifier {
     public static func _animatedModifier(
         _ modifier: Self, owner: Any.Type, context: RenderContext, isMeasuring: Bool
     ) -> Self? {
+        nil
+    }
+
+    /// A modifier has a body of its own unless it is an
+    /// ``EnvironmentalModifier``.
+    @inlinable
+    public static var _isEnvironmentalModifier: Bool { false }
+
+    /// A modifier with a body of its own resolves to nothing else.
+    @inlinable
+    public static func _resolvedBody(
+        _ modifier: Self, content: AnyView, environment: EnvironmentValues
+    ) -> AnyView? {
         nil
     }
 
@@ -177,6 +207,34 @@ extension ModifiedContent: View where Content: View, Modifier: ViewModifier {
     @inlinable
     public static var _isAnimatable: Bool { Modifier._isAnimatableModifier }
 
+    /// An ``EnvironmentalModifier`` has no body to build around the content: it
+    /// is resolved in the environment where it is applied, and the modifier it
+    /// resolves to is applied instead. Drawn here rather than through `body`
+    /// so every other modifier's body keeps its shape — a constant `false`
+    /// the specialiser folds away.
+    @MainActor
+    public static func _renderSelf(_ view: Self, context: RenderContext) -> FrameBuffer? {
+        guard Modifier._isEnvironmentalModifier,
+            let resolved = Modifier._resolvedBody(
+                view.modifier, content: AnyView(view.content), environment: context.environment)
+        else { return nil }
+        return renderToBuffer(resolved, context: context.withChildIdentity(type: AnyView.self, index: 0))
+    }
+
+    /// The measure-side twin of ``_renderSelf(_:context:)``.
+    @MainActor
+    public static func _measureSelf(
+        _ view: Self, proposal: ProposedSize, context: RenderContext
+    ) -> ViewSize? {
+        guard Modifier._isEnvironmentalModifier,
+            let resolved = Modifier._resolvedBody(
+                view.modifier, content: AnyView(view.content), environment: context.environment)
+        else { return nil }
+        return measureChild(
+            resolved, proposal: proposal,
+            context: context.withChildIdentity(type: AnyView.self, index: 0))
+    }
+
     /// Forwarded to the modifier, keyed by this view's type so two of the
     /// same modifier around one view keep separate animations.
     @MainActor
@@ -239,5 +297,50 @@ extension View {
     /// - Returns: This view with the modifier applied.
     public func modifier<T: ViewModifier>(_ modifier: T) -> ModifiedContent<Self, T> {
         ModifiedContent(content: self, modifier: modifier)
+    }
+}
+
+// MARK: - EnvironmentalModifier
+
+/// A modifier that must resolve to a concrete modifier in an environment before
+/// use.
+///
+/// Where it is applied, ``resolve(in:)`` is handed the environment in force
+/// there, and the modifier it returns is applied to the content in its place.
+///
+/// ```swift
+/// struct AdaptiveIndent: EnvironmentalModifier {
+///     func resolve(in environment: EnvironmentValues) -> some ViewModifier {
+///         Indent(columns: environment.horizontalSizeClass == .compact ? 1 : 4)
+///     }
+/// }
+/// ```
+public protocol EnvironmentalModifier: ViewModifier where Body == Never {
+    /// The type of modifier to use after being resolved.
+    associatedtype ResolvedModifier: ViewModifier
+
+    /// Resolve to a concrete modifier in the given `environment`.
+    ///
+    /// - Parameter environment: The environment where the modifier is applied.
+    /// - Returns: The modifier to apply there.
+    func resolve(in environment: EnvironmentValues) -> ResolvedModifier
+}
+
+extension EnvironmentalModifier {
+    /// Never called: an environmental modifier is resolved, not built.
+    public func body(content: Content) -> Never {
+        fatalError("\(Self.self) is resolved through resolve(in:), not built through body(content:)")
+    }
+
+    /// This modifier is resolved where it is applied.
+    @inlinable
+    public static var _isEnvironmentalModifier: Bool { true }
+
+    /// The modifier this one resolves to in `environment`, applied to `content`.
+    @MainActor
+    public static func _resolvedBody(
+        _ modifier: Self, content: AnyView, environment: EnvironmentValues
+    ) -> AnyView? {
+        AnyView(content.modifier(modifier.resolve(in: environment)))
     }
 }

@@ -191,3 +191,40 @@ struct ViewModifierTests {
         #expect(indent(10, atMillis: 1000) == 10)
     }
 }
+
+/// Resolves to a modifier with a body of its own.
+private struct ResolvesToBrackets: EnvironmentalModifier {
+    func resolve(in environment: EnvironmentValues) -> Bracketed {
+        Bracketed()
+    }
+}
+
+/// Resolves to an indent as wide as the greeting, so the environment's value
+/// is visible in what is drawn.
+private struct IndentByGreeting: EnvironmentalModifier {
+    func resolve(in environment: EnvironmentValues) -> Indent {
+        Indent(columns: environment.greeting.count)
+    }
+}
+
+@MainActor
+@Suite("EnvironmentalModifier")
+struct EnvironmentalModifierTests {
+
+    private func line<V: View>(_ view: V) -> String {
+        renderToBuffer(view, context: makeRenderContext(width: 20, height: 1))
+            .lines.first?.stripped ?? ""
+    }
+
+    @Test("An environmental modifier is resolved in the environment where it is applied")
+    func resolvesWhereApplied() {
+        #expect(line(Text("x").modifier(IndentByGreeting())).hasPrefix("     x"), "hello is five")
+        #expect(line(Text("x").modifier(IndentByGreeting()).environment(\.greeting, "hi"))
+            .hasPrefix("  x"), "hi is two")
+    }
+
+    @Test("What it resolves to is applied as any modifier is")
+    func appliesResolved() {
+        #expect(line(Text("x").modifier(ResolvesToBrackets())).hasPrefix("[x]"))
+    }
+}
