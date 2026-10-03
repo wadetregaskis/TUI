@@ -116,3 +116,5 @@ public struct SceneStorage<Value: Codable> {
 /// `String`, a `Value` and a ``StorageBackend``, and the constraint covers the
 /// only one of those that isn't already `Sendable`.
 extension SceneStorage: Sendable where Value: Sendable {}
+
+extension SceneStorage: FrameworkDynamicProperty {}

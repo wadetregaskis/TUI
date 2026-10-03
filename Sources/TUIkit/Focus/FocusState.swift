@@ -487,3 +487,5 @@ extension _DefaultFocusModifier: SingleContentWrapper {
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _FocusedModifier: DrawsContentUnchanged {}
 extension _DefaultFocusModifier: DrawsContentUnchanged {}
+
+extension FocusState: FrameworkDynamicProperty {}

@@ -611,15 +611,22 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
     let typeID = ObjectIdentifier(V.self)
     if StateBindingCache.typesWithoutState.contains(typeID) { return }
     var index = 0
-    bindStateProperties(nestedIn: view, identity: identity, storage: storage, index: &index)
-    if index == 0 {
+    var hasContainers = false
+    bindStateProperties(
+        nestedIn: view, identity: identity, storage: storage, index: &index,
+        hasContainers: &hasContainers)
+    // A type holding an app's `DynamicProperty` is never skipped, even with
+    // nothing in it to bind: its `update()` has to run before every body.
+    if index == 0 && !hasContainers {
         StateBindingCache.typesWithoutState.insert(typeID)
     }
 }
 
 /// One level of ``bindStateProperties(of:identity:storage:)``, descending into
-/// any property that holds properties of its own to bind — a ``ViewModifier``
-/// stored in a ``ModifiedContent``, which may declare `@State` as a view does.
+/// any property that holds properties of its own to bind — an app's
+/// ``DynamicProperty``, or a ``ViewModifier`` stored in a ``ModifiedContent``,
+/// either of which may declare `@State` as a view does — and running an app
+/// property's ``DynamicProperty/update()`` once it is bound.
 ///
 /// Nested properties take the next indices of the same counter, in declaration
 /// order, so they key the owning view's identity without colliding with its
@@ -627,7 +634,8 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
 /// identity when it renders.
 @MainActor
 private func bindStateProperties(
-    nestedIn value: Any, identity: ViewIdentity, storage: StateStorage, index: inout Int
+    nestedIn value: Any, identity: ViewIdentity, storage: StateStorage, index: inout Int,
+    hasContainers: inout Bool
 ) {
     for child in Mirror(reflecting: value).children {
         if let bindable = child.value as? StateBindable {
@@ -639,8 +647,14 @@ private func bindStateProperties(
             // keys regardless of their relative order.
             idBindable.bindRenderIdentity(path: identity.path, propertyIndex: index)
             index += 1
-        } else if child.value is any ViewModifier {
-            bindStateProperties(nestedIn: child.value, identity: identity, storage: storage, index: &index)
+        } else if let container = NestedProperties.container(child.value) {
+            hasContainers = true
+            bindStateProperties(
+                nestedIn: container, identity: identity, storage: storage, index: &index,
+                hasContainers: &hasContainers)
+            // Last, because the environment walk ran before this one: by now
+            // everything the property holds has its value.
+            NestedProperties.update(container)
         }
     }
 }

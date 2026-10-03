@@ -203,8 +203,9 @@ public func resolveEnvironmentProperties<V>(of view: V, in environment: Environm
 }
 
 /// One level of ``resolveEnvironmentProperties(of:in:)``, descending into any
-/// property that holds properties of its own — a ``ViewModifier`` stored in a
-/// ``ModifiedContent``, which may read `@Environment` as a view does. A stored
+/// property that holds properties of its own — an app's ``DynamicProperty``, or
+/// a ``ViewModifier`` stored in a ``ModifiedContent``, either of which may read
+/// `@Environment` as a view does. A stored
 /// VIEW is not descended into: it resolves its own when it renders.
 ///
 /// - Returns: Whether anything was resolved.
@@ -215,8 +216,8 @@ private func resolveEnvironmentProperties(nestedIn value: Any, in environment: E
         if let resolvable = child.value as? EnvironmentResolvable {
             resolvable.resolveEnvironment(environment)
             found = true
-        } else if child.value is any ViewModifier,
-            resolveEnvironmentProperties(nestedIn: child.value, in: environment) {
+        } else if let container = NestedProperties.container(child.value),
+            resolveEnvironmentProperties(nestedIn: container, in: environment) {
             found = true
         }
     }

@@ -501,3 +501,5 @@ public struct AppStorage<Value: Codable> {
 /// `@unchecked` once the constraint is stated, which is the tell that the
 /// annotation was standing in for the constraint.
 extension AppStorage: Sendable where Value: Sendable {}
+
+extension AppStorage: FrameworkDynamicProperty {}

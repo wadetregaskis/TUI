@@ -132,6 +132,30 @@ The same reasoning covers `\.displayScale` and `\.isLuminanceReduced`:
   `DynamicTypeSize`. The refusal was true about terminals and wrong about
   the API, because macOS reads `.large` and ignores writes for text too.
 
+### B4. `DynamicProperty.update()` does not write back
+
+An app's own property wrapper conforms to `DynamicProperty`, and the
+properties inside it work as they would on the view: `@State` is kept per
+view and `@Environment` reads where the view sits. `update()` runs before
+every `body`.
+
+One difference from SwiftUI. SwiftUI writes back whatever `update()`
+changes in the wrapper's own stored values. TUIkit calls it on the value the
+view holds, and that value is not the one `body` then reads. So a change made
+in `update()` has to go into a `@State`, or into an object held by reference,
+to be seen. Reading values, and refreshing a reference-typed cache, behave
+the same in both frameworks; those are what nearly every `update()` I know of
+does.
+
+**The fuller version** would write the property back into the view before
+`body`. The property walks find properties through `Mirror`, which is
+read-only, so this needs the stdlib's reflection SPI
+(`_forEachFieldWithKeyPath`) to get a writable key path per stored property.
+It touches the hottest walk in the framework.
+
+Cost: about half a day, plus a measurement. I would only do it if real code
+turns up that needs it.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
