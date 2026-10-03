@@ -616,4 +616,72 @@ struct KeyboardShortcutMemberTests {
         }
         #expect(log.fired == ["localized", "outer"])
     }
+
+    // MARK: The environment value
+
+    @Test("\\.keyboardShortcut reads the shortcut assigned to the view or an ancestor")
+    func environmentValue() {
+        let harness = InputChainHarness()
+        func shown(_ view: some View) -> String {
+            harness.frame(view).lines.map(\.stripped).joined().trimmingCharacters(in: .whitespaces)
+        }
+        #expect(shown(ShortcutReader()) == "none")
+        #expect(shown(ShortcutReader().keyboardShortcut(.defaultAction)) == "default")
+        #expect(shown(ShortcutReader().keyboardShortcut("s", modifiers: [])) == "s")
+        #expect(shown(VStack { ShortcutReader() }.keyboardShortcut(.cancelAction)) == "cancel")
+        #expect(shown(ShortcutReader().keyboardShortcut(nil)) == "none")
+    }
+
+    @Test("A button style reads the button's shortcut, as SwiftUI's documentation does")
+    func buttonStyleReadsIt() {
+        let harness = InputChainHarness()
+        let text = harness.frame(Button("Go") {}.buttonStyle(MarksShortcut()).keyboardShortcut(.defaultAction))
+            .lines.map(\.stripped).joined()
+        #expect(text.contains("default"), "\(text)")
+    }
+
+    /// The carrier is new every frame and compares by identity, so the memo
+    /// below it would serve the old reading unless the SHORTCUT is noted.
+    @Test("A memo below the modifier does not serve a reading of the old shortcut")
+    func memoSeesTheChange() {
+        let harness = InputChainHarness()
+        func shown(_ isDefault: Bool) -> String {
+            harness.frame(VStack { ShortcutReader().equatable() }.keyboardShortcut(isDefault ? .defaultAction : .cancelAction))
+                .lines.map(\.stripped).joined().trimmingCharacters(in: .whitespaces)
+        }
+        #expect(shown(true) == "default")
+        #expect(shown(true) == "default")
+        #expect(shown(false) == "cancel")
+        #expect(shown(false) == "cancel")
+        #expect(shown(true) == "default")
+    }
+}
+
+/// Prints the shortcut its environment carries; equal to any other, so it is
+/// served from a memo whenever it can be.
+private struct ShortcutReader: View, @MainActor Equatable {
+    @Environment(\.keyboardShortcut) private var shortcut
+
+    static func == (lhs: Self, rhs: Self) -> Bool { true }
+
+    var body: some View {
+        Text(describe(shortcut))
+    }
+
+    private func describe(_ shortcut: KeyboardShortcut?) -> String {
+        guard let shortcut else { return "none" }
+        if shortcut == .defaultAction { return "default" }
+        if shortcut == .cancelAction { return "cancel" }
+        return String(shortcut.key.character)
+    }
+}
+
+/// SwiftUI's documented use: a style that reads the button's shortcut.
+private struct MarksShortcut: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        // The label is left out: what is under test is the environment the
+        // style's body renders in.
+        _ = configuration
+        return ShortcutReader()
+    }
 }

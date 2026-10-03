@@ -53,8 +53,24 @@ struct KeyboardShortcutModifier<Content: View>: View {
     private func planting(into context: RenderContext) -> RenderContext {
         guard let assignment else { return context }
         assignment.planted(atEffectRecordingDepth: context.effectRecordingDepth)
+        // `\.keyboardShortcut` reads the carrier's shortcut, so anything below
+        // may draw from it — a button style emphasising the default button —
+        // and a memo below keys on its own view value, which cannot see the
+        // shortcut change. So the SHORTCUT is noted as an environment
+        // modifier notes its value (the carrier box itself compares by
+        // identity and is new every frame), and a change drops what was
+        // cached below. Both walks, as `EnvironmentModifier` does: the measure
+        // memo has the same blind spot.
+        if let cache = context.renderCache,
+            case .changed = cache.noteAppliedEnvironment(
+                assignment.shortcut, identity: context.identity,
+                keyPath: \EnvironmentValues.keyboardShortcut, depth: context.environmentApplicationDepth)
+        {
+            cache.clearAffected(by: context.identity)
+        }
         var planted = context
         planted.environment.assignedKeyboardShortcut = assignment
+        planted.environmentApplicationDepth += 1
         return planted
     }
 }

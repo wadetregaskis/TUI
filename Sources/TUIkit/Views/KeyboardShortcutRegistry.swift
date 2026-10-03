@@ -217,4 +217,27 @@ extension EnvironmentValues {
         get { self[AssignedKeyboardShortcutKey.self] }
         set { self[AssignedKeyboardShortcutKey.self] = newValue }
     }
+
+    /// The keyboard shortcut buttons in this environment are triggered with,
+    /// or `nil` where none was assigned to the view or an ancestor — SwiftUI's
+    /// `\.keyboardShortcut`.
+    ///
+    /// For a button style whose look depends on its shortcut, as SwiftUI's
+    /// documentation shows — here a view the style's body draws:
+    ///
+    /// ```swift
+    /// struct DefaultMark: View {
+    ///     @Environment(\.keyboardShortcut) private var shortcut
+    ///
+    ///     var body: some View {
+    ///         Text(shortcut == .defaultAction ? "▸" : " ")
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Read-only, as SwiftUI's is: ``View/keyboardShortcut(_:)`` is how one is
+    /// assigned.
+    public var keyboardShortcut: KeyboardShortcut? {
+        assignedKeyboardShortcut?.shortcut
+    }
 }
