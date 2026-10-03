@@ -24,10 +24,10 @@ struct ControlLayoutPaddingTests {
         #expect(MemoryLayout<Titled>.size == 195)
     }
 
-    @Test("A ProgressView with no labels: no padding, 97 → 90 bytes")
+    @Test("A ProgressView with no labels: no padding, 97 → 90 → 106 bytes")
     func progressView() {
         typealias Bare = ProgressView<EmptyView, EmptyView>
         #expect(interiorPadding(of: Bare.self).isEmpty, "\(interiorPadding(of: Bare.self))")
-        #expect(MemoryLayout<Bare>.size == 90)
+        #expect(MemoryLayout<Bare>.size == 106)
     }
 }
