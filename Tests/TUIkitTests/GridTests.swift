@@ -431,10 +431,68 @@ struct GridTests {
             "the wrapped row's cells belong to the grid's columns, so dd starts at x=4")
     }
 
-    @Test("A GridRow outside a Grid still lays its cells out in a row")
+    @Test("A GridRow outside a Grid is its cells, as SwiftUI's is")
     func rowWithoutGrid() {
-        let rendered = lines(GridRow { Text("a"); Text("b") })
-        #expect(rendered[0].hasPrefix("a b"))
+        // Measured on SwiftUI: `VStack { GridRow { a; b } }` is pixel-identical
+        // to `VStack { a; b }`, and different from `HStack { a; b }`. The row
+        // hands its cells to whatever lays them out.
+        #expect(
+            lines(VStack(alignment: .leading) { GridRow { Text("a"); Text("bb") } })
+                == lines(VStack(alignment: .leading) { Text("a"); Text("bb") }))
+        #expect(
+            lines(HStack { GridRow { Text("a"); Text("b") } })
+                == lines(HStack { Text("a"); Text("b") }))
+        // Alone, its cells stack as any run of views does.
+        #expect(lines(GridRow { Text("a"); Text("b") }).map { $0.trimmingCharacters(in: .whitespaces) } == ["a", "b"])
+    }
+
+    @Test("A layout over two rows sees their cells")
+    func layoutSeesCells() {
+        // Measured on SwiftUI: a custom `Layout` over two `GridRow`s of two
+        // sees four subviews.
+        let counted = CellCount()
+        _ = lines(
+            CountsSubviews(counted: counted) {
+                GridRow { Text("a"); Text("b") }
+                GridRow { Text("c"); Text("d") }
+            })
+        #expect(counted.count == 4)
+    }
+
+    @Test("A ForEach of rows lines its cells up in the grid's columns")
+    func loopOfRows() {
+        // A loop hands its rows over one per element, unflattened; the grid
+        // takes each apart. Without that every row spanned the grid as one
+        // cell, and "b" sat wherever its row's own width put it.
+        let rendered = lines(
+            Grid(alignment: .leading) {
+                ForEach(["a", "aaaaaaa"], id: \.self) { first in
+                    GridRow {
+                        Text(first)
+                        Text("b")
+                    }
+                }
+            })
+        func columnOfB(_ line: String) -> Int? {
+            line.firstIndex(of: "b").map { line.distance(from: line.startIndex, to: $0) }
+        }
+        #expect(columnOfB(rendered[0]) == 8)
+        #expect(columnOfB(rendered[1]) == 8)
+    }
+
+    @Test("Under a stack layout a ForEach of rows is cells too")
+    func loopOfRowsUnderAStackLayout() {
+        // So switching a grid layout with a stack layout through `AnyLayout`
+        // keeps every cell where it was in the identity tree. A row is drawn
+        // as its cells side by side, not as one unit stacking its own two.
+        let layout = AnyLayout(HStackLayout())
+        let rendered = lines(
+            layout {
+                ForEach(0..<2) { index in
+                    GridRow { Text("\(index)a"); Text("\(index)b") }
+                }
+            })
+        #expect(rendered.map { $0.trimmingCharacters(in: .whitespaces) } == ["0a 0b 1a 1b"])
     }
 
     /// The case `measureMatchesRender` cannot see, because it measures and
@@ -475,5 +533,29 @@ struct GridTests {
         let stripped = row.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
         #expect(row.lines.count == 3)
         #expect(stripped == ["TAIL alpha beta", "gamma delta", "epsilon"])
+    }
+}
+
+// MARK: - Fixtures
+
+/// How many subviews a layout was handed.
+@MainActor
+private final class CellCount {
+    var count = -1
+}
+
+/// Records its subview count, and stacks them.
+private struct CountsSubviews: Layout {
+    let counted: CellCount
+
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        counted.count = subviews.count
+        return VStackLayout().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
+    }
+
+    func placeSubviews(
+        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+    ) {
+        VStackLayout().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }
 }

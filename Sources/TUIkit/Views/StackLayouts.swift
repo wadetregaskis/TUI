@@ -295,6 +295,25 @@ extension HStackLayout {
     }
 }
 
+// MARK: - Grid Rows Under a Stack Layout
+
+/// A `ForEach` of grid rows is cells under a stack layout, as it is under
+/// `GridLayout`, so switching the two through `AnyLayout` keeps each cell's
+/// identity and its `@State`.
+extension VStackLayout: WholeGridRowExpanding {
+    var expandsWholeGridRows: Bool { true }
+}
+
+/// See ``VStackLayout``'s conformance.
+extension HStackLayout: WholeGridRowExpanding {
+    var expandsWholeGridRows: Bool { true }
+}
+
+/// See ``VStackLayout``'s conformance.
+extension ZStackLayout: WholeGridRowExpanding {
+    var expandsWholeGridRows: Bool { true }
+}
+
 // MARK: - The stacks' associated types, spelled out
 
 // SwiftUI's stack layouts name both: a stack's cache is its own business and

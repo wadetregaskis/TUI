@@ -288,13 +288,27 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     }
 
     /// The subview proxies and the sink their placements land in.
+    ///
+    /// A layout that lays out grid cells (``GridLayout``, and the stack
+    /// layouts it is switched with) sees a `ForEach` row that is a `GridRow`
+    /// as the row's cells — see `expandingWholeGridRows(_:context:)`.
     private func resolve(context: RenderContext) -> (LayoutSubviews, LayoutPlacements) {
         let placements = LayoutPlacements()
         let children = resolveChildViews(from: content, context: context)
+        let rowIDs = FlattenedRowIDs<AnyHashable>(content: content, children: children)
+        if (layout as? any WholeGridRowExpanding)?.expandsWholeGridRows == true,
+            let expanded = expandingWholeGridRows(children, context: context)
+        {
+            return (
+                LayoutSubviews(
+                    children: expanded.children, context: context, placements: placements,
+                    rowIDs: rowIDs, sourceIndices: expanded.sourceIndices),
+                placements
+            )
+        }
         return (
             LayoutSubviews(
-                children: children, context: context, placements: placements,
-                rowIDs: FlattenedRowIDs(content: content, children: children)),
+                children: children, context: context, placements: placements, rowIDs: rowIDs),
             placements
         )
     }

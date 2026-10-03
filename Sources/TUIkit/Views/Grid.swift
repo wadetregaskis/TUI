@@ -62,6 +62,12 @@ extension View {
 ///
 /// Each view inside a row is one cell, unless it carries
 /// ``View/gridCellColumns(_:)``.
+///
+/// A row is not a container of its own: like a `Group`, it hands its views to
+/// the container around it, and only a ``Grid`` (or a ``GridLayout``) reads
+/// where one row ends and the next begins. So `VStack { GridRow { a; b } }` is
+/// `VStack { a; b }`, exactly as SwiftUI draws it, and a custom ``Layout``
+/// over two rows of two sees four subviews.
 public struct GridRow<Content: View>: View {
     /// Overrides the grid's vertical alignment for this row.
     public let alignment: VerticalAlignment?
@@ -80,12 +86,40 @@ public struct GridRow<Content: View>: View {
         self.content = content()
     }
 
+    /// The cells themselves: a row's views stand alone, as a `Group`'s do,
+    /// wherever no grid lays them out — measured on SwiftUI, where `VStack {
+    /// GridRow { a; b } }` draws exactly as `VStack { a; b }` and not as
+    /// `HStack { a; b }`.
     public var body: some View {
-        // A `GridRow` outside a `Grid` is a row of views, which is the least
-        // surprising reading of it — and matches SwiftUI, where the row's
-        // layout is supplied by the enclosing grid and it degrades to a
-        // horizontal arrangement without one.
-        HStack(alignment: alignment ?? .center, spacing: 1) { content }
+        content
+    }
+
+    /// Its cells' answer: they are laid out as the enclosing container's own
+    /// children, so a guide in any of them can be one that container reports.
+    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+// MARK: - A Row's Cells as the Container's Children
+
+/// A row hands its cells to the container around it, as a `Group` hands its
+/// members, each carrying a ``GridRowMark`` — the first marked as starting the
+/// row — so a grid can tell where one row ends and the next begins once the
+/// rows are flattened into one list of children. Plain values, the same on
+/// every walk, so they never defeat a cell's memo.
+extension GridRow: ChildViewProvider {
+    public func childViews(context: RenderContext) -> [ChildView] {
+        resolveChildViews(from: content, context: context).enumerated().map { index, cell in
+            cell.rewrapped(
+                by: _GridRowMarkView(
+                    mark: GridRowMark(startsRow: index == 0, alignment: alignment),
+                    content: EmptyView()))
+        }
+    }
+}
+
+extension GridRow: ChildInfoProvider {
+    public func childInfos(context: RenderContext) -> [ChildInfo] {
+        resolveChildInfos(from: content, context: context)
     }
 }
 
@@ -258,18 +292,47 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         let spansFullWidth: Bool
     }
 
+    /// The children grouped into rows.
+    ///
+    /// A row's cells arrive flattened, each carrying a ``GridRowMark``: a
+    /// marked cell that starts a row starts one, and the cells after it join
+    /// it. A row that arrives whole — a `ForEach` row, which a loop hands over
+    /// one child per element — is taken apart here, its cells resolved under
+    /// the row's own identity. Anything else is one child spanning every
+    /// column, which is how a `Divider` between rows works.
     private func rows(context: RenderContext) -> [Row] {
-        resolveChildViews(from: content, context: context).map { child in
-            guard let provider = child.wrappedView as? GridRowProviding else {
-                return Row(cells: [child], spans: [1], alignment: nil, spansFullWidth: true)
-            }
-            let cells = provider.gridCells(context: context)
-            return Row(
-                cells: cells,
-                spans: cells.map { $0.gridSpan },
-                alignment: provider.rowAlignment,
-                spansFullWidth: false)
+        var rows: [Row] = []
+        var open: (cells: [ChildView], alignment: VerticalAlignment?)?
+        func closeRow() {
+            guard let row = open else { return }
+            rows.append(
+                Row(
+                    cells: row.cells, spans: row.cells.map(\.gridSpan), alignment: row.alignment,
+                    spansFullWidth: false))
+            open = nil
         }
+        for child in resolveChildViews(from: content, context: context) {
+            if let mark = child.gridRowMark {
+                if mark.startsRow || open == nil {
+                    closeRow()
+                    open = ([child], mark.alignment)
+                } else {
+                    open?.cells.append(child)
+                }
+                continue
+            }
+            closeRow()
+            if let row = wholeGridRow(child, context: context) {
+                rows.append(
+                    Row(
+                        cells: row.cells, spans: row.cells.map(\.gridSpan),
+                        alignment: row.alignment, spansFullWidth: false))
+            } else {
+                rows.append(Row(cells: [child], spans: [1], alignment: nil, spansFullWidth: true))
+            }
+        }
+        closeRow()
+        return rows
     }
 
     /// The lattice both passes agree on: column widths, row heights, and the
@@ -434,12 +497,12 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
 
 extension ChildView {
     /// The span this cell asked for, or 1.
-    fileprivate var gridSpan: Int {
+    var gridSpan: Int {
         gridValue(GridCellColumnsKey.self) ?? 1
     }
 
     /// The anchor this cell asked for, if any.
-    fileprivate var gridCellAnchor: UnitPoint? {
+    var gridCellAnchor: UnitPoint? {
         gridValue(GridCellAnchorKey.self).flatMap { $0 }
     }
 

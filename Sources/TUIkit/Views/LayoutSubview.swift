@@ -51,6 +51,10 @@ public struct LayoutSubview: @MainActor Equatable {
     /// with, asked only by ``containerValues``.
     let rowIDs: FlattenedRowIDs<AnyHashable>
 
+    /// This subview's index among the children `rowIDs` was built over —
+    /// ``index`` itself unless a grid row was taken apart into cells.
+    let rowIndex: Int
+
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.index == rhs.index && lhs.placements === rhs.placements
     }
@@ -117,7 +121,7 @@ public struct LayoutSubview: @MainActor Equatable {
     /// itself. A value written inside a container this subview holds — a
     /// `VStack`, another layout — is not this subview's: it stops there.
     public var containerValues: ContainerValues {
-        ContainerValues(of: child, implicitTag: rowIDs.elementID(ofChildAt: index))
+        ContainerValues(of: child, implicitTag: rowIDs.elementID(ofChildAt: rowIndex))
     }
 
     // MARK: - Placing a Subview
@@ -193,13 +197,29 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     /// ``LayoutSubview/containerValues`` asks.
     let rowIDs: FlattenedRowIDs<AnyHashable>
 
+    /// For each child, its index among the children `rowIDs` was built over,
+    /// when a whole grid row was taken apart into cells; `nil` when the two
+    /// lists are one.
+    let sourceIndices: [Int]?
+
+    init(
+        children: [ChildView], context: RenderContext, placements: LayoutPlacements,
+        rowIDs: FlattenedRowIDs<AnyHashable>, sourceIndices: [Int]? = nil
+    ) {
+        self.children = children
+        self.context = context
+        self.placements = placements
+        self.rowIDs = rowIDs
+        self.sourceIndices = sourceIndices
+    }
+
     public var startIndex: Int { children.startIndex }
     public var endIndex: Int { children.endIndex }
 
     public subscript(index: Int) -> LayoutSubview {
         LayoutSubview(
             index: index, child: children[index], context: context, placements: placements,
-            rowIDs: rowIDs)
+            rowIDs: rowIDs, rowIndex: sourceIndices?[index] ?? index)
     }
 
     /// The explicit values the placed subviews give `query`'s guide, each
