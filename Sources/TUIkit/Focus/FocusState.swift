@@ -299,17 +299,26 @@ struct _FocusedModifier<Content: View, Value: Hashable>: View {
 extension _FocusedModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let id = forcedID(context)
-        registerBinding(focusID: id, context: context)
+        FocusBindingRegistrar.bind(store: store, value: value, focusID: id, context: context)
         // A fresh offer per render: the claim is this render's, so the same
         // control takes the id again next frame rather than the offer staying
         // spent.
         let env = context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: id))
         return TUIkitView.renderToBuffer(content, context: context.withEnvironment(env))
     }
+}
 
-    /// Registers this frame's value↔focusID binding, and says what a
-    /// value-memoizing ancestor may do about it.
-    private func registerBinding(focusID: String, context: RenderContext) {
+extension FocusBindingRegistrar {
+    /// Registers this frame's value↔focusID binding for `.focused(_:equals:)`,
+    /// and says what a value-memoizing ancestor may do about it.
+    ///
+    /// Shared by every modifier that binds a `@FocusState` to the control
+    /// below it: `.focused`, and `.searchFocused`, which binds the search
+    /// field a `.searchable` draws.
+    @MainActor
+    static func bind<Value: Hashable>(
+        store: FocusStateStore<Value>, value: Value, focusID: String, context: RenderContext
+    ) {
         guard !context.isMeasuring, let manager = context.environment.focusManager else { return }
         // NOT under a dimmed backdrop. That render uses a throwaway
         // FocusManager, and `store.focusManager` is weak — so wiring it there
@@ -330,9 +339,8 @@ extension _FocusedModifier: Renderable {
         // behind a sheet — on every frame, where a live memo above one filters
         // the throwaway-channel entry out and stores as it always did.
         if !manager.isBackdrop { store.focusManager = manager }
-        FocusBindingRegistrar.register(
-            store: store.storeID, value: AnyHashable(value), focusID: focusID, context: context)
-        registerReplay(focusID: focusID, context: context)
+        register(store: store.storeID, value: AnyHashable(value), focusID: focusID, context: context)
+        registerReplay(store: store, value: value, focusID: focusID, context: context)
     }
 
     /// Tells a value-memoizing ancestor that the binding is one a hit can
@@ -350,23 +358,25 @@ extension _FocusedModifier: Renderable {
     /// The offer is not replayed, and needs no replaying: a hit renders nothing
     /// below this modifier, so nothing is there to claim it. The next render
     /// that does reach the content plants a fresh one, as every render does.
-    private func registerReplay(focusID: String, context: RenderContext) {
+    @MainActor
+    private static func registerReplay<Value: Hashable>(
+        store: FocusStateStore<Value>, value: Value, focusID: String, context: RenderContext
+    ) {
         context.environment.volatileReadTracker?.recordReplayableEffect()
         guard let journal = context.recordingEffectJournal else { return }
         // Built only while a memo records, so the live path allocates no second
         // closure. Everything captured is a value, and the store's ID rather
         // than the store, for the reasons `_DefaultFocusModifier.declareReplay`
         // gives — nor does a hit re-wire `store.focusManager`, for the same
-        // ones. The forced id is derived from this modifier's identity, which a
-        // hit shares with the render that recorded it.
+        // ones. The forced id is derived from the binding modifier's identity,
+        // which a hit shares with the render that recorded it.
         let boundValue = AnyHashable(value)
         let storeID = store.storeID
         journal.append(
             EffectJournal.Entry(
-                kind: FocusBindingRegistrar.kind, channelToken: context.environment.keyChannelToken
+                kind: Self.kind, channelToken: context.environment.keyChannelToken
             ) { replay in
-                FocusBindingRegistrar.register(
-                    store: storeID, value: boundValue, focusID: focusID, context: replay)
+                Self.register(store: storeID, value: boundValue, focusID: focusID, context: replay)
             })
     }
 }
