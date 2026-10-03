@@ -77,16 +77,24 @@ public struct DatePicker<Label: View>: View {
         self.isDisabled = false
     }
 
-    public var body: some View {
-        // `_CollapsingLabel` rather than the label and a stack gap: it is the
-        // same "label, one separating space, or nothing at all" unit `Picker`,
-        // `Slider` and `Stepper` use, and it is where `.labelsHidden()` is
-        // honoured. Spacing 0 because the unit carries its own space.
-        HStack(spacing: 0) {
-            _CollapsingLabel(label: label, controlDisabled: isDisabled)
-            _DatePickerCore(
-                selection: selection, range: range,
-                displayedComponents: displayedComponents, focusID: focusID, isDisabled: isDisabled)
+    @Environment(\.datePickerStyle) private var style
+
+    @ViewBuilder public var body: some View {
+        let configuration = DatePickerStyleConfiguration(
+            label: DatePickerStyleConfiguration.Label(content: AnyView(label)),
+            selection: selection,
+            // A one-sided range is stored with the far past or future at its
+            // open end, which a configuration reports as no bound at all.
+            minimumDate: range.map(\.lowerBound).flatMap { $0 == .distantPast ? nil : $0 },
+            maximumDate: range.map(\.upperBound).flatMap { $0 == .distantFuture ? nil : $0 },
+            displayedComponents: displayedComponents)
+        // A built-in style is drawn here, with this picker's focus id and
+        // disabled state, which a configuration does not carry; a custom style
+        // through its body.
+        if style is any BuiltInDatePickerStyle {
+            _DatePickerField(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
+        } else {
+            style.makeAnyBody(configuration: configuration)
         }
     }
 }
@@ -272,7 +280,7 @@ private enum DatePickerStateIndex {
 
 /// Renders the inline date/time field with the active component highlighted, and
 /// wires focus + keyboard + click. Fixed size (it hugs the field).
-private struct _DatePickerCore: View, Renderable, Layoutable {
+struct _DatePickerCore: View, Renderable, Layoutable {
     let selection: Binding<Date>
     let range: ClosedRange<Date>?
     let displayedComponents: DatePickerComponents

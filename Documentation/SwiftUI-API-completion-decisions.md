@@ -628,6 +628,24 @@ choosing (or choosing as the arrows move, as macOS does for a single-choice
 segmented control). The radio group's handler is that model already; the
 work is the drawing, about half a day.
 
+### B14. `.stepperField` draws no arrows, and `.compact` opens no popover
+
+*`StepperFieldDatePickerStyle` / `.stepperField`, `CompactDatePickerStyle` /
+`.compact`*
+
+TUIkit's date picker is an editable field: Left and Right choose a component,
+Up and Down step it, and the wheel steps the component under the pointer.
+
+**Shipped:** both styles draw that field. A stepper field's job — stepping the
+selected component — the field does by key and by wheel, but it draws no
+arrows beside itself to click; and a compact picker's text is the field's,
+but clicking it opens no calendar.
+
+**The fuller version:** a `▲▼` pair after a stepper field, each a click
+target stepping the selected component (S, half a day with tests); and a
+compact field that opens the graphical calendar in a popover (S once the
+calendar exists — it is Wave 6's next commit).
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
