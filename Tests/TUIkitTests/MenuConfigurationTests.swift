@@ -49,3 +49,18 @@ struct MenuConfigurationTests {
         #expect(!wrapped.lines.map(\.stripped).joined().contains(DropdownMenu.closedCaret))
     }
 }
+
+@MainActor
+@Suite("ButtonMenuStyle")
+struct ButtonMenuStyleTests {
+    @Test("The button style draws the menu as the default does, honouring the button style")
+    func drawsAsTheDefault() {
+        func line<V: View>(_ view: V) -> String {
+            renderToBuffer(view, context: makeRenderContext(width: 30, height: 2)).lines.first ?? ""
+        }
+        let menu = Menu("File") { Button("Open") {} }
+        #expect(line(menu.menuStyle(.button)) == line(menu))
+        #expect(line(menu.menuStyle(.button).buttonStyle(.borderless))
+            == line(menu.buttonStyle(.borderless)))
+    }
+}

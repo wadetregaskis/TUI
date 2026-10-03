@@ -169,6 +169,24 @@ public struct DefaultMenuStyle: MenuStyle, Equatable {
     }
 }
 
+/// A menu style that displays a button that toggles the display of the menu's
+/// contents when pressed.
+///
+/// What the default style draws here, as on macOS: a button with an arrow
+/// showing it presents a menu, where pressing and dragging into the contents
+/// chooses the item released on. The trigger is a ``Button``, so the button
+/// style in force draws it.
+///
+/// Access this style with the ``MenuStyle/button`` static property.
+public struct ButtonMenuStyle: MenuStyle, Equatable {
+    /// Creates a button menu style.
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        DefaultMenuStyle().makeBody(configuration: configuration)
+    }
+}
+
 /// A menu style that shows the items expanded in place, under the label as a
 /// heading — nothing to open, everything visible.
 ///
@@ -191,6 +209,12 @@ public struct InlineMenuStyle: MenuStyle, Equatable {
 extension MenuStyle where Self == DefaultMenuStyle {
     /// The default menu style — a collapsed label that opens a floating menu.
     public static var automatic: DefaultMenuStyle { DefaultMenuStyle() }
+}
+
+extension MenuStyle where Self == ButtonMenuStyle {
+    /// A menu style that displays a button that toggles the display of the
+    /// menu's contents when pressed.
+    public static var button: ButtonMenuStyle { ButtonMenuStyle() }
 }
 
 extension MenuStyle where Self == InlineMenuStyle {
