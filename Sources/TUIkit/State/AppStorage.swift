@@ -457,6 +457,18 @@ public struct AppStorage<Value: Codable> {
         self.storage = storage
     }
 
+    /// Creates an AppStorage for an optional value, `nil` until something is
+    /// stored — mirrors SwiftUI's `init(_:store:)`.
+    ///
+    /// - Parameters:
+    ///   - key: The key to use for storage.
+    ///   - storage: The storage backend to use, or `nil` for the default.
+    public init<Wrapped>(_ key: String, store storage: StorageBackend? = nil) where Value == Wrapped? {
+        self.key = key
+        self.defaultValue = nil
+        self.storage = storage ?? StorageDefaults.backend
+    }
+
     /// The current value.
     public var wrappedValue: Value {
         get {

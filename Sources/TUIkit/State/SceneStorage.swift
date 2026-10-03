@@ -81,6 +81,16 @@ public struct SceneStorage<Value: Codable> {
         self.storage = storage
     }
 
+    /// Creates scene storage for an optional value, `nil` until something is
+    /// stored — mirrors SwiftUI's `init(_:)`.
+    ///
+    /// - Parameter key: The key to store under, within the scene's namespace.
+    public init<Wrapped>(_ key: String) where Value == Wrapped? {
+        self.key = Self.prefix + key
+        self.defaultValue = nil
+        self.storage = StorageDefaults.backend
+    }
+
     /// The current value.
     public var wrappedValue: Value {
         get {

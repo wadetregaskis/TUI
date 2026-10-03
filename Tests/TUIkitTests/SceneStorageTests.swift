@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkit
@@ -49,6 +50,21 @@ struct SceneStorageTests {
         app.wrappedValue = 7
         #expect(scene.wrappedValue == 42)
         #expect(app.wrappedValue == 7)
+    }
+
+    @Test("The optional forms start nil and store a value")
+    func optionalForms() {
+        let backend = MockStorageBackend()
+        let name = AppStorage<String?>("nickname", store: backend)
+        #expect(name.wrappedValue == nil)
+        name.wrappedValue = "Ada"
+        #expect(AppStorage<String?>("nickname", store: backend).wrappedValue == "Ada")
+        name.wrappedValue = nil
+        #expect(name.wrappedValue == nil)
+        // SceneStorage's optional form takes the default store, as SwiftUI's
+        // does; a key nothing has written reads as nil. Read only, so the
+        // test process's real defaults are never written.
+        #expect(SceneStorage<Int?>("never-written-\(UUID().uuidString)").wrappedValue == nil)
     }
 
     @Test("The binding writes through")
