@@ -87,8 +87,10 @@ extension Never: ShapeStyle {
 
 // MARK: - The primitives
 
+/// A colour resolves to ``Color/Resolved`` — its nested type of that name is
+/// what satisfies the protocol's, as in SwiftUI — and paints itself without
+/// going through it, keeping a palette role a role until the cell.
 extension Color: ShapeStyle {
-    public typealias Resolved = Never
     public func paint(in environment: EnvironmentValues) -> Paint {
         .color(resolve(with: environment.palette))
     }

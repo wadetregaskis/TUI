@@ -362,3 +362,22 @@ private struct SemanticShapeStyleShapes: View {
         .foregroundStyle(.foreground)
     }
 }
+
+/// Colours from components, as SwiftUI writes them, and read back as numbers.
+@MainActor
+private struct ColourComponentShapes: View {
+    @Environment(\.self) private var environment
+
+    var body: some View {
+        let brand = Color(red: 0.2, green: 0.4, blue: 0.6)
+        let resolved = brand.resolve(in: environment)
+        return VStack {
+            Text("rgb").foregroundStyle(brand)
+            Text("p3").foregroundStyle(Color(.displayP3, red: 1, green: 0.3, blue: 0, opacity: 0.8))
+            Text("grey").foregroundStyle(Color(white: 0.4))
+            Text("hsb").foregroundStyle(Color(hue: 0.6, saturation: 0.5, brightness: 0.9))
+            Text(resolved.description).foregroundStyle(Color(resolved))
+            Text("linear \(resolved.linearRed)").foregroundStyle(resolved)
+        }
+    }
+}
