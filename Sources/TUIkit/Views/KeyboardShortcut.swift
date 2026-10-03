@@ -6,26 +6,21 @@
 
 // MARK: - KeyboardShortcut
 
-/// The key a ``KeyboardShortcut`` is triggered by, mirroring SwiftUI's
+/// A key a ``KeyboardShortcut`` is triggered by, mirroring SwiftUI's
 /// `KeyEquivalent`.
+///
+/// Case matters, as it does in SwiftUI: `KeyEquivalent("A")` is not
+/// `KeyEquivalent("a")`. A terminal sends a shifted printable as the shifted
+/// *character* with no modifier bits (see `KeyEvent.parse`), so the case is all
+/// there is of the Shift, and a ``KeyboardShortcut`` reads an uppercase key as
+/// the Shift chord of its lowercase one — SwiftUI's reading of an uppercase
+/// literal.
 public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeClusterLiteral {
-    /// The character this equivalent matches, always folded to lower case.
-    ///
-    /// A terminal does not report Shift for a printable key — it sends the
-    /// shifted *character*: "A" arrives as one byte with no modifier bits at
-    /// all (see `KeyEvent.parse`). So the case of the literal IS the shift,
-    /// and carrying both would let a shortcut be written that can never fire.
-    /// `KeyEquivalent("A")` therefore normalises to `"a"` plus
-    /// ``impliesShift``, which is SwiftUI's reading of an uppercase literal.
-    public let character: Character
-
-    /// Whether the literal was uppercase, i.e. the shortcut wants the shifted
-    /// key. Unioned into the shortcut's modifiers at construction.
-    public let impliesShift: Bool
+    /// The character this equivalent stands for, as written.
+    public var character: Character
 
     public init(_ character: Character) {
-        self.character = Character(character.lowercased())
-        self.impliesShift = character.isUppercase
+        self.character = character
     }
 
     /// A key literal is a single character, as in SwiftUI.
@@ -74,17 +69,12 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
     /// Tab.
     public static let tab = Self("\u{9}")
 
-    // Identity is the folded character alone. `impliesShift` records how the
-    // literal was written so the initialiser can fold it into the shortcut's
-    // modifiers, and must not survive into the lookup key — otherwise
-    // `KeyEquivalent("A")` and `KeyEquivalent("a")` hash apart and a typed "A"
-    // could never find the binding its own case just created.
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.character == rhs.character
-    }
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(character)
+    /// This key in lower case, and whether that took a Shift away: what a
+    /// shortcut matches on, since a terminal says Shift only by the case of the
+    /// character it sends.
+    var foldingCase: (key: Self, shifted: Bool) {
+        guard character.isUppercase else { return (self, false) }
+        return (Self(Character(character.lowercased())), true)
     }
 }
 
@@ -182,17 +172,23 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// key. That is the form a terminal menu wants anyway: "press 1 for the
     /// first item".
     public init(_ key: KeyEquivalent, modifiers: EventModifiers = .command) {
-        // An uppercase literal IS the shift — see `KeyEquivalent`.
-        self.trigger = Self.normalised(key, key.impliesShift ? modifiers.union(.shift) : modifiers)
+        self.trigger = Self.normalised(key, modifiers)
     }
 
-    /// The spelled-out forms of the two semantic roles ARE those roles —
-    /// SwiftUI defines `.defaultAction` as unmodified Return and
-    /// `.cancelAction` as unmodified Escape. An incoming bare Return/Escape
-    /// event resolves to the role before the key table
-    /// (see ``trigger(for:)``), so an un-normalised `.key(.return, [])`
-    /// could never fire: registered, listed, and permanently dead.
+    /// What a key and modifiers trigger, in the one spelling an incoming event
+    /// is matched against.
+    ///
+    /// - An uppercase key IS the Shift chord of its lowercase one (see
+    ///   ``KeyEquivalent``): `("A", [])` and `("a", [.shift])` are one trigger.
+    /// - The spelled-out forms of the two semantic roles ARE those roles —
+    ///   SwiftUI defines `.defaultAction` as unmodified Return and
+    ///   `.cancelAction` as unmodified Escape. An incoming bare Return/Escape
+    ///   event resolves to the role before the key table
+    ///   (see ``trigger(for:)``), so an un-normalised `.key(.return, [])`
+    ///   could never fire: registered, listed, and permanently dead.
     private static func normalised(_ key: KeyEquivalent, _ modifiers: EventModifiers) -> Trigger {
+        let (key, shifted) = key.foldingCase
+        let modifiers = shifted ? modifiers.union(.shift) : modifiers
         guard modifiers.isEmpty else { return .key(key, modifiers) }
         if key == .return { return .defaultAction }
         if key == .escape { return .cancelAction }
@@ -271,10 +267,11 @@ public struct KeyboardShortcut: Hashable, Sendable {
         case .escape where modifiers.isEmpty:
             return .cancelAction
         case .character(let character):
+            let (key, shifted) = KeyEquivalent(character).foldingCase
             var modifiers = modifiers
             modifiers.remove(.shift)
-            if character.isUppercase { modifiers.insert(.shift) }
-            return .key(KeyEquivalent(character), modifiers)
+            if shifted { modifiers.insert(.shift) }
+            return .key(key, modifiers)
         default:
             // The non-printable keys, via the table below. Function keys and
             // pasted text are not bindable, and map to nothing.

@@ -3781,11 +3781,13 @@ builds `KeyEvent(character:)` with `ctrl`/`alt`/`shift` all false. There is no
 shift flag to read.
 
 So a shortcut's Shift has to be derived from case, both when it is declared and
-when a key arrives. `KeyboardShortcut` does exactly that: `KeyEquivalent("A")`
-normalises to `"a"` + `.shift`, and matching sets `.shift` from
+when a key arrives. `KeyboardShortcut` does exactly that: it reads
+`KeyEquivalent("A")` as `"a"` + `.shift`, and matching sets `.shift` from
 `character.isUppercase` and ignores `event.shift`. Trusting the flag instead
 would leave `("a", [.shift])` permanently dead while `("a", [])` fired for "A"
-as well.
+as well. The `KeyEquivalent` itself keeps its case (since 2026-10-03, as
+SwiftUI's does: `"A"` is not `"a"`), so the folding is the shortcut's, not the
+key's.
 
 The flag IS meaningful on **non-printable** keys (arrows, function keys), where
 it arrives in the CSI parameters — and there it is unreliable in a different

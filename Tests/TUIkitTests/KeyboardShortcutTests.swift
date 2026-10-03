@@ -323,6 +323,20 @@ struct KeyEquivalentShortcutTests {
         #expect(fired == 1)
     }
 
+    /// SwiftUI on macOS 15: `KeyEquivalent("A").character` is "A", and "A" is
+    /// not "a". The folding to lower case and Shift belongs to the shortcut
+    /// that matches it, not to the key, which a ``KeyPress`` also reports.
+    @Test("A key equivalent keeps the case it is written in")
+    func keyEquivalentKeepsItsCase() {
+        let upper = KeyEquivalent("A")
+        #expect(upper.character == "A")
+        #expect(upper != KeyEquivalent("a"))
+        #expect(Set([upper, KeyEquivalent("a")]).count == 2)
+        var key = KeyEquivalent("x")
+        key.character = "y"
+        #expect(key == "y")
+    }
+
     @Test("The semantic roles still work alongside key equivalents")
     func semanticsStillWork() {
         let registry = KeyboardShortcutRegistry()
