@@ -222,9 +222,12 @@ extension ObjectEnvironmentModifier: GridRowProviding where Content: GridRowProv
 ///
 /// ## Terminal specifics
 ///
-/// Spacings are `Int` cells, defaulting to 1 column and 0 rows: a column gap of
-/// zero would run adjacent text together, whereas rows are already separated by
-/// being different lines.
+/// Spacings are `Int` cells; `nil`, the default, is 1 column and 0 rows: a
+/// column gap of zero would run adjacent text together, whereas rows are already
+/// separated by being different lines.
+///
+/// ``GridLayout`` lays cells out the same way as a ``Layout``, for switching
+/// with another layout through ``AnyLayout``.
 ///
 /// SwiftUI's `gridCellUnsizedAxes(_:)` has no counterpart. It exists in SwiftUI so
 /// a `Divider` does not force its own ideal length onto a column; here a
@@ -247,18 +250,20 @@ public struct Grid<Content: View>: View {
     ///
     /// - Parameters:
     ///   - alignment: How each cell sits in its box (default `.center`).
-    ///   - horizontalSpacing: Columns between cells (default 1).
-    ///   - verticalSpacing: Blank lines between rows (default 0).
+    ///   - horizontalSpacing: Columns between cells, or `nil` (the default) for
+    ///     one.
+    ///   - verticalSpacing: Blank lines between rows, or `nil` (the default)
+    ///     for none.
     ///   - content: The ``GridRow``s.
     public init(
         alignment: Alignment = .center,
-        horizontalSpacing: Int = 1,
-        verticalSpacing: Int = 0,
+        horizontalSpacing: Int? = nil,
+        verticalSpacing: Int? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.horizontalSpacing = horizontalSpacing
-        self.verticalSpacing = verticalSpacing
+        self.horizontalSpacing = horizontalSpacing ?? GridLattice.defaultHorizontalSpacing
+        self.verticalSpacing = verticalSpacing ?? GridLattice.defaultVerticalSpacing
         self.content = content()
     }
 

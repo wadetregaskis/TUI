@@ -53,6 +53,14 @@ struct GridLattice {
     /// The columns between cells.
     let horizontalSpacing: Int
 
+    /// A grid's columns between cells when it states none: one, because a
+    /// column gap of zero runs adjacent text together.
+    static let defaultHorizontalSpacing = 1
+
+    /// A grid's blank lines between rows when it states none: none, because
+    /// rows are already separated by being different lines.
+    static let defaultVerticalSpacing = 0
+
     /// The lattice `rows` decide, with `horizontalSpacing` columns between
     /// neighbouring cells.
     init(rows: [Row], horizontalSpacing: Int) {
