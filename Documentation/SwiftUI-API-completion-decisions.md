@@ -161,6 +161,16 @@ cannot ship as a no-op, and one enum case cannot be made a compile error.
 `flipsForRightToLeftLayoutDirection(_:)` has shipped regardless: its
 condition is a right-to-left environment, which cannot occur yet (B1).
 
+**Wave 11 adds four symbols to the same question:**
+`View.multilineTextAlignment(strategy:)`, `View.writingDirection(strategy:)`,
+`Text.AlignmentStrategy` and `Text.WritingDirectionStrategy`. Each strategy
+chooses between the layout direction and a paragraph's own writing
+direction. TUIkit lays every paragraph out left to right, so the two agree
+except on a right-to-left paragraph. There, `.writingDirectionBased` and
+`.contentBased` would right-align a Hebrew line in SwiftUI and left-align it
+here. Shipping them before right-to-left would be a quiet lie for exactly
+the text they exist for, so they wait with this entry.
+
 ### A4. Speak the kitty keyboard protocol where the terminal does?
 
 *`KeyPress.Phases.up` (and a real `.repeat`), `View.onModifierKeysChanged(mask:initial:_:)`,
@@ -422,6 +432,141 @@ O8.
 They style content passing under a bar, and nothing passes under a bar here
 (B6). Refusal-review O7 already asks whether to ship them with the safe-area
 design; these two modifiers are that question's modifiers.
+
+### A13. Text selection: draw TUIkit's own, or leave it to the terminal?
+
+*`View.textSelection(_:)`, `TextSelectability`, `EnabledTextSelectability`,
+`DisabledTextSelectability` (`.enabled`, `.disabled`, `allowsSelection`)*
+
+In SwiftUI, `.textSelection(.enabled)` lets the user select a `Text`'s
+characters and copy them; `.disabled`, the default, does not. A terminal
+already selects text itself, but only when the app is not reporting the
+mouse. TUIkit reports it whenever an app has anything clickable, and then
+most emulators select only with a modifier held (Option in iTerm2 and
+Terminal.app, Shift in xterm and kitty). That means neither value can be
+honoured as written today. `.disabled` cannot stop the emulator's own
+selection, and `.enabled` does not make selection reachable without the
+modifier.
+
+**Options.**
+
+1. **TUIkit's own selection.** A drag over text that allows it paints a
+   selection (the inverted-highlight rules apply), and Copy (⌘C where the
+   terminal forwards it, else Ctrl-Shift-C; plus a context-menu item) puts
+   the characters on the clipboard through the existing clipboard path
+   (OSC 52, else `pbcopy`/`wl-copy`/`xclip`). The keyboard route is required
+   too (see the no-mouse-only rule): Shift-arrows from a focused selectable
+   text. `.disabled` then means TUIkit draws no selection; the emulator's
+   modifier-drag still works, which is the terminal's, not the app's. About
+   3–4 days, mostly the keyboard route and the hit-testing of wrapped lines.
+2. **Ship `.enabled` as "selectable by the terminal" and omit `.disabled`.**
+   Honest about what happens, but a modifier-drag is not what a SwiftUI
+   developer means by selectable, and the default would be the one value
+   that does not compile.
+3. **Decline both** with a map entry naming the emulator's own selection.
+
+**Recommendation:** 1, after the rest of the batch. It is the only option
+under which SwiftUI source means what it says.
+
+### A14. String tables and bundles for localized text
+
+*`Text.init(_:tableName:bundle:comment:)`, and the same parameters wherever
+SwiftUI takes a `LocalizedStringKey`*
+
+TUIkit's localization is a registered dictionary per language, and
+`LocalizedStringKey`'s note says the parameters are absent because there
+are no tables or bundles for them to name. That holds for TUIkit's own
+strings. An app ported from SwiftUI arrives with `Localizable.strings` /
+`.xcstrings` in its bundle, though.
+
+**Options.**
+
+1. **Look the key up in `bundle`'s `tableName` table through Foundation**
+   (`Bundle.localizedString(forKey:value:table:)`, which swift-corelibs
+   implements for `.lproj/*.strings`), after the registered dictionary
+   misses. `.xcstrings` is compiled to `.strings` only by Xcode, so a SwiftPM
+   app would ship `.strings` or register a dictionary. Half a day plus tests
+   on Linux.
+2. **Keep the parameters absent.**
+
+**Recommendation:** 1. It makes the common ported call compile and work, and
+it costs nothing for apps that never pass a table.
+
+### A15. Asset catalogues: named colours and images
+
+*`Color.init(_:bundle:)`, `Image.init(_:bundle:)`, `Image.init(_:bundle:label:)`,
+`Image.init(decorative:bundle:)`*
+
+Both load from an asset catalogue, which only Xcode compiles. A SwiftPM
+executable, which every terminal app is, has none (the `image:` overloads are
+declined on exactly this ground, in the map's `ImageResource` family).
+
+**Options.**
+
+1. **Read the uncompiled catalogue** if the app copies an `.xcassets`
+   folder as a resource: `Name.colorset/Contents.json` for a colour (with
+   its light and dark variants chosen by `\.colorScheme`), and
+   `Name.imageset`'s largest file for an image. About a day.
+2. **Look for a plain file** (`Name.png`, `Name.jpg`) among the bundle's
+   resources, for images only. An hour.
+3. **Decline** both with the same reason as the `image:` overloads.
+
+**Recommendation:** 2 for images, 3 for colours: a named colour without its
+catalogue has nothing to read, and a theme's palette is the terminal app's
+way of naming colours.
+
+### A16. Colours that resolve themselves, and HDR
+
+*`Color.init(_:)` for a `ShapeStyle & Hashable` whose `Resolved` is
+`Color.Resolved` or `Color.ResolvedHDR`; `Color.ResolvedHDR` and its
+members; `Color.resolveHDR(in:)`, `Color.headroom(_:)`,
+`Color.exposureAdjust(_:)`*
+
+`Color.Resolved`, `resolve(in:)` and the component initialisers have
+shipped. Two things remain.
+
+- **A custom colour provider.** SwiftUI's `Color(MyStyle())` defers to the
+  style at every resolve. TUIkit's `Color` is five bytes with no padding:
+  every `Text` carries two, every cell's run carries them, and the value
+  hash reads them as plain words. A provider case would hold an existential
+  (40 bytes), growing every one of those, or an index into a registry, which
+  is a singleton. Resolving the provider once at `init` against a default
+  environment would be the quiet lie the parity rules forbid.
+- **HDR.** A terminal is SDR, so a headroom cap is always met
+  (`headroom(_:)` would return the colour unchanged, honestly), and
+  `ResolvedHDR` is a value type that could ship as data.
+  `exposureAdjust(_:)` brightens by stops, though, and a palette role or a
+  terminal slot has no numbers until it is painted, so it cannot be applied
+  at `init`.
+
+**Options.** (a) Decline the provider, ship `ResolvedHDR`, `resolveHDR(in:)`
+and `headroom(_:)`, and decline `exposureAdjust(_:)`. (b) Decline all of it.
+(c) Grow `Color` for the provider.
+
+**Recommendation:** (a). All of these are macOS 26 APIs (the HDR half could
+not even be probed on this machine's macOS 15), and they are rare in ported
+code.
+
+### A17. `preferredColorScheme(_:)`
+
+*`View.preferredColorScheme(_:)`, `PreferredColorSchemeKey` (`Value`,
+`reduce(value:nextValue:)`)*
+
+The compatibility doc (§2.5) keeps this out on purpose. A terminal's look is
+a palette, and the write half of `\.colorScheme` is `.palette(_:)`. The
+Wave 17 review never saw it, because it was absent rather than mapped.
+
+**Options.**
+
+1. **Keep it absent**, and add a map entry pointing at §2.5.
+2. **Let it choose a palette's light or dark variant.** That needs palettes
+   to come in pairs. The built-in `SystemPalette`s would need a light twin
+   each, and a custom palette would declare its twin. The preference then
+   flows up to the scene, as SwiftUI's does, and picks between the pair. Two
+   to three days, mostly the light palettes' contrast work.
+
+**Recommendation:** 1 for this batch, 2 only if light palettes are wanted for
+their own sake.
 
 ## B. Shipped the safe option
 
@@ -1405,3 +1550,18 @@ would rather SwiftUI code that reads or writes it compiled.
 
 The `ScrollView.Body` map entry claimed the property was public; it never
 was, and the entry now says so.
+
+### C8. `TypesettingLanguage`
+
+*`TypesettingLanguage` (`.automatic`, `.explicit(_:)`),
+`View.typesettingLanguage(_:isEnabled:)` and `Text.typesettingLanguage(_:isEnabled:)`
+in both forms*
+
+The language a run is typeset in sets its line height (taller for Thai, say),
+its line breaking and its spacing. Line height is the terminal's row, and
+spacing is whole cells. TUIkit's word wrapper breaks at spaces and at
+characters a line cannot hold, whatever the language, so a language would
+change none of the three, and accepting one would be the quiet no-op the
+parity rules forbid. If the wrapper ever learns dictionary-based breaking
+(Thai, Khmer and Lao have no spaces between words), this becomes its
+modifier.

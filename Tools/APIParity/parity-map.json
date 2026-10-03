@@ -415,6 +415,14 @@
         "View.textInputFormattingControlVisibility(_:for:)"
       ],
       "why": "Affordances the operating system draws over a text view: Apple Intelligence's Writing Tools button, and the rich-text formatting control bar. Nothing in a terminal app is OS-drawn, and neither service reaches a terminal. TextInputFormattingControlPlacement is declined for the same reason (Documentation/SwiftUI-API-completion-refusal-review.md)."
+    },
+    {
+      "match": [
+        "TypesettingLanguage*",
+        "View.typesettingLanguage(_:isEnabled:)",
+        "Text.typesettingLanguage(_:isEnabled:)"
+      ],
+      "why": "A run's typesetting language sets its line height, line breaking and spacing. Line height is the terminal's row and spacing is whole cells; TUIkit's word wrapper breaks at spaces and at characters a line cannot hold, whatever the language. So a language changes none of the three and could only be accepted and ignored. See Documentation/SwiftUI-API-completion-decisions.md C8."
     }
   ],
   "renamed": {
