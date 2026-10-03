@@ -356,13 +356,17 @@ enum DropZone {
     ///     `false` when it leaves or drops.
     ///   - hovering: Told the pointer's cell, local to the zone, on every move
     ///     while it is the targeted one.
+    ///   - hoveringInfo: Told the same, as the ``DropInfo`` a drop there would
+    ///     be handed — for a destination that answers each move, as SwiftUI's
+    ///     drop delegate does.
     @MainActor
     static func install(
         on buffer: inout FrameBuffer, context: RenderContext,
         accepts: @escaping (Any) -> Bool,
         perform: @escaping (Any, DropInfo) -> Bool,
         setTargeted: @escaping (Bool) -> Void,
-        hovering: ((_ x: Int, _ y: Int) -> Void)? = nil
+        hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
+        hoveringInfo: ((DropInfo) -> Void)? = nil
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -397,28 +401,35 @@ enum DropZone {
         // is — so a served frame that did not register here left hit-testing
         // finding the id and `resolveTarget` finding nothing behind it. Hence
         // the journalled form.
+        // Where a drop at `event` lands, in the destination's local space: the
+        // event is absolute, the region offset is known here. The drag is
+        // still active while its drop performs, so the preview frame is
+        // reportable — localized the same way (effects anchor to the image,
+        // not the cursor).
+        func info(at event: MouseEvent, carrying payload: Any) -> DropInfo {
+            let (dx, dy) = dispatcher.regionOffset(for: id) ?? (0, 0)
+            let frame = session.previewFrame() ?? (x: event.x, y: event.y, width: 0, height: 0)
+            return DropInfo(
+                x: event.x - dx, y: event.y - dy,
+                shift: event.shift, ctrl: event.ctrl, meta: event.meta,
+                previewX: frame.x - dx, previewY: frame.y - dy,
+                previewWidth: frame.width, previewHeight: frame.height,
+                payload: DropPayload(payload))
+        }
         var target = DragAndDropSession.Target(
             handlerID: id,
             accepts: accepts,
-            perform: { payload, event in
-                // The drop location in the destination's local space:
-                // the event is absolute, the region offset is known here.
-                let (dx, dy) = dispatcher.regionOffset(for: id) ?? (0, 0)
-                // The drag is still active while its drop performs, so
-                // the preview frame is reportable — localized the same
-                // way (effects anchor to the image, not the cursor).
-                let frame = session.previewFrame() ?? (x: event.x, y: event.y, width: 0, height: 0)
-                return perform(
-                    payload,
-                    DropInfo(
-                        x: event.x - dx, y: event.y - dy,
-                        shift: event.shift, ctrl: event.ctrl, meta: event.meta,
-                        previewX: frame.x - dx, previewY: frame.y - dy,
-                        previewWidth: frame.width, previewHeight: frame.height))
-            },
+            perform: { payload, event in perform(payload, info(at: event, carrying: payload)) },
             setTargeted: setTargeted
         )
-        target.hovering = hovering
+        if hovering != nil || hoveringInfo != nil {
+            target.hovering = { x, y in
+                hovering?(x, y)
+                if let hoveringInfo, let event = session.lastAbsoluteEvent, let payload = session.active?.payload {
+                    hoveringInfo(info(at: event, carrying: payload))
+                }
+            }
+        }
         session.registerTarget(target, in: context)
     }
 }

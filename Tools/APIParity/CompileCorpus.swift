@@ -278,6 +278,47 @@ private struct DropDestinationShapes: View {
     }
 }
 
+#if canImport(UniformTypeIdentifiers)
+    import Foundation
+    import UniformTypeIdentifiers
+
+    /// SwiftUI's item-provider drag and drop, as its documentation writes it: a
+    /// struct delegate holding a binding, both `onDrop` closures, `onDrag`.
+    @MainActor
+    private struct TextDropDelegate: DropDelegate {
+        @Binding var text: String
+
+        func validateDrop(info: DropInfo) -> Bool { info.hasItemsConforming(to: [.text]) }
+
+        func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .copy) }
+
+        func performDrop(info: DropInfo) -> Bool {
+            text = "\(info.itemProviders(for: [.text]).count) at \(info.location.x)"
+            return true
+        }
+    }
+
+    @MainActor
+    private struct ItemProviderShapes: View {
+        @State private var text = ""
+        @State private var isTargeted = false
+
+        var body: some View {
+            VStack {
+                Text("source").onDrag { NSItemProvider(object: "x" as NSString) }
+                Text("plain").onDrop(of: [.plainText], isTargeted: $isTargeted) { providers in
+                    !providers.isEmpty
+                }
+                Text("located").onDrop(of: [.text], isTargeted: nil) { providers, location in
+                    text = "\(providers.count) at \(location.x)"
+                    return true
+                }
+                Text("delegate").onDrop(of: [.text], delegate: TextDropDelegate(text: $text))
+            }
+        }
+    }
+#endif
+
 /// The optional `keyboardShortcut` overload beside the non-optional one, which
 /// a conditional shortcut reaches through `nil`, and the localization form.
 @MainActor

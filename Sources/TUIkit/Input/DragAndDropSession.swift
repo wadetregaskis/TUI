@@ -58,6 +58,23 @@ public struct DropInfo: Sendable, Equatable {
     /// `Documentation/SwiftUI-compatibility.md`). The same cell as ``x`` and
     /// ``y``.
     public var location: CellPoint { CellPoint(x: x, y: y) }
+
+    /// What the drag carries, for SwiftUI's item-provider queries
+    /// (`itemProviders(for:)`, `hasItemsConforming(to:)`).
+    var payload: DropPayload?
+}
+
+/// A drag's payload as a ``DropInfo`` carries it: by reference, so the info
+/// stays `Sendable` and its equality is the payload's identity rather than a
+/// comparison of values of unknown type.
+final class DropPayload: @unchecked Sendable, Equatable {
+    let value: Any
+
+    init(_ value: Any) {
+        self.value = value
+    }
+
+    static func == (lhs: DropPayload, rhs: DropPayload) -> Bool { lhs === rhs }
 }
 
 // MARK: - Session

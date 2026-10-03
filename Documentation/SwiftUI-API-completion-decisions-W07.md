@@ -192,4 +192,39 @@ there rather than compiling to nothing.
 returns `String`s and works on every platform: `onCopyCommand(text:)`, say.
 That is an addition, not a fix, so I have not made it. Say if you want it.
 
+### B-W7-4. Item-provider drag and drop stays in the app, and only cancel and forbidden change a drop
+
+*`View.onDrag(_:)`, `View.onDrag(_:preview:)`, `View.onDrop(of:isTargeted:perform:)`,
+`View.onDrop(of:delegate:)`, `DropDelegate`, `DropInfo.hasItemsConforming(to:)`,
+`DropInfo.itemProviders(for:)`, `DropOperation` (+ `.Set`), `DropProposal`*
+
+**Shipped:**
+
+- On Apple platforms, the four modifiers and the delegate, riding TUIkit's
+  in-app drag session. An `onDrag` provider, or a `draggable` string or URL
+  wrapped as SwiftUI wraps a `Transferable`, lands in an `onDrop` whose types
+  it conforms to.
+- The delegate is called in SwiftUI's order: validate once, enter, update on
+  each move, then exit or perform.
+- `DropOperation`, its `Set` and `DropProposal` are values everywhere.
+
+Two things SwiftUI's drop does are not here:
+
+- *The operation's meaning.* A proposal of `.cancel` or `.forbidden` refuses
+  the drop, and the drag goes home. `.copy`, `.move`, `.delete` and `.alias`
+  all accept it. On macOS they differ in the pointer's badge and in what the
+  source application is told. A TUIkit drag has no badge and never leaves the
+  app, so the delegate's `performDrop` is where any difference has to be
+  made.
+- *`operationOutsideApplication`.* It is recorded and never applies.
+
+`DropOperation.Set`'s raw values are TUIkit's own: SwiftUI does not document
+its own, and it is macOS 26 only, so it could not be probed on this machine.
+
+**The fuller version:** a badge beside the drag preview naming the proposed
+operation (`+` for copy, as Finder draws), and a source-side callback when a
+drop completes with `.move` or `.delete`. SwiftUI's is `onDragSessionUpdated`,
+which the `DragSession*` family rule declines. About half a day for the
+badge; the callback belongs with that family's re-examination in Wave 17.
+
 ## C. Declined without asking
