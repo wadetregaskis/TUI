@@ -110,12 +110,12 @@ extension ForEach {
     /// The collection this loop iterates, as it stands in `context`: the one
     /// place a walk that has a context reads ``data``.
     ///
-    /// Today it is ``data`` itself. It exists for the loops whose collection
-    /// can only be produced with a context — `ForEach(subviews:)` and
-    /// `ForEach(sections:)` iterate the members of a view, and a view's members
-    /// have identities only under the scope they resolve in, which an `init`
-    /// does not have. Routing every context-carrying read through here gives
-    /// that one branch to live in.
+    /// For almost every loop it is ``data`` itself. The exception is a loop
+    /// whose collection can only be produced with a context —
+    /// `ForEach(subviews:)` and `ForEach(sections:)` iterate the members of a
+    /// view, and a view's members have identities only under the scope they
+    /// resolve in, which an `init` does not have — and it is resolved here
+    /// (``ContextResolvedCollection``).
     ///
     /// The walks that have no context read ``data`` directly, and so does
     /// `List`'s row family, whose windowed path asks `listRowCount` and
@@ -124,7 +124,7 @@ extension ForEach {
     /// needs a context is empty until resolved, so any of those walks sees no
     /// rows rather than rows it cannot account for.
     func data(in context: RenderContext) -> Data {
-        data
+        contextResolvedData(in: context) ?? data
     }
 }
 
