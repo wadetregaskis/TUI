@@ -132,6 +132,19 @@
             DraggableModifier(content: self, payload: data, preview: AnyView(preview()))
         }
 
+        /// Vends the item provider a drag of this view carries — SwiftUI's
+        /// `itemProvider(_:)`, by which a row of a list says what dragging it
+        /// takes along.
+        ///
+        /// The drag is within the app, as ``onDrag(_:)``'s is. A `nil` action,
+        /// or one that vends `nil`, starts no drag.
+        ///
+        /// - Parameter action: Vends the provider when a drag begins.
+        /// - Returns: A view whose drag carries the provider.
+        public func itemProvider(_ action: (() -> NSItemProvider?)?) -> some View {
+            DraggableModifier(content: self, payload: { action?() }, preview: nil)
+        }
+
         /// Makes this view a destination for drags carrying items of
         /// `supportedContentTypes` — SwiftUI's `onDrop(of:isTargeted:perform:)`.
         ///

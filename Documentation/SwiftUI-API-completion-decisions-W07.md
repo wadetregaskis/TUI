@@ -194,7 +194,7 @@ That is an addition, not a fix, so I have not made it. Say if you want it.
 
 ### B-W7-4. Item-provider drag and drop stays in the app, and only cancel and forbidden change a drop
 
-*`View.onDrag(_:)`, `View.onDrag(_:preview:)`, `View.onDrop(of:isTargeted:perform:)`,
+*`View.onDrag(_:)`, `View.onDrag(_:preview:)`, `View.itemProvider(_:)`, `View.onDrop(of:isTargeted:perform:)`,
 `View.onDrop(of:delegate:)`, `DropDelegate`, `DropInfo.hasItemsConforming(to:)`,
 `DropInfo.itemProviders(for:)`, `DropOperation` (+ `.Set`), `DropProposal`*
 

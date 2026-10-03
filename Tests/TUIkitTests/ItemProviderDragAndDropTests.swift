@@ -172,6 +172,27 @@
             #expect(log.entries == ["validate 3,0", "entered", "updated 3,0", "exited"])
         }
 
+        @Test("itemProvider's provider is what a drag of the view carries; a nil one starts no drag")
+        func itemProvider() {
+            for vends in [true, false] {
+                let log = DropLog()
+                let harness = InputChainHarness(width: 30, height: 8)
+                harness.frame(
+                    tree(
+                        Text("ROW").itemProvider { vends ? NSItemProvider(object: "row" as NSString) : nil },
+                        Text("ZONE========").onDrop(of: [.text], isTargeted: nil) { providers in
+                            log.entries.append("dropped \(providers.count)")
+                            return true
+                        }))
+                harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+                harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 2, y: 2))
+                #expect((harness.tui.dragAndDropSession.active != nil) == vends, "vends \(vends)")
+                harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 3, y: 4))
+                harness.mouse(MouseEvent(button: .left, phase: .released, x: 3, y: 4))
+                #expect(log.entries == (vends ? ["dropped 1"] : []), "vends \(vends)")
+            }
+        }
+
         @Test("DropOperation and DropProposal read as SwiftUI spells them")
         func values() {
             let proposal = DropProposal(operation: .move)

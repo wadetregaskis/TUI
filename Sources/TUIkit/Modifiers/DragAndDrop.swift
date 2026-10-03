@@ -130,8 +130,13 @@ extension DraggableModifier: Renderable, Layoutable {
             context: context,
             dispatcher: dispatcher,
             onDragBegin: { _, grab in
+                // A payload that turns out to be nothing — an `itemProvider`
+                // that vends `nil` — starts no drag: the gesture goes on, and
+                // carries nothing anywhere, as SwiftUI's does.
+                let value = payload()
+                guard !isNilOptional(value) else { return }
                 session.begin(
-                    payload: payload(), preview: capturedPreview,
+                    payload: value, preview: capturedPreview,
                     grabX: grab.x, grabY: grab.y, anchor: anchor, source: identity)
             },
             onDragMove: { _ in session.dragMoved() },
@@ -141,6 +146,12 @@ extension DraggableModifier: Renderable, Layoutable {
             })
         return buffer
     }
+}
+
+/// Whether `value` is an optional holding nothing, whatever it wraps.
+private func isNilOptional(_ value: Any) -> Bool {
+    let mirror = Mirror(reflecting: value)
+    return mirror.displayStyle == .optional && mirror.children.isEmpty
 }
 
 // MARK: - Drag Handle Core
