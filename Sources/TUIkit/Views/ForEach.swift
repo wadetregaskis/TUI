@@ -104,6 +104,30 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content: View>
     }
 }
 
+// MARK: - Reading the Data
+
+extension ForEach {
+    /// The collection this loop iterates, as it stands in `context`: the one
+    /// place a walk that has a context reads ``data``.
+    ///
+    /// Today it is ``data`` itself. It exists for the loops whose collection
+    /// can only be produced with a context — `ForEach(subviews:)` and
+    /// `ForEach(sections:)` iterate the members of a view, and a view's members
+    /// have identities only under the scope they resolve in, which an `init`
+    /// does not have. Routing every context-carrying read through here gives
+    /// that one branch to live in.
+    ///
+    /// The walks that have no context read ``data`` directly, and so does
+    /// `List`'s row family, whose windowed path asks `listRowCount` and
+    /// `listRowID(at:)` without one — its eager `extractListRows(context:)` must
+    /// count the same rows, so it reads the same collection. A collection that
+    /// needs a context is empty until resolved, so any of those walks sees no
+    /// rows rather than rows it cannot account for.
+    func data(in context: RenderContext) -> Data {
+        data
+    }
+}
+
 // MARK: - ForEach rendered on its own
 
 extension ForEach: Renderable, Layoutable {
@@ -174,7 +198,7 @@ extension ForEach: ChildViewProvider {
     /// across data mutations — reordering the data moves each row's state
     /// with its element.
     public func childViews(context: RenderContext) -> [ChildView] {
-        data.map(makeChild(for:))
+        data(in: context).map(makeChild(for:))
     }
 
     /// Worth remembering for the pass from sixteen rows: below that the
@@ -283,7 +307,7 @@ extension ForEach: LazyChildViewProvider {
     /// a row view is built only when an ordinal is actually subscripted.
     /// `RandomAccessCollection` makes the per-ordinal element access O(1).
     public func childViewCollection(context: RenderContext) -> ChildViewCollection {
-        let data = self.data
+        let data = self.data(in: context)
         let idKeyPath = self.idKeyPath
         return ChildViewCollection(
             count: data.count,
