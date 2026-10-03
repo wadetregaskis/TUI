@@ -109,11 +109,6 @@ public protocol GaugeStyle: Sendable {
 }
 
 extension GaugeStyle {
-    /// Default body for the built-in styles, which TUIkit renders procedurally
-    /// rather than through `makeBody`. A custom style overrides it.
-    @MainActor public func makeBody(configuration: Configuration) -> EmptyView {
-        EmptyView()
-    }
 
     /// Renders this style's body for `configuration` into a frame buffer. Opens
     /// the `any GaugeStyle` existential so ``makeBody(configuration:)`` can
@@ -148,13 +143,26 @@ extension GaugeStyle {
 /// five properties under SwiftUI's names.
 ///
 /// - Note: SwiftUI gives each label its own nested type-erasing struct
-///   (`GaugeStyleConfiguration.Label` and friends). TUIkit type-erases with
-///   ``AnyView``, as ``ToggleStyleConfiguration`` and ``LabelStyleConfiguration``
-///   already do — the nested types exist in SwiftUI to hide a view graph node
-///   that has no equivalent here, and five more public names would document a
-///   distinction that isn't one. A style body places them the same way either
-///   way.
+///   (`GaugeStyleConfiguration.Label` and friends). TUIkit's are names for
+///   ``AnyView``, as ``ToggleStyleConfiguration``'s and
+///   ``LabelStyleConfiguration``'s are: a style body places them the same way
+///   either way, and source that names one compiles.
 public struct GaugeStyleConfiguration {
+    /// A type-erased label of a gauge, describing its purpose.
+    public typealias Label = AnyView
+
+    /// A type-erased label describing the current value of a gauge.
+    public typealias CurrentValueLabel = AnyView
+
+    /// A type-erased label describing the minimum value of a gauge.
+    public typealias MinimumValueLabel = AnyView
+
+    /// A type-erased label describing the maximum value of a gauge.
+    public typealias MaximumValueLabel = AnyView
+
+    /// A type-erased label describing a marked value of a gauge.
+    public typealias MarkedValueLabel = AnyView
+
     /// The current value of the gauge, normalized to `0.0...1.0`.
     ///
     /// ``Gauge`` normalizes against the bounds it was given and clamps, so a
@@ -192,6 +200,11 @@ public struct GaugeStyleConfiguration {
 /// the render cache cannot compare declines to cache. It holds nothing, so every
 /// instance draws the same gauge.
 public struct DefaultGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates the default gauge style.
     public init() {}
 }
@@ -207,6 +220,11 @@ public struct DefaultGaugeStyle: GaugeStyle, Equatable {
 /// same meter, so the worst a comparison between them can do is drop a cache
 /// entry that would have been good.
 public struct LinearCapacityGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates a linear-capacity gauge style.
     public init() {}
 }
@@ -216,6 +234,11 @@ public struct LinearCapacityGaugeStyle: GaugeStyle, Equatable {
 ///
 /// `Equatable` on the same terms as ``DefaultGaugeStyle``.
 public struct AccessoryLinearGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates an accessory-linear gauge style.
     public init() {}
 }
@@ -225,6 +248,11 @@ public struct AccessoryLinearGaugeStyle: GaugeStyle, Equatable {
 ///
 /// `Equatable` on the same terms as ``DefaultGaugeStyle``.
 public struct AccessoryLinearCapacityGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates an accessory-linear-capacity gauge style.
     public init() {}
 }
@@ -237,6 +265,11 @@ public struct AccessoryLinearCapacityGaugeStyle: GaugeStyle, Equatable {
 /// is one, so a swap between them changes the gauge's height and must read as a
 /// change.
 public struct AccessoryCircularGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates an accessory-circular gauge style.
     public init() {}
 }
@@ -246,6 +279,11 @@ public struct AccessoryCircularGaugeStyle: GaugeStyle, Equatable {
 ///
 /// `Equatable` on the same terms as ``AccessoryCircularGaugeStyle``.
 public struct AccessoryCircularCapacityGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates an accessory-circular-capacity gauge style.
     public init() {}
 }
@@ -260,6 +298,11 @@ public struct AccessoryCircularCapacityGaugeStyle: GaugeStyle, Equatable {
 ///
 /// `Equatable` on the same terms as ``DefaultGaugeStyle``.
 public struct AccessoryCircularTinyGaugeStyle: GaugeStyle, Equatable {
+    /// A gauge in this style — what a style composing this one draws.
+    public func makeBody(configuration: Configuration) -> some View {
+        Gauge(configuration).gaugeStyle(self)
+    }
+
     /// Creates an accessory-circular-tiny gauge style.
     public init() {}
 }

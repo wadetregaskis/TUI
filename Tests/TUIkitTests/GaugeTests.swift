@@ -361,3 +361,30 @@ struct CustomGaugeStyleTests {
         #expect(measured.width < 40)
     }
 }
+
+/// A style that draws a built-in style's body, as a SwiftUI style may compose one.
+private struct ComposesCircular: GaugeStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        AccessoryCircularGaugeStyle().makeBody(configuration: configuration)
+    }
+}
+
+@MainActor
+@Suite("Gauge style bodies")
+struct GaugeStyleBodyTests {
+    @Test("A built-in gauge style's body draws a gauge in that style")
+    func builtInBodiesCompose() {
+        let gauge = Gauge(value: 0.5) { Text("CPU") } currentValueLabel: { Text("50") }
+        let context = makeRenderContext(width: 20, height: 6)
+        let composed = renderToBuffer(gauge.gaugeStyle(ComposesCircular()), context: context).lines.map(\.stripped)
+        let direct = renderToBuffer(gauge.gaugeStyle(.accessoryCircular), context: context).lines.map(\.stripped)
+        #expect(composed == direct)
+        #expect(composed.contains { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
+    }
+
+    @Test("SwiftUI's label type names are there for source that names them")
+    func labelTypeNames() {
+        #expect(GaugeStyleConfiguration.CurrentValueLabel.self == AnyView.self)
+        #expect(GaugeStyleConfiguration.Label.self == AnyView.self)
+    }
+}

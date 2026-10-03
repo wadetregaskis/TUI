@@ -537,3 +537,19 @@ private enum GaugePieDial {
         return glyphs[index]
     }
 }
+
+// MARK: - From a Configuration
+
+extension Gauge where Label == AnyView, CurrentValueLabel == AnyView, BoundsLabel == AnyView {
+    /// A gauge drawing what a configuration describes — the body of a built-in
+    /// ``GaugeStyle``, for a style that composes one. The labels a configuration
+    /// leaves `nil` stay absent.
+    init(_ configuration: GaugeStyleConfiguration) {
+        self.init(
+            fraction: configuration.value,
+            label: configuration.label,
+            currentValueLabel: configuration.currentValueLabel,
+            minimumValueLabel: configuration.minimumValueLabel,
+            maximumValueLabel: configuration.maximumValueLabel)
+    }
+}
