@@ -292,3 +292,30 @@ idle (B-W10-5 gives the moment). Half a day, and it changes the default feel
 of every scrollable, so it is yours to want.
 
 ## C. Declined without asking
+
+### C-W10-1. `scrollInputBehavior(_:for:)` and `ScrollInputKind`
+
+*`ScrollInputKind`, `View.scrollInputBehavior(_:for:)`*
+
+`ScrollInputKind`'s values are watchOS's — the Digital Crown and the
+double-tap hand-gesture shortcut — and the macOS SDK defines none. No macOS
+source can name a kind, so none can call the modifier: declining it changes
+what compiles for nobody. A terminal has neither input. What macOS code can
+ask — may this view scroll at all — is `.scrollDisabled`, already the
+`ScrollInputBehavior` map entry.
+
+### C-W10-2. `ScrollView.showsIndicators`
+
+*`ScrollView.showsIndicators`*
+
+The stored property behind the soft-deprecated
+`ScrollView(_:showsIndicators:content:)`, which TUIkit omits as it omits every
+soft-deprecated spelling. `ScrollView.init`'s comment records why the
+property was not kept with it: it was a second, hidden answer to the question
+`.scrollIndicators(_:axes:)` answers. The property itself is not deprecated,
+so this is the one arguable entry in this part: a settable `Bool`, `false`
+meaning `.scrollIndicators(.hidden)` for that view, is twenty minutes if you
+would rather SwiftUI code that reads or writes it compiled.
+
+The `ScrollView.Body` map entry claimed the property was public; it never
+was, and the entry now says so.

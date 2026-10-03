@@ -675,6 +675,12 @@
     "ScrollEdgeEffectStyle": {
       "why": "It selects a hard or soft fade of scrolled content passing beneath a bar. In TUIkit no content ever passes beneath chrome — the app header and status bar occupy their own rows and are subtracted from what a view is offered (Documentation/SwiftUI-compatibility.md §4b, safe-area en"
     },
+    "ScrollInputKind": {
+      "why": "Its values are watchOS's — the Digital Crown and the double-tap hand-gesture shortcut — and the macOS SDK defines none, so no macOS source can name one, and View.scrollInputBehavior(_:for:) cannot be called there either. A terminal has neither input. The question macOS code can ask, whether scrolling is allowed at all, is .scrollDisabled (the ScrollInputBehavior entry)."
+    },
+    "ScrollView.showsIndicators": {
+      "why": "The stored property behind the soft-deprecated ScrollView(_:showsIndicators:content:) initializer, which TUIkit omits as it omits every soft-deprecated spelling; .scrollIndicators(_:axes:) is the current one. The property alone would give that modifier a second, hidden answer, the confusion ScrollView.init's comment records splitting visibility from style was meant to end. Decisions-W10 C-W10-2 prices adding it."
+    },
     "SectionedFetchRequest": {
       "why": "A Core Data property wrapper (its EnvironmentValues partner \\.managedObjectContext is likewise absent). CoreData exists on none of the platforms TUIkit must build for besides Apple — .claude/CLAUDE.md requires macOS + Linux, with Windows in progress — so it cannot be a dependency"
     },
@@ -758,6 +764,9 @@
     },
     "View.minimumScaleFactor(_:)": {
       "why": "It permits shrinking the FONT to fit, down to a fraction of the nominal size. A TUIkit app does not own the font: cell size belongs to the emulator, is chosen by the user, and is identical for every glyph on screen. Nothing in the framework can scale one view's text without scaling the whole terminal."
+    },
+    "View.scrollInputBehavior(_:for:)": {
+      "why": "Takes a ScrollInputKind, which has no value on macOS (see that entry), so no macOS source can call it."
     },
     "View.submitLabel(_:)": {
       "why": "It names an on-screen keyboard's Return key ('Go', 'Send', 'Search'), and a terminal has no on-screen keyboard. It shipped once as a value stored in the environment that nothing read, which is worse than absence — the call compiled and the developer never learned the affordance does not exist — so it was removed (c5f31f85) and `.submitLabel(.send)` now fails to compile. `.onSubmit`, the behaviour rather than the legend, is fully implemented.\n\nThe obvious substitute WAS evaluated and declined 2026-08-17: a status-bar hint ('⏎ Send') while the field holds focus, using the per-focus-section registration StatusBarState already has. Four reasons. (1) It would fight the app for the Return slot: a StatusBarItem's identity IS its shortcut (StatusBarItem.swift — the hover state machine compares it across renders) and `resolvedSectionItems` drops any global item sharing one, so focusing a field would evict an app's own '⏎ select' item and restore it on blur. (2) It could lie: Return only submits when a submit action exists — `combinedSubmitAction` returns nil otherwise, deliberately, so Return falls through to a dialog's default button — so a field with `.submitLabel(.send)` and no `.onSubmit` would advertise 'Send' while Return fired 'Cancel'. Suppressing the hint in that case diverges from SwiftUI, which shows the label regardless. (3) Chrome churn: items joining and leaving on every Tab shift the bar, and at narrow widths can flip it into renderCompact, changing the other items too. (4) `\\.statusBar` is Optional, so it would be inert in an app that does not use the bar — the honesty guarantee would not be unconditional.\n\nIf revisited, the shape to build is opt-in app/scene-level chrome (a TUI-specific `.submitLabelHint(_:)`, default off) so `.submitLabel` is data the app chooses to render, the Return slot is only contended when asked for, and (2) becomes the app's explicit choice. Trigger to reconsider: a real app wanting it."
@@ -908,7 +917,7 @@
     },
     "ScrollView.Body": {
       "how": "ScrollView.body: some View",
-      "why": "Sources/TUIkit/Views/ScrollView.swift:112 `public var body: some View`. axes, showsIndicators and content are all public (:77, :81, :84), so Body is the only listed gap and it is an inferred-typealias extraction artifact."
+      "why": "Sources/TUIkit/Views/ScrollView.swift:118 `public var body: some View`. axes and content are public (:79, :82), so Body is the only listed gap and it is an inferred-typealias extraction artifact."
     },
     "ScrollViewReader.Body": {
       "how": "ScrollViewReader.body: some View",
