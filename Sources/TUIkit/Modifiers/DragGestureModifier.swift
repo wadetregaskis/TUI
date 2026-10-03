@@ -32,7 +32,9 @@ extension DragGestureModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIkit.renderToBuffer(content, context: context)
 
-        guard !context.isMeasuring,
+        // Not inside `.disabled(true)`, for the reason `OnMouseEventModifier`
+        // gives: a disabled view takes no pointer gesture.
+        guard !context.isMeasuring, context.environment.isEnabled,
             let dispatcher = context.environment.mouseEventDispatcher
         else {
             return buffer

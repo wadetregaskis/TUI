@@ -76,6 +76,27 @@ struct TapGestureLocationTests {
         #expect(log.entries == ["local 2,0"])
     }
 
+    /// SwiftUI: a tap gesture inside a disabled view never fires; one attached
+    /// outside the disabled scope still does (the 2026-08 audit, #27).
+    @Test("A tap inside .disabled(true) never fires; one outside the scope does")
+    func disabledScope() {
+        let log = TapLog()
+        let harness = InputChainHarness()
+        harness.frame(page(Text("XYZ").onTapGesture { log.entries.append("inside") }.disabled(true)))
+        click(harness, 3, 1)
+        #expect(log.entries.isEmpty)
+
+        harness.frame(page(Text("XYZ").disabled(true).onTapGesture { log.entries.append("outside") }))
+        click(harness, 3, 1)
+        #expect(log.entries == ["outside"])
+
+        log.entries = []
+        harness.frame(page(Text("XYZ").onDragGesture { _ in log.entries.append("drag") }.disabled(true)))
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 3, y: 1))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 4, y: 1))
+        #expect(log.entries.isEmpty, "nor a drag")
+    }
+
     @Test("A located double tap fires on the second click with its location")
     func locatedDoubleTap() {
         let log = TapLog()

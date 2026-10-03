@@ -47,7 +47,14 @@ extension OnMouseEventModifier: Renderable {
         // No dispatcher (e.g. measure pass) — skip registration. The
         // measure path renders content for sizing but never sees a
         // real mouse event, so the registration would just churn ids.
-        guard !context.isMeasuring,
+        //
+        // Nor inside `.disabled(true)`: SwiftUI leaves a tap gesture there
+        // dead, as `.onHover` already is here, and every gesture built on
+        // this one — taps, scrolls, the long press — follows from the one
+        // guard. Attached OUTSIDE the disabled scope (`.disabled(true)
+        // .onTapGesture`), the modifier renders with an enabled environment
+        // and still fires, which is SwiftUI's scoping too.
+        guard !context.isMeasuring, context.environment.isEnabled,
             let dispatcher = context.environment.mouseEventDispatcher
         else {
             return buffer
