@@ -52,9 +52,8 @@ private func isFlexibleAcross(
 /// }
 /// ```
 ///
-/// Spacing is in **rows**, and defaults to none, matching `VStack`'s own
-/// default rather than SwiftUI's font-derived one — a terminal has no font
-/// metric to derive it from.
+/// Spacing is in **rows**; `nil`, the default, is what views prefer between
+/// them, which is none, matching `VStack` — see ``ViewSpacing``.
 ///
 /// **Deliberate divergence — `alignment` defaults to `.leading`, not
 /// `.center`.** SwiftUI's `VStackLayout` defaults to `.center`, the same as
@@ -69,8 +68,8 @@ public struct VStackLayout: Layout, Sendable, Equatable {
     /// How subviews line up across the stack's width.
     public var alignment: HorizontalAlignment
 
-    /// Blank rows between subviews.
-    public var spacing: Int
+    /// Blank rows between subviews, or `nil` for what views prefer.
+    public var spacing: Int?
 
     /// Creates a vertical stack layout.
     ///
@@ -78,10 +77,17 @@ public struct VStackLayout: Layout, Sendable, Equatable {
     ///   - alignment: The horizontal alignment (default: `.leading` — a
     ///     deliberate divergence from SwiftUI's `.center`; see the type's own
     ///     doc comment).
-    ///   - spacing: Blank rows between subviews (default: none).
-    public init(alignment: HorizontalAlignment = .leading, spacing: Int = 0) {
+    ///   - spacing: Blank rows between subviews, or `nil` (the default) for
+    ///     what views prefer between them: none.
+    public init(alignment: HorizontalAlignment = .leading, spacing: Int? = nil) {
         self.alignment = alignment
         self.spacing = spacing
+    }
+
+    /// The spacing in force: the stated one, or the vertical distance views
+    /// prefer.
+    private var resolvedSpacing: Int {
+        spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
     }
 
     public func sizeThatFits(
@@ -93,7 +99,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
         // filled all of it and pushed every later sibling past the viewport.
         let natural = ProposedSize(width: proposal.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
-        let gaps = max(0, subviews.count - 1) * spacing
+        let gaps = max(0, subviews.count - 1) * resolvedSpacing
         let content = sizes.map(\.height).reduce(0, +) + gaps
         let flexible = sizes.contains { $0.isHeightFlexible }
         let height: Int
@@ -130,7 +136,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             naturalSizes: sizes.map(\.height),
             isFlexible: sizes.map(\.isHeightFlexible),
             available: bounds.height,
-            spacing: spacing)
+            spacing: resolvedSpacing)
         var y = bounds.y
         for (index, subview) in subviews.enumerated() {
             let height = heights[index]
@@ -140,7 +146,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             // A gap is charged behind a child that was actually placed — the
             // distributor's own rule, which is what keeps a clipped tail from
             // spending the room the visible children needed.
-            y += height + (height > 0 ? spacing : 0)
+            y += height + (height > 0 ? resolvedSpacing : 0)
         }
     }
 
@@ -163,8 +169,9 @@ public struct VStackLayout: Layout, Sendable, Equatable {
 
 /// The horizontal stack's arrangement, as a value. See ``VStackLayout``.
 ///
-/// Spacing is in **columns**, and defaults to one — the same default `HStack`
-/// uses, because two words with no cell between them read as one word.
+/// Spacing is in **columns**; `nil`, the default, is what views prefer between
+/// them, which is one column — `HStack`'s, because two words with no cell
+/// between them read as one word.
 ///
 /// **Deliberate divergence — `alignment` defaults to `.top`, not `.center`.**
 /// See ``VStackLayout``'s doc comment: the same divergence, the same owner
@@ -177,8 +184,8 @@ public struct HStackLayout: Layout, Sendable, Equatable {
     /// How subviews line up across the stack's height.
     public var alignment: VerticalAlignment
 
-    /// Blank columns between subviews.
-    public var spacing: Int
+    /// Blank columns between subviews, or `nil` for what views prefer.
+    public var spacing: Int?
 
     /// Creates a horizontal stack layout.
     ///
@@ -186,10 +193,17 @@ public struct HStackLayout: Layout, Sendable, Equatable {
     ///   - alignment: The vertical alignment (default: `.top` — a deliberate
     ///     divergence from SwiftUI's `.center`; see the type's own doc
     ///     comment).
-    ///   - spacing: Blank columns between subviews (default: 1).
-    public init(alignment: VerticalAlignment = .top, spacing: Int = 1) {
+    ///   - spacing: Blank columns between subviews, or `nil` (the default)
+    ///     for what views prefer between them: one column.
+    public init(alignment: VerticalAlignment = .top, spacing: Int? = nil) {
         self.alignment = alignment
         self.spacing = spacing
+    }
+
+    /// The spacing in force: the stated one, or the horizontal distance views
+    /// prefer.
+    private var resolvedSpacing: Int {
+        spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
     }
 
     public func sizeThatFits(
@@ -198,7 +212,7 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         // See `VStackLayout.sizeThatFits` — same reasoning, other axis.
         let natural = ProposedSize(width: nil, height: proposal.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
-        let gaps = max(0, subviews.count - 1) * spacing
+        let gaps = max(0, subviews.count - 1) * resolvedSpacing
         let content = sizes.map(\.width).reduce(0, +) + gaps
         let flexible = sizes.contains { $0.isWidthFlexible }
         let width: Int
@@ -227,14 +241,14 @@ public struct HStackLayout: Layout, Sendable, Equatable {
             naturalSizes: sizes.map(\.width),
             isFlexible: sizes.map(\.isWidthFlexible),
             available: bounds.width,
-            spacing: spacing)
+            spacing: resolvedSpacing)
         var x = bounds.x
         for (index, subview) in subviews.enumerated() {
             let width = widths[index]
             subview.place(
                 at: (x: x, y: bounds.y + alignedOffset(for: sizes[index].height, in: bounds.height)),
                 proposal: ProposedSize(width: width, height: sizes[index].height))
-            x += width + (width > 0 ? spacing : 0)
+            x += width + (width > 0 ? resolvedSpacing : 0)
         }
     }
 

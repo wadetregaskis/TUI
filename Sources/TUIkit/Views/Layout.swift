@@ -65,13 +65,16 @@ import TUIkitView
 /// moved by where it was placed — and give none for the built-in alignments,
 /// which is what SwiftUI was measured to do.
 ///
+/// ## Spacing
+///
+/// Each subview states the spacing it prefers (``LayoutSubview/spacing``, a
+/// ``ViewSpacing``), which a layout may use to space its subviews, and a layout
+/// states its own for the container around it
+/// (``spacing(subviews:cache:)``). In cells, every view prefers one column
+/// beside it and no row above or below — see ``ViewSpacing``.
+///
 /// ## What SwiftUI has here that this does not
 ///
-/// - **`ViewSpacing` / `spacing(subviews:cache:)`.** SwiftUI derives preferred
-///   spacing from a view's type and font. A terminal has no such notion —
-///   spacing between cells is whatever the container decides — so the honest
-///   answer would be a constant zero, and an API that always says zero is one
-///   that invites a question it cannot answer.
 /// - **`Animatable`.** There is no tween space in a terminal — see the
 ///   compatibility notes on animation.
 @MainActor
@@ -143,6 +146,31 @@ public protocol Layout {
         subviews: Subviews, cache: inout Cache
     ) -> Double?
 
+    /// The spacing this layout prefers around itself, for the container that
+    /// places it.
+    ///
+    /// It affects the space around the layout, not how the layout arranges its
+    /// subviews. The default merges every subview's preference on every edge;
+    /// a stack-like layout would merge only the subviews at each end on the
+    /// edges they touch:
+    ///
+    /// ```swift
+    /// func spacing(subviews: Subviews, cache: inout ()) -> ViewSpacing {
+    ///     var spacing = ViewSpacing()
+    ///     for index in subviews.indices {
+    ///         var edges: Edge.Set = [.leading, .trailing]
+    ///         if index == 0 { edges.formUnion(.top) }
+    ///         if index == subviews.count - 1 { edges.formUnion(.bottom) }
+    ///         spacing.formUnion(subviews[index].spacing, edges: edges)
+    ///     }
+    ///     return spacing
+    /// }
+    /// ```
+    ///
+    /// A custom layout around this one reads it as this layout's
+    /// ``LayoutSubview/spacing``.
+    func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing
+
     /// Static witness: whether this layout may give a guide an explicit value
     /// its subviews did not — that is, whether it implements
     /// ``explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``
@@ -204,6 +232,15 @@ extension Layout {
     /// Default: a layout may define its own guides — see
     /// ``Layout/_definesExplicitAlignment``.
     public static var _definesExplicitAlignment: Bool { true }
+
+    /// Default: every subview's preference, merged on every edge.
+    public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
+        var spacing = ViewSpacing.zero
+        for subview in subviews {
+            spacing.formUnion(subview.spacing)
+        }
+        return spacing
+    }
 }
 
 extension Layout {
@@ -430,4 +467,26 @@ extension _LayoutCore: AlignmentGuideQuerying {
 protocol ExplicitAlignmentForwarding {
     /// The wrapped layout's ``Layout/_definesExplicitAlignment``.
     var definesExplicitAlignment: Bool { get }
+}
+
+// MARK: - Spacing Around a Layout
+
+/// A view that states the spacing it prefers around itself — a ``Layout``,
+/// whose ``Layout/spacing(subviews:cache:)`` says.
+@MainActor
+protocol SpacingPreferenceProviding {
+    /// The spacing this view prefers, laid out in `context` (its own).
+    func preferredSpacing(context: RenderContext) -> ViewSpacing
+}
+
+extension _LayoutCore: SpacingPreferenceProviding {
+    /// The layout's ``Layout/spacing(subviews:cache:)``, over its subviews as
+    /// they resolve here, with a fresh cache — the one each pass gets.
+    func preferredSpacing(context: RenderContext) -> ViewSpacing {
+        var context = publishingChildAxis(context)
+        context.isMeasuring = true
+        let (subviews, _) = resolve(context: context)
+        var cache = freshCache(subviews)
+        return layout.spacing(subviews: subviews, cache: &cache)
+    }
 }

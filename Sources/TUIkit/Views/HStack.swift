@@ -41,15 +41,17 @@ public struct HStack<Content: View>: View {
     ///
     /// - Parameters:
     ///   - alignment: The vertical alignment of children (default: .center).
-    ///   - spacing: The spacing between children in characters (default: 1).
+    ///   - spacing: The blank columns between children, or `nil` (the default)
+    ///     for what views prefer between them: one column, the horizontal half
+    ///     of ``ViewSpacing``.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: VerticalAlignment = .center,
-        spacing: Int = 1,
+        spacing: Int? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing
+        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
     }
 

@@ -79,15 +79,16 @@ public struct LazyVStack<Content: View>: View {
     ///
     /// - Parameters:
     ///   - alignment: The horizontal alignment of children (default: .center).
-    ///   - spacing: The spacing between children in lines (default: 0).
+    ///   - spacing: The blank lines between children, or `nil` (the default)
+    ///     for what views prefer between them: none.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: HorizontalAlignment = .center,
-        spacing: Int = 0,
+        spacing: Int? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing
+        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
         self.content = content()
     }
 
@@ -141,15 +142,16 @@ public struct LazyHStack<Content: View>: View {
     ///
     /// - Parameters:
     ///   - alignment: The vertical alignment of children (default: .center).
-    ///   - spacing: The spacing between children in characters (default: 1).
+    ///   - spacing: The blank columns between children, or `nil` (the default)
+    ///     for what views prefer between them: one column.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: VerticalAlignment = .center,
-        spacing: Int = 1,
+        spacing: Int? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing
+        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
     }
 

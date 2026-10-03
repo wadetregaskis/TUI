@@ -94,6 +94,21 @@ public struct LayoutSubview: @MainActor Equatable {
         return ViewDimensions(width: size.width, height: size.height, explicitGuides: explicit)
     }
 
+    /// The spacing this subview prefers between itself and the next view.
+    ///
+    /// A ``ViewSpacing``: for every view, one column beside it and no row above
+    /// or below, which is what TUIkit's stacks put between views; for a
+    /// subview that is itself a ``Layout``, what its
+    /// ``Layout/spacing(subviews:cache:)`` says. Read off the subview itself,
+    /// as an alignment guide is: a layout wrapped in a modifier states the
+    /// default.
+    public var spacing: ViewSpacing {
+        guard let provider = child.wrappedView as? SpacingPreferenceProviding else {
+            return ViewSpacing()
+        }
+        return provider.preferredSpacing(context: child.renderContext(under: context))
+    }
+
     /// The container values associated with this subview.
     ///
     /// What ``View/containerValue(_:_:)`` and ``View/tag(_:includeOptional:)``

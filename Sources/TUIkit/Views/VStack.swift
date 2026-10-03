@@ -43,15 +43,17 @@ public struct VStack<Content: View>: View {
     ///
     /// - Parameters:
     ///   - alignment: The horizontal alignment of children (default: .center, like SwiftUI).
-    ///   - spacing: The spacing between children in lines (default: 0).
+    ///   - spacing: The blank lines between children, or `nil` (the default)
+    ///     for what views prefer between them: none, the vertical half of
+    ///     ``ViewSpacing``.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: HorizontalAlignment = .center,
-        spacing: Int = 0,
+        spacing: Int? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing
+        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
         self.content = content()
     }
 

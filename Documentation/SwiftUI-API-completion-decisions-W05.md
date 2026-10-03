@@ -126,3 +126,35 @@ override `explicitAlignment`, so inside a stack it is laid out once more per
 walk to answer the stack's guide question (the framework's layouts state
 `_definesExplicitAlignment = false` and are asked only when a subview may
 hold a guide). Stress's `customlayout` scenario is the one to A/B for that.
+
+### B-W05.6 A stack's `spacing: nil` is the default preference, not each pair's
+
+*`HStack.init(alignment:spacing:content:)`, `VStack`, `LazyHStack`, `LazyVStack`,
+`HStackLayout`, `VStackLayout`, `ViewSpacing`, `Layout.spacing(subviews:cache:)`*
+
+The stacks now take SwiftUI's `spacing: Int? = nil` (it was `Int = 1` and
+`Int = 0`), so `HStack(spacing: nil)` compiles. In SwiftUI, `nil` means "for
+each pair of neighbours, the distance their `ViewSpacing`s ask for". Here
+`nil` resolves, at `init`, to the distance two views of default preference ask
+for — one column in a row, none in a column — and is used between every pair.
+
+The two readings differ less than they sound. `ViewSpacing` has SwiftUI's
+surface only: `init()` (one column beside, no row above or below), `.zero`,
+and unions, which take per-edge maxima. So every preference a TUIkit view can
+state is the default or less, edge by edge, and every vertical edge is 0.
+Each pair's distance in a column is therefore always 0 — exact — and in a row
+it is 1 unless BOTH neighbours are custom layouts whose
+`spacing(subviews:cache:)` asks for no space on the facing edges. That pair
+gets a column here and none in SwiftUI. A custom layout that spaces its
+subviews by `LayoutSubview.spacing` does get the per-pair answer.
+
+**The fuller version** resolves `nil` per pair inside the stacks: a stored
+flag on `ChildView` saying the child can state a preference (it fits the
+struct's tail padding), and per-gap spacings through
+`distributeLinearSpace`, `totalLinearSpacing`, the assembly in both cores, the
+lazy windows and the guide placement. That is a structural change to the
+hottest layout path for a case that needs two zero-spacing custom layouts side
+by side. A day, and the plan's rule applies: an A/B on `deep`, `kitchensink`,
+`megalist` and `table` on a quiet machine before it lands. What shipped
+changes nothing on the stack path — `nil` becomes the old constant at `init` —
+so no A/B is owed for it.
