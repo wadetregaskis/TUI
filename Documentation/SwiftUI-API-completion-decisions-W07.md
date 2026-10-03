@@ -228,3 +228,19 @@ which the `DragSession*` family rule declines. About half a day for the
 badge; the callback belongs with that family's re-examination in Wave 17.
 
 ## C. Declined without asking
+
+### C-W7-1. `KeyEquivalent.clear`
+
+*`KeyEquivalent.clear`*
+
+SwiftUI's `.clear` is AppKit's Clear key, U+F739: the keypad key in Num
+Lock's position on a full-size Mac keyboard. A shortcut or `onKeyPress` on it
+fires only if a terminal sends that key as a key of its own. The legacy
+encodings TUIkit parses have no sequence for it, and the parser has nothing
+to map to it. So `.clear` would name a key no event can carry, and a
+shortcut on it would compile and never fire. Rule 2 says leave it out.
+
+Not byte-captured: this machine has no extended keyboard. If a terminal turns
+out to send the key, distinctly from Num Lock, the parser gains a case and
+this entry goes. The kitty keyboard protocol of A-W7-1 is the likeliest
+route: it reports keypad keys by their own codes.
