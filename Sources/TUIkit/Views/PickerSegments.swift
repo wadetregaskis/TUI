@@ -120,6 +120,7 @@ struct _PickerSegments<SelectionValue: Hashable>: View {
     let entries: [_PickerEntry<SelectionValue>]
     let selection: Binding<SelectionValue>
     let isPalette: Bool
+    var isMixed = false
 
     @Environment(\.paletteSelectionEffect) private var effect
 
@@ -139,7 +140,7 @@ struct _PickerSegments<SelectionValue: Hashable>: View {
     /// One option: a button that selects it.
     @ViewBuilder
     private func segment(tag: SelectionValue, label: AnyView) -> some View {
-        let isSelected = tag == selection.wrappedValue
+        let isSelected = !isMixed && tag == selection.wrappedValue
         let marks = !isPalette || effect.drawsSelection
         let button = Button {
             selection.wrappedValue = tag

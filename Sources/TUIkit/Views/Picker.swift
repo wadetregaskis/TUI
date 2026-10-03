@@ -201,6 +201,14 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// show every option, the current one marked, and have no use for it.
     var currentValueLabel: AnyView?
 
+    /// `Picker(sources:)` over values that disagree: no option is marked.
+    var isMixed = false
+
+    /// `Picker(sources:)` over an empty collection: there is no selection to
+    /// read at all, so the body draws the label and an empty, disabled control
+    /// and builds nothing that would ask for one.
+    var hasNoSources = false
+
     /// The active picker style, resolved from the environment.
     @Environment(\.pickerStyle) private var pickerStyle
 
@@ -255,11 +263,17 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// this is an `HStack(spacing: 0)`.
     @ViewBuilder private var pickerBody: some View {
         let entries = resolvedEntries()
-        if pickerStyle.resolvesToSegments {
+        if hasNoSources {
+            HStack(alignment: .top, spacing: 0) {
+                _CollapsingLabel(label: label, controlDisabled: true)
+                Text(verbatim: "—").foregroundStyle(.palette.foregroundTertiary)
+            }
+        } else if pickerStyle.resolvesToSegments {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: isDisabled)
                 _PickerSegments(
-                    entries: entries, selection: selection, isPalette: pickerStyle is PalettePickerStyle)
+                    entries: entries, selection: selection, isPalette: pickerStyle is PalettePickerStyle,
+                    isMixed: isMixed)
                     .disabled(isDisabled)
             }
         } else if pickerStyle.resolvesToMenu {
@@ -270,7 +284,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                     selection: selection,
                     focusID: focusID,
                     isDisabled: isDisabled,
-                    currentValueLabel: currentValueLabel
+                    currentValueLabel: currentValueLabel,
+                    isMixed: isMixed
                 )
             }
         } else {
@@ -324,7 +339,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         }
         let group = RadioButtonGroup(
             selection: selection, orientation: horizontalLayout ? .horizontal : .vertical, items: items)
-        let identified = focusID.map { group.focusID($0) } ?? group
+        var identified = focusID.map { group.focusID($0) } ?? group
+        identified.isMixed = isMixed
         return identified.disabled(isDisabled)
     }
 }

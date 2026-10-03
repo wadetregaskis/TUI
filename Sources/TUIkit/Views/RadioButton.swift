@@ -346,6 +346,10 @@ public struct RadioButtonGroup<Value: Hashable>: View {
     /// Whether the group is disabled.
     var isDisabled: Bool
 
+    /// Whether the selection stands for values that disagree, so no option is
+    /// marked — set by `Picker(sources:)`.
+    var isMixed = false
+
     /// Creates a radio button group with items and a selection binding.
     ///
     /// - Parameters:
@@ -390,7 +394,8 @@ public struct RadioButtonGroup<Value: Hashable>: View {
             items: items,
             orientation: orientation,
             focusID: focusID,
-            isDisabled: isDisabled
+            isDisabled: isDisabled,
+            isMixed: isMixed
         )
     }
 }
@@ -416,6 +421,9 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     let orientation: RadioButtonOrientation
     let focusID: String?
     let isDisabled: Bool
+    /// The selection stands for values that disagree (`Picker(sources:)`), so
+    /// no option is marked selected.
+    var isMixed = false
 
     private typealias StateIndex = RadioButtonGroupStateIndex
 
@@ -630,7 +638,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 index: index,
                 item: item,
                 isFocused: handler.focusedIndex == index && groupHasFocus,
-                isSelected: selection.wrappedValue == item.value,
+                isSelected: !isMixed && selection.wrappedValue == item.value,
                 isHovered: hoveredIndex == index,
                 context: context,
                 palette: palette
@@ -658,7 +666,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 index: index,
                 item: item,
                 isFocused: handler.focusedIndex == index && groupHasFocus,
-                isSelected: selection.wrappedValue == item.value,
+                isSelected: !isMixed && selection.wrappedValue == item.value,
                 isHovered: hoveredIndex == index,
                 context: context,
                 palette: palette

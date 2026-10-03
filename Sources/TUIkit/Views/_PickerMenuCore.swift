@@ -51,6 +51,10 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// selected option's label — SwiftUI's `currentValueLabel:` — or `nil`.
     var currentValueLabel: AnyView?
 
+    /// The selection stands for values that disagree (`Picker(sources:)`): no
+    /// option is checked and the control shows none.
+    var isMixed = false
+
     var body: Never {
         fatalError("_PickerMenuCore renders via Renderable")
     }
@@ -119,7 +123,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         entries.indices.map { index in
             guard let tag = entries[index].tag else { return .divider }
             return .option(
-                label: labels[index] ?? "", isSelected: tag == selection.wrappedValue)
+                label: labels[index] ?? "", isSelected: !isMixed && tag == selection.wrappedValue)
         }
     }
 
@@ -429,6 +433,8 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let selectedText: String
         if let currentValueText {
             selectedText = currentValueText.stripped
+        } else if isMixed {
+            selectedText = ""
         } else if let index = entries.firstIndex(where: { $0.tag == selection.wrappedValue }) {
             selectedText = renderedLabels[index]?.stripped ?? ""
         } else {
