@@ -197,16 +197,30 @@ public func resolveEnvironmentProperties<V>(of view: V, in environment: Environm
     let typeID = ObjectIdentifier(V.self)
     if EnvironmentResolutionCache.typesWithoutEnvironment.contains(typeID) { return }
 
+    if !resolveEnvironmentProperties(nestedIn: view, in: environment) {
+        EnvironmentResolutionCache.typesWithoutEnvironment.insert(typeID)
+    }
+}
+
+/// One level of ``resolveEnvironmentProperties(of:in:)``, descending into any
+/// property that holds properties of its own — a ``ViewModifier`` stored in a
+/// ``ModifiedContent``, which may read `@Environment` as a view does. A stored
+/// VIEW is not descended into: it resolves its own when it renders.
+///
+/// - Returns: Whether anything was resolved.
+@MainActor
+private func resolveEnvironmentProperties(nestedIn value: Any, in environment: EnvironmentValues) -> Bool {
     var found = false
-    for child in Mirror(reflecting: view).children {
+    for child in Mirror(reflecting: value).children {
         if let resolvable = child.value as? EnvironmentResolvable {
             resolvable.resolveEnvironment(environment)
             found = true
+        } else if child.value is any ViewModifier,
+            resolveEnvironmentProperties(nestedIn: child.value, in: environment) {
+            found = true
         }
     }
-    if !found {
-        EnvironmentResolutionCache.typesWithoutEnvironment.insert(typeID)
-    }
+    return found
 }
 
 /// Per-type memo of which view types have no `@Environment` properties, so they

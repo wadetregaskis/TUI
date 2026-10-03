@@ -4,14 +4,17 @@ Build your own views by composing existing ones or creating custom view modifier
 
 ## Overview
 
-TUIkit offers two ways to create custom views:
+TUIkit offers three ways to create custom views:
 
 | Approach | When to Use | Complexity |
 |----------|-------------|------------|
 | **Composite View** (``View`` with `body`) | Combining existing views into reusable components | Low |
-| **View Modifier** (``BufferModifier``) | Transforming any view's rendered buffer (padding, background) | Medium |
+| **View Modifier** (``ViewModifier``) | A reusable composition around any view, exactly as in SwiftUI | Low |
+| **Buffer Modifier** (``BufferModifier``) | Transforming any view's rendered buffer, cell by cell | Medium |
 
-Most custom views should be **composite views**. For buffer-level transformations, implement a custom ``BufferModifier``.
+Most custom views should be **composite views**, and most custom modifiers
+**view modifiers**. A buffer modifier is TUIkit's own: reach for it only when the
+transformation has to work on the rendered cells rather than on views.
 
 ## Composite Views
 
@@ -119,6 +122,33 @@ SettingsGroup("Network") {
 
 ## View Modifiers
 
+A ``ViewModifier`` is SwiftUI's: a `body(content:)` that composes views around
+the view it is applied to. It may hold `@State` and read `@Environment`, and its
+state belongs to the place it is applied.
+
+```swift
+struct Callout: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(1)
+            .border(.yellow)
+    }
+}
+
+extension View {
+    func callout() -> some View {
+        modifier(Callout())
+    }
+}
+
+Text("Important!").callout()
+```
+
+A view modifier that also conforms to ``Animatable`` animates its
+`animatableData`, as an animatable view does.
+
+## Buffer Modifiers
+
 A ``BufferModifier`` transforms an already-rendered ``FrameBuffer``. Use this when your transformation operates on the output of any view:
 
 ```swift
@@ -201,6 +231,7 @@ let view = Text("Hello").asAnyView()
 ### Protocols
 
 - ``View``
+- ``ViewModifier``
 - ``BufferModifier``
 
 ### Supporting Types

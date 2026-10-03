@@ -43,7 +43,7 @@ This enables spacers, flexible text fields, and proportional sizing. See <doc:La
 
 ### 4. Modifier Layer
 
-View modifiers implement the ``BufferModifier`` protocol. They operate in two phases: `adjustContext(_:)` modifies the ``RenderContext`` before children render (e.g. setting environment values), and `modify(buffer:context:)` transforms the rendered ``FrameBuffer`` (e.g. adding padding, borders, backgrounds).
+Buffer modifiers implement the ``BufferModifier`` protocol (SwiftUI-style ``ViewModifier``s compose views instead, and render as ordinary composite views). Buffer modifiers operate in two phases: `adjustContext(_:)` modifies the ``RenderContext`` before children render (e.g. setting environment values), and `modify(buffer:context:)` transforms the rendered ``FrameBuffer`` (e.g. adding padding, borders, backgrounds).
 
 ```swift
 Text("Hello")

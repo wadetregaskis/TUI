@@ -134,3 +134,36 @@ private struct FormerLabelDeviations: View {
             .onHover(perform: { isHovered in _ = isHovered })
     }
 }
+
+// MARK: - A custom modifier, as SwiftUI's documentation writes one
+
+/// The `BorderedCaption` example from SwiftUI's `ViewModifier` documentation,
+/// with only the rounded-rectangle overlay swapped for a border. Until
+/// 2026-10-03 TUIkit's `ViewModifier` was a buffer transform with no
+/// `body(content:)`, so this — the most common custom-modifier shape there is —
+/// did not compile.
+@MainActor
+private struct BorderedCaption: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.caption2)
+            .padding(1)
+            .border(.blue)
+    }
+}
+
+extension View {
+    @MainActor
+    fileprivate func borderedCaption() -> some View {
+        modifier(BorderedCaption())
+    }
+}
+
+@MainActor
+private struct UsesBorderedCaption: View {
+    var body: some View {
+        Text("Downtown Bus")
+            .borderedCaption()
+            .modifier(BorderedCaption().concat(EmptyModifier()))
+    }
+}

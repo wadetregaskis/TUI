@@ -611,7 +611,25 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
     let typeID = ObjectIdentifier(V.self)
     if StateBindingCache.typesWithoutState.contains(typeID) { return }
     var index = 0
-    for child in Mirror(reflecting: view).children {
+    bindStateProperties(nestedIn: view, identity: identity, storage: storage, index: &index)
+    if index == 0 {
+        StateBindingCache.typesWithoutState.insert(typeID)
+    }
+}
+
+/// One level of ``bindStateProperties(of:identity:storage:)``, descending into
+/// any property that holds properties of its own to bind — a ``ViewModifier``
+/// stored in a ``ModifiedContent``, which may declare `@State` as a view does.
+///
+/// Nested properties take the next indices of the same counter, in declaration
+/// order, so they key the owning view's identity without colliding with its
+/// own. A stored VIEW is not descended into: it binds its state at its own
+/// identity when it renders.
+@MainActor
+private func bindStateProperties(
+    nestedIn value: Any, identity: ViewIdentity, storage: StateStorage, index: inout Int
+) {
+    for child in Mirror(reflecting: value).children {
         if let bindable = child.value as? StateBindable {
             bindable.bindState(to: storage, identity: identity, propertyIndex: index)
             index += 1
@@ -621,10 +639,9 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
             // keys regardless of their relative order.
             idBindable.bindRenderIdentity(path: identity.path, propertyIndex: index)
             index += 1
+        } else if child.value is any ViewModifier {
+            bindStateProperties(nestedIn: child.value, identity: identity, storage: storage, index: &index)
         }
-    }
-    if index == 0 {
-        StateBindingCache.typesWithoutState.insert(typeID)
     }
 }
 

@@ -317,6 +317,9 @@ struct MyApp: App {
 ### View Composition
 
 - ``ViewBuilder``
+- ``ViewModifier``
+- ``ModifiedContent``
+- ``EmptyModifier``
 - ``BufferModifier``
 - ``ModifiedView``
 - ``EquatableView``
