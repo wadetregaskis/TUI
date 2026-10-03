@@ -113,6 +113,12 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// a render.
     var userScrolledSinceRender = false
 
+    /// The value each `onScrollGeometryChange` observer last derived, by its
+    /// place among the observers this view reports to — what a change is
+    /// judged against. `nil` until the first report, which acts with the
+    /// first value as old and new.
+    var geometryObserverValues: [Any?] = []
+
     /// One screenful of READABLE lines (``ScrollableOffsetState``
     /// requirement). Under the text indicators the viewport's first and last
     /// line are chrome — "▲ N more" / "▼ N more" — so the protocol's

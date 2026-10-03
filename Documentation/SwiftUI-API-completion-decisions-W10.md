@@ -130,4 +130,35 @@ in SwiftUI does not reach the edges the safe area is on — is padded.
 list itself still at the top). Here those are padded whole, so their chrome
 moves in with their rows. The fuller version is B6's real safe area.
 
+### B-W10-4. `ScrollGeometry`: the visible area excludes the bars, and a vertical view's content is as wide as it is shown
+
+*`ScrollGeometry` and its members, `View.onScrollGeometryChange(for:of:action:)`*
+
+Every reading matches SwiftUI's as measured (offset before the origin by the
+margins, `bounds` and `visibleRect` at the offset, container less the
+insets). Two numbers have no SwiftUI counterpart to measure against:
+
+- **`containerSize` leaves out the bars.** SwiftUI's scrollers overlay the
+  content, so its visible area is the frame. TUIkit's bar is a column (or row)
+  of the viewport, so the area the content is seen through is the viewport
+  less the bar, and less the "N more" lines where `.visible` reserves them.
+  That keeps the reading apps rely on exact: `visibleRect.maxY` reaches
+  `contentSize.height + contentInsets.bottom` at the bottom, and no further.
+- **A vertical-only view's `contentSize.width` is the width it lays its
+  content out at**, not the content's own width. The content is not measured
+  across separately, and a windowed stack's drawn band is not its whole
+  width; SwiftUI's would be the content's frame, which for full-width rows
+  (the common case) is the same number.
+
+**The alternative** for the first is the whole frame, bars included, which
+makes `visibleRect` one cell wider than what can be seen. I don't recommend
+it. For the second, a measure of the content's own width every frame a
+geometry observer is attached — the cost `contentExtents` already pays for a
+horizontally scrolling view. Cheap to add if a use turns up.
+
+The observers' callbacks are a render side effect, as `onGeometryChange`'s
+are, so a memo above a reporting scroll view does not keep its picture.
+A/B owed on a scroll-heavy scenario with an observer attached; a scroll view
+without one pays one emptiness test per frame.
+
 ## C. Declined without asking

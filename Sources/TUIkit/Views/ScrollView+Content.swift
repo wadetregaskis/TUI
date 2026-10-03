@@ -45,6 +45,10 @@ extension _ScrollViewCore {
         if !contentContext.environment.safeAreaContentMargins.isZero {
             contentContext.environment.safeAreaContentMargins = EdgeInsets()
         }
+        // So are the scroll observers: only the first scroll view reports.
+        if !contentContext.environment.scrollObservers.isEmpty {
+            contentContext.environment.scrollObservers = ScrollObservers()
+        }
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1

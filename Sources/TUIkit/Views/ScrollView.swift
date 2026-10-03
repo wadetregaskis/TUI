@@ -627,8 +627,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             persistedFocusID: persistedFocusID, viewportWidth: viewportWidth,
             viewportHeight: viewportHeight, wantsHorizontal: wantsHorizontal)
 
-        // The tail this frame shows, for the next frame's glue to be judged by.
-        if !context.isMeasuring { handler.tailAsLastDrawn = handler.maxOffset }
+        finishFrame(handler, contentWidth: contentWidth, viewportHeight: contentViewportHeight, context: context)
         return visibleBuffer
     }
 
