@@ -146,6 +146,8 @@ struct ToggleProxy: OptionSet, Sendable {
     static let isFocused = Self(rawValue: 1 << 1)
     static let isHovered = Self(rawValue: 1 << 2)
     static let isEnabled = Self(rawValue: 1 << 3)
+    /// On for some of what the toggle stands for and off for the rest: a
+    /// configuration that says so, or `Toggle(sources:isOn:)` over mixed values.
     static let isMixed = Self(rawValue: 1 << 4)
 }
 

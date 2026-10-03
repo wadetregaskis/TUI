@@ -178,7 +178,12 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         // that must be resolved against this frame's terminal here, at the point
         // of drawing — that is what lets it follow a tmux client change.
         let style = context.environment.effectiveToggleCharacterSet
-        let mark = isOnValue ? style.onMark : style.offMark
+        // Mixed — on for some of what it governs (`Toggle(sources:isOn:)`), or a
+        // configuration that says so — shows its own mark, in the on colour:
+        // something is on.
+        let isMixed = proxy.contains(.isMixed)
+        let mark = isMixed ? style.mixedMark : isOnValue ? style.onMark : style.offMark
+        let isOnValue = isOnValue || isMixed
 
         // One function DESCRIBES the indicator at a given bracket colour; the bytes
         // and the claims are both derived from it, so the animation's frames are

@@ -140,6 +140,15 @@ public struct ToggleCharacterSet: Sendable, Hashable {
 
     /// The concrete style ``automatic`` resolves TO for a given terminal — the
     /// render loop's half of the deferral, and the testable core of the choice.
+    /// The mark for a toggle that is on for some of what it governs and off for
+    /// the rest — `Toggle(sources:isOn:)` over mixed values: `-` between the
+    /// brackets, as `[-]`, or a squared minus, `⊟`, padded to the width of the
+    /// set's own marks so a mixed toggle takes no more or less room.
+    var mixedMark: String {
+        guard openBracket.isEmpty else { return "-" }
+        return "\u{229F}" + String(repeating: " ", count: max(0, onMark.strippedLength - 1))
+    }
+
     static func automatic(emojiChrome: Bool) -> Self {
         emojiChrome ? .emoji : .unicode
     }
