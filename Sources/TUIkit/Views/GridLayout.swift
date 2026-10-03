@@ -168,7 +168,8 @@ public struct GridLayout: Layout, Sendable, Equatable {
                         return GridLattice.Cell(
                             span: row.spansFullWidth ? 1 : subview.child.gridSpan,
                             size: subview.sizeThatFits(.unspecified),
-                            columnAlignment: subview.child.gridColumnAlignment)
+                            columnAlignment: subview.child.gridColumnAlignment,
+                            unsizedAxes: subview.child.gridUnsizedAxes)
                     },
                     spansFullWidth: row.spansFullWidth)
             },

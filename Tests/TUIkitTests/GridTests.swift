@@ -446,6 +446,50 @@ struct GridTests {
         #expect(lines(GridRow { Text("a"); Text("b") }).map { $0.trimmingCharacters(in: .whitespaces) } == ["a", "b"])
     }
 
+    @Test("A cell unsized horizontally does not widen its column, and fills it")
+    func unsizedWidth() {
+        func columnOfB(_ line: String) -> Int? {
+            line.firstIndex(of: "b").map { line.distance(from: line.startIndex, to: $0) }
+        }
+        let sized = lines(
+            Grid(alignment: .leading) {
+                GridRow { Text("aa"); Text("b") }
+                GridRow { Text("a long cell"); Text("b") }
+            })
+        let unsized = lines(
+            Grid(alignment: .leading) {
+                GridRow { Text("aa"); Text("b") }
+                GridRow { Text("a long cell").gridCellUnsizedAxes(.horizontal); Text("b") }
+            })
+        #expect(columnOfB(sized[0]) == 12)
+        // The column is the "aa" cell's width; the unsized cell is drawn in it.
+        #expect(columnOfB(unsized[0]) == 3)
+        #expect(columnOfB(unsized[1]) == 3)
+    }
+
+    @Test("A cell unsized vertically does not make its row taller")
+    func unsizedHeight() {
+        let sized = lines(Grid { GridRow { Text("a"); Text("x\ny\nz") } })
+        let unsized = lines(Grid { GridRow { Text("a"); Text("x\ny\nz").gridCellUnsizedAxes(.vertical) } })
+        #expect(sized.count == 3)
+        #expect(unsized.count == 1)
+    }
+
+    @Test("GridLayout honours unsized cells as Grid does")
+    func unsizedInGridLayout() {
+        let grid = lines(
+            Grid(alignment: .leading) {
+                GridRow { Text("aa"); Text("b") }
+                GridRow { Text("a long cell").gridCellUnsizedAxes(.horizontal); Text("b") }
+            })
+        let layout = lines(
+            GridLayout(alignment: .leading) {
+                GridRow { Text("aa"); Text("b") }
+                GridRow { Text("a long cell").gridCellUnsizedAxes(.horizontal); Text("b") }
+            })
+        #expect(layout == grid)
+    }
+
     @Test("A layout over two rows sees their cells")
     func layoutSeesCells() {
         // Measured on SwiftUI: a custom `Layout` over two `GridRow`s of two

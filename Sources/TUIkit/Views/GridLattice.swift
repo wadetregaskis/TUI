@@ -31,6 +31,16 @@ struct GridLattice {
         let size: ViewSize
         /// The column alignment the cell sets for its column, if any.
         let columnAlignment: HorizontalAlignment?
+        /// The axes on which the cell does not size its column or row.
+        let unsizedAxes: Axis.Set
+
+        /// The width the cell asks its columns for: none, when it is unsized
+        /// horizontally.
+        var sizingWidth: Int { unsizedAxes.contains(.horizontal) ? 0 : size.width }
+
+        /// The height the cell asks its row for: none, when it is unsized
+        /// vertically.
+        var sizingHeight: Int { unsizedAxes.contains(.vertical) ? 0 : size.height }
     }
 
     /// One row of cells.
@@ -75,7 +85,7 @@ struct GridLattice {
             var height = 0
             var index = 0
             for cell in row.cells {
-                height = max(height, cell.size.height)
+                height = max(height, cell.sizingHeight)
                 widen(to: index + cell.span)
                 // `span == 1` is not enough on its own. A child that is not in
                 // a row arrives here as a one-cell row with span 1, and the
@@ -86,13 +96,13 @@ struct GridLattice {
                 // column a sentence-width away. Pass B already excludes these
                 // rows; Pass A is where it was missed.
                 if cell.span == 1 && !row.spansFullWidth {
-                    columns[index] = max(columns[index], cell.size.width)
+                    columns[index] = max(columns[index], cell.sizingWidth)
                     if let guide = cell.columnAlignment, columnAlignment[index] == nil {
                         columnAlignment[index] = guide
                     }
                 }
                 if row.spansFullWidth {
-                    fullWidthNeed = max(fullWidthNeed, cell.size.width)
+                    fullWidthNeed = max(fullWidthNeed, cell.sizingWidth)
                 }
                 index += cell.span
             }
@@ -113,8 +123,8 @@ struct GridLattice {
                 let covered =
                     columns[index..<(index + cell.span)].reduce(0, +)
                     + (cell.span - 1) * horizontalSpacing
-                if cell.size.width > covered {
-                    columns[index + cell.span - 1] += cell.size.width - covered
+                if cell.sizingWidth > covered {
+                    columns[index + cell.span - 1] += cell.sizingWidth - covered
                 }
             }
         }

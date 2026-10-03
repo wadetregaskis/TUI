@@ -25,6 +25,12 @@ private struct GridColumnAlignmentKey: LayoutValueKey {
     static let defaultValue: HorizontalAlignment? = nil
 }
 
+/// The axes on which a cell does not size its column or row, set with
+/// ``View/gridCellUnsizedAxes(_:)``.
+private struct GridCellUnsizedAxesKey: LayoutValueKey {
+    static let defaultValue: Axis.Set = []
+}
+
 extension View {
     /// Makes this cell span `count` columns of its ``Grid``.
     ///
@@ -53,6 +59,32 @@ extension View {
     /// - Returns: A view carrying the column alignment.
     public func gridColumnAlignment(_ guide: HorizontalAlignment) -> some View {
         layoutValue(key: GridColumnAlignmentKey.self, value: guide)
+    }
+
+    /// Asks the grid not to size this cell's column or row from it, on the
+    /// given axes.
+    ///
+    /// For a cell that fills whatever it is given — a `Color`, a `Divider`, a
+    /// rule drawn across a row — so it takes the width (or height) the other
+    /// cells decide instead of imposing its own:
+    ///
+    /// ```swift
+    /// Grid {
+    ///     GridRow { Text("Name"); Text("Size") }
+    ///     GridRow {
+    ///         Color.gray.frame(height: 1).gridCellUnsizedAxes(.horizontal)
+    ///             .gridCellColumns(2)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// On an axis it is unsized on, the cell adds nothing to its column's
+    /// width or its row's height, and is drawn at the extent the rest decide.
+    ///
+    /// - Parameter axes: The axes on which the cell does not size the grid.
+    /// - Returns: A view carrying the axes.
+    public func gridCellUnsizedAxes(_ axes: Axis.Set) -> some View {
+        layoutValue(key: GridCellUnsizedAxesKey.self, value: axes)
     }
 }
 
@@ -229,10 +261,9 @@ extension ObjectEnvironmentModifier: GridRowProviding where Content: GridRowProv
 /// ``GridLayout`` lays cells out the same way as a ``Layout``, for switching
 /// with another layout through ``AnyLayout``.
 ///
-/// SwiftUI's `gridCellUnsizedAxes(_:)` has no counterpart. It exists in SwiftUI so
-/// a `Divider` does not force its own ideal length onto a column; here a
-/// non-`GridRow` child already spans the full width, which is the case that
-/// needed it.
+/// A child that is not in a row already spans the full width without sizing a
+/// column. A cell that should fill its column or row rather than size it says
+/// so with ``View/gridCellUnsizedAxes(_:)``.
 public struct Grid<Content: View>: View {
     /// How cells sit inside the boxes the grid gives them.
     public let alignment: Alignment
@@ -326,7 +357,8 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                         GridLattice.Cell(
                             span: span,
                             size: cell.measure(proposal: .unspecified, context: context),
-                            columnAlignment: cell.gridColumnAlignment)
+                            columnAlignment: cell.gridColumnAlignment,
+                            unsizedAxes: cell.gridUnsizedAxes)
                     },
                     spansFullWidth: row.spansFullWidth)
             },
@@ -467,6 +499,11 @@ extension ChildView {
     /// The anchor this cell asked for, if any.
     var gridCellAnchor: UnitPoint? {
         gridValue(GridCellAnchorKey.self).flatMap { $0 }
+    }
+
+    /// The axes on which this cell does not size the grid.
+    var gridUnsizedAxes: Axis.Set {
+        gridValue(GridCellUnsizedAxesKey.self) ?? []
     }
 
     /// The column alignment this cell set for its column, if any.
