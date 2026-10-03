@@ -252,7 +252,7 @@ extension FocusManager {
 
     /// The first control in the ring that rendered inside `scope`, preferring
     /// the active section's.
-    private func firstFocusableID(inside scope: ViewIdentity) -> String? {
+    func firstFocusableID(inside scope: ViewIdentity) -> String? {
         let ordered = (activeSection.map { [$0] } ?? []) + sections.filter { $0.id != activeSection?.id }
         let reachable = activeSectionIsModal ? Array(ordered.prefix(1)) : ordered
         for section in reachable {

@@ -76,6 +76,20 @@ final class SearchDismissal: Equatable {
     weak var focusManager: FocusManager?
     var isSearching = false
 
+    /// Where the search field last rendered — recorded by `_SearchFieldFocus`,
+    /// so the field can be found to give it the focus.
+    var fieldIdentity: ViewIdentity?
+
+    /// Moves the focus to the search field: what setting a searchable's
+    /// `isPresented` to `true` does. Between frames, where the ring is the
+    /// last frame's and complete.
+    func focusField() {
+        guard let manager = focusManager, let identity = fieldIdentity,
+            let id = manager.firstFocusableID(inside: identity)
+        else { return }
+        manager.focus(id: id)
+    }
+
     /// Ending the search: empty the query, and give the keyboard back.
     ///
     /// The focus move is conditional because the action is callable from

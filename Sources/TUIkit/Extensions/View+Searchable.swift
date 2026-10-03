@@ -54,6 +54,59 @@ extension View {
     ) -> some View {
         searchable(text: text, placement: placement, prompt: Text(String(prompt)))
     }
+
+    /// Marks this view as searchable, with programmatic presentation of the
+    /// search field. Mirrors SwiftUI's
+    /// `searchable(text:isPresented:placement:prompt:)`.
+    ///
+    /// `isPresented` is `true` while the search field holds the focus, as
+    /// ``EnvironmentValues/isSearching`` is. Setting it to `true` moves the
+    /// focus to the field; setting it to `false` ends the search, as
+    /// ``DismissSearchAction`` does — the query is emptied and the focus moves
+    /// on to the content.
+    ///
+    /// - Parameters:
+    ///   - text: The text to display and edit in the search field.
+    ///   - isPresented: Whether search is presented.
+    ///   - placement: The preferred placement (the field is drawn at the top
+    ///     of the searchable subtree, whatever is preferred).
+    ///   - prompt: A `Text` to display when the search field is empty.
+    public func searchable(
+        text: Binding<String>,
+        isPresented: Binding<Bool>,
+        placement: SearchFieldPlacement = .automatic,
+        prompt: Text? = nil
+    ) -> some View {
+        _ = placement
+        return SearchableModifier(content: self, text: text, prompt: prompt, isPresented: isPresented)
+    }
+
+    /// Marks this view as searchable, with programmatic presentation and a
+    /// localized prompt.
+    ///
+    /// A string **literal** binds here, so the prompt is a lookup key — see
+    /// ``LocalizedStringKey``.
+    public func searchable(
+        text: Binding<String>,
+        isPresented: Binding<Bool>,
+        placement: SearchFieldPlacement = .automatic,
+        prompt: LocalizedStringKey
+    ) -> some View {
+        searchable(text: text, isPresented: isPresented, placement: placement, prompt: Text(prompt))
+    }
+
+    /// Marks this view as searchable, with programmatic presentation and a
+    /// prompt displayed as written.
+    @_disfavoredOverload
+    public func searchable(
+        text: Binding<String>,
+        isPresented: Binding<Bool>,
+        placement: SearchFieldPlacement = .automatic,
+        prompt: some StringProtocol
+    ) -> some View {
+        searchable(
+            text: text, isPresented: isPresented, placement: placement, prompt: Text(String(prompt)))
+    }
 }
 
 // MARK: - Suggestions
@@ -149,6 +202,10 @@ struct SearchableModifier<Content: View>: View {
     let text: Binding<String>
     let prompt: Text?
 
+    /// Whether search is presented, for the `isPresented:` forms: kept equal to
+    /// ``isSearching`` from the field's side, and acted on from the app's.
+    var isPresented: Binding<Bool>?
+
     /// Whether the field holds focus — the value ``EnvironmentValues/isSearching``
     /// publishes to `content`.
     ///
@@ -198,7 +255,12 @@ struct SearchableModifier<Content: View>: View {
         dismissal.text = text
         dismissal.focusManager = focusManager
         dismissal.isSearching = isSearching
-        return VStack(alignment: .leading, spacing: 0) {
+        return presentationSync(searchStack)
+    }
+
+    /// The field above the content.
+    private var searchStack: some View {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 1) {
                 if supportsEmojiChrome, iconPlacement == .leading {
                     icon
@@ -219,6 +281,32 @@ struct SearchableModifier<Content: View>: View {
             content
                 .environment(\.isSearching, isSearching)
                 .environment(\.searchDismissal, dismissal)
+                // A `searchFocused` written outside binds THIS searchable's
+                // field, and not a searchable's in the content as well.
+                .environment(\.searchFocusOffer, nil)
+        }
+    }
+
+    /// For the `isPresented:` forms, acts on the app's writes: presenting
+    /// moves the focus to the field, and ending the search dismisses it.
+    ///
+    /// After the frame, not during it: the focus move needs the ring this
+    /// render is still building, and dismissing writes the query, which is
+    /// state this render has already read.
+    @ViewBuilder
+    private func presentationSync(_ stack: some View) -> some View {
+        if let isPresented {
+            let dismissal = dismissal
+            let isSearching = isSearching
+            stack.onChange(of: isPresented.wrappedValue, initial: true) { _, presented in
+                if presented, !isSearching {
+                    Task { @MainActor in dismissal.focusField() }
+                } else if !presented, isSearching {
+                    Task { @MainActor in dismissal.dismiss() }
+                }
+            }
+        } else {
+            stack
         }
     }
 
@@ -245,10 +333,21 @@ struct SearchableModifier<Content: View>: View {
         let defaultPrompt = Text(
             verbatim: LocalizationService.shared.string(for: LocalizationKey.Label.search))
         let offered = suggestions
-        return TextField("", text: text, prompt: prompt ?? defaultPrompt)
-            .onEditingChanged { isSearching = $0 }
+        let isPresented = isPresented
+        let field = TextField("", text: text, prompt: prompt ?? defaultPrompt)
+            .onEditingChanged { began in
+                isSearching = began
+                // The field's side of `isPresented`: presented while it holds
+                // the focus, as `isSearching` is.
+                if let isPresented, isPresented.wrappedValue != began {
+                    isPresented.wrappedValue = began
+                }
+            }
             .transformEnvironment(\.textInputSuggestions) { inherited in
                 if !offered.entries.isEmpty { inherited = offered }
             }
+        // Records where the field rendered, so presenting can focus it, and
+        // binds a `searchFocused` focus state to it.
+        return _SearchFieldFocus(content: field, search: dismissal)
     }
 }
