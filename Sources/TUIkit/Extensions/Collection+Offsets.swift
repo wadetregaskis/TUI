@@ -52,9 +52,17 @@ extension RangeReplaceableCollection where Self: MutableCollection, Self.Index =
             .map(\.element)
         self = Self(kept)
     }
+}
 
+// The `Index == Int` constraint is the same overlay workaround as above, and is
+// what makes this strictly more specialised than SwiftUI's unconstrained
+// `MutableCollection.move(fromOffsets:toOffset:)`.
+extension MutableCollection where Self.Index == Int {
     /// Moves the elements at the given offsets to just before the element at
-    /// the destination offset. Mirrors SwiftUI's `move(fromOffsets:toOffset:)`.
+    /// the destination offset. Mirrors SwiftUI's `move(fromOffsets:toOffset:)`,
+    /// which is declared on `MutableCollection`: a move permutes elements in
+    /// place, so it needs no `RangeReplaceableCollection` — a fixed-size
+    /// buffer can be reordered too.
     ///
     /// `destination` is the offset the moved block should end up *in front of*,
     /// measured against the collection **before** the move — so moving row 0 to
@@ -91,6 +99,10 @@ extension RangeReplaceableCollection where Self: MutableCollection, Self.Index =
             }
         }
         remaining.insert(contentsOf: moved, at: Swift.max(0, Swift.min(insertAt, remaining.count)))
-        self = Self(remaining)
+        // Written back in place: a `MutableCollection` can replace elements
+        // but not be rebuilt, and the permutation keeps the count.
+        for (index, element) in zip(indices, remaining) {
+            self[index] = element
+        }
     }
 }

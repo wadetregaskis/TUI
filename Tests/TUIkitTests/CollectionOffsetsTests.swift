@@ -104,4 +104,21 @@ struct CollectionOffsetsTests {
         items.move(fromOffsets: IndexSet(integer: 0), toOffset: 99)
         #expect(items == ["b", "c", "a"])
     }
+
+    /// SwiftUI declares the move on `MutableCollection`: it permutes in place,
+    /// so a collection that can be reordered but not resized gets it too.
+    /// `ArraySlice` also checks that offsets count from the slice's own start,
+    /// not from index 0.
+    @Test("A collection that cannot be resized can still be reordered")
+    func moveInPlace() {
+        var buffer = [10, 20, 30, 40]
+        buffer.withUnsafeMutableBufferPointer { pointer in
+            pointer.move(fromOffsets: IndexSet(integer: 0), toOffset: 4)
+        }
+        #expect(buffer == [20, 30, 40, 10])
+
+        var slice = [1, 2, 3, 4, 5][1...3]
+        slice.move(fromOffsets: IndexSet(integer: 2), toOffset: 0)
+        #expect(Array(slice) == [4, 2, 3])
+    }
 }
