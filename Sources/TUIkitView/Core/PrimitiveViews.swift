@@ -47,6 +47,11 @@ public enum ConditionalView<TrueContent: View, FalseContent: View>: View {
     public var body: Never {
         fatalError("ConditionalView renders its children directly")
     }
+
+    /// Either branch's answer: the type cannot tell which one a value holds.
+    public static var _providesAlignmentGuide: Bool {
+        TrueContent._providesAlignmentGuide || FalseContent._providesAlignmentGuide
+    }
 }
 
 // MARK: - ViewArray

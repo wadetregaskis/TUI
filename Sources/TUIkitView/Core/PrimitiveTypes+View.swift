@@ -31,6 +31,10 @@ extension Optional: View where Wrapped: View {
             EmptyView()
         }
     }
+
+    /// The wrapped view's answer: present, it is the content a container
+    /// lays out.
+    public static var _providesAlignmentGuide: Bool { Wrapped._providesAlignmentGuide }
 }
 
 // MARK: - Optional Rendering

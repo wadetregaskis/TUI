@@ -105,10 +105,10 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         let sizes = buffers.map { (width: $0.width, height: $0.height) }
         let horizontalRun = horizontalGuideRun(
             drawn, sizes: sizes, alignment: alignment.horizontal,
-            minimumExtent: buffers.map(\.width).max() ?? 0)
+            minimumExtent: buffers.map(\.width).max() ?? 0, context: context)
         let verticalRun = verticalGuideRun(
             drawn, sizes: sizes, alignment: alignment.vertical,
-            minimumExtent: buffers.map(\.height).max() ?? 0)
+            minimumExtent: buffers.map(\.height).max() ?? 0, context: context)
         let frameWidth = horizontalRun?.extent ?? buffers.map(\.width).max() ?? 0
         let frameHeight = verticalRun?.extent ?? buffers.map(\.height).max() ?? 0
         // A zero-size frame means no child drew anything IN FLOW — but a
@@ -218,13 +218,13 @@ extension _ZStackCore: Layoutable {
             let drawn = children.indices.filter { !children[$0].isSpacer }
             if let run = horizontalGuideRun(
                 drawn.map { children[$0] }, sizes: drawn.map { guideSizes[$0] },
-                alignment: alignment.horizontal, minimumExtent: maxWidth)
+                alignment: alignment.horizontal, minimumExtent: maxWidth, context: context)
             {
                 maxWidth = run.extent
             }
             if let run = verticalGuideRun(
                 drawn.map { children[$0] }, sizes: drawn.map { guideSizes[$0] },
-                alignment: alignment.vertical, minimumExtent: maxHeight)
+                alignment: alignment.vertical, minimumExtent: maxHeight, context: context)
             {
                 maxHeight = run.extent
             }
@@ -241,6 +241,59 @@ extension _ZStackCore: Layoutable {
                 ? wholeContentFlexibility(hasFlexibleWidth, width: width, limit: widthLimit)
                 : hasFlexibleWidth,
             isHeightFlexible: hasFlexibleHeight)
+    }
+}
+
+// MARK: - Guides Through the Layers
+
+extension ZStack {
+    /// Its content's answer: the stack lays its content out as its own
+    /// layers, so a guide in any of them can be the stack's to report.
+    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension _ZStackCore {
+    /// See ``ZStack/_providesAlignmentGuide``.
+    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension _ZStackCore: AlignmentGuideQuerying {
+    /// The guide the layers give, each moved by where the stack puts it,
+    /// merged by the guide's rule. The placement is `renderToBuffer`'s, from
+    /// the layers' sizes at the stack's: each axis its own guide run, or the
+    /// stack's alignment within the largest layer.
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+    ) -> Double? {
+        let children = resolveChildViews(from: content, context: context)
+        guard anyAlignmentGuide(in: children) else { return nil }
+        let drawn = children.filter { !$0.isSpacer }
+        let sizes = drawn.map { child -> (width: Int, height: Int) in
+            let size = child.measure(
+                proposal: ProposedSize(width: dimensions.width, height: dimensions.height),
+                context: context)
+            return (width: min(size.width, dimensions.width), height: min(size.height, dimensions.height))
+        }
+        let widest = sizes.map(\.width).max() ?? 0
+        let tallest = sizes.map(\.height).max() ?? 0
+        let horizontalRun = horizontalGuideRun(
+            drawn, sizes: sizes, alignment: alignment.horizontal, minimumExtent: widest,
+            context: context)
+        let verticalRun = verticalGuideRun(
+            drawn, sizes: sizes, alignment: alignment.vertical, minimumExtent: tallest,
+            context: context)
+        let frameWidth = horizontalRun?.extent ?? widest
+        let frameHeight = verticalRun?.extent ?? tallest
+        let frames = sizes.enumerated().map { index, size in
+            (
+                x: horizontalRun?.offsets[index]
+                    ?? alignment.horizontal.childOffset(childWidth: size.width, in: frameWidth),
+                y: verticalRun?.offsets[index]
+                    ?? alignment.vertical.childOffset(childHeight: size.height, in: frameHeight),
+                width: size.width, height: size.height
+            )
+        }
+        return mergedExplicitGuide(query, of: drawn, frames: frames, context: context)
     }
 }
 

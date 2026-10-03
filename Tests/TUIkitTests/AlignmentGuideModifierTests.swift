@@ -56,44 +56,40 @@ struct AlignmentGuideModifierTests {
 
     // MARK: - The basic shape
 
-    @Test("A guide under a size-changing wrapper is a documented no-op, deliberately")
-    func guideUnderAWrapperIsInert() {
-        // PINS A LIMITATION, not a feature. `.zIndex(_:)` now survives any
-        // number of wrappers, because a z-index is dimension-INDEPENDENT: the
-        // number means the same thing whatever size the view ends up. A guide
-        // is not — it is a closure evaluated against the dimensions the view
-        // laid out at — so walking through a wrapper would hand the inner
-        // closure the OUTER, wrapped size and resolve `$0.width` against a
-        // width two cells larger than the one it was written for. SwiftUI gets
-        // this right by TRANSLATING the guide as each wrapper changes the
-        // geometry; TUIkit's buffers carry no guide metadata to translate, so
-        // the honest answer is the one `alignmentGuide(_:computeValue:)`'s own
-        // doc comment gives: apply it outermost.
-        //
-        // A wrong position is worse than a documented no-op, which is why this
-        // asserts the no-op. Lifting it needs a size-neutrality witness, and
-        // the test to change alongside it is this one.
-        let outermost = indents(renderToBuffer(
-            VStack(alignment: .leading) {
-                Text("aaaa").alignmentGuide(.leading) { Double($0.width) }
-                Text("bb")
-            },
-            context: makeBareRenderContext(width: 20, height: 4)))
+    @Test("A guide travels out through padding, evaluated at the content's own size")
+    func guideThroughPadding() {
+        // SwiftUI translates a guide as each wrapper changes the geometry, and
+        // padding is one that knows by how much. The closure still sees the
+        // CONTENT's dimensions — `$0.width` is "aaaa"'s 4, not the padded 6 —
+        // and the answer is moved by the leading inset: 4 + 1, so "bb" lines
+        // up under the cell after "aaaa".
         let wrapped = indents(renderToBuffer(
             VStack(alignment: .leading) {
                 Text("aaaa").alignmentGuide(.leading) { Double($0.width) }.padding(.horizontal, 1)
                 Text("bb")
             },
             context: makeBareRenderContext(width: 20, height: 4)))
-        let plain = indents(renderToBuffer(
+        #expect(wrapped == [1, 5])
+    }
+
+    @Test("A guide under a wrapper that does not translate it stops there, deliberately")
+    func guideUnderABorderIsInert() {
+        // PINS A LIMITATION. A border also moves its content, but nothing here
+        // translates a guide through it, and a wrong position is worse than a
+        // documented no-op: the guide is not read at all.
+        let wrapped = indents(renderToBuffer(
             VStack(alignment: .leading) {
-                Text("aaaa").padding(.horizontal, 1)
+                Text("aaaa").alignmentGuide(.leading) { Double($0.width) }.border(.red)
                 Text("bb")
             },
             context: makeBareRenderContext(width: 20, height: 4)))
-
-        #expect(outermost != plain, "outermost, the guide moves the stack")
-        #expect(wrapped == plain, "wrapped, it is inert — and inert is the deliberate answer")
+        let plain = indents(renderToBuffer(
+            VStack(alignment: .leading) {
+                Text("aaaa").border(.red)
+                Text("bb")
+            },
+            context: makeBareRenderContext(width: 20, height: 4)))
+        #expect(wrapped == plain)
     }
 
     @Test("A hanging guide widens the column and indents its siblings")
@@ -361,9 +357,10 @@ struct AlignmentGuideModifierTests {
             ChildView(Text("abcdef"), childIndex: 1),
         ]
         let sizes = [(width: 3, height: 1), (width: 6, height: 1)]
-        #expect(horizontalGuideRun(children, sizes: sizes, alignment: .center) == nil)
-        #expect(verticalGuideRun(children, sizes: sizes, alignment: .top) == nil)
-        #expect(horizontalGuideRun(children, sizes: sizes, alignment: .leading) != nil)
+        let context = makeRenderContext(width: 20, height: 4)
+        #expect(horizontalGuideRun(children, sizes: sizes, alignment: .center, context: context) == nil)
+        #expect(verticalGuideRun(children, sizes: sizes, alignment: .top, context: context) == nil)
+        #expect(horizontalGuideRun(children, sizes: sizes, alignment: .leading, context: context) != nil)
     }
 
     @Test("Chained guides both apply")
@@ -415,13 +412,10 @@ struct AlignmentGuideModifierTests {
         #expect(measured.height == rendered.height)
     }
 
-    @Test("A guide buried under a later modifier does not apply")
-    func aBuriedGuideIsNotRead() {
-        // The documented limit, pinned so it cannot drift into a WRONG offset:
-        // `.padding()` wraps the guide where the stack cannot see it, and
-        // TUIkit's buffers carry no guide metadata for padding to translate.
-        // Same rule as `.zIndex(_:)`. If this ever starts passing, the docs on
-        // `alignmentGuide(_:computeValue:)` need updating with it.
+    @Test("A guide buried under padding of nothing still applies")
+    func aGuideThroughZeroPadding() {
+        // Measured on SwiftUI: `.padding(0)` between a guide and the stack
+        // that aligns on it changes nothing. The bullet hangs off the line.
         let buffer = renderToBuffer(
             VStack(alignment: .leading) {
                 Text("•").alignmentGuide(.leading) { $0[.trailing] }.padding(0)
@@ -429,6 +423,67 @@ struct AlignmentGuideModifierTests {
             },
             context: makeRenderContext(width: 30, height: 4))
 
+        #expect(indents(buffer) == [0, 1])
+    }
+
+    // MARK: - A guide travels up through containers
+
+    @Test("A guide inside a column, a row or a ZStack moves that container as a whole")
+    func guideTravelsThroughStacks() {
+        func indentsOf(_ inner: some View) -> [Int] {
+            indents(renderToBuffer(
+                VStack(alignment: .leading) {
+                    inner
+                    Text("x")
+                },
+                context: makeRenderContext(width: 30, height: 6)))
+        }
+        // The inner container's guide is 3 cells in, so "x" moves to meet it.
+        #expect(indentsOf(VStack { Text("ab").alignmentGuide(.leading) { _ in 3 } }) == [0, 3])
+        #expect(indentsOf(ZStack { Text("ab").alignmentGuide(.leading) { _ in 3 } }) == [0, 3])
+        // In a row the guide is moved by where its view sits: "bc" starts at 2.
+        #expect(
+            indentsOf(
+                HStack(spacing: 1) {
+                    Text("a")
+                    Text("bc").alignmentGuide(.leading) { _ in 1 }
+                }) == [0, 3])
+    }
+
+    @Test("A custom alignment set inside each row lines the rows up on it")
+    func decimalPointThroughRows() {
+        // The case the compatibility notes listed as a gap: the guide is on a
+        // `Text` inside each row, and the column aligns the ROWS.
+        let buffer = renderToBuffer(
+            VStack(alignment: .decimalPoint) {
+                HStack(spacing: 0) {
+                    Text("12")
+                    Text(".5").alignmentGuide(.decimalPoint) { _ in 0 }
+                }
+                HStack(spacing: 0) {
+                    Text("1")
+                    Text(".25").alignmentGuide(.decimalPoint) { _ in 0 }
+                }
+            },
+            context: makeRenderContext(width: 30, height: 4))
+        #expect(buffer.lines.map(\.stripped) == ["12.5 ", " 1.25"])
+    }
+
+    @Test("A guide does not travel out of a view type of the app's own")
+    func guideStopsAtAnAppView() {
+        // Documented: a view of the app's own states nothing about what its
+        // body holds, so the column cannot know to ask it.
+        struct Row: View {
+            var body: some View {
+                Text("ab").alignmentGuide(.leading) { _ in 3 }
+            }
+        }
+        let buffer = renderToBuffer(
+            VStack(alignment: .leading) {
+                Row()
+                Text("x")
+            },
+            context: makeRenderContext(width: 30, height: 4))
         #expect(indents(buffer) == [0, 0])
     }
 

@@ -244,21 +244,19 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 ///   wrapper.
 /// - ``View/_providesAlignmentGuide`` is worse than either, because it would
 ///   look like it worked. A guide is a closure EVALUATED AGAINST the dimensions
-///   the view laid out at (`explicitAlignmentGuide(for:in:)`), and the walk
-///   would hand the inner view's closure the OUTER, wrapped size — so
-///   `.alignmentGuide(.leading) { $0.width }.padding(1)` would resolve against
-///   a width two cells larger than the one the closure was written for, and
-///   report a position from the wrong coordinate space. SwiftUI gets this right
-///   by TRANSLATING the guide as each wrapper changes the geometry; TUIkit's
-///   buffers carry no guide metadata for a wrapper to translate, which is the
-///   reason `alignmentGuide(_:computeValue:)`'s own doc comment gives for the
-///   "apply it as the outermost modifier" rule. A guide that silently reports
-///   the wrong position is worse than one that documentedly does nothing, so
-///   the rule stands for guides and is lifted only for z-indices. Forwarding it
-///   through the wrappers that demonstrably do NOT change size would be sound
-///   and is the obvious next step; it needs a witness for size-neutrality that
-///   does not exist yet, and guessing per type is exactly how the wrong
-///   coordinate space gets shipped.
+///   the view laid out at, and the walk would hand the inner view's closure
+///   the OUTER, wrapped size — so `.alignmentGuide(.leading) { $0.width }
+///   .padding(1)` would resolve against a width two cells larger than the one
+///   the closure was written for, and report a position from the wrong
+///   coordinate space. SwiftUI gets this right by TRANSLATING the guide as each
+///   wrapper changes the geometry, and so does TUIkit where it can: the views
+///   that know where they put their content — the stacks, and padding through
+///   `BufferModifier._translatesAlignmentGuides` — forward the witness and
+///   answer a context-carrying guide query that moves the content's guide by
+///   that offset. Every other wrapper leaves the witness `false`, so a guide
+///   stops there rather than report the wrong position. Forwarding it through
+///   the wrappers that demonstrably do NOT change size would be sound too; it
+///   needs a witness for size-neutrality that does not exist yet.
 extension View where Self: SingleContentWrapper {
     /// The content's answer: a z-index bound inside this wrapper is still a
     /// z-index, so the gate that decides whether to look for one has to say so.

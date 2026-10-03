@@ -82,3 +82,42 @@ Nothing in TUIkit can attach an action to a section yet: SwiftUI's
 `List` draws actions in section headers. So every section's actions are an
 empty view, which is the truth. When `sectionActions` lands, `actions` must
 start returning what it set.
+
+### B-W05.5 A guide does not travel out of a view type of the app's own
+
+*`View.alignmentGuide(_:computeValue:)`*
+
+SwiftUI resolves a guide recursively through everything between it and the
+container aligning on it. TUIkit now does the same through `VStack`,
+`HStack`, `ZStack` and `.padding` (each moving the guide by where it put its
+content), which closes the gap the compatibility notes
+recorded: `.alignmentGuide(.decimalPoint)` on a `Text` inside each row of a
+column aligns the rows on the point.
+
+It stops at a view type of the app's own: a guide inside
+`struct Row: View`'s `body` does not travel out of `Row`. A container decides
+whether to ask a child about guides from a static witness
+(`View._providesAlignmentGuide`), which the framework's containers now
+forward from their content; an app's view states none, so it is not asked. It
+also stops at any modifier that does not translate guides (`.border()`,
+`.frame`, `.offset`): there a wrong position is the alternative.
+
+**The fuller version** makes every composite view forward its `body`'s
+witness by default (`Body._providesAlignmentGuide`, `false` for a `Never`
+body), so the question reaches into every body type. The cost is where the
+witness is read: `ChildView` construction, per child per walk, would recurse
+through the child's whole static body type, not only the framework containers
+in it. That is O(static subtree) per construction, which the per-pass measure
+memo keeps to roughly O(nodes × depth) witness calls a frame — small on paper,
+and exactly the kind of thing that has measured as a percent on `fanout` and
+`deep` before. Half a day, plus an A/B on `deep`, `kitchensink`, `megalist`
+and `table` on a quiet machine before it ships.
+
+**A/B owed for what did ship.** The witness now forwards through `TupleView`,
+`Group`, `ForEach`, `ConditionalView`, `Optional`, the three eager stacks and
+padding, so constructing a `ChildView` for a container child ORs its
+framework subtree's witnesses instead of reading one constant. A tree with no
+guide still pays one stored `Bool` per child at layout time, as before; the
+added cost is in the construction, and it was not measured (no benchmarks on
+a shared machine). `deep` and `kitchensink`, the structure-heavy scenarios,
+are the ones to A/B.

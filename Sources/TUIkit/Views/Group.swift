@@ -39,6 +39,11 @@ public struct Group<Content: View>: View {
     public var body: some View {
         content
     }
+
+    /// Its content's answer: a group's members are laid out as the enclosing
+    /// container's own children, so a guide in any of them can be one that
+    /// container reports.
+    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
 // MARK: - Equatable Conformance

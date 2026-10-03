@@ -91,13 +91,15 @@ private func placeLayer<Layer: View>(
     let overlaySize = (width: overlayBuffer.width, height: overlayBuffer.height)
     let horizontalOffset =
         horizontalGuidePlacement(
-            of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width)
+            of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width,
+            context: framedContext)
         ?? alignment.horizontal.childOffset(childWidth: overlaySize.width, in: baseBuffer.width)
 
     // Calculate vertical position
     let verticalOffset =
         verticalGuidePlacement(
-            of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height)
+            of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height,
+            context: framedContext)
         ?? alignment.vertical.childOffset(childHeight: overlaySize.height, in: baseBuffer.height)
 
     return .placed(overlayBuffer, at: (x: horizontalOffset, y: verticalOffset))

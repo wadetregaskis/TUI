@@ -195,7 +195,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             let run = horizontalGuideRun(
                 children, sizes: guideSizes, alignment: alignment,
                 fixedExtent: hasFlexibleWidth && !asksIdealWidth ? max(0, widthLimit) : nil,
-                minimumExtent: maxWidth)
+                minimumExtent: maxWidth, context: context)
         {
             maxWidth = run.extent
         }
@@ -363,7 +363,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // every rung to the edge of `Int`, the filler reporting each new rung.
         let guideRun = slotGuideRun(
             slots, fixedExtent: nil, minimumExtent: maxWidth,
-            idealWidthLimit: asksIdealWidth ? widthLimit : nil)
+            idealWidthLimit: asksIdealWidth ? widthLimit : nil, context: context)
         let width = min(guideRun?.extent ?? maxWidth, widthLimit)
         return ViewSize(
             width: width, height: height,
@@ -496,7 +496,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
                 sizes: buffers.map { (width: $0?.width ?? 0, height: $0?.height ?? 0) },
                 alignment: alignment,
                 fixedExtent: fillsWidth ? context.availableWidth : nil,
-                minimumExtent: maxChildWidth)
+                minimumExtent: maxChildWidth, context: context)
         }
 
         // === PASS 3: Assemble vertically ===
@@ -693,7 +693,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             }
         }
 
-        return assembleWindow(collected)
+        return assembleWindow(collected, context: context)
     }
 
     /// The saturated tail of the classic append-while-fits walk: the first
@@ -736,7 +736,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// three arrays that would carry it are built. See ``anyAlignmentGuide(in:)``.
     private func placedGuideRun(
         _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
-        fixedExtent: Int?, minimumExtent: Int
+        fixedExtent: Int?, minimumExtent: Int, context: RenderContext
     ) -> AlignmentGuideRun? {
         guard anyAlignmentGuide(in: collected.compactMap(\.child)) else { return nil }
         let placed = collected.compactMap { entry in entry.child.map { ($0, entry.buffer) } }
@@ -745,11 +745,13 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             sizes: placed.map { (width: $0.1.width, height: $0.1.height) },
             alignment: alignment,
             fixedExtent: fixedExtent,
-            minimumExtent: minimumExtent)
+            minimumExtent: minimumExtent,
+            context: context)
     }
 
     private func assembleWindow(
-        _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)]
+        _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
+        context: RenderContext
     ) -> FrameBuffer {
         let maxWidth = collected.map(\.buffer.width).max() ?? 0
 
@@ -757,7 +759,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // A lazy stack stops at the first row that will not fit, so the run is
         // the realized rows — the same limit SwiftUI has, and the reason a guide
         // is best used on content whose realized set is stable.
-        let guideRun = placedGuideRun(collected, fixedExtent: nil, minimumExtent: maxWidth)
+        let guideRun = placedGuideRun(
+            collected, fixedExtent: nil, minimumExtent: maxWidth, context: context)
 
         var result = FrameBuffer()
         var placedIndex = 0
@@ -816,7 +819,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     ///   whose rows count as drawn.
     private func slotGuideRun(
         _ slots: [RowSlot], fixedExtent: Int?, minimumExtent: Int = 0,
-        idealWidthLimit: Int? = nil
+        idealWidthLimit: Int? = nil, context: RenderContext
     ) -> AlignmentGuideRun? {
         guard anyAlignmentGuide(in: slots.map(\.child)) else { return nil }
         return horizontalGuideRun(
@@ -830,7 +833,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             },
             alignment: alignment,
             fixedExtent: fixedExtent,
-            minimumExtent: minimumExtent)
+            minimumExtent: minimumExtent,
+            context: context)
     }
 
     private func renderViewportWindow(
@@ -936,7 +940,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // off-window row still contributes its guide — the alignment column
         // must not shift as rows scroll in and out. Costs nothing (one stored
         // `Bool` per row) unless a row actually set a guide.
-        let guideRun = slotGuideRun(slots, fixedExtent: width)
+        let guideRun = slotGuideRun(slots, fixedExtent: width, context: context)
 
         // A ramp spanning this stack runs across the whole CONTENT, not the
         // viewport: a row keeps its colour as it scrolls, rather than the

@@ -102,6 +102,10 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content: View>
     public var body: Never {
         fatalError("ForEach renders via Renderable, or is resolved into child views")
     }
+
+    /// The rows' answer: they are laid out as the enclosing container's own
+    /// children, so a guide in any of them can be one that container reports.
+    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
 // MARK: - Reading the Data

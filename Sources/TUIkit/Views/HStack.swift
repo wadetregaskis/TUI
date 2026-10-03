@@ -250,7 +250,8 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                 placed.map { children[$0] },
                 sizes: placed.map { (width: widths[$0], height: finalHeight[$0]) },
                 alignment: alignment,
-                minimumExtent: height)
+                minimumExtent: height,
+                context: context)
         }
 
         // Gaps between the columns the row actually PLACES, not one per child.
@@ -284,7 +285,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// `nil` — the common answer, which is why the question is asked before the
     /// three arrays that would carry it are built. See ``anyAlignmentGuide(in:)``.
     private func placedGuideRun(
-        _ collected: [(FrameBuffer, Int, ChildView?)], minimumExtent: Int
+        _ collected: [(FrameBuffer, Int, ChildView?)], minimumExtent: Int, context: RenderContext
     ) -> AlignmentGuideRun? {
         guard anyAlignmentGuide(in: collected.compactMap(\.2)) else { return nil }
         let placed = collected.compactMap { entry in entry.2.map { ($0, entry.0) } }
@@ -292,7 +293,8 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             placed.map(\.0),
             sizes: placed.map { (width: $0.1.width, height: $0.1.height) },
             alignment: alignment,
-            minimumExtent: minimumExtent)
+            minimumExtent: minimumExtent,
+            context: context)
     }
 
     /// Measures the HStack without rendering.
@@ -421,7 +423,8 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                 children,
                 sizes: sizes.map { (width: $0.width, height: $0.height) },
                 alignment: alignment,
-                minimumExtent: height)
+                minimumExtent: height,
+                context: measureContext)
             : nil
         return ViewSize(
             width: width, height: guideRun?.extent ?? height,
@@ -697,7 +700,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         // === PASS 2: Apply vertical alignment and build result ===
         // Explicit guides resolve over the columns actually placed — a lazy row
         // stops at the first child that will not fit, so that is the run.
-        let guideRun = placedGuideRun(collected, minimumExtent: maxHeight)
+        let guideRun = placedGuideRun(collected, minimumExtent: maxHeight, context: context)
         let finalHeight = guideRun?.extent ?? maxHeight
 
         var result = FrameBuffer()
@@ -719,6 +722,64 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         }
 
         return result
+    }
+}
+
+// MARK: - Guides Through the Row
+
+extension HStack {
+    /// Its content's answer: the row lays its content out as its own children,
+    /// so a guide in any of them can be the row's to report.
+    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension _HStackCore {
+    /// See ``HStack/_providesAlignmentGuide``.
+    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension _HStackCore: AlignmentGuideQuerying {
+    /// The guide the row's children give, each moved by where the row puts
+    /// it, merged by the guide's rule — SwiftUI's measured behaviour.
+    ///
+    /// The placement is `renderClip`'s, from the same `resolvedLayout` both of
+    /// the row's passes share: widths distributed over `dimensions.width` and
+    /// laid end to end (a column of no cells earns no gap), and the row's own
+    /// guide run or its alignment down. A lazy row answers nothing, as a lazy
+    /// column does not.
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+    ) -> Double? {
+        guard overflow == .clip else { return nil }
+        let context = context.publishingContainerAxis(.horizontal)
+        let children = resolveChildViews(from: content, context: context)
+        guard anyAlignmentGuide(in: children) else { return nil }
+        let layout = resolvedLayout(children, availableWidth: dimensions.width, context: context)
+        let rowHeight = max(1, min(layout.height, dimensions.height))
+        var frames: [(x: Int, y: Int, width: Int, height: Int)] = []
+        frames.reserveCapacity(children.count)
+        var x = 0
+        var placedAny = false
+        var placedIndex = 0
+        for (index, child) in children.enumerated() {
+            let width = layout.widths[index]
+            if width > 0 {
+                if placedAny { x += spacing }
+                placedAny = true
+            }
+            if child.isSpacer {
+                frames.append((x: x, y: 0, width: width, height: 0))
+            } else {
+                let height = layout.childHeights[index]
+                let y =
+                    layout.guideRun?.offsets[placedIndex]
+                    ?? alignment.childOffset(childHeight: height, in: rowHeight)
+                frames.append((x: x, y: y, width: width, height: height))
+                placedIndex += 1
+            }
+            x += width
+        }
+        return mergedExplicitGuide(query, of: children, frames: frames, context: context)
     }
 }
 

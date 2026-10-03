@@ -44,6 +44,20 @@ public struct TupleView<each V: View>: View {
     }
 }
 
+// MARK: - Alignment Guides
+
+extension TupleView {
+    /// Whether any element holds an explicit alignment guide: a stack whose
+    /// content this is lays the elements out as its children, so a guide in
+    /// any of them can be the stack's to report.
+    public static var _providesAlignmentGuide: Bool {
+        func holdsGuide<T: View>(_: T.Type) -> Bool { T._providesAlignmentGuide }
+        var provides = false
+        repeat provides = provides || holdsGuide((each V).self)
+        return provides
+    }
+}
+
 // MARK: - Equatable Conformance
 
 // A main-actor-isolated conformance (SE-0470), NOT the `@preconcurrency

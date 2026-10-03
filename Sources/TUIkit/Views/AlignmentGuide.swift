@@ -109,17 +109,24 @@ extension View {
     /// everything else right to meet it — and the stack becomes wider than its
     /// widest child, which is the whole point of the mechanism.
     ///
-    /// - Important: Apply this as the **outermost** modifier on a child the
-    ///   container should read. A modifier applied after it (`.padding()`,
-    ///   `.border()`, a `.frame`) wraps the guide where the container cannot
-    ///   see it, and the guide has no effect. This is NO LONGER "exactly as
-    ///   with ``View/zIndex(_:)``", which it said until 2026-09-20: a z-index
-    ///   survives a wrapper now, because it is dimension-independent. A guide
-    ///   is a closure evaluated against the dimensions the view laid out at, so
-    ///   reading it through a wrapper would hand it the OUTER, wrapped size.
-    ///   TUIkit's buffers carry no guide metadata for such a wrapper to
-    ///   translate, so the alternative would be a guide that silently reports a
-    ///   position from the wrong coordinate space.
+    /// ## How far a guide travels
+    ///
+    /// As in SwiftUI, a guide travels up through the views that place their
+    /// content at a known offset, each moving it by that offset: `VStack`,
+    /// `HStack` and `ZStack` report the guides their children set (merged by
+    /// the alignment's ``HorizontalAlignment/combineExplicit(_:)`` when several
+    /// do), and `.padding` reports its content's moved by the inset. So a
+    /// decimal-point guide set on a `Text` inside each row of a column aligns
+    /// the rows on the point.
+    ///
+    /// - Important: It stops at any other modifier written after it
+    ///   (`.border()`, a `.frame`, `.offset`), and at a view type of your own:
+    ///   a guide inside a `struct Row: View`'s `body` does not travel out of
+    ///   `Row`. Put the guide on the view the container places, or on the
+    ///   outside of your view. A guide is a closure evaluated against the
+    ///   dimensions the view laid out at, and a wrapper that does not
+    ///   translate it would report a position from the wrong coordinate space;
+    ///   a view of your own states nothing about what its body holds.
     ///
     /// - Parameters:
     ///   - g: The guide to set.
@@ -162,26 +169,144 @@ extension View {
     }
 }
 
+// MARK: - Asking a View for Its Guide
+
+/// One explicit-guide question: which guide, and so along which axis a
+/// container translates a child's answer and how it merges several.
+enum AlignmentGuideQuery {
+    case horizontal(HorizontalAlignment)
+    case vertical(VerticalAlignment)
+
+    /// The guide asked about.
+    var key: AlignmentKey {
+        switch self {
+        case .horizontal(let alignment): alignment.key
+        case .vertical(let alignment): alignment.key
+        }
+    }
+
+    /// `value`, a guide position within a child, as a position within the
+    /// container that placed the child's origin at `origin`.
+    func translated(_ value: Double, by origin: (x: Int, y: Int)) -> Double {
+        switch self {
+        case .horizontal: value + Double(origin.x)
+        case .vertical: value + Double(origin.y)
+        }
+    }
+
+    /// Several children's explicit values as the container's one:
+    /// ``HorizontalAlignment/combineExplicit(_:)`` or
+    /// ``VerticalAlignment/combineExplicit(_:)``, SwiftUI's merge.
+    func combine(_ values: [Double?]) -> Double? {
+        switch self {
+        case .horizontal(let alignment): alignment.combineExplicit(values)
+        case .vertical(let alignment): alignment.combineExplicit(values)
+        }
+    }
+}
+
+/// A view that answers the explicit-guide question itself, given where it is
+/// laid out: a guide wrapper, a container that works its children's guides out
+/// through their placements, a padded view.
+///
+/// The context is what the context-free ``AlignmentGuideProviding`` lacks. A
+/// container cannot find its children's guides without resolving and measuring
+/// them, and that needs the context it is laid out in.
+@MainActor
+protocol AlignmentGuideQuerying {
+    /// The explicit value this view has for `query`'s guide when laid out at
+    /// `dimensions` in `context` — its own context, identity included — or
+    /// `nil` when it has none.
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+    ) -> Double?
+}
+
+/// The explicit value `view` has for `query`'s guide, laid out at `dimensions`
+/// in `context` (its own), or `nil` when it has none.
+///
+/// The static witness (``View/_providesAlignmentGuide``) gates everything: a
+/// view whose type cannot hold a guide is answered without a cast. Past it, a
+/// view answers itself (``AlignmentGuideQuerying``, or the public
+/// ``AlignmentGuideProviding``), or — a framework composite such as `VStack`,
+/// whose witness forwards its content's — its `body` is asked, at the identity
+/// its body renders at. An app's own views state no witness, so a guide inside
+/// one does not travel out of it.
+@MainActor
+func explicitGuide<V: View>(
+    of view: V, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions,
+    context: RenderContext
+) -> Double? {
+    guard V._providesAlignmentGuide else { return nil }
+    if let querying = view as? AlignmentGuideQuerying {
+        return querying.explicitGuide(query, in: dimensions, context: context)
+    }
+    if let provider = view as? AlignmentGuideProviding {
+        return provider.explicitAlignmentGuide(for: query.key, in: dimensions)
+    }
+    guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
+    // The body as the measure walk evaluates it: `@Environment` resolved and
+    // `@State` bound at this view's identity, so it is the body that is drawn.
+    resolveEnvironmentProperties(of: view, in: context.environment)
+    if let storage = context.stateStorage {
+        bindStateProperties(of: view, identity: context.identity, storage: storage)
+    }
+    return explicitGuide(
+        of: view.body, query, in: dimensions, context: context.withChildIdentity(type: V.Body.self))
+}
+
 // MARK: - Reading a Child's Guide
 
 extension ChildView {
-    /// The explicit horizontal guide this child set, evaluated at `dimensions`,
-    /// or `nil` when it set none.
+    /// The explicit value this child has for `query`'s guide when laid out at
+    /// `dimensions` in its container's `context`, or `nil` when it has none.
     ///
-    /// The static witness gates the conformance cast, so a child with no guide
-    /// — every child in almost every tree — costs one stored `Bool` read.
-    func explicitGuide(_ alignment: HorizontalAlignment, at dimensions: ViewDimensions) -> Double? {
+    /// The stored witness gates the query, so a child with no guide — every
+    /// child in almost every tree — costs one `Bool` read. Asked in a measuring
+    /// context of the child's own: a query lays out what it asks about, and
+    /// must leave nothing behind.
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, at dimensions: ViewDimensions, context: RenderContext
+    ) -> Double? {
         guard providesAlignmentGuide else { return nil }
-        return (wrappedView as? AlignmentGuideProviding)?
-            .explicitAlignmentGuide(for: alignment.key, in: dimensions)
+        var childContext = renderContext(under: context)
+        childContext.availableWidth = dimensions.width
+        childContext.availableHeight = dimensions.height
+        childContext.isMeasuring = true
+        return TUIkit.explicitGuide(of: wrappedView, query, in: dimensions, context: childContext)
     }
+}
 
-    /// The explicit vertical guide this child set, evaluated at `dimensions`,
-    /// or `nil` when it set none.
-    func explicitGuide(_ alignment: VerticalAlignment, at dimensions: ViewDimensions) -> Double? {
-        guard providesAlignmentGuide else { return nil }
-        return (wrappedView as? AlignmentGuideProviding)?
-            .explicitAlignmentGuide(for: alignment.key, in: dimensions)
+/// The explicit values `children` give `query`'s guide, each translated into
+/// the container by where the child sits, merged by the guide's rule — what a
+/// container reports for a guide it does not set itself. `nil` when no child
+/// gives one.
+@MainActor
+func mergedExplicitGuide(
+    _ query: AlignmentGuideQuery, of children: [ChildView],
+    frames: [(x: Int, y: Int, width: Int, height: Int)], context: RenderContext
+) -> Double? {
+    var values: [Double?] = []
+    values.reserveCapacity(children.count)
+    for (child, frame) in zip(children, frames) {
+        values.append(
+            child.explicitGuide(
+                query, at: ViewDimensions(width: frame.width, height: frame.height), context: context
+            ).map { query.translated($0, by: (x: frame.x, y: frame.y)) })
+    }
+    return query.combine(values)
+}
+
+extension _AlignmentGuideView: AlignmentGuideQuerying {
+    /// This wrapper's own guide, or whatever its content has for any other —
+    /// a guide set further in, or one a container inside reports.
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+    ) -> Double? {
+        if query.key == key { return computeValue(dimensions) }
+        return TUIkit.explicitGuide(
+            of: content, query, in: dimensions,
+            context: context.withChildIdentity(type: Body.self))
     }
 }
 
@@ -323,13 +448,16 @@ func anyAlignmentGuide(in children: [ChildView]) -> Bool {
 ///   - alignment: The container's alignment.
 ///   - fixedExtent: The container's width when it does not size to content.
 ///   - minimumExtent: A floor on a content-sized container's width.
+///   - context: The container's context, which a child that is itself a
+///     container needs to work out a guide it holds further in.
 @MainActor
 func horizontalGuideRun(
     _ children: [ChildView],
     sizes: [(width: Int, height: Int)],
     alignment: HorizontalAlignment,
     fixedExtent: Int? = nil,
-    minimumExtent: Int = 0
+    minimumExtent: Int = 0,
+    context: RenderContext
 ) -> AlignmentGuideRun? {
     guard children.contains(where: \.providesAlignmentGuide) else { return nil }
     var resolved: [Double] = []
@@ -337,7 +465,7 @@ func horizontalGuideRun(
     var anyExplicit = false
     for (child, size) in zip(children, sizes) {
         let dimensions = ViewDimensions(width: size.width, height: size.height)
-        if let explicit = child.explicitGuide(alignment, at: dimensions) {
+        if let explicit = child.explicitGuide(.horizontal(alignment), at: dimensions, context: context) {
             anyExplicit = true
             resolved.append(explicit)
         } else {
@@ -362,29 +490,32 @@ func horizontalGuideRun(
 /// place exactly one child in a region whose size is already decided:
 /// `.frame(alignment:)`, `.overlay(alignment:)`, `.background(alignment:)`.
 /// There is no run to merge, so the child's guide simply meets the region's.
+/// `context` is the one `view` was rendered in.
 @MainActor
 func horizontalGuidePlacement<V: View>(
-    of view: V, size: (width: Int, height: Int), alignment: HorizontalAlignment, in extent: Int
+    of view: V, size: (width: Int, height: Int), alignment: HorizontalAlignment, in extent: Int,
+    context: RenderContext
 ) -> Int? {
     guard V._providesAlignmentGuide,
-        let guide = (view as? AlignmentGuideProviding)?.explicitAlignmentGuide(
-            for: alignment.key,
-            in: ViewDimensions(width: size.width, height: size.height))
+        let guide = explicitGuide(
+            of: view, .horizontal(alignment),
+            in: ViewDimensions(width: size.width, height: size.height), context: context)
     else { return nil }
     return AlignmentGuideRun.resolve(
         resolved: [guide], sizes: [size.width], fixedExtent: extent, minimumExtent: extent
     ) { alignment[dimensions: ViewDimensions(width: $0, height: 0)] }.offsets[0]
 }
 
-/// The vertical twin of ``horizontalGuidePlacement(of:size:alignment:in:)``.
+/// The vertical twin of ``horizontalGuidePlacement(of:size:alignment:in:context:)``.
 @MainActor
 func verticalGuidePlacement<V: View>(
-    of view: V, size: (width: Int, height: Int), alignment: VerticalAlignment, in extent: Int
+    of view: V, size: (width: Int, height: Int), alignment: VerticalAlignment, in extent: Int,
+    context: RenderContext
 ) -> Int? {
     guard V._providesAlignmentGuide,
-        let guide = (view as? AlignmentGuideProviding)?.explicitAlignmentGuide(
-            for: alignment.key,
-            in: ViewDimensions(width: size.width, height: size.height))
+        let guide = explicitGuide(
+            of: view, .vertical(alignment),
+            in: ViewDimensions(width: size.width, height: size.height), context: context)
     else { return nil }
     return AlignmentGuideRun.resolve(
         resolved: [guide], sizes: [size.height], fixedExtent: extent, minimumExtent: extent
@@ -394,14 +525,15 @@ func verticalGuidePlacement<V: View>(
 /// The vertical placement of `children`, or `nil` when none of them gives an
 /// explicit value for `alignment`.
 ///
-/// The vertical twin of ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:)``.
+/// The vertical twin of ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:context:)``.
 @MainActor
 func verticalGuideRun(
     _ children: [ChildView],
     sizes: [(width: Int, height: Int)],
     alignment: VerticalAlignment,
     fixedExtent: Int? = nil,
-    minimumExtent: Int = 0
+    minimumExtent: Int = 0,
+    context: RenderContext
 ) -> AlignmentGuideRun? {
     guard children.contains(where: \.providesAlignmentGuide) else { return nil }
     var resolved: [Double] = []
@@ -409,7 +541,7 @@ func verticalGuideRun(
     var anyExplicit = false
     for (child, size) in zip(children, sizes) {
         let dimensions = ViewDimensions(width: size.width, height: size.height)
-        if let explicit = child.explicitGuide(alignment, at: dimensions) {
+        if let explicit = child.explicitGuide(.vertical(alignment), at: dimensions, context: context) {
             anyExplicit = true
             resolved.append(explicit)
         } else {

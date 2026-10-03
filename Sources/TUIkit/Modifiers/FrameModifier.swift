@@ -275,11 +275,15 @@ extension FlexibleFrameView: Renderable {
         }
 
         // Otherwise, align content within the frame
-        return alignBuffer(buffer, toWidth: finalWidth, height: finalHeight)
+        return alignBuffer(
+            buffer, toWidth: finalWidth, height: finalHeight, contentContext: contentContext)
     }
 
     /// Aligns buffer content within the target frame size.
-    private func alignBuffer(_ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int) -> FrameBuffer {
+    private func alignBuffer(
+        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int,
+        contentContext: RenderContext
+    ) -> FrameBuffer {
         var result: [String] = []
 
         // The content's own explicit `.alignmentGuide`, when it set one. The
@@ -289,12 +293,14 @@ extension FlexibleFrameView: Renderable {
         // what the ragged-line arithmetic below does by default.
         let contentSize = (width: buffer.width, height: buffer.height)
         let horizontalGuide = horizontalGuidePlacement(
-            of: content, size: contentSize, alignment: alignment.horizontal, in: targetWidth)
+            of: content, size: contentSize, alignment: alignment.horizontal, in: targetWidth,
+            context: contentContext)
 
         // Calculate vertical offset for alignment
         let verticalOffset =
             verticalGuidePlacement(
-                of: content, size: contentSize, alignment: alignment.vertical, in: targetHeight)
+                of: content, size: contentSize, alignment: alignment.vertical, in: targetHeight,
+                context: contentContext)
             ?? alignment.vertical.childOffset(childHeight: buffer.height, in: targetHeight)
 
         // Track the aligned result's width as we build it — `alignHorizontally`

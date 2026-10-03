@@ -68,6 +68,19 @@ public protocol BufferModifier {
     /// Not to be implemented by hand: conform to ``Animatable`` instead.
     static var _isAnimatable: Bool { get }
 
+    /// Static witness: whether an explicit alignment guide inside this
+    /// modifier's content is still a guide of the modified view.
+    ///
+    /// `true` only for a modifier that lays its content out at an offset a
+    /// guide can be translated by — padding, which is measured to pass a guide
+    /// through in SwiftUI. Every other modifier answers `false`, and a guide
+    /// inside it stops there: a guide is a position in its view's own
+    /// dimensions, and reporting it through a modifier that moves or resizes
+    /// the content without translating it would report a position from the
+    /// wrong coordinate space. A conforming modifier's `ModifiedView` answers
+    /// the context-carrying guide query itself.
+    static var _translatesAlignmentGuides: Bool { get }
+
     /// Static witness: this modifier at the value the animation store says to
     /// draw it at, or `nil` when nothing is moving. See
     /// ``View/_animated(_:context:isMeasuring:)`` for why it is a witness
@@ -145,6 +158,11 @@ extension BufferModifier {
     /// ``Animatable``.
     @inlinable
     public static var _isAnimatable: Bool { false }
+
+    /// A guide inside a modifier's content stops at the modifier unless the
+    /// modifier translates it.
+    @inlinable
+    public static var _translatesAlignmentGuides: Bool { false }
 
     /// A modifier with nothing continuous about it never needs substituting.
     @inlinable
@@ -275,6 +293,15 @@ extension ModifiedView: Renderable {
 /// different question with a different answer per wrapper.
 extension ModifiedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
+}
+
+extension ModifiedView {
+    /// A guide inside the content is the modified view's only when the
+    /// modifier translates guides (``BufferModifier/_translatesAlignmentGuides``)
+    /// — padding — and the content holds one.
+    public static var _providesAlignmentGuide: Bool {
+        Modifier._translatesAlignmentGuides && Content._providesAlignmentGuide
+    }
 }
 
 extension ModifiedView: ExplicitIDProviding {
