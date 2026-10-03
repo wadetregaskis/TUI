@@ -167,6 +167,13 @@ def load_symbols(directory, modules, collect_defaults=False, follow_aliases=Fals
             keys_by_id[symbol["identifier"]["precise"]] = key
             if collect_defaults:
                 defaults.setdefault(key, []).append(defaulted_parameters(symbol))
+            # A property under a wrapper that projects a value has a `$` twin
+            # with the property's access, synthesized and so absent from the
+            # graph built from source (`ToggleStyleConfiguration.$isOn` read
+            # as a gap on `@Binding var isOn`). SwiftUI's interface spells its
+            # twins out; adding them again there is a no-op.
+            if kind == "var" and projected_wrapper(symbol):
+                symbols.setdefault(".".join(parts[:-1] + ["$" + parts[-1]]), kind)
             if follow_aliases and kind == "typealias":
                 target = next(
                     (fragment.get("preciseIdentifier")
@@ -206,6 +213,19 @@ def load_symbols(directory, modules, collect_defaults=False, follow_aliases=Fals
             if collect_defaults and key in defaults:
                 defaults.setdefault(aliased, defaults[key])
     return (symbols, defaults) if collect_defaults else symbols
+
+
+# The property wrappers whose `projectedValue` makes `$name` part of a public
+# property's API.
+PROJECTING_WRAPPERS = {"Binding", "Bindable", "State", "FocusState", "GestureState"}
+
+
+def projected_wrapper(symbol):
+    """Whether this property's declaration opens with a projecting wrapper's
+    attribute — `@Binding var isOn: Bool` arrives as fragments `@`, `Binding`,
+    ` `, `var`, …"""
+    fragments = [fragment.get("spelling", "") for fragment in symbol.get("declarationFragments", [])]
+    return len(fragments) > 1 and fragments[0] == "@" and fragments[1] in PROJECTING_WRAPPERS
 
 
 def defaulted_parameters(symbol):

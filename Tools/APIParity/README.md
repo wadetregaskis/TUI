@@ -76,6 +76,11 @@ files under `TextCase` alone. SwiftUI's aliases are not followed, because the
 question is whether TUIkit offers a spelling, and following `Body` and the
 attribute scopes would copy whole type trees into the vocabulary.
 
+A property under a projecting wrapper (`@Binding`, `@Bindable`, `@State`,
+`@FocusState`, `@GestureState`) also names its `$` twin, which the compiler
+synthesizes and a graph built from source therefore leaves out:
+`@Binding var isOn` offers `$isOn`.
+
 ### Extra OPTIONAL arguments are not a difference
 
 The target is *source* compatibility, not identical declarations (see the two
