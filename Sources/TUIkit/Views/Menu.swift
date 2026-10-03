@@ -60,6 +60,10 @@ public struct Menu<Label: View, Content: View>: View {
     let content: Content
     let label: Label
 
+    /// The configuration this menu was made from, by ``init(_:)`` — passed on
+    /// whole, its items' child resolution included — or `nil`.
+    private var configuration: MenuStyleConfiguration?
+
     /// Creates a menu with a custom label.
     ///
     /// - Parameters:
@@ -75,7 +79,7 @@ public struct Menu<Label: View, Content: View>: View {
 
     public var body: some View {
         _MenuStyleBody(
-            configuration: MenuStyleConfiguration(
+            configuration: configuration ?? MenuStyleConfiguration(
                 label: MenuStyleConfiguration.Label(content: AnyView(label)),
                 content: MenuStyleConfiguration.Content(
                     content: AnyView(content),
@@ -114,6 +118,30 @@ extension Menu where Label == Text {
     }
 }
 
+extension Menu where Label == MenuStyleConfiguration.Label, Content == MenuStyleConfiguration.Content {
+    /// Creates a menu based on a style configuration.
+    ///
+    /// Use it inside a ``MenuStyle``'s ``MenuStyle/makeBody(configuration:)``
+    /// to draw the menu as the style outside the custom one would, and add to
+    /// it:
+    ///
+    /// ```swift
+    /// struct RedBorderMenuStyle: MenuStyle {
+    ///     func makeBody(configuration: Configuration) -> some View {
+    ///         Menu(configuration)
+    ///             .border(.red)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter configuration: The menu's label and items.
+    public init(_ configuration: MenuStyleConfiguration) {
+        self.label = configuration.label
+        self.content = configuration.content
+        self.configuration = configuration
+    }
+}
+
 // MARK: - Style bridge
 
 /// Renders whichever ``MenuStyle`` is in force.
@@ -141,10 +169,19 @@ private struct _MenuStyleBody: View, Renderable, Layoutable {
         guard style.bodyCanMeasureItself else {
             return measureFixedByRendering(self, proposal: proposal, context: context)
         }
-        return style.makeSize(configuration: configuration, proposal: proposal, context: context)
+        return style.makeSize(configuration: configuration, proposal: proposal, context: bodyContext(context))
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        context.environment.menuStyle.makeBuffer(configuration: configuration, context: context)
+        context.environment.menuStyle.makeBuffer(configuration: configuration, context: bodyContext(context))
+    }
+
+    /// The context the style's body draws in: one that sees the style outside
+    /// it, so a `Menu(configuration)` in a custom style's body draws as that
+    /// style would rather than recursing into this one.
+    private func bodyContext(_ context: RenderContext) -> RenderContext {
+        var body = context
+        body.environment.menuStyleChain = context.environment.menuStyleChain.inside
+        return body
     }
 }

@@ -192,17 +192,27 @@ extension MenuStyle where Self == InlineMenuStyle {
 // MARK: - Environment
 
 private struct MenuStyleKey: EnvironmentKey {
-    static let defaultValue: any MenuStyle = DefaultMenuStyle()
+    static let defaultValue = StyleChain<any MenuStyle>(DefaultMenuStyle())
 }
 
 extension EnvironmentValues {
     /// The menu style for this environment — see ``MenuStyle``. Set via
     /// ``View/menuStyle(_:)``. Default: ``DefaultMenuStyle``.
     ///
+    /// Setting it puts a style in force over the one before, which a custom
+    /// style's ``Menu/init(_:)`` then draws with.
+    ///
     /// The render cache compares this value between frames to decide whether
     /// what it memoized below is still good, so a style that is not `Equatable`
     /// turns memoization off in its subtree — see ``MenuStyle``.
     public var menuStyle: any MenuStyle {
+        get { self[MenuStyleKey.self].style }
+        set { self[MenuStyleKey.self] = self[MenuStyleKey.self].pushing(newValue) }
+    }
+
+    /// The style in force and the ones outside it — what ``Menu/init(_:)``
+    /// inside a custom style's body draws with. See ``StyleChain``.
+    var menuStyleChain: StyleChain<any MenuStyle> {
         get { self[MenuStyleKey.self] }
         set { self[MenuStyleKey.self] = newValue }
     }
