@@ -63,8 +63,10 @@ public protocol ContainerValueKey {
 /// }   // the VStack's own value is the default: it never escapes the stack
 /// ```
 ///
-/// What reads them is the container directly around: a ``LayoutSubview``
-/// asks for its own. A `ForEach`'s rows are each
+/// What reads them is the container directly around: a ``Subview`` handed out
+/// by ``Group/init(subviews:transform:)`` or ``ForEach/init(subviews:content:)``,
+/// a custom layout's ``LayoutSubview``, and a ``SectionConfiguration`` for the
+/// values written on its `Section`. A `ForEach`'s rows are each
 /// tagged with their element's `id` unless they tag themselves, as in SwiftUI.
 public struct ContainerValues {
     /// The values written with ``View/containerValue(_:_:)``, by key type.
@@ -160,9 +162,10 @@ extension View {
     ///
     /// Use this modifier to set one of the writable properties of the
     /// ``ContainerValues`` structure, including custom values that you create.
-    /// The value is read by the container closest around this view — a custom
-    /// ``Layout``, through ``LayoutSubview/containerValues`` — and by nothing
-    /// further out. A key path into a property of a value sets just that part:
+    /// The value is read by the container closest around this view — through
+    /// ``Subview/containerValues``, ``LayoutSubview/containerValues`` or
+    /// ``SectionConfiguration/containerValues`` — and by nothing further out,
+    /// even a container with only this one view in it. A key path into a property of a value sets just that part:
     ///
     /// ```swift
     /// Text("B")
