@@ -413,4 +413,41 @@ struct SliderArrowZoneTests {
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
         #expect(value == 41, "the ◀ cell itself still decrements, got \(value)")
     }
+
+    // MARK: - Value Labels
+
+    @Test("The minimum and maximum value labels sit either side of the slider")
+    func valueLabels() {
+        let slider = Slider(value: .constant(0.5)) {
+            Text("Vol")
+        } minimumValueLabel: {
+            Text("lo")
+        } maximumValueLabel: {
+            Text("hi")
+        }
+        let line = renderToBuffer(slider, context: testContext()).lines[0].stripped
+            .replacingOccurrences(of: #" +$"#, with: "", options: .regularExpression)
+        #expect(line.hasPrefix("Vol lo ◀"), "\(line)")
+        #expect(line.hasSuffix("50%  hi"), "the read-out pads to four cells, then a cell's gap: \(line)")
+    }
+
+    @Test("The step form steps by its step")
+    func valueLabelsWithStep() {
+        var value = 4.0
+        let slider = Slider(value: Binding(get: { value }, set: { value = $0 }), in: 0...10, step: 2) {
+            Text("Vol")
+        } minimumValueLabel: {
+            Text("0")
+        } maximumValueLabel: {
+            Text("10")
+        }
+        #expect(slider.step == 2)
+        #expect(Slider(value: .constant(4.0), in: 0...10) {
+            Text("Vol")
+        } minimumValueLabel: {
+            Text("0")
+        } maximumValueLabel: {
+            Text("10")
+        }.step == 0.01, "without one, the slider's default step, as the other initialisers take")
+    }
 }

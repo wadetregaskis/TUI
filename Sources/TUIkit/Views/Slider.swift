@@ -90,8 +90,10 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     /// description only — it is not drawn on the track.
     let label: Label?
 
-    /// The value label showing the current value.
-    let valueLabel: ValueLabel?
+    /// The views drawn at the low and high ends of the track — SwiftUI's
+    /// `minimumValueLabel` and `maximumValueLabel` — or `nil` for none.
+    let minimumValueLabel: ValueLabel?
+    let maximumValueLabel: ValueLabel?
 
     /// The visual style of the track.
     var trackStyle: TrackStyle
@@ -120,19 +122,27 @@ public struct Slider<Label: View, ValueLabel: View>: View {
         // core would leave `trackLeft` pointing into the label, so clicking the
         // label would auto-repeat a decrement. `controlKind` lets the label
         // resolve `.sliderTextStyle` like the value read-out does.
+        //
+        // The value labels go either side of the core for the same reason, a
+        // cell apart from it. The maximum one follows the read-out rather than
+        // sitting between the ▶ and it: the read-out is drawn by the core.
         HStack(spacing: 0) {
             _CollapsingLabel(label: label, controlDisabled: isDisabled)
+            if let minimumValueLabel {
+                minimumValueLabel.padding(.trailing, 1)
+            }
             _SliderCore(
                 value: value,
                 bounds: bounds,
                 step: step,
-                label: label,
-                valueLabel: valueLabel,
                 trackStyle: trackStyle,
                 focusID: focusID,
                 isDisabled: isDisabled,
                 onEditingChanged: onEditingChanged
             )
+            if let maximumValueLabel {
+                maximumValueLabel.padding(.leading, 1)
+            }
         }
         .environment(\.controlKind, .slider)
     }
@@ -161,7 +171,8 @@ extension Slider where Label == EmptyView, ValueLabel == EmptyView {
         self.bounds = Double(bounds.lowerBound)...Double(bounds.upperBound)
         self.step = Double(step)
         self.label = nil
-        self.valueLabel = nil
+        self.minimumValueLabel = nil
+        self.maximumValueLabel = nil
         self.trackStyle = .knob
         self.focusID = nil
         self.isDisabled = false
@@ -221,7 +232,8 @@ extension Slider where Label == Text, ValueLabel == EmptyView {
         self.bounds = Double(bounds.lowerBound)...Double(bounds.upperBound)
         self.step = Double(step)
         self.label = Text(String(title))
-        self.valueLabel = nil
+        self.minimumValueLabel = nil
+        self.maximumValueLabel = nil
         self.trackStyle = .knob
         // Auto-generated focusID from view identity (collision-free)
         self.focusID = nil
@@ -255,7 +267,8 @@ extension Slider where ValueLabel == EmptyView {
         self.bounds = Double(bounds.lowerBound)...Double(bounds.upperBound)
         self.step = Double(step)
         self.label = label()
-        self.valueLabel = nil
+        self.minimumValueLabel = nil
+        self.maximumValueLabel = nil
         self.trackStyle = .knob
         self.focusID = nil
         self.isDisabled = false
@@ -329,12 +342,10 @@ private enum SliderStateIndex {
 }
 
 /// Internal view that handles the actual rendering of Slider.
-private struct _SliderCore<Label: View, ValueLabel: View>: View, Renderable, Layoutable {
+private struct _SliderCore: View, Renderable, Layoutable {
     let value: Binding<Double>
     let bounds: ClosedRange<Double>
     let step: Double
-    let label: Label?
-    let valueLabel: ValueLabel?
     let trackStyle: TrackStyle
     let focusID: String?
     let isDisabled: Bool
