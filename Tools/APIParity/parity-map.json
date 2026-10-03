@@ -580,9 +580,6 @@
     "Font.Context": {
       "why": "The environment a Font resolves in — the display metrics and dynamic-type size feeding Font.Resolved. TUIkit resolves a semantic style straight to terminal attributes (Sources/TUIkit/Styling/Font.swift, `defaultAttributes`), with no intermediate resolution step for a context to parameterise."
     },
-    "Font.Design": {
-      "why": "A design selects a typeface — serif, rounded, monospaced. A terminal emulator draws every cell in the one font its user configured, and no escape sequence asks it for another. TUIkit cannot honour any case, and `.monospaced` is already unconditionally true (see Sources/TUIkit/Modifiers/MediumGuaranteedModifiers.swift), so an accepted-and-ignored Design would be a stub that lies. Font carries the semantic axis instead: Sources/TUIkit/Styling/Font.swift."
-    },
     "Font.Leading": {
       "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUIkit spells `View.lineSpacing(_:)` (Sources/TUIkit/Modifiers/LineSpacingModifier.swift) — a different unit and a different meaning, so it is not this API under another name."
     },

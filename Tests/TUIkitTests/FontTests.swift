@@ -338,6 +338,16 @@ struct FontTests {
         #expect(!row.contains("\u{1B}[1;2"), "body cleared the header's bold+dim: \(row)")
     }
 
+    // MARK: - Font.system(_:design:weight:)
+
+    @Test("A system font is its style at its weight")
+    func systemFont() {
+        #expect(codes(Text(verbatim: "Hi").font(.system(.headline))).contains("1"))
+        let regular = codes(Text(verbatim: "Hi").font(.system(.headline, design: .monospaced, weight: .regular)))
+        #expect(!regular.contains("1"), "a regular headline is not bold: \(regular)")
+        #expect(codes(Text(verbatim: "Hi").font(.system(.body, weight: .bold))).contains("1"))
+    }
+
     // MARK: - Text scale
 
     /// SwiftUI draws `.secondary` text about a tenth smaller; here it is one

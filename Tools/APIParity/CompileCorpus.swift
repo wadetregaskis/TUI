@@ -394,3 +394,15 @@ private struct TextScaleShapes: View {
         .textScale(.secondary, isEnabled: true)
     }
 }
+
+/// The two font designs a terminal draws, and a system font by style.
+@MainActor
+private struct FontDesignShapes: View {
+    var body: some View {
+        VStack {
+            Text("code").fontDesign(.monospaced)
+            Text("body").font(.system(.body, design: .default, weight: .semibold))
+        }
+        .fontDesign(nil)
+    }
+}

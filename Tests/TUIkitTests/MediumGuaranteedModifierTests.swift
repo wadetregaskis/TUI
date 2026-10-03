@@ -113,6 +113,8 @@ struct TextMonospacedTests {
         #expect(renderToBuffer(HStack { Text("Save 1234") }.monospaced(), context: context).lines == bare)
         #expect(renderToBuffer(HStack { Text("Save 1234") }.monospacedDigit(), context: context).lines == bare)
         #expect(renderToBuffer(HStack { Text("Save 1234") }.autocorrectionDisabled(), context: context).lines == bare)
+        #expect(renderToBuffer(HStack { Text("Save 1234") }.fontDesign(.monospaced), context: context).lines == bare)
+        #expect(renderToBuffer(HStack { Text("Save 1234") }.fontDesign(nil), context: context).lines == bare)
     }
 
     @Test("both return the text unchanged")
@@ -121,6 +123,8 @@ struct TextMonospacedTests {
         #expect(rendered(Text(verbatim: "10%").monospaced()) == plain)
         #expect(rendered(Text(verbatim: "10%").monospaced(false)) == plain)
         #expect(rendered(Text(verbatim: "10%").monospacedDigit()) == plain)
+        #expect(rendered(Text(verbatim: "10%").fontDesign(.default)) == plain)
+        #expect(rendered(Text(verbatim: "10%").fontDesign(.monospaced)) == plain)
     }
 
     // MARK: - The guarantees behind geometryGroup(), containerCornerOffset(_:sizeToFit:)

@@ -329,6 +329,17 @@ extension Text {
         return copy
     }
 
+    /// Sets the font design of this text — mirrors SwiftUI's `fontDesign(_:)`.
+    ///
+    /// Either design ``Font/Design`` offers is the terminal's face already; see
+    /// ``View/fontDesign(_:)``.
+    ///
+    /// - Parameter design: The font design, or `nil` for the default.
+    /// - Returns: This text, unchanged.
+    public func fontDesign(_ design: Font.Design?) -> Text {
+        self
+    }
+
     /// Renders with a monospaced font — mirrors SwiftUI's `monospaced(_:)`.
     ///
     /// Already true of every glyph in a character grid; see

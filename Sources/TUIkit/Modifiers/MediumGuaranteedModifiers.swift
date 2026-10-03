@@ -64,6 +64,19 @@ extension View {
         self
     }
 
+    /// Sets the font design of the text in this view — mirrors SwiftUI's
+    /// `fontDesign(_:)`.
+    ///
+    /// Both designs ``Font/Design`` offers are the terminal's own face, so
+    /// either is already in force, and `nil` asks for the default, which it
+    /// is.
+    ///
+    /// - Parameter design: The font design, or `nil` for the default.
+    /// - Returns: This view, unchanged.
+    public func fontDesign(_ design: Font.Design?) -> some View {
+        self
+    }
+
     /// Disables autocorrection for text input in this view — mirrors SwiftUI's
     /// `autocorrectionDisabled(_:)`.
     ///

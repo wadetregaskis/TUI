@@ -72,6 +72,22 @@ public struct Font: Sendable, Hashable {
     /// The same type as the top-level ``FontWeight``, under SwiftUI's spelling.
     public typealias Weight = FontWeight
 
+    /// A design to use for fonts — mirrors SwiftUI's `Font.Design`, with the
+    /// two designs a terminal draws.
+    ///
+    /// Every cell is drawn in the one monospaced face the user configured, so
+    /// `.default` and `.monospaced` both describe it and both are honoured.
+    /// `.serif` and `.rounded` change the face (macOS's serif widens text,
+    /// measured), so they are absent and fail to compile rather than be
+    /// accepted and ignored.
+    public enum Design: Sendable, Hashable {
+        /// The default font design: the terminal's own face.
+        case `default`
+
+        /// The monospaced font design — which the terminal's face already is.
+        case monospaced
+    }
+
     /// The semantic role, which is what a terminal can act on.
     let textStyle: TextStyle
 
@@ -111,6 +127,21 @@ public struct Font: Sendable, Hashable {
     public static let caption = Self(.caption)
     /// A secondary caption. Renders faint.
     public static let caption2 = Self(.caption2)
+
+    /// A system font with the given text style, design and weight — mirrors
+    /// SwiftUI's `Font.system(_:design:weight:)`.
+    ///
+    /// The style and weight select intensity as ``weight(_:)`` does. The design
+    /// is the terminal's face either way (see ``Design``).
+    ///
+    /// - Parameters:
+    ///   - style: The semantic text style.
+    ///   - design: The font design, or `nil` for the default.
+    ///   - weight: The weight, or `nil` for the style's own.
+    /// - Returns: The font.
+    public static func system(_ style: TextStyle, design: Design? = nil, weight: Weight? = nil) -> Self {
+        Self(style, weight: weight)
+    }
 
     // MARK: Weight
 
