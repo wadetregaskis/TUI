@@ -147,3 +147,27 @@ extension _PaletteScene: RootChromeStyleProvidingScene {
             ?? (appHeader: nil, statusBar: nil)
     }
 }
+
+// MARK: - Applying the Overrides
+
+extension Scene {
+    /// Installs this scene's own overrides into the frame's root environment,
+    /// for the WHOLE frame — content tree and the out-of-tree app header /
+    /// status bar alike. `RenderLoop` calls it once per frame.
+    func applyRootOverrides(to environment: inout EnvironmentValues) {
+        if let paletteOverrideScene = primitiveScene as? any RootPaletteOverrideProvidingScene,
+            let paletteOverride = paletteOverrideScene.rootPaletteOverride()
+        {
+            environment.palette = paletteOverride
+        }
+        // A scene-level `.appearance(...)` override wins over the appearance
+        // manager's current selection. `nil` (no scene override) leaves the
+        // manager-derived appearance from `buildEnvironment()` intact, so
+        // F2/F3/the appearance picker keep working.
+        if let appearanceOverrideScene = primitiveScene as? any RootAppearanceOverrideProvidingScene,
+            let appearanceOverride = appearanceOverrideScene.rootAppearanceOverride()
+        {
+            environment.appearance = appearanceOverride
+        }
+    }
+}
