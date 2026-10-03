@@ -32,6 +32,38 @@ public struct ButtonRole: Equatable, Sendable {
     /// Destructive buttons are styled with the error color to indicate danger.
     /// Use for buttons that delete user data or perform irreversible operations.
     public static let destructive = Self("destructive")
+
+    /// A role that indicates a button that closes the current operation.
+    ///
+    /// Unlike a cancel operation, a close operation doesn't lose progress.
+    public static let close = Self("close")
+
+    /// A role that indicates a button that confirms an operation.
+    public static let confirm = Self("confirm")
+
+    /// The title a button with this role and no label of its own shows — see
+    /// ``Button/init(role:action:)`` — in the framework's own words, localized.
+    var defaultTitle: String {
+        let key: LocalizationKey.Button =
+            switch rawValue {
+            case "cancel": .cancel
+            case "destructive": .delete
+            case "close": .close
+            default: .done
+            }
+        return LocalizationService.shared.string(for: key)
+    }
+}
+
+/// The default label to use for a button: the title its role implies.
+///
+/// You don't use this type directly; ``Button/init(role:action:)`` shows it.
+public struct DefaultButtonLabel: View {
+    let role: ButtonRole
+
+    public var body: some View {
+        Text(verbatim: role.defaultTitle)
+    }
 }
 
 // MARK: - Button
@@ -192,6 +224,20 @@ public struct Button: View {
         // Auto-generated focusID from view identity (collision-free)
         self.focusID = nil
         self.isDisabled = false
+    }
+
+    /// Creates a button that displays a default label: the title its role
+    /// implies — Cancel, Close, Done (`.confirm`) or Delete (`.destructive`),
+    /// in the current language.
+    ///
+    /// SwiftUI draws a glyph for some of these in a toolbar; a word reads
+    /// better in a row of terminal buttons.
+    ///
+    /// - Parameters:
+    ///   - role: The button's role.
+    ///   - action: The action to perform when pressed.
+    public init(role: ButtonRole, action: @escaping @MainActor () -> Void) {
+        self.init(role.defaultTitle, role: role, action: action)
     }
 
     /// Creates a button with a custom `@ViewBuilder` label.
