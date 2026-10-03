@@ -109,4 +109,70 @@ struct DialogModifierTests {
             "the message moves right by the icon's width and the gap")
         #expect(withIcon.count >= plain.count, "the icon's rows are at least the message's")
     }
+
+    // MARK: - Suppression toggle
+
+    /// The state an alert's page keeps, by reference so the bindings a frame
+    /// built still reach it.
+    private final class Flags {
+        var presented = true
+        var suppressed = false
+        var erased = 0
+    }
+
+    private func suppressible(_ flags: Flags, label: String? = nil) -> some View {
+        let presented = Binding(get: { flags.presented }, set: { flags.presented = $0 })
+        let suppressed = Binding(get: { flags.suppressed }, set: { flags.suppressed = $0 })
+        let alert = Text("base")
+            .alert("Erase?", isPresented: presented) {
+                Button("Erase") { flags.erased += 1 }
+            }
+        return Group {
+            if let label {
+                alert.dialogSuppressionToggle(label, isSuppressed: suppressed)
+            } else {
+                alert.dialogSuppressionToggle(isSuppressed: suppressed)
+            }
+        }
+    }
+
+    @Test("The suppression toggle draws above the buttons, with the default title")
+    func suppressionDraws() throws {
+        let lines = screen(suppressible(Flags())).map(\.stripped)
+        let toggleRow = try #require(lines.firstIndex { $0.contains("Do not show this message again") })
+        let buttonRow = try #require(lines.firstIndex { $0.contains("Erase") && !$0.contains("Erase?") })
+        #expect(toggleRow < buttonRow)
+        #expect(screen(suppressible(Flags(), label: "Never ask")).contains { $0.stripped.contains("Never ask") })
+    }
+
+    @Test("The alert's button keeps the opening focus; the toggle is a Tab away and writes the binding")
+    func suppressionFocusAndBinding() {
+        let harness = InputChainHarness(width: 60, height: 16)
+        let flags = Flags()
+        harness.frame(suppressible(flags))
+        harness.frame(suppressible(flags))
+        harness.press(KeyEvent(key: .tab))  // the button → the toggle
+        harness.frame(suppressible(flags))
+        harness.press(KeyEvent(key: .space))
+        harness.frame(suppressible(flags))
+        #expect(flags.suppressed, "Space on the checkbox turned suppression on")
+        #expect(flags.presented, "toggling it did not answer the dialog")
+        harness.press(KeyEvent(key: .tab))  // back round to the button
+        harness.frame(suppressible(flags))
+        harness.press(KeyEvent(key: .enter))
+        harness.frame(suppressible(flags))
+        #expect(flags.erased == 1 && !flags.presented, "the button answered and closed the alert")
+    }
+
+    @Test("With a suppression toggle, an alert's first button still takes Return at once")
+    func buttonFocusedFirst() {
+        let harness = InputChainHarness(width: 60, height: 16)
+        let flags = Flags()
+        harness.frame(suppressible(flags))
+        harness.frame(suppressible(flags))
+        harness.press(KeyEvent(key: .enter))
+        harness.frame(suppressible(flags))
+        #expect(flags.erased == 1, "the button, not the checkbox, held the opening focus")
+        #expect(!flags.suppressed)
+    }
 }

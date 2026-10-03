@@ -203,6 +203,13 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         let buttons = alertActionButtons(from: actions)
         let config = resolvedConfig(context)
         let body = messageBody(context)
+        if let suppression = context.environment.dialogSuppression {
+            return measureContainer(
+                title: title, config: config, content: body,
+                footer: _AlertFooter(
+                    buttons: buttons, verticalButtons: verticalButtons, suppression: suppression),
+                proposal: alertProposal, context: alertContext)
+        }
         if verticalButtons {
             return measureContainer(
                 title: title, config: config, content: body,
@@ -223,6 +230,15 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         let buttons = alertActionButtons(from: actions)
         let config = resolvedConfig(context)
         let body = messageBody(context)
+        // A suppression toggle needs the footer that draws it above the
+        // buttons; without one the buttons are the footer, as they always were.
+        if let suppression = context.environment.dialogSuppression {
+            return renderContainer(
+                title: title, config: config, content: body,
+                footer: _AlertFooter(
+                    buttons: buttons, verticalButtons: verticalButtons, suppression: suppression),
+                context: alertContext)
+        }
         if verticalButtons {
             return renderContainer(
                 title: title, config: config, content: body,

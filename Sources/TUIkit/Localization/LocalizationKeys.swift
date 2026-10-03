@@ -88,6 +88,8 @@ public enum LocalizationKey {
         /// Carries the query as `%@`, so a translation can move it.
         case noResultsFor = "label.noResultsFor"
         case noResultsHint = "label.noResultsHint"
+        /// The default title of `dialogSuppressionToggle(isSuppressed:)`.
+        case suppressDialog = "label.suppressDialog"
     }
 
     /// Border appearance names, as shown in a settings screen.

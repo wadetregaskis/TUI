@@ -52,6 +52,7 @@
   "label.noResults": "結果なし",
   "label.noResultsFor": "「%@」の結果なし",
   "label.noResultsHint": "スペルを確認するか、別のキーワードで検索してください。",
+  "label.suppressDialog": "今後このメッセージを表示しない",
 
   "error.invalid_input": "入力が無効です",
   "error.required_field": "この項目は必須です",

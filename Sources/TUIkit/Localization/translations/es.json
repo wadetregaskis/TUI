@@ -52,6 +52,7 @@
   "label.noResults": "Sin resultados",
   "label.noResultsFor": "Sin resultados para «%@»",
   "label.noResultsHint": "Comprueba la ortografía o prueba otra búsqueda.",
+  "label.suppressDialog": "No volver a mostrar este mensaje",
 
   "error.invalid_input": "Entrada no válida",
   "error.required_field": "Este campo es obligatorio",
