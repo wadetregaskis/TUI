@@ -156,28 +156,11 @@ extension ForEach: Renderable, Layoutable {
     /// that way: it is what an un-laid-out run of sibling views means here,
     /// and it is what SwiftUI's documented example produces.
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let width = context.availableWidth
-        return FrameBuffer(
-            verticallyStacking: childViews(context: context).map { child in
-                let size = child.measure(
-                    proposal: ProposedSize(width: width, height: nil), context: context)
-                return child.render(width: width, height: size.height, context: context)
-            })
+        renderStackedVertically(childViews(context: context), context: context)
     }
 
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        var width = 0
-        var height = 0
-        var widthFlexible = false
-        for child in childViews(context: context) {
-            let size = child.measure(proposal: proposal, context: context)
-            width = max(width, size.width)
-            height += size.height
-            widthFlexible = widthFlexible || size.isWidthFlexible
-        }
-        return ViewSize(
-            width: width, height: height,
-            isWidthFlexible: widthFlexible, isHeightFlexible: false)
+        measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
 }
 
