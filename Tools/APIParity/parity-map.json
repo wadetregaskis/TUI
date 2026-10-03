@@ -834,10 +834,6 @@
       "how": "Image(.url(_:)) + .imagePlaceholder / .imagePlaceholderSpinner",
       "why": "Asynchronous loading with a placeholder is built into the ordinary Image: ImageSource.url(String) \"(cached per session)\" (Sources/TUIkit/Views/Image.swift:12-18), Image(_ source:) (Image.swift:72), with View.imagePlaceholder(_:) (Image.swift:365), .imagePlaceholderSpinner(_:) (Im"
     },
-    "AutomaticLabeledContentStyle": {
-      "how": "LabeledContent's body + Form pillar layout",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/LabeledContent.swift:44-49 (standalone: label leading, content trailing) and the columns/grouped Form layouts (Sources/TUIkit/Views/Form.swift) — the automatic behaviour ships, only unnamed."
-    },
     "Canvas": {
       "how": "Renderable + FrameBuffer",
       "why": "The immediate-mode drawing surface is a protocol conformance: public protocol Renderable { func renderToBuffer(context: RenderContext) -> FrameBuffer } (Sources/TUIkitView/Rendering/Renderable.swift:53-64), with FrameBuffer's public inits (Sources/TUIkitCore/Rendering/FrameBuffer"
