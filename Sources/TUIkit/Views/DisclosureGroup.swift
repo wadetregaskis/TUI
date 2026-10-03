@@ -119,57 +119,17 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
     }
 
     public var body: some View {
-        // Captured once: the closure below runs on a later key or click, long
-        // after this body returned, and must write through the same binding
-        // this frame read — see the note on environment reads in event
-        // closures. A `Binding` is a pair of closures, so this is a copy of
-        // two references, not a snapshot of the value.
+        // Drawn through the style in force; the automatic one is the triangle
+        // header and indented content this group has always drawn. The content
+        // is handed over as a closure, so a collapsed group builds none of it.
         let expansion = self.expansion
+        let content = self.content
         _DisclosedStateRetainer(isCollapsed: !expansion.wrappedValue) {
-            groupBody(expansion: expansion)
-        }
-    }
-
-    /// The header and, while open, the content.
-    @ViewBuilder
-    private func groupBody(expansion: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(
-                action: { expansion.wrappedValue.toggle() },
-                label: {
-                    HStack(spacing: DisclosureMetrics.glyphSpacing) {
-                        // `verbatim`: a triangle is a glyph, not a localization key.
-                        Text(verbatim: expansion.wrappedValue
-                            ? TerminalSymbols.disclosureExpanded
-                            : TerminalSymbols.disclosureCollapsed)
-                        label
-                    }
-                }
-            )
-            .buttonStyle(.borderless)
-            // Left closes and Right opens, which is what an outline view does
-            // everywhere else in this framework — a `List(_:children:)` has
-            // answered these keys since it gained a tree, and a disclosure that
-            // did not was the odd one out. They SET rather than toggle, so
-            // holding Right on an open group does nothing rather than shutting
-            // it.
-            .buttonKeyExtras(keys: [.left, .right]) { event in
-                let wanted = event.key == .right
-                guard expansion.wrappedValue != wanted else {
-                    // Nothing to do here. Right is still the disclosure's — a
-                    // group that is already open should not hand the key on and
-                    // move the focus sideways. Left is not: once there is
-                    // nothing left to close, it belongs to whatever encloses
-                    // this group.
-                    return wanted
-                }
-                expansion.wrappedValue = wanted
-                return true
-            }
-
-            if expansion.wrappedValue {
-                content().padding(.leading, DisclosureMetrics.contentIndent)
-            }
+            _StyledDisclosureGroup(
+                configuration: DisclosureGroupStyleConfiguration(
+                    label: DisclosureGroupStyleConfiguration.Label(content: AnyView(label)),
+                    content: DisclosureGroupStyleConfiguration.Content(make: { AnyView(content()) }),
+                    isExpanded: expansion))
         }
     }
 }
