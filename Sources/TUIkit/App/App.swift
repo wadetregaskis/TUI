@@ -840,11 +840,22 @@ extension WindowGroup: SceneRenderable {
         let dragSession = context.environment.dragAndDropSession
         dragSession?.beginFrame()
 
+        // The content's preferences in a scope of their own, so a
+        // `containerBackground(for: .window)` inside it can be read here; the
+        // pop merges them into the root's as before.
+        let preferences = context.environment.preferenceStorage
+        preferences?.push()
         let buffer = renderToBuffer(content, context: context)
+        let background = preferences?.pop()[ContainerBackgroundKey.self]
 
-        // Center the content in the available space, like SwiftUI does
-        var centered = centerBuffer(
-            buffer, inWidth: context.availableWidth, height: context.availableHeight)
+        // Center the content in the available space, like SwiftUI does — over
+        // the window background, when the content set one.
+        var centered =
+            if let background {
+                windowContent(buffer, over: background, context: context)
+            } else {
+                centerBuffer(buffer, inWidth: context.availableWidth, height: context.availableHeight)
+            }
 
         // The floating drag preview rides above everything. Attached AFTER
         // centering so its offsets are in the same absolute content-area
