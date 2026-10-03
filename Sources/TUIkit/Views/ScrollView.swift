@@ -260,6 +260,13 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // the content it wraps and only scrolls when space is actually short.
         // Matches SwiftUI, where a ScrollView's ideal size is its content's —
         // plus, here, the cell a scrollbar takes out of it (`idealSize`).
+        // The viewport is its content's `containerRelativeFrame` container:
+        // what it was proposed, as the render's is what it was given.
+        let context = context.publishingContainerSize(
+            CellSize(
+                width: max(0, proposal.width ?? context.availableWidth),
+                height: max(0, proposal.height ?? context.availableHeight)),
+            noting: false)
         let ideal =
             proposal.width == nil || proposal.height == nil
             ? idealSize(proposal: proposal, context: context) : nil
@@ -400,6 +407,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let viewportWidth = context.availableWidth
         let viewportHeight = max(0, context.availableHeight)
+        // The viewport is its content's `containerRelativeFrame` container.
+        let context = context.publishingContainerSize(CellSize(width: max(0, viewportWidth), height: viewportHeight))
 
         // Resolve the persistent focus ID and the handler.
         let persistedFocusID = FocusRegistration.persistFocusID(

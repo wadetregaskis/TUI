@@ -845,7 +845,11 @@ extension WindowGroup: SceneRenderable {
         // pop merges them into the root's as before.
         let preferences = context.environment.preferenceStorage
         preferences?.push()
-        let buffer = renderToBuffer(content, context: context)
+        // The content area is the window's `containerRelativeFrame` container.
+        let buffer = renderToBuffer(
+            content,
+            context: context.publishingContainerSize(
+                CellSize(width: max(0, context.availableWidth), height: max(0, context.availableHeight))))
         let background = preferences?.pop()[ContainerBackgroundKey.self]
 
         // Center the content in the available space, like SwiftUI does — over
