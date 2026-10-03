@@ -588,6 +588,12 @@
     "GeometryProxy.safeAreaInsets": {
       "why": "Deliberately omitted and reasoned about in place: Sources/TUIkit/Views/GeometryReader.swift:17-24 — the whole grid is addressable, TUIkit's chrome is already subtracted from what a view is offered (Sources/TUIkit/App/RenderLoop.swift:176-180), and \"adding either as a constant wou"
     },
+    "HelpLink.init(anchor:)": {
+      "why": "Opens an anchor in an Apple Help book through AppKit's NSHelpManager; a terminal has no Help Viewer and Linux no help books. HelpLink(action:) and HelpLink(destination:) ship. See decisions C5."
+    },
+    "HelpLink.init(anchor:book:)": {
+      "why": "As HelpLink.init(anchor:): an Apple Help book, through AppKit's NSHelpManager, which a terminal app cannot open. See decisions C5."
+    },
     "Image.Scale": {
       "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkit/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI-compatibility.md:452 records the same constraint for Font generally."
     },

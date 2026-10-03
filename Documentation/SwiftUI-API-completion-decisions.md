@@ -614,3 +614,13 @@ Not byte-captured: this machine has no extended keyboard. If a terminal turns
 out to send the key, distinctly from Num Lock, the parser gains a case and
 this entry goes. The kitty keyboard protocol of A4 is the likeliest
 route: it reports keypad keys by their own codes.
+
+### C5. `HelpLink(anchor:)` and `HelpLink(anchor:book:)`
+
+*`HelpLink.init(anchor:)`, `HelpLink.init(anchor:book:)`*
+
+Both open an anchor in an Apple Help book, through AppKit's `NSHelpManager`
+and the Help Viewer. A terminal app has no help viewer to open, and Linux and
+Windows have no help books. `HelpLink(action:)` and `HelpLink(destination:)`
+ship, so a help button that runs code or opens a URL ports as written.
+
