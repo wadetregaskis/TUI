@@ -37,6 +37,9 @@ final class InputChainHarness {
         statusBar.focusManager = focusManager
         environment.statusBar = statusBar
         configure(&environment)
+        // No run loop unions in a modifier's `.motion` request; without it the
+        // dispatcher refuses every `.moved`.
+        tui.mouseEventDispatcher.setActiveSupport(.full)
         context = RenderContext(
             availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
         handler = InputHandler(
@@ -67,6 +70,7 @@ final class InputChainHarness {
         var frameContext = context
         frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
         let buffer = renderToBuffer(view, context: frameContext)
+        tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
         focusManager.endRenderPass()
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()
@@ -77,6 +81,23 @@ final class InputChainHarness {
     @discardableResult
     func press(_ event: KeyEvent) -> Bool {
         handler.handle(event)
+    }
+
+    /// Hands a mouse event, in terminal cells, to the dispatcher, and reports
+    /// whether it asked for a frame.
+    @discardableResult
+    func mouse(_ event: MouseEvent) -> Bool {
+        tui.mouseEventDispatcher.dispatch(event)
+    }
+
+    /// Moves the pointer through `path` over the view `build` makes, with a
+    /// frame before the first move and after each.
+    func hover(_ path: [(x: Int, y: Int)], _ build: () -> some View) {
+        frame(build())
+        for point in path {
+            mouse(MouseEvent(button: .none, phase: .moved, x: point.x, y: point.y))
+            frame(build())
+        }
     }
 
     /// Plays `events` into the view `build` makes — built afresh for every

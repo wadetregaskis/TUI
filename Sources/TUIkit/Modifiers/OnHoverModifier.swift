@@ -30,9 +30,13 @@ public struct OnHoverModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
+    /// Where the cells the callback is told are measured from: the view's
+    /// own top-left (`.local`) or the terminal's (`.global`).
+    var coordinateSpace: CoordinateSpace = .local
+
     /// The hover callback: told when the cursor enters the view's hit region,
-    /// moves within it, and leaves it, with where it is in the view's own
-    /// cells. `.onHover` hears the crossings and not the moves.
+    /// moves within it, and leaves it, with where it is. `.onHover` hears the
+    /// crossings and not the moves.
     let observe: @MainActor (HoverTransition) -> Void
 
     public var body: Never {
@@ -65,6 +69,11 @@ extension OnHoverModifier: Renderable {
         dispatcher.requestFeature(.motion, in: context)
 
         let capturedObserve = observe
+        // The dispatcher hands a handler cells local to its region; the
+        // terminal's are those plus the region's origin, which is known only
+        // where the region was composited — so it is looked up when the event
+        // comes, by the id the registration returns.
+        let globalOrigin = coordinateSpace == .global ? RegionOrigin(dispatcher: dispatcher) : nil
         // An OBSERVER, not an ordinary region. This region goes on after the
         // content's, so on every cell it is the innermost match, and as an
         // ordinary region it took the `.entered` / `.exited` the wrapped
@@ -72,9 +81,11 @@ extension OnHoverModifier: Renderable {
         // never lit up, where SwiftUI keeps both. See
         // `MouseEventDispatcher.registerHoverObserver(in:_:)`.
         let handlerID = dispatcher.registerHoverObserver(in: context) { event in
+            let origin = globalOrigin?.offset ?? (x: 0, y: 0)
+            let cell = CellPoint(x: event.x + origin.x, y: event.y + origin.y)
             switch event.phase {
             case .entered:
-                capturedObserve(.entered(x: event.x, y: event.y))
+                capturedObserve(.entered(cell))
                 return true
             case .exited:
                 capturedObserve(.exited)
@@ -83,7 +94,7 @@ extension OnHoverModifier: Renderable {
                 // Offered while the pointer stays inside; answering `false`
                 // asks for no frame of its own — an action that changes state
                 // asks for one through that state.
-                capturedObserve(.moved(x: event.x, y: event.y))
+                capturedObserve(.moved(cell))
                 return false
             default:
                 // Don't claim any non-hover event so other
@@ -92,6 +103,7 @@ extension OnHoverModifier: Renderable {
                 return false
             }
         }
+        globalOrigin?.handlerID = handlerID
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,
@@ -105,16 +117,50 @@ extension OnHoverModifier: Renderable {
     }
 }
 
+/// Where a registered region sits on the terminal, looked up when an event
+/// arrives: the handler is built before the registration that names it, so the
+/// id is filled in afterwards. A memo replaying the registration keeps the id,
+/// and so the lookup.
+final class RegionOrigin: @unchecked Sendable {
+    private weak var dispatcher: MouseEventDispatcher?
+    var handlerID: HitTestRegion.HandlerID?
+
+    init(dispatcher: MouseEventDispatcher) {
+        self.dispatcher = dispatcher
+    }
+
+    /// The region's top-left cell on the terminal, or `(0, 0)` while it has
+    /// none.
+    var offset: (x: Int, y: Int) {
+        handlerID.flatMap { dispatcher?.regionOffset(for: $0) } ?? (x: 0, y: 0)
+    }
+}
+
 // MARK: - Transitions
 
-/// What a hover observer is told about the pointer, in the region's own cells.
+/// What a hover observer is told about the pointer, in its coordinate space.
 enum HoverTransition {
     /// It came into the region, at this cell.
-    case entered(x: Int, y: Int)
+    case entered(CellPoint)
     /// It moved to this cell without leaving.
-    case moved(x: Int, y: Int)
+    case moved(CellPoint)
     /// It left.
     case exited
+}
+
+// MARK: - Hover Phase
+
+/// Where the pointer is over a view — SwiftUI's `HoverPhase`, as
+/// ``View/onContinuousHover(coordinateSpace:perform:)`` hands it to its action.
+///
+/// The location is a ``CellPoint`` where SwiftUI's is a `CGPoint`: a terminal
+/// reports the pointer's cell and nothing finer (§2.2 of
+/// `Documentation/SwiftUI-compatibility.md`).
+public enum HoverPhase: Equatable, Sendable {
+    /// The pointer is over the view, at this cell.
+    case active(CellPoint)
+    /// The pointer has left the view.
+    case ended
 }
 
 // MARK: - Layoutable
@@ -164,6 +210,46 @@ extension View {
             case .entered: action(true)
             case .exited: action(false)
             case .moved: break
+            }
+        }
+    }
+
+    /// Adds an action to perform when the pointer enters the view, moves
+    /// within it, and leaves it — SwiftUI's `onContinuousHover`.
+    ///
+    /// ```swift
+    /// @State private var hoverCell: CellPoint?
+    ///
+    /// Grid { … }
+    ///     .onContinuousHover { phase in
+    ///         switch phase {
+    ///         case .active(let cell): hoverCell = cell
+    ///         case .ended: hoverCell = nil
+    ///         }
+    ///     }
+    /// ```
+    ///
+    /// The action runs with ``HoverPhase/active(_:)`` when the pointer comes
+    /// in and each time the terminal reports it moving within, and with
+    /// ``HoverPhase/ended`` when it leaves. A terminal reports the pointer's
+    /// cell, so a move is the pointer reaching another cell.
+    /// Like ``onHover(perform:)`` it needs the terminal's any-event mouse
+    /// reporting, which it asks for while the view is on screen, and a view
+    /// inside `.disabled(true)` hears nothing.
+    ///
+    /// - Parameters:
+    ///   - coordinateSpace: Where the location is measured from: the view's
+    ///     own top-left cell (`.local`, the default) or the terminal's
+    ///     (`.global`).
+    ///   - action: The action, given the phase.
+    /// - Returns: A view that reports the pointer over it to `action`.
+    public func onContinuousHover(
+        coordinateSpace: CoordinateSpace = .local, perform action: @escaping @MainActor (HoverPhase) -> Void
+    ) -> some View {
+        OnHoverModifier(content: self, coordinateSpace: coordinateSpace) { transition in
+            switch transition {
+            case .entered(let cell), .moved(let cell): action(.active(cell))
+            case .exited: action(.ended)
             }
         }
     }
