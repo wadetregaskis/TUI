@@ -164,7 +164,9 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
         let placements = LayoutPlacements()
         let children = resolveChildViews(from: content, context: context)
         return (
-            LayoutSubviews(children: children, context: context, placements: placements),
+            LayoutSubviews(
+                children: children, context: context, placements: placements,
+                rowIDs: FlattenedRowIDs(content: content, children: children)),
             placements
         )
     }

@@ -34,6 +34,18 @@ public struct _TaggedView<Content: View>: View {
     public var body: some View {
         content
     }
+
+    /// Static witness: a tag is a container value — see
+    /// ``View/_providesContainerValues``.
+    public static var _providesContainerValues: Bool { true }
+}
+
+/// A tag is one of the view's container values, as in SwiftUI: what
+/// ``ContainerValues/tag(for:)`` and ``ContainerValues/hasTag(_:)`` answer.
+extension _TaggedView: ContainerValueWriting {
+    func writeContainerValues(into values: inout ContainerValues) {
+        values.appendTag(tagValue, includeOptional: includeOptional)
+    }
 }
 
 // MARK: - Tag Modifier
@@ -97,6 +109,14 @@ extension View {
     ///
     /// The tag must be the row's OWN wrapper — `Text("a").tag("a")`, not
     /// `Text("a").tag("a").padding()`, which is `.badge(_:)`'s rule as well.
+    ///
+    /// ## As a container value
+    ///
+    /// A tag is also one of the view's ``ContainerValues``, which a custom
+    /// ``Layout`` reads with ``ContainerValues/tag(for:)`` and
+    /// ``ContainerValues/hasTag(_:)``. That reading sees through modifiers that
+    /// are not containers, as SwiftUI's does: `Text("a").tag(5).padding()` has
+    /// tag 5 there. (`List` and `Picker` still read the row's own wrapper only.)
     ///
     /// ## includeOptional
     ///

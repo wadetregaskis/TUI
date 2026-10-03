@@ -167,6 +167,22 @@ final class FlattenedRowIDs<ID: Hashable> {
         AskedRowID(rowIDs: self, child: index, ordinal: ordinal)
     }
 
+    /// The element id of the child at `index` when it is a looped row this walk
+    /// placed, and `nil` for any other child.
+    ///
+    /// What a `ForEach` row is tagged with by default as a container value —
+    /// the element's `id`, never its own `.tag(_:)` (that is read separately,
+    /// and outranks this) and never an ordinal: a hand-written row has no
+    /// implicit tag at all. Placed the way every other answer here is, so two
+    /// loops over overlapping ids each answer with their own elements.
+    func elementID(ofChildAt index: Int) -> AnyHashable? {
+        let placements = placed()
+        guard !placements.isEmpty, case .looped(let loop, let offset) = placements[index] else {
+            return nil
+        }
+        return loops[loop].keyedRowElementID(at: offset)
+    }
+
     /// What the child at `index` names itself, before any ordinal: a placed
     /// looped row's loop's answer — the row's tag, else its element's id — and
     /// any other row's own tag.
@@ -422,6 +438,9 @@ protocol KeyedLoop {
     /// What the row at `offset` names itself when the loop is its container's
     /// whole content, without the index fallback.
     func keyedRowSelectionID<RowID: Hashable>(at offset: Int) -> RowID?
+
+    /// The `id` of the element the row at `offset` draws.
+    func keyedRowElementID(at offset: Int) -> AnyHashable
 }
 
 /// A view that flattens keyed rows into its container, or passes another's

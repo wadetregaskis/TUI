@@ -512,4 +512,8 @@ extension ForEach: KeyedRowProvider, KeyedLoop {
     func keyedRowSelectionID<RowID: Hashable>(at offset: Int) -> RowID? {
         selectionID(of: element(at: offset))
     }
+
+    func keyedRowElementID(at offset: Int) -> AnyHashable {
+        AnyHashable(element(at: offset)[keyPath: idKeyPath])
+    }
 }

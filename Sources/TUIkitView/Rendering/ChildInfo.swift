@@ -227,8 +227,13 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 /// folds to `false` and costs nothing — which is what makes forwarding them
 /// affordable where a runtime probe of every child would not be.
 ///
-/// Only ``View/_providesZIndex`` is forwarded. The other two witnesses are NOT,
-/// and neither omission is an oversight:
+/// ``View/_providesZIndex`` and ``View/_providesContainerValues`` are forwarded.
+/// A container value is a VALUE, the same whatever size the view ends up, which
+/// is what makes a z-index safe to forward too; and SwiftUI documents and does
+/// exactly this for it: a value "is unaffected by views that aren't
+/// containers", so `Text("a").tag(5).padding()` still has tag 5 for the
+/// container that reads it. The other two witnesses are NOT forwarded, and
+/// neither omission is an oversight:
 ///
 /// - ``View/_isSpacer`` is a claim about LAYOUT PARTICIPATION, and a wrapper is
 ///   entitled to change it. `Spacer().frame(width: 5)` is a fixed five-cell gap,
@@ -258,11 +263,15 @@ extension View where Self: SingleContentWrapper {
     /// The content's answer: a z-index bound inside this wrapper is still a
     /// z-index, so the gate that decides whether to look for one has to say so.
     ///
-    /// A z-index is the only one of the three witnesses that is safe to forward
-    /// unconditionally, and the reason is that it is **dimension-independent**:
+    /// A z-index is safe to forward unconditionally, where a spacer flag or a
+    /// guide is not, and the reason is that it is **dimension-independent**:
     /// `.zIndex(1)` means the same number whatever size the view ends up, so a
     /// wrapper cannot invalidate it. See the type-level note for the other two.
     public static var _providesZIndex: Bool { WrappedContent._providesZIndex }
+
+    /// The content's answer, for the reason a z-index's is forwarded: a
+    /// container value written inside this wrapper is still the view's.
+    public static var _providesContainerValues: Bool { WrappedContent._providesContainerValues }
 }
 
 /// A ``SingleContentWrapper`` that can also put a copy of itself around some

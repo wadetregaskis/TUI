@@ -107,6 +107,17 @@ public protocol View {
     /// almost-always-failing conformance cast on the hottest path there is.
     static var _providesAlignmentGuide: Bool { get }
 
+    /// Static witness: whether this view type writes a container value — a
+    /// `.tag(_:)` or a `.containerValue(_:_:)` — or wraps a view that does.
+    /// `false` for every view but those two wrappers, which answer `true`, and
+    /// the single-content wrappers around them, which forward their content's
+    /// answer.
+    ///
+    /// Same shape and same reason as ``_providesZIndex``: a container asked for
+    /// a subview's values reads them only when this says there are any, so a
+    /// subview with none costs a constant rather than a walk of casts.
+    static var _providesContainerValues: Bool { get }
+
     /// Static witness: whether this view type nominates something continuous
     /// about itself — that is, whether it conforms to ``Animatable``. `false`
     /// for every view but those, which get `true` from the constrained default
@@ -182,6 +193,10 @@ public extension View {
     /// Default: a view sets no alignment guide. `_AlignmentGuideView` overrides
     /// this.
     static var _providesAlignmentGuide: Bool { false }
+
+    /// Default: a view writes no container value. `.tag(_:)` and
+    /// `.containerValue(_:_:)` override this.
+    static var _providesContainerValues: Bool { false }
 
     /// A view says nothing continuous about itself unless it is ``Animatable``.
     @inlinable

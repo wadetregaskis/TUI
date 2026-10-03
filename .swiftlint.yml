@@ -220,6 +220,7 @@ identifier_name:
     - _isSpacer
     - _providesZIndex
     - _providesAlignmentGuide
+    - _providesContainerValues
     - _isAnimatable
     - _animated
     - _isAnimatableModifier

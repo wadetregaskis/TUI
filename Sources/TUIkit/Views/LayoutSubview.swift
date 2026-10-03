@@ -47,6 +47,10 @@ public struct LayoutSubview: @MainActor Equatable {
     /// Where `place` records its decisions.
     let placements: LayoutPlacements
 
+    /// The element ids the container's `ForEach` rows are implicitly tagged
+    /// with, asked only by ``containerValues``.
+    let rowIDs: FlattenedRowIDs<AnyHashable>
+
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.index == rhs.index && lhs.placements === rhs.placements
     }
@@ -88,6 +92,17 @@ public struct LayoutSubview: @MainActor Equatable {
             explicit[key] = provider.explicitAlignmentGuide(for: key, in: bare)
         }
         return ViewDimensions(width: size.width, height: size.height, explicitGuides: explicit)
+    }
+
+    /// The container values associated with this subview.
+    ///
+    /// What ``View/containerValue(_:_:)`` and ``View/tag(_:includeOptional:)``
+    /// wrote on it, read through any modifiers that are not containers; a
+    /// `ForEach` row is also tagged with its element's `id`, unless it tags
+    /// itself. A value written inside a container this subview holds — a
+    /// `VStack`, another layout — is not this subview's: it stops there.
+    public var containerValues: ContainerValues {
+        ContainerValues(of: child, implicitTag: rowIDs.elementID(ofChildAt: index))
     }
 
     // MARK: - Placing a Subview
@@ -159,12 +174,17 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     let context: RenderContext
     let placements: LayoutPlacements
 
+    /// The element id of each looped child, resolved only when a subview's
+    /// ``LayoutSubview/containerValues`` asks.
+    let rowIDs: FlattenedRowIDs<AnyHashable>
+
     public var startIndex: Int { children.startIndex }
     public var endIndex: Int { children.endIndex }
 
     public subscript(index: Int) -> LayoutSubview {
         LayoutSubview(
-            index: index, child: children[index], context: context, placements: placements)
+            index: index, child: children[index], context: context, placements: placements,
+            rowIDs: rowIDs)
     }
 
     /// The layout direction inherited by the container view — always
