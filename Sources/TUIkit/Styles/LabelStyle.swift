@@ -15,11 +15,17 @@
 
 /// The title and icon a ``LabelStyle`` arranges.
 public struct LabelStyleConfiguration {
+    /// A type-erased title view of a label.
+    public typealias Title = AnyView
+
+    /// A type-erased icon view of a label.
+    public typealias Icon = AnyView
+
     /// The label's title view.
-    public let title: AnyView
+    public let title: Title
 
     /// The label's icon view.
-    public let icon: AnyView
+    public let icon: Icon
 
     /// Whether the icon can actually be drawn.
     ///
@@ -214,7 +220,7 @@ extension LabelStyle where Self == TitleAndIconLabelStyle {
 
 /// Environment key for the label style.
 private struct LabelStyleKey: EnvironmentKey {
-    static let defaultValue: any LabelStyle = DefaultLabelStyle()
+    static let defaultValue = StyleChain<any LabelStyle>(DefaultLabelStyle())
 }
 
 extension EnvironmentValues {
@@ -225,6 +231,13 @@ extension EnvironmentValues {
     /// what it memoized below is still good, so a style that is not `Equatable`
     /// turns memoization off in its subtree — see ``LabelStyle``.
     public var labelStyle: any LabelStyle {
+        get { self[LabelStyleKey.self].style }
+        set { self[LabelStyleKey.self] = self[LabelStyleKey.self].pushing(newValue) }
+    }
+
+    /// The style in force and the ones outside it — what ``Label/init(_:)``
+    /// inside a custom style's body draws with. See ``StyleChain``.
+    var labelStyleChain: StyleChain<any LabelStyle> {
         get { self[LabelStyleKey.self] }
         set { self[LabelStyleKey.self] = newValue }
     }

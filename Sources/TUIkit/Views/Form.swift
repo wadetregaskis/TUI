@@ -282,19 +282,7 @@ private func controlIndent(pillar: Int) -> Int { pillar == 0 ? 0 : pillar + 1 }
 private func baseRowView(_ kind: _FormRowKind, pillar: Int) -> some View {
     switch kind {
     case .field(let label, let content):
-        // A pillar of zero means there is no label column: every label
-        // measured empty, or `.labelsHidden()` withheld them all. The gap in
-        // front of the content goes with the column — a form of hidden labels
-        // should read as a column of controls, not a column of controls
-        // indented by one for a label that is not there.
-        if pillar == 0 {
-            content
-        } else {
-            HStack(spacing: 1) {
-                label.frame(width: pillar, alignment: .trailing)
-                content
-            }
-        }
+        _FormFieldRow(label: label, content: content, pillar: pillar)
     case .control(let view):
         view.padding(.leading, controlIndent(pillar: pillar))
     case .button(let view):
@@ -523,5 +511,36 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
                 ).width
             }
             .max() ?? 0
+    }
+}
+
+// MARK: - A Field Row
+
+/// A labelled row of a form: the label right-aligned in the form's label column,
+/// then its content — or, under a custom ``LabeledContentStyle``, whatever that
+/// style draws, which takes the row over as it does outside a form.
+private struct _FormFieldRow: View {
+    let label: AnyView
+    let content: AnyView
+    let pillar: Int
+    @Environment(\.labeledContentStyleChain) private var styles
+
+    @ViewBuilder var body: some View {
+        if styles.outer != nil {
+            _StyledLabeledContent(
+                configuration: LabeledContentStyleConfiguration(label: label, content: content))
+        } else if pillar == 0 {
+            // A pillar of zero means there is no label column: every label
+            // measured empty, or `.labelsHidden()` withheld them all. The gap in
+            // front of the content goes with the column — a form of hidden labels
+            // should read as a column of controls, not a column of controls
+            // indented by one for a label that is not there.
+            content
+        } else {
+            HStack(spacing: 1) {
+                label.frame(width: pillar, alignment: .trailing)
+                content
+            }
+        }
     }
 }

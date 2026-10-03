@@ -44,26 +44,30 @@ public struct LabeledContent<Label: View, Content: View>: View {
     }
 
     public var body: some View {
-        // Standalone layout (outside a Form): label leading, content trailing.
-        // Inside a Form, the form lays the label/content out itself (pillar
-        // alignment) and this body is not used.
-        //
-        // The leftover goes to the CONTENT, not to a spacer beside it. A
-        // `Spacer` is width-flexible and so is a `TextField`, and the stack
-        // distributes to flexible children evenly — so a labelled field came
-        // out with half the line spent on the gap in front of it. A flexible
-        // frame gives the content the whole remainder and aligns a fixed-width
-        // content (the `value:` overloads' `Text`) at its trailing edge, which
-        // is where the spacer used to put it.
-        //
-        // The label goes through `_CollapsingLabel` — the same unit every
-        // labelled control uses — so `.labelsHidden()` leaves the content
-        // holding the whole row. Spacing 0 because that unit carries its own
-        // separating space.
-        HStack(spacing: 0) {
-            _CollapsingLabel(label: label, controlDisabled: false)
-            content.frame(maxWidth: .infinity, alignment: .trailing)
-        }
+        // Standalone (outside a Form) this is the style's layout — the automatic
+        // one puts the label leading and the content trailing. Inside a Form,
+        // the form lays the label and content out itself, in its label column,
+        // unless a custom style is in force (see `_FormFieldRow`).
+        _StyledLabeledContent(
+            configuration: LabeledContentStyleConfiguration(
+                label: AnyView(label), content: AnyView(content)))
+    }
+}
+
+// MARK: - From a configuration
+
+extension LabeledContent
+where Label == LabeledContentStyleConfiguration.Label, Content == LabeledContentStyleConfiguration.Content {
+    /// Creates labeled content based on a labeled content style configuration.
+    ///
+    /// Use it inside a ``LabeledContentStyle``'s
+    /// ``LabeledContentStyle/makeBody(configuration:)`` to draw the content as
+    /// the style outside the custom one would, and add to it.
+    ///
+    /// - Parameter configuration: The properties of the labeled content.
+    public init(_ configuration: LabeledContentStyleConfiguration) {
+        self.label = configuration.label
+        self.content = configuration.content
     }
 }
 

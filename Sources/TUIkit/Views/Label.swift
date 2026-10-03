@@ -35,7 +35,7 @@
 public struct Label<Title: View, Icon: View>: View {
     /// How the title and icon are arranged, and which of them is shown. Set by
     /// ``View/labelStyle(_:)`` anywhere above this label.
-    @Environment(\.labelStyle) private var style
+    @Environment(\.labelStyleChain) private var styles
 
     let title: Title
     let icon: Icon
@@ -66,11 +66,46 @@ public struct Label<Title: View, Icon: View>: View {
         // The arrangement itself lives in the style — ``DefaultLabelStyle`` is
         // the icon-gap-title composition this used to inline, including the
         // icon's opt-out from cascaded text decorations.
-        style.makeAnyBody(
+        //
+        // The body sees the style outside this one, so a `Label(configuration)`
+        // a custom style draws decorates the label as it would otherwise look
+        // rather than recursing into the custom style. The default style, at
+        // the root, has nothing outside it and is drawn as it is.
+        let body = styles.style.makeAnyBody(
             configuration: LabelStyleConfiguration(
                 title: AnyView(title),
                 icon: AnyView(icon),
                 iconIsVisible: iconIsVisible))
+        if styles.outer == nil {
+            return body
+        }
+        return AnyView(body.environment(\.labelStyleChain, styles.inside))
+    }
+}
+
+// MARK: - From a configuration
+
+extension Label where Title == LabelStyleConfiguration.Title, Icon == LabelStyleConfiguration.Icon {
+    /// Creates a label representing the configuration of a style.
+    ///
+    /// Use it inside a ``LabelStyle``'s ``LabelStyle/makeBody(configuration:)``
+    /// to draw the label as the style outside the custom one would, and add to
+    /// it:
+    ///
+    /// ```swift
+    /// struct RedBorderedLabelStyle: LabelStyle {
+    ///     func makeBody(configuration: Configuration) -> some View {
+    ///         Label(configuration)
+    ///             .border(.red)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter configuration: The label being styled.
+    public init(_ configuration: LabelStyleConfiguration) {
+        self.init(
+            title: configuration.title, icon: configuration.icon,
+            iconIsVisible: configuration.iconIsVisible)
     }
 }
 
