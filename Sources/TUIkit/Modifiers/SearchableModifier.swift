@@ -18,6 +18,9 @@ struct SearchableModifier<Content: View>: View {
     /// ``isSearching`` from the field's side, and acted on from the app's.
     var isPresented: Binding<Bool>?
 
+    /// The tokens, for the `tokens:` forms — see `View+SearchTokens.swift`.
+    var tokens: SearchTokenRow?
+
     /// Whether the field holds focus — the value ``EnvironmentValues/isSearching``
     /// publishes to `content`.
     ///
@@ -73,32 +76,73 @@ struct SearchableModifier<Content: View>: View {
         return presentationSync(searchStack)
     }
 
+    /// The field, with the icon at its side and any tokens before it.
+    ///
+    /// Backspace in an empty field removes the last token — asked of the row
+    /// rather than the field, through `onKeyPress`, which hears the key before
+    /// the field does and only while the focus is in the row.
+    @ViewBuilder
+    private var fieldRow: some View {
+        let row = HStack(spacing: 1) {
+            if supportsEmojiChrome, iconPlacement == .leading {
+                icon
+            }
+            if let tokens {
+                tokens.chips
+            }
+            // Scope ONLY the query field to the `.search` submit role, so a
+            // Return here fires `.onSubmit(of: .search)` — not `.onSubmit(of:
+            // .text)`, and a plain text field in `content` (a sibling) still
+            // consumes `.text`.
+            queryField
+                .environment(\.submitTriggerRole, .search)
+            if supportsEmojiChrome, iconPlacement == .trailing {
+                icon
+            }
+        }
+        if let tokens {
+            let text = text
+            row.onKeyPress(.delete) {
+                text.wrappedValue.isEmpty && tokens.removeLast() ? .handled : .ignored
+            }
+        } else {
+            row
+        }
+    }
+
+    /// The rows under the field — the scopes and the suggested tokens — that
+    /// show now, or `nil` when none does.
+    ///
+    /// Each stays while the focus is in the rows, or Tab from the field would
+    /// hide what it was heading for.
+    private var accessories: AnyView? {
+        let hasQuery = !text.wrappedValue.isEmpty
+        let focusInRows = dismissal.focusIsInAccessories
+        let scopes = scopeBar.flatMap { bar in
+            bar.activation.showsScopes(
+                isSearching: isSearching, hasQuery: hasQuery, focusInScopes: focusInRows) ? bar.picker : nil
+        }
+        // Suggested tokens are for an empty field, as SwiftUI offers them.
+        let suggestions = tokens?.suggestions.flatMap { row in
+            (isSearching && !hasQuery) || focusInRows ? row : nil
+        }
+        guard scopes != nil || suggestions != nil else { return nil }
+        return AnyView(
+            VStack(alignment: .leading, spacing: 0) {
+                if let scopes { scopes }
+                if let suggestions { suggestions }
+            })
+    }
+
     /// The field above the content.
     private var searchStack: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // The field, and the scopes under it: one child, so the content
-            // stays the stack's second whether or not scopes show.
+            // The field, and the rows under it: one child, so the content stays
+            // the stack's second whether or not the rows show.
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 1) {
-                    if supportsEmojiChrome, iconPlacement == .leading {
-                        icon
-                    }
-                    // Scope ONLY the query field to the `.search` submit role, so a
-                    // Return here fires `.onSubmit(of: .search)` — not `.onSubmit(of:
-                    // .text)`, and a plain text field in `content` (a sibling) still
-                    // consumes `.text`.
-                    queryField
-                        .environment(\.submitTriggerRole, .search)
-                    if supportsEmojiChrome, iconPlacement == .trailing {
-                        icon
-                    }
-                }
-                if let scopeBar,
-                    scopeBar.activation.showsScopes(
-                        isSearching: isSearching, hasQuery: !text.wrappedValue.isEmpty,
-                        focusInScopes: dismissal.focusIsInScopes)
-                {
-                    _SearchScopeBarFrame(bar: scopeBar, search: dismissal)
+                fieldRow
+                if let accessories {
+                    _SearchAccessoryFrame(content: accessories, search: dismissal)
                 }
             }
             // Both values reach the CONTENT only, which is where SwiftUI puts

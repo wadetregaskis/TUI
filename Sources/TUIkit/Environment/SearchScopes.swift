@@ -144,23 +144,23 @@ struct _SearchScopesModifier<Content: View, V: Hashable, S: View>: View {
 
 // MARK: - Drawing
 
-/// The scope picker under the search field: records where it rendered, so the
-/// searchable can tell when the focus is in it.
-struct _SearchScopeBarFrame: View, Renderable, Layoutable {
-    let bar: SearchScopeBar
+/// The rows under the search field — the scopes, the suggested tokens: records
+/// where they rendered, so the searchable can tell when the focus is in them.
+struct _SearchAccessoryFrame<Content: View>: View, Renderable, Layoutable {
+    let content: Content
     let search: SearchDismissal
 
     var body: Never {
-        fatalError("_SearchScopeBarFrame renders via Renderable")
+        fatalError("_SearchAccessoryFrame renders via Renderable")
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if !context.isMeasuring { search.scopeBarIdentity = context.identity }
-        return TUIkitView.renderToBuffer(bar.picker, context: context)
+        if !context.isMeasuring { search.accessoryIdentity = context.identity }
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(bar.picker, proposal: proposal, context: context)
+        measureChild(content, proposal: proposal, context: context)
     }
 }
 

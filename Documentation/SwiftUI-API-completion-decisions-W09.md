@@ -162,6 +162,29 @@ since a terminal's field is never hidden. That reads well for a dedicated
 search page but makes `.onTextEntry` meaningless, so it would have to be a
 TUIkit-only activation rather than a reading of SwiftUI's.
 
+### B-W09-6 Suggested search tokens are a row of buttons, not entries in the suggestions menu
+
+*`View.searchable(text:tokens:suggestedTokens:placement:prompt:token:)`,
+`View.searchable(text:tokens:suggestedTokens:isPresented:placement:prompt:token:)`*
+
+SwiftUI lists suggested tokens in the search field's suggestions, as it lists
+`searchSuggestions`. TUIkit's suggestions are a drop-down of text completions
+(`TextSuggestions`), opened by Down at the caret; an entry fills the field
+with its text and has no notion of becoming a token.
+
+**Shipped:** the suggested tokens are a row of buttons under the field, shown
+while the field holds the focus with nothing typed (and while the focus is in
+the row), on the same terms as the scopes; choosing one appends it to `tokens`,
+and a token already chosen is not offered again. The tokens themselves draw in
+the field as `[Apple] [Pear]`, in the accent colour, and Backspace in an empty
+field removes the last.
+
+**The fuller version** teaches the suggestions drop-down a second kind of entry,
+one that appends a token instead of completing text, and offers the suggested
+tokens there, above any `searchSuggestions`: the menu, its keyboard handling
+and its Return-to-submit rule all live in one place (`TextInputSuggestions`),
+so it is about half a day with tests.
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`
