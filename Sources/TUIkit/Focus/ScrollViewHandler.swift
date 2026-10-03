@@ -119,6 +119,23 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// first value as old and new.
     var geometryObserverValues: [Any?] = []
 
+    /// What the user's scrolling is doing — see ``ScrollPhase``. Set to
+    /// `.interacting` by ``noteUserScroll()``, and returned to `.idle` by a
+    /// render once the scrolling has been quiet long enough, which a render
+    /// does only for a view an `onScrollPhaseChange` observes.
+    var phase: ScrollPhase = .idle
+
+    /// When the user last scrolled, on ``phaseNow``'s clock.
+    var lastUserScrollNanos: UInt64 = 0
+
+    /// The phase each `onScrollPhaseChange` observer was last told, by its
+    /// place among the observers this view reports to; `nil` before the first.
+    var reportedPhases: [ScrollPhase?] = []
+
+    /// The clock the phase is timed on: the monotonic one the frame clock
+    /// reads. Replaceable so a test can step it.
+    var phaseNow: () -> UInt64 = { MonotonicClock.nowNanoseconds }
+
     /// One screenful of READABLE lines (``ScrollableOffsetState``
     /// requirement). Under the text indicators the viewport's first and last
     /// line are chrome — "▲ N more" / "▼ N more" — so the protocol's
@@ -301,6 +318,8 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// Records that the user scrolled this view (``ScrollableOffsetState``).
     public func noteUserScroll() {
         userScrolledSinceRender = true
+        phase = .interacting
+        lastUserScrollNanos = phaseNow()
     }
 }
 

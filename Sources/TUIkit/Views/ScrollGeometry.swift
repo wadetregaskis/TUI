@@ -140,11 +140,12 @@ extension View {
 /// render side effect, so no memo above it keeps a picture that skipped one.
 struct ScrollObservers: Equatable {
     var geometry: [ScrollGeometryObserver] = []
+    var phase: [ScrollPhaseObserver] = []
 
-    var isEmpty: Bool { geometry.isEmpty }
+    var isEmpty: Bool { geometry.isEmpty && phase.isEmpty }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.geometry.count == rhs.geometry.count
+        lhs.geometry.count == rhs.geometry.count && lhs.phase.count == rhs.phase.count
     }
 }
 
@@ -216,6 +217,13 @@ extension _ScrollViewCore {
         reportScrollGeometry(
             handler: handler, contentWidth: contentWidth, viewportHeight: viewportHeight,
             context: context)
+        reportScrollPhase(
+            geometry: {
+                scrollGeometry(
+                    handler: handler, contentWidth: contentWidth, viewportHeight: viewportHeight,
+                    context: context)
+            },
+            handler: handler, context: context)
     }
 
     /// This view's geometry as the frame left it, from the content width and

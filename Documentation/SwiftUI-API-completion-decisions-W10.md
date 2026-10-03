@@ -161,4 +161,35 @@ are, so a memo above a reporting scroll view does not keep its picture.
 A/B owed on a scroll-heavy scenario with an observer attached; a scroll view
 without one pays one emptiness test per frame.
 
+### B-W10-5. Scroll phases: `.interacting` until a quarter of a second of quiet, and no velocity
+
+*`ScrollPhase` (all five cases, `isScrolling`, `debugDescription`),
+`ScrollPhaseChangeContext` (`geometry`, `velocity`), `View.onScrollPhaseChange(_:)`
+(both); `CellVector`, new, as the counterpart of `CGVector`*
+
+Measured in SwiftUI: the action runs once on appear, `.idle` to `.idle`; a
+`scrollTo` without animation changes no phase; one with animation goes
+`.idle` → `.animating` → `.idle`. I could not measure a mouse wheel: events
+synthesized into an offscreen hosting view do not reach its scroll view.
+
+**Shipped:** a user scroll — wheel, keys, scrollbar, a drag's auto-scroll,
+either axis — makes the view `.interacting`; it returns to `.idle` once the
+steps have stopped for 250 ms (fifteen 60 Hz frames, a wake requested for the
+moment) and nothing is held (a scrollbar drag or auto-repeat). A terminal
+reports no gesture phases, so the end of a scroll is inferred from quiet:
+wheel ticks and key repeats arrive well inside 250 ms, a pause to read does
+not. `.tracking`, `.decelerating` and `.animating` are never produced — there
+is no touch, no momentum, and TUIkit does not animate scrolling, so an
+animated `scrollTo` is a jump here and changes no phase. `velocity` is always
+`nil`; SwiftUI's is optional for the same reason.
+
+**What you might want different:**
+
+- *The quiet interval.* Shorter makes "scrolling ended" arrive sooner and
+  splits a slow wheel into several scrolls; longer the reverse. It is one
+  constant (`ScrollPhase.quietNanos`).
+- *A measured velocity* (lines per second over the last few steps) is cheap
+  if a use turns up; I did not invent one nobody reads.
+- *`.animating`* comes with animated scrolling, which is its own feature.
+
 ## C. Declined without asking
