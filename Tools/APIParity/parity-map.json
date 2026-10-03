@@ -374,6 +374,25 @@
         "*.exportsItemProviders*"
       ],
       "why": "ShareLink and its previews present the system share sheet, which enumerates other applications' share extensions. Outside a windowed OS session there is no such registry to enumerate."
+    },
+    {
+      "match": [
+        "View.imageScale*",
+        "EnvironmentValues.imageScale",
+        "View.symbolRenderingMode*",
+        "EnvironmentValues.symbolRenderingMode",
+        "Image.symbolRenderingMode*",
+        "View.symbolColorRenderingMode*",
+        "EnvironmentValues.symbolColorRenderingMode",
+        "Image.symbolColorRenderingMode*",
+        "View.symbolVariableValueMode*",
+        "EnvironmentValues.symbolVariableValueMode",
+        "Image.symbolVariableValueMode*",
+        "Image.init(systemName:variableValue:)",
+        "Image.init(_:variableValue:bundle:*",
+        "Image.init(decorative:variableValue:bundle:)"
+      ],
+      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIkit/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (Symbols)."
     }
   ],
   "renamed": {
