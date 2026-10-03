@@ -120,3 +120,17 @@ private struct NestedTypeSpellings: View {
             .fontWeight(weight)
     }
 }
+
+// MARK: - Labels TUIkit once spelled differently
+
+/// Each of these was a label deviation: the capability existed, but SwiftUI's
+/// spelling of the call did not bind to it. A trailing closure hides the label,
+/// so each passes its closure as a labelled argument, which is how the
+/// difference showed.
+@MainActor
+private struct FormerLabelDeviations: View {
+    var body: some View {
+        Text("text.body")
+            .onHover(perform: { isHovered in _ = isHovered })
+    }
+}

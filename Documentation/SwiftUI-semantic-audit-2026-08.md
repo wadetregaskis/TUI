@@ -913,6 +913,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public func onHover(_ action: @escaping @MainActor (Bool) -> Void) -> some View` — the label is dropped, while the doc comment immediately above it (lines 110-112) claims "SwiftUI-compatible signature." TUIkit uses the `perform` label correctly elsewhere (onAppear(perform:) at View+Events.swift:360, onDisappear(perform:) at :386). — `Sources/TUIkit/Modifiers/OnHoverModifier.swift:136`
 - *Divergence:* `content.onHover(perform: handleHover)` is legal SwiftUI and does not compile under TUIkit; only the trailing-closure form works. Documentation/SwiftUI-compatibility.md:116 lists `onHover` as ✓.
 - *Recommendation:* Fix: rename the parameter to `perform` (a rename, not an added overload — the project's no-backwards-compat-shims rule applies pre-1.0). If it is left as is, drop the "SwiftUI-compatible signature" claim from the doc comment.
+- *Status:* **FIXED** (2026-10-03): the parameter is `perform`, renamed rather than overloaded; `Tools/APIParity/CompileCorpus.swift` passes it a named function so the label is what binds.
 
 **79. `View.onTapGesture(count:perform:) / View.onTapGesture(perform:)`**
 

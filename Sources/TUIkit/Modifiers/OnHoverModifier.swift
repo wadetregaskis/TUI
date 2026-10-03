@@ -139,7 +139,7 @@ extension View {
     ///   the cursor enters and `false` when it leaves.
     /// - Returns: A view that reports cursor enter / exit
     ///   transitions to `action`.
-    public func onHover(_ action: @escaping @MainActor (Bool) -> Void) -> some View {
+    public func onHover(perform action: @escaping @MainActor (Bool) -> Void) -> some View {
         OnHoverModifier(content: self, action: action)
     }
 }
