@@ -54,7 +54,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
             trigger(
                 state(in: context), focusManager: context.environment.focusManager,
                 // Measuring only: nothing can open, so nothing to report.
-                onOpen: nil),
+                onOpen: nil, indicator: context.environment.menuIndicatorVisibility),
             proposal: proposal, context: triggerContext(context))
     }
 
@@ -67,7 +67,8 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
         var buffer = TUIkit.renderToBuffer(
             trigger(
                 state, focusManager: context.environment.focusManager,
-                onOpen: context.environment.menuOpenAction),
+                onOpen: context.environment.menuOpenAction,
+                indicator: context.environment.menuIndicatorVisibility),
             context: triggerContext(context))
         guard state.isOpen, !context.isMeasuring else {
             // Tear down a section left over from a just-dismissed menu so the
@@ -93,7 +94,8 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
     /// The collapsed control: the caller's label plus the closed/open caret
     /// every TUIkit drop-down uses.
     private func trigger(
-        _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?
+        _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?,
+        indicator: Visibility
     ) -> some View {
         Button {
             state.isOpen.toggle()
@@ -108,7 +110,11 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
         } label: {
             HStack(spacing: 1) {
                 label
-                Text(state.isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret)
+                // `.menuIndicator(.hidden)` takes the caret away; the label
+                // still opens the menu.
+                if indicator != .hidden {
+                    Text(state.isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret)
+                }
             }
         }
         // Opens on the mouse PRESS, and hands the rest of that gesture to the
