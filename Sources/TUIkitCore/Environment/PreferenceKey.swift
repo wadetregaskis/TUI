@@ -113,6 +113,12 @@ public struct PreferenceValues: @unchecked Sendable {
 // MARK: - Public API
 
 extension PreferenceValues {
+    /// Whether a value has been set for `key` in this scope — as opposed to the
+    /// key's `defaultValue`, which the subscript answers for an absent key.
+    func containsValue<K: PreferenceKey>(for key: K.Type) -> Bool {
+        storage[ObjectIdentifier(key)] != nil
+    }
+
     /// Merges another set of preference values into this one.
     ///
     /// Through each key's own ``PreferenceKey/reduce(value:nextValue:)``, not by assignment: a key
@@ -191,9 +197,19 @@ extension PreferenceStorage {
     }
 
     /// Sets a preference value.
+    ///
+    /// The scope's first value is taken as it is, and later ones are reduced
+    /// into it — never the first into the key's `defaultValue`, which is what
+    /// the scope holds only while nothing has set the key. SwiftUI starts from
+    /// the first value too: a summing key with a default of 100 and children
+    /// setting 1 and 2 reduces to 3, not 103.
     public func setValue<K: PreferenceKey>(_ value: K.Value, forKey key: K.Type) {
         var currentValues = current
-        K.reduce(value: &currentValues[key]) { value }
+        if currentValues.containsValue(for: key) {
+            K.reduce(value: &currentValues[key]) { value }
+        } else {
+            currentValues[key] = value
+        }
         current = currentValues
 
         // Notify callbacks

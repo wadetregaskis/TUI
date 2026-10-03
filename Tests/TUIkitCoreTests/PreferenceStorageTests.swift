@@ -25,6 +25,25 @@ private struct StorageCounterKey: PreferenceKey {
     }
 }
 
+/// A summing key whose default is NOT the sum's identity, which is what tells
+/// "reduced into the default" apart from "started from the first value".
+private struct OffsetSumKey: PreferenceKey {
+    static let defaultValue: Int = 100
+
+    static func reduce(value: inout Int, nextValue: () -> Int) {
+        value += nextValue()
+    }
+}
+
+/// An appending key with a non-empty default.
+private struct SeededListKey: PreferenceKey {
+    static let defaultValue: [String] = ["default"]
+
+    static func reduce(value: inout [String], nextValue: () -> [String]) {
+        value += nextValue()
+    }
+}
+
 @MainActor
 @Suite("PreferenceStorage Tests")
 struct PreferenceStorageTests {
@@ -181,5 +200,36 @@ struct PreferenceStorageTests {
 
         #expect(storage.current[StorageStringKey.self] == "default")
         #expect(storage.current[StorageCounterKey.self] == 0)
+    }
+
+    // Measured in SwiftUI (NSHostingView, macOS 15.8): a scope's reduction
+    // starts from its first value; the default is only what an unset key reads.
+    @Test("A scope's first value is taken, not reduced into the default",
+          arguments: [([1, 2], 3), ([1], 1)])
+    func firstValueStartsTheReduction(values: [Int], expected: Int) {
+        let storage = PreferenceStorage()
+        storage.beginRenderPass()
+        storage.push()
+        for value in values {
+            storage.setValue(value, forKey: OffsetSumKey.self)
+        }
+        #expect(storage.pop()[OffsetSumKey.self] == expected)
+        #expect(storage.current[OffsetSumKey.self] == expected, "and merged into the parent as is")
+    }
+
+    @Test("An appending key with a seeded default collects only what was set")
+    func seededListCollectsOnlySetValues() {
+        let storage = PreferenceStorage()
+        storage.beginRenderPass()
+        storage.setValue(["a"], forKey: SeededListKey.self)
+        storage.setValue(["b"], forKey: SeededListKey.self)
+        #expect(storage.current[SeededListKey.self] == ["a", "b"])
+    }
+
+    @Test("A key nobody set still reads its default")
+    func unsetKeyReadsDefault() {
+        let storage = PreferenceStorage()
+        storage.beginRenderPass()
+        #expect(storage.current[OffsetSumKey.self] == 100)
     }
 }
