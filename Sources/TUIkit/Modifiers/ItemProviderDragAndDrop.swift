@@ -109,7 +109,7 @@
         /// follows the pointer.
         ///
         /// The drag is within the app, as every TUIkit drag is: an
-        /// ``onDrop(of:isTargeted:perform:)`` whose types the provider
+        /// ``onDrop(of:isTargeted:perform:)-(_,_,([NSItemProvider])->Bool)`` whose types the provider
         /// conforms to takes it.
         ///
         /// - Parameter data: Returns the provider, when the drag begins.

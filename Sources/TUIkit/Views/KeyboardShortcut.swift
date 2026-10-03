@@ -121,7 +121,7 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
 /// `KeyboardShortcut`: either a key equivalent (``init(_:modifiers:)``) or one
 /// of the two semantic roles.
 ///
-/// Attach with ``View/keyboardShortcut(_:)``:
+/// Attach with ``View/keyboardShortcut(_:)-(KeyboardShortcut)``:
 ///
 /// ```swift
 /// Dialog("Sign in") {

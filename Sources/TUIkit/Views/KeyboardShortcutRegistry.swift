@@ -110,7 +110,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
 
 // MARK: - Assignment
 
-/// The per-frame, claimable carrier ``View/keyboardShortcut(_:)``
+/// The per-frame, claimable carrier ``View/keyboardShortcut(_:)-(KeyboardShortcut)``
 /// plants in the environment.
 ///
 /// A plain environment *value* would cascade to every button in the subtree —
@@ -212,7 +212,7 @@ extension EnvironmentValues {
     }
 
     /// The shortcut assignment awaiting a control, planted by
-    /// ``View/keyboardShortcut(_:)``.
+    /// ``View/keyboardShortcut(_:)-(KeyboardShortcut)``.
     var assignedKeyboardShortcut: KeyboardShortcutAssignment? {
         get { self[AssignedKeyboardShortcutKey.self] }
         set { self[AssignedKeyboardShortcutKey.self] = newValue }
@@ -235,7 +235,7 @@ extension EnvironmentValues {
     /// }
     /// ```
     ///
-    /// Read-only, as SwiftUI's is: ``View/keyboardShortcut(_:)`` is how one is
+    /// Read-only, as SwiftUI's is: ``View/keyboardShortcut(_:)-(KeyboardShortcut)`` is how one is
     /// assigned.
     public var keyboardShortcut: KeyboardShortcut? {
         assignedKeyboardShortcut?.shortcut
