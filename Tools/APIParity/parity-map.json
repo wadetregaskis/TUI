@@ -303,7 +303,10 @@
         "View.importableFromServices*",
         "View.exportsItemProviders*",
         "View.importsItemProviders*",
-        "View.navigationDocument*"
+        "View.navigationDocument*",
+        "NewDocumentButton*",
+        "DocumentBaseBox*",
+        "DefaultDocumentGroupLaunchActions*"
       ],
       "why": "The document architecture and the system file panels: DocumentGroup, FileDocument, the importer/exporter/mover sheets and the Services menu. Each presents an AppKit panel backed by file coordination and UTType, and TUIkit has no window to present one in. An app that needs a file picker draws it from `List` and the file system."
     },
@@ -358,7 +361,14 @@
         "*.commands*",
         "*.commandsRemoved*",
         "*.commandsReplaced*",
-        "View.onCommand*"
+        "View.onCommand*",
+        "EmptyCommands*",
+        "ImportFromDevicesCommands*",
+        "InspectorCommands*",
+        "SidebarCommands*",
+        "TextEditingCommands*",
+        "TextFormattingCommands*",
+        "ToolbarCommands*"
       ],
       "why": "The menu-bar command system — CommandMenu, CommandGroup and their placements — plus `onCommand`'s responder-chain selectors. A terminal has no menu bar. SwiftUI-compatibility.md §2.6 records the substitute: TUIkit's chrome is a status bar of shortcut hints built from `StatusBarItem`, whose identity IS the shortcut it announces."
     },
@@ -373,7 +383,8 @@
       "match": [
         "ShareLink*",
         "SharePreview*",
-        "*.exportsItemProviders*"
+        "*.exportsItemProviders*",
+        "DefaultShareLinkLabel"
       ],
       "why": "ShareLink and its previews present the system share sheet, which enumerates other applications' share extensions. Outside a windowed OS session there is no such registry to enumerate."
     },
@@ -423,6 +434,111 @@
         "Text.typesettingLanguage(_:isEnabled:)"
       ],
       "why": "A run's typesetting language sets its line height, line breaking and spacing. Line height is the terminal's row and spacing is whole cells; TUIkit's word wrapper breaks at spaces and at characters a line cannot hold, whatever the language. So a language changes none of the three and could only be accepted and ignored. See Documentation/SwiftUI-API-completion-decisions.md C8."
+    },
+    {
+      "match": [
+        "AnyCompositorContent*",
+        "AutomaticImmersionStyle*",
+        "FullImmersionStyle*",
+        "ImmersionChangeContext*",
+        "ProgressiveImmersionAspectRatio*",
+        "WorldRecenterPhase*",
+        "Chirality*",
+        "HandGestureShortcut*",
+        "Scene.immersionStyle(selection:in:)",
+        "View.handGestureShortcut(_:isEnabled:)",
+        "RemoteDeviceIdentifier"
+      ],
+      "why": "visionOS: immersive spaces, Compositor Services content, hand-gesture shortcuts and world recentring. None of these is available on macOS, and a terminal has no space to be immersed in."
+    },
+    {
+      "match": [
+        "ControlWidget*",
+        "ControlWidgetTemplate*",
+        "ControlWidgetTemplateBuilder*",
+        "EmptyControlWidgetTemplate*",
+        "View.invalidatableContent(_:)",
+        "View.interactionActivityTrackingTag(_:)",
+        "View.assistiveAccessNavigationIcon*"
+      ],
+      "why": "WidgetKit controls and system surfaces: Control Center and Lock Screen controls, a widget's invalidatable content, interaction tracking for system intelligence, and iOS Assistive Access's navigation icon. Each is drawn by the system outside the app, and no such surface reaches a terminal app."
+    },
+    {
+      "match": [
+        "NSHostingMenu*",
+        "NSWindow.HostingSheetRepresentation*",
+        "NSWindow.beginSheet(content:completionHandler:)",
+        "NSWindow.endSheet(_:)",
+        "NSApplication.addSceneRepresentation(_:)",
+        "NSAnimationContext.animate(_:changes:completion:)",
+        "NSControl.ControlSize.init(_:)",
+        "NSDirectionalEdgeInsets.init(_:)",
+        "NSUnderlineStyle.init(_:)"
+      ],
+      "why": "AppKit bridges: SwiftUI content hosted in an NSMenu or an NSWindow sheet, scene representations for NSApplication, AppKit animations driven by a SwiftUI Animation, and conversions to AppKit value types. TUIkit draws no AppKit views, and AppKit is absent on Linux and Windows; Renderable is the escape hatch for drawing of an app's own."
+    },
+    {
+      "match": [
+        "NSUserActivity.*",
+        "View.onContinueUserActivity(_:perform:)",
+        "View.userActivity(_:element:_:)",
+        "View.userActivity(_:isActive:_:)",
+        "View.onOpenURL(perform:)",
+        "View.onOpenURL(prefersInApp:)"
+      ],
+      "why": "Handoff and URL delivery: NSUserActivity continuation, and URLs opened from elsewhere arriving at the app. Both come through the app's bundle registration with LaunchServices, which a command-line program run in a terminal has none of; nothing can send it a URL or an activity."
+    },
+    {
+      "match": [
+        "InterfaceOrientation*",
+        "BackgroundTask*",
+        "Scene.backgroundTask(_:action:)",
+        "View.persistentSystemOverlays(_:)",
+        "Scene.persistentSystemOverlays(_:)"
+      ],
+      "why": "iOS device and lifecycle features: interface orientation (for previews and supported orientations), background tasks woken by the system, and the home indicator and other persistent system overlays. A terminal app has none of them, on any platform."
+    },
+    {
+      "match": [
+        "FetchRequest*",
+        "FetchedResults*",
+        "EnvironmentValues.managedObjectContext"
+      ],
+      "why": "Core Data, which is absent on Linux and Windows. Offering it behind #if canImport(CoreData) would be a policy change (no Apple-only public API surface) rather than a medium limit; Documentation/SwiftUI-API-completion-refusal-review.md confirms the same decline for SectionedFetchRequest."
+    },
+    {
+      "match": [
+        "SubscriptionView*"
+      ],
+      "why": "StoreKit's subscription-status view, driven by the App Store. Absent off Apple platforms, and an app run from a terminal is not sold through the App Store."
+    },
+    {
+      "match": [
+        "DefaultWindowStyle*",
+        "HiddenTitleBarWindowStyle*",
+        "PlainWindowStyle*",
+        "TitleBarWindowStyle*",
+        "AutomaticMenuBarExtraStyle*",
+        "PullDownMenuBarExtraStyle*",
+        "Scene.menuBarExtraStyle(_:)",
+        "Scene.defaultWindowPlacement(_:)",
+        "UtilityWindow*",
+        "PresentedWindowContent",
+        "DefaultWindowVisibilityToggleLabel",
+        "SceneLaunchBehavior*",
+        "SceneRestorationBehavior*",
+        "Scene.keyboardShortcut(_:)",
+        "Scene.keyboardShortcut(_:modifiers:localization:)"
+      ],
+      "why": "macOS window and menu-bar chrome: window and menu-bar-extra styles, window placement, utility windows, which scenes launch or are restored, and the shortcut that opens a scene's window. The terminal emulator owns the one window a TUIkit app draws in. Further scenes are the multi-scene question, Documentation/SwiftUI-API-completion-refusal-review.md O9."
+    },
+    {
+      "match": [
+        "View.environmentObject(_:)",
+        "Scene.environmentObject(_:)",
+        "View.onReceive(_:perform:)"
+      ],
+      "why": "Combine: an ObservableObject injected as an environment object, and a Combine publisher's values. Combine is absent on Linux and Windows. TUIkit's observable path is Observation's: inject with .environment(_:) and read with @Environment(Model.self), the mapping EnvironmentObject's differentShape entry records. A publisher becomes an AsyncSequence consumed in .task(id:)."
     }
   ],
   "renamed": {
@@ -873,6 +989,9 @@
     },
     "KeyEquivalent.clear": {
       "why": "The keypad Clear key (U+F739). No terminal encoding TUIkit parses gives it a sequence of its own (it sits in Num Lock's position), so a shortcut or onKeyPress on it could never fire. Reopen if a terminal is found to send it, most likely under the kitty keyboard protocol (decisions A4). See decisions C4."
+    },
+    "DebugReplaceableView": {
+      "why": "Xcode's previews machinery: the type Xcode substitutes for a view while it hot-reloads a preview. It exists for the Xcode preview canvas, which never hosts a TUIkit view."
     }
   },
   "differentShape": {
