@@ -23,6 +23,40 @@ traced back to it.
 
 ## A. Needs your decision
 
+### A0. The eighteen refusal questions (O0–O17)
+
+The early Wave 17 review re-examined every existing refusal in
+`parity-map.json`. Its verdicts:
+
+- 54 are wrong;
+- 21 are partly wrong;
+- 60 hold;
+- 23 turn on a genuine design call.
+
+Those 23 are written up, each with options and a recommendation, as O0–O17 in
+[`SwiftUI-API-completion-refusal-review.md`](SwiftUI-API-completion-refusal-review.md#owner-decision).
+They are not repeated here. In brief:
+
+- **O0** The unit of a shape's path. This gates the whole Shapes cluster.
+- **O1** Reduce-motion and the other accessibility preferences.
+- **O2** `PhaseAnimator` and `KeyframeAnimator`.
+- **O3** `CustomAnimation`.
+- **O4** Matched geometry and zoom transitions.
+- **O5** Materials and Glass.
+- **O6** `ShadowStyle`.
+- **O7** `ScrollEdgeEffectStyle`.
+- **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
+  and others. This reopens `submitLabel`.
+- **O9** Multi-scene apps.
+- **O10** File panels.
+- **O11** The `formatter:` APIs.
+- **O12** `PointerStyle`.
+- **O13** `Commands`, as a menu bar.
+- **O14** `ControlSize`.
+- **O15** `ButtonBorderShape`.
+- **O16** `TextRenderer`.
+- **O17** The toolbar's `.title` and `.search` items.
+
 ### A1. `\.undoManager`: who performs an undo?
 
 *`EnvironmentValues.undoManager`*
