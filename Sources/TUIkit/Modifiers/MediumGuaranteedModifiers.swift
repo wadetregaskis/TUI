@@ -72,10 +72,31 @@ extension View {
     /// autocapitalisation or spell-check, and a terminal supplies none either.
     /// A field holds exactly the characters that arrived.
     ///
-    /// - Parameter disable: Ignored — text is never corrected, so `false`
-    ///   cannot turn a correction back on.
-    /// - Returns: This view, unchanged.
+    /// It still records what was asked in ``EnvironmentValues/autocorrectionDisabled``,
+    /// as SwiftUI's does, for an app's own views to read.
+    ///
+    /// - Parameter disable: Recorded, and otherwise moot — text is never
+    ///   corrected, so `false` cannot turn a correction back on.
+    /// - Returns: This view, with the request recorded in its environment.
     public func autocorrectionDisabled(_ disable: Bool = true) -> some View {
-        self
+        environment(\.autocorrectionDisabled, disable)
+    }
+}
+
+// MARK: - Autocorrection, as an environment value
+
+private struct AutocorrectionDisabledKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether autocorrection has been disabled for this subtree — what
+    /// ``View/autocorrectionDisabled(_:)`` last said, `false` by default.
+    ///
+    /// TUIkit never corrects text either way (see the modifier), so this is a
+    /// record of the request, which SwiftUI's environment also carries.
+    public var autocorrectionDisabled: Bool {
+        get { self[AutocorrectionDisabledKey.self] }
+        set { self[AutocorrectionDisabledKey.self] = newValue }
     }
 }

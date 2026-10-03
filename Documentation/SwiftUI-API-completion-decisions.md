@@ -23,11 +23,114 @@ traced back to it.
 
 ## A. Needs your decision
 
-*(none yet)*
+### A1. `\.undoManager`: who performs an undo?
+
+*`EnvironmentValues.undoManager`*
+
+SwiftUI hands views the window's `UndoManager`. Views register undo actions
+on it, and the Edit menu's Undo/Redo (⌘Z/⇧⌘Z) performs them. A terminal app
+has no Edit menu, and no key that every terminal passes through unclaimed:
+
+- Ctrl-Z is suspend, which TUIkit already honours by drawing a final
+  `.background` frame.
+- Ctrl-Y is "delayed suspend" on BSD-derived ttys. In raw mode it reaches the
+  app, but it is an odd key to claim.
+
+**Options.**
+
+1. **`nil`, always.** SwiftUI documents the value as optional, and macOS
+   itself returns `nil` outside a window, so apps already handle it. Honest
+   and free, but any undo support in ported code goes dark.
+2. **One `UndoManager` per app, performed by a key TUIkit claims** (Ctrl-_
+   is Emacs's undo; or a key the app chooses through a TUIkit-only
+   modifier). Roughly a day of work:
+   - the manager in the environment;
+   - the key binding;
+   - a status-bar hint;
+   - `TextField`/`TextEditor` registering their own edits, so undo means
+     something by default.
+   One more thing to check: whether swift-corelibs-foundation's
+   `UndoManager` is complete enough on Linux. I have not checked yet.
+3. **Option 2 without the default key.** The manager exists, and the app
+   wires its own key.
+
+**Recommendation:** 2, with Ctrl-_ (which terminals send as 0x1F) and
+Ctrl-Shift-_ for redo where the terminal can distinguish them. Nothing
+ships until you decide.
 
 ## B. Shipped the safe option
 
-*(none yet)*
+### B1. `\.layoutDirection` is read-only (always left-to-right)
+
+SwiftUI's is settable, and under `.rightToLeft` its views mirror everything
+that runs along the horizontal axis:
+
+- stacks;
+- `leading`/`trailing` alignment and insets;
+- text alignment;
+- images that are marked to flip.
+
+TUIkit's views do none of that yet, so a write would be accepted and
+ignored. The setter is left out instead, so the write fails to compile.
+
+**The fuller version** is real right-to-left support. Every layout site that
+resolves leading/trailing to left/right would consult the direction:
+
+- `HStack` placement order;
+- `Alignment` and `EdgeInsets` resolution;
+- `Text` wrapping and alignment;
+- `List` chrome (disclosure indicators, separator insets);
+- scroll bars, which go on the leading side in RTL.
+
+It also needs `flipsForRightToLeftLayoutDirection(_:)` and
+`layoutDirectionBehavior(_:)`.
+
+That is several days, and every one of those sites gets a test. Bidi text
+itself (reordering mixed-direction runs) is a separate and larger question,
+because the terminal does some of it on its own and inconsistently. That
+belongs in `Terminal-compatibility.md`, measured, before any design.
+
+### B2. `\.legibilityWeight` is read-only (always `nil`)
+
+SwiftUI's is settable. Under `.bold`, every piece of system text is drawn
+one weight heavier. That was measured on a SwiftUI build: light→regular,
+regular→bold, and bold stays bold. In SwiftUI that includes control labels.
+
+TUIkit draws many labels without going through `Text`, so honouring it in
+`Text` alone would be a partial honour, which is the shape Rule 2 forbids.
+
+**The fuller version** is one "heavier by one step" rule applied at every
+text-drawing site:
+
+- faint→normal, normal→bold;
+- `Text`, button and control labels, field contents, list chrome.
+
+Alternatively, apply it once at the subtree's buffer, the way
+`SGRColorRewrite` applies a colour effect. The rewrite is cheaper to get
+complete, but it would also embolden non-text glyphs (borders, bars). That
+is a reason to prefer the per-site rule.
+
+### B3. Size classes are settable, and nothing TUIkit draws reads them
+
+`\.horizontalSizeClass` and `\.verticalSizeClass` default to `.regular`, as
+macOS reports for any window. They are settable, as SwiftUI's are, for an
+app's own views to read.
+
+I believe macOS's own views ignore a written `.compact`, but I have not been
+able to confirm that for `NavigationSplitView`. On iOS, compact collapses a
+split view into a stack.
+
+If you would rather a terminal narrower than some width report `.compact`,
+that is a cheap change: the run loop already publishes the terminal size each
+frame. It would make split views worth teaching to collapse.
+
+The same reasoning covers `\.displayScale` and `\.isLuminanceReduced`:
+
+- They are settable channels, and nothing TUIkit draws reads them.
+- macOS's text ignores both; that was measured.
+- `\.dynamicTypeSize` is the same, which also answers the old refusal of
+  `DynamicTypeSize`. The refusal was true about terminals and wrong about
+  the API, because macOS reads `.large` and ignores writes for text too.
 
 ## C. Declined without asking
 

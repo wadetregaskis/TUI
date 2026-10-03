@@ -9,30 +9,31 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-/// Environment key for the cascading focus-effect suppression (SwiftUI's
-/// `\.focusEffectDisabled`).
+/// Environment key for the cascading focus-effect switch (SwiftUI's
+/// `\.isFocusEffectEnabled`).
 ///
-/// `.focusEffectDisabled(true)` flips it for a whole subtree. It is
-/// **additive** — a descendant cannot restore an indication an ancestor
-/// suppressed — exactly as ``EnvironmentValues/isEnabled`` is, and for the
-/// same reason: both modifiers speak for a subtree rather than for a node.
-private struct FocusEffectDisabledKey: EnvironmentKey {
-    static let defaultValue = false
+/// `.focusEffectDisabled(true)` turns it off for a whole subtree. That is
+/// **additive** — a descendant's `.focusEffectDisabled(false)` cannot restore
+/// an indication an ancestor suppressed — exactly as ``EnvironmentValues/isEnabled``
+/// is, and for the same reason: both modifiers speak for a subtree rather than
+/// for a node.
+private struct FocusEffectEnabledKey: EnvironmentKey {
+    static let defaultValue = true
 }
 
 extension EnvironmentValues {
-    /// Whether controls in this subtree suppress their focus indication.
+    /// Whether controls in this subtree may show that they are focused.
     ///
     /// Read it through ``RenderContext/indicatesFocus(_:)`` rather than
     /// directly: every control has to combine it with its own focus state the
     /// same way, and one place to do that is one fewer place to forget.
     ///
     /// What is read here is the COMBINED answer — ``View/focusEffectDisabled(_:)``
-    /// ORs into it rather than overwriting it — so a control never has to ask
-    /// what any ancestor said.
-    public var focusEffectDisabled: Bool {
-        get { self[FocusEffectDisabledKey.self] }
-        set { self[FocusEffectDisabledKey.self] = newValue }
+    /// ANDs into it rather than overwriting it — so a control never has to ask
+    /// what any ancestor said. A direct write is a plain write, as SwiftUI's is.
+    public var isFocusEffectEnabled: Bool {
+        get { self[FocusEffectEnabledKey.self] }
+        set { self[FocusEffectEnabledKey.self] = newValue }
     }
 }
 
@@ -40,7 +41,7 @@ extension RenderContext {
     /// Whether a control that IS focused should draw itself as focused.
     ///
     /// The one question every control's styling asks, so that
-    /// ``EnvironmentValues/focusEffectDisabled`` cannot be honoured by six
+    /// ``EnvironmentValues/isFocusEffectEnabled`` cannot be honoured by six
     /// controls and forgotten by two — the failure mode that kept this
     /// modifier off the list for months, because a control still shouting
     /// "focused!" while its neighbours had gone quiet reads as a bug in that
@@ -90,7 +91,7 @@ extension EnvironmentValues {
     /// `appearsActive` is deliberately NOT here: an inactive window keeps its
     /// focus indication, held still — see ``RenderContext/indicatesFocus(_:)``.
     func indicatesFocus(_ isFocused: Bool) -> Bool {
-        isFocused && !focusEffectDisabled
+        isFocused && isFocusEffectEnabled
     }
 }
 
@@ -138,9 +139,9 @@ extension View {
     ///   lift one an ancestor added.
     public func focusEffectDisabled(_ disabled: Bool = true) -> some View {
         // `transformEnvironment`, not `environment`: the value is derived from
-        // what is inherited (OR), which is what makes the modifier additive.
+        // what is inherited (AND), which is what makes the modifier additive.
         // The closure is a pure function of the inherited value, as that helper
         // requires — it runs on the measure walk and the render walk alike.
-        transformEnvironment(\.focusEffectDisabled) { $0 = $0 || disabled }
+        transformEnvironment(\.isFocusEffectEnabled) { $0 = $0 && !disabled }
     }
 }

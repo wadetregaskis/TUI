@@ -121,3 +121,15 @@ public struct EnvironmentValues: @unchecked Sendable {
         return copy
     }
 }
+
+extension EnvironmentValues: CustomStringConvertible {
+    /// The values set in this environment, each described by itself.
+    ///
+    /// SwiftUI's lists every key by name. Here a key is stored by its type's
+    /// identity alone, which has no printable name, so the values are listed,
+    /// sorted so that two equal environments describe alike. A key at its
+    /// default value is not listed: it was never set.
+    public var description: String {
+        "[" + storage.values.map { String(describing: $0) }.sorted().joined(separator: ", ") + "]"
+    }
+}

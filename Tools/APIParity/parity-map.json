@@ -529,9 +529,6 @@
     "ControlSize": {
       "why": "A point-metrics/type-size class; the terminal owns the font and cell size and every control is one cell-row tall (see the controlSize modifier). There is no scale axis for the enum to select along."
     },
-    "DynamicTypeSize": {
-      "why": "A user font-scale class the app reads; the terminal owns the font, the app can neither read nor set the size, and a cell cannot be half a cell (same ground as `.font`, Documentation/SwiftUI-compatibility.md:451)."
-    },
     "Edge.Corner": {
       "why": "Sources/TUIkit/Modifiers/PaddingModifier.swift:56 declares `public enum Edge: Int8, Sendable, CaseIterable` with a nested `Set` — so the reported `rawValue`/`RawValue`/`allCases`/`AllCases` gaps are all synthesized-conformance false positives and Edge is fully at parity except `C"
     },
@@ -549,6 +546,9 @@
     },
     "EnvironmentValues.allowsTightening": {
       "why": "The environment half of allowsTightening(_:); absent for the same reason — a cell grid has no inter-character spacing to tighten."
+    },
+    "EnvironmentValues.fontResolutionContext": {
+      "why": "The Font.Context a Font resolves in (declined under its own entry): TUIkit resolves a semantic font straight to terminal attributes, with no resolution step for a context to describe."
     },
     "EnvironmentValues.minimumScaleFactor": {
       "why": "The environment half of minimumScaleFactor(_:); absent for the same reason — glyph size belongs to the terminal emulator, not to the app."

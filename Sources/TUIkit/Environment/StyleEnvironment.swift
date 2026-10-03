@@ -20,6 +20,17 @@ extension EnvironmentValues {
         get { self[StyleCascadeKey.self] }
         set { self[StyleCascadeKey.self] = newValue }
     }
+
+    /// The case transform text in this subtree is drawn with — SwiftUI's
+    /// `\.textCase`, the value ``View/textCase(_:)`` writes.
+    ///
+    /// Read from the style cascade, where the modifier keeps it, as the
+    /// transform a plain `Text` resolves to; writing it is the modifier, so
+    /// `nil` clears a transform set further out rather than saying nothing.
+    public var textCase: TextCase? {
+        get { styleCascade.resolve(for: [.all, .text]).effectiveTextCase }
+        set { styleCascade = styleCascade.appending(.text, StyleAttributes(textCase: .some(newValue))) }
+    }
 }
 
 // MARK: - Chrome role
