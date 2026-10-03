@@ -201,14 +201,16 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
             alertProposal = ProposedSize(width: min(width, Self.maxWidth), height: proposal.height)
         }
         let buttons = alertActionButtons(from: actions)
+        let config = resolvedConfig(context)
+        let body = messageBody(context)
         if verticalButtons {
             return measureContainer(
-                title: title, config: config, content: Text(message),
+                title: title, config: config, content: body,
                 footer: buttons.isEmpty ? nil : AlertButtonColumn(buttons: buttons),
                 proposal: alertProposal, context: alertContext)
         }
         return measureContainer(
-            title: title, config: config, content: Text(message),
+            title: title, config: config, content: body,
             footer: buttons.isEmpty ? nil : AlertButtonRow(buttons: buttons),
             proposal: alertProposal, context: alertContext)
     }
@@ -219,16 +221,35 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         alertContext.availableWidth = min(context.availableWidth, Self.maxWidth)
 
         let buttons = alertActionButtons(from: actions)
+        let config = resolvedConfig(context)
+        let body = messageBody(context)
         if verticalButtons {
             return renderContainer(
-                title: title, config: config, content: Text(message),
+                title: title, config: config, content: body,
                 footer: buttons.isEmpty ? nil : AlertButtonColumn(buttons: buttons),
                 context: alertContext)
         }
         return renderContainer(
-            title: title, config: config, content: Text(message),
+            title: title, config: config, content: body,
             footer: buttons.isEmpty ? nil : AlertButtonRow(buttons: buttons),
             context: alertContext)
+    }
+
+    /// The configuration as the environment's dialog severity leaves it: a
+    /// critical dialog takes the palette's warning colour for its border and
+    /// title, where the alert was not given colours of its own — the
+    /// terminal's caution symbol, since it has no large one to draw.
+    private func resolvedConfig(_ context: RenderContext) -> ContainerConfig {
+        guard context.environment.dialogIsCritical else { return config }
+        var critical = config
+        critical.borderColor = critical.borderColor ?? .palette.warning
+        critical.titleColor = critical.titleColor ?? .palette.warning
+        return critical
+    }
+
+    /// The message, with the environment's dialog icon beside it.
+    private func messageBody(_ context: RenderContext) -> _AlertMessage {
+        _AlertMessage(message: message, icon: context.environment.dialogIcon)
     }
 }
 

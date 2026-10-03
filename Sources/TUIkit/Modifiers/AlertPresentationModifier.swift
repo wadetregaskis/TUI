@@ -57,6 +57,10 @@ public struct AlertPresentationModifier<Content: View, Actions: View, Message: V
     /// rather than the default horizontal alert row.
     var verticalButtons: Bool = false
 
+    /// Whether the alert describes an error — the `error:` forms — which is
+    /// what a ``DialogSeverity/automatic`` severity makes critical.
+    var presentsError: Bool = false
+
     public var body: Never {
         fatalError("AlertPresentationModifier renders via Renderable")
     }
@@ -242,6 +246,7 @@ extension AlertPresentationModifier: Renderable {
             .withAvailableHeight(context.environment.overlayContentHeight)
         alertContext.environment.activeFocusSectionID = sectionID
         alertContext.leaveScrollCanvas()
+        alertContext.environment.dialogPresentsError = presentsError
         // Choosing an action dismisses the alert, as it does in SwiftUI: an
         // alert is a question, and any of its buttons is an answer. `Button`
         // reads this and runs it after the caller's own action, so the action

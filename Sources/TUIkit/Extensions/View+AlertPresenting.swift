@@ -149,12 +149,14 @@ extension View {
         error: E?,
         @ViewBuilder actions: @escaping () -> Actions
     ) -> some View {
-        alert(
-            error?.alertTitle ?? "", isPresented: isPresented.andPresent(error),
-            actions: actions,
+        AlertPresentationModifier(
+            content: self, isPresented: isPresented.andPresent(error),
+            title: error?.alertTitle ?? "",
             // Not `Text(…)?`: an empty message and no message are different
             // pictures — the alert would keep a blank line for one.
-            message: { if let suggestion = error?.recoverySuggestion { Text(suggestion) } })
+            message: ViewBuilder.buildIf(error?.recoverySuggestion.map { Text($0) }),
+            actions: actions(), borderStyle: nil, borderColor: nil, titleColor: nil,
+            presentsError: true)
     }
 
     /// Presents an alert describing `error`, with a message of your own.
@@ -175,10 +177,12 @@ extension View {
         @ViewBuilder actions: @escaping (E) -> Actions,
         @ViewBuilder message: @escaping (E) -> Message
     ) -> some View {
-        alert(
-            error?.alertTitle ?? "", isPresented: isPresented.andPresent(error),
-            actions: { if let error { actions(error) } },
-            message: { if let error { message(error) } })
+        AlertPresentationModifier(
+            content: self, isPresented: isPresented.andPresent(error),
+            title: error?.alertTitle ?? "",
+            message: ViewBuilder.buildIf(error.map(message)),
+            actions: ViewBuilder.buildIf(error.map(actions)),
+            borderStyle: nil, borderColor: nil, titleColor: nil, presentsError: true)
     }
 }
 
