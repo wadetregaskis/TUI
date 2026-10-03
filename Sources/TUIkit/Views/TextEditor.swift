@@ -130,8 +130,16 @@ public struct TextEditor: View {
         self.isDisabled = false
     }
 
-    public var body: some View {
-        _TextEditorCore(text: text, focusID: focusID, isDisabled: isDisabled)
+    @Environment(\.textEditorStyle) private var style
+
+    @ViewBuilder public var body: some View {
+        // The two built-in styles are drawn by the core, which reads which one
+        // is in force; a custom style draws its body in the editor's place.
+        if style is AutomaticTextEditorStyle || style is PlainTextEditorStyle {
+            _TextEditorCore(text: text, focusID: focusID, isDisabled: isDisabled)
+        } else {
+            style.makeAnyBody(configuration: TextEditorStyleConfiguration())
+        }
     }
 }
 
@@ -238,7 +246,9 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         // boxed look with `.border()`. The palette's field surface keeps it
         // readable on light and dark palettes alike (the old fixed accent-dim
         // tint multiplied toward black — dark grey behind black text on Basic).
-        let fieldBackground: Color? = isDisabled
+        // `.textEditorStyle(.plain)` draws no surface: the text sits on whatever
+        // is behind the editor, as a plain text field's does.
+        let fieldBackground: Color? = isDisabled || context.environment.textEditorStyle is PlainTextEditorStyle
             ? nil
             : (context.environment.surfaceBackground.map { palette.fieldBackground(on: $0) }
                 ?? palette.fieldBackground).resolve(with: palette)
