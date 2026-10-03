@@ -778,9 +778,6 @@
     "MaterialActiveAppearance": {
       "why": "Names the active/inactive/automatic appearance of a Material; there is no Material (no blur, no translucency) and no window-activation state — the terminal emulator owns window focus, and TUIkit's own focus model is per-control (Sources/TUIkit/Focus/FocusManager)."
     },
-    "Namespace": {
-      "why": "The only mention of the word in Sources is an unrelated doc comment (Sources/TUIkitStyling/Color/Color.swift:115). `Namespace`/`Namespace.ID` exists to scope `matchedGeometryEffect` and `matchedTransitionSource` ids, both of which are not-applicable here for want of any tween spa"
-    },
     "NavigationTransition": {
       "why": "The protocol exists solely to type `navigationTransition(_:)`, whose only non-default conformer is `.zoom`, a continuous rect/scale interpolation a character grid cannot subdivide. No transition system exists in TUIkit at all (`transition`, `animation`, `matchedGeometryEffect` ar"
     },
