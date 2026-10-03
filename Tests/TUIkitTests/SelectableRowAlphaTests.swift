@@ -37,9 +37,9 @@ struct SelectableRowAlphaTests {
     @ViewBuilder
     private func table(_ selection: Binding<Set<Int>>? = nil) -> some View {
         if let selection {
-            Table(rows, selection: selection) { TableColumn("Name") { $0.name } }
+            Table(rows, selection: selection) { TableColumn("Name") { Text(verbatim: $0.name) } }
         } else {
-            Table(rows) { TableColumn("Name") { $0.name } }
+            Table(rows) { TableColumn("Name") { Text(verbatim: $0.name) } }
         }
     }
 

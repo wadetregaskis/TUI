@@ -42,10 +42,10 @@ private struct MultiLineTableView: View {
             Text(Lf("stress.scenario.table-multiline.heading", rows.count)).bold()
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                TableColumn("ID") { (row: StressItem) in "\(row.id)" }
-                TableColumn("Name") { (row: StressItem) in Synth.name(row.h) }
-                TableColumn("Status") { (row: StressItem) in Synth.status(row.h) }
-                TableColumn("Details") { (row: StressItem) in Self.details(row.h) }
+                TableColumn("ID") { (row: StressItem) in Text(verbatim: "\(row.id)") }
+                TableColumn("Name") { (row: StressItem) in Text(verbatim: Synth.name(row.h)) }
+                TableColumn("Status") { (row: StressItem) in Text(verbatim: Synth.status(row.h)) }
+                TableColumn("Details") { (row: StressItem) in Text(verbatim: Self.details(row.h)) }
                     .lineLimit(3)
             }
         }

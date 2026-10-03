@@ -152,7 +152,7 @@ struct FadedPaletteRenderTests {
                 List(selection: .constant(Set([0]))) {
                     ForEach(rows) { Text($0.name) }
                 }
-                Table(rows) { TableColumn("Name") { $0.name } }
+                Table(rows) { TableColumn("Name") { Text(verbatim: $0.name) } }
                 Text("boxed").padding().border()
             })
         #expect(!drawn.lines.isEmpty)
@@ -219,10 +219,10 @@ struct FadedPaletteRenderTests {
             palette: palette, height: 10)
         expectArrowsClaimed(["▲", "▼"], in: list, palette: palette)
         let table = render(
-            Table(rows) { TableColumn("Name") { $0.name } }, palette: palette, height: 10)
+            Table(rows) { TableColumn("Name") { Text(verbatim: $0.name) } }, palette: palette, height: 10)
         expectArrowsClaimed(["▲", "▼"], in: table, palette: palette)
         let wrapped = render(
-            Table(rows) { TableColumn("Name") { "\($0.name)\nsecond" }.lineLimit(2) },
+            Table(rows) { TableColumn("Name") { Text(verbatim: "\($0.name)\nsecond") }.lineLimit(2) },
             palette: palette, height: 10)
         expectArrowsClaimed(["▲", "▼"], in: wrapped, palette: palette)
     }

@@ -67,7 +67,7 @@ struct ReorderAutoScrollSlotTests {
             dispatcher.beginRenderPass()
             session.beginFrame()
             let table = Table(rows.map(Row.init), selection: .constant(String?.none)) {
-                TableColumn<Row>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             .onMove { self.rows.move(fromOffsets: $0, toOffset: $1) }
             .frame(width: 20, height: 9)

@@ -83,11 +83,11 @@ private struct StressTable: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title).bold()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                TableColumn("ID") { (row: StressItem) in "\(row.id)" }
-                TableColumn("Name") { (row: StressItem) in Synth.name(row.h) }
-                TableColumn("Status") { (row: StressItem) in Synth.status(row.h) }
-                TableColumn("Score") { (row: StressItem) in "\(row.h % 1000)" }
-                TableColumn("Load") { (row: StressItem) in Synth.bar(Double(row.h % 100) / 100, width: 8) }
+                TableColumn("ID") { (row: StressItem) in Text(verbatim: "\(row.id)") }
+                TableColumn("Name") { (row: StressItem) in Text(verbatim: Synth.name(row.h)) }
+                TableColumn("Status") { (row: StressItem) in Text(verbatim: Synth.status(row.h)) }
+                TableColumn("Score") { (row: StressItem) in Text(verbatim: "\(row.h % 1000)") }
+                TableColumn("Load") { (row: StressItem) in Text(verbatim: Synth.bar(Double(row.h % 100) / 100, width: 8)) }
             }
         }
     }

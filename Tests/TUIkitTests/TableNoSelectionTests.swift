@@ -47,14 +47,14 @@ struct TableNoSelectionTests {
         func render(_ kind: Kind) -> FrameBuffer {
             tui.mouseEventDispatcher.beginRenderPass()
             let selectable = Table(rows.map(Row.init), selection: .constant(String?.none)) {
-                TableColumn<Row>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             let table: AnyView =
                 switch kind {
                 case .plain:
                     AnyView(
                         Table(rows.map(Row.init)) {
-                            TableColumn<Row>("Name", value: \.name)
+                            TableColumn("Name", value: \.name)
                         })
                 case .selectable: AnyView(selectable)
                 case .markHidden: AnyView(selectable.rowSelectionIndicator(.hidden))

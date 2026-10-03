@@ -243,7 +243,7 @@ struct NavigationSplitViewSidebarChordTests {
                 sortOrder: Binding(get: { sort.order }, set: { sort.order = $0 })
             ) {
                 TableColumn("Name", value: \Row.name)
-                TableColumn("Size", value: \Row.size) { "\($0.size)" }
+                TableColumn("Size", value: \Row.size) { Text(verbatim: "\($0.size)") }
             }
         }
         harness.frame(view)

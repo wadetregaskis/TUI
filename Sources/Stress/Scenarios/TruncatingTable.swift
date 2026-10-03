@@ -84,15 +84,15 @@ private struct TruncatingTableView: View {
             Text(Lf("stress.scenario.truncate.heading", rows.count)).bold()
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                TableColumn("ID") { (row: TruncatingItem) in "\(row.id)" }
+                TableColumn("ID") { (row: TruncatingItem) in Text(verbatim: "\(row.id)") }
                     .width(.fit)
-                TableColumn("Summary") { (row: TruncatingItem) in row.plain }
-                TableColumn("Path") { (row: TruncatingItem) in row.path }
+                TableColumn("Summary") { (row: TruncatingItem) in Text(verbatim: row.plain) }
+                TableColumn("Path") { (row: TruncatingItem) in Text(verbatim: row.path) }
                     .truncationMode(.head)
-                TableColumn("Middle") { (row: TruncatingItem) in row.plain }
+                TableColumn("Middle") { (row: TruncatingItem) in Text(verbatim: row.plain) }
                     .truncationMode(.middle)
-                TableColumn("Styled") { (row: TruncatingItem) in row.styled }
-                TableColumn("Tail") { (row: TruncatingItem) in row.path }
+                TableColumn("Styled") { (row: TruncatingItem) in Text(verbatim: row.styled) }
+                TableColumn("Tail") { (row: TruncatingItem) in Text(verbatim: row.path) }
             }
         }
     }

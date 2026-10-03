@@ -230,10 +230,10 @@ private struct ChurningWrappedTableView: View {
             Text(Lf("stress.scenario.table-churn-wrapped.heading", count, churnPeriod)).bold()
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                TableColumn("ID") { ChurnCell.identifier($0) }
+                TableColumn("ID") { Text(verbatim: ChurnCell.identifier($0)) }
                     .width(.fixed(7))
-                TableColumn("Name") { ChurnCell.name($0) }
-                TableColumn("Details") { ChurnCell.summary($0, words: 18) }
+                TableColumn("Name") { Text(verbatim: ChurnCell.name($0)) }
+                TableColumn("Details") { Text(verbatim: ChurnCell.summary($0, words: 18)) }
                     .lineLimit(3)
             }
         }

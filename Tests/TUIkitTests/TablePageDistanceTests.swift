@@ -59,7 +59,7 @@ struct TablePageDistanceTests {
             tui.mouseEventDispatcher.beginRenderPass()
             tui.dragAndDropSession.beginFrame()
             let table = Table(names.map(Row.init), selection: .constant(String?.none)) {
-                TableColumn<Row>("Name", value: \.name).lineLimit(lineLimit)
+                TableColumn("Name", value: \.name).lineLimit(lineLimit)
             }
             .dropDestination(for: String.self) { _, _ in }
             .frame(width: 22, height: height)

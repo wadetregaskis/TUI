@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkit
 
 // MARK: - How a column gets its value
@@ -40,12 +41,12 @@ extension TableAPIMatrix {
             variant("closure", axis: "data", "every column computes its value in a closure") { config in
                 table("closure", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID") { (row: APIRow) in row.index }.width(.fixed(7))
-                        TableColumn("Name") { (row: APIRow) in row.name }
-                        TableColumn("Slug") { (row: APIRow) in row.slug }
-                        TableColumn("Status") { (row: APIRow) in row.status }
-                        TableColumn("Summary") { (row: APIRow) in row.summary }
-                        TableColumn("Load") { (row: APIRow) in row.bar }.width(.fixed(10))
+                        TableColumn("ID") { (row: APIRow) in Text(verbatim: row.index) }.width(.fixed(7))
+                        TableColumn("Name") { (row: APIRow) in Text(verbatim: row.name) }
+                        TableColumn("Slug") { (row: APIRow) in Text(verbatim: row.slug) }
+                        TableColumn("Status") { (row: APIRow) in Text(verbatim: row.status) }
+                        TableColumn("Summary") { (row: APIRow) in Text(verbatim: row.summary) }
+                        TableColumn("Load") { (row: APIRow) in Text(verbatim: row.bar) }.width(.fixed(10))
                     }
                 }
             },
@@ -62,7 +63,7 @@ extension TableAPIMatrix {
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Slug", value: \APIRow.slug)
                         TableColumn("Status", value: \APIRow.status)
-                        TableColumn("Summary") { (row: APIRow) in row.summary }
+                        TableColumn("Summary") { (row: APIRow) in Text(verbatim: row.summary) }
                         TableColumn("Load", value: \APIRow.bar).width(.fixed(10))
                     }
                 }
@@ -72,15 +73,20 @@ extension TableAPIMatrix {
             // another. The overload an app reaches for whenever a column's
             // display form is not its sort form — a size shown as "4.2 KB" that
             // orders by its byte count — and the one whose `sortComparator` is
-            // NOT evidence that the column names its value.
+            // NOT evidence that the column names its value. A sorting column
+            // needs a table with a sort order, as in SwiftUI; a constant one
+            // keeps the headers' arrow slots without the rows ever moving.
             variant("sortable-content", axis: "data", "columns that sort by a property and display a formatted string") { config in
                 table("sortable-content", config) { rows in
-                    Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.id) { "\($0.id)" }.width(.fixed(7))
+                    Table(
+                        rows, selection: Binding<Int?>.constant(nil),
+                        sortOrder: .constant([KeyPathComparator(\APIRow.id)])
+                    ) {
+                        TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(.fixed(7))
                         TableColumn("Name", value: \APIRow.name)
-                        TableColumn("Score", value: \APIRow.score) { "\($0.score)" }
+                        TableColumn("Score", value: \APIRow.score) { Text(verbatim: "\($0.score)") }
                             .width(.fixed(7)).alignment(.trailing)
-                        TableColumn("Size", value: \APIRow.bytes) { $0.size }
+                        TableColumn("Size", value: \APIRow.bytes) { Text(verbatim: $0.size) }
                             .width(.fixed(10)).alignment(.trailing)
                         TableColumn("Summary", value: \APIRow.summary)
                     }

@@ -209,10 +209,11 @@ struct TableRenderTests {
     func customEmptyPlaceholder() {
         let empty: [Row] = []
         let lines = strippedLines(
-            Table(empty, selection: .constant(String?.none), emptyPlaceholder: "Nothing to show") {
+            Table(empty, selection: .constant(String?.none)) {
                 TableColumn("Name", value: \Row.name)
                 TableColumn("Size", value: \Row.size)
-            },
+            }
+            .tableEmptyPlaceholder("Nothing to show"),
             context: tableContext(width: 30, height: 8)
         )
 

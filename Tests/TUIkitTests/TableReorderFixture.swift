@@ -71,7 +71,7 @@ final class TableReorderFixture {
         let table: AnyView
         if selection.isEmpty {
             let base = Table(rows.map(TableReorderRow.init), selection: .constant(String?.none)) {
-                TableColumn<TableReorderRow>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             table = AnyView(reorderable ? AnyView(base.onMove(move)) : AnyView(base))
         } else {
@@ -79,7 +79,7 @@ final class TableReorderFixture {
                 rows.map(TableReorderRow.init),
                 selection: Binding(get: { self.selection }, set: { self.selection = $0 })
             ) {
-                TableColumn<TableReorderRow>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             table = AnyView(reorderable ? AnyView(base.onMove(move)) : AnyView(base))
         }

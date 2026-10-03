@@ -213,7 +213,7 @@ struct EmojiPage: View {
                 // Sorted by the NUMBER, shown as the label. Sorting the label
                 // would order it as text, which puts U+FE0F before U+1F600.
                 TableColumn("page.emoji.column.code", value: \EmojiEntry.codepoint) {
-                    $0.codepointLabel
+                    Text($0.codepointLabel)
                 }
                 .width(.fixed(10))
                 TableColumn("page.emoji.column.description", value: \EmojiEntry.name)
@@ -243,20 +243,20 @@ struct EmojiPage: View {
             VStack(alignment: .leading, spacing: 0) {
                 symbolCountLine
                 Table(
-                    sortedSymbols, selection: $selectedSymbolID, sortOrder: $symbolSort,
-                    emptyPlaceholder: L("page.emoji.sfSymbolsEmpty")
+                    sortedSymbols, selection: $selectedSymbolID, sortOrder: $symbolSort
                 ) {
                     // Plane-16 Private-Use, two cells wide with Terminal.app
                     // compensation — a cleanly aligned column is the proof.
                     TableColumn("page.emoji.column.glyph", value: \SymbolEntry.glyph)
                         .width(.fixed(7))
                     TableColumn("page.emoji.column.code", value: \SymbolEntry.codepoint) {
-                        $0.codepointLabel
+                        Text($0.codepointLabel)
                     }
                     .width(.fixed(10))
                     TableColumn("page.emoji.column.description", value: \SymbolEntry.name)
                         .width(.flexible)
                 }
+                .tableEmptyPlaceholder(L("page.emoji.sfSymbolsEmpty"))
                 .rowSelectionIndicator(.hidden)
                 .heldOpen(to: height)
             }

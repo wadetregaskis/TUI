@@ -67,7 +67,7 @@ struct TableMultiLineMeasurePublishTests {
 
         var table: some View {
             Table(rows.map(Row.init), selection: .constant(String?.none)) {
-                TableColumn<Row>("Name", value: \.name).lineLimit(4)
+                TableColumn("Name", value: \.name).lineLimit(4)
             }
             .onMove { offsets, destination in
                 self.rows.move(fromOffsets: offsets, toOffset: destination)

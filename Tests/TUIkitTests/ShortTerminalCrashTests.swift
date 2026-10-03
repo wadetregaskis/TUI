@@ -121,10 +121,11 @@ struct ShortTerminalCrashTests {
                 // `columnSpacing:` is a public init parameter with no validation;
                 // it reached `String(repeating:count:)`, which traps when negative.
                 let rows = (0..<5).map { Row(id: $0) }
-                let view = Table(rows, selection: .constant(Int?.none), columnSpacing: -2) {
+                let view = Table(rows, selection: .constant(Int?.none)) {
                     TableColumn("Name", value: \Row.name)
                     TableColumn("Also", value: \Row.name)
                 }
+                .tableColumnSpacing(-2)
                 let context = makeRenderContext(width: 40, height: 10)
                 _ = renderToBuffer(view, context: context)
             }

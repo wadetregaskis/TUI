@@ -163,6 +163,33 @@ struct ContentView: View {
 }
 ```
 
+### Cells
+
+A column built from a `String` key path shows that string. Any other column
+takes a content closure that builds the cell's view from the row, exactly as in
+SwiftUI:
+
+```swift
+Table(files, selection: $selectedFile) {
+    TableColumn("Name", value: \.name)
+    TableColumn("Size", value: \.byteCount) { file in
+        Text(file.byteCount, format: .byteCount(style: .file))
+    }
+    TableColumn("Kind") { file in
+        Label(file.kind, systemImage: file.symbol)
+    }
+}
+```
+
+A plain `Text` cell is drawn exactly as the key-path column's string is. Any
+other view is rendered at the column's width, one line high unless the
+column's `lineLimit(_:)` gives it more.
+
+Columns compose the way SwiftUI's do: an `if`/`else` in the column list, a
+`Group`, columns factored into a `@TableColumnBuilder` property, and
+``TableColumnForEach`` for columns computed from data. A column list has no
+`for` loop.
+
 ### Column Configuration
 
 Columns support four width modes:

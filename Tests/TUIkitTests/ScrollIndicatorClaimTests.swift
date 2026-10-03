@@ -37,10 +37,10 @@ struct ScrollIndicatorClaimTests {
     private var hosts: [(name: String, view: AnyView)] {
         [
             ("List", AnyView(List(selection: .constant(Set<Int>())) { ForEach(Self.rows) { Text($0.name) } })),
-            ("Table", AnyView(Table(Self.rows) { TableColumn("Name") { $0.name } })),
+            ("Table", AnyView(Table(Self.rows) { TableColumn("Name") { Text(verbatim: $0.name) } })),
             (
                 "multi-line Table",
-                AnyView(Table(Self.rows) { TableColumn("Name") { "\($0.name)\nsecond" }.lineLimit(2) })
+                AnyView(Table(Self.rows) { TableColumn("Name") { Text(verbatim: "\($0.name)\nsecond") }.lineLimit(2) })
             ),
             (
                 "ScrollView",

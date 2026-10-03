@@ -488,33 +488,44 @@ final class TableMatrixHarness {
 
     // MARK: Building the view
 
-    private func columns() -> [TableColumn<TableMatrixRow>] {
-        shape.columns.map { spec in
-            let calls = self.calls
-            let column =
+    /// The shape's columns, built by a column loop: the shape is data, and a
+    /// column builder takes no `for`.
+    private func columns() -> TableColumnForEach<
+        Range<Int>, Int, TableMatrixRow, Never, TableColumn<TableMatrixRow, Never, Text, Text>
+    > {
+        let calls = self.calls
+        let specs = shape.columns
+        return TableColumnForEach(specs.indices) { index in
+            let spec = specs[index]
+            let column: TableColumn<TableMatrixRow, Never, Text, Text> =
                 spec.namesAProperty
-                ? TableColumn<TableMatrixRow>(spec.title, value: spec.cost.keyPath)
-                : TableColumn<TableMatrixRow>(spec.title) { (row: TableMatrixRow) -> String in
+                ? TableColumn(spec.title, value: spec.cost.keyPath)
+                : TableColumn(spec.title) { (row: TableMatrixRow) -> Text in
                     calls.note(row: row.id)
-                    return spec.cost.text(id: row.id, generation: row.generation)
+                    return Text(verbatim: spec.cost.text(id: row.id, generation: row.generation))
                 }
-            return column
-            .width(spec.width)
-            .lineLimit(spec.lineLimit)
-            .truncationMode(spec.truncation)
-            .alignment(spec.alignment)
+            column
+                .width(spec.width)
+                .lineLimit(spec.lineLimit)
+                .truncationMode(spec.truncation)
+                .alignment(spec.alignment)
         }
     }
 
     /// The same columns over the row type that cannot be compared. Closures
     /// only: a key path here would name a property of the WRONG row type, and
     /// the point of this arm is the row type rather than the column kind.
-    private func opaqueColumns() -> [TableColumn<TableMatrixOpaqueRow>] {
-        shape.columns.map { spec in
-            let calls = self.calls
-            return TableColumn<TableMatrixOpaqueRow>(spec.title) { (row: TableMatrixOpaqueRow) -> String in
+    private func opaqueColumns() -> TableColumnForEach<
+        Range<Int>, Int, TableMatrixOpaqueRow, Never,
+        TableColumn<TableMatrixOpaqueRow, Never, Text, Text>
+    > {
+        let calls = self.calls
+        let specs = shape.columns
+        return TableColumnForEach(specs.indices) { index in
+            let spec = specs[index]
+            TableColumn(spec.title) { (row: TableMatrixOpaqueRow) -> Text in
                 calls.note(row: row.id)
-                return spec.cost.text(id: row.id, generation: row.generation)
+                return Text(verbatim: spec.cost.text(id: row.id, generation: row.generation))
             }
             .width(spec.width)
             .lineLimit(spec.lineLimit)

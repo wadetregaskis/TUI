@@ -47,14 +47,14 @@ private struct WideTableView: View {
             Text(Lf("stress.scenario.table.heading", rows.count)).bold()
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                TableColumn("ID") { (row: StressItem) in "\(row.id)" }
-                TableColumn("Name") { (row: StressItem) in Synth.name(row.h) }
-                TableColumn("Slug") { (row: StressItem) in Synth.slug(row.h) }
-                TableColumn("Status") { (row: StressItem) in Synth.status(row.h) }
-                TableColumn("Score") { (row: StressItem) in "\(row.h % 1000)" }
-                TableColumn("Tier") { (row: StressItem) in "T\((row.h >> 8) % 5)" }
-                TableColumn("Load") { (row: StressItem) in Synth.bar(Double(row.h % 100) / 100, width: 8) }
-                TableColumn("Tag") { (row: StressItem) in Synth.slug(row.h >> 16) }
+                TableColumn("ID") { (row: StressItem) in Text(verbatim: "\(row.id)") }
+                TableColumn("Name") { (row: StressItem) in Text(verbatim: Synth.name(row.h)) }
+                TableColumn("Slug") { (row: StressItem) in Text(verbatim: Synth.slug(row.h)) }
+                TableColumn("Status") { (row: StressItem) in Text(verbatim: Synth.status(row.h)) }
+                TableColumn("Score") { (row: StressItem) in Text(verbatim: "\(row.h % 1000)") }
+                TableColumn("Tier") { (row: StressItem) in Text(verbatim: "T\((row.h >> 8) % 5)") }
+                TableColumn("Load") { (row: StressItem) in Text(verbatim: Synth.bar(Double(row.h % 100) / 100, width: 8)) }
+                TableColumn("Tag") { (row: StressItem) in Text(verbatim: Synth.slug(row.h >> 16)) }
             }
         }
     }

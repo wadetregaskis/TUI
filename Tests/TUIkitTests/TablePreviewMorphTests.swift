@@ -58,8 +58,8 @@ struct TablePreviewMorphTests {
         func render() -> FrameBuffer {
             dispatcher.beginRenderPass()
             let table = Table(order, selection: .constant(String?.none)) {
-                TableColumn<MorphRow>("Name", value: \.id)
-                TableColumn<MorphRow>("Qty", value: \.qty)
+                TableColumn("Name", value: \.id)
+                TableColumn("Qty", value: \.qty)
             }
             .onMove { from, to in self.order.move(fromOffsets: from, toOffset: to) }
             var context = RenderContext(

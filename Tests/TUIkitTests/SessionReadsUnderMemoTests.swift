@@ -235,7 +235,7 @@ private struct DropColumn: View {
     var body: some View {
         if table {
             Table(items.map(Named.init(id:))) {
-                TableColumn("Name") { (item: Named) in "\(title) \(item.id)" }
+                TableColumn("Name") { (item: Named) in Text(verbatim: "\(title) \(item.id)") }
             }
             .dropDestination(for: String.self) { take($1, at: $0) }
             .frame(width: 20, height: 9)
@@ -313,7 +313,7 @@ private struct ScrollerColumn: View {
             .frame(width: 20, height: 8)
         case .table:
             Table(rows) {
-                TableColumn("Name") { (row: Named) in row.id }
+                TableColumn("Name") { (row: Named) in Text(verbatim: row.id) }
             }
             .frame(width: 20, height: 9)
         case .scrollView:

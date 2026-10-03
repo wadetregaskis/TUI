@@ -77,7 +77,7 @@ struct TableMultiLineDragGeometryTests {
                 rows.map(Row.init),
                 selection: Binding(get: { self.selection }, set: { self.selection = $0 })
             ) {
-                TableColumn<Row>("Name", value: \.name).lineLimit(4)
+                TableColumn("Name", value: \.name).lineLimit(4)
             }
             .onMove { self.rows.move(fromOffsets: $0, toOffset: $1) }
             .scrollGranularity(.line)

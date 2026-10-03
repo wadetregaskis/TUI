@@ -67,21 +67,37 @@ struct TableSortOrderTests {
             env.focusManager = focusManager
             let context = RenderContext(
                 availableWidth: width, availableHeight: 10, environment: env, tuiContext: tui)
-            // Built as an explicit array: `TableColumnBuilder` cannot compose
-            // an `if`/`else` (its `buildEither` yields an array its variadic
-            // `buildBlock` will not take), which is its own bug, not this
-            // test's subject.
-            let sizeColumn =
-                sortableSizeColumn
-                ? TableColumn("Size", value: \Row.size) { $0.sizeText }
-                : TableColumn("Size", value: { (row: Row) in row.sizeText })
-            let nameColumn = TableColumn(nameTitle, value: \Row.name)
-            let table = Table(rows, selection: .constant(Int?.none), sortOrder: binding) {
-                fitFirstColumn ? nameColumn.width(.fit) : nameColumn
-                trailingSizeColumn ? sizeColumn.alignment(.trailing) : sizeColumn
+            // A sortable column and one that cannot sort are different types,
+            // as in SwiftUI, and a sorting column needs a table with a sort
+            // order — so each shape is its own table rather than a ternary.
+            let unsortedSize = TableColumn("Size") { (row: Row) in Text(verbatim: row.sizeText) }
+            let table: AnyView
+            if let binding {
+                let nameColumn: TableColumn<Row, KeyPathComparator<Row>, Text, Text> =
+                    TableColumn(nameTitle, value: \Row.name)
+                let sortedSize = TableColumn("Size", value: \Row.size) { Text(verbatim: $0.sizeText) }
+                table =
+                    sortableSizeColumn
+                    ? AnyView(
+                        Table(rows, selection: .constant(Int?.none), sortOrder: binding) {
+                            fitFirstColumn ? nameColumn.width(.fit) : nameColumn
+                            trailingSizeColumn ? sortedSize.alignment(.trailing) : sortedSize
+                        })
+                    : AnyView(
+                        Table(rows, selection: .constant(Int?.none), sortOrder: binding) {
+                            fitFirstColumn ? nameColumn.width(.fit) : nameColumn
+                            trailingSizeColumn ? unsortedSize.alignment(.trailing) : unsortedSize
+                        })
+            } else {
+                let nameColumn = TableColumn(nameTitle, value: \Row.name)
+                table = AnyView(
+                    Table(rows, selection: .constant(Int?.none)) {
+                        fitFirstColumn ? nameColumn.width(.fit) : nameColumn
+                        trailingSizeColumn ? unsortedSize.alignment(.trailing) : unsortedSize
+                    })
             }
             buffer = renderToBuffer(
-                markHidden ? AnyView(table.rowSelectionIndicator(.hidden)) : AnyView(table),
+                markHidden ? AnyView(table.rowSelectionIndicator(.hidden)) : table,
                 context: context)
             dispatcher.setRegions(buffer.hitTestRegions)
             return buffer

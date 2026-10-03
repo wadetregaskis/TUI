@@ -123,20 +123,22 @@ extension LocalizedTitleTests {
     @Test("TableColumn value and content overloads")
     func tableColumnOverloads() {
         let box = Box<Row.ID?>(nil)
+        // A column that sorts needs a table that does, as in SwiftUI.
+        let order = Box([KeyPathComparator(\Row.name)])
         expectLocalized(
-            Table([Row(name: "a")], selection: box.binding) {
-                TableColumn("test.title.control", value: \.name) { $0.name }
+            Table([Row(name: "a")], selection: box.binding, sortOrder: order.binding) {
+                TableColumn("test.title.control", value: \.name) { Text(verbatim: $0.name) }
             },
-            Table([Row(name: "a")], selection: box.binding) {
-                TableColumn(Self.computedKey, value: \.name) { $0.name }
+            Table([Row(name: "a")], selection: box.binding, sortOrder: order.binding) {
+                TableColumn(Self.computedKey, value: \.name) { Text(verbatim: $0.name) }
             }, "TableColumn(value:content:)")
         expectLocalized(
             Table([Row(name: "a")], selection: box.binding) {
-                TableColumn("test.title.control") { $0.name }
+                TableColumn("test.title.control") { Text(verbatim: $0.name) }
             },
             Table([Row(name: "a")], selection: box.binding) {
-                TableColumn(Self.computedKey) { $0.name }
-            }, "TableColumn(value: closure)")
+                TableColumn(Self.computedKey) { Text(verbatim: $0.name) }
+            }, "TableColumn(content:)")
     }
 
     @Test("Presentation overloads with a message and a value")

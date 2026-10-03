@@ -117,7 +117,7 @@ struct SelectionFollowInScrollViewTests {
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Table(Self.items(15), selection: Binding<Int?>.constant(nil)) {
-                    TableColumn("Label") { (row: Item) in row.label }
+                    TableColumn("Label") { (row: Item) in Text(verbatim: row.label) }
                 }
             }
         }
@@ -154,7 +154,7 @@ struct SelectionFollowInScrollViewTests {
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Table(Self.items(30), selection: Binding<Int?>.constant(nil)) {
-                    TableColumn("Label") { (row: Item) in row.label }
+                    TableColumn("Label") { (row: Item) in Text(verbatim: row.label) }
                 }
                 .frame(height: 12)
             }

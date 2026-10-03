@@ -114,8 +114,8 @@ extension View {
     /// ``View/truncationMode(_:)``. Where the text is cut is that separate
     /// choice; this only says how many lines there are.
     ///
-    /// A ``Table``'s cells are values rather than views, so a column's line
-    /// count stays its own — see ``TableColumn/lineLimit(_:)``.
+    /// A ``Table`` cell's line count is its column's own, whatever the
+    /// environment says — see `TableColumn.lineLimit(_:)`.
     ///
     /// - Parameter number: The maximum number of lines, or `nil` for no limit.
     /// - Returns: A view whose descendant text is capped at `number` lines.

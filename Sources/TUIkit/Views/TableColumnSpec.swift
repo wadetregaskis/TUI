@@ -36,10 +36,10 @@ struct _TableColumnSpec<Value> {
     /// below 1.
     var lineLimit: Int
 
-    /// Extracts the display value from a data item.
-    let valueExtractor: (Value) -> String
+    /// What the column draws in each row's cell.
+    let cell: _TableCellSource<Value>
 
-    /// Whether ``valueExtractor`` NAMES a property rather than computing one.
+    /// Whether ``cell`` NAMES a property rather than computing one.
     /// See ``TableColumn/namesAProperty`` — this is the same flag, carried
     /// through, and the row memo's whole soundness argument rests on it.
     let namesAProperty: Bool
@@ -49,10 +49,50 @@ struct _TableColumnSpec<Value> {
     /// comparator type — can read it.
     let sortComparator: Any?
 
-    /// Extracts the display value from an item.
-    func value(for item: Value) -> String {
-        valueExtractor(item)
+    /// Whether this column's cells arrive already laid out — a view's lines
+    /// rather than a string for the table to wrap.
+    ///
+    /// A `Text` cell counts: a `Text` lays itself out, with the same wrapping
+    /// the table would apply, and with whatever styling it carries. Only on a
+    /// single-line column is a plain `Text` read as a string instead, where
+    /// laying it out and reading it say the same thing.
+    var laysOutItsOwnLines: Bool {
+        switch cell {
+        case .string: false
+        case .text, .view: true
+        }
     }
+}
+
+// MARK: - Plain text
+
+extension Text {
+    /// Whether this text draws nothing but its characters, on one line: no
+    /// style or styled runs of its own, and no line break.
+    ///
+    /// Such a text in a one-line table cell is drawn as the string it holds,
+    /// exactly as a `String` key path's value is.
+    var drawsAsPlainString: Bool {
+        runs == nil && style == TextStyle() && !content.utf8.contains(UInt8(ascii: "\n"))
+    }
+}
+
+// MARK: - Cell source
+
+/// What a column draws in a row's cell, by the kind of declaration that built
+/// the column.
+enum _TableCellSource<Value> {
+    /// A string the table lays out itself — a `String` key path's value.
+    case string((Value) -> String)
+
+    /// A `Text` from the column's content closure. A plain one on a
+    /// single-line column is drawn exactly as a string would be; any other is
+    /// rendered as the view it is.
+    case text((Value) -> Text)
+
+    /// Any other view from the column's content closure, rendered into the
+    /// cell's rectangle under the context given.
+    case view((Value, RenderContext) -> FrameBuffer)
 }
 
 // MARK: - Sort model

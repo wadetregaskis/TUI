@@ -330,7 +330,7 @@ struct TableReorderDragTests {
         func render() -> FrameBuffer {
             dispatcher.beginRenderPass()
             let view = Table(rows.map(TableReorderRow.init), selection: .constant(String?.none)) {
-                TableColumn<TableReorderRow>("Name", value: \.name).lineLimit(2)
+                TableColumn("Name", value: \.name).lineLimit(2)
             }
             .onMove { self.rows.move(fromOffsets: $0, toOffset: $1) }
             .frame(width: 14, height: 12)
@@ -537,7 +537,7 @@ struct TableReorderDragTests {
             let view = Table(
                 ["a", "b", "c", "d"].map(TableReorderRow.init), selection: .constant(String?.none)
             ) {
-                TableColumn<TableReorderRow>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
             .frame(width: 20, height: 7)
@@ -604,7 +604,7 @@ struct TableReorderDragTests {
             tui.mouseEventDispatcher.beginRenderPass()
             tui.dragAndDropSession.beginFrame()
             let view = Table(rows.map(TableReorderRow.init), selection: .constant(String?.none)) {
-                TableColumn<TableReorderRow>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
             .frame(width: 20, height: 9)
@@ -662,7 +662,7 @@ struct TableReorderDragTests {
             tui.mouseEventDispatcher.beginRenderPass()
             tui.dragAndDropSession.beginFrame()
             let view = Table(["a", "b", "c"].map(TableReorderRow.init), selection: .constant(String?.none)) {
-                TableColumn<TableReorderRow>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
             .scrollDisabled(true)

@@ -77,13 +77,17 @@ struct ProcessesPage: View {
                 shown, selection: Binding(get: { table.selection }, set: { table.selection = $0 }),
                 sortOrder: Binding(get: { table.order }, set: { table.order = $0 })
             ) {
-                TableColumn("PID", value: \ProcessTable.Process.id) { "\($0.id)" }
+                TableColumn("PID", value: \ProcessTable.Process.id) { Text(verbatim: "\($0.id)") }
                     .width(.fixed(6)).alignment(.trailing)
                 TableColumn("Command", value: \ProcessTable.Process.command)
                 TableColumn("User", value: \ProcessTable.Process.user).width(.fit)
-                TableColumn("CPU%", value: \ProcessTable.Process.cpu) { String(format: "%.1f", $0.cpu) }
-                    .width(.fixed(6)).alignment(.trailing)
-                TableColumn("Memory", value: \ProcessTable.Process.memory) { "\($0.memory) KB" }
+                TableColumn("CPU%", value: \ProcessTable.Process.cpu) {
+                    Text(verbatim: String(format: "%.1f", $0.cpu))
+                }
+                .width(.fixed(6)).alignment(.trailing)
+                TableColumn("Memory", value: \ProcessTable.Process.memory) {
+                    Text(verbatim: "\($0.memory) KB")
+                }
                     .width(.fit).alignment(.trailing)
                 TableColumn("State", value: \ProcessTable.Process.state).width(.fixed(9))
             }

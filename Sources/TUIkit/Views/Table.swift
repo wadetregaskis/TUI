@@ -23,8 +23,9 @@ import Foundation
 /// - Optional footer section
 /// - Keyboard navigation (Up/Down/Home/End/PageUp/PageDown)
 /// - Single or multi-selection via bindings
-/// - Configurable column widths (fixed, flexible, ratio)
+/// - Configurable column widths (fixed, flexible, ratio, fit)
 /// - Column alignment (leading, center, trailing)
+/// - Cells that are a property's string, a `Text`, or any view
 /// - ANSI-aware column layout
 /// - Scrolling with automatic viewport management
 ///
@@ -45,25 +46,36 @@ import Foundation
 ///     TableColumn("Size", value: \.size)
 ///         .width(.fixed(10))
 ///         .alignment(.trailing)
-///     TableColumn("Modified", value: \.modified)
-///         .width(.ratio(0.3))
+///     TableColumn("Modified") { file in
+///         Text(file.modified).foregroundStyle(.palette.foregroundSecondary)
+///     }
+///     .width(.ratio(0.3))
 /// }
 /// ```
+///
+/// The columns are SwiftUI's: ``TableColumn`` and the ``TableColumnContent``
+/// they compose into, built by ``TableColumnBuilder`` — `if`/`else`, `Group`,
+/// columns factored into a builder property, and ``TableColumnForEach`` for
+/// columns computed from data. A cell is one line unless its column's
+/// `lineLimit(_:)` allows more.
 ///
 /// ## Sorting
 ///
 /// Give the table a `sortOrder` binding and the sortable columns' headers
 /// become clickable, exactly as in SwiftUI. A column is sortable when it was
-/// built from a key path (``TableColumn/init(_:value:)-(LocalizedStringKey,(Value)->String)`` /
-/// ``TableColumn/init(_:value:content:)-(LocalizedStringKey,_,_)``); one built from a closure is not,
-/// because nothing there says how to order the rows.
+/// built from a key path (`TableColumn(_:value:)`, `TableColumn(_:value:content:)`,
+/// `TableColumn(_:value:comparator:content:)`) or given a comparator
+/// (`TableColumn(_:sortUsing:content:)`); one built from a content closure
+/// alone is not, because nothing there says how to order the rows. The
+/// comparator type is the binding's: `KeyPathComparator`, `SortDescriptor`, or
+/// any other `SortComparator` over the row.
 ///
 /// ```swift
 /// @State private var sortOrder = [KeyPathComparator(\FileInfo.name)]
 ///
 /// Table(files, selection: $selectedID, sortOrder: $sortOrder) {
 ///     TableColumn("Name", value: \.name)
-///     TableColumn("Size", value: \.byteCount) { "\($0.byteCount) B" }
+///     TableColumn("Size", value: \.byteCount) { Text("\($0.byteCount) B") }
 /// }
 /// .onChange(of: sortOrder) { files.sort(using: $0) }
 /// ```
@@ -116,7 +128,8 @@ import Foundation
 ///
 /// ## Column Spacing
 ///
-/// Columns are separated by spaces (no vertical lines) for a clean look.
+/// Columns are separated by spaces (no vertical lines) for a clean look: two,
+/// unless ``tableColumnSpacing(_:)`` says otherwise.
 ///
 /// ## The cursor row where the terminal decides the colours
 ///
@@ -129,7 +142,7 @@ import Foundation
 /// it keeps its `●`. A selected row that is not the cursor draws its `●` and no
 /// fill, which is what it has always done. A palette that states ordinary
 /// colours is unaffected, on any terminal.
-public struct Table<Value: Identifiable & Sendable>: View where Value.ID: Hashable {
+public struct Table<Value: Identifiable>: View {
     /// The data items to display.
     let data: [Value]
 
@@ -156,22 +169,23 @@ public struct Table<Value: Identifiable & Sendable>: View where Value.ID: Hashab
         multiSelection != nil ? .multi : .single
     }
 
-    /// The unique focus identifier for this table.
-    let focusID: String?
+    /// The unique focus identifier for this table, set by ``focusID(_:)``.
+    var focusID: String?
 
     /// Whether the table is disabled.
     var isDisabled: Bool
 
-    /// The placeholder text shown when the table is empty.
-    let emptyPlaceholder: String
+    /// The placeholder text shown when the table is empty, set by
+    /// `tableEmptyPlaceholder(_:)`.
+    var emptyPlaceholder: String = ViewConstants.localizedEmptyListPlaceholder
 
-    /// The spacing between columns in characters.
-    let columnSpacing: Int
+    /// The spacing between columns in characters, set by
+    /// ``tableColumnSpacing(_:)``.
+    var columnSpacing: Int = 2
 
     /// An action run when a row is ACTIVATED — double-clicked, or
     /// Return/Enter with the row focused (its `Value.ID` is passed). Set via
-    /// ``onRowActivate(_:)``. Because a `Table`'s cells are value-based (not
-    /// views), this is how a row gets an "open" action.
+    /// ``onRowActivate(_:)`` — how a row gets an "open" action.
     var primaryAction: ((Value.ID) -> Void)?
 
     /// The action that reorders the data, set via ``onMove(_:)``. Present means
@@ -211,10 +225,10 @@ public struct Table<Value: Identifiable & Sendable>: View where Value.ID: Hashab
 extension Table {
     /// Runs `action` when a row is double-clicked, passing that row's `id`.
     ///
-    /// A `Table`'s cells are value-based rather than views, so a per-row
-    /// `.onTapGesture` isn't possible; this modifier is how a row gets a
-    /// double-click "open" action (e.g. a file browser opening a folder).
-    /// Single clicks still select via the selection binding.
+    /// A row is not a view a gesture could be attached to — a click on it
+    /// selects — so this modifier is how a row gets a double-click "open"
+    /// action (e.g. a file browser opening a folder). Single clicks still
+    /// select via the selection binding.
     ///
     /// This is a TUI-specific modifier — SwiftUI's `Table` has no direct
     /// equivalent.
@@ -241,8 +255,8 @@ extension Table {
     /// a `List`'s does: they share one state machine.
     ///
     /// This is a modifier on the `Table` rather than on its rows, because a
-    /// `Table`'s rows are values and its cells are not views — there is no
-    /// `ForEach` to attach SwiftUI's row-level `onMove` to. A **multi-line**
+    /// `Table` built from a collection has no `ForEach` to attach SwiftUI's
+    /// row-level `onMove` to. A **multi-line**
     /// table (any column with a `lineLimit` above 1) reorders too, but always
     /// with ``RowReorderFeedback/live`` feedback: a drop slot there would have to
     /// take part in the line-budget arithmetic that lets a tall row be partially
@@ -259,8 +273,8 @@ extension Table {
     /// Makes the ROWS a drop destination that reports WHERE the drop landed —
     /// the `Table` counterpart of `ForEach.dropDestination(for:action:)`.
     ///
-    /// A `Table`'s rows are values, not views, so there is no `ForEach` to carry
-    /// SwiftUI's row-level modifier; it lives on the table itself, exactly as
+    /// A `Table` built from a collection has no `ForEach` to carry SwiftUI's
+    /// row-level modifier; it lives on the table itself, exactly as
     /// ``onMove(_:)`` does and for the same reason. (SwiftUI's own `Table` has
     /// neither.)
     ///
@@ -286,80 +300,34 @@ extension Table {
     }
 }
 
-// MARK: - Single Selection Initializer
+// MARK: - Initializers
 
 extension Table {
-    /// Creates a table with single selection.
-    ///
-    /// - Parameters:
-    ///   - data: The data items to display.
-    ///   - selection: A binding to the selected item's ID (nil = no selection).
-    ///   - sortOrder: A binding to the sort the column headers drive. Supplying
-    ///     one makes the sortable columns' headers clickable, and Ctrl-S /
-    ///     Ctrl-D sort from the keyboard; omitting it leaves them inert, as a
-    ///     SwiftUI `Table` without one has them.
-    ///   - focusID: The unique focus identifier (default: auto-generated).
-    ///   - columnSpacing: Spacing between columns (default: 2).
-    ///   - emptyPlaceholder: Placeholder text when empty (default: the localized "No items").
-    ///   - columns: A builder that defines the table columns.
-    public init(
-        _ data: [Value],
-        selection: Binding<Value.ID?>,
-        sortOrder: Binding<[KeyPathComparator<Value>]>? = nil,
-        focusID: String? = nil,
-        columnSpacing: Int = 2,
-        emptyPlaceholder: String = ViewConstants.localizedEmptyListPlaceholder,
-        @TableColumnBuilder<Value> columns: () -> [TableColumn<Value>]
-    ) {
-        self.init(
-            data, single: selection, multi: nil, sortOrder: sortOrder, focusID: focusID,
-            columnSpacing: columnSpacing, emptyPlaceholder: emptyPlaceholder, columns: columns)
-    }
-
-    /// The one initializer that stores anything; the public three differ only
-    /// in which selection binding they hand it, and `nil` for both is the
-    /// no-selection table.
+    /// The one initializer that stores anything; the public ones differ only in
+    /// which selection binding and which sort order they hand it, and `nil`
+    /// for both selections is the no-selection table.
     private init(
-        _ data: [Value],
-        single: Binding<Value.ID?>?,
-        multi: Binding<Set<Value.ID>>?,
-        sortOrder: Binding<[KeyPathComparator<Value>]>?,
-        focusID: String?,
-        columnSpacing: Int,
-        emptyPlaceholder: String,
-        @TableColumnBuilder<Value> columns: () -> [TableColumn<Value>]
+        rows: [Value], columns: [_TableColumnSpec<Value>],
+        single: Binding<Value.ID?>?, multi: Binding<Set<Value.ID>>?,
+        sortModel: _TableSortModel<Value>?
     ) {
-        self.data = data
-        self.columns = columns().map(\.spec)
+        self.data = rows
+        self.columns = columns
         self.singleSelection = single
         self.multiSelection = multi
-        self.sortModel = sortOrder.map(_TableSortModel.init)
-        self.focusID = focusID
+        self.sortModel = sortModel
+        self.focusID = nil
         self.isDisabled = false
-
-        // Clamped: spacing reaches `String(repeating:count:)` in three
-        // places, which traps on a negative count. `columnSpacing:` is a
-        // public init parameter with no other validation, so a caller
-        // computing it (or just passing -1) would kill the app. Clamp once
-        // here, at the boundary, so every use downstream is safe by
-        // construction rather than by remembering.
-        self.columnSpacing = max(0, columnSpacing)
-        self.emptyPlaceholder = emptyPlaceholder
     }
-}
 
-// MARK: - No-Selection Initializer
-
-extension Table {
-    /// Creates a table with no selection.
+    /// Creates a table that computes its rows based on a collection of
+    /// identifiable data.
     ///
-    /// SwiftUI's `Table(_:columns:)`. Nothing is selectable and there is no
-    /// binding to write into. The rows still carry a keyboard CURSOR — it is
-    /// what the arrow, Home/End and Page keys scroll with, it wears the focus
-    /// background, and a click lands it on a row — only the selection gutter
-    /// and the selection itself are absent. (An earlier version of this note
-    /// said there was no cursor to move; there is, and the keyboard scrolling
-    /// the next sentence relies on is that cursor.)
+    /// Nothing is selectable and there is no binding to write into. The rows
+    /// still carry a keyboard CURSOR — it is what the arrow, Home/End and Page
+    /// keys scroll with, it wears the focus background, and a click lands it
+    /// on a row — only the selection gutter and the selection itself are
+    /// absent.
     ///
     /// Worth reaching for whenever the rows are a display and nothing should
     /// be chosen from them. `.disabled(true)` is not the same thing: that also
@@ -367,69 +335,169 @@ extension Table {
     /// longer be scrolled from the keyboard.
     ///
     /// - Parameters:
-    ///   - data: The data items to display.
-    ///   - sortOrder: A binding to the sort the column headers drive. Supplying
-    ///     one makes the sortable columns' headers clickable, and Ctrl-S /
-    ///     Ctrl-D sort from the keyboard; omitting it leaves them inert, as a
-    ///     SwiftUI `Table` without one has them.
-    ///   - focusID: The unique focus identifier (default: auto-generated).
-    ///   - columnSpacing: Spacing between columns (default: 2).
-    ///   - emptyPlaceholder: Placeholder text when empty (default: the localized "No items").
-    ///   - columns: A builder that defines the table columns.
-    public init(
-        _ data: [Value],
-        sortOrder: Binding<[KeyPathComparator<Value>]>? = nil,
-        focusID: String? = nil,
-        columnSpacing: Int = 2,
-        emptyPlaceholder: String = ViewConstants.localizedEmptyListPlaceholder,
-        @TableColumnBuilder<Value> columns: () -> [TableColumn<Value>]
-    ) {
+    ///   - data: The identifiable data for computing the table rows.
+    ///   - columns: The columns to display in the table.
+    public init<Data: RandomAccessCollection, Columns: TableColumnContent>(
+        _ data: Data, @TableColumnBuilder<Value, Never> columns: () -> Columns
+    ) where Data.Element == Value, Columns.TableRowValue == Value {
         // No binding at all, rather than a `.constant` one. A constant binding
         // reads as a single-selection table whose selection happens to be
         // empty — which is how the gutter for a mark that can never be drawn
         // survived, and what `isReserved(hasSelection:environment:)` asks
         // about.
         self.init(
-            data, single: nil, multi: nil, sortOrder: sortOrder,
-            focusID: focusID, columnSpacing: columnSpacing,
-            emptyPlaceholder: emptyPlaceholder, columns: columns)
+            rows: Array(data), columns: tableColumns(of: columns()), single: nil, multi: nil,
+            sortModel: nil)
     }
-}
 
-// MARK: - Multi Selection Initializer
-
-extension Table {
-    /// Creates a table with multi-selection.
+    /// Creates a table that computes its rows based on a collection of
+    /// identifiable data, and that supports selecting zero or one row.
     ///
     /// - Parameters:
-    ///   - data: The data items to display.
-    ///   - selection: A binding to the set of selected item IDs.
-    ///   - sortOrder: A binding to the sort the column headers drive. Supplying
-    ///     one makes the sortable columns' headers clickable, and Ctrl-S /
-    ///     Ctrl-D sort from the keyboard; omitting it leaves them inert, as a
-    ///     SwiftUI `Table` without one has them.
-    ///   - focusID: The unique focus identifier (default: auto-generated).
-    ///   - columnSpacing: Spacing between columns (default: 2).
-    ///   - emptyPlaceholder: Placeholder text when empty (default: the localized "No items").
-    ///   - columns: A builder that defines the table columns.
-    public init(
-        _ data: [Value],
-        selection: Binding<Set<Value.ID>>,
-        sortOrder: Binding<[KeyPathComparator<Value>]>? = nil,
-        focusID: String? = nil,
-        columnSpacing: Int = 2,
-        emptyPlaceholder: String = ViewConstants.localizedEmptyListPlaceholder,
-        @TableColumnBuilder<Value> columns: () -> [TableColumn<Value>]
-    ) {
+    ///   - data: The identifiable data for computing the table rows.
+    ///   - selection: A binding to the selected row's ID (`nil`: none).
+    ///   - columns: The columns to display in the table.
+    public init<Data: RandomAccessCollection, Columns: TableColumnContent>(
+        _ data: Data, selection: Binding<Value.ID?>,
+        @TableColumnBuilder<Value, Never> columns: () -> Columns
+    ) where Data.Element == Value, Columns.TableRowValue == Value {
         self.init(
-            data, single: nil, multi: selection, sortOrder: sortOrder, focusID: focusID,
-            columnSpacing: columnSpacing, emptyPlaceholder: emptyPlaceholder, columns: columns)
+            rows: Array(data), columns: tableColumns(of: columns()), single: selection, multi: nil,
+            sortModel: nil)
+    }
+
+    /// Creates a table that computes its rows based on a collection of
+    /// identifiable data, and that supports selecting multiple rows.
+    ///
+    /// - Parameters:
+    ///   - data: The identifiable data for computing the table rows.
+    ///   - selection: A binding to the set of selected row IDs.
+    ///   - columns: The columns to display in the table.
+    public init<Data: RandomAccessCollection, Columns: TableColumnContent>(
+        _ data: Data, selection: Binding<Set<Value.ID>>,
+        @TableColumnBuilder<Value, Never> columns: () -> Columns
+    ) where Data.Element == Value, Columns.TableRowValue == Value {
+        self.init(
+            rows: Array(data), columns: tableColumns(of: columns()), single: nil, multi: selection,
+            sortModel: nil)
+    }
+
+    /// Creates a sortable table that computes its rows based on a collection
+    /// of identifiable data.
+    ///
+    /// Supplying a sort order makes the sortable columns' headers clickable,
+    /// and Ctrl-S / Ctrl-D sort from the keyboard; a table without one has
+    /// inert headers, as a SwiftUI `Table` without one does.
+    ///
+    /// - Parameters:
+    ///   - data: The identifiable data for computing the table rows.
+    ///   - sortOrder: A binding to the ordered sorting of columns.
+    ///   - columns: The columns to display in the table.
+    public init<Data: RandomAccessCollection, Sort: SortComparator, Columns: TableColumnContent>(
+        _ data: Data, sortOrder: Binding<[Sort]>,
+        @TableColumnBuilder<Value, Sort> columns: () -> Columns
+    ) where Data.Element == Value, Sort.Compared == Value, Columns.TableRowValue == Value {
+        self.init(
+            rows: Array(data), columns: tableColumns(of: columns()), single: nil, multi: nil,
+            sortModel: _TableSortModel(sortOrder))
+    }
+
+    /// Creates a sortable table that computes its rows based on a collection
+    /// of identifiable data, and supports selecting zero or one row.
+    ///
+    /// - Parameters:
+    ///   - data: The identifiable data for computing the table rows.
+    ///   - selection: A binding to the selected row's ID (`nil`: none).
+    ///   - sortOrder: A binding to the ordered sorting of columns.
+    ///   - columns: The columns to display in the table.
+    public init<Data: RandomAccessCollection, Sort: SortComparator, Columns: TableColumnContent>(
+        _ data: Data, selection: Binding<Value.ID?>, sortOrder: Binding<[Sort]>,
+        @TableColumnBuilder<Value, Sort> columns: () -> Columns
+    ) where Data.Element == Value, Sort.Compared == Value, Columns.TableRowValue == Value {
+        self.init(
+            rows: Array(data), columns: tableColumns(of: columns()), single: selection, multi: nil,
+            sortModel: _TableSortModel(sortOrder))
+    }
+
+    /// Creates a sortable table that computes its rows based on a collection
+    /// of identifiable data, and supports selecting multiple rows.
+    ///
+    /// - Parameters:
+    ///   - data: The identifiable data for computing the table rows.
+    ///   - selection: A binding to the set of selected row IDs.
+    ///   - sortOrder: A binding to the ordered sorting of columns.
+    ///   - columns: The columns to display in the table.
+    public init<Data: RandomAccessCollection, Sort: SortComparator, Columns: TableColumnContent>(
+        _ data: Data, selection: Binding<Set<Value.ID>>, sortOrder: Binding<[Sort]>,
+        @TableColumnBuilder<Value, Sort> columns: () -> Columns
+    ) where Data.Element == Value, Sort.Compared == Value, Columns.TableRowValue == Value {
+        self.init(
+            rows: Array(data), columns: tableColumns(of: columns()), single: nil, multi: selection,
+            sortModel: _TableSortModel(sortOrder))
     }
 }
 
 // MARK: - Convenience Modifiers
 
 extension Table {
+    /// Sets an explicit focus identifier for this table.
+    ///
+    /// By default a table generates its focus identifier from its position in
+    /// the view hierarchy. Use this modifier when you need a stable, explicit
+    /// identifier for programmatic focus management.
+    ///
+    /// - Parameter id: The focus identifier.
+    /// - Returns: A table with the specified focus identifier.
+    public func focusID(_ id: String) -> Table {
+        var copy = self
+        copy.focusID = id
+        return copy
+    }
+
+    /// Sets the localized placeholder text displayed when the table has no
+    /// rows.
+    ///
+    /// A string **literal** binds here, so it is a lookup key — see
+    /// ``LocalizedStringKey``. The default is the localized "No items".
+    ///
+    /// - Parameter placeholderKey: The key for the text to show when empty.
+    /// - Returns: A table with the specified empty placeholder.
+    public func tableEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> Table {
+        tableEmptyPlaceholder(placeholderKey.localized)
+    }
+
+    /// Sets the empty placeholder text, displayed as written.
+    ///
+    /// Generic over `StringProtocol` rather than taking a concrete `String`,
+    /// which is what keeps a *literal* binding to the key overload above — see
+    /// ``LocalizedStringKey``.
+    ///
+    /// - Parameter placeholder: The text to show when the table is empty.
+    /// - Returns: A table with the specified empty placeholder.
+    @_disfavoredOverload
+    public func tableEmptyPlaceholder<S: StringProtocol>(_ placeholder: S) -> Table {
+        var copy = self
+        copy.emptyPlaceholder = String(placeholder)
+        return copy
+    }
+
+    /// Sets the number of cells between adjacent columns (default 2).
+    ///
+    /// Columns are separated by spaces, not rules, so this is the whole of the
+    /// gap. A negative spacing is treated as zero.
+    ///
+    /// - Parameter spacing: The gap between columns, in cells.
+    /// - Returns: A table with the specified column spacing.
+    public func tableColumnSpacing(_ spacing: Int) -> Table {
+        var copy = self
+        // Clamped: spacing reaches `String(repeating:count:)` in three
+        // places, which traps on a negative count. Clamp once here, at the
+        // boundary, so every use downstream is safe by construction rather
+        // than by remembering.
+        copy.columnSpacing = max(0, spacing)
+        return copy
+    }
+
     /// Creates a disabled version of this table.
     ///
     /// - Parameter disabled: Whether the table is disabled.
@@ -465,8 +533,7 @@ private enum StateIndex {
 }
 
 /// Internal core view that handles table rendering inside a ContainerView.
-private struct _TableCore<Value: Identifiable & Sendable>: View, Renderable, Layoutable
-where Value.ID: Hashable {
+private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// The inset between the table's border and its row lines.
     ///
     /// One constant because two things must agree about it: the layout that
@@ -1532,14 +1599,29 @@ where Value.ID: Hashable {
         var cells: [[String]] = []
         cells.reserveCapacity(columns.count)
         var height = 1
-        for (column, width) in zip(columns, columnWidths) {
-            let wrapped = TextWrapping.fit(
-                cellValue(column, for: item, context: context), width: max(1, width),
-                maxLines: column.lineLimit, mode: column.truncationMode)
+        for (index, (column, width)) in zip(columns, columnWidths).enumerated() {
+            let wrapped = cellLines(
+                column, at: index, for: item, width: width, context: context)
             height = max(height, wrapped.count)
             cells.append(wrapped)
         }
         return (cells, height)
+    }
+
+    /// One cell's lines on a multi-line row: a string wrapped into its column
+    /// with `TextWrapping`, or a view's own lines, clipped to the column.
+    private func cellLines(
+        _ column: _TableColumnSpec<Value>, at index: Int, for item: Value, width: Int,
+        context: RenderContext
+    ) -> [String] {
+        let value = cellValue(column, at: index, for: item, width: width, context: context)
+        guard column.laysOutItsOwnLines else {
+            return TextWrapping.fit(
+                value, width: max(1, width), maxLines: column.lineLimit,
+                mode: column.truncationMode)
+        }
+        return value.split(separator: "\n", omittingEmptySubsequences: false)
+            .prefix(column.lineLimit).map(String.init)
     }
 
     /// The height in lines of one row — its tallest cell wrapped into its column.
@@ -1551,10 +1633,12 @@ where Value.ID: Hashable {
         of item: Value, columnWidths: [Int], context: RenderContext
     ) -> Int {
         var height = 1
-        for (column, width) in zip(columns, columnWidths) {
-            let lineCount = TextWrapping.fit(
-                cellValue(column, for: item, context: context), width: max(1, width),
-                maxLines: column.lineLimit, mode: column.truncationMode
+        // A height is a measurement, asked of rows that are not drawn too.
+        let probe = Self.probing(context)
+        for (index, (column, width)) in zip(columns, columnWidths).enumerated() {
+            let lineCount = cellLines(
+                column, at: index, for: item, width: width,
+                context: column.laysOutItsOwnLines ? probe : context
             ).count
             height = max(height, lineCount)
         }
@@ -3346,11 +3430,77 @@ where Value.ID: Hashable {
     /// — it is the app's code, not the framework's, and it is what a per-row
     /// memo would exist to stop repeating. `RenderCache.rowWork` is where it
     /// lands, beside the cache statistics a harness already reads.
+    ///
+    /// A view cell is rendered here, at `width` and the column's line limit,
+    /// and its lines come back joined by newlines: the rest of the table reads
+    /// every cell as a string, and a column that ``_TableColumnSpec/laysOutItsOwnLines``
+    /// is split on those newlines instead of being wrapped. Only a cell that
+    /// is DRAWN may be rendered under the caller's own context — a measure, a
+    /// fit scan or an off-screen row's height must pass a measuring one, or a
+    /// control in the cell would register for focus from a row nobody sees.
     private func cellValue(
-        _ column: _TableColumnSpec<Value>, for item: Value, context: RenderContext
+        _ column: _TableColumnSpec<Value>, at columnIndex: Int, for item: Value, width: Int,
+        context: RenderContext
     ) -> String {
         context.renderCache?.rowWork.cellValues += 1
-        return column.value(for: item)
+        switch column.cell {
+        case .string(let extract):
+            return extract(item)
+        case .text(let make):
+            let text = make(item)
+            // A plain one-line `Text` says exactly what a `String` key path's
+            // value says, and is drawn the same way — which keeps the commonest
+            // content closure on the string path, and keeps its bytes identical
+            // to the key-path column it most often replaces.
+            if column.lineLimit == 1, text.drawsAsPlainString {
+                return text.content
+            }
+            return Self.cellLines(
+                TUIkit.renderToBuffer(
+                    text,
+                    context: cellContext(
+                        column, at: columnIndex, for: item, width: width, context: context)),
+                limit: column.lineLimit)
+        case .view(let render):
+            return Self.cellLines(
+                render(
+                    item,
+                    cellContext(column, at: columnIndex, for: item, width: width, context: context)),
+                limit: column.lineLimit)
+        }
+    }
+
+    /// The context a view cell renders under: its own identity — the row's,
+    /// then the column's — so a view with `@State` in a cell keeps it per row
+    /// and per column; the cell's rectangle as the space on offer; and the
+    /// column's line limit and truncation as the environment's, so a `Text`
+    /// cell clips and wraps as the column says.
+    private func cellContext(
+        _ column: _TableColumnSpec<Value>, at columnIndex: Int, for item: Value, width: Int,
+        context: RenderContext
+    ) -> RenderContext {
+        var cellContext =
+            context
+            .withChildIdentity(erasedType: _TableColumnSpec<Value>.self, key: identityKey(item.id))
+            .withChildIdentity(erasedType: _TableColumnSpec<Value>.self, index: columnIndex)
+            .withAvailableSize(width: max(1, width), height: column.lineLimit)
+        cellContext.environment.lineLimit = .lines(column.lineLimit)
+        cellContext.environment.truncationMode = column.truncationMode
+        return cellContext
+    }
+
+    /// A rendered cell's lines, at most `limit` of them, as one string.
+    private static func cellLines(_ buffer: FrameBuffer, limit: Int) -> String {
+        guard buffer.height > 1 else { return buffer.lines.first ?? "" }
+        return buffer.lines.prefix(limit).joined(separator: "\n")
+    }
+
+    /// `context` as a measure pass: what a cell drawn under it may not do —
+    /// register a control for focus, publish a hit region — it does not do.
+    private static func probing(_ context: RenderContext) -> RenderContext {
+        var probe = context
+        probe.isMeasuring = true
+        return probe
     }
 
     /// The rows boxed for comparison, when the row type can be compared —
@@ -3436,7 +3586,10 @@ where Value.ID: Hashable {
                 return verifyServedSize(
                     cached, label: "\(Self.self) column \(index) fit width",
                     proposal: ProposedSize(width: cap, height: nil), context: context
-                ) { ViewSize.fixed(scanForFitWidth(of: column, cappedAt: cap, context: $0), 0) }.width
+                ) {
+                    ViewSize.fixed(
+                        scanForFitWidth(of: column, at: index, cappedAt: cap, context: $0), 0)
+                }.width
             }
         }
 
@@ -3449,7 +3602,7 @@ where Value.ID: Hashable {
         // at the table, so a write drops the width it fitted.
         let leaseMark = context.renderCache?.leases.beginComputation()
         let fitted = observingKeptResult(of: Self.self, kind: .keptMeasure, context: context) {
-            scanForFitWidth(of: column, cappedAt: cap, context: context)
+            scanForFitWidth(of: column, at: index, cappedAt: cap, context: context)
         }
         let lease = context.renderCache?.leases.endComputation(leaseMark)
 
@@ -3465,16 +3618,31 @@ where Value.ID: Hashable {
 
     /// The widest of `column`'s header and cells, stopping at `cap` — the scan
     /// ``fitWidth(of:at:cappedAt:context:)`` keeps the answer of.
-    private func scanForFitWidth(of column: _TableColumnSpec<Value>, cappedAt cap: Int?, context: RenderContext) -> Int {
+    private func scanForFitWidth(
+        of column: _TableColumnSpec<Value>, at index: Int, cappedAt cap: Int?,
+        context: RenderContext
+    ) -> Int {
         // The header measured here is the one that will be DRAWN, sort
         // indicator and all: measuring the bare title instead fitted the
         // column two cells short and truncated its own header ("Track…").
         var fitted = headerTitle(for: column).strippedLength
+        // A view cell is measured at the widest the column could be, under a
+        // measuring context: this walks every row, drawn or not.
+        let probe = column.laysOutItsOwnLines ? Self.probing(context) : context
+        let probeWidth = cap ?? context.availableWidth
         for item in data {
-            fitted = max(fitted, cellValue(column, for: item, context: context).strippedLength)
+            let value = cellValue(column, at: index, for: item, width: probeWidth, context: probe)
+            fitted = max(fitted, Self.widestLine(of: value, laidOut: column.laysOutItsOwnLines))
             if let cap, fitted >= cap { break }
         }
         return fitted
+    }
+
+    /// A cell's width in cells: its widest line when it arrived laid out.
+    private static func widestLine(of value: String, laidOut: Bool) -> Int {
+        guard laidOut, value.utf8.contains(UInt8(ascii: "\n")) else { return value.strippedLength }
+        return value.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { String($0).strippedLength }.max() ?? 0
     }
 
     // MARK: - Header Rendering
@@ -3725,7 +3893,6 @@ where Value.ID: Hashable {
         line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
         claims: [OpacityRegion]
     ) {
-        let cellCount = min(columns.count, columnWidths.count)
         func compose(_ cells: [String]) -> (
             line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
             claims: [OpacityRegion]
@@ -3748,7 +3915,7 @@ where Value.ID: Hashable {
         guard let handler, handler.tableRowMemo.isOpen, !isReturningHome, paint.ramp == nil,
             !isFocused
         else {
-            return compose(rowCells(for: item, count: cellCount, context: context))
+            return compose(rowCells(for: item, columnWidths: columnWidths, context: context))
         }
         let kept = handler.tableRowMemo.entry(for: item.id)
         let rowBox = Self.rowsSignature(of: item)
@@ -3766,7 +3933,7 @@ where Value.ID: Hashable {
         // Otherwise the closures have to run — that is the app's own cost and
         // nothing can skip it — but what they produced settles the question
         // outright, for any row type and any column.
-        let cells = rowCells(for: item, count: cellCount, context: context)
+        let cells = rowCells(for: item, columnWidths: columnWidths, context: context)
         if let kept, kept.answers(cells: cells, isSelected: isSelected) {
             // Re-point the entry at THIS row, or a row that changed in a way its
             // columns do not show would take this path for ever — see
@@ -3831,8 +3998,7 @@ where Value.ID: Hashable {
     ) {
         guard RenderCache.verifiesRenderMemo, let cache = context.renderCache else { return }
         let fresh = renderRowUncached(
-            cells: rowCells(
-                for: item, count: min(columns.count, columnWidths.count), context: context),
+            cells: rowCells(for: item, columnWidths: columnWidths, context: context),
             item: item, paint: paint, columnWidths: columnWidths, isFocused: isFocused,
             isSelected: isSelected, isReturningHome: false, context: context, palette: palette)
         guard fresh.line != served.line else { return }
@@ -3849,11 +4015,17 @@ where Value.ID: Hashable {
     /// memo's soundness for a closure column: the closure may capture anything,
     /// but once it has RUN, what it produced is not a proxy for the row's text
     /// — it is the row's text.
-    private func rowCells(for item: Value, count: Int, context: RenderContext) -> [String] {
+    private func rowCells(
+        for item: Value, columnWidths: [Int], context: RenderContext
+    ) -> [String] {
+        let count = min(columns.count, columnWidths.count)
         var cells: [String] = []
         cells.reserveCapacity(count)
         for index in 0..<count {
-            cells.append(cellValue(columns[index], for: item, context: context))
+            cells.append(
+                cellValue(
+                    columns[index], at: index, for: item, width: columnWidths[index],
+                    context: context))
         }
         return cells
     }
@@ -4099,9 +4271,16 @@ where Value.ID: Hashable {
         let pad = String(repeating: " ", count: gutter)
         guard count > 0, steps > 0 else { return Array(repeating: pad, count: max(0, steps)) }
 
+        // The picture is of the row's FIRST line, as the hand carries it, and
+        // it is a picture: measured, never drawn as live cells.
         let clipped = (0..<count).map {
-            cellValue(columns[$0], for: item, context: context)
-                .truncatedToWidth(columnWidths[$0], mode: columns[$0].truncationMode)
+            let value = cellValue(
+                columns[$0], at: $0, for: item, width: columnWidths[$0],
+                context: Self.probing(context))
+            let firstLine =
+                value.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+                .first.map(String.init) ?? ""
+            return firstLine.truncatedToWidth(columnWidths[$0], mode: columns[$0].truncationMode)
         }
         let widths = clipped.map(\.strippedLength)
 

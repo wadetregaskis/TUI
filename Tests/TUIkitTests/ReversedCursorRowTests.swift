@@ -129,7 +129,7 @@ struct ReversedCursorRowTests {
                 }
             case .table:
                 Table(ReversedCursorRowTests.rows, selection: .constant(selection)) {
-                    TableColumn("Name") { $0.name }
+                    TableColumn("Name") { Text(verbatim: $0.name) }
                 }
             }
         }
@@ -144,7 +144,7 @@ struct ReversedCursorRowTests {
                 }
             case .table:
                 Table(ReversedCursorRowTests.rows) {
-                    TableColumn("Name") { $0.name }
+                    TableColumn("Name") { Text(verbatim: $0.name) }
                 }
             }
         }

@@ -56,23 +56,23 @@ struct TableFitColumnMemoTests {
 
     private func comparableTable(_ rows: [ComparableRow], calls: Calls) -> some View {
         Table(rows, selection: Binding<Int?>.constant(nil)) {
-            TableColumn("Name") { (row: ComparableRow) -> String in
+            TableColumn("Name") { (row: ComparableRow) -> Text in
                 calls.count += 1
-                return row.name
+                return Text(verbatim: row.name)
             }
             .width(.fit)
-            TableColumn("ID") { (row: ComparableRow) in "\(row.id)" }
+            TableColumn("ID") { (row: ComparableRow) in Text(verbatim: "\(row.id)") }
         }
     }
 
     private func uncomparableTable(_ rows: [UncomparableRow], calls: Calls) -> some View {
         Table(rows, selection: Binding<Int?>.constant(nil)) {
-            TableColumn("Name") { (row: UncomparableRow) -> String in
+            TableColumn("Name") { (row: UncomparableRow) -> Text in
                 calls.count += 1
-                return row.name
+                return Text(verbatim: row.name)
             }
             .width(.fit)
-            TableColumn("ID") { (row: UncomparableRow) in "\(row.id)" }
+            TableColumn("ID") { (row: UncomparableRow) in Text(verbatim: "\(row.id)") }
         }
     }
 

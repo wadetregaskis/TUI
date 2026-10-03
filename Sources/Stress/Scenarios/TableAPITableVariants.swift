@@ -72,29 +72,31 @@ extension TableAPIMatrix {
                 }
             },
 
-            // `columnSpacing: 0` — the columns abut. Worth a point of its own
+            // `.tableColumnSpacing(0)` — the columns abut. Worth a point of its own
             // because the spacing is what separates one cell's trailing pad from
             // the next cell's first byte, and a clip that leaves SGR open shows
             // up here and nowhere else.
             variant("spacing-none", axis: "layout", "columnSpacing 0 — cells abut, styled runs meet") { config in
                 table("spacing-none", config) { rows in
-                    Table(rows, selection: Binding<Int?>.constant(nil), columnSpacing: 0) {
+                    Table(rows, selection: Binding<Int?>.constant(nil)) {
                         TableColumn("Status", value: \APIRow.status).width(.fixed(12))
                         TableColumn("Name", value: \APIRow.name).width(.fixed(20))
                         TableColumn("Status2", value: \APIRow.status).width(.fixed(12))
                         TableColumn("Summary", value: \APIRow.summary)
                     }
+                    .tableColumnSpacing(0)
                 }
             },
 
             variant("spacing-wide", axis: "layout", "columnSpacing 6 — a third of the line is separator") { config in
                 table("spacing-wide", config) { rows in
-                    Table(rows, selection: Binding<Int?>.constant(nil), columnSpacing: 6) {
+                    Table(rows, selection: Binding<Int?>.constant(nil)) {
                         TableColumn("ID", value: \APIRow.index).width(.fixed(7))
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Slug", value: \APIRow.slug)
                         TableColumn("Status", value: \APIRow.status)
                     }
+                    .tableColumnSpacing(6)
                 }
             },
         ]
@@ -275,13 +277,11 @@ extension TableAPIMatrix {
 
             variant("empty", axis: "shape", "no rows — the placeholder path") { config in
                 stillTable("empty", config, count: 0) { rows in
-                    // The placeholder is an INIT parameter here rather than the
-                    // modifier the architecture rules ask for — noted for the
-                    // owner, and written the way the API currently reads.
-                    Table(rows, selection: Binding<Int?>.constant(nil), emptyPlaceholder: "nothing here") {
+                    Table(rows, selection: Binding<Int?>.constant(nil)) {
                         TableColumn("ID", value: \APIRow.index).width(.fixed(7))
                         TableColumn("Name", value: \APIRow.name)
                     }
+                    .tableEmptyPlaceholder("nothing here")
                 }
             },
 
@@ -427,9 +427,9 @@ private struct SortedTable: View {
             Text(Lf("stress.scenario.table-api.heading", "sorted", count)).bold()
             Divider()
             Table(rows, selection: $selection, sortOrder: $order) {
-                TableColumn("ID", value: \APIRow.id) { "\($0.id)" }.width(.fixed(7))
+                TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(.fixed(7))
                 TableColumn("Name", value: \APIRow.name)
-                TableColumn("Score", value: \APIRow.score) { "\($0.score)" }
+                TableColumn("Score", value: \APIRow.score) { Text(verbatim: "\($0.score)") }
                     .width(.fixed(8)).alignment(.trailing)
                 TableColumn("Summary", value: \APIRow.summary)
             }
@@ -460,9 +460,9 @@ private struct DecoratedSortTable: View {
             Text(Lf("stress.scenario.table-api.heading", "sorted-decorated", count)).bold()
             Divider()
             Table(rows, selection: $selection, sortOrder: $order) {
-                TableColumn("ID", value: \APIRow.id) { "\($0.id)" }.width(.fixed(7))
+                TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(.fixed(7))
                 TableColumn("Name", value: \APIRow.name)
-                TableColumn("Score", value: \APIRow.score) { "\($0.score)" }
+                TableColumn("Score", value: \APIRow.score) { Text(verbatim: "\($0.score)") }
                     .width(.fixed(8)).alignment(.trailing)
                 TableColumn("Summary", value: \APIRow.summary)
             }

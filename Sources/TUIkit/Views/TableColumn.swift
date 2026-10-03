@@ -39,23 +39,46 @@ public enum ColumnWidth: Sendable, Equatable {
 
 // MARK: - Table Column
 
-/// Defines a column in a Table view.
+/// A column that displays a view for each row in a table.
 ///
-/// `TableColumn` specifies how to display a property of the data items,
-/// including the column header, alignment, width, and value extraction.
-///
-/// ## Usage
+/// You create a column with a label, content view, and optional key path. The
+/// table calls the content view builder with the value for each row in the
+/// table. The column uses a key path to map to a property of each row value,
+/// which sortable tables use to reflect the current sort order.
 ///
 /// ```swift
-/// Table(files, selection: $selectedID) {
-///     TableColumn("Name", value: \.name)
-///     TableColumn("Size", value: \.formattedSize)
-///         .width(.fixed(10))
-///         .alignment(.trailing)
-///     TableColumn("Modified", value: \.modifiedDate)
-///         .width(.ratio(0.3))
+/// Table(people, selection: $selection, sortOrder: $sortOrder) {
+///     TableColumn("Given name", value: \.givenName) { person in
+///         Text(person.givenName)
+///     }
+///     TableColumn("Family name", value: \.familyName)
+///     TableColumn("Age") { Text("\($0.age)") }
+///         .width(.fixed(5))
 /// }
 /// ```
+///
+/// For the common case of `String` properties, the convenience initializer
+/// that takes no content closure displays the string verbatim, exactly as a
+/// ``Text`` would. It is also the fastest column there is: its cells are a pure
+/// function of the row, so a table whose every column is one can keep its rows
+/// across frames (see ``Table``).
+///
+/// ## Sorting
+///
+/// `Sort` is the comparator a click on the column's header puts at the head of
+/// the table's `sortOrder` — `Never` for a column that cannot sort. As in
+/// SwiftUI, which initializer you call decides it: `value:` with a
+/// `Comparable` key path (and an optional `comparator:`) sorts by that
+/// property, `sortUsing:` sorts with the comparator you give, and a column
+/// with only a content closure cannot sort.
+///
+/// ## Cells
+///
+/// A cell is one line, like a row of text in a terminal table, unless the
+/// column's ``lineLimit(_:)`` allows more: a `Text` cell then wraps, and any
+/// other view is given that many lines. A plain `Text` — no styling of its own
+/// — is drawn exactly as the `String` key-path column draws its value. Any
+/// other content is rendered as a view at the column's width.
 ///
 /// ## Width Modes
 ///
@@ -65,22 +88,28 @@ public enum ColumnWidth: Sendable, Equatable {
 /// | `.flexible` | Expands to fill remaining space (shared equally) |
 /// | `.ratio(r)` | Takes r proportion of available width (0.0-1.0) |
 /// | `.fit` | Sizes to the widest of the header and all cell values (O(rows)) |
-public struct TableColumn<Value>: Sendable {
+public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content: View, Label: View>:
+    TableColumnContent
+{
+    public typealias TableRowValue = RowValue
+    public typealias TableColumnSortComparator = Sort
+    public typealias TableColumnBody = Never
+
     /// The column header title.
-    public let title: String
+    let title: String
 
     /// The horizontal alignment for column content.
-    public var alignment: HorizontalAlignment
+    var alignment: HorizontalAlignment = .leading
 
     /// The width mode for this column.
-    public var width: ColumnWidth
+    var width: ColumnWidth = .flexible
 
     /// How a cell value is shortened when it is wider than the column.
     ///
     /// A cell is always clipped to its column's width so the columns stay
     /// aligned; this controls *which* part of an over-long value is kept.
     /// Defaults to `.tail` (keep the start, drop the end).
-    public var truncationMode: TruncationMode = .tail
+    var truncationMode: TruncationMode = .tail
 
     /// The maximum number of lines a cell in this column may occupy.
     ///
@@ -95,16 +124,16 @@ public struct TableColumn<Value>: Sendable {
     /// written to directly with 0 or a negative computed value did not become a
     /// single-line column — it became an UNLIMITED one, growing the row to
     /// however many lines the value wrapped to.
-    public var lineLimit: Int = 1 {
+    var lineLimit: Int = 1 {
         didSet { lineLimit = max(1, lineLimit) }
     }
 
-    /// Extracts the display value from a data item.
-    let valueExtractor: @Sendable (Value) -> String
+    /// What the column draws in each row's cell.
+    let cell: _TableCellSource<RowValue>
 
-    /// Whether ``valueExtractor`` NAMES a property rather than computing one —
-    /// true exactly for the two `init(_:value:)` overloads that take a
-    /// `KeyPath<Value, String>`.
+    /// Whether ``cell`` NAMES a property rather than computing one — true
+    /// exactly for the `init(_:value:)` overloads that take a
+    /// `KeyPath<RowValue, String>` and no content closure.
     ///
     /// The distinction is not cosmetic and it is not about sorting: a key path
     /// has no closure context, so it cannot capture anything from the view that
@@ -124,137 +153,373 @@ public struct TableColumn<Value>: Sendable {
     let namesAProperty: Bool
 
     /// How this column sorts, when it can — the comparator a click on its
-    /// header puts at the head of the table's `sortOrder`.
-    ///
-    /// Non-`nil` exactly for the key-path initializers, which is SwiftUI's own
-    /// rule: a column built from a key path into a `Comparable` property knows
-    /// how to order the rows, and one built from a closure returning a display
-    /// string does not. A column with no comparator has an inert header, and
-    /// none of them sort at all unless the table was given a `sortOrder`
-    /// binding.
-    let sortComparator: KeyPathComparator<Value>?
+    /// header puts at the head of the table's `sortOrder`. Always `nil` when
+    /// `Sort` is `Never`.
+    let sortComparator: Sort?
 
-    /// Creates a table column showing — and sorting by — a `String` property.
+    /// The one initializer that stores anything.
+    init(
+        title: String, cell: _TableCellSource<RowValue>, namesAProperty: Bool,
+        sortComparator: Sort?
+    ) {
+        self.title = title
+        self.cell = cell
+        self.namesAProperty = namesAProperty
+        self.sortComparator = sortComparator
+    }
+
+    /// Never called: a column hands itself to the table directly.
+    public var tableColumnBody: Never { fatalError("TableColumn is primitive table column content") }
+}
+
+extension TableColumn: _TableColumnPrimitive {
+    typealias ColumnRow = RowValue
+
+    func appendColumns(to columns: inout [_TableColumnSpec<RowValue>]) {
+        columns.append(spec)
+    }
+
+    /// The characters this column's cell holds for `item`: a `String` key
+    /// path's value, or a `Text`'s string — `nil` for any other view.
+    func value(for item: RowValue) -> String? {
+        switch cell {
+        case .string(let extract): extract(item)
+        case .text(let make): make(item).content
+        case .view: nil
+        }
+    }
+
+    /// This column as the renderer draws it.
+    var spec: _TableColumnSpec<RowValue> {
+        _TableColumnSpec(
+            title: title, alignment: alignment, width: width,
+            truncationMode: truncationMode, lineLimit: lineLimit,
+            cell: cell, namesAProperty: namesAProperty,
+            sortComparator: sortComparator)
+    }
+}
+
+// MARK: - Cell sources
+
+extension _TableCellSource {
+    /// The cell source for a content closure: the `Text` path when the closure
+    /// builds a `Text`, so a plain one can be drawn as a string, and a rendered
+    /// view otherwise.
+    @MainActor
+    static func content<Content: View>(_ content: @escaping (Value) -> Content) -> Self {
+        if Content.self == Text.self {
+            // Same type, so the cast cannot fail; the check above is what
+            // makes it a cast at all rather than a conversion.
+            return .text { content($0) as! Text }  // swiftlint:disable:this force_cast
+        }
+        return .view { row, context in TUIkit.renderToBuffer(content(row), context: context) }
+    }
+}
+
+// MARK: - Columns that cannot sort
+
+extension TableColumn where Sort == Never, Label == Text {
+    /// Creates an unsortable column with a localized title.
     ///
-    /// The key path makes the column sortable: give the table a `sortOrder`
-    /// binding and clicking this column's header puts this property at the head
-    /// of it. Matches SwiftUI, where the same initializer is what makes a
-    /// column sortable.
+    /// - Parameters:
+    ///   - titleKey: The column's localized title key.
+    ///   - content: The view content to display for each row in a table.
+    public init(_ titleKey: LocalizedStringKey, @ViewBuilder content: @escaping (RowValue) -> Content) {
+        self.init(
+            title: titleKey.localized, cell: .content(content), namesAProperty: false,
+            sortComparator: nil)
+    }
+
+    /// Creates an unsortable column with a title, displayed as written.
+    ///
+    /// - Parameters:
+    ///   - title: The column's title.
+    ///   - content: The view content to display for each row in a table.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, @ViewBuilder content: @escaping (RowValue) -> Content) {
+        self.init(
+            title: String(title), cell: .content(content), namesAProperty: false,
+            sortComparator: nil)
+    }
+
+    /// Creates an unsortable column with a text label.
+    ///
+    /// The header draws the label's text; its styling is the header's own.
+    ///
+    /// - Parameters:
+    ///   - text: The column's label.
+    ///   - content: The view content to display for each row in a table.
+    public init(_ text: Text, @ViewBuilder content: @escaping (RowValue) -> Content) {
+        self.init(
+            title: text.content, cell: .content(content), namesAProperty: false,
+            sortComparator: nil)
+    }
+
+    /// Creates an unsortable column that displays a string property.
     ///
     /// A string **literal** binds here, so the header is a lookup key — see
     /// ``LocalizedStringKey``. Only the header: the cells come from the data.
     ///
     /// - Parameters:
-    ///   - titleKey: The key for the column header title.
-    ///   - value: A key path to the String property to display.
-    public init(
-        _ titleKey: LocalizedStringKey, value: KeyPath<Value, String> & Sendable
-    ) where Value: Sendable {
+    ///   - titleKey: The column's localized title key.
+    ///   - value: The path to the property associated with the column.
+    public init(_ titleKey: LocalizedStringKey, value: KeyPath<RowValue, String>) where Content == Text {
         self.init(titleKey.localized, value: value)
     }
 
-    /// Creates a table column whose header is displayed as written.
-    ///
-    /// Generic over `StringProtocol` rather than taking a concrete `String`,
-    /// which is what keeps a *literal* binding to the key overload above — see
-    /// ``LocalizedStringKey``. Only the header: `value` names a property, not
-    /// display text.
+    /// Creates an unsortable column that displays a string property, with a
+    /// title displayed as written.
     ///
     /// - Parameters:
-    ///   - title: The column header title.
-    ///   - value: A key path to the String property to display.
+    ///   - title: The column's title.
+    ///   - value: The path to the property associated with the column.
     @_disfavoredOverload
-    public init<S: StringProtocol>(
-        _ title: S, value: KeyPath<Value, String> & Sendable
-    ) where Value: Sendable {
-        self.title = String(title)
-        self.alignment = .leading
-        self.width = .flexible
-        self.valueExtractor = { item in item[keyPath: value] }
-        self.namesAProperty = true
-        self.sortComparator = KeyPathComparator(value)
+    public init<S: StringProtocol>(_ title: S, value: KeyPath<RowValue, String>) where Content == Text {
+        self.init(
+            title: String(title), cell: .string { $0[keyPath: value] }, namesAProperty: true,
+            sortComparator: nil)
     }
 
-    /// Creates a table column that sorts by one property and displays another
-    /// string built from the row.
+    /// Creates an unsortable column that displays a string property, with a
+    /// text label.
     ///
-    /// The counterpart of SwiftUI's `TableColumn(_:value:content:)`, with a
-    /// string in place of the view builder — a `Table`'s cells are values here,
-    /// not views. Use it for a column whose display form is not its sort form:
-    /// a size shown as "4.2 KB" that sorts by its `Int` byte count, a date
-    /// shown formatted that sorts chronologically.
+    /// - Parameters:
+    ///   - text: The column's label.
+    ///   - value: The path to the property associated with the column.
+    public init(_ text: Text, value: KeyPath<RowValue, String>) where Content == Text {
+        self.init(text.content, value: value)
+    }
+}
+
+// MARK: - Columns sorted with a given comparator
+
+extension TableColumn where RowValue == Sort.Compared, Label == Text {
+    /// Creates a sortable column that sorts with `comparator`.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The column's localized title key.
+    ///   - comparator: The prototype sort comparator a click on the header
+    ///     puts at the head of the table's sort order.
+    ///   - content: The view content to display for each row in a table.
+    public init(
+        _ titleKey: LocalizedStringKey, sortUsing comparator: Sort,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) {
+        self.init(titleKey.localized, sortUsing: comparator, content: content)
+    }
+
+    /// Creates a sortable column that sorts with `comparator`, with a title
+    /// displayed as written.
+    ///
+    /// - Parameters:
+    ///   - title: The column's title.
+    ///   - comparator: The prototype sort comparator.
+    ///   - content: The view content to display for each row in a table.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S, sortUsing comparator: Sort,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) {
+        self.init(
+            title: String(title), cell: .content(content), namesAProperty: false,
+            sortComparator: comparator)
+    }
+
+    /// Creates a sortable column that sorts with `comparator`, with a text
+    /// label.
+    ///
+    /// - Parameters:
+    ///   - text: The column's label.
+    ///   - comparator: The prototype sort comparator.
+    ///   - content: The view content to display for each row in a table.
+    public init(
+        _ text: Text, sortUsing comparator: Sort,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) {
+        self.init(text.content, sortUsing: comparator, content: content)
+    }
+}
+
+// MARK: - Columns sorted by a key path
+
+extension TableColumn {
+    /// `keyPath`, as the `Sendable` key path Foundation's `KeyPathComparator`
+    /// asks for.
+    ///
+    /// SwiftUI's initializers take a plain `KeyPath` and so do these, so that
+    /// SwiftUI source compiles as written. A key path is an immutable value; it
+    /// is unsafe to share only when a subscript component captured an argument
+    /// that is not itself `Sendable` — a key path SwiftUI accepts here too.
+    /// `Sendable` is a marker protocol, so the composition has the class
+    /// reference's own layout and the cast changes no bits.
+    static func sendable<V>(_ keyPath: KeyPath<RowValue, V>) -> any KeyPath<RowValue, V> & Sendable {
+        unsafeBitCast(keyPath, to: (any KeyPath<RowValue, V> & Sendable).self)
+    }
+}
+
+extension String.StandardComparator {
+    /// What a `String` column sorts with when it is not given a comparator:
+    /// `.localizedStandard` — so "item2" sorts before "item10" — where
+    /// Foundation has it, `.lexical` where it does not (the static Linux SDK's
+    /// Foundation, measured with Swift 6.3.3).
+    @usableFromInline
+    static var tableColumnDefault: Self {
+        #if canImport(Darwin)
+            .localizedStandard
+        #else
+            .lexical
+        #endif
+    }
+}
+
+extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
+    /// Creates a sortable column that displays a string property.
+    ///
+    /// The overload a `String` key path takes in a table with a `sortOrder`;
+    /// in a table without one, the `init(_:value:)` that cannot sort takes
+    /// it instead, exactly as SwiftUI resolves the two.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The column's localized title key.
+    ///   - value: The path to the property associated with the column.
+    ///   - comparator: The comparator the property's values are ordered by.
+    public init(
+        _ titleKey: LocalizedStringKey, value: KeyPath<RowValue, String>,
+        comparator: String.StandardComparator = .tableColumnDefault
+    ) where Content == Text {
+        self.init(titleKey.localized, value: value, comparator: comparator)
+    }
+
+    /// Creates a sortable column that displays a string property, with a
+    /// title displayed as written.
+    ///
+    /// - Parameters:
+    ///   - title: The column's title.
+    ///   - value: The path to the property associated with the column.
+    ///   - comparator: The comparator the property's values are ordered by.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S, value: KeyPath<RowValue, String>,
+        comparator: String.StandardComparator = .tableColumnDefault
+    ) where Content == Text {
+        self.init(
+            title: String(title), cell: .string { $0[keyPath: value] }, namesAProperty: true,
+            sortComparator: KeyPathComparator(Self.sendable(value), comparator: comparator))
+    }
+
+    /// Creates a sortable column that displays a string property, with a text
+    /// label.
+    ///
+    /// - Parameters:
+    ///   - text: The column's label.
+    ///   - value: The path to the property associated with the column.
+    ///   - comparator: The comparator the property's values are ordered by.
+    public init(
+        _ text: Text, value: KeyPath<RowValue, String>,
+        comparator: String.StandardComparator = .tableColumnDefault
+    ) where Content == Text {
+        self.init(text.content, value: value, comparator: comparator)
+    }
+
+    /// Creates a sortable column that sorts by one property with a given
+    /// comparator, and displays the view `content` builds.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The column's localized title key.
+    ///   - value: The path to the property the column sorts by.
+    ///   - comparator: The comparator the property's values are ordered by.
+    ///   - content: The view content to display for each row in a table.
+    public init<V, C: SortComparator>(
+        _ titleKey: LocalizedStringKey, value: KeyPath<RowValue, V>, comparator: C,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) where V == C.Compared {
+        self.init(titleKey.localized, value: value, comparator: comparator, content: content)
+    }
+
+    /// Creates a sortable column that sorts by one property with a given
+    /// comparator, with a title displayed as written.
+    ///
+    /// - Parameters:
+    ///   - title: The column's title.
+    ///   - value: The path to the property the column sorts by.
+    ///   - comparator: The comparator the property's values are ordered by.
+    ///   - content: The view content to display for each row in a table.
+    @_disfavoredOverload
+    public init<S: StringProtocol, V, C: SortComparator>(
+        _ title: S, value: KeyPath<RowValue, V>, comparator: C,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) where V == C.Compared {
+        self.init(
+            title: String(title), cell: .content(content), namesAProperty: false,
+            sortComparator: KeyPathComparator(Self.sendable(value), comparator: comparator))
+    }
+
+    /// Creates a sortable column that sorts by one property with a given
+    /// comparator, with a text label.
+    ///
+    /// - Parameters:
+    ///   - text: The column's label.
+    ///   - value: The path to the property the column sorts by.
+    ///   - comparator: The comparator the property's values are ordered by.
+    ///   - content: The view content to display for each row in a table.
+    public init<V, C: SortComparator>(
+        _ text: Text, value: KeyPath<RowValue, V>, comparator: C,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) where V == C.Compared {
+        self.init(text.content, value: value, comparator: comparator, content: content)
+    }
+
+    /// Creates a sortable column that sorts by a `Comparable` property, and
+    /// displays the view `content` builds — for a column whose display form is
+    /// not its sort form: a size shown as "4.2 KB" that sorts by its byte
+    /// count, a date shown formatted that sorts chronologically.
     ///
     /// ```swift
-    /// TableColumn("Size", value: \.byteCount) { "\($0.byteCount.formatted(.byteCount(style: .file)))" }
+    /// TableColumn("Size", value: \.byteCount) {
+    ///     Text($0.byteCount.formatted(.byteCount(style: .file)))
+    /// }
     /// ```
     ///
     /// - Parameters:
-    ///   - titleKey: The key for the column header title.
-    ///   - value: A key path to the `Comparable` property this column sorts by.
-    ///   - content: Builds the cell's display string from a data item.
+    ///   - titleKey: The column's localized title key.
+    ///   - value: The path to the property the column sorts by.
+    ///   - content: The view content to display for each row in a table.
     public init<V: Comparable>(
-        _ titleKey: LocalizedStringKey,
-        value: KeyPath<Value, V> & Sendable,
-        content: @escaping @Sendable (Value) -> String
-    ) where Value: Sendable {
+        _ titleKey: LocalizedStringKey, value: KeyPath<RowValue, V>,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) {
         self.init(titleKey.localized, value: value, content: content)
     }
 
-    /// Creates a sortable column whose header is displayed as written.
-    ///
-    /// Generic over `StringProtocol` for the same reason as
-    /// ``init(_:value:)-(LocalizedStringKey,(Value)->String)``: it is what keeps a *literal* binding to the key
-    /// overload above — see ``LocalizedStringKey``. Neither `value` nor
-    /// `content` is display text a translator ever sees; `content` builds the
-    /// cell from the row.
+    /// Creates a sortable column that sorts by a `Comparable` property, with a
+    /// title displayed as written.
     ///
     /// - Parameters:
-    ///   - title: The column header title.
-    ///   - value: A key path to the `Comparable` property this column sorts by.
-    ///   - content: Builds the cell's display string from a data item.
+    ///   - title: The column's title.
+    ///   - value: The path to the property the column sorts by.
+    ///   - content: The view content to display for each row in a table.
     @_disfavoredOverload
     public init<S: StringProtocol, V: Comparable>(
-        _ title: S,
-        value: KeyPath<Value, V> & Sendable,
-        content: @escaping @Sendable (Value) -> String
-    ) where Value: Sendable {
-        self.title = String(title)
-        self.alignment = .leading
-        self.width = .flexible
-        self.valueExtractor = content
-        self.namesAProperty = false
-        self.sortComparator = KeyPathComparator(value)
+        _ title: S, value: KeyPath<RowValue, V>,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) {
+        self.init(
+            title: String(title), cell: .content(content), namesAProperty: false,
+            sortComparator: KeyPathComparator(Self.sendable(value)))
     }
 
-    /// Creates a table column with a custom value extractor.
-    ///
-    /// A closure column cannot be sorted — nothing here says how to order the
-    /// rows, only how to render them. Use ``init(_:value:content:)-(S,_,_)`` for a
-    /// column that is both.
+    /// Creates a sortable column that sorts by a `Comparable` property, with a
+    /// text label.
     ///
     /// - Parameters:
-    ///   - titleKey: The key for the column header title.
-    ///   - value: A closure that extracts the display string from a data item.
-    public init(_ titleKey: LocalizedStringKey, value: @escaping @Sendable (Value) -> String) {
-        self.init(titleKey.localized, value: value)
-    }
-
-    /// Creates a closure column whose header is displayed as written.
-    ///
-    /// Generic over `StringProtocol` for the same reason as
-    /// ``init(_:value:)-(LocalizedStringKey,(Value)->String)`` — see ``LocalizedStringKey``.
-    ///
-    /// - Parameters:
-    ///   - title: The column header title.
-    ///   - value: A closure that extracts the display string from a data item.
-    @_disfavoredOverload
-    public init<S: StringProtocol>(_ title: S, value: @escaping @Sendable (Value) -> String) {
-        self.title = String(title)
-        self.alignment = .leading
-        self.width = .flexible
-        self.valueExtractor = value
-        self.namesAProperty = false
-        self.sortComparator = nil
+    ///   - text: The column's label.
+    ///   - value: The path to the property the column sorts by.
+    ///   - content: The view content to display for each row in a table.
+    public init<V: Comparable>(
+        _ text: Text, value: KeyPath<RowValue, V>,
+        @ViewBuilder content: @escaping (RowValue) -> Content
+    ) {
+        self.init(text.content, value: value, content: content)
     }
 }
 
@@ -285,7 +550,8 @@ extension TableColumn {
     ///
     /// With a limit above 1 a cell wraps its value (and honours embedded
     /// newlines) onto multiple lines, growing the row; the content is clipped to
-    /// the limit with an ellipsis. A limit below 1 is treated as 1.
+    /// the limit with an ellipsis. A cell built from a view other than a `Text`
+    /// is given that many lines to draw in. A limit below 1 is treated as 1.
     ///
     /// ```swift
     /// TableColumn("Notes", value: \.notes).lineLimit(3)
@@ -312,81 +578,5 @@ extension TableColumn {
         var copy = self
         copy.truncationMode = mode
         return copy
-    }
-}
-
-// MARK: - Column Content Extraction
-
-extension TableColumn {
-    /// Extracts the display value from an item.
-    ///
-    /// - Parameter item: The data item.
-    /// - Returns: The string to display in this column.
-    func value(for item: Value) -> String {
-        valueExtractor(item)
-    }
-
-    /// This column as the renderer draws it.
-    var spec: _TableColumnSpec<Value> {
-        _TableColumnSpec(
-            title: title, alignment: alignment, width: width,
-            truncationMode: truncationMode, lineLimit: lineLimit,
-            valueExtractor: valueExtractor, namesAProperty: namesAProperty,
-            sortComparator: sortComparator)
-    }
-}
-
-// MARK: - Table Column Builder
-
-/// A result builder for composing table columns.
-@resultBuilder
-public struct TableColumnBuilder<Value> {
-    /// Lifts one column into the partial result every other method speaks in.
-    ///
-    /// This is what makes the rest of the builder compose. Without it
-    /// ``buildBlock(_:)`` had to be variadic over single columns, which no
-    /// `buildEither` / `buildOptional` / `buildArray` result could ever be
-    /// passed back into — so an `if` in a column list did not compile at all,
-    /// however much the methods below looked like it should.
-    public static func buildExpression(_ column: TableColumn<Value>) -> [TableColumn<Value>] {
-        [column]
-    }
-
-    /// Accepts a ready-made group of columns — a computed `[TableColumn]`, or
-    /// the result of a nested builder.
-    public static func buildExpression(_ columns: [TableColumn<Value>]) -> [TableColumn<Value>] {
-        columns
-    }
-
-    /// Concatenates the statements of a block.
-    public static func buildBlock(_ components: [TableColumn<Value>]...) -> [TableColumn<Value>] {
-        components.flatMap { $0 }
-    }
-
-    /// Builds the columns produced by a `for` loop.
-    public static func buildArray(_ components: [[TableColumn<Value>]]) -> [TableColumn<Value>] {
-        components.flatMap { $0 }
-    }
-
-    /// Builds an `if` with no `else` — absent means no columns.
-    public static func buildOptional(_ component: [TableColumn<Value>]?) -> [TableColumn<Value>] {
-        component ?? []
-    }
-
-    /// Builds the first branch of an if-else.
-    public static func buildEither(first component: [TableColumn<Value>]) -> [TableColumn<Value>] {
-        component
-    }
-
-    /// Builds the second branch of an if-else.
-    public static func buildEither(second component: [TableColumn<Value>]) -> [TableColumn<Value>] {
-        component
-    }
-
-    /// Builds the body of an `if #available(…)`.
-    public static func buildLimitedAvailability(
-        _ component: [TableColumn<Value>]
-    ) -> [TableColumn<Value>] {
-        component
     }
 }

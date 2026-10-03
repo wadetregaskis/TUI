@@ -207,7 +207,8 @@ struct TablePage: View {
         }
     }
 
-    @TableColumnBuilder<NoteEntry> private var notesColumns: [TableColumn<NoteEntry>] {
+    @TableColumnBuilder<NoteEntry, Never>
+    private var notesColumns: some TableColumnContent<NoteEntry, Never> {
         TableColumn("#", value: \NoteEntry.index)
             .width(.fixed(5))
             .alignment(.trailing)
@@ -366,8 +367,8 @@ struct TablePage: View {
 
             // Drag-to-reorder, the Table half of the Lists page's `.onMove`
             // section: same state machine, same feedback modes, and here the
-            // modifier goes on the Table (its rows are values, not views, so
-            // there is no ForEach to hang it on).
+            // modifier goes on the Table (a table built from a collection has
+            // no ForEach to hang it on).
             DemoSection("page.table.sortSection") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.table.sortInstruction")
@@ -379,7 +380,7 @@ struct TablePage: View {
                             .width(.flexible)
                         // Shows the "m:ss" string, orders by the Int behind it.
                         TableColumn("page.table.column.length", value: \Track.seconds) {
-                            $0.length
+                            Text($0.length)
                         }
                         .width(.fixed(9))
                         .alignment(.trailing)

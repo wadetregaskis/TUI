@@ -37,7 +37,7 @@ private func createTestContext(width: Int = 80, height: Int = 24) -> RenderConte
 struct TableColumnTests {
     @Test("TableColumn extracts value via key path")
     func keyPathExtraction() {
-        let column = TableColumn<FileInfo>("Name", value: \FileInfo.name)
+        let column = TableColumn("Name", value: \FileInfo.name)
         let file = FileInfo(id: "1", name: "test.txt", size: "1 KB", modified: "2026-01-01")
 
         #expect(column.value(for: file) == "test.txt")
@@ -45,8 +45,8 @@ struct TableColumnTests {
 
     @Test("TableColumn extracts value via closure")
     func closureExtraction() {
-        let column = TableColumn<FileInfo>("Size") { file in
-            "Size: \(file.size)"
+        let column = TableColumn("Size") { (file: FileInfo) in
+            Text(verbatim: "Size: \(file.size)")
         }
         let file = FileInfo(id: "1", name: "test.txt", size: "1 KB", modified: "2026-01-01")
 
@@ -55,19 +55,19 @@ struct TableColumnTests {
 
     @Test("TableColumn defaults to leading alignment")
     func defaultAlignment() {
-        let column = TableColumn<FileInfo>("Name", value: \FileInfo.name)
+        let column = TableColumn("Name", value: \FileInfo.name)
         #expect(column.alignment == .leading)
     }
 
     @Test("TableColumn defaults to flexible width")
     func defaultWidth() {
-        let column = TableColumn<FileInfo>("Name", value: \FileInfo.name)
+        let column = TableColumn("Name", value: \FileInfo.name)
         #expect(column.width == .flexible)
     }
 
     @Test("TableColumn alignment modifier creates new instance")
     func alignmentModifier() {
-        let column = TableColumn<FileInfo>("Size", value: \FileInfo.size)
+        let column = TableColumn("Size", value: \FileInfo.size)
         let aligned = column.alignment(.trailing)
 
         #expect(column.alignment == .leading)
@@ -76,7 +76,7 @@ struct TableColumnTests {
 
     @Test("TableColumn width modifier creates new instance")
     func widthModifier() {
-        let column = TableColumn<FileInfo>("Size", value: \FileInfo.size)
+        let column = TableColumn("Size", value: \FileInfo.size)
         let fixed = column.width(.fixed(10))
 
         #expect(column.width == .flexible)
@@ -85,7 +85,7 @@ struct TableColumnTests {
 
     @Test("TableColumn modifiers can be chained")
     func chainedModifiers() {
-        let column = TableColumn<FileInfo>("Size", value: \FileInfo.size)
+        let column = TableColumn("Size", value: \FileInfo.size)
             .alignment(.trailing)
             .width(.fixed(10))
 
@@ -158,11 +158,11 @@ struct TableRenderingTests {
 
         let table = Table(
             emptyData,
-            selection: Binding(get: { selection }, set: { selection = $0 }),
-            emptyPlaceholder: "No files found"
+            selection: Binding(get: { selection }, set: { selection = $0 })
         ) {
             TableColumn("Name", value: \FileInfo.name)
         }
+        .tableEmptyPlaceholder("No files found")
 
         let buffer = renderToBuffer(table, context: context)
         let content = buffer.lines.map { $0.stripped }.joined()

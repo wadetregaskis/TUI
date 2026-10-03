@@ -70,7 +70,7 @@ struct FileBrowserApp: View {
                     Table(sorted, selection: $selection, sortOrder: $order) {
                         TableColumn("Name", value: \FileEntry.name).width(.fit)
                         TableColumn("Kind", value: \FileEntry.kind).width(.fixed(18))
-                        TableColumn("Size", value: \FileEntry.bytes) { $0.size }
+                        TableColumn("Size", value: \FileEntry.bytes) { Text(verbatim: $0.size) }
                             .width(.fixed(12)).alignment(.trailing)
                         TableColumn("Modified", value: \FileEntry.stamp).width(.fixed(22))
                     }
@@ -201,16 +201,16 @@ struct ProcessMonitorApp: View {
             }
             Divider()
             Table(sorted, selection: $selection, sortOrder: $order) {
-                TableColumn("PID", value: \ProcSample.id) { "\($0.id)" }
+                TableColumn("PID", value: \ProcSample.id) { Text(verbatim: "\($0.id)") }
                     .width(.fixed(6)).alignment(.trailing)
                 TableColumn("Command", value: \ProcSample.command)
                 TableColumn("User", value: \ProcSample.user).width(.fixed(10))
-                TableColumn("CPU%", value: \ProcSample.cpu) { $0.cpuText }
+                TableColumn("CPU%", value: \ProcSample.cpu) { Text(verbatim: $0.cpuText) }
                     .width(.fixed(7)).alignment(.trailing)
                 TableColumn("", value: \ProcSample.bar).width(.fixed(12))
-                TableColumn("Memory", value: \ProcSample.resident) { $0.memory }
+                TableColumn("Memory", value: \ProcSample.resident) { Text(verbatim: $0.memory) }
                     .width(.fixed(11)).alignment(.trailing)
-                TableColumn("Thr", value: \ProcSample.threads) { "\($0.threads)" }
+                TableColumn("Thr", value: \ProcSample.threads) { Text(verbatim: "\($0.threads)") }
                     .width(.fixed(4)).alignment(.trailing)
                 TableColumn("State", value: \ProcSample.state).width(.fixed(9))
             }

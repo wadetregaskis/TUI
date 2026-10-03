@@ -106,8 +106,8 @@ private struct AlphaRampsView: View {
                     // And a table under the diagonal ramp — the row renderer's
                     // own copy of the per-cell walk.
                     Table(Self.tableRows(seed: config.seed, count: config.sized(40))) {
-                        TableColumn("Name") { $0.name }
-                        TableColumn("Status") { $0.status }
+                        TableColumn("Name") { Text(verbatim: $0.name) }
+                        TableColumn("Status") { Text(verbatim: $0.status) }
                     }
                     .foregroundStyle(
                         LinearGradient(

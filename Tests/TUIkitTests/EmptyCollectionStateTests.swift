@@ -95,7 +95,7 @@ struct EmptyCollectionStateTests {
             AnyView(
                 VStack {
                     Table(values.map(Row.init), selection: .constant(nil)) {
-                        TableColumn("n") { (row: Row) in "\(row.id)" }
+                        TableColumn("n") { (row: Row) in Text(verbatim: "\(row.id)") }
                     }
                     Button("elsewhere") {}
                 })
@@ -108,7 +108,7 @@ struct EmptyCollectionStateTests {
         let handler = handlerAfterEmptying(Int.self) { values in
             AnyView(
                 Table(values.map(Row.init), selection: .constant(nil)) {
-                    TableColumn("n") { (row: Row) in "\(row.id)" }
+                    TableColumn("n") { (row: Row) in Text(verbatim: "\(row.id)") }
                 })
         }
         #expect(handler?.visibleRowBands.isEmpty == true, "the emptied Table kept its bands")

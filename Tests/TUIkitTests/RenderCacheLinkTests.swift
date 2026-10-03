@@ -57,7 +57,7 @@ private struct EveryHolder: View {
             Text("hover me").help("about it")
             List { ForEach(0..<5, id: \.self) { Text("row \($0)") } }
                 .frame(height: 3)
-            Table((0..<3).map(Project.init(id:))) { TableColumn("Name") { $0.name } }
+            Table((0..<3).map(Project.init(id:))) { TableColumn("Name") { Text(verbatim: $0.name) } }
                 .frame(height: 3)
             ScrollViewReader { _ in
                 ScrollView { VStack(spacing: 0) { ForEach(0..<10, id: \.self) { Text("line \($0)") } } }

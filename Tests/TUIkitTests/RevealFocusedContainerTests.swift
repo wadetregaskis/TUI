@@ -61,7 +61,7 @@ struct RevealFocusedContainerTests {
             VStack(alignment: .leading, spacing: 1) {
                 ForEach(0..<4, id: \.self) { table in
                     Table(Self.items(table: table), selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("Label") { (row: Item) in row.label }
+                        TableColumn("Label") { (row: Item) in Text(verbatim: row.label) }
                     }
                 }
             }

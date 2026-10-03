@@ -79,33 +79,63 @@ struct TableColumnBuilderTests {
         #expect(headerTitles(of: table(detailed: false)) == ["Name", "Kind"])
     }
 
-    @Test("A loop contributes one column per iteration")
-    func loopColumns() {
+    /// A column builder has no `for`, in SwiftUI or here: a column per
+    /// element of some data is `TableColumnForEach`'s.
+    @Test("TableColumnForEach contributes one column per element")
+    func columnForEach() {
+        let titles = ["Name", "Size", "Kind"]
         let table = Table(Self.rows, selection: .constant(Int?.none)) {
-            for title in ["Name", "Size", "Kind"] {
-                TableColumn(title, value: { (row: Row) in
-                    switch title {
-                    case "Name": return row.name
-                    case "Size": return row.size
-                    default: return row.kind
-                    }
-                })
+            TableColumnForEach(titles.indices) { index in
+                TableColumn(titles[index]) { (row: Row) in
+                    Text(verbatim: [row.name, row.size, row.kind][index])
+                }
             }
         }
         #expect(headerTitles(of: table) == ["Name", "Size", "Kind"])
     }
 
-    /// A group computed outside the builder — the shape a caller reaches for
-    /// when several tables share a set of columns.
-    @Test("A computed array of columns can be spliced in")
-    func computedGroup() {
-        let shared = [
-            TableColumn("Size", value: \Row.size),
-            TableColumn("Kind", value: \Row.kind),
-        ]
+    @Test("TableColumnForEach over identified data, beside fixed columns")
+    func columnForEachIdentified() {
+        struct Field: Identifiable {
+            let id: String
+            let read: @Sendable (Row) -> String
+        }
+        let fields = [Field(id: "Size") { $0.size }, Field(id: "Kind") { $0.kind }]
         let table = Table(Self.rows, selection: .constant(Int?.none)) {
             TableColumn("Name", value: \Row.name)
-            shared
+            TableColumnForEach(fields) { field in
+                TableColumn(field.id) { (row: Row) in Text(verbatim: field.read(row)) }
+            }
+        }
+        #expect(headerTitles(of: table) == ["Name", "Size", "Kind"])
+    }
+
+    /// Columns factored out of the table — the shape a caller reaches for when
+    /// several tables share a set of columns — are a builder property, as in
+    /// SwiftUI.
+    @TableColumnBuilder<Row, Never>
+    private var sharedColumns: some TableColumnContent<Row, Never> {
+        TableColumn("Size", value: \Row.size)
+        TableColumn("Kind", value: \Row.kind)
+    }
+
+    @Test("Columns from a builder property can be spliced in")
+    func computedGroup() {
+        let table = Table(Self.rows, selection: .constant(Int?.none)) {
+            TableColumn("Name", value: \Row.name)
+            sharedColumns
+        }
+        #expect(headerTitles(of: table) == ["Name", "Size", "Kind"])
+    }
+
+    @Test("A Group of columns contributes its columns in place")
+    func groupedColumns() {
+        let table = Table(Self.rows, selection: .constant(Int?.none)) {
+            Group {
+                TableColumn("Name", value: \Row.name)
+                TableColumn("Size", value: \Row.size)
+            }
+            TableColumn("Kind", value: \Row.kind)
         }
         #expect(headerTitles(of: table) == ["Name", "Size", "Kind"])
     }

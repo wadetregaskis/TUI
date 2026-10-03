@@ -157,6 +157,10 @@ struct MyApp: App {
 - ``List``
 - ``Table``
 - ``TableColumn``
+- ``TableColumnContent``
+- ``TableColumnBuilder``
+- ``TableColumnForEach``
+- ``TupleTableColumnContent``
 - ``ColumnWidth``
 - ``SelectionMode``
 - ``RowReorderFeedback``

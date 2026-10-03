@@ -39,7 +39,7 @@ struct TableMultiLinePageTests {
         let ids = Set(rows.map(\.id))
         func render() -> FrameBuffer {
             let table = Table(rows, selection: .constant(String?.none)) {
-                TableColumn<Row>("Name", value: \.text).lineLimit(3)
+                TableColumn("Name", value: \.text).lineLimit(3)
             }
             .frame(width: 22, height: 8)
             var context = RenderContext(

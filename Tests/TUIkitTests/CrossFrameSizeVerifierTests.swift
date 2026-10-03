@@ -76,9 +76,9 @@ struct CrossFrameSizeVerifierTests {
     /// second column's header lands where the first column ends.
     private func fittedTable(_ prefix: Prefix) -> some View {
         Table(items, selection: Binding<Int?>.constant(nil)) {
-            TableColumn("Name") { (item: Item) -> String in prefix.text + item.name }
+            TableColumn("Name") { (item: Item) in Text(verbatim: prefix.text + item.name) }
                 .width(.fit)
-            TableColumn("ID") { (item: Item) in "\(item.id)" }
+            TableColumn("ID") { (item: Item) in Text(verbatim: "\(item.id)") }
         }
     }
 

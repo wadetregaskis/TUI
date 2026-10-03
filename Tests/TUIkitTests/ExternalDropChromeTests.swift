@@ -53,7 +53,7 @@ struct ExternalDropChromeTests {
             let view = Table(
                 ["a", "b", "c"].map(TableReorderRow.init), selection: .constant(String?.none)
             ) {
-                TableColumn<TableReorderRow>("Name", value: \.name)
+                TableColumn("Name", value: \.name)
             }
             .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
             .frame(width: 20, height: 9)
