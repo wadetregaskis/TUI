@@ -264,6 +264,14 @@ extension ForEach: FormContentExtractor {
     }
 }
 
+/// A form reads its rows through an erasure, as through a `Group` — which is
+/// what lets ``Form/init(_:)`` lay out a configuration's type-erased content.
+extension AnyView: FormContentExtractor {
+    func extractFormElements() -> [_FormElement] {
+        formElements(from: erasedView)
+    }
+}
+
 extension EmptyView: FormContentExtractor {
     func extractFormElements() -> [_FormElement] { [] }
 }
@@ -439,8 +447,12 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let composed = composedColumn(context: context) else {
             // Custom style: hand it the (type-erased) content to render itself.
+            // The body sees the style outside this one, so a `Form(configuration)`
+            // in it lays the form out as that style would.
+            var bodyContext = context
+            bodyContext.environment.formStyleChain = context.environment.formStyleChain.inside
             return context.environment.formStyle.makeBuffer(
-                configuration: FormStyleConfiguration(content: AnyView(content)), context: context)
+                configuration: FormStyleConfiguration(content: AnyView(content)), context: bodyContext)
         }
         return TUIkit.renderToBuffer(composed, context: context)
     }
@@ -542,5 +554,20 @@ private struct _FormFieldRow: View {
                 content
             }
         }
+    }
+}
+
+// MARK: - From a Configuration
+
+extension Form where Content == FormStyleConfiguration.Content {
+    /// Creates a form based on a form style configuration.
+    ///
+    /// Use it inside a ``FormStyle``'s ``FormStyle/makeBody(configuration:)``
+    /// to lay the form out as the style outside the custom one would, and add
+    /// to it.
+    ///
+    /// - Parameter configuration: The properties of the form.
+    public init(_ configuration: FormStyleConfiguration) {
+        self.init { configuration.content }
     }
 }

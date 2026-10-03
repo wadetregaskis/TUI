@@ -131,6 +131,11 @@ public struct AnyView: View {
     public var body: Never {
         fatalError("AnyView renders via Renderable")
     }
+
+    /// The view this one erases — for a container that reads its content's
+    /// structure (a `Form`'s rows) to see through the erasure, as it sees
+    /// through a `Group`.
+    package var erasedView: any View { view }
 }
 
 // MARK: - ConditionalView's Value

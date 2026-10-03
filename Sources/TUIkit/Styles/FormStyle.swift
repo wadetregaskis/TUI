@@ -79,13 +79,6 @@ public protocol FormStyle: Sendable {
 }
 
 extension FormStyle {
-    /// Default body for the built-in marker styles, which ``Form`` lays out
-    /// directly (it needs the form's concrete content type to extract its
-    /// label/control rows, which the type-erased configuration can't provide).
-    /// A custom style overrides this.
-    @MainActor public func makeBody(configuration: Configuration) -> EmptyView {
-        EmptyView()
-    }
 
     /// Renders this style's body for `configuration` into a frame buffer. Opens
     /// the `any FormStyle` existential so ``makeBody(configuration:)`` can return
@@ -102,8 +95,11 @@ extension FormStyle {
 /// active style's ``FormStyle/makeBody(configuration:)``. Mirrors SwiftUI's
 /// `FormStyleConfiguration`.
 public struct FormStyleConfiguration {
-    /// The form's content, type-erased.
-    public let content: AnyView
+    /// A type-erased content of a form.
+    public typealias Content = AnyView
+
+    /// A view that is the content of the form.
+    public let content: Content
 }
 
 // MARK: - Built-in Form Styles
@@ -114,6 +110,13 @@ public struct FormStyleConfiguration {
 /// `Equatable` for the reason given under ``FormStyle``: a memo below a value the
 /// render cache cannot compare declines to cache.
 public struct AutomaticFormStyle: FormStyle, Equatable {
+    /// The form, laid out in this style — what a style composing this one
+    /// draws. ``Form`` lays a built-in style out itself, reading the rows out
+    /// of the content, which it can do through the configuration's erasure.
+    public func makeBody(configuration: Configuration) -> some View {
+        Form(configuration).formStyle(self)
+    }
+
     /// Creates an automatic form style.
     public init() {}
 }
@@ -125,6 +128,13 @@ public struct AutomaticFormStyle: FormStyle, Equatable {
 /// `Equatable` on the same terms as ``AutomaticFormStyle``. Laying out identically
 /// to it does not make it compare equal to it — see ``FormStyle``.
 public struct ColumnsFormStyle: FormStyle, Equatable {
+    /// The form, laid out in this style — what a style composing this one
+    /// draws. ``Form`` lays a built-in style out itself, reading the rows out
+    /// of the content, which it can do through the configuration's erasure.
+    public func makeBody(configuration: Configuration) -> some View {
+        Form(configuration).formStyle(self)
+    }
+
     /// Creates a columns form style.
     public init() {}
 }
@@ -136,6 +146,13 @@ public struct ColumnsFormStyle: FormStyle, Equatable {
 /// that earns the cross-type comparison: replacing it with either of the others
 /// takes the section borders away.
 public struct GroupedFormStyle: FormStyle, Equatable {
+    /// The form, laid out in this style — what a style composing this one
+    /// draws. ``Form`` lays a built-in style out itself, reading the rows out
+    /// of the content, which it can do through the configuration's erasure.
+    public func makeBody(configuration: Configuration) -> some View {
+        Form(configuration).formStyle(self)
+    }
+
     /// Creates a grouped form style.
     public init() {}
 }
@@ -161,7 +178,7 @@ extension FormStyle where Self == GroupedFormStyle {
 
 /// Environment key for the form style.
 private struct FormStyleKey: EnvironmentKey {
-    static let defaultValue: any FormStyle = AutomaticFormStyle()
+    static let defaultValue = StyleChain<any FormStyle>(AutomaticFormStyle())
 }
 
 extension EnvironmentValues {
@@ -174,6 +191,13 @@ extension EnvironmentValues {
     /// The built-in styles are `Equatable` so that a memo below one can still
     /// store — see ``FormStyle`` for why the render cache has to ask.
     public var formStyle: any FormStyle {
+        get { self[FormStyleKey.self].style }
+        set { self[FormStyleKey.self] = self[FormStyleKey.self].pushing(newValue) }
+    }
+
+    /// The style in force and the ones outside it — what ``Form/init(_:)``
+    /// inside a custom style's body lays out with. See ``StyleChain``.
+    var formStyleChain: StyleChain<any FormStyle> {
         get { self[FormStyleKey.self] }
         set { self[FormStyleKey.self] = newValue }
     }
