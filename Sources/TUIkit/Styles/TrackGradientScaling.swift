@@ -73,7 +73,7 @@ extension View {
     ///
     /// ```swift
     /// ProgressView(value: load)
-    ///     .progressViewStyle(.shadeRamp(gradient: [.green, .yellow, .red]))
+    ///     .trackStyle(.shadeRamp(gradient: [.green, .yellow, .red]))
     ///     .trackGradientScaling(.track)   // red always means "near full"
     /// ```
     ///
@@ -100,7 +100,7 @@ extension View {
     ///
     /// ```swift
     /// ProgressView(value: load)
-    ///     .progressViewStyle(.custom(configuration))  // a fill ramp and a background one
+    ///     .trackStyle(.custom(configuration))  // a fill ramp and a background one
     ///     .trackGradientScaling(fill: .track, background: .region)
     /// ```
     ///

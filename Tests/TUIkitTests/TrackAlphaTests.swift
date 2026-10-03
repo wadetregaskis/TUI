@@ -272,7 +272,7 @@ struct TrackAlphaTests {
         // all. The styles that take the accent are `.dot`, `.knob` and `.marker`.
         let drawn = renderToBuffer(
             ProgressView(value: 0.5) { Text("Loading") }
-                .progressViewStyle(.knob)
+                .trackStyle(.knob)
                 .tint(Color.red.opacity(0.5)),
             context: context)
         // The bar is below the label, so a claim on row 0 would fade the label instead

@@ -399,7 +399,7 @@ struct ProgressViewPage: View {
             VStack(alignment: .leading, spacing: 1) {
                 let fraction = demoFraction
                 ProgressView("page.progressView.downloadingFiles", value: fraction)
-                    .progressViewStyle(style)
+                    .trackStyle(style)
 
                 ProgressView(value: fraction) {
                     Text("page.progressView.buildProgress")
@@ -408,7 +408,7 @@ struct ProgressViewPage: View {
                     Text("\(Int((fraction * 100).rounded()))%")
                         .foregroundStyle(.palette.foregroundSecondary)
                 }
-                .progressViewStyle(style)
+                .trackStyle(style)
             }
         }
     }
@@ -444,7 +444,7 @@ struct ProgressViewPage: View {
         HStack(spacing: 1) {
             Text(label).dim()
             ProgressView(value: demoFraction)
-                .progressViewStyle(style)
+                .trackStyle(style)
                 .frame(width: 24)
         }
     }

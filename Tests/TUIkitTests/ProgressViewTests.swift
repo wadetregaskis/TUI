@@ -139,7 +139,7 @@ struct ProgressViewStyleTests {
 
     @Test("Block style uses █ fill and a background-painted (space) empty run")
     func blockStyleWholeBlocks() {
-        let view = ProgressView(value: 0.33).progressViewStyle(.block)
+        let view = ProgressView(value: 0.33).trackStyle(.block)
         let context = testContext(width: 10)
         let buffer = renderToBuffer(view, context: context)
 
@@ -155,7 +155,7 @@ struct ProgressViewStyleTests {
     @Test("BlockFine style uses fractional blocks for sub-character precision")
     func blockFineStyleFractionalBlocks() {
         // 33% of 10 = 3.3 cells → 3 full + fractional
-        let view = ProgressView(value: 0.33).progressViewStyle(.blockFine)
+        let view = ProgressView(value: 0.33).trackStyle(.blockFine)
         let context = testContext(width: 10)
         let buffer = renderToBuffer(view, context: context)
 
@@ -167,7 +167,7 @@ struct ProgressViewStyleTests {
 
     @Test("Shade style uses ▓ and ░ characters")
     func shadeStyleCharacters() {
-        let view = ProgressView(value: 0.5).progressViewStyle(.shade)
+        let view = ProgressView(value: 0.5).trackStyle(.shade)
         let context = testContext(width: 20)
         let buffer = renderToBuffer(view, context: context)
 
@@ -181,7 +181,7 @@ struct ProgressViewStyleTests {
         // #2: the unfilled portion is a consistent background colour (rendered
         // as spaces) rather than ░ glyphs, so the boundary cell's remainder and
         // the empty run read as one solid bar.
-        let view = ProgressView(value: 0.4).progressViewStyle(.blockFine)
+        let view = ProgressView(value: 0.4).trackStyle(.blockFine)
         let barLine = renderToBuffer(view, context: testContext(width: 20)).lines[0].stripped
         #expect(!barLine.contains("░"), "blockFine no longer draws ░ for the unfilled region: '\(barLine)'")
         #expect(barLine.hasSuffix(" "), "the unfilled remainder is trailing spaces: '\(barLine)'")
@@ -242,10 +242,10 @@ struct ProgressViewStyleTests {
         // #3: `.shade` (▓ on ░) reads close to `.block`; `.shadeRamp` is the
         // visibly graded style — the demos point here. Confirm they differ.
         let ramp = renderToBuffer(
-            ProgressView(value: 0.5).progressViewStyle(.shadeRamp()),
+            ProgressView(value: 0.5).trackStyle(.shadeRamp()),
             context: testContext(width: 20)).lines[0].stripped
         let shade = renderToBuffer(
-            ProgressView(value: 0.5).progressViewStyle(.shade),
+            ProgressView(value: 0.5).trackStyle(.shade),
             context: testContext(width: 20)).lines[0].stripped
         #expect(ramp.contains("·"), "shadeRamp uses · dots for empty: '\(ramp)'")
         #expect(!ramp.contains("░"), "shadeRamp does not use ░ for empty: '\(ramp)'")
@@ -263,10 +263,10 @@ struct ProgressViewStyleTests {
             fullGlyph: "█", leadingEdge: ["░", "▒", "▓"], background: .solid)
 
         let dotsBar = renderToBuffer(
-            ProgressView(value: 0.3).progressViewStyle(.custom(dotsForEmpty)),
+            ProgressView(value: 0.3).trackStyle(.custom(dotsForEmpty)),
             context: testContext(width: 20)).lines[0].stripped
         let bgBar = renderToBuffer(
-            ProgressView(value: 0.3).progressViewStyle(.custom(bgForEmpty)),
+            ProgressView(value: 0.3).trackStyle(.custom(bgForEmpty)),
             context: testContext(width: 20)).lines[0].stripped
 
         #expect(dotsBar.contains("░"), "custom .glyph(\"░\") empty draws ░: '\(dotsBar)'")
@@ -276,7 +276,7 @@ struct ProgressViewStyleTests {
 
     @Test("Bar style uses ▌ and ─ characters")
     func barStyleCharacters() {
-        let view = ProgressView(value: 0.5).progressViewStyle(.bar)
+        let view = ProgressView(value: 0.5).trackStyle(.bar)
         let context = testContext(width: 20)
         let buffer = renderToBuffer(view, context: context)
 
@@ -287,7 +287,7 @@ struct ProgressViewStyleTests {
 
     @Test("Dot style uses ▬, ● head, and ─ characters")
     func dotStyleCharacters() {
-        let view = ProgressView(value: 0.5).progressViewStyle(.dot)
+        let view = ProgressView(value: 0.5).trackStyle(.dot)
         let context = testContext(width: 20)
         let buffer = renderToBuffer(view, context: context)
 
@@ -299,7 +299,7 @@ struct ProgressViewStyleTests {
 
     @Test("Style modifier returns correct style")
     func styleModifierWorks() {
-        let view = ProgressView(value: 0.5).progressViewStyle(.shade)
+        let view = ProgressView(value: 0.5).trackStyle(.shade)
         #expect(view.style == .shade)
     }
 
@@ -309,7 +309,7 @@ struct ProgressViewStyleTests {
         let context = testContext(width: 20)
 
         for style in styles {
-            let view = ProgressView(value: 0.5).progressViewStyle(style)
+            let view = ProgressView(value: 0.5).trackStyle(style)
             let buffer = renderToBuffer(view, context: context)
             let barLine = buffer.lines[0].stripped
             #expect(barLine.count == 20, "Style \(style) should render width 20, got \(barLine.count)")
@@ -318,7 +318,7 @@ struct ProgressViewStyleTests {
 
     @Test("Dot style at 0% shows the head at the start of an empty track")
     func dotStyleZeroPercent() {
-        let view = ProgressView(value: 0.0).progressViewStyle(.dot)
+        let view = ProgressView(value: 0.0).trackStyle(.dot)
         let context = testContext(width: 10)
         let buffer = renderToBuffer(view, context: context)
 
@@ -332,7 +332,7 @@ struct ProgressViewStyleTests {
 
     @Test("Dot style at 100% shows head at end")
     func dotStyleFullPercent() {
-        let view = ProgressView(value: 1.0).progressViewStyle(.dot)
+        let view = ProgressView(value: 1.0).trackStyle(.dot)
         let context = testContext(width: 10)
         let buffer = renderToBuffer(view, context: context)
 

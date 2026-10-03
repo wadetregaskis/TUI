@@ -46,7 +46,7 @@ extension View {
     ///
     /// ```swift
     /// ProgressView(value: 0.4)
-    ///     .progressViewStyle(.gradient)
+    ///     .trackStyle(.gradient)
     ///     .gradientGraphics(false)   // the cells are the look
     /// ```
     ///

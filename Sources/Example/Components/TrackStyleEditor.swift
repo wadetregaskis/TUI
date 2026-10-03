@@ -242,7 +242,7 @@ struct TrackStyleEditor: View {
             switch preview {
             case .progress:
                 ProgressView(value: animatedFraction)
-                    .progressViewStyle(.custom(configuration))
+                    .trackStyle(.custom(configuration))
                     .frame(maxWidth: .infinity)
                     .trackGradientScaling(
                         fill: fillSpansTrack ? .track : .region,

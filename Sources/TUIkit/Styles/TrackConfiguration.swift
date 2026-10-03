@@ -20,7 +20,7 @@
 /// ```swift
 /// // A shade-ramp fill, but with a solid background:
 /// ProgressView(value: 0.6)
-///     .progressViewStyle(.custom(
+///     .trackStyle(.custom(
 ///         TrackConfiguration(fullGlyph: "█", leadingEdge: ["░", "▒", "▓"],
 ///                            background: .solid)))
 /// ```

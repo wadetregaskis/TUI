@@ -397,10 +397,6 @@
       "tuikit": "CoordinateSpace.local",
       "why": "Sources/TUIkit/Views/GeometryReader.swift:99-100 — `case local`, \"Relative to the GeometryReader itself, whose origin is (0, 0)\", consumed by `frame(in:)` at :49-58 where it is documented as \"always exact\". SwiftUI's struct is just the protocol-based spelling of the same case."
     },
-    "ProgressViewStyleConfiguration": {
-      "tuikit": "TrackConfiguration",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Styles/TrackConfiguration.swift — the configurable description of a progress track (fill/unfill glyph cycles, ramp, gradient) that `.custom(_:)` accepts. It describes the RENDERING rather than handing back a `label`/`fractionCompleted`"
-    },
     "ProposedViewSize": {
       "tuikit": "ProposedSize",
       "why": "Sources/TUIkitCore/Rendering/LayoutTypes.swift:16 — `public struct ProposedSize` with `width: Int?` / `height: Int?` and `.unspecified` / `.fixed(_:_:)`. Same role and same nil-means-ideal semantics as `ProposedViewSize`, in cells rather than CGFloat per §2.2. It is what `Layout."
@@ -842,17 +838,9 @@
       "how": "Renderable + FrameBuffer",
       "why": "The immediate-mode drawing surface is a protocol conformance: public protocol Renderable { func renderToBuffer(context: RenderContext) -> FrameBuffer } (Sources/TUIkitView/Rendering/Renderable.swift:53-64), with FrameBuffer's public inits (Sources/TUIkitCore/Rendering/FrameBuffer"
     },
-    "CircularProgressViewStyle": {
-      "how": "Spinner / SpinnerStyle (indeterminate); GaugeStyle.accessoryCircular (determinate dial)",
-      "why": "Sources/TUIkit/Views/Spinner.swift (SpinnerStyle: .dots/.line/.pie/.moon/.clock/…) is SwiftUI's circular ProgressView — the indeterminate spinner — and `GaugeStyle.accessoryCircular`/`.accessoryCircularCapacity` (Sources/TUIkit/Views/Gauge.swift) draws a determinate dial. A true "
-    },
     "DefaultPickerStyle": {
       "how": "PickerStyle.automatic / AutomaticPickerStyle",
       "why": "Sources/TUIkit/Styles/PickerStyle.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
-    },
-    "DefaultProgressViewStyle": {
-      "how": "TrackStyle's default preset",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/ProgressView.swift (default TrackStyle when `.progressViewStyle` is not called)."
     },
     "DefaultTabLabel": {
       "how": "Tab.title (String)",
@@ -914,10 +902,6 @@
       "how": "Int factor 1...4 on View.imageSupersampling(_:)",
       "why": "SwiftUI's .none/.low/.medium/.high becomes a clamped Int supersampling factor with a nil default that adapts to the ramp length (Sources/TUIkit/Views/Image.swift:336-340), alongside DitheringMode (.floydSteinberg/.none, Sources/TUIkitImage/ASCIIConverter.swift:169-175). The enum "
     },
-    "LinearProgressViewStyle": {
-      "how": "TrackStyle linear presets (e.g. .block, .blockFine, .shade)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/ProgressView.swift:223 with the TrackStyle enum — a horizontal cell track is the terminal's linear bar, and the preset chooses its glyph ramp."
-    },
     "LinkShapeStyle": {
       "how": "Link's accent colour + \\.linkUnderline",
       "why": "Link labels are drawn .foregroundStyle(.palette.accent) and underlined (Sources/TUIkit/Views/Link.swift:134-135), with the underline made a subtree setting via \\.linkUnderline / View.linkUnderline(_:) (Link.swift:80-105). TUIkit underlines by default because in a terminal colour "
@@ -941,10 +925,6 @@
     "PlaceholderTextShapeStyle": {
       "how": "Palette.foregroundTertiary (as the field-prompt colour)",
       "why": "A TextField/SecureField prompt is drawn in palette.foregroundTertiary — Sources/TUIkit/Rendering/TextFieldContentRenderer.swift:174 (buildPromptContent). The role exists as a palette colour rather than as a ShapeStyle you can hand to .foregroundStyle."
-    },
-    "ProgressViewStyle": {
-      "how": "TrackStyle (+ TrackConfiguration)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/ProgressView.swift:223 takes `TrackStyle`; the presets are configurations of `TrackConfiguration` (Sources/TUIkit/Styles/TrackConfiguration.swift), with `.custom(_:)` exposing glyphs, sub-cell ramp, unfilled background and gradie"
     },
     "ScrollBounceBehavior": {
       "how": "ScrollOverscroll (+ ScrollOverscrollState)",

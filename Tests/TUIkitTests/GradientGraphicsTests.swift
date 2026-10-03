@@ -311,12 +311,12 @@ struct GradientPictureTests {
     @Test("A block progress bar is a picture, and a shaded one keeps its glyphs")
     func progressBarPictures() {
         let block = KittyGraphics.withSupport(true) {
-            rendered(ProgressView(value: 0.5).progressViewStyle(.block), height: 1)
+            rendered(ProgressView(value: 0.5).trackStyle(.block), height: 1)
         }
         #expect(placeholders(block.buffer) == 20)
         #expect(block.store.imageCount == 1)
         let shade = KittyGraphics.withSupport(true) {
-            rendered(ProgressView(value: 0.5).progressViewStyle(.shade), height: 1)
+            rendered(ProgressView(value: 0.5).trackStyle(.shade), height: 1)
         }
         #expect(placeholders(shade.buffer) == 0)
         #expect(shade.buffer.lines[0].stripped.contains("▓"))
@@ -399,8 +399,8 @@ struct GradientPictureTests {
     @Test("Two identical bars share one picture")
     func identicalBarsShare() {
         let two = VStack {
-            ProgressView(value: 0.5).progressViewStyle(.block)
-            ProgressView(value: 0.5).progressViewStyle(.block)
+            ProgressView(value: 0.5).trackStyle(.block)
+            ProgressView(value: 0.5).trackStyle(.block)
         }
         let (buffer, store) = KittyGraphics.withSupport(true) { rendered(two, height: 2) }
         #expect(placeholders(buffer) == 40)
@@ -428,7 +428,7 @@ struct GradientPictureTests {
         }()
         let views: [(name: String, view: AnyView)] = [
             ("a ramp", AnyView(LinearGradient(colors: [.rgb(255, 4, 3), ink], startPoint: .leading, endPoint: .trailing))),
-            ("a block bar", AnyView(ProgressView(value: 0.5).progressViewStyle(.block))),
+            ("a block bar", AnyView(ProgressView(value: 0.5).trackStyle(.block))),
             ("a sweep", AnyView(ProgressView().indeterminateStyle(.gradient()))),
         ]
         for (name, view) in views {

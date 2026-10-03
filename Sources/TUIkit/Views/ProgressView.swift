@@ -26,14 +26,16 @@ import Foundation
 ///
 /// ## Styles
 ///
-/// Set the style via the `progressViewStyle(_:)` modifier:
+/// ``View/progressViewStyle(_:)`` picks the style, as in SwiftUI — `.linear`
+/// (the default) or `.circular`, or one of your own. The track a linear bar is
+/// drawn with is TUI-specific, and set with ``trackStyle(_:)``:
 ///
 /// ```swift
 /// ProgressView(value: 0.5)
-///     .progressViewStyle(.shade)
+///     .trackStyle(.shade)
 /// ```
 ///
-/// See ``TrackStyle`` for all available styles.
+/// See ``TrackStyle`` for all available tracks.
 ///
 /// ## Examples
 ///
@@ -125,21 +127,17 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
             // bar and a default label move on whole seconds, as a timer's text
             // does, and a finished timer stops asking for frames.
             TimelineView(TimerIntervalSchedule(start: timerStart, end: timerEnd)) { timeline in
-                _ProgressViewCore(
-                    fractionCompleted: timerFraction(at: timeline.date),
-                    style: style,
-                    label: label,
-                    currentValueLabel: currentValueLabel
-                )
+                styled(fractionCompleted: timerFraction(at: timeline.date))
             }
         } else {
-            _ProgressViewCore(
-                fractionCompleted: fractionCompleted,
-                style: style,
-                label: label,
-                currentValueLabel: currentValueLabel
-            )
+            styled(fractionCompleted: fractionCompleted)
         }
+    }
+
+    /// The progress drawn through the style in force.
+    private func styled(fractionCompleted: Double?) -> _StyledProgressView<Label, CurrentValueLabel> {
+        _StyledProgressView(
+            fractionCompleted: fractionCompleted, track: style, label: label, currentValueLabel: currentValueLabel)
     }
 
     /// How far through the timer interval `date` is — what is left of it when
@@ -297,19 +295,23 @@ extension ProgressView where Label == Text, CurrentValueLabel == EmptyView {
     }
 }
 
-// MARK: - Style Modifier
+// MARK: - Track
 
 extension ProgressView {
-    /// Sets the visual style of the progress view.
+    /// Sets the track a linear progress view's bar is drawn with — TUI-specific,
+    /// as ``Slider/trackStyle(_:)`` is for a slider.
     ///
     /// ```swift
     /// ProgressView(value: 0.5)
-    ///     .progressViewStyle(.shade)
+    ///     .trackStyle(.shade)
     /// ```
     ///
-    /// - Parameter style: The progress view style.
-    /// - Returns: A progress view with the specified style.
-    public func progressViewStyle(_ style: TrackStyle) -> ProgressView {
+    /// The linear styles (`.automatic`, `.linear`) draw with it; the circular
+    /// style and a custom one choose their own drawing.
+    ///
+    /// - Parameter style: The track.
+    /// - Returns: A progress view drawn with the specified track.
+    public func trackStyle(_ style: TrackStyle) -> ProgressView {
         var copy = self
         copy.style = style
         return copy
@@ -349,7 +351,7 @@ private enum ProgressStateIndex {
 }
 
 /// Internal view that handles the actual rendering of ProgressView.
-private struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable, Layoutable {
+struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable, Layoutable {
     // Laid out as `ProgressView` is, and for its reason.
     private let fraction: Double
     let style: TrackStyle
