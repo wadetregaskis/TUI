@@ -12,7 +12,7 @@ for review once the straightforward work is done.*
 
 | | |
 |---|---|
-| SwiftUI live public symbols (macOS) | 6,759 |
+| SwiftUI live public symbols (macOS) | 6,759 (6,767 once synthesized `Codable` members count) |
 | TUIkit live public symbols | 4,317 |
 | explained absences (`parity-map.json`) | 3,551 |
 | **unexplained gaps** | **2,022** |
@@ -129,4 +129,5 @@ and every one of the 2,022 symbols lands in exactly one wave.
 
 | Wave | Status | Gaps closed | Notes |
 |---|---|---:|---|
-| 01 | not started | | |
+| 01 | done | 1 dev. | Only `onHover(perform:)` was a pure relabel. `border(_:width:)` always compiled (a tool bug, fixed). The other 18 "deviations" are missing overloads and moved to their families' waves. |
+| 02 | done | 93 | The parity tool now reads synthesized `Codable`/`RawRepresentable` members. Moved on: `ModifiedContent` → 04; `Never.Value`/`Optional.Value` (keyframes) → 12; `listRowSeparatorLeading/Trailing` → 08; `KeyEquivalent.clear` and `EventModifiers.capsLock` → 07 (they need the input parser). |
