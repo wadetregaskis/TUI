@@ -1,8 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  MediumGuaranteedModifierTests.swift
 //
-//  `monospaced(_:)`, `monospacedDigit()` and `autocorrectionDisabled(_:)`
-//  return `self`. Asserting THAT would prove nothing — every unimplemented
+//  `monospaced(_:)`, `monospacedDigit()`, `autocorrectionDisabled(_:)`,
+//  `geometryGroup()`, `containerCornerOffset(_:sizeToFit:)` and
+//  `flipsForRightToLeftLayoutDirection(_:)` return `self`. Asserting THAT would prove nothing — every unimplemented
 //  modifier passes such a test.
 //
 //  So these assert the guarantee instead: that equal character counts really
@@ -120,5 +121,44 @@ struct TextMonospacedTests {
         #expect(rendered(Text(verbatim: "10%").monospaced()) == plain)
         #expect(rendered(Text(verbatim: "10%").monospaced(false)) == plain)
         #expect(rendered(Text(verbatim: "10%").monospacedDigit()) == plain)
+    }
+
+    // MARK: - The guarantees behind geometryGroup(), containerCornerOffset(_:sizeToFit:)
+    // and flipsForRightToLeftLayoutDirection(_:)
+
+    private func lines<V: View>(_ view: V) -> [String] {
+        renderToBuffer(view, context: makeRenderContext(width: 12, height: 6)).lines.map(\.stripped)
+    }
+
+    /// An animation drives a modifier's value and the tree is laid out again
+    /// from it, so every child of a moved parent moves by the parent's amount —
+    /// the grouping `geometryGroup()` asks for.
+    @Test("children move with their parent, as one")
+    func childrenMoveWithTheirParent() {
+        for step in 0...3 {
+            let drawn = lines(VStack(alignment: .leading, spacing: 0) {
+                Text("a")
+                Text("bb")
+            }.padding(.leading, step))
+            #expect(drawn.prefix(2).map { $0.prefix(while: { $0 == " " }).count } == [step, step])
+        }
+        #expect(lines(Text("a").geometryGroup()) == lines(Text("a")))
+    }
+
+    /// A bordered container's corners sit in its border rows: the content row
+    /// right below the top edge is bounded by the side walls alone.
+    @Test("a container's corners take no content cells")
+    func cornersTakeNoContent() {
+        let drawn = lines(Text("x").border())
+        #expect(drawn.map { $0.first } == ["╭", "│", "╰"])
+        #expect(drawn[1].contains("x"))
+        #expect(lines(Text("x").containerCornerOffset(.all, sizeToFit: true).border()) == drawn)
+    }
+
+    /// Nothing can set a right-to-left layout, which is the only one that flips.
+    @Test("the layout direction is left-to-right")
+    func layoutIsLeftToRight() {
+        #expect(makeRenderContext().environment.layoutDirection == .leftToRight)
+        #expect(lines(Text("ab").flipsForRightToLeftLayoutDirection(true)) == lines(Text("ab")))
     }
 }

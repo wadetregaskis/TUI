@@ -81,6 +81,54 @@ extension View {
     public func autocorrectionDisabled(_ disable: Bool = true) -> some View {
         environment(\.autocorrectionDisabled, disable)
     }
+
+    /// Isolates the geometry — position and size — of this view from its
+    /// parent — mirrors SwiftUI's `geometryGroup()`.
+    ///
+    /// SwiftUI needs this because each of its leaves animates its own frame, so
+    /// a view inserted mid-animation can fly in from somewhere unrelated to its
+    /// parent. TUIkit never interpolates a leaf's frame: an animation drives a
+    /// modifier's VALUE (padding, frame, offset — `AnimatableGeometry`), and the
+    /// whole tree is laid out again from it every tick, so a parent's children
+    /// move locked to it already.
+    ///
+    /// - Returns: This view, unchanged.
+    public func geometryGroup() -> some View {
+        self
+    }
+
+    /// Offsets this view off its container's corner insets — mirrors SwiftUI's
+    /// `containerCornerOffset(_:sizeToFit:)`.
+    ///
+    /// A container's corner insets are the areas its corners take from the
+    /// content: window controls, rounded corners. Here they are zero, and truly
+    /// so — a corner glyph sits in a border cell, never in the content area, and
+    /// window chrome is taken off the content area before anything is laid out
+    /// — so there is nothing to offset by, on any edge.
+    ///
+    /// - Parameters:
+    ///   - edges: The edges to offset from. Moot: every inset is zero.
+    ///   - sizeToFit: Whether to shrink rather than move. Moot likewise.
+    /// - Returns: This view, unchanged.
+    public func containerCornerOffset(_ edges: Edge.Set, sizeToFit: Bool = false) -> some View {
+        self
+    }
+
+    /// Sets whether this view mirrors its contents horizontally when the layout
+    /// direction is right-to-left — mirrors SwiftUI's
+    /// `flipsForRightToLeftLayoutDirection(_:)`.
+    ///
+    /// The layout direction is always left-to-right here
+    /// (``EnvironmentValues/layoutDirection`` is read-only until TUIkit supports
+    /// right-to-left), and in a left-to-right layout SwiftUI leaves the view
+    /// alone too — measured, `true` draws identically to no modifier. When
+    /// right-to-left lands, this must mirror.
+    ///
+    /// - Parameter enabled: Whether to mirror in a right-to-left layout.
+    /// - Returns: This view, unchanged.
+    public func flipsForRightToLeftLayoutDirection(_ enabled: Bool) -> some View {
+        self
+    }
 }
 
 // MARK: - Autocorrection, as an environment value
