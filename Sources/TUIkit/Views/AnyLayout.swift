@@ -61,6 +61,14 @@ public struct AnyLayout: Layout {
     }
 }
 
+/// Animates nothing: no layout animates its properties here yet, so there is
+/// nothing to forward from the erased layout. (SwiftUI's is an erased type
+/// that carries the wrapped layout's data; it becomes that the day a `Layout`
+/// can animate.)
+extension AnyLayout: Animatable {
+    public typealias AnimatableData = EmptyAnimatableData
+}
+
 extension AnyLayout: AxisPublishingLayout {
     /// Forwarded from whatever was erased: `AnyLayout(HStackLayout())` has to
     /// publish `.horizontal` to its subviews, or a ``Divider`` inside it draws

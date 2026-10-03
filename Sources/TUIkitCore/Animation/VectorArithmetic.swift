@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 /// A type that can serve as the animatable data of an animatable type.
 ///
 /// The requirement an animation actually has: to know a start and an end value
@@ -17,7 +19,7 @@
 /// needs to know when it has effectively arrived, and comparing squared
 /// magnitudes avoids a square root per sample.
 ///
-/// `Double` and `Float` conform. `Int` does not, and neither do the integer
+/// `Double`, `Float` and `CGFloat` conform. `Int` does not, and neither do the integer
 /// geometry types (`CellSize`, `CellRect`, `EdgeInsets`) — those are
 /// ``Animatable`` with *`Double`* animatable data instead, so the interpolation
 /// is computed at full precision from the original endpoints and only the final
@@ -68,6 +70,45 @@ extension Double: VectorArithmetic {
 extension Float: VectorArithmetic {
     public mutating func scale(by rhs: Double) { self *= Float(rhs) }
     public var magnitudeSquared: Double { Double(self * self) }
+}
+
+/// SwiftUI's own animatable data is `CGFloat` throughout, so an app's
+/// `Animatable` view written against SwiftUI — `var animatableData: CGFloat`,
+/// or an `AnimatablePair` of them — needs this to compile here. Nothing in
+/// TUIkit measures in `CGFloat`; this is for the code being ported.
+///
+/// One spelling stays out of reach on Apple platforms: calling the extension
+/// methods directly on a concrete value, `someCGFloat.interpolated(…)`. There,
+/// SwiftUICore's own `CGFloat` extension is visible to any module that imports
+/// Foundation (a cross-import overlay — see `Collection+Offsets.swift`), so the
+/// call is ambiguous between the two. It never worked before this conformance
+/// either: it bound to SwiftUICore's, which cannot be linked. Everything that
+/// goes through the protocol — an `Animatable`'s data, `AnimatablePair`,
+/// generic code — is unaffected, as is every call on Linux.
+///
+/// `CGPoint`, `CGSize` and `CGRect` are NOT conformed, though SwiftUI conforms
+/// them: SwiftUICore's `AnimatableData` typealias on each is visible the same
+/// way and is found before any witness TUIkit could give, so on Apple platforms
+/// the conformance cannot be declared at all.
+extension CGFloat: VectorArithmetic {
+    public mutating func scale(by rhs: Double) { self *= CGFloat(rhs) }
+    public var magnitudeSquared: Double { Double(self * self) }
+}
+
+// MARK: - Scalars are animatable
+
+/// A scalar's animatable data is itself, as in SwiftUI. Lets a value be
+/// interpolated through the `Animatable` interface by code that takes any
+/// `Animatable`, not only through `VectorArithmetic`. (The bare property on a
+/// concrete `Double` is ambiguous on Apple platforms, as the `CGFloat`
+/// methods are above; through the protocol it is not.)
+extension Double: Animatable {
+    public typealias AnimatableData = Double
+}
+
+/// A scalar's animatable data is itself, as in SwiftUI.
+extension CGFloat: Animatable {
+    public typealias AnimatableData = CGFloat
 }
 
 // MARK: - EmptyAnimatableData

@@ -265,6 +265,35 @@ extension HStackLayout: AxisPublishingLayout {
     var containerAxis: Axis? { .horizontal }
 }
 
+// MARK: - The stacks' associated types, spelled out
+
+// SwiftUI's stack layouts name both: a stack's cache is its own business and
+// it animates nothing of its own, so `HStackLayout.Cache` and
+// `HStackLayout.AnimatableData` are things SwiftUI source can write. Here the
+// cache is `Void` — a stack recomputes from its subviews — and the animatable
+// data is empty, as SwiftUI's is.
+
+extension VStackLayout: Animatable {
+    /// A stack layout recomputes from its subviews and caches nothing.
+    public typealias Cache = Void
+    /// A stack layout animates nothing of its own.
+    public typealias AnimatableData = EmptyAnimatableData
+}
+
+extension HStackLayout: Animatable {
+    /// A stack layout recomputes from its subviews and caches nothing.
+    public typealias Cache = Void
+    /// A stack layout animates nothing of its own.
+    public typealias AnimatableData = EmptyAnimatableData
+}
+
+extension ZStackLayout: Animatable {
+    /// A stack layout recomputes from its subviews and caches nothing.
+    public typealias Cache = Void
+    /// A stack layout animates nothing of its own.
+    public typealias AnimatableData = EmptyAnimatableData
+}
+
 // MARK: - ZStackLayout
 
 /// The overlay stack's arrangement, as a value. See ``VStackLayout``.

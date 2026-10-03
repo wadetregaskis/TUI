@@ -70,8 +70,11 @@ public struct Angle: Sendable, Equatable, Hashable, Comparable, Codable {
 }
 
 extension Angle: Animatable {
+    /// The angle in radians.
+    public typealias AnimatableData = Double
+
     /// An angle is one continuous number, so this is a rename.
-    public var animatableData: Double {
+    public var animatableData: AnimatableData {
         get { radians }
         set { radians = newValue }
     }

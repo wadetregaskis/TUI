@@ -20,14 +20,17 @@ import TUIkitView
 // frame — where rounding compounds. Nothing here does that.)
 
 extension EdgeInsets: Animatable {
+    /// Top and leading, then bottom and trailing — SwiftUI's own nesting.
+    public typealias AnimatableData = AnimatablePair<
+        AnimatablePair<Double, Double>, AnimatablePair<Double, Double>
+    >
+
     /// The four insets, animated together.
     ///
     /// Nested pairs rather than a four-component type, which is how SwiftUI
     /// spells it too: it keeps ``VectorArithmetic`` a two-method protocol
     /// rather than a vector library.
-    public var animatableData: AnimatablePair<
-        AnimatablePair<Double, Double>, AnimatablePair<Double, Double>
-    > {
+    public var animatableData: AnimatableData {
         get {
             AnimatablePair(
                 AnimatablePair(Double(top), Double(leading)),
@@ -43,8 +46,11 @@ extension EdgeInsets: Animatable {
 }
 
 extension UnitPoint: Animatable {
+    /// `x`, then `y`.
+    public typealias AnimatableData = AnimatablePair<Double, Double>
+
     /// A unit point is already two continuous numbers, so this is a rename.
-    public var animatableData: AnimatablePair<Double, Double> {
+    public var animatableData: AnimatableData {
         get { AnimatablePair(x, y) }
         set {
             x = newValue.first

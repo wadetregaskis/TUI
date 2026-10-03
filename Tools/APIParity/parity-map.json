@@ -49,7 +49,8 @@
     {
       "match": [
         "AttributeScopes*",
-        "AttributedTextFormatting*"
+        "AttributedTextFormatting*",
+        "AttributeDynamicLookup*"
       ],
       "why": "AttributedString attribute scopes describe font, kerning and paragraph metrics a cell grid does not have. TUIkit styles runs with its own Text attributes."
     },
@@ -492,6 +493,18 @@
     "Capsule": {
       "why": "A capsule is two semicircular end caps; the terminal's cap vocabulary is two half-block characters, TerminalSymbols.openCap (▐) and closeCap (▌) at Sources/TUIkitCore/Rendering/TerminalSymbols.swift:18-21 — a fixed pair of glyphs, not a parameterised curve."
     },
+    "CGPoint.AnimatableData": {
+      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkit/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
+    },
+    "CGPoint.applying(_:)": {
+      "why": "Applies a ProjectionTransform, a 3-D perspective matrix (declined under its own entry): a cell grid has no projection to apply a point through."
+    },
+    "CGRect.AnimatableData": {
+      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkit/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
+    },
+    "CGSize.AnimatableData": {
+      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkit/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
+    },
     "Circle": {
       "why": "A curve needs sub-cell coverage, and cells are non-square (roughly 1:2), so even a glyph-approximated circle is distorted — TUIkit carries View.imageCellAspect(_:) (Sources/TUIkit/Views/Image.swift:473) precisely because of that. Where a circular affordance is wanted TUIkit uses "
     },
@@ -521,6 +534,12 @@
     },
     "Edge.Corner": {
       "why": "Sources/TUIkit/Modifiers/PaddingModifier.swift:56 declares `public enum Edge: Int8, Sendable, CaseIterable` with a nested `Set` — so the reported `rawValue`/`RawValue`/`allCases`/`AllCases` gaps are all synthesized-conformance false positives and Edge is fully at parity except `C"
+    },
+    "EdgeInsets.init(_:)": {
+      "why": "Converts from AppKit/UIKit's NSDirectionalEdgeInsets, whose values are points. TUIkit insets count cells, so the conversion would have to invent a point-to-cell scale; and TUIkit links no AppKit, as it must build on Linux."
+    },
+    "EdgeInsets.inset(by:edges:)": {
+      "why": "Grows insets by a RectangleCornerInsets, the per-corner radii of a rounded rectangle (declined under its own entry). Cell geometry has no corner radii to add."
     },
     "Ellipse": {
       "why": "Same as Circle: curved edges require fractional cell coverage that a glyph cell cannot express, and TUIkit has no path rasterizer — only glyph selection (Sources/TUIkitImage/ShapeSampling.swift is raster-to-glyph matching, not vector drawing)."
