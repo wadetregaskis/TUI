@@ -302,6 +302,49 @@ The SwiftUI names were already documented as equivalents, but
 **Declined (C):** `.glass`, `.glassProminent` and `.glass(_:)` join the
 existing `Glass*` family rule.
 
+### B6. `safeAreaInset` puts the bar beside the view; there is no safe area
+
+*`View.safeAreaInset(edge:alignment:spacing:content:)` (both edge types),
+`View.safeAreaBar(edge:alignment:spacing:content:)` (both); still refused:
+`View.safeAreaPadding` ×3, `View.ignoresSafeArea(_:edges:)`, `SafeAreaRegions`,
+`GeometryProxy.safeAreaInsets`, and the `ignoresSafeAreaEdges:` overloads of
+`background`/`overlay`*
+
+SwiftUI's `safeAreaInset` does two things: it lays the bar beside the view,
+and it grows the view's safe area by the bar. Measured (W05 brief, probes E
+and q13–q15), the second is what lets a `ScrollView` run *under* the bar, a
+style `.background(.red)` extend beneath it, and `ignoresSafeArea()` reach
+into it.
+
+**Shipped:** the first half only. The bar sits beside the view, which is
+proposed what the bar leaves; spacing `nil` is none (measured), a bar wider
+than the view sets the width, `alignment:` places the bar across the view, and
+two bars stack outward. `safeAreaBar` lays out identically — its extra is the
+scroll-edge effects, which need content under the bar. The bar renders at the
+layer identity `.overlay` uses, so adding one moves no `@State`.
+
+**What this gives up, silently:** in ported code, a scroll view stops at the
+bar instead of running under it, and an existing style background on the
+view does not extend beneath it. In a cell grid that is visible only as
+colour under the bar's blank cells — the bar's glyphs cover anything under
+them — and nothing that would *observe* a safe area compiles, so no code can
+depend on one being there.
+
+**The fuller version (SA-B)** is a real safe area: a `safeAreaInsets` value
+set by the producers and propagated by adjacency through every container
+(stacks, `ZStack`, `Layout`, `Grid`, frame, padding — which consumes it —
+overlay/background, and `ScrollView`/`List`, which turn it into content
+margins and extend their viewport under the bar); `ignoresSafeArea`; style
+backgrounds and overlays extending; `GeometryProxy.safeAreaInsets`;
+`SafeAreaRegions`. Four to six days, a context field on the layout hot path
+(a single `Int` there has measured +2.4%), and a measure/render-parity risk at
+every container that decides adjacency — for colour under a bar's blanks. It
+is the route if the scroll-edge effects (refusal review O7) are to mean
+something.
+
+`safeAreaPadding` comes with Wave 10's `contentMargins`: for non-scrolling
+content it is padding, and for a scroll view it is a content margin.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
