@@ -49,6 +49,9 @@
 /// semantic colour, or `Color.default`) is treated as black until edited.
 public struct ColorPicker: View {
     private let title: String
+    /// The `@ViewBuilder` label, when the picker was built with one; `title` is
+    /// then empty, and the full editor goes untitled.
+    private let labelView: AnyView?
     private let selection: Binding<Color>
     private let supportsOpacity: Bool
     private let step: Double
@@ -106,9 +109,27 @@ public struct ColorPicker: View {
         _ title: S, selection: Binding<Color>, supportsOpacity: Bool = true, step: Double = 5
     ) {
         self.title = String(title)
+        self.labelView = nil
         self.selection = selection
         self.supportsOpacity = supportsOpacity
         self.step = step
+    }
+
+    /// Creates a colour picker over an RGB binding, with a label built from
+    /// views.
+    ///
+    /// - Parameters:
+    ///   - selection: The colour to edit.
+    ///   - supportsOpacity: Whether the fourth (`A`) channel is offered.
+    ///   - label: A view describing the use of the selected colour.
+    public init<Label: View>(
+        selection: Binding<Color>, supportsOpacity: Bool = true, @ViewBuilder label: () -> Label
+    ) {
+        self.title = ""
+        self.labelView = AnyView(label())
+        self.selection = selection
+        self.supportsOpacity = supportsOpacity
+        self.step = 5
     }
 
     public var body: some View {
@@ -120,9 +141,15 @@ public struct ColorPicker: View {
             // included — the point of `colorPickerLabelWidth` is a shared
             // pillar, and a pillar of hidden captions is just an indent.
             if !labelsHidden {
-                Text(title)
-                    .frame(width: labelWidth, alignment: .leading)
-                    .foregroundStyle(.palette.foregroundSecondary)
+                Group {
+                    if let labelView {
+                        labelView
+                    } else {
+                        Text(title)
+                    }
+                }
+                .frame(width: labelWidth, alignment: .leading)
+                .foregroundStyle(.palette.foregroundSecondary)
             }
             swatch
             if !channelsHidden {

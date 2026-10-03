@@ -55,4 +55,17 @@ struct ColorPickerTests {
         #expect(color.rgbComponents?.green == 200)
         #expect(color.rgbComponents?.blue == 30)
     }
+
+    @Test("A label built from views is drawn where the title would be")
+    func viewLabel() {
+        let picker = ColorPicker(selection: .constant(.rgb(255, 0, 0))) {
+            HStack(spacing: 0) {
+                Text("Ti")
+                Text("nt")
+            }
+        }
+        let text = renderToBuffer(picker, context: makeContext()).lines.joined().stripped
+        #expect(text.hasPrefix("Tint"))
+        #expect(text.contains("A"), "supportsOpacity defaults to true, as SwiftUI's does")
+    }
 }
