@@ -513,6 +513,27 @@ struct ScrollPositionTests {
         #expect(visible == 5)
     }
 
+    @Test("SwiftUI's pairing — scrollPosition(id:) over a scrollTargetLayout() stack — seeks and reads back")
+    func scrollTargetLayoutPairing() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var visible: Int?
+        let binding = Binding<Int?>(get: { visible }, set: { visible = $0 })
+        let view = ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(0..<Self.rowCount, id: \.self) { Text("row \($0)") }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollPosition(id: binding)
+
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == 0)
+        visible = 22
+        let after = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(after.contains { $0.contains("row 22") }, "\(after)")
+    }
+
     @Test("A column offset and the leading and trailing edges scroll the horizontal axis")
     func horizontalRequestsScrollColumns() {
         let tuiContext = TUIContext()

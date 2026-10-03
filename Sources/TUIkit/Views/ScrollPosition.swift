@@ -399,6 +399,30 @@ extension View {
     }
 }
 
+extension View {
+    /// Marks this layout's children as the views a scroll view reads its
+    /// position from — mirrors SwiftUI's `scrollTargetLayout(isEnabled:)`.
+    ///
+    /// SwiftUI needs the mark to know which views to report through
+    /// ``View/scrollPosition(id:anchor:)`` and a ``ScrollPosition``: without
+    /// it, nothing is reported. TUIkit reports the rows of the content's
+    /// windowed stack (``ScrollPosition/viewID(type:)`` says which content
+    /// that is) whether or not they are marked, so the mark has nothing left
+    /// to add, and the view is returned as it is — the common
+    /// `.scrollPosition(id:)` and `.scrollTargetLayout()` pairing compiles and
+    /// reads back as it does in SwiftUI.
+    ///
+    /// SwiftUI's other readers of the mark — `.scrollTargetBehavior(.viewAligned)`
+    /// and `onScrollTargetVisibilityChange` — are not in TUIkit yet; when they
+    /// are, they read it.
+    ///
+    /// - Parameter isEnabled: Whether the mark applies.
+    /// - Returns: This view, unchanged.
+    public func scrollTargetLayout(isEnabled: Bool = true) -> some View {
+        self
+    }
+}
+
 // MARK: - Environment
 
 /// The binding plus its anchor, carried to whichever ``ScrollView`` is inside.

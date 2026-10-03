@@ -210,4 +210,23 @@ for half a second — to draw the eye, as a flash does. About two hours:
 the bar memo is keyed on the pulse already, and the trigger needs a
 per-view "last value" and a wake. I would only do it if a port asks.
 
+### B-W10-7. `scrollTargetLayout()` returns the view
+
+*`View.scrollTargetLayout(isEnabled:)`*
+
+In SwiftUI the mark tells a scroll view which views to report through
+`.scrollPosition(id:)` and a `ScrollPosition`; without it nothing is reported,
+which is why every SwiftUI example pairs the two. TUIkit reports its windowed
+stack's rows whether or not they are marked, so the mark adds nothing to the
+one reader TUIkit has, and the modifier returns the view. Tested as the
+pairing: seek and read-back work with the mark on the stack.
+
+The mark's other readers are SwiftUI's view-aligned target behaviour and
+`onScrollTargetVisibilityChange`, both A entries below. Shipping either means
+the mark starts to matter, and the modifier becomes an environment value they
+read — an hour's work, with the reader.
+
+What SwiftUI reports and TUIkit does not is a marked *eager* `VStack`'s rows
+(an existing gap of the read-back, documented on `ScrollPosition.viewID`).
+
 ## C. Declined without asking
