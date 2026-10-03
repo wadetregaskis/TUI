@@ -133,6 +133,10 @@ terminal in alternate-screen / raw mode.
 
 When the terminal delivers a key event, the `InputHandler` dispatches it through five layers (plus three refinements: an ESC pre-route before Layer 1 when an open drop-down has claimed Escape, the mid-drag Layer 0.5, and a semantic-shortcut stage — Layer 3.5 — between Layers 3 and 4). Layer 0 and Layer 3 are mutually exclusive based on `focusManager.hasTextInputFocus`:
 
+### The Focus Path: SwiftUI's onKeyPress
+
+Before any layer, the `onKeyPress` handlers on the views that contain the focused control are asked, outermost first, until one answers `.handled` — SwiftUI's order. Being focus-gated, they may come before even a focused text input. Skipped while an open drop-down grabs the keyboard or a drag is in flight.
+
 ### Layer 0: Text Input (conditional)
 
 When a text input element (TextField/SecureField) is focused, `focusManager.dispatchKeyEvent()` runs first. This ensures printable characters, backspace, delete, arrows, home, end, and enter reach the text field before any other layer. Only keys the text field does not consume (Escape, Tab, unhandled Ctrl+shortcuts) fall through.

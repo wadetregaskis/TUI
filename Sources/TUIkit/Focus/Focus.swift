@@ -395,6 +395,13 @@ public final class FocusManager: @unchecked Sendable {
         focusedID
     }
 
+    /// Where the focused control last rendered, if anything holds the focus:
+    /// what SwiftUI's `onKeyPress` asks to decide whether the focus is inside
+    /// its view.
+    var focusedIdentity: ViewIdentity? {
+        focusedID.flatMap { focusIdentities[$0]?.identity }
+    }
+
     /// Whether the currently focused element is a text-input handler.
     ///
     /// When `true`, the input handler should give the focused element

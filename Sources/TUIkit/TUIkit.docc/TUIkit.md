@@ -186,6 +186,7 @@ struct MyApp: App {
 
 ### Keyboard
 
+- ``KeyPress``
 - ``KeyboardShortcut``
 - ``KeyEquivalent``
 - ``EventModifiers``

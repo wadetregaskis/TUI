@@ -194,5 +194,41 @@ private struct ButtonStyleNames: View {
             Button("button.save") {}.buttonStyle(.link)
             Button("button.save") {}.buttonStyle(RedBorderedButtonStyle())
         }
+
+// MARK: - Key presses
+
+/// SwiftUI's `onKeyPress` in the shapes its documentation and ported code write:
+/// a trailing closure that returns a `KeyPress.Result` by implicit member, one
+/// that does work first, and the `KeyPress`-taking forms. Until 2026-10-03 the
+/// name belonged to TUIkit's focus-blind `(KeyEvent) -> Bool` handler (now
+/// `onKeyEvent`), and none of these compiled.
+@MainActor
+private struct KeyPressShapes: View {
+    @State private var count = 0
+
+    var body: some View {
+        Text("count")
+            .focusable()
+            .onKeyPress(.escape) { .handled }
+            .onKeyPress(.upArrow) {
+                count += 1
+                return .handled
+            }
+            .onKeyPress("q", phases: .down) { press in
+                press.modifiers.contains(.control) ? .handled : .ignored
+            }
+            .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
+                count += press.key == .leftArrow ? -1 : 1
+                return .handled
+            }
+            .onKeyPress(characters: .decimalDigits, phases: [.down, .repeat]) { press in
+                count = Int(press.characters) ?? count
+                return .handled
+            }
+            .onKeyPress(phases: .all) { press in
+                print(press.characters, press.phase == .down)
+                return .ignored
+            }
+            .onKeyPress { _ in .ignored }
     }
 }

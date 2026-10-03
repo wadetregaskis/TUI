@@ -10,6 +10,11 @@
 /// three refinements wedged between them — the ESC pre-route, layer 0.5 and
 /// layer 3.5, described after the list.
 ///
+/// Ahead of them all comes the **focus path**: SwiftUI's `onKeyPress` handlers
+/// on the views that contain the focused control, outermost first, as SwiftUI
+/// asks them. They are focus-gated, which is what makes it safe to ask them
+/// before even a focused text input.
+///
 /// The dispatch order is:
 /// 0. **Text input** (conditional) — a focused `TextField`/`SecureField`/
 ///    `TextEditor` consumes the event first, except an Emacs editing chord
@@ -105,6 +110,19 @@ extension InputHandler {
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
     func handle(_ event: KeyEvent) -> Bool {
+        // The focus path: SwiftUI's `onKeyPress` handlers on the way to the
+        // focused view, outermost first, BEFORE the focused control has the
+        // key — a text input included, so a `.handled` letter is never typed.
+        // That is SwiftUI's order (macOS 15), and it is safe here only because
+        // these handlers are focus-gated: one cannot take typing from a field
+        // it does not contain, as a focus-blind `onKeyEvent` at Layer 2 could.
+        if focusPathHearsKeys, let press = KeyPress(event),
+            let focused = focusManager.focusedIdentity,
+            keyEventDispatcher.dispatchFocusPath(press, focusedIdentity: focused)
+        {
+            return true
+        }
+
         // Layer 0: Text input (conditional). When a text-input element
         // (TextField/SecureField) is focused, let it handle the event FIRST.
         // This ensures printable characters, backspace, delete, arrows, home,
@@ -229,6 +247,19 @@ extension InputHandler {
             statusBar.escapeLabelOverride != nil && statusBar.escapeClaimGrabsInput
         let inputGrabbed = focusManager.activeSectionIsModal || escapeClaimGrabs
         return handleGlobalShortcut(event, inputGrabbed: inputGrabbed)
+    }
+
+    /// Whether the focus path is offered keys at all.
+    ///
+    /// Not while an open drop-down holds the keyboard (an escape claim that
+    /// grabs input): SwiftUI's open menu takes every key before any view sees
+    /// it, and the drop-down's own keys are the focus system's. Nor while a
+    /// pointer drag is in flight, whose arrow and paging keys belong to the
+    /// navigators at Layer 0.5.
+    private var focusPathHearsKeys: Bool {
+        if statusBar.escapeLabelOverride != nil, statusBar.escapeClaimGrabsInput { return false }
+        if let session = dragAndDropSession, session.active != nil || session.autoScrollArmed { return false }
+        return true
     }
 
     /// Whether the focused text input gives `event` up to an app's keyboard

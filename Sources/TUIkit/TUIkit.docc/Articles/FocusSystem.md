@@ -356,7 +356,7 @@ itself through `\.selectionEmphasis` holds still with no change at all.
 
 Focus dispatch happens in Layer 3 of the key event pipeline (see <doc:AppLifecycle> for the whole ladder, including the ESC pre-route and Layer 3.5):
 
-1. A key event arrives from stdin
+1. A key event arrives from stdin, and the `onKeyPress` handlers on the path to the focused control are asked first, outermost first
 2. Layer 0: text input, when `focusManager.hasTextInputFocus` — mutually exclusive with Layer 3
 3. Layer 1 (status bar) gets first chance at everything else. A presented alert or modal publishes its own `⎋ dismiss` item here, which is what stops a page's `⎋ back` from firing underneath it
 4. Layer 2: `KeyEventDispatcher` dispatches `.onKeyEvent` handlers (deepest view first)

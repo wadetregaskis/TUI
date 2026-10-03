@@ -372,8 +372,10 @@ extension _NavigationSplitViewCore {
             default: _SplitEdgeHandler(focusID: sectionID)
         ).value
         handler.reveal = revealAction(toggleState: toggleState)
+        focusManager.noteFocusIdentity(
+            context.identity, for: sectionID, cachedIn: context.renderCache, drawnBelow: false)
         focusManager.register(handler, inSection: sectionID)
-        // The same two things `wireDivider` repeats from
+        // The same things `wireDivider` repeats from
         // `FocusRegistration.register`, which this bypasses for the same reason.
         FocusRegistration.publishHelpText(context: context, focusID: sectionID)
         FocusRegistration.publishActivationLabel(

@@ -6,6 +6,8 @@ How keyboard input flows through TUIkit: from raw terminal bytes to your view ha
 
 TUIkit uses a layered event dispatch system. When a key is pressed, it passes through up to five layers. The first layer that consumes the event wins: remaining layers are skipped. Layer 0 (text input) and Layer 3 (focus system) are mutually exclusive: when a text input element is focused, Layer 0 runs and Layer 3 is skipped. The one key Layer 0 does not offer the focused text control is an Emacs editing chord your own `.keyboardShortcut` is on; see <doc:KeyboardShortcuts#Your-Shortcuts-and-the-Editing-Chords>.
 
+Before any of them comes the **focus path**: SwiftUI's `onKeyPress` handlers on the views that contain the focused control, asked outermost first. They come even before a focused text input, as they do in SwiftUI, which is safe only because they are focus-gated; see *SwiftUI's onKeyPress* below.
+
 Three additional stages refine the layer sequence. When an open drop-down (e.g. a ``Picker`` menu) has claimed Escape for the frame, ESC is pre-routed through the focus system *before* Layer 1, so the surface closes instead of a page-level handler firing. Layer 0.5 then offers the key to a drag in flight, which is how you scroll to an off-screen destination without letting go — it has to beat every layer below, all of which would otherwise spend the key on the focused control. And between Layer 3 and Layer 4, a shortcut stage (Layer 3.5) fires your `.keyboardShortcut`s — the default button on Return and the cancel button on Escape, à la SwiftUI's `.keyboardShortcut(.defaultAction)` / `.keyboardShortcut(.cancelAction)`, and any other key equivalent on its key — when the focused control let the key fall through.
 
 @Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (q quit and ? help always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
@@ -83,9 +85,48 @@ The terminal encodes modifiers differently from GUI frameworks:
 - **Alt+key**: Detected from ESC prefix sequences (`ESC` followed by the key byte).
 - **Shift**: Only auto-detected for uppercase letters. The terminal does not send distinct shift codes for most keys.
 
+## SwiftUI's onKeyPress
+
+``View/onKeyPress(phases:action:)`` and its four siblings behave as they do in
+SwiftUI on macOS:
+
+- **The focus decides who hears a press.** A handler runs only while the focus
+  is on its view or inside it. `Text("x").onKeyPress { … }` hears nothing
+  until it is `.focusable()`; a handler on a container hears every press while
+  any control inside it holds the focus.
+- **Outermost first.** The handlers on the path to the focused control are
+  asked from the outside in, and the first to return
+  ``KeyPress/Result/handled`` stops the rest.
+- **Before the focused control.** They are asked before the control itself —
+  a focused ``TextField`` does not type a letter a handler took, and a handled
+  Tab does not move the focus — and before your `.keyboardShortcut`s.
+
+```swift
+List(selection: $selection) { … }
+    .onKeyPress(.space) {
+        togglePlayback()
+        return .handled
+    }
+    .onKeyPress(characters: .decimalDigits) { press in
+        jump(to: Int(press.characters)!)
+        return .handled
+    }
+```
+
+What a terminal cannot say, ``KeyPress`` does not pretend to: a terminal sends
+a held key's repeats as more presses and never sends a release, so every press
+is ``KeyPress/Phases/down`` (a `.repeat` handler hears them all) and there is
+no `.up`. Its ``KeyPress/modifiers`` are the three a terminal reports —
+Control, Option and Shift.
+
+An open drop-down takes every key before the focus path does, as an open menu
+does on macOS, and so does a drag in flight (Layer 0.5).
+
 ## Registering Key Handlers
 
-Use the `.onKeyEvent()` modifier to handle keyboard events in your views:
+To bind a key whatever holds the focus — a page's own shortcuts, a function
+key, a paste — use the TUI-specific `.onKeyEvent()` modifier, which sees the
+terminal's own ``KeyEvent`` at Layer 2:
 
 ### Handle All Keys
 
@@ -248,14 +289,15 @@ such as the split view's sidebar chord above, never takes a key from the
 focused control.
 
 Nor does an `onKeyEvent` handler. Layer 0 comes before Layer 2, so a focused
-text control keeps its editing chords, and every key it types, from your key
-handlers. SwiftUI orders these the other way round: on macOS 15, an
-`onKeyPress` on a view that contains the focused `TextField` sees even a plain
-letter before the field does, and returning `.handled` takes it from the field.
-But a SwiftUI handler only sees keys while the focus is inside its view, and a
-TUIkit one sees them wherever the focus is, so the same order here would let
-any handler on the page take typing away from a field. To take a chord from a
-focused text control, give it a `.keyboardShortcut`.
+text control keeps its editing chords, and every key it types, from your
+focus-blind key handlers: an `onKeyEvent` sees keys wherever the focus is, so
+asking it first would let any handler on the page take typing away from a
+field. SwiftUI's `onKeyPress` is the other way round, here as on macOS 15: a
+handler on a view that contains the focused `TextField` sees even a plain
+letter before the field does, and returning `.handled` takes it from the
+field — which is safe because it only sees keys while the focus is inside its
+view. So to take a chord from a focused text control, put an `onKeyPress` on
+the control or a view around it, or give the chord a `.keyboardShortcut`.
 
 A key the control lets go of does pass Layer 2 on its way, though: Ctrl-C and
 Ctrl-X with nothing selected, and an editing chord given up to your shortcut.

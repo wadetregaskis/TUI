@@ -3756,6 +3756,17 @@ different things: iTerm2 forwards ⌘ as meta, Apple Terminal forwards ⌥ (see 
 mouse sections above). The standing rule from that measurement holds here too —
 never design around one specific macOS modifier key being available.
 
+### A release is never reported, and a repeat is another press
+
+Recorded 2026-10-03, adding SwiftUI's `onKeyPress` and `KeyPress.Phases`.
+From the legacy encodings' definitions, not a per-terminal capture: a key
+event is the bytes the key produces, sent when it goes down and again for each
+auto-repeat while it is held, with nothing to tell a repeat from a fresh press.
+Releasing a key sends nothing. So `KeyPress.phase` is always `.down`, a
+`.repeat` handler hears every press, and `KeyPress.Phases` has no `.up`. The
+kitty keyboard protocol's "report event types" enhancement reports all three
+explicitly; TUIkit does not negotiate it yet.
+
 ### Caps Lock and the numeric pad are never reported
 
 Recorded 2026-10-03, adding SwiftUI's `EventModifiers.capsLock`. From the

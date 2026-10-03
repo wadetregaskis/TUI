@@ -142,12 +142,15 @@ let lifecycleRunCreates = Diagram(
 /// 4) — plus the two `hasTextInputFocus` gates that switch Layer 0 on and Layer
 /// 3 off, and the one key Layer 0 is not offered: an editing chord the focused
 /// text control gives up to an app shortcut (`textInputGivesWay(_:)`).
+/// Ahead of all of them, SwiftUI's focus-gated `onKeyPress` handlers.
 /// Mirrors `InputHandler.handle(_:)`.
 let keyboardEventDispatch = Diagram(
     name: "keyboard-event-dispatch",
     title: "Keyboard event dispatch — five layers + three refinement stages",
     nodes: [
         Node(id: "ev", title: "KeyEvent", kind: .terminal),
+        Node(id: "fp", title: "Focus path · onKeyPress",
+             detail: ["views containing the focus · outermost first", "skipped under an open drop-down or a drag"]),
         Node(id: "g0", title: "text input focused?", kind: .decision),
         Node(id: "gw", title: "editing chord an app shortcut takes?", kind: .decision),
         Node(id: "l0", title: "Layer 0 · Text input",
@@ -169,7 +172,8 @@ let keyboardEventDispatch = Diagram(
         Node(id: "drop", title: "Unmatched → dropped", kind: .terminal),
     ],
     edges: [
-        Edge("ev", "g0"),
+        Edge("ev", "fp"),
+        Edge("fp", "g0"),
         Edge("g0", "gw", label: "yes"),
         Edge("gw", "l0", label: "no"),
         // A chord the text input gives way on skips it; Layer 3.5 fires the

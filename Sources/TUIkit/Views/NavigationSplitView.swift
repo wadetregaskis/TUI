@@ -716,6 +716,12 @@ extension _NavigationSplitViewCore {
                 LocalizationService.shared.string(for: LocalizationKey.StatusBar.hideColumn),
                 context: context, isFocused: focusManager.isFocused(id: sectionID))
         }
+        // Before the registration, as `FocusRegistrar.register` does it: where
+        // the divider drew, which is what `onKeyPress` asks to decide whether
+        // the focus is inside its view. The split view draws its dividers
+        // itself, so the divider's focus changes nothing drawn below it.
+        focusManager.noteFocusIdentity(
+            context.identity, for: sectionID, cachedIn: context.renderCache, drawnBelow: false)
         focusManager.register(handler, inSection: sectionID)
         // The one focusable in the framework that does NOT go through
         // `FocusRegistration.register` — it registers into a section this view
