@@ -83,6 +83,34 @@ make a scope-less preference inert. Neither has an obvious use. Not probed on
 a SwiftUI build: focus needs a key window, which an offscreen hosting view does
 not have.
 
+### B-W09-3 Preventing termination stops the quit key, and "automatic" prevents nothing
+
+*`View.presentationPreventsAppTermination(_:)`,
+`View.dialogPreventsAppTermination(_:)`*
+
+**Shipped:** `true` stops the quit key (`q` by default, or the app's
+`quitShortcut`) and takes it off the status bar while the presentation is
+drawn; `false` and `nil` leave it working. Several statements combine as
+SwiftUI documents for the sheet form: a non-`nil` one overrides `nil`, and
+`true` takes precedence over `false`. Signals are not stopped — Ctrl-C and
+`kill` still end the app, which is what a force quit is on macOS and the only
+way out of a terminal app that has stopped listening.
+
+**What differs:** SwiftUI's `nil` is an automatic rule that usually prevents.
+A sheet prevents unless its toolbar holds a single confirmation or
+cancellation item; a dialog prevents unless it has one non-destructive button,
+is not critical and holds no text field. TUIkit's `nil` keeps what it did
+before this wave: the quit key works behind every presentation, as the
+escape hatch its status bar offers.
+
+**The fuller version** adopts macOS's automatic rule. The dialog half is a
+few lines — the button roles are known (`alertActionButtons`), severity has
+shipped, and alerts take no text fields yet. The sheet half has nothing to
+read: a terminal sheet has no toolbar, so the rule would collapse to "a sheet
+always prevents", which would take the quit key away behind every sheet in
+every app. That is the decision: I would adopt the dialog rule and leave
+sheets at "never".
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`

@@ -184,6 +184,9 @@ extension PopoverPresentationModifier: Renderable {
         // the popover.
         focusManager?.markSectionFocusOptional(id: sectionID)
         context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+        if presentationPreventsTermination(of: popover) {
+            context.environment.statusBar?.preventQuit()
+        }
         if !dismissIsDisabled {
             context.environment.statusBar?.escapeLabelOverride =
                 LocalizationService.shared.string(for: LocalizationKey.StatusBar.closePopover)

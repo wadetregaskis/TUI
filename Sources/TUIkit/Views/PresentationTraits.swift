@@ -46,6 +46,19 @@ func presentationTrait<T>(_ type: T.Type, of view: any View) -> T? {
     }
 }
 
+/// Every `T` in a chain of presentation-trait wrappers, outermost first — for a
+/// trait whose statements combine rather than the outermost winning.
+@MainActor
+func presentationTraits<T>(_ type: T.Type, of view: any View) -> [T] {
+    var found: [T] = []
+    var current = view
+    while true {
+        if let match = current as? T { found.append(match) }
+        guard let wrapper = current as? any PresentationTraitWrapper else { return found }
+        current = wrapper.presentationTraitContent
+    }
+}
+
 // The `@ViewBuilder`'s own bookkeeping is looked through as well. `if` and
 // `if`/`else` in a sheet's builder are ordinary things to write, and neither
 // puts a view in the tree that the author can see — so a trait "applied to the

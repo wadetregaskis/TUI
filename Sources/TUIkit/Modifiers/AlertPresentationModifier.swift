@@ -141,6 +141,11 @@ extension AlertPresentationModifier: Renderable {
             // alert run. Isolation already covers the page BENEATH; this also
             // covers a sibling elsewhere in the tree.
             context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+            // `.dialogPreventsAppTermination(true)` outside this modifier stops
+            // the quit key while the dialog is drawn.
+            if context.environment.dialogPreventsAppTermination == true {
+                context.environment.statusBar?.preventQuit()
+            }
 
             // Escape ANSWERS the alert with its cancel button, rather than
             // merely closing it. An alert is a question; a `.cancel`-role button

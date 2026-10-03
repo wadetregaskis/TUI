@@ -158,6 +158,11 @@ extension ModalPresentationModifier: Renderable {
             // modal run. Isolation already covers the page BENEATH; this
             // also covers a sibling elsewhere in the tree.
             context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+            // Content that asked to stop the quit key does, for as long as it
+            // is drawn.
+            if presentationPreventsTermination(of: modal) {
+                context.environment.statusBar?.preventQuit()
+            }
 
             // While the modal is on screen ESC should close it. Publish an
             // ESC=dismiss item on the status bar tied to the modal section,

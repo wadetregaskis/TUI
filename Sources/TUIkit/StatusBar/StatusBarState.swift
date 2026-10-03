@@ -142,6 +142,17 @@ public final class StatusBarState: @unchecked Sendable {
     /// allowing the app to handle navigation (e.g., go back) instead.
     public var quitBehavior: QuitBehavior = .always
 
+    /// Whether a presentation on screen this frame asked that the app not be
+    /// quit — `presentationPreventsAppTermination(true)` on a sheet's content,
+    /// `dialogPreventsAppTermination(true)` on an alert. Set by the presenter
+    /// as it draws, and cleared before every walk, so dismissing it lifts it.
+    private(set) var quitIsPrevented = false
+
+    /// Records that a presentation drawn this frame prevents quitting.
+    func preventQuit() {
+        quitIsPrevented = true
+    }
+
     /// The keyboard shortcut used to quit the application.
     ///
     /// Defaults to `.q` (pressing `q` quits). Change this to use a different key:
@@ -265,6 +276,7 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// Whether quit is currently allowed based on `quitBehavior`.
     public var isQuitAllowed: Bool {
+        if quitIsPrevented { return false }
         switch quitBehavior {
         case .always: return true
         case .rootOnly: return isAtRoot
@@ -485,6 +497,7 @@ extension StatusBarState {
     func beginRenderPass() {
         sectionItems.removeAll()
         declaredGlobalItems.removeAll()
+        quitIsPrevented = false
     }
 
     /// Everything a walk of the scene republishes, emptied before the walk:
