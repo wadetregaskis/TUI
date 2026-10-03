@@ -101,7 +101,9 @@
         "Font.scaled*",
         "Font.Width*",
         "Font.default",
-        "Font.width(_:)"
+        "Font.width(_:)",
+        "View.fontWidth(_:)",
+        "Text.fontWidth(_:)"
       ],
       "why": "The typeface axes: naming a family, asking for a point size, scaling one, or widening it. A terminal emulator draws every cell in the one font at the one size its user configured, and no escape sequence asks it for another — so each of these could only be accepted and ignored. TUIkit's Font (Sources/TUIkit/Styling/Font.swift) carries the axes that DO survive: the semantic style, weight and italic."
     },
@@ -393,6 +395,26 @@
         "Image.init(decorative:variableValue:bundle:)"
       ],
       "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIkit/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (Symbols)."
+    },
+    {
+      "match": [
+        "View.kerning(_:)",
+        "Text.kerning(_:)",
+        "View.tracking(_:)",
+        "Text.tracking(_:)",
+        "View.baselineOffset(_:)",
+        "Text.baselineOffset(_:)",
+        "View.lineHeight(_:)",
+        "EnvironmentValues.lineHeight"
+      ],
+      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows)."
+    },
+    {
+      "match": [
+        "View.writingToolsAffordanceVisibility(_:)",
+        "View.textInputFormattingControlVisibility(_:for:)"
+      ],
+      "why": "Affordances the operating system draws over a text view: Apple Intelligence's Writing Tools button, and the rich-text formatting control bar. Nothing in a terminal app is OS-drawn, and neither service reaches a terminal. TextInputFormattingControlPlacement is declined for the same reason (Documentation/SwiftUI-API-completion-refusal-review.md)."
     }
   ],
   "renamed": {
@@ -579,6 +601,12 @@
     },
     "Font.Context": {
       "why": "The environment a Font resolves in — the display metrics and dynamic-type size feeding Font.Resolved. TUIkit resolves a semantic style straight to terminal attributes (Sources/TUIkit/Styling/Font.swift, `defaultAttributes`), with no intermediate resolution step for a context to parameterise."
+    },
+    "Font.Design.rounded": {
+      "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI-API-completion-refusal-review.md P1)."
+    },
+    "Font.Design.serif": {
+      "why": "A serif face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another; macOS's serif also widens text (31 → 34 pt, measured), which a cell cannot. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI-API-completion-refusal-review.md P1)."
     },
     "Font.Leading": {
       "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUIkit spells `View.lineSpacing(_:)` (Sources/TUIkit/Modifiers/LineSpacingModifier.swift) — a different unit and a different meaning, so it is not this API under another name."
