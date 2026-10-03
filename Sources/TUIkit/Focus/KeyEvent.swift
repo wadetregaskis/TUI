@@ -33,7 +33,7 @@ final class KeyEventDispatcher: @unchecked Sendable {
         let scope: ViewIdentity
         let stage: FocusPathStage
         let sectionID: String?
-        let handler: (KeyPress) -> KeyPress.Result
+        let handler: (KeyEvent) -> Bool
     }
 
     /// The focus-path handlers of every stage, in render (outside-in) order.
@@ -126,11 +126,11 @@ extension KeyEventDispatcher {
     ///   - stage: When it is asked; see ``FocusPathStage``.
     ///   - sectionID: As for ``addHandler(sectionID:_:)``: a handler outside
     ///     the section holding the keyboard is silenced.
-    ///   - handler: Answers whether it handled the press. It does its own
-    ///     matching of keys, characters and phases.
+    ///   - handler: Answers whether it took the key. It does its own matching
+    ///     of keys, characters and phases.
     func addFocusPathHandler(
         scope: ViewIdentity, stage: FocusPathStage, sectionID: String?,
-        _ handler: @escaping (KeyPress) -> KeyPress.Result
+        _ handler: @escaping (KeyEvent) -> Bool
     ) {
         focusPathHandlers.append(
             FocusPathEntry(scope: scope, stage: stage, sectionID: sectionID, handler: handler))
@@ -143,8 +143,8 @@ extension KeyEventDispatcher {
     /// for tests.
     var focusPathScopes: [ViewIdentity] { focusPathHandlers.map(\.scope) }
 
-    /// Offers `press` to the `stage` handlers on the path to the focused view
-    /// until one handles it.
+    /// Offers `event` to the `stage` handlers on the path to the focused view
+    /// until one takes it.
     ///
     /// `onKeyPress` handlers are asked OUTERMOST first, SwiftUI's order
     /// measured on macOS 15: a handler on a container that answers `.handled`
@@ -158,26 +158,25 @@ extension KeyEventDispatcher {
     /// container does not. So they are asked in reverse.
     ///
     /// - Parameters:
-    ///   - press: The press.
+    ///   - event: The key event.
     ///   - focusedIdentity: Where the focused control rendered. A handler hears
-    ///     the press when its scope is that identity or an ancestor of it.
+    ///     the key when its scope is that identity or an ancestor of it.
     ///   - stage: Which handlers to ask.
-    /// - Returns: Whether some handler answered `.handled`.
-    func dispatchFocusPath(_ press: KeyPress, focusedIdentity: ViewIdentity, stage: FocusPathStage) -> Bool {
+    /// - Returns: Whether some handler took the key.
+    func dispatchFocusPath(_ event: KeyEvent, focusedIdentity: ViewIdentity, stage: FocusPathStage) -> Bool {
         switch stage {
         case .keyPress:
-            return firstHandling(press, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers)
+            return firstHandling(event, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers)
         case .command:
             return firstHandling(
-                press, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers.reversed())
+                event, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers.reversed())
         }
     }
 
     /// Whether one of `entries` of `stage`, scoped over `focusedIdentity` and
-    /// not silenced by an input grab, handled `press` — asked in the order
-    /// given.
+    /// not silenced by an input grab, took `event` — asked in the order given.
     private func firstHandling(
-        _ press: KeyPress, focusedIdentity: ViewIdentity, stage: FocusPathStage,
+        _ event: KeyEvent, focusedIdentity: ViewIdentity, stage: FocusPathStage,
         in entries: some Sequence<FocusPathEntry>
     ) -> Bool {
         for entry in entries
@@ -185,7 +184,7 @@ extension KeyEventDispatcher {
             guard entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity) else {
                 continue
             }
-            if entry.handler(press) == .handled { return true }
+            if entry.handler(event) { return true }
         }
         return false
     }

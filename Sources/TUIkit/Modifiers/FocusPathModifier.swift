@@ -37,8 +37,12 @@ struct FocusPathModifier<Content: View>: View {
     /// When the handler is asked.
     let stage: FocusPathStage
 
-    /// The handler, with its own matching of keys, characters and phases.
-    let handler: (KeyPress) -> KeyPress.Result
+    /// Makes the handler for a render, from that render's context — for the
+    /// handlers whose keys depend on the environment, such as a command chord
+    /// resolved through ``EnvironmentValues/commandKey``. The handler does its
+    /// own matching of keys, characters and phases, and answers whether it
+    /// took the key.
+    let bind: @MainActor (RenderContext) -> (KeyEvent) -> Bool
 
     var body: Never {
         fatalError("FocusPathModifier renders via Renderable")
@@ -67,6 +71,7 @@ extension FocusPathModifier: Renderable {
         // The modifier's own identity: the content renders at it, and every
         // control inside renders at it or below it.
         let scope = context.identity
+        let handler = bind(context)
         FocusPathRegistrar.register(
             scope: scope, stage: stage, handler: handler, sectionID: sectionID, context: context)
         if let journal = context.recordingEffectJournal {
@@ -96,7 +101,7 @@ enum FocusPathRegistrar {
     /// Adds `handler` for the subtree at `scope` to `context`'s key dispatcher.
     @MainActor
     static func register(
-        scope: ViewIdentity, stage: FocusPathStage, handler: @escaping (KeyPress) -> KeyPress.Result,
+        scope: ViewIdentity, stage: FocusPathStage, handler: @escaping (KeyEvent) -> Bool,
         sectionID: String?, context: RenderContext
     ) {
         context.environment.keyEventDispatcher?.addFocusPathHandler(

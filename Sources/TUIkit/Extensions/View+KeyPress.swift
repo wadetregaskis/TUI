@@ -87,10 +87,7 @@ extension View {
         keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        FocusPathModifier(content: self, stage: .keyPress) { press in
-            guard phases.hearsTerminalPress, keys.contains(press.key) else { return .ignored }
-            return action(press)
-        }
+        onKeyPress(phases: phases, where: { keys.contains($0.key) }, action: action)
     }
 
     /// Performs an action when a key whose characters are all in `characters`
@@ -109,12 +106,10 @@ extension View {
         characters: CharacterSet, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        FocusPathModifier(content: self, stage: .keyPress) { press in
-            guard phases.hearsTerminalPress, !press.characters.isEmpty,
-                press.characters.unicodeScalars.allSatisfy(characters.contains)
-            else { return .ignored }
-            return action(press)
-        }
+        onKeyPress(
+            phases: phases,
+            where: { !$0.characters.isEmpty && $0.characters.unicodeScalars.allSatisfy(characters.contains) },
+            action: action)
     }
 
     /// Performs an action when any key is pressed while this view has the
@@ -134,9 +129,19 @@ extension View {
     public func onKeyPress(
         phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        FocusPathModifier(content: self, stage: .keyPress) { press in
-            guard phases.hearsTerminalPress else { return .ignored }
-            return action(press)
+        onKeyPress(phases: phases, where: { _ in true }, action: action)
+    }
+
+    /// The focus-path modifier every `onKeyPress` is: a handler on the
+    /// key-press stage that hears a press `matches` accepts, in `phases`.
+    private func onKeyPress(
+        phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool,
+        action: @escaping (KeyPress) -> KeyPress.Result
+    ) -> FocusPathModifier<Self> {
+        let handler: (KeyEvent) -> Bool = { event in
+            guard phases.hearsTerminalPress, let press = KeyPress(event), matches(press) else { return false }
+            return action(press) == .handled
         }
+        return FocusPathModifier(content: self, stage: .keyPress) { _ in handler }
     }
 }

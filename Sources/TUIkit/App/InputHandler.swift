@@ -120,9 +120,8 @@ extension InputHandler {
         // That is SwiftUI's order (macOS 15), and it is safe here only because
         // these handlers are focus-gated: one cannot take typing from a field
         // it does not contain, as a focus-blind `onKeyEvent` at Layer 2 could.
-        if focusPathHearsKeys, let press = KeyPress(event),
-            let focused = focusManager.focusedIdentity,
-            keyEventDispatcher.dispatchFocusPath(press, focusedIdentity: focused, stage: .keyPress)
+        if focusPathHearsKeys, let focused = focusManager.focusedIdentity,
+            keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .keyPress)
         {
             return true
         }
@@ -259,10 +258,8 @@ extension InputHandler {
     /// the focus; that is also before the app's shortcuts, as on macOS 15,
     /// where an exit command takes Escape from the cancel button.
     private func focusedViewCommands(_ event: KeyEvent) -> Bool {
-        guard focusPathHearsKeys, let press = KeyPress(event),
-            let focused = focusManager.focusedIdentity
-        else { return false }
-        return keyEventDispatcher.dispatchFocusPath(press, focusedIdentity: focused, stage: .command)
+        guard focusPathHearsKeys, let focused = focusManager.focusedIdentity else { return false }
+        return keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .command)
     }
 
     /// Whether the focus path is offered keys at all.
