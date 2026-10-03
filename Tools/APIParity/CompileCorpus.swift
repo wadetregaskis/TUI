@@ -425,3 +425,14 @@ private struct CorpusLibraryApp: App {
         .transformEnvironment(\.locale) { _ in }
     }
 }
+
+/// A scaled metric, in the floating-point form SwiftUI's examples use.
+@MainActor
+private struct ScaledMetricShapes: View {
+    @ScaledMetric var iconSize: Double = 20
+    @ScaledMetric(relativeTo: .headline) var spacing: Double = 4
+
+    var body: some View {
+        Text("size \(iconSize) spacing \(spacing)")
+    }
+}
