@@ -40,7 +40,7 @@ public struct GroupBox<Label: View, Content: View>: View {
     public var body: some View {
         _StyledGroupBox(
             configuration: GroupBoxStyleConfiguration(
-                label: AnyView(label), content: AnyView(content)))
+                label: AnyView(label), content: _StyledContent(content)))
     }
 }
 
@@ -99,8 +99,9 @@ public struct GroupBoxStyleConfiguration {
     /// A type-erased label of a group box.
     public typealias Label = AnyView
 
-    /// A type-erased content of a group box.
-    public typealias Content = AnyView
+    /// A type-erased content of a group box, whose views lay out as separate
+    /// children of a stack the style puts it in.
+    public typealias Content = _StyledContent
 
     /// A view that provides the title of the group box.
     public let label: Label
