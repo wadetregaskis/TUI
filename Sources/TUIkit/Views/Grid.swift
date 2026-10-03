@@ -178,11 +178,16 @@ extension GridRow: GridRowProviding {
 /// SwiftUI: "If you apply a view modifier to a row, the row applies the
 /// modifier to all of the cells, similar to how a `Group` behaves. For example,
 /// if you apply the `border(_:width:)` modifier to a row, SwiftUI draws a
-/// border on each cell in the row rather than around the row." Without this the
-/// cast in ``_GridCore/rows(context:)`` missed a wrapped row and fell into the
-/// "not a `GridRow`, therefore spans every column" branch that exists for a
-/// `Divider` between rows — so the row was laid out by ``GridRow``'s fallback
-/// `HStack` body and its cells left the grid's columns.
+/// border on each cell in the row rather than around the row."
+///
+/// A row usually reaches its grid flattened: `GridRow` hands its cells out as a
+/// `ChildViewProvider`, and so does a `ModifiedView` around one, re-wrapping
+/// each cell. This conformance is for a modified row that arrives WHOLE — a
+/// `ForEach` row, which a loop hands over one child per element — which the
+/// grid takes apart through it (`wholeGridRow(_:context:)`). Before rows
+/// flattened, a wrapped row missed the grid's row test, fell into the "not a
+/// `GridRow`, therefore spans every column" branch that exists for a `Divider`
+/// between rows, and its cells left the grid's columns.
 ///
 /// The companion to `ModifiedView`'s ``ChildViewProvider`` conformance, and the
 /// same shape: resolve through the wrapper, then put the wrapper back around

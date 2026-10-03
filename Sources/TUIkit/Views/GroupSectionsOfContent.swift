@@ -49,7 +49,7 @@ extension Group {
 /// You don't use this type directly: ``Group/init(sections:transform:)``
 /// creates it.
 public struct GroupSectionsOfContent<Sections: View, Content: View>: View {
-    /// The view whose sections are handed to ``transform``.
+    /// The view whose sections are handed to `transform`.
     let base: Sections
 
     /// Builds the content from the sections.
@@ -61,7 +61,7 @@ public struct GroupSectionsOfContent<Sections: View, Content: View>: View {
 }
 
 extension GroupSectionsOfContent: ChildViewProvider {
-    /// The views ``transform`` builds, as the enclosing container's children —
+    /// The views `transform` builds, as the enclosing container's children —
     /// with the sections and the result in scopes of their own, for the reason
     /// ``GroupElementsOfContent`` gives.
     public func childViews(context: RenderContext) -> [ChildView] {

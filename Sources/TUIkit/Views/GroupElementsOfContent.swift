@@ -73,7 +73,7 @@ extension Group {
 /// You don't use this type directly: ``Group/init(subviews:transform:)``
 /// creates it.
 public struct GroupElementsOfContent<Subviews: View, Content: View>: View {
-    /// The view whose members are handed to ``transform``.
+    /// The view whose members are handed to `transform`.
     let base: Subviews
 
     /// Builds the content from the members.
@@ -85,7 +85,7 @@ public struct GroupElementsOfContent<Subviews: View, Content: View>: View {
 }
 
 extension GroupElementsOfContent: ChildViewProvider {
-    /// The views ``transform`` builds, as the enclosing container's children.
+    /// The views `transform` builds, as the enclosing container's children.
     ///
     /// Two scopes, one per side, so nothing on one side can land on an
     /// identity from the other: the members resolve under a step of their own
