@@ -551,13 +551,20 @@ extension _NavigationSplitViewCore {
 
     /// Renders a single column's content.
     fileprivate func renderColumnContent(_ column: NavigationSplitViewColumn, context: RenderContext) -> FrameBuffer {
+        // The column is its content's `containerRelativeFrame` container,
+        // published under the column's own identity so each column's size is
+        // noted in a slot of its own.
+        func columnContext<V: View>(_ view: V) -> RenderContext {
+            context.withChildIdentity(type: type(of: view)).publishingContainerSize(
+                CellSize(width: max(0, context.availableWidth), height: max(0, context.availableHeight)))
+        }
         switch column {
         case .sidebar:
-            return TUIkit.renderToBuffer(sidebar, context: context.withChildIdentity(type: type(of: sidebar)))
+            return TUIkit.renderToBuffer(sidebar, context: columnContext(sidebar))
         case .content:
-            return TUIkit.renderToBuffer(content, context: context.withChildIdentity(type: type(of: content)))
+            return TUIkit.renderToBuffer(content, context: columnContext(content))
         case .detail:
-            return TUIkit.renderToBuffer(detail, context: context.withChildIdentity(type: type(of: detail)))
+            return TUIkit.renderToBuffer(detail, context: columnContext(detail))
         default:
             return FrameBuffer()
         }

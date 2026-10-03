@@ -185,6 +185,13 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         let elements = read()
         var childContext = context
         childContext.environment.navigationCoordinator = coordinator
+        // The screen's `containerRelativeFrame` container: the stack, less the
+        // bar a pushed screen sits under. Set, not noted, from a measure.
+        childContext = childContext.publishingContainerSize(
+            CellSize(
+                width: max(0, proposal.width ?? context.availableWidth),
+                height: max(0, (proposal.height ?? context.availableHeight) - (elements.isEmpty ? 0 : Self.barHeight))),
+            noting: false)
 
         guard let top = elements.last else {
             return measureChild(
@@ -228,6 +235,12 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         let elements = read()
         var base = context
         base.environment.navigationCoordinator = coordinator
+        // The screen's `containerRelativeFrame` container: the stack, less the
+        // bar a pushed screen sits under.
+        base = base.publishingContainerSize(
+            CellSize(
+                width: max(0, context.availableWidth),
+                height: max(0, context.availableHeight - (elements.isEmpty ? 0 : Self.barHeight))))
 
         // Each depth is its own focus section, so walking into a screen and
         // back restores the focus the level you left was holding — the same

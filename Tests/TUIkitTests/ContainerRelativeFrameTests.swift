@@ -101,6 +101,27 @@ struct ContainerRelativeFrameTests {
         #expect(row.flatMap { column(of: "x", in: $0) }.map { (16...18).contains($0) } == true, "\(inList)")
     }
 
+    @Test("A tab, a navigation stack and a split-view column are containers too")
+    func navigationContainers() {
+        let trailing = Text("x").containerRelativeFrame(.horizontal, alignment: .trailing)
+
+        // A stack's screen is the stack's width: the window's, here.
+        let stack = scene(NavigationStack { trailing }, height: 4)
+        #expect(stack.compactMap { column(of: "x", in: $0) }.first == 19, "\(stack)")
+
+        // A tab hugs its widest content, and this one is as wide as its tab.
+        let tabs = scene(TabView(selection: .constant(0)) { Tab("One", value: 0) { trailing } }.tabViewStyle(.compact), height: 4)
+        #expect(tabs.compactMap { column(of: "x", in: $0) }.first.map { $0 >= 15 } == true, "\(tabs)")
+
+        // A sidebar's content is its column's width, not the window's.
+        let split = scene(
+            NavigationSplitView { trailing } detail: { Text("detail") }, width: 40, height: 4)
+        let sidebarX = split.compactMap { column(of: "x", in: $0) }.first
+        let detail = split.compactMap { line in line.range(of: "detail").map { line.distance(from: line.startIndex, to: $0.lowerBound) } }.first
+        #expect(sidebarX != nil && detail != nil && sidebarX! < detail!, "\(split)")
+        #expect(sidebarX.map { $0 > 5 } == true, "trailing in its column: \(split)")
+    }
+
     @Test("The closure form works the length out from the container's")
     func closureForm() {
         let drawn = scene(

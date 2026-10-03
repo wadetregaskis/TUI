@@ -270,10 +270,12 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     }
 
     /// The render context for the active tab's content: identity branched by the
-    /// selected value, height reduced by the strip.
-    private func contentContext(_ context: RenderContext, stripHeight: Int) -> RenderContext {
+    /// selected value, height reduced by the strip, and the tab — `available`
+    /// across, that height down — as its `containerRelativeFrame` container.
+    private func contentContext(_ context: RenderContext, stripHeight: Int, available: Int) -> RenderContext {
         var child = context.withBranchIdentity("tab-\(tabs[selectedIndex].value)")
         child.availableHeight = max(0, context.availableHeight - stripHeight)
+        child = child.publishingContainerSize(CellSize(width: max(0, available), height: child.availableHeight))
         // The body is painted on the strip's surface, so anything inside that
         // draws a surface of its own has to step off THAT, not off the page.
         // Without this a `TextField` in a tab computed "a step above the page"
@@ -295,12 +297,15 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         var branch = context.withBranchIdentity("tab-\(tabs[index].value)")
         branch.availableWidth = available
         branch.availableHeight = contentMeasureHeight(available: available, context: context)
-        return branch
+        // The tab is its content's `containerRelativeFrame` container, as in
+        // `contentContext`; set, not noted, from a measure.
+        return branch.publishingContainerSize(
+            CellSize(width: max(0, available), height: branch.availableHeight), noting: false)
     }
 
     /// The height a tab's content is measured against: what the TabView has,
     /// less the strip's chrome — the height the render lays it out in
-    /// (``contentContext(_:stripHeight:)``), not the whole of it.
+    /// (``contentContext(_:stripHeight:available:)``), not the whole of it.
     ///
     /// Measured against the whole, content within the strip's height of it was
     /// sized for rows the strip then took back. A scroll view there measured as
@@ -734,7 +739,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // natural width so the per-line padding below centres it as a block; a
         // tab as wide as the interior clamps to it and fills. (See the compact
         // path.)
-        var contentCtx = contentContext(context, stripHeight: chrome)
+        var contentCtx = contentContext(context, stripHeight: chrome, available: avail)
         let widths = selectedTabWidths(
             insets: insets, available: avail, panelWidth: interior,
             drawnHeight: contentCtx.availableHeight, context: context)
@@ -1018,7 +1023,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // wide as the panel clamps to the panel and fills it (leftPad 0). Clamp
         // preserves the content's hit regions, so its controls stay clickable
         // once centred.
-        var contentCtx = contentContext(context, stripHeight: rows.count)
+        var contentCtx = contentContext(context, stripHeight: rows.count, available: context.availableWidth)
         let widths = selectedTabWidths(
             insets: insets, available: context.availableWidth, panelWidth: panelWidth,
             drawnHeight: contentCtx.availableHeight, context: context)
