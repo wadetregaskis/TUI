@@ -977,6 +977,12 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// which is how a declared `.bottom` list opens at its tail.
     var bottomFollowBound = 0
 
+    /// Whether the change this frame renders was made under a transaction that
+    /// turns a scroll view's own offset adjustments off
+    /// (`Transaction.scrollContentOffsetAdjustmentBehavior`). Synced each render
+    /// by `syncFrameInputs`; read by ``applyAnchorHold()``.
+    var offsetAdjustmentSuspended = false
+
     /// Last glued frame's ``itemCount``, so the Bottom follow can tell a frame
     /// where the tail actually ADVANCED (rows arrived — carry the focus cursor
     /// along) from a steady glued frame (nothing changed — leave the cursor

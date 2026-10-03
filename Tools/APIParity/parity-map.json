@@ -906,10 +906,6 @@
       "how": "ScrollOverscroll (+ ScrollOverscrollState)",
       "why": "Sources/TUIkit/Views/ScrollOverscroll.swift:18-29 (.none / .rows(Int) / .viewport(minus:)) and :55 for the live excursion. SwiftUI's automatic/always/basedOnSize become an explicit allowance in rows; `.viewport(minus:)` is the idiom `.basedOnSize` cannot express."
     },
-    "ScrollContentOffsetAdjustmentBehavior": {
-      "how": "ScrollAnchorMode.window vs .top/.bottom/.row",
-      "why": "Sources/TUIkit/Views/ScrollAnchorMode.swift:20 documents `window` as \"the position stays where it is in LINE coordinates unless something explicitly moves it\" — SwiftUI's `.disabled` — while top/bottom/row are the adjusting policies, distinguished by ScrollAnchorMode.holdsRowIden"
-    },
     "ScrollInputBehavior": {
       "how": "\\.isScrollEnabled (Bool) via View.scrollDisabled(_:)",
       "why": "Sources/TUIkit/Views/ScrollDisabled.swift:66. SwiftUI's automatic/enabled/disabled triple collapses to the Bool environment value; the non-additive nesting semantics match (ScrollDisabled.swift:60-63)."

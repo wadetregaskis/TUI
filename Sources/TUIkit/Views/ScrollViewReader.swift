@@ -53,7 +53,9 @@ public struct ScrollViewProxy {
     public func scrollTo<ID: Hashable>(_ id: ID, anchor: UnitPoint? = nil) {
         // The SAME stringification ForEach derives its identity keys with,
         // so the key comparison in the seek paths is exact.
-        registry.scrollTo(key: identityKey(id), anchor: anchor)
+        // An anchor of the call's own wins; without one, a `withTransaction`
+        // around the call may name it (`Transaction.scrollTargetAnchor`).
+        registry.scrollTo(key: identityKey(id), anchor: anchor ?? Transaction.ambient?.scrollTargetAnchor)
     }
 }
 

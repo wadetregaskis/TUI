@@ -23,6 +23,36 @@ public struct Transaction: Sendable, Equatable {
     /// the list below it did.
     public var disablesAnimations: Bool = false
 
+    /// Whether a programmatic change to a scroll position, made under this
+    /// transaction, leaves a scroll already in progress moving. Matches
+    /// SwiftUI's property of the same name; `false` by default, as there.
+    ///
+    /// Recorded, and met by the medium: a terminal's scrolling comes in
+    /// discrete steps and keeps no momentum, so no scroll is ever still moving
+    /// for a programmatic change to stop or to spare.
+    public var scrollPositionUpdatePreservesVelocity: Bool = false
+
+    /// Where TUIkit's `scrollTargetAnchor` keeps its point, as `x` and `y`:
+    /// the property is declared beside `UnitPoint`, which lives above this
+    /// module.
+    package var scrollTargetAnchorStorage: ScrollTargetAnchorStorage?
+
+    /// Where TUIkit's `scrollContentOffsetAdjustmentBehavior` keeps its one
+    /// bit: whether a scroll view's own offset adjustments are off for the
+    /// change.
+    package var disablesScrollContentOffsetAdjustment = false
+
+    /// A unit point, as this module can hold one.
+    package struct ScrollTargetAnchorStorage: Sendable, Equatable {
+        package var x: Double
+        package var y: Double
+
+        package init(x: Double, y: Double) {
+            self.x = x
+            self.y = y
+        }
+    }
+
     /// Creates a transaction with no animation.
     public init() {}
 

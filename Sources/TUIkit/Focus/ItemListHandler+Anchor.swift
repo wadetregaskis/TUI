@@ -41,6 +41,16 @@ extension ItemListHandler {
     func applyAnchorHold() {
         let bound = anchorPositionBinding?.wrappedValue
         adoptWrittenAnchor(bound)
+        // A change made under `.scrollContentOffsetAdjustmentBehavior =
+        // .disabled` moves nothing: the follow stays where it is, which
+        // releases it (engagement is positional), and a held row is let go, to
+        // be held again from wherever the change put it. The app's own write to
+        // the binding, above, is not an adjustment and still jumps.
+        if offsetAdjustmentSuspended, hasOpened {
+            forgetRowAnchor()
+            bottomFollowBound = maxOffset
+            return
+        }
         // The OPENING frame consults the `.initialOffset` anchor and every
         // frame after it the `.sizeChanges` one — the same value for any list
         // that used the unlabelled modifier. See `ScrollAnchorMode.governing`.

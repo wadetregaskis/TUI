@@ -104,6 +104,7 @@ extension ItemListHandler {
         // event time, and the anchor hold reads the declared mode.
         anchorPositionBinding = environment.anchorPosition?.binding
         (declaredAnchorMode, declaredOpeningAnchorMode) = environment.declaredAnchorModes
+        offsetAdjustmentSuspended = environment.transaction.disablesScrollContentOffsetAdjustment
         self.reorderFeedback = reorderFeedback
         self.keyboardMoveIsLive = keyboardMoveIsLive
         self.rowHeight = rowHeight

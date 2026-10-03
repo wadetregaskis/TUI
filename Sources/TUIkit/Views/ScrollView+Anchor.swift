@@ -64,7 +64,13 @@ extension _ScrollViewCore {
         // A pending scrollTo supersedes the glue this frame: the explicit
         // programmatic scroll is exactly the "scrolling away releases the
         // follow" interaction, expressed in code.
-        return followsBottom && handler.pendingScrollTo == nil
+        // A change made under `.scrollContentOffsetAdjustmentBehavior =
+        // .disabled` is not followed; the view then sits short of the new tail,
+        // which is the follow released, as a user scroll releases it. The
+        // opening placement is not an adjustment and is kept.
+        let suspended =
+            handler.hasOpened && context.environment.transaction.disablesScrollContentOffsetAdjustment
+        return followsBottom && handler.pendingScrollTo == nil && !suspended
             && (!handler.hasOpened || handler.scrollOffset >= handler.tailAsLastDrawn)
     }
 

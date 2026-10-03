@@ -229,4 +229,35 @@ read — an hour's work, with the reader.
 What SwiftUI reports and TUIkit does not is a marked *eager* `VStack`'s rows
 (an existing gap of the read-back, documented on `ScrollPosition.viewID`).
 
+### B-W10-8. The `Transaction` scroll members: what "no adjustment" suspends
+
+*`Transaction.scrollTargetAnchor`, `Transaction.scrollContentOffsetAdjustmentBehavior`
+(and `ScrollContentOffsetAdjustmentBehavior`, whose `differentShape` map entry
+goes), `Transaction.scrollPositionUpdatePreservesVelocity`*
+
+The run loop already publishes the transaction a change was made under for the
+frame that renders it, so a scroll view can read all three where it decides.
+
+- **`scrollTargetAnchor`**: preferred to a `.scrollPosition(id:anchor:)`
+  modifier's anchor (SwiftUI's documentation says so); for a `ScrollPosition`
+  request or a `ScrollViewProxy.scrollTo` that names an anchor of its own, the
+  call's wins, and one that names none takes the transaction's. SwiftUI does
+  not say which wins there; the call is the more specific statement.
+- **`scrollContentOffsetAdjustmentBehavior = .disabled`** suspends a declared
+  anchor's adjustments for the change: a `ScrollView`, `List` or `Table`
+  following its tail does not follow, which leaves it short of the new tail
+  and so releases the follow, exactly as a user scroll does (engagement is
+  positional); a `List`/`Table` holding a row lets it go and holds it again
+  from where the change left it. The opening placement is not an adjustment
+  and is kept; an app's own write to a bound `.anchorPosition` still jumps.
+  *Not covered:* a windowed `LazyVStack`'s `.anchorPosition(.row)` hold
+  inside a `ScrollView` — TUIkit-only API, and the hold is in the stack files
+  another lane is changing. A follow-up of an hour once that lane lands.
+- **`scrollPositionUpdatePreservesVelocity`** is recorded and met by the
+  medium: no scroll here has momentum, so nothing is moving for a
+  programmatic change to stop or spare.
+
+`Transaction` lives below `UnitPoint`, so the anchor is stored as two
+`Double`s under `package` access and surfaced as a `UnitPoint` from TUIkit.
+
 ## C. Declined without asking
