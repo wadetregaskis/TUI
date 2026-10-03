@@ -1008,10 +1008,6 @@
     "View.fixedSize()": {
       "how": "View.fixedSize(horizontal:vertical:) — both parameters default to true",
       "why": "SwiftUI declares two overloads; TUIkit's single one has defaults, so `.fixedSize()` compiles and means the same thing (verified by a `swiftc -typecheck` probe against the built module, not by reading). Adding a no-argument overload would be a second spelling of one idea — what the consolidate-before-adding rule exists to prevent — and the extractor cannot see that a defaulted parameter list already covers the shorter call, so it reports the shape difference as a gap."
-    },
-    "Font.TextStyle.encode(to:)": {
-      "how": "the synthesized `Codable` conformance on `Font.TextStyle`",
-      "why": "Sources/TUIkit/Styling/Font.swift — the enum declares `Codable`, so Swift synthesizes both `init(from:)` and `encode(to:)`, and a round-trip is asserted in Tests/TUIkitTests/FontTests.swift. The audit reads declarations from the symbol graph, which carries the synthesized initializer but not the synthesized encoder."
     }
   }
 }

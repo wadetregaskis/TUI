@@ -58,6 +58,17 @@ TUIKIT_MODULES = ["TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView"]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are
 # artefacts of how a type is spelled rather than API anyone writes.
+# The requirement a conformance implies, for the protocols whose requirements
+# the compiler synthesizes and the symbol graph then leaves out (see
+# `load_symbols`). Keyed by the protocol's precise identifier.
+SYNTHESIZED_REQUIREMENTS = {
+    "s:SE": [("encode(to:)", "func")],   # Swift.Encodable
+    "s:Se": [("init(from:)", "init")],   # Swift.Decodable
+    # An enum with a raw type: the graph carries `init(rawValue:)`, not
+    # `rawValue` (`Edge.rawValue` was a gap on `enum Edge: Int8`).
+    "s:SY": [("rawValue", "var"), ("init(rawValue:)", "init")],  # Swift.RawRepresentable
+}
+
 KINDS = {
     "swift.struct": "struct", "swift.class": "class", "swift.enum": "enum",
     "swift.protocol": "protocol", "swift.actor": "actor",
@@ -120,6 +131,8 @@ def load_symbols(directory, modules, collect_defaults=False):
     wanted = set(modules)
     symbols = {}
     defaults = {}
+    keys_by_id = {}
+    conformances = []
     for entry in sorted(os.listdir(directory)):
         if not entry.endswith(".symbols.json"):
             continue
@@ -144,8 +157,25 @@ def load_symbols(directory, modules, collect_defaults=False):
                 continue
             key = ".".join(parts)
             symbols.setdefault(key, kind)
+            keys_by_id[symbol["identifier"]["precise"]] = key
             if collect_defaults:
                 defaults.setdefault(key, []).append(defaulted_parameters(symbol))
+        conformances.extend(
+            (relation["source"], relation["target"])
+            for relation in graph.get("relationships", [])
+            if relation.get("kind") == "conformsTo"
+            and relation.get("target") in SYNTHESIZED_REQUIREMENTS)
+    # A SYNTHESIZED `Codable` conformance emits `init(from:)` into the graph but
+    # not `encode(to:)`, so a type that is plainly Encodable read as lacking
+    # its one requirement — `Angle.encode(to:)` was a "gap" on a type declared
+    # `Codable`. A raw-valued enum loses `rawValue` the same way. The
+    # conformance itself is recorded, and it implies the members, so they are
+    # added from it. Both frameworks are read this way.
+    for source, target in conformances:
+        owner = keys_by_id.get(source)
+        if owner:
+            for member, kind in SYNTHESIZED_REQUIREMENTS[target]:
+                symbols.setdefault(f"{owner}.{member}", kind)
     return (symbols, defaults) if collect_defaults else symbols
 
 

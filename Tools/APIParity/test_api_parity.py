@@ -7,8 +7,10 @@ These need no SDK and no build: every function exercised here takes the
 symbol dictionaries `load_symbols` would have produced (key -> kind), so each
 case spells out exactly the vocabulary it is about.
 """
+import json
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -70,6 +72,46 @@ class LabelDeviationTests(unittest.TestCase):
         swiftui = symbols("View.padding(_:)", "View.padding(_:_:)")
         tuikit = symbols("View.padding(_:)", "View.padding(_:_:)")
         self.assertEqual(api_parity.label_deviations(swiftui, tuikit), {})
+
+
+class SynthesizedConformanceTests(unittest.TestCase):
+
+    def graph(self, directory, relationships):
+        """One module's symbol graph: a public struct `Angle`, with the
+        `init(from:)` a synthesized `Decodable` leaves behind and NOT the
+        `encode(to:)` a synthesized `Encodable` leaves out."""
+        def symbol(precise, kind, *path):
+            return {"identifier": {"precise": precise}, "kind": {"identifier": kind},
+                    "pathComponents": list(path), "accessLevel": "public"}
+        graph = {"symbols": [symbol("s:6TUIkit5AngleV", "swift.struct", "Angle"),
+                             symbol("s:6TUIkit5AngleV4fromACs7Decoder_p_tKcfc",
+                                    "swift.init", "Angle", "init(from:)")],
+                 "relationships": relationships}
+        with open(os.path.join(directory, "TUIkit.symbols.json"), "w") as handle:
+            json.dump(graph, handle)
+
+    def test_a_codable_type_has_encode_to(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.graph(directory, [
+                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:SE"},
+                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:Se"}])
+            loaded = api_parity.load_symbols(directory, ["TUIkit"])
+        self.assertIn("Angle.encode(to:)", loaded)
+        self.assertIn("Angle.init(from:)", loaded)
+
+    def test_a_raw_valued_enum_has_raw_value(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.graph(directory, [
+                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:SY"}])
+            loaded = api_parity.load_symbols(directory, ["TUIkit"])
+        self.assertEqual(loaded.get("Angle.rawValue"), "var")
+
+    def test_without_the_conformance_there_is_no_encode_to(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.graph(directory, [
+                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:SQ"}])
+            loaded = api_parity.load_symbols(directory, ["TUIkit"])
+        self.assertNotIn("Angle.encode(to:)", loaded)
 
 
 if __name__ == "__main__":
