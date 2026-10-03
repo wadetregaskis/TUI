@@ -736,6 +736,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowContext.availableWidth = max(
                 1, context.availableWidth - borderOverhead - listRowGutter)
         }
+        // The rows' `containerRelativeFrame` container: the width a row gets,
+        // and the height inside the border.
+        rowContext = rowContext.publishingContainerSize(
+            CellSize(width: rowContext.availableWidth, height: max(0, context.availableHeight - borderOverhead)))
         // Where the rows state the edits they refuse, gathered as they render.
         // Installed BEFORE extraction because the row thunks capture this
         // context and the handler does not exist yet; the results are handed to

@@ -86,6 +86,21 @@ struct ContainerRelativeFrameTests {
         #expect(!line.contains("1"))
     }
 
+    @Test("A list is the container for its rows")
+    func listIsTheContainer() {
+        // A plain list in the 20-wide window: rows get the width less the gutters.
+        let inList = scene(
+            List {
+                Text("x").containerRelativeFrame(.horizontal, alignment: .trailing)
+            }
+            .listStyle(.plain), height: 4)
+        // Framed at the window's width, the trailing `x` would land past the
+        // row's last cell and be cut; at the row's, it sits in that last cell.
+        let row = inList.first { $0.contains("x") }
+        #expect(row != nil, "the x is drawn: \(inList)")
+        #expect(row.flatMap { column(of: "x", in: $0) }.map { (16...18).contains($0) } == true, "\(inList)")
+    }
+
     @Test("The closure form works the length out from the container's")
     func closureForm() {
         let drawn = scene(
