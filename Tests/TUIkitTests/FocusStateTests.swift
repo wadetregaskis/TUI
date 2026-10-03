@@ -351,6 +351,42 @@ struct FocusStateTests {
             "the first control is never transiently focused (no spurious editing began/ended)")
         #expect(first.focusLostCount == 0)
     }
+
+    // MARK: Passing a focus state down
+
+    /// A child that binds its own fields to the parent's focus state, taken
+    /// as a `@FocusState.Binding` — SwiftUI's way of passing one down.
+    private struct ChildFields: View {
+        @FocusState.Binding var field: Field?
+        var body: some View {
+            VStack {
+                TextField("name", text: .constant("")).focused($field, equals: .name)
+                TextField("email", text: .constant("")).focused($field, equals: .email)
+            }
+        }
+    }
+
+    private struct ParentHarness: View {
+        @FocusState var field: Field?
+        let binding: Box<FocusState<Field?>.Binding?>
+        var body: some View {
+            binding.value = $field
+            return ChildFields(field: $field)
+        }
+    }
+
+    @Test("A @FocusState.Binding in a child reads and moves the parent's focus state")
+    func bindingPassedDown() {
+        let tui = TUIContext()
+        let manager = FocusManager()
+        let binding = Box<FocusState<Field?>.Binding?>(nil)
+        render(ParentHarness(binding: binding), tuiContext: tui, focusManager: manager)
+        #expect(binding.value?.wrappedValue == .name, "the child's first field took the initial focus")
+
+        binding.value?.wrappedValue = .email
+        render(ParentHarness(binding: binding), tuiContext: tui, focusManager: manager)
+        #expect(binding.value?.wrappedValue == .email, "the parent moved focus to the child's field")
+    }
 }
 
 // MARK: - Two defaults, one focus

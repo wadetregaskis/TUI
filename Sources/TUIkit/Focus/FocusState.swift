@@ -206,6 +206,21 @@ public struct FocusState<Value: Hashable>: RenderIdentityBindable {
 
     /// The projected value of a ``FocusState`` — a handle the focus modifiers
     /// bind a control to.
+    ///
+    /// A property wrapper itself, as SwiftUI's is, so a child view can take
+    /// its parent's focus state and bind its own controls to it:
+    ///
+    /// ```swift
+    /// struct Fields: View {
+    ///     @FocusState.Binding var focus: Field?
+    ///     var body: some View {
+    ///         TextField("Name", text: $name).focused($focus, equals: .name)
+    ///     }
+    /// }
+    ///
+    /// Fields(focus: $focus)   // in the parent, which owns the @FocusState
+    /// ```
+    @propertyWrapper
     public struct Binding {
         let store: FocusStateStore<Value>
 
@@ -214,6 +229,10 @@ public struct FocusState<Value: Hashable>: RenderIdentityBindable {
             get { store.currentValue }
             nonmutating set { store.setValue(newValue) }
         }
+
+        /// The binding itself, so `$focus` on a `@FocusState.Binding` property
+        /// passes it on down the hierarchy.
+        public var projectedValue: Self { self }
     }
 }
 
