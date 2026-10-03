@@ -643,8 +643,8 @@ but clicking it opens no calendar.
 
 **The fuller version:** a `▲▼` pair after a stepper field, each a click
 target stepping the selected component (S, half a day with tests); and a
-compact field that opens the graphical calendar in a popover (S once the
-calendar exists — it is Wave 6's next commit).
+compact field that opens the graphical calendar (`.graphical`, which has
+shipped) in a popover; small now that the calendar exists.
 
 ## C. Declined without asking
 

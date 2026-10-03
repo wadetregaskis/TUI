@@ -91,7 +91,9 @@ public struct DatePicker<Label: View>: View {
         // A built-in style is drawn here, with this picker's focus id and
         // disabled state, which a configuration does not carry; a custom style
         // through its body.
-        if style is any BuiltInDatePickerStyle {
+        if style is GraphicalDatePickerStyle {
+            _GraphicalDatePicker(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
+        } else if style is any BuiltInDatePickerStyle {
             _DatePickerField(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
         } else {
             style.makeAnyBody(configuration: configuration)
