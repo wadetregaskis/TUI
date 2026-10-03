@@ -92,6 +92,75 @@ has no Edit menu, and no key that every terminal passes through unclaimed:
 Ctrl-Shift-_ for redo where the terminal can distinguish them. Nothing
 ships until you decide.
 
+### A2. Anchors and named coordinate spaces
+
+*`Anchor`, `Anchor.Source`, `View.anchorPreference(key:value:transform:)`,
+`View.transformAnchorPreference(key:value:transform:)`,
+`GeometryProxy.subscript(_:)`, `GeometryProxy.bounds(of:)`,
+`View.coordinateSpace(_:)`, `NamedCoordinateSpace`,
+`CoordinateSpaceProtocol.named(_:)`, `.scrollView`, `.scrollView(axis:)`,
+`CoordinateSpace.named(_:)`*
+
+A `GeometryProxy` has to answer "where am I, in that space?" while its own
+content is still being built. TUIkit renders bottom-up: a view learns where it
+sits only when its ancestors composite it. `.global` already shows the
+problem — nothing sets `GeometryProxy.globalOrigin`, so `frame(in: .global)`
+answers the local frame and says so (`hasGlobalPosition`).
+
+Measured in SwiftUI (W05 brief, probes L and M): an anchor resolves relative
+to the reading proxy's own origin; `frame(in: .named("s"))` and
+`bounds(of: .named("s"))` answer in the named view's space, and an unknown
+name gives the local frame and `nil`; `.scrollView` answers in the scroll
+content's space.
+
+**Options.**
+
+1. **G1 — markers.** A reader or an anchor site stamps a zero-content marker
+   into its buffer as a floating layer, which already survives every
+   combinator. The geometry owner (a preference reader, a `.coordinateSpace`
+   view, a `ScrollView`, the scene root) reads the markers back out of its
+   rendered subtree in its own coordinates. A proxy answers from what its
+   owners found LAST frame; when that turns out wrong, the owner re-renders
+   its subtree once with the corrected positions. `.global` becomes exact.
+   3–4 days. The price: a correction re-render on frames where a queried
+   position moved — none in steady state, but at the root it is a
+   whole-frame re-render, a second source of discarded passes beside the
+   app-header correction.
+2. **G2 — G1 without the root correction.** `.global` keeps its documented
+   fallback. About 3 days.
+3. **G0 — decline the family.** Only `CoordinateSpaceProtocol` with
+   `.local`/`.global` ships (it has, as the safe part).
+   `anchorPreference`, named spaces and `.scrollView` geometry fail to
+   compile; scroll-offset tracking leans on `onScrollGeometryChange`.
+
+**Recommendation:** G1. It is one mechanism used five times, it closes the
+`.global` hole, `onGeometryChange` needs it for named spaces, and it lets
+popovers replace `PopoverAttachmentRect` with `Anchor<CellRect>.Source`.
+Measure the correction rate on Stress before landing it.
+
+### A3. `layoutDirectionBehavior(_:)`: mirror now, or with right-to-left?
+
+*`LayoutDirectionBehavior` (`.fixed`, `.mirrors`, `.mirrors(in:)`),
+`View.layoutDirectionBehavior(_:)`, `Shape.layoutDirectionBehavior`*
+
+Measured in SwiftUI: in a left-to-right environment `.fixed` and `.mirrors`
+change nothing, but `.mirrors(in: .leftToRight)` really mirrors. So this
+cannot ship as a no-op, and one enum case cannot be made a compile error.
+
+**Options.**
+
+1. **Mirror at cell level now.** Reverse each row's cells (wide characters
+   kept whole), swap glyphs that have mirror forms (Unicode's mirroring
+   pairs, plus `┌↔┐`, `╭↔╮`, `├↔┤`, `▌↔▐`, arrows), and mirror the x of every
+   payload (hit regions, floating layers, opacity regions, animated runs).
+   Letters come out reversed, not mirror-written. 1–1.5 days.
+2. **Defer to right-to-left support** (B1's fuller version), which needs the
+   same buffer mirror and would give it real use and tests.
+
+**Recommendation:** 2. Nothing ships until then.
+`flipsForRightToLeftLayoutDirection(_:)` has shipped regardless: its
+condition is a right-to-left environment, which cannot occur yet (B1).
+
 ## B. Shipped the safe option
 
 ### B1. `\.layoutDirection` is read-only (always left-to-right)
@@ -116,8 +185,9 @@ resolves leading/trailing to left/right would consult the direction:
 - `List` chrome (disclosure indicators, separator insets);
 - scroll bars, which go on the leading side in RTL.
 
-It also needs `flipsForRightToLeftLayoutDirection(_:)` and
-`layoutDirectionBehavior(_:)`.
+It also needs `layoutDirectionBehavior(_:)` (A3), and
+`flipsForRightToLeftLayoutDirection(_:)`, which ships as the identity —
+correct while the direction is always left-to-right — must start mirroring.
 
 That is several days, and every one of those sites gets a test. Bidi text
 itself (reordering mixed-direction runs) is a separate and larger question,
