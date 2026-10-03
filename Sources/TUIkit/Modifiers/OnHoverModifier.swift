@@ -30,9 +30,10 @@ public struct OnHoverModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
-    /// The hover callback. Receives `true` when the cursor
-    /// enters the view's hit region, `false` when it leaves.
-    let action: @MainActor (Bool) -> Void
+    /// The hover callback: told when the cursor enters the view's hit region,
+    /// moves within it, and leaves it, with where it is in the view's own
+    /// cells. `.onHover` hears the crossings and not the moves.
+    let observe: @MainActor (HoverTransition) -> Void
 
     public var body: Never {
         fatalError("OnHoverModifier renders via Renderable")
@@ -63,7 +64,7 @@ extension OnHoverModifier: Renderable {
         // `.moved` events when motion tracking is active.
         dispatcher.requestFeature(.motion, in: context)
 
-        let capturedAction = action
+        let capturedObserve = observe
         // An OBSERVER, not an ordinary region. This region goes on after the
         // content's, so on every cell it is the innermost match, and as an
         // ordinary region it took the `.entered` / `.exited` the wrapped
@@ -73,11 +74,17 @@ extension OnHoverModifier: Renderable {
         let handlerID = dispatcher.registerHoverObserver(in: context) { event in
             switch event.phase {
             case .entered:
-                capturedAction(true)
+                capturedObserve(.entered(x: event.x, y: event.y))
                 return true
             case .exited:
-                capturedAction(false)
+                capturedObserve(.exited)
                 return true
+            case .moved:
+                // Offered while the pointer stays inside; answering `false`
+                // asks for no frame of its own — an action that changes state
+                // asks for one through that state.
+                capturedObserve(.moved(x: event.x, y: event.y))
+                return false
             default:
                 // Don't claim any non-hover event so other
                 // siblings / parents still get a shot at it
@@ -96,6 +103,18 @@ extension OnHoverModifier: Renderable {
         )
         return buffer
     }
+}
+
+// MARK: - Transitions
+
+/// What a hover observer is told about the pointer, in the region's own cells.
+enum HoverTransition {
+    /// It came into the region, at this cell.
+    case entered(x: Int, y: Int)
+    /// It moved to this cell without leaving.
+    case moved(x: Int, y: Int)
+    /// It left.
+    case exited
 }
 
 // MARK: - Layoutable
@@ -140,7 +159,13 @@ extension View {
     /// - Returns: A view that reports cursor enter / exit
     ///   transitions to `action`.
     public func onHover(perform action: @escaping @MainActor (Bool) -> Void) -> some View {
-        OnHoverModifier(content: self, action: action)
+        OnHoverModifier(content: self) { transition in
+            switch transition {
+            case .entered: action(true)
+            case .exited: action(false)
+            case .moved: break
+            }
+        }
     }
 }
 
