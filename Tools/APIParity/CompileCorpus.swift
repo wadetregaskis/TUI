@@ -436,3 +436,10 @@ private struct ScaledMetricShapes: View {
         Text("size \(iconSize) spacing \(spacing)")
     }
 }
+
+/// A scene built from one expression, which SceneBuilder passes through.
+private struct ExpressionSceneApp: App {
+    var body: some Scene {
+        WindowGroup { Text("one") }
+    }
+}

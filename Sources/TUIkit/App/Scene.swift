@@ -201,4 +201,13 @@ public struct SceneBuilder {
     public static func buildBlock<Content: Scene>(_ content: Content) -> Content {
         content
     }
+
+    /// Builds a scene from one expression — mirrors SwiftUI's
+    /// `buildExpression(_:)`, which passes the scene through.
+    ///
+    /// - Parameter content: The scene.
+    /// - Returns: The same scene, unchanged.
+    public static func buildExpression<Content: Scene>(_ content: Content) -> Content {
+        content
+    }
 }
