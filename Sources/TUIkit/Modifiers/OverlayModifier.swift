@@ -58,8 +58,14 @@ extension OverlayModifier: Renderable {
         // `ListRowStyleModifiers` uses for a row's background, and leaving the
         // base at the parent identity means no existing view's `@State` slot or
         // focus id moves.
+        //
+        // The step is keyed on the MODIFIER's type, not the overlay's: in
+        // `.overlay { Badge() }.overlay { Badge() }` the outer modifier's base
+        // is the inner one, so both render at this identity, and a step keyed
+        // on `Badge` put both badges on one path, sharing state. The outer
+        // modifier's type contains the inner's, so the two steps differ.
         let baseBuffer = TUIkit.renderToBuffer(base, context: context)
-        let overlayContext = context.withChildIdentity(type: Overlay.self, index: 1)
+        let overlayContext = context.withChildIdentity(type: Self.self, index: 1)
 
         // Shortcut a layer with NOTHING in it — but `isEmpty` only inspects
         // in-flow lines, and a line-empty buffer can still be carrying the
@@ -185,7 +191,7 @@ extension OverlayModifier: Layoutable {
         // different `@State` and measure a different view than they draw; and
         // the same frame on the axis that has one, or they disagree about how
         // much room the overlay was offered.
-        var overlayContext = context.withChildIdentity(type: Overlay.self, index: 1)
+        var overlayContext = context.withChildIdentity(type: Self.self, index: 1)
         var overlayProposal = proposal
         if baseSize.width > 0 {
             overlayContext.availableWidth = baseSize.width

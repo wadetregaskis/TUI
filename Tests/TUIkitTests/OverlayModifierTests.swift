@@ -230,4 +230,28 @@ struct OverlayModifierTests {
         let overlay = render(EmptyView().overlay { Text("over") })
         #expect(overlay.lines.first?.stripped == "over")
     }
+
+    @Test("Two chained overlays keep their state apart")
+    func chainedOverlaysHaveTheirOwnState() {
+        // The outer overlay's base IS the inner overlay, so both render their
+        // overlay content one step below the same identity unless the step is
+        // their own: the second badge then found the first's box and drew 1.
+        let view = Text("..........")
+            .overlay(alignment: .leading) { StatefulBadge(1) }
+            .overlay(alignment: .trailing) { StatefulBadge(2) }
+        #expect(render(view).lines.first?.stripped == "1........2")
+    }
+}
+
+/// Draws the value its `@State` was created with.
+private struct StatefulBadge: View {
+    @State private var value: Int
+
+    init(_ value: Int) {
+        _value = State(initialValue: value)
+    }
+
+    var body: some View {
+        Text("\(value)")
+    }
 }
