@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  ViewModifier.swift
+//  BufferModifier.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
@@ -8,14 +8,14 @@ import TUIkitCore
 
 /// A modifier that transforms a view's rendered output.
 ///
-/// `ViewModifier` works on the `FrameBuffer` level: it takes a rendered
+/// `BufferModifier` works on the `FrameBuffer` level: it takes a rendered
 /// buffer and returns a transformed buffer. This allows modifiers like
 /// `.padding()` and `.frame()` to manipulate layout after rendering.
 ///
 /// # Example
 ///
 /// ```swift
-/// struct MyModifier: ViewModifier {
+/// struct MyModifier: BufferModifier {
 ///     func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
 ///         // transform the buffer
 ///         return buffer
@@ -23,7 +23,7 @@ import TUIkitCore
 /// }
 /// ```
 @MainActor
-public protocol ViewModifier {
+public protocol BufferModifier {
     /// Transforms a rendered buffer.
     ///
     /// - Parameters:
@@ -94,7 +94,7 @@ public protocol ViewModifier {
     /// SwiftUI's own `ScrollViewReader` example.
     ///
     /// A requirement on the MODIFIER, forwarded by ``ModifiedView``, for the
-    /// reason ``ViewModifier/_isAnimatable`` is one: a *conditional*
+    /// reason ``BufferModifier/_isAnimatable`` is one: a *conditional*
     /// conformance cannot supply a witness for `ModifiedView`, so the answer
     /// has to come from the modifier itself.
     ///
@@ -114,7 +114,7 @@ public protocol ViewModifier {
     func adjustContext(_ context: RenderContext) -> RenderContext
 }
 
-extension ViewModifier {
+extension BufferModifier {
     /// Passes the context through unchanged.
     ///
     /// The default, and the right answer for any modifier that only rewrites
@@ -155,7 +155,7 @@ extension ViewModifier {
     }
 }
 
-extension ViewModifier where Self: Animatable {
+extension BufferModifier where Self: Animatable {
     /// An ``Animatable`` modifier's data is substituted before its view
     /// renders, exactly as an animatable view's is.
     @inlinable
@@ -166,21 +166,7 @@ extension ViewModifier where Self: Animatable {
     public static func _animated(
         _ modifier: Self, owner: Any.Type, context: RenderContext, isMeasuring: Bool
     ) -> Self? {
-        guard let storage = context.stateStorage else { return nil }
-        // One read for both halves — see `AnimatableResolution`.
-        let frame = context.environment.animationFrame
-        let animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
-        let key = AnimationStore.Key(
-            identity: context.identity, owner: ObjectIdentifier(owner))
-        let target = modifier.animatableData
-        let drawn = storage.animations.value(
-            for: key, target: target, animation: animation,
-            nowNanos: frame.nowNanos, isMeasuring: isMeasuring)
-        guard drawn != target else { return nil }
-        context.environment.volatileReadTracker?.recordRenderSideEffect()
-        var copy = modifier
-        copy.animatableData = drawn
-        return copy
+        animatedValue(of: modifier, owner: owner, context: context, isMeasuring: isMeasuring)
     }
 }
 
@@ -199,7 +185,7 @@ extension ViewModifier where Self: Animatable {
 ///
 /// - Important: This is framework infrastructure. Created automatically by
 ///   `.modifier()`. Do not instantiate directly.
-public struct ModifiedView<Content: View, Modifier: ViewModifier>: View {
+public struct ModifiedView<Content: View, Modifier: BufferModifier>: View {
     /// The original view.
     public let content: Content
 
@@ -390,7 +376,7 @@ extension ModifiedView: Animatable where Modifier: Animatable {
     /// A modified view's animatable data is its modifier's.
     ///
     /// The general route by which a *modifier* animates — `.padding`,
-    /// `.offset`, and any `ViewModifier` an app writes. It is where SwiftUI
+    /// `.offset`, and any `BufferModifier` an app writes. It is where SwiftUI
     /// puts it too (`ModifiedContent: Animatable where Modifier: Animatable`),
     /// and it means a modifier author declares one property rather than
     /// learning anything about the render pipeline.

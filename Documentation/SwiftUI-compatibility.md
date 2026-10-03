@@ -710,13 +710,13 @@ TUIkit does that for two kinds of wrapper today.
 
 **Through `ModifiedView`**, which forwards `ChildViewProvider` (and
 `GridRowProviding`) when its content is one, re-wrapping each resolved member in
-the same modifier. In the framework that is **four** `ViewModifier` types —
+the same modifier. In the framework that is **four** `BufferModifier` types —
 `.padding(_:)`, `.background(_:)`, `.id(_:)` and `Link`'s internal hyperlink
 modifier — plus everything an app writes with `.modifier(_:)`, which is the
 whole point of that spelling.
 
-**Through `SingleContentWrapper`**, for a wrapper that is not a `ViewModifier`
-at all. A `ViewModifier` is a VALUE, so `ModifiedView` can carry it to each
+**Through `SingleContentWrapper`**, for a wrapper that is not a `BufferModifier`
+at all. A `BufferModifier` is a VALUE, so `ModifiedView` can carry it to each
 member; a bare wrapper has no such value and must call its own initialiser,
 whose content type is its generic parameter and so cannot be bound to an
 `any View`. `SingleContentWrapper` is that initialiser call, written once per

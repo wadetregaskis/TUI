@@ -294,7 +294,7 @@ public struct ChildView {
     /// `HStack { Group { Text("A"); Spacer() }.padding() }` would quietly lose
     /// its spacer.
     /// This child inside a copy of `wrapper` — ``modified(by:)`` for the
-    /// wrappers that are not `ViewModifier`s.
+    /// wrappers that are not `BufferModifier`s.
     ///
     /// Everything but the view is carried across unchanged, for the reason
     /// ``modified(by:)`` spells out: the identity a member already resolved to,
@@ -321,7 +321,7 @@ public struct ChildView {
             resolvedIdentity: resolvedIdentity)
     }
 
-    package func modified<M: ViewModifier>(by modifier: M) -> Self {
+    package func modified<M: BufferModifier>(by modifier: M) -> Self {
         // Implicit existential opening, not a cast: passing the `any View` to a
         // generic parameter binds `V` to its dynamic type, so what is stored is
         // the concrete `ModifiedView<V, M>` the render path measures and

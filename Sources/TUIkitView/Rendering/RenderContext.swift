@@ -18,7 +18,7 @@ import TUIkitCore
 /// view tree has been rendered into a ``FrameBuffer``.
 ///
 /// - Important: This is framework infrastructure passed to
-///   ``ViewModifier/modify(buffer:context:)``. Most developers only need
+///   ``BufferModifier/modify(buffer:context:)``. Most developers only need
 ///   ``availableWidth``, ``availableHeight``, and ``environment``.
 public struct RenderContext {
     /// The available width in characters.

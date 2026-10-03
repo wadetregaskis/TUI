@@ -225,7 +225,7 @@ struct GroupRenderTests {
             "Expected A, blank, B — the members are the VStack's own children")
     }
 
-    // MARK: - The Rule Through Wrappers That Are Not `ViewModifier`s
+    // MARK: - The Rule Through Wrappers That Are Not `BufferModifier`s
     //
     // `.foregroundStyle` above goes through `_StyleEnvironmentView`. These are
     // the other three wrappers `SwiftUI-compatibility.md` section 3 named as

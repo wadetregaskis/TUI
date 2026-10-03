@@ -14,7 +14,7 @@
 /// Each line in the buffer is a string that may contain ANSI escape codes.
 ///
 /// - Important: This is framework infrastructure used as the rendering primitive in
-///   ``ViewModifier/modify(buffer:context:)``. Most developers don't need to interact
+///   ``BufferModifier/modify(buffer:context:)``. Most developers don't need to interact
 ///   with this type directly.
 public struct FrameBuffer: Sendable, Equatable {
     /// The lines of rendered content (may contain ANSI escape codes).

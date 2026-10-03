@@ -11,7 +11,7 @@ import TUIkitStyling
 ///
 /// - Important: This is framework infrastructure. Use `.background()` on any
 ///   ``View`` instead of instantiating this type directly.
-public struct BackgroundModifier<S: ShapeStyle>: ViewModifier {
+public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// What to fill with.
     let style: S
 

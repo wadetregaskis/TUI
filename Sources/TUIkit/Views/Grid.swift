@@ -129,7 +129,7 @@ extension ModifiedView: GridRowProviding where Content: GridRowProviding {
     }
 }
 
-/// The same rule for a row wrapped in something that is not a `ViewModifier`
+/// The same rule for a row wrapped in something that is not a `BufferModifier`
 /// — `.foregroundStyle` and most other modifier factories return a bare
 /// wrapper type, not a ``ModifiedView``.
 ///

@@ -10,7 +10,7 @@
 /// re-keys, and because `ModifiedView` calls `adjustContext` on **both** the
 /// measure and render passes, `@State` keys off the same spliced identity in
 /// each, preserving measure/render alignment.
-private struct _IDModifier: ViewModifier {
+private struct _IDModifier: BufferModifier {
     let key: String
 
     /// The witness that makes this key readable from outside the modified

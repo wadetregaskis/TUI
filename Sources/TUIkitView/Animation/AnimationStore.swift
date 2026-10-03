@@ -355,7 +355,7 @@ extension AnimationStore {
     /// animated, which is nearly all of them — this is a dictionary lookup that
     /// misses, and `value(for:…)` then does the same lookup again: pure added
     /// cost. Measured (`ab_bench.py`, 15 reps, idle box) with the guard added to
-    /// `ViewModifier._animated`, `ColorAnimation.resolving` and
+    /// `BufferModifier._animated`, `ColorAnimation.resolving` and
     /// `PaintAnimation.scalar`:
     ///
     ///     modifiers      +0.8%  (CI +0.4% … +1.1%)   slower

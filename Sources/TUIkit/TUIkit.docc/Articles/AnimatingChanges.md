@@ -67,7 +67,7 @@ Text("Saved")
     .animation(.easeInOut(duration: 0.4), value: hasSaved)
 ```
 
-A `ViewModifier` of your own joins that list by conforming to ``Animatable``
+A `BufferModifier` of your own joins that list by conforming to ``Animatable``
 and naming one property — `ModifiedView` is animatable whenever its modifier
 is, so there is nothing else to learn.
 

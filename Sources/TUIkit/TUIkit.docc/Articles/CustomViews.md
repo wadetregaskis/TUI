@@ -9,9 +9,9 @@ TUIkit offers two ways to create custom views:
 | Approach | When to Use | Complexity |
 |----------|-------------|------------|
 | **Composite View** (``View`` with `body`) | Combining existing views into reusable components | Low |
-| **View Modifier** (``ViewModifier``) | Transforming any view's rendered buffer (padding, background) | Medium |
+| **View Modifier** (``BufferModifier``) | Transforming any view's rendered buffer (padding, background) | Medium |
 
-Most custom views should be **composite views**. For buffer-level transformations, implement a custom ``ViewModifier``.
+Most custom views should be **composite views**. For buffer-level transformations, implement a custom ``BufferModifier``.
 
 ## Composite Views
 
@@ -119,10 +119,10 @@ SettingsGroup("Network") {
 
 ## View Modifiers
 
-A ``ViewModifier`` transforms an already-rendered ``FrameBuffer``. Use this when your transformation operates on the output of any view:
+A ``BufferModifier`` transforms an already-rendered ``FrameBuffer``. Use this when your transformation operates on the output of any view:
 
 ```swift
-struct QuoteModifier: ViewModifier {
+struct QuoteModifier: BufferModifier {
     func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         // Transform each line in the buffer: prefix a gutter marker.
         // replacingLines(_:) keeps the buffer's overlays and hit-test
@@ -157,9 +157,9 @@ extension View {
 Text("Important!").quoted()
 ```
 
-### When to Use ViewModifier
+### When to Use BufferModifier
 
-Use ``ViewModifier`` when your transformation is a pure buffer-to-buffer operation: adding visual effects, changing backgrounds, or adjusting layout after rendering. The ``RenderContext`` gives you access to:
+Use ``BufferModifier`` when your transformation is a pure buffer-to-buffer operation: adding visual effects, changing backgrounds, or adjusting layout after rendering. The ``RenderContext`` gives you access to:
 
 | Property | Description |
 |----------|-------------|
@@ -201,7 +201,7 @@ let view = Text("Hello").asAnyView()
 ### Protocols
 
 - ``View``
-- ``ViewModifier``
+- ``BufferModifier``
 
 ### Supporting Types
 

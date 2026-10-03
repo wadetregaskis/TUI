@@ -52,38 +52,58 @@ extension View where Self: Animatable {
     public static func _animated(
         _ view: Self, context: RenderContext, isMeasuring: Bool
     ) -> Self? {
-        guard let storage = context.stateStorage else { return nil }
-        let key = AnimationStore.Key(
-            identity: context.identity, owner: ObjectIdentifier(Self.self))
-        let target = view.animatableData
-        // The common case first, and before the environment is read: a value
-        // the store already holds, unchanged, with nothing running. That is
-        // every padded, framed and offset view on every frame nothing is
-        // animating, and answering it here is what keeps making a modifier
-        // `Animatable` free for the views that never are — see
-        // ``AnimationStore/isSettled(_:at:isMeasuring:)`` for what it cost
-        // when it was not.
-        if storage.animations.isSettled(key, at: target, isMeasuring: isMeasuring) { return nil }
-        // ONE environment read for both halves: `canAnimate` and `frameNowNanos`
-        // are computed properties over the same `AnimationFrame` key, so asking
-        // for each separately is two dictionary lookups — a hash, a probe and an
-        // `Any` unbox each — for one value. It was the most-read key in the
-        // environment (112 reads a frame on a menu tree). Still AFTER the
-        // `isSettled` return above, which is where it has to stay: hoisting it
-        // would charge every settled view for an animation it is not running.
-        let frame = context.environment.animationFrame
-        let animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
-        let drawn = storage.animations.value(
-            for: key, target: target, animation: animation,
-            nowNanos: frame.nowNanos, isMeasuring: isMeasuring)
-        guard drawn != target else { return nil }
-
-        // The subtree's appearance is now a function of time, which a value memo
-        // cannot reproduce from a cached buffer — it would freeze the animation
-        // on its first frame. Same declaration `requestAnimation` makes.
-        context.environment.volatileReadTracker?.recordRenderSideEffect()
-        var copy = view
-        copy.animatableData = drawn
-        return copy
+        animatedValue(of: view, owner: Self.self, context: context, isMeasuring: isMeasuring)
     }
+}
+
+/// `value` at the value the animation store says to draw it at, keyed by the
+/// render identity and `owner`, or `nil` when that is exactly what it already
+/// is. The one implementation behind every animatable kind — a view, and a
+/// modifier of either protocol — so the settled fast path and the single
+/// environment read below are not three copies that could drift.
+///
+/// - Parameters:
+///   - value: The view or modifier about to be drawn.
+///   - owner: The type whose identity, with the render identity, keys the
+///     store entry. A view passes itself; a modifier passes the view type that
+///     encloses it, which tells two of the same modifier around one view apart.
+///   - context: The render context.
+///   - isMeasuring: Whether this is the measure walk — see
+///     ``resolvingAnimation(_:context:isMeasuring:)``.
+@MainActor
+func animatedValue<A: Animatable>(
+    of value: A, owner: Any.Type, context: RenderContext, isMeasuring: Bool
+) -> A? {
+    guard let storage = context.stateStorage else { return nil }
+    let key = AnimationStore.Key(identity: context.identity, owner: ObjectIdentifier(owner))
+    let target = value.animatableData
+    // The common case first, and before the environment is read: a value
+    // the store already holds, unchanged, with nothing running. That is
+    // every padded, framed and offset view on every frame nothing is
+    // animating, and answering it here is what keeps making a modifier
+    // `Animatable` free for the views that never are — see
+    // ``AnimationStore/isSettled(_:at:isMeasuring:)`` for what it cost
+    // when it was not.
+    if storage.animations.isSettled(key, at: target, isMeasuring: isMeasuring) { return nil }
+    // ONE environment read for both halves: `canAnimate` and `frameNowNanos`
+    // are computed properties over the same `AnimationFrame` key, so asking
+    // for each separately is two dictionary lookups — a hash, a probe and an
+    // `Any` unbox each — for one value. It was the most-read key in the
+    // environment (112 reads a frame on a menu tree). Still AFTER the
+    // `isSettled` return above, which is where it has to stay: hoisting it
+    // would charge every settled view for an animation it is not running.
+    let frame = context.environment.animationFrame
+    let animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
+    let drawn = storage.animations.value(
+        for: key, target: target, animation: animation,
+        nowNanos: frame.nowNanos, isMeasuring: isMeasuring)
+    guard drawn != target else { return nil }
+
+    // The subtree's appearance is now a function of time, which a value memo
+    // cannot reproduce from a cached buffer — it would freeze the animation
+    // on its first frame. Same declaration `requestAnimation` makes.
+    context.environment.volatileReadTracker?.recordRenderSideEffect()
+    var copy = value
+    copy.animatableData = drawn
+    return copy
 }

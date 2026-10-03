@@ -321,16 +321,16 @@ Preferences flow **bottom-up**: the reverse of environment values. Child views s
 
 The `reduce(value:nextValue:)` function on ``PreferenceKey`` controls how multiple values from different children are combined. The default behavior: last value wins.
 
-## ViewModifier Pipeline
+## BufferModifier Pipeline
 
 TUIkit has two modifier architectures:
 
-### Buffer Modifiers (ViewModifier protocol)
+### Buffer Modifiers (BufferModifier protocol)
 
 These transform a ``FrameBuffer`` after the content has rendered:
 
 ```swift
-public protocol ViewModifier {
+public protocol BufferModifier {
     func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer
     func adjustContext(_ context: RenderContext) -> RenderContext  // default: returns context unchanged
 }

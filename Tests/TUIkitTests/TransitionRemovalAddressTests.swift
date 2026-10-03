@@ -22,7 +22,7 @@ enum RemovalSurround: String, CaseIterable, Sendable {
     case fadedBesideSibling
     /// The optional under `.disabled`, a third.
     case disabledBesideSibling
-    /// The optional under `.padding`, a `ViewModifier` that `ModifiedView`
+    /// The optional under `.padding`, a `BufferModifier` that `ModifiedView`
     /// carries to each member rather than a wrapper that re-wraps it.
     case paddedBesideSibling
     /// The optional under `.background`, another.

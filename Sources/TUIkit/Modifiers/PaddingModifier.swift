@@ -122,7 +122,7 @@ public enum Edge: Int8, Sendable, CaseIterable {
 ///
 /// - Important: This is framework infrastructure. Use `.padding()` on any
 ///   ``View`` instead of instantiating this type directly.
-public struct PaddingModifier: ViewModifier {
+public struct PaddingModifier: BufferModifier {
     /// The padding insets.
     ///
     /// A `var` so an animation can substitute it — see the `Animatable`

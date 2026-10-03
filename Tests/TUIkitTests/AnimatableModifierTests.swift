@@ -131,11 +131,11 @@ struct AnimatableModifierTests {
         #expect(mutable.animatableData.first == -1)
     }
 
-    @Test("An app's own ViewModifier animates by declaring one property")
+    @Test("An app's own BufferModifier animates by declaring one property")
     func appModifierAnimates() {
         // The general route: `ModifiedView` is `Animatable` when its modifier
         // is, so a modifier author writes `animatableData` and nothing else.
-        struct Indent: ViewModifier, Animatable {
+        struct Indent: BufferModifier, Animatable {
             var columns: Int
 
             var animatableData: Double {

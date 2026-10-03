@@ -158,7 +158,7 @@ extension ChildViewProvider {
 /// the real framework lays the two texts out at exactly the frames writing
 /// `.frame(width: 80)` on each member separately produces.
 ///
-/// ``ModifiedView`` reaches its members without this, because a `ViewModifier`
+/// ``ModifiedView`` reaches its members without this, because a `BufferModifier`
 /// is a VALUE it can carry to each of them (see `ChildView.modified(by:)`). A
 /// bare wrapper has no such value — re-wrapping means calling its own
 /// initialiser, whose content type is the wrapper's generic parameter and so

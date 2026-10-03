@@ -153,7 +153,7 @@ extension RenderContext {
     /// picture again, either, so the finished removal was never dropped.
     ///
     /// A render side effect, as a view whose value is still animating
-    /// declares one (`ViewModifier._animated`): each frame of it is different,
+    /// declares one (`BufferModifier._animated`): each frame of it is different,
     /// and the run loop, not the pulse timer, is what draws the next one.
     /// Declared on the measure walk too, since the size half of the memo would
     /// otherwise keep the held-open row's height past the end of the removal.

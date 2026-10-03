@@ -255,7 +255,7 @@ extension View {
 /// sharing an id as one link and highlights them together. It is emitted only
 /// when there IS more than one row: a single-run link needs no identity, and
 /// the parameter is bytes on every frame.
-private struct TerminalHyperlinkModifier: ViewModifier {
+private struct TerminalHyperlinkModifier: BufferModifier {
     let destination: URL
     let enabled: Bool
 
