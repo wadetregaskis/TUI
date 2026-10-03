@@ -7,6 +7,9 @@
 //  License: MIT
 
 extension Binding: Identifiable where Value: Identifiable {
+    /// The type of the value's identity, which a binding borrows.
+    public typealias ID = Value.ID
+
     /// The identity of the value behind the binding.
     ///
     /// A binding has no identity of its own — two bindings to the same element

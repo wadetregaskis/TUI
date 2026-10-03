@@ -13,12 +13,20 @@
 /// Used by ``TUIkit/View/defaultScrollAnchor(_:)`` to express where a scroll
 /// view initially positions — and keeps — its content: `.bottom` is the
 /// log-viewer follow mode.
-public struct UnitPoint: Hashable, Sendable {
+///
+/// `Codable` as in SwiftUI, over its two stored coordinates. As with ``Angle``,
+/// the encoded shape is what this type stores, not an interchange format.
+public struct UnitPoint: Hashable, Sendable, Codable {
     /// The normalized horizontal position (0 = leading, 1 = trailing).
     public var x: Double
 
     /// The normalized vertical position (0 = top, 1 = bottom).
     public var y: Double
+
+    /// Creates a unit point at the top-leading corner, ``zero``.
+    public init() {
+        self.init(x: 0, y: 0)
+    }
 
     /// Creates a unit point.
     public init(x: Double, y: Double) {

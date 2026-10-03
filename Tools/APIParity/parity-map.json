@@ -884,6 +884,10 @@
       "how": "@Environment(M.self) + .environment(_:)",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Extensions/View+Environment.swift:50 (`environment<T: Observable>(_ object: T)`); `Environment` itself is a shared type. Documented as a deliberate choice in §2.3 (Documentation/SwiftUI-compatibility.md:174-191) — Observation only, no "
     },
+    "EveryMinuteTimelineSchedule.Entries.next()": {
+      "how": "`EveryMinuteTimelineSchedule.Entries` is a typealias for `PeriodicTimelineSchedule.Entries`, whose `next()` it is",
+      "why": "The two schedules yield the same kind of sequence, evenly spaced dates, so TUIkit's EveryMinuteTimelineSchedule.Entries is a typealias for PeriodicTimelineSchedule.Entries where SwiftUI nests a type of its own. The member exists; the symbol graph files it under the alias's target, so the tool cannot see it under this path."
+    },
     "FillShapeStyle": {
       "how": "Palette.fieldBackground / Palette.focusBackground",
       "why": "SwiftUI's .fill is the system's neutral fill for shapes; TUIkit's equivalent neutral surfaces are Palette.fieldBackground (Sources/TUIkitStyling/Theme/Theme.swift:96, default = appHeaderBackground at :120) and Palette.focusBackground (Theme.swift:80, default = foregroundTertiary "

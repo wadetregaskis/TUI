@@ -30,6 +30,15 @@ import TUIkitCore
 @resultBuilder
 public struct ViewBuilder {
 
+    // MARK: - No View
+
+    /// Builds an empty view from an empty closure, as SwiftUI does — rather
+    /// than the zero-element ``TupleView`` the parameter-pack overload below
+    /// would otherwise produce for it.
+    public static func buildBlock() -> EmptyView {
+        EmptyView()
+    }
+
     // MARK: - Single View
 
     /// Builds a single view.
@@ -67,6 +76,12 @@ public struct ViewBuilder {
 
     /// Supports optional views (if let, if without else).
     public static func buildOptional<Content: View>(_ content: Content?) -> Content? {
+        content
+    }
+
+    /// Supports optional views — SwiftUI's older name for ``buildOptional(_:)``,
+    /// still declared there and still callable by name.
+    public static func buildIf<Content: View>(_ content: Content?) -> Content? {
         content
     }
 

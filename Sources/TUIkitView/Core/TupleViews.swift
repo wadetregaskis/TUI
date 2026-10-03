@@ -28,6 +28,17 @@ public struct TupleView<each V: View>: View {
         self.children = (repeat each children)
     }
 
+    /// Creates a tuple view from a tuple of views — SwiftUI's spelling, where
+    /// the tuple is the type's one generic parameter.
+    ///
+    /// - Parameter value: The child views, as a tuple.
+    public init(_ value: (repeat each V)) {
+        self.children = value
+    }
+
+    /// The child views, as a tuple — SwiftUI's name for ``children``.
+    public var value: (repeat each V) { children }
+
     public var body: Never {
         fatalError("TupleView renders its children directly")
     }

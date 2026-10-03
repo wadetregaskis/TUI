@@ -68,7 +68,7 @@ import TUIkitCore
 /// - SeeAlso: ``View/equatable()``
 public struct EquatableView<Content: View & Equatable>: View {
     /// The wrapped view content.
-    let content: Content
+    public var content: Content
 
     /// Creates an equatable view wrapping the given content.
     ///

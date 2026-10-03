@@ -277,6 +277,12 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
 // MARK: - Literals and interpolation
 
 extension LocalizedStringKey: ExpressibleByStringInterpolation {
+    // The literal types, named as SwiftUI names them: every kind of literal
+    // arrives as a `String`.
+    public typealias StringLiteralType = String
+    public typealias ExtendedGraphemeClusterLiteralType = String
+    public typealias UnicodeScalarLiteralType = String
+
     public init(stringLiteral value: String) {
         self.init(value)
     }
@@ -287,6 +293,9 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
 
     /// Builds the key and its arguments as the literal is written.
     public struct StringInterpolation: StringInterpolationProtocol {
+        /// The type of the literal segments between interpolations.
+        public typealias StringLiteralType = String
+
         var key = ""
         var arguments: [String] = []
 

@@ -540,6 +540,15 @@ public struct State<Value> {
     public init(initialValue value: Value) {
         self.backing = StateBacking(value)
     }
+
+    /// Creates an optional state that starts out `nil`.
+    ///
+    /// SwiftUI's initialiser for code that constructs a `State` by name. A
+    /// declaration does not need it: `@State private var selection: Item?`
+    /// with no value is default-initialised through `init(wrappedValue: nil)`.
+    public init<Wrapped>() where Value == Wrapped? {
+        self.init(wrappedValue: nil)
+    }
 }
 
 // MARK: - State backing

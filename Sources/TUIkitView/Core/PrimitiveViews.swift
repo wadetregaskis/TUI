@@ -119,6 +119,15 @@ public struct AnyView: View {
         self.view = view
     }
 
+    /// Creates an AnyView wrapping the given view — SwiftUI's labelled
+    /// spelling of ``init(_:)``, which generic code reaches for when the
+    /// unlabelled one would be ambiguous.
+    ///
+    /// - Parameter view: The view to type-erase.
+    public init<V: View>(erasing view: V) {
+        self.init(view)
+    }
+
     public var body: Never {
         fatalError("AnyView renders via Renderable")
     }

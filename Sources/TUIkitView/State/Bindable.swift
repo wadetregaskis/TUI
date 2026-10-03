@@ -73,6 +73,15 @@ public struct Bindable<Value> {
     }
 }
 
+extension Bindable: Identifiable where Value: Identifiable {
+    /// The type of the wrapped object's identity, which the wrapper borrows.
+    public typealias ID = Value.ID
+
+    /// The identity of the wrapped object: like a binding, a `Bindable` has
+    /// none of its own, so `ForEach` over them keys by what they wrap.
+    public var id: Value.ID { wrappedValue.id }
+}
+
 extension Bindable where Value: AnyObject, Value: Observable {
     /// Wraps an observable object (the `@Bindable var settings = …` form).
     public init(wrappedValue: Value) {

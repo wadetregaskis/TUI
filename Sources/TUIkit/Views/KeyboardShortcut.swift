@@ -28,6 +28,11 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
         self.impliesShift = character.isUppercase
     }
 
+    /// A key literal is a single character, as in SwiftUI.
+    public typealias ExtendedGraphemeClusterLiteralType = Character
+    /// A key literal is a single character, as in SwiftUI.
+    public typealias UnicodeScalarLiteralType = Character
+
     public init(extendedGraphemeClusterLiteral value: Character) {
         self.init(value)
     }
