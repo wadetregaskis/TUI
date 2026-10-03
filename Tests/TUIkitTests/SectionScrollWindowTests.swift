@@ -387,7 +387,10 @@ struct SectionScrollWindowTests {
         position.scrollTo(id: 35, anchor: .top)
         let screen = scrollFrame(view, tui: tui, focusManager: focusManager, height: 6)
         #expect(screen.last == "<more>" && screen.contains("row 38"), "precondition: \(screen)")
-        #expect(position.viewID(type: Int.self) == 38, "\(screen)")
+        // The REPORT, not `viewID(type:)`: that answers the row asked for (35)
+        // until the user scrolls, as SwiftUI's does.
+        #expect(position.reported?.value.base as? Int == 38, "\(screen)")
+        #expect(position.viewID(type: Int.self) == 35)
     }
 
     @Test(

@@ -307,6 +307,10 @@ extension _ScrollViewCore {
         if let id = reply?.anchorID, let handler, !context.isMeasuring {
             reportVisibleID(id, handler: handler, context: context)
         }
+        // After the row is reported: a user scroll since the last frame turns a
+        // bound position's request into the user's position. Once a frame — the
+        // flag is spent here, and the content's later renders find it clear.
+        if let handler { settleUserPositioning(handler: handler, context: context) }
         if let reply, let origin = reply.sliceOriginY, let total = reply.sliceTotalHeight {
             return (
                 buffer, (origin, total, reply.sliceTotalIsEstimate), reply.seekResolvedOffset,

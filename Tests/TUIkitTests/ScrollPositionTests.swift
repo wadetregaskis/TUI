@@ -157,7 +157,9 @@ struct ScrollPositionTests {
         // Frame 1 showed row 0 at the top, and said so — the id VALUE, not the
         // key string the seek matches on.
         #expect(position.viewID(type: Int.self) == 0)
-        #expect(position.isPositionedByUser)
+        // Reported, but nobody scrolled it: SwiftUI leaves the flag false until
+        // the user does (measured), and so does a drawn frame here.
+        #expect(!position.isPositionedByUser)
 
         position.scrollTo(id: 25, anchor: .top)
         let landed = renderFrame(list(position: binding), tuiContext: tuiContext, focusManager: focusManager)
@@ -390,5 +392,154 @@ struct ScrollPositionTests {
 
         #expect(ScrollPosition(edge: .top).edge == .top)
         #expect(ScrollPosition(id: 3).viewID(type: Int.self) == 3)
+    }
+
+    @Test("An offset request reads back as asked, and a point only when both axes were asked")
+    func offsetRequestsReadBack() {
+        var position = ScrollPosition()
+        position.scrollTo(y: 12)
+        #expect(position.y == 12)
+        #expect(position.x == nil)
+        // SwiftUI's own answer after `scrollTo(y:)` alone (measured): no point.
+        #expect(position.point == nil)
+
+        position.scrollTo(x: 4)
+        #expect(position.x == 4)
+        #expect(position.y == nil)
+
+        position.scrollTo(x: 4, y: 9)
+        #expect(position.point == CellPoint(x: 4, y: 9))
+        position.scrollTo(point: CellPoint(x: 1, y: 2))
+        #expect(position.x == 1 && position.y == 2)
+        #expect(position.edge == nil)
+
+        #expect(ScrollPosition(y: 5).y == 5)
+        #expect(ScrollPosition(x: 6).x == 6)
+        #expect(ScrollPosition(idType: Int.self, x: 1, y: 2).point == CellPoint(x: 1, y: 2))
+        #expect(ScrollPosition(point: CellPoint(x: 3, y: 4)).point == CellPoint(x: 3, y: 4))
+        #expect(ScrollPosition(idType: Int.self, edge: .bottom).edge == .bottom)
+    }
+
+    @Test("Saying the user positioned it drops a requested edge or offset, as SwiftUI's setter does")
+    func positionedByUserSetterDropsRequest() {
+        var edge = ScrollPosition(edge: .bottom)
+        edge.isPositionedByUser = true
+        #expect(edge.edge == nil)
+
+        var offset = ScrollPosition(y: 3)
+        offset.isPositionedByUser = true
+        #expect(offset.y == nil)
+
+        // A row is not a position the user's scroll replaces by fiat.
+        var row = ScrollPosition(id: 4)
+        row.isPositionedByUser = true
+        #expect(row.viewID(type: Int.self) == 4)
+
+        // And any request clears it again.
+        row.scrollTo(y: 1)
+        #expect(!row.isPositionedByUser)
+    }
+
+    @Test("viewID hands back a reported row only when the position knows its id type")
+    func typeErasedViewID() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var typed = ScrollPosition(idType: Int.self)
+        let typedBinding = Binding(get: { typed }, set: { typed = $0 })
+        renderFrame(list(position: typedBinding), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(typed.viewID as? Int == 0)
+
+        let otherContext = TUIContext()
+        var untyped = ScrollPosition()
+        let untypedBinding = Binding(get: { untyped }, set: { untyped = $0 })
+        renderFrame(list(position: untypedBinding), tuiContext: otherContext, focusManager: FocusManager())
+        // Reported, and readable by type…
+        #expect(untyped.viewID(type: Int.self) == 0)
+        // …but an id nobody vouched for cannot be handed out as `Sendable`.
+        #expect(untyped.viewID == nil)
+
+        // An id the app asked for arrives `Sendable`, so it is returned as is.
+        #expect(ScrollPosition(id: "r7").viewID as? String == "r7")
+    }
+
+    @Test("A programmatic scroll keeps its request; the user's scroll replaces it")
+    func userScrollReplacesTheRequest() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+
+        renderFrame(list(position: binding), tuiContext: tuiContext, focusManager: focusManager)
+        position.scrollTo(y: 10)
+        let landed = renderFrame(list(position: binding), tuiContext: tuiContext, focusManager: focusManager)
+        renderFrame(list(position: binding), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(landed.first?.hasPrefix("row 10 ") == true, "\(landed)")
+        // The scroll view reported the row it shows, and the request survived it:
+        // a report is not the user scrolling.
+        #expect(position.y == 10)
+        #expect(!position.isPositionedByUser)
+        #expect(position.viewID(type: Int.self) == 10)
+
+        let handler = focusManager.activeSection?.focusables
+            .compactMap { $0 as? ScrollViewHandler }.first
+        #expect(handler != nil, "the ScrollView registered its handler")
+        handler?.userScrollFine(by: 3)
+        let scrolled = renderFrame(list(position: binding), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(scrolled.first?.hasPrefix("row 13 ") == true, "\(scrolled)")
+        #expect(position.isPositionedByUser)
+        #expect(position.y == nil)
+        #expect(position.viewID(type: Int.self) == 13)
+    }
+
+    @Test("A user scroll moves an id binding to the row shown, and never empties it")
+    func userScrollUpdatesTheIDBinding() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var visible: Int?
+        let binding = Binding<Int?>(get: { visible }, set: { visible = $0 })
+        let view = ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(0..<Self.rowCount, id: \.self) { Text("row \($0)") }
+            }
+        }
+        .scrollPosition(id: binding)
+
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == 0)
+        let handler = focusManager.activeSection?.focusables
+            .compactMap { $0 as? ScrollViewHandler }.first
+        handler?.userScrollFine(by: 5)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == 5)
+    }
+
+    @Test("A column offset and the leading and trailing edges scroll the horizontal axis")
+    func horizontalRequestsScrollColumns() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+        let view = ScrollView([.horizontal, .vertical]) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<Self.rowCount, id: \.self) {
+                    Text("row \($0) " + (0..<10).map { "c\($0)-------" }.joined())
+                }
+            }
+        }
+        .scrollPosition(binding)
+
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        position.scrollTo(x: 6)
+        let shifted = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(shifted.first?.hasPrefix("c0-------c1") == true, "\(shifted)")
+
+        position.scrollTo(edge: .trailing)
+        let trailing = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(trailing.first?.contains("c9") == true, "\(trailing)")
+        #expect(trailing.first?.contains("row 0") == false, "\(trailing)")
+
+        position.scrollTo(edge: .leading)
+        let leading = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(leading.first?.hasPrefix("row 0") == true, "\(leading)")
     }
 }

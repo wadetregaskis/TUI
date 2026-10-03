@@ -27,7 +27,8 @@ extension _ScrollViewCore {
         guard let target = position.target else { return nil }
 
         switch target {
-        case .id(let value, let anchor):
+        case .id(let id, let anchor):
+            let value = id.value
             let isFresh =
                 position.requestToken == 0
                 ? handler.lastReportedPositionID != value
@@ -45,12 +46,17 @@ extension _ScrollViewCore {
         }
     }
 
-    /// Applies an offset-shaped ``ScrollPosition`` target (an edge or a row
+    /// Applies an offset-shaped ``ScrollPosition`` target (an edge or an
     /// offset), which needs no key seek — the destination is arithmetic.
     ///
-    /// Every write goes through `ScrollViewHandler.jumpProgrammatically(to:)`,
-    /// which drops any overscroll excursion: the request aims at an exact line,
-    /// and a push left standing under it would land it short by the push.
+    /// Every vertical write goes through
+    /// `ScrollViewHandler.jumpProgrammatically(to:)`, which drops any
+    /// overscroll excursion: the request aims at an exact line, and a push left
+    /// standing under it would land it short by the push. A horizontal write is
+    /// clamped against the extent the last frame measured, and again by the
+    /// render once this frame's is known (`syncHorizontalAxis`); on a view that
+    /// does not scroll horizontally that extent fits, so it lands on 0, which
+    /// is SwiftUI's clamp to the content.
     func applyPositionOffset(handler: ScrollViewHandler, context: RenderContext) {
         guard let box = context.environment.scrollPositionBinding else { return }
         let position = box.binding.wrappedValue
@@ -60,9 +66,6 @@ extension _ScrollViewCore {
         switch target {
         case .edge(let edge):
             handler.lastAppliedPositionToken = position.requestToken
-            // Leading/trailing have no meaning on a vertical scroll; treating
-            // them as top/bottom would be inventing behaviour, so they are
-            // ignored rather than guessed at.
             switch edge {
             case .top: handler.jumpProgrammatically(to: 0)
             case .bottom:
@@ -70,11 +73,13 @@ extension _ScrollViewCore {
                 // The height this used is last frame's; the tail seek re-pins
                 // against the height actually rendered.
                 handler.seekingTail = true
-            case .leading, .trailing: break
+            case .leading: handler.horizontal.scrollToOffset(0)
+            case .trailing: handler.horizontal.scrollToOffset(handler.horizontal.maxOffset)
             }
-        case .offset(let y):
+        case .offset(let x, let y):
             handler.lastAppliedPositionToken = position.requestToken
-            handler.jumpProgrammatically(to: max(0, min(y, handler.maxOffset)))
+            if let y { handler.jumpProgrammatically(to: max(0, min(y, handler.maxOffset))) }
+            if let x { handler.horizontal.scrollToOffset(max(0, min(x, handler.horizontal.maxOffset))) }
         case .id:
             break  // Handled by the key seek — see `positionSeek`.
         }
@@ -92,6 +97,25 @@ extension _ScrollViewCore {
         handler.lastReportedPositionID = id
         var position = box.binding.wrappedValue
         position.reportVisible(id: id)
+        box.binding.wrappedValue = position
+    }
+
+    /// Tells a bound ``ScrollPosition`` that the user scrolled it since the last
+    /// frame: its request is dropped and ``ScrollPosition/isPositionedByUser``
+    /// set, as SwiftUI does on the user's first scroll.
+    ///
+    /// Written at the render rather than at the scroll because the binding is
+    /// out of reach at event time, and only when it changes something: a held
+    /// wheel scrolls many times between frames, and once the request is gone
+    /// and the flag set there is nothing left to write.
+    func settleUserPositioning(handler: ScrollViewHandler, context: RenderContext) {
+        guard handler.userScrolledSinceRender, !context.isMeasuring else { return }
+        handler.userScrolledSinceRender = false
+        guard let box = context.environment.scrollPositionBinding, box.tracksUserPositioning
+        else { return }
+        var position = box.binding.wrappedValue
+        guard position.target != nil || !position.isPositionedByUser else { return }
+        position.reportPositionedByUser()
         box.binding.wrappedValue = position
     }
 }

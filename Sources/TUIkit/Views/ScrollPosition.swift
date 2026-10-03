@@ -17,7 +17,7 @@ import TUIkitView
 /// SwiftUI's type of the same name.
 ///
 /// ```swift
-/// @State private var position = ScrollPosition()
+/// @State private var position = ScrollPosition(idType: Row.ID.self)
 ///
 /// ScrollView {
 ///     LazyVStack {
@@ -32,29 +32,86 @@ import TUIkitView
 ///
 /// It works in both directions, and the two are asymmetric on purpose:
 /// **writing** asks the scroll view to move (it takes effect on the next
-/// frame), **reading** tells you where it ended up — which is not necessarily
-/// where you asked, because the user can scroll too.
+/// frame), **reading** tells you what you asked for and where the scroll view
+/// ended up — which is not necessarily where you asked, because the user can
+/// scroll too.
+///
+/// What each reading answers, as in SwiftUI:
+///
+/// - ``edge``, ``x``, ``y`` and ``point`` are the request: what the position
+///   was last asked to scroll to, kept until the user scrolls it themselves.
+///   ``point`` is set only when both coordinates were asked for.
+/// - ``viewID(type:)`` is the row: the one asked for, or else the row the
+///   scroll view reports showing at its anchor (see there for which content
+///   reports one).
+/// - ``isPositionedByUser`` says the user scrolled it, and only that: a frame
+///   drawn, or a programmatic scroll, never sets it.
 ///
 /// > Note: SwiftUI's `point`/`x`/`y` forms take `CGPoint`/`CGFloat`; a terminal
-///   scrolls in whole rows, so ``scrollTo(y:)`` takes an `Int` and there is no
-///   horizontal component — the seek machinery rides the vertical row-windowing
-///   handshake (`ScrollViewProxy` has the same limit, for the same reason).
+///   scrolls in whole cells, so they take a ``CellPoint`` and `Int`s — rows
+///   down, columns across.
 public struct ScrollPosition: Equatable {
 
-    /// What the position is currently expressed as. One of them at a time, as
+    /// What the position was last asked to scroll to. One of them at a time, as
     /// in SwiftUI: naming a row and naming an offset are different questions.
-    /// Not `Sendable`: an `AnyHashable` is whatever the app's id type is, and
-    /// claiming otherwise would be claiming it for them. Nothing here crosses
-    /// a thread — a scroll position is read and written on the main actor,
-    /// like every other view state.
     enum Target: Equatable {
-        case id(AnyHashable, anchor: UnitPoint?)
+        case id(PositionID, anchor: UnitPoint?)
         case edge(Edge)
-        case offset(Int)
+        /// Rows down (`y`) and columns across (`x`) from the content's origin;
+        /// `nil` leaves that axis where it is.
+        case offset(x: Int?, y: Int?)
     }
 
-    /// The pending or last-applied target.
+    /// An id as the position holds it: compared as an `AnyHashable`, and kept
+    /// `Sendable` as well wherever its type is known to be.
+    ///
+    /// Two halves because the two sources differ. An id the app hands over
+    /// arrives `Sendable` (SwiftUI's signatures ask for it), and ``viewID``
+    /// gives it back as one. An id the scroll view reports comes from a
+    /// `ForEach`, whose ids are only `Hashable`, and `Sendable` is a marker
+    /// protocol no runtime cast can recover — so a reported id is `Sendable`
+    /// only when the position was told its type (``init(idType:)``).
+    struct PositionID: Equatable {
+        let value: AnyHashable
+        let sendable: (any Hashable & Sendable)?
+
+        init(_ value: some Hashable & Sendable) {
+            self.value = AnyHashable(value)
+            self.sendable = value
+        }
+
+        init(reported value: AnyHashable, as idType: IDType?) {
+            self.value = value
+            self.sendable = idType.flatMap { Self.typed($0.type, value) }
+        }
+
+        private static func typed<T: Hashable & Sendable>(
+            _ type: T.Type, _ value: AnyHashable
+        ) -> (any Hashable & Sendable)? {
+            value.base as? T
+        }
+
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.value == rhs.value }
+    }
+
+    /// The id type a position was created for (`init(idType:)` and friends).
+    /// Compared by identity: metatypes are not `Equatable`.
+    struct IDType: Equatable {
+        let type: any (Hashable & Sendable).Type
+
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            ObjectIdentifier(lhs.type) == ObjectIdentifier(rhs.type)
+        }
+    }
+
+    /// The pending or last-applied request; `nil` once the user has scrolled.
     var target: Target?
+
+    /// The row the scroll view last reported at its anchor, if it reports one.
+    var reported: PositionID?
+
+    /// The id type this position was created for, if one was named.
+    let idType: IDType?
 
     /// Bumped by every `scrollTo`, so a scroll view can tell a fresh request
     /// from the same request still sitting there. Without it, asking twice for
@@ -62,40 +119,96 @@ public struct ScrollPosition: Equatable {
     /// from not asking at all.
     var requestToken: Int = 0
 
-    /// Whether the position was last changed by the person using the app
-    /// rather than by code. Matches SwiftUI's property of the same name.
-    public private(set) var isPositionedByUser: Bool = false
+    /// Whether the person using the app scrolled the view to where it is,
+    /// rather than code. Matches SwiftUI's property of the same name.
+    ///
+    /// Set by the scroll view when the user scrolls — the wheel, the keys, the
+    /// scrollbar — and never by a `scrollTo` or by a frame being drawn (both
+    /// measured on SwiftUI). Writable as SwiftUI's is: setting it to `true`
+    /// drops a requested edge or offset, which no longer describes where the
+    /// view is, and every `scrollTo` sets it back to `false`.
+    public var isPositionedByUser: Bool = false {
+        didSet {
+            guard isPositionedByUser else { return }
+            switch target {
+            case .edge, .offset: target = nil
+            case .id, nil: break
+            }
+        }
+    }
 
-    /// Creates an unset position: whatever the scroll view does by default.
-    public init() {}
+    /// Creates a position with no target — whatever the scroll view does by
+    /// default — for content whose rows have ids of `idType`.
+    ///
+    /// Naming the type is what lets ``viewID`` hand back the ids the scroll
+    /// view reports (see ``PositionID``); ``viewID(type:)`` needs no such help.
+    public init(idType: (some Hashable & Sendable).Type = Never.self) {
+        self.idType = Self.declared(idType)
+    }
 
     /// Creates a position that starts by scrolling to `edge`.
-    public init(edge: Edge) {
+    public init(idType: (some Hashable & Sendable).Type = Never.self, edge: Edge) {
+        self.idType = Self.declared(idType)
         self.target = .edge(edge)
         self.requestToken = 1
     }
 
-    /// Creates a position that starts at the row identified by `id`.
-    public init<ID: Hashable>(id: ID, anchor: UnitPoint? = nil) {
-        self.target = .id(AnyHashable(id), anchor: anchor)
+    /// Creates a position that starts at `point`: `point.y` rows down and
+    /// `point.x` columns across.
+    public init(idType: (some Hashable & Sendable).Type = Never.self, point: CellPoint) {
+        self.init(idType: idType, x: point.x, y: point.y)
+    }
+
+    /// Creates a position that starts `x` columns across.
+    public init(idType: (some Hashable & Sendable).Type = Never.self, x: Int) {
+        self.idType = Self.declared(idType)
+        self.target = .offset(x: x, y: nil)
         self.requestToken = 1
     }
 
-    /// Creates a position with no target, typed for the id it will report.
-    ///
-    /// SwiftUI needs the type to decode its own storage; TUIkit does not, and
-    /// takes it for source compatibility so a call site written against
-    /// SwiftUI compiles unchanged.
-    public init<ID: Hashable>(idType: ID.Type) {}
+    /// Creates a position that starts `x` columns across and `y` rows down.
+    public init(idType: (some Hashable & Sendable).Type = Never.self, x: Int, y: Int) {
+        self.idType = Self.declared(idType)
+        self.target = .offset(x: x, y: y)
+        self.requestToken = 1
+    }
+
+    /// Creates a position that starts `y` rows down.
+    public init(idType: (some Hashable & Sendable).Type = Never.self, y: Int) {
+        self.idType = Self.declared(idType)
+        self.target = .offset(x: nil, y: y)
+        self.requestToken = 1
+    }
+
+    /// Creates a position that starts at the row identified by `id`.
+    public init(id: some Hashable & Sendable, anchor: UnitPoint? = nil) {
+        self.idType = Self.declared(type(of: id))
+        self.target = .id(PositionID(id), anchor: anchor)
+        self.requestToken = 1
+    }
+
+    /// `nil` for SwiftUI's `Never` default, which names no ids at all.
+    private static func declared(_ type: (some Hashable & Sendable).Type) -> IDType? {
+        type == Never.self ? nil : IDType(type: type)
+    }
 }
 
 // MARK: - Reading
 
 extension ScrollPosition {
+    /// The row: the one asked for, or else the row the scroll view reports
+    /// showing at its anchor — `nil` when there is neither.
+    private var row: PositionID? {
+        if case .id(let id, _) = target { return id }
+        return reported
+    }
+
     /// The id of the row at the scroll view's anchor, if it is of type `T`.
     ///
-    /// `nil` when nothing has been reported yet (the first frame), when the
-    /// content has no ids to report, or when the id is not a `T`.
+    /// The row asked for (``scrollTo(id:anchor:)``) until the user scrolls;
+    /// otherwise the row the scroll view reports. `nil` when nothing has been
+    /// reported yet (the first frame), when the content has no ids to report,
+    /// or when the id is not a `T`.
     ///
     /// "No ids to report" is narrower than it sounds, and was measured rather
     /// than assumed: the sample travels through the content's keyed
@@ -104,16 +217,56 @@ extension ScrollPosition {
     /// holding two `ForEach`es; and a `.id(_:)`-tagged child is never reported
     /// even though ``scrollTo(id:anchor:)`` seeks to one perfectly well.
     /// Seeking is per-child, reading is per-collection.
+    ///
+    /// SwiftUI reports a row only once the user scrolls past one; this reports
+    /// the row the view shows after any scroll, and on the first frame. A
+    /// reading SwiftUI would give is never different here — only present where
+    /// SwiftUI's is still `nil`.
+    ///
+    /// SwiftUI asks `T` to be `Sendable` as well; a reading asks nothing of a
+    /// type, so any `Hashable` one is accepted.
     public func viewID<T: Hashable>(type: T.Type) -> T? {
-        guard case .id(let value, _) = target else { return nil }
-        return value.base as? T
+        row?.value.base as? T
+    }
+
+    /// The id of the row at the scroll view's anchor, type-erased — see
+    /// ``viewID(type:)``.
+    ///
+    /// A row the scroll view reports appears here only when the position knows
+    /// its id type — create it with ``init(idType:)`` (as SwiftUI asks you to
+    /// anyway). An id is not `Sendable` just because its value happens to be,
+    /// and nothing at run time can make it so.
+    public var viewID: (any Hashable & Sendable)? {
+        row?.sendable
     }
 
     /// The edge this position was last asked to scroll to, if it was asked for
-    /// one.
+    /// one and the user has not scrolled since.
     public var edge: Edge? {
         guard case .edge(let edge) = target else { return nil }
         return edge
+    }
+
+    /// The column offset this position was last asked to scroll to, if it was
+    /// asked for one and the user has not scrolled since.
+    public var x: Int? {
+        guard case .offset(let x, _) = target else { return nil }
+        return x
+    }
+
+    /// The row offset this position was last asked to scroll to, if it was
+    /// asked for one and the user has not scrolled since.
+    public var y: Int? {
+        guard case .offset(_, let y) = target else { return nil }
+        return y
+    }
+
+    /// The point this position was last asked to scroll to — only when BOTH
+    /// coordinates were asked for, as SwiftUI's is: after
+    /// ``scrollTo(y:)`` alone it is `nil` (measured), and ``y`` is the answer.
+    public var point: CellPoint? {
+        guard case .offset(let x?, let y?) = target else { return nil }
+        return CellPoint(x: x, y: y)
     }
 }
 
@@ -129,35 +282,60 @@ extension ScrollPosition {
     ///     identity is its element's `id`; see `ChildView.matchesSeekKey`.)
     ///   - anchor: Where the row lands — `nil` (the default) moves as little
     ///     as possible, and not at all if the row is already visible.
-    public mutating func scrollTo<ID: Hashable>(id: ID, anchor: UnitPoint? = nil) {
-        target = .id(AnyHashable(id), anchor: anchor)
-        requestToken += 1
-        isPositionedByUser = false
+    public mutating func scrollTo(id: some Hashable & Sendable, anchor: UnitPoint? = nil) {
+        request(.id(PositionID(id), anchor: anchor))
     }
 
-    /// Asks the scroll view to scroll to one end of its content.
+    /// Asks the scroll view to scroll to one end of its content: `.top` and
+    /// `.bottom` on the vertical axis, `.leading` and `.trailing` on the
+    /// horizontal one.
     public mutating func scrollTo(edge: Edge) {
-        target = .edge(edge)
-        requestToken += 1
-        isPositionedByUser = false
+        request(.edge(edge))
     }
 
-    /// Asks the scroll view to scroll to a row offset.
-    ///
-    /// - Parameter y: The offset in whole rows from the top of the content.
+    /// Asks the scroll view to scroll to `point`: `point.y` rows down and
+    /// `point.x` columns across. Clamped to the content, as SwiftUI's is.
+    public mutating func scrollTo(point: CellPoint) {
+        request(.offset(x: point.x, y: point.y))
+    }
+
+    /// Asks the scroll view to scroll `x` columns across, leaving the rows
+    /// where they are. Clamped to the content.
+    public mutating func scrollTo(x: Int) {
+        request(.offset(x: x, y: nil))
+    }
+
+    /// Asks the scroll view to scroll `x` columns across and `y` rows down.
+    /// Clamped to the content.
+    public mutating func scrollTo(x: Int, y: Int) {
+        request(.offset(x: x, y: y))
+    }
+
+    /// Asks the scroll view to scroll `y` rows down from the top of the
+    /// content, leaving the columns where they are. Clamped to the content.
     public mutating func scrollTo(y: Int) {
-        target = .offset(y)
+        request(.offset(x: nil, y: y))
+    }
+
+    private mutating func request(_ target: Target) {
+        self.target = target
         requestToken += 1
         isPositionedByUser = false
     }
 
-    /// Records what the scroll view actually ended up showing.
+    /// Records the row the scroll view reports showing at its anchor.
     ///
-    /// Reported by the scroll view, never by the app — which is why it also
-    /// sets ``isPositionedByUser``: reaching here means the position came from
-    /// the render, not from a `scrollTo`.
+    /// Reported by the scroll view, never by the app. It changes what
+    /// ``viewID(type:)`` answers once no row is being asked for, and nothing
+    /// else: a report follows every scroll, the app's as well as the user's.
     mutating func reportVisible(id: AnyHashable) {
-        target = .id(id, anchor: nil)
+        reported = PositionID(reported: id, as: idType)
+    }
+
+    /// Records that the user scrolled the view: the request no longer
+    /// describes where it is, and the row it shows is the answer.
+    mutating func reportPositionedByUser() {
+        target = nil
         isPositionedByUser = true
     }
 }
@@ -197,7 +375,9 @@ extension View {
             get: {
                 var position = ScrollPosition()
                 if let value = id.wrappedValue {
-                    position.target = .id(AnyHashable(value), anchor: anchor)
+                    position.target = .id(
+                        ScrollPosition.PositionID(reported: AnyHashable(value), as: nil),
+                        anchor: anchor)
                     // A plain id binding has no token of its own: the VALUE
                     // changing is the request, which the scroll view detects by
                     // comparing against the row it last reported.
@@ -206,10 +386,15 @@ extension View {
                 return position
             },
             set: { newValue in
-                let reported = newValue.viewID(type: ID.self)
+                // The REPORTED row, not `viewID(type:)`: the position the
+                // getter built names the bound value as its request, which
+                // would win, and the binding would never hear the row move.
+                let reported = newValue.reported?.value.base as? ID
                 if id.wrappedValue != reported { id.wrappedValue = reported }
             })
-        return environment(\.scrollPositionBinding, ScrollPositionBinding(bridged, anchor: anchor))
+        return environment(
+            \.scrollPositionBinding,
+            ScrollPositionBinding(bridged, anchor: anchor, tracksUserPositioning: false))
     }
 }
 
@@ -227,10 +412,16 @@ extension View {
 final class ScrollPositionBinding {
     let binding: Binding<ScrollPosition>
     let anchor: UnitPoint
+    /// Whether the user's scrolls are reported as such (the request dropped,
+    /// ``ScrollPosition/isPositionedByUser`` set). Not for the `id:` binding,
+    /// whose positions are rebuilt from the bound id on every read: there is
+    /// no request to drop, and dropping it would write `nil` to the id.
+    let tracksUserPositioning: Bool
 
-    init(_ binding: Binding<ScrollPosition>, anchor: UnitPoint?) {
+    init(_ binding: Binding<ScrollPosition>, anchor: UnitPoint?, tracksUserPositioning: Bool = true) {
         self.binding = binding
         self.anchor = anchor ?? .top
+        self.tracksUserPositioning = tracksUserPositioning
     }
 }
 

@@ -228,6 +228,18 @@ public protocol ScrollableOffsetState: AnyObject {
     /// A **user** jump to the very bottom — End. Engages the bottom edge
     /// anchor and drops any overscroll excursion. See ``userScrollToTop()``.
     func userScrollToBottom()
+
+    /// Hears that the person using the app scrolled this viewport — the wheel,
+    /// the keys, the scrollbar, a drag's auto-scroll — as opposed to code.
+    ///
+    /// Called from the paths only a user scroll takes
+    /// (``releaseAnchorOnUserScroll()``, the edge engage that Home, End and a
+    /// push past an edge make, and the horizontal wheel), so a conformer that
+    /// tells user scrolls from programmatic ones — `ScrollViewHandler`, for
+    /// `ScrollPosition.isPositionedByUser` — hears all of them at one place.
+    /// A requirement so it dispatches to that conformer; the default does
+    /// nothing.
+    func noteUserScroll()
 }
 
 // MARK: - Generic single-axis scroll state
@@ -263,6 +275,14 @@ public final class ScrollAxis: ScrollableOffsetState {
     public var anchorPositionBinding: Binding<ScrollAnchor<AnyHashable>?>?
     /// …and it therefore declares no edge either.
     public var declaredEdgeAnchor: ScrollAnchor<AnyHashable>? { nil }
+
+    /// Who hears this axis's user scrolls: the owning ``ScrollViewHandler``,
+    /// whose own user-scroll record (``noteUserScroll()``) covers both of its
+    /// axes. Weakly held by the closure the handler installs.
+    var onUserScroll: (() -> Void)?
+
+    /// Passes a user scroll of this axis on to the owning handler.
+    public func noteUserScroll() { onUserScroll?() }
 
     /// A fresh axis: parked at offset 0, with no measurements yet.
     ///
@@ -318,6 +338,9 @@ extension ScrollableOffsetState {
     /// The default ``resolvedMaxOffset(reaching:)``: the bound is arithmetic,
     /// so where the caller is headed makes no difference to it.
     public func resolvedMaxOffset(reaching offset: Int) -> Int { maxOffset }
+
+    /// No one to tell: see the requirement.
+    public func noteUserScroll() {}
 
     /// ``maxOffset``, resolved exactly — the bottom, whatever it costs to find.
     ///
@@ -668,6 +691,7 @@ extension ScrollableOffsetState {
     /// ``TUIkit/View/anchorPosition(_:)``. Idempotent: a second release while
     /// already `.window` writes nothing, so a held wheel doesn't churn `@State`.
     public func releaseAnchorOnUserScroll() {
+        noteUserScroll()
         guard let binding = anchorPositionBinding, binding.wrappedValue != .window else {
             return
         }
@@ -695,6 +719,7 @@ extension ScrollableOffsetState {
     /// this can compare against the declaration without exposing the internal
     /// resolved-policy enum.
     func engageEdgeAnchor(_ edge: ScrollAnchor<AnyHashable>) {
+        noteUserScroll()
         guard let binding = anchorPositionBinding else { return }
         let engaged: ScrollAnchor<AnyHashable>? = edge == declaredEdgeAnchor ? nil : edge
         // Idempotent: a held End key must not churn `@State` every repeat.
@@ -733,10 +758,12 @@ extension ScrollableOffsetState {
         case .scrollLeft:
             let before = scrollOffset
             scroll(by: -columnsPerTick)
+            if scrollOffset != before { noteUserScroll() }
             return resolveWheelOutcome(moved: scrollOffset != before)
         case .scrollRight:
             let before = scrollOffset
             scroll(by: columnsPerTick)
+            if scrollOffset != before { noteUserScroll() }
             return resolveWheelOutcome(moved: scrollOffset != before)
         default:
             return false

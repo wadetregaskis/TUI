@@ -106,6 +106,13 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// See ``lastAppliedPositionToken``.
     var lastReportedPositionID: AnyHashable?
 
+    /// Whether the user has scrolled either axis since the last render pass
+    /// read it — set by ``noteUserScroll()``, consumed by the render, which
+    /// tells a bound `ScrollPosition` (`settleUserPositioning`). A flag rather
+    /// than a write at event time because the binding is only in reach during
+    /// a render.
+    var userScrolledSinceRender = false
+
     /// One screenful of READABLE lines (``ScrollableOffsetState``
     /// requirement). Under the text indicators the viewport's first and last
     /// line are chrome — "▲ N more" / "▼ N more" — so the protocol's
@@ -279,6 +286,15 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     public init(focusID: String, canBeFocused: Bool = true) {
         self.focusID = focusID
         self.canBeFocused = canBeFocused
+        // The horizontal axis is a scrollable of its own (its scrollbar and
+        // wheel drive it directly), so its user scrolls are passed up here,
+        // where both axes' are recorded as one.
+        horizontal.onUserScroll = { [weak self] in self?.noteUserScroll() }
+    }
+
+    /// Records that the user scrolled this view (``ScrollableOffsetState``).
+    public func noteUserScroll() {
+        userScrolledSinceRender = true
     }
 }
 
@@ -397,10 +413,12 @@ extension ScrollViewHandler {
             // Left/Right.
             let before = horizontal.scrollOffset
             horizontal.scroll(by: -step)
+            if horizontal.scrollOffset != before { noteUserScroll() }
             return horizontal.scrollOffset != before
         case .right:
             let before = horizontal.scrollOffset
             horizontal.scroll(by: step)
+            if horizontal.scrollOffset != before { noteUserScroll() }
             return horizontal.scrollOffset != before
         default:
             return false
