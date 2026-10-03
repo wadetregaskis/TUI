@@ -51,6 +51,38 @@ unkeyed read, so every memo above it declines to store; on a page whose root
 holds a reader that is the whole page. Publishers are replayed by the memo, so
 they cost nothing on a served frame.
 
+### B-W09-2 What "when no other view has focus" means for a preferred default
+
+*`View.prefersDefaultFocus(_:in:)`, `View.focusScope(_:)`, `ResetFocusAction`,
+`EnvironmentValues.resetFocus`*
+
+SwiftUI's documentation says the preference "sets the initial focus preference
+when no other view has focus", is "limited to the focusable ancestor that
+matches the provided namespace", and that a reset reevaluates default focus
+"when the currently-focused item is within the provided namespace". Its
+examples are tvOS ones. Three readings were needed:
+
+- **Who has focus.** TUIkit focuses the first control of a screen or a newly
+  presented sheet by itself, mid-render. That choice is not counted as a view
+  having the focus, so the preferred control takes it from there; a focus the
+  user, an app's `@FocusState` write or a `.defaultFocus` put somewhere is
+  left alone. While an unapplied scope or preference is on screen the
+  automatic choice waits for the end of the pass, so the first control inside
+  a scope does not flicker through the focus; one before the scope can (it has
+  registered before the scope was seen).
+- **Once.** The initial preference is applied on the frame it first appears,
+  then spent until its scope leaves the screen — the rule `.defaultFocus`'s
+  `.automatic` priority already follows here.
+- **No scope.** A preference whose namespace has no `.focusScope` applies to
+  the whole screen, and a reset in that namespace moves the focus from
+  anywhere.
+
+**The alternative readings** are each a line to change: count the automatic
+choice as holding the focus (then a preference only ever acts on a reset), or
+make a scope-less preference inert. Neither has an obvious use. Not probed on
+a SwiftUI build: focus needs a key window, which an offscreen hosting view does
+not have.
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`

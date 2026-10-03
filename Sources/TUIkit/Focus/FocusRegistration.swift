@@ -141,6 +141,7 @@ enum FocusRegistration {
         let carriesOfferedDeclaration =
             context.environment.assignedFocusID != nil
             || context.environment.focusHandoffOffer != nil
+            || context.environment.preferredFocusOffer != nil
         FocusRegistrar.register(
             identity: context.identity, handler: handler, focusID: focusID,
             sectionID: sectionID, context: context)
@@ -153,6 +154,14 @@ enum FocusRegistration {
             let handoff = context.environment.focusHandoffOffer?.claim(context.identity)
         {
             manager.registerFocusHandoff(from: focusID, store: handoff.store, value: handoff.value)
+        }
+        // A `.prefersDefaultFocus(_:in:)` above names this control, if it is
+        // the first to register there, as its scope's default — by the id it
+        // registers with, which only it knows.
+        if !context.environment.isFocusSuppressed, let manager = context.environment.focusManager,
+            let namespace = context.environment.preferredFocusOffer?.claim(context.identity)
+        {
+            manager.focusScopes.declarePreference(namespace, focusID: focusID)
         }
         declareRegistration(
             context: context, handler: handler, focusID: focusID, sectionID: sectionID,

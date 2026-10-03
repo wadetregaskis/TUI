@@ -12,12 +12,17 @@ import TUIkitView
 /// holding it. Mirrors SwiftUI's `@Namespace`.
 ///
 /// ```swift
-/// struct Gallery: View {
-///     @Namespace private var gallery
+/// struct Settings: View {
+///     @Namespace private var settings
+///     @Environment(\.resetFocus) private var resetFocus
 ///
 ///     var body: some View {
-///         Grid { … }
-///             .onAppear { print(gallery) }
+///         VStack {
+///             TextField("Name", text: $name)
+///                 .prefersDefaultFocus(in: settings)
+///             Button("Start over") { resetFocus(in: settings) }
+///         }
+///         .focusScope(settings)
 ///     }
 /// }
 /// ```
@@ -27,6 +32,9 @@ import TUIkitView
 /// dynamic properties, so it is the same on every frame for as long as the
 /// view stays where it is in the tree, and two `@Namespace` properties — on one
 /// view or on two — never share one.
+///
+/// It is what ``View/focusScope(_:)``, ``View/prefersDefaultFocus(_:in:)`` and
+/// ``ResetFocusAction`` key a scope by.
 ///
 /// Read before the view first renders — in an initializer, say — the value is
 /// a placeholder unique to this property value, as SwiftUI's is outside a

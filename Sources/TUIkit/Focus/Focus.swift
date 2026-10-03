@@ -317,6 +317,10 @@ public final class FocusManager: @unchecked Sendable {
     /// backdrop's own publishers are refused (`FocusedValueRegistrar`).
     var focusedValues = FocusedValueRegistry()
 
+    /// The focus scopes and default-focus preferences on screen — see
+    /// `FocusScope.swift`.
+    let focusScopes = FocusScopeRegistry()
+
     /// Creates a new focus manager instance.
     public init() {}
 
@@ -411,6 +415,11 @@ public final class FocusManager: @unchecked Sendable {
         focusedID.flatMap { focusIdentities[$0]?.identity }
     }
 
+    /// Where the control answering to `focusID` last rendered.
+    func renderedIdentity(ofFocusID focusID: String) -> ViewIdentity? {
+        focusIdentities[focusID]?.identity
+    }
+
     /// Whether the currently focused element is a text-input handler.
     ///
     /// When `true`, the input handler should give the focused element
@@ -462,12 +471,17 @@ extension FocusManager {
         // control would transiently receive (and then lose) focus this frame,
         // firing a spurious editing-began/ended on the wrong control. The
         // default lands directly in `endRenderPass`.
+        // A `.prefersDefaultFocus` that has not had its say yet holds it off
+        // likewise (`FocusScopeRegistry.holdsAutoFocus`).
         if targetID == activeSectionID && focusedID == nil && element.canBeFocused
             && !hasUnresolvedDefaultFocus
+            && !focusScopes.holdsAutoFocus
             && !optionalFocusSectionIDs.contains(targetID)
             && !suppressesAutoFocus
         {
             focusPreservingPendingIntent(element)
+            // Chosen by the manager, not asked for: a preference may replace it.
+            focusScopes.autoFocusedID = focusedID
         }
 
         // A pending focus intent resolves the moment its target registers —
@@ -1314,6 +1328,7 @@ extension FocusManager {
         previousModalSectionIDs = modalSectionIDs
         previousPresentationDismissals = presentationDismissals
         beginSceneRender()
+        focusScopes.beginPass()
         // A new generation so this pass's @FocusState registrations can be told
         // apart from prior ones (see `pruneFocusRegistry`). The registry itself
         // is NOT cleared here — a body-top read must resolve against last frame's
@@ -1350,6 +1365,7 @@ extension FocusManager {
         sectionGroups.removeAll()
         optionalFocusSectionIDs.removeAll()
         focusedValues.beginWalk()
+        focusScopes.beginWalk()
     }
 
     /// Validates focus state after a render pass.
@@ -1432,6 +1448,10 @@ extension FocusManager {
         // off auto-focusing while a default is unresolved, so `focusedID` is
         // still nil here on that first frame.
         resolvePendingDefaultFocus()
+
+        // Then a `.prefersDefaultFocus` whose scope appeared this pass, if
+        // nothing holds the focus but what the manager chose for itself.
+        resolveScopeDefaults()
 
         // Auto-focus if, after validation and any default, nothing holds focus: the
         // dropped control's handoff target or neighbour when it had one, the first
