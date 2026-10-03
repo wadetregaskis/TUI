@@ -27,11 +27,10 @@
 /// horizontal scroll, click-to-caret, and the suggestion drop-down all behave
 /// the same either way.
 ///
-/// > Note: SwiftUI's `.roundedBorder` and `.squareBorder` are omitted. Both name
-/// > a *shape of border* around the same field, and a terminal draws one
-/// > rectangle of cells — offering the spellings would compile and then be
-/// > indistinguishable, which is worse than not offering them. A field that
-/// > wants a real frame composes one: `TextField(…).border()`.
+/// SwiftUI's `.roundedBorder` and `.squareBorder` frame the field in a box,
+/// drawn in box-drawing characters — rounded corners (`╭╮╰╯`) or square ones
+/// (`┌┐└┘`) — around the plain field. A box is a row above and below in a
+/// terminal, so a bordered field is three rows tall.
 ///
 /// A protocol rather than an enum, matching SwiftUI and ``ListStyle`` beside it,
 /// so a `where Self ==` extension gives the leading-dot spelling. SwiftUI's own
@@ -75,6 +74,14 @@ public protocol TextFieldStyle: Sendable {
     /// a tinted container picks up that container's tint the way ordinary text
     /// does.
     var drawsFieldSurface: Bool { get }
+
+    /// The box the field is framed in, or `nil` for none.
+    var fieldBorder: BorderStyle? { get }
+}
+
+extension TextFieldStyle {
+    /// A style frames its field in nothing unless it says otherwise.
+    public var fieldBorder: BorderStyle? { nil }
 }
 
 // MARK: - Default
@@ -137,6 +144,59 @@ extension TextFieldStyle where Self == PlainTextFieldStyle {
 }
 
 // MARK: - Environment
+
+// MARK: - Bordered
+
+/// A field framed in a box with rounded corners — the plain field inside
+/// `╭╮╰╯`, three rows tall.
+///
+/// Matches SwiftUI's `.roundedBorder`.
+public struct RoundedBorderTextFieldStyle: TextFieldStyle, Equatable {
+    /// Creates a rounded border text field style.
+    public init() {}
+
+    public var drawsFieldSurface: Bool { false }
+
+    public var fieldBorder: BorderStyle? { .rounded }
+}
+
+/// A field framed in a box with square corners — the plain field inside
+/// `┌┐└┘`, three rows tall.
+///
+/// Matches SwiftUI's `.squareBorder`.
+public struct SquareBorderTextFieldStyle: TextFieldStyle, Equatable {
+    /// Creates a square border text field style.
+    public init() {}
+
+    public var drawsFieldSurface: Bool { false }
+
+    public var fieldBorder: BorderStyle? { .line }
+}
+
+extension TextFieldStyle where Self == RoundedBorderTextFieldStyle {
+    /// A text field style with a system-defined rounded border.
+    public static var roundedBorder: RoundedBorderTextFieldStyle { RoundedBorderTextFieldStyle() }
+}
+
+extension TextFieldStyle where Self == SquareBorderTextFieldStyle {
+    /// A text field style with a system-defined square border.
+    public static var squareBorder: SquareBorderTextFieldStyle { SquareBorderTextFieldStyle() }
+}
+
+/// A field, framed in the box its style names — the body ``TextField`` and
+/// ``SecureField`` draw their core through, so the two cannot disagree.
+struct _StyledFieldFrame<Content: View>: View {
+    let content: Content
+    @Environment(\.textFieldStyle) private var style
+
+    @ViewBuilder var body: some View {
+        if let border = style.fieldBorder {
+            content.border(style: border)
+        } else {
+            content
+        }
+    }
+}
 
 private struct TextFieldStyleKey: EnvironmentKey {
     static let defaultValue: any TextFieldStyle = DefaultTextFieldStyle()

@@ -166,15 +166,16 @@ public struct TextField<Label: View>: View {
                 onEditingChangedAction: onEditingChangedAction
             )
         } else {
-            _TextFieldCore(
-                label: label,
-                text: text,
-                prompt: prompt,
-                focusID: focusID,
-                isDisabled: isDisabled,
-                onSubmitAction: onSubmitAction,
-                onEditingChangedAction: onEditingChangedAction
-            )
+            _StyledFieldFrame(
+                content: _TextFieldCore(
+                    label: label,
+                    text: text,
+                    prompt: prompt,
+                    focusID: focusID,
+                    isDisabled: isDisabled,
+                    onSubmitAction: onSubmitAction,
+                    onEditingChangedAction: onEditingChangedAction
+                ))
         }
     }
 }

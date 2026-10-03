@@ -110,13 +110,14 @@ public struct SecureField<Label: View>: View {
     var onSubmitAction: (() -> Void)?
 
     public var body: some View {
-        _SecureFieldCore(
-            text: text,
-            prompt: prompt,
-            focusID: focusID,
-            isDisabled: isDisabled,
-            onSubmitAction: onSubmitAction
-        )
+        _StyledFieldFrame(
+            content: _SecureFieldCore(
+                text: text,
+                prompt: prompt,
+                focusID: focusID,
+                isDisabled: isDisabled,
+                onSubmitAction: onSubmitAction
+            ))
     }
 }
 
