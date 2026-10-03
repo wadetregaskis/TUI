@@ -433,7 +433,7 @@
       "why": "It categorises custom AX actions (.default/.edit) inside the AX actions menu, a VoiceOver UI. TUIkit surfaces extra actions as drawn menus instead (Sources/TUIkit/Modifiers/ContextMenuModifier.swift:332), which need no AX category because they are ordinary visible items."
     },
     "AccessibilityAdjustmentDirection": {
-      "why": "It exists only as the argument of accessibilityAdjustableAction's AX callback; with no assistive technology there is no such callback. The terminal's adjust direction arrives as ordinary key input — `Key.up`/`Key.down` via `.onKeyPress` (Sources/TUIkit/Extensions/View+Events.swif"
+      "why": "It exists only as the argument of accessibilityAdjustableAction's AX callback; with no assistive technology there is no such callback. The terminal's adjust direction arrives as ordinary key input — `Key.up`/`Key.down` via `.onKeyPress` (Sources/TUIkit/Extensions/View+KeyPress.swif"
     },
     "AccessibilityAttachmentModifier": {
       "why": "It is the opaque ModifiedContent modifier that carries AX attachments up the view tree (the return type of nearly every accessibility* modifier). With no accessibility attachments to carry — TUIkit has none anywhere in Sources — the type has nothing to represent."
@@ -812,6 +812,9 @@
     },
     "ToolbarDefaultItemKind.search": {
       "why": "Removes the search field SwiftUI places in a window's toolbar by default. TUIkit has no toolbar for a search item to sit in: `.searchable` draws its field at the top of the searchable subtree, where the app put the modifier (Sources/TUIkit/Extensions/View+Searchable.swift), so there is no framework-placed item to take away. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkit/Modifiers/ToolbarRemovalModifier.swift)."
+    },
+    "KeyEquivalent.clear": {
+      "why": "The keypad Clear key (U+F739). No terminal encoding TUIkit parses gives it a sequence of its own (it sits in Num Lock's position), so a shortcut or onKeyPress on it could never fire. Reopen if a terminal is found to send it, most likely under the kitty keyboard protocol (decisions A4). See decisions C4."
     }
   },
   "differentShape": {
@@ -988,8 +991,8 @@
       "why": "`TabView(selection:content:)` takes `@ViewBuilder content:` (/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/TabView.swift, init(selection:content:)) and tabs are recovered afterwards by the provider recursion in Views/TabContent.swift:37-55, so no dedicated result builder is "
     },
     "TapGesture": {
-      "how": ".onTapGesture(_:) / .onTapGesture(count:perform:)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Extensions/View+Events.swift:135 and :169; the count form uses the dispatcher's synthesised `MouseEvent.clickCount` (terminals report no double-click, so it is timed). Coordinates are `(x, y)` Ints, not CGPoint (§2.2)."
+      "how": ".onTapGesture(count:perform:) / .onTapGesture(count:coordinateSpace:perform:)",
+      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Extensions/View+Events.swift:135 and :169; the count form uses the dispatcher's synthesised `MouseEvent.clickCount` (terminals report no double-click, so it is timed). The located form hands the tap a `CellPoint`, not a CGPoint (§2.2)."
     },
     "Text.Body": {
       "how": "typealias Body = Never (inferred)",
