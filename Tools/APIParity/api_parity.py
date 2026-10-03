@@ -277,7 +277,7 @@ def signature(key):
     return base, tuple(label for label in rest.rstrip(")").split(":") if label)
 
 
-def label_deviations(swiftui, tuikit):
+def label_deviations(swiftui, tuikit, compatible=None):
     """Absent SwiftUI symbols whose name AND arity TUIkit has, spelled
     differently.
 
@@ -296,7 +296,14 @@ def label_deviations(swiftui, tuikit):
     `View.toolbar(content:)` spelt wrong, it is `toolbar(removing:)`.
     Without this rule, implementing one overload of a family makes it look
     like a misspelling of every same-arity sibling TUIkit has not got.
+
+    Nor is a SwiftUI call that already COMPILES (`compatible`, from
+    `source_compatible`). `border(_:width:)` binds to `border(_:style:width:)`
+    by skipping the defaulted `style:`, and was also listed here against the
+    same-arity `border(style:width:)` — a misspelling report for a call that
+    works, contradicting the compatible section a few lines above it.
     """
+    compatible = compatible or {}
     by_name = {}
     for key in tuikit:
         if key in swiftui:
@@ -306,7 +313,7 @@ def label_deviations(swiftui, tuikit):
             by_name.setdefault(name, []).append((labels, key))
     found = {}
     for key in swiftui:
-        if key in tuikit:
+        if key in tuikit or key in compatible:
             continue
         name, labels = signature(key)
         if labels is None or name not in by_name:
@@ -578,7 +585,7 @@ def main():
         if os.path.exists(BASELINE_PATH):
             with open(BASELINE_PATH) as handle:
                 baseline = json.load(handle)
-        deviations = label_deviations(swiftui, tuikit)
+        deviations = label_deviations(swiftui, tuikit, compatible)
         new, fixed = report(
             swiftui, tuikit, gaps, explained, stale, deviations, baseline,
             compatible)

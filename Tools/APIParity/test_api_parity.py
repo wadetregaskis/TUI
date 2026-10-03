@@ -53,6 +53,19 @@ class LabelDeviationTests(unittest.TestCase):
         tuikit = symbols("Button.init(_:action:)", "View.alert(_:isPresented:actions:message:)")
         self.assertEqual(api_parity.label_deviations(swiftui, tuikit), {})
 
+    def test_a_call_that_compiles_is_not_a_deviation(self):
+        # `border(_:width:)` binds to `border(_:style:width:)` by skipping the
+        # defaulted `style:`; `border(style:width:)` sharing its arity does not
+        # make the working call a misspelling.
+        swiftui = symbols("View.border(_:width:)")
+        tuikit = symbols("View.border(_:style:width:)", "View.border(style:width:)")
+        compatible = {"View.border(_:width:)": "View.border(_:style:width:)"}
+        self.assertEqual(
+            api_parity.label_deviations(swiftui, tuikit, compatible), {})
+        self.assertEqual(
+            api_parity.label_deviations(swiftui, tuikit),
+            {"View.border(_:width:)": ["View.border(style:width:)"]})
+
     def test_a_symbol_tuikit_has_is_not_a_deviation(self):
         swiftui = symbols("View.padding(_:)", "View.padding(_:_:)")
         tuikit = symbols("View.padding(_:)", "View.padding(_:_:)")
