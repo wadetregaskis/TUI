@@ -37,7 +37,10 @@ public struct RedactionReasons: OptionSet, Sendable, Equatable {
 
     /// The content is private and should not be shown.
     ///
-    /// Redacted the same way as ``placeholder``: a terminal has no blur.
+    /// As in SwiftUI, this redacts only the views marked
+    /// ``View/privacySensitive(_:)`` — "Account #" stays readable and the number
+    /// beside it does not. Those are drawn as ``placeholder`` draws: a terminal
+    /// has no blur.
     public static let privacy = Self(rawValue: 1 << 2)
 }
 
@@ -85,6 +88,10 @@ private struct RedactionReasonsKey: EnvironmentKey {
     static let defaultValue = RedactionReasons()
 }
 
+private struct PrivacySensitiveKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// Why the content in this environment is hidden, if it is.
     ///
@@ -99,6 +106,20 @@ extension EnvironmentValues {
     public var redactionReasons: RedactionReasons {
         get { self[RedactionReasonsKey.self] }
         set { self[RedactionReasonsKey.self] = newValue }
+    }
+
+    /// Whether this subtree is marked ``View/privacySensitive(_:)``.
+    var isPrivacySensitive: Bool {
+        get { self[PrivacySensitiveKey.self] }
+        set { self[PrivacySensitiveKey.self] = newValue }
+    }
+
+    /// The reasons that actually apply here: ``RedactionReasons/privacy`` only
+    /// inside a privacy-sensitive subtree.
+    var effectiveRedactionReasons: RedactionReasons {
+        var reasons = redactionReasons
+        if !isPrivacySensitive { reasons.remove(.privacy) }
+        return reasons
     }
 }
 
@@ -177,3 +198,26 @@ extension RedactionScope: ChildViewProvider where Content: ChildViewProvider {}
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
 extension RedactionScope: GridRowProviding where Content: GridRowProviding {}
+
+extension View {
+    /// Marks the view as containing sensitive, private user data.
+    ///
+    /// A ``View/redacted(reason:)`` with ``RedactionReasons/privacy`` hides the
+    /// text of views marked this way, and only theirs:
+    ///
+    /// ```swift
+    /// VStack {
+    ///     Text("Account #")
+    ///     Text(accountNumber)
+    ///         .privacySensitive()   // hide only the account number
+    /// }
+    /// .redacted(reason: .privacy)
+    /// ```
+    ///
+    /// - Parameter sensitive: Whether the view's content is private; `false`
+    ///   un-marks a subtree inside a marked one.
+    /// - Returns: A view marked as privacy-sensitive, or not.
+    public func privacySensitive(_ sensitive: Bool = true) -> some View {
+        environment(\.isPrivacySensitive, sensitive)
+    }
+}

@@ -1186,6 +1186,6 @@ extension Text: Renderable, Layoutable {
     private static func displayString(
         _ string: String, textCase: TextCase?, context: RenderContext
     ) -> String {
-        context.environment.redactionReasons.redacting(applyingCase(textCase, to: string))
+        context.environment.effectiveRedactionReasons.redacting(applyingCase(textCase, to: string))
     }
 }

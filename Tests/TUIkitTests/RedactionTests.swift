@@ -51,9 +51,17 @@ struct RedactionTests {
         #expect(drawn == "░░ ░░", "\(drawn.debugDescription)")
     }
 
-    @Test("privacy redacts too")
+    /// SwiftUI's rule: `.privacy` hides what is marked `.privacySensitive()`
+    /// and nothing else — "Account #" stays readable beside the number.
+    @Test("privacy redacts what is marked privacy-sensitive, and only that")
     func privacy() {
-        #expect(first(Text(verbatim: "hunter2").redacted(reason: .privacy)) == "░░░░░░░")
+        #expect(first(Text(verbatim: "hunter2").privacySensitive().redacted(reason: .privacy)) == "░░░░░░░")
+        #expect(first(Text(verbatim: "Account #").redacted(reason: .privacy)) == "Account #")
+        #expect(first(Text(verbatim: "hunter2").privacySensitive(false)
+            .privacySensitive().redacted(reason: .privacy)) == "hunter2",
+            "an inner false un-marks it")
+        #expect(first(Text(verbatim: "hunter2").redacted(reason: .placeholder)) == "░░░░░░░",
+                "a placeholder still hides everything")
     }
 
     @Test("nothing is redacted without a reason")
