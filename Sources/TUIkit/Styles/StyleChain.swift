@@ -49,9 +49,11 @@ struct StyleChain<Style>: Equatable, @unchecked Sendable {
         self.outer = nil
     }
 
-    private init(_ style: Style, outer: Self) {
+    /// `style` in force over `outer` — or over nothing, for a chain whose
+    /// absence means "none in force" rather than a default style.
+    init(_ style: Style, outer: Self?) {
         self.style = style
-        self.outer = Box(outer)
+        self.outer = outer.map(Box.init)
     }
 
     /// `style` put in force over this chain.

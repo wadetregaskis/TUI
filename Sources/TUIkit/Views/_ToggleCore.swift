@@ -776,9 +776,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // so a `Toggle(configuration)` in it draws the toggle this style was
             // applied over rather than recursing into this style again.
             var bodyContext = context
-            if let outer = context.environment.toggleStyleEntry.outer?.entry {
-                bodyContext.environment.toggleStyleEntry = outer
-            }
+            bodyContext.environment.toggleStyleChain = context.environment.toggleStyleChain.inside
             buffer = toggleStyle.makeBuffer(configuration: configuration, context: bodyContext)
             clickWidth = buffer.width
             clickHeight = buffer.height

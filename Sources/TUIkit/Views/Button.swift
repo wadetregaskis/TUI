@@ -329,7 +329,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     /// body is structural — `_MenuItemButtonStyle`, whose `_MenuItemRowBar`
     /// answers `sizeThatFits` with `measureChild(row)` — never paints at all.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        if let entry = context.environment.primitiveButtonStyleEntry {
+        if let entry = context.environment.primitiveButtonStyleChain {
             let (configuration, bodyContext) = primitiveStyling(entry, context: context)
             return entry.style.makeSize(
                 configuration: configuration, proposal: proposal, context: bodyContext)
@@ -573,7 +573,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     /// exactly one button through it. The body sees the style that was in
     /// force where this one was applied, so that inner `Button` draws with it.
     private func primitiveStyling(
-        _ entry: PrimitiveButtonStyleEntry, context: RenderContext
+        _ entry: StyleChain<any PrimitiveButtonStyle>, context: RenderContext
     ) -> (PrimitiveButtonStyleConfiguration, RenderContext) {
         let dismissMenu =
             context.environment.menuActionDismissBehavior.dismissesMenu
@@ -586,13 +586,13 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                 action()
                 dismissMenu?()
             })
-        var bodyContext = context.withChildIdentity(type: PrimitiveButtonStyleEntry.self, index: 0)
-        bodyContext.environment.primitiveButtonStyleEntry = entry.outer?.entry
+        var bodyContext = context.withChildIdentity(type: StyleChain<any PrimitiveButtonStyle>.self, index: 0)
+        bodyContext.environment.primitiveButtonStyleChain = entry.outer?.chain
         return (configuration, bodyContext)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if let entry = context.environment.primitiveButtonStyleEntry {
+        if let entry = context.environment.primitiveButtonStyleChain {
             let (configuration, bodyContext) = primitiveStyling(entry, context: context)
             return entry.style.makeBuffer(configuration: configuration, context: bodyContext)
         }

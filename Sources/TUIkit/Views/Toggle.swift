@@ -261,43 +261,9 @@ extension ToggleStyle where Self == SwitchToggleStyle {
 
 // MARK: - Environment Key
 
-/// The toggle style in force, and the one in force where it was set — which is
-/// what a custom style's body draws ``Toggle/init(_:)`` with, so a style that
-/// decorates the current toggle gets the toggle it was applied over rather than
-/// itself again.
-struct ToggleStyleEntry: Equatable, Sendable {
-    let style: any ToggleStyle
-    let outer: Box?
-
-    /// The outer entry, boxed because a struct cannot hold itself.
-    final class Box: Equatable, Sendable {
-        let entry: ToggleStyleEntry
-
-        init(_ entry: ToggleStyleEntry) {
-            self.entry = entry
-        }
-
-        static func == (lhs: Box, rhs: Box) -> Bool {
-            lhs === rhs || lhs.entry == rhs.entry
-        }
-    }
-
-    init(style: any ToggleStyle, outer: Self?) {
-        self.style = style
-        self.outer = outer.map(Box.init)
-    }
-
-    /// Equal when both styles are `Equatable`, of one type, and equal, and so
-    /// are the entries outside them; see ``ToggleStyle`` on why that matters.
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        guard let left = lhs.style as? any Equatable, left.isEqual(to: rhs.style) else { return false }
-        return lhs.outer == rhs.outer
-    }
-}
-
 /// Environment key for toggle style.
 private struct ToggleStyleKey: EnvironmentKey {
-    static let defaultValue = ToggleStyleEntry(style: DefaultToggleStyle(), outer: nil)
+    static let defaultValue = StyleChain<any ToggleStyle>(DefaultToggleStyle())
 }
 
 extension EnvironmentValues {
@@ -311,11 +277,12 @@ extension EnvironmentValues {
     /// turns memoization off in its subtree — see ``ToggleStyle``.
     public var toggleStyle: any ToggleStyle {
         get { self[ToggleStyleKey.self].style }
-        set { self[ToggleStyleKey.self] = ToggleStyleEntry(style: newValue, outer: self[ToggleStyleKey.self]) }
+        set { self[ToggleStyleKey.self] = self[ToggleStyleKey.self].pushing(newValue) }
     }
 
-    /// The whole chain: the style in force and the ones outside it.
-    var toggleStyleEntry: ToggleStyleEntry {
+    /// The style in force and the ones outside it — what ``Toggle/init(_:)``
+    /// inside a custom style's body draws with. See ``StyleChain``.
+    var toggleStyleChain: StyleChain<any ToggleStyle> {
         get { self[ToggleStyleKey.self] }
         set { self[ToggleStyleKey.self] = newValue }
     }

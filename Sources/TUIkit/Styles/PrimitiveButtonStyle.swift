@@ -88,59 +88,25 @@ extension BuiltInButtonStyle {
     public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
         Button(configuration)
             .environment(\.buttonStyle, appearance)
-            .environment(\.primitiveButtonStyleEntry, nil)
+            .environment(\.primitiveButtonStyleChain, nil)
     }
 }
 
 // MARK: - Environment
 
-/// A custom primitive style in force, and the one in force where it was
-/// applied — which is what ``Button/init(_:)-(PrimitiveButtonStyleConfiguration)``
-/// draws with inside the style's own body, so a style that wraps the current
-/// button gets the button it was applied over rather than itself again.
-struct PrimitiveButtonStyleEntry: Equatable, Sendable {
-    let style: any PrimitiveButtonStyle
-    let outer: Box?
-
-    /// The outer entry, boxed because a struct cannot hold itself.
-    final class Box: Equatable, Sendable {
-        let entry: PrimitiveButtonStyleEntry
-
-        init(_ entry: PrimitiveButtonStyleEntry) {
-            self.entry = entry
-        }
-
-        static func == (lhs: Box, rhs: Box) -> Bool {
-            lhs === rhs || lhs.entry == rhs.entry
-        }
-    }
-
-    init(style: any PrimitiveButtonStyle, outer: Self?) {
-        self.style = style
-        self.outer = outer.map(Box.init)
-    }
-
-    /// Equal when both styles are `Equatable`, of one type, and equal, and so
-    /// are the entries outside them. A style that is not `Equatable` compares
-    /// unequal, so the render cache treats its subtree as changed every frame
-    /// rather than serving it stale — the same price an uncomparable
-    /// ``ButtonStyle`` pays.
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        guard let left = lhs.style as? any Equatable, left.isEqual(to: rhs.style) else { return false }
-        return lhs.outer == rhs.outer
-    }
-}
-
-private struct PrimitiveButtonStyleEntryKey: EnvironmentKey {
-    static let defaultValue: PrimitiveButtonStyleEntry? = nil
+private struct PrimitiveButtonStyleChainKey: EnvironmentKey {
+    static let defaultValue: StyleChain<any PrimitiveButtonStyle>? = nil
 }
 
 extension EnvironmentValues {
-    /// The custom primitive button style in force, or `nil` when buttons draw
-    /// with the ``buttonStyle`` appearance.
-    var primitiveButtonStyleEntry: PrimitiveButtonStyleEntry? {
-        get { self[PrimitiveButtonStyleEntryKey.self] }
-        set { self[PrimitiveButtonStyleEntryKey.self] = newValue }
+    /// The custom primitive button style in force, and the ones outside it —
+    /// what ``Button/init(_:)-(PrimitiveButtonStyleConfiguration)`` inside its
+    /// body draws with — or `nil` when buttons draw with the ``buttonStyle``
+    /// appearance. See ``StyleChain``; `nil` rather than a default style at
+    /// the root, because a built-in style clears it.
+    var primitiveButtonStyleChain: StyleChain<any PrimitiveButtonStyle>? {
+        get { self[PrimitiveButtonStyleChainKey.self] }
+        set { self[PrimitiveButtonStyleChainKey.self] = newValue }
     }
 }
 
@@ -180,8 +146,8 @@ extension View {
         let appearance = (style as? any BuiltInButtonStyle)?.appearance
         return
             self
-            .transformEnvironment(\.primitiveButtonStyleEntry) { entry in
-                entry = appearance == nil ? PrimitiveButtonStyleEntry(style: style, outer: entry) : nil
+            .transformEnvironment(\.primitiveButtonStyleChain) { entry in
+                entry = appearance == nil ? StyleChain(style, outer: entry) : nil
             }
             .transformEnvironment(\.buttonStyle) { current in
                 if let appearance { current = appearance }
