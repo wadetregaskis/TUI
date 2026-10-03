@@ -173,8 +173,9 @@ SwiftUI-like air.
 ```swift
 // SwiftUI                              // TUIkit
 .onContinuousHover { … } // CGPoint     .onContinuousHover { … } // .active(CellPoint)
-.onTapGesture { /* () */ }              .onTapGesture { x, y in … }   // (Int, Int) cell coords
-.onTapGesture(count: 2) { /* () */ }    .onTapGesture(count: 2) { … } // count: matched (perform: () -> Void)
+.onTapGesture { /* () */ }              .onTapGesture { … }  // count defaults to 1, as there
+.onTapGesture { loc in … } // CGPoint   .onTapGesture { cell in … } // CellPoint, .local or .global
+.onTapGesture(count: 2) { /* () */ }    .onTapGesture(count: 2) { … }
 DragGesture().onChanged { $0.location } // CGPoint                    .onDragGesture { e in (e.x, e.y) }  // Int
 ```
 

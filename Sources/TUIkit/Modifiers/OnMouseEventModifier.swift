@@ -22,6 +22,11 @@ public struct OnMouseEventModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
+    /// Where the handler's coordinates are measured from: the view's own
+    /// top-left cell (`.local`), as the dispatcher hands them over, or the
+    /// terminal's (`.global`).
+    var coordinateSpace: CoordinateSpace = .local
+
     /// The handler. Returns `true` if it consumed the event.
     let handler: (MouseEvent) -> Bool
 
@@ -48,7 +53,19 @@ extension OnMouseEventModifier: Renderable {
             return buffer
         }
 
+        // The terminal's cell is the region's plus its origin, which is known
+        // only where the region was composited, so it is looked up when the
+        // event comes — see `RegionOrigin`.
+        let globalOrigin = coordinateSpace == .global ? RegionOrigin(dispatcher: dispatcher) : nil
+        let handler: (MouseEvent) -> Bool
+        if let globalOrigin {
+            let local = self.handler
+            handler = { event in local(event.moved(by: globalOrigin.offset)) }
+        } else {
+            handler = self.handler
+        }
         let handlerID = dispatcher.register(in: context, handler)
+        globalOrigin?.handlerID = handlerID
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,
@@ -59,6 +76,15 @@ extension OnMouseEventModifier: Renderable {
             )
         )
         return buffer
+    }
+}
+
+extension MouseEvent {
+    /// This event with its position moved by `offset` cells.
+    func moved(by offset: (x: Int, y: Int)) -> MouseEvent {
+        MouseEvent(
+            button: button, phase: phase, x: x + offset.x, y: y + offset.y,
+            shift: shift, ctrl: ctrl, meta: meta, clickCount: clickCount)
     }
 }
 

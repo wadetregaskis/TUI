@@ -1,0 +1,90 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  TapGestureLocationTests.swift
+//
+//  SwiftUI's two tap spellings: `onTapGesture(count:perform:)` with `count`
+//  defaulting to one, so `.onTapGesture { … }` compiles; and
+//  `onTapGesture(count:coordinateSpace:perform:)`, whose action is given the
+//  location — the release's cell, in the view's own cells or the terminal's.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+/// What the tap actions under test saw, in order.
+private final class TapLog: @unchecked Sendable {
+    var entries: [String] = []
+}
+
+/// "0123" on the top row; on the second, "ab" and then the tapped "XYZ",
+/// which therefore spans columns 2…4 of row 1.
+@MainActor
+private func page(_ target: some View) -> some View {
+    VStack(alignment: .leading, spacing: 0) {
+        Text("0123")
+        HStack(spacing: 0) {
+            Text("ab")
+            target
+        }
+    }
+}
+
+@MainActor
+@Suite("SwiftUI's onTapGesture spellings")
+struct TapGestureLocationTests {
+    /// A left click at `(x, y)`: the press and its release.
+    private func click(_ harness: InputChainHarness, _ x: Int, _ y: Int) {
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: y))
+    }
+
+    @Test("A bare trailing closure is a single tap, count defaulting to one")
+    func countDefaultsToOne() {
+        let log = TapLog()
+        let harness = InputChainHarness()
+        let view = { page(Text("XYZ").onTapGesture { log.entries.append("tap") }) }
+        harness.frame(view())
+        click(harness, 3, 1)
+        #expect(log.entries == ["tap"])
+    }
+
+    @Test("The location is the release's cell in the view, or the terminal's under .global")
+    func location() {
+        let log = TapLog()
+        let harness = InputChainHarness()
+        let view = {
+            page(
+                Text("XYZ")
+                    .onTapGesture { cell in log.entries.append("local \(cell.x),\(cell.y)") }
+                    .onTapGesture(coordinateSpace: .global) { cell in
+                        log.entries.append("global \(cell.x),\(cell.y)")
+                    })
+        }
+        harness.frame(view())
+        click(harness, 3, 1)
+        // The outer modifier's region is the innermost on the cell, and it
+        // takes the click.
+        #expect(log.entries == ["global 3,1"])
+
+        log.entries = []
+        let inner = { page(Text("XYZ").onTapGesture { cell in log.entries.append("local \(cell.x),\(cell.y)") }) }
+        harness.frame(inner())
+        click(harness, 4, 1)
+        #expect(log.entries == ["local 2,0"])
+    }
+
+    @Test("A located double tap fires on the second click with its location")
+    func locatedDoubleTap() {
+        let log = TapLog()
+        let harness = InputChainHarness()
+        let view = { page(Text("XYZ").onTapGesture(count: 2) { cell in log.entries.append("\(cell.x),\(cell.y)") }) }
+        harness.frame(view())
+        click(harness, 2, 1)
+        #expect(log.entries.isEmpty)
+        click(harness, 2, 1)
+        #expect(log.entries == ["0,0"])
+    }
+}
