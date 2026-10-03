@@ -223,4 +223,18 @@ struct AlignmentGuideTests {
         // Untouched guides still answer their default.
         #expect(dimensions[HorizontalAlignment.leading] == 0)
     }
+
+    @Test("Explicit values combine by their mean, ignoring views that give none")
+    func combineExplicitMean() {
+        #expect(HorizontalAlignment.center.combineExplicit([2.0, nil, 6.0]) == 4)
+        #expect(VerticalAlignment.top.combineExplicit([1.0, 3.0]) == 2)
+        #expect(HorizontalAlignment.leading.combineExplicit([Double?.none, nil]) == nil)
+        #expect(HorizontalAlignment.leading.combineExplicit([Double?]()) == nil)
+    }
+
+    @Test("A text baseline keeps the line it names: first is the topmost, last the lowest")
+    func combineExplicitBaselines() {
+        #expect(VerticalAlignment.firstTextBaseline.combineExplicit([3.0, nil, 1.0, 2.0]) == 1)
+        #expect(VerticalAlignment.lastTextBaseline.combineExplicit([3.0, nil, 1.0, 2.0]) == 3)
+    }
 }

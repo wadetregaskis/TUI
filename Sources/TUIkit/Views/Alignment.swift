@@ -219,6 +219,54 @@ extension VerticalAlignment {
     public static let lastTextBaseline = Self(LastTextBaselineID.self)
 }
 
+// MARK: - Combining Explicit Values
+
+extension HorizontalAlignment {
+    /// Merges the explicit values several views give this guide into one: the
+    /// mean of those that are not `nil`, or `nil` if none is.
+    ///
+    /// What a custom ``Layout`` uses to give a container one explicit value
+    /// from its subviews' several. SwiftUI's rule, including that every
+    /// horizontal guide averages.
+    ///
+    /// - Parameter values: The explicit values, `nil` where a view gives none.
+    /// - Returns: The merged value, or `nil` if there was nothing to merge.
+    public func combineExplicit<S: Sequence>(_ values: S) -> Double? where S.Element == Double? {
+        Self.mean(of: values)
+    }
+
+    /// The mean of the values that are not `nil`, or `nil` if none is.
+    static func mean<S: Sequence>(of values: S) -> Double? where S.Element == Double? {
+        var sum = 0.0
+        var count = 0
+        for case let value? in values {
+            sum += value
+            count += 1
+        }
+        return count == 0 ? nil : sum / Double(count)
+    }
+}
+
+extension VerticalAlignment {
+    /// Merges the explicit values several views give this guide into one.
+    ///
+    /// The mean of those that are not `nil`, as for a horizontal guide —
+    /// except that the text baselines keep the line they name: the first
+    /// baseline of several views is the topmost one, so
+    /// ``firstTextBaseline`` takes the minimum, and ``lastTextBaseline`` the
+    /// maximum. SwiftUI's rule.
+    ///
+    /// - Parameter values: The explicit values, `nil` where a view gives none.
+    /// - Returns: The merged value, or `nil` if there was nothing to merge.
+    public func combineExplicit<S: Sequence>(_ values: S) -> Double? where S.Element == Double? {
+        switch self {
+        case .firstTextBaseline: values.compactMap { $0 }.min()
+        case .lastTextBaseline: values.compactMap { $0 }.max()
+        default: HorizontalAlignment.mean(of: values)
+        }
+    }
+}
+
 // MARK: - Placing a Child
 
 extension HorizontalAlignment {
