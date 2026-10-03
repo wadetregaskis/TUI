@@ -91,9 +91,8 @@ SwiftUI resolves a guide recursively through everything between it and the
 container aligning on it. TUIkit now does the same through `VStack`,
 `HStack`, `ZStack`, `.padding` (each moving the guide by where it put its
 content) and a custom `Layout` (`explicitAlignment`), which closes the gap the
-compatibility notes
-recorded: `.alignmentGuide(.decimalPoint)` on a `Text` inside each row of a
-column aligns the rows on the point.
+compatibility notes recorded: `.alignmentGuide(.decimalPoint)` on a `Text`
+inside each row of a column aligns the rows on the point.
 
 It stops at a view type of the app's own: a guide inside
 `struct Row: View`'s `body` does not travel out of `Row`. A container decides
@@ -178,9 +177,13 @@ begins. What changes for an app:
 - A `GridRow` in a stack or a custom layout contributes its cells, not one
   row-shaped child. A `GridRow` drawn on its own stacks its cells vertically,
   as any run of views does.
-- A `ForEach` of rows inside a `Grid` now lines its cells up in the grid's
-  columns. Before, each looped row reached the grid wrapped in `ForEach`'s row
-  memo, was not recognised as a row, and spanned the grid as one cell.
+- A `ForEach` of rows inside a `Grid` lines its cells up in the grid's
+  columns whatever its elements. Before, a looped row whose element is
+  `Equatable` reached the grid inside `ForEach`'s row memo, which the grid's
+  row test did not look through, so the row spanned the grid as one cell; and
+  a looped row's cells were resolved under the grid's identity rather than
+  the row's, so two rows' cells could share a `@State` box. Both read from the
+  code; the first is now pinned by a test.
 - A row with no cells at all (`GridRow { if false { … } }`) is no row.
   `GridRow { EmptyView() }` is still a row one line tall: an `EmptyView` is a
   child here.
