@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - Stepper
 
 /// A control that performs increment and decrement actions.
@@ -143,13 +145,16 @@ public struct Stepper<Label: View>: View {
 private func eraseStepperValue<V: Strideable>(
     value: Binding<V>,
     bounds: ClosedRange<V>?,
-    step: V.Stride
+    step: V.Stride,
+    format: ((V) -> String)? = nil
 ) -> (
     display: () -> String,
     makeHandler: (String, Bool) -> any StepperDriving,
     syncValue: (any StepperDriving) -> Void
 ) {
-    let display: () -> String = { "\(value.wrappedValue)" }
+    let display: () -> String = {
+        format.map { $0(value.wrappedValue) } ?? "\(value.wrappedValue)"
+    }
     let makeHandler: (String, Bool) -> any StepperDriving = { focusID, canBeFocused in
         StepperHandler(focusID: focusID, value: value, bounds: bounds, step: step, canBeFocused: canBeFocused)
     }
@@ -880,5 +885,134 @@ extension View {
     /// unaffected.
     public func stepperTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.stepper), build)
+    }
+}
+
+// MARK: - Stepper Initializers (Format Style)
+
+extension Stepper where Label == Text {
+    /// Creates a stepper with a localized title, whose value is shown through
+    /// a format style.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the stepper's title.
+    ///   - value: The binding to the current value.
+    ///   - bounds: The range of valid values.
+    ///   - step: The step size. Defaults to `1`.
+    ///   - format: The format style the value is shown in.
+    ///   - onEditingChanged: A callback for when editing begins and ends.
+    public init<F: ParseableFormatStyle>(
+        _ titleKey: LocalizedStringKey, value: Binding<F.FormatInput>,
+        in bounds: ClosedRange<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
+        self.init(titleKey.localized, value: value, in: bounds, step: step, format: format,
+                  onEditingChanged: onEditingChanged)
+    }
+
+    /// Creates a stepper with a title shown as written, whose value is shown
+    /// through a format style.
+    ///
+    /// - Parameters:
+    ///   - title: The stepper's title.
+    ///   - value: The binding to the current value.
+    ///   - bounds: The range of valid values.
+    ///   - step: The step size. Defaults to `1`.
+    ///   - format: The format style the value is shown in.
+    ///   - onEditingChanged: A callback for when editing begins and ends.
+    @_disfavoredOverload
+    public init<S: StringProtocol, F: ParseableFormatStyle>(
+        _ title: S, value: Binding<F.FormatInput>,
+        in bounds: ClosedRange<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
+        self.init(value: value, in: bounds, step: step, format: format,
+                  label: { Text(String(title)) }, onEditingChanged: onEditingChanged)
+    }
+
+    /// Creates an unbounded stepper with a localized title, whose value is
+    /// shown through a format style.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the stepper's title.
+    ///   - value: The binding to the current value.
+    ///   - step: The step size. Defaults to `1`.
+    ///   - format: The format style the value is shown in.
+    ///   - onEditingChanged: A callback for when editing begins and ends.
+    public init<F: ParseableFormatStyle>(
+        _ titleKey: LocalizedStringKey, value: Binding<F.FormatInput>,
+        step: F.FormatInput.Stride = 1, format: F,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
+        self.init(titleKey.localized, value: value, step: step, format: format,
+                  onEditingChanged: onEditingChanged)
+    }
+
+    /// Creates an unbounded stepper with a title shown as written, whose value
+    /// is shown through a format style.
+    ///
+    /// - Parameters:
+    ///   - title: The stepper's title.
+    ///   - value: The binding to the current value.
+    ///   - step: The step size. Defaults to `1`.
+    ///   - format: The format style the value is shown in.
+    ///   - onEditingChanged: A callback for when editing begins and ends.
+    @_disfavoredOverload
+    public init<S: StringProtocol, F: ParseableFormatStyle>(
+        _ title: S, value: Binding<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
+        self.init(value: value, step: step, format: format,
+                  label: { Text(String(title)) }, onEditingChanged: onEditingChanged)
+    }
+}
+
+extension Stepper {
+    /// Creates a stepper with a custom label and a range, whose value is shown
+    /// through a format style.
+    ///
+    /// The value is shown formatted; it is changed with the arrows, not typed —
+    /// TUIkit's stepper has no text field. The format is a
+    /// `ParseableFormatStyle` because SwiftUI's is.
+    ///
+    /// - Parameters:
+    ///   - value: The binding to the current value.
+    ///   - bounds: The range of valid values.
+    ///   - step: The step size. Defaults to `1`.
+    ///   - format: The format style the value is shown in.
+    ///   - label: A view describing the purpose of the stepper.
+    ///   - onEditingChanged: A callback for when editing begins and ends.
+    public init<F: ParseableFormatStyle>(
+        value: Binding<F.FormatInput>, in bounds: ClosedRange<F.FormatInput>,
+        step: F.FormatInput.Stride = 1, format: F, @ViewBuilder label: () -> Label,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
+        let erased = eraseStepperValue(
+            value: value, bounds: bounds, step: step, format: { format.format($0) })
+        self.init(
+            label: label(),
+            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
+    }
+
+    /// Creates an unbounded stepper with a custom label, whose value is shown
+    /// through a format style.
+    ///
+    /// - Parameters:
+    ///   - value: The binding to the current value.
+    ///   - step: The step size. Defaults to `1`.
+    ///   - format: The format style the value is shown in.
+    ///   - label: A view describing the purpose of the stepper.
+    ///   - onEditingChanged: A callback for when editing begins and ends.
+    public init<F: ParseableFormatStyle>(
+        value: Binding<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F,
+        @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
+        let erased = eraseStepperValue(
+            value: value, bounds: nil, step: step, format: { format.format($0) })
+        self.init(
+            label: label(),
+            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 }

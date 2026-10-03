@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkit
@@ -153,5 +154,16 @@ struct StepperTests {
 
         #expect(buffer.height == 1)
         #expect(buffer.lines[0].contains("50"))
+    }
+
+    @Test("A format style shows the value through it")
+    func formatStyle() {
+        let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
+        let bounded = Stepper("Gain", value: .constant(2.5), in: 0...10, step: 0.5, format: format)
+        let unbounded = Stepper(value: .constant(2.5), format: format) { Text("Gain") }
+        for view in [AnyView(bounded), AnyView(unbounded)] {
+            let line = renderToBuffer(view, context: testContext()).lines[0].stripped
+            #expect(line.contains("2.50"), "\(line)")
+        }
     }
 }
