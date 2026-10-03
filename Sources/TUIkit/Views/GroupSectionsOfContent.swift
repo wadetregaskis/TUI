@@ -12,6 +12,7 @@ import TUIkitView
 
 // MARK: - Group(sections:transform:)
 
+@MainActor
 extension Group {
     /// Constructs a group from the sections of the given view.
     ///

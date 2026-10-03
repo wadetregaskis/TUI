@@ -25,15 +25,28 @@
 ///     Text("Third")
 /// }
 /// ```
-public struct Group<Content: View>: View {
+///
+/// `Group` is not only a view: as in SwiftUI it also groups table columns and
+/// table rows, and it is a view exactly when what it groups is one.
+public struct Group<Content> {
     /// The grouped content.
     let content: Content
 
+    /// Stores `content`, already built. Declared, and `fileprivate`, so that
+    /// no memberwise `init(content:)` exists for a trailing closure to bind
+    /// to: with `Content` unconstrained, `Group { … }` would otherwise match it
+    /// with the closure itself as the content.
+    fileprivate init(grouping content: Content) {
+        self.content = content
+    }
+}
+
+extension Group: View where Content: View {
     /// Creates a group from the given content.
     ///
     /// - Parameter content: A ``ViewBuilder`` that defines the grouped views.
     public init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+        self.init(grouping: content())
     }
 
     public var body: some View {
@@ -48,7 +61,7 @@ public struct Group<Content: View>: View {
 
 // MARK: - Equatable Conformance
 
-extension Group: @preconcurrency Equatable where Content: Equatable {
+extension Group: Equatable where Content: View & Equatable {
     public static func == (lhs: Group<Content>, rhs: Group<Content>) -> Bool {
         lhs.content == rhs.content
     }
@@ -60,13 +73,13 @@ extension Group: @preconcurrency Equatable where Content: Equatable {
 // grouped views as its own direct children, so `Group` adds no nesting and
 // no layout of its own.
 
-extension Group: ChildViewProvider {
+extension Group: ChildViewProvider where Content: View {
     public func childViews(context: RenderContext) -> [ChildView] {
         resolveChildViews(from: content, context: context)
     }
 }
 
-extension Group: ChildInfoProvider {
+extension Group: ChildInfoProvider where Content: View {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         resolveChildInfos(from: content, context: context)
     }
@@ -75,7 +88,7 @@ extension Group: ChildInfoProvider {
 // The same transparency for a `List` or a `Section` asking what its content
 // IS: flattening alone hands it the rows, but not which `ForEach` made them,
 // and that is what keys them by element and carries `.onDelete` / `.onMove`.
-extension Group: ListRowsPassThrough {
+extension Group: ListRowsPassThrough where Content: View {
     var listRowsContent: any View { content }
 
     static var listRowsContentTypes: [any View.Type] { [Content.self] }
@@ -87,7 +100,7 @@ extension Group: ListRowsPassThrough {
 /// scope it was resolved in and with no step of its own, so the `nil` the `if`
 /// becomes finds `X`'s departure wherever `X` itself would have been put. A
 /// `Group` of several views finds nothing: none of them rendered as its tuple.
-extension Group: DepartingSlotAddressing {
+extension Group: DepartingSlotAddressing where Content: View {
     package static func departingSlot(
         context: RenderContext, transparentAtScope: Bool
     ) -> ChildView? {

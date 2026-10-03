@@ -489,7 +489,7 @@ extension TupleView: KeyedRowProvider {
     }
 }
 
-extension Group: KeyedRowProvider {
+extension Group: KeyedRowProvider where Content: View {
     func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
         TUIkit.appendKeyedRowRuns(of: content, to: &runs)
     }

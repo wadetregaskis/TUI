@@ -9,6 +9,7 @@ import TUIkitView
 
 // MARK: - Group(subviews:transform:)
 
+@MainActor
 extension Group {
     /// Constructs a group from the subviews of the given view.
     ///
