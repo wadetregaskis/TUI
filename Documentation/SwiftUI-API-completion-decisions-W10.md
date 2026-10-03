@@ -108,4 +108,26 @@ trailing margin to the content alone. That keeps every bar at the viewport's
 edge, which a terminal user may find more natural; it is a two-line change if
 you prefer it.
 
+### B-W10-3. `safeAreaPadding` is padding, or a scroll view's content margin
+
+*`View.safeAreaPadding(_:)` (both), `View.safeAreaPadding(_:_:)`*
+
+As B6 planned. Measured in SwiftUI: on a vertical `ScrollView`,
+`safeAreaPadding(15)` puts 15 of content inset at the top and bottom (it
+scrolls with the content, and adds to `contentMargins`) and narrows the view
+itself by 30 — across its axis it is padding. Nested calls add.
+
+**Shipped:** exactly that geometry, for a `ScrollView` that is the modifier's
+content itself or behind modifiers that only set the environment
+(`.scrollIndicators`, `.contentMargins`, `.scrollPosition` and the like).
+Anything else — including a scroll view behind `.padding` or `.frame`, which
+in SwiftUI does not reach the edges the safe area is on — is padded.
+`nil` is one cell, what SwiftUI's 16-point default is to `.padding()`.
+
+**What this gives up**, and B6 already accepted: SwiftUI also extends a
+`List` or a `TextEditor` into the safe area and insets its rows (measured: a
+`List`'s first row moves down 40 under `safeAreaPadding(.top, 40)`, with the
+list itself still at the top). Here those are padded whole, so their chrome
+moves in with their rows. The fuller version is B6's real safe area.
+
 ## C. Declined without asking

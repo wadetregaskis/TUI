@@ -393,7 +393,7 @@ existing `Glass*` family rule.
 
 *`View.safeAreaInset(edge:alignment:spacing:content:)` (both edge types),
 `View.safeAreaBar(edge:alignment:spacing:content:)` (both); still refused:
-`View.safeAreaPadding` ×3, `View.ignoresSafeArea(_:edges:)`, `SafeAreaRegions`,
+`View.ignoresSafeArea(_:edges:)`, `SafeAreaRegions`,
 `GeometryProxy.safeAreaInsets`, and the `ignoresSafeAreaEdges:` overloads of
 `background`/`overlay`*
 
@@ -429,8 +429,9 @@ every container that decides adjacency — for colour under a bar's blanks. It
 is the route if the scroll-edge effects (refusal review O7) are to mean
 something.
 
-`safeAreaPadding` comes with Wave 10's `contentMargins`: for non-scrolling
-content it is padding, and for a scroll view it is a content margin.
+`safeAreaPadding` shipped with Wave 10's `contentMargins`: for non-scrolling
+content it is padding, and for a scroll view it is a content margin along the
+axes it scrolls (decisions-W10 B-W10-3).
 
 ### B7. Key-press phases: every press is `.down`, and there is no `.up`
 

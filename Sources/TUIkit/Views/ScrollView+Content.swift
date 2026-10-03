@@ -42,6 +42,9 @@ extension _ScrollViewCore {
         if !contentContext.environment.contentMargins.isEmpty {
             contentContext.environment.contentMargins = ContentMargins()
         }
+        if !contentContext.environment.safeAreaContentMargins.isZero {
+            contentContext.environment.safeAreaContentMargins = EdgeInsets()
+        }
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1

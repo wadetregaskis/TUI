@@ -151,7 +151,7 @@ extension View {
     }
 
     /// Adds `length` cells of margin to `edges`. Matches SwiftUI's
-    /// `contentMargins(_:_:for:)`; see ``contentMargins(_:_:for:)-(_,EdgeInsets,_)``.
+    /// `contentMargins(_:_:for:)`; see the `EdgeInsets` form.
     ///
     /// - Parameters:
     ///   - edges: The edges to add margins to.
@@ -211,15 +211,21 @@ extension _ScrollViewCore {
     /// bar is a column or row of the viewport, so the cells it moves in by are
     /// the content's to give up. The "N more" lines are lines of the viewport,
     /// not a scroller, and do not move.
+    ///
+    /// A `safeAreaPadding` on the view adds to them, as it does to the content's.
     func indicatorMargins(_ context: RenderContext) -> EdgeInsets {
         let margins = context.environment.contentMargins
-        return margins.isEmpty ? EdgeInsets() : margins.indicators
+        let stated = margins.isEmpty ? EdgeInsets() : margins.indicators
+        return stated.adding(context.environment.safeAreaContentMargins)
     }
 
-    /// The margins this view draws its content inside.
+    /// The margins this view draws its content inside: its content margins
+    /// and, added to them, a `safeAreaPadding` on the view along its scrolling
+    /// axes (measured additive on SwiftUI).
     func resolvedContentMargins(_ environment: EnvironmentValues) -> EdgeInsets {
         let margins = environment.contentMargins
-        return margins.isEmpty ? EdgeInsets() : margins.content
+        let stated = margins.isEmpty ? EdgeInsets() : margins.content
+        return stated.adding(environment.safeAreaContentMargins)
     }
 
     /// The viewport a render draws into — what it was given — and the context

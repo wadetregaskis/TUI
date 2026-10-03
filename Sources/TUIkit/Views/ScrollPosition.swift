@@ -141,7 +141,8 @@ public struct ScrollPosition: Equatable {
     /// default — for content whose rows have ids of `idType`.
     ///
     /// Naming the type is what lets ``viewID`` hand back the ids the scroll
-    /// view reports (see ``PositionID``); ``viewID(type:)`` needs no such help.
+    /// view reports, which come from a `ForEach` that promises only `Hashable`;
+    /// ``viewID(type:)`` needs no such help.
     public init(idType: (some Hashable & Sendable).Type = Never.self) {
         self.idType = Self.declared(idType)
     }
