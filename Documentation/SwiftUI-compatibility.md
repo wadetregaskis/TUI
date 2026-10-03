@@ -878,6 +878,9 @@ way). What ships:
 | `ShapeStyle.opacity(_:)`, `.in(_:)` | `.in(_:)` takes a `CellRect` (§2.2) |
 | `Color: View`, and the four gradients too | a style used where a view goes fills the space it is offered — flexible in both axes with a minimum of zero, so it claims slack and never demands any. A bare `Gradient` is deliberately not one, as in SwiftUI |
 | `backgroundStyle(_:)`, `background()`, `BackgroundStyle` (`.background`) | one names the surface, the other paints it; with nothing named it is the palette's own background, a cell grid's answer to the system background material. `ignoresSafeAreaEdges:` is omitted — a terminal has no safe area for it to talk about: `safeAreaInset` lays its bar beside the view rather than growing one (decisions B6), so nothing ever runs under a bar for a background to extend beneath |
+| `HierarchicalShapeStyle` (`.primary` … `.quinary`), `HierarchicalShapeStyleModifier` (`.red.secondary`), `foregroundStyle(_:_:)` and `(_:_:_:)` | the content levels. With no foreground style above, they are the palette's tiers (`foreground`, `foregroundSecondary`, `foregroundTertiary`, `foregroundQuaternary`, and `.quinary` that at half strength), which each palette picks to stay legible. Under a `foregroundStyle`, they are that style at macOS's label-colour strengths (1, 0.5, 0.26, 0.1, 0.05), composited at the cell. The two- and three-style forms name the second and third levels outright, and a single-style `foregroundStyle` below clears them again. The extra styles reach whatever draws in `.secondary`/`.tertiary`; a terminal glyph has one layer, so there is no palette-mode symbol for them to colour as well (decisions B22) |
+| `ForegroundStyle` (`.foreground`), `TintShapeStyle` (`.tint`), `SelectionShapeStyle` (`.selection`), `SeparatorShapeStyle` (`.separator`), `FillShapeStyle` (`.fill`), `PlaceholderTextShapeStyle` (`.placeholder`), `LinkShapeStyle` (`.link`), `WindowBackgroundShapeStyle` (`.windowBackground`) | the roles, resolved where they are drawn: the foreground style in force (else the palette's), the tint in force (else the accent) for both `.tint` and `.selection`, the palette's border, field surface, tertiary foreground (a field's prompt colour), accent (a `Link`'s colour) and page background |
+| `ShapeStyle.red` … `.black`, `.clear` | the named colours as shape-style statics, as SwiftUI declares them, so `.foregroundStyle(.red, .blue)` infers |
 | `View.gradientExtent(_:)` | **TUI-specific**, and the reason this was worth doing: SwiftUI has no way to run one ramp across a *set* of views, and a terminal list wants exactly that |
 
 Layering a fill behaves as it does in SwiftUI: `ZStack { Color.red; Text("hi") }`
@@ -898,13 +901,9 @@ axis with the vertical derived through `imageCellAspect`, so a circle looks
 like one. `EllipticalGradient` is the geometry that follows the box's own
 shape, and takes no such correction for the same reason.
 
-Three spellings stay out, each because a terminal cannot honour them and the
-rule is that what cannot be honoured must not compile:
+One spelling stays out, because a terminal cannot honour it and the rule is
+that what cannot be honoured must not compile:
 
-- **`foregroundStyle(_:_:)` and `(_:_:_:)`.** The second and third styles paint
-  a symbol's second and third *layers*, and a glyph in a cell has one.
-  Accepting them and ignoring them is exactly the silent lie this file
-  otherwise exists to prevent.
 - **`Text.foregroundStyle<S>` returning `Text`.** A gradient on a `Text` works
   — it returns `some View` through the `View` modifier. What does not compile
   is `Text("a").foregroundStyle(gradient) + Text("b")`. A ramp given to the
@@ -913,13 +912,16 @@ rule is that what cannot be honoured must not compile:
   does is that a run's stored attributes name ONE colour, and a ramp on one
   FRAGMENT would need a paint per run rather than a style per run. Until that
   exists, the spelling that would quietly lose the gradient is the one that
-  fails.
-- **`HierarchicalShapeStyle`.** Its four names are palette roles here, and two
-  of them — `Color.primary` and `Color.secondary` — are already spelled on
-  `Color`, where SwiftUI spells them too. A second type carrying the same names
-  would make `.foregroundStyle(.secondary)` ambiguous for no gain. `.quinary`
-  has no counterpart: this palette names four foreground tiers, and a fifth
-  spelling painting the fourth's colour would be a lie of a different kind.
+  fails. (`Text("a").foregroundStyle(.secondary)` therefore takes `Color`'s
+  `.secondary` — the palette tier — rather than the level of a style above.)
+
+Two used to stay out with it and no longer do. `HierarchicalShapeStyle` was
+declined because a second `.secondary` beside `Color.secondary` was expected to
+make `.foregroundStyle(.secondary)` ambiguous; it does not, since the `Color`
+overload is the disfavoured one, exactly as in SwiftUI. And
+`foregroundStyle(_:_:)` was declined as painting a symbol's second layer, which
+a cell does not have — but the levels are also what `.secondary` below resolves
+to, which a terminal honours fully (decisions B22).
 
 `MeshGradient` is declined and recorded: "given a cell, what is `t`?"
 generalises to `(u, v)`, so it is not impossible — it is simply not worth it at

@@ -340,3 +340,24 @@ private struct KeyboardShortcutShapes: View {
 
     var shortcutKey: KeyEquivalent { KeyboardShortcut("s").key }
 }
+
+/// The content levels and the roles as shape styles, as SwiftUI spells them.
+@MainActor
+private struct SemanticShapeStyleShapes: View {
+    var body: some View {
+        VStack {
+            VStack {
+                Text("title")
+                Label("detail", systemImage: "star").foregroundStyle(.secondary)
+                Divider().foregroundStyle(.separator)
+            }
+            .foregroundStyle(.red, .blue)
+            HStack { Text("a") }.foregroundStyle(.tertiary)
+            HStack { Text("b") }.foregroundStyle(.tint)
+            HStack { Text("c") }.foregroundStyle(.red.secondary)
+            HStack { Text("d") }.foregroundStyle(.primary, .secondary, .quinary)
+            Color.clear.background(.selection)
+        }
+        .foregroundStyle(.foreground)
+    }
+}

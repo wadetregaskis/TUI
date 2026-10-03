@@ -829,6 +829,47 @@ it with. In a `VStack`, an `HStack` or an app's own layout each looped row is
 still one child (B15's multi-view row), drawn as its cells stacked
 vertically.
 
+### B22. The content levels, and the two- and three-style `foregroundStyle`
+
+*`HierarchicalShapeStyle`, `HierarchicalShapeStyleModifier`,
+`View.foregroundStyle(_:_:)`, `View.foregroundStyle(_:_:_:)`*
+
+The compatibility doc declined all four on two grounds. Neither held up:
+
+- **Ambiguity.** A `.secondary` on `ShapeStyle` beside `Color.secondary` does
+  not make `.foregroundStyle(.secondary)` ambiguous, because the `Color`
+  overload is the disfavoured one. That is how SwiftUI is built too.
+- **"A glyph has one layer."** True for a symbol, but the second and third
+  styles are also what `.secondary` and `.tertiary` resolve to below the
+  modifier, and a terminal honours that fully.
+
+**What shipped.** With no foreground style above, the levels are the palette's
+tiers, so `.foregroundStyle(.secondary)` paints what `Color.secondary` did.
+`.quinary` is the quaternary tier at half strength. Under a `foregroundStyle`,
+the levels are that style at macOS's label alphas (1, 0.5, 0.26, 0.1, 0.05),
+composited at the cell. The two- and three-style forms name the second and
+third levels outright; the levels past a named one are it faded by the same
+ratios. A single-style `foregroundStyle` below clears the named levels, so
+`.secondary` derives from the nearer primary.
+
+**What moves for an app.** One case changes:
+`.foregroundStyle(.secondary)` on a non-`Text` view, below an explicit
+`foregroundStyle`. That is now the outer style at half strength, where it was
+the palette's secondary tier, which is SwiftUI's behaviour.
+`Text("a").foregroundStyle(.secondary)` is unchanged, because it still takes
+`Text`'s `Color` overload (§3's remaining refusal).
+
+**Enhancements to consider:**
+
+- The 0.5 / 0.26 / 0.1 / 0.05 strengths are macOS's light-appearance label
+  alphas. At 0.1 and 0.05 a faded glyph's colour is nearly the surface's, which
+  the rendered contrast floor may lift. That is fine for a tint, but it is
+  worth a live look in the 16- and 256-colour modes.
+- A fuller version would carry the levels per palette (a palette naming its
+  own faded tiers for an arbitrary foreground). That is a palette-protocol
+  change, so I left it for you.
+
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`

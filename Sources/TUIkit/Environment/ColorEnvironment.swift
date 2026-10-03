@@ -69,7 +69,7 @@ extension View {
     /// - Returns: A view with the foreground style set.
     public func foregroundStyle<S: ShapeStyle>(_ style: S) -> some View {
         _StyleEnvironmentView(
-            content: self, style: style, slot: \.foregroundStyle, fades: true)
+            content: self, style: style, slot: \.foregroundStyle, fades: true, clearsLevels: true)
     }
 
     /// The colour spelling, so `.foregroundStyle(.red)` and
@@ -84,7 +84,7 @@ extension View {
     @_disfavoredOverload
     public func foregroundStyle(_ style: Color) -> some View {
         _StyleEnvironmentView(
-            content: self, style: style, slot: \.foregroundStyle, fades: true)
+            content: self, style: style, slot: \.foregroundStyle, fades: true, clearsLevels: true)
     }
 }
 
@@ -170,6 +170,13 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     /// transition out.
     let fades: Bool
 
+    /// Whether publishing this style clears the levels a
+    /// ``View/foregroundStyle(_:_:)`` above named, so `.secondary` below derives
+    /// from THIS primary — true for a single-style ``View/foregroundStyle(_:)-(S)``,
+    /// and for the primary of a multi-level one, whose own levels are published
+    /// below it.
+    var clearsLevels = false
+
     var body: Never {
         fatalError("_StyleEnvironmentView renders via Renderable")
     }
@@ -221,6 +228,12 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         }
         var childContext = context
         childContext.environment[keyPath: slot] = paint
+        if clearsLevels {
+            // Nil below whatever was set above — a constant for the subtree, so
+            // there is no change for a memo below to be told of.
+            childContext.environment.secondaryForegroundStyle = nil
+            childContext.environment.tertiaryForegroundStyle = nil
+        }
         childContext.environmentApplicationDepth += 1
         return childContext
     }
@@ -248,7 +261,8 @@ extension _StyleEnvironmentView: ContentRewrapping {
     var wrappedContent: Content { content }
 
     func rewrapping<V: View>(_ view: V) -> any View {
-        _StyleEnvironmentView<V, S>(content: view, style: style, slot: slot, fades: fades)
+        _StyleEnvironmentView<V, S>(
+            content: view, style: style, slot: slot, fades: fades, clearsLevels: clearsLevels)
     }
 }
 

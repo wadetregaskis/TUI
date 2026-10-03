@@ -866,10 +866,6 @@
       "how": "`EveryMinuteTimelineSchedule.Entries` is a typealias for `PeriodicTimelineSchedule.Entries`, whose `next()` it is",
       "why": "The two schedules yield the same kind of sequence, evenly spaced dates, so TUIkit's EveryMinuteTimelineSchedule.Entries is a typealias for PeriodicTimelineSchedule.Entries where SwiftUI nests a type of its own. The member exists; the symbol graph files it under the alias's target, so the tool cannot see it under this path."
     },
-    "FillShapeStyle": {
-      "how": "Palette.fieldBackground / Palette.focusBackground",
-      "why": "SwiftUI's .fill is the system's neutral fill for shapes; TUIkit's equivalent neutral surfaces are Palette.fieldBackground (Sources/TUIkitStyling/Theme/Theme.swift:96, default = appHeaderBackground at :120) and Palette.focusBackground (Theme.swift:80, default = foregroundTertiary "
-    },
     "ForEach.Body": {
       "how": "ForEach.body: Never",
       "why": "Sources/TUIkit/Views/ForEach.swift:99 declares `public var body: Never`, matching SwiftUI's non-TabContent ForEach. The `Body` typealias is inferred rather than written, so symbolgraph-extract emits it for the SDK's .swiftinterface and not for TUIkit's source — an extraction arti"
@@ -877,10 +873,6 @@
     "ForEach.TabValue": {
       "how": "TabContentProvider conformance on ForEach",
       "why": "Sources/TUIkit/Views/TabContent.swift:31 (protocol) and :52 (`extension ForEach: TabContentProvider`) — a ForEach does generate tabs inside a TabView. The protocol is internal and carries no `TabValue` associated type, so a caller cannot write `some TabContent<Value>` return type"
-    },
-    "ForegroundStyle": {
-      "how": "SemanticColor.foreground / Palette.foreground / \\.foregroundStyle",
-      "why": "The .foreground role is a palette colour, not a style type: SemanticColor.foreground (Sources/TUIkitStyling/Color/SemanticColor.swift:27) resolving against Palette.foreground (Sources/TUIkitStyling/Theme/Theme.swift:44), set for a subtree by View.foregroundStyle(_ style: Color?) "
     },
     "GestureState": {
       "how": "DragGestureEvent.Phase (.began/.moved/.ended)",
@@ -890,21 +882,9 @@
       "how": "FrameBuffer (+ RenderContext)",
       "why": "FrameBuffer is the drawing context: composited(with:at:) (Sources/TUIkitCore/Rendering/FrameBuffer.swift:584), replacingLines (:828), clamped(toWidth:height:) (:761) as the clip, and overlays/hitTestRegions/animatedCells (:135-150) as the layer/interaction/animation channels. DIV"
     },
-    "HierarchicalShapeStyle": {
-      "how": "SemanticColor.foregroundSecondary/.foregroundTertiary/.foregroundQuaternary",
-      "why": "SwiftUI's .secondary/.tertiary/.quaternary are named palette colours here: Sources/TUIkitStyling/Color/SemanticColor.swift:28-30, with the default chain (secondary falls back to foreground, quaternary to tertiary) at Sources/TUIkitStyling/Theme/Theme.swift:110-112. Widely used in"
-    },
-    "HierarchicalShapeStyleModifier": {
-      "how": "SemanticColor.foregroundSecondary/Tertiary/Quaternary (levels, not a modifier)",
-      "why": "SwiftUI needs a modifier type because .secondary is applied ONTO an arbitrary base style; TUIkit's levels are themselves concrete palette colours (Sources/TUIkitStyling/Color/SemanticColor.swift:28-30, Sources/TUIkitStyling/Theme/Theme.swift:110-112), so the level is selected dir"
-    },
     "Image.Interpolation": {
       "how": "Int factor 1...4 on View.imageSupersampling(_:)",
       "why": "SwiftUI's .none/.low/.medium/.high becomes a clamped Int supersampling factor with a nil default that adapts to the ramp length (Sources/TUIkit/Views/Image.swift:336-340), alongside DitheringMode (.floydSteinberg/.none, Sources/TUIkitImage/ASCIIConverter.swift:169-175). The enum "
-    },
-    "LinkShapeStyle": {
-      "how": "Link's accent colour + \\.linkUnderline",
-      "why": "Link labels are drawn .foregroundStyle(.palette.accent) and underlined (Sources/TUIkit/Views/Link.swift:134-135), with the underline made a subtree setting via \\.linkUnderline / View.linkUnderline(_:) (Link.swift:80-105). TUIkit underlines by default because in a terminal colour "
     },
     "List.Body": {
       "how": "List.body: some View",
@@ -921,10 +901,6 @@
     "ObservedObject": {
       "how": "a plain @Observable reference, or @Bindable for write-through",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitView/State/Bindable.swift:41 (`Bindable`, shipped); §2.3 (Documentation/SwiftUI-compatibility.md:180) maps `@ObservedObject var m: M` to passing the object via `@Environment(M.self)` or init with Observation tracking doing the invalidat"
-    },
-    "PlaceholderTextShapeStyle": {
-      "how": "Palette.foregroundTertiary (as the field-prompt colour)",
-      "why": "A TextField/SecureField prompt is drawn in palette.foregroundTertiary — Sources/TUIkit/Rendering/TextFieldContentRenderer.swift:174 (buildPromptContent). The role exists as a palette colour rather than as a ShapeStyle you can hand to .foregroundStyle."
     },
     "ScrollBounceBehavior": {
       "how": "ScrollOverscroll (+ ScrollOverscrollState)",
@@ -954,10 +930,6 @@
       "how": "Section.body: some View",
       "why": "Sources/TUIkit/Views/Section.swift:57 `public var body: some View` returning _SectionCore (:58). SwiftUI's Section declares `Body = Never` and renders as a primitive; TUIkit's has a real body per the project's View-architecture rule, so the differing typealias is a deliberate str"
     },
-    "SeparatorShapeStyle": {
-      "how": "SemanticColor.border / Palette.border",
-      "why": "Sources/TUIkitStyling/Color/SemanticColor.swift:42 and Sources/TUIkitStyling/Theme/Theme.swift:77; Divider draws in it by default and documents the rule — \"A separator is chrome, not content: it defaults to the palette's muted border colour\" (Sources/TUIkit/Views/Spacer.swift:132"
-    },
     "Spacer.minLength": {
       "how": "Spacer.spacerMinLength (SpacerProtocol)",
       "why": "`Spacer.minLength` exists but is internal — Sources/TUIkit/Views/Spacer.swift:34 `let minLength: Int?` — while `init(minLength:)` at :40 is public, so the value can be set but not read back under SwiftUI's name. The public read-back is `spacerMinLength` from the TUI-specific `Spa"
@@ -981,10 +953,6 @@
     "Text.Body": {
       "how": "typealias Body = Never (inferred)",
       "why": "Extraction artifact, not a real gap: TUIkit's Text declares `public var body: Never { fatalError(\"Text is a primitive view and renders directly\") }` at Sources/TUIkit/Views/Text.swift:116-118, so Body is inferred as Never exactly as in SwiftUI. It is absent from the symbolgraph o"
-    },
-    "TintShapeStyle": {
-      "how": "View.tint(_:) / \\.tint",
-      "why": "Sources/TUIkit/Modifiers/TintModifier.swift:57-64 declares the cascading \\.tint environment key and View.tint(_:); the tint is resolved against the base palette and REPLACES the subtree's accent role (TintModifier.swift:38-43), which is what .tint means for controls."
     },
     "ToolbarContentBuilder": {
       "how": "@StatusBarItemBuilder",
