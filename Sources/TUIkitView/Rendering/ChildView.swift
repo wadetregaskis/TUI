@@ -281,6 +281,30 @@ public struct ChildView {
             resolvedIdentity: resolvedIdentity ?? branch.child(erasedType: identityType, key: identityKey))
     }
 
+    /// This child with its identity fixed now, in `scope`: under it, or AT it
+    /// when the child adds no step of its own.
+    ///
+    /// For a child handed out somewhere other than the container that resolved
+    /// it — a `Subview`, a member of a `SubviewsCollection` placed in another
+    /// stack. A `ChildView` otherwise derives its identity from whatever
+    /// context it is later measured and rendered in, which would be the other
+    /// container's, so two proxies of one member placed in different places
+    /// would be two views, and a member and the view the transform built
+    /// beside it could land on one identity and share a `@State` box.
+    ///
+    /// The rule a conditional's branch pins its children by
+    /// (``resolvingIdentity(inBranch:)``), for the same reason: a transparent
+    /// child is pinned to `scope` itself, a keyed row is marked as resolved so
+    /// a later splice keeps its identity, and anything already resolved stays
+    /// where it was.
+    package func pinningIdentity(to scope: ViewIdentity) -> Self {
+        resolvingIdentity(inBranch: scope)
+    }
+
+    /// The identity ``pinningIdentity(to:)`` (or any earlier resolution) fixed
+    /// for this child, or `nil` when it still derives one from its context.
+    package var pinnedIdentity: ViewIdentity? { resolvedIdentity }
+
     /// This child with `modifier` wrapped around it — what a provider hands
     /// back when the modifier was written on the PROVIDER rather than on each
     /// of the members it resolves to.
