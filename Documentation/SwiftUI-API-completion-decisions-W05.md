@@ -1,0 +1,84 @@
+# Wave 5 (composition and layout): decisions for review
+
+*Written by the worktree that implemented the Subviews, Sections,
+ContainerValues and `Layout`-completeness half of Wave 5, to be folded into
+[`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md).
+Same three parts: **A** needs your decision, **B** shipped the safe option,
+**C** declined without asking. The SwiftUI behaviour quoted here was measured
+on a SwiftUI build (the W05 probes), not read off the documentation.*
+
+---
+
+## B. Shipped the safe option
+
+### B-W05.1 A `ForEach` row of several views is one subview, not several
+
+*`Group(subviews:transform:)`, `ForEach(subviews:content:)`,
+`SubviewsCollection`, `LayoutSubviews`, `SectionCollection`*
+
+SwiftUI takes a multi-view row apart: `ForEach(0..<2) { _ in Group { a; b } }`
+is four subviews, and so is the same row as a `TupleView`. It does not take
+`AnyView(Group { a; b })` apart: that is one subview per `AnyView`.
+
+TUIkit resolves one child per element everywhere — stacks, `List`, `Table`,
+layouts — and the subview APIs inherit that, so the loop above is two
+subviews here, and `HStack { ForEach(…) { Group { a; b } } }` stacks each pair
+vertically inside the row. A row of one view, which is nearly every row, is
+exact.
+
+**The fuller version** flattens a row that is itself a provider of several
+views. That changes `ForEach.makeChild` (one element → several children), the
+lazy child collection (its count is no longer the data's count, so a lazy
+stack's window over a million rows needs an index from element to first
+child), the row memo (keyed per element today) and the identity keys (a
+row's children need a step under the element's key). It is a resolver change
+for every container, not a subviews change, and it needs an A/B on `fanout`,
+`megalist` and `table`, the scenarios whose frames are mostly row
+resolution. Two to three days with the measurement.
+
+### B-W05.2 A `Section` is taken apart only by the subview and section APIs
+
+*`Section`, `Group(subviews:transform:)`, `Group(sections:transform:)`*
+
+SwiftUI flattens a `Section` in a stack into its header, content and footer,
+as the subview counts show (a section of two views with a header and a footer
+is four subviews). TUIkit's `Section` in a stack still draws as one unit, with
+the dimmed, bold header styling it has in a `List`.
+
+The subview and section APIs take sections apart as SwiftUI counts them, and
+hand the parts over as written — no header styling — because there the
+custom container decides how a header looks.
+
+**The fuller version** makes `Section` a provider of its parts in every
+container that is not a `List`, `Form` or `Table`. That moves the drawing of
+every page with a sectioned stack, so it is its own commit with the Stress
+self-check, and it needs a decision on whether a header outside a list keeps
+any styling. Half a day.
+
+### B-W05.3 A subview proxy does not pass on a spacer flag or an alignment guide
+
+*`Subview`*
+
+`Subview` is a view that draws its member. A container laying out
+`ForEach(subviews: content) { $0 }` sees the proxy, which says nothing about
+being a `Spacer` or carrying an `.alignmentGuide` — those are static
+properties of the member's type, and the proxy is one type for every member.
+A stack therefore gives a proxied `Spacer` the share a flexible view gets,
+which is close to but not the same as a spacer's.
+
+Placing the collection or a slice (`HStack { subviews }`) hands the members
+to the container directly, flags and guides intact, and that is the shape
+SwiftUI's own examples use. The fuller version reads the flags off the
+member at run time wherever a container meets a `Subview`; it is a cast per
+child on the stack path, so it would be gated behind a stored flag. Half a
+day.
+
+### B-W05.4 `SectionConfiguration.actions` is always empty
+
+*`SectionConfiguration.actions`, `SectionConfiguration.Actions`*
+
+Nothing in TUIkit can attach an action to a section yet: SwiftUI's
+`sectionActions(content:)` is a gap with its natural home in Wave 8, where
+`List` draws actions in section headers. So every section's actions are an
+empty view, which is the truth. When `sectionActions` lands, `actions` must
+start returning what it set.

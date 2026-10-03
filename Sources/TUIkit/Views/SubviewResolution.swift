@@ -184,7 +184,7 @@ func pinnedScope(of child: ChildView, in scope: RenderContext) -> RenderContext 
 /// subview — `if false { … }` contributes nothing either, but that is already
 /// gone by the time a child exists.
 @MainActor
-private func isEmptyMember(_ child: ChildView) -> Bool {
+func isEmptyMember(_ child: ChildView) -> Bool {
     throughWrappers(child.wrappedView, as: EmptyView.self) != nil
 }
 
