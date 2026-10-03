@@ -175,6 +175,17 @@ extension AppRunner {
         )
     }
 
+    /// Has the focus system ask for the frames its changes need.
+    private func wireFocusRepaints(cursorTimer: CursorTimer) {
+        // Restart the breath and re-render when the focus moves, so the newly
+        // focused control is at its brightest the moment it takes the focus
+        // (the phase starts at its bright end — see `CursorTimer.pulsePhase`).
+        focusManager.onFocusChange = { [weak cursorTimer, weak appState] in
+            cursorTimer?.restartFocusPhase()
+            appState?.setNeedsRender()
+        }
+    }
+
     func run() async {
         // Create run-loop dependencies (previously IUOs, now local variables)
         let inputHandler = makeInputHandler()
@@ -315,13 +326,7 @@ extension AppRunner {
             Task { @MainActor in stdinArrival?.wake() }
         }
 
-        // Restart the breath and re-render when the focus moves, so the newly
-        // focused control is at its brightest the moment it takes the focus
-        // (the phase starts at its bright end — see `CursorTimer.pulsePhase`).
-        focusManager.onFocusChange = { [weak cursorTimer, weak appState] in
-            cursorTimer?.restartFocusPhase()
-            appState?.setNeedsRender()
-        }
+        wireFocusRepaints(cursorTimer: cursorTimer)
 
         // The timer plans its own next sleep, at the moment it wakes, from the frame on
         // screen. Deciding it here in the loop after serving the tick was one wake too
