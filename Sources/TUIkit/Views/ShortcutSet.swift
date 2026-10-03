@@ -102,7 +102,24 @@ extension KeyboardShortcut: Comparable {
         switch trigger {
         case .defaultAction: return (0, " ", 0)
         case .cancelAction: return (1, " ", 0)
-        case .key(let key, let modifiers): return (2, key.character, modifiers.rawValue)
+        case .key(let key, let modifiers): return (2, key.character, modifiers.listingRank)
         }
+    }
+}
+
+extension EventModifiers {
+    /// Where a chord with these modifiers lists among the same key's other
+    /// chords: none, then Control, then Option, then Shift.
+    ///
+    /// Spelled out rather than read from `rawValue`, whose bit order is
+    /// SwiftUI's (Shift below Control), so that a listing's order is a
+    /// decision made here and not a side effect of the raw values.
+    fileprivate var listingRank: Int {
+        let order: [EventModifiers] = [.command, .control, .option, .shift, .numericPad, .capsLock]
+        var rank = 0
+        for (bit, modifier) in order.enumerated() where contains(modifier) {
+            rank |= 1 << bit
+        }
+        return rank
     }
 }

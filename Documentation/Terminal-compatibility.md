@@ -3756,6 +3756,23 @@ different things: iTerm2 forwards ⌘ as meta, Apple Terminal forwards ⌥ (see 
 mouse sections above). The standing rule from that measurement holds here too —
 never design around one specific macOS modifier key being available.
 
+### Caps Lock and the numeric pad are never reported
+
+Recorded 2026-10-03, adding SwiftUI's `EventModifiers.capsLock`. From the
+encodings' definitions rather than a per-terminal capture: neither the C0 /
+UTF-8 bytes of a printable key nor xterm's CSI modifier parameter (Shift, Alt,
+Ctrl, Meta — see below) has a bit for a lock state or for the keypad. A letter
+typed under Caps Lock arrives as the uppercase character, indistinguishable
+from Shift and that letter; a keypad digit arrives as the digit, unless the
+app has switched the keypad to application mode (DECKPAM), which TUIkit does
+not. The kitty keyboard protocol does carry both (`caps_lock`, `num_lock`,
+and distinct keypad key codes) once an app negotiates it; TUIkit does not yet.
+
+So `EventModifiers.capsLock` and `.numericPad` exist for source
+compatibility and never match, and
+`KeyboardShortcut.isDeliverableInTerminal` answers `false` for a chord that
+needs either, as it does for an unresolved `.command`.
+
 ### Shift on a printable key is the character, not a bit
 
 A terminal sends a shifted printable as the shifted **character** with no

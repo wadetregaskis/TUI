@@ -483,4 +483,42 @@ struct CommandKeySubstitutionTests {
         // And an unresolved Command shortcut is honestly undeliverable.
         #expect(KeyboardShortcut("s").isDeliverableInTerminal == false)
     }
+
+    /// SwiftUI's bits, read on macOS 15: a modifier set an app stores as its
+    /// raw value must read back as the same set under either framework.
+    @Test("EventModifiers has SwiftUI's raw values, Caps Lock included")
+    func eventModifierRawValues() {
+        #expect(EventModifiers.capsLock.rawValue == 1)
+        #expect(EventModifiers.shift.rawValue == 2)
+        #expect(EventModifiers.control.rawValue == 4)
+        #expect(EventModifiers.option.rawValue == 8)
+        #expect(EventModifiers.command.rawValue == 16)
+        #expect(EventModifiers.numericPad.rawValue == 32)
+        #expect(EventModifiers.all.rawValue == 63)
+    }
+
+    /// A terminal reports neither the Caps Lock state nor the numeric pad, so a
+    /// chord that needs either can never arrive — and says so when asked.
+    @Test("A Caps Lock or numeric-pad shortcut is undeliverable and never fires")
+    func capsLockAndNumericPadNeverFire() {
+        for modifiers: EventModifiers in [[.capsLock], [.numericPad], [.control, .capsLock]] {
+            let shortcut = KeyboardShortcut("x", modifiers: modifiers)
+            #expect(shortcut.isDeliverableInTerminal == false, "\(modifiers)")
+
+            let registry = KeyboardShortcutRegistry()
+            var fired = 0
+            registry.register(shortcut) { fired += 1 }
+            // Caps Lock arrives as the uppercase letter, so neither spelling of
+            // the key may reach a Caps Lock chord.
+            let events = [
+                KeyEvent(key: .character("x")),
+                KeyEvent(character: "X"),
+                KeyEvent(key: .character("x"), ctrl: true),
+            ]
+            for event in events {
+                #expect(!registry.trigger(for: event), "\(modifiers) \(event)")
+            }
+            #expect(fired == 0, "\(modifiers)")
+        }
+    }
 }

@@ -95,19 +95,27 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
 /// A shortcut declared with ``command`` therefore can never fire here. That is
 /// left deliberately literal rather than quietly rewritten to a bare key: an
 /// app that says ⌘Q should not fire on a lone "q".
+///
+/// The raw values are SwiftUI's, so a set stored as its `rawValue` reads back
+/// the same under either framework.
 public struct EventModifiers: OptionSet, Hashable, Sendable {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
 
+    /// Accepted for source compatibility with SwiftUI; a terminal does not
+    /// report the Caps Lock state, so it never matches. A letter typed under
+    /// Caps Lock arrives as the uppercase character, which is to say as Shift
+    /// and that letter.
+    public static let capsLock = Self(rawValue: 1 << 0)
+    public static let shift = Self(rawValue: 1 << 1)
+    public static let control = Self(rawValue: 1 << 2)
+    public static let option = Self(rawValue: 1 << 3)
     /// Never reported by a terminal — see the type documentation.
-    public static let command = Self(rawValue: 1 << 0)
-    public static let control = Self(rawValue: 1 << 1)
-    public static let option = Self(rawValue: 1 << 2)
-    public static let shift = Self(rawValue: 1 << 3)
+    public static let command = Self(rawValue: 1 << 4)
     /// Accepted for source compatibility with SwiftUI; a terminal cannot
     /// distinguish the numeric pad, so it never matches.
-    public static let numericPad = Self(rawValue: 1 << 4)
-    public static let all: Self = [.command, .control, .option, .shift, .numericPad]
+    public static let numericPad = Self(rawValue: 1 << 5)
+    public static let all: Self = [.capsLock, .shift, .control, .option, .command, .numericPad]
 
     /// The modifiers a terminal actually reports on `event`.
     init(_ event: KeyEvent) {
@@ -213,7 +221,11 @@ public struct KeyboardShortcut: Hashable, Sendable {
 
     /// Whether a terminal can actually deliver this shortcut.
     ///
-    /// `false` for the Control combinations the C0 range spends on other keys:
+    /// `false` for a shortcut that needs a modifier no terminal reports —
+    /// ``EventModifiers/command`` (until `resolved(commandKey:)` replaces it),
+    /// ``EventModifiers/capsLock`` or ``EventModifiers/numericPad``.
+    ///
+    /// `false` too for the Control combinations the C0 range spends on other keys:
     /// Ctrl-H is Backspace, Ctrl-I is Tab, Ctrl-J and Ctrl-M are newline and
     /// Return, Ctrl-[ is Escape — `KeyEvent.parse` matches those *before* the
     /// Ctrl-letter range, so they never arrive as a modified letter and never
@@ -228,10 +240,14 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// SIGTSTP only when nothing before it claimed the key.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }
-        if modifiers.contains(.command) { return false }
+        guard modifiers.isDisjoint(with: Self.unreportedModifiers) else { return false }
         guard modifiers.contains(.control) else { return true }
         return !"hijm[".contains(key.character)
     }
+
+    /// The modifiers no terminal reports on a key event, so a shortcut that
+    /// needs one can never fire.
+    private static let unreportedModifiers: EventModifiers = [.command, .capsLock, .numericPad]
 
     private init(trigger: Trigger) {
         self.trigger = trigger
