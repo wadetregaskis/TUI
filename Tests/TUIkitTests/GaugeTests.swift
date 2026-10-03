@@ -17,7 +17,7 @@ struct GaugeTests {
 
     @Test("Normalizes a value within its bounds, clamping out-of-range")
     func normalization() {
-        typealias PlainGauge = Gauge<Text, EmptyView, EmptyView>
+        typealias PlainGauge = Gauge<Text, EmptyView, EmptyView, EmptyView>
         #expect(abs(PlainGauge.normalized(value: 90.0, in: 60.0...180.0) - 0.25) < 0.0001)  // 30/120
         #expect(PlainGauge.normalized(value: 200.0, in: 0.0...100.0) == 1.0)  // clamp high
         #expect(PlainGauge.normalized(value: -5.0, in: 0.0...100.0) == 0.0)  // clamp low
@@ -386,5 +386,49 @@ struct GaugeStyleBodyTests {
     func labelTypeNames() {
         #expect(GaugeStyleConfiguration.CurrentValueLabel.self == AnyView.self)
         #expect(GaugeStyleConfiguration.Label.self == AnyView.self)
+    }
+}
+
+@MainActor
+@Suite("Gauge marked-value labels")
+struct GaugeMarkedValueLabelTests {
+    private func lines<V: View>(_ view: V) -> [String] {
+        renderToBuffer(view, context: makeRenderContext(width: 30, height: 4)).lines.map(\.stripped)
+    }
+
+    @Test("Marked-value labels are taken and, as SwiftUI documents, ignored")
+    func markedLabelsAreIgnored() {
+        let marked = Gauge(value: 0.5) {
+            Text("Load")
+        } currentValueLabel: {
+            Text("50%")
+        } markedValueLabels: {
+            Text("lo").tag(0.0)
+            Text("hi").tag(1.0)
+        }
+        let plain = Gauge(value: 0.5) { Text("Load") } currentValueLabel: { Text("50%") }
+        #expect(lines(marked) == lines(plain))
+
+        let bounded = Gauge(value: 0.5) {
+            Text("Load")
+        } currentValueLabel: {
+            Text("50%")
+        } minimumValueLabel: {
+            Text("0")
+        } maximumValueLabel: {
+            Text("1")
+        } markedValueLabels: {
+            Text("mid").tag(0.5)
+        }
+        let boundedPlain = Gauge(value: 0.5) {
+            Text("Load")
+        } currentValueLabel: {
+            Text("50%")
+        } minimumValueLabel: {
+            Text("0")
+        } maximumValueLabel: {
+            Text("1")
+        }
+        #expect(lines(bounded) == lines(boundedPlain))
     }
 }

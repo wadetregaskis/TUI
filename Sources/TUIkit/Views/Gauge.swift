@@ -51,7 +51,7 @@
 ///     Text("180")
 /// }
 /// ```
-public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View>: View {
+public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, MarkedValueLabels: View>: View {
     /// The normalized position of the value within its bounds (0.0–1.0).
     let fraction: Double
 
@@ -67,6 +67,11 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View>: Vi
     /// The label for the upper bound (right of the bar).
     let maximumValueLabel: BoundsLabel?
 
+    /// Views each describing a particular value of the gauge. Kept and not
+    /// drawn: SwiftUI documents that its gauge "ignores this parameter", and
+    /// no built-in style draws marks.
+    let markedValueLabels: MarkedValueLabels?
+
     public var body: some View {
         _GaugeCore(
             fraction: fraction,
@@ -81,6 +86,64 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View>: Vi
 // MARK: - Initializers
 
 extension Gauge {
+    /// Creates a gauge with a label, current-value label, bound labels, and
+    /// marked-value labels.
+    ///
+    /// - Parameters:
+    ///   - value: The value to show.
+    ///   - bounds: The range the value sits within (default `0...1`).
+    ///   - label: A view describing what the gauge measures.
+    ///   - currentValueLabel: A view showing the current value.
+    ///   - minimumValueLabel: A view labelling the lower bound.
+    ///   - maximumValueLabel: A view labelling the upper bound.
+    ///   - markedValueLabels: Tagged views each describing a particular value.
+    ///     Ignored, as SwiftUI documents its own gauge ignoring them.
+    public init<V: BinaryFloatingPoint>(
+        value: V,
+        in bounds: ClosedRange<V> = 0...1,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder currentValueLabel: () -> CurrentValueLabel,
+        @ViewBuilder minimumValueLabel: () -> BoundsLabel,
+        @ViewBuilder maximumValueLabel: () -> BoundsLabel,
+        @ViewBuilder markedValueLabels: () -> MarkedValueLabels
+    ) {
+        self.fraction = Self.normalized(value: value, in: bounds)
+        self.label = label()
+        self.currentValueLabel = currentValueLabel()
+        self.minimumValueLabel = minimumValueLabel()
+        self.maximumValueLabel = maximumValueLabel()
+        self.markedValueLabels = markedValueLabels()
+    }
+}
+
+extension Gauge where BoundsLabel == EmptyView {
+    /// Creates a gauge with a label, a current-value label, and marked-value
+    /// labels.
+    ///
+    /// - Parameters:
+    ///   - value: The value to show.
+    ///   - bounds: The range the value sits within (default `0...1`).
+    ///   - label: A view describing what the gauge measures.
+    ///   - currentValueLabel: A view showing the current value.
+    ///   - markedValueLabels: Tagged views each describing a particular value.
+    ///     Ignored, as SwiftUI documents its own gauge ignoring them.
+    public init<V: BinaryFloatingPoint>(
+        value: V,
+        in bounds: ClosedRange<V> = 0...1,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder currentValueLabel: () -> CurrentValueLabel,
+        @ViewBuilder markedValueLabels: () -> MarkedValueLabels
+    ) {
+        self.fraction = Self.normalized(value: value, in: bounds)
+        self.label = label()
+        self.currentValueLabel = currentValueLabel()
+        self.minimumValueLabel = nil
+        self.maximumValueLabel = nil
+        self.markedValueLabels = markedValueLabels()
+    }
+}
+
+extension Gauge where MarkedValueLabels == EmptyView {
     /// Creates a gauge with a label, current-value label, and bound labels.
     ///
     /// - Parameters:
@@ -103,10 +166,11 @@ extension Gauge {
         self.currentValueLabel = currentValueLabel()
         self.minimumValueLabel = minimumValueLabel()
         self.maximumValueLabel = maximumValueLabel()
+        self.markedValueLabels = nil
     }
 }
 
-extension Gauge where BoundsLabel == EmptyView {
+extension Gauge where BoundsLabel == EmptyView, MarkedValueLabels == EmptyView {
     /// Creates a gauge with a label and a current-value label.
     ///
     /// - Parameters:
@@ -125,10 +189,11 @@ extension Gauge where BoundsLabel == EmptyView {
         self.currentValueLabel = currentValueLabel()
         self.minimumValueLabel = nil
         self.maximumValueLabel = nil
+        self.markedValueLabels = nil
     }
 }
 
-extension Gauge where CurrentValueLabel == EmptyView, BoundsLabel == EmptyView {
+extension Gauge where CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, MarkedValueLabels == EmptyView {
     /// Creates a gauge with only a label.
     ///
     /// - Parameters:
@@ -145,10 +210,12 @@ extension Gauge where CurrentValueLabel == EmptyView, BoundsLabel == EmptyView {
         self.currentValueLabel = nil
         self.minimumValueLabel = nil
         self.maximumValueLabel = nil
+        self.markedValueLabels = nil
     }
 }
 
-extension Gauge where Label == Text, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView {
+extension Gauge
+where Label == Text, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, MarkedValueLabels == EmptyView {
     /// Creates a gauge with a localized title.
     ///
     /// A string **literal** binds here, so it is a lookup key — see
@@ -540,7 +607,8 @@ private enum GaugePieDial {
 
 // MARK: - From a Configuration
 
-extension Gauge where Label == AnyView, CurrentValueLabel == AnyView, BoundsLabel == AnyView {
+extension Gauge
+where Label == AnyView, CurrentValueLabel == AnyView, BoundsLabel == AnyView, MarkedValueLabels == EmptyView {
     /// A gauge drawing what a configuration describes — the body of a built-in
     /// ``GaugeStyle``, for a style that composes one. The labels a configuration
     /// leaves `nil` stay absent.
@@ -550,6 +618,7 @@ extension Gauge where Label == AnyView, CurrentValueLabel == AnyView, BoundsLabe
             label: configuration.label,
             currentValueLabel: configuration.currentValueLabel,
             minimumValueLabel: configuration.minimumValueLabel,
-            maximumValueLabel: configuration.maximumValueLabel)
+            maximumValueLabel: configuration.maximumValueLabel,
+            markedValueLabels: nil)
     }
 }
