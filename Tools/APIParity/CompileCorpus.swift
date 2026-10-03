@@ -194,6 +194,8 @@ private struct ButtonStyleNames: View {
             Button("button.save") {}.buttonStyle(.link)
             Button("button.save") {}.buttonStyle(RedBorderedButtonStyle())
         }
+    }
+}
 
 // MARK: - Key presses
 
