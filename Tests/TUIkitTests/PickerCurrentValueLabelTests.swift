@@ -69,3 +69,26 @@ struct PickerCurrentValueLabelTests {
         #expect(drawn.contains("Size") && drawn.contains(" S "), "\(drawn)")
     }
 }
+
+@MainActor
+@Suite("horizontalRadioGroupLayout")
+struct HorizontalRadioGroupLayoutTests {
+    private func lines<V: View>(_ view: V) -> [String] {
+        renderToBuffer(view, context: makeRenderContext(width: 40, height: 6)).lines.map(\.stripped)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    @Test("A radio-group picker lays its options out in a row")
+    func row() {
+        let picker = Picker("Size", selection: .constant(1)) {
+            Text("S").tag(1)
+            Text("M").tag(2)
+            Text("L").tag(3)
+        }
+        .pickerStyle(.radioGroup)
+        #expect(lines(picker).count == 3, "a column by default")
+        let row = lines(picker.horizontalRadioGroupLayout())
+        #expect(row.count == 1, "\(row)")
+        #expect(row.first.map { $0.contains("S") && $0.contains("M") && $0.contains("L") } == true)
+    }
+}

@@ -204,6 +204,10 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// The active picker style, resolved from the environment.
     @Environment(\.pickerStyle) private var pickerStyle
 
+    /// Whether a radio-group picker lays out in a row — see
+    /// ``View/horizontalRadioGroupLayout()``.
+    @Environment(\.horizontalRadioGroupLayout) private var horizontalLayout
+
     /// Creates a picker with a custom label.
     ///
     /// - Parameters:
@@ -311,7 +315,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             guard case .option(let tag, let label) = entry else { return nil }
             return RadioButtonItem(tag) { label }
         }
-        let group = RadioButtonGroup(selection: selection, items: items)
+        let group = RadioButtonGroup(
+            selection: selection, orientation: horizontalLayout ? .horizontal : .vertical, items: items)
         let identified = focusID.map { group.focusID($0) } ?? group
         return identified.disabled(isDisabled)
     }

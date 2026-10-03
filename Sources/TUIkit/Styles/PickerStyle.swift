@@ -182,3 +182,41 @@ extension View {
         environment(\.pickerStyle, style)
     }
 }
+
+// MARK: - Radio group layout
+
+private struct HorizontalRadioGroupLayoutKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether radio-group pickers below lay their options out in a row —
+    /// what ``View/horizontalRadioGroupLayout()`` sets.
+    var horizontalRadioGroupLayout: Bool {
+        get { self[HorizontalRadioGroupLayoutKey.self] }
+        set { self[HorizontalRadioGroupLayoutKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Sets the style for radio group style pickers within this view to be
+    /// horizontally positioned with the radio buttons inside the layout.
+    ///
+    /// ```swift
+    /// Picker("Size", selection: $size) {
+    ///     Text("S").tag(Size.small)
+    ///     Text("M").tag(Size.medium)
+    ///     Text("L").tag(Size.large)
+    /// }
+    /// .pickerStyle(.radioGroup)
+    /// .horizontalRadioGroupLayout()
+    /// // Size  (•) S  ( ) M  ( ) L
+    /// ```
+    ///
+    /// Left and Right then walk the options, as in any horizontal radio group.
+    ///
+    /// - Returns: A view whose radio-group pickers lay out in a row.
+    public func horizontalRadioGroupLayout() -> some View {
+        environment(\.horizontalRadioGroupLayout, true)
+    }
+}
