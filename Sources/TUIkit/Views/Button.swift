@@ -301,6 +301,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         static let focusID = 0
         static let isHovered = 1
         static let isPressed = 2
+        static let repeatTimer = 3
     }
 
     /// A button hugs its label (it never grows to fill), so this is its exact,
@@ -629,6 +630,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             let captureAction = effectiveAction
             let captureHoverBox = hoverBox
             let capturePressBox = pressBox
+            let repeatTimer = isMenuTrigger ? nil : repeatTimer(context: context)
             let handlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { event in
                 switch event.phase {
                 case .pressed where event.button == .left:
@@ -640,6 +642,18 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                         // arrives to clear this again. A REAL press-and-hold:
                         // set it and let the render this unblocks show it.
                         capturePressBox.value = true
+                        // `.buttonRepeatBehavior(.enabled)`: the hold IS the
+                        // activation — once now, then again at the repeat
+                        // cadence until the release.
+                        if let repeatTimer {
+                            focusManager?.focus(id: captureFocusID)
+                            // The timer runs its action on the main actor, where
+                            // this handler and every other use of the action
+                            // run too; the closure is the app's plain `() -> Void`,
+                            // which the timer's `Task` cannot be told is safe.
+                            nonisolated(unsafe) let repeated = captureAction
+                            repeatTimer.start { repeated() }
+                        }
                         return true
                     }
                     // A menu trigger fires on the press and then gets out of
@@ -665,8 +679,18 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     // activation, which would toggle the menu straight shut.
                     guard !isMenuTrigger else { return true }
                     capturePressBox.value = false
+                    // A repeating button already acted while held.
+                    if let repeatTimer {
+                        repeatTimer.stop()
+                        return true
+                    }
                     focusManager?.focus(id: captureFocusID)
                     captureAction()
+                    return true
+                case .dragged where repeatTimer != nil:
+                    // Moving off, or about, stops the repeat, as a stepper's
+                    // arrow does.
+                    repeatTimer?.stop()
                     return true
                 default:
                     return false
@@ -688,6 +712,74 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         }
 
         return buffer
+    }
+}
+
+extension _ButtonCore {
+    /// The timer a `.buttonRepeatBehavior(.enabled)` button repeats its action
+    /// on while the mouse holds it, kept at this button's identity — or `nil`,
+    /// for a button that acts once, on the release.
+    fileprivate func repeatTimer(context: RenderContext) -> AutoRepeatTimer? {
+        guard context.environment.buttonRepeatBehavior == .enabled, let stateStorage = context.stateStorage
+        else { return nil }
+        let box: StateBox<AutoRepeatTimer> = stateStorage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.repeatTimer),
+            default: AutoRepeatTimer())
+        return box.value
+    }
+}
+
+// MARK: - Repeat behaviour
+
+/// The options for controlling the repeatability of button actions.
+public struct ButtonRepeatBehavior: Hashable, Sendable {
+    private enum Kind: Hashable, Sendable { case automatic, enabled, disabled }
+    private let kind: Kind
+
+    /// The automatic repeat behavior: a button acts once, on the release.
+    public static let automatic = Self(kind: .automatic)
+
+    /// Repeat is enabled: holding the mouse button on a button performs its
+    /// action at once, then at the auto-repeat cadence until the release.
+    public static let enabled = Self(kind: .enabled)
+
+    /// Repeat is disabled.
+    public static let disabled = Self(kind: .disabled)
+}
+
+private struct ButtonRepeatBehaviorKey: EnvironmentKey {
+    static let defaultValue = ButtonRepeatBehavior.automatic
+}
+
+extension EnvironmentValues {
+    /// Whether buttons in this environment repeatedly trigger their actions on
+    /// prolonged interactions — set with ``View/buttonRepeatBehavior(_:)``.
+    public internal(set) var buttonRepeatBehavior: ButtonRepeatBehavior {
+        get { self[ButtonRepeatBehaviorKey.self] }
+        set { self[ButtonRepeatBehaviorKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Sets whether buttons in this view should repeatedly trigger their
+    /// actions on prolonged interactions.
+    ///
+    /// ```swift
+    /// Button("+") { count += 1 }
+    ///     .buttonRepeatBehavior(.enabled)
+    /// ```
+    ///
+    /// With `.enabled`, pressing and holding the mouse on the button performs
+    /// its action at once and then at the auto-repeat cadence until the
+    /// release, as a ``Stepper``'s arrows do. A held key repeats on its own: the
+    /// terminal sends the key again for as long as it is down, and every press
+    /// activates — so `.disabled` cannot stop a held Return or Space repeating;
+    /// that needs the terminal to report key releases (decisions A4).
+    ///
+    /// - Parameter behavior: The repeat behavior.
+    /// - Returns: A view whose buttons repeat, or do not, as `behavior` says.
+    public func buttonRepeatBehavior(_ behavior: ButtonRepeatBehavior) -> some View {
+        environment(\.buttonRepeatBehavior, behavior)
     }
 }
 

@@ -586,6 +586,26 @@ regions in one body; and a press-and-hold on the label to open the menu, as
 macOS does, now that Wave 7's long press exists. Half a day together. The
 status bar's hint for the label says "press" today; it could add "↓ menu".
 
+### B12. `buttonRepeatBehavior(.disabled)` cannot stop a held key repeating
+
+*`ButtonRepeatBehavior` (`.automatic`, `.enabled`, `.disabled`),
+`EnvironmentValues.buttonRepeatBehavior`, `View.buttonRepeatBehavior(_:)`*
+
+SwiftUI names three ways to hold a button: the mouse, its keyboard shortcut,
+and Space while it is focused. Under `.enabled` each repeats the action;
+otherwise each acts once.
+
+**Shipped:** the mouse half exactly — under `.enabled` the press acts at once
+and repeats at the auto-repeat cadence a `Stepper`'s arrows use until the
+release; otherwise the button acts once, on the release, as before.
+
+**What it cannot do:** a held key repeats under every setting. The terminal
+resends a held key at its own autorepeat rate and reports no release, and each
+arrival is a press, so a held Return or Space — or a held shortcut — acts again
+and again even under `.disabled`. Telling a repeat from a fresh press needs
+the kitty keyboard protocol's repeat and release events (A4); with A4, this
+becomes exact.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
