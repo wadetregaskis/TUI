@@ -19,6 +19,10 @@ final class InputChainHarness {
     let context: RenderContext
     let handler: InputHandler
 
+    /// The frame clock, in nanoseconds: what the next frame reads as
+    /// `frameNowNanos`. A test advances it to reach a deadline.
+    var now: Int64 = 0
+
     /// How many times the chain asked the app to quit.
     var quits: Int { quitCount.value }
     private let quitCount = QuitCount()
@@ -69,6 +73,7 @@ final class InputChainHarness {
         // still registers would pass with nothing served.
         var frameContext = context
         frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
+        frameContext.environment.frameNowNanos = now
         let buffer = renderToBuffer(view, context: frameContext)
         tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
         focusManager.endRenderPass()
