@@ -329,6 +329,15 @@ repeat at that scale, between them. An image in slices draws as cells, never as
 a terminal picture. **Deviation:** an image that is NOT resizable fits what it is
 offered rather than drawing at its pixel size — the paragraph below says why.
 
+**`Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`
+and `Image(nsImage:)` ship where AppKit exists** (behind `canImport(AppKit)`),
+and `Image.Orientation` everywhere, with SwiftUI's raw values. The pixels are
+drawn out the first time the image is drawn, turned as SwiftUI turns them
+(measured on macOS 15), and drawn as any raster is. `scale` and `label` are
+accepted and change nothing: an image here is sized by its frame, and a
+terminal has no accessibility labels. An `NSImage` drawn into after it was
+first drawn is not drawn again.
+
 **A raster `Image` renders as text everywhere, and as REAL PIXELS where the
 terminal has a graphics protocol.** The glyph renderer is the universal path and
 the one this section used to describe as the only one: a raster source converted

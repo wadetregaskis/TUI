@@ -584,6 +584,25 @@ private struct TemplateImageShapes: View {
     }
 }
 
+#if canImport(AppKit)
+    import AppKit
+
+    /// Images made from a Core Graphics image or an AppKit image.
+    @MainActor
+    private struct CoreGraphicsImageShapes: View {
+        let cgImage: CGImage
+        let nsImage: NSImage
+
+        var body: some View {
+            VStack {
+                Image(cgImage, scale: 2, orientation: .right, label: Text("Photo"))
+                Image(decorative: cgImage, scale: 1)
+                Image(nsImage: nsImage).resizable().scaledToFit()
+            }
+        }
+    }
+#endif
+
 /// Resizable images: stretched, fitted, and in slices.
 @MainActor
 private struct ResizableImageShapes: View {

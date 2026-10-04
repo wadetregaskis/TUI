@@ -18,6 +18,10 @@ private enum StateIndex {
     /// so the next render at the same size + settings reuses the cached
     /// glyph buffer instead of re-running `ASCIIConverter.convert`.
     static let renderCache = 2
+
+    /// Keeps the object a decoded image was drawn out of (`_DecodedImage?`) —
+    /// see ``_DecodedImage/owner``.
+    static let decodedOwner = 3
 }
 
 // MARK: - Image Core
@@ -216,6 +220,12 @@ struct _ImageCore: View, Renderable, Layoutable {
                 phaseBox: phaseBox, lastSourceBox: lastSourceBox,
                 maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
                 imageStore: context.environment.terminalImageStore, loads: decoded == nil)
+            // Written only when the owner changes, as the source is: a write
+            // asks for a frame.
+            let ownerBox: StateBox<_DecodedImage?> = stateStorage.storage(
+                for: StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.decodedOwner),
+                default: nil)
+            if ownerBox.value?.owner !== decoded?.owner { ownerBox.value = decoded }
         }
 
         // The image renders into the fit box scaled by zoom — mirroring
@@ -316,7 +326,9 @@ extension _ImageCore {
         if let lastSource = lastSourceBox.value, lastSource != source {
             lifecycle.cancelTask(token: token)
             lifecycle.resetAppearance(token: token)
-            phaseBox.value = .loading
+            // Pixels that came with the image are the new phase: nothing is
+            // going to load them.
+            phaseBox.value = decoded.map { .success($0.pixels) } ?? .loading
         }
         // Only on an actual change. `StateBox.value.didSet` invalidates
         // unconditionally — it cannot compare, since `Value` is not constrained

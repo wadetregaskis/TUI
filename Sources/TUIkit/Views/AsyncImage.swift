@@ -42,11 +42,42 @@ public enum AsyncImagePhase: Sendable {
 /// Pixels already decoded, carried by an ``Image`` so it draws them rather
 /// than loading its source again. A reference, so an `Image` carrying one
 /// stays cheap to copy.
+///
+/// Main-actor state in practice — views are built and drawn there — which is
+/// what the unchecked `Sendable` rests on, the drawn-out pixels being cached
+/// on first use.
 final class _DecodedImage: @unchecked Sendable {
-    let pixels: RGBAImage
+    /// What the pixels are drawn out of — a `CGImage` or an `NSImage` — or
+    /// `nil` for pixels handed over as they are.
+    ///
+    /// Its address names the picture in the image's source, and a freed
+    /// address can come straight back for a different picture. So the view
+    /// keeps the owner it last drew for as long as it keeps that source, and
+    /// no other picture can take the address while it does.
+    let owner: AnyObject?
 
+    private var drawn: RGBAImage?
+    private let draw: () -> RGBAImage
+
+    /// Pixels already decoded.
     init(_ pixels: RGBAImage) {
-        self.pixels = pixels
+        self.owner = nil
+        self.drawn = pixels
+        self.draw = { pixels }
+    }
+
+    /// Pixels drawn out of `owner` by `draw`, the first time they are wanted.
+    init(owner: AnyObject, draw: @escaping () -> RGBAImage) {
+        self.owner = owner
+        self.draw = draw
+    }
+
+    /// The pixels.
+    var pixels: RGBAImage {
+        if let drawn { return drawn }
+        let pixels = draw()
+        drawn = pixels
+        return pixels
     }
 }
 
