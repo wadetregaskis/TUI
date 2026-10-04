@@ -27,7 +27,7 @@ enum ANSIRenderer {
 
     /// Named constants for ANSI SGR (Select Graphic Rendition) attribute codes.
     ///
-    /// These replace bare string literals like `"1"`, `"7"` in `buildStyleCodes()`.
+    /// These replace bare string literals like `"1"`, `"7"` in `styleSequence(for:)`.
     private enum StyleCode {
         static let bold = "1"
         static let dim = "2"
@@ -79,10 +79,33 @@ extension ANSIRenderer {
     /// rebuilds the identical `TextStyle`, re-derives its codes and re-joins
     /// them: a `Table` row colours every cell with the same foreground, so a
     /// 6-column table did that six times per row, per frame.
+    ///
+    /// Written straight into one string, parameter by parameter: the same codes
+    /// in the same order — the attributes, then the foreground, then the
+    /// background — `;`-separated inside `ESC[`…`m`, which is byte for byte the
+    /// `csi + codes.joined(separator: ";") + "m"` this used to build. What it no
+    /// longer builds is that codes array, the colour's own array it grew by, the
+    /// join and the interpolation: four or five allocations per call, 4.5% of a
+    /// `menus` frame and 4.3% of a `markdown` one. `SGRStyleSequenceTests` pins
+    /// the two spellings equal.
     static func styleSequence(for style: TextStyle) -> String? {
-        let codes = buildStyleCodes(style)
-        if codes.isEmpty { return nil }
-        return "\(csi)\(codes.joined(separator: ";"))m"
+        var writer = SGRWriter()
+        if style.isBold == true { writer.add(StyleCode.bold) }
+        if style.isDim == true { writer.add(StyleCode.dim) }
+        if style.isItalic == true { writer.add(StyleCode.italic) }
+        if style.isUnderlined == true { writer.add(StyleCode.underline) }
+        if style.isBlink { writer.add(StyleCode.blink) }
+        if style.isInverted { writer.add(StyleCode.inverse) }
+        if style.isStrikethrough == true { writer.add(StyleCode.strikethrough) }
+        // Each colour reads the depth as its codes always did (the default
+        // argument, per colour), so a style with no colour reads none.
+        if let foreground = style.foregroundColor {
+            writer.add(foreground.foregroundParameters(), extended: SGRColourParameters.extendedForeground)
+        }
+        if let background = style.backgroundColor {
+            writer.add(background.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
+        }
+        return writer.finish()
     }
 
     /// Generates the ANSI escape sequence for a background color.
@@ -377,47 +400,62 @@ extension ANSIRenderer {
 
 // MARK: - Private Helpers
 
-extension ANSIRenderer {
-    /// Builds the ANSI codes for a TextStyle.
-    ///
-    /// - Parameter style: The TextStyle to convert.
-    /// - Returns: An array of ANSI code strings.
-    fileprivate static func buildStyleCodes(_ style: TextStyle) -> [String] {
-        var codes: [String] = []
+/// An SGR introducer being written: `ESC[`, then each parameter, `;` between
+/// them, and an `m` when it is finished — or nothing at all if no parameter was
+/// ever added, which is the `nil` ``ANSIRenderer/styleSequence(for:)`` returns.
+///
+/// A value with mutating methods rather than a local function capturing the
+/// string and a count: a nested function that captures mutable locals is an
+/// exclusivity-checked access per call in this codebase's hot paths (the
+/// fragments' nested `flush` shows `swift_beginAccess` under it).
+///
+/// Deliberately NOT `reserveCapacity`d. A bold-only or 16-colour introducer is
+/// a few bytes and stays a small string with no allocation at all; a reserve
+/// would force it onto the heap (the `Table.alignText` lesson: +2.1% on
+/// `table`). A truecolour one outgrows the small form as it is written, which
+/// is the one allocation it needs anyway.
+private struct SGRWriter {
+    private var sequence = ""
+    private var isEmpty = true
 
-        // Text attributes
-        if style.isBold == true {
-            codes.append(StyleCode.bold)
+    /// Appends one parameter, opening the sequence before the first.
+    mutating func add(_ parameter: String) {
+        if isEmpty {
+            sequence = ANSIRenderer.csi
+            isEmpty = false
+        } else {
+            sequence += ";"
         }
-        if style.isDim == true {
-            codes.append(StyleCode.dim)
-        }
-        if style.isItalic == true {
-            codes.append(StyleCode.italic)
-        }
-        if style.isUnderlined == true {
-            codes.append(StyleCode.underline)
-        }
-        if style.isBlink {
-            codes.append(StyleCode.blink)
-        }
-        if style.isInverted {
-            codes.append(StyleCode.inverse)
-        }
-        if style.isStrikethrough == true {
-            codes.append(StyleCode.strikethrough)
-        }
+        sequence += parameter
+    }
 
-        // Foreground color
-        if let fgColor = style.foregroundColor {
-            codes.append(contentsOf: fgColor.foregroundCodes())
+    /// Appends a colour's parameters on the channel `extended` introduces —
+    /// the strings `SGRColourParameters.codes(extended:)` spells, in its order.
+    mutating func add(_ colour: SGRColourParameters, extended: String) {
+        switch colour {
+        case .none:
+            break
+        case .code(let code):
+            add(String(code))
+        case .indexed(let index):
+            add(extended)
+            add("5")
+            add(String(index))
+        // A pattern over parameters already decided, not a colour drawn.
+        // swiftlint:disable:next framework_colour_literal
+        case .rgb(let red, let green, let blue):
+            add(extended)
+            add("2")
+            add(String(red))
+            add(String(green))
+            add(String(blue))
         }
+    }
 
-        // Background color
-        if let bgColor = style.backgroundColor {
-            codes.append(contentsOf: bgColor.backgroundCodes())
-        }
-
-        return codes
+    /// The finished sequence, or `nil` when no parameter was added.
+    mutating func finish() -> String? {
+        guard !isEmpty else { return nil }
+        sequence += "m"
+        return sequence
     }
 }
