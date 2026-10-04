@@ -105,7 +105,28 @@ place the three windowed paths render a row (about a dozen), and to
 `ChildView`, whose size is load-bearing (`ChildView.swift`'s note). Half a day,
 and an A/B on `megalist` and `fanout`.
 
-### B-W10b-4. The cost of pinning, and the measurement owed
+### B-W10b-4. Focus keeps a row clear of a pinned header; a seek does not
+
+*`LazyVStack.init(alignment:spacing:pinnedViews:content:)`, `ScrollViewProxy.scrollTo(_:anchor:)`*
+
+SwiftUI's `scrollTo(_:anchor: .top)` puts the row at the viewport's top edge,
+under the header pinned there (measured: the row is drawn, and the header
+covers it). A seek here does the same, unchanged: it is SwiftUI's API, and a
+program that wants the row clear can say `.center`.
+
+The reveal that follows focus is TUIkit's own, and it does allow for pinned
+chrome: a focused row is kept clear of the lines a pinned header or footer
+covers, as it is kept clear of the "N more" lines. Without that, stepping up
+through rows with Shift-Tab put each one under the header as it arrived —
+focused, and not seen — which for a keyboard user is a hole in the screen. A
+control inside a pinned header is found where the header is drawn, so a key
+it takes leaves the view where it is.
+
+What macOS's own focus ring does under a pinned header was not measurable
+offscreen. If it lets a focused row sit under the header, this is a deviation
+toward the terminal's need; I would keep it either way.
+
+### B-W10b-5. The cost of pinning, and the measurement owed
 
 *`LazyVStack.init(alignment:spacing:pinnedViews:content:)`*
 
@@ -122,8 +143,8 @@ Two things are paid by stacks that do not pin:
   stack per pass.
 
 And by a scroll view: one scan of its content's floating layers for a pinned
-one, twice a frame, which is usually a scan of nothing. A pinned section pays a
-copy of its header per render.
+one per frame, and one more on a frame whose focus moved — usually a scan of
+nothing. A pinned section pays a copy of its header per render.
 
 None of this was measured: the machine is shared. The A/B owed is `deep`,
 `kitchensink` and `megalist` on a quiet machine, against the parent commit.

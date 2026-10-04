@@ -27,6 +27,7 @@ private struct ButtonSections: View {
     let log: PressLog
     let pinnedViews: PinnedScrollableViews
     var textHeaders = false
+    var style = ScrollIndicatorStyle.scrollbar
 
     var body: some View {
         ScrollView {
@@ -47,6 +48,7 @@ private struct ButtonSections: View {
             }
         }
         .scrollPosition(Binding(get: { log.position }, set: { log.position = $0 }))
+        .scrollIndicatorStyle(style)
         .frame(height: 8)
     }
 }
@@ -157,6 +159,44 @@ struct PinnedSectionInteractionTests {
         #expect(log.pressed == ["Header 0"])
         #expect(after.first?.contains("Header 0") == true, "\(after)")
         #expect(after.dropFirst().first?.contains("row 0.3") == true, "the view stayed put: \(after)")
+    }
+
+    @Test(
+        "Focus moving up through the rows keeps the focused row clear of the pinned header",
+        arguments: [ScrollIndicatorStyle.scrollbar, .text])
+    func focusMovingUpStaysClearOfThePinnedHeader(style: ScrollIndicatorStyle) throws {
+        // A row the reveal puts at the viewport's top edge would be under the
+        // header pinned there, focused and invisible. Stepping up from row 0.4
+        // with the view scrolled into the section, each row must come to rest
+        // on screen — below the header and below the "N more above" line.
+        let log = PressLog()
+        let view = ButtonSections(log: log, pinnedViews: .sectionHeaders, style: style)
+        let frames = Frames()
+        frames.frame(view)
+        log.position.scrollTo(y: 4)
+        frames.frame(view)
+        let drawn = frames.frame(view)
+        // The first row drawn below the header: 0.4, or under the "N more
+        // above" line, which takes a line of its own, 0.5.
+        let rowLine = try #require(
+            screen(drawn).firstIndex { $0.contains("row 0.") }, "\(screen(drawn))")
+        let first = try #require(
+            screen(drawn)[rowLine].firstMatch(of: /row 0\.(\d)/).flatMap { Int($0.1) })
+        let rowID = try #require(
+            drawn.hitTestRegions.last { $0.offsetY == rowLine && $0.focusID != nil }?.focusID)
+        frames.focusManager.focus(id: rowID)
+        frames.frame(view)
+        for row in (0..<first).reversed() {
+            frames.focusManager.focusPrevious()
+            frames.frame(view)
+            let lines = screen(frames.frame(view))
+            let headerLine = lines.firstIndex { $0.contains("Header 0") }
+            let focusedLine = lines.firstIndex { $0.contains("row 0.\(row)") }
+            #expect(focusedLine != nil, "row 0.\(row) is on screen: \(lines)")
+            #expect(
+                (focusedLine ?? 0) > (headerLine ?? -1),
+                "row 0.\(row) is below its header: \(lines)")
+        }
     }
 
     @Test("Turning pinning on and off redraws the sections the stack keeps")

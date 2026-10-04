@@ -46,7 +46,9 @@
 /// scroll view's content, windowed or not. Under the "N more above / below"
 /// indicators (`.scrollIndicatorStyle(.text)`) a pinned header sits below the
 /// line rather than under it. A control in a pinned header is clicked where
-/// it is drawn, and the rows it covers cannot be. Only the stack's own
+/// it is drawn, and the rows it covers cannot be; focus moving onto a row
+/// scrolls it clear of the pinned header, though `scrollTo(_:anchor:)` puts
+/// a row under it, as SwiftUI's does. Only the stack's own
 /// sections pin — written in its content or made there by a `ForEach` — and
 /// outside a scroll view nothing does.
 ///

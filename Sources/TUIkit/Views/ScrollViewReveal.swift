@@ -124,9 +124,20 @@ extension _ScrollViewCore {
 
         if shouldSnap, !suppressed,
            let focusedID = currentFocusedID,
-           let region = fullBuffer.revealTarget(
+           let target = fullBuffer.revealTarget(
                focusID: focusedID, wholeControl: focusJustChanged)
         {
+            // Where it is drawn: a control in a pinned section header is at
+            // the edge it is pinned to, not where the flow drew it. Anything
+            // else is kept clear of the lines pinned chrome covers, as of the
+            // "N more" lines below — under a pinned header a focused row is
+            // not seen (`PinnedChromeCover`).
+            let pinnedChrome = pinnedChromeCover(
+                of: fullBuffer, handler: handler, sliceOriginY: regionOriginY,
+                overwritesEdgeLines: indicatorsActive, context: context)
+            let region = pinnedChrome.drawn(target)
+            let chromeTop = region.isChrome ? 0 : pinnedChrome.top
+            let chromeBottom = region.isChrome ? 0 : pinnedChrome.bottom
             // Sliced content (Stage 6): the buffer's regions are band-local;
             // rebase them into content space before comparing to the offset.
             let regionTop = region.top + regionOriginY
@@ -168,8 +179,8 @@ extension _ScrollViewCore {
                 ? 0
                 : context.environment.scrollFollowMargin
                     .resolvedLines(viewportLines: viewportHeight)
-            let visibleTop = viewportTop + (topIndicatorShows ? 1 : 0) + margin
-            let visibleBottom = viewportBottom - (bottomIndicatorShows ? 1 : 0) - margin
+            let visibleTop = viewportTop + (topIndicatorShows ? 1 : 0) + margin + chromeTop
+            let visibleBottom = viewportBottom - (bottomIndicatorShows ? 1 : 0) - margin - chromeBottom
 
             let offsetBeforeSnap = handler.scrollOffset
             if regionTop < visibleTop || (regionBottom > visibleBottom && region.height >= viewportHeight) {
@@ -183,7 +194,7 @@ extension _ScrollViewCore {
                 // condition above: a scrollbar supersedes the text
                 // indicators, so reserving a row for them would over-scroll
                 // every reveal by exactly one line.
-                let proposed = regionTop - margin
+                let proposed = regionTop - margin - chromeTop
                 let topIndicatorRow =
                     (indicatorsActive && indicatorsFit && proposed > 0) ? 1 : 0
                 handler.scrollOffset =
@@ -191,7 +202,7 @@ extension _ScrollViewCore {
             } else if regionBottom > visibleBottom {
                 // Scroll-down: align the region's bottom with viewportBottom,
                 // leaving 1 row for the bottom indicator if one appears.
-                let proposed = regionBottom - viewportHeight + margin
+                let proposed = regionBottom - viewportHeight + margin + chromeBottom
                 let bottomIndicatorWouldAppear =
                     indicatorsActive && indicatorsFit
                     && (proposed + viewportHeight < handler.contentHeight)

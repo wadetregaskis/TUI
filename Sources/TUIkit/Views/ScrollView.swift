@@ -552,11 +552,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // measure-pass gate.
         let pursuitArmed = snapViewportToFocusedControl(
             handler: handler,
-            // With its pinned section chrome where this offset draws it: a
-            // control in a pinned header is found on screen, at the edge, and
-            // not where the flow drew it far above (`pinningSectionChrome`).
-            fullBuffer: pinningSectionChrome(
-                in: fullBuffer, handler: handler, sliceOriginY: contentSlice?.originY ?? 0, chrome: chrome, context: context),
+            fullBuffer: fullBuffer,
             viewportHeight: contentViewportHeight,
             regionOriginY: contentSlice?.originY ?? 0,
             // Drawn OVER the content, not merely drawn. Reserved, the pair is

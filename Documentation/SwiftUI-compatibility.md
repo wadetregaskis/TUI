@@ -591,9 +591,11 @@ window**, not a deferred-creation machine:
   more above / below" lines (`.scrollIndicatorStyle(.text)`) a pinned header
   sits below the line, as a revealed control does, rather than under it. A
   control in a pinned header is clicked where it is drawn, and a key it takes
-  does not scroll the view back to the section's top. As in SwiftUI,
-  `scrollTo(_:anchor: .top)` puts the row at the viewport's top edge, under
-  a pinned header (measured). `LazyHStack`, `LazyVGrid` and `LazyHGrid` take
+  does not scroll the view back to the section's top. Focus moving onto a
+  row scrolls it clear of a pinned header or footer, as it scrolls it clear
+  of the "N more" lines: under the header it would be focused and unseen.
+  A programmatic seek does not: as in SwiftUI, `scrollTo(_:anchor: .top)`
+  puts the row at the viewport's top edge, under a pinned header (measured). `LazyHStack`, `LazyVGrid` and `LazyHGrid` take
   no `pinnedViews:` yet (→ §4a).
 
 **Practical guidance (differs from SwiftUI's):** for large scrollable data
