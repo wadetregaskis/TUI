@@ -163,21 +163,31 @@ struct RetainSubtreeTests {
             "the flip is seen: the record survived retention")
     }
 
-    @Test("An unretained conditional record prunes (fresh on return)")
+    @Test("Unretained conditional records are swept once enough gather (fresh on return)")
     func unretainedConditionalRecordPrunes() {
-        // The negative control: with no retention, the record goes with the
-        // pass, and a returning conditional reads as fresh even on the
-        // other branch (its descendants' state was pruned too — nothing to
-        // invalidate).
+        // The negative control: with no retention, a record outlives its pass
+        // only until the table has grown well past the last sweep. Until then
+        // a returning conditional reads a flip, and the invalidation that
+        // follows finds nothing (its descendants' state was pruned with the
+        // pass); once swept, it reads as fresh.
         let storage = StateStorage()
-        let row = ViewIdentity(rootType: Marker.self).child(type: Marker.self, index: 5)
+        let root = ViewIdentity(rootType: Marker.self)
+        let row = root.child(type: Marker.self, index: 5)
         #expect(!storage.recordConditionalBranch(row, isTrueBranch: true))
 
         storage.beginRenderPass()
         storage.endRenderPass()
+        #expect(storage.recordConditionalBranch(row, isTrueBranch: false),
+            "a lone record waits for the sweep: the return reads as a flip")
 
-        #expect(!storage.recordConditionalBranch(row, isTrueBranch: false),
-            "an unretained record pruned: the return reads as fresh")
+        // Enough unretained records to pass the sweep's threshold.
+        for index in 0..<100 {
+            _ = storage.recordConditionalBranch(root.child(type: Int.self, index: index), isTrueBranch: true)
+        }
+        storage.beginRenderPass()
+        storage.endRenderPass()
+        #expect(!storage.recordConditionalBranch(row, isTrueBranch: true),
+            "swept with the rest: the return reads as fresh")
     }
 
     @Test("Non-descendants still prune normally")

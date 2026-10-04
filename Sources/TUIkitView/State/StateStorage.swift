@@ -164,6 +164,18 @@ public final class StateStorage: @unchecked Sendable {
     /// the rest of the per-identity state, so removed conditionals don't leak.
     private var lastConditionalCase: [ViewIdentity: Bool] = [:]
 
+    /// How many branch records the last sweep of ``lastConditionalCase`` kept.
+    ///
+    /// The sweep runs when the table has grown well past that, not every pass.
+    /// Each record a pass did not render costs a check of the retained
+    /// subtrees, and a memo-served page renders none of its conditionals — a
+    /// dashboard of a dozen cards, each with an `if` in a style host, spent a
+    /// tenth of its frame confirming that every record was still wanted. A
+    /// record left over a few passes is harmless: a conditional that returns
+    /// compares against its old branch, and invalidating a branch whose state
+    /// has already been pruned does nothing.
+    private var conditionalRecordsAfterSweep = 0
+
     /// What each animating value in the tree is doing.
     ///
     /// Held here rather than standing alone because its lifetime is exactly
@@ -281,7 +293,10 @@ extension StateStorage {
     /// no-op and can be skipped.
     ///
     /// The identity is marked active so its entry survives `endRenderPass`'s
-    /// prune; entries for conditionals no longer in the tree are dropped there.
+    /// prune; entries for conditionals no longer in the tree are dropped there,
+    /// once enough have gathered. One that reappears before then reports a flip
+    /// against the branch it left with, and the invalidation that follows finds
+    /// that branch's state already pruned.
     ///
     /// - Parameters:
     ///   - identity: The conditional view's own identity.
@@ -387,16 +402,19 @@ extension StateStorage {
         for key in staleTrackedKeys {
             trackedValues.removeValue(forKey: key)
         }
-        // Drop branch records for conditionals no longer in the tree, so a
-        // conditional that left and later returns is treated as fresh (its
-        // descendant state was already pruned above). Retained rows keep
-        // theirs: if a retained row's conditional flips on re-entry, the
-        // flip must be SEEN so the stale branch's state gets invalidated.
-        let staleConditionals = lastConditionalCase.keys.filter {
-            !activeIdentities.contains($0) && !retained.retains($0)
-        }
-        for identity in staleConditionals {
-            lastConditionalCase.removeValue(forKey: identity)
+        // Drop branch records for conditionals no longer in the tree, once
+        // enough have gathered (`conditionalRecordsAfterSweep`), so the table
+        // does not grow without bound. Retained rows keep theirs: if a
+        // retained row's conditional flips on re-entry, the flip must be SEEN
+        // so the stale branch's state gets invalidated.
+        if lastConditionalCase.count > 2 * conditionalRecordsAfterSweep + 64 {
+            let staleConditionals = lastConditionalCase.keys.filter {
+                !activeIdentities.contains($0) && !retained.retains($0)
+            }
+            for identity in staleConditionals {
+                lastConditionalCase.removeValue(forKey: identity)
+            }
+            conditionalRecordsAfterSweep = lastConditionalCase.count
         }
         animations.endRenderPass()
         departures.endRenderPass()
@@ -427,6 +445,7 @@ extension StateStorage {
         onChangeCounters.removeAll()
         activeIdentities.removeAll()
         lastConditionalCase.removeAll()
+        conditionalRecordsAfterSweep = 0
         animations.removeAll()
         departures.removeAll()
     }
