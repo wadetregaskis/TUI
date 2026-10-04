@@ -201,31 +201,58 @@ extension View {
 /// procedurally, unerased; anything else through its body, which sees the
 /// style outside it so a `ProgressView(configuration)` there draws as that
 /// style would.
-struct _StyledProgressView<Label: View, CurrentValueLabel: View>: View {
+///
+/// Reads the style from the context and draws the chosen view in place,
+/// rather than holding an `@Environment` and an `if`/`else` in a body: as a
+/// composite every bar paid a body evaluation and a `ConditionalView` level on
+/// both walks, for a branch the default style never takes. A linear bar draws
+/// its core where it stands; a style's body draws under a branch identity of
+/// its own, so the two never read each other's state.
+struct _StyledProgressView<Label: View, CurrentValueLabel: View>: View, Renderable, Layoutable {
     let fractionCompleted: Double?
     let track: TrackStyle
     let label: Label?
     let currentValueLabel: CurrentValueLabel?
 
-    @Environment(\.progressViewStyleChain) private var styles
+    var body: Never {
+        fatalError("_StyledProgressView renders via Renderable")
+    }
 
-    @ViewBuilder var body: some View {
+    /// The built-in linear bar.
+    private var core: _ProgressViewCore<Label, CurrentValueLabel> {
+        _ProgressViewCore(
+            fractionCompleted: fractionCompleted, style: track, label: label,
+            currentValueLabel: currentValueLabel)
+    }
+
+    /// `styles`' style's body, seeing the styles outside it.
+    private func styledBody(_ styles: StyleChain<any ProgressViewStyle>) -> some View {
+        styles.style.makeAnyBody(
+            configuration: ProgressViewStyleConfiguration(
+                fractionCompleted: fractionCompleted,
+                label: label.map { ProgressViewStyleConfiguration.Label(content: AnyView($0)) },
+                currentValueLabel: currentValueLabel.map {
+                    ProgressViewStyleConfiguration.CurrentValueLabel(content: AnyView($0))
+                },
+                track: track)
+        )
+        .environment(\.progressViewStyleChain, styles.inside)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let styles = context.environment.progressViewStyleChain
         if styles.style is any LinearProgressViewStyleKind {
-            _ProgressViewCore(
-                fractionCompleted: fractionCompleted, style: track, label: label,
-                currentValueLabel: currentValueLabel)
-        } else {
-            styles.style.makeAnyBody(
-                configuration: ProgressViewStyleConfiguration(
-                    fractionCompleted: fractionCompleted,
-                    label: label.map { ProgressViewStyleConfiguration.Label(content: AnyView($0)) },
-                    currentValueLabel: currentValueLabel.map {
-                        ProgressViewStyleConfiguration.CurrentValueLabel(content: AnyView($0))
-                    },
-                    track: track)
-            )
-            .environment(\.progressViewStyleChain, styles.inside)
+            return TUIkit.renderToBuffer(core, context: context)
         }
+        return TUIkit.renderToBuffer(styledBody(styles), context: context.withBranchIdentity("styled"))
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        let styles = context.environment.progressViewStyleChain
+        if styles.style is any LinearProgressViewStyleKind {
+            return measureChild(core, proposal: proposal, context: context)
+        }
+        return measureChild(styledBody(styles), proposal: proposal, context: context.withBranchIdentity("styled"))
     }
 }
 
@@ -245,13 +272,5 @@ where
         self.init(
             fractionCompleted: configuration.fractionCompleted, style: configuration.track,
             label: configuration.label, currentValueLabel: configuration.currentValueLabel)
-    }
-}
-
-// MARK: - Environment without reflection
-
-extension _StyledProgressView: ResolvesOwnEnvironment {
-    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
-        _styles.resolveEnvironment(environment)
     }
 }
