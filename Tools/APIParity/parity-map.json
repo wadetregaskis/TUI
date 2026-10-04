@@ -675,6 +675,12 @@
     "Circle": {
       "why": "A curve needs sub-cell coverage, and cells are roughly twice as tall as they are wide, so even a circle approximated in glyphs comes out distorted (`View.imageCellAspect(_:)` exists for exactly that). Where a round affordance is wanted TUIkit draws a glyph (`●`, `○`). Shapes as a whole wait on O0 of the refusal review."
     },
+    "Color.Representation": {
+      "why": "The type of Color's transferRepresentation; see that entry."
+    },
+    "Color.transferRepresentation": {
+      "why": "Color's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUIkit's copyable/draggable payloads need no Transferable conformance, so there is no representation for a colour to declare (as for Image.transferRepresentation)."
+    },
     "ColorMatrix": {
       "why": "It exists only as the payload of `GraphicsContext.Filter.colorMatrix`, applied per pixel, and with no `GraphicsContext` there is nothing to apply it. A channel transform of a cell's foreground and background is the colour-effect modifiers' ground (`ColorEffectModifiers.swift`)."
     },

@@ -42,7 +42,7 @@ They are not repeated here. In brief:
 - **O2** `PhaseAnimator` and `KeyframeAnimator`.
 - **O3** `CustomAnimation`.
 - **O4** Matched geometry and zoom transitions.
-- **O5** Materials and Glass.
+- **O5** Materials and Glass (A41 lists the material symbols waiting on it).
 - **O6** `ShadowStyle`.
 - **O7** `ScrollEdgeEffectStyle`.
 - **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
@@ -54,7 +54,7 @@ They are not repeated here. In brief:
 - **O13** `Commands`, as a menu bar.
 - **O14** `ControlSize`.
 - **O15** `ButtonBorderShape`.
-- **O16** `TextRenderer`.
+- **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
 - **O17** The toolbar's `.title` and `.search` items.
 
 ### A1. `\.undoManager`: who performs an undo?
@@ -304,7 +304,11 @@ code, and the gesture model fits a terminal better than it first looks.
 ### A7. Scroll visibility needs a way to find a view inside the scroll content
 
 *`View.onScrollVisibilityChange(threshold:_:)`,
-`View.onScrollTargetVisibilityChange(idType:threshold:_:)`*
+`View.onScrollTargetVisibilityChange(idType:threshold:_:)`; and the scroll
+transitions, which need the same reading (`View.scrollTransition(_:axis:transition:)`,
+`View.scrollTransition(topLeading:bottomTrailing:axis:transition:)`,
+`ScrollTransitionConfiguration`, `ScrollTransitionPhase`), now that Wave 12's
+`VisualEffect` gives their bodies something to return*
 
 Measured in SwiftUI: every observed view reports once when it first appears —
 `true` or `false` — then at each crossing of the threshold (0.5 by default)
@@ -761,7 +765,9 @@ searchable's field.
 
 *`Scene.dialogIcon(_:)`, `Scene.dialogSeverity(_:)`,
 `Scene.dialogSuppressionToggle(_:isSuppressed:)` and `(isSuppressed:)`,
-`SceneBuilder.buildOptional(_:)`, `SceneBuilder.buildLimitedAvailability(_:)`*
+`SceneBuilder.buildOptional(_:)`, `SceneBuilder.buildLimitedAvailability(_:)`;
+and with them O9's settings scene: `Settings`, `SettingsLink`,
+`DefaultSettingsLinkLabel`, `OpenSettingsAction`, `\.openSettings`*
 
 SwiftUI's examples apply the dialog modifiers to an `AlertScene`, and the two
 builder methods exist for `if #available` around a scene among others. Both
@@ -837,7 +843,11 @@ blend does not do.
 `ToolbarLabelStyle` and `\.toolbarLabelStyle`, `contentToolbar(for:content:)`,
 `ContentToolbarPlacement`, `LabeledToolbarItemGroupContent`, the customization
 family (`CustomizableToolbarContent`, `ToolbarCustomizationBehavior`,
-`ToolbarCustomizationOptions`), `tabBarMinimizeBehavior(_:)`*
+`ToolbarCustomizationOptions`), `SpacerSizing` (for `ToolbarSpacer`),
+`tabBarMinimizeBehavior(_:)`, and the window toolbar styles
+(`DefaultWindowToolbarStyle`, `ExpandedWindowToolbarStyle`,
+`UnifiedWindowToolbarStyle`, `UnifiedCompactWindowToolbarStyle`), which style
+a window's toolbar the terminal owns and follow option 1 whatever is chosen*
 
 The compatibility doc (§2.6) makes the toolbar a deliberate divergence. A
 terminal's chrome is the one-line status bar, and the map renames
@@ -1190,6 +1200,37 @@ draws the change at once, as it always has; `contentTransition(_:)` shipped
    to `Text` needs.
 
 **Recommendation:** 1, until a port shows the default being relied on.
+
+### A41. Materials wait on O5
+
+*`ShapeStyle.ultraThinMaterial`, `.thinMaterial`, `.regularMaterial`,
+`.thickMaterial`, `.ultraThickMaterial`, `ShapeStyle.materialActiveAppearance(_:)`,
+`View.materialActiveAppearance(_:)`, `\.materialActiveAppearance`,
+`\.backgroundMaterial`*
+
+A material is a blurred, translucent surface. O5 of the refusal review asks
+whether TUIkit's should be a translucent palette surface composited over what
+is behind, its thickness an alpha and with no blur (recommended), or stay the
+`dimmed()`/`overlayBackground` substitution. These symbols ship or are
+declined with that answer.
+
+### A42. Rich-text editing waits on P8
+
+*`AttributedTextSelection` and its members, `AttributedTextValueConstraint`,
+`AttributedString.replaceSelection(_:with:)` and `(_:withCharacters:)`,
+`AttributedString.subscript(_:)` (by selection),
+`AttributedString.transform(updating:body:)`,
+`AttributedString.transformAttributes(in:body:)`,
+`AttributedString.init(transferable:in:)`,
+`View.attributedTextFormattingDefinition(_:)`*
+
+SwiftUI's rich-text editing: a `TextEditor` over an `AttributedString`, its
+selection carrying typing attributes, and constraints on which attributes an
+edit may set. All of it presupposes `Text(AttributedString)`, which P8 of the
+refusal review recommends implementing (bold, italic, underline,
+strikethrough and colours map to cells). After P8, an attributed editor is
+the plain editor with styled runs, about two days; the selection type itself
+is a day on top of `TextSelection`, which has shipped.
 
 ## B. Shipped the safe option
 
