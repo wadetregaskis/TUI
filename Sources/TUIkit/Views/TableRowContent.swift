@@ -31,9 +31,9 @@
 /// way SwiftUI's is: a ``tableRowBody`` built with
 /// `@TableRowBuilder<Value>`.
 @MainActor
-public protocol TableRowContent<TableRowValue> {
+public protocol TableRowContent<TableRowValue>: _TableRowValued {
     /// The type of value represented by this table row content.
-    associatedtype TableRowValue: Identifiable = TableRowBody.TableRowValue
+    associatedtype TableRowValue = TableRowBody.TableRowValue
 
     /// The type of content representing the body of this table row content.
     associatedtype TableRowBody: TableRowContent
@@ -238,7 +238,6 @@ extension Never: TableRowContent {
 // MARK: - Optional
 
 extension Optional: TableRowContent where Wrapped: TableRowContent {
-    public typealias TableRowValue = Wrapped.TableRowValue
     public typealias TableRowBody = Never
 
     /// Never called: an optional hands its rows to the table directly.
@@ -257,7 +256,6 @@ extension Optional: _TableRowPrimitive where Wrapped: TableRowContent {
 // MARK: - Group
 
 extension Group: TableRowContent where Content: TableRowContent {
-    public typealias TableRowValue = Content.TableRowValue
     public typealias TableRowBody = Never
 
     /// Never called: a group hands its rows to the table directly.
@@ -286,7 +284,6 @@ where
     TrueContent: TableRowContent, FalseContent: TableRowContent,
     TrueContent.TableRowValue == FalseContent.TableRowValue
 {
-    public typealias TableRowValue = TrueContent.TableRowValue
     public typealias TableRowBody = Never
 
     /// Never called: a branch hands its rows to the table directly.
@@ -310,8 +307,11 @@ where
 
 // MARK: - ForEach
 
-extension ForEach: TableRowContent where Content: TableRowContent {
+extension ForEach: _TableRowValued where Content: TableRowContent {
     public typealias TableRowValue = Content.TableRowValue
+}
+
+extension ForEach: TableRowContent where Content: TableRowContent {
     public typealias TableRowBody = Never
 
     /// Never called: a loop hands its rows to the table directly.

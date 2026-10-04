@@ -42,9 +42,9 @@ import Foundation
 ///   initializer in this framework is, so a nonisolated body could not build
 ///   the columns it returns.
 @MainActor
-public protocol TableColumnContent<TableRowValue, TableColumnSortComparator> {
+public protocol TableColumnContent<TableRowValue, TableColumnSortComparator>: _TableRowValued {
     /// The type of value of rows presented by this column content.
-    associatedtype TableRowValue: Identifiable = TableColumnBody.TableRowValue
+    associatedtype TableRowValue = TableColumnBody.TableRowValue
 
     /// The type of sort comparator associated with this table column content.
     associatedtype TableColumnSortComparator: SortComparator =
@@ -55,6 +55,22 @@ public protocol TableColumnContent<TableRowValue, TableColumnSortComparator> {
 
     /// The composition of content that comprise the table column content.
     var tableColumnBody: TableColumnBody { get }
+}
+
+// MARK: - The row type, declared once
+
+/// What table columns and table rows have in common: the type of the rows.
+///
+/// You don't use this protocol directly. ``TableColumnContent`` and
+/// ``TableRowContent`` both refine it, so that a type that is both — `Group`,
+/// `Optional`, `_ConditionalContent` — states its row type ONCE, here, rather
+/// than once per conformance. Two type aliases of one name on one type (as
+/// SwiftUI declares them) are ambiguous to the debug-info round trip of an
+/// asserts build of the compiler — the swift.org toolchains for macOS — which
+/// then aborts on any debug build that names, say, `Group<…>.TableRowValue`.
+public protocol _TableRowValued {
+    /// The type of value of the rows.
+    associatedtype TableRowValue: Identifiable
 }
 
 // MARK: - Flattening
@@ -113,8 +129,11 @@ func appendTableColumns<Content: TableColumnContent>(
 
 // MARK: - Never
 
-extension Never: TableColumnContent {
+extension Never: _TableRowValued {
     public typealias TableRowValue = Never
+}
+
+extension Never: TableColumnContent {
     public typealias TableColumnSortComparator = Never
     public typealias TableColumnBody = Never
 
@@ -124,8 +143,11 @@ extension Never: TableColumnContent {
 
 // MARK: - Optional
 
-extension Optional: TableColumnContent where Wrapped: TableColumnContent {
+extension Optional: _TableRowValued where Wrapped: _TableRowValued {
     public typealias TableRowValue = Wrapped.TableRowValue
+}
+
+extension Optional: TableColumnContent where Wrapped: TableColumnContent {
     public typealias TableColumnSortComparator = Wrapped.TableColumnSortComparator
     public typealias TableColumnBody = Never
 
@@ -144,8 +166,11 @@ extension Optional: _TableColumnPrimitive where Wrapped: TableColumnContent {
 
 // MARK: - Group
 
-extension Group: TableColumnContent where Content: TableColumnContent {
+extension Group: _TableRowValued where Content: _TableRowValued {
     public typealias TableRowValue = Content.TableRowValue
+}
+
+extension Group: TableColumnContent where Content: TableColumnContent {
     public typealias TableColumnSortComparator = Content.TableColumnSortComparator
     public typealias TableColumnBody = Never
 
@@ -174,13 +199,20 @@ extension Group: _TableColumnPrimitive where Content: TableColumnContent {
 
 // MARK: - Conditional
 
+extension _ConditionalContent: _TableRowValued
+where
+    TrueContent: _TableRowValued, FalseContent: _TableRowValued,
+    TrueContent.TableRowValue == FalseContent.TableRowValue
+{
+    public typealias TableRowValue = TrueContent.TableRowValue
+}
+
 extension _ConditionalContent: TableColumnContent
 where
     TrueContent: TableColumnContent, FalseContent: TableColumnContent,
     TrueContent.TableRowValue == FalseContent.TableRowValue,
     TrueContent.TableColumnSortComparator == FalseContent.TableColumnSortComparator
 {
-    public typealias TableRowValue = TrueContent.TableRowValue
     public typealias TableColumnSortComparator = TrueContent.TableColumnSortComparator
     public typealias TableColumnBody = Never
 
