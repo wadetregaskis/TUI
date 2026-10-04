@@ -287,13 +287,13 @@ struct ScrollViewIdealBarTests {
     /// "row 10").
     @Test(
         "A scroll view in a TabView keeps its rows whole",
-        arguments: [TabViewStyle.compact, .bordered])
-    func tabViewKeepsTheRowsWhole(style: TabViewStyle) {
+        arguments: [CompactTabViewStyle() as any TabViewStyle, BorderedTabViewStyle()])
+    func tabViewKeepsTheRowsWhole(style: any TabViewStyle) {
         let lines = render(
             TabView(selection: .constant(0)) {
                 Tab("A", value: 0) { rows(from: 10, count: 50) }
             }
-            .tabViewStyle(style),
+            .environment(\.tabViewStyle, style),
             width: 30, height: 12)
         #expect(lines.contains { $0.contains("row 10") }, "row 10 was squeezed:\n\(dump(lines))")
         #expect(lines.contains { $0.contains("row 11") }, "row 11 was squeezed:\n\(dump(lines))")

@@ -60,18 +60,18 @@ struct TabViewTabMeasureHeightTests {
     @Test(
         "A scroll view a strip's height short of fitting in a TabView keeps its rows whole",
         arguments: [
-            (TabViewStyle.compact, 12),
+            (CompactTabViewStyle() as any TabViewStyle, 12),
             // Bordered: twelve rows less four of chrome and the default inset's
             // two leaves six, so seven to ten rows fitted the measure and not
             // the box.
-            (.bordered, 7), (.bordered, 10),
+            (BorderedTabViewStyle(), 7), (BorderedTabViewStyle(), 10),
         ])
-    func stripBandKeepsTheRowsWhole(style: TabViewStyle, rowCount: Int) {
+    func stripBandKeepsTheRowsWhole(style: any TabViewStyle, rowCount: Int) {
         let lines = renderFrames(
             TabView(selection: .constant(0)) {
                 Tab("A", value: 0) { rows(from: 10, count: rowCount) }
             }
-            .tabViewStyle(style),
+            .environment(\.tabViewStyle, style),
             width: 30, height: 12
         ).lines.map(\.stripped)
         #expect(lines.contains { $0.contains("row 10") }, "row 10 was squeezed:\n\(dump(lines))")
@@ -112,13 +112,13 @@ struct TabViewFillingTabTests {
     /// ideal width to centre it — which cut the bar off, on every frame.
     @Test(
         "A scroll view in a TabView keeps its scrollbar",
-        arguments: [TabViewStyle.compact, .bordered])
-    func scrollViewKeepsItsBar(style: TabViewStyle) {
+        arguments: [CompactTabViewStyle() as any TabViewStyle, BorderedTabViewStyle()])
+    func scrollViewKeepsItsBar(style: any TabViewStyle) {
         let lines = renderFrames(
             TabView(selection: .constant(0)) {
                 Tab("Scrolling rows", value: 0) { rows(from: 0, count: 50) }
             }
-            .tabViewStyle(style),
+            .environment(\.tabViewStyle, style),
             width: 30, height: 12
         ).lines.map(\.stripped)
         #expect(lines.contains { $0.contains("▲") }, "no top arrow:\n\(dump(lines))")
@@ -133,14 +133,14 @@ struct TabViewFillingTabTests {
     /// drawn and then cut away.
     @Test(
         "A column with a Divider keeps its text in a wider panel",
-        arguments: [TabViewStyle.compact, .bordered])
-    func dividerColumnKeepsItsText(style: TabViewStyle) {
+        arguments: [CompactTabViewStyle() as any TabViewStyle, BorderedTabViewStyle()])
+    func dividerColumnKeepsItsText(style: any TabViewStyle) {
         let lines = renderFrames(
             TabView(selection: .constant(0)) {
                 Tab("One", value: 0) { VStack { Text("Title"); Divider(); Text("body text") } }
                 Tab("Two", value: 1) { Text("a much wider tab body than the first") }
             }
-            .tabViewStyle(style),
+            .environment(\.tabViewStyle, style),
             width: 30, height: 12
         ).lines.map(\.stripped)
         #expect(lines.contains { $0.contains("Title") }, "the title is gone:\n\(dump(lines))")

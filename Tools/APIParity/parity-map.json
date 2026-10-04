@@ -552,10 +552,6 @@
     }
   ],
   "renamed": {
-    "DefaultTabViewStyle": {
-      "tuikit": "TabViewStyle.automatic",
-      "why": "Sources/TUIkit/Views/TabViewModifiers.swift — TUIkit's `TabViewStyle` is an enum with `.automatic`, `.bordered` and `.compact` rather than a protocol with per-style structs, so the default is a case, not a type."
-    },
     "Font.Weight": {
       "tuikit": "FontWeight",
       "why": "Sources/TUIkit/Styling/StyleAttributes.swift:24 — the enum is spelled `FontWeight` at the top level, and `Font.Weight` is a typealias to it (Sources/TUIkit/Styling/Font.swift), so SwiftUI's spelling and every case (`Font.Weight.bold`, `.light`, …) compile verbatim. The audit reads declarations rather than resolving typealiases, so it sees the members only under the top-level name."

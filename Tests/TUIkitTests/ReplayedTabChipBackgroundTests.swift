@@ -42,12 +42,12 @@ private func chips() -> some View {
 /// The same chips inside a tab of an outer strip of `style`, the Example's
 /// "Nested" demo in miniature.
 @MainActor
-private func nested(in style: TabViewStyle) -> some View {
+private func nested(in style: any TabViewStyle) -> some View {
     TabView(selection: .constant(0)) {
         Tab("General", value: 0) { VStack(alignment: .leading, spacing: 0) { chips() } }
         Tab("Network", value: 1) { Text("n") }
     }
-    .tabViewStyle(style)
+    .environment(\.tabViewStyle, style)
 }
 
 private struct TopLevelChipsApp: App {
@@ -57,12 +57,12 @@ private struct TopLevelChipsApp: App {
 
 private struct ChipsInBorderedTabApp: App {
     init() {}
-    var body: some Scene { WindowGroup { nested(in: .bordered) } }
+    var body: some Scene { WindowGroup { nested(in: BorderedTabViewStyle()) } }
 }
 
 private struct ChipsInCompactTabApp: App {
     init() {}
-    var body: some Scene { WindowGroup { nested(in: .compact) } }
+    var body: some Scene { WindowGroup { nested(in: CompactTabViewStyle()) } }
 }
 
 @MainActor

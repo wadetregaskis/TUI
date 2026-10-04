@@ -70,40 +70,7 @@ extension Tab: TabContentProvider {
     }
 }
 
-// MARK: - Style
-
-/// The visual style of a ``TabView``'s tab strip.
-public enum TabViewStyle: Sendable {
-    /// The default — currently ``compact``.
-    case automatic
-    /// A single, border-free row; the active tab is marked by a background-colour
-    /// fill rather than box-drawing chrome. The most space-efficient style.
-    case compact
-    /// A single row of box-drawing-separated tabs with a connecting rule beneath
-    /// — more decorative, one row taller than ``compact``.
-    case bordered
-
-    var resolved: Self { self == .automatic ? .compact : self }
-}
-
-private struct TabViewStyleKey: EnvironmentKey {
-    static let defaultValue: TabViewStyle = .automatic
-}
-
-extension EnvironmentValues {
-    /// The tab-strip style for this environment.
-    public var tabViewStyle: TabViewStyle {
-        get { self[TabViewStyleKey.self] }
-        set { self[TabViewStyleKey.self] = newValue }
-    }
-}
-
-extension View {
-    /// Sets the visual style of `TabView`s within this view.
-    public func tabViewStyle(_ style: TabViewStyle) -> some View {
-        environment(\.tabViewStyle, style)
-    }
-}
+// The style protocol and its built-in styles live in `Styles/TabViewStyle.swift`.
 
 // The TUI-specific TabView environment modifiers (header alignment, header
 // wrapping, content sizing, content padding) live in `TabViewModifiers.swift`.
@@ -326,7 +293,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             ? 1 : stripRowGroups(style: .compact, available: available).count
         // Each strip row, and under `.bordered` each row's tops plus the box's
         // content border and bottom — the render's own `chrome`.
-        let chrome = context.environment.tabViewStyle.resolved == .bordered ? 2 * rows + 2 : rows
+        let chrome = context.environment.tabViewStyle.stripLook == .bordered ? 2 * rows + 2 : rows
         return max(0, context.availableHeight - chrome)
     }
 
@@ -494,7 +461,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// cells. Mirrors the render geometry so the `TabStripHandler`'s up/down keys
     /// move to the tab actually above/below the current one.
     private func navigationGeometry(context: RenderContext) -> (rows: [[Int]], centers: [Int: Int]) {
-        let style = context.environment.tabViewStyle.resolved
+        let style = context.environment.tabViewStyle.stripLook
         let alignment = context.environment.tabViewHeaderAlignment
         let insets = resolvedContentInsets(style: style, context: context)
         let bordered = style == .bordered
@@ -520,7 +487,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard !tabs.isEmpty else { return ViewSize.fixed(0, 0) }
-        let style = context.environment.tabViewStyle.resolved
+        let style = context.environment.tabViewStyle.stripLook
         var ctx = context
         ctx.availableWidth = proposal.width ?? context.availableWidth
         let insets = resolvedContentInsets(style: style, context: ctx)
@@ -562,7 +529,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !tabs.isEmpty else { return FrameBuffer() }
-        let style = context.environment.tabViewStyle.resolved
+        let style = context.environment.tabViewStyle.stripLook
         let palette = context.environment.palette
         let isDisabled = !context.environment.isEnabled
 
@@ -883,7 +850,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// The interior padding around each tab's content. An explicit
     /// `.tabViewContentPadding(_:)` wins; otherwise bordered gets a comfortable
     /// inset and compact none (the strip already abuts the content).
-    private func resolvedContentInsets(style: TabViewStyle, context: RenderContext) -> EdgeInsets {
+    private func resolvedContentInsets(style: _TabStripLook, context: RenderContext) -> EdgeInsets {
         if let explicit = context.environment.tabViewContentPadding { return explicit }
         return style == .bordered ? EdgeInsets(top: 1, leading: 2, bottom: 1, trailing: 2) : EdgeInsets()
     }
@@ -928,19 +895,19 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// from this one number. Counting Characters here drew a strip wider than it
     /// measured, so the box came out ragged and the click regions slid left of
     /// the tabs they belong to.
-    func tabWidth(_ index: Int, style: TabViewStyle) -> Int {
+    func tabWidth(_ index: Int, style: _TabStripLook) -> Int {
         let body = tabs[index].title.strippedLength + 2   // " title "
         return style == .compact ? body + 2 : body
     }
 
     /// Cells between adjacent tabs on a row (bordered uses a │; compact's caps
     /// abut, so none).
-    private func tabSeparatorWidth(style: TabViewStyle) -> Int {
+    private func tabSeparatorWidth(style: _TabStripLook) -> Int {
         style == .bordered ? 1 : 0
     }
 
     /// The visible width the strip occupies on a single row.
-    private func stripVisibleWidth(style: TabViewStyle) -> Int {
+    private func stripVisibleWidth(style: _TabStripLook) -> Int {
         let body = tabs.indices.reduce(0) { $0 + tabWidth($1, style: style) }
         let separators = max(0, tabs.count - 1) * tabSeparatorWidth(style: style)
         return body + separators + (style == .bordered ? 1 : 0)  // bordered: leading │
@@ -950,7 +917,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// when the single-row strip would overflow, then balances the tabs across
     /// the fewest rows so no row hogs the full width — with few tabs (the common
     /// case) this stays one row. A single tab is never split.
-    private func stripRowGroups(style: TabViewStyle, available: Int) -> [[Int]] {
+    private func stripRowGroups(style: _TabStripLook, available: Int) -> [[Int]] {
         let widths = tabs.indices.map { tabWidth($0, style: style) }
         let sep = tabSeparatorWidth(style: style)
         let total = stripVisibleWidth(style: style)

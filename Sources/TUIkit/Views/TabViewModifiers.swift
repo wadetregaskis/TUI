@@ -110,8 +110,8 @@ extension View {
 // MARK: - Content padding (TUI-specific)
 
 private struct TabViewContentPaddingKey: EnvironmentKey {
-    /// `nil` means "use the per-style default" (none for ``TabViewStyle/compact``,
-    /// a comfortable inset for ``TabViewStyle/bordered``).
+    /// `nil` means "use the per-style default" (none for ``CompactTabViewStyle``,
+    /// a comfortable inset for ``BorderedTabViewStyle``).
     static let defaultValue: EdgeInsets? = nil
 }
 

@@ -292,11 +292,11 @@ struct FocusIndicatorAnimationTests {
 
     /// A tab strip claims the focus on its FIRST render, so its focused
     /// appearance is only visible on the second — against the same context.
-    private func focusedTabs(_ style: TabViewStyle) -> FrameBuffer {
+    private func focusedTabs(_ style: any TabViewStyle) -> FrameBuffer {
         let view = TabView(selection: .constant(0)) {
             Tab("Alpha", value: 0) { Text("A") }
             Tab("Bravo", value: 1) { Text("B") }
-        }.tabViewStyle(style)
+        }.environment(\.tabViewStyle, style)
         let context = makeRenderContext(width: 40, height: 10)
         _ = renderToBuffer(view, context: context)
         return renderToBuffer(view, context: context)
@@ -633,11 +633,11 @@ struct FocusIndicatorAnimationTests {
         // over whatever the content had contributed, so every focused control
         // inside a tab stopped moving. The chip and the button must both be
         // animating, and the button's run must be shifted down past the strip.
-        for style in [TabViewStyle.compact, .bordered] {
+        for style in [CompactTabViewStyle() as any TabViewStyle, BorderedTabViewStyle()] {
             let view = TabView(selection: .constant(0)) {
                 Tab("Alpha", value: 0) { Button("Save") {} }
                 Tab("Bravo", value: 1) { Text("B") }
-            }.tabViewStyle(style)
+            }.environment(\.tabViewStyle, style)
             let context = makeRenderContext(width: 40, height: 12)
             _ = renderToBuffer(view, context: context)  // the strip claims focus
             let ring = context.environment.focusManager?.registeredFocusIDsInActiveSection() ?? []
