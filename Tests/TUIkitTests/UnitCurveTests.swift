@@ -32,6 +32,14 @@ struct UnitCurveTests {
         #expect(UnitCurve.easeInEaseOut == UnitCurve.easeInOut)
     }
 
+    @Test("Where a Bézier's tangent vanishes, the velocity is SwiftUI's: 1 at the start, 0 at the end")
+    func vanishingTangents() {
+        #expect(UnitCurve.easeOut.velocity(at: 0) == 1)
+        #expect(UnitCurve.easeIn.velocity(at: 1) == 0)
+        #expect(UnitCurve.easeIn.velocity(at: 0) == 0)
+        #expect(UnitCurve.easeOut.velocity(at: 1) == 0)
+    }
+
     @Test("A Bézier of the app's own, and its inverse")
     func customBezier() {
         let curve = UnitCurve.bezier(

@@ -365,9 +365,12 @@ differ from what SwiftUI answers, both in the documentation's favour:
 
 Where a curve is vertical — `circularEaseIn` at its end, the circular in-out
 at its middle — the velocity is infinite, as in SwiftUI. Where a Bézier's
-control point sits on its end point, the tangent vanishes and the velocity is
-the limit the curve approaches (SwiftUI's answers there, 0 and 1, come from
-dividing two rounding errors).
+control point sits on its end point the tangent vanishes, and SwiftUI answers
+1 (`easeOut` at 0) or 0 (`easeIn` at 1, the quotient of two rounding errors)
+rather than the limit the curve approaches (1.72 for both). TUIkit answers
+the same, by the same arithmetic: a keyframe track carries a linear
+keyframe's end velocity into the cubic keyframe after it, and the two
+frameworks' tracks agree only if these do.
 
 A circular curve is a new case of the animation curve, so
 `Animation.timingCurve(.circularEaseIn, duration:)` moves along the circle;

@@ -94,18 +94,21 @@ extension AnimationCurve {
     /// The curve's slope `dy/dx` at the given `x`: the two coordinates'
     /// derivatives by `t`, divided, at the `t` where `x(t) = x`.
     ///
-    /// Where both derivatives vanish — a control point sitting on its end
-    /// point, as `easeIn`'s does at (1, 1) — the slope is their second
-    /// derivatives' ratio, the limit the curve actually approaches.
+    /// Where `x(t)` stops moving — a control point on its end point, as
+    /// `easeOut`'s is at (0, 0) — the slope is 1, and where the arithmetic
+    /// leaves a rounding error of `dx` it is that division: `easeIn` at its
+    /// end, whose true limit is 1.72, answers 0. Both are SwiftUI's answers
+    /// (measured), kept because a keyframe track takes the velocity a
+    /// linear keyframe ends at as the next cubic keyframe's start, and the
+    /// two frameworks' tracks then agree.
     static func bezierVelocity(
         atX x: Double, p1x: Double, p1y: Double, p2x: Double, p2y: Double
     ) -> Double {
         if p1x == p1y && p2x == p2y { return 1 }
         let t = bezierParameter(atX: min(1, max(0, x)), p1x: p1x, p2x: p2x)
         let dx = bezierSlope(t, p1x, p2x)
-        let dy = bezierSlope(t, p1y, p2y)
-        guard abs(dx) < 1e-12, abs(dy) < 1e-12 else { return dy / dx }
-        return bezierCurvature(t, p1y, p2y) / bezierCurvature(t, p1x, p2x)
+        guard dx != 0 else { return 1 }
+        return bezierSlope(t, p1y, p2y) / dx
     }
 
     /// The `t` at which the curve's `x(t)` is `x`, for `x` in [0, 1].
@@ -141,13 +144,6 @@ extension AnimationCurve {
             t = (low + high) / 2
         }
         return t
-    }
-
-    /// The second derivative of ``bezier(_:_:_:)`` with respect to `t`.
-    private static func bezierCurvature(_ t: Double, _ c1: Double, _ c2: Double) -> Double {
-        let b = 3 * c2 - 6 * c1
-        let c = 3 * c1 - 3 * c2 + 1
-        return 6 * c * t + 2 * b
     }
 }
 
