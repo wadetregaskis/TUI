@@ -403,5 +403,27 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             key += "%@"
             arguments.append(format.format(value))
         }
+
+        /// Interpolates a value through a format style whose output is an
+        /// `AttributedString` — its characters, formatted at once; every
+        /// argument here is a plain string.
+        public mutating func appendInterpolation<F: FormatStyle>(
+            _ input: F.FormatInput, format: F
+        ) where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
+            key += "%@"
+            arguments.append(String(format.format(input).characters))
+        }
+
+        /// The same, for a discrete style: the overload that makes
+        /// `\(date, format: .offset(to: anchor))` TUIkit's `SystemFormatStyle`
+        /// on macOS, where SwiftUI's statics are visible too (see
+        /// `SystemFormatStyle+DiscreteStatics.swift`).
+        @available(macOS 15, *)
+        public mutating func appendInterpolation<F: DiscreteFormatStyle>(
+            _ input: F.FormatInput, format: F
+        ) where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
+            key += "%@"
+            arguments.append(String(format.format(input).characters))
+        }
     }
 }

@@ -70,6 +70,44 @@ measurements, these were chosen:
 **Fuller version:** a macOS 26 measurement pass over the same probes, and the
 three-field clock face. An hour each.
 
+### B-W11a-3. On macOS, SwiftUI's own `.offset(to:)` and the rest are visible beside TUIkit's
+
+*`FormatStyle.offset(to:…)`, `.reference(to:…)`, `.timer(countingDownIn:…)`,
+`.timer(countingUpIn:…)`, `.stopwatch(startingAt:…)`*
+
+TUIkit imports AppKit publicly (its `NSColor` bridges are public API), and
+from the macOS 15 SDK AppKit imports SwiftUICore. Until an app opts into
+Swift's member-import-visibility rule, an extension member of any module
+imported however indirectly is visible, so every app that imports TUIkit sees
+SwiftUICore's five statics on Foundation's `FormatStyle` beside TUIkit's. The
+types do not leak; these extension members do. Measured with a two-module
+probe:
+
+- both on `FormatStyle`: `Text(.currentDate, format: .offset(to: d))` is
+  ambiguous and does not compile;
+- TUIkit's only on `DiscreteFormatStyle`: a context that takes any
+  `FormatStyle` picks SwiftUI's, which then fails to LINK (SwiftUICore admits
+  no direct clients);
+- both (shipped): a `DiscreteFormatStyle` context picks TUIkit's (the
+  refining protocol's extension is the more specialised), and a plain
+  `FormatStyle` context is ambiguous — a compile error, not a link error.
+
+So TUIkit declares each static twice, and takes these styles as
+`DiscreteFormatStyle` everywhere: `Text(_:format:)` over a time data source
+already does, and `Text(_:format:)` and `appendInterpolation(_:format:)` for
+an `AttributedString` output gained a discrete overload beside the
+`FormatStyle` one. What stays ambiguous on macOS is a `FormatStyle` context
+outside TUIkit, such as `Date.now.formatted(.offset(to: d))`; spelling the type
+(`SystemFormatStyle.DateOffset(to: d)`) settles it. Linux has no SwiftUICore.
+
+**Fuller version:** move the AppKit bridges (`Color(nsColor:)`,
+`NSColor(_:)`, the `CGColor` pair) into a module of their own, so TUIkit can
+import AppKit `internal`ly and nothing of SwiftUICore reaches an app. That
+fixes this for every Foundation extension SwiftUI declares, not only these
+five, at the price of one more product to import for the bridges (half a day
+with the documentation). Your call whether that is worth it now; nothing else
+in this wave needs it.
+
 ## C. Declined without asking
 
 ## D. Deferred
