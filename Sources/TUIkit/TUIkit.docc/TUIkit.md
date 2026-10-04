@@ -226,6 +226,8 @@ struct MyApp: App {
 - ``SpatialTapGesture``
 - ``LongPressGesture``
 - ``DragGesture``
+- ``GestureState``
+- ``GestureStateGesture``
 - ``GestureMask``
 
 ### Mouse & Drag and Drop

@@ -98,6 +98,23 @@ still down, and a drag starts at its minimum distance with the press as its
 start. Positions are ``CellPoint``s, translations ``CellSize``s, and a drag's
 velocity is a ``CellVector`` in cells per second.
 
+A ``GestureState`` holds what a gesture is doing while it runs, and goes back
+to its initial value when the gesture is over:
+
+```swift
+struct Draggable: View {
+    @GestureState private var offset = CellSize(width: 0, height: 0)
+
+    var body: some View {
+        Text("Drag me")
+            .offset(offset)
+            .gesture(DragGesture().updating($offset) { drag, offset, _ in
+                offset = drag.translation
+            })
+    }
+}
+```
+
 When several gestures are under the pointer, the view's own come first — its
 subviews', and a control's own press — and one attached with `gesture` gets the
 pointer only if they fail. ``View/highPriorityGesture(_:including:)`` goes
