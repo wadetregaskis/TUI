@@ -77,6 +77,44 @@
 /// Ctrl+X only while text is selected, so with nothing selected an app's ⌘C
 /// and ⌘X fire, and `QuitShortcut.ctrlC` quits. See <doc:KeyboardShortcuts>.
 ///
+/// ## Vertical fields
+///
+/// `TextField("Notes", text: $notes, axis: .vertical)` wraps its text over
+/// rows instead of scrolling one line sideways. It starts one row tall and
+/// grows a row at a time as the text wraps or breaks, with no limit unless the
+/// environment's line limit sets one; at the limit it stops growing and
+/// scrolls to keep the caret in view. A range sets a floor as well:
+///
+/// ```swift
+/// TextField("Notes", text: $notes, axis: .vertical)
+///     .lineLimit(2...5)    // two rows to start, five at most
+/// ```
+///
+/// The text wraps as the macOS text system wraps it: after a run of spaces,
+/// which stays at the end of the row it breaks, or between the characters of
+/// a word too long for a row, and always at a newline. The last cell of the
+/// row is kept for the caret, so text wraps one cell short of the field's
+/// edge. While the field is empty it grows to show its whole prompt.
+///
+/// It is still a text field, with a text field's keys — SwiftUI's vertical
+/// field is the same field editor as one on a single line — so Return
+/// submits, and these change:
+///
+/// | Key | Action |
+/// |-----|--------|
+/// | Up / Down, Ctrl+P / Ctrl+N | Move a row; from the first row Up goes to the start, from the last Down to the end |
+/// | Shift+Up / Shift+Down | Extend the selection a row |
+/// | Option+Return | Insert a newline |
+/// | Ctrl+O | Insert a newline in front of the caret (open a line) |
+/// | Ctrl+A / Ctrl+E | Start / end of the line the caret is on |
+/// | Ctrl+K | Kill to the end of the line, or the newline at its end |
+///
+/// A paste keeps its line breaks. Option+Return is the macOS key, and reaches
+/// the field where the terminal sends Option as Meta (see the note on
+/// ``TextEditor``); elsewhere it arrives as a plain Return and submits. Ctrl+O
+/// is macOS's too, and arrives from every terminal. macOS's Ctrl+Return, which
+/// inserts a line separator, arrives from a terminal as a plain Return.
+///
 /// ## The selection and the caret where the terminal decides the colours
 ///
 /// A selection is a tint of the palette's accent over the field, and a block
@@ -153,6 +191,10 @@ public struct TextField<Label: View>: View {
     /// being edited is a draft the bridging view holds, not the caller's.
     var formatting: _FieldValueFormatting?
 
+    /// The axis the field's text runs along when it does not fit: one line
+    /// scrolling sideways, or rows growing downward — the `axis:` initialisers.
+    var axis: Axis = .horizontal
+
     @ViewBuilder
     public var body: some View {
         if let formatting {
@@ -174,7 +216,8 @@ public struct TextField<Label: View>: View {
                     focusID: focusID,
                     isDisabled: isDisabled,
                     onSubmitAction: onSubmitAction,
-                    onEditingChangedAction: onEditingChangedAction
+                    onEditingChangedAction: onEditingChangedAction,
+                    axis: axis
                 ))
         }
     }
@@ -250,6 +293,67 @@ extension TextField where Label == Text {
         self.onEditingChangedAction = nil
         self.formatting = nil
     }
+
+    /// Creates a text field with a preferred axis and a localized label.
+    ///
+    /// On `.vertical` the text wraps over rows, and the field grows a row at a
+    /// time as it is typed, up to its ``View/lineLimit(_:)``, then scrolls —
+    /// see "Vertical fields" on ``TextField``. `.horizontal` is the field on
+    /// one line.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the field's title, describing its purpose.
+    ///   - text: The text to display and edit.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space.
+    public init(_ titleKey: LocalizedStringKey, text: Binding<String>, axis: Axis) {
+        self.init(titleKey, text: text)
+        self.axis = axis
+    }
+
+    /// Creates a text field with a preferred axis and a label generated from a
+    /// title string.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field, describing its purpose.
+    ///   - text: The text to display and edit.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, text: Binding<String>, axis: Axis) {
+        self.init(title, text: text)
+        self.axis = axis
+    }
+
+    /// Creates a text field with a preferred axis, a localized label and a
+    /// prompt.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the field's title, describing its purpose.
+    ///   - text: The text to display and edit.
+    ///   - prompt: A `Text` providing guidance on what to type into the field.
+    ///     A vertical field grows to show all of it while the field is empty.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space.
+    public init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?, axis: Axis) {
+        self.init(titleKey, text: text, prompt: prompt)
+        self.axis = axis
+    }
+
+    /// Creates a text field with a preferred axis, a label generated from a
+    /// title string, and a prompt.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field, describing its purpose.
+    ///   - text: The text to display and edit.
+    ///   - prompt: A `Text` providing guidance on what to type into the field.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, text: Binding<String>, prompt: Text?, axis: Axis) {
+        self.init(title, text: text, prompt: prompt)
+        self.axis = axis
+    }
 }
 
 // MARK: - TextField Initializers (Generic Label)
@@ -288,6 +392,25 @@ extension TextField {
         self.onSubmitAction = nil
         self.onEditingChangedAction = nil
         self.formatting = nil
+    }
+
+    /// Creates a text field with a preferred axis, a prompt generated from a
+    /// `Text`, and a custom label.
+    ///
+    /// - Parameters:
+    ///   - text: The text to display and edit.
+    ///   - prompt: A `Text` providing guidance on what to type into the field.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space.
+    ///   - label: A view that describes the purpose of the text field.
+    public init(
+        text: Binding<String>,
+        prompt: Text? = nil,
+        axis: Axis,
+        @ViewBuilder label: () -> Label
+    ) {
+        self.init(text: text, prompt: prompt, label: label)
+        self.axis = axis
     }
 }
 
@@ -380,6 +503,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     let onSubmitAction: (() -> Void)?
     let onEditingChangedAction: ((Bool) -> Void)?
 
+    /// `.vertical` for a field whose text wraps over rows — drawn by
+    /// `TextField+Vertical.swift` — or `.horizontal` for one line.
+    let axis: Axis
+
     /// Minimum width for the text field content area. Small, so an explicit
     /// narrow `.frame(width:)` is honoured (e.g. a 0–255 / "100%" numeric field
     /// that only needs room for a few characters plus the cursor); fields without
@@ -398,6 +525,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// TextField is width-flexible: it has a minimum width but expands
     /// to fill available horizontal space in HStack.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if axis == .vertical { return verticalSize(proposal: proposal, context: context) }
         // The rendered field is `openCap + content + closeCap`, so the total
         // width is the content width plus the two caps. Report that total so a
         // parent (e.g. HStack) allocates the field accurately. A `.plain` field
@@ -427,6 +555,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if axis == .vertical { return renderVertical(context: context) }
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let stateStorage = context.stateStorage!
         let palette = context.environment.palette
@@ -669,6 +798,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             role: context.environment.submitTriggerRole)
         handler.onEditingChanged = onEditingChangedAction
         handler.textContentType = context.environment.textContentType
+        handler.selectionAffinity = context.environment.textSelectionAffinity
+        // One line until a vertical field's render says otherwise, so a field
+        // that changes axis between frames does not keep the old one's keys.
+        handler.wrapWidth = nil
         handler.clampCursorPosition()
         return handler
     }

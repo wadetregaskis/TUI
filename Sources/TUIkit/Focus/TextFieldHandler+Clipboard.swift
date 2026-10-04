@@ -71,9 +71,14 @@ extension TextFieldHandler {
         guard !string.isEmpty else { return }
         resetSuggestionNavigation()
 
-        // For single-line text fields, strip newlines from pasted text.
-        var sanitized = string.replacingOccurrences(of: "\n", with: "")
-            .replacingOccurrences(of: "\r", with: "")
+        // A field on one line strips the line breaks from pasted text; a
+        // vertical one keeps them, each as one newline whatever convention
+        // the clipboard used.
+        var sanitized =
+            isVertical
+            ? Self.normalizingLineBreaks(string)
+            : string.replacingOccurrences(of: "\n", with: "")
+                .replacingOccurrences(of: "\r", with: "")
 
         // Filter by content type if set.
         if let contentType = textContentType {

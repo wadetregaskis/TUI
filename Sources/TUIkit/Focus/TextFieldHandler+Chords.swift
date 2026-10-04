@@ -96,14 +96,15 @@ extension TextFieldHandler {
         return true
     }
 
-    /// Carries out a command from ``TextEditingCommand`` on the field's one
-    /// line, and returns whether it did.
+    /// Carries out a command from ``TextEditingCommand`` on the field's text,
+    /// and returns whether it did.
     ///
-    /// The field declines the commands about other lines: the previous and
-    /// next line, opening a line, and paging down. A field has one line, and
-    /// strips line breaks from anything pasted into it. Each of those chords
-    /// propagates as a chord nothing binds would. (Ctrl-V never gets here,
-    /// because the field reads it as paste first.)
+    /// A field on one line declines the commands about other lines: the
+    /// previous and next line, opening a line, and paging down. It has one
+    /// line, and strips line breaks from anything pasted into it. Each of those
+    /// chords propagates as a chord nothing binds would. (Ctrl-V never gets
+    /// here, because the field reads it as paste first, and paging down is
+    /// declined by a vertical field too.)
     ///
     /// The field has a keyboard selection, and the commands follow the field's
     /// own keys in how they treat it. Ctrl-D is the Delete key, so it deletes a
@@ -115,7 +116,14 @@ extension TextFieldHandler {
     /// The two ends of the line go together. With Ctrl-A moving and Ctrl-E
     /// typing an "e", a field would have half of readline's pair, which is the
     /// asymmetry that made Ctrl-A mean the same in the field as in the editor.
+    ///
+    /// A vertical field has the other lines, and takes the commands about them
+    /// as the macOS text system's vertical field does (measured on macOS
+    /// 15.8): Ctrl-A, Ctrl-E and Ctrl-K act on the line the caret is on — up
+    /// to its newline, which Ctrl-K at the line's end deletes — Ctrl-P and
+    /// Ctrl-N move a row, and Ctrl-O opens a line.
     func perform(_ command: TextEditingCommand) -> Bool {
+        if let handled = performOnLines(command) { return handled }
         switch command {
         case .moveToStartOfLine:
             moveToStart()
@@ -154,17 +162,22 @@ extension TextFieldHandler {
     /// kill, and the ring keeps what it had. A ``SecureField`` deletes the
     /// same text and keeps none of it, as `NSSecureTextField` does, so no part
     /// of a password waits in the field for a Ctrl-Y.
-    private func killToEnd() {
+    ///
+    /// - Parameter end: Where the kill stops, for a vertical field killing to
+    ///   the end of the caret's line (``lineKillEnd()``); `nil` for the end of
+    ///   the text.
+    func killToEnd(at end: Int? = nil) {
         clearSelection()
-        let length = text.wrappedValue.count
-        guard cursorPosition < length else { return }
+        let end = end ?? text.wrappedValue.count
+        guard cursorPosition < end else { return }
         resetSuggestionNavigation()
         if !isSecure {
             let current = text.wrappedValue
             let start = current.index(current.startIndex, offsetBy: cursorPosition)
-            killRing = String(current[start...])
+            let stop = current.index(start, offsetBy: end - cursorPosition)
+            killRing = String(current[start..<stop])
         }
-        deleteRange(cursorPosition..<length)
+        deleteRange(cursorPosition..<end)
     }
 
     /// Ctrl-Y: inserts the last kill at the caret. It goes the way a paste

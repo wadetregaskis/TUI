@@ -530,6 +530,33 @@ private struct TextSelectionShapes: View {
     }
 }
 
+/// Text fields on either axis, in each initialiser shape, as SwiftUI's
+/// documentation writes them.
+@MainActor
+private struct TextFieldAxisShapes: View {
+    @State private var title = ""
+    @State private var notes = ""
+    let caption: String
+
+    var body: some View {
+        Form {
+            TextField("Title", text: $title)
+            TextField("Notes", text: $notes, axis: .vertical)
+                .lineLimit(3...)
+            TextField(caption, text: $notes, axis: .vertical)
+                .lineLimit(...3)
+            TextField("Notes", text: $notes, prompt: Text("Anything else?"), axis: .vertical)
+                .lineLimit(1...3)
+            TextField(caption, text: $notes, prompt: Text("Anything else?"), axis: .horizontal)
+            TextField(text: $notes, prompt: Text("Required"), axis: .vertical) {
+                Text("Notes")
+            }
+            TextField(text: $notes, axis: .vertical) { Text("Notes") }
+                .lineLimit(5, reservesSpace: true)
+        }
+    }
+}
+
 /// Text sized by each of SwiftUI's line-limit range forms.
 @MainActor
 private struct LineLimitRangeShapes: View {

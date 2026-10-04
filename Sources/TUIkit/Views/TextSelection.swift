@@ -12,8 +12,11 @@
 ///
 /// Where a wrapped line ends, one position is both the end of one row and the
 /// start of the next. Upstream puts the caret at the end of the earlier row;
-/// downstream at the start of the later one. TUIkit's fields never share a
-/// position between rows, so the affinity is only reported.
+/// downstream at the start of the later one. A vertical ``TextField`` draws its
+/// caret there by the affinity, and `.automatic` as downstream, which is where
+/// the macOS text system puts an insertion point after typing; Up and Down,
+/// and a click past a wrapped row's end, keep to the row the affinity picks.
+/// ``TextEditor`` scrolls rather than wraps, so it only reports the affinity.
 public enum TextSelectionAffinity: Sendable, Hashable {
     /// The affinity the text view chooses.
     case automatic
@@ -111,9 +114,11 @@ extension View {
     /// Sets the direction a selection leans, for text fields and editors in
     /// this view — mirrors SwiftUI's `textSelectionAffinity(_:)`.
     ///
-    /// The affinity is reported with each ``TextSelection`` a field writes. It
-    /// changes nothing drawn: a TUIkit field is one line and its editor
-    /// scrolls rather than wraps, so no position is shared by two rows.
+    /// The affinity is reported with each ``TextSelection`` a field writes, and
+    /// a vertical ``TextField`` draws its caret by it where its text wrapped —
+    /// see ``TextSelectionAffinity``. A field on one line, and a
+    /// ``TextEditor``, which scrolls rather than wraps, share no position
+    /// between rows, so for them it changes nothing drawn.
     ///
     /// - Parameter affinity: The affinity.
     /// - Returns: A view whose text fields report selections with it.

@@ -98,6 +98,11 @@
 /// row is highlighted, the paging and jump keys too — plus Enter and Escape to
 /// drive it, before any row above applies; that half of the map is documented
 /// on the modifier.
+///
+/// A vertical field (`TextField(…, axis: .vertical)`) changes a few rows: Up
+/// and Down move by a row, Option+Return and Ctrl+O insert a newline, the
+/// line commands work on the line the caret is on, and a paste keeps its line
+/// breaks. See `TextFieldHandler+Vertical.swift`.
 final class TextFieldHandler: PersistedFocusable {
     /// The unique identifier for this focusable element.
     var focusID: String
@@ -151,6 +156,21 @@ final class TextFieldHandler: PersistedFocusable {
     /// The selection last exchanged with the app, as character offsets, so
     /// each side writes only a change.
     var exchangedSelection: Range<Int>?
+
+    /// The cells a vertical field's text wraps in, or `nil` for a field on
+    /// one line. Synced by the field's render pass; the vertical field's keys
+    /// lay the text out at it (``softWrapLayout()``).
+    var wrapWidth: Int?
+
+    /// The column Up and Down keep to in a vertical field, and the caret
+    /// offset it was taken at: a run of Up and Down presses goes back to the
+    /// column it started from through rows too short to hold it. Any other
+    /// move of the caret leaves the offset behind, and the column with it.
+    var verticalAnchor: (column: Int, caret: Int)?
+
+    /// The first row a vertical field shows, advanced by its render pass to
+    /// keep the caret in view.
+    var scrollRow = 0
 
     /// Callback triggered when the user presses Enter.
     var onSubmit: (() -> Void)?
@@ -437,6 +457,9 @@ extension TextFieldHandler {
         if let handled = handleSuggestionKeyEvent(event) {
             return handled
         }
+        if let handled = handleVerticalKeyEvent(event) {
+            return handled
+        }
         switch event.key {
         case .space:
             insertCharacter(" ")
@@ -607,8 +630,9 @@ extension TextFieldHandler {
         guard !suggestionCompletions.isEmpty, !event.alt, !event.ctrl else { return nil }
         guard suggestionsOpen else {
             // Closed: Down is the open gesture (the NSComboBox convention);
-            // every other key is ordinary field editing.
-            if event.key == .down, !event.shift {
+            // every other key is ordinary field editing. In a vertical field
+            // Down moves the caret a row until it is on the last.
+            if event.key == .down, !event.shift, isCaretOnLastRow {
                 openSuggestions(preferFirstRow: true)
                 return true
             }

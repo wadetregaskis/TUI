@@ -214,11 +214,14 @@ extension View {
     /// The lower bound is a floor and the upper a cap, as
     /// ``lineLimit(_:reservesSpace:)``'s reservation and limit are. A ``Text``
     /// shorter than the floor keeps the rows anyway; one longer than the cap
-    /// is truncated:
+    /// is truncated. A vertical ``TextField`` grows with what is typed from the
+    /// floor to the cap, and then scrolls:
     ///
     /// ```swift
     /// Text(item.summary)
     ///     .lineLimit(2...4)
+    /// TextField("Notes", text: $notes, axis: .vertical)
+    ///     .lineLimit(2...5)
     /// ```
     ///
     /// - Parameter limit: The fewest and the most lines.
