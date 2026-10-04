@@ -282,6 +282,70 @@ struct TextConcatenationTests {
         #expect(parts.map(\.text).joined() == "abcd…")
     }
 
+    @Test("A line that is the runs end to end is answered whole, exactly as the walk answers it")
+    func wholeRunsAgreesWithTheWalk() {
+        // `fragments` recognises a line that IS the runs from its bytes and
+        // skips the walk. Where it does, the fragments AND the cursor it
+        // leaves must be the walk's — and where a run edge falls inside a
+        // grapheme, it must decline and leave the line to the walk.
+        func walked(_ line: String, _ runs: [String]) -> ([String], [Int], Int, Int) {
+            var cursor = (run: 0, offset: 0)
+            let parts = TextRunAttribution.walkedFragments(of: line, runTexts: runs, cursor: &cursor)
+            return (parts.map(\.text), parts.map(\.run), cursor.run, cursor.offset)
+        }
+        func answered(_ line: String, _ runs: [String]) -> ([String], [Int], Int, Int) {
+            var cursor = (run: 0, offset: 0)
+            let parts = TextRunAttribution.fragments(of: line, runTexts: runs, cursor: &cursor)
+            return (parts.map(\.text), parts.map(\.run), cursor.run, cursor.offset)
+        }
+
+        // Edges inside a grapheme: a combining mark opening a run, a Prepend
+        // (U+0600) before an ASCII run, a flag's two regional indicators in
+        // two runs, a ZWJ sequence split at the joiner, CR | LF.
+        for runs in [
+            ["e", "\u{301}x"], ["\u{600}", "1"], ["\u{1F1E6}", "\u{1F1FA}"],
+            ["\u{1F468}\u{200D}", "\u{1F469}"], ["a\r", "\nb"],
+        ] {
+            #expect(TextRunAttribution.wholeRuns(of: runs.joined(), runTexts: runs) == nil, "\(runs)")
+            #expect(answered(runs.joined(), runs) == walked(runs.joined(), runs), "\(runs)")
+        }
+        // Not vacuous: the plain case IS answered, empty runs and all.
+        #expect(TextRunAttribution.wholeRuns(of: "Ada in active", runTexts: ["", "Ada", "", " in active", ""])?
+            .map(\.run) == [1, 3])
+        #expect(answered("Ada in active", ["", "Ada", "", " in active", ""]) == walked(
+            "Ada in active", ["", "Ada", "", " in active", ""]))
+
+        // Then thousands of random run lists over pieces that make the
+        // segmentation interesting either side of an edge — combining marks,
+        // regional indicators, ZWJ sequences, a Prepend, a conjunct (GB9c),
+        // CR LF, wide text — each against the runs end to end and against
+        // lines that are not (a prefix, an ellipsis, an extra space).
+        let pieces = [
+            "a", "b", " ", "日", "e\u{301}", "\u{301}", "\u{1F1E6}", "\u{1F1FA}", "\u{1F468}",
+            "\u{200D}", "\u{1F469}", "\u{600}", "\u{915}", "\u{94D}", "\u{937}", "\r", "\n", "x",
+        ]
+        var seed: UInt64 = 0x2026_1004
+        func rnd(_ n: Int) -> Int {
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return Int((seed >> 33) % UInt64(max(1, n)))
+        }
+        var wholeAnswers = 0
+        for _ in 0..<3_000 {
+            let runs = (0..<rnd(5)).map { _ in (0..<rnd(4)).map { _ in pieces[rnd(pieces.count)] }.joined() }
+            let joined = runs.joined()
+            for line in [joined, String(joined.prefix(max(0, joined.count - 1))), joined + "…", " " + joined] {
+                if let whole = TextRunAttribution.wholeRuns(of: line, runTexts: runs) {
+                    wholeAnswers += 1
+                    let walk = walked(line, runs)
+                    #expect(whole.map(\.text) == walk.0, "\(runs.map(\.debugDescription)) / \(line.debugDescription)")
+                    #expect(whole.map(\.run) == walk.1, "\(runs.map(\.debugDescription)) / \(line.debugDescription)")
+                }
+                #expect(answered(line, runs) == walked(line, runs), "\(runs.map(\.debugDescription))")
+            }
+        }
+        #expect(wholeAnswers > 1_000, "only \(wholeAnswers) lines took the fast path")
+    }
+
     @Test("Inserted chrome stays with the fragment being cut")
     func attributionKeepsTheEllipsis() {
         // The ellipsis is not in the source; it must not be dropped, and it

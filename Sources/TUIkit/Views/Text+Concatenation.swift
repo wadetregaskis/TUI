@@ -143,6 +143,64 @@ enum TextRunAttribution {
     static func fragments(
         of line: String, runTexts: [String], cursor: inout (run: Int, offset: Int)
     ) -> [(text: String, run: Int)] {
+        // The commonest line by far — a one-line concatenation or Markdown
+        // literal, drawn unwrapped and uncut — IS the runs end to end. The
+        // walk below would match every character at the cursor, skip and
+        // resync nothing, and hand back each non-empty run whole; for that it
+        // pays two `index(offsetBy:)` from the run's start, a `count` and an
+        // append per character (~0.7 µs a Text on the `markdown` page). So
+        // that line is recognised from its bytes first, and anything else —
+        // a later line, a wrapped, cut or padded one — is walked as before.
+        if cursor.run == 0, cursor.offset == 0, let whole = wholeRuns(of: line, runTexts: runTexts) {
+            // Where the walk leaves it: just past the last run it consumed.
+            // (It does not step over trailing empty runs; with no character
+            // left it never looks at them.)
+            if let last = whole.last { cursor = (last.run + 1, 0) }
+            return whole
+        }
+        return walkedFragments(of: line, runTexts: runTexts, cursor: &cursor)
+    }
+
+    /// `line` as the runs laid end to end, each non-empty one whole and
+    /// tagged with its index — or `nil` when `line` is anything else.
+    ///
+    /// The answer is ``walkedFragments(of:runTexts:cursor:)``'s for a walk
+    /// from the start, whenever it is not `nil`: the bytes are the runs'
+    /// bytes, and every run edge is a Character boundary of `line`
+    /// (`String.Index(_:within:)` is `nil` otherwise). A string cut at its
+    /// own grapheme boundaries segments into the same Characters as the
+    /// whole — the regional-indicator parity restarts at a boundary, and the
+    /// emoji-ZWJ and conjunct look-backs never cross one — so every
+    /// Character the walk compares matches at the cursor. An edge INSIDE a
+    /// grapheme (a run opening with a combining mark, a split flag) is the
+    /// walk's to settle, so it is declined here.
+    static func wholeRuns(of line: String, runTexts: [String]) -> [(text: String, run: Int)]? {
+        let utf8 = line.utf8
+        // A wrapped, cut or padded line is a different LENGTH from the runs,
+        // which is a sum of stored counts — so it is declined before anything
+        // is compared or allocated.
+        var length = 0
+        for text in runTexts { length += text.utf8.count }
+        guard length == utf8.count else { return nil }
+        var position = utf8.startIndex
+        var result: [(text: String, run: Int)] = []
+        result.reserveCapacity(runTexts.count)
+        for (run, text) in runTexts.enumerated() where !text.isEmpty {
+            guard String.Index(position, within: line) != nil,
+                let end = utf8.index(position, offsetBy: text.utf8.count, limitedBy: utf8.endIndex),
+                utf8[position..<end].elementsEqual(text.utf8)
+            else { return nil }
+            result.append((text, run))
+            position = end
+        }
+        return position == utf8.endIndex ? result : nil
+    }
+
+    /// ``fragments(of:runTexts:cursor:)`` by walking: every line, from
+    /// wherever `cursor` stands.
+    static func walkedFragments(
+        of line: String, runTexts: [String], cursor: inout (run: Int, offset: Int)
+    ) -> [(text: String, run: Int)] {
         var result: [(text: String, run: Int)] = []
         var current = ""
         var currentRun = min(cursor.run, max(0, runTexts.count - 1))
