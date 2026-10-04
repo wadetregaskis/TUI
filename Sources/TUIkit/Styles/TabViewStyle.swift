@@ -23,8 +23,16 @@
 /// | Style | Description |
 /// |-------|-------------|
 /// | ``automatic`` | The default: ``compact``. |
+/// | ``tabBarOnly`` | A tab bar: ``compact``, as macOS draws it like the default. |
+/// | ``grouped`` | A bar grouping the tabs over a box around the content: ``bordered``. |
 /// | ``compact`` | **TUI-specific.** One border-free row of chips; the active one is filled. |
 /// | ``bordered`` | **TUI-specific.** Box-drawn folder tabs joined to a box around the content. |
+///
+/// Measured on macOS 15.8: `.automatic` and `.tabBarOnly` both put a segmented
+/// tab bar in the window's toolbar, and `.grouped` is an `NSTabView` — the
+/// tabs in a segmented bar over a bordered box holding the content. A terminal
+/// view has no toolbar to put a bar in, so the first two draw TUIkit's strip
+/// above the content, and the third its folder tabs over a box.
 ///
 /// Like TUIkit's other style protocols this one has no requirements, and the
 /// framework reads a style off its type: a type of the app's own draws as
@@ -67,6 +75,35 @@ public struct BorderedTabViewStyle: TabViewStyle, Equatable {
     public init() {}
 }
 
+/// A tab view style that displays a tab bar when possible: in TUIkit the
+/// compact strip, which macOS draws this style the same as the default.
+///
+/// `Equatable` for the reason given under ``TabViewStyle``.
+public struct TabBarOnlyTabViewStyle: TabViewStyle, Equatable {
+    /// Creates a tab-bar-only tab view style.
+    public init() {}
+}
+
+/// A tab view style that displays a tab bar that groups its tabs together:
+/// the tabs over a box around the content, which in TUIkit is the bordered
+/// folder strip (macOS draws an `NSTabView`).
+///
+/// `Equatable` for the reason given under ``TabViewStyle``.
+public struct GroupedTabViewStyle: TabViewStyle, Equatable {
+    /// Creates a grouped tab view style.
+    public init() {}
+}
+
+extension TabViewStyle where Self == TabBarOnlyTabViewStyle {
+    /// A tab view style that displays a tab bar when possible.
+    public static var tabBarOnly: TabBarOnlyTabViewStyle { TabBarOnlyTabViewStyle() }
+}
+
+extension TabViewStyle where Self == GroupedTabViewStyle {
+    /// A tab view style that displays a tab bar that groups its tabs together.
+    public static var grouped: GroupedTabViewStyle { GroupedTabViewStyle() }
+}
+
 extension TabViewStyle where Self == DefaultTabViewStyle {
     /// The default tab view style: ``compact`` in TUIkit.
     public static var automatic: DefaultTabViewStyle { DefaultTabViewStyle() }
@@ -96,7 +133,7 @@ extension TabViewStyle {
     /// How this style draws the strip. A style of the app's own draws as the
     /// default does.
     var stripLook: _TabStripLook {
-        self is BorderedTabViewStyle ? .bordered : .compact
+        self is BorderedTabViewStyle || self is GroupedTabViewStyle ? .bordered : .compact
     }
 }
 
