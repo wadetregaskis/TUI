@@ -385,12 +385,13 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             } ?? FrameBuffer()
         let published = preferences?.pop()
         let title = published?[NavigationTitleKey.self] ?? ""
+        let subtitle = published?[NavigationSubtitleKey.self] ?? ""
         let hidesBack = published?[NavigationBackButtonHiddenKey.self] ?? false
 
         content = padded(content, toWidth: width, height: contentHeight)
 
         var buffer = renderBar(
-            title: title, hidesBack: hidesBack, width: width,
+            title: title, subtitle: subtitle, hidesBack: hidesBack, width: width,
             escapeHandlerSlot: escapeHandlerSlot, context: context)
         buffer.appendVertically(content)
         return buffer
@@ -400,7 +401,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
     /// `escapeHandlerSlot` is the key dispatcher's handler count from before the
     /// screen rendered: where the stack's Escape handler is filed.
     private func renderBar(
-        title: String, hidesBack: Bool, width: Int, escapeHandlerSlot: Int,
+        title: String, subtitle: String, hidesBack: Bool, width: Int, escapeHandlerSlot: Int,
         context: RenderContext
     ) -> FrameBuffer {
         let coordinator = coordinator
@@ -492,6 +493,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             back: back,
             hidesBack: hidesBack,
             title: title.truncatedToWidth(max(0, width - backWidth - 1)),
+            subtitle: subtitle,
             crumbs: hidesBack
                 ? nil
                 : NavigationCrumbs.trail(
@@ -506,8 +508,8 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
     /// The bar's view: the crumb trail (or the Back button and title when the
     /// trail will not fit), and the rule beneath.
     private func navigationBar(
-        back: String, hidesBack: Bool, title: String, crumbs: [NavigationCrumbs.Crumb]?,
-        coordinator: NavigationCoordinator
+        back: String, hidesBack: Bool, title: String, subtitle: String,
+        crumbs: [NavigationCrumbs.Crumb]?, coordinator: NavigationCoordinator
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
@@ -532,6 +534,18 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
                     backButton(back, coordinator: coordinator)
                     Text(" ")
                     Text(title).bold()
+                }
+                // After the title, in what the title and the trail leave: the
+                // lowest priority in the row and one line, so it truncates
+                // first and the bar keeps its height.
+                if !subtitle.isEmpty {
+                    // The gap on its own, so truncating the subtitle cannot
+                    // eat it.
+                    Text(verbatim: "  ")
+                    Text(verbatim: subtitle)
+                        .foregroundStyle(Color.palette.foregroundSecondary)
+                        .lineLimit(1)
+                        .layoutPriority(-1)
                 }
                 Spacer()
             }

@@ -189,6 +189,39 @@ extension View {
         preference(key: NavigationTitleKey.self, value: title.content)
     }
 
+    /// Configures the view's subtitle for purposes of navigation. Mirrors
+    /// SwiftUI's `navigationSubtitle(_:)`.
+    ///
+    /// macOS draws the subtitle under the window's title. A pushed screen's
+    /// navigation bar here is one row, so the subtitle follows the title on
+    /// it, in the secondary colour, taking only the room the title and the
+    /// crumb trail leave and truncating before they do. Like the title, it is
+    /// drawn for a pushed screen, the root having no bar.
+    ///
+    /// A string **literal** binds here, so the subtitle is a lookup key — see
+    /// ``LocalizedStringKey``.
+    ///
+    /// - Parameter subtitleKey: The key for the subtitle.
+    public func navigationSubtitle(_ subtitleKey: LocalizedStringKey) -> some View {
+        preference(key: NavigationSubtitleKey.self, value: subtitleKey.localized)
+    }
+
+    /// Configures the view's subtitle from a string, displayed as written.
+    ///
+    /// - Parameter subtitle: The subtitle.
+    @_disfavoredOverload
+    public func navigationSubtitle<S: StringProtocol>(_ subtitle: S) -> some View {
+        preference(key: NavigationSubtitleKey.self, value: String(subtitle))
+    }
+
+    /// Configures the view's subtitle from a ``Text``, drawn as a plain string
+    /// as the title is.
+    ///
+    /// - Parameter subtitle: The subtitle.
+    public func navigationSubtitle(_ subtitle: Text) -> some View {
+        preference(key: NavigationSubtitleKey.self, value: subtitle.content)
+    }
+
     /// Hides the navigation bar's Back control for this screen.
     ///
     /// Mirrors SwiftUI's `navigationBarBackButtonHidden(_:)`. Apply it inside a

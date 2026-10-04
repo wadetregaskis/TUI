@@ -187,6 +187,13 @@ public struct NavigationTitleKey: PreferenceKey {
     public static let defaultValue: String = ""
 }
 
+/// A preference key for the navigation subtitle: what
+/// `navigationSubtitle(_:)` publishes, read by a `NavigationStack` with the
+/// title.
+struct NavigationSubtitleKey: PreferenceKey {
+    static let defaultValue: String = ""
+}
+
 /// A preference key for whether a pushed screen hides its Back control.
 ///
 /// A preference rather than a static conformance — unlike a sheet's detent,
