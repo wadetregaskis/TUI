@@ -1597,3 +1597,104 @@ private struct AttributedText: View {
         .foregroundStyle(.red)
     }
 }
+// MARK: - Gestures
+
+/// SwiftUI's gestures as its documentation writes them: a gesture held in a
+/// stored property and in a computed one, `@GestureState` with `updating` and
+/// a transaction, the three attaching modifiers in every form, the algebra
+/// with its values switched over, an erased and an optional gesture, and a
+/// gesture of the app's own.
+@MainActor
+private struct GestureShapes: View {
+    @GestureState private var isDetectingLongPress = false
+    @GestureState(resetTransaction: Transaction(animation: .default)) private var isDragging = false
+    @GestureState private var selection: Int?
+    @State private var completedLongPress = false
+    let enabled: Bool
+
+    let newGesture = TapGesture().onEnded {
+        print("Tap on VStack.")
+    }
+
+    var longPress: some Gesture {
+        LongPressGesture(minimumDuration: 3)
+            .updating($isDetectingLongPress) { currentState, gestureState, transaction in
+                gestureState = currentState
+                transaction.animation = Animation.easeIn(duration: 2.0)
+            }
+            .onEnded { finished in
+                self.completedLongPress = finished
+            }
+    }
+
+    var drag: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
+            .updating($isDragging) { _, state, _ in state = true }
+            .onChanged { value in print(value.location, value.startLocation, value.translation, value.time) }
+            .onEnded { value in print(value.velocity, value.predictedEndLocation, value.predictedEndTranslation) }
+    }
+
+    var body: some View {
+        VStack {
+            Text("Heart")
+                .onTapGesture { print("Tap on image.") }
+            Text("Hold")
+                .gesture(longPress)
+            Text("Drag")
+                .gesture(drag, isEnabled: enabled)
+            Text("Spatial")
+                .gesture(SpatialTapGesture(count: 2).onEnded { event in print(event.location) })
+            Text("Sequenced")
+                .gesture(
+                    LongPressGesture().sequenced(before: DragGesture())
+                        .onChanged { value in
+                            switch value {
+                            case .first(true): print("pressing")
+                            case .second(true, let drag): print(drag?.translation as Any)
+                            default: break
+                            }
+                        })
+            Text("Exclusive")
+                .gesture(
+                    TapGesture(count: 2).exclusively(before: TapGesture())
+                        .onEnded { value in
+                            if case .first = value { print("double") }
+                        })
+            Text("Simultaneous")
+                .gesture(
+                    DragGesture().simultaneously(with: LongPressGesture())
+                        .onEnded { value in print(value.first as Any, value.second as Any) })
+            Text("Erased")
+                .gesture(enabled ? AnyGesture(TapGesture()) : AnyGesture(TapGesture(count: 2)))
+            Text("Optional")
+                .gesture(enabled ? DragGesture() : nil)
+            Text("Mapped")
+                .gesture(TapGesture().map { 1 }.updating($selection) { value, state, _ in state = value })
+            Text("Option-click")
+                .gesture(TapGesture().modifiers(.option).onEnded { print("option") })
+            Text("Own")
+                .gesture(DoubleTapOrDrag().onEnded { _ in print("own") })
+        }
+        .gesture(newGesture)
+        .highPriorityGesture(TapGesture(), including: .subviews)
+        .highPriorityGesture(TapGesture(), isEnabled: enabled)
+        .highPriorityGesture(TapGesture(), name: "tap")
+        .simultaneousGesture(TapGesture().onEnded { print("Gesture on VStack.") })
+        .simultaneousGesture(TapGesture(), isEnabled: false)
+        .simultaneousGesture(TapGesture(), name: "tap", isEnabled: true)
+        .gesture(TapGesture(), including: GestureMask.gesture)
+        .gesture(TapGesture(), name: "tap")
+        .onLongPressGesture(minimumDuration: 0.5) {
+            print("long")
+        } onPressingChanged: { pressing in
+            print(pressing)
+        }
+    }
+
+    /// A gesture of the app's own: its value type inferred from its body.
+    struct DoubleTapOrDrag: Gesture {
+        var body: some Gesture {
+            TapGesture(count: 2).exclusively(before: DragGesture())
+        }
+    }
+}

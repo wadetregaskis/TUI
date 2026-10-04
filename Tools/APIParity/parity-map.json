@@ -37,14 +37,11 @@
     },
     {
       "match": [
-        "*Gesture",
-        "*GestureMask*",
-        "GestureState*",
-        "View.gesture*",
-        "View.highPriorityGesture*",
-        "View.simultaneousGesture*"
+        "MagnifyGesture*",
+        "RotateGesture*",
+        "SpatialEventGesture*"
       ],
-      "why": "SwiftUI's gesture algebra composes continuous multi-touch streams. A terminal reports discrete press/release/wheel events with no pressure, no velocity and no simultaneous touches, so there is nothing for a recognizer to arbitrate. TUIkit exposes the events it does get: onTapGesture, onHover, and drag-and-drop."
+      "why": "Multi-contact input. MagnifyGesture and RotateGesture recognize the scale and the angle between two contacts, a trackpad pinch or twist; SpatialEventGesture reports every simultaneous contact as an identified event with a kind (touch, pencil, pinch, pointer), a 3D location and the input device's pose. A terminal's mouse protocols (X10, SGR 1006) report one pointer: its cell, its buttons, the wheel and the Shift/Option/Control bits. There is no second contact, no pinch or twist and no pose, so no scale, angle or contact set to recognize. The single-pointer gestures ship (TapGesture, SpatialTapGesture, LongPressGesture, DragGesture and their algebra), and WindowDragGesture is declined with the Window family."
     },
     {
       "match": [
@@ -183,6 +180,7 @@
         "NSViewControllerRepresentable*",
         "NSGestureRecognizerRepresentable*",
         "NSGestureRecognizerRepresentableCoordinateSpaceConverter*",
+        "View.gesture(_:)",
         "NSApplicationDelegateAdaptor*",
         "*.makeNSView*",
         "*.updateNSView*",
@@ -1002,10 +1000,6 @@
       "how": "ForEach.body: Never",
       "why": "ForEach declares `public var body: Never`, as SwiftUI's non-tab ForEach does. The `Body` typealias is inferred rather than written, so symbolgraph-extract emits it for the SDK's interface and not for TUIkit's source: an extraction artifact, not a gap."
     },
-    "GestureState": {
-      "how": "DragGestureEvent.Phase (.began/.moved/.ended)",
-      "why": "The transient per-gesture state a drag needs is held by `DragGestureModifier` and handed to the closure with its start position and phase (`DragGestureEvent.Phase`: began, moved, ended), so no property wrapper is needed to keep it."
-    },
     "GraphicsContext": {
       "how": "FrameBuffer (+ RenderContext)",
       "why": "`FrameBuffer` is the drawing context: `composited(with:at:)` to draw, `replacingLines` to write, `clamped(toWidth:height:)` to clip, and its overlays, hit-test regions and animated cells as the layer, interaction and animation channels. It differs in drawing cells, not paths; a path-drawing context waits on O0 of the refusal review."
@@ -1049,10 +1043,6 @@
     "StateObject": {
       "how": "@State var m = M() with @Observable",
       "why": "Documentation/SwiftUI-compatibility.md:179 states the mapping explicitly; `State` is a shared type (Sources/TUIkitView/State/State.swift) and binds at render time by the view's own identity."
-    },
-    "TapGesture": {
-      "how": ".onTapGesture(count:perform:) / .onTapGesture(count:coordinateSpace:perform:)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Extensions/View+Events.swift:135 and :169; the count form uses the dispatcher's synthesised `MouseEvent.clickCount` (terminals report no double-click, so it is timed). The located form hands the tap a `CellPoint`, not a CGPoint (§2.2)."
     },
     "Text.Body": {
       "how": "typealias Body = Never (inferred)",
