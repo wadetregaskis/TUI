@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 extension FocusManager {
 
     /// Where a jump within one subtree's own focus stops lands.

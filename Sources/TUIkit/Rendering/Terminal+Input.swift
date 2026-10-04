@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import DequeModule
 import Foundation
 
 // MARK: - Turning bytes from stdin into events

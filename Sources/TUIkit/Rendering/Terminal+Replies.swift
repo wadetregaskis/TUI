@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import DequeModule
+
 // MARK: - Things the terminal says that nobody typed
 
 /// Terminals volunteer output on the input stream: a graphics acknowledgement,

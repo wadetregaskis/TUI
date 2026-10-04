@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - State Indices
 
 /// Named property indices for `_ImageCore` state storage.

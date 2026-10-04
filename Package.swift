@@ -77,7 +77,14 @@ let package = Package(
                 "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
                 .product(name: "DequeModule", package: "swift-collections"),
             ],
-            resources: [.copy("Localization/translations"), .copy("VERSION")]
+            resources: [.copy("Localization/translations"), .copy("VERSION")],
+            // A member is visible in a file only if that file imports the
+            // module declaring it. Without this, every extension member of
+            // every module LOADED is in scope — and on macOS that includes
+            // SwiftUICore, which AppKit imports (not re-exports): its
+            // `AttributeScopes.SwiftUIAttributes` made TUIkit's own scope of
+            // that name ambiguous wherever TUIkit spelled it.
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
         // ── App & Tests ─────────────────────────────────────────────────────────────────────────────────

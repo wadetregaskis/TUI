@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitCore
 
 /// Pure text-layout helpers shared by ``Text`` and any view that lays plain text

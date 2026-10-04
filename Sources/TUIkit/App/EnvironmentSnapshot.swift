@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - Environment Snapshot
 
 /// A snapshot of environment values that affect rendered output.

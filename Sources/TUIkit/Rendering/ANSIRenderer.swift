@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 /// Generates ANSI escape codes for terminal formatting.
 ///
 /// `ANSIRenderer` translates `TextStyle` and `Color` into the corresponding

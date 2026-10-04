@@ -14,6 +14,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitCore
 
 // MARK: - Persistent hypothesis state

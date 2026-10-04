@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - List Row
 
 /// A single row in a list, containing an ID and rendered content.
