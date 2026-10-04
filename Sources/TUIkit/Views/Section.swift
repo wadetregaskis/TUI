@@ -54,8 +54,12 @@ public struct Section<Parent: View, Content: View, Footer: View>: View {
     /// The footer view displayed below the section content.
     let footer: Footer
 
+    /// Whether the section's content is shown, for a collapsible section
+    /// (`Section(isExpanded:…)`), or `nil` for one that always shows it.
+    let isExpanded: Binding<Bool>?
+
     public var body: some View {
-        _SectionCore(header: header, content: content, footer: footer)
+        _SectionCore(header: header, content: content, footer: footer, isExpanded: isExpanded)
     }
 }
 
@@ -78,6 +82,7 @@ extension Section {
         self.content = content()
         self.header = header()
         self.footer = footer()
+        self.isExpanded = nil
     }
 }
 
@@ -96,6 +101,7 @@ extension Section where Footer == EmptyView {
         self.content = content()
         self.header = header()
         self.footer = EmptyView()
+        self.isExpanded = nil
     }
 }
 
@@ -114,6 +120,7 @@ extension Section where Parent == EmptyView {
         self.content = content()
         self.header = EmptyView()
         self.footer = footer()
+        self.isExpanded = nil
     }
 }
 
@@ -129,6 +136,7 @@ extension Section where Parent == EmptyView, Footer == EmptyView {
         self.content = content()
         self.header = EmptyView()
         self.footer = EmptyView()
+        self.isExpanded = nil
     }
 }
 
@@ -167,7 +175,105 @@ extension Section where Parent == Text, Footer == EmptyView {
         self.header = Text(String(title))
         self.content = content()
         self.footer = EmptyView()
+        self.isExpanded = nil
     }
+}
+
+// MARK: - Collapsible (isExpanded:)
+
+extension Section where Parent == Text, Footer == EmptyView {
+    /// Creates a section with a localized title as its header, and a binding
+    /// to whether its content is shown.
+    ///
+    /// The header carries a disclosure triangle — `▼` while the content is
+    /// shown, `▶` while it is not — and is a control of its own: a Tab stop
+    /// that Return or Space toggles, Right opens and Left closes, and a click
+    /// toggles, as a ``DisclosureGroup``'s header is. A collapsed section's
+    /// rows leave the list.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the header text — a literal is looked up, see
+    ///     ``LocalizedStringKey``.
+    ///   - isExpanded: A binding to whether the section's content is shown.
+    ///   - content: The section's content.
+    public init(_ titleKey: LocalizedStringKey, isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self.header = Text(titleKey)
+        self.content = content()
+        self.footer = EmptyView()
+        self.isExpanded = isExpanded
+    }
+
+    /// Creates a section with a title, shown as written, as its header, and a
+    /// binding to whether its content is shown.
+    ///
+    /// - Parameters:
+    ///   - title: The header text.
+    ///   - isExpanded: A binding to whether the section's content is shown.
+    ///   - content: The section's content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self.header = Text(String(title))
+        self.content = content()
+        self.footer = EmptyView()
+        self.isExpanded = isExpanded
+    }
+}
+
+extension Section where Footer == EmptyView {
+    /// Creates a section with a header and a binding to whether its content is
+    /// shown.
+    ///
+    /// The header carries a disclosure triangle and toggles the content from
+    /// the keyboard and the pointer, as ``init(_:isExpanded:content:)-(LocalizedStringKey,_,_)``'s does.
+    ///
+    /// - Parameters:
+    ///   - isExpanded: A binding to whether the section's content is shown.
+    ///   - content: The section's content.
+    ///   - header: A view to use as the section's header.
+    public init(
+        isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content, @ViewBuilder header: () -> Parent
+    ) {
+        self.header = header()
+        self.content = content()
+        self.footer = EmptyView()
+        self.isExpanded = isExpanded
+    }
+}
+
+/// A section's header as it is drawn: the header itself, or — for a
+/// collapsible section — the header behind a disclosure triangle, the whole of
+/// it one control that toggles the section (a ``DisclosureGroup``'s header,
+/// with nothing to disclose but the section's own content).
+private struct _SectionHeader<Header: View>: View {
+    let header: Header
+    let isExpanded: Binding<Bool>?
+
+    var body: some View {
+        if let isExpanded {
+            DisclosureGroup(isExpanded: isExpanded) {
+                EmptyView()
+            } label: {
+                header
+            }
+        } else {
+            header
+        }
+    }
+}
+
+extension Section {
+    /// The header as it is drawn: ``_SectionHeader``, or nothing for a section
+    /// with no header.
+    fileprivate var hasHeader: Bool { !(header is EmptyView) }
+
+    /// The header as it is drawn (``_SectionHeader``).
+    fileprivate var drawnHeader: _SectionHeader<Parent> {
+        _SectionHeader(header: header, isExpanded: isExpanded)
+    }
+
+    /// Whether the content is shown: always, unless the section is collapsible
+    /// and collapsed.
+    fileprivate var showsContent: Bool { isExpanded?.wrappedValue ?? true }
 }
 
 // MARK: - Section Core (Internal Rendering)
@@ -181,6 +287,17 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
     let header: Parent
     let content: Content
     let footer: Footer
+    let isExpanded: Binding<Bool>?
+
+    /// The header as it is drawn: behind a disclosure triangle for a
+    /// collapsible section.
+    private var drawnHeader: _SectionHeader<Parent> {
+        _SectionHeader(header: header, isExpanded: isExpanded)
+    }
+
+    /// Whether the content is drawn: not while a collapsible section is
+    /// collapsed.
+    private var showsContent: Bool { isExpanded?.wrappedValue ?? true }
 
     var body: Never {
         fatalError("_SectionCore renders via Renderable")
@@ -202,10 +319,10 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
             if childSize.isHeightFlexible { heightFlexible = true }
         }
         if !(header is EmptyView) {
-            note(measureChild(header, proposal: proposal,
+            note(measureChild(drawnHeader, proposal: proposal,
                               context: sectionChromeContext(context, .sectionHeader)))
         }
-        note(measureChild(content, proposal: proposal, context: context))
+        if showsContent { note(measureChild(content, proposal: proposal, context: context)) }
         if !(footer is EmptyView) {
             note(measureChild(footer, proposal: proposal,
                               context: sectionChromeContext(context, .sectionFooter)))
@@ -268,7 +385,7 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
         var headerBuffer: FrameBuffer?
         if !(header is EmptyView) {
             let rendered = TUIkit.renderToBuffer(
-                header, context: sectionChromeContext(context, .sectionHeader))
+                drawnHeader, context: sectionChromeContext(context, .sectionHeader))
             // Drop a blank header (e.g. `header: { Text("") }`) rather than show
             // an empty line above the content.
             if !sectionBufferIsBlank(rendered) { headerBuffer = rendered }
@@ -280,8 +397,10 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
         let relay = ScrollWindowRelay(
             context: context, linesAbove: headerBuffer?.height ?? 0,
             linesBelow: { footerLinesBelowScrollContent(context: context) })
-        let contentBuffer = TUIkit.renderToBuffer(
-            content, context: relay?.contentContext(context) ?? context)
+        let contentBuffer =
+            showsContent
+            ? TUIkit.renderToBuffer(content, context: relay?.contentContext(context) ?? context)
+            : FrameBuffer()
 
         var footerBuffer: FrameBuffer?
         if !(footer is EmptyView) {
@@ -495,7 +614,9 @@ extension Section: SectionRowExtractor {
     func extractSectionContentRows<RowID: Hashable>(
         context: RenderContext
     ) -> SectionContentRows<RowID> {
-        Self.listRows(of: content, context: context)
+        // A collapsed section's rows leave the list.
+        guard showsContent else { return SectionContentRows(rows: [], actions: nil) }
+        return Self.listRows(of: content, context: context)
     }
 
     func extractSectionInfo(context: RenderContext) -> SectionInfo {
@@ -508,10 +629,10 @@ extension Section: SectionRowExtractor {
             // A blank header/footer is dropped (nil), not shown as an empty row.
             return sectionBufferIsBlank(buffer) ? nil : buffer
         }
-        let headerBuffer = renderedChrome(header, .sectionHeader, isEmptyView: header is EmptyView)
+        let headerBuffer = renderedChrome(drawnHeader, .sectionHeader, isEmptyView: !hasHeader)
         let footerBuffer = renderedChrome(footer, .sectionFooter, isEmptyView: footer is EmptyView)
 
-        let contentBuffer = TUIkit.renderToBuffer(content, context: context)
+        let contentBuffer = showsContent ? TUIkit.renderToBuffer(content, context: context) : FrameBuffer()
 
         return SectionInfo(
             headerBuffer: headerBuffer,
@@ -543,7 +664,8 @@ extension Section: ListRowExtractor {
     /// - Parameter context: The rendering context.
     /// - Returns: Array of list rows from the section's content.
     func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
-        Self.listRows(of: content, context: context).rows
+        guard showsContent else { return [] }
+        return Self.listRows(of: content, context: context).rows
     }
 
     /// The rows `content` contributes to the enclosing `List`, and the actions
