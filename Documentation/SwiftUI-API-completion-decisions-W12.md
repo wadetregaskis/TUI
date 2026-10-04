@@ -467,3 +467,40 @@ modifier does, keyed by its place in the tree. Effects never change layout.
 **Not offered** — so asking fails to compile: rotation, scale, 3D rotation
 and arbitrary transforms wait on Wave 16 (A-W12-7); blur, blend modes and
 the shader effects stay in the map's pixel-effects family.
+
+### B-W12-9 Keyframe timelines follow SwiftUI's curves, measured; the animator views stay with O2
+
+*`KeyframeTimeline` (`init(initialValue:content:)`, `duration`, `value(time:)`,
+`value(progress:)`), `Keyframes`, `KeyframeTrack`, `KeyframeTrackContent`,
+`KeyframesBuilder`, `KeyframeTrackContentBuilder` (and `Conditional`),
+`LinearKeyframe`, `CubicKeyframe`, `SpringKeyframe`, `MoveKeyframe`,
+`Never: Keyframes`*
+
+The Wave 17 review (P13) found the timeline side of the keyframe family
+wrongly refused: these are pure functions of time with no rendering at all,
+and `KeyframeTimeline` cannot be written without them. `KeyframeAnimator` and
+`keyframeAnimator` — the views that play a timeline — stay with O2.
+
+**Shipped,** with every curve rule taken from SwiftUI's own timelines
+(`w12/probe/p6.swift`, `p7.swift`) and pinned by tests to six places:
+adjacent cubic keyframes form a Catmull–Rom spline at rest at both ends; a
+cubic keyframe starts at the velocity the keyframe of another kind before it
+ended at, and ends at the next one's starting velocity; a named velocity
+wins on its own side of a junction only; a spring keyframe without a
+duration runs until it is within 0.0001 of its target (an absolute
+threshold, so a larger change takes longer), and one cut short hands on the
+value and velocity it reached; a move leaves the value at rest; tracks run
+together from the initial value and the last to write a property wins.
+
+**Where it differs.**
+
+- **Main-actor isolated.** The protocols, builders and the timeline's
+  initialiser and samplers are, because TUIkit's `Animatable` is (its values
+  are read and written through `animatableData`). SwiftUI's are
+  nonisolated. Code that builds a timeline in a view, a body or a `.task`
+  compiles unchanged; one built off the main actor does not.
+- **A time before the start is the start.** SwiftUI clamps its linear and
+  cubic segments there, but evaluates a spring backwards (−58.5 at −0.5 s for
+  a bouncy spring to 1).
+- **A zero-length linear or cubic keyframe arrives at once**, where SwiftUI
+  divides by its zero length and answers NaN.

@@ -240,6 +240,8 @@ identifier_name:
     - _valuesEqual
     # A `VisualEffect` applied to the buffer its view drew.
     - _applied
+    # Keyframes' and keyframe track content's resolution, SwiftUI's witness name.
+    - _resolve
     # The value hash's typed reader (`_ValueHashing`), the same convention for
     # a witness the framework calls and nothing else should.
     - _mixValueHash

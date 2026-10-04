@@ -248,6 +248,25 @@ given one where the answer stops mattering: a terminal draws whole cells and at
 most 256 shades, so a residual of 0.2% cannot change anything on screen, and the
 animation retires there.
 
+## Keyframes
+
+A ``KeyframeTimeline`` describes a value's whole path rather than a change to
+it — keyframes laid end to end, each with how it gets there — and answers what
+the value is at any time:
+
+```swift
+let wobble = KeyframeTimeline(initialValue: 0.0) {
+    CubicKeyframe(4, duration: 0.2)
+    CubicKeyframe(-2, duration: 0.2)
+    SpringKeyframe(0, spring: .bouncy)
+}
+let offset = wobble.value(time: elapsed)
+```
+
+Every curve is SwiftUI's, sampled the same way. A timeline is a calculation,
+not an animation: something has to ask it for a value at the times it draws,
+such as a ``TimelineView`` on the animation schedule.
+
 ## Topics
 
 ### Animating a change
@@ -259,6 +278,19 @@ animation retires there.
 - ``Spring``
 - ``UnitCurve``
 - ``AnimationCompletionCriteria``
+
+### Keyframes
+
+- ``KeyframeTimeline``
+- ``Keyframes``
+- ``KeyframeTrack``
+- ``KeyframeTrackContent``
+- ``LinearKeyframe``
+- ``CubicKeyframe``
+- ``SpringKeyframe``
+- ``MoveKeyframe``
+- ``KeyframesBuilder``
+- ``KeyframeTrackContentBuilder``
 
 ### Coming and going
 
