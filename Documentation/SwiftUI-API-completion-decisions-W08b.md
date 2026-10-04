@@ -38,6 +38,138 @@ and `.bordered`, `.inset`, `.plain` and `.sidebar` draw as named.
 by side should not disagree about whether they are boxed; whichever answer
 A29 gets, this one takes.
 
+### A-W08b-2. List separators: draw them, or decline them?
+
+*`View.listRowSeparatorTint(_:edges:)`, `View.listSectionSeparator(_:edges:)`,
+`View.listSectionSeparatorTint(_:edges:)`,
+`HorizontalAlignment.listRowSeparatorLeading`,
+`HorizontalAlignment.listRowSeparatorTrailing`; and the existing
+`listRowSeparator(_:edges:)`, inert since it shipped*
+
+Measured on macOS 15.8 (`w08b/probe/sections-*.png`): an `.automatic`,
+`.inset`, `.bordered` and `.plain` list draws a hairline under every row,
+inset to the row's content, and under every section header; `.sidebar`
+draws none. A hairline is thinner than a cell. TUIkit draws no separators,
+and `.listRowSeparator(_:)` is accepted and does nothing — a silent no-op
+of the kind this effort otherwise refuses.
+
+**Options.**
+
+1. **Underline the row's last line.** The separator becomes an underline
+   (SGR 4) across the row's cells from the separator's leading alignment to
+   its trailing one: no line of height spent, `.hidden` drops it, a tint is
+   the underline colour (SGR 58, whose support per terminal is not yet
+   recorded in `Terminal-compatibility.md`; where it is ignored the line
+   takes the text's colour). A selected or focused row's underline sits
+   inside its highlight. A day: the list's row composition, the alignment
+   guides, the tints, and measuring SGR 58 with the terminal probes.
+2. **A rule line between rows.** A `─` line in the faint ink: doubles every
+   list's height, which no terminal list wants. Half a day; not recommended.
+3. **Decline the family by reason** (a terminal row has no sub-cell rule, and
+   a line of height per row is too dear), and turn `listRowSeparator` into a
+   declined API too, removing it — pre-1.0, no compatibility shim. An hour.
+
+**Recommendation:** 1 if separators are wanted at all — it is the only
+answer that keeps a list's height; else 3, which at least stops
+`listRowSeparator` pretending.
+
+### A-W08b-3. Swipe actions: which keys and which pointer gesture?
+
+*`View.swipeActions(edge:allowsFullSwipe:content:)`,
+`TabContent.swipeActions(edge:allowsFullSwipe:content:)`*
+
+A macOS list row reveals its swipe actions on a two-finger trackpad swipe
+toward the edge they belong to; a full swipe performs the first. A terminal
+has no swipe, and an action only the pointer reaches breaks the
+no-mouse-only rule, so the route has to be chosen.
+
+**Options.**
+
+1. **A menu, from a chord and a horizontal scroll.** On the focused row, a
+   row shortcut (bindable through `.rowShortcuts`, say Ctrl-L for the
+   leading edge and Ctrl-T for the trailing) opens the edge's actions as the
+   context-menu engine's menu, anchored at that edge of the row; a
+   horizontal wheel event over a row (what a trackpad swipe sends in a
+   terminal that reports the wheel) opens the same menu, and a full swipe is
+   not modelled. Half a day: the menu, the shortcuts and the wheel are all
+   there.
+2. **Revealed buttons in the row.** The chord or the horizontal wheel slides
+   the actions in at the row's edge, over its trailing cells, as macOS draws
+   them; Tab moves through them and Escape slides them away; a second
+   horizontal wheel in the same direction is the full swipe. Closer to
+   macOS, and a day and a half: the row needs a revealed state the list draws
+   and memoises, and its focus ring has to admit the buttons.
+3. **Decline** by reason: a gesture the terminal does not have.
+
+**Recommendation:** 1. A swipe action is a context menu for one edge, and the
+menu brings its keyboard handling, dismissal and colours with it.
+
+### A-W08b-4. Per-tab interactions: context menus, popovers, drag and drop
+
+*`TabContent.contextMenu(menuItems:)`,
+`TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:)`,
+`TabContent.popover(item:attachmentAnchor:arrowEdge:content:)`,
+`TabContent.draggable(_:)`, `TabContent.dropDestination(for:action:)`,
+`TabContent.springLoadingBehavior(_:)`*
+
+These surfaced once `TabContent` existed. In a `.sidebarAdaptable` sidebar a
+tab is a list row, and each would be the view modifier of the same name on
+that row — free. In a strip, a tab is a chip the tab view's core draws and
+hit-tests by column, so each needs the chip to carry its own regions: a
+right-click and Shift+F10 on the focused chip for the menu, an anchor for
+the popover, a press-and-move for the drag, a hover target for the drop
+(and spring loading: a drag held over a chip selects that tab, as macOS
+does). `SpringLoadingBehavior` itself is not in TUIkit yet.
+
+**Options.**
+
+1. **All six, in both looks.** A day and a half, most of it the strip's
+   per-chip regions, which all six share.
+2. **The sidebar only**, with each refused in a strip — not possible as a
+   compile-time refusal (the style is chosen at run time), so the strip would
+   ignore them: a silent no-op. Not recommended.
+3. **Decline** by reason: a terminal tab strip is a row of labels, not of
+   controls.
+
+**Recommendation:** 1, after the table rows' drag and drop, which builds the
+"a drawn row carries its own drag regions" half of it.
+
+### A-W08b-5. Search in a tab view (macOS 26): the search tab and its activation
+
+*`TabSearchActivation` (`.automatic`, `.searchTabSelection`),
+`View.tabViewSearchActivation(_:)`; and `.searchable` written on a
+`TabView`*
+
+On macOS 26 `.searchable` on a `TabView` puts the search field into the tab
+whose role is `.search`, and `.searchTabSelection` focuses the field when
+that tab is chosen and goes back to the previous tab when the search is
+dismissed. TUIkit draws `.searchable` on a tab view as it does on any view —
+a field above the whole tab view — and has the `.search` role only as a
+label. Nothing here could be measured: these are macOS 26 APIs, and this
+machine runs 15.8.
+
+**Options.**
+
+1. **Implement as documented.** The tab view hands a `.searchable` written on
+   it to its search tab's content (the field drawn at the top of that tab),
+   and `.searchTabSelection` focuses it on selection (`SearchDismissal`
+   already focuses a field) and reselects the previous tab on Escape. Half a
+   day, and it should be measured on macOS 26 first.
+2. **Defer** until a macOS 26 machine can measure it. Nothing compiles
+   meanwhile, which is the honest state.
+
+**Recommendation:** 2, then 1.
+
+### A-W08b-6. `sectionIndexLabel(_:)` joins O8
+
+*`View.sectionIndexLabel(_:)` (both)*
+
+A macOS 26 modifier naming a section in a list's section index — the
+A-to-Z strip down an iOS list's edge. macOS has no section index:
+`listSectionIndexVisibility(_:)` is not in the macOS SDK, so on macOS the
+label is inert. Exactly O8's question (APIs inert on macOS too); it ships or
+is declined with O8's answer. Shipping it inert is ten minutes.
+
 ## B. Shipped the safe option
 
 ### B-W08b-1. Badge prominence: two inks, read from the list's environment
