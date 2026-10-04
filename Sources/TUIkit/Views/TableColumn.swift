@@ -183,7 +183,17 @@ extension _TableCellSource {
             // makes it a cast at all rather than a conversion.
             return .text { content($0) as! Text }  // swiftlint:disable:this force_cast
         }
-        return .view { row, context in TUIkit.renderToBuffer(content(row), context: context) }
+        return .view { row, context in
+            let view = content(row)
+            // Asked for its type-select text: the text the view states, if it
+            // states one (`View.typeSelectEquivalent(_:)`).
+            if context.environment.isTypeSelectProbe, let stated = statedTypeSelectEquivalent(of: view),
+                let stated
+            {
+                return FrameBuffer(lines: [stated])
+            }
+            return TUIkit.renderToBuffer(view, context: context)
+        }
     }
 }
 

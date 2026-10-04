@@ -349,7 +349,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
             key: identityKey(element[keyPath: idKeyPath]))
         // Defer view construction, badge extraction, and rendering until the row
         // enters the visible window (see ``LazyListRowContent``).
-        return LazyListRowContent(
+        let box = LazyListRowContent(
             identity: rowContext.identity,
             carriesBadge: viewTypeCarriesBadge(Content.self),
             // The row's size without rendering it — what a `List` placing a
@@ -424,6 +424,19 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 let view = content(element)
                 return (TUIkit.renderToBuffer(view, context: rowContext), extractBadgeValue(from: view))
             })
+        // The row's type-select text, asked only when the user types to find a
+        // row: its stated equivalent, else its first line drawn as a measure,
+        // which registers nothing — the row may be far out of sight.
+        box.typeSelectProbe = { [content] in
+            let view = content(element)
+            if let stated = statedTypeSelectEquivalent(of: view), let stated { return stated }
+            var probe = rowContext
+            probe.isMeasuring = true
+            return TUIkit.renderToBuffer(view, context: probe).lines.first.map {
+                $0.stripped.trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return box
     }
 
     /// `element`'s row, memoised by `rowKey` — the element opened from its

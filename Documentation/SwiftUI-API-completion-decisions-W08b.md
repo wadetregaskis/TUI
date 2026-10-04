@@ -186,6 +186,46 @@ Where it differs:
   section. That comes with `Section(isExpanded:)` in a list, which the sidebar
   would then use.
 
+### B-W08b-6. Type select moves the cursor, and a prefix's first character gives way to bare-key bindings
+
+*`View.typeSelectEquivalent(_:)` (all four)*
+
+macOS type select, in a focused table or outline: typing a few characters
+selects the first row after the selection whose text starts with them, and a
+key no row answers to beeps.
+
+**Shipped:** with a list or table focused, a typed character without Control
+or Option (and not Space, which selects) joins a prefix, which a second's
+pause starts afresh; the next render moves the cursor to the first row whose
+text starts with the prefix, ignoring case — after the cursor for a first
+character, at it for a longer prefix — and scrolls it into view. A row's text
+is its stated `typeSelectEquivalent(_:)`, else a list row's first line of text
+(drawn as a measure for a row out of sight, which registers nothing) or a
+table row's first column. An empty equivalent takes the row out.
+
+Where it differs:
+
+- **The cursor moves, not the selection.** TUIkit's lists and tables move the
+  cursor with the arrow keys and select with Return or Space; type select
+  follows them. Selecting as well is a line, if the owner prefers macOS's
+  behaviour for this one gesture.
+- **A prefix's first character gives way to bare-key bindings.** macOS's
+  shortcuts take Command, so its type select never meets one; TUIkit binds
+  bare keys — its own `q` (quit), `t` (theme), `a` (appearance) and help key,
+  and any bare `.keyboardShortcut` an app registers. The first character of a
+  prefix goes to such a binding (the Stress `themes` session presses `t` with
+  a list focused, and caught it); once a prefix is under way every character
+  continues it, or typing "Atlas" would cycle the theme at the `t`. So a row
+  whose name starts with a bound letter is not found by typing that letter
+  first. Any other character is taken whether or not a row answers to it, as
+  macOS takes it. The alternative — resolve the prefix when the key arrives
+  and pass on a key no row answers to — needs every row's text at key time,
+  measured outside a render; a day.
+- **A looped row spliced among hand-written rows** (a `ForEach` beside a
+  static row) is matched by its drawn text; an equivalent it states is not
+  seen, behind the memo the list wraps such rows in. Half an hour with the
+  badge's own unwrapping (`extractRowBadgeValue`).
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

@@ -744,7 +744,9 @@ extension Section: ListRowExtractor {
                 let buffer = child.render(
                     width: context.availableWidth, height: context.availableHeight,
                     context: context)
-                rows.append(ListRow(askedID: rowID, buffer: buffer, badge: badge))
+                let row = ListRow(askedID: rowID, buffer: buffer, badge: badge)
+                row.content.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
+                rows.append(row)
             }
             return rows
         }

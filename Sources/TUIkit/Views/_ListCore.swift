@@ -1510,6 +1510,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 }
             }
         wireRowEditing(handler: handler, source: source)
+        // A prefix typed since the last frame moves the cursor to the row it
+        // names — once the rows' landing set is known, and before the window is
+        // chosen, so the window follows it.
+        handler.resolvePendingTypeSelect(measuring: context.isMeasuring) { source.content(at: $0).typeSelectText }
         return (handler, showsScrollbar)
     }
 
@@ -3412,10 +3416,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // exist for. ASKED when the list wants the row's type, not here:
             // a looped row's answer can cost a build of the row, and the hug
             // measure walks every row for its width alone.
+            let rowContent = LazyListRowContent(buffer: buffer, badge: badge)
+            rowContent.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
             result.append(
                 EagerListRow(
                     asked: rowIDs.askedID(ofChildAt: childIndices[childIndex], ordinal: result.count),
-                    content: LazyListRowContent(buffer: buffer, badge: badge)))
+                    content: rowContent))
         }
 
         return ExtractedRows(rows: result, editOwners: editOwners)

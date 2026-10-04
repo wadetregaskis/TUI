@@ -156,6 +156,22 @@ final class LazyListRowContent {
     /// the (rendered) buffer does.
     nonisolated let rowIdentity: ViewIdentity?
 
+    /// The row's type-select text when the row's view is at hand to ask —
+    /// its stated equivalent, or its first line drawn as a measure — or `nil`
+    /// for a row handed over already drawn, whose drawn first line is its text
+    /// (``typeSelectText``).
+    var typeSelectProbe: (() -> String?)?
+
+    /// The text a typed prefix matches this row by: its stated equivalent
+    /// (``View/typeSelectEquivalent(_:)-(Text?)``), else its first line of
+    /// text — asked of the row's view where there is one, so a row out of
+    /// sight is drawn only as a measure, and read off the drawn buffer
+    /// otherwise.
+    var typeSelectText: String? {
+        if let typeSelectProbe { return typeSelectProbe() }
+        return buffer.lines.first.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+    }
+
     /// Defers rendering until the buffer (or badge) is first read.
     init(
         identity: ViewIdentity? = nil,

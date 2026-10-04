@@ -69,7 +69,8 @@ extension ItemListHandler {
             return deleteFocusedRow()
 
         default:
-            return false
+            // A typed character finds a row by its text (type select).
+            return typeSelect(event)
         }
     }
 

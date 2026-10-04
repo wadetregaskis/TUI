@@ -738,6 +738,15 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// memo below the row compares (``BackgroundProminence``).
     var raisedProminenceRow: ViewIdentity?
 
+    /// Type select: the characters typed so far, and when the last of them
+    /// came — a gap of a second starts a new prefix (``typeSelect(_:)``).
+    var typeSelectPrefix = ""
+    var typeSelectLastKey: ContinuousClock.Instant?
+
+    /// A prefix typed since the last render, for the next render to find a row
+    /// for: the rows' text is the render's to give (``typeSelect(_:)``).
+    var pendingTypeSelect: String?
+
     /// The anchor row for range selection (macOS semantics): the last row
     /// plainly clicked, modifier-toggled, or Space-toggled. Shift-clicks and
     /// keyboard range extension both select the whole span between the anchor

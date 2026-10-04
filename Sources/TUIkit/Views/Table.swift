@@ -1550,8 +1550,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 focusID: persistedFocusID, itemCount: data.count, viewportHeight: 1,
                 selectionMode: selectionMode, canBeFocused: !isDisabled(in: context)))
         let handler = handlerBox.value
-        handler.itemCount = data.count
-        handler.drawing = HandlerDrawing(context)
+        refresh(handler, context: context)
         // As on the single-line path: a hovering drag's landing slot is a line
         // nothing left to make room for, so the rows are budgeted the content
         // area minus it and ``ItemListHandler/extent`` gains the row that lets
@@ -2278,8 +2277,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             )
         )
         let handler = handlerBox.value
-        handler.itemCount = data.count
-        handler.drawing = HandlerDrawing(context)
+        refresh(handler, context: context)
         // A drag from elsewhere draws its landing slot as an extra line —
         // nothing left this table to make room for it. `Table` has no
         // same-table case to exclude: its rows are built from `data`, so they
@@ -3800,6 +3798,30 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         handler.raisedProminenceRow = identity
         return raised
+    }
+
+    /// What both handler resolutions do first each frame: the row count, the
+    /// drawing inputs, and — before anything is drawn from the cursor — the
+    /// row a prefix typed since the last frame names.
+    private func refresh(_ handler: ItemListHandler<Value.ID>, context: RenderContext) {
+        handler.itemCount = data.count
+        handler.drawing = HandlerDrawing(context)
+        handler.resolvePendingTypeSelect(measuring: context.isMeasuring) {
+            typeSelectText(of: data[$0], context: context)
+        }
+    }
+
+    /// The text a typed prefix matches a row by: its first column's — the
+    /// value of a key-path column, the text a view cell states with
+    /// `typeSelectEquivalent(_:)`, or else the view cell's first line drawn as
+    /// a measure, which registers nothing (the row may be far out of sight).
+    private func typeSelectText(of item: Value, context: RenderContext) -> String? {
+        guard let column = columns.first else { return nil }
+        var probe = Self.probing(context)
+        probe.environment.isTypeSelectProbe = true
+        let value = cellValue(column, for: item, width: max(1, context.availableWidth), context: probe)
+        return value.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first
+            .map { String($0).stripped.trimmingCharacters(in: .whitespaces) }
     }
 
     /// `context` over a raised background: what the focused, selected row's

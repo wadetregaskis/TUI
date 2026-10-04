@@ -193,7 +193,7 @@ extension InputHandler {
         // Skipped when text-input has focus since it was already dispatched
         // above — and when the modal-claimed ESC pre-route already offered
         // this very event and was declined.
-        if !focusManager.hasTextInputFocus, !focusDeclinedEscape {
+        if !focusManager.hasTextInputFocus, !focusDeclinedEscape, !typeSelectGivesWay(event) {
             if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
                 return true
             }
@@ -248,10 +248,41 @@ extension InputHandler {
         // A lightweight ESC claim (a list's clearable selection) re-routes
         // only the ESC key; it doesn't ground the chrome shortcuts the way
         // an open drop-down does — hence the grabs-input qualifier.
+        return handleGlobalShortcut(event, inputGrabbed: globalChromeGrabbed)
+    }
+
+    /// Whether a transient surface holds the input, so the global chrome keys
+    /// (`t`, `a`) are grounded: a modal's section, or an escape claim that
+    /// grabs input (see the default bindings in `handle(_:)`).
+    private var globalChromeGrabbed: Bool {
         let escapeClaimGrabs =
             statusBar.escapeLabelOverride != nil && statusBar.escapeClaimGrabsInput
-        let inputGrabbed = focusManager.activeSectionIsModal || escapeClaimGrabs
-        return handleGlobalShortcut(event, inputGrabbed: inputGrabbed)
+        return focusManager.activeSectionIsModal || escapeClaimGrabs
+    }
+
+    /// Whether a focused list or table lets a typed character go past its type
+    /// select to an app shortcut or one of TUIkit's own bare keys that claims
+    /// it: the quit key, the help key, `t` (theme) and `a` (appearance) where
+    /// they are live.
+    ///
+    /// Only the FIRST character of a prefix gives way. Once a prefix is under
+    /// way every character continues it, or typing a name with a `t` in it
+    /// would cycle the theme halfway through. A first character that a row
+    /// would have answered to is the price: a TUIkit app binds bare keys, which
+    /// macOS, whose shortcuts take Command, never has to weigh against type
+    /// select (decisions B-W08b-6).
+    private func typeSelectGivesWay(_ event: KeyEvent) -> Bool {
+        guard let selecting = focusManager.currentFocused as? any TypeSelectingFocusHandler,
+            !selecting.isTypeSelecting, !event.ctrl, !event.alt,
+            case .character(let character) = event.key
+        else { return false }
+        if keyboardShortcuts.hasAppShortcut(for: event) || statusBar.quitShortcut.matches(event) { return true }
+        if let tooltipState, let helpKey = tooltipState.helpKey, event.key == helpKey { return true }
+        switch character {
+        case "t", "T": return statusBar.showThemeItem && !globalChromeGrabbed
+        case "a", "A": return !globalChromeGrabbed
+        default: return false
+        }
     }
 
     /// Offers `event` to the focused view's commands — SwiftUI's move, exit and
