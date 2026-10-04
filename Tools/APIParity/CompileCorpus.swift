@@ -560,74 +560,6 @@ private struct AsyncImageShapes: View {
                 case .failure: Text("No image")
                 case .empty: ProgressView()
                 @unknown default: EmptyView()
-
-// MARK: - Table columns
-
-/// SwiftUI's column surface as its documentation writes it: key-path and
-/// view-content columns, a sortable table holding a column that cannot sort,
-/// `sortUsing:` with a `SortDescriptor` order, a `Text` label, an `if`, a
-/// `Group`, columns factored into a builder property, and `TableColumnForEach`.
-/// `KeyPathComparator` and `SortDescriptor` are Foundation's, which SwiftUI
-/// re-exports and TUIkit does not; this file imports it above.
-@MainActor
-private struct TableColumnShapes: View {
-    struct Person: Identifiable {
-        let id: Int
-        var givenName: String
-        var familyName: String
-        var age: Int
-        var email: String
-    }
-
-    @State private var people: [Person] = []
-    @State private var selection: Person.ID?
-    @State private var selections = Set<Person.ID>()
-    @State private var sortOrder = [KeyPathComparator(\Person.givenName)]
-    @State private var descriptors = [SortDescriptor(\Person.age)]
-    let showsEmail: Bool
-
-    var body: some View {
-        VStack {
-            Table(people) {
-                TableColumn("Given Name", value: \.givenName)
-                    .width(min: 40, ideal: 90, max: 200)
-                TableColumn("Age") { person in Text("\(person.age)") }
-                    .width(60)
-            }
-            Table(people, selection: $selection, sortOrder: $sortOrder) {
-                TableColumn("Given Name", value: \.givenName)
-                TableColumn("Family Name", value: \.familyName) { Text($0.familyName) }
-                TableColumn("Age", value: \.age) { Text($0.age, format: .number) }
-                    .alignment(.numeric)
-                TableColumn("Notes") { _ in Text("-") }
-                if showsEmail {
-                    TableColumn("Email", value: \.email)
-                }
-                // SwiftUI cannot infer a key path's root here either.
-                Group {
-                    TableColumn(Text("Label"), value: \Person.email)
-                }
-            }
-            .onChange(of: sortOrder) { _, newOrder in people.sort(using: newOrder) }
-            Table(people, selection: $selections, sortOrder: $descriptors) {
-                TableColumn("Age", sortUsing: SortDescriptor(\Person.age)) { Text("\($0.age)") }
-            }
-            .tableColumnHeaders(.hidden)
-            .alternatingRowBackgrounds()
-            .tableStyle(.inset)
-            Table(people) { TableColumn("Name", value: \.givenName) }
-                .tableStyle(.bordered)
-            Table(people) { TableColumn("Name", value: \.givenName) }
-                .tableStyle(PaddedTableStyle())
-            List(people) { Text($0.givenName) }
-                .alternatingRowBackgrounds(.disabled)
-            Table(people) {
-                Group {
-                    TableColumn("Label", value: \Person.email)
-                }
-                nameColumns
-                TableColumnForEach(0..<2) { index in
-                    TableColumn("Column \(index)") { (person: Person) in Text(person.givenName) }
                 }
             }
         }
@@ -738,7 +670,80 @@ private struct ResizableImageShapes: View {
             Image(systemName: "star")
                 .resizable(capInsets: EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4), resizingMode: .tile)
         }
+    }
+}
 
+// MARK: - Table columns
+
+/// SwiftUI's column surface as its documentation writes it: key-path and
+/// view-content columns, a sortable table holding a column that cannot sort,
+/// `sortUsing:` with a `SortDescriptor` order, a `Text` label, an `if`, a
+/// `Group`, columns factored into a builder property, and `TableColumnForEach`.
+/// `KeyPathComparator` and `SortDescriptor` are Foundation's, which SwiftUI
+/// re-exports and TUIkit does not; this file imports it above.
+@MainActor
+private struct TableColumnShapes: View {
+    struct Person: Identifiable {
+        let id: Int
+        var givenName: String
+        var familyName: String
+        var age: Int
+        var email: String
+    }
+
+    @State private var people: [Person] = []
+    @State private var selection: Person.ID?
+    @State private var selections = Set<Person.ID>()
+    @State private var sortOrder = [KeyPathComparator(\Person.givenName)]
+    @State private var descriptors = [SortDescriptor(\Person.age)]
+    let showsEmail: Bool
+
+    var body: some View {
+        VStack {
+            Table(people) {
+                TableColumn("Given Name", value: \.givenName)
+                    .width(min: 40, ideal: 90, max: 200)
+                TableColumn("Age") { person in Text("\(person.age)") }
+                    .width(60)
+            }
+            Table(people, selection: $selection, sortOrder: $sortOrder) {
+                TableColumn("Given Name", value: \.givenName)
+                TableColumn("Family Name", value: \.familyName) { Text($0.familyName) }
+                TableColumn("Age", value: \.age) { Text($0.age, format: .number) }
+                    .alignment(.numeric)
+                TableColumn("Notes") { _ in Text("-") }
+                if showsEmail {
+                    TableColumn("Email", value: \.email)
+                }
+                // SwiftUI cannot infer a key path's root here either.
+                Group {
+                    TableColumn(Text("Label"), value: \Person.email)
+                }
+            }
+            .onChange(of: sortOrder) { _, newOrder in people.sort(using: newOrder) }
+            Table(people, selection: $selections, sortOrder: $descriptors) {
+                TableColumn("Age", sortUsing: SortDescriptor(\Person.age)) { Text("\($0.age)") }
+            }
+            .tableColumnHeaders(.hidden)
+            .alternatingRowBackgrounds()
+            .tableStyle(.inset)
+            Table(people) { TableColumn("Name", value: \.givenName) }
+                .tableStyle(.bordered)
+            Table(people) { TableColumn("Name", value: \.givenName) }
+                .tableStyle(PaddedTableStyle())
+            List(people) { Text($0.givenName) }
+                .alternatingRowBackgrounds(.disabled)
+            Table(people) {
+                Group {
+                    TableColumn("Label", value: \Person.email)
+                }
+                nameColumns
+                TableColumnForEach(0..<2) { index in
+                    TableColumn("Column \(index)") { (person: Person) in Text(person.givenName) }
+                }
+            }
+        }
+    }
 
     @TableColumnBuilder<Person, Never>
     private var nameColumns: some TableColumnContent<Person, Never> {
