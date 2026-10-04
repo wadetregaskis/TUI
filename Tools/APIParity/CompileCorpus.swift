@@ -528,3 +528,14 @@ private struct TextSelectionShapes: View {
         .textSelectionAffinity(.upstream)
     }
 }
+
+/// A number formatted through a printf-style specifier inside a Text literal.
+@MainActor
+private struct SpecifierShapes: View {
+    let price: Double
+    let count: Int
+
+    var body: some View {
+        Text("Total: \(price, specifier: "%.2f") for \(count, specifier: "%d") items")
+    }
+}

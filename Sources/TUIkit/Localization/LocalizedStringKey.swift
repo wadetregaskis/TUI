@@ -360,6 +360,23 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         // above — which at least does not crash — is what an `Image` still
         // binds to.
 
+        /// Interpolates a number through a printf-style format specifier —
+        /// mirrors SwiftUI's `appendInterpolation(_:specifier:)`:
+        /// `Text("\(price, specifier: "%.2f")")`.
+        ///
+        /// Formatted at once, in the current locale, as ``Text/init(_:format:)``
+        /// formats. The key carries `%@` where the value goes, like every other
+        /// interpolation here, where SwiftUI's carries the specifier itself;
+        /// the two differ only in what a translation table must be keyed by.
+        ///
+        /// - Parameters:
+        ///   - value: The value to format.
+        ///   - specifier: The format specifier, such as `%.2f` or `%x`.
+        public mutating func appendInterpolation<T: CVarArg>(_ value: T, specifier: String) {
+            key += "%@"
+            arguments.append(String(format: specifier, locale: .current, value))
+        }
+
         /// Interpolates a value through a format style — the same eager
         /// formatting ``Text/init(_:format:)`` does.
         public mutating func appendInterpolation<F: FormatStyle>(
