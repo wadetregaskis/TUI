@@ -790,7 +790,7 @@
       "why": "A Shape adapter (Shape.offset(x:y:)); no Shape protocol exists. Whole-cell offsetting of a VIEW does exist as View.offset(x:y:) (Sources/TUIkit/Modifiers/OffsetModifier.swift:71)."
     },
     "OutlineSubgroupChildren": {
-      "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkit/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C-W08a-1."
+      "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkit/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
     },
     "Path": {
       "why": "Bezier control points are fractional; the coordinate space here is integer cells only (CellRect, Sources/TUIkit/Views/GeometryReader.swift:77-95). 0 occurrences of a SwiftUI-like Path under Sources (the three \\bPath\\b hits are a navigation-path comment and a localisation string)."

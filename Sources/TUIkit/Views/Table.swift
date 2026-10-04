@@ -4726,7 +4726,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Whether the row at `row` in `data` draws a stripe: every other row,
     /// counting from the first however far the table has scrolled, so the
     /// stripes stay on their rows — under `.alternatingRowBackgrounds()`. A
-    /// table does not stripe by default (decisions A-W08a-1).
+    /// table does not stripe by default (decisions A29).
     private func isStriped(row: Int, environment: EnvironmentValues) -> Bool {
         row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: false)
     }
