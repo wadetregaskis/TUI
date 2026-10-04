@@ -48,11 +48,36 @@
     },
     {
       "match": [
-        "AttributeScopes*",
-        "AttributedTextFormatting*",
-        "AttributeDynamicLookup*"
+        "AttributeScopes.SwiftUIAttributes.kern",
+        "AttributeScopes.SwiftUIAttributes.KerningAttribute*",
+        "AttributeScopes.SwiftUIAttributes.tracking",
+        "AttributeScopes.SwiftUIAttributes.TrackingAttribute*",
+        "AttributeScopes.SwiftUIAttributes.baselineOffset",
+        "AttributeScopes.SwiftUIAttributes.BaselineOffsetAttribute*",
+        "AttributeScopes.SwiftUIAttributes.lineHeight",
+        "AttributeScopes.SwiftUIAttributes.alignment"
       ],
-      "why": "AttributedString attribute scopes describe font, kerning and paragraph metrics a cell grid does not have. TUIkit styles runs with its own Text attributes."
+      "why": "Sub-cell typography, as the View modifiers of the same names (decisions C8): a cell grid has one advance per cell, one baseline and one line height, so kerning, tracking, a baseline offset or a line height have nowhere to go. A run's paragraph alignment has no carrier either: a Text aligns its lines as one block (multilineTextAlignment), never paragraph by paragraph. Omitted so setting one fails to compile."
+    },
+    {
+      "match": [
+        "AttributeScopes.SwiftUIAttributes.adaptiveImageGlyph",
+        "AttributeScopes.SwiftUIAttributes.AdaptiveImageGlyphAttribute*"
+      ],
+      "why": "An adaptive image glyph (Genmoji) is a multi-resolution bitmap drawn inline at the font's size. A terminal cell holds a character, and the image protocols that can place a picture are block-level, not glyphs in a run of text."
+    },
+    {
+      "match": [
+        "AttributeScopes.SwiftUIAttributes.*.encode(_:to:)",
+        "AttributeScopes.SwiftUIAttributes.*.decode(from:)"
+      ],
+      "why": "The keys' Codable conformances (macOS 26) need Codable values, and TUIkit's Color (which can name a palette role or carry a gradient) and Font are not Codable. An attributed string with these attributes still compiles and draws; it does not archive them."
+    },
+    {
+      "match": [
+        "AttributedTextFormatting*"
+      ],
+      "why": "macOS 26's rich-text editing: a TextEditor over an AttributedString and the definitions constraining what an edit may set. It waits on an attributed TextEditor, which Text(AttributedString) now makes possible (decisions A42)."
     },
     {
       "match": [

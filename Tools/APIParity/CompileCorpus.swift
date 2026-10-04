@@ -1566,3 +1566,34 @@ private enum DragSessionValueShapes {
 
     static let formations: [DragDropPreviewsFormation] = [.default, .list, .none, .pile, .stack]
 }
+// MARK: - Attributed text (Wave 17t)
+
+/// SwiftUI's attributed `Text`, as its documentation writes it. The parity
+/// tool cannot see `Text(_:)` for an `AttributedString` — its key collapses
+/// onto `Text.init(_:)` — so this is the check. On macOS SwiftUICore's scope
+/// is visible here too; the assignments below must still bind to TUIkit's.
+@MainActor
+private struct AttributedText: View {
+    var content: AttributedString {
+        var attributedString = AttributedString("Blue text")
+        attributedString.foregroundColor = .blue
+        attributedString.backgroundColor = .yellow
+        attributedString.font = .headline
+        attributedString.underlineStyle = .single
+        attributedString.strikethroughStyle = .single
+        attributedString.swiftUI.foregroundColor = .blue
+        attributedString.mergeAttributes(AttributeContainer().foregroundColor(.red))
+        return attributedString
+    }
+
+    var body: some View {
+        VStack {
+            Text(content)
+            Text(content) + Text("tail").bold()
+            Text("Red text")
+            Text("")
+            Text(" ")
+        }
+        .foregroundStyle(.red)
+    }
+}
