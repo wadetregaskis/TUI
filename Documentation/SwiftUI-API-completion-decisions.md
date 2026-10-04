@@ -4660,6 +4660,98 @@ or `LongPressGesture` it is on macOS, attached with `gesture`, so:
 Every in-repo use was checked (the Mouse page, an outline triangle, the Stress
 log rows) and the full suite passes.
 
+*Lane 17m's entry (B95), `MeshGradient` (refusal review P11): measured on macOS 15.8 (SDK 26.2) against offscreen renders, with the fitting scripts in the session notes, `w17m/probe`.*
+
+### B95. A mesh is one sample a cell on a glyph terminal, and a picture where the terminal takes one
+
+*`MeshGradient` (its five initialisers, `width`, `height`, `locations`,
+`colors`, `background`, `smoothsColors`, `colorSpace`, `resolve(in:)`, `Body`,
+`Resolved`), `MeshGradient.BezierPoint` (its initialiser and five points),
+`MeshGradient.Locations` (`.points`, `.bezierPoints`),
+`MeshGradient.Colors` (`.colors`, `.resolvedColors`); `Paint.mesh` and
+`MeshPaint`, TUIkit's own*
+
+**Shipped:** all of SwiftUI's surface, a style and a view. Each cell takes
+the mesh's colour at the cell's centre; an opaque mesh used as a view, or
+behind blank cells, is a picture on a graphics terminal; inside
+`withAnimation` its vertices slide and its colours fade. Measured on macOS
+15.8, and pinned at SwiftUI's own pixels in `MeshGradientTests`:
+
+- **A patch is a Coons patch.** The interior control points fitted from
+  SwiftUI's picture match PDF's type 6 formula to the probe's noise.
+- **An implied control point** (the `points:` form) lies a third of the way to
+  its neighbour, along the line bisecting the vertex's two edges in that
+  direction; an edge vertex aims straight at its one neighbour. Residual on
+  four warped meshes: 0.7–0.9 px on a 201 px picture, against 2–4 px for
+  straight thirds or Catmull–Rom tangents.
+- **`smoothsColors`** is a bicubic Hermite patch per channel, with no twist,
+  whose slope at a vertex is half the difference of its neighbours — zero at
+  the mesh's edges (not one-sided), zero at a peak or a trough, and capped at
+  three times the smaller difference. 1 level in 255 against SwiftUI, which is
+  its own tessellation; bilinear blending matches to the byte.
+- **`.perceptual`** makes those slope decisions per channel of OKLab's
+  cube-root cone space, the stage before OKLab's last matrix: 1.4 levels
+  against SwiftUI, where deciding them in OKLab itself missed by 12. (For a
+  bilinear blend the two spaces give the same answer.)
+- **Translucent colours blend premultiplied**; `background` fills what no
+  patch covers (`.clear` by default); a mesh with fewer than two vertices in a
+  direction, or a point count other than `width × height`, draws its
+  background alone; a missing colour is `.clear`.
+- **Inside `withAnimation`** SwiftUI moved a mesh's column at even steps and
+  stepped its colours exactly as a `LinearGradient`'s stops beside it.
+
+Where it differs, or rests on less than a measurement:
+
+- **One sample a cell.** A cell is the mesh at its centre, so a smooth mesh is
+  a staircase on a glyph terminal; the picture path removes the staircase
+  where the terminal draws pictures. This is the same rule every gradient
+  follows.
+- **Exact evaluation, not SwiftUI's tessellation.** TUIkit evaluates the
+  Hermite patch at each sample; SwiftUI interpolates linearly between the
+  vertices of its tessellation. The two differ by a level or two where a colour
+  curves.
+- **The slope cap is spelled as a box, not a circle.** "At most three times the
+  smaller difference" and Fritsch–Carlson's α² + β² ≤ 9 both fit every probe:
+  with Catmull–Rom slopes they part only once one difference is about five
+  times the other, and then by under 2 % of the slope. Telling them apart
+  needs one more probe aimed at that band, an hour; the colour it could move is
+  under a level.
+- **A folded mesh draws its patches in reading order**, a later one over an
+  earlier. SwiftUI's order where patches overlap was not measured.
+- **Whether a mesh is opaque throughout is decided conservatively.** A mesh
+  whose outline lies on its box's edges covers the box, and is opaque if its
+  colours are; one that covers the box some other way (points past its edges)
+  is treated as letting a `.clear` background through. It draws the same,
+  through the translucency path, which costs more and leaves an `.opacity`
+  inside it carried up rather than spent against the mesh.
+- **A colour with no RGB** — `.default`, an unreported terminal slot — cannot
+  be blended: a patch with one takes whichever corner weighs most at the point,
+  whole. This is `Color.lerp`'s rule for a gradient stop; SwiftUI has no such
+  colour.
+- **At 256 colours each cell is quantised on its own.** A ramp's quantiser
+  repairs monotonicity along the ramp; a mesh has no order to repair along.
+
+**The cost**, debug build, one mesh over 80 × 24 cells: 0.9 ms for a grid
+mesh (each cell finds its patch by two divisions) and 3.4 ms for a warped one
+(each patch split by de Casteljau until a piece is within a twentieth of a
+cell of its corners' bilinear map). A picture of the same box at 640 × 408
+pixels fills in 104 ms and 170 ms, once per picture: the store asks for the
+bytes only when the terminal does not already hold them, which is new for
+every gradient picture (before, each render of a ramp behind blank cells
+filled its whole picture first). A `Table`'s ramp runs over every row of its
+data, so a mesh there is worked out a band of eight rows at a time, only for
+the rows asked about.
+
+**The fuller version: two samples a cell on a glyph terminal.** A gradient
+used as a view — any of the five, behind blank cells — could draw each cell as
+an upper half block (`▀`) whose foreground is the sample a quarter of the way
+down the cell and whose background the sample three quarters down, doubling
+the vertical resolution where there is no picture. `Image` already draws this
+way. About half a day with the self-check, and a look in Apple Terminal and
+Warp, which take no pictures and are where it would show. It changes how every
+gradient view looks on those terminals, and copying such a region yields `▀`
+rather than spaces, which is why it is not done here.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
