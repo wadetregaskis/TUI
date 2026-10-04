@@ -19,8 +19,12 @@ struct _TableRowTraits {
     /// `.selectionDisabled(_:)` nearest the row wins.
     var selectionDisabled: Bool?
 
+    /// What to tell when the pointer comes onto the row and leaves it, from
+    /// every `.onHover(perform:)` around it, nearest first.
+    var hoverActions: [(Bool) -> Void] = []
+
     /// Whether no modifier said anything.
-    var isEmpty: Bool { selectionDisabled == nil }
+    var isEmpty: Bool { selectionDisabled == nil && hoverActions.isEmpty }
 }
 
 // MARK: - The modifier protocol
@@ -113,5 +117,40 @@ extension TableRowContent {
     ///   row wins.
     public func selectionDisabled(_ isDisabled: Bool = true) -> some TableRowContent<TableRowValue> {
         ModifiedContent(content: self, modifier: _SelectionDisabledTableRowModifier(isDisabled: isDisabled))
+    }
+}
+
+// MARK: - onHover
+
+/// What `.onHover(perform:)` records on a row.
+struct _HoverTableRowModifier: _TableRowTraitModifier {
+    let action: (Bool) -> Void
+
+    func apply(to traits: inout _TableRowTraits) {
+        traits.hoverActions.append(action)
+    }
+}
+
+extension TableRowContent {
+    /// Adds an action to perform when the pointer enters or exits this row.
+    ///
+    /// ```swift
+    /// ForEach(items) { item in
+    ///     TableRow(item)
+    ///         .onHover { hovering in hovered = hovering ? item.id : nil }
+    /// }
+    /// ```
+    ///
+    /// The action is called with `true` when the pointer comes onto any line
+    /// of the row and `false` when it leaves, as `View.onHover(perform:)` is
+    /// for a view; it asks the terminal for motion reports while the row is
+    /// on screen. A hover action on a view around the whole table takes the
+    /// pointer from its rows, as an outer `.onHover` does from the views
+    /// inside it.
+    ///
+    /// - Parameter action: The action to perform: `true` on entering the row,
+    ///   `false` on leaving it.
+    public func onHover(perform action: @escaping (Bool) -> Void) -> some TableRowContent<TableRowValue> {
+        ModifiedContent(content: self, modifier: _HoverTableRowModifier(action: action))
     }
 }

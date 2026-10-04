@@ -145,6 +145,50 @@ struct TableRowModifiersTests {
         #expect(isFaint(line("inner", lines)), "\(lines)")
     }
 
+    // MARK: - onHover
+
+    @Test("The pointer coming onto a row and leaving it tells the row's hover actions")
+    func hover() throws {
+        let (tui, context) = harness()
+        // No run loop unions in the `.motion` request; without it the
+        // dispatcher refuses every `.moved`.
+        tui.mouseEventDispatcher.setActiveSupport(.full)
+        let log = Box<[String]>([])
+        let view = Table(of: Item.self) {
+            TableColumn("Name", value: \Item.name)
+        } rows: {
+            ForEach(Self.items) { item in
+                TableRow(item).onHover { log.value.append("\(item.id):\($0)") }
+            }
+        }
+        let lines = frame(view, tui: tui, context: context).map(\.stripped)
+        let one = try #require(lines.firstIndex { $0.contains("item1") })
+        let two = try #require(lines.firstIndex { $0.contains("item2") })
+        let move = { (y: Int) in
+            _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 5, y: y))
+        }
+        move(one)
+        #expect(log.value == ["1:true"])
+        move(two)
+        #expect(log.value == ["1:true", "1:false", "2:true"])
+        move(lines.count + 3)
+        #expect(log.value.last == "2:false")
+    }
+
+    @Test("Motion reports are asked for only while a row has a hover action")
+    func motionOnlyWithHover() {
+        let (tui, context) = harness()
+        frame(table(selection: Box(nil)) { _ in false }, tui: tui, context: context)
+        #expect(!tui.mouseEventDispatcher.effectiveSupport(baseConfig: .disabled).motion)
+        let hovering = Table(of: Item.self) {
+            TableColumn("Name", value: \Item.name)
+        } rows: {
+            TableRow(Self.items[0]).onHover { _ in }
+        }
+        frame(hovering, tui: tui, context: context)
+        #expect(tui.mouseEventDispatcher.effectiveSupport(baseConfig: .disabled).motion)
+    }
+
     /// The row memo keeps a row by its cells and its selection; a row that
     /// comes to refuse selection changes neither.
     @Test("A kept row redraws faint when its selection becomes disabled")

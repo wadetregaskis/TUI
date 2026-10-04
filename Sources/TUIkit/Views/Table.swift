@@ -3334,6 +3334,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 in: context)
         }
 
+        registerRowHoverObservers(
+            to: &buffer, state: state, context: context, mouseDispatcher: mouseDispatcher,
+            interiorTopY: interiorTopY, contentColumns: contentColumns)
+
         // A one-row region at the keyboard cursor's on-screen line, ahead of
         // the whole-table region so an enclosing ScrollView follows the
         // cursor row — not just the table's top — through a table taller than
@@ -3357,6 +3361,49 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 ),
                 at: 0
             )
+        }
+    }
+
+    /// A hover observer over each drawn row an `.onHover(perform:)` reached,
+    /// telling its actions when the pointer comes onto the row's lines and
+    /// leaves them.
+    ///
+    /// Observers, not ordinary regions, so the clicks and the wheel still
+    /// reach the table beneath them — see
+    /// `MouseEventDispatcher.registerHoverObserver(in:_:)`.
+    private func registerRowHoverObservers(
+        to buffer: inout FrameBuffer, state: PopulatedRenderState, context: RenderContext,
+        mouseDispatcher: MouseEventDispatcher, interiorTopY: Int, contentColumns: Range<Int>
+    ) {
+        guard let rowTraits, context.environment.isEnabled else { return }
+        var askedForMotion = false
+        for band in state.drawnBands {
+            guard case .row(let index) = band.entry, rowTraits.indices.contains(index) else {
+                continue
+            }
+            let actions = rowTraits[index].hoverActions
+            guard !actions.isEmpty else { continue }
+            if !askedForMotion {
+                mouseDispatcher.requestFeature(.motion, in: context)
+                askedForMotion = true
+            }
+            let handlerID = mouseDispatcher.registerHoverObserver(in: context) { event in
+                switch event.phase {
+                case .entered:
+                    for action in actions { action(true) }
+                    return true
+                case .exited:
+                    for action in actions { action(false) }
+                    return true
+                default:
+                    return false
+                }
+            }
+            buffer.hitTestRegions.append(
+                HitTestRegion(
+                    offsetX: contentColumns.lowerBound, offsetY: interiorTopY + band.yStart,
+                    width: contentColumns.count, height: max(1, band.height),
+                    handlerID: handlerID))
         }
     }
 

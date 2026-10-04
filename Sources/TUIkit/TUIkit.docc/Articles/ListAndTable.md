@@ -308,6 +308,11 @@ Table(of: Item.self, selection: $selection) {
 inside it, counting from each section's first row however far the content has
 scrolled. A focused or selected row keeps its own highlight.
 
+### Hovering Over a Row
+
+`.onHover(perform:)` on a row tells its action `true` when the pointer comes
+onto the row and `false` when it leaves, the way it does for a view.
+
 ### Table Styles
 
 A table draws inside a rounded border unless `.tableStyle(_:)` says

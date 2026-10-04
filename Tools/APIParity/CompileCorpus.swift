@@ -835,6 +835,7 @@ private struct TableRowShapes: View {
                 ForEach(purchases) { purchase in
                     TableRow(purchase)
                         .selectionDisabled(purchase.price == 0)
+                        .onHover { hovering in print(purchase.item, hovering) }
                 }
                 if showsTotal {
                     TableRow(Purchase(id: -1, item: "Total", price: 0))
