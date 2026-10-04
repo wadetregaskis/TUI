@@ -28,6 +28,7 @@ private struct ButtonSections: View {
     let pinnedViews: PinnedScrollableViews
     var textHeaders = false
     var style = ScrollIndicatorStyle.scrollbar
+    var footers = false
 
     var body: some View {
         ScrollView {
@@ -43,6 +44,8 @@ private struct ButtonSections: View {
                         } else {
                             Button("Header \(section)") { log.pressed.append("Header \(section)") }
                         }
+                    } footer: {
+                        if footers { Text("Footer \(section)") }
                     }
                 }
             }
@@ -197,6 +200,41 @@ struct PinnedSectionInteractionTests {
                 (focusedLine ?? 0) > (headerLine ?? -1),
                 "row 0.\(row) is below its header: \(lines)")
         }
+    }
+
+    @Test(
+        "Focus moving down through the rows keeps the focused row clear of the pinned footer",
+        arguments: [ScrollIndicatorStyle.scrollbar, .text])
+    func focusMovingDownStaysClearOfThePinnedFooter(style: ScrollIndicatorStyle) throws {
+        // The mirror of the header case: a row the reveal puts at the bottom
+        // edge would be under the next section's footer pinned there.
+        let log = PressLog()
+        // Text headers, so the focus walks the rows alone.
+        let view = ButtonSections(
+            log: log, pinnedViews: .sectionFooters, textHeaders: true, style: style, footers: true)
+        let frames = Frames()
+        let drawn = frames.frame(view)
+        let rowID = try #require(
+            drawn.hitTestRegions.last { $0.offsetY == 1 && $0.focusID != nil }?.focusID,
+            "row 0.0 is on the second line: \(screen(drawn))")
+        frames.focusManager.focus(id: rowID)
+        frames.frame(view)
+        var moved = 0
+        for (section, row) in (0..<3).flatMap({ section in (0..<6).map { (section, $0) } }).dropFirst() {
+            frames.focusManager.focusNext()
+            frames.frame(view)
+            let lines = screen(frames.frame(view))
+            guard let focusedLine = lines.firstIndex(where: { $0.contains("row \(section).\(row)") })
+            else {
+                Issue.record("row \(section).\(row) is not on screen: \(lines)")
+                continue
+            }
+            if let footerLine = lines.firstIndex(where: { $0.contains("Footer \(section)") }) {
+                #expect(focusedLine < footerLine, "row \(section).\(row) is above its footer: \(lines)")
+            }
+            moved += 1
+        }
+        #expect(moved > 10, "precondition: focus walked the rows")
     }
 
     @Test("Turning pinning on and off redraws the sections the stack keeps")
