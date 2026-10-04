@@ -631,6 +631,23 @@ private struct ExecutorTaskShapes: View {
     }
 }
 
+/// A sliding label clipped to its frame, and a faded compositing group.
+@MainActor
+private struct ClippingShapes: View {
+    var body: some View {
+        VStack {
+            Text("Sliding").offset(x: 4).frame(width: 20).clipped()
+            ZStack {
+                Text("Composited")
+                Text("Group")
+            }
+            .compositingGroup()
+            .opacity(0.9)
+            Text("Edge").clipped(antialiased: true)
+        }
+    }
+}
+
 /// Resizable images: stretched, fitted, and in slices.
 @MainActor
 private struct ResizableImageShapes: View {

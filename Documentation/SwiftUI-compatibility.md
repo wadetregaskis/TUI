@@ -35,7 +35,9 @@ was noticed — it stored a value nothing read.
 
 The line between the two is worth stating because it is not "does the parameter
 get used": `.monospaced()` and `.autocorrectionDisabled()` ignore their argument
-and are correct, because the grid *already guarantees* what they ask for
+and are correct, because the grid *already guarantees* what they ask for (and
+`.compositingGroup()` returns the view, because a container's children are
+already composited into one picture before an opacity above them applies)
 (`Sources/TUIkit/Modifiers/MediumGuaranteedModifiers.swift`). A guarantee the
 medium keeps for free is honoured; a request it silently discards is not.
 
@@ -630,7 +632,10 @@ TUIkit clipped **none** of them until now: `.offset(x: 7)` on a row of a
 12-wide `ScrollView` painted three columns of the page beside the viewport, and
 the same row in a 14-wide `List` painted over the list's own right border. Both
 now clip a layer that is a piece of their content (`ScrollView`'s viewport,
-`List`'s bounds), and a plain stack still does not. `.scrollClipDisabled(_:)`
+`List`'s bounds), and a plain stack still does not. **`.clipped(antialiased:)`
+ships** to ask for the same cut on any view: the layers that are pieces of its
+content stop at its frame, while presentations draw whole; `antialiased` changes
+nothing, a cell's edge being whole. `.scrollClipDisabled(_:)`
 itself is **not** implemented. Unclipping the layers is one call in
 `ScrollView`'s windowing; SwiftUI also draws the content's own lines past the
 bounds, over the neighbours, which is more. Which of those to build, and when,

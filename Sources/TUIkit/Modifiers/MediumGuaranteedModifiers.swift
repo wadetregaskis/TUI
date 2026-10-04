@@ -51,6 +51,21 @@ extension View {
         self
     }
 
+    /// Wraps this view in a compositing group — mirrors SwiftUI's
+    /// `compositingGroup()`.
+    ///
+    /// Already true: a container's children are composited into one picture
+    /// before an effect above it — ``opacity(_:)``, a colour effect — applies,
+    /// so overlapping children never show through one another, which is what
+    /// the modifier asks for in SwiftUI. A `Group` has a modifier distributed
+    /// to each of its members, here as in SwiftUI, so each member is its own
+    /// group.
+    ///
+    /// - Returns: This view, unchanged.
+    public func compositingGroup() -> some View {
+        self
+    }
+
     /// Renders digits with uniform width — mirrors SwiftUI's
     /// `monospacedDigit()`.
     ///
