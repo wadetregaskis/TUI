@@ -178,8 +178,11 @@ extension DemoAppHeader {
         private var kernelVersion: String {
             var uts = utsname()
             uname(&uts)
+            // The field's own size rather than `SYS_NMLN`, which glibc and
+            // Darwin define and musl does not.
+            let capacity = MemoryLayout.size(ofValue: uts.release)
             return withUnsafePointer(to: &uts.release) {
-                $0.withMemoryRebound(to: CChar.self, capacity: Int(SYS_NMLN)) {
+                $0.withMemoryRebound(to: CChar.self, capacity: capacity) {
                     String(cString: $0)
                 }
             }
