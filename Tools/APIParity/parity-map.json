@@ -459,7 +459,8 @@
         "EmptyControlWidgetTemplate*",
         "View.invalidatableContent(_:)",
         "View.interactionActivityTrackingTag(_:)",
-        "View.assistiveAccessNavigationIcon*"
+        "View.assistiveAccessNavigationIcon*",
+        "LimitedAvailabilityConfiguration"
       ],
       "why": "WidgetKit controls and system surfaces: Control Center and Lock Screen controls, a widget's invalidatable content, interaction tracking for system intelligence, and iOS Assistive Access's navigation icon. Each is drawn by the system outside the app, and no such surface reaches a terminal app."
     },
