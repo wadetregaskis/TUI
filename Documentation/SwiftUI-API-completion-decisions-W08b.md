@@ -316,8 +316,14 @@ Where it differs:
   scroll. Moving them into the list as a first and last row is an hour, but a
   header that is a row is a row the cursor must step over.
 - **Sections are not collapsible.** macOS lets the user fold a sidebar
-  section. That comes with `Section(isExpanded:)` in a list, which the sidebar
-  would then use.
+  section. The list's `Section(isExpanded:)` does it (tried on this branch),
+  but a list draws its section headers before it registers its own focus
+  stop, so each fold joins the focus ring ahead of the tabs and the first
+  fold, not the tab list, takes the initial focus. The same order holds for
+  any control in a list's section header — a `Section(isExpanded:)` fold, a
+  `.sectionActions` button — in any list. Registering the list's own stop
+  before its eager rows are drawn fixes both; about two hours, with the
+  focus-order tests that pin the rest. The sidebar folds once that is in.
 
 ### B-W08b-6. Type select moves the cursor, and a prefix's first character gives way to bare-key bindings
 
