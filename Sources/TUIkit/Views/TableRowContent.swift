@@ -261,8 +261,13 @@ where Data.Element: Identifiable {
         self.data = data
     }
 
+    /// The type of the rows: one ``TableRow`` per element.
+    ///
+    /// Named rather than opaque, as SwiftUI's is, so the type states it.
+    public typealias TableRowBody = ForEach<Data, Data.Element.ID, TableRow<Data.Element>>
+
     /// The rows: one ``TableRow`` per element.
-    public var tableRowBody: some TableRowContent<Data.Element> {
+    public var tableRowBody: TableRowBody {
         ForEach(data)
     }
 }
