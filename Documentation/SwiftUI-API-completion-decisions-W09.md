@@ -49,6 +49,112 @@ an offscreen hosting view.
 
 **Recommendation:** 1 for now; 2 if detented sheets turn up in real apps.
 
+### A-W09-2 `presentationSizing(_:)`: what are `.form` and `.page` in cells?
+
+*`PresentationSizing` (`.automatic`, `.fitted`, `.form`, `.page`,
+`fitted(horizontal:vertical:)`, `sticky(horizontal:vertical:)`,
+`proposedSize(for:context:)`), `AutomaticPresentationSizing`,
+`FittedPresentationSizing`, `FormPresentationSizing`, `PagePresentationSizing`
+(and their `proposedSize(for:context:)`), `PresentationSizingRoot`
+(`sizeThatFits(_:)`), `PresentationSizingContext`, `View.presentationSizing(_:)`*
+
+macOS 15 sizes a sheet by one of these: `.fitted` is the content's ideal size,
+`.form` "appropriate for forms", `.page` "roughly the size of a page of paper",
+and `.automatic` is `.form.fitted(horizontal: false, vertical: true)` there. A
+custom sizing proposes a size from the content's (`PresentationSizingRoot`), and
+`sticky` keeps the largest size seen in an axis.
+
+A terminal sheet today is `.fitted` exactly: the content is the sheet, and
+only a detent changes its height, by handing the height to the content's
+outermost box (`sheetDetentHeight`).
+
+**Options.**
+
+1. **Leave them out** (the status quo): sizing code fails to compile.
+2. **Ship the family.** `.fitted` is today's sheet; `.form` proposes
+   `min(64, width)` columns (about macOS's 540-point form sheet), `.page`
+   `min(96, width)` columns by the content area's height; `.automatic` follows
+   macOS (form width, fitted height). A proposal reaches the sheet's box the
+   way a detent does, which needs a width twin of `sheetDetentHeight`
+   consumed by `Dialog`, `Panel`, `Card` and `.border()`; `sticky` keeps the
+   largest size in the presenter's state. A day with tests; it is a drawing
+   change for no sheet that does not ask.
+3. **Option 2 with `.automatic` left at `.fitted`**, so no existing sheet
+   changes width.
+
+**Recommendation:** 3. The numbers in 2 are mine and are the part to veto.
+
+### A-W09-3 Compact-size-class adaptation and `preferredCompactColumn`
+
+*`PresentationAdaptation` (`.automatic`, `.none`, `.popover`, `.sheet`,
+`.fullScreenCover`), `View.presentationCompactAdaptation(_:)`,
+`View.presentationCompactAdaptation(horizontal:vertical:)`,
+`NavigationSplitView.init(preferredCompactColumn:…)` (all four)*
+
+All of these say what to do in a compact size class: present a popover as a
+sheet, show which split view column on top once the split collapses into one.
+macOS is never compact, so on a Mac they are inert; TUIkit's size classes are
+`.regular` unless an app sets them, and nothing TUIkit draws reads them (B3) —
+the split never collapses and a popover never adapts.
+
+**Options.**
+
+1. **Leave them out** until B3 is decided.
+2. **Ship them inert**, as macOS has them — under O8's option (b), citing
+   the size classes never being compact here.
+3. **Make them real:** a popover or sheet adapts by `PresentationAdaptation`
+   when the environment's size class is compact (`.automatic` adapting a
+   popover to a sheet, as iOS does), and a split view collapses into a stack
+   showing `preferredCompactColumn` in a compact horizontal class. The
+   adaptation is small (the popover presenter delegates to the sheet or cover
+   presenter); the collapse is not (a split that becomes a stack keeps its
+   columns' state and focus sections) — two days together. It only matters if
+   B3 makes a narrow terminal compact.
+
+**Recommendation:** decide with B3 and O8: 2 if O8 is (b) and B3 stays
+"regular", 3 if B3 makes narrow terminals compact.
+
+### A-W09-4 `DismissBehavior` waits on O9
+
+*`DismissBehavior`, `.interactive`, `.destructive`*
+
+It qualifies `dismissWindow` (`withTransaction(\.dismissBehavior, .destructive)`
+closes a window even with a sheet up on it). `dismissWindow` is in the window
+family the map declines, which O9 of the refusal review reopens. If O9 goes
+(b) — secondary scenes as covers stacked over the main one — `.destructive`
+means closing such a cover with its own presentations still up, and
+`.interactive` refusing to; under (a) or (c) the type has nothing to qualify
+and joins the decline.
+
+### A-W09-5 `matchedTransitionSource` waits on O4
+
+*`View.matchedTransitionSource(id:in:)`,
+`View.matchedTransitionSource(id:in:configuration:)`*
+
+The source half of the `.zoom` navigation transition, which O4 (matched
+geometry and zoom transitions) covers. `NavigationTransition` and `.automatic`
+shipped (the stack's own transition); `.zoom` and these two follow O4.
+
+### A-W09-6 `presentationCornerRadius(_:)` waits on O0/O15
+
+*`View.presentationCornerRadius(_:)`*
+
+A sheet's corner radius. A terminal's corners are box-drawing glyphs, so the
+honest reading is a choice of corner — `0` square (`┌`), anything larger
+rounded (`╭`), `nil` the appearance's — applied to the sheet's box. But the box
+is drawn by the content (a `Dialog`, a `Panel`), not by the presenter, and what
+a radius means in cells is the question O0 (shapes) and O15
+(`ButtonBorderShape`) are already asking. It should be answered once, there.
+
+### A-W09-7 `searchSelection(_:)` waits on A13
+
+*`View.searchSelection(_:)`*
+
+It binds the search field's `TextSelection`. That type, and whether TUIkit
+draws its own selection at all, is A13 (text selection) in the main decisions
+doc. Once `TextField` takes a selection binding, this is a few lines on the
+searchable's field.
+
 
 ## B. Shipped the safe option
 
