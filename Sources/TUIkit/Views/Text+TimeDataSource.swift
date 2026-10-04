@@ -26,7 +26,9 @@ extension Text {
     /// environment's `\.locale`, and asks the run loop for a frame at the
     /// instant the style's `discreteInput(after:)` names — so a reference that
     /// reads "in 5 minutes" is drawn again in a minute, not every frame. The
-    /// output's attributes are not drawn: a terminal draws its characters.
+    /// output's characters are drawn; its attributes are not yet, though the
+    /// one-off `Text(_:format:)` draws them — a live text reads only words at
+    /// each frame (decisions B-W17t-5).
     ///
     /// SwiftUI's reduced-luminance redaction has nothing to act on in a
     /// terminal, which has no always-on display.
@@ -68,9 +70,11 @@ extension Text {
     /// Text(deadline, format: .offset(to: start))
     /// ```
     ///
-    /// Formatted eagerly, as the `String` form is (see that initialiser). The
-    /// output's characters are drawn and its attributes are not, until `Text`
-    /// takes an `AttributedString` of its own.
+    /// Formatted eagerly, as the `String` form is (see that initialiser), and
+    /// drawn as ``init(_:)-(AttributedString)`` draws the output: any of
+    /// SwiftUI's attributes a style sets — a colour, a font — show, and
+    /// Foundation's own field attributes, which say what a run IS rather than
+    /// how it looks, are ignored as SwiftUI ignores them.
     ///
     /// - Parameters:
     ///   - input: The underlying value to display.
@@ -78,7 +82,7 @@ extension Text {
     ///     string.
     public init<F: FormatStyle>(_ input: F.FormatInput, format: F)
     where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
-        self.init(String(format.format(input).characters))
+        self.init(format.format(input))
     }
 
     /// The same, for a discrete style — so that `.offset(to:)` and the other
@@ -92,7 +96,7 @@ extension Text {
     @available(macOS 15, *)
     public init<F: DiscreteFormatStyle>(_ input: F.FormatInput, format: F)
     where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
-        self.init(String(format.format(input).characters))
+        self.init(format.format(input))
     }
 }
 

@@ -231,6 +231,28 @@ struct TextAttributedStringTests {
         #expect(attributes(of: "delta", in: drawn).isEmpty)
     }
 
+    // MARK: - A format style's attributed output
+
+    /// A style whose output says how it looks: the number in red.
+    private struct Highlighted: FormatStyle {
+        func format(_ value: Int) -> AttributedString {
+            var string = AttributedString("\(value)")
+            string.foregroundColor = .rgb(200, 20, 20)
+            return string
+        }
+    }
+
+    @Test("Text(_:format:) draws an attributed output's attributes")
+    func formattedOutput() {
+        let text = Text(42, format: Highlighted())
+        #expect(text.content == "42")
+        #expect(text.runs?.first?.style.foregroundColor == red)
+        // Foundation's own field attributes say what a run is, not how it
+        // looks: a plain text, as before.
+        let date = Date(timeIntervalSinceReferenceDate: 0)
+        #expect(Text(date, format: .dateTime.year().attributed).runs == nil)
+    }
+
     // MARK: - Foundation's inline intents
 
     #if canImport(Darwin)
