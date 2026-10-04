@@ -92,11 +92,17 @@ public struct Text: View, Equatable {
     /// Text(verbatim: "button.save") // opted out — shown as written
     /// ```
     ///
+    /// A key that interpolates the clock — `"Ends \(date, style: .relative)"`
+    /// — makes a live text, read again at each frame it is drawn; see
+    /// ``init(_:style:)``.
+    ///
     /// - Parameter key: The key to look up.
     public init(_ key: LocalizedStringKey) {
         self.content = key.localized
         self.style = TextStyle()
-        self.runs = nil
+        self.runs =
+            key.liveArguments.isEmpty
+            ? nil : [Run(text: content, style: TextStyle(), live: LiveTextBox(LocalizedKeySource(key: key)))]
     }
 
     /// Creates a text view with the specified string, displayed as-is.

@@ -63,17 +63,25 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// The interpolated values, already converted to text.
     let arguments: [String]
 
+    /// The arguments that read the clock, by their index in ``arguments`` —
+    /// `\(date, style: .relative)` and the other live interpolations — whose
+    /// entry there is their reading when the key was built. Empty for almost
+    /// every key; see `LocalizedStringKey+Live.swift`.
+    let liveArguments: [Int: LiveTextBox]
+
     /// Creates a key from a string.
     ///
     /// - Parameter value: The key to look up.
     public init(_ value: String) {
         self.key = value
         self.arguments = []
+        self.liveArguments = [:]
     }
 
-    init(key: String, arguments: [String]) {
+    init(key: String, arguments: [String], liveArguments: [Int: LiveTextBox] = [:]) {
         self.key = key
         self.arguments = arguments
+        self.liveArguments = liveArguments
     }
 
     /// The localized text: the key resolved against `service`, with any
@@ -288,7 +296,9 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
     }
 
     public init(stringInterpolation: StringInterpolation) {
-        self.init(key: stringInterpolation.key, arguments: stringInterpolation.arguments)
+        self.init(
+            key: stringInterpolation.key, arguments: stringInterpolation.arguments,
+            liveArguments: stringInterpolation.liveArguments)
     }
 
     /// Builds the key and its arguments as the literal is written.
@@ -298,6 +308,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
 
         var key = ""
         var arguments: [String] = []
+        var liveArguments: [Int: LiveTextBox] = [:]
 
         public init(literalCapacity: Int, interpolationCount: Int) {
             key.reserveCapacity(literalCapacity + interpolationCount * 2)
@@ -342,7 +353,14 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         /// styling is not representable here and is dropped, same as
         /// interpolating a formatted value already discards its format style
         /// once converted to text.
+        ///
+        /// A live `Text` — `Text(date, style: .relative)` — stays live: the
+        /// key's text reads it again at each frame it is drawn in.
         public mutating func appendInterpolation(_ text: Text) {
+            if let runs = text.runs, text.isLive {
+                appendLive(TextRunsSource(runs: runs))
+                return
+            }
             key += "%@"
             arguments.append(text.content)
         }

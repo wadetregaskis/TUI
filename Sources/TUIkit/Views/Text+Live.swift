@@ -100,7 +100,7 @@ extension Text {
     }
 
     /// Whether any run of this text reads the clock.
-    var isLive: Bool {
+    nonisolated var isLive: Bool {
         runs?.contains { $0.live != nil } ?? false
     }
 
