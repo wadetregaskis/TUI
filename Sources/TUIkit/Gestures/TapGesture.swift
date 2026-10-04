@@ -34,11 +34,11 @@ import TUIkitCore
 /// the rules SwiftUI's measured on macOS 15.8 (`Documentation/SwiftUI-compatibility.md`):
 ///
 /// - the release has to land on the view, and the pointer may not stray
-///   more than ``slopColumns`` columns or ``slopRows`` rows from the press —
-///   about the 40 points macOS allows;
-/// - the button may be held for at most ``maximumHold`` seconds;
-/// - for a `count` above one, each next press has to come within
-///   ``multiTapInterval`` seconds of the release before it.
+///   more than five columns or two rows from the press — about the 40 points
+///   macOS allows;
+/// - the button may be held for at most 0.75 seconds;
+/// - for a `count` above one, each next press has to come within 0.35 seconds
+///   of the release before it.
 ///
 /// A tap that waits for a second click holds up whatever gesture it takes
 /// precedence over until it fails: `.onTapGesture(count: 2)` inside
