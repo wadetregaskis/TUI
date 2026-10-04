@@ -231,13 +231,24 @@ extension Palette {
     ///
     /// The default's body, as a function a palette's own override does not
     /// replace, for the reason `derivedFocusBackground()` gives.
+    ///
+    /// Derived once per page, text, stated tone, depth and terminal report, and
+    /// kept (`FieldSurfaceMemo`): every field reads this on every render, and
+    /// the walk behind it — `surface(steppedFrom:separation:)`, a lightness step
+    /// at a time, each step quantised and measured — was 7.4% of a page of 200
+    /// fields, for the same answer every time.
     package func derivedFieldBackground() -> Color {
         let base = background.resolve(with: self)
         let stated = appHeaderBackground.resolve(with: self)
-        if Self.isVisiblySeparate(stated, from: base, separation: Self.wellSeparation) {
-            return stated
+        let key = FieldSurfaceMemo.Key(
+            page: base, stated: stated, text: foreground.resolve(with: self),
+            depth: ColorDepth.current, terminal: TerminalColors.current)
+        return FieldSurfaceMemo.surface(for: key) {
+            if Self.isVisiblySeparate(stated, from: base, separation: Self.wellSeparation) {
+                return stated
+            }
+            return surface(steppedFrom: base, separation: Self.wellSeparation)
         }
-        return surface(steppedFrom: base, separation: Self.wellSeparation)
     }
 
     // MARK: - Color Scheme Default
