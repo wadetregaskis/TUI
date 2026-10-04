@@ -101,6 +101,11 @@ public struct Image: View {
 
     let content: Content
 
+    /// The source's pixels, already decoded — an ``AsyncImage``'s success phase
+    /// hands its image over with them, so it draws at once rather than
+    /// loading again. Not part of equality: it is what the source decodes to.
+    var decoded: _DecodedImage?
+
     /// Creates an image from the given source.
     ///
     /// - Parameter source: The image source (file or URL).
@@ -131,7 +136,7 @@ public struct Image: View {
     public var body: some View {
         switch content {
         case .raster(let source):
-            _ImageCore(source: source)
+            _ImageCore(source: source, decoded: decoded)
         case .symbol(let name):
             _SymbolIcon(name: name)
         }

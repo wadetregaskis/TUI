@@ -292,10 +292,19 @@ covers it (§1).
 // SwiftUI                              // TUIkit
 Image("Logo")        // asset catalog   Image(.file("logo.png"))   // rasterised → ASCII art
                                         Image(.url("https://…/x.png"))
+AsyncImage(url: url) { … }              AsyncImage(url: url) { … }               // supported, matches
 Label("Star", systemImage: "star.fill") Label("Star", systemImage: "star.fill")  // glyph, Apple only
 Image(systemName: "star.fill")          Image(systemName: "star.fill")            // the glyph alone
 Button("Save", systemImage: "tray") { } Button("Save", systemImage: "tray") { }   // and on the controls
 ```
+
+**`AsyncImage` ships in all three forms** (`url:scale:`, `content:placeholder:`
+and the phased `transaction:content:` with `AsyncImagePhase`). It loads through
+the same loader and per-session cache as `Image(.url(_:))`. The success phase's
+`Image` carries the decoded pixels, so it draws at once rather than loading
+again; a nil URL stays `.empty`; a failure carries the loader's error; and the
+phase changes under the given transaction. `scale` is accepted and changes
+nothing, since an image here is sized by its frame, never by its pixel count.
 
 **A raster `Image` renders as text everywhere, and as REAL PIXELS where the
 terminal has a graphics protocol.** The glyph renderer is the universal path and

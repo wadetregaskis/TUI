@@ -122,6 +122,10 @@ struct _ImageCore: View, Renderable, Layoutable {
     /// The image source.
     let source: ImageSource
 
+    /// The source's pixels when they are already decoded, so nothing is
+    /// loaded — see ``Image/decoded``.
+    var decoded: _DecodedImage?
+
     var body: Never {
         fatalError("_ImageCore renders via Renderable")
     }
@@ -167,7 +171,7 @@ struct _ImageCore: View, Renderable, Layoutable {
             let phaseKey = StateStorage.StateKey(
                 identity: context.identity, propertyIndex: StateIndex.phase)
             let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
-                for: phaseKey, default: .loading)
+                for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
             if case .success(let rawImage) = phaseBox.value, rawImage.width > 0, rawImage.height > 0 {
                 let fitted = ASCIIConverter.targetSize(
                     imageWidth: rawImage.width, imageHeight: rawImage.height,
@@ -260,7 +264,8 @@ struct _ImageCore: View, Renderable, Layoutable {
 
         // Retrieve or create persistent phase state
         let phaseKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.phase)
-        let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(for: phaseKey, default: .loading)
+        let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
+            for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
         stateStorage.markActive(identity)
 
         // Track the last loaded source to detect changes
@@ -291,7 +296,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                 lifecycle: lifecycle, token: token,
                 phaseBox: phaseBox, lastSourceBox: lastSourceBox,
                 maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
-                imageStore: context.environment.terminalImageStore)
+                imageStore: context.environment.terminalImageStore, loads: decoded == nil)
         }
 
         // The image renders into the fit box scaled by zoom — mirroring
@@ -379,7 +384,8 @@ extension _ImageCore {
         lastSourceBox: StateBox<ImageSource?>,
         maxPixelCount: Int?,
         urlTimeout: Double,
-        imageStore: TerminalImageStore?
+        imageStore: TerminalImageStore?,
+        loads: Bool
     ) {
         // Detect source change and force reload
         if let lastSource = lastSourceBox.value, lastSource != source {
@@ -399,8 +405,9 @@ extension _ImageCore {
             lastSourceBox.value = source
         }
 
-        // Start loading on first appearance
-        if !lifecycle.hasAppeared(token: token) {
+        // Start loading on first appearance — unless the pixels came with
+        // the image, already decoded.
+        if !lifecycle.hasAppeared(token: token), loads {
             _ = lifecycle.recordAppear(token: token) {}
 
             let src = source
@@ -457,7 +464,7 @@ extension _ImageCore {
     /// executor no matter what context awaits it — the caller then publishes
     /// the result on the main actor, where every other `@State` write happens.
     @concurrent
-    private static func loadPhase(
+    static func loadPhase(
         source: ImageSource, maxPixelCount: Int?, urlTimeout: Double
     ) async -> ImageLoadingPhase? {
         let loader = PlatformImageLoader()

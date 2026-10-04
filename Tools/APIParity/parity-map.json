@@ -999,10 +999,6 @@
       "how": "PopoverAttachmentRect (+ PopoverAttachmentAnchor)",
       "why": "The general `Anchor<Value>`/`Anchor.Source` is absent, but its one shipped consumer was deliberately reinterpreted: Sources/TUIkit/Modifiers/PopoverPresentationModifier.swift:20-31 declares `PopoverAttachmentAnchor` with `.rect(PopoverAttachmentRect)` / `.point(UnitPoint)`, and t"
     },
-    "AsyncImage": {
-      "how": "Image(.url(_:)) + .imagePlaceholder / .imagePlaceholderSpinner",
-      "why": "Asynchronous loading with a placeholder is built into the ordinary Image: ImageSource.url(String) \"(cached per session)\" (Sources/TUIkit/Views/Image.swift:12-18), Image(_ source:) (Image.swift:72), with View.imagePlaceholder(_:) (Image.swift:365), .imagePlaceholderSpinner(_:) (Im"
-    },
     "Canvas": {
       "how": "Renderable + FrameBuffer",
       "why": "The immediate-mode drawing surface is a protocol conformance: public protocol Renderable { func renderToBuffer(context: RenderContext) -> FrameBuffer } (Sources/TUIkitView/Rendering/Renderable.swift:53-64), with FrameBuffer's public inits (Sources/TUIkitCore/Rendering/FrameBuffer"

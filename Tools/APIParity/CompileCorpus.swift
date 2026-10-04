@@ -539,3 +539,28 @@ private struct SpecifierShapes: View {
         Text("Total: \(price, specifier: "%.2f") for \(count, specifier: "%d") items")
     }
 }
+
+/// Remote images in the three forms SwiftUI's documentation shows.
+@MainActor
+private struct AsyncImageShapes: View {
+    let url = URL(string: "https://example.com/icon.png")
+
+    var body: some View {
+        VStack {
+            AsyncImage(url: url)
+            AsyncImage(url: url) { image in
+                image
+            } placeholder: {
+                ProgressView()
+            }
+            AsyncImage(url: url, transaction: Transaction(animation: .default)) { phase in
+                switch phase {
+                case .success(let image): image
+                case .failure: Text("No image")
+                case .empty: ProgressView()
+                @unknown default: EmptyView()
+                }
+            }
+        }
+    }
+}
