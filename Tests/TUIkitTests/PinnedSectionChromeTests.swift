@@ -35,12 +35,21 @@ enum PinnedStackPath: CaseIterable, CustomTestStringConvertible {
     /// Forty sections under a title line: not at the content's origin, so
     /// drawn whole, with no window at all.
     case nested
+    /// Forty sections of two to four views in a two-column `LazyVGrid`: a
+    /// section's views take one or two lines.
+    case grid
 
     var testDescription: String { "\(self)" }
 
     var count: Int { self == .uniform || self == .anchored ? 300 : 40 }
 
-    func rows(in section: Int) -> Int { self == .uniform ? 2 : section % 3 + 1 }
+    func rows(in section: Int) -> Int {
+        switch self {
+        case .uniform: 2
+        case .grid: section % 3 + 2
+        default: section % 3 + 1
+        }
+    }
 }
 
 /// Holds a scroll position for a test to move at "event time".
@@ -60,21 +69,30 @@ private struct PinnedSections: View {
                 Text("title")
                 stack
             }
+        } else if path == .grid {
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading,
+                pinnedViews: pinnedViews
+            ) {
+                sections
+            }
         } else {
             stack
         }
     }
 
     private var stack: some View {
-        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: pinnedViews) {
-            ForEach(0..<path.count, id: \.self) { section in
-                Section {
-                    ForEach(0..<path.rows(in: section), id: \.self) { Text("row \(section).\($0)") }
-                } header: {
-                    Text("Header \(section)")
-                } footer: {
-                    Text("Footer \(section)")
-                }
+        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: pinnedViews) { sections }
+    }
+
+    private var sections: some View {
+        ForEach(0..<path.count, id: \.self) { section in
+            Section {
+                ForEach(0..<path.rows(in: section), id: \.self) { Text("row \(section).\($0)") }
+            } header: {
+                Text("Header \(section)")
+            } footer: {
+                Text("Footer \(section)")
             }
         }
     }

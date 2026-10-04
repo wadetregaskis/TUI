@@ -1224,6 +1224,21 @@ private struct PinnedSectionShapes: View {
             LazyVStack(pinnedViews: PinnedScrollableViews(rawValue: 3)) {
                 Section("Title") { Text("row") }
             }
+            // SwiftUI's sectioned grid, `spacing: nil` included.
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 12))], alignment: .leading, spacing: nil,
+                pinnedViews: [.sectionHeaders, .sectionFooters]
+            ) {
+                ForEach(groups, id: \.name) { group in
+                    Section {
+                        ForEach(group.items, id: \.self) { Text($0) }
+                    } header: {
+                        Text(group.name)
+                    } footer: {
+                        Text("\(group.items.count) items")
+                    }
+                }
+            }
         }
     }
 }
