@@ -417,4 +417,23 @@ extension View {
     ) -> some View {
         ContextMenuModifier(content: self, menuItems: menuItems())
     }
+
+    /// Adds a context menu with a custom preview to a view.
+    ///
+    /// The menu is the one ``contextMenu(menuItems:)`` shows, opened the same
+    /// ways. The preview is not shown, as on macOS: SwiftUI documents that
+    /// "this view modifier produces a context menu on macOS, but that platform
+    /// doesn't display the preview", which is the iOS lift-and-hold picture.
+    /// The `preview` closure is never called.
+    ///
+    /// - Parameters:
+    ///   - menuItems: A view builder of the menu's `Button`s (and `Divider`s).
+    ///   - preview: The view iOS shows beside the menu; not shown here.
+    /// - Returns: A view that shows the context menu on secondary-click.
+    public func contextMenu<MenuItems: View, Preview: View>(
+        @ViewBuilder menuItems: () -> MenuItems,
+        @ViewBuilder preview: () -> Preview
+    ) -> some View {
+        ContextMenuModifier(content: self, menuItems: menuItems())
+    }
 }

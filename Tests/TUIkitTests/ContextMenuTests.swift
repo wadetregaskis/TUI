@@ -78,6 +78,39 @@ struct ContextMenuTests {
         }
     }
 
+    // MARK: - Preview
+
+    @Test("The preview form opens the same menu, and never builds the preview, as on macOS")
+    func previewFormIsTheMenuWithoutAPreview() throws {
+        var previewsBuilt = 0
+        func preview() -> Text {
+            previewsBuilt += 1
+            return Text("PREVIEW")
+        }
+        func open(_ view: some View) -> FrameBuffer {
+            let tui = TUIContext()
+            let focusManager = FocusManager()
+            let context = context(tui, focusManager: focusManager)
+            _ = renderArmed(view, tui: tui, focusManager: focusManager, context: context)
+            _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .right, phase: .pressed, x: 3, y: 0))
+            _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .right, phase: .released, x: 3, y: 0))
+            return renderArmed(view, tui: tui, focusManager: focusManager, context: context)
+        }
+        let plain = open(targetView())
+        let previewed = open(
+            Text("Right-click me").contextMenu {
+                Button("Cut") {}
+                Button("Copy") {}
+            } preview: {
+                preview()
+            })
+        let menu = try #require(previewed.overlays.first).content
+        #expect(menu.lines == (try #require(plain.overlays.first).content.lines))
+        #expect(previewed.lines == plain.lines)
+        #expect(!menu.lines.joined().stripped.contains("PREVIEW"))
+        #expect(previewsBuilt == 0)
+    }
+
     // MARK: - Trigger
 
     @Test("A right-click opens the menu at the click cell")
