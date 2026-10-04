@@ -228,7 +228,7 @@ Where it differs:
 
 ### B-W08b-7. Section actions: always shown, after the header's title
 
-*`View.sectionActions(content:)`*
+*`View.sectionActions(content:)`, `TabContent.sectionActions(content:)`*
 
 macOS shows a list section's actions at the trailing end of its header while
 the pointer is over the section.
@@ -238,7 +238,10 @@ title, all the time, and are ordinary controls there — Tab moves onto each, a
 click presses one. A section with no header shows them alone on the header's
 line. A custom container reads them as `SectionConfiguration.actions`.
 Outside a list (a `Section` in a stack) the view draws as it would without
-them, as SwiftUI's does.
+them, as SwiftUI's does. On a `TabSection`, a `.sidebarAdaptable` tab view's
+sidebar draws them the same way; a tab strip, which lists a section's tabs
+among the others, shows none, and on a lone `Tab` they do nothing, as
+SwiftUI documents.
 
 Where it differs:
 

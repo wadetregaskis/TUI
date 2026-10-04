@@ -113,6 +113,8 @@ struct _RawTabSection {
     let ordinal: Int
     /// The section's header.
     let header: AnyView
+    /// The actions `.sectionActions(content:)` gave the section, or `nil`.
+    var actions: AnyView?
 }
 
 /// The tabs a tab view's content declares, in order, for the tab view.

@@ -133,4 +133,24 @@ struct TabViewSidebarTests {
     func bottomAccessoryPlacement() {
         #expect(EnvironmentValues().tabViewBottomAccessoryPlacement == nil)
     }
+
+    @Test("A section's actions are drawn after its header in the sidebar; on a lone tab, and in a strip, nowhere")
+    func sectionActions() {
+        let tabs = TabView {
+            Tab("Inbox", systemImage: "tray") { Text("INBOX BODY") }
+                .sectionActions { Text("LONE") }
+            TabSection("Folders") {
+                Tab("Work", systemImage: "folder") { Text("WORK BODY") }
+            }
+            .sectionActions { Text("NEW FOLDER") }
+        }
+        let sidebar = renderToBuffer(
+            tabs.tabViewStyle(.sidebarAdaptable), context: makeRenderContext(width: 70, height: 12)
+        ).lines.map(\.stripped)
+        #expect(sidebar.contains { $0.contains("Folders") && $0.contains("NEW FOLDER") }, "\(sidebar)")
+        #expect(!sidebar.joined().contains("LONE"), "\(sidebar)")
+        let strip = renderToBuffer(tabs, context: makeRenderContext(width: 70, height: 12))
+            .lines.map(\.stripped).joined()
+        #expect(!strip.contains("NEW FOLDER") && !strip.contains("LONE"), "\(strip)")
+    }
 }

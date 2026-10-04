@@ -1,8 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  TabContentModifiers.swift
 //
-//  The modifiers a tab takes: a badge, hiding, disabling, and where it may
-//  appear.
+//  The modifiers a tab takes: a badge, hiding, disabling, where it may
+//  appear, and a section's actions.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -100,6 +100,32 @@ extension TabContent {
     /// - Parameter placement: Where the tab may appear.
     public func tabPlacement(_ placement: TabPlacement) -> some TabContent<TabValue> {
         _TabTraitContent(content: self) { $0.placement = placement }
+    }
+}
+
+// MARK: - Section actions
+
+extension TabContent {
+    /// Adds custom actions to a tab section.
+    ///
+    /// A `.sidebarAdaptable` tab view draws them in its sidebar after the
+    /// section's header, as a list draws a section's actions
+    /// (``View/sectionActions(content:)``): always shown, where macOS shows
+    /// them under the pointer, and reached by Tab and a click. A tab strip
+    /// lists a section's tabs among the others and shows no actions.
+    ///
+    /// Applying this modifier to a single ``Tab`` has no effect.
+    ///
+    /// - Parameter content: The actions to show in the section's header.
+    public func sectionActions<Content: View>(@ViewBuilder content: () -> Content) -> some TabContent<TabValue> {
+        let actions = AnyView(content())
+        // The sections this content declares are the ones its tabs carry by
+        // now: an enclosing section is written onto its tabs only after its
+        // whole content is built. An inner `.sectionActions` keeps its own.
+        return _TabTraitContent(content: self) { tab in
+            guard tab.section != nil, tab.section?.actions == nil else { return }
+            tab.section?.actions = actions
+        }
     }
 }
 

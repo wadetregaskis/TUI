@@ -58,6 +58,8 @@ private struct _TabSidebarList: View {
         let section: Int?
         /// The section's header.
         let header: AnyView?
+        /// The section's actions.
+        let actions: AnyView?
         /// The tabs, by their place in ``tabs``.
         var indices: [Int]
     }
@@ -70,7 +72,10 @@ private struct _TabSidebarList: View {
             if let last = runs.last, last.section == section?.ordinal {
                 runs[runs.count - 1].indices.append(index)
             } else {
-                runs.append(Run(id: runs.count, section: section?.ordinal, header: section?.header, indices: [index]))
+                runs.append(
+                    Run(
+                        id: runs.count, section: section?.ordinal, header: section?.header,
+                        actions: section?.actions, indices: [index]))
             }
         }
         return runs
@@ -98,6 +103,7 @@ private struct _TabSidebarList: View {
                 } header: {
                     run.header ?? AnyView(EmptyView())
                 }
+                .sectionActions { run.actions }
             }
         }
         .listStyle(.plain)
