@@ -122,57 +122,60 @@ extension View {
         OnMouseEventModifier(content: self, handler: handler)
     }
 
-    /// Adds an action that fires when this view is tapped `count` times in quick
-    /// succession — e.g. `count: 2` for a double-click.
+    /// Adds an action to perform when this view recognizes a tap gesture —
+    /// `count` taps in quick succession, `count: 2` for a double-click.
     ///
-    /// Mirrors SwiftUI's `onTapGesture(count:perform:)`, `count` defaulting to
-    /// one as there. The dispatcher synthesises the click count by timing
-    /// successive left-button clicks at (near) the same cell (see
-    /// ``MouseEvent/clickCount``); the action runs on the release of the
-    /// `count`-th click.
+    /// The ``TapGesture`` it attaches with ``gesture(_:including:)``, and so
+    /// ranked as that is: a gesture inside the view, or the view's own press if
+    /// it is a control, comes first — a `Button`'s click runs the button, not
+    /// this (measured on macOS 15.8). A tap is recognized on the release, which
+    /// has to land on the view; see ``TapGesture`` for how far the pointer may
+    /// stray, how long a press may last, and how quickly a multi-tap's clicks
+    /// must follow one another.
     ///
     /// ```swift
     /// Text(folder.name)
     ///     .onTapGesture(count: 2) { open(folder) }
+    ///     .onTapGesture { select(folder) }
     /// ```
     ///
+    /// Written as above, a double-click opens and does not select: the single
+    /// tap waits until the double tap has failed, as on macOS.
+    ///
     /// - Parameters:
-    ///   - count: The number of taps that triggers the action (clamped to ≥ 1).
-    ///   - action: The action to run once `count` taps land on this view.
-    /// - Returns: A view that consumes left-click presses/releases and fires
-    ///   `action` on the matching multi-click.
+    ///   - count: The number of taps or clicks required to trigger the action
+    ///     closure provided in `action`. Defaults to `1`.
+    ///   - action: The action to perform.
+    /// - Returns: The view, with the tap gesture attached.
     public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void) -> some View {
-        onMouseEvent(tapHandler(count: count) { _ in action() })
+        gesture(TapGesture(count: count).onEnded { action() })
     }
 
-    /// Adds an action that fires when this view is tapped `count` times, given
-    /// where the tap landed — SwiftUI's
-    /// `onTapGesture(count:coordinateSpace:perform:)`.
+    /// Adds an action to perform when this view recognizes a tap gesture, and
+    /// provides the action with the location of the interaction.
     ///
     /// ```swift
     /// Grid { … }
     ///     .onTapGesture { cell in select(column: cell.x, row: cell.y) }
     /// ```
     ///
-    /// The location is the cell of the click's release, a ``CellPoint`` where
+    /// The ``SpatialTapGesture`` it attaches with ``gesture(_:including:)``: the
+    /// location is the cell of the click's release, a ``CellPoint`` where
     /// SwiftUI's is a `CGPoint` (§2.2 of `Documentation/SwiftUI-compatibility.md`).
     ///
     /// - Parameters:
-    ///   - count: The number of taps that triggers the action, as for
-    ///     ``onTapGesture(count:perform:)``.
+    ///   - count: The number of taps or clicks required to trigger the action
+    ///     closure provided in `action`. Defaults to `1`.
     ///   - coordinateSpace: Where the location is measured from: the view's
     ///     own top-left cell (`.local`, the default) or the terminal's
     ///     (`.global`).
-    ///   - action: The action, given the location.
-    /// - Returns: A view that consumes left-click presses/releases and fires
-    ///   `action` on the matching multi-click.
+    ///   - action: The action to perform, given the location.
+    /// - Returns: The view, with the tap gesture attached.
     public func onTapGesture(
         count: Int = 1, coordinateSpace: CoordinateSpace = .local,
         perform action: @escaping (CellPoint) -> Void
     ) -> some View {
-        OnMouseEventModifier(
-            content: self, coordinateSpace: coordinateSpace,
-            handler: tapHandler(count: count) { event in action(CellPoint(x: event.x, y: event.y)) })
+        gesture(SpatialTapGesture(count: count, coordinateSpace: coordinateSpace).onEnded { action($0.location) })
     }
 
     /// Adds an action to perform when this view recognizes a tap gesture, and
@@ -190,31 +193,6 @@ extension View {
         perform action: @escaping (CellPoint) -> Void
     ) -> some View {
         onTapGesture(count: count, coordinateSpace: coordinateSpace.coordinateSpace, perform: action)
-    }
-
-    /// The mouse handler a tap gesture is: it claims the left button's press,
-    /// so the release comes back to it wherever the pointer went, and runs
-    /// `onTap` with the release of every `count`-th click.
-    private func tapHandler(count: Int, onTap: @escaping (MouseEvent) -> Void) -> (MouseEvent) -> Bool {
-        { event in
-            guard event.button == .left else { return false }
-            switch event.phase {
-            case .pressed:
-                return true  // claim so the release routes back to us
-            case .released:
-                // Every Nth click, AppKit's rule — an exact match fired
-                // count:1 only on the FIRST of a rapid burst (the
-                // dispatcher's count is cumulative within the multi-click
-                // window, so a burst stamps 1, 2, 3, …) and count:2 only on
-                // the second, never the fourth.
-                if event.clickCount.isMultiple(of: max(1, count)) {
-                    onTap(event)
-                }
-                return true
-            default:
-                return false
-            }
-        }
     }
 
     /// Adds an action that fires on a scroll wheel tick inside this

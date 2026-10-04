@@ -65,15 +65,17 @@ struct TapGestureLocationTests {
         }
         harness.frame(view())
         click(harness, 3, 1)
-        // The outer modifier's region is the innermost on the cell, and it
-        // takes the click.
-        #expect(log.entries == ["global 3,1"])
+        // A tap attached outside another ranks below it, as on macOS 15.8:
+        // the inner one takes the click.
+        #expect(log.entries == ["local 1,0"])
 
         log.entries = []
-        let inner = { page(Text("XYZ").onTapGesture { cell in log.entries.append("local \(cell.x),\(cell.y)") }) }
-        harness.frame(inner())
+        let outer = {
+            page(Text("XYZ").onTapGesture(coordinateSpace: .global) { cell in log.entries.append("global \(cell.x),\(cell.y)") })
+        }
+        harness.frame(outer())
         click(harness, 4, 1)
-        #expect(log.entries == ["local 2,0"])
+        #expect(log.entries == ["global 4,1"])
     }
 
     @Test("The protocol-typed spaces route as the enum cases do")

@@ -40,7 +40,9 @@ struct MyApp: App {
 
 ## Gestures
 
-High-level gesture modifiers cover the common cases:
+High-level gesture modifiers cover the common cases. The two taps are a
+``TapGesture`` and a ``SpatialTapGesture`` attached with `gesture` — see
+SwiftUI Gestures, below, for how they rank against other gestures:
 
 ```swift
 Text("Click me")

@@ -11,12 +11,11 @@ import Testing
 
 /// Tests for the located `.onTapGesture { cell in … }` modifier.
 ///
-/// A tap is a left-button press followed by a release. The modifier is
-/// built on `.onMouseEvent`: it claims the press (so the release routes
-/// back even if the cursor leaves the view) and fires the action on the
-/// release, reporting the release position. These tests render a view,
-/// feed its hit-test region to the dispatcher, and dispatch synthetic
-/// press/release events.
+/// A tap is a left-button press followed by a release on the view. The
+/// modifier attaches a `SpatialTapGesture`: it fires the action on the
+/// release, reporting the release position, and a release off the view is no
+/// tap (as on macOS 15.8). These tests render a view, feed its hit-test
+/// region to the dispatcher, and dispatch synthetic press/release events.
 @MainActor
 @Suite("onTapGesture")
 struct OnTapGestureModifierTests {
@@ -54,15 +53,18 @@ struct OnTapGestureModifierTests {
         #expect(recorder.taps.isEmpty)
 
         _ = dispatcher.dispatch(
-            MouseEvent(button: .left, phase: .released, x: region.offsetX + 2, y: region.offsetY + 1))
+            MouseEvent(button: .left, phase: .released, x: region.offsetX + 2, y: region.offsetY))
 
         #expect(recorder.taps.count == 1)
         #expect(recorder.taps.first?.x == region.offsetX + 2)
-        #expect(recorder.taps.first?.y == region.offsetY + 1)
+        #expect(recorder.taps.first?.y == region.offsetY)
     }
 
-    @Test("The press claims the gesture, so a release outside the view still taps")
-    func releaseOutsideStillTaps() {
+    /// It used to: the handler claimed the press and tapped wherever the
+    /// release landed. macOS 15.8's SwiftUI taps only on a release over the
+    /// view.
+    @Test("A release off the view is no tap")
+    func releaseOutsideDoesNotTap() {
         let ctx = context()
         let recorder = Recorder()
         let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
@@ -74,9 +76,7 @@ struct OnTapGestureModifierTests {
         let farY = region.offsetY + region.height + 20
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: farX, y: farY))
 
-        #expect(recorder.taps.count == 1)
-        #expect(recorder.taps.first?.x == farX)
-        #expect(recorder.taps.first?.y == farY)
+        #expect(recorder.taps.isEmpty)
     }
 
     @Test("A right-button click does not fire a tap")
