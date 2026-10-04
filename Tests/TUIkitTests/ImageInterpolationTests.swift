@@ -67,4 +67,14 @@ struct ImageInterpolationTests {
         let original = drawn(red().renderingMode(.original).foregroundStyle(blue))
         #expect(original.contains("255;0;0") && !original.contains("0;0;255"))
     }
+
+    @Test("Images that draw differently are unequal, so a memo cannot serve one for the other")
+    func equalityCoversTheDrawingModifiers() {
+        let base = checkerboard()
+        #expect(base == checkerboard())
+        #expect(base != base.interpolation(.high))
+        #expect(base != base.antialiased(false))
+        #expect(base != base.renderingMode(.template))
+        #expect(base.interpolation(.low) != base.interpolation(.high))
+    }
 }
