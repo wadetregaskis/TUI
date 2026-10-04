@@ -57,6 +57,41 @@ enum TextFieldMouseHandler {
         leadingCapWidth: Int = 1,
         disclosureRange: Range<Int>? = nil
     ) {
+        // A buffer-local x → character index, discounting the leading cap. The
+        // display widths come from the handler's LIVE text (the click may
+        // arrive frames after this render).
+        func index(at event: MouseEvent) -> Int {
+            let widths = TextFieldContentRenderer.displayCellWidths(
+                of: handler.text.wrappedValue, displayCharacter: displayCharacter)
+            return handler.characterIndex(
+                forColumn: event.x - leadingCapWidth, contentWidth: contentWidth,
+                displayWidths: widths)
+        }
+        register(
+            buffer: &buffer, context: context, handler: handler, persistedFocusID: persistedFocusID,
+            hoverBox: hoverBox, isDisclosure: { event in disclosureRange?.contains(event.x) ?? false },
+            caretOffset: index(at:))
+    }
+
+    /// Registers the field's mouse region on `buffer`, placing the caret where
+    /// `caretOffset` says a press or a drag landed — the one step a vertical
+    /// field's rows answer differently from a single line's.
+    ///
+    /// - Parameters:
+    ///   - isDisclosure: Whether a press landed on the combo box's `▾`, which
+    ///     toggles the suggestions menu instead of moving the caret.
+    ///   - caretOffset: The character offset a press or drag at the event's
+    ///     buffer-local cell puts the caret at.
+    @MainActor
+    static func register(
+        buffer: inout FrameBuffer,
+        context: RenderContext,
+        handler: TextFieldHandler,
+        persistedFocusID: String,
+        hoverBox: StateBox<Bool>,
+        isDisclosure: @escaping (MouseEvent) -> Bool,
+        caretOffset: @escaping (MouseEvent) -> Int
+    ) {
         guard !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
         else { return }
@@ -70,23 +105,12 @@ enum TextFieldMouseHandler {
         let captureFocusID = persistedFocusID
         let captureHoverBox = hoverBox
 
-        // A buffer-local x → character index, discounting the leading cap. The
-        // display widths come from the handler's LIVE text (the click may
-        // arrive frames after this render).
-        func index(atBufferX x: Int) -> Int {
-            let widths = TextFieldContentRenderer.displayCellWidths(
-                of: handler.text.wrappedValue, displayCharacter: displayCharacter)
-            return handler.characterIndex(
-                forColumn: x - leadingCapWidth, contentWidth: contentWidth,
-                displayWidths: widths)
-        }
-
         let mouseHandlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { event in
             defer { handler.publishSelection() }
             switch event.phase {
             case .pressed where event.button == .left:
                 focusManager?.focus(id: captureFocusID)
-                if let disclosureRange, disclosureRange.contains(event.x) {
+                if isDisclosure(event) {
                     // The `▾` disclosure: toggle the suggestions menu; the
                     // caret stays where it was.
                     handler.toggleSuggestionsOpen()
@@ -102,14 +126,14 @@ enum TextFieldMouseHandler {
                 if event.shift {
                     // Shift-click: keep the anchor, extend to the clicked column.
                     handler.startOrExtendSelection()
-                    handler.cursorPosition = index(atBufferX: event.x)
+                    handler.cursorPosition = caretOffset(event)
                 } else {
                     // Plain click: caret to the column and drop any selection.
                     // Don't anchor here — a drag anchors on its first .dragged
                     // event; anchoring on the press would leave a collapsed
                     // anchor that a later arrow key turns into a phantom
                     // selection.
-                    handler.cursorPosition = index(atBufferX: event.x)
+                    handler.cursorPosition = caretOffset(event)
                     handler.clearSelection()
                 }
                 return true
@@ -117,7 +141,7 @@ enum TextFieldMouseHandler {
                 // The press was claimed, so this drag is bound to us: extend the
                 // selection to the dragged column, anchor unchanged.
                 handler.startOrExtendSelection()
-                handler.cursorPosition = index(atBufferX: event.x)
+                handler.cursorPosition = caretOffset(event)
                 return true
             case .released where event.button == .left:
                 return true

@@ -289,7 +289,7 @@ struct TextFieldContentRenderer {
     // MARK: - Prompt
 
     /// The prompt's plain text, or `""` when there is no prompt.
-    private func promptString() -> String {
+    func promptString() -> String {
         guard let prompt else { return "" }
         let buffer = TUIkit.renderToBuffer(prompt, context: RenderContext(availableWidth: 100, availableHeight: 1))
         return buffer.lines.first?.stripped ?? ""
@@ -298,10 +298,13 @@ struct TextFieldContentRenderer {
     /// Builds the prompt content for an UNFOCUSED empty field. The focused
     /// case goes through ``buildTextWithCursor`` instead, so the caret draws
     /// over the prompt using the ordinary cursor machinery.
-    private func buildPromptContent(
-        palette: any Palette, background: Color?, width: Int
+    ///
+    /// - Parameter text: The part of the prompt to draw, for a field drawing it
+    ///   over several rows; `nil` for the whole prompt on one line.
+    func buildPromptContent(
+        palette: any Palette, background: Color?, width: Int, text: String? = nil
     ) -> FieldContent {
-        let promptText = promptString()
+        let promptText = text ?? promptString()
         // Truncate and pad by CELLS, not characters — a wide glyph in the
         // prompt must not push the field wider than its neighbours.
         let (truncated, cells) = promptText.ansiAwarePrefixWithWidth(visibleCount: width)
@@ -329,7 +332,7 @@ struct TextFieldContentRenderer {
     /// actually painted on. The floor is the disabled one, not the label one —
     /// a placeholder is meant to be quieter than real content, just not
     /// invisible.
-    private static func promptColor(palette: any Palette, on background: Color?) -> Color {
+    static func promptColor(palette: any Palette, on background: Color?) -> Color {
         let tertiary = palette.foregroundTertiary.resolve(with: palette)
         guard let background else { return tertiary }
         return tertiary.ensuringRenderedContrast(
@@ -340,7 +343,7 @@ struct TextFieldContentRenderer {
 
     /// Builds text content without cursor (unfocused state), exactly `width`
     /// cells: characters from the front while they fit whole, then padding.
-    private func buildTextContent(
+    func buildTextContent(
         text: String, palette: any Palette, background: Color?, width: Int
     ) -> FieldContent {
         var displayText = ""
@@ -448,9 +451,13 @@ struct TextFieldContentRenderer {
             foreground: (ink ?? palette.foreground).opaqueSpelling, isReversed: true)
     }
 
-    private func buildTextWithCursor(
+    /// A focused field's content: the text, its selection, and the caret at
+    /// `cursorPosition` — or no caret, where `cursorPosition` is `nil`, for a
+    /// row of a vertical field that the caret is not on. Without a caret the
+    /// window starts at the first cell.
+    func buildTextWithCursor(
         text: String,
-        cursorPosition: Int,
+        cursorPosition: Int?,
         selectionRange: Range<Int>?,
         palette: any Palette,
         cursorStyle: TextCursorStyle,
@@ -465,9 +472,9 @@ struct TextFieldContentRenderer {
         // rendered as bullets tells the user nothing.
         let displayCharacter = displayOverride ?? self.displayCharacter
         let characterCount = text.count
-        let clampedPosition = max(0, min(cursorPosition, characterCount))
+        let clampedPosition = cursorPosition.map { max(0, min($0, characterCount)) }
         let (widths, scrollStart, windowEnd) = scrollWindow(
-            text: text, clampedPosition: clampedPosition, width: width)
+            text: text, clampedPosition: clampedPosition ?? 0, width: width)
 
         // Build output, coalescing consecutive characters that share a colour
         // into ONE ANSI run rather than wrapping each character in its own
@@ -523,11 +530,16 @@ struct TextFieldContentRenderer {
         // would take its colour from whatever the line happened to look like
         // when it was spliced in. Costs one escape pair; buys the whole cheap
         // animation path. See ``AnimatedCellRun``.
-        let (cycle, colors) = Self.caretSetup(
-            palette: palette, background: background, textForeground: textForeground,
-            selection: selection,
-            cursorStyle: cursorStyle, speed: cursorSpeed, cursorTimer: cursorTimer, timing: cursorTiming,
-            appearsActive: appearsActive)
+        //
+        // Worked out only where there is a caret: the rows of a vertical field
+        // that the caret is not on have no use for its cycle.
+        let setup = clampedPosition.map { _ in
+            Self.caretSetup(
+                palette: palette, background: background, textForeground: textForeground,
+                selection: selection,
+                cursorStyle: cursorStyle, speed: cursorSpeed, cursorTimer: cursorTimer, timing: cursorTiming,
+                appearsActive: appearsActive)
+        }
         var caret: AnimatedCellRun?
 
         func emitCaret(cells: Int, underlying: Character, isSelected: Bool) {
@@ -536,7 +548,7 @@ struct TextFieldContentRenderer {
             // character rather than leave a run describing cells that are not
             // on screen — a run outliving its cells repaints, on a clock, over
             // whatever took their place.
-            guard cellX >= scrollStart, cellX + cells <= windowEnd else {
+            guard let (cycle, colors) = setup, cellX >= scrollStart, cellX + cells <= windowEnd else {
                 emitClipped(
                     underlying, cells: cells,
                     foreground: isSelected ? selection.foreground : textForeground,

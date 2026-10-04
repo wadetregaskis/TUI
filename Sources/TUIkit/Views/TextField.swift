@@ -364,14 +364,14 @@ extension TextField {
 /// StateStorage property indices for ``_TextFieldCore``.
 /// Lifted out of the generic struct because Swift does not
 /// allow static stored properties in generic types.
-private enum TextFieldStateIndex {
+enum TextFieldStateIndex {
     static let handler = 0
     static let focusID = 1
     static let isHovered = 2
 }
 
 /// Internal view that handles the actual rendering of TextField.
-private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
+struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     let label: Label
     let text: Binding<String>
     let prompt: Text?
@@ -384,10 +384,10 @@ private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// narrow `.frame(width:)` is honoured (e.g. a 0–255 / "100%" numeric field
     /// that only needs room for a few characters plus the cursor); fields without
     /// a frame still open at ``defaultContentWidth``.
-    private let minContentWidth = 3
+    let minContentWidth = 3
 
     /// Default visible width for the text field content area when no proposal is given.
-    private let defaultContentWidth = 20
+    let defaultContentWidth = 20
 
     var body: Never {
         fatalError("_TextFieldCore renders via Renderable")
@@ -413,7 +413,7 @@ private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         )
     }
 
-    private typealias StateIndex = TextFieldStateIndex
+    typealias StateIndex = TextFieldStateIndex
 
     /// What Return does to this field, for the status bar — `nil` when the
     /// caller gave it nothing to submit to, which is what suppresses the entry.
@@ -421,7 +421,7 @@ private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// A property rather than a `let` in `renderToBuffer`: resolving it inline
     /// took that function to 101 lines against SwiftLint's 100-line ceiling,
     /// and the lookup is a self-contained question about this field anyway.
-    private var submitVerb: String? {
+    var submitVerb: String? {
         guard onSubmitAction != nil else { return nil }
         return LocalizationService.shared.string(for: LocalizationKey.StatusBar.submit)
     }
@@ -613,7 +613,7 @@ private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// and the ▾'s sit past the content. A faded `.textFieldTextStyle` foreground, a
     /// theme that faded the field surface, and a faded page whose surface now carries
     /// its alpha (§39) all arrive here rather than being spent on the escape.
-    private static func attachFieldClaims(
+    static func attachFieldClaims(
         to buffer: inout FrameBuffer, content: [OpacityRegion], chrome: FieldChrome,
         disclosure: [OpacityRegion], contentStart: Int, textWidth: Int
     ) {
@@ -626,7 +626,7 @@ private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
 
     /// The combo box's ▾/▴ affordance, drawn inside the field surface against
     /// the trailing cap, or `""` when the field has no suggestion menu.
-    private static func disclosureGlyph(
+    static func disclosureGlyph(
         isOpen: Bool?, palette: any Palette, surface: Color?
     ) -> ClaimingRow {
         var row = ClaimingRow()
@@ -640,7 +640,7 @@ private struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             " " + caret, cells: 2, ink: palette.foregroundSecondary, field: surface)
         return row
     }
-    private func resolveHandler(
+    func resolveHandler(
         persistedFocusID: String,
         stateStorage: StateStorage,
         isDisabled: Bool,
