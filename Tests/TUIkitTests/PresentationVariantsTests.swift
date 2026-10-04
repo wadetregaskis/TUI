@@ -151,6 +151,46 @@ struct PresentationVariantsTests {
         #expect(PresentationDetent.fraction(0).resolved(in: 20) == 1)
     }
 
+    /// A quarter of the content area, and taller when presented — so the
+    /// context's environment is seen as well as its maximum.
+    private struct QuarterDetent: CustomPresentationDetent {
+        static func height(in context: Context) -> Int? {
+            context.maxDetentValue / 4 + (context.isPresented ? 1 : 0)
+        }
+    }
+
+    /// Never available.
+    private struct UnavailableDetent: CustomPresentationDetent {
+        static func height(in context: Context) -> Int? { nil }
+    }
+
+    private struct Detented: PresentationDetentsProviding {
+        let detents: Set<PresentationDetent>
+        var detentSelection: Binding<PresentationDetent>?
+    }
+
+    @Test("A custom detent answers from its context, and one that answers nil is not available")
+    func customDetents() {
+        var presented = EnvironmentValues()
+        presented.isPresented = true
+        #expect(PresentationDetent.custom(QuarterDetent.self).resolved(in: 20) == 5)
+        #expect(PresentationDetent.custom(QuarterDetent.self).resolved(in: 20, environment: presented) == 6)
+        #expect(PresentationDetent.custom(UnavailableDetent.self).resolved(in: 20) == nil)
+        #expect(PresentationDetent.custom(QuarterDetent.self) == .custom(QuarterDetent.self))
+        #expect(PresentationDetent.custom(QuarterDetent.self) != .custom(UnavailableDetent.self))
+
+        let offered = Detented(detents: [.custom(UnavailableDetent.self), .large])
+        #expect(
+            offered.resolvedHeight(in: 20, environment: presented) == 20,
+            "the smallest AVAILABLE detent: the unavailable one is skipped")
+        let chosen = Detented(
+            detents: [.custom(UnavailableDetent.self), .medium],
+            detentSelection: .constant(.custom(UnavailableDetent.self)))
+        #expect(
+            chosen.resolvedHeight(in: 20, environment: presented) == 10,
+            "a selected detent that is not available falls back to the smallest one that is")
+    }
+
     /// A detent is a height for the sheet, and the sheet here is the content's
     /// own box — so the BOX is that tall, enclosing the leftover as empty
     /// interior. It used to be imposed as a fixed frame around the box instead,

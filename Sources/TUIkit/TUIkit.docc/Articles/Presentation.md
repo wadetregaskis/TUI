@@ -60,7 +60,18 @@ that, applied to the sheet's **content**:
 
 `.medium` is half the available height, `.large` all of it, `.fraction(_:)` a
 share of it, and `.height(_:)` an exact number of **rows** (a terminal has no
-`CGFloat`).
+`CGFloat`). `.custom(_:)` takes a type of your own, a
+``CustomPresentationDetent``, whose `height(in:)` answers in rows from the
+largest height a detent can be and the environment — or `nil`, to make the
+detent unavailable:
+
+```swift
+struct BarDetent: CustomPresentationDetent {
+    static func height(in context: Context) -> Int? {
+        max(5, context.maxDetentValue / 4)
+    }
+}
+```
 
 The height goes to the sheet's own **box**. In SwiftUI a sheet is a card with
 its own material, so a detent is always visible as that card; a terminal sheet

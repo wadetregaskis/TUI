@@ -23,36 +23,138 @@ import TUIkitView
 ///   terminal measures in whole cells, so `.height(_:)` takes `Int` rows. The
 ///   fraction stays `Double` — it is multiplied by an extent and floored, which
 ///   is the one place fractional values belong (see the layout parity rule).
-///   SwiftUI's `custom(_:)` (a `CustomPresentationDetent` type) is not here:
-///   its resolution context exposes bitmap geometry.
-public enum PresentationDetent: Hashable, Sendable {
+///   A ``CustomPresentationDetent`` answers in rows for the same reason.
+///
+/// A struct with static members, as SwiftUI's is, rather than an enum: a
+/// custom detent is a type of the app's own, which no closed list of cases
+/// could name.
+public struct PresentationDetent: Hashable, Sendable {
+    /// What the detent is.
+    private enum Kind: Hashable, Sendable {
+        case medium
+        case large
+        case fraction(Double)
+        case height(Int)
+        case custom(CustomDetent)
+    }
+
+    private let kind: Kind
+
     /// Roughly half the available height.
-    case medium
+    public static let medium = Self(kind: .medium)
 
     /// The full available height.
-    case large
+    public static let large = Self(kind: .large)
 
     /// A fraction of the available height.
-    case fraction(Double)
+    ///
+    /// - Parameter fraction: The fraction of the available height, from 0 to 1.
+    public static func fraction(_ fraction: Double) -> Self {
+        Self(kind: .fraction(fraction))
+    }
 
     /// An exact number of rows.
-    case height(Int)
+    ///
+    /// - Parameter height: The height, in rows.
+    public static func height(_ height: Int) -> Self {
+        Self(kind: .height(height))
+    }
 
-    /// This detent's height within `extent` rows, clamped to it.
+    /// A detent whose height a type of the app's own decides. Mirrors
+    /// SwiftUI's `custom(_:)`.
+    ///
+    /// - Parameter type: The type that answers the height.
+    public static func custom<D: CustomPresentationDetent>(_ type: D.Type) -> Self {
+        Self(kind: .custom(CustomDetent(type)))
+    }
+
+    /// This detent's height within `extent` rows, clamped to it — or `nil` for
+    /// a custom detent that is not available in `environment`.
     ///
     /// Flooring the fraction rather than rounding is deliberate: a detent that
     /// rounded up could ask for one row more than the screen has, and the
     /// arithmetic that follows would have to defend against it.
-    func resolved(in extent: Int) -> Int {
+    func resolved(in extent: Int, environment: EnvironmentValues = EnvironmentValues()) -> Int? {
         let raw: Int
-        switch self {
+        switch kind {
         case .medium: raw = extent / 2
         case .large: raw = extent
         case .fraction(let fraction): raw = Int((Double(extent) * fraction).rounded(.down))
         case .height(let rows): raw = rows
+        case .custom(let custom):
+            guard let rows = custom.height(Context(maxDetentValue: extent, environment: environment)) else {
+                return nil
+            }
+            raw = rows
         }
         return max(1, min(extent, raw))
     }
+
+    /// What a ``CustomPresentationDetent`` is given to decide its height.
+    /// Mirrors SwiftUI's `PresentationDetent.Context`.
+    ///
+    /// Any environment value can be read from it, as from the environment
+    /// itself: `context.dynamicTypeSize`, `context.verticalSizeClass`.
+    @dynamicMemberLookup
+    public struct Context {
+        /// The largest height a detent can be, in rows: the content area's.
+        public let maxDetentValue: Int
+
+        /// The environment the sheet is presented in.
+        let environment: EnvironmentValues
+
+        /// The environment value at `keyPath`.
+        public subscript<T>(dynamicMember keyPath: KeyPath<EnvironmentValues, T>) -> T {
+            environment[keyPath: keyPath]
+        }
+    }
+
+    /// A custom detent: its type, which is what two of them are compared by,
+    /// and the type's answer.
+    ///
+    /// Unchecked because the closure is a call of the type's static
+    /// requirement and holds nothing else; the metatype itself is not
+    /// `Sendable`, as SwiftUI's protocol does not require it to be.
+    private struct CustomDetent: Hashable, @unchecked Sendable {
+        let type: ObjectIdentifier
+        let height: (Context) -> Int?
+
+        init<D: CustomPresentationDetent>(_ type: D.Type) {
+            self.type = ObjectIdentifier(type)
+            height = { D.height(in: $0) }
+        }
+
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.type == rhs.type }
+
+        func hash(into hasher: inout Hasher) { hasher.combine(type) }
+    }
+}
+
+// MARK: - CustomPresentationDetent
+
+/// The definition of a custom detent with a calculated height. Mirrors
+/// SwiftUI's `CustomPresentationDetent`.
+///
+/// ```swift
+/// struct BarDetent: CustomPresentationDetent {
+///     static func height(in context: Context) -> Int? {
+///         max(5, context.maxDetentValue / 4)
+///     }
+/// }
+///
+/// .presentationDetents([.custom(BarDetent.self), .large])
+/// ```
+public protocol CustomPresentationDetent {
+    /// The context a custom detent's height is decided in.
+    typealias Context = PresentationDetent.Context
+
+    /// The detent's height, in rows, or `nil` when the detent should not be
+    /// available.
+    ///
+    /// SwiftUI answers in points (`CGFloat`); a terminal answers in rows, as
+    /// ``PresentationDetent/height(_:)`` does. The answer is clamped to the
+    /// content area and to at least one row.
+    static func height(in context: Context) -> Int?
 }
 
 // MARK: - Reading the detents
@@ -81,12 +183,17 @@ extension PresentationDetentsProviding {
     /// move between them, so the binding is how a multi-detent sheet changes
     /// size; that is written down in `SwiftUI-compatibility.md` rather than
     /// left to be discovered.
-    func resolvedHeight(in extent: Int) -> Int? {
+    ///
+    /// A custom detent that answers `nil` is not available: it is neither
+    /// chosen by the selection nor counted for the smallest.
+    func resolvedHeight(in extent: Int, environment: EnvironmentValues) -> Int? {
         guard !detents.isEmpty else { return nil }
-        if let selected = detentSelection?.wrappedValue, detents.contains(selected) {
-            return selected.resolved(in: extent)
+        if let selected = detentSelection?.wrappedValue, detents.contains(selected),
+            let height = selected.resolved(in: extent, environment: environment)
+        {
+            return height
         }
-        return detents.map { $0.resolved(in: extent) }.min()
+        return detents.compactMap { $0.resolved(in: extent, environment: environment) }.min()
     }
 }
 

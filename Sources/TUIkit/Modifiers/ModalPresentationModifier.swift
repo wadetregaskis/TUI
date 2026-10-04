@@ -331,7 +331,7 @@ extension ModalPresentationModifier: Renderable {
         // being rendered into — which is why it rides a static conformance
         // rather than a preference (see ``PresentationDetentsProviding``).
         let detentHeight = presentationTrait(PresentationDetentsProviding.self, of: modal)?
-            .resolvedHeight(in: overlayHeight)
+            .resolvedHeight(in: overlayHeight, environment: modalContext.environment)
         // A `presentationBackground` the content named fills the presentation —
         // the sheet's box, or the cover's whole area — so it goes around what
         // is presented here, where that size is known.
