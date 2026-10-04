@@ -211,6 +211,10 @@
         "View.colorEffect*",
         "View.layerEffect*",
         "View.distortionEffect*",
+        "View.blur*",
+        "View.blendMode*",
+        "View.luminanceToAlpha*",
+        "View.backgroundExtensionEffect*",
         "View.glassEffect*",
         "Glass*",
         "DefaultGlassEffectShape*",
@@ -231,7 +235,7 @@
         "VisualEffect.blendMode*",
         "PrimitiveButtonStyle.glass*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, glass materials, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Opacity as composition.md) rather than by blending pixels."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, glass materials, blend modes, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Opacity as composition.md) rather than by blending pixels."
     },
     {
       "match": [

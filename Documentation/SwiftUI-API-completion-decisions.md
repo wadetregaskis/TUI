@@ -780,6 +780,90 @@ O9 of the refusal review.
 environment writes, but whether SwiftUI's reach a view's alert, and not only
 an `AlertScene`, cannot be measured offscreen. Alerts are modal panels.
 
+### A27. Pixel effects: transforms, masks and `drawingGroup` (Wave 16)
+
+*`View.scaleEffect(_:anchor:)`, `View.scaleEffect(x:y:anchor:)`,
+`View.rotationEffect(_:anchor:)`, `View.rotation3DEffect(_:axis:anchor:anchorZ:perspective:)`,
+`View.projectionEffect(_:)`, `View.transformEffect(_:)`, `View.mask(alignment:_:)`,
+`View.drawingGroup(opaque:colorMode:)`; and, waiting on refusal-review items
+already, `View.clipShape(_:style:)` and `View.contentShape(_:eoFill:)`/`(_:_:eoFill:)`
+(O0), `View.shadow(color:radius:x:y:)` (O6)*
+
+Wave 16 shipped what a cell grid keeps honestly: `clipped(antialiased:)` (the
+cut `ScrollView` and `List` already made) and `compositingGroup()` (a guarantee
+the compositor keeps). Blur, blend modes, luminance to alpha and the background
+extension effect joined the map's per-pixel shading family. The rest is yours.
+
+**Transforms.** A glyph cannot be scaled or turned, and an affine transform
+of a cell grid is not a cell grid.
+
+1. **Decline all six.** `scaleEffect(isPressed ? 0.95 : 1)` in ported code then
+   fails to compile, and the developer removes it. Free.
+2. **`scaleEffect` as the `.scale` transition draws it**, a reveal from the
+   anchor, with `rotationEffect` and the rest declined. A scale of 0.95 then
+   draws as 1 (nothing to reveal), which is the silent no-op rule 2 forbids, so
+   this only makes sense with a threshold. Half a day.
+3. **Raster content only:** a scaled or quarter-turned `Image` is resampled.
+   The receiver is any view, so the type system cannot keep this to images.
+   Text would draw unchanged. That is a no-op again. A day.
+
+**`mask(alignment:_:)`.** Masking by another view's alpha can be honoured at
+cell granularity: a cell where the mask draws (a glyph or a background) keeps
+the content, at the mask colour's alpha through an opacity region, and the
+rest is cleared to what is behind. Choosing that coverage rule is the decision
+("a space with no background masks out" is the one that would surprise). Half
+a day.
+
+**`drawingGroup(opaque:colorMode:)`.** In SwiftUI it flattens the view into an
+offscreen image before display. Here every view already composites as one
+picture, as for `compositingGroup()`. `opaque` is a promise by the caller.
+`colorMode: .linear` asks for linear-light blending, which TUIkit's encoded-sRGB
+blend does not do.
+
+1. **Ship it as `compositingGroup()`**, honouring `.nonLinear`, the default,
+   and documenting `.linear` and `.extendedLinear` as blended non-linearly.
+2. **Decline it.**
+
+**Recommendation:** transforms (1); mask, the cell-coverage rule; drawingGroup
+(1), since nearly every use is the argument-free performance hint.
+
+### A28. Toolbars (Wave 15)
+
+*44 symbols: `View.toolbar(content:)`, `toolbar(id:content:)`, `ToolbarItemGroup`,
+`ToolbarSpacer`, `ToolbarTitleMenu`/`toolbarTitleMenu(content:)`,
+`toolbarRole(_:)`/`ToolbarRole`, `toolbarTitleDisplayMode(_:)`,
+`toolbarBackground(_:for:)`, `toolbarBackgroundVisibility(_:for:)`,
+`toolbarColorScheme(_:for:)`, `toolbarVisibility(_:for:)`, `toolbarItemHidden(_:)`,
+`ToolbarLabelStyle` and `\.toolbarLabelStyle`, `contentToolbar(for:content:)`,
+`ContentToolbarPlacement`, `LabeledToolbarItemGroupContent`, the customization
+family (`CustomizableToolbarContent`, `ToolbarCustomizationBehavior`,
+`ToolbarCustomizationOptions`), `tabBarMinimizeBehavior(_:)`*
+
+The compatibility doc (§2.6) makes the toolbar a deliberate divergence. A
+terminal's chrome is the one-line status bar, and the map renames
+`ToolbarItem` to `StatusBarItem`. That leaves the commonest SwiftUI idiom,
+`.toolbar { ToolbarItem(placement: .primaryAction) { Button(…) } }`, failing to
+compile in every ported app.
+
+**Options.**
+
+1. **Keep §2.6.** Decline the 44 with the `Commands` family's reason. Free.
+2. **Host toolbar content in the chrome TUIkit already draws.** Navigation,
+   principal and primary-action placements become buttons on
+   `NavigationStack`'s bar row (its root, which has no bar today, would gain
+   one when it has items), or on the app header outside a stack. Status and
+   bottom-bar placements go to the status bar row. The buttons are a focus
+   section. Visibility, background and title-menu modifiers act on that row.
+   `toolbar(id:)` customisation and `ToolbarLabelStyle` are declined.
+   Three to four days, most of it the root bar and focus.
+3. **Option 2 with customisation:** a sheet that reorders and hides items,
+   saved by the `id:`. Another two days.
+
+**Recommendation:** 2. It reverses §2.6's "should NOT change", which is why
+it is yours. `StatusBarItem` stays as the terminal-native complement.
+`ToolbarTitleDisplayMode` and `tabBarMinimizeBehavior` follow O8, and the
+toolbar's `.title`/`.search` items follow O17.
+
 ## B. Shipped the safe option
 
 ### B1. `\.layoutDirection` is read-only (always left-to-right)
