@@ -18,11 +18,16 @@ extension Text {
     /// makes both italic and only the first bold, which is what the same
     /// expression does in SwiftUI.
     struct Run: Equatable, Sendable {
-        /// The fragment's text.
+        /// The fragment's text — for a live fragment, as it read when built.
         let text: String
 
         /// Only what this fragment set explicitly.
         let style: TextStyle
+
+        /// What the fragment reads at the frame being drawn, when its words
+        /// are a function of the clock (`Text(date, style: .relative)` and
+        /// the other live texts); `nil` for the words in ``text``.
+        var live: LiveTextBox?
     }
 }
 
@@ -70,7 +75,7 @@ extension Text.Run {
     /// This run with `base` beneath it: the run's own attributes win, the
     /// base fills anything it left unset.
     func rebased(on base: TextStyle) -> Self {
-        Self(text: text, style: style.merged(over: base))
+        Self(text: text, style: style.merged(over: base), live: live)
     }
 }
 

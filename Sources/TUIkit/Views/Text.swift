@@ -755,6 +755,11 @@ extension Text: Renderable, Layoutable {
     }
 
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        // A live text measures the words it reads at this frame. Only a text
+        // with runs can be live, so a plain one pays a nil check.
+        if runs != nil, let read = readingLive(declaringIn: context, measuring: true) {
+            return read.sizeThatFits(proposal: proposal, context: context)
+        }
         // Text has a fixed size based on its content.
         // If a width is proposed, we may word-wrap.
         let maxWidth = proposal.width ?? context.availableWidth
@@ -803,6 +808,11 @@ extension Text: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A live text draws the words it reads at this frame — see
+        // `sizeThatFits` for why a plain one pays only a nil check.
+        if runs != nil, let read = readingLive(declaringIn: context, measuring: false) {
+            return read.renderToBuffer(context: context)
+        }
         // Resolve cascading attributes (container-level .bold()/.style(...) etc.)
         // and any chrome-role default (e.g. a Section header's bold+dim) beneath
         // this Text's own explicit attributes. A per-Text attribute always wins;
