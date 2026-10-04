@@ -45,41 +45,8 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         let extent =
             context.gradientFrame ?? GradientFrame(width: width, height: buffer.lines.count)
 
-        // A ramp behind NOTHING — blank cells, which is what a gradient used as
-        // a view, or `.background` on a spacer, puts in front of it — can be
-        // a picture where the terminal draws them: one colour a pixel instead
-        // of one a cell. Behind text it cannot, because a placeholder cell is
-        // the image and holds no character; those cells paint below.
-        // A TRANSLUCENT ramp never takes the picture path, whatever the terminal
-        // can draw. `GradientRaster.picture` sends `rgbComponents` in an `.rgb`
-        // format and there is no alpha in it, so this path silently rendered a
-        // translucent ramp at full strength — while the cell path below trips the
-        // emitter's assertion for the same gradient. Which of those a developer
-        // met depended on their terminal: a translucent ramp was quietly wrong on
-        // kitty and Ghostty, and loudly unsupported on Apple Terminal.
-        //
-        // Declining is a better answer than transmitting real RGBA even where the
-        // protocol allows it, because the terminal would composite against the
-        // cells' own background rather than against what TUIkit knows is behind
-        // them — the guess this whole design exists to avoid. Sub-cell smoothness
-        // is lost for translucent ramps, and for a ramp with a colour that has no
-        // RGB, which `GradientRaster.picture` declines because a pixel cannot hold
-        // it.
-        if case .gradient = paint, buffer.animatedCells.isEmpty, buffer.isBlank,
-            paint.isOpaqueThroughout,
-            let graphics = context.gradientGraphics(
-                token: "gradient-\(context.identity.path)-\(ObjectIdentifier(owner).hashValue)"),
-            let picture = GradientRaster.picture(
-                paint: paint, frame: extent, columns: width, rows: buffer.lines.count,
-                cellPixels: graphics.cellPixels),
-            let lines = graphics.store.placeholderRows(
-                token: graphics.token,
-                signature: GradientImageSignature(
-                    paint: paint, frame: extent, width: picture.width, height: picture.height),
-                columns: width, rows: buffer.lines.count,
-                pixels: { (picture.bytes, picture.format, picture.width, picture.height) })
-        {
-            return buffer.replacingLines(lines)
+        if let pictured = Self.pictured(buffer, paint: paint, extent: extent, context: context, owner: owner) {
+            return pictured
         }
 
         guard
@@ -276,6 +243,53 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         return ramped.resolvingOpacity(
             onOpaqueFill: { FrameBuffer(lines: buffer.lines.indices.map { paintedRow(blank, row: $0) }) },
             surface: palette.background, palette: palette)
+    }
+
+    /// A ramp behind NOTHING — blank cells, which is what a gradient used as
+    /// a view, or `.background` on a spacer, puts in front of it — can be
+    /// a picture where the terminal draws them: one colour a pixel instead
+    /// of one a cell. Behind text it cannot, because a placeholder cell is
+    /// the image and holds no character; those cells paint below.
+    ///
+    /// A TRANSLUCENT ramp never takes the picture path, whatever the terminal
+    /// can draw. `GradientRaster.source` sends `rgbComponents` in an `.rgb`
+    /// format and there is no alpha in it, so this path silently rendered a
+    /// translucent ramp at full strength — while the cell path trips the
+    /// emitter's assertion for the same gradient. Which of those a developer
+    /// met depended on their terminal: a translucent ramp was quietly wrong on
+    /// kitty and Ghostty, and loudly unsupported on Apple Terminal.
+    ///
+    /// Declining is a better answer than transmitting real RGBA even where the
+    /// protocol allows it, because the terminal would composite against the
+    /// cells' own background rather than against what TUIkit knows is behind
+    /// them — the guess this whole design exists to avoid. Sub-cell smoothness
+    /// is lost for translucent ramps, and for a ramp with a colour that has no
+    /// RGB, which `GradientRaster.source` declines because a pixel cannot hold
+    /// it.
+    ///
+    /// - Returns: The buffer as the picture's placeholder cells, or `nil` to
+    ///   paint cells.
+    private static func pictured(
+        _ buffer: FrameBuffer, paint: Paint, extent: GradientFrame, context: RenderContext, owner: Any.Type
+    ) -> FrameBuffer? {
+        let width = buffer.width
+        guard case .gradient = paint, buffer.animatedCells.isEmpty, buffer.isBlank,
+            paint.isOpaqueThroughout,
+            let graphics = context.gradientGraphics(
+                token: "gradient-\(context.identity.path)-\(ObjectIdentifier(owner).hashValue)"),
+            let picture = GradientRaster.source(
+                paint: paint, frame: extent, columns: width, rows: buffer.lines.count,
+                cellPixels: graphics.cellPixels),
+            // The pixels only on a miss: every frame after the first finds the
+            // terminal already holding this picture.
+            let lines = graphics.store.placeholderRows(
+                token: graphics.token,
+                signature: GradientImageSignature(
+                    paint: paint, frame: extent, width: picture.width, height: picture.height),
+                columns: width, rows: buffer.lines.count,
+                pixels: { (picture.pixels(), picture.format, picture.width, picture.height) })
+        else { return nil }
+        return buffer.replacingLines(lines)
     }
 
     /// The ramp's ``fieldClaims(for:width:rows:rowAlphas:sampler:)`` over `content`,

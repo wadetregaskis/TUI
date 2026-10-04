@@ -59,6 +59,21 @@ enum GradientRaster {
         var format: KittyGraphics.PixelFormat { .rgb }
     }
 
+    /// A picture's size, known at once, and its pixels, made only when asked.
+    ///
+    /// The terminal image store asks for the pixels only when it does not
+    /// already hold this picture (`TerminalImageStore.placeholderRows`), and on
+    /// every frame after the first it does. Filling the bytes before asking
+    /// paid for a whole picture per render to find that out.
+    struct PictureSource {
+        let width: Int
+        let height: Int
+        /// Builds the bytes, row by row from the top.
+        let pixels: () -> [UInt8]
+        /// Always opaque: a ramp has no alpha to send.
+        var format: KittyGraphics.PixelFormat { .rgb }
+    }
+
     /// The fewest pixels a cell keeps in either direction after the reduction.
     /// Eight across a cell is 320 steps along a forty-cell bar — smoother than
     /// any terminal's font will show — and at a 16×34 cell the reduction that
@@ -116,6 +131,18 @@ enum GradientRaster {
     static func picture(
         paint: Paint, frame: GradientFrame, columns: Int, rows: Int, cellPixels: TerminalCellPixels
     ) -> Picture? {
+        source(paint: paint, frame: frame, columns: columns, rows: rows, cellPixels: cellPixels).map {
+            Picture(bytes: $0.pixels(), width: $0.width, height: $0.height)
+        }
+    }
+
+    /// ``picture(paint:frame:columns:rows:cellPixels:)``, with the pixels left
+    /// to be made when the store asks for them. Everything that decides whether
+    /// there IS a picture — a ramp, its colours all measurable — is answered
+    /// here; only the fill waits.
+    static func source(
+        paint: Paint, frame: GradientFrame, columns: Int, rows: Int, cellPixels: TerminalCellPixels
+    ) -> PictureSource? {
         guard let size = resolution(columns: columns, rows: rows, cellPixels: cellPixels) else {
             return nil
         }
@@ -144,30 +171,32 @@ enum GradientRaster {
             guard let rgb = colour.rgbComponents else { return nil }
             colours.append((rgb.red, rgb.green, rgb.blue))
         }
-        var bytes = [UInt8](repeating: 0, count: size.width * size.height * 3)
-        var offset = 0
-        for y in 0..<size.height {
-            let term = sampler.rowTerm(y * factor + centre)
-            if !sampler.variesAcrossRow {
-                // One colour along the row: fill it without asking per pixel.
-                let (r, g, b) = colours[sampler.entry(column: centre, rowTerm: term)]
-                for _ in 0..<size.width {
+        return PictureSource(width: size.width, height: size.height) {
+            var bytes = [UInt8](repeating: 0, count: size.width * size.height * 3)
+            var offset = 0
+            for y in 0..<size.height {
+                let term = sampler.rowTerm(y * factor + centre)
+                if !sampler.variesAcrossRow {
+                    // One colour along the row: fill it without asking per pixel.
+                    let (r, g, b) = colours[sampler.entry(column: centre, rowTerm: term)]
+                    for _ in 0..<size.width {
+                        bytes[offset] = r
+                        bytes[offset + 1] = g
+                        bytes[offset + 2] = b
+                        offset += 3
+                    }
+                    continue
+                }
+                for x in 0..<size.width {
+                    let (r, g, b) = colours[sampler.entry(column: x * factor + centre, rowTerm: term)]
                     bytes[offset] = r
                     bytes[offset + 1] = g
                     bytes[offset + 2] = b
                     offset += 3
                 }
-                continue
             }
-            for x in 0..<size.width {
-                let (r, g, b) = colours[sampler.entry(column: x * factor + centre, rowTerm: term)]
-                bytes[offset] = r
-                bytes[offset + 1] = g
-                bytes[offset + 2] = b
-                offset += 3
-            }
+            return bytes
         }
-        return Picture(bytes: bytes, width: size.width, height: size.height)
     }
 
     private static func greatestCommonDivisor(_ a: Int, _ b: Int) -> Int {
