@@ -3564,22 +3564,25 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Check for badge on the row (only for content rows, on first line only)
         let badge = row.badge
         let shouldRenderBadge = badge != nil && !badge!.isHidden && row.isSelectable
+        // The badge's ink, by the prominence in the list's environment: the
+        // claim and the bytes below both draw in it.
+        let badgeInk = context.environment.badgeProminence.badgeInk(in: palette)
         // Where its glyphs land, worked out once: the claim below and the bytes in
         // `renderLineWithBadge` have to name the same cells, and a badge is the one
         // text a list row draws ITSELF rather than taking from its content buffer.
         let badgeColumns =
-            shouldRenderBadge && !palette.foregroundTertiary.isOpaque
+            shouldRenderBadge && !badgeInk.isOpaque
             ? badgePlacement(
                 line: row.buffer.lines.first ?? "", badge: badge!, rowWidth: rowWidth,
                 gutterCells: 1
             ).columns
             : 0..<0
 
-        /// The mark, the badge and the fill this row owes, per line (``rowClaims(over:lines:rowWidth:indicator:badgeColumns:palette:)``).
+        /// The mark, the badge and the fill this row owes, per line (``rowClaims(over:lines:rowWidth:indicator:badgeColumns:badgeInk:)``).
         func claims(over backgroundColor: Color?) -> [OpacityRegion] {
             Self.rowClaims(
                 over: backgroundColor, lines: row.buffer.lines.count, rowWidth: rowWidth,
-                indicator: indicator, badgeColumns: badgeColumns, palette: palette)
+                indicator: indicator, badgeColumns: badgeColumns, badgeInk: badgeInk)
         }
 
         /// The row's content, with its fades spent against the fill the row paints
@@ -3593,13 +3596,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             content.lines(over: backgroundColor).enumerated().map { lineIndex, line in
                 if shouldRenderBadge && lineIndex == 0 {
                     return renderLineWithBadge(
-                        line: line,
-                        badge: badge!,
-                        rowWidth: rowWidth,
-                        backgroundColor: backgroundColor,
-                        palette: palette,
-                        gutter: gutter
-                    )
+                        line: line, badge: badge!, rowWidth: rowWidth,
+                        backgroundColor: backgroundColor, ink: badgeInk, gutter: gutter)
                 } else {
                     return renderPlainLine(
                         line: line,
@@ -3982,9 +3980,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// one derivation `Table` also calls. `badgeColumns` is the BADGE's columns and
     /// nothing else: the rest of a list row's content is a child buffer that claims for
     /// itself, and the attach carries those up (`PopulatedRenderState.contentClaims`).
+    /// `badgeInk` is what the badge is drawn in (``BadgeProminence``).
     private static func rowClaims(
         over backgroundColor: Color?, lines: Int, rowWidth: Int, indicator: RowSelectionIndicator,
-        badgeColumns: Range<Int>, palette: any Palette
+        badgeColumns: Range<Int>, badgeInk: Color
     ) -> [OpacityRegion] {
         // Asked before the walk, so a row with nothing translucent — every row of
         // nearly every list — allocates nothing at all. The `flatMap` below built
@@ -4002,7 +4001,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // manages it, but the package has to build on 6.2.
             let isFirst = line == 0
             let cells: Range<Int> = isFirst ? badgeColumns : 0..<0
-            let ink: Color? = isFirst && !badgeColumns.isEmpty ? palette.foregroundTertiary : nil
+            let ink: Color? = isFirst && !badgeColumns.isEmpty ? badgeInk : nil
             let mark: Color? = isFirst && !indicator.isBlank ? indicator.color : nil
             return SelectableRowClaims.claims(
                 line: line, width: rowWidth, cells: cells, ink: ink, mark: mark,
@@ -4258,14 +4257,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
     }
 
-    /// Renders a line with a right-aligned badge.
+    /// Renders a line with a right-aligned badge, in `ink` (``BadgeProminence``).
     /// Layout: [1 pad][content][fill padding][badge][1 pad]
     private func renderLineWithBadge(
         line: String,
         badge: BadgeValue,
         rowWidth: Int,
         backgroundColor: Color?,
-        palette: any Palette,
+        ink: Color,
         gutter: String
     ) -> String {
         let placement = badgePlacement(
@@ -4274,7 +4273,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // trapped (§68.2). Its alpha is claimed by `renderRow`, over the columns
         // `placement` names, so both come from the one arithmetic.
         let styledBadge = ANSIRenderer.colorize(
-            badge.displayText, foreground: palette.foregroundTertiary.opaqueSpelling)
+            badge.displayText, foreground: ink.opaqueSpelling)
         let paddedLine =
             gutter + placement.fitted
             + String(repeating: " ", count: placement.fillPadding) + styledBadge + " "
