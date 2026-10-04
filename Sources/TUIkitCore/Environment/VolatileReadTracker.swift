@@ -22,7 +22,29 @@ import Foundation
 /// A single tracker is shared down a subtree (an inner memoizing view reuses
 /// the one its ancestor installed), so a volatile read anywhere bubbles up to
 /// every enclosing row's snapshot and nesting stays correct.
+///
+/// The counts live in one struct reached through a pointer the class holds as
+/// a constant — `ValueHashPlans`' reason: reading them is loads from memory
+/// nothing else aliases, not accesses to a class's stored variables, which
+/// Swift checks for exclusivity at run time (`swift_beginAccess`, a
+/// thread-local lookup and an access-set insert, then `swift_endAccess`, per
+/// variable). ``cacheUnsafeCount`` alone summed four of them, and every memo
+/// gate reads it twice per measured or rendered node.
 public final class VolatileReadTracker: @unchecked Sendable {
+    /// Every count, and the scope's earliest clock instant — see the
+    /// properties of the same names, which read them.
+    private struct Counts {
+        var reads = 0
+        var sideEffects = 0
+        var replayableEffects = 0
+        var unkeyedReads = 0
+        var clockedReads = 0
+        var clockMovesAt: Date?
+    }
+
+    /// Allocated with the tracker and freed in `deinit`; never reassigned.
+    private let counts: UnsafeMutablePointer<Counts>
+
     /// Monotonic count of volatile-value reads. Only ever compared as a delta
     /// (before vs. after a scoped render), so the absolute value is irrelevant.
     ///
@@ -30,7 +52,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// its *pulse-timer* demand from this count alone; folding animation
     /// requests in would spin the pulse clock whenever any scheduler-driven
     /// animation (a Spinner, say) is on screen.
-    public private(set) var reads: Int = 0
+    public var reads: Int { counts.pointee.reads }
 
     /// Monotonic count of per-frame render side effects made during the
     /// scoped render — work that must re-run every frame, which a cached
@@ -80,7 +102,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// belongs here, because nothing in the rendered buffer reveals the
     /// registration (unlike hit-test regions and overlays, which travel in the
     /// buffer and so are gated directly).
-    public private(set) var sideEffects: Int = 0
+    public var sideEffects: Int { counts.pointee.sideEffects }
 
     /// Monotonic count of per-frame registrations the buffer memo can make
     /// again on a cache hit, because the registrar also recorded them in the
@@ -120,7 +142,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// includes it: the measure memo, `List`'s hug-width memo and the size
     /// half of the value memo replay nothing, so a registration has to stop
     /// them exactly as it did before it became replayable.
-    public private(set) var replayableEffects: Int = 0
+    public var replayableEffects: Int { counts.pointee.replayableEffects }
 
     /// Monotonic count of reads of a value that no memo KEYS on and that no
     /// modifier reports a change of. Recorded by:
@@ -143,7 +165,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// Counted apart from ``reads``, which alone drives the pulse timer: a
     /// viewport is not a function of time, and a view that read one would
     /// otherwise keep the run loop ticking for as long as it was on screen.
-    package private(set) var unkeyedReads: Int = 0
+    package var unkeyedReads: Int { counts.pointee.unkeyedReads }
 
     /// Of ``unkeyedReads``, those a live `TimelineView`'s measure made. The
     /// clock moves such a timeline's entry, and with it its size, but only at
@@ -160,7 +182,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// 24 and 10: the rows on screen. See ``sizeHold(since:)``.
     /// (A `Table`'s `.fit` column is the third such memo, and needs nothing:
     /// it measures cell STRINGS, which no timeline can be read into.)
-    package private(set) var clockedReads: Int = 0
+    package var clockedReads: Int { counts.pointee.clockedReads }
 
     /// The earliest instant at which a read counted in ``clockedReads`` since
     /// the innermost open scope began (``beginScope()``) moves, or `nil` when
@@ -173,24 +195,37 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// `.animation` timeline anywhere would lapse it every frame. A tracker
     /// kept across frames (the Stress harness installs one per context) would
     /// hold an instant long past, and nothing it measured could be kept at all.
-    package private(set) var clockMovesAt: Date?
+    package var clockMovesAt: Date? { counts.pointee.clockMovesAt }
 
     /// The combined count a value-memoizing view snapshots around a scoped
     /// render: any delta means the subtree is unsafe to cache.
-    public var cacheUnsafeCount: Int { reads &+ sideEffects &+ replayableEffects &+ unkeyedReads }
+    public var cacheUnsafeCount: Int {
+        counts.pointee.reads &+ counts.pointee.sideEffects &+ counts.pointee.replayableEffects
+            &+ counts.pointee.unkeyedReads
+    }
 
     /// Everything in ``cacheUnsafeCount`` except ``replayableEffects``: the
     /// count the buffer memo's store gate reads, since that memo stores a
     /// subtree's replayable registrations with its buffer and makes them again
     /// on every hit.
-    public var unreplayableCount: Int { reads &+ sideEffects &+ unkeyedReads }
+    public var unreplayableCount: Int {
+        counts.pointee.reads &+ counts.pointee.sideEffects &+ counts.pointee.unkeyedReads
+    }
 
     /// Creates a tracker with zero counts.
-    public init() {}
+    public init() {
+        counts = .allocate(capacity: 1)
+        counts.initialize(to: Counts())
+    }
+
+    deinit {
+        counts.deinitialize(count: 1)
+        counts.deallocate()
+    }
 
     /// Records that a per-frame-volatile environment value was read.
     public func recordVolatileRead() {
-        reads &+= 1
+        counts.pointee.reads &+= 1
     }
 
     /// Records a per-frame render side effect (an animation request, a
@@ -198,18 +233,18 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// cached buffer cannot reproduce, so the value memos must decline to
     /// cache the subtree that performed it.
     public func recordRenderSideEffect() {
-        sideEffects &+= 1
+        counts.pointee.sideEffects &+= 1
     }
 
     /// Records a per-frame registration the buffer memo can replay — see
     /// ``replayableEffects``.
     public func recordReplayableEffect() {
-        replayableEffects &+= 1
+        counts.pointee.replayableEffects &+= 1
     }
 
     /// Records a read of a value no memo keys on — see ``unkeyedReads``.
     package func recordUnkeyedRead() {
-        unkeyedReads &+= 1
+        counts.pointee.unkeyedReads &+= 1
     }
 
     /// Records a read of the clock that moves at `instant` and not before — a
@@ -217,9 +252,9 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// (``unkeyedReads``), so every memo that refuses one refuses this too; see
     /// ``clockedReads`` for the memos that need not.
     package func recordClockedRead(movingAt instant: Date) {
-        unkeyedReads &+= 1
-        clockedReads &+= 1
-        clockMovesAt = SizeHold.earlier(clockMovesAt, instant)
+        counts.pointee.unkeyedReads &+= 1
+        counts.pointee.clockedReads &+= 1
+        counts.pointee.clockMovesAt = SizeHold.earlier(counts.pointee.clockMovesAt, instant)
     }
 
     /// Records that an answer kept until `instant` was served, as the clocked
@@ -253,14 +288,14 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// instants measured before it from the scopes enclosing it, and one of
     /// them could keep an answer past the instant it lapses at.
     package func beginScope() -> Mark {
-        defer { clockMovesAt = nil }
+        defer { counts.pointee.clockMovesAt = nil }
         return Mark(unsafe: cacheUnsafeCount, clocked: clockedReads, enclosing: clockMovesAt)
     }
 
     /// Ends the scope `mark` began. What it collected joins what the scopes
     /// enclosing it collected, since they measured it too.
     package func endScope(_ mark: Mark) {
-        clockMovesAt = SizeHold.earlier(mark.enclosing, clockMovesAt)
+        counts.pointee.clockMovesAt = SizeHold.earlier(mark.enclosing, counts.pointee.clockMovesAt)
     }
 
     /// How long a size measured since `mark` holds, for a memo that keeps
