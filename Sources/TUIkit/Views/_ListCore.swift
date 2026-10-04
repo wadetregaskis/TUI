@@ -3547,8 +3547,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if context.environment.fixedSizeWidth {
             // The same question `allRowsContentWidth` answers on the measure
             // side, from the same memo; a badge's cells are outside the row
-            // buffer, which is what this width sizes.
-            return widestRowWidth(source: source, context: context)
+            // buffer, which is what this width sizes. With the row gutters, as
+            // the hug measured it and as the fill path's interior has them: a
+            // badged line fits its content to this width less the gutters and
+            // the badge, so without them a badged row narrower than the widest
+            // lost two cells of its title to an ellipsis it had room for.
+            return widestRowWidth(source: source, context: context) + listRowGutter
         }
         // Fill the interior: full available width when borderless (`.plain`),
         // minus the two border columns when bordered.
