@@ -287,12 +287,25 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
         }
     }
 
+    /// The list's least row and header heights (`\.defaultMinListRowHeight`,
+    /// `\.defaultMinListHeaderHeight`), handed to each box as it is built.
+    var minimumRowHeight = 1
+    var minimumHeaderHeight: Int?
+
     /// Builds the content box for the row at `index`, placed in this source's
-    /// ramp.
+    /// ramp, and given its least height. A row's type is asked for that only
+    /// when a list has set either height — never on the ordinary path.
     private func makeContent(at index: Int) -> LazyListRowContent {
         let content = make(index)
         content.gradientRamp = gradientRamp
         content.rowIndex = index
+        if minimumRowHeight > 1 || minimumHeaderHeight != nil {
+            switch typeAt(index) {
+            case .header: content.minimumHeight = minimumHeaderHeight ?? 1
+            case .footer: break
+            case .content, .unselectable: content.minimumHeight = minimumRowHeight
+            }
+        }
         return content
     }
 }
@@ -773,6 +786,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let editRestrictions = RowEditRestrictions()
         rowContext.environment.listRowEditRestrictions = editRestrictions
         let source = extractRows(from: content, context: rowContext)
+        source.minimumRowHeight = context.environment.defaultMinListRowHeight
+        source.minimumHeaderHeight = context.environment.defaultMinListHeaderHeight
         settleRowRamp(source, context: rowContext)
 
         // Vertical chrome around the scrollable content, as the container that

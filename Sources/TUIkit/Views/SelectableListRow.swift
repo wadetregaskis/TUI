@@ -109,6 +109,30 @@ final class LazyListRowContent {
         }
     }
 
+    /// The least height the list gives this row, in lines — its
+    /// `\.defaultMinListRowHeight`, or `\.defaultMinListHeaderHeight` for a
+    /// section header. A shorter render is padded to it with the content
+    /// centred, as a macOS list centres a row in a taller one; a row already
+    /// in hand when this is set is padded then.
+    var minimumHeight = 1 {
+        didSet {
+            guard minimumHeight != oldValue, let cached else { return }
+            self.cached = (paddedToMinimum(cached.buffer), cached.badge)
+        }
+    }
+
+    /// `buffer` with blank lines above and below to make ``minimumHeight``,
+    /// the content in the middle; `buffer` itself when it is tall enough.
+    private func paddedToMinimum(_ buffer: FrameBuffer) -> FrameBuffer {
+        let extra = minimumHeight - buffer.height
+        guard extra > 0 else { return buffer }
+        let above = extra / 2
+        var padded = FrameBuffer(lines: Array(repeating: "", count: above))
+        padded.appendVertically(buffer)
+        padded.appendVertically(FrameBuffer(lines: Array(repeating: "", count: extra - above)))
+        return padded
+    }
+
     /// This row's size without rendering it, when the content can answer —
     /// measured at the width the row would be rendered at, which comes back
     /// beside the size so a flexible row can be read as the render would have
@@ -214,7 +238,8 @@ final class LazyListRowContent {
         // Kept after the render, for a row whose ``backgroundProminence`` the
         // list raises after something has already rendered it. A box lives for
         // one frame's row source, so what the closure holds goes with it.
-        cached = thunk!(gradientRamp?.placement(row: rowIndex), backgroundProminence)
+        let rendered = thunk!(gradientRamp?.placement(row: rowIndex), backgroundProminence)
+        cached = (paddedToMinimum(rendered.buffer), rendered.badge)
     }
 
     /// The row's rendered buffer, BORROWED rather than returned.
@@ -241,7 +266,7 @@ final class LazyListRowContent {
     /// The row's height, rendering it only if there is no other way to ask.
     var heightWithoutRendering: Int {
         if let cached { return cached.buffer.height }
-        if let measureSize { return measureSize().size.height }
+        if let measureSize { return max(minimumHeight, measureSize().size.height) }
         return buffer.height
     }
 
