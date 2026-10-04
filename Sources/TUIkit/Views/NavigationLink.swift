@@ -198,7 +198,51 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
             action = { coordinator?.push(AnyHashable(token)) }
         }
 
-        return Button(action: action) { content }
-            .disabled(isDisabled || coordinator == nil)
+        // The disclosure indicator, when asked for: a terminal's chevron after
+        // the label. The automatic look is macOS's, which draws none.
+        let showsIndicator = context.environment.navigationLinkIndicatorVisibility == .visible
+        return Button(action: action) {
+            HStack(spacing: 1) {
+                content
+                if showsIndicator {
+                    Text(verbatim: "›")
+                }
+            }
+        }
+        .disabled(isDisabled || coordinator == nil)
+    }
+}
+
+// MARK: - The disclosure indicator
+
+private struct NavigationLinkIndicatorVisibilityKey: EnvironmentKey {
+    static let defaultValue = Visibility.automatic
+}
+
+extension EnvironmentValues {
+    /// Whether navigation links show a disclosure indicator. Mirrors SwiftUI's
+    /// `\.navigationLinkIndicatorVisibility`; set it with
+    /// ``View/navigationLinkIndicatorVisibility(_:)``.
+    ///
+    /// `.automatic` draws none, as macOS does; `.visible` draws a `›` after
+    /// the link's label.
+    public internal(set) var navigationLinkIndicatorVisibility: Visibility {
+        get { self[NavigationLinkIndicatorVisibilityKey.self] }
+        set { self[NavigationLinkIndicatorVisibilityKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Configures whether navigation links show a disclosure indicator.
+    /// Mirrors SwiftUI's `navigationLinkIndicatorVisibility(_:)`.
+    ///
+    /// Applied to a list or a stack, it reaches every link inside; applied to
+    /// one ``NavigationLink``, just that one. `.visible` draws a `›` after the
+    /// label; `.automatic` and `.hidden` draw none, the automatic look being
+    /// macOS's.
+    ///
+    /// - Parameter visibility: Whether the indicator shows.
+    public func navigationLinkIndicatorVisibility(_ visibility: Visibility) -> some View {
+        environment(\.navigationLinkIndicatorVisibility, visibility)
     }
 }
