@@ -338,6 +338,13 @@ accepted and change nothing: an image here is sized by its frame, and a
 terminal has no accessibility labels. An `NSImage` drawn into after it was
 first drawn is not drawn again.
 
+**`Image(_:bundle:)`, `(_:bundle:label:)` and `(decorative:bundle:)` find a
+plain image file** among the bundle's resources (the main bundle for `nil`):
+the name as given if it has an extension, else the name with the first of
+`png`, `jpg`, `jpeg`, `gif`, `bmp` and `tiff` there. SwiftUI reads an asset
+catalogue, which only Xcode compiles, and a SwiftPM executable has none. A name
+not found draws the missing-file error any raster image draws.
+
 **A raster `Image` renders as text everywhere, and as REAL PIXELS where the
 terminal has a graphics protocol.** The glyph renderer is the universal path and
 the one this section used to describe as the only one: a raster source converted

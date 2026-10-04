@@ -515,6 +515,10 @@ declined on exactly this ground, in the map's `ImageResource` family).
 catalogue has nothing to read, and a theme's palette is the terminal app's
 way of naming colours.
 
+**Shipped since, as the basic:** option 2 for the three `Image` initialisers
+(`Image+Bundle.swift`). The open question is whether to add option 1 on top,
+and what to do with `Color.init(_:bundle:)`.
+
 ### A16. Colours that resolve themselves, and HDR
 
 *`Color.init(_:)` for a `ShapeStyle & Hashable` whose `Resolved` is

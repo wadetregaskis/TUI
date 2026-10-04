@@ -603,6 +603,18 @@ private struct TemplateImageShapes: View {
     }
 #endif
 
+/// Images named by a resource in a bundle.
+@MainActor
+private struct BundleImageShapes: View {
+    var body: some View {
+        VStack {
+            Image("logo")
+            Image("logo", bundle: nil, label: Text("Logo"))
+            Image(decorative: "divider", bundle: nil)
+        }
+    }
+}
+
 /// Resizable images: stretched, fitted, and in slices.
 @MainActor
 private struct ResizableImageShapes: View {
