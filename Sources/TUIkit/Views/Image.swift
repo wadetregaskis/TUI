@@ -106,6 +106,20 @@ public struct Image: View {
     /// loading again. Not part of equality: it is what the source decodes to.
     var decoded: _DecodedImage?
 
+    /// The interpolation quality ``interpolation(_:)`` set, if any.
+    var interpolationQuality: Interpolation?
+
+    /// Whether ``antialiased(_:)`` asked for smoothing, if it was called.
+    var isAntialiased: Bool?
+
+    /// The supersampling factor this image's own modifiers ask for, or `nil`
+    /// to take the environment's: an interpolation quality, else `1` for an
+    /// image told not to antialias.
+    private var samplingFactor: Int? {
+        if let interpolationQuality { return interpolationQuality.samplingFactor }
+        return isAntialiased == false ? 1 : nil
+    }
+
     /// Creates an image from the given source.
     ///
     /// - Parameter source: The image source (file or URL).
@@ -136,7 +150,11 @@ public struct Image: View {
     public var body: some View {
         switch content {
         case .raster(let source):
-            _ImageCore(source: source, decoded: decoded)
+            if let samplingFactor {
+                _ImageCore(source: source, decoded: decoded).environment(\.imageSupersampling, samplingFactor)
+            } else {
+                _ImageCore(source: source, decoded: decoded)
+            }
         case .symbol(let name):
             _SymbolIcon(name: name)
         }

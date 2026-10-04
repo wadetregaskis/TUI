@@ -306,6 +306,12 @@ again; a nil URL stays `.empty`; a failure carries the loader's error; and the
 phase changes under the given transaction. `scale` is accepted and changes
 nothing, since an image here is sized by its frame, never by its pixel count.
 
+**`Image.interpolation(_:)` and `antialiased(_:)` ship** as how many samples
+each cell's sub-pixels take: `.none` (or `antialiased(false)`) picks the
+nearest pixel, `.low`, `.medium` and `.high` average two, three and four. That
+is `imageSupersampling(_:)`'s factor, set on the one image and winning over
+the environment's.
+
 **A raster `Image` renders as text everywhere, and as REAL PIXELS where the
 terminal has a graphics protocol.** The glyph renderer is the universal path and
 the one this section used to describe as the only one: a raster source converted

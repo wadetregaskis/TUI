@@ -1051,10 +1051,6 @@
       "how": "FrameBuffer (+ RenderContext)",
       "why": "FrameBuffer is the drawing context: composited(with:at:) (Sources/TUIkitCore/Rendering/FrameBuffer.swift:584), replacingLines (:828), clamped(toWidth:height:) (:761) as the clip, and overlays/hitTestRegions/animatedCells (:135-150) as the layer/interaction/animation channels. DIV"
     },
-    "Image.Interpolation": {
-      "how": "Int factor 1...4 on View.imageSupersampling(_:)",
-      "why": "SwiftUI's .none/.low/.medium/.high becomes a clamped Int supersampling factor with a nil default that adapts to the ramp length (Sources/TUIkit/Views/Image.swift:336-340), alongside DitheringMode (.floydSteinberg/.none, Sources/TUIkitImage/ASCIIConverter.swift:169-175). The enum "
-    },
     "List.Body": {
       "how": "List.body: some View",
       "why": "Sources/TUIkit/Views/List.swift:96 `public var body: some View`, the same shape as SwiftUI's `typealias Body = some View`. The typealias is inferred in TUIkit's source and written in the SDK interface, so the gap is a symbolgraph artifact."

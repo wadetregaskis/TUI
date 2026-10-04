@@ -564,3 +564,14 @@ private struct AsyncImageShapes: View {
         }
     }
 }
+
+/// Interpolation quality and antialiasing set on the image itself.
+@MainActor
+private struct ImageInterpolationShapes: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "star").interpolation(.none)
+            Image(systemName: "star").interpolation(.high).antialiased(false)
+        }
+    }
+}
