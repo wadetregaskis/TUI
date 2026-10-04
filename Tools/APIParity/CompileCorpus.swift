@@ -1002,3 +1002,130 @@ private struct TransitionShapes: View {
         }
     }
 }
+
+/// A custom transaction value, SwiftUI's own documentation example.
+private struct MyTransactionKey: TransactionKey {
+    static let defaultValue = false
+}
+
+extension Transaction {
+    fileprivate var myCustomValue: Bool {
+        get { self[MyTransactionKey.self] }
+        set { self[MyTransactionKey.self] = newValue }
+    }
+}
+
+/// Completions, custom transaction values, scoped transactions and content
+/// transitions, as SwiftUI's documentation writes them.
+@MainActor
+private struct TransactionShapes: View {
+    @State private var isActive = false
+    @State private var count = 0
+
+    var body: some View {
+        VStack {
+            Text("\(count)")
+                .contentTransition(.numericText(value: Double(count)))
+            Text("active")
+                .transaction { transaction in
+                    if transaction.myCustomValue {
+                        transaction.animation = .default.repeatCount(3)
+                    }
+                }
+                .transaction { transaction in
+                    transaction.animation = transaction.animation?.speed(2)
+                } body: { content in
+                    content.opacity(isActive ? 1.0 : 0.0)
+                }
+                .animation(.easeInOut) { content in
+                    content.opacity(isActive ? 1.0 : 0.5)
+                }
+                .transition(.modifier(active: FadeModifier(amount: 0), identity: FadeModifier(amount: 1)))
+            Button("Toggle") {
+                withTransaction(\.myCustomValue, true) {
+                    isActive.toggle()
+                }
+                withAnimation(.easeOut(duration: 0.3)) {
+                    count += 1
+                } completion: {
+                    isActive = false
+                }
+                withAnimation(.bouncy, completionCriteria: .removed) {
+                    count -= 1
+                } completion: {}
+                var transaction = Transaction(animation: .snappy)
+                transaction.addAnimationCompletion { count = 0 }
+                transaction.isContinuous = true
+                transaction.tracksVelocity = true
+                withTransaction(transaction) { count += 2 }
+            }
+        }
+    }
+}
+
+private struct FadeModifier: ViewModifier, Animatable {
+    var amount: Double
+    var animatableData: Double {
+        get { amount }
+        set { amount = newValue }
+    }
+    func body(content: Content) -> some View {
+        content.opacity(amount)
+    }
+}
+
+/// Springs, unit curves and visual effects, as SwiftUI's documentation writes
+/// them.
+@MainActor
+private struct SpringShapes: View {
+    @State private var offset = 0
+
+    var body: some View {
+        let spring = Spring(duration: 0.5, bounce: 0.3)
+        let (mass, stiffness, damping) = (spring.mass, spring.stiffness, spring.damping)
+        let physical = Spring(mass: mass, stiffness: stiffness, damping: damping)
+        let position = physical.value(target: 1.0, time: 0.25)
+        let curve = UnitCurve.easeInOut
+        let inputTime = curve.inverse.value(at: 0.6)
+        return Text("\(position) \(inputTime)")
+            .visualEffect { content, geometryProxy in
+                content
+                    .offset(x: geometryProxy.size.width / 4)
+                    .opacity(0.8)
+                    .grayscale(0.5)
+            }
+            .animation(.spring(spring, blendDuration: 0.1), value: offset)
+            .animation(.interpolatingSpring(spring, initialVelocity: 2), value: offset)
+            .animation(.interpolatingSpring(mass: 1, stiffness: 100, damping: 10), value: offset)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: offset)
+            .animation(.interactiveSpring, value: offset)
+            .animation(.timingCurve(.circularEaseInOut, duration: 0.4), value: offset)
+            .animation(.easeIn.logicallyComplete(after: 0.1), value: offset)
+    }
+}
+
+/// SwiftUI's own keyframe timeline examples, with `Double` for `CGPoint`.
+@MainActor
+private func keyframeShapes() -> Double {
+    struct Values {
+        var rotation = Angle.zero
+        var scale = 1.0
+    }
+    let keyframes = KeyframeTimeline(initialValue: 0.0) {
+        CubicKeyframe(100, duration: 0.3)
+        CubicKeyframe(0, duration: 0.7)
+    }
+    let tracks = KeyframeTimeline(initialValue: Values()) {
+        KeyframeTrack(\.rotation) {
+            CubicKeyframe(.zero, duration: 0.2)
+            CubicKeyframe(.degrees(45), duration: 0.3)
+        }
+        KeyframeTrack(\.scale) {
+            CubicKeyframe(1.2, duration: 0.5)
+            SpringKeyframe(0.9, duration: 0.2, spring: .bouncy)
+            LinearKeyframe(1.0, duration: 0.3, timingCurve: .easeOut)
+            MoveKeyframe(1.0)
+        }
+    }
+    return keyframes.value(time: 0.45) + tracks.value(progress: 0.5).scale + tracks.duration
+}
