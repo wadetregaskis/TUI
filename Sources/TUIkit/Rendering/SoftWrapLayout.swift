@@ -37,8 +37,10 @@
 /// An offset where a row was soft-wrapped is both the end of that row and the
 /// start of the next. Which one the caret is drawn at is its affinity:
 /// ``TextSelectionAffinity/upstream`` draws it at the end of the earlier row,
-/// and anything else at the start of the later one, which is where the macOS
-/// text system draws an insertion point after typing.
+/// and anything else at the start of the later one. That is where the macOS
+/// text system draws an insertion point moved there by an arrow key; one put
+/// there by typing or a click it draws upstream (both measured on macOS 15.8),
+/// a lean per caret this layout does not keep.
 ///
 /// Shared rather than the vertical field's own because it is the half of soft
 /// wrapping that ``TextEditor`` would need too; see

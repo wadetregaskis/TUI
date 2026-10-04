@@ -14,8 +14,10 @@
 /// start of the next. Upstream puts the caret at the end of the earlier row;
 /// downstream at the start of the later one. A vertical ``TextField`` draws its
 /// caret there by the affinity, and `.automatic` as downstream, which is where
-/// the macOS text system puts an insertion point after typing; Up and Down,
-/// and a click past a wrapped row's end, keep to the row the affinity picks.
+/// the macOS text system draws an insertion point an arrow key moved there
+/// (macOS leans one placed by typing or a click upstream instead, per caret,
+/// which TUIkit does not track). Up and Down, and a click past a wrapped row's
+/// end, keep to the row the affinity picks.
 /// ``TextEditor`` scrolls rather than wraps, so it only reports the affinity.
 public enum TextSelectionAffinity: Sendable, Hashable {
     /// The affinity the text view chooses.
