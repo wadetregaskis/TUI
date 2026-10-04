@@ -318,12 +318,53 @@ struct FieldChrome {
             ? Color.lerp(surface, palette.accent.resolve(with: palette), phase: 0.35)
             : surface
         self.width = 2
-        self.open = ANSIRenderer.colorize(
-            String(TerminalSymbols.openCap), foreground: capColor.opaqueSpelling)
-        self.close = ANSIRenderer.colorize(
-            String(TerminalSymbols.closeCap), foreground: capColor.opaqueSpelling)
+        let caps = Self.caps(in: capColor.opaqueSpelling)
+        self.open = caps.open
+        self.close = caps.close
         self.surface = surface
         self.capColor = capColor
+    }
+
+    /// The pair of caps last spelled, with everything their bytes are a function of.
+    private struct SpelledCaps {
+        let color: Color
+        let depth: ColorDepth
+        /// By value, as `ScrollbarMemo.Key` keeps it: at sixteen colours an RGB
+        /// colour is spelled as the slot nearest what the terminal REPORTED that
+        /// slot paints, and a task-local pin changes the report without moving
+        /// `TerminalColors.generation`.
+        let terminal: TerminalColors
+        let open: String
+        let close: String
+    }
+
+    /// The caps last spelled. Main-actor state, like the chrome itself.
+    private static var lastCaps: SpelledCaps?
+
+    /// The two caps in `color`, spelled once per colour, depth and terminal report
+    /// rather than twice per field per render.
+    ///
+    /// The glyphs are constants, so the bytes are a function of the colour, the
+    /// depth the emitter quantises to and the terminal's report — and nothing else.
+    /// Every unhovered field on a page has the same cap colour, so the last pair
+    /// answers almost every field: the spelling (a `TextStyle`, its introducer
+    /// derived, twice) was 5.3% of a page of 200 fields. A miss — a hovered field's
+    /// lerped colour, a palette or depth change — spells them as `colorize` does.
+    private static func caps(in color: Color) -> (open: String, close: String) {
+        let depth = ColorDepth.current
+        let terminal = TerminalColors.current
+        if let last = lastCaps, last.color == color, last.depth == depth, last.terminal == terminal {
+            return (last.open, last.close)
+        }
+        // One introducer for the pair, wrapped as `colorize` wraps (`ANSIRenderer.wrap`
+        // is what `render` returns), as a button's caps are.
+        var style = TextStyle()
+        style.foregroundColor = color
+        let sequence = ANSIRenderer.styleSequence(for: style)
+        let open = ANSIRenderer.wrap(String(TerminalSymbols.openCap), in: sequence)
+        let close = ANSIRenderer.wrap(String(TerminalSymbols.closeCap), in: sequence)
+        lastCaps = SpelledCaps(color: color, depth: depth, terminal: terminal, open: open, close: close)
+        return (open, close)
     }
 
     /// What the caps owe on a field line `lineWidth` cells wide.
