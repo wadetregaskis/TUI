@@ -1051,6 +1051,11 @@ non-default setup.
     TUIkit's `ctrl || meta` multi-select toggle works on both — but any
     user-facing hint must name a different physical key per terminal:
     **⌘-click here, ⌥-click in Apple Terminal**.
+  - **What a gesture's `modifiers(_:)` hears follows from this.** It reads the
+    same bits: `.option` is the +8 bit, so an `.option`-gated gesture answers
+    ⌘-click here and ⌥-click in Apple Terminal, and `.command` never arrives
+    anywhere. Shift- and Ctrl-left-clicks have not been byte-captured on either
+    terminal yet (wave 17g left that measurement owed).
 
   *Earlier general captures (2026-07-14, before the probe logged
   `TERM_PROGRAM`):* plain clicks are **symmetric** (press `M` and

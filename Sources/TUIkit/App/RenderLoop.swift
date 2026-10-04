@@ -438,6 +438,17 @@ extension RenderLoop {
 
         driveDragFlights(nowNanos: frameNowNanos, scheduler: animationScheduler)
 
+        // The gestures' clocks — a long press's minimum duration, a tap's wait
+        // for its next click — run to this frame's instant before the tree
+        // renders, so what a timed end changes is drawn in this frame. Before
+        // `beginRenderPass()` as well: a control a gesture was holding back is
+        // handed its press here, against the handlers of the frame it was
+        // pressed on.
+        tuiContext.mouseEventDispatcher.advanceGestures(nowNanos: frameNowNanos)
+        if let deadline = tuiContext.mouseEventDispatcher.gestureDeadline {
+            animationScheduler?.requestWake("gestures", at: deadline)
+        }
+
         beginRenderPass()
 
         // If an @Published property changed, clear the entire render cache

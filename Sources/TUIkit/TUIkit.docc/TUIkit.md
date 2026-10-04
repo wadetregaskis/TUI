@@ -219,6 +219,15 @@ struct MyApp: App {
 - ``CommandKeyBinding``
 - ``SubmitTriggers``
 
+### Gestures
+
+- ``Gesture``
+- ``TapGesture``
+- ``SpatialTapGesture``
+- ``LongPressGesture``
+- ``DragGesture``
+- ``GestureMask``
+
 ### Mouse & Drag and Drop
 
 - ``MouseSupport``

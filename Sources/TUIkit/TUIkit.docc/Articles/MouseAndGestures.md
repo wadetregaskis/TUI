@@ -80,6 +80,37 @@ content
 Horizontal scrolling (`.left` / `.right`) is produced by a trackpad swipe or a
 shifted mouse wheel.
 
+## SwiftUI Gestures
+
+SwiftUI's gesture values work here, on the left mouse button. Build one, give it
+its callbacks, and attach it with ``View/gesture(_:including:)``:
+
+```swift
+Text("Tap or drag")
+    .gesture(TapGesture(count: 2).onEnded { open() })
+    .gesture(DragGesture().onChanged { drag in move(by: drag.translation) })
+```
+
+``TapGesture``, ``SpatialTapGesture``, ``LongPressGesture`` and ``DragGesture``
+behave as macOS's do, measured: a tap ends on a release over the view, a long
+press is `true` from the press and ends at its minimum duration with the button
+still down, and a drag starts at its minimum distance with the press as its
+start. Positions are ``CellPoint``s, translations ``CellSize``s, and a drag's
+velocity is a ``CellVector`` in cells per second.
+
+When several gestures are under the pointer, the view's own come first — its
+subviews', and a control's own press — and one attached with `gesture` gets the
+pointer only if they fail. ``View/highPriorityGesture(_:including:)`` goes
+before them and ``View/simultaneousGesture(_:including:)`` beside them, and a
+``GestureMask`` turns either side off. A gesture that is still undecided holds
+up the ones after it, so a double tap written inside a single tap delays the
+single tap until a second click can no longer come.
+
+A gesture has no keyboard route of its own, on macOS or here. A control keeps
+its own — a `Button` attached to a gesture still activates on Return — and a
+gesture on a plain view needs a key of the app's, or a terminal without mouse
+reporting cannot reach it.
+
 ## Context Menus
 
 `contextMenu(menuItems:)` attaches a pop-up of `Button`s to any view, anchored

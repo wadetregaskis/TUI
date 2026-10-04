@@ -60,6 +60,9 @@ final class InputChainHarness {
     /// Renders one frame of `view`, clearing every per-frame registry first.
     @discardableResult
     func frame(_ view: some View) -> FrameBuffer {
+        // As the run loop does: the gestures' clocks run to the frame's
+        // instant before anything is cleared or rendered.
+        tui.mouseEventDispatcher.advanceGestures(nowNanos: now)
         tui.mouseEventDispatcher.beginRenderPass()
         tui.dragAndDropSession.beginFrame()
         tui.keyEventDispatcher.clearHandlers()

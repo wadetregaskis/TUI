@@ -244,6 +244,16 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// is a release whose press went somewhere this control never heard about.
     private var handedOffPresses: Set<MouseButton> = []
 
+    /// The gestures attached this frame (``View/gesture(_:including:)`` and
+    /// its siblings), by the handler id of the region each filed. Cleared with
+    /// the handler table. See ``GestureArena``.
+    var gestureRoles: [HitTestRegion.HandlerID: GestureRole] = [:]
+
+    /// The gestures contending for the left button: built at a press that
+    /// lands on a gesture, kept until every one of them has decided — which
+    /// can be after the release, for a tap waiting on its next click.
+    var gestureArena: GestureArena?
+
     /// The maximum gap between successive clicks for them to count as one
     /// multi-click sequence (400 ms — a common desktop double-click threshold).
     private static let multiClickWindowNanos: UInt64 = 400_000_000
@@ -274,6 +284,7 @@ extension MouseEventDispatcher {
         if let exit = retainedExit(for: observedHover) { observedHover.pendingExit = exit }
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)
+        gestureRoles.removeAll(keepingCapacity: true)
         regions.removeAll(keepingCapacity: true)
         // The interned ids survive this: only the per-identity slot counters
         // restart, because this runs once per WALK of the scene.
@@ -714,6 +725,14 @@ extension MouseEventDispatcher {
         // the rationale on why we route `.moved` separately.
         if event.phase == .moved {
             return dispatchMotion(event)
+        }
+
+        // A press on an attached gesture, and the rest of the button's
+        // gesture after one, are ranked in the gesture arena — controls under
+        // the press included, which it hands the press when the gestures
+        // ahead of them give up. Everything else is ordinary dispatch.
+        if let settled = routeThroughGestures(event, matching: { matchingRegions(at: event.x, y: event.y) }) {
+            return settled
         }
 
         // Drag capture: when a button is currently held, route every
