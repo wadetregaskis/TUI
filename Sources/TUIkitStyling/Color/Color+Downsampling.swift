@@ -465,19 +465,33 @@ extension Color {
     /// not paired with ``hueWeightedDistanceSquared``, which is load-bearing for
     /// palette derivation and must not acquire callers outside this file.
     package static func oklab(red: UInt8, green: UInt8, blue: UInt8) -> (l: Double, a: Double, b: Double) {
-        let linearRed = linearChannel(red)
-        let linearGreen = linearChannel(green)
-        let linearBlue = linearChannel(blue)
-        let long = cbrt(
-            0.4122214708 * linearRed + 0.5363325363 * linearGreen + 0.0514459929 * linearBlue)
-        let medium = cbrt(
-            0.2119034982 * linearRed + 0.6806995451 * linearGreen + 0.1073969566 * linearBlue)
-        let short = cbrt(
-            0.0883024619 * linearRed + 0.2817188376 * linearGreen + 0.6299787005 * linearBlue)
+        let (long, medium, short) = cubeRootLMS(red: red, green: green, blue: blue)
         return (
             l: 0.2104542553 * long + 0.7936177850 * medium - 0.0040720468 * short,
             a: 1.9779984951 * long - 2.4285922050 * medium + 0.4505937099 * short,
             b: 0.0259040371 * long + 0.7827717662 * medium - 0.8086757660 * short
+        )
+    }
+
+    /// The first half of ``oklab(red:green:blue:)``: the cube roots of the
+    /// cone responses, before the matrix that turns them into lightness and the
+    /// two opponent axes.
+    ///
+    /// Its own step because the two halves are not interchangeable once a blend
+    /// is anything but straight. A linear mix commutes with that last matrix, so
+    /// mixing here or in OKLab is the same mix; a cubic one with limited
+    /// tangents does not, and SwiftUI's smooth mesh gradient makes its tangent
+    /// decisions per channel HERE (measured on macOS 15.8).
+    package static func cubeRootLMS(red: UInt8, green: UInt8, blue: UInt8) -> (
+        long: Double, medium: Double, short: Double
+    ) {
+        let linearRed = linearChannel(red)
+        let linearGreen = linearChannel(green)
+        let linearBlue = linearChannel(blue)
+        return (
+            long: cbrt(0.4122214708 * linearRed + 0.5363325363 * linearGreen + 0.0514459929 * linearBlue),
+            medium: cbrt(0.2119034982 * linearRed + 0.6806995451 * linearGreen + 0.1073969566 * linearBlue),
+            short: cbrt(0.0883024619 * linearRed + 0.2817188376 * linearGreen + 0.6299787005 * linearBlue)
         )
     }
 
@@ -505,10 +519,17 @@ extension Color {
         // The label is `l` to mirror `oklab`'s own tuple; the binding is spelt
         // out because a lone `l` is not one of the single letters the style
         // rules allow (and reads as a 1).
-        let long = lightness + 0.3963377774 * a + 0.2158037573 * b
-        let medium = lightness - 0.1055613458 * a - 0.0638541728 * b
-        let short = lightness - 0.0894841775 * a - 1.2914855480 * b
+        fromCubeRootLMS(
+            long: lightness + 0.3963377774 * a + 0.2158037573 * b,
+            medium: lightness - 0.1055613458 * a - 0.0638541728 * b,
+            short: lightness - 0.0894841775 * a - 1.2914855480 * b)
+    }
 
+    /// The inverse of ``cubeRootLMS(red:green:blue:)`` — the second half of
+    /// ``fromOKLab(l:a:b:)``, clamped to the gamut the same way.
+    package static func fromCubeRootLMS(long: Double, medium: Double, short: Double) -> (
+        red: UInt8, green: UInt8, blue: UInt8
+    ) {
         let longCubed = long * long * long
         let mediumCubed = medium * medium * medium
         let shortCubed = short * short * short
