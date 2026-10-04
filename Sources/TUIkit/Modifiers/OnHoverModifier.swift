@@ -233,7 +233,7 @@ extension View {
     /// in and each time the terminal reports it moving within, and with
     /// ``HoverPhase/ended`` when it leaves. A terminal reports the pointer's
     /// cell, so a move is the pointer reaching another cell.
-    /// Like ``onHover(perform:)`` it needs the terminal's any-event mouse
+    /// Like ``View/onHover(perform:)`` it needs the terminal's any-event mouse
     /// reporting, which it asks for while the view is on screen, and a view
     /// inside `.disabled(true)` hears nothing.
     ///
