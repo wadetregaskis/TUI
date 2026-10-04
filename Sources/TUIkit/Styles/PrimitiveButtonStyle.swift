@@ -90,8 +90,7 @@ extension BuiltInButtonStyle {
     @MainActor
     func builtInBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
         Button(configuration)
-            .environment(\.buttonStyle, appearance)
-            .environment(\.primitiveButtonStyleChain, nil)
+            .environment(\.installedButtonAppearance, appearance)
     }
 }
 
@@ -110,6 +109,57 @@ extension EnvironmentValues {
     var primitiveButtonStyleChain: StyleChain<any PrimitiveButtonStyle>? {
         get { self[PrimitiveButtonStyleChainKey.self] }
         set { self[PrimitiveButtonStyleChainKey.self] = newValue }
+    }
+
+    /// ``buttonStyle``, written so that it also ends any custom primitive
+    /// style further out: the nearest `.buttonStyle(_:)` wins whichever kind
+    /// of style it names. One environment write where two modifiers stood —
+    /// and each modifier is a layer that copies the environment and notes its
+    /// value on both walks. The cleared chain is a constant for the subtree
+    /// (always `nil` below), so it has nothing to note; the appearance is
+    /// noted as ``buttonStyle`` always was.
+    var installedButtonAppearance: any ButtonStyle {
+        get { buttonStyle }
+        set {
+            buttonStyle = newValue
+            if primitiveButtonStyleChain != nil { primitiveButtonStyleChain = nil }
+        }
+    }
+
+    /// What a `.buttonStyle(_:)` naming a ``PrimitiveButtonStyle`` installs,
+    /// as one value, so the modifier is one transform rather than one per key:
+    /// a built-in style's appearance, or a custom style pushed on the chain.
+    var installedPrimitiveButtonStyle: InstalledPrimitiveButtonStyle {
+        get { primitiveButtonStyleChain.map(InstalledPrimitiveButtonStyle.custom) ?? .appearance(buttonStyle) }
+        set {
+            switch newValue {
+            case .appearance(let appearance): installedButtonAppearance = appearance
+            case .custom(let chain): primitiveButtonStyleChain = chain
+            }
+        }
+    }
+}
+
+/// See ``EnvironmentValues/installedPrimitiveButtonStyle``.
+///
+/// Compared as its two halves were when each had a modifier of its own: an
+/// appearance as an `Equatable` style (every built-in one is), a chain as
+/// ``StyleChain`` compares.
+enum InstalledPrimitiveButtonStyle: Equatable, @unchecked Sendable {
+    /// A built-in style's appearance, with no custom style in force.
+    case appearance(any ButtonStyle)
+    /// A custom style, over the custom styles further out.
+    case custom(StyleChain<any PrimitiveButtonStyle>)
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.appearance(let left), .appearance(let right)):
+            (left as? any Equatable)?.isEqual(to: right) == true
+        case (.custom(let left), .custom(let right)):
+            left == right
+        default:
+            false
+        }
     }
 }
 
@@ -147,16 +197,17 @@ extension View {
     /// - Returns: A view whose buttons use the style.
     public func buttonStyle<S: PrimitiveButtonStyle>(_ style: S) -> some View {
         let appearance = (style as? any BuiltInButtonStyle)?.appearance
-        return
-            self
-            .transformEnvironment(\.primitiveButtonStyleChain) { entry in
-                entry = appearance == nil ? StyleChain(style, outer: entry) : nil
-            }
-            .transformEnvironment(\.buttonStyle) { current in
-                if let appearance { current = appearance }
-            }
         // A built-in installs itself as the appearance and clears any custom
         // primitive style further out; a custom one goes on top of whatever is
         // in force, which its `Button(configuration)` then draws with.
+        return transformEnvironment(\.installedPrimitiveButtonStyle) { installed in
+            if let appearance {
+                installed = .appearance(appearance)
+            } else if case .custom(let outer) = installed {
+                installed = .custom(StyleChain(style, outer: outer))
+            } else {
+                installed = .custom(StyleChain(style))
+            }
+        }
     }
 }

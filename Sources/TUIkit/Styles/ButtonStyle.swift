@@ -744,8 +744,7 @@ extension View {
         //
         // The nearest `.buttonStyle(_:)` wins whichever kind of style it names,
         // so this clears a custom primitive style set further out.
-        environment(\.buttonStyle, style)
-            .environment(\.primitiveButtonStyleChain, nil)
+        environment(\.installedButtonAppearance, style)
     }
 }
 
