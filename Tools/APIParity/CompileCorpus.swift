@@ -964,3 +964,41 @@ private struct TimeDataSourceShapes: View {
         }
     }
 }
+// MARK: - Wave 12: animation and transitions
+
+/// SwiftUI's own `Transition` example, and the built-ins in both spellings —
+/// the generic overload must not make the `AnyTransition` ones ambiguous.
+private struct RotatingFadeTransition: Transition {
+    func body(content: Content, phase: TransitionPhase) -> some View {
+        content
+            .opacity(phase.isIdentity ? 1.0 : 0.0)
+            .offset(x: Int(phase.value) * 3)
+    }
+}
+
+@MainActor
+private struct TransitionShapes: View {
+    @State private var isShown = false
+
+    var body: some View {
+        VStack {
+            if isShown {
+                Text("custom").transition(RotatingFadeTransition())
+                Text("any").transition(.move(edge: .top).combined(with: .opacity))
+                Text("typed").transition(.push(from: .leading))
+                Text("scaled").transition(.scale(0.5, anchor: .bottom))
+                Text("scale").transition(.scale)
+                Text("slide").transition(.slide)
+                Text("asym").transition(.asymmetric(insertion: .opacity, removal: .slide))
+                Text("typed asym").transition(
+                    AsymmetricTransition(insertion: .opacity, removal: .move(edge: .bottom)))
+                Text("erased").transition(AnyTransition(RotatingFadeTransition()).animation(.smooth))
+                Text("combined").transition(
+                    RotatingFadeTransition().combined(with: .move(edge: .leading)).animation(.bouncy))
+                Text("any scale").transition(.scale(scale: 0.2, anchor: .center))
+                Text("identity").transition(.identity)
+                Text("offset").transition(.offset(x: 2, y: 1))
+            }
+        }
+    }
+}
