@@ -51,7 +51,7 @@ extension EnvironmentModifier: Renderable {
         // Create modified environment and render content with it.
         // The modified context carries the environment through the render tree —
         // no global state sync needed.
-        let uncomparable = noteEnvironmentChange(context: context)
+        let uncomparable = noteEnvironmentChange(value, at: keyPath, context: context)
         var modifiedEnvironment = context.environment.setting(keyPath, to: value)
         if uncomparable { modifiedEnvironment.hasUncomparableEnvironmentValue = true }
         // Derived from `context.environment` one line up, so the services are
@@ -64,69 +64,81 @@ extension EnvironmentModifier: Renderable {
 
 // MARK: - Cache Coherency
 
-extension EnvironmentModifier {
-    /// Drops cached buffers below this modifier when the value it injects has
-    /// changed since the last pass.
-    ///
-    /// The render cache keys on identity, view value and size — not on the
-    /// environment. That is what makes it cheap, and it is why a **scoped**
-    /// style change is invisible to it: `.foregroundStyle(x)` applied *above* an
-    /// `.equatable()` boundary leaves the view value identical, so the lookup
-    /// hits and hands back the buffer rendered under the old style. Wrong
-    /// pixels, not merely stale work.
-    ///
-    /// Detecting it here rather than in the key is the cheaper half of the
-    /// trade: one comparison per environment modifier per pass, against a
-    /// dictionary walk per memoized view per pass. The `@State`-driven case was
-    /// already covered by accident (the declaring view's identity is an ancestor
-    /// of the cached one, so `clearAffected(by:)` reaches it); this covers the
-    /// rest — a preference written by a sibling, an `@AppStorage` value, a
-    /// binding threaded down from somewhere that is not an ancestor.
-    ///
-    /// A value that is not `Equatable` cannot be compared at all, so the subtree
-    /// declares itself cache-unsafe instead: `EquatableView` already refuses to
-    /// store a buffer whose render tripped the tracker. Memoization is lost
-    /// under such a modifier, which is a performance cost rather than a
-    /// correctness one — the right way round.
-    ///
-    /// - Returns: `true` when the injected value is uncomparable, so the caller
-    ///   marks the environment it passes down.
-    fileprivate func noteEnvironmentChange(context: RenderContext) -> Bool {
-        guard let cache = context.renderCache else { return false }
-        // A palette is noted as every other keeper of one compares it —
-        // `ComparablePalette`: by value where it is `Equatable`, through its
-        // derivation for the framework's own wrappers, by its id otherwise, as
-        // `Palette`'s documentation asks of a palette whose colours change. Noted
-        // raw, a palette with no `Equatable` of its own — the Theming guide's
-        // shape, and the Terminal palette once the environment has grounded it —
-        // answered `.incomparable`, and `.palette(_:)` turned off every memo below
-        // it for good. `.theme(_:)` and the render loop's snapshot already compare
-        // it this way.
-        //
-        // Handed over as the expression, not a value made here: the parameter
-        // is an autoclosure, so the cast and the `Any` box happen only on the
-        // visits that compare — once a pass — and not on the repeat visits of
-        // two-pass layout, which the once-per-pass check answers without them.
-        switch cache.noteAppliedEnvironment(
-            (value as? any Palette).map(ComparablePalette.init) ?? value, identity: context.identity,
-            keyPath: keyPath, depth: context.environmentApplicationDepth)
-        {
-        case .changed:
-            cache.clearAffected(by: context.identity)
-        case .incomparable:
-            // Two routes, because a memoizing view can sit on either side of
-            // this modifier. Below it: the tracker exists by then, and
-            // `EquatableView` already declines to store when it is tripped.
-            // Above it — the usual arrangement, `.equatable().foregroundStyle(…)`
-            // — there is no tracker here yet, so the signal has to travel *down*
-            // the environment instead. Hence the flag as well.
-            context.environment.volatileReadTracker?.recordRenderSideEffect()
-            return true
-        case .first, .unchanged:
-            break
-        }
-        return false
+/// Drops cached buffers below an environment modifier when the value it
+/// injects at `keyPath` has changed since the last pass — for
+/// ``EnvironmentModifier`` and ``TransformEnvironmentModifier`` alike, the one
+/// place it is implemented.
+///
+/// A free function generic over the VALUE alone, so neither caller has to
+/// name the other's type to reach it: a transform calling a static on
+/// `EnvironmentModifier<Content, V>` would instantiate that type's metadata —
+/// a hashed runtime lookup — on every visit, for nothing.
+///
+/// The render cache keys on identity, view value and size — not on the
+/// environment. That is what makes it cheap, and it is why a **scoped**
+/// style change is invisible to it: `.foregroundStyle(x)` applied *above* an
+/// `.equatable()` boundary leaves the view value identical, so the lookup
+/// hits and hands back the buffer rendered under the old style. Wrong
+/// pixels, not merely stale work.
+///
+/// Detecting it here rather than in the key is the cheaper half of the
+/// trade: one comparison per environment modifier per pass, against a
+/// dictionary walk per memoized view per pass. The `@State`-driven case was
+/// already covered by accident (the declaring view's identity is an ancestor
+/// of the cached one, so `clearAffected(by:)` reaches it); this covers the
+/// rest — a preference written by a sibling, an `@AppStorage` value, a
+/// binding threaded down from somewhere that is not an ancestor.
+///
+/// A value that is not `Equatable` cannot be compared at all, so the subtree
+/// declares itself cache-unsafe instead: `EquatableView` already refuses to
+/// store a buffer whose render tripped the tracker. Memoization is lost
+/// under such a modifier, which is a performance cost rather than a
+/// correctness one — the right way round.
+///
+/// - Parameters:
+///   - value: The value the modifier injects.
+///   - keyPath: Where it injects it — the slot it is noted under.
+///   - context: The modifier's own context: its identity, its depth, and the
+///     environment ABOVE it, whose tracker an uncomparable value trips.
+/// - Returns: `true` when the injected value is uncomparable, so the caller
+///   marks the environment it passes down.
+private func noteEnvironmentChange<V>(
+    _ value: V, at keyPath: WritableKeyPath<EnvironmentValues, V>, context: RenderContext
+) -> Bool {
+    guard let cache = context.renderCache else { return false }
+    // A palette is noted as every other keeper of one compares it —
+    // `ComparablePalette`: by value where it is `Equatable`, through its
+    // derivation for the framework's own wrappers, by its id otherwise, as
+    // `Palette`'s documentation asks of a palette whose colours change. Noted
+    // raw, a palette with no `Equatable` of its own — the Theming guide's
+    // shape, and the Terminal palette once the environment has grounded it —
+    // answered `.incomparable`, and `.palette(_:)` turned off every memo below
+    // it for good. `.theme(_:)` and the render loop's snapshot already compare
+    // it this way.
+    //
+    // Handed over as the expression, not a value made here: the parameter
+    // is an autoclosure, so the cast and the `Any` box happen only on the
+    // visits that compare — once a pass — and not on the repeat visits of
+    // two-pass layout, which the once-per-pass check answers without them.
+    switch cache.noteAppliedEnvironment(
+        (value as? any Palette).map(ComparablePalette.init) ?? value, identity: context.identity,
+        keyPath: keyPath, depth: context.environmentApplicationDepth)
+    {
+    case .changed:
+        cache.clearAffected(by: context.identity)
+    case .incomparable:
+        // Two routes, because a memoizing view can sit on either side of
+        // this modifier. Below it: the tracker exists by then, and
+        // `EquatableView` already declines to store when it is tripped.
+        // Above it — the usual arrangement, `.equatable().foregroundStyle(…)`
+        // — there is no tracker here yet, so the signal has to travel *down*
+        // the environment instead. Hence the flag as well.
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        return true
+    case .first, .unchanged:
+        break
     }
+    return false
 }
 
 // MARK: - Layoutable
@@ -158,7 +170,7 @@ extension EnvironmentModifier: Layoutable {
         // stale size. The once-per-pass short circuit in
         // `noteAppliedEnvironment` is what makes this affordable: two-pass
         // layout visits the same modifier many times per frame.
-        let uncomparable = noteEnvironmentChange(context: context)
+        let uncomparable = noteEnvironmentChange(value, at: keyPath, context: context)
         var modifiedEnvironment = context.environment.setting(keyPath, to: value)
         if uncomparable { modifiedEnvironment.hasUncomparableEnvironmentValue = true }
         // Derived, as on the render arm — see the note there.
@@ -175,13 +187,17 @@ extension EnvironmentModifier: Layoutable {
 /// The difference from ``EnvironmentModifier`` is entirely one of timing: a set
 /// value is known when the view is built, a transformed one cannot be, because
 /// it is a function of whatever the enclosing environment happens to hold when
-/// this subtree renders. So the value is computed here, at render time, and the
-/// work is then handed to `EnvironmentModifier` — which already knows how to
-/// inject a value AND how to keep the render cache honest about it.
+/// this subtree renders. So the value is computed here, at render time —
+/// read, transformed and written back through ONE projection of the key path —
+/// and noted for the render cache by the same function `EnvironmentModifier`
+/// notes with, so the cache is kept honest about it in one place.
 ///
-/// Delegating to its methods directly, rather than rendering one as a child,
-/// keeps this a pure value computation: no extra node in the identity path, no
-/// second dispatch, and one place where injection is implemented.
+/// Done inline rather than by rendering an `EnvironmentModifier` as a child:
+/// no extra node in the identity path, no second dispatch. Nor by building one
+/// and calling its methods, which is what this did: that copied the content
+/// into a new modifier on every visit, and read the value through the key
+/// path and then wrote it through it again — two projections, the second
+/// re-reading the value before its write — where one does both.
 public struct TransformEnvironmentModifier<Content: View, V>: View {
     // The two word-sized fields, then the content last, so nothing follows it
     // whatever its size: the content first left seven undefined bytes before
@@ -213,28 +229,65 @@ public struct TransformEnvironmentModifier<Content: View, V>: View {
         content
     }
 
-    /// The plain injection this resolves to in `context`.
+    /// The context the content is drawn and measured in: `context` with the
+    /// transform applied — exactly what an ``EnvironmentModifier`` injecting
+    /// the transformed value makes of it.
     ///
     /// Run on both walks, and it must produce the same value on each or the
     /// measured size would describe a different environment than the drawn one.
     /// It does, because the only inputs are the inherited value and the
     /// caller's closure.
-    private func applied(in context: RenderContext) -> EnvironmentModifier<Content, V> {
-        var value = context.environment[keyPath: keyPath]
-        transform(&value)
-        return EnvironmentModifier(content: content, keyPath: keyPath, value: value)
+    ///
+    /// The value is written into the copy before it is noted, where an
+    /// `EnvironmentModifier` notes first and writes after. The order cannot be
+    /// seen: the note reads only `context` — the environment above — never
+    /// the copy, and the key path's setter writes only the copy.
+    ///
+    /// A key path that reaches through a class — `\.model.count`, with the
+    /// model an object in the environment — is copied out and written back
+    /// instead. Through ONE access, the access to the object's property would
+    /// be held across the caller's closure, and a closure that reads that same
+    /// property (`{ $0 = model.count + 1 }`) would trap for exclusivity.
+    private func transformed(_ context: RenderContext) -> RenderContext {
+        var environment = context.environment
+        let value: V
+        if keyPath is ReferenceWritableKeyPath<EnvironmentValues, V> {
+            var copy = environment[keyPath: keyPath]
+            transform(&copy)
+            environment[keyPath: keyPath] = copy
+            value = copy
+        } else {
+            value = applying(transform, to: &environment[keyPath: keyPath])
+        }
+        if noteEnvironmentChange(value, at: keyPath, context: context) {
+            environment.hasUncomparableEnvironmentValue = true
+        }
+        // Derived from `context.environment`, as `EnvironmentModifier`'s is.
+        var modified = context.withDerivedEnvironment(environment)
+        modified.environmentApplicationDepth += 1
+        return modified
     }
+}
+
+/// `transform` applied to `value` in place, and the value it leaves.
+///
+/// What lets ``TransformEnvironmentModifier`` read, transform and write back
+/// through ONE access to `&environment[keyPath:]` and still have the value
+/// to note: the copy is taken inside that access.
+private func applying<V>(_ transform: (inout V) -> Void, to value: inout V) -> V {
+    transform(&value)
+    return value
 }
 
 extension TransformEnvironmentModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        applied(in: context).renderToBuffer(context: context)
+        TUIkitView.renderToBuffer(content, context: transformed(context))
     }
 }
 
 extension TransformEnvironmentModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        applied(in: context).sizeThatFits(proposal: proposal, context: context)
+        measureChild(content, proposal: proposal, context: transformed(context))
     }
 }
 

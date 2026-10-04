@@ -29,6 +29,21 @@ extension EnvironmentValues {
         get { self[TestIntKey.self] }
         set { self[TestIntKey.self] = newValue }
     }
+
+    fileprivate var testCounter: TestCounter {
+        get { self[TestCounterKey.self] }
+        set { self[TestCounterKey.self] = newValue }
+    }
+}
+
+/// An object in the environment, so `\.testCounter.count` is a key path that
+/// reaches through a class.
+private final class TestCounter: @unchecked Sendable {
+    var count = 0
+}
+
+private struct TestCounterKey: EnvironmentKey {
+    static let defaultValue = TestCounter()
 }
 
 // MARK: - EnvironmentValues Tests
@@ -321,6 +336,21 @@ struct TransformEnvironmentTests {
                 IntProbe()
                     .transformEnvironment(\.testInt) { $0 *= 2 }
                     .environment(\.testInt, 5)) == 10)
+    }
+
+    @Test("A transform through an object may read the property it transforms")
+    func transformsThroughAnObject() {
+        // A key path through a class holds an access to the object's property
+        // while it is projected. Held across the closure, the closure's own
+        // read of `counter.count` would trap for exclusivity — so this must
+        // run, and not crash the test process.
+        let counter = TestCounter()
+        counter.count = 2
+        let view = IntProbe()
+            .transformEnvironment(\.testCounter.count) { $0 = counter.count + 1 }
+            .environment(\.testCounter, counter)
+        _ = renderToBuffer(view, context: context())
+        #expect(counter.count == 3)
     }
 
     @Test("With no ancestor, it transforms the key's default")

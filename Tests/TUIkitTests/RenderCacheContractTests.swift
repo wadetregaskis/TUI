@@ -517,6 +517,41 @@ struct RenderCacheContractTests: RenderCacheHarness {
         #expect(cache.isEmpty, "nothing may be stored under an uncomparable environment value")
     }
 
+    /// `.transformEnvironment` keeps the cache honest by the same note as
+    /// `.environment`, made with the value it TRANSFORMED to: here the value
+    /// it inherits never changes, only what the closure makes of it, so only
+    /// the transform's own note can see the change.
+    @Test("A transformed value changed above an .equatable() re-renders it, and an unchanged one still memoizes")
+    func transformedChangeIsNotServedStale() {
+        let base = context()
+        func probe(_ value: String) -> some View {
+            ProbeEcho().equatable().transformEnvironment(\.comparableProbe) { $0 = value }
+        }
+        let oneTruth = frame(base.isolatingRenderCache(), probe("one"))
+        let twoTruth = frame(base.isolatingRenderCache(), probe("two"))
+        #expect(oneTruth.lines != twoTruth.lines, "precondition: the two values must differ on screen")
+
+        let shared = context()
+        let cache = shared.environment.renderCache!
+        frame(shared, probe("one"))
+        let before = cache.stats
+        frame(shared, probe("one"))
+        #expect(cache.stats.delta(since: before).hits >= 1, "an unchanged transform defeated the memo below it")
+        let served = frame(shared, probe("two"))
+        #expect(served.lines == twoTruth.lines, "the transformed value must be rendered")
+        #expect(served.lines != oneTruth.lines, "not the buffer from the old one")
+    }
+
+    @Test("A transform to a non-Equatable value declines caching, as a set one does")
+    func incomparableTransformDeclinesCaching() {
+        let shared = context()
+        let cache = shared.environment.renderCache!
+        frame(
+            shared,
+            CacheLeaf(text: "hi").equatable().transformEnvironment(\.incomparableProbe) { $0 = Incomparable() })
+        #expect(cache.isEmpty, "nothing may be stored under an uncomparable transformed value")
+    }
+
     @Test("A ForEach row declines it too, not just an .equatable() view")
     func incomparableEnvironmentDeclinesRowCaching() {
         // The same hazard, through the other memo. `_MemoizedRow` carried the
