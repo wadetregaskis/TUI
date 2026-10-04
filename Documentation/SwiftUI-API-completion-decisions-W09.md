@@ -225,6 +225,34 @@ tokens there, above any `searchSuggestions`: the menu, its keyboard handling
 and its Return-to-submit rule all live in one place (`TextInputSuggestions`),
 so it is about half a day with tests.
 
+### B-W09-7 An inspector is a split view's trailing pane: always a column, and its width bounds are not enforced
+
+*`View.inspector(isPresented:content:)`, `View.inspectorColumnWidth(_:)`,
+`View.inspectorColumnWidth(min:ideal:max:)`*
+
+**Shipped:** the inspector is the trailing pane of an `HSplitView` beside the
+view — macOS's presentation in a regular size class — starting at the width
+named on its content (in columns) or 30, with the split's divider: a focus
+stop the arrow keys move and the pointer drags. The view keeps its identity and
+state while the inspector comes and goes.
+
+**What differs:**
+
+- A compact horizontal size class does not turn the inspector into a sheet,
+  as iOS does. Here the size class is only compact when an app sets it, and
+  nothing TUIkit draws reads it yet (B3).
+- `min` and `max` are accepted and not enforced: the divider moves the column
+  from one cell to all but one. SwiftUI documents that a platform may use a
+  different width than asked, so this is within the contract, but it is the
+  weaker reading.
+- There is no keyboard command to show or hide the inspector — SwiftUI's comes
+  from `InspectorCommands`, and `Commands` are O13.
+
+**The fuller version** gives `HSplitView`'s panes bounds — a per-pane minimum
+and maximum the divider stops at, which a `.frame(minWidth:maxWidth:)` on a
+pane could state for every split, not only inspectors — about half a day; and
+the sheet adaptation follows whatever B3 decides about compact size classes.
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`
