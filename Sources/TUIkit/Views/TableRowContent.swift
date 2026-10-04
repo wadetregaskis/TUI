@@ -57,6 +57,10 @@ struct _TableRowList<Value: Identifiable> {
     /// table read their traits at all.
     private(set) var hasTraits = false
 
+    /// The loops among these rows that take payloads in between their rows,
+    /// each with the rows it drew.
+    private(set) var insertions: [_TableRowInsertion] = []
+
     /// The rows' values, in order: the whole table, when it is not a tree.
     var values: [Value] { nodes.map(\.value) }
 
@@ -80,11 +84,23 @@ struct _TableRowList<Value: Identifiable> {
         nodes.append(node)
     }
 
-    /// Appends another list's rows.
+    /// Appends another list's rows, and its loops' insertions at the rows
+    /// they land on here.
     mutating func append(contentsOf other: _TableRowList<Value>) {
         isTree = isTree || other.isTree
         hasTraits = hasTraits || other.hasTraits
+        let base = nodes.count
+        insertions += other.insertions.map { insertion in
+            var moved = insertion
+            moved.rows = (insertion.rows.lowerBound + base)..<(insertion.rows.upperBound + base)
+            return moved
+        }
         nodes += other.nodes
+    }
+
+    /// Makes every row here one loop that takes payloads in between its rows.
+    mutating func addInsertion(accepts: @escaping (Any) -> Bool, perform: @escaping (Int, [Any]) -> Void) {
+        insertions.append(_TableRowInsertion(rows: 0..<nodes.count, accepts: accepts, perform: perform))
     }
 
     /// Applies a row modifier to every row here, and to every row beneath

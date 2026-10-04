@@ -367,6 +367,9 @@ extension Table {
             rowTree = rowList.nodes
         } else {
             rowTraits = rowList.traits
+            // A loop's `.dropDestination(for:action:)` or `.onInsert(of:perform:)`
+            // — flat rows only: in a tree the drawn rows are not the loop's.
+            dropInsertion = rowList.insertionAction
         }
     }
 
@@ -1404,7 +1407,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     paint: RowPaint(row: rowIndex, ramp: rowRamp, width: contentInnerWidth),
                     columnWidths: columnWidths,
                     isFocused: handler.isCursorRow(rowIndex) && tableHasFocus,
-                    isSelected: handler.isSelected(at: rowIndex),
+                    isSelected: handler.drawsSelected(at: rowIndex),
                     isReturningHome: handler.returningRows.contains(rowIndex),
                     context: context, palette: palette, memo: handler)
                 collect(
@@ -2004,7 +2007,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 layout: rows.layout(rowIndex),
                 paint: RowPaint(row: rowIndex, ramp: rowRamp, width: contentWidth),
                 isFocused: handler.isFocused(at: rowIndex) && tableHasFocus,
-                isSelected: handler.isSelected(at: rowIndex),
+                isSelected: handler.drawsSelected(at: rowIndex),
                 columnWidths: rows.columnWidths, context: context, palette: palette)
             var rowLines = rendered.lines
             // Clipped alongside the lines, so `pulseFrames[i]` stays the frames
@@ -2566,7 +2569,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     paint: RowPaint(row: rowIndex, ramp: rowRamp, width: contentWidth),
                     columnWidths: columnWidths,
                     isFocused: handler.isCursorRow(rowIndex) && tableHasFocus,
-                    isSelected: handler.isSelected(at: rowIndex),
+                    isSelected: handler.drawsSelected(at: rowIndex),
                     isReturningHome: handler.returningRows.contains(rowIndex),
                     context: context,
                     palette: palette,
@@ -3342,6 +3345,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         registerRowHoverObservers(
             to: &buffer, state: state, context: context, mouseDispatcher: mouseDispatcher,
             interiorTopY: interiorTopY, contentColumns: contentColumns)
+        if let rowTraits {
+            _TableRowDragRegions.register(
+                to: &buffer,
+                rows: state.drawnBands.compactMap { band in
+                    guard case .row(let index) = band.entry else { return nil }
+                    return _TableRowDragRegions.DrawnRow(
+                        index: index, y: interiorTopY + band.yStart, height: band.height)
+                },
+                traits: rowTraits, handler: state.handler, columns: contentColumns, context: context,
+                preview: previewLine)
+        }
 
         // A one-row region at the keyboard cursor's on-screen line, ahead of
         // the whole-table region so an enclosing ScrollView follows the

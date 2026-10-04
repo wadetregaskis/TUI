@@ -23,8 +23,19 @@ struct _TableRowTraits {
     /// every `.onHover(perform:)` around it, nearest first.
     var hoverActions: [(Bool) -> Void] = []
 
+    /// What a drag of the row carries, when a `.draggable(_:)` or
+    /// `.itemProvider(_:)` said; the one nearest the row wins. A payload that
+    /// is `nil` starts no drag.
+    var dragPayload: (() -> Any?)?
+
+    /// The drops the row takes onto itself, from every
+    /// `.dropDestination(for:action:)` around it, nearest first.
+    var dropActions: [_TableRowDrop] = []
+
     /// Whether no modifier said anything.
-    var isEmpty: Bool { selectionDisabled == nil && hoverActions.isEmpty }
+    var isEmpty: Bool {
+        selectionDisabled == nil && hoverActions.isEmpty && dragPayload == nil && dropActions.isEmpty
+    }
 }
 
 // MARK: - The modifier protocol
@@ -43,6 +54,15 @@ public protocol _TableRowContentModifier {}
 protocol _TableRowTraitModifier: _TableRowContentModifier {
     /// Records this modifier in one row's traits.
     func apply(to traits: inout _TableRowTraits)
+}
+
+/// A row modifier this framework defines that says something of its
+/// content's rows TOGETHER — a loop's insertion between them — rather than
+/// of each row.
+@MainActor
+protocol _TableRowListModifier: _TableRowContentModifier {
+    /// Records this modifier on the rows its content declares.
+    func apply<Value>(to rows: inout _TableRowList<Value>)
 }
 
 // MARK: - ModifiedContent of rows
@@ -68,6 +88,9 @@ where Content: TableRowContent, Modifier: _TableRowContentModifier {
         var own = tableRows(of: content)
         if let modifier = modifier as? any _TableRowTraitModifier {
             own.modifyTraits { modifier.apply(to: &$0) }
+        }
+        if let modifier = modifier as? any _TableRowListModifier {
+            modifier.apply(to: &own)
         }
         rows.append(contentsOf: own)
     }

@@ -431,6 +431,44 @@ Where it differs:
   behaviors the second restricts (`.reorderable`, `.disabled`) are not
   macOS's, so no macOS source can ask either for anything.
 
+### B-W08b-9. Table row drag and drop: the row's own line, a selected look, flat loops
+
+*`TableRowContent.draggable(_:)`, `TableRowContent.dropDestination(for:action:)`,
+`TableRowContent.itemProvider(_:)`, `ItemProviderTableRowModifier`,
+`DynamicTableRowContent.dropDestination(for:action:)`,
+`DynamicTableRowContent.onInsert(of:perform:)`, `OnInsertTableRowModifier`*
+
+Wave 8a's deferral (priced at a day and a half), built on the drag session
+`List` rows and `.draggable` views already use.
+
+**Shipped:** a press on a row that carries a payload, then any movement,
+starts a drag with the row's own line under the pointer (morphing from the
+grid's layout to a carried row's, as a `.cursor` reorder's does); a release
+over anything that takes the payload — a view's `.dropDestination`, another
+row's, a table or list that inserts it — delivers it, and a press released
+without moving is a click on the row. A row's own `.dropDestination(for:action:)`
+takes drops onto itself. A loop's `.dropDestination(for:action:)` and
+`.onInsert(of:perform:)` take payloads between its rows, the table opening the
+gap `Table.dropDestination` already opens, and report the offset into the
+loop's own collection, counting from its first row whatever rows come before
+it, as SwiftUI's `onInsert` offsets are. Item providers are Apple-only, as
+the view forms are.
+
+Where it differs:
+
+- **The targeted row is drawn as a selected row.** macOS rings the row a drop
+  would land on in the accent; a ring needs a cell around the row, which the
+  grid does not have. The selection fill is the nearest drawn answer, and
+  goes when the drag leaves.
+- **A draggable row is not picked up by `Table.onMove(_:)`** (TUIkit's own
+  table-level reorder): the press carries the payload. SwiftUI's tables have
+  no `onMove`; their reorder is a loop's `dropDestination` with draggable
+  rows, which works here too.
+- **A hierarchical table's loops take no insertions**: there the drawn rows
+  are the open tree's, not one loop's, and an offset into a loop under a
+  closed branch has no drawn slot. An hour or two, if wanted, to map the slot
+  to the loop whose rows it falls among by walking the outline.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

@@ -738,6 +738,16 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// memo below the row compares (``BackgroundProminence``).
     var raisedProminenceRow: ViewIdentity?
 
+    /// The row a drag is over that takes it onto itself — a table row's
+    /// `.dropDestination(for:action:)` — drawn as a selected row is meanwhile.
+    var rowDropTarget: Int?
+
+    /// Whether the row at `index` is drawn as selected: it is, or a drag it
+    /// would take is over it (``rowDropTarget``).
+    func drawsSelected(at index: Int) -> Bool {
+        rowDropTarget == index || isSelected(at: index)
+    }
+
     /// Type select: the characters typed so far, and when the last of them
     /// came — a gap of a second starts a new prefix (``typeSelect(_:)``).
     var typeSelectPrefix = ""
