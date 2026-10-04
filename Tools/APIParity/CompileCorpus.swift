@@ -615,6 +615,22 @@ private struct BundleImageShapes: View {
     }
 }
 
+/// A view's task on a task executor of the app's.
+@available(macOS 15, *)
+@MainActor
+private struct ExecutorTaskShapes: View {
+    let executor: any TaskExecutor
+    @State private var status = ""
+
+    var body: some View {
+        Text(status)
+            .task(id: 1, name: "status", executorPreference: executor) {
+                status = "ready"
+            }
+            .task(id: 2, executorPreference: executor, priority: .low) {}
+    }
+}
+
 /// Resizable images: stretched, fitted, and in slices.
 @MainActor
 private struct ResizableImageShapes: View {

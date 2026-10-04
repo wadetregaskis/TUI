@@ -757,6 +757,29 @@ draws its own selection at all, is A13 (text selection) in the main decisions
 doc. Once `TextField` takes a selection binding, this is a few lines on the
 searchable's field.
 
+### A26. The scene-level dialog modifiers and optional scenes wait on O9
+
+*`Scene.dialogIcon(_:)`, `Scene.dialogSeverity(_:)`,
+`Scene.dialogSuppressionToggle(_:isSuppressed:)` and `(isSuppressed:)`,
+`SceneBuilder.buildOptional(_:)`, `SceneBuilder.buildLimitedAvailability(_:)`*
+
+SwiftUI's examples apply the dialog modifiers to an `AlertScene`, and the two
+builder methods exist for `if #available` around a scene among others. Both
+need more than one scene, which TUIkit's `SceneBuilder` does not build: that is
+O9 of the refusal review.
+
+**Options.**
+
+1. **Under O9 (b) or (c):** ship the dialog modifiers as scene environment
+   writes, reaching an `AlertScene` and the alerts the scene's views present.
+   That is half an hour, on top of `Scene.environment(_:_:)`. Under (b), the
+   builder methods come with the variadic `buildBlock`.
+2. **Under O9 (a):** decline all six with the window family.
+
+**Recommendation:** follow O9. The dialog modifiers could ship today as
+environment writes, but whether SwiftUI's reach a view's alert, and not only
+an `AlertScene`, cannot be measured offscreen. Alerts are modal panels.
+
 ## B. Shipped the safe option
 
 ### B1. `\.layoutDirection` is read-only (always left-to-right)

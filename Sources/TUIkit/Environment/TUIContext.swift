@@ -170,6 +170,8 @@ extension LifecycleManager {
     /// - Parameters:
     ///   - token: Unique identifier for the view.
     ///   - priority: The task priority.
+    ///   - name: The task's name, where the runtime names tasks (macOS 26,
+    ///     and Swift 6.2's runtime elsewhere), or `nil` for none.
     ///   - operation: The async operation to execute. It runs on ITS OWN
     ///     isolation: a closure written at a `@MainActor` call site inherits
     ///     that and runs on the main actor, while a value forwarded from
@@ -178,6 +180,7 @@ extension LifecycleManager {
     func startTask(
         token: String,
         priority: TaskPriority,
+        name: String? = nil,
         @_inheritActorContext operation: sending @escaping @isolated(any) @Sendable () async ->
             Void
     ) {
@@ -197,7 +200,11 @@ extension LifecycleManager {
         // Pinning it to `@MainActor` here instead — the behaviour in between —
         // was safe but left an app no way to say "not on the main actor",
         // which the isolation-carrying parameter now allows.
-        tasks[token] = Task(priority: priority, operation: operation)
+        if let name, #available(macOS 26, *) {
+            tasks[token] = Task(name: name, priority: priority, operation: operation)
+        } else {
+            tasks[token] = Task(priority: priority, operation: operation)
+        }
     }
 
     /// Cancels and removes the task associated with the given token.

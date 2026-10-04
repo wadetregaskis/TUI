@@ -157,6 +157,9 @@ struct TaskModifier<Content: View>: View {
     /// machinery that drives `.onAppear` / `.onDisappear`.
     let id: AnyEquatableBox?
 
+    /// The task's name, or `nil` for none.
+    var name: String?
+
     var body: Never {
         fatalError("TaskModifier renders via Renderable")
     }
@@ -180,7 +183,7 @@ extension TaskModifier: Renderable {
             let isFirstAppear = !lifecycle.hasAppeared(token: token)
             _ = lifecycle.recordAppear(token: token) {}
             if isFirstAppear {
-                lifecycle.startTask(token: token, priority: priority, operation: task)
+                lifecycle.startTask(token: token, priority: priority, name: name, operation: task)
             }
 
             // Cancel the task when the view leaves the tree.
