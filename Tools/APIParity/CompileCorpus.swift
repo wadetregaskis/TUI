@@ -1445,3 +1445,15 @@ private struct FontResolvedShapes: View {
         Text(resolved.isBold ? "Bold" : "Regular").fontWeight(resolved.weight)
     }
 }
+
+/// The font in effect, made bold.
+@MainActor
+private struct DefaultFontShapes: View {
+    var body: some View {
+        VStack {
+            Text("Emphasised").font(.default.bold())
+            Text("Inherited").font(.default)
+        }
+        .font(.headline)
+    }
+}

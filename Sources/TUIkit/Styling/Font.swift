@@ -88,8 +88,19 @@ public struct Font: Sendable, Hashable {
         case monospaced
     }
 
-    /// The semantic role, which is what a terminal can act on.
-    let textStyle: TextStyle
+    /// The semantic role, or `nil` for ``default``, which takes the font in
+    /// effect where it is used. Optional rather than a flag beside it: the
+    /// optional is still one byte, and a `Text` carries two fonts' worth of
+    /// statements in a layout pinned without padding.
+    let style: TextStyle?
+
+    /// The semantic role, which is what a terminal can act on: `.body` for a
+    /// ``default`` that has not yet been resolved against the environment.
+    var textStyle: TextStyle { style ?? .body }
+
+    /// Whether this is ``default``: the font in effect where it is used, with
+    /// any weight or italic stated on it applied over that.
+    var isEnvironmentDefault: Bool { style == nil }
 
     /// An explicit weight override, or `nil` to use the style's own.
     let weight: Weight?
@@ -97,10 +108,32 @@ public struct Font: Sendable, Hashable {
     /// An explicit italic setting, or `nil` to inherit.
     let isItalic: Bool?
 
-    private init(_ textStyle: TextStyle, weight: Weight? = nil, isItalic: Bool? = nil) {
-        self.textStyle = textStyle
+    private init(_ style: TextStyle?, weight: Weight? = nil, isItalic: Bool? = nil) {
+        self.style = style
         self.weight = weight
         self.isItalic = isItalic
+    }
+
+    /// The effective font in the environment — mirrors SwiftUI's
+    /// `Font.default`.
+    ///
+    /// Where it is used, it is the font the environment has (the nearest
+    /// ``View/font(_:)`` above), or the framework's own when none was set:
+    /// plain text, with no semantic style. A weight or italic stated on it
+    /// applies over that, so `Font.default.bold()` is whatever font is in
+    /// effect, bold.
+    public static let `default` = Self(nil)
+
+    /// This font where `environmentFont` is the font in effect: itself, or for
+    /// ``default`` that font with this one's statements over it — or `nil`,
+    /// the framework's own plain text, when there is nothing to inherit and
+    /// nothing stated.
+    func resolvingDefault(against environmentFont: Self?) -> Self? {
+        guard isEnvironmentDefault else { return self }
+        let inherited = environmentFont.flatMap { $0.isEnvironmentDefault ? nil : $0 }
+        guard weight != nil || isItalic != nil else { return inherited }
+        let base = inherited ?? Self(.body)
+        return Self(base.textStyle, weight: weight ?? base.weight, isItalic: isItalic ?? base.isItalic)
     }
 
     // MARK: Built-in styles
@@ -155,7 +188,7 @@ public struct Font: Sendable, Hashable {
     /// - Parameter weight: The weight to apply.
     /// - Returns: A copy of this font carrying `weight`.
     public func weight(_ weight: Weight) -> Self {
-        Self(textStyle, weight: weight, isItalic: isItalic)
+        Self(style, weight: weight, isItalic: isItalic)
     }
 
     /// Returns this font at bold weight — mirrors SwiftUI's `Font/bold()`.
@@ -198,7 +231,7 @@ public struct Font: Sendable, Hashable {
     /// - Parameter isActive: Whether to render italic.
     /// - Returns: A copy of this font with the italic setting applied.
     public func italic(_ isActive: Bool) -> Self {
-        Self(textStyle, weight: weight, isItalic: isActive)
+        Self(style, weight: weight, isItalic: isActive)
     }
 
     // MARK: Guaranteed by the medium

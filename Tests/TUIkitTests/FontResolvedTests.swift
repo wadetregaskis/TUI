@@ -45,4 +45,29 @@ struct FontResolvedTests {
         #expect(!resolved.isBold && resolved.weight == .regular)
         #expect(resolve(.headline).isBold, "and without the theme, a headline is bold")
     }
+
+    private func resolve(_ font: Font, under environmentFont: Font?) -> Font.Resolved {
+        var environment = EnvironmentValues()
+        environment.font = environmentFont
+        return font.resolve(in: environment.fontResolutionContext)
+    }
+
+    @Test("Font.default is the font in effect, with its own statements over it")
+    func defaultIsTheEnvironmentsFont() {
+        #expect(resolve(.default, under: .headline).isBold)
+        #expect(!resolve(.default, under: nil).isBold && resolve(.default, under: nil).weight == .regular)
+        let boldCaption = resolve(.default.bold(), under: .caption)
+        #expect(boldCaption.isBold && boldCaption.weight == .bold)
+        #expect(resolve(.default, under: .default).weight == .regular, "a default in effect inherits nothing")
+    }
+
+    @Test("A Text in Font.default draws in the font set above it")
+    func textInDefaultDrawsTheInheritedFont() {
+        func line(_ view: some View) -> String {
+            InputChainHarness(width: 10, height: 1).frame(view).lines.first ?? ""
+        }
+        let inherited = line(Text("Hi").font(.default).font(.headline))
+        #expect(inherited == line(Text("Hi").font(.headline)), "\(inherited.debugDescription)")
+        #expect(line(Text("Hi").font(.default)) == line(Text("Hi")))
+    }
 }

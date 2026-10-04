@@ -91,7 +91,6 @@
         "Font.pointSize*",
         "Font.scaled*",
         "Font.Width*",
-        "Font.default",
         "Font.width(_:)",
         "View.fontWidth(_:)",
         "Text.fontWidth(_:)"

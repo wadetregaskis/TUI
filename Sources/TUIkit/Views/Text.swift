@@ -631,7 +631,10 @@ extension Text: Renderable, Layoutable {
     /// fragment of a concatenation can bring its own, and it decides two things
     /// at once: the baseline attributes below, and which `.font(_:)` scope
     /// entries match. Neither can be borrowed from the enclosing text.
-    func cascadedAttributes(context: RenderContext, font: Font?) -> StyleAttributes {
+    func cascadedAttributes(context: RenderContext, font stated: Font?) -> StyleAttributes {
+        // `Font.default` becomes the font it stands for here, as it does in
+        // `resolvedFont`; a font that is already resolved passes through.
+        let font = stated?.resolvingDefault(against: context.environment.font)
         let cascade = context.environment.styleCascade
         let chromeRole = context.environment.chromeRole
         guard !cascade.isEmpty || chromeRole != nil || font != nil else {
@@ -683,7 +686,10 @@ extension Text: Renderable, Layoutable {
     /// and a case that changes width (ß → SS) measured against a different font
     /// than it is drawn with reserves the wrong number of cells.
     private func resolvedFont(stating stated: Font??, context: RenderContext) -> Font? {
-        stated ?? context.environment.font
+        let font = stated ?? context.environment.font
+        // `Font.default` is the environment's font, with its own statements
+        // over it — never itself, which names no style.
+        return font?.resolvingDefault(against: context.environment.font)
     }
 
     /// `own` with the cascade's answers filling in every emphasis it did not

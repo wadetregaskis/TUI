@@ -17,8 +17,11 @@ extension Font {
     public struct Context: Hashable, Sendable, CustomDebugStringConvertible {
         let cascade: StyleCascade
 
+        /// The font in effect, which ``Font/default`` stands for.
+        let environmentFont: Font?
+
         public var debugDescription: String {
-            "Font.Context(\(cascade))"
+            "Font.Context(font: \(String(describing: environmentFont)), \(cascade))"
         }
     }
 
@@ -64,8 +67,17 @@ extension Font {
     ///   ``EnvironmentValues/fontResolutionContext``.
     /// - Returns: The resolved font.
     public func resolve(in context: Context) -> Resolved {
-        let attributes = context.cascade.resolve(for: [.all, .text, .font(textStyle)])
-            .merged(over: defaultAttributes)
+        // `Font.default` resolves as the font it stands for; with none in
+        // effect, as plain text with no style.
+        let font = resolvingDefault(against: context.environmentFont)
+        let attributes: StyleAttributes
+        if let font {
+            attributes = context.cascade.resolve(for: [.all, .text, .font(font.textStyle)])
+                .merged(over: font.defaultAttributes)
+        } else {
+            attributes = context.cascade.resolve(for: [.all, .text])
+        }
+        let weight = font?.weight
         let isBold = attributes.bold == true
         let isFaint = attributes.dim == true
         // The weight the font named, while the cascade left it drawn as that
@@ -85,6 +97,6 @@ extension EnvironmentValues {
     /// The context fonts resolve in here — mirrors SwiftUI's
     /// `fontResolutionContext`. See ``Font/resolve(in:)``.
     public var fontResolutionContext: Font.Context {
-        Font.Context(cascade: styleCascade)
+        Font.Context(cascade: styleCascade, environmentFont: font)
     }
 }
