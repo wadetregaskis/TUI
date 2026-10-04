@@ -185,16 +185,34 @@ extension TextFieldStyle where Self == SquareBorderTextFieldStyle {
 
 /// A field, framed in the box its style names — the body ``TextField`` and
 /// ``SecureField`` draw their core through, so the two cannot disagree.
-struct _StyledFieldFrame<Content: View>: View {
+///
+/// Reads the style from the context and draws the chosen view in place,
+/// rather than holding an `@Environment` and an `if`/`else` in a body: as a
+/// composite it copied the whole field core into each layer it passed
+/// through, and its `ConditionalView` re-measured through another level — a
+/// list of fields measured +27% over the plain core the fields drew before
+/// the styles existed. An unbordered field draws its core where it stands; a
+/// bordered one draws it inside the border, under a branch identity of its own.
+struct _StyledFieldFrame<Content: View>: View, Renderable, Layoutable {
     let content: Content
-    @Environment(\.textFieldStyle) private var style
 
-    @ViewBuilder var body: some View {
-        if let border = style.fieldBorder {
-            content.border(style: border)
-        } else {
-            content
+    var body: Never {
+        fatalError("_StyledFieldFrame renders via Renderable")
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        guard let border = context.environment.textFieldStyle.fieldBorder else {
+            return TUIkit.renderToBuffer(content, context: context)
         }
+        return TUIkit.renderToBuffer(content.border(style: border), context: context.withBranchIdentity("bordered"))
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        guard let border = context.environment.textFieldStyle.fieldBorder else {
+            return measureChild(content, proposal: proposal, context: context)
+        }
+        return measureChild(
+            content.border(style: border), proposal: proposal, context: context.withBranchIdentity("bordered"))
     }
 }
 
@@ -332,13 +350,5 @@ struct FieldChrome {
     /// `sizeThatFits` needs, where there is no palette and nothing to draw.
     static func width(for style: any TextFieldStyle) -> Int {
         style.drawsFieldSurface ? 2 : 0
-    }
-}
-
-// MARK: - Environment without reflection
-
-extension _StyledFieldFrame: ResolvesOwnEnvironment {
-    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
-        _style.resolveEnvironment(environment)
     }
 }
