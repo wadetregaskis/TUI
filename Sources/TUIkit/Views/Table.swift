@@ -3741,12 +3741,24 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return extract(item)
         case .text(let make):
             let text = make(item)
-            // A plain one-line `Text` says exactly what a `String` key path's
-            // value says, and is drawn the same way — which keeps the commonest
+            // A plain `Text` says exactly what a `String` key path's value
+            // says, and is drawn the same way — which keeps the commonest
             // content closure on the string path, and keeps its bytes identical
-            // to the key-path column it most often replaces.
+            // to the key-path column it most often replaces. On one line that
+            // is its string; on several, its string laid out as `Text` lays
+            // itself out, with `TextWrapping.fit` at the cell's width and the
+            // column's limit and truncation, because the column reads this
+            // cell's value as lines already laid out. Rendering it as a view
+            // instead drew the same lines and cost a third of the frame
+            // (table-multiline, table-churn-wrapped: −29%, −31% without it).
             if column.lineLimit == 1, text.drawsAsPlainString {
                 return text.content
+            }
+            if column.lineLimit > 1, text.isUnstyled {
+                return TextWrapping.fit(
+                    text.content, width: max(1, width), maxLines: column.lineLimit,
+                    mode: column.truncationMode
+                ).joined(separator: "\n")
             }
             return Self.cellLines(
                 TUIkit.renderToBuffer(

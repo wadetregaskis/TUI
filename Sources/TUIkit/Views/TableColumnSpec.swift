@@ -73,9 +73,9 @@ struct _TableColumnSpec<Value> {
     /// rather than a string for the table to wrap.
     ///
     /// A `Text` cell counts: a `Text` lays itself out, with the same wrapping
-    /// the table would apply, and with whatever styling it carries. Only on a
-    /// single-line column is a plain `Text` read as a string instead, where
-    /// laying it out and reading it say the same thing.
+    /// the table would apply, and with whatever styling it carries. A plain
+    /// `Text` arrives as its string, read on a single-line column and wrapped
+    /// with that same wrapping on any other, without being rendered.
     var laysOutItsOwnLines: Bool {
         switch cell {
         case .string: false
@@ -93,7 +93,14 @@ extension Text {
     /// Such a text in a one-line table cell is drawn as the string it holds,
     /// exactly as a `String` key path's value is.
     var drawsAsPlainString: Bool {
-        runs == nil && style == TextStyle() && !content.utf8.contains(UInt8(ascii: "\n"))
+        isUnstyled && !content.utf8.contains(UInt8(ascii: "\n"))
+    }
+
+    /// Whether this text draws nothing but its characters: no style or styled
+    /// runs of its own. On a column of several lines such a text is laid out
+    /// as the string it holds, as `Text` lays itself out.
+    var isUnstyled: Bool {
+        runs == nil && style == TextStyle()
     }
 }
 
@@ -105,9 +112,8 @@ enum _TableCellSource<Value> {
     /// A string the table lays out itself — a `String` key path's value.
     case string((Value) -> String)
 
-    /// A `Text` from the column's content closure. A plain one on a
-    /// single-line column is drawn exactly as a string would be; any other is
-    /// rendered as the view it is.
+    /// A `Text` from the column's content closure. A plain one is drawn
+    /// exactly as a string would be; any other is rendered as the view it is.
     case text((Value) -> Text)
 
     /// Any other view from the column's content closure, rendered into the
