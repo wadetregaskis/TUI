@@ -345,3 +345,31 @@ in the same frame is included.
 **Not honoured:** a completion added by a view's `transaction(_:)` modifier
 while rendering. No change was made under that transaction, so nothing claims
 the completion and nothing runs it. SwiftUI documents no such use either.
+
+### B-W12-6 `UnitCurve` follows its documentation where SwiftUI's measured answers do not
+
+*`UnitCurve` (`value(at:)`, `velocity(at:)`, `inverse`, `bezier(startControlPoint:endControlPoint:)`,
+the eight named curves), `Animation.timingCurve(_:duration:)`*
+
+The Bézier curves share the solver an `Animation`'s timing curve uses (the
+Wave 17 review asked for one formula, not two), and match SwiftUI's values and
+velocities to the sixth place (measured, `w12/probe/p3.swift`). Two readings
+differ from what SwiftUI answers, both in the documentation's favour:
+
+- **Out-of-range input is clamped**, as `value(at:)` and `velocity(at:)`
+  document. SwiftUI clamps its Bézier curves, but not `.linear` (1.5 gives
+  1.5) or the circular ones (1.5 gives NaN, -0.5 a mirrored value).
+- **`circularEaseInOut.inverse` is the curve with x and y swapped**, as
+  `inverse` documents: level in the middle, steep at the ends. SwiftUI
+  answers `circularEaseInOut` itself, whose values are not an inverse at all.
+
+Where a curve is vertical — `circularEaseIn` at its end, the circular in-out
+at its middle — the velocity is infinite, as in SwiftUI. Where a Bézier's
+control point sits on its end point, the tangent vanishes and the velocity is
+the limit the curve approaches (SwiftUI's answers there, 0 and 1, come from
+dividing two rounding errors).
+
+A circular curve is a new case of the animation curve, so
+`Animation.timingCurve(.circularEaseIn, duration:)` moves along the circle;
+a Bézier or `.linear` builds the animation `timingCurve(_:_:_:_:duration:)` and
+`linear(duration:)` already build, and compares equal to it.

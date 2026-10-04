@@ -23,6 +23,10 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
     /// (`omega`, rad/s) and damping ratio (`zeta`).
     case spring(omega: Double, zeta: Double)
 
+    /// One of ``UnitCurve``'s circular curves, from
+    /// ``Animation/timingCurve(_:duration:)``.
+    case circular(CircularCurve)
+
     /// The value at `fraction` of the way through an animation lasting
     /// `duration` seconds.
     ///
@@ -34,6 +38,8 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
             Self.bezierValue(atX: fraction, p1x: p1x, p1y: p1y, p2x: p2x, p2y: p2y)
         case .spring(let omega, let zeta):
             Self.springValue(at: fraction * duration, omega: omega, zeta: zeta)
+        case .circular(let curve):
+            curve.value(at: min(1, max(0, fraction)))
         }
     }
 }
@@ -79,11 +85,42 @@ extension AnimationCurve {
         // numerically leaves it a rounding error either side of exact — enough
         // to put a value that lands on a cell boundary on the wrong side of it.
         if p1x == p1y && p2x == p2y { return x }
+        return bezier(bezierParameter(atX: x, p1x: p1x, p2x: p2x), p1y, p2y)
+    }
 
+    /// The curve's slope `dy/dx` at the given `x`: the two coordinates'
+    /// derivatives by `t`, divided, at the `t` where `x(t) = x`.
+    ///
+    /// Where both derivatives vanish — a control point sitting on its end
+    /// point, as `easeIn`'s does at (1, 1) — the slope is their second
+    /// derivatives' ratio, the limit the curve actually approaches.
+    static func bezierVelocity(
+        atX x: Double, p1x: Double, p1y: Double, p2x: Double, p2y: Double
+    ) -> Double {
+        if p1x == p1y && p2x == p2y { return 1 }
+        let t = bezierParameter(atX: min(1, max(0, x)), p1x: p1x, p2x: p2x)
+        let dx = bezierSlope(t, p1x, p2x)
+        let dy = bezierSlope(t, p1y, p2y)
+        guard abs(dx) < 1e-12, abs(dy) < 1e-12 else { return dy / dx }
+        return bezierCurvature(t, p1y, p2y) / bezierCurvature(t, p1x, p2x)
+    }
+
+    /// The `t` at which the curve's `x(t)` is `x`, for `x` in [0, 1].
+    ///
+    /// A cubic Bézier is parametric — both coordinates are functions of a
+    /// parameter `t` that is *not* the x axis — so evaluating it as a timing
+    /// function means first solving `x(t) = x` for `t`. Newton–Raphson
+    /// converges in a handful of steps for the shapes a timing curve has;
+    /// bisection is the fallback for the ones where it does not (a control
+    /// point at or past the ends makes the slope vanish, and Newton then steps
+    /// to infinity).
+    private static func bezierParameter(atX x: Double, p1x: Double, p2x: Double) -> Double {
+        guard x > 0 else { return 0 }
+        guard x < 1 else { return 1 }
         var t = x  // x is a good first guess: the curve is near-diagonal.
         for _ in 0..<8 {
             let error = bezier(t, p1x, p2x) - x
-            if abs(error) < 1e-7 { return bezier(t, p1y, p2y) }
+            if abs(error) < 1e-7 { return t }
             let slope = bezierSlope(t, p1x, p2x)
             if abs(slope) < 1e-7 { break }  // Flat: Newton cannot help here.
             t -= error / slope
@@ -100,7 +137,14 @@ extension AnimationCurve {
             if value < x { low = t } else { high = t }
             t = (low + high) / 2
         }
-        return bezier(t, p1y, p2y)
+        return t
+    }
+
+    /// The second derivative of ``bezier(_:_:_:)`` with respect to `t`.
+    private static func bezierCurvature(_ t: Double, _ c1: Double, _ c2: Double) -> Double {
+        let b = 3 * c2 - 6 * c1
+        let c = 3 * c1 - 3 * c2 + 1
+        return 6 * c * t + 2 * b
     }
 }
 

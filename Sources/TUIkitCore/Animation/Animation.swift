@@ -419,6 +419,15 @@ extension Animation {
             default:
                 return "timingCurve(\(p1x), \(p1y), \(p2x), \(p2y), duration: \(passDuration))"
             }
+        case .circular(let curve):
+            let name =
+                switch curve {
+                case .easeIn: ".circularEaseIn"
+                case .easeOut: ".circularEaseOut"
+                case .easeInOut: ".circularEaseInOut"
+                case .easeOutIn: ".circularEaseInOut.inverse"
+                }
+            return "timingCurve(\(name), duration: \(passDuration))"
         case .spring(let omega, let zeta):
             // Inverted back through `spring(duration:bounce:)`'s own mapping.
             // This used to print the stored `omega`/`zeta`/`settles`, which no
