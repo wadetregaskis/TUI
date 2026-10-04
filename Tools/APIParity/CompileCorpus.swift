@@ -648,6 +648,17 @@ private struct ClippingShapes: View {
     }
 }
 
+/// A title kept clear of the container's corner, as SwiftUI's documentation
+/// writes it.
+@MainActor
+private struct CornerInsetShapes: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Text("Title").offset(x: geometry.containerCornerInsets.topLeading.width)
+        }
+    }
+}
+
 /// Resizable images: stretched, fitted, and in slices.
 @MainActor
 private struct ResizableImageShapes: View {

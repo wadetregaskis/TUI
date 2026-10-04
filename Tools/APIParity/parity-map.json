@@ -750,9 +750,6 @@
     "GeometryEffect": {
       "why": "Its one requirement, `effectValue(size:) -> ProjectionTransform`, has no representation here (see ProjectionTransform). TUIkit's geometry customisation point is `Layout`, which places children at whole cells."
     },
-    "GeometryProxy.containerCornerInsets": {
-      "why": "`RectangleCornerInsets` describing how far a rounded container's corners encroach on its content. A corner here is a glyph in the border cell, never inside the content, so the answer would be zero, truly: the refusal review (X5, W8 list) rates shipping it as low value and no risk, for a finishing pass."
-    },
     "GeometryProxy.safeAreaInsets": {
       "why": "Omitted on purpose, as decisions B6 records: TUIkit's chrome is subtracted from what a view is offered before layout, so no content runs under a bar and the insets would always be zero. It becomes real with the fuller safe area B6 prices."
     },
@@ -818,9 +815,6 @@
     },
     "ProjectionTransform": {
       "why": "A 3×3 matrix over continuous coordinates, produced by GeometryEffect and consumed by `projectionEffect`. TUIkit's geometry is whole cells with no matrix: its only spatial operation is a whole-cell offset. The transforms wait on decisions A27."
-    },
-    "RectangleCornerInsets": {
-      "why": "Per-corner fractional insets. TUIkit's inset vocabulary is whole-cell EdgeInsets (Sources/TUIkit/Extensions/ViewConstants+EdgeInsets.swift, EdgeInsets is a shared type) and corners are single characters, so a per-corner inset has no representation."
     },
     "RectangleCornerRadii": {
       "why": "Four CGFloat radii; there is no radius anywhere in TUIkit's chrome model — BorderStyle stores four corner Characters instead (Sources/TUIkitStyling/Styles/BorderStyle.swift:13-22)."

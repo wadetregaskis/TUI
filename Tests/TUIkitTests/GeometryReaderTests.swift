@@ -269,4 +269,19 @@ struct GeometryReaderTests {
         #expect(buffer.width == 0)
         #expect(buffer.lines.allSatisfy { $0.stripped.isEmpty })
     }
+
+    @Test("A container's corners never reach into its content, so its corner insets are zero")
+    func containerCornerInsetsAreZero() {
+        // The guarantee the zero states: the content's corner cells are the
+        // content's, inside the border's corner glyphs.
+        let buffer = renderToBuffer(
+            GeometryReader { proxy in
+                Text("\(proxy.containerCornerInsets.topLeading.width)XXX")
+            }
+            .frame(width: 4, height: 1)
+            .border(),
+            context: makeRenderContext(width: 10, height: 3))
+        #expect(buffer.lines.dropFirst().first?.stripped == "│ 0XXX │", "\(buffer.lines.map(\.stripped))")
+        #expect(GeometryProxy(width: 8, height: 1).containerCornerInsets == RectangleCornerInsets())
+    }
 }

@@ -74,7 +74,7 @@ public struct GeometryProxy: Equatable, Sendable {
 ///
 /// The counterpart of `CGSize`, spelled in cells for the reason recorded on
 /// ``AlignmentID``: this framework's geometry is integral.
-public struct CellSize: Equatable, Sendable {
+public struct CellSize: Hashable, Sendable {
     /// The width in cells.
     ///
     /// A `var` so an animation can substitute it — see the `Animatable`
