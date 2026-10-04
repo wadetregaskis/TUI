@@ -70,8 +70,23 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View {
         self.content = TabContentBuilder<SelectionValue>.Content(tabs)
     }
 
+    @Environment(\.tabViewStyle) private var style
+
     public var body: some View {
-        _TabViewCore(selection: erasedSelection, tabs: stripTabs)
+        if style.stripLook == .sidebar {
+            _TabSidebarLayout(tabs: sidebarTabs, selection: erasedSelection)
+                .environment(\.tabBarPlacementValue, .sidebar)
+                .environment(\.tabBarShowingSections, true)
+        } else {
+            _TabViewCore(selection: erasedSelection, tabs: stripTabs)
+                .environment(\.tabBarPlacementValue, .topBar)
+                .environment(\.tabBarShowingSections, false)
+        }
+    }
+
+    /// The tabs a sidebar lists: every one not hidden.
+    private var sidebarTabs: [_RawTab] {
+        tabs.filter { !$0.isHidden }
     }
 
     /// The tabs a strip shows: every one not hidden, and not placed only in a
@@ -283,6 +298,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// that folds onto more rows still measures its content a row too tall per
     /// extra row (two in the bordered style).
     private func contentMeasureHeight(available: Int, context: RenderContext) -> Int {
+        // No strip at all beside a sidebar, which draws the tabs instead.
+        guard showsStrip(context) else { return context.availableHeight }
         let rows =
             context.environment.tabViewHeaderWrap == .toContentWidth
             ? 1 : stripRowGroups(style: .compact, available: available).count
@@ -536,9 +553,12 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // Compact: size to the widest tab; the strip wraps per the header-wrap
         // mode and the selected content is centred within it.
         let widest = widestContentWidth(insets: insets, available: ctx.availableWidth, context: ctx)
-        let rows = stripRowGroups(
-            style: style,
-            available: stripWrapBudget(widest: widest, available: ctx.availableWidth, context: ctx))
+        let rows =
+            showsStrip(ctx)
+            ? stripRowGroups(
+                style: .compact,
+                available: stripWrapBudget(widest: widest, available: ctx.availableWidth, context: ctx))
+            : []
         // Size to the TALLEST tab (stable across switches), not just the selected
         // one — mirroring the widest-tab width.
         let contentHeight = tallestContentHeight(
@@ -586,7 +606,9 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         handler.values = tabs.map(\.value)
         handler.disabledValues = Set(tabs.filter(\.isDisabled).map(\.value))
         handler.canBeFocused = !isDisabled
-        if !context.isMeasuring {
+        // Beside a sidebar the strip is not drawn and is no focus stop: the
+        // sidebar's list takes the keys and the clicks.
+        if !context.isMeasuring, showsStrip(context) {
             let geometry = navigationGeometry(context: context)
             handler.rows = geometry.rows
             handler.centers = geometry.centers
@@ -605,7 +627,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             ? renderBordered(
                 selectedIndex: selected, isFocused: isFocused, palette: palette, context: context)
             : renderCompact(
-                selectedIndex: selected, isFocused: isFocused, palette: palette, context: context)
+                selectedIndex: selected, isFocused: isFocused && showsStrip(context), palette: palette,
+                context: context)
         attachRevealRegion(
             to: &buffer, persistedFocusID: persistedFocusID, context: context)
         return buffer
@@ -873,6 +896,13 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         return palette.liftedBackground.resolve(with: palette)
     }
 
+    /// Whether this core draws its strip: always, except beside the sidebar a
+    /// `.sidebarAdaptable` tab view draws its tabs in (`_TabSidebarLayout`),
+    /// where it draws the selected tab's content alone.
+    func showsStrip(_ context: RenderContext) -> Bool {
+        context.environment.tabViewStyle.stripLook != .sidebar
+    }
+
     /// The interior padding around each tab's content. An explicit
     /// `.tabViewContentPadding(_:)` wins; otherwise bordered gets a comfortable
     /// inset and compact none (the strip already abuts the content).
@@ -999,13 +1029,17 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             palette: palette, isFocused: isFocused, context: context)
 
         // Size to the widest tab; the strip wraps per the header-wrap mode (folded
-        // to the content width, or only on overflow).
+        // to the content width, or only on overflow) — and is not drawn at all
+        // beside a sidebar, which draws the tabs instead.
         let widest = widestContentWidth(insets: insets, available: context.availableWidth, context: context)
-        let rows = floatActiveRowToBottom(
-            stripRowGroups(
-                style: .compact,
-                available: stripWrapBudget(widest: widest, available: context.availableWidth, context: context)),
-            selectedIndex: selectedIndex)
+        let rows =
+            showsStrip(context)
+            ? floatActiveRowToBottom(
+                stripRowGroups(
+                    style: .compact,
+                    available: stripWrapBudget(widest: widest, available: context.availableWidth, context: context)),
+                selectedIndex: selectedIndex)
+            : []
         let panelWidth = max(widest, rows.map(compactRowWidth).max() ?? 0)
 
         // Render the content at the full panel width (so a ViewThatFits editor

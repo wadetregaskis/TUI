@@ -124,6 +124,41 @@ The breath would have to repaint it per frame, which the strip's run does by
 redrawing the chip's text today. Half a day, most of it the breath and the
 folder style's walls.
 
+### B-W08b-5. The sidebar style: a list beside the content, chosen with Return
+
+*`SidebarAdaptableTabViewStyle`, `TabViewStyle.sidebarAdaptable`,
+`TabBarPlacement` (all members), `EnvironmentValues.tabBarPlacement`,
+`EnvironmentValues.isTabBarShowingSections`, `View.tabViewSidebarHeader(content:)`,
+`View.tabViewSidebarFooter(content:)`, `View.tabViewSidebarBottomBar(content:)`*
+
+Measured on macOS 15.8: `.sidebarAdaptable` is a split view whose leading
+pane is an outline list of the tabs — a `TabSection`'s header above its tabs,
+a badge at a row's trailing edge — and the selected tab's content beside it.
+Tab content reads `\.tabBarPlacement` as `.sidebar` there and
+`\.isTabBarShowingSections` as true; under every other style `.topBar` and
+false.
+
+**Shipped:** the sidebar is a `List` hugging its widest row, a rule, then the
+content, sized and kept as a strip's content is. Its sections, badges and
+disabled rows are the list's own. The header, footer and bottom bar sit above
+and below the list. The two environment values report as measured.
+
+Where it differs:
+
+- **Choosing a tab.** The arrow keys move the list's cursor, and Return,
+  Space or a click choose the tab — TUIkit's list convention. A macOS sidebar
+  selects as the cursor moves. Following the cursor needs a list mode that
+  selects as it moves (a `List` option of TUIkit's own, or the sidebar style
+  watching the cursor), about two hours; whether every keystroke should swap
+  the content beside it is the question.
+- **The header and footer stay put.** SwiftUI's header and footer scroll with
+  the tabs; here they are fixed above and below the list, and only the tabs
+  scroll. Moving them into the list as a first and last row is an hour, but a
+  header that is a row is a row the cursor must step over.
+- **Sections are not collapsible.** macOS lets the user fold a sidebar
+  section. That comes with `Section(isExpanded:)` in a list, which the sidebar
+  would then use.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

@@ -25,6 +25,7 @@
 /// | ``automatic`` | The default: ``compact``. |
 /// | ``tabBarOnly`` | A tab bar: ``compact``, as macOS draws it like the default. |
 /// | ``grouped`` | A bar grouping the tabs over a box around the content: ``bordered``. |
+/// | ``sidebarAdaptable`` | A sidebar listing the tabs, its sections under their headers, beside the content. |
 /// | ``compact`` | **TUI-specific.** One border-free row of chips; the active one is filled. |
 /// | ``bordered`` | **TUI-specific.** Box-drawn folder tabs joined to a box around the content. |
 ///
@@ -94,6 +95,29 @@ public struct GroupedTabViewStyle: TabViewStyle, Equatable {
     public init() {}
 }
 
+/// A tab view style that adapts to each platform, and on macOS always shows a
+/// sidebar: in TUIkit too, a sidebar listing the tabs — each section under its
+/// header, each tab with its badge — beside the selected tab's content.
+///
+/// Measured on macOS 15.8: an `NSSplitView` whose leading pane is an outline
+/// list of the tabs, a ``TabSection``'s header above its tabs and a badge at a
+/// row's trailing edge. The sidebar here is a `List`: the arrow keys and a click
+/// choose a tab, a disabled tab is stepped over, and the keyboard reaches the
+/// content after it. ``View/tabViewSidebarHeader(content:)``,
+/// ``View/tabViewSidebarFooter(content:)`` and
+/// ``View/tabViewSidebarBottomBar(content:)`` add views above and below it.
+///
+/// `Equatable` for the reason given under ``TabViewStyle``.
+public struct SidebarAdaptableTabViewStyle: TabViewStyle, Equatable {
+    /// Creates a sidebar-adaptable tab view style.
+    public init() {}
+}
+
+extension TabViewStyle where Self == SidebarAdaptableTabViewStyle {
+    /// A tab view style that displays a sidebar of the tabs beside the content.
+    public static var sidebarAdaptable: SidebarAdaptableTabViewStyle { SidebarAdaptableTabViewStyle() }
+}
+
 extension TabViewStyle where Self == TabBarOnlyTabViewStyle {
     /// A tab view style that displays a tab bar when possible.
     public static var tabBarOnly: TabBarOnlyTabViewStyle { TabBarOnlyTabViewStyle() }
@@ -127,13 +151,19 @@ enum _TabStripLook: Equatable {
     case compact
     /// Folder tabs over a box.
     case bordered
+    /// No strip: a sidebar beside the content lists the tabs.
+    case sidebar
 }
 
 extension TabViewStyle {
     /// How this style draws the strip. A style of the app's own draws as the
     /// default does.
     var stripLook: _TabStripLook {
-        self is BorderedTabViewStyle || self is GroupedTabViewStyle ? .bordered : .compact
+        switch self {
+        case is BorderedTabViewStyle, is GroupedTabViewStyle: .bordered
+        case is SidebarAdaptableTabViewStyle: .sidebar
+        default: .compact
+        }
     }
 }
 
