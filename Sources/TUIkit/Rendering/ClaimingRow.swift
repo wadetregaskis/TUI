@@ -79,6 +79,40 @@ struct ClaimingRow {
         cells += count
     }
 
+    /// Appends `count` one-cell runs, all in `ink` on `field`, cell `i` of them drawing
+    /// `glyphs[i % glyphs.count]`: byte for byte what `count` calls to
+    /// ``append(_:cells:ink:field:bold:inverted:)`` produce, with each distinct glyph's
+    /// escaped cell spelled ONCE and then repeated.
+    ///
+    /// A track's fill is one colour on one colour for its whole lit length unless a
+    /// gradient varies it, and each of its cells is still its own SGR run (the bytes are
+    /// not merged, for the reason `append` gives). Spelled a cell at a time, every cell
+    /// after the first re-derived the escape it had just written — a `TextStyle`, its
+    /// codes array, a join and an interpolation, ~0.7 µs a cell — which was 8.5 ms of a
+    /// 15.4 ms frame on a page of 200 progress bars. What this does NOT do is change a
+    /// byte or merge the runs: only the spelling is shared.
+    ///
+    /// The claim is the one `count`-wide rectangle that the per-cell claims coalesce
+    /// into through `appendCoalescing` — one row, equal alphas, each adjacent to the
+    /// last — and it meets the claim before it by the same rule they did.
+    mutating func appendCells(cycling glyphs: [Character], count: Int, ink: Color?, field: Color? = nil) {
+        guard count > 0, !glyphs.isEmpty else { return }
+        // The very call `append` makes for one cell, once per glyph that is drawn.
+        let spelled = glyphs.prefix(count).map { glyph in
+            ANSIRenderer.colorize(
+                String(glyph), foreground: ink?.opaqueSpelling, background: field?.opaqueSpelling)
+        }
+        if spelled.count == 1 {
+            text += String(repeating: spelled[0], count: count)
+        } else {
+            for index in 0..<count { text += spelled[index % spelled.count] }
+        }
+        claims.appendCoalescing(
+            OpacityRegion.claim(
+                offsetX: cells, width: count, height: 1, ink: ink, field: field))
+        cells += count
+    }
+
     /// Appends bytes that are already finished — a picture's placeholder cells, or a
     /// child's rendered line whose claims travel on its own buffer — which owe no
     /// claim here because this renderer chose no colour for them.

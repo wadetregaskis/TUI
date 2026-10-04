@@ -397,11 +397,20 @@ extension TrackRenderer {
         }
 
         var row = ClaimingRow()
-        for index in 0..<fullCount {
-            let cellColour = fillColour(at: index)
-            row.append(
-                String(fillChars[index % fillChars.count]), cells: 1, ink: cellColour,
-                field: paintsBackground ? cellColour : nil)
+        if config.fillGradient == nil || gradientSpan <= 1 {
+            // Exactly when `fillColour(at:)` answers `fillColor` for every cell: the
+            // same cells as the loop below, each glyph's escape spelled once rather
+            // than once a cell (the row is fresh, so cell `index` is run cell `index`).
+            row.appendCells(
+                cycling: fillChars, count: fullCount, ink: fillColor,
+                field: paintsBackground ? fillColor : nil)
+        } else {
+            for index in 0..<fullCount {
+                let cellColour = fillColour(at: index)
+                row.append(
+                    String(fillChars[index % fillChars.count]), cells: 1, ink: cellColour,
+                    field: paintsBackground ? cellColour : nil)
+            }
         }
         if hasPartial, let ramp {
             // The boundary cell is genuinely part-empty: the glyph covers the
