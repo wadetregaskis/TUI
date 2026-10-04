@@ -188,6 +188,25 @@ struct SystemFormatStyleDateTests {
         #expect(SystemFormatStyle.DateReference.reference(to: base) == SystemFormatStyle.DateReference(to: base))
     }
 
+    /// A context that takes any discrete style — what `Text(.currentDate,
+    /// format:)` is.
+    @available(macOS 15, *)
+    private func discrete<F: DiscreteFormatStyle>(_ style: F) -> F { style }
+
+    /// On macOS, SwiftUI's own `FormatStyle.offset(to:)` and the rest reach
+    /// this target through AppKit; with TUIkit's only on `FormatStyle` these
+    /// lines were ambiguous. They compile, and are TUIkit's styles, because
+    /// TUIkit declares each again on `DiscreteFormatStyle`.
+    @Test("In a discrete context the statics are TUIkit's, though SwiftUI's are visible on macOS")
+    func staticsResolveToTUIkit() {
+        guard #available(macOS 15, *) else { return }
+        #expect(discrete(.offset(to: base)) == SystemFormatStyle.DateOffset(to: base, allowedFields: [.year, .month, .day, .hour, .minute, .second]))
+        #expect(discrete(.reference(to: base)) == SystemFormatStyle.DateReference(to: base))
+        #expect(discrete(.timer(countingDownIn: base..<at(10))) == SystemFormatStyle.Timer(countingDownIn: base..<at(10)))
+        #expect(discrete(.timer(countingUpIn: base..<at(10))) == SystemFormatStyle.Timer(countingUpIn: base..<at(10)))
+        #expect(discrete(.stopwatch(startingAt: base)) == SystemFormatStyle.Stopwatch(startingAt: base))
+    }
+
     @Test("A reference in German, and both styles round-trip as JSON")
     func localisedAndCoded() throws {
         guard #available(macOS 15, *) else { return }
