@@ -255,9 +255,22 @@ struct InlineMarkdownTests {
         for plain in ["Save", "Name:", "100% done", "a.b", "Settings…", "w.w.w", "1:2", "", "wwwx"] {
             #expect(!InlineMarkdown.mightContainMarkup(plain), "\(plain.debugDescription)")
         }
-        for marked in ["**", "_a_", "`", "~", "[a]", "<b>", "\\", "&amp;", "a@b.c", "https://x", "www.x"] {
+        for marked in ["**", "_a_", "`", "~", "[a]", "<b>", "\\", "&amp;", "a@b.c", "https://x", "www.x", "mailto:@b.c"] {
             #expect(InlineMarkdown.mightContainMarkup(marked), "\(marked.debugDescription)")
         }
+    }
+
+    @Test("An interpolated key's placeholders do not reach the parser, and parse as plain text if they do")
+    @MainActor
+    func fastPathPlaceholders() {
+        // A placeholder's `@` has no address before it, so these templates —
+        // `"#\(index)"`, `"\(a) of \(b)"` — take the plain path.
+        for template in ["#%@", "Row %@", "%1$@ of %2$@", "%@@b.c", "100%@"] {
+            #expect(!InlineMarkdown.mightContainMarkup(template), "\(template.debugDescription)")
+            #expect(encode(InlineMarkdown.parse(template)) == "«" + template + "»", "\(template.debugDescription)")
+        }
+        #expect(Text("#\(7)").runs == nil)
+        #expect(Text("Saved **\(3)** files").runs != nil)
     }
 
     @Test("Everything the fast path passes over parses as plain text")

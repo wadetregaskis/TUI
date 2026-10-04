@@ -89,9 +89,10 @@ enum InlineMarkdown {
     /// Whether `template` contains anything the parse could act on.
     ///
     /// A byte scan, so the overwhelming majority of keys — `"Save"`,
-    /// `"Name:"` — never reach the parser at all: every construct the parser
-    /// knows starts with one of these bytes, or is an autolink, which needs a
-    /// `://`, a `www.` or an `@`.
+    /// `"Name:"`, `"#%@"` — never reach the parser at all: every construct the
+    /// parser knows starts with one of these bytes, or is an autolink, which
+    /// needs a `://`, a `www.` or an `@` with an address's local part before
+    /// it.
     static func mightContainMarkup(_ template: String) -> Bool {
         // The three bytes before this one, in locals: this runs for every key a
         // `Text` is built from, every frame, so it allocates nothing.
@@ -103,8 +104,13 @@ enum InlineMarkdown {
         for byte in template.utf8 {
             switch byte {
             case UInt8(ascii: "*"), UInt8(ascii: "_"), UInt8(ascii: "`"), UInt8(ascii: "~"),
-                UInt8(ascii: "["), UInt8(ascii: "<"), UInt8(ascii: "\\"), UInt8(ascii: "&"),
-                UInt8(ascii: "@"):
+                UInt8(ascii: "["), UInt8(ascii: "<"), UInt8(ascii: "\\"), UInt8(ascii: "&"):
+                return true
+            case UInt8(ascii: "@") where canEndLocalPart(last):
+                // An email address needs its local part right before the `@`
+                // (`rewindLocalPart`). An interpolation's placeholder — `%@`,
+                // `%1$@` — has none, so `"#\(index)"`, whose template is
+                // `"#%@"`, is not parsed.
                 return true
             case slash where last == slash && secondLast == UInt8(ascii: ":"):
                 // "://" — a URL autolink's scheme separator.
@@ -120,6 +126,20 @@ enum InlineMarkdown {
             last = byte
         }
         return false
+    }
+
+    /// Whether `byte` can be the last of an email address's local part: an
+    /// ASCII letter or digit, `.+-_`, or the colon of `mailto:` or `xmpp:` —
+    /// what `rewindLocalPart` steps back over.
+    private static func canEndLocalPart(_ byte: UInt8) -> Bool {
+        switch byte {
+        case UInt8(ascii: "a")...UInt8(ascii: "z"), UInt8(ascii: "A")...UInt8(ascii: "Z"),
+            UInt8(ascii: "0")...UInt8(ascii: "9"), UInt8(ascii: "."), UInt8(ascii: "+"), UInt8(ascii: "-"),
+            UInt8(ascii: "_"), UInt8(ascii: ":"):
+            return true
+        default:
+            return false
+        }
     }
 }
 

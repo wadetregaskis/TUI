@@ -4478,8 +4478,8 @@ with two exceptions:
   already.
 
 **Cost:** a key whose resolved text holds none of the bytes a construct starts
-with, no `://` and no `www.` pays one allocation-free byte scan and takes the
-old path. A Markdown text's runs are a fresh array each frame, so the
+with, no `://`, no `www.` and no `@` after an address character pays one
+allocation-free byte scan and takes the old path. A Markdown text's runs are a fresh array each frame, so the
 per-pass value memo misses on such a text. That is already true of every
 concatenated text.
 
@@ -4494,7 +4494,16 @@ and `dashboard`:
 - `Text`'s stored size is unchanged (56 bytes, the `TextLayoutPaddingTests`
   pin).
 
-**An A/B on a quiet machine is owed.**
+**The A/B, run in the performance pass (quiet machine, `ab_bench.py`), found
+the scan letting every interpolated key through.** An interpolation's
+placeholder is `%@`, and the scan took any `@` as a possible email address, so
+`Text("#\(index)")` ran the whole parse on every construction:
+`scrollfollow` +53%, `churn` +18% and `gradients` +12% against the build before
+this lane. The scan now takes an `@` only after a byte an address's local part
+can end with, as the email scan itself requires; that recovered `scrollfollow`
+−33%, `churn` −14%, `gradients` −9%. A key that really holds Markdown still
+parses on every construction; caching the parse per key is the follow-up, if a
+measured app needs it.
 
 **Recommendation:** leave both differences until a translation needs them.
 
