@@ -143,6 +143,13 @@ struct _TextSelectionChannel {
     /// Records a selection, as character offsets, in `text`, with `affinity`.
     let write: (Range<Int>, String, TextSelectionAffinity) -> Void
 
+    /// A channel of the given closures — the find bar's, which steers an
+    /// editor's selection to a match without a `TextSelection` of its own.
+    init(read: @escaping () -> Range<Int>?, write: @escaping (Range<Int>, String, TextSelectionAffinity) -> Void) {
+        self.read = read
+        self.write = write
+    }
+
     @available(macOS 15, *)
     init(_ binding: Binding<TextSelection?>, text: Binding<String>) {
         self.read = {

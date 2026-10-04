@@ -43,6 +43,8 @@ public enum LocalizationKey {
         case refresh = "button.refresh"
         case rename = "button.rename"
         case paste = "button.paste"
+        case replace = "button.replace"
+        case replaceAll = "button.replaceAll"
     }
 
     /// Label and field names
@@ -90,6 +92,8 @@ public enum LocalizationKey {
         case noResultsHint = "label.noResultsHint"
         /// The default title of `dialogSuppressionToggle(isSuppressed:)`.
         case suppressDialog = "label.suppressDialog"
+        case find = "label.find"
+        case replaceWith = "label.replaceWith"
     }
 
     /// Border appearance names, as shown in a settings screen.

@@ -284,14 +284,9 @@
     {
       "match": [
         "*WritingTools*",
-        "*.writingToolsBehavior*",
-        "View.findNavigator*",
-        "View.findDisabled*",
-        "View.replaceDisabled*",
-        "*.findContext",
-        "FindContext*"
+        "*.writingToolsBehavior*"
       ],
-      "why": "Writing Tools and the find/replace bar are macOS text-system UI that AppKit presents over an NSTextView. TUIkit's `TextEditor` is a cursor over a String; an app that wants find draws it."
+      "why": "Writing Tools: Apple's on-device language models, which macOS presents over a text view to proofread, rewrite and summarise. A terminal app has no such service to call. (The in-app find bar this family once also declined ships for TextEditor: findNavigator, findDisabled, replaceDisabled and FindContext, refusal review P17.)"
     },
     {
       "match": [

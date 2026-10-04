@@ -22,6 +22,8 @@
   "button.refresh": "Actualizar",
   "button.rename": "Renombrar",
   "button.paste": "Pegar",
+  "button.replace": "Reemplazar",
+  "button.replaceAll": "Reemplazar todo",
 
   "label.search": "Buscar",
   "label.name": "Nombre",
@@ -53,6 +55,8 @@
   "label.noResultsFor": "Sin resultados para «%@»",
   "label.noResultsHint": "Comprueba la ortografía o prueba otra búsqueda.",
   "label.suppressDialog": "No volver a mostrar este mensaje",
+  "label.find": "Buscar",
+  "label.replaceWith": "Reemplazar por",
 
   "error.invalid_input": "Entrada no válida",
   "error.required_field": "Este campo es obligatorio",

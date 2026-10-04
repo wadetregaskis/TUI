@@ -22,6 +22,8 @@
   "button.refresh": "更新",
   "button.rename": "名前を変更",
   "button.paste": "ペースト",
+  "button.replace": "置換",
+  "button.replaceAll": "すべて置換",
 
   "label.search": "検索",
   "label.name": "名前",
@@ -53,6 +55,8 @@
   "label.noResultsFor": "「%@」の結果なし",
   "label.noResultsHint": "スペルを確認するか、別のキーワードで検索してください。",
   "label.suppressDialog": "今後このメッセージを表示しない",
+  "label.find": "検索",
+  "label.replaceWith": "置換後の文字列",
 
   "error.invalid_input": "入力が無効です",
   "error.required_field": "この項目は必須です",

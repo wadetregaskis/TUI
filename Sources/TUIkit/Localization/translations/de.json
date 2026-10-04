@@ -22,6 +22,8 @@
   "button.refresh": "Aktualisieren",
   "button.rename": "Umbenennen",
   "button.paste": "Einfügen",
+  "button.replace": "Ersetzen",
+  "button.replaceAll": "Alle ersetzen",
 
   "label.search": "Suche",
   "label.name": "Name",
@@ -53,6 +55,8 @@
   "label.noResultsFor": "Keine Ergebnisse für „%@“",
   "label.noResultsHint": "Prüfen Sie die Schreibweise oder starten Sie eine neue Suche.",
   "label.suppressDialog": "Diese Meldung nicht mehr anzeigen",
+  "label.find": "Suchen",
+  "label.replaceWith": "Ersetzen durch",
 
   "error.invalid_input": "Ungültige Eingabe",
   "error.required_field": "Dieses Feld ist erforderlich",

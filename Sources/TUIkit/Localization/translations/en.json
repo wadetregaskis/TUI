@@ -22,6 +22,8 @@
   "button.refresh": "Refresh",
   "button.rename": "Rename",
   "button.paste": "Paste",
+  "button.replace": "Replace",
+  "button.replaceAll": "Replace All",
 
   "label.search": "Search",
   "label.name": "Name",
@@ -53,6 +55,8 @@
   "label.noResultsFor": "No Results for '%@'",
   "label.noResultsHint": "Check the spelling or try a new search.",
   "label.suppressDialog": "Do not show this message again",
+  "label.find": "Find",
+  "label.replaceWith": "Replace with",
 
   "error.invalid_input": "Invalid input",
   "error.required_field": "This field is required",

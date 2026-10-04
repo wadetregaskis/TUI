@@ -22,6 +22,8 @@
   "button.refresh": "刷新",
   "button.rename": "重命名",
   "button.paste": "粘贴",
+  "button.replace": "替换",
+  "button.replaceAll": "全部替换",
 
   "label.search": "搜索",
   "label.name": "名称",
@@ -53,6 +55,8 @@
   "label.noResultsFor": "没有“%@”的结果",
   "label.noResultsHint": "请检查拼写或尝试新的搜索。",
   "label.suppressDialog": "不再显示此消息",
+  "label.find": "查找",
+  "label.replaceWith": "替换为",
 
   "error.invalid_input": "输入无效",
   "error.required_field": "此字段为必填项",

@@ -4067,6 +4067,33 @@ Where it differs:
   closed branch has no drawn slot. An hour or two, if wanted, to map the slot
   to the loop whose rows it falls among by walking the outline.
 
+### B81. The find bar: Ctrl-G opens it, the current match is the selection, and other matches are not highlighted
+
+*`View.findNavigator(isPresented:)`, `View.findDisabled(_:)`, `View.replaceDisabled(_:)`,
+`FindContext`, `\.findContext`*
+
+**Shipped** for `TextEditor` (refusal review P17): a bar above the text with a
+search field, the match count, previous and next, Done, and a replacement row
+unless replace is disabled. Matching ignores case. Return finds the next match,
+Escape closes the bar, and the bar writes `false` back to the binding when it
+closes.
+
+**What differs, and what a fuller version would cost:**
+
+- **The key.** macOS opens find with Cmd-F, which a terminal keeps for itself.
+  Ctrl-F is the editor's "forward a character" (macOS's standard key binding),
+  so the bar opens with Ctrl-G. A different key is a one-line change.
+- **Only the current match is marked**, by selecting it in the editor, which
+  scrolls to it. macOS also highlights every other match. Drawing them all is
+  about half a day: the editor's rows would take a list of ranges to tint, as
+  they take the selection.
+- **No options menu.** macOS's find bar offers "Contains", "Starts with",
+  "Full word" and case matching. The bar searches for the literal text,
+  ignoring case; the options would be a menu and a day.
+- **No Find Next from the editor.** With the bar closed, Cmd-G and Shift-Cmd-G
+  move between matches on macOS. A terminal binding for them is the same
+  question as the key above.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`

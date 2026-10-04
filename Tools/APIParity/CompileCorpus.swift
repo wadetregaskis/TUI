@@ -1474,3 +1474,21 @@ private struct AnimatableValuesShapes: View, Animatable {
         Text("Moving").offset(x: Int(x), y: Int(y)).opacity(fade)
     }
 }
+
+/// A text editor with find and replace, shown by a toolbar-style toggle.
+@MainActor
+private struct FindNavigatorShapes: View {
+    @State private var text = ""
+    @State private var isPresented = false
+    @Environment(\.findContext) private var findContext
+
+    var body: some View {
+        VStack {
+            Toggle("Find", isOn: $isPresented)
+            TextEditor(text: $text)
+                .replaceDisabled(findContext?.supportsReplace == false)
+                .findNavigator(isPresented: $isPresented)
+            TextEditor(text: $text).findDisabled()
+        }
+    }
+}

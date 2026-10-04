@@ -152,15 +152,77 @@ public struct TextEditor: View {
     }
 
     @Environment(\.textEditorStyle) private var style
+    @Environment(\.findNavigator) private var find
+
+    /// Whether the find bar is up when no ``View/findNavigator(isPresented:)``
+    /// says: the editor's own Ctrl-G presents it.
+    @State private var isFindShownLocally = false
+    @State private var findQuery = ""
+    @State private var findReplacement = ""
+    @State private var findMatch = 0
+    /// The match the find bar last selected, as character offsets, for an
+    /// editor with no selection binding of the app's to steer.
+    @State private var findSelection: Range<Int>?
 
     @ViewBuilder public var body: some View {
         // The two built-in styles are drawn by the core, which reads which one
         // is in force; a custom style draws its body in the editor's place.
         if style is AutomaticTextEditorStyle || style is PlainTextEditorStyle {
-            _TextEditorCore(text: text, focusID: focusID, isDisabled: isDisabled, selection: selection)
+            let presented = isFindPresented
+            VStack(alignment: .leading, spacing: 0) {
+                if presented {
+                    _FindBar(
+                        text: text, query: $findQuery, replacement: $findReplacement, current: $findMatch,
+                        supportsReplace: !find.isReplaceDisabled && !isDisabled,
+                        select: { selectMatch($0) }, close: { setFindPresented(false) })
+                }
+                _TextEditorCore(
+                    text: text, focusID: focusID, isDisabled: isDisabled,
+                    selection: presented ? findChannel : selection)
+            }
+            .onKeyPress(keys: ["g", "G"]) { press in
+                // Ctrl-G presents the find bar: Ctrl-F is the editor's own
+                // "forward a character", as on macOS.
+                guard press.modifiers.contains(.control), !find.isFindDisabled else { return .ignored }
+                setFindPresented(true)
+                return .handled
+            }
         } else {
             style.makeAnyBody(configuration: TextEditorStyleConfiguration())
         }
+    }
+}
+
+// MARK: - Find
+
+extension TextEditor {
+    /// Whether the find bar is up: as the app's binding says, or as Ctrl-G and
+    /// Done left it.
+    private var isFindPresented: Bool {
+        guard !find.isFindDisabled else { return false }
+        return find.isPresented?.wrappedValue ?? isFindShownLocally
+    }
+
+    private func setFindPresented(_ presented: Bool) {
+        if let binding = find.isPresented {
+            binding.wrappedValue = presented
+        } else {
+            isFindShownLocally = presented
+        }
+    }
+
+    /// The selection the editor reads while the bar is up: the app's own,
+    /// which the bar writes its matches into, or the bar's.
+    private var findChannel: _TextSelectionChannel {
+        if let selection { return selection }
+        let box = $findSelection
+        return _TextSelectionChannel(
+            read: { box.wrappedValue },
+            write: { offsets, _, _ in if box.wrappedValue != offsets { box.wrappedValue = offsets } })
+    }
+
+    private func selectMatch(_ offsets: Range<Int>) {
+        findChannel.write(offsets, text.wrappedValue, .automatic)
     }
 }
 
