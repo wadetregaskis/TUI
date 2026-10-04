@@ -123,6 +123,31 @@ owner decision). The visual-effect spellings are the same requests made from a
 geometry proxy, and should be answered with them; `VisualEffect` itself and the
 effects with a cell reading are this wave's.
 
+### A-W12-8 Should a content change dissolve by default under an animation?
+
+*`EnvironmentValues.contentTransition`'s default; the drawing of `Text` (and
+`Image`) when what it shows changes inside `withAnimation`*
+
+SwiftUI's environment holds an unnamed default content transition (measured:
+equal to none of `.identity`, `.opacity`, `.interpolate`), under which a
+`Text` whose string changes inside an animation cross-fades. TUIkit's default
+draws the change at once, as it always has; `contentTransition(_:)` shipped
+(B-W12-10) dissolves only where it is written.
+
+**Options.**
+
+1. **Keep the default instant.** Free. A port that relied on the default
+   cross-fade snaps until it adds `.contentTransition(.opacity)`.
+2. **Dissolve by default, in `Text` and `Image`.** Each keeps its last
+   drawing and dissolves to a changed one under an animated transaction, as
+   the modifier does for a subtree. The price is in the hottest view there
+   is: every `Text` drawn under an animation compares its lines with the last
+   frame's and, while a change dissolves, draws twice; and every `Text` keeps
+   one drawing in state storage. A day, plus the A/B on `Stress` that a change
+   to `Text` needs.
+
+**Recommendation:** 1, until a port shows the default being relied on.
+
 ---
 
 ## B. Shipped the safe option
@@ -504,3 +529,37 @@ together from the initial value and the last to write a property wins.
   a bouncy spring to 1).
 - **A zero-length linear or cubic keyframe arrives at once**, where SwiftUI
   divides by its zero length and answers NaN.
+
+### B-W12-10 A content transition dissolves everything the modifier wraps
+
+*`ContentTransition` (`.identity`, `.opacity`, `.interpolate`,
+`.numericText(countsDown:)`, `.numericText(value:)`), `View.contentTransition(_:)`,
+`EnvironmentValues.contentTransition`,
+`EnvironmentValues.contentTransitionAddsDrawingGroup`*
+
+The Wave 17 review (W4) found the refusal ("a cell holds one glyph with no
+alpha") overtaken by opacity compositing. **Shipped:** where the modifier is
+written, a change to what its content draws, made under an animation, draws
+the new content over the old at the animation's progress through the opacity
+compositor: colours blend and each cell's glyph changes half way, so a cell
+whose character is the same keeps it and moves only its colours. That is
+`.interpolate` here (SwiftUI's "matching glyph pairs" interpolate, and the
+rest use its documented opacity fallback); `.opacity` and both
+`.numericText` forms draw the same dissolve (SwiftUI's rolling digits are
+promised only "in certain environments"); `.identity` draws the change at
+once. A change in mid-dissolve dissolves from what is on screen. The dissolve
+counts as an animation for completions.
+
+**Where it differs.** SwiftUI's leaf views read the environment value and
+each animates its own content. Here the modifier dissolves its whole
+subtree's drawing — identical cells dissolve into themselves, so only what
+changed is seen to move, but an inner `.contentTransition(.identity)` does
+not exempt its part, and the view takes its new size at once (a shrinking
+drawing loses its edges immediately). `contentTransitionAddsDrawingGroup` is
+a rendering hint with no visible contract (a drawing group changes how
+SwiftUI composites, not what it shows) and is kept for whoever reads it. The
+symbol-effect content transitions wait on A-W12-2.
+
+**The fuller version** is A-W12-8's second option: the dissolve inside `Text`
+and `Image`, reading the environment, which also gives the leaf-level
+semantics above.
