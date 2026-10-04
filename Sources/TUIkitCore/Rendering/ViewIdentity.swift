@@ -232,6 +232,35 @@ extension ViewIdentity {
         singleChildAncestor(atDepth: ancestorDepth) != nil
     }
 
+    /// How many SIBLING steps — indexed or keyed descents, each a child among
+    /// others — lie between the identity at `ancestorDepth` on this chain and
+    /// this one, or `nil` when this identity is shallower than that.
+    ///
+    /// Single-child steps (a view's body, a modifier's content) and
+    /// conditional branches are not counted. So one is "a child of the
+    /// container at `ancestorDepth`, however wrapped": a lazy stack's section
+    /// is pinned only when it is the stack's own, written in its content or
+    /// produced by a `ForEach` there, and not when it sits inside one of the
+    /// stack's rows. Like ``isDirectDescent(fromDepth:)``, the lineage is not
+    /// compared: the caller knows which identity sits at that depth.
+    package func siblingSteps(belowDepth ancestorDepth: Int) -> Int? {
+        guard node.depth >= ancestorDepth else { return nil }
+        var count = 0
+        var cursor: IdentityNode? = node
+        while let n = cursor, n.depth > ancestorDepth {
+            switch n.step {
+            case .typed(_, let index):
+                if index != nil { count += 1 }
+            case .branch:
+                break
+            case .keyed, .raw:
+                count += 1
+            }
+            cursor = n.parent
+        }
+        return count
+    }
+
     /// The node at `ancestorDepth` on this chain, when every step below it
     /// down to this identity is a single-child descent; else `nil`.
     private func singleChildAncestor(atDepth ancestorDepth: Int) -> IdentityNode? {

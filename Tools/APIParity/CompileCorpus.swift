@@ -1195,3 +1195,42 @@ private func keyframeShapes() -> Double {
     }
     return keyframes.value(time: 0.45) + tracks.value(progress: 0.5).scale + tracks.duration
 }
+
+// MARK: - Pinned section headers and footers
+
+/// SwiftUI's pinned lazy stack, with every spelling of `pinnedViews:`.
+@MainActor
+private struct PinnedSectionShapes: View {
+    let groups: [(name: String, items: [String])] = [("A", ["a1", "a2"]), ("B", ["b1"])]
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                ForEach(groups, id: \.name) { group in
+                    Section {
+                        ForEach(group.items, id: \.self) { Text($0) }
+                    } header: {
+                        Text(group.name)
+                    }
+                }
+            }
+            LazyVStack(pinnedViews: .sectionFooters) {
+                Section {
+                    Text("row")
+                } footer: {
+                    Text("footer")
+                }
+            }
+            LazyVStack(pinnedViews: PinnedScrollableViews(rawValue: 3)) {
+                Section("Title") { Text("row") }
+            }
+        }
+    }
+}
+
+/// The option set's own surface: an `OptionSet` of `UInt32`.
+private func pinnedOptions() -> Bool {
+    var pinned: PinnedScrollableViews = [.sectionHeaders, .sectionFooters]
+    pinned.remove(.sectionFooters)
+    return pinned.contains(.sectionHeaders) && pinned.rawValue == 1 && PinnedScrollableViews().isEmpty
+}

@@ -216,6 +216,13 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // One of a pinned lazy stack's own sections pins its header and footer
+        // (`PinnedSectionScope`). What it draws is not the stack's: a section
+        // that is this one's whole content is no section of the stack's.
+        let pins = context.environment.pinnedSectionScope?.pins(at: context.identity)
+        var context = context
+        if pins != nil { context.environment.pinnedSectionScope = nil }
+
         var lines: [String] = []
         // A `Section` assembles its lines by hand rather than compositing, so
         // EVERYTHING a child's buffer carries beside those lines is lost unless
@@ -302,6 +309,12 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
             }
         }
 
+        if let pins, pins.headers || pins.footers, !context.isMeasuring {
+            overlays += pinnedChrome(
+                header: placement.drawsAbove ? headerBuffer : nil, content: contentBuffer,
+                footer: placement.drawsBelow ? footerBuffer : nil, pins: pins)
+        }
+
         var buffer = FrameBuffer(lines: lines)
         buffer.overlays = overlays
         buffer.hitTestRegions = regions
@@ -316,6 +329,43 @@ private struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Re
         // section is as translucent while being measured as while being drawn.
         buffer.opacityRegions = faded
         return buffer
+    }
+
+    /// The layers that pin this section's header to the top edge of the
+    /// scroll view it is in, and its footer to the bottom, for a section of a
+    /// pinned lazy stack (`OverlayLayer.scrollPin`): a copy of each, where
+    /// the flow draws it, free to travel the height of the content.
+    ///
+    /// Padded to the section's width, so a pinned header covers every cell of
+    /// the rows it lands on — the section's own rows, since the content's
+    /// last row is as far as it goes. Without its presentations: those ride
+    /// on the header the flow draws, and the scroll view moves them with it.
+    ///
+    /// - Parameters:
+    ///   - header: The header, when it was drawn at the top of the section.
+    ///   - footer: The footer, when it was drawn at the bottom.
+    private func pinnedChrome(
+        header: FrameBuffer?, content: FrameBuffer, footer: FrameBuffer?,
+        pins: (headers: Bool, footers: Bool)
+    ) -> [OverlayLayer] {
+        let travel = content.height
+        guard travel > 0 else { return [] }
+        let width = max(header?.width ?? 0, content.width, footer?.width ?? 0)
+        func layer(_ chrome: FrameBuffer, atY y: Int, edge: OverlayLayer.ScrollPin.Edge) -> OverlayLayer {
+            var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(width) })
+            copy.overlays = []
+            var layer = OverlayLayer(offsetX: 0, offsetY: y, content: copy, isOpaque: false)
+            layer.scrollPin = OverlayLayer.ScrollPin(edge: edge, travel: travel)
+            return layer
+        }
+        var layers: [OverlayLayer] = []
+        if pins.headers, let header {
+            layers.append(layer(header, atY: 0, edge: .top))
+        }
+        if pins.footers, let footer {
+            layers.append(layer(footer, atY: (header?.height ?? 0) + travel, edge: .bottom))
+        }
+        return layers
     }
 
     /// The footer's lines, for a lazy stack in the content that bands itself

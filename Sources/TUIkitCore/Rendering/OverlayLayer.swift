@@ -204,6 +204,23 @@ public struct OverlayLayer: Sendable, Equatable {
     /// unless its presenter says otherwise — the old behaviour of every layer.
     public var holdsInput: Bool = false
 
+    /// The edge of the nearest vertical scroll view this layer is pinned to,
+    /// and how far it may travel to stay there — `nil` for every layer but a
+    /// copy of a lazy stack's section header or footer under `pinnedViews:`.
+    ///
+    /// Such a layer is neither a presentation nor displaced drawing: what it
+    /// holds is already drawn in the flow, at ``offsetY``. It is what lets a
+    /// scroll view draw that header again at its top edge (or that footer at
+    /// its bottom) while the section's content is under the edge — the scroll
+    /// view knows its offset, which nothing between it and the section does,
+    /// and every combining operation carries a layer to it at the right place,
+    /// however deep in the content the section sits. The scroll view takes
+    /// each one off the buffer (`resolvingScrollPins`); one that reaches the
+    /// screen root without passing a vertical scroll view — a pinned stack
+    /// that is not scrolled — is dropped there, since the flow already shows
+    /// it where it belongs.
+    package var scrollPin: ScrollPin?
+
     /// Creates an overlay layer.
     ///
     /// - Parameters:
@@ -524,5 +541,45 @@ public struct OverlayLayer: Sendable, Equatable {
         copy.offsetX += dx
         copy.offsetY += dy
         return copy
+    }
+}
+
+// MARK: - Scroll Pins
+
+extension OverlayLayer {
+    /// Where a pinned section header or footer may be drawn — see
+    /// ``OverlayLayer/scrollPin``.
+    ///
+    /// Both numbers are relative to where the layer was drawn, so the shift
+    /// every combining operation applies to ``OverlayLayer/offsetY`` carries
+    /// them too.
+    package struct ScrollPin: Sendable, Equatable {
+        /// The edge of the viewport the layer stays at.
+        package enum Edge: Sendable, Equatable {
+            /// The top: a section header, drawn at the viewport's top edge
+            /// while its section's content is under it.
+            case top
+            /// The bottom: a section footer, drawn at the viewport's bottom
+            /// edge while its section's content is under that.
+            case bottom
+        }
+
+        /// How many rows the layer may move from where it was drawn, toward
+        /// the far end of its section — down for a header, up for a footer —
+        /// before it leaves the section: the height of the section's content.
+        ///
+        /// A header moved that far sits on the content's last row, and the
+        /// content scrolling further takes it up with it — which is how the
+        /// next section's header takes over. A footer moved that far sits on
+        /// the content's first row, its header's bottom.
+        package var travel: Int
+
+        /// Declared after ``travel`` so the pair has no interior padding.
+        package var edge: Edge
+
+        package init(edge: Edge, travel: Int) {
+            self.travel = travel
+            self.edge = edge
+        }
     }
 }

@@ -86,6 +86,9 @@ struct RenderMemoComparatorTests {
                 ("alignment", LazyVStack(alignment: .leading) { Text("a") }),
                 ("spacing", LazyVStack(spacing: 3) { Text("a") }),
                 ("content", LazyVStack { Text("b") }),
+                // Pinning changes what the stack's sections draw: a header
+                // copied to the scroll view's edge.
+                ("pinnedViews", LazyVStack(pinnedViews: .sectionHeaders) { Text("a") }),
             ])
         expectDistinguishes(
             "LazyHStack", LazyHStack { Text("a") }, identical: LazyHStack { Text("a") },

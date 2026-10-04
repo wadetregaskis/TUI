@@ -33,20 +33,49 @@
 ///   neither. Every row of a stack left un-windowed is measured and drawn, as
 ///   in a `VStack`, so its cost per frame tracks its row count — and in a row
 ///   of an outer lazy stack it is measured whenever the outer stack places
-///   that row, on screen or not. `pinnedViews:` is still absent — §2.8 of
-///   `Documentation/SwiftUI-compatibility.md` records what it costs, which is
-///   not an init parameter: the stack cannot see inside a `Section`, and the
-///   scroll offset it would pin against lives in the `ScrollView`.)
+///   that row, on screen or not.)
+///
+/// # Pinned section headers and footers
+///
+/// With `pinnedViews:`, a `Section`'s header stays at the top of the
+/// enclosing vertical ``ScrollView`` while any of its section's content is
+/// under it, and is pushed up and away by the section's last row — so the
+/// next section's header takes over; a pinned footer stays at the bottom the
+/// same way, never above its section's first row. That is SwiftUI's rule,
+/// measured on macOS 15.8, and it holds wherever the stack sits in the
+/// scroll view's content, windowed or not. Under the "N more above / below"
+/// indicators (`.scrollIndicatorStyle(.text)`) a pinned header sits below the
+/// line rather than under it. A control in a pinned header is clicked where
+/// it is drawn, and the rows it covers cannot be. Only the stack's own
+/// sections pin — written in its content or made there by a `ForEach` — and
+/// outside a scroll view nothing does.
+///
+/// ```swift
+/// ScrollView {
+///     LazyVStack(alignment: .leading, pinnedViews: [.sectionHeaders]) {
+///         ForEach(groups) { group in
+///             Section(group.name) {
+///                 ForEach(group.items) { Text($0.title) }
+///             }
+///         }
+///     }
+/// }
+/// ```
+///
+/// One deviation: SwiftUI's header is transparent, so the rows scrolling
+/// under it show through wherever it draws nothing. A cell holds one
+/// glyph, so here the header's cells replace the rows' glyphs across the
+/// section's width, and keep only their background.
 ///
 /// - Note: Documented deviations from SwiftUI (per the parity rule): the
 ///   cross-axis width hugs the widest *placed* child (SwiftUI's ideal width
 ///   is its **first** subview's — an artefact of not creating the rest;
 ///   TUIkit has rendered every visible child anyway, so it uses the real
-///   widest), the main-axis extent is exact rather than estimated, and the
-///   init takes no `pinnedViews:`. "Placed" means the rows a walk at the
-///   given height budget reaches; past the fold a windowed stack answers
-///   from the widest row it has drawn or sampled, never below the band it is
-///   currently drawing. See §2.8 of `Documentation/SwiftUI-compatibility.md`.
+///   widest), and the main-axis extent is exact rather than estimated.
+///   "Placed" means the rows a walk at the given height budget reaches; past
+///   the fold a windowed stack answers from the widest row it has drawn or
+///   sampled, never below the band it is currently drawing. See §2.8 of
+///   `Documentation/SwiftUI-compatibility.md`.
 ///
 /// # Example
 ///
@@ -75,25 +104,36 @@ public struct LazyVStack<Content: View>: View {
     /// The content of the stack.
     public let content: Content
 
-    /// Creates a lazy vertical stack with the specified options.
+    /// The kinds of child views pinned to the enclosing scroll view's edges.
+    let pinnedViews: PinnedScrollableViews
+
+    /// Creates a lazy vertical stack with the given spacing, horizontal
+    /// alignment, pinning behaviour and content.
     ///
     /// - Parameters:
     ///   - alignment: The horizontal alignment of children (default: .center).
     ///   - spacing: The blank lines between children, or `nil` (the default)
     ///     for what views prefer between them: none.
+    ///   - pinnedViews: The kinds of child views that will be pinned to the
+    ///     enclosing scroll view's edges: the headers and footers of the
+    ///     stack's `Section`s (default: none). See the discussion above.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: HorizontalAlignment = .center,
         spacing: Int? = nil,
+        pinnedViews: PinnedScrollableViews = .init(),
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
         self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
         self.content = content()
+        self.pinnedViews = pinnedViews
     }
 
     public var body: some View {
-        _VStackCore(alignment: alignment, spacing: spacing, overflow: .window, content: content)
+        _VStackCore(
+            alignment: alignment, spacing: spacing, overflow: .window, pinnedViews: pinnedViews,
+            content: content)
     }
 }
 
@@ -165,6 +205,7 @@ public struct LazyHStack<Content: View>: View {
 extension LazyVStack: @preconcurrency Equatable where Content: Equatable {
     public static func == (lhs: LazyVStack<Content>, rhs: LazyVStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
+            && lhs.pinnedViews == rhs.pinnedViews
     }
 }
 

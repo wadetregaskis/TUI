@@ -44,7 +44,12 @@ extension FrameBuffer {
         // level; a drawn host is drawn, so its own nested layers land above it
         // whatever their level. A cap guards against a pathological layer that
         // keeps re-emitting itself; 256 is far beyond real use.
-        var queue = result.overlays.enumerated().map { (order: $0.offset, layer: $0.element) }
+        // A pinned section header or footer that got here passed no vertical
+        // scroll view — a pinned stack that is not scrolled — and the flow
+        // already shows it where it belongs (`OverlayLayer.scrollPin`). So
+        // is one lifted out of a layer's content below.
+        var queue = result.overlays.filter { $0.scrollPin == nil }
+            .enumerated().map { (order: $0.offset, layer: $0.element) }
         result.overlays = []
         var nextOrder = queue.count
         var drawsRemaining = 256
@@ -129,7 +134,7 @@ extension FrameBuffer {
             }
             // What this layer's content carried, lifted by the composite: into
             // the queue, not the next pass.
-            for lifted in result.overlays {
+            for lifted in result.overlays where lifted.scrollPin == nil {
                 queue.append((order: nextOrder, layer: lifted))
                 nextOrder += 1
             }

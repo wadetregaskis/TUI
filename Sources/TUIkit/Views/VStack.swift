@@ -80,12 +80,22 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// Trailing-overflow behaviour: `.clip` (eager `VStack`) or `.window`
     /// (lazy `LazyVStack`).
     let overflow: StackOverflow
+    /// Whether a lazy stack pins its sections' headers and footers to a scroll
+    /// view's edges (`pinnedViews:`). Two flags rather than the option set,
+    /// whose four-byte alignment would leave a gap after a content of odd size.
+    let pinsSectionHeaders: Bool
+    let pinsSectionFooters: Bool
 
-    init(alignment: HorizontalAlignment, spacing: Int, overflow: StackOverflow, content: Content) {
+    init(
+        alignment: HorizontalAlignment, spacing: Int, overflow: StackOverflow,
+        pinnedViews: PinnedScrollableViews = [], content: Content
+    ) {
         self.alignment = alignment
         self.spacing = spacing
         self.content = content
         self.overflow = overflow
+        self.pinsSectionHeaders = pinnedViews.contains(.sectionHeaders)
+        self.pinsSectionFooters = pinnedViews.contains(.sectionFooters)
     }
 
     var body: Never {
@@ -379,7 +389,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         let context = context.publishingContainerAxis(.vertical)
         switch overflow {
         case .clip: return renderClip(context: context)
-        case .window: return renderWindow(context: context)
+        case .window: return renderWindow(context: scopingPinnedSections(context))
         }
     }
 

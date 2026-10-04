@@ -12,8 +12,25 @@
 
 import TUIkitView
 
+/// What the stack laying a view out tells the views it lays out: its axis,
+/// and — from a lazy stack with `pinnedViews:` — that its sections pin.
+///
+/// One entry because both are about the stack's OWN children, and the next
+/// stack down publishes its own, scope-less: so a section inside a row's
+/// `VStack` is not taken for one of the pinned stack's, without a second
+/// environment write on every stack's render. Kept within an existential's
+/// inline buffer — the stack cores write it on every render, and a value too
+/// big for it would be a heap box each time.
+struct ContainerRelationship {
+    /// The axis the stack lays its children out along.
+    var axis: Axis?
+
+    /// The pinned stack whose sections the children may be.
+    var pinnedSections: PinnedSectionScope?
+}
+
 private struct ContainerAxisKey: EnvironmentKey {
-    static let defaultValue: Axis? = nil
+    static let defaultValue = ContainerRelationship()
 }
 
 extension EnvironmentValues {
@@ -30,9 +47,21 @@ extension EnvironmentValues {
     /// between a container and its children, and SwiftUI does not expose its
     /// equivalent either. A view that wants to know its own axis should be
     /// told by its caller.
+    ///
+    /// Setting it starts a new container's relationship with its children, so
+    /// it clears ``pinnedSectionScope``.
     var containerAxis: Axis? {
-        get { self[ContainerAxisKey.self] }
-        set { self[ContainerAxisKey.self] = newValue }
+        get { self[ContainerAxisKey.self].axis }
+        set { self[ContainerAxisKey.self] = ContainerRelationship(axis: newValue) }
+    }
+
+    /// The pinned stack whose sections the views below may be — see
+    /// ``PinnedSectionScope``. Set by a lazy stack with `pinnedViews:` for its
+    /// rows, after it publishes its axis; cleared by the next stack down as it
+    /// publishes its own, and by a section for what it draws.
+    var pinnedSectionScope: PinnedSectionScope? {
+        get { self[ContainerAxisKey.self].pinnedSections }
+        set { self[ContainerAxisKey.self].pinnedSections = newValue }
     }
 }
 
