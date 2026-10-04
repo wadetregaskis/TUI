@@ -100,6 +100,30 @@ terminal can give it — `.large` adding a blank line under each sidebar row,
 say, and `.small` dropping a `Label`'s icon. Neither is what the setting means
 on macOS, so it is not recommended without a use for it.
 
+### B-W08b-4. A tab's label is drawn as text
+
+*`Tab.init(content:label:)`, `Tab.init(value:content:label:)`,
+`Tab.init(role:content:label:)`, `Tab.init(value:role:content:label:)`,
+`DefaultTabLabel`*
+
+The strip draws each tab as a chip (`▐ title ▌`, or a folder tab), in the
+strip's own ink — the active one breathing while the strip has the focus —
+on the strip's own field. A label view of the app's own would bring its own
+colours and layout into that.
+
+**Shipped:** the default label is the title, after the SF Symbol's glyph
+where the terminal can draw it (`Label(_:systemImage:)`'s rule). A label of
+the app's own is rendered as a measure — it registers nothing — under an
+identity of its tab's, and its first line is taken without its colours: the
+strip draws the label's text, in the strip's ink.
+
+**The fuller version** draws the label view itself into the chip: rendered at
+the chip's height with the strip's ink as its foreground style and the chip's
+fill as its background, spliced in finished, its own runs and claims carried.
+The breath would have to repaint it per frame, which the strip's run does by
+redrawing the chip's text today. Half a day, most of it the breath and the
+folder style's walls.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

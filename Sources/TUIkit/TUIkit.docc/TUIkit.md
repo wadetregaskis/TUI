@@ -148,6 +148,13 @@ struct MyApp: App {
 - ``NavigationSplitView``
 - ``TabView``
 - ``Tab``
+- ``TabSection``
+- ``TabContent``
+- ``TabContentBuilder``
+- ``AnyTabContent``
+- ``DefaultTabLabel``
+- ``TabRole``
+- ``TabPlacement``
 - ``ScrollView``
 - ``Form``
 - ``LabeledContent``

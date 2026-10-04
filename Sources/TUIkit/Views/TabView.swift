@@ -4,116 +4,113 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-// MARK: - Tab
-
-/// A tab in a ``TabView``: a title, a selection value, and the content shown
-/// when that tab is active.
-///
-/// Mirrors SwiftUI's `Tab(_:value:content:)`. SwiftUI also takes a
-/// `systemImage:` — omitted here, as a terminal has no SF Symbols.
-///
-/// ```swift
-/// TabView(selection: $tab) {
-///     Tab("Profile", value: 0) { ProfileView() }
-///     Tab("Settings", value: 1) { SettingsView() }
-/// }
-/// ```
-public struct Tab<Value: Hashable, Content: View>: View {
-    let title: String
-    let value: Value
-    let content: Content
-
-    /// Creates a tab with a localized title, selection value, and content.
-    ///
-    /// A string **literal** binds here, so it is a lookup key — see
-    /// ``LocalizedStringKey``.
-    ///
-    /// - Parameters:
-    ///   - titleKey: The key for the tab's label in the strip.
-    ///   - value: The value this tab is selected by (matches the `TabView`'s
-    ///     selection binding).
-    ///   - content: The view shown while this tab is selected.
-    public init(
-        _ titleKey: LocalizedStringKey, value: Value, @ViewBuilder content: () -> Content
-    ) {
-        self.init(titleKey.localized, value: value, content: content)
-    }
-
-    /// Creates a tab whose title is displayed as written.
-    ///
-    /// Generic over `StringProtocol` rather than taking a concrete `String`,
-    /// which is what keeps a *literal* binding to the key overload above — see
-    /// ``LocalizedStringKey``. Only the title is a key: `value` is the tab's
-    /// identity, not text.
-    ///
-    /// - Parameters:
-    ///   - title: The tab's label in the strip.
-    ///   - value: The value this tab is selected by (matches the `TabView`'s
-    ///     selection binding).
-    ///   - content: The view shown while this tab is selected.
-    @_disfavoredOverload
-    public init<S: StringProtocol>(
-        _ title: S, value: Value, @ViewBuilder content: () -> Content
-    ) {
-        self.title = String(title)
-        self.value = value
-        self.content = content()
-    }
-
-    // A standalone Tab (outside a TabView) just renders its content.
-    public var body: some View { content }
-}
-
-extension Tab: TabContentProvider {
-    func tabs() -> [_RawTab] {
-        [_RawTab(value: AnyHashable(value), title: title, content: AnyView(content))]
-    }
-}
-
-// The style protocol and its built-in styles live in `Styles/TabViewStyle.swift`.
+// `Tab`, `TabSection` and the `TabContent` they are written in live in
+// `Tab.swift`, `TabSection.swift` and `TabContent.swift`; the style protocol
+// and its built-in styles in `Styles/TabViewStyle.swift`.
 
 // The TUI-specific TabView environment modifiers (header alignment, header
 // wrapping, content sizing, content padding) live in `TabViewModifiers.swift`.
 
 // MARK: - TabView
 
-/// A container that shows one of several tabs, with a strip for switching
-/// between them.
+/// A view that switches between multiple child views using interactive user
+/// interface elements: a strip of tabs above the selected tab's content.
 ///
-/// Declare tabs with ``Tab`` and bind the active one to `selection`:
+/// Declare tabs with ``Tab``, and bind the selected one to `selection`:
 ///
 /// ```swift
 /// @State private var tab = 0
 ///
 /// TabView(selection: $tab) {
-///     Tab("One", value: 0) { Text("First") }
-///     Tab("Two", value: 1) { Text("Second") }
+///     Tab("Received", systemImage: "tray", value: 0) { ReceivedView() }
+///     Tab("Sent", systemImage: "paperplane", value: 1) { SentView() }
 /// }
-/// .tabViewStyle(.compact)
+/// ```
+///
+/// Or leave the selection to the tab view, which then selects a tab by its
+/// place among the tabs:
+///
+/// ```swift
+/// TabView {
+///     Tab("Received", systemImage: "tray") { ReceivedView() }
+///     Tab("Sent", systemImage: "paperplane") { SentView() }
+/// }
 /// ```
 ///
 /// The strip is keyboard-navigable (`←`/`→`) when focused and responds to mouse
 /// clicks. Each tab's content keeps its own `@State` — switching tabs does not
 /// disturb another tab's editing state.
 public struct TabView<SelectionValue: Hashable, Content: View>: View {
-    let selection: Binding<SelectionValue>
+    /// The selection binding, or `nil` for a tab view built without one, which
+    /// keeps its own (``implicitSelection``).
+    let selection: Binding<SelectionValue>?
+
+    /// The tabs the content declares, flattened.
+    let tabs: [_RawTab]
+
+    /// The tabs, as SwiftUI's tab view holds them.
     let content: Content
 
-    /// Creates a tab view with a selection binding.
+    /// The selected tab's value, for a tab view built without a selection:
+    /// `nil` until a tab is chosen, which selects the first.
+    @State private var implicitSelection: AnyHashable?
+
+    /// Creates a tab view that uses a provided value to set the selected tab.
     ///
     /// - Parameters:
-    ///   - selection: A binding to the value identifying the active tab.
-    ///   - content: A ``Tab`` for each page (directly, in a `ForEach`, etc.).
-    public init(selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) {
+    ///   - selection: A binding to the value identifying the selected tab.
+    ///   - content: The tabs: ``Tab``s, ``TabSection``s, `ForEach` loops of
+    ///     them, and conditionals.
+    public init<C: TabContent>(
+        selection: Binding<SelectionValue>, @TabContentBuilder<SelectionValue> content: () -> C
+    ) where Content == TabContentBuilder<SelectionValue>.Content<C> {
+        let tabs = content()
         self.selection = selection
-        self.content = content()
+        self.tabs = tabList(of: tabs).tabs
+        self.content = TabContentBuilder<SelectionValue>.Content(tabs)
     }
 
     public var body: some View {
-        _TabViewCore(
-            selection: selection,
-            tabs: (content as? TabContentProvider)?.tabs() ?? []
-        )
+        _TabViewCore(selection: erasedSelection, tabs: stripTabs)
+    }
+
+    /// The tabs a strip shows: every one not hidden, and not placed only in a
+    /// sidebar.
+    private var stripTabs: [_RawTab] {
+        tabs.filter { !$0.isHidden && $0.placement != .sidebarOnly }
+    }
+
+    /// The selection, erased to the type the core compares tab values in.
+    ///
+    /// The builder ties every tab's value type to the selection's, so a tab's
+    /// value and the selection are erased from the same static type and
+    /// compare as values: an `Optional` selection's tabs carry `Optional`
+    /// values (`Tab(_:value:)`'s promoting overloads), never bare ones.
+    private var erasedSelection: Binding<AnyHashable> {
+        if let selection {
+            return Binding(
+                get: { AnyHashable(selection.wrappedValue) },
+                set: { if let value = $0.base as? SelectionValue { selection.wrappedValue = value } })
+        }
+        let implicit = $implicitSelection
+        let first = stripTabs.first { !$0.isDisabled }?.value ?? AnyHashable(0)
+        return Binding(get: { implicit.wrappedValue ?? first }, set: { implicit.wrappedValue = $0 })
+    }
+}
+
+extension TabView where SelectionValue == Never {
+    /// Creates a tab view that keeps the selected tab itself.
+    ///
+    /// The tabs carry no values: the tab view selects one by its place among
+    /// them, starting with the first.
+    ///
+    /// - Parameter content: The tabs.
+    public init<C: TabContent>(@TabContentBuilder<Never> content: () -> C)
+    where Content == TabContentBuilder<Never>.Content<C> {
+        let tabs = content()
+        self.selection = nil
+        self.tabs = tabList(of: tabs).tabs
+        self.content = TabContentBuilder<Never>.Content(tabs)
     }
 }
 
@@ -211,29 +208,27 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         index(matching: selection.wrappedValue) ?? 0
     }
 
-    /// The tab `value` names, matched by casting the TAB's value into the
-    /// selection's type.
+    /// The tab `value` names: the tab whose erased value equals the erased
+    /// selection.
     ///
-    /// NOT by comparing two `AnyHashable`s, which is what this did and which is
-    /// wrong whenever the two sides were erased from different static types —
-    /// the case being a `TabView(selection:)` bound to an OPTIONAL while its
-    /// tabs carry bare values. Nothing links `Tab<Value>` to
-    /// `TabView<SelectionValue>` at compile time (SwiftUI ties them through
-    /// `TabContent`'s associated type; this does not), so that combination
-    /// type-checks, and `AnyHashable(Choice.b) == AnyHashable(Choice?.some(.b))`
-    /// is FALSE — the view fell back to tab 0 and drew the wrong body.
+    /// Comparing two `AnyHashable`s is exact only where both were erased from
+    /// the same static type, and the tab content builder is what makes that
+    /// so: it ties every tab's value type to the tab view's selection type,
+    /// and a tab naming a bare value in a view whose selection is OPTIONAL
+    /// takes one of `Tab`'s promoting overloads and carries the Optional.
+    /// Before the builder nothing linked the two, and
+    /// `AnyHashable(Choice.b) == AnyHashable(Choice?.some(.b))` is FALSE — the
+    /// view fell back to tab 0 and drew the wrong body; worse, `AnyHashable`
+    /// unwraps Optionals for types with an ObjC bridge, so the `Int` spelling
+    /// of that mistake worked on Apple platforms and failed on Linux.
     ///
-    /// Worse than merely wrong: `AnyHashable` unwraps Optionals for types with
-    /// an ObjC bridge, so an `Int`-valued version of the same mistake works on
-    /// Apple platforms and fails on Linux.
-    ///
-    /// `as?` promotes a value to its Optional, as a language rule rather than a
-    /// bridging accident, so casting one way round is exact on both platforms
-    /// and for both spellings. It is what `Picker` has always done with its
-    /// tags (`Picker.swift`) and what the selection's own write-back below
-    /// does; only this read disagreed.
+    /// `TabView` hands its core the selection erased (it may be the tab view's
+    /// own, for one built without a selection), so `SelectionValue` is
+    /// `AnyHashable` here and the cast this used to make into the selection's
+    /// type would only re-erase a tab value's base, unwrapping an Optional.
     private func index(matching value: SelectionValue) -> Int? {
-        tabs.firstIndex { ($0.value.base as? SelectionValue) == value }
+        let erased = AnyHashable(value)
+        return tabs.firstIndex { $0.value == erased }
     }
 
     /// The render context for the active tab's content: identity branched by the
@@ -485,7 +480,34 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         return (rows, centers)
     }
 
+    /// This core with every label of the app's own (`Tab(content:label:)`)
+    /// replaced by its text, or `nil` when no tab has one — nearly always.
+    ///
+    /// The strip draws a tab's label as text, in its own ink and on its own
+    /// field, so a label view is rendered — as a measure, which registers
+    /// nothing — and its first line taken without its colours. Each label
+    /// renders under an identity of its tab's, so one with `@State` keeps it.
+    private func resolvingCustomLabels(_ context: RenderContext) -> Self? {
+        guard tabs.contains(where: { $0.customLabel != nil }) else { return nil }
+        var labelContext = context
+        labelContext.isMeasuring = true
+        let resolved = tabs.map { tab -> _RawTab in
+            guard let label = tab.customLabel else { return tab }
+            var tab = tab
+            let text = TUIkit.renderToBuffer(
+                label, context: labelContext.withBranchIdentity("tab-label-\(tab.value)")
+            ).lines.first?.stripped ?? ""
+            tab.title = String(text.reversed().drop { $0 == " " }.reversed())
+            tab.customLabel = nil
+            return tab
+        }
+        return Self(selection: selection, tabs: resolved)
+    }
+
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let resolved = resolvingCustomLabels(context) {
+            return resolved.sizeThatFits(proposal: proposal, context: context)
+        }
         guard !tabs.isEmpty else { return ViewSize.fixed(0, 0) }
         let style = context.environment.tabViewStyle.stripLook
         var ctx = context
@@ -528,6 +550,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let resolved = resolvingCustomLabels(context) { return resolved.renderToBuffer(context: context) }
         guard !tabs.isEmpty else { return FrameBuffer() }
         let style = context.environment.tabViewStyle.stripLook
         let palette = context.environment.palette
@@ -561,6 +584,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.selection = erased
         handler.values = tabs.map(\.value)
+        handler.disabledValues = Set(tabs.filter(\.isDisabled).map(\.value))
         handler.canBeFocused = !isDisabled
         if !context.isMeasuring {
             let geometry = navigationGeometry(context: context)
@@ -633,6 +657,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let hoverBox = hoveredTabBox(context: context)
         for region in regions {
             let value = tabs[region.index].value
+            let isDisabledTab = tabs[region.index].isDisabled
             let capture = selection
             let index = region.index
             let handlerID = dispatcher.register(in: context) { event in
@@ -654,7 +679,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                     return event.phase == .pressed && event.button == .left
                 }
                 focusManager?.focus(id: captureFocusID)
-                if let v = value.base as? SelectionValue { capture.wrappedValue = v }
+                // A disabled tab takes the click and selects nothing.
+                if !isDisabledTab, let v = value.base as? SelectionValue { capture.wrappedValue = v }
                 return true
             }
             buffer.hitTestRegions.append(
@@ -896,7 +922,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// measured, so the box came out ragged and the click regions slid left of
     /// the tabs they belong to.
     func tabWidth(_ index: Int, style: _TabStripLook) -> Int {
-        let body = tabs[index].title.strippedLength + 2   // " title "
+        let body = tabs[index].title.strippedLength + tabs[index].badgeSuffix.strippedLength + 2  // " title "
         return style == .compact ? body + 2 : body
     }
 

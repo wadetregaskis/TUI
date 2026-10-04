@@ -80,7 +80,7 @@ public protocol _TableRowValued {
 ///
 /// Every column type this framework defines is one. A `TableColumnContent` an
 /// app writes is not: its columns are found by walking its body, which bottoms
-/// out in these. The same shape as ``TabContentProvider``, and the reason this
+/// out in these. The same shape as `_TabContentPrimitive`, and the reason this
 /// is not a public requirement on ``TableColumnContent``: nothing outside the
 /// framework needs to — or should — implement it.
 @MainActor

@@ -148,14 +148,14 @@ struct ForEachSubviewsTests {
 
     // MARK: - The walks that read rows without drawing them
 
-    /// `List`, `Picker`, `TabView`, `Form` and suggestions ask a `ForEach` for
-    /// its rows without a context; a loop over subviews has none to give them,
-    /// and must give none rather than rows it cannot account for.
+    /// `List`, `Picker`, `Form` and suggestions ask a `ForEach` for its rows
+    /// without a context; a loop over subviews has none to give them, and must
+    /// give none rather than rows it cannot account for. (A `TabView` takes
+    /// tabs, which a loop over subviews is not, so it does not compile there.)
     @Test("A walk without a context sees no rows")
     func contextlessWalksSeeNothing() {
         let loop = ForEach(subviews: Group { Text("a"); Text("b") }) { $0 }
         #expect(loop.pickerOptions().isEmpty)
-        #expect(loop.tabs().isEmpty)
         #expect(loop.textSuggestions().isEmpty)
         #expect(loop.extractFormElements().isEmpty)
         #expect(loop.listRowCount == 0)
@@ -165,13 +165,12 @@ struct ForEachSubviewsTests {
     /// Each either draws the loop's members, if it lays its content out as
     /// views somewhere, or draws none of them — never one without the other,
     /// and never traps on a count it cannot reconcile.
-    @Test("Inside a List, Picker, TabView, Form or suggestions, the loop does not trap")
+    @Test("Inside a List, Picker, Form or suggestions, the loop does not trap")
     func containersThatReadRows() {
         let loop = ForEach(subviews: Group { Text("alpha"); Text("beta") }) { $0 }
         for view in [
             AnyView(List { loop }),
             AnyView(Picker("Pick", selection: .constant(0)) { loop }.pickerStyle(.radioGroup)),
-            AnyView(TabView(selection: .constant(0)) { loop }),
             AnyView(Form { loop }),
             AnyView(TextField("Field", text: .constant("")).textInputSuggestions { loop }),
         ] {

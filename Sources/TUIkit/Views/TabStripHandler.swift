@@ -15,6 +15,9 @@ final class TabStripHandler: PersistedFocusable {
     var selection: Binding<AnyHashable>
     var values: [AnyHashable]
 
+    /// The values of the tabs that are disabled, which the keys step over.
+    var disabledValues: Set<AnyHashable> = []
+
     /// The visual rows (tab indices, top-to-bottom) and each tab's horizontal
     /// centre, refreshed each render so up/down navigation matches the layout.
     var rows: [[Int]] = []
@@ -30,7 +33,10 @@ final class TabStripHandler: PersistedFocusable {
     private func move(by delta: Int) {
         guard !values.isEmpty else { return }
         let current = values.firstIndex(of: selection.wrappedValue) ?? 0
-        let next = max(0, min(values.count - 1, current + delta))
+        // The nearest enabled tab that way; none, and the selection stays.
+        var next = current + delta
+        while values.indices.contains(next), disabledValues.contains(values[next]) { next += delta }
+        guard values.indices.contains(next) else { return }
         selection.wrappedValue = values[next]
     }
 
@@ -51,7 +57,7 @@ final class TabStripHandler: PersistedFocusable {
         guard let row = rows.firstIndex(where: { $0.contains(current) }) else { return false }
         let target = (row + delta % rows.count + rows.count) % rows.count
         let cx = centers[current] ?? 0
-        guard let nearest = rows[target].min(by: {
+        guard let nearest = rows[target].filter({ !disabledValues.contains(values[$0]) }).min(by: {
             abs((centers[$0] ?? 0) - cx) < abs((centers[$1] ?? 0) - cx)
         }) else { return false }
         selection.wrappedValue = values[nearest]

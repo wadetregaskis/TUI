@@ -122,7 +122,8 @@
         "Picker.init(_:image:*",
         "ContentUnavailableView.init(_:image:*",
         "ControlGroup.init(_:image:content:)",
-        "Menu.init(_:image:*"
+        "Menu.init(_:image:*",
+        "Tab.init(_:image:*"
       ],
       "why": "The `image:` spelling of these initializers names an `ImageResource` — a symbol the Xcode build generates from an asset catalogue, whose value is a raster bitmap at one of several scale factors. A terminal app has neither: no asset catalogue in the build (SwiftPM resources are files, not named image constants), and no way to place a bitmap in a cell. The `systemImage:` spelling of every one of these IS implemented (Sources/TUIkit/SFSymbols/ControlSymbolInitializers.swift), because an SF Symbol is a character: it resolves to a Private-Use scalar the terminal font may carry, and falls back to the title alone when it does not."
     },
@@ -975,10 +976,6 @@
       "how": "PickerStyle.automatic / AutomaticPickerStyle",
       "why": "Sources/TUIkit/Styles/PickerStyle.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
     },
-    "DefaultTabLabel": {
-      "how": "Tab.title (String)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/TabView.swift:22,33 — the tab's strip label is a plain String captured at init and rendered by the strip, rather than a defaulted Label view type."
-    },
     "DefaultToolbarItem": {
       "how": "SystemStatusBarItem.quit / .appearance / .theme",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/StatusBar/SystemStatusBarItem.swift:22,35,48 — the concrete system-provided items, plus `SystemStatusBarItem.items(onQuit:onAppearance:onTheme:)` at :73 for re-binding their actions."
@@ -1006,10 +1003,6 @@
     "ForEach.Body": {
       "how": "ForEach.body: Never",
       "why": "ForEach declares `public var body: Never`, as SwiftUI's non-tab ForEach does. The `Body` typealias is inferred rather than written, so symbolgraph-extract emits it for the SDK's interface and not for TUIkit's source: an extraction artifact, not a gap."
-    },
-    "ForEach.TabValue": {
-      "how": "TabContentProvider conformance on ForEach",
-      "why": "A ForEach does generate tabs inside a TabView, through the internal `TabContentProvider` conformance. The protocol has no `TabValue` associated type, so a caller cannot write `some TabContent<Value>`; the Tab API's wave (08) decides whether it becomes public."
     },
     "GestureState": {
       "how": "DragGestureEvent.Phase (.began/.moved/.ended)",
@@ -1058,14 +1051,6 @@
     "StateObject": {
       "how": "@State var m = M() with @Observable",
       "why": "Documentation/SwiftUI-compatibility.md:179 states the mapping explicitly; `State` is a shared type (Sources/TUIkitView/State/State.swift) and binds at render time by the view's own identity."
-    },
-    "TabContent": {
-      "how": "TabContentProvider (internal)",
-      "why": "The internal `TabContentProvider` (`tabs() -> [_RawTab]`), with conformances for EmptyView, TupleView, ForEach and Tab. It does what SwiftUI's TabContent does for a TabView, without the public protocol; the Tab API's wave (08) decides whether it becomes public."
-    },
-    "TabContentBuilder": {
-      "how": "plain @ViewBuilder + the TabContentProvider walk",
-      "why": "`TabView(selection:content:)` takes a plain `@ViewBuilder` and recovers the tabs afterwards through the `TabContentProvider` walk, so no dedicated result builder is needed. The Tab API's wave (08) revisits it."
     },
     "TapGesture": {
       "how": ".onTapGesture(count:perform:) / .onTapGesture(count:coordinateSpace:perform:)",

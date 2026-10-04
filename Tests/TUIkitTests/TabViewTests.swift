@@ -554,11 +554,11 @@ struct TabViewTests {
 
     // MARK: - Selection type vs tab value type
 
-    /// Nothing links `Tab<Value>` to `TabView<SelectionValue>` at compile time
-    /// — SwiftUI ties them through `TabContent`'s associated type; this does
-    /// not — so a selection bound to an OPTIONAL while the tabs carry bare
-    /// values type-checks. It used to draw the wrong tab: the match compared
-    /// two `AnyHashable`s erased from different static types, and
+    /// A selection bound to an OPTIONAL while the tabs name bare values: the
+    /// tab content builder ties the tabs' value type to the selection's, and
+    /// a bare value takes `Tab`'s promoting overload and carries the Optional.
+    /// It used to draw the wrong tab, when nothing tied the two: the match
+    /// compared two `AnyHashable`s erased from different static types, and
     /// `AnyHashable(Choice.b) == AnyHashable(Choice?.some(.b))` is false.
     @Test("An Optional selection matches tabs carrying bare values")
     func optionalSelectionMatchesBareTagValues() {

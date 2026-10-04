@@ -41,9 +41,9 @@ extension _TabViewCore {
             _ index: Int, background: Color, foreground: Color, active: Bool
         ) -> ClaimingRow {
             var row = ClaimingRow()
-            let title = " \(tabs[index].title) "
             row.append("▐", cells: 1, ink: background)
-            row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: active)
+            row.append(contentsOf: tabLabelBody(
+                index, background: background, foreground: foreground, active: active, palette: palette))
             row.append("▌", cells: 1, ink: background)
             return row
         }
@@ -57,9 +57,10 @@ extension _TabViewCore {
                 // inactive chips recede onto the base background.
                 let active = i == selectedIndex
                 // The pointer lifts the label it is over — including the active
-                // tab's, unless that one is already breathing for the focus.
-                let hovered = i == hoveredIndex && !(active && chip.isBreathing)
-                let resting = active ? chip.labelNow : inactiveFg
+                // tab's, unless that one is already breathing for the focus — but
+                // not a disabled tab's, which a click does nothing to.
+                let hovered = i == hoveredIndex && !(active && chip.isBreathing) && !tabs[i].isDisabled
+                let resting = active ? chip.labelNow : restingInk(i, inactive: inactiveFg, palette: palette)
                 let drawn = drawChip(
                     i, background: active ? chip.surface : inactiveBg,
                     foreground: hovered ? palette.hoveredForeground(resting) : resting,
@@ -126,11 +127,9 @@ extension _TabViewCore {
         // same cells the render draws. The walls either side are border chrome
         // and do not breathe, so a folder tab's run is its body only.
         func drawLabel(_ index: Int, background: Color, foreground: Color, active: Bool) -> ClaimingRow {
-            var label = ClaimingRow()
-            let title = " \(tabs[index].title) "
-            label.append(
-                title, cells: title.strippedLength, ink: foreground, field: background, bold: active)
-            return label
+            tabLabelBody(
+                index, background: background, foreground: foreground, active: active,
+                palette: style.palette)
         }
 
         var lines: [ClaimingRow] = []
@@ -181,8 +180,9 @@ extension _TabViewCore {
             labels.skip(cells: off)
             for (k, i) in row.enumerated() {
                 let active = i == selectedIndex
-                let hovered = i == style.hoveredIndex && !(active && chip.isBreathing)
-                let resting = active ? chip.labelNow : style.inactiveFg
+                let hovered = i == style.hoveredIndex && !(active && chip.isBreathing) && !tabs[i].isDisabled
+                let resting =
+                    active ? chip.labelNow : restingInk(i, inactive: style.inactiveFg, palette: style.palette)
                 labels.append("│", cells: 1, ink: style.border)
                 // One column reached two ways: this row's, which places the claim,
                 // and `bodySpans`', which places the run and the click region.
@@ -225,6 +225,36 @@ extension _TabViewCore {
             }
         }
         return (lines, regions, animatedCells)
+    }
+
+    /// A tab's label between its chip's caps or its folder walls: ` title `, or
+    /// ` title badge ` with the badge in the palette's tertiary ink, as a list
+    /// row's badge is drawn. One function for both strips and for every frame
+    /// of the active chip's breath, so each draws the cells the others do.
+    ///
+    /// A tab with no badge is the one ` title ` run it always was, so its bytes
+    /// do not change with the badge's arrival.
+    func tabLabelBody(
+        _ index: Int, background: Color, foreground: Color, active: Bool, palette: any Palette
+    ) -> ClaimingRow {
+        var row = ClaimingRow()
+        let badge = tabs[index].badgeSuffix
+        guard !badge.isEmpty else {
+            let title = " \(tabs[index].title) "
+            row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: active)
+            return row
+        }
+        let title = " \(tabs[index].title)"
+        row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: active)
+        row.append(badge, cells: badge.strippedLength, ink: palette.foregroundTertiary, field: background)
+        row.append(" ", cells: 1, ink: foreground, field: background)
+        return row
+    }
+
+    /// The ink an inactive tab's label rests in: the strip's, or the
+    /// palette's quaternary for a disabled tab.
+    func restingInk(_ index: Int, inactive: Color, palette: any Palette) -> Color {
+        tabs[index].isDisabled ? palette.foregroundQuaternary : inactive
     }
 
     /// The inactive chips' foreground and background. Shared by both strip
