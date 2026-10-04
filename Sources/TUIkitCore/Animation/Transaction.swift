@@ -97,7 +97,7 @@ public struct Transaction: Sendable, Equatable {
     /// rest — a spring retargeted mid-flight restarts from where its picture
     /// is, without its speed — so there is no velocity to track, and this is
     /// recorded for whoever reads the transaction and changes nothing else.
-    /// See `SwiftUI-API-completion-decisions-W12.md`, B-W12-4.
+    /// See `SwiftUI-API-completion-decisions-W12.md`, B55.
     public var tracksVelocity: Bool {
         get { flag(Self.tracksVelocityBit) }
         set { setFlag(Self.tracksVelocityBit, newValue) }

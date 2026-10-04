@@ -888,7 +888,7 @@
       "why": "gradient vs flat colouring inside one symbol needs sub-glyph colour addressing; the smallest colourable unit is the whole cell (one SGR foreground per run — Sources/TUIkit/Rendering/ANSIRenderer.swift)."
     },
     "SymbolEffectTransition": {
-      "why": "A Transition that plays a symbol's appear, disappear or replace effect, built from the Symbols framework's effect types (TransitionSymbolEffect, SymbolEffectOptions), which do not exist on Linux or Windows. Whether TUIkit declares its own Symbols vocabulary for the effects one glyph can show is A-W12-2 of Documentation/SwiftUI-API-completion-decisions-W12.md (and A18); TUIkit's Transition protocol itself ships."
+      "why": "A Transition that plays a symbol's appear, disappear or replace effect, built from the Symbols framework's effect types (TransitionSymbolEffect, SymbolEffectOptions), which do not exist on Linux or Windows. Whether TUIkit declares its own Symbols vocabulary for the effects one glyph can show is A35 of Documentation/SwiftUI-API-completion-decisions-W12.md (and A18); TUIkit's Transition protocol itself ships."
     },
     "SymbolRenderingMode": {
       "why": "Names monochrome, hierarchical, palette and multicolour symbol rendering. Only monochrome survives a cell grid: a symbol is one code point drawn in the cell's single foreground colour, so a type distinguishing four modes would have exactly one that changes anything."
