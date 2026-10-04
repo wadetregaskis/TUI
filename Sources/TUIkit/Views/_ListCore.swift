@@ -475,7 +475,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `.fixedSize(horizontal:)`: hug content — the widest of ALL rows, stable
         // across scroll. Opt-in, so building the rows to measure them is fine, and
         // the reported width is fixed (not flexible) so a stack hugs around it.
-        return ViewSize.fixed(allRowsContentWidth(context: context), height)
+        //
+        // The height stays flexible: hugging is a statement about the width, and
+        // the list still fills the height it is given, as it does unhugged. Fixed,
+        // it was an immovable demand for the whole column, and a view stacked
+        // below a hugging list — a sidebar's footer — was pushed off the bottom.
+        return ViewSize(
+            width: allRowsContentWidth(context: context), height: height,
+            isWidthFlexible: false, isHeightFlexible: true)
     }
 
     /// The List's hugged width: the widest of every row (plus a title and the
