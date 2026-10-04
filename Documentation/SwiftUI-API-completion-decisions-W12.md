@@ -157,7 +157,8 @@ draws the change at once, as it always has; `contentTransition(_:)` shipped
 *`Transition` (`body(content:phase:)`, `Content`, `properties`,
 `animation(_:)`, `combined(with:)`, `apply(content:phase:)`),
 `TransitionPhase`, `TransitionProperties`, `PlaceholderContentView`,
-`AnyTransition.init(_:)`, `View.transition(_:)` for a `Transition`*
+`AnyTransition.init(_:)`, `AnyTransition.modifier(active:identity:)`,
+`View.transition(_:)` for a `Transition`*
 
 **How SwiftUI does it.** A transition's body is evaluated at three discrete
 phases. On insertion it is shown at `.willAppear` and then "immediately moved
@@ -191,7 +192,11 @@ That is the same arithmetic the animation store performs when a value animates
 (`from.interpolated(towards: to, amount: curve(t))`), with `p` already being
 `curve(t)`, so the picture is the one SwiftUI's per-modifier interpolation
 gives. Both passes go through one hook at the top of the store's lookup, so a
-scrubbed value never reaches, or disturbs, the store's own records.
+scrubbed value never reaches, or disturbs, the store's own records. A value
+built FROM one drawn part-way — inside the body of an animatable modifier,
+evaluated at its interpolated data — is drawn as built, not interpolated a
+second time; what a placeholder draws (the view a modifier is applied to) is
+not built from the modifier, and is scrubbed on its own account.
 
 Everything else is reused rather than rebuilt: the arrival phase and its
 explicit animation, the departure slot and its timing, a removal starting

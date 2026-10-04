@@ -50,6 +50,26 @@ package final class TransitionScrub {
     /// under. Type-erased for the reason the store's records are.
     private var ends: [AnimationStore.Key: Any] = [:]
 
+    /// Where the draw pass has drawn a value part-way. What is below one of
+    /// these was built FROM a part-way value — a modifier's body evaluated at
+    /// its interpolated data — and is already where it should be: scrubbing it
+    /// again would interpolate a derived value a second time (a modifier
+    /// padding by its own data, half way, padded three-quarters of the way).
+    ///
+    /// Except what a `PlaceholderContentView` draws: the view a modifier is
+    /// applied to is not built from the modifier's data, so it is drawn with
+    /// this set empty (``independently(_:)``).
+    private var interpolatedAt: [ViewIdentity] = []
+
+    /// `body` — drawing the view a modifier was applied to — with nothing
+    /// counted as derived from the values drawn part-way around it.
+    package func independently<R>(_ body: () -> R) -> R {
+        let enclosing = interpolatedAt
+        interpolatedAt = []
+        defer { interpolatedAt = enclosing }
+        return body()
+    }
+
     /// Creates a scrub, ready to record.
     package init() {
         mode = .record
@@ -67,8 +87,12 @@ package final class TransitionScrub {
         case .draw(let presence):
             // A value the end phase did not produce — a modifier present at
             // one phase only — is drawn as the `.identity` render has it.
-            guard let end = ends[key] as? D else { return target }
-            return end.interpolated(towards: target, amount: presence)
+            guard let end = ends[key] as? D,
+                !interpolatedAt.contains(where: { $0.isAncestor(of: key.identity) })
+            else { return target }
+            let drawn = end.interpolated(towards: target, amount: presence)
+            if drawn != target { interpolatedAt.append(key.identity) }
+            return drawn
         }
     }
 }

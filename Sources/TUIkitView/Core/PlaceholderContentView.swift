@@ -78,15 +78,21 @@ package final class PlaceholderSource {
 }
 
 extension PlaceholderContentView: Renderable {
-    /// Draws the view the placeholder stands for.
+    /// Draws the view the placeholder stands for — which, inside a transition
+    /// body being drawn part-way, is not derived from the modifiers around it
+    /// (see `TransitionScrub`).
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        source.render(context)
+        guard let scrub = context.stateStorage?.animations.scrub else { return source.render(context) }
+        return scrub.independently { source.render(context) }
     }
 }
 
 extension PlaceholderContentView: Layoutable {
     /// Measures as the view the placeholder stands for.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        source.measure(proposal, context)
+        guard let scrub = context.stateStorage?.animations.scrub else {
+            return source.measure(proposal, context)
+        }
+        return scrub.independently { source.measure(proposal, context) }
     }
 }

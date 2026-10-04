@@ -344,4 +344,23 @@ struct CustomTransitionTests {
         // Leaving by the move: three of the six columns gone to the trailing side.
         #expect(screen.lines(absent.map { $0.transition(transition) }, atMillis: 1600).first == "   XX")
     }
+
+    // MARK: - Between two modifiers
+
+    @Test("A transition between two modifiers interpolates the modifier's data, and only once")
+    func modifierTransition() {
+        struct Indenting: ViewModifier, Animatable {
+            var animatableData: Double
+            func body(content: Content) -> some View {
+                content.padding(.leading, Int(animatableData.rounded()))
+            }
+        }
+        let transition = AnyTransition.modifier(
+            active: Indenting(animatableData: 4), identity: Indenting(animatableData: 0))
+        let screen = Screen(.linear(duration: 1))
+        _ = screen.lines(Optional<Wide>.none.map { $0.transition(transition) }, atMillis: 0)
+        #expect(screen.lines(Wide().transition(transition), atMillis: 0).first == "    XX")
+        #expect(screen.lines(Wide().transition(transition), atMillis: 500).first == "  XX")
+        #expect(screen.lines(Wide().transition(transition), atMillis: 1000).first == "XX")
+    }
 }

@@ -306,3 +306,31 @@ public struct AsymmetricTransition<Insertion: Transition, Removal: Transition>: 
         .asymmetric(insertion: insertion._erased, removal: removal._erased)
     }
 }
+
+// MARK: - Between two modifiers
+
+extension AnyTransition {
+    /// Returns a transition defined between an active modifier and an
+    /// identity modifier.
+    ///
+    /// The view is drawn with `active` while it is away and `identity` while
+    /// it is shown, and the modifier's animatable data is interpolated between
+    /// the two as the view comes and goes — so the modifier should be
+    /// ``Animatable``, or there is nothing between them to draw. This is a
+    /// ``Transition`` body like any other; see there for how one is drawn.
+    @MainActor
+    public static func modifier<E: ViewModifier>(active: E, identity: E) -> AnyTransition {
+        AnyTransition(_ModifierTransition(active: active, identity: identity))
+    }
+}
+
+/// A transition between two values of one modifier — what
+/// ``AnyTransition/modifier(active:identity:)`` builds.
+struct _ModifierTransition<Modifier: ViewModifier>: Transition {
+    let active: Modifier
+    let identity: Modifier
+
+    func body(content: Content, phase: TransitionPhase) -> some View {
+        content.modifier(phase.isIdentity ? identity : active)
+    }
+}
