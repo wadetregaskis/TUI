@@ -102,10 +102,14 @@ extension EnvironmentModifier {
         // answered `.incomparable`, and `.palette(_:)` turned off every memo below
         // it for good. `.theme(_:)` and the render loop's snapshot already compare
         // it this way.
-        let noted: Any = (value as? any Palette).map(ComparablePalette.init) ?? value
+        //
+        // Handed over as the expression, not a value made here: the parameter
+        // is an autoclosure, so the cast and the `Any` box happen only on the
+        // visits that compare — once a pass — and not on the repeat visits of
+        // two-pass layout, which the once-per-pass check answers without them.
         switch cache.noteAppliedEnvironment(
-            noted, identity: context.identity, keyPath: keyPath,
-            depth: context.environmentApplicationDepth)
+            (value as? any Palette).map(ComparablePalette.init) ?? value, identity: context.identity,
+            keyPath: keyPath, depth: context.environmentApplicationDepth)
         {
         case .changed:
             cache.clearAffected(by: context.identity)

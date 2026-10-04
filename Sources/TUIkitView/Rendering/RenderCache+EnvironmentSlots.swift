@@ -57,17 +57,26 @@ extension RenderCache {
     /// walk sees it first clears; the other then reports `.unchanged`, so the
     /// clear happens once.
     ///
+    /// - Parameter value: The value applied. An autoclosure, evaluated at most
+    ///   once and only where it is used — a slot met for the first time, or
+    ///   the first visit of a pass to a slot that can still be compared — so
+    ///   a repeat visit pays nothing to make it. What a caller makes is not
+    ///   always free: `EnvironmentModifier` casts its value to `any Palette`
+    ///   and boxes it in an `Any` (an allocation for anything over three
+    ///   words, as most style values are), and two-pass layout visits each
+    ///   modifier several times a frame.
     /// - Returns: `.incomparable` when `value` is not `Equatable` — the caller
     ///   must then decline caching, because nothing here can tell whether it
     ///   changed.
     public func noteAppliedEnvironment(
-        _ value: Any,
+        _ value: @autoclosure () -> Any,
         identity: ViewIdentity,
         keyPath: AnyKeyPath,
         depth: Int
     ) -> EnvironmentChange {
         let slot = EnvironmentSlot(identity: identity, keyPath: keyPath, depth: depth)
         guard var previous = appliedEnvironment[slot] else {
+            let value = value()
             let comparable = value is any Equatable
             appliedEnvironment[slot] = AppliedEnvironment(
                 value: value, lastSeenFrame: frameCounter, isComparable: comparable)
@@ -76,15 +85,18 @@ extension RenderCache {
 
         // Already answered this pass. Two-pass layout visits the same modifier
         // many times per frame and the value cannot change between those visits,
-        // so everything below — two existential casts and a comparison, on a
-        // path every environment modifier in the tree runs through — is done
-        // once per pass rather than once per visit. Without this the whole
-        // scheme costs ~17% of a frame; with it, nothing measurable.
+        // so everything below — making the value, two existential casts and a
+        // comparison, on a path every environment modifier in the tree runs
+        // through — is done once per pass rather than once per visit. Without
+        // this the whole scheme costs ~17% of a frame; with it, nothing
+        // measurable.
         if previous.lastSeenFrame == frameCounter {
             return previous.isComparable ? .unchanged : .incomparable
         }
 
-        guard previous.isComparable, let equatable = value as? any Equatable else {
+        // A slot that went incomparable stays so, and never needs the value.
+        let current: Any? = previous.isComparable ? value() : nil
+        guard let current, let equatable = current as? any Equatable else {
             previous.lastSeenFrame = frameCounter
             previous.isComparable = false
             appliedEnvironment[slot] = previous
@@ -96,7 +108,7 @@ extension RenderCache {
             return .unchanged
         }
         appliedEnvironment[slot] = AppliedEnvironment(
-            value: value, lastSeenFrame: frameCounter, isComparable: true)
+            value: current, lastSeenFrame: frameCounter, isComparable: true)
         return .changed
     }
 
