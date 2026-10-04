@@ -84,7 +84,7 @@ extension View {
     ///     Defaults to ``GestureMask/all``.
     /// - Returns: The view, with the gesture attached.
     public func gesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
-        GestureAttachment(content: self, gesture: gesture, priority: .normal, mask: mask)
+        GestureAttachment(content: self, gesture: gesture, mask: mask, priority: .normal)
     }
 
     /// Attaches a gesture to the view with a lower precedence than gestures
@@ -128,7 +128,7 @@ extension View {
     ///     Defaults to ``GestureMask/all``.
     /// - Returns: The view, with the gesture attached.
     public func highPriorityGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
-        GestureAttachment(content: self, gesture: gesture, priority: .high, mask: mask)
+        GestureAttachment(content: self, gesture: gesture, mask: mask, priority: .high)
     }
 
     /// Attaches a gesture to the view with a higher precedence than gestures
@@ -170,7 +170,7 @@ extension View {
     ///     Defaults to ``GestureMask/all``.
     /// - Returns: The view, with the gesture attached.
     public func simultaneousGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
-        GestureAttachment(content: self, gesture: gesture, priority: .simultaneous, mask: mask)
+        GestureAttachment(content: self, gesture: gesture, mask: mask, priority: .simultaneous)
     }
 
     /// Attaches a gesture to the view to process simultaneously with gestures
@@ -238,10 +238,17 @@ final class GestureParticipants {
 /// gesture rank below the view's own; the dispatcher's ``GestureArena`` does
 /// the rest.
 struct GestureAttachment<Content: View, G: Gesture>: View {
+    // The four-byte mask before the one-byte priority, and both last: the
+    // per-pass memos key a view by the bytes its fields define, and the
+    // priority first left three bytes of padding before the mask, so every
+    // attachment was hashed run by run where a `Text`'s tap — 85 bytes with
+    // no gap now — hashes as one dense run (`FlexibleFrameView` explains the
+    // padding). Content and gesture keep their places: what follows either
+    // is word-aligned for the common views and gestures, which end on a word.
     let content: Content
     let gesture: G
-    let priority: GesturePriority
     let mask: GestureMask
+    let priority: GesturePriority
 
     var body: Never {
         fatalError("GestureAttachment renders via Renderable")
