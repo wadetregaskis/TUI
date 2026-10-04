@@ -29,7 +29,7 @@ extension EnvironmentValues {
     /// sidebar's rows, and the `Label`s in them, to that size. A terminal row
     /// is one line of one font and cannot be made smaller or larger, so a
     /// write would be accepted and ignored; left out, it fails to compile
-    /// instead (decisions B-W08b-3). SwiftUI's own answer off macOS is the same
+    /// instead (decisions B74). SwiftUI's own answer off macOS is the same
     /// `.medium`, and there it ignores a write.
     public var sidebarRowSize: SidebarRowSize { .medium }
 }

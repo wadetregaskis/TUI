@@ -16,7 +16,7 @@
 
 /// The list style that describes a platform's default behavior and appearance
 /// for a list: in TUIkit, a bordered box — the look a list has always had
-/// here, where SwiftUI's macOS default draws no border (decisions A-W08b-1).
+/// here, where SwiftUI's macOS default draws no border (decisions A46).
 ///
 /// `Equatable` for the reason given under ``ListStyle``.
 public struct DefaultListStyle: ListStyle, Equatable {

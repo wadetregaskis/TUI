@@ -95,7 +95,7 @@ extension View {
     /// belongs on the list or on something containing it. Written inside a
     /// row, around or within that row's `.badge(_:)`, it does not reach the
     /// badge: the list draws a row's badge itself, from the row's view value,
-    /// in the list's environment (decisions B-W08b-1).
+    /// in the list's environment (decisions B72).
     ///
     /// - Parameter prominence: The prominence to apply to badges.
     public func badgeProminence(_ prominence: BadgeProminence) -> some View {

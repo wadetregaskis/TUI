@@ -270,7 +270,7 @@ extension InputHandler {
     /// would cycle the theme halfway through. A first character that a row
     /// would have answered to is the price: a TUIkit app binds bare keys, which
     /// macOS, whose shortcuts take Command, never has to weigh against type
-    /// select (decisions B-W08b-6).
+    /// select (decisions B77).
     private func typeSelectGivesWay(_ event: KeyEvent) -> Bool {
         guard let selecting = focusManager.currentFocused as? any TypeSelectingFocusHandler,
             !selecting.isTypeSelecting, !event.ctrl, !event.alt,
