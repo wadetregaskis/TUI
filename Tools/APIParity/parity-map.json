@@ -646,9 +646,6 @@
     "AssistiveAccess": {
       "why": "Included as the one accessibility type in types_missing.txt that does not start with 'Accessibility'/'AX'. It is a Scene (`struct AssistiveAccess<Content> where Content: View`, `Body = some Scene`) that supplies an alternate iOS Assistive Access UI. There is no iOS app lifecycle "
     },
-    "AutomaticNavigationTransition": {
-      "why": "The default conformer of NavigationTransition — i.e. exactly what NavigationStack already does when it renders the destination (Sources/TUIkit/Views/NavigationStack.swift:130). Naming it would add no expressible behaviour."
-    },
     "BlendMode": {
       "why": "There is no blend function to name: FrameBuffer.composited(with:at:) is documented as opaque per-cell source-copy (Sources/TUIkitCore/Rendering/FrameBuffer.swift:571-584), and cells that must not erase what they cover are TRIMMED beforehand (trimmingTrailingBlankCells(), FrameBuf"
     },
@@ -777,9 +774,6 @@
     },
     "MaterialActiveAppearance": {
       "why": "Names the active/inactive/automatic appearance of a Material; there is no Material (no blur, no translucency) and no window-activation state — the terminal emulator owns window focus, and TUIkit's own focus model is per-control (Sources/TUIkit/Focus/FocusManager)."
-    },
-    "NavigationTransition": {
-      "why": "The protocol exists solely to type `navigationTransition(_:)`, whose only non-default conformer is `.zoom`, a continuous rect/scale interpolation a character grid cannot subdivide. No transition system exists in TUIkit at all (`transition`, `animation`, `matchedGeometryEffect` ar"
     },
     "OffsetShape": {
       "why": "A Shape adapter (Shape.offset(x:y:)); no Shape protocol exists. Whole-cell offsetting of a VIEW does exist as View.offset(x:y:) (Sources/TUIkit/Modifiers/OffsetModifier.swift:71)."

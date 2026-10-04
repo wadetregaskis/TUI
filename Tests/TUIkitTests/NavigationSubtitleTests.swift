@@ -55,3 +55,28 @@ struct NavigationSubtitleTests {
         #expect(lines.count >= 2 && lines[1].contains("─"), "and the bar kept its height")
     }
 }
+
+@MainActor
+@Suite("Navigation transition")
+struct NavigationTransitionTests {
+    @Test("The automatic transition is the one a stack makes: a pushed screen draws as it would without it")
+    func automaticIsTheStacksOwn() {
+        var path = NavigationPath()
+        path.append(1)
+        let binding = Binding(get: { path }, set: { path = $0 })
+        let draw = { (withTransition: Bool) -> [String] in
+            let view = NavigationStack(path: binding) {
+                Text("root").navigationDestination(for: Int.self) { _ in
+                    if withTransition {
+                        Text("screen").navigationTransition(.automatic)
+                    } else {
+                        Text("screen")
+                    }
+                }
+            }
+            return renderToBuffer(view, context: makeRenderContext(width: 30, height: 6)).lines.map(\.stripped)
+        }
+        #expect(draw(true) == draw(false))
+        #expect(draw(true).contains { $0.contains("screen") })
+    }
+}
