@@ -1928,6 +1928,48 @@ the sheet adaptation follows whatever B3 decides about compact size classes.
 
 Each is a one-line change if you would rather the other drawing.
 
+### B42. A resizable image stretches; one that isn't still fits; caps keep the fitted scale
+
+*`Image.resizable(capInsets:resizingMode:)`, `Image.ResizingMode`*
+
+**Shipped:** `.resizable()` fills the frame, aspect ignored, as SwiftUI's does
+(measured on macOS 15), unless a content mode around it keeps the aspect, so
+the common `.resizable().scaledToFit()` draws exactly as before. Cap insets
+are in source pixels; the caps keep the scale at which the whole image fits
+the frame, and the middle stretches, or for `.tile` repeats at that scale.
+
+**What differs, and what a fuller version would cost:**
+
+- An image that is **not** resizable fits what it is offered, where SwiftUI
+  draws it at its pixel size. A terminal has no pixel size in cells (the
+  compatibility doc's image sizing note). A natural size would need a
+  pixels-per-cell figure: the cell pixel size the terminal reports
+  (`imageCellPixels`) would give one where it is reported. That is about half
+  a day, but it would make every existing `Image` without a frame change size,
+  so it is a design change, not a fix.
+- On an axis offered a scroll view's natural-extent budget, a resizable image
+  takes the extent its aspect gives it, not its pixel size, for the same
+  reason.
+- An image drawn in slices (with caps, or tiled) draws as cells even where the
+  terminal shows pictures. Sending the sliced pixels as a picture is about two
+  hours: the picture's signature would have to name the box and the insets.
+
+### B43. A `CGImage` or `NSImage` is drawn out once, and its address names it
+
+*`Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`,
+`Image(nsImage:)`, `Image.Orientation`*
+
+**Shipped**, behind `canImport(AppKit)` (A18's practice), with
+`Image.Orientation` everywhere. The pixels are drawn out the first time the
+image is drawn. The orientations' raw values and turns were measured on
+macOS 15. `scale` and `label` are accepted and change nothing.
+
+**What differs:** the image's identity is its object's address, kept unique
+by holding the object for as long as a view draws it. An `NSImage` drawn into
+in place after it was first drawn keeps its first pixels. Noticing that would
+mean hashing the pixels at every `body`, which costs time in proportion to
+the image's size on every frame.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
