@@ -1,0 +1,296 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  VisualEffect.swift
+//
+//  `visualEffect(_:)`: effects that change how a view is drawn, computed from
+//  where it was laid out, without changing the layout.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUIkitCore
+import TUIkitView
+
+/// Visual Effects change the visual appearance of a view without changing its
+/// ancestors or descendents.
+///
+/// Because effects do not impact layout, they are safe to use in situations
+/// where layout modification is not allowed. For example, effects may be
+/// applied as a function of position, accessed through a geometry proxy:
+///
+/// ```swift
+/// var body: some View {
+///     ContentRow()
+///         .visualEffect { content, geometryProxy in
+///             content.offset(x: geometryProxy.size.width / 4)
+///         }
+/// }
+/// ```
+///
+/// You don't conform to this protocol yourself. Instead, visual effects are
+/// created by calling modifier functions (such as `.offset(x:y:)`) on other
+/// effects, as seen in the example above.
+///
+/// The effects a cell can show are here: `offset` (in whole cells),
+/// `opacity`, and the colour effects `brightness`, `contrast`, `saturation`,
+/// `grayscale` and `hueRotation`, each drawing exactly what the `View`
+/// modifier of the same name draws. Rotation, scale and arbitrary transforms
+/// move a view by less than a cell, and blur, blend modes and shaders address
+/// pixels; none of them is offered, so asking for one fails to compile.
+///
+/// An effect is ``Animatable``: a change to one under an animated transaction
+/// moves through every frame between the two, as a modifier's does.
+public protocol VisualEffect: Sendable, Animatable {
+    /// `buffer` — the view as drawn — with this effect applied. Not to be
+    /// implemented by hand: effects are made by the modifier functions.
+    func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer
+}
+
+/// The base visual effect that you apply additional effect to.
+///
+/// `EmptyVisualEffect` does not change the appearance of the view that it is
+/// applied to.
+public struct EmptyVisualEffect: VisualEffect {
+    /// Creates the empty effect.
+    public init() {}
+
+    /// The data to animate: none.
+    public typealias AnimatableData = EmptyAnimatableData
+
+    /// The view, unchanged.
+    public func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        buffer
+    }
+}
+
+extension View {
+    /// Applies effects to this view, while providing access to layout
+    /// information through a geometry proxy.
+    ///
+    /// You return new effects by calling functions on the first argument
+    /// provided to the `effect` closure. In this example, `ContentView` is
+    /// offset by its own size, causing its top left corner to appear where the
+    /// bottom right corner was originally located:
+    ///
+    /// ```swift
+    /// ContentView()
+    ///     .visualEffect { content, geometryProxy in
+    ///         content.offset(geometryProxy.size)
+    ///     }
+    /// ```
+    ///
+    /// The proxy describes the view as it was laid out: its ``GeometryProxy/size``
+    /// in cells, and a frame in `.local` space. A `.global` frame answers as
+    /// `.local` does here, as `GeometryProxy.frame(in:)` documents.
+    ///
+    /// - Parameter effect: A closure that returns the effect to be applied. The
+    ///   first argument provided to the closure is a placeholder representing
+    ///   this view. The second argument is a `GeometryProxy`.
+    /// - Returns: A view with the effect applied.
+    public func visualEffect<Effect: VisualEffect>(
+        _ effect: @escaping @MainActor @Sendable (EmptyVisualEffect, GeometryProxy) -> Effect
+    ) -> some View {
+        _VisualEffectView(content: self, effect: effect)
+    }
+}
+
+/// Draws its content, then the effect a closure computed from the content's
+/// size. See ``View/visualEffect(_:)``.
+struct _VisualEffectView<Content: View, Effect: VisualEffect>: View {
+    let content: Content
+    let effect: @MainActor @Sendable (EmptyVisualEffect, GeometryProxy) -> Effect
+
+    var body: Never {
+        fatalError("_VisualEffectView renders via Renderable")
+    }
+}
+
+extension _VisualEffectView: Renderable, Layoutable {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let buffer = TUIkit.renderToBuffer(content, context: context)
+        var applied = effect(EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height))
+        // The effect animates as an animatable modifier does: keyed by this
+        // place and this type, substituted with where its picture has got to.
+        if let animated = animatedValue(
+            of: applied, owner: Self.self, context: context, isMeasuring: context.isMeasuring)
+        {
+            applied = animated
+        }
+        return applied._applied(to: buffer, context: context)
+    }
+
+    /// Effects do not change layout: this measures as its content.
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+}
+
+/// `view` — an effect's `View` modifier around the buffer it applies to —
+/// drawn one identity step in, keyed by the effect's own type so two effects
+/// of a chain never share an animation-store entry, and with animations
+/// disabled: the effect's value is already the one to draw.
+@MainActor
+private func drawEffect<V: View>(_ view: V, owner: Any.Type, context: RenderContext) -> FrameBuffer {
+    var quiet = context.withChildIdentity(erasedType: owner, index: 0)
+    quiet.environment.transaction.disablesAnimations = true
+    return TUIkit.renderToBuffer(view, context: quiet)
+}
+
+// MARK: - The effects
+
+extension VisualEffect {
+    /// Offsets the view by the horizontal and vertical amount specified in the
+    /// offset parameter, in cells.
+    ///
+    /// - Parameter offset: The distance to offset the view.
+    /// - Returns: An effect that offsets the view by `offset`.
+    public func offset(_ offset: CellSize) -> some VisualEffect {
+        _OffsetEffect(base: self, x: Double(offset.width), y: Double(offset.height))
+    }
+
+    /// Offsets the view by the specified horizontal and vertical distances, in
+    /// columns and rows.
+    ///
+    /// - Parameters:
+    ///   - x: The horizontal distance to offset the view.
+    ///   - y: The vertical distance to offset the view.
+    /// - Returns: An effect that offsets the view by `x` and `y`.
+    public func offset(x: Int = 0, y: Int = 0) -> some VisualEffect {
+        _OffsetEffect(base: self, x: Double(x), y: Double(y))
+    }
+
+    /// Sets the transparency of the view.
+    ///
+    /// When applying the `opacity(_:)` effect to a view that has already had
+    /// its opacity transformed, the effect of the underlying opacity
+    /// transformation is multiplied.
+    ///
+    /// - Parameter opacity: A value between 0 (fully transparent) and 1 (fully
+    ///   opaque).
+    /// - Returns: An effect that sets the transparency of the view.
+    public func opacity(_ opacity: Double) -> some VisualEffect {
+        _OpacityEffect(base: self, opacity: opacity)
+    }
+
+    /// Brightens the view by the specified amount.
+    ///
+    /// - Parameter amount: A value between 0 (no effect) and 1 (full white
+    ///   brightening) that represents the intensity of the brightness effect.
+    /// - Returns: An effect that brightens the view by the specified amount.
+    public func brightness(_ amount: Double) -> some VisualEffect {
+        _ColorVisualEffect(base: self, kind: .brightness, amount: amount)
+    }
+
+    /// Sets the contrast and separation between similar colors in the view.
+    ///
+    /// - Parameter amount: The intensity of color contrast to apply. Negative
+    ///   values invert colors in addition to applying contrast.
+    /// - Returns: An effect that applies color contrast to the view.
+    public func contrast(_ amount: Double) -> some VisualEffect {
+        _ColorVisualEffect(base: self, kind: .contrast, amount: amount)
+    }
+
+    /// Adjusts the color saturation of the view.
+    ///
+    /// - Parameter amount: The amount of saturation to apply to the view.
+    /// - Returns: An effect that adjusts the saturation of the view.
+    public func saturation(_ amount: Double) -> some VisualEffect {
+        _ColorVisualEffect(base: self, kind: .saturation, amount: amount)
+    }
+
+    /// Adds a grayscale effect to the view.
+    ///
+    /// - Parameter amount: The intensity of grayscale to apply from 0.0 to less
+    ///   than 1.0. Values closer to 0.0 are more colorful, and values closer to
+    ///   1.0 are less colorful.
+    /// - Returns: An effect that reduces the intensity of colors in the view.
+    public func grayscale(_ amount: Double) -> some VisualEffect {
+        _ColorVisualEffect(base: self, kind: .grayscale, amount: amount)
+    }
+
+    /// Applies a hue rotation effect to the view.
+    ///
+    /// - Parameter angle: The hue rotation angle to apply to the colors in the
+    ///   view.
+    /// - Returns: An effect that shifts all of the colors in the view.
+    public func hueRotation(_ angle: Angle) -> some VisualEffect {
+        _ColorVisualEffect(base: self, kind: .hueRotation, amount: angle.degrees)
+    }
+}
+
+/// An offset after `base`.
+struct _OffsetEffect<Base: VisualEffect>: VisualEffect {
+    var base: Base
+    var x: Double
+    var y: Double
+
+    var animatableData: AnimatablePair<Base.AnimatableData, AnimatablePair<Double, Double>> {
+        get { AnimatablePair(base.animatableData, AnimatablePair(x, y)) }
+        set {
+            base.animatableData = newValue.first
+            (x, y) = (newValue.second.first, newValue.second.second)
+        }
+    }
+
+    func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        let inner = base._applied(to: buffer, context: context)
+        let (columns, rows) = (Int(x.rounded()), Int(y.rounded()))
+        guard columns != 0 || rows != 0 else { return inner }
+        return drawEffect(
+            BufferView(buffer: inner).offset(x: columns, y: rows), owner: Self.self, context: context)
+    }
+}
+
+/// An opacity after `base`.
+struct _OpacityEffect<Base: VisualEffect>: VisualEffect {
+    var base: Base
+    var opacity: Double
+
+    var animatableData: AnimatablePair<Base.AnimatableData, Double> {
+        get { AnimatablePair(base.animatableData, opacity) }
+        set {
+            base.animatableData = newValue.first
+            opacity = newValue.second
+        }
+    }
+
+    func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        drawEffect(
+            BufferView(buffer: base._applied(to: buffer, context: context)).opacity(opacity),
+            owner: Self.self, context: context)
+    }
+}
+
+/// One of the colour effects after `base`, by the arithmetic the `View`
+/// modifiers of the same names use.
+struct _ColorVisualEffect<Base: VisualEffect>: VisualEffect {
+    /// The colour effects a visual effect offers: the `View` modifiers'
+    /// arithmetic, less the two SwiftUI does not offer as effects.
+    enum Kind: Sendable {
+        case brightness, contrast, saturation, grayscale, hueRotation
+    }
+
+    var base: Base
+    let kind: Kind
+    /// The amount, or for a hue rotation its angle in degrees.
+    var amount: Double
+
+    var animatableData: AnimatablePair<Base.AnimatableData, Double> {
+        get { AnimatablePair(base.animatableData, amount) }
+        set {
+            base.animatableData = newValue.first
+            amount = newValue.second
+        }
+    }
+
+    func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        let inner = BufferView(buffer: base._applied(to: buffer, context: context))
+        return switch kind {
+        case .brightness: drawEffect(inner.brightness(amount), owner: Self.self, context: context)
+        case .contrast: drawEffect(inner.contrast(amount), owner: Self.self, context: context)
+        case .saturation: drawEffect(inner.saturation(amount), owner: Self.self, context: context)
+        case .grayscale: drawEffect(inner.grayscale(amount), owner: Self.self, context: context)
+        case .hueRotation:
+            drawEffect(inner.hueRotation(.degrees(amount)), owner: Self.self, context: context)
+        }
+    }
+}

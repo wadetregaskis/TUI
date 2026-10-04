@@ -71,7 +71,7 @@ extension View where Self: Animatable {
 ///   - isMeasuring: Whether this is the measure walk — see
 ///     ``resolvingAnimation(_:context:isMeasuring:)``.
 @MainActor
-func animatedValue<A: Animatable>(
+package func animatedValue<A: Animatable>(
     of value: A, owner: Any.Type, context: RenderContext, isMeasuring: Bool
 ) -> A? {
     guard let storage = context.stateStorage else { return nil }

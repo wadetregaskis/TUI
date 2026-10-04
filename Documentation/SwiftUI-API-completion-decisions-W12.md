@@ -430,3 +430,37 @@ velocity at retarget and start the next closed form with it
 store records where the picture is; it would also record how fast — but a
 curve retargeting into a spring, or a spring into a curve, has no velocity
 model, which is O3's question.
+
+### B-W12-8 Visual effects: the five a cell can show, drawn by the `View` modifiers of the same names
+
+*`VisualEffect`, `EmptyVisualEffect` (`init()`, `AnimatableData`),
+`View.visualEffect(_:)`, `VisualEffect.offset(_:)`, `offset(x:y:)`,
+`opacity(_:)`, and — moved out of the map's pixel-effects family, as the Wave
+17 review (P14) found they should be — `brightness(_:)`, `contrast(_:)`,
+`saturation(_:)`, `grayscale(_:)`, `hueRotation(_:)`*
+
+**Shipped.** The content is drawn, the closure is handed a `GeometryProxy` of
+the size it drew at, and the effect it returns is applied to the drawing.
+Each effect is drawn by the `View` modifier of the same name around the
+drawn buffer, so `.visualEffect { $0.grayscale(1) }` is exactly
+`.grayscale(1)` (pinned by a test per effect); a chain applies the later
+effect over the earlier. The effect is `Animatable` and animates as a
+modifier does, keyed by its place in the tree. Effects never change layout.
+
+**Where it differs.**
+
+- **The proxy's frame is local.** `frame(in: .global)` answers as `.local`
+  does, which `GeometryProxy` already documents (A2 is the question of making
+  global geometry real). SwiftUI's own example, an offset that follows the
+  view's global position, therefore draws no offset here.
+- **The closure is main-actor isolated** where SwiftUI's is only `@Sendable`.
+  TUIkit's `Animatable` is a main-actor protocol (the decision recorded in
+  `Animatable.swift`), so building an effect is main-actor work. A closure
+  literal — the only way the API is used — takes on the isolation it is
+  declared with, so SwiftUI's source compiles unchanged.
+- **Offsets are whole cells**, as `View.offset` is (§2.1 of the
+  compatibility doc).
+
+**Not offered** — so asking fails to compile: rotation, scale, 3D rotation
+and arbitrary transforms wait on Wave 16 (A-W12-7); blur, blend modes and
+the shader effects stay in the map's pixel-effects family.
