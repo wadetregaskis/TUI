@@ -396,8 +396,8 @@ where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Elem
         }
     }
 
-    /// One element's row — the value its content builds — and lazily the rows
-    /// of its children.
+    /// One element's row — the row its content builds, with whatever row
+    /// modifiers that carries — and lazily the rows of its children.
     private static func node(
         _ element: Data.Element, children: KeyPath<Data.Element, Data?>,
         content: @escaping (Data.Element) -> Leaf
@@ -406,9 +406,10 @@ where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Elem
         if let kids = element[keyPath: children] {
             rowsBeneath = { kids.map { node($0, children: children, content: content) } }
         }
+        let built = tableRows(of: content(element)).nodes.first
         return _TableRowNode(
-            value: tableRows(of: content(element)).values.first ?? element,
-            children: rowsBeneath, isExpanded: nil)
+            value: built?.value ?? element, children: rowsBeneath, isExpanded: nil,
+            traits: built?.traits ?? _TableRowTraits())
     }
 }
 

@@ -189,6 +189,24 @@ struct TableRowModifiersTests {
         #expect(tui.mouseEventDispatcher.effectiveSupport(baseConfig: .disabled).motion)
     }
 
+    @Test("A modifier inside an OutlineGroup's row content reaches that node's row")
+    func outlineGroupContentModifier() {
+        let (tui, context) = harness()
+        let tree = [Item(id: 0, name: "top", children: [Item(id: 1, name: "inner")])]
+        let view = Table(of: Item.self) {
+            TableColumn("Name", value: \Item.name)
+        } rows: {
+            OutlineGroup(tree, children: \.children) { item in
+                TableRow(item).selectionDisabled(item.id == 1)
+            }
+        }
+        frame(view, tui: tui, context: context)
+        press(.right, context)
+        let lines = frame(view, tui: tui, context: context)
+        #expect(isFaint(line("inner", lines)), "\(lines)")
+        #expect(!isFaint(line("top", lines)))
+    }
+
     /// The row memo keeps a row by its cells and its selection; a row that
     /// comes to refuse selection changes neither.
     @Test("A kept row redraws faint when its selection becomes disabled")
