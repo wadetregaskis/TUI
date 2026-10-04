@@ -26,7 +26,7 @@ extension View {
     /// }
     /// ```
     ///
-    /// Unlike ``View/background(_:)``, it fills the whole presentation: a
+    /// Unlike `background(_:)`, it fills the whole presentation: a
     /// sheet's box (its detent's height included), a full-screen cover's whole
     /// content area, a popover's panel in place of the page's background. A
     /// translucent style composites over the page beneath, as opacity does

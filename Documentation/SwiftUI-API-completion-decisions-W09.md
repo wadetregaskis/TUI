@@ -359,6 +359,27 @@ and maximum the divider stops at, which a `.frame(minWidth:maxWidth:)` on a
 pane could state for every split, not only inspectors — about half a day; and
 the sheet adaptation follows whatever B3 decides about compact size classes.
 
+### B-W09-8 Three drawings chosen without a measurement: critical severity, the dialog icon, the subtitle
+
+*`DialogSeverity.critical`, `View.dialogIcon(_:)`, `View.navigationSubtitle(_:)`*
+
+- **Critical severity** is macOS's large caution symbol. Shipped: the
+  dialog's border and title in the palette's warning colour, unless the alert
+  was given colours of its own. A `⚠` before the title would say it in a
+  glyph too, but U+26A0 is drawn one or two cells wide depending on the
+  terminal, so it wants a `Terminal-compatibility.md` measurement and the
+  chrome-glyph fallback first (an hour with the probes).
+- **The dialog icon** sits at the leading edge of the message: an SF Symbol as
+  its glyph, a raster image fitted into 8×4 cells. macOS draws it above the
+  title in the new alert style and beside it in the old; beside the message
+  costs no extra rows.
+- **The subtitle** follows the title on the navigation bar's one row, in the
+  secondary colour and truncating first; macOS puts it under the window title.
+  A second bar row would vary the bar's height, which the stack's layout
+  forbids (`NavigationStack.barHeight`).
+
+Each is a one-line change if you would rather the other drawing.
+
 ## C. Declined without asking
 
 ### C-W09-1 `@FocusedObject`, `focusedObject(_:)`, `focusedSceneObject(_:)`

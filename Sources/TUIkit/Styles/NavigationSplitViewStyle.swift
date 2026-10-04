@@ -141,7 +141,7 @@ public struct NavigationSplitViewColumn: Equatable, Hashable, Sendable {
 /// All four built-in styles are therefore `Equatable`. A built-in's body is its
 /// columns laid out by its three read-only proportions below, which is all
 /// ``NavigationSplitView`` consults under one; a custom style's
-/// ``makeBody(configuration:)`` draws around that. None of the four holds
+/// `makeBody(configuration:)` draws around that. None of the four holds
 /// anything, so `==` within a type is vacuously true, and two instances of one
 /// type really do size the columns identically — there is no state for them to
 /// differ in, and the numbers they answer with depend only on the type they
@@ -219,7 +219,7 @@ extension NavigationSplitViewStyle {
     public var sizesToFit: Bool { false }
 
     /// The automatic style's, so a style written SwiftUI's way — only
-    /// ``makeBody(configuration:)`` — compiles and sizes as the default does.
+    /// `makeBody(configuration:)` — compiles and sizes as the default does.
     public var sidebarProportion: Double { AutomaticNavigationSplitViewStyle().sidebarProportion }
 
     /// The automatic style's — see ``sidebarProportion``.
@@ -239,7 +239,7 @@ extension NavigationSplitViewStyle {
 /// The properties of a navigation split view instance. Mirrors SwiftUI's
 /// `NavigationSplitViewStyleConfiguration`, which has no public members
 /// either: a style draws it through a built-in style's
-/// ``NavigationSplitViewStyle/makeBody(configuration:)``.
+/// `makeBody(configuration:)`.
 public struct NavigationSplitViewStyleConfiguration {
     /// The split's columns, which read the style they are laid out by from the
     /// environment.
