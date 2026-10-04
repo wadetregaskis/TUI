@@ -48,6 +48,10 @@ import TUIkitCore
 /// is twice as tall as it is wide, a pixel is square, so the sampler is told
 /// `1` and a circle comes out round in pixels for the same reason it came
 /// out round in cells.
+///
+/// A mesh's colours come from ``MeshRaster``, the cells' own raster too, over
+/// the picture's pixels: a mesh is in the box's unit space, so it needs no
+/// aspect at all.
 enum GradientRaster {
 
     /// A picture ready to transmit.
@@ -146,6 +150,9 @@ enum GradientRaster {
         guard let size = resolution(columns: columns, rows: rows, cellPixels: cellPixels) else {
             return nil
         }
+        if case .mesh(let mesh) = paint {
+            return meshSource(mesh, frame: frame, size: size, cellPixels: cellPixels)
+        }
         // The extent in pixels — every cell coordinate times the cell — and
         // the sampler over it at that resolution. The factor is applied by
         // SAMPLING every `factor`-th pixel rather than by shrinking the frame,
@@ -194,6 +201,43 @@ enum GradientRaster {
                     bytes[offset + 2] = b
                     offset += 3
                 }
+            }
+            return bytes
+        }
+    }
+
+    /// A mesh as a picture: every picture pixel the mesh's colour at its
+    /// centre, by the same raster the cells use, at a pixel's scale instead of
+    /// a cell's.
+    ///
+    /// The pixel grid is the reduced picture's own, so a sample is a whole
+    /// picture pixel — `factor` screen pixels square — rather than one screen
+    /// pixel inside it, and its place in the extent is a fraction of a cell:
+    /// the raster takes that offset and scale as they are. `nil` when a colour
+    /// — a vertex's, or the background's, which shows wherever no patch
+    /// reaches — has no RGB for a pixel to hold.
+    private static func meshSource(
+        _ mesh: MeshPaint, frame: GradientFrame, size: (width: Int, height: Int, factor: Int),
+        cellPixels: TerminalCellPixels
+    ) -> PictureSource? {
+        guard mesh.background.rgbComponents != nil, mesh.colors.allSatisfy({ $0.rgbComponents != nil }) else {
+            return nil
+        }
+        // `.in(_:)` re-anchors, as it does for the cells.
+        let frame = mesh.extent.map { GradientFrame(width: $0.width, height: $0.height) } ?? frame
+        let scale = SIMD2(Double(cellPixels.width), Double(cellPixels.height)) / Double(size.factor)
+        let offset = SIMD2(Double(frame.originX), Double(frame.originY)) * scale
+        let extent = SIMD2(Double(max(1, frame.width)), Double(max(1, frame.height))) * scale
+        return PictureSource(width: size.width, height: size.height) {
+            let colours = MeshRaster(paint: mesh, offset: offset, extent: extent)
+                .colours(columns: 0..<size.width, rows: 0..<size.height)
+            var bytes = [UInt8](repeating: 0, count: colours.count * 3)
+            for (index, colour) in colours.enumerated() {
+                // Every colour was checked above, and the raster makes only RGB.
+                guard let rgb = colour.rgbComponents else { continue }
+                bytes[index * 3] = rgb.red
+                bytes[index * 3 + 1] = rgb.green
+                bytes[index * 3 + 2] = rgb.blue
             }
             return bytes
         }

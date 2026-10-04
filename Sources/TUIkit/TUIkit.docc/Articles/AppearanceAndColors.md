@@ -245,7 +245,9 @@ horizontal axis, with the vertical derived through
 drawn as patches between them. Its positions are in the unit space of whatever
 it paints, as a ``LinearGradient``'s points are, so it stretches with its box
 and takes no correction either. Each cell takes the mesh's colour at its
-centre, which draws a smooth mesh as a staircase of cells:
+centre, which draws a smooth mesh as a staircase of cells — or, used as a view
+on a terminal that draws pictures, as a picture with the mesh's colour at
+every pixel:
 
 ```swift
 MeshGradient(width: 3, height: 3, points: [

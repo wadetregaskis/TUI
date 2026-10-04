@@ -43,8 +43,11 @@ import TUIkitStyling
 /// ## In a cell grid
 ///
 /// A mesh is a function from a position to a colour, so every cell has an
-/// answer: the colour at the cell's centre, which draws a smooth mesh as a
-/// staircase of cells.
+/// answer: the colour at the cell's centre, which on a glyph terminal draws a
+/// smooth mesh as a staircase of cells. Where the terminal draws pictures
+/// (`gradientGraphics(_:)`), an opaque mesh used as a view, or behind blank
+/// cells, is a picture instead, the mesh's colour at every pixel, as the other
+/// gradients are.
 ///
 /// ## Measured against SwiftUI
 ///

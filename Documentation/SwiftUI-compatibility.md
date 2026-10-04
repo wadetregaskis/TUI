@@ -977,7 +977,7 @@ way). What ships:
 | `ShapeStyle` | the protocol, conformable — `resolve(in:)` with public defaults, as since macOS 14. SwiftUI's underscored `_apply`/`_makeView` are omitted: they are over types that exist only inside SwiftUI |
 | `Gradient`, `Gradient.Stop` | source-identical, `location` a `Double`. A bare `Gradient` as a style is a **vertical** linear gradient, measured |
 | `LinearGradient`, `RadialGradient`, `EllipticalGradient`, `AngularGradient` | all four, with their `colors:`/`stops:` twins and the `.linearGradient(…)` static-member spellings |
-| `MeshGradient` (`BezierPoint`, `Locations`, `Colors`) | every initialiser and stored property; each cell takes the mesh's colour at its centre. The rules SwiftUI draws by — Coons patches, bisector control points, limited Hermite smoothing, the cone space for `.perceptual`, premultiplied alpha — are measured and set out below the table |
+| `MeshGradient` (`BezierPoint`, `Locations`, `Colors`) | every initialiser and stored property; each cell takes the mesh's colour at its centre, and on a graphics terminal a mesh behind blank cells is a picture. The rules SwiftUI draws by — Coons patches, bisector control points, limited Hermite smoothing, the cone space for `.perceptual`, premultiplied alpha — are measured and set out below the table |
 | `AnyShapeStyle` | erasure — the runtime style-choice idiom |
 | `AnyGradient`, `Color.gradient` | a colour with a little depth in it: `.foregroundStyle(.blue.gradient)`. A derived gradient carries its BASE colour and works its stops out at paint time, because `Color.palette.accent` is a reference with no palette to resolve against until something paints. The lightening is `+0.15` HSL lightness with hue and saturation held — measured against SwiftUI's own renderer and recorded in the API docs, along with the one row it misses (black) |
 | `Color.mix(with:by:in:)` | a two-stop gradient evaluated at the fraction, in whichever space you name — default `.perceptual`, as SwiftUI's is |
@@ -1037,8 +1037,9 @@ position to a colour, exactly as the four gradients are). All of SwiftUI's
 surface: the `points:`, `bezierPoints:` and `locations:` initialisers with
 `colors:` or `resolvedColors:`, `MeshGradient.BezierPoint`, `.Locations`,
 `.Colors`, and the stored properties, settable. It is a style and a view: a
-cell takes the mesh's colour at its centre, which draws a smooth mesh as a
-staircase of cells. Every rule was measured on
+cell takes the mesh's colour at its centre (a staircase on a glyph terminal),
+and an opaque mesh used as a view, or behind blank cells, is a picture where
+the terminal draws them, as the other gradients are. Every rule was measured on
 macOS 15.8 by reading back SwiftUI's pixels — meshes painted with colours that
 encode each pixel's place in the mesh give the patches' shape directly — and
 the answers are not the obvious ones: a patch is a **Coons patch**; an implied

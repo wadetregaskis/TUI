@@ -250,7 +250,7 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             surface: palette.background, palette: palette)
     }
 
-    /// A ramp behind NOTHING — blank cells, which is what a gradient used as
+    /// A ramp or a mesh behind NOTHING — blank cells, which is what a gradient used as
     /// a view, or `.background` on a spacer, puts in front of it — can be
     /// a picture where the terminal draws them: one colour a pixel instead
     /// of one a cell. Behind text it cannot, because a placeholder cell is
@@ -278,7 +278,7 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         _ buffer: FrameBuffer, paint: Paint, extent: GradientFrame, context: RenderContext, owner: Any.Type
     ) -> FrameBuffer? {
         let width = buffer.width
-        guard case .gradient = paint, buffer.animatedCells.isEmpty, buffer.isBlank,
+        guard paint.solid == nil, buffer.animatedCells.isEmpty, buffer.isBlank,
             paint.isOpaqueThroughout,
             let graphics = context.gradientGraphics(
                 token: "gradient-\(context.identity.path)-\(ObjectIdentifier(owner).hashValue)"),
