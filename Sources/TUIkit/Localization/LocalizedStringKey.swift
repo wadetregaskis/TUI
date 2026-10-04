@@ -359,7 +359,20 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             // dropped and an `@` appeared in its place. The neighbouring
             // `"\(n)% done"` was fine, which is what kept this hidden: only a
             // percent immediately before an interpolation collides.
-            key += literal.contains("%") ? literal.replacingOccurrences(of: "%", with: "%%") : literal
+            //
+            // The test is a BYTE scan first. `literal.contains("%")` binds to
+            // Foundation's generic substring search — a grapheme-wise
+            // `_range(of:)`, about 85 ns for a literal of a few bytes — and it
+            // runs for every literal segment of every interpolated key built,
+            // every frame. A literal can only contain the `%` Character if it
+            // holds the 0x25 byte (U+0025 has no canonical equivalent), so the
+            // byte scan only skips searches that would answer no; whenever
+            // the byte is there, Foundation still decides, as before.
+            if literal.utf8.contains(UInt8(ascii: "%")), literal.contains("%") {
+                key += literal.replacingOccurrences(of: "%", with: "%%")
+            } else {
+                key += literal
+            }
         }
 
         /// Interpolates any value, as `String(describing:)` would render it.
