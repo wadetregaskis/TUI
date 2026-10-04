@@ -755,6 +755,19 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     focusID: menuOrdinal.map(menuRowRegionID) ?? persistedFocusID
                 )
             )
+            // A drag held still over the button presses it, as a click would —
+            // under `.enabled` only: an `.automatic` button does not
+            // spring-load on macOS (measured on 15.8). Never a menu's trigger
+            // or one of its rows: a `Menu` spring-loads under no behavior.
+            if !isMenuTrigger, menuOrdinal == nil,
+                context.environment.springLoadingBehavior.allows(byDefault: false),
+                let session = context.environment.dragAndDropSession
+            {
+                session.registerSpringLoadTarget(
+                    DragAndDropSession.SpringLoadTarget(
+                        handlerID: handlerID, identity: context.identity, activate: effectiveAction),
+                    in: context)
+            }
         }
 
         return buffer

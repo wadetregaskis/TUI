@@ -502,11 +502,9 @@
     {
       "match": [
         "MeshGradient*",
-        "SpringLoadingBehavior*",
-        "*.springLoadingBehavior*",
         "SensoryFeedback*"
       ],
-      "why": "Mesh gradients need per-pixel interpolation, and haptics need hardware a terminal does not have. Spring-loading (activating a control by pausing over it during a drag) was caught by name by the old spring rule; Spring and every spring animation now ship. The Wave 17 review (P11) reopens all three: MeshGradient and SpringLoadingBehavior as implementable, SensoryFeedback as O8."
+      "why": "Mesh gradients need per-pixel interpolation, and haptics need hardware a terminal does not have. Spring, every spring animation and spring loading (SpringLoadingBehavior, a paused drag activating a control) now ship. The Wave 17 review (P11) reopens both that remain: MeshGradient as implementable, SensoryFeedback as O8."
     },
     {
       "match": [

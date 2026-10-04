@@ -1492,3 +1492,37 @@ private struct FindNavigatorShapes: View {
         }
     }
 }
+// MARK: - Spring loading
+
+/// SwiftUI's own examples: a button that reveals folders, the modifier
+/// overriding an ancestor's value, a tab's own behavior beating its tab
+/// view's, and the environment value read back.
+@MainActor
+private struct SpringLoadingShapes: View {
+    @State private var showFolders = false
+    @Environment(\.springLoadingBehavior) private var springLoading
+
+    var body: some View {
+        VStack {
+            HStack {
+                Button {
+                    showFolders = true
+                } label: {
+                    Label("Show Folders", systemImage: "folder")
+                }
+                .springLoadingBehavior(.enabled)
+            }
+            .springLoadingBehavior(.disabled)
+            TabView {
+                Tab("Favorites", systemImage: "star") {
+                    Text("Favorites")
+                }
+                .springLoadingBehavior(.enabled)
+                Tab("Recents", systemImage: "clock") {
+                    Text(springLoading == .automatic ? "automatic" : "set")
+                }
+            }
+            .springLoadingBehavior(.disabled)
+        }
+    }
+}

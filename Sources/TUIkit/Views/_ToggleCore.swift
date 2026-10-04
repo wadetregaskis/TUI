@@ -861,5 +861,19 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 focusID: persistedFocusID
             )
         )
+        // A `.button` toggle is a button, and a drag held still over it under
+        // `.enabled` flips it as a click would; a checkbox is not spring-loaded
+        // under any behavior (both measured on macOS 15.8), and nor is a
+        // switch, which AppKit's `NSSwitch` cannot spring-load.
+        if context.environment.toggleStyle is ButtonToggleStyle,
+            context.environment.springLoadingBehavior.allows(byDefault: false),
+            let session = context.environment.dragAndDropSession
+        {
+            session.registerSpringLoadTarget(
+                DragAndDropSession.SpringLoadTarget(
+                    handlerID: handlerID, identity: context.identity,
+                    activate: { toggleBinding.wrappedValue.toggle() }),
+                in: context)
+        }
     }
 }

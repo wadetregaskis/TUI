@@ -50,6 +50,10 @@ private struct _TabSidebarList: View {
     let tabs: [_RawTab]
     let selection: Binding<AnyHashable>
 
+    /// The tab view's spring loading behavior, which a tab without one of its
+    /// own follows.
+    @Environment(\.springLoadingBehavior) private var springLoading
+
     /// Consecutive tabs of one section — or of none — with its header.
     private struct Run: Identifiable {
         /// The run's place among the runs.
@@ -116,12 +120,19 @@ private struct _TabSidebarList: View {
     /// disabled. Keyed by the tab's place, which is what the selection binds:
     /// no `.tag(_:)`, so the badge can be the row's outermost modifier, where
     /// the list reads it.
+    ///
+    /// A drag held still over the row selects its tab, as a pause over a
+    /// strip's chip does.
     private func row(_ index: Int) -> some View {
         let tab = tabs[index]
         let badge: String? = tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText
-        return label(of: tab)
-            .selectionDisabled(tab.isDisabled)
-            .badge(badge)
+        let selection = self.selection
+        return _SpringLoadedRegion(
+            content: label(of: tab), isEnabled: tab.springLoads(inheriting: springLoading),
+            activate: { selection.wrappedValue = tab.value }
+        )
+        .selectionDisabled(tab.isDisabled)
+        .badge(badge)
     }
 
     /// A tab's label in the sidebar: the app's own label view, or the title.

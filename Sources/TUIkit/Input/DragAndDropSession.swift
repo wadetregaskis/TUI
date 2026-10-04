@@ -323,6 +323,14 @@ final class DragAndDropSession: @unchecked Sendable {
     /// business extending that.
     weak var reorderHandler: (any RowReorderHosting)?
 
+    /// This frame's spring-loaded controls, in registration (render) order —
+    /// written by `DragAndDropSession+SpringLoading`, like the reorder state
+    /// above. See ``DragAndDropSession/registerSpringLoadTarget(_:)``.
+    var springLoadTargets: [SpringLoadTarget] = []
+
+    /// The spring-loaded control the drag in flight is resting on, if any.
+    var springLoadHover: SpringLoadHover?
+
     /// A reorder was cancelled and its release has not arrived yet, so that
     /// release must be swallowed rather than treated as a click. Lives on the
     /// session because the handler-level twin cannot be trusted after an
@@ -377,6 +385,7 @@ final class DragAndDropSession: @unchecked Sendable {
         targets.removeAll(keepingCapacity: true)
         autoScrollZones.removeAll(keepingCapacity: true)
         reorderHosts.removeAll(keepingCapacity: true)
+        springLoadTargets.removeAll(keepingCapacity: true)
     }
 
     /// Registers a drop destination for this frame.
@@ -624,6 +633,7 @@ final class DragAndDropSession: @unchecked Sendable {
         {
             hovering(event.x - rect.localOriginX, event.y - rect.localOriginY)
         }
+        trackSpringLoading()
     }
 
     /// Drops the payload on the destination under the cursor (if any), ends
@@ -871,6 +881,7 @@ final class DragAndDropSession: @unchecked Sendable {
         active?.targeted?.setTargeted(false)
         active = nil
         source = nil
+        springLoadHover = nil
         autoScrollArmed = false
         autoScrollOwner = nil
         autoScrollEngagedSinceNanos = nil

@@ -168,6 +168,29 @@ interactive view inside it, or failing that to whatever it sits on. So a
 ``List`` whose rows are `draggable(_:)` still selects a row when you click it,
 and still starts a drag when you move.
 
+### Spring Loading
+
+A drag can open its own way to a destination. Hold the pointer still over a
+spring-loaded control for half a second, mid-drag, and the control activates
+as a click would — a ``TabView``'s tab is selected, a ``DisclosureGroup``
+opens, a ``Button`` runs its action — with the payload still in hand:
+
+```swift
+Button {
+    showFolders = true
+} label: {
+    Label("Show Folders", systemImage: "folder")
+}
+.springLoadingBehavior(.enabled)
+```
+
+Tabs spring-load unless told `.disabled`; buttons, links, navigation links,
+`.button` toggles, segmented pickers and disclosure groups only under
+`.enabled`, as on macOS. Moving to another cell starts the pause again, and a
+control activates once each time the pointer arrives on it. The keyboard needs
+no pause: while a drag is in flight, <kbd>Tab</kbd> still moves the focus and
+<kbd>Return</kbd> or <kbd>Space</kbd> still activates the focused control.
+
 ## Raw Events
 
 For full control, handle the raw event and return whether you consumed it.
@@ -210,6 +233,7 @@ it sits in the view.
 
 - ``DropInfo``
 - ``DragPreviewAnchor``
+- ``SpringLoadingBehavior``
 
 The raw event types (`MouseEvent`, `MouseButton`, `MousePhase`) live in the
 re-exported `TUIkitCore` module.

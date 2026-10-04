@@ -17,8 +17,8 @@ import TUIkitView
 /// render and by a value memo replaying them — the sibling of
 /// `MouseHandlerRegistrar`, and there for the same reason.
 ///
-/// ``DragAndDropSession/beginFrame()`` empties `targets`, `autoScrollZones`
-/// and `reorderHosts` before every walk and the view tree refills them as it
+/// ``DragAndDropSession/beginFrame()`` empties `targets`, `autoScrollZones`,
+/// `reorderHosts` and `springLoadTargets` before every walk and the view tree refills them as it
 /// renders, so each one is per-frame state exactly as the handler table is. A
 /// subtree served from a value memo does not render, so it used to refill
 /// nothing: the stored buffer still carried the region, the handler behind it
@@ -34,6 +34,9 @@ enum DragAndDropRegistrar {
 
     /// The journal kind of a row-reorder host registration.
     static let reorderHostKind = EffectJournal.Kind("dragReorderHost")
+
+    /// The journal kind of a spring-load target registration.
+    static let springLoadKind = EffectJournal.Kind("dragSpringLoadTarget")
 
     /// Declares the registration being made replayable, and returns the
     /// journal to record it in — or `nil` when nothing is recording, so a

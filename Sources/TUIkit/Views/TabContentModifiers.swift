@@ -2,7 +2,7 @@
 //  TabContentModifiers.swift
 //
 //  The modifiers a tab takes: a badge, hiding, disabling, where it may
-//  appear, and a section's actions.
+//  appear, spring loading, and a section's actions.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -100,6 +100,44 @@ extension TabContent {
     /// - Parameter placement: Where the tab may appear.
     public func tabPlacement(_ placement: TabPlacement) -> some TabContent<TabValue> {
         _TabTraitContent(content: self) { $0.placement = placement }
+    }
+}
+
+// MARK: - Spring loading
+
+extension TabContent {
+    /// Sets the spring loading behavior for the tab.
+    ///
+    /// Spring loading refers to a view being activated during a drag and drop
+    /// interaction: a drag held still over a tab — its chip in a strip, its
+    /// row in a `.sidebarAdaptable` sidebar — for half a second selects it, so
+    /// the drag can reach that tab's content without being let go of. A tab
+    /// spring-loads unless told `.disabled`, here or by
+    /// ``View/springLoadingBehavior(_:)`` on the tab view; a disabled tab never
+    /// does.
+    ///
+    /// Unlike `disabled(_:)`, this modifier overrides the value set by an
+    /// ancestor view rather than being unioned with it. For example, the tab
+    /// below would allow spring loading:
+    ///
+    /// ```swift
+    /// TabView {
+    ///     Tab("Favorites", systemImage: "star") {
+    ///         MyFavoritesView()
+    ///     }
+    ///     .springLoadingBehavior(.enabled)
+    ///
+    ///     ...
+    /// }
+    /// .springLoadingBehavior(.disabled)
+    /// ```
+    ///
+    /// - Parameter behavior: Whether spring loading is enabled or not. If
+    ///   unspecified, the default behavior is `.automatic`.
+    public func springLoadingBehavior(_ behavior: SpringLoadingBehavior) -> some TabContent<TabValue> {
+        // The innermost modifier wins: an enclosing one is applied after the
+        // tabs inside have been given theirs, so it only fills a gap.
+        _TabTraitContent(content: self) { $0.springLoading = $0.springLoading ?? behavior }
     }
 }
 

@@ -95,6 +95,10 @@ struct _RawTab {
     /// Where the tab may appear.
     var placement = TabPlacement.automatic
 
+    /// The tab's own spring loading behavior, or `nil` to follow the tab
+    /// view's environment (see ``springLoads(inheriting:)``).
+    var springLoading: SpringLoadingBehavior?
+
     /// The strip's text for the badge — a space, then the badge — or `""` for
     /// a tab with none to show.
     var badgeSuffix: String {
@@ -107,6 +111,14 @@ struct _RawTab {
 
     /// The identifier a ``TabViewCustomization`` knows the tab by, or `nil`.
     var customizationID: String?
+
+    /// Whether a drag paused over the tab selects it: the tab's own behavior
+    /// if it has one, else `inherited`, the tab view's environment's — a tab
+    /// spring-loads by default, as SwiftUI's tab views do — and never a
+    /// disabled tab, which a click does not select either.
+    func springLoads(inheriting inherited: SpringLoadingBehavior) -> Bool {
+        !isDisabled && (springLoading ?? inherited).allows(byDefault: true)
+    }
 }
 
 /// The ``TabSection`` a tab was declared in.

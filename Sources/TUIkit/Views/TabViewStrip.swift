@@ -2,8 +2,9 @@
 //  TabViewStrip.swift
 //
 //  How a TabView draws its strip of tabs: the compact chips, the folder-tab
-//  chrome, and the colours both take. Split from TabView.swift, which keeps
-//  the view itself — its focus, geometry, and content panel.
+//  chrome, the colours both take, and a chip's spring loading. Split from
+//  TabView.swift, which keeps the view itself — its focus, geometry, and
+//  content panel.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -323,5 +324,22 @@ extension _TabViewCore {
         }
         line.append(right, cells: boxWidth - aRight, ink: border)
         return line
+    }
+
+    /// Lets a drag held still over tab `index`'s chip select that tab, as a
+    /// click on it does — without moving the focus, which a drag leaves where
+    /// it is. Nothing is registered for a tab that does not spring-load.
+    @MainActor
+    func registerSpringLoading(forTab index: Int, handlerID: HitTestRegion.HandlerID, context: RenderContext) {
+        guard tabs[index].springLoads(inheriting: context.environment.springLoadingBehavior),
+            let session = context.environment.dragAndDropSession
+        else { return }
+        let value = tabs[index].value
+        let selection = self.selection
+        session.registerSpringLoadTarget(
+            DragAndDropSession.SpringLoadTarget(
+                handlerID: handlerID, identity: context.identity,
+                activate: { if let v = value.base as? SelectionValue { selection.wrappedValue = v } }),
+            in: context)
     }
 }

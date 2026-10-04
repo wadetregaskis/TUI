@@ -715,6 +715,9 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 HitTestRegion(
                     offsetX: region.x, offsetY: region.y, width: region.width, height: region.height,
                     handlerID: handlerID, focusID: nil))
+            // A drag held still over the chip selects its tab, as the click
+            // above does.
+            registerSpringLoading(forTab: region.index, handlerID: handlerID, context: context)
         }
     }
 

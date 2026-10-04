@@ -425,6 +425,17 @@ extension RenderLoop {
             animationScheduler?.request("drag-autoscroll", .dragAutoScroll)
         }
 
+        // Spring loading, at the same point and for the same reason: the pause
+        // is over what the LAST frame drew. A control the pause activates shows
+        // its effect in this frame; one still pending asks for a frame at the
+        // instant the pause will have lasted the delay, since a pointer resting
+        // still sends nothing that would ask for one.
+        if let deadline = tuiContext.dragAndDropSession.driveSpringLoading(
+            nowNanos: UInt64(bitPattern: frameNowNanos))
+        {
+            animationScheduler?.requestWake("drag-spring-loading", at: Int64(bitPattern: deadline))
+        }
+
         driveDragFlights(nowNanos: frameNowNanos, scheduler: animationScheduler)
 
         beginRenderPass()
