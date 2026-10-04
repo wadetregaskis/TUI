@@ -58,7 +58,7 @@ extension View {
     /// The column starts at `ideal`. The divider is not held between `min` and
     /// `max` — SwiftUI documents that a platform may use a different width than
     /// asked — so they are accepted and the reader can move it anywhere the
-    /// split allows (W09 decisions, B-W09-7).
+    /// split allows (decisions B40).
     ///
     /// - Parameters:
     ///   - min: The narrowest the column should be, in columns.

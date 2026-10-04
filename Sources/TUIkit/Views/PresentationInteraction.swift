@@ -12,7 +12,7 @@
 //  page behind a sheet, a swipe that resizes a sheet between its detents — are
 //  left out, so asking for them fails to compile. (See
 //  `MediumGuaranteedModifiers.swift` for the line between a guarantee kept and
-//  a request dropped, and the W09 decisions for what the rest would take.)
+//  a request dropped, and decisions A19 for what the rest would take.)
 //
 //  Created by Wade Tregaskis
 //  License: MIT
