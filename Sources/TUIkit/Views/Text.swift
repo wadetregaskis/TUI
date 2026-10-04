@@ -96,13 +96,43 @@ public struct Text: View, Equatable {
     /// — makes a live text, read again at each frame it is drawn; see
     /// ``init(_:style:)``.
     ///
+    /// ## Markdown
+    ///
+    /// The text the key resolves to is read as inline Markdown, as SwiftUI
+    /// reads it:
+    ///
+    /// ```swift
+    /// Text("**Thank You!** Please visit our [website](https://example.com).")
+    /// Text("Saved **\(count)** files")   // the count is bold
+    /// ```
+    ///
+    /// `**strong**` and `__strong__` draw bold, `*emphasis*` and `_emphasis_`
+    /// italic, `~~strikethrough~~` struck through, and `` `code` `` as it is,
+    /// every cell being monospaced already. A `[link](destination)` — and a
+    /// bare `https://…`, `www.…` or email address — draws as a link (see
+    /// ``init(_:)-(AttributedString)``). Everything else is text: headings,
+    /// lists and quotes are not inline syntax, whitespace is kept as written,
+    /// and a delimiter with nothing to pair with stays on the screen. An
+    /// interpolated value is never parsed — it takes the style of where it
+    /// stands — and neither is a `String` you pass, nor ``init(verbatim:)``.
+    /// The rules are Foundation's, measured: see `InlineMarkdown`.
+    ///
     /// - Parameter key: The key to look up.
     public init(_ key: LocalizedStringKey) {
-        self.content = key.localized
-        self.style = TextStyle()
-        self.runs =
-            key.liveArguments.isEmpty
-            ? nil : [Run(text: content, style: TextStyle(), live: LiveTextBox(LocalizedKeySource(key: key)))]
+        let template = LocalizationService.shared.string(for: key.key)
+        // A byte scan first: most keys hold nothing Markdown could act on, and
+        // those take the plain path exactly as before.
+        if InlineMarkdown.mightContainMarkup(template) {
+            let parsed = Self.markdownRuns(in: template, key: key)
+            self.init(verbatim: parsed.content)
+            runs = parsed.runs
+            return
+        }
+        self.init(
+            verbatim: key.arguments.isEmpty ? template : LocalizedStringKey.substituting(key.arguments, into: template))
+        if !key.liveArguments.isEmpty {
+            runs = [Run(text: content, style: TextStyle(), live: LiveTextBox(LocalizedKeySource(key: key)))]
+        }
     }
 
     /// Creates a text view with the specified string, displayed as-is.
