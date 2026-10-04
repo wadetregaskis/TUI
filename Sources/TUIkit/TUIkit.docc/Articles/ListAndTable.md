@@ -284,6 +284,24 @@ Table(of: File.self) {
 }
 ```
 
+### Rows That Cannot Be Selected
+
+`.selectionDisabled(_:)` on a row — or on a `ForEach` of rows, or any other
+row content — keeps it out of the selection: a click or Space on it does
+nothing, Up and Down step over it, and it draws faint, as a `List` row under
+the same modifier does.
+
+```swift
+Table(of: Item.self, selection: $selection) {
+    TableColumn("Name", value: \.name)
+} rows: {
+    ForEach(items) { item in
+        TableRow(item)
+            .selectionDisabled(item.isLocked)
+    }
+}
+```
+
 ### Striped Rows
 
 `.alternatingRowBackgrounds()` tints every other row of the tables and lists

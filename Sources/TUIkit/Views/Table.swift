@@ -211,6 +211,11 @@ public struct Table<Value: Identifiable>: View {
     /// only the render knows where the expansion lives.
     var rowTree: [_TableRowNode<Value>]?
 
+    /// What the row modifiers said about each row, parallel to ``data``, or
+    /// `nil` when none reached any row. A tree keeps its rows' traits in its
+    /// nodes instead.
+    var rowTraits: [_TableRowTraits]?
+
     public var body: some View {
         _TableCore(
             data: data,
@@ -231,7 +236,8 @@ public struct Table<Value: Identifiable>: View {
             primaryAction: primaryAction,
             moveAction: moveAction,
             dropInsertion: dropInsertion,
-            rowTree: rowTree
+            rowTree: rowTree,
+            rowTraits: rowTraits
         )
         // The same pairing as `ScrollView.body` and `List.body`. A table's rows
         // are its own focus stops, so its stored flag alone already suppressed
@@ -357,7 +363,11 @@ extension Table {
         self.init(
             rows: rowList.isTree ? [] : rowList.values, columns: columns, single: single,
             multi: multi, sortModel: sortModel, customization: customization)
-        if rowList.isTree { rowTree = rowList.nodes }
+        if rowList.isTree {
+            rowTree = rowList.nodes
+        } else {
+            rowTraits = rowList.traits
+        }
     }
 
     /// Creates a table that computes its rows based on a collection of
@@ -617,37 +627,59 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     let rowTree: [_TableRowNode<Value>]?
 
     /// This frame's flattening of ``rowTree``: the rows that show and where
-    /// each sits. Set only on the copy ``resolvingOutline(_:)`` returns.
+    /// each sits. Set only on the copy ``resolvingRows(_:)`` returns.
     var outline: _TableOutline<Value>?
+
+    /// What the row modifiers said about each row, parallel to ``data``, or
+    /// `nil` when none reached any row.
+    var rowTraits: [_TableRowTraits]?
+
+    /// The rows a `.selectionDisabled()` reached, by their index in ``data``.
+    /// Filled in by ``resolvingRows(_:)``.
+    var selectionDisabledRows: Set<Int> = []
+
+    /// Whether ``resolvingRows(_:)`` has run for this copy.
+    var rowsAreResolved = false
 
     var body: Never {
         fatalError("_TableCore renders via Renderable")
     }
 
-    /// Whether this is a hierarchical table whose tree this pass has not yet
-    /// flattened — true only at the two entry points, before they resolve it.
-    private var needsOutline: Bool { rowTree != nil && outline == nil }
+    /// Whether this table's rows need resolving before it draws — a tree to
+    /// flatten, or rows a modifier reached — and have not been: true only at
+    /// the two entry points, before they resolve them.
+    private var needsResolution: Bool {
+        !rowsAreResolved && (rowTree != nil || rowTraits != nil)
+    }
 
-    /// This table with its tree flattened into the rows this frame shows, and
-    /// its first column drawing each row's place in the tree.
+    /// This table with its rows as this frame draws them: a tree flattened
+    /// into the rows that show, its first column drawing each row's place in
+    /// the tree, and what the row modifiers said gathered by row.
     ///
     /// Done at the entry points rather than when the table is built, because
-    /// the open branches are state, kept at this table's identity, which only
-    /// a pass's context can reach. Everything past the entry points then reads
-    /// an ordinary table of rows.
-    private func resolvingOutline(_ context: RenderContext) -> Self {
-        guard let rowTree else { return self }
-        let expansion: StateBox<Set<AnyHashable>> =
-            context.stateStorage?.storage(
-                for: StateStorage.StateKey(
-                    identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
-                default: []) ?? StateBox([])
-        let outline = _TableOutline(tree: rowTree, expansion: expansion)
+    /// a tree's open branches are state, kept at this table's identity, which
+    /// only a pass's context can reach. Everything past the entry points then
+    /// reads an ordinary table of rows.
+    private func resolvingRows(_ context: RenderContext) -> Self {
         var resolved = self
-        resolved.data = outline.values
-        resolved.outline = outline
-        if let first = columns.first {
-            resolved.columns[0] = outline.disclosing(first)
+        resolved.rowsAreResolved = true
+        if let rowTree {
+            let expansion: StateBox<Set<AnyHashable>> =
+                context.stateStorage?.storage(
+                    for: StateStorage.StateKey(
+                        identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
+                    default: []) ?? StateBox([])
+            let outline = _TableOutline(tree: rowTree, expansion: expansion)
+            resolved.data = outline.values
+            resolved.rowTraits = outline.traits
+            resolved.outline = outline
+            if let first = columns.first {
+                resolved.columns[0] = outline.disclosing(first)
+            }
+        }
+        if let traits = resolved.rowTraits {
+            resolved.selectionDisabledRows = Set(
+                traits.indices.lazy.filter { traits[$0].selectionDisabled == true })
         }
         return resolved
     }
@@ -693,8 +725,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        if needsOutline {
-            return resolvingOutline(context).sizeThatFits(proposal: proposal, context: context)
+        if needsResolution {
+            return resolvingRows(context).sizeThatFits(proposal: proposal, context: context)
         }
         var measureContext = context
         measureContext.isMeasuring = true
@@ -995,7 +1027,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if needsOutline { return resolvingOutline(context).renderToBuffer(context: context) }
+        if needsResolution { return resolvingRows(context).renderToBuffer(context: context) }
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
 
@@ -2052,6 +2084,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // paints cell by cell instead.
         let bandsAcrossRow = ramp?.variesAcrossRow ?? false
         let foreground = cellColour(row: row, ramp: ramp, context: context, palette: palette)
+        let isDimmed = selectionDisabledRows.contains(row)
 
         // One SGR introducer for every cell of every line — see ``renderRow``,
         // which this is the multi-line twin of. Here it matters more: the
@@ -2133,6 +2166,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 claims += ramp.alphaClaims(
                     row: row, line: lineIndex, columns: gutter..<cellColumn)
             }
+            // A row that refuses selection draws faint, under whatever
+            // background it wears — as a `List` row does.
+            if isDimmed { content = ANSIRenderer.applyPersistentDim(content) }
             guard case .none = visual.background else {
                 content.append(contentsOf: asciiSpaces(rowWidth - content.strippedLength))
                 if framePaints != nil { bareLines.append(content) }
@@ -2156,6 +2192,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func syncRowActions(_ handler: ItemListHandler<Value.ID>) {
         handler.primaryAction = primaryAction
         handler.outlineActivation = outline
+        handler.selectionDisabledRows = selectionDisabledRows
         handler.onMove = moveAction
         handler.onSort = sortKeyAction
     }
@@ -4060,12 +4097,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // A row that moved to the other parity changes its stripe, which
         // neither its cells nor its selection say.
         let isStriped = isStriped(row: paint.row, environment: context.environment)
+        // And one that came to refuse selection draws faint, which its cells
+        // do not say either.
+        let isDimmed = selectionDisabledRows.contains(paint.row)
 
         // The cheapest hit there is: every column names its value, so the cells
         // are a pure function of the row, and an equal row needs no cells built
         // at all. Only available to a comparable row type.
         if let kept, let rowBox, handler.tableRowMemo.namesItsValues,
-            kept.answers(row: rowBox, isSelected: isSelected, isStriped: isStriped)
+            kept.answers(row: rowBox, isSelected: isSelected, isStriped: isStriped, isDimmed: isDimmed)
         {
             return serve(kept, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
@@ -4075,7 +4115,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // nothing can skip it — but what they produced settles the question
         // outright, for any row type and any column.
         let cells = rowCells(for: item, columnWidths: columnWidths, context: context)
-        if let kept, kept.answers(cells: cells, isSelected: isSelected, isStriped: isStriped) {
+        if let kept,
+            kept.answers(cells: cells, isSelected: isSelected, isStriped: isStriped, isDimmed: isDimmed)
+        {
             // Re-point the entry at THIS row, or a row that changed in a way its
             // columns do not show would take this path for ever — see
             // `TableRowMemoStore.refresh(row:for:)`.
@@ -4098,7 +4140,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.tableRowMemo.keep(
             TableRowMemoLine(
                 row: rowBox, cells: cells, isSelected: isSelected, isStriped: isStriped,
-                line: result.line, claims: result.claims),
+                isDimmed: isDimmed, line: result.line, claims: result.claims),
             for: item.id)
         return result
     }
@@ -4302,6 +4344,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     row: row, line: 0, columns: gutter..<cellColumn)
             }
             return stated
+        }
+        // A row that refuses selection draws faint, under whatever background
+        // it wears — as a `List` row does.
+        if selectionDisabledRows.contains(row) {
+            content = ANSIRenderer.applyPersistentDim(content)
         }
         guard case .none = visualState.background else {
             // `cellColumn` IS this line's visible width, so nothing rescans it:

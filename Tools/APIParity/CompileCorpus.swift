@@ -826,6 +826,11 @@ private struct TableRowShapes: View {
                 TableRow(Purchase(id: 0, item: "Coffee", price: 2.5))
                 ForEach(purchases) { TableRow($0) }
                 ForEach(purchases)
+                    .selectionDisabled()
+                ForEach(purchases) { purchase in
+                    TableRow(purchase)
+                        .selectionDisabled(purchase.price == 0)
+                }
                 if showsTotal {
                     TableRow(Purchase(id: -1, item: "Total", price: 0))
                 }

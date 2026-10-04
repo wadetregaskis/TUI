@@ -43,6 +43,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// The visible rows' values, in the order they are drawn.
     let values: [Value]
 
+    /// What the row modifiers said about each visible row, parallel to
+    /// ``values``, or `nil` when they said nothing about any.
+    let traits: [_TableRowTraits]?
+
     /// Where each visible row sits.
     private let placements: [Value.ID: Placement]
 
@@ -64,6 +68,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     init(tree: [_TableRowNode<Value>], expansion: StateBox<Set<AnyHashable>>) {
         self.expansion = expansion
         var values: [Value] = []
+        var traits: [_TableRowTraits] = []
+        var anyTraits = false
         var placements: [Value.ID: Placement] = [:]
         var parents: [Value.ID: Value.ID] = [:]
         var branches: [Value.ID: _TableRowNode<Value>] = [:]
@@ -75,6 +81,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         while let (node, depth, parent) = stack.popLast() {
             let id = node.value.id
             values.append(node.value)
+            traits.append(node.traits)
+            anyTraits = anyTraits || !node.traits.isEmpty
             if let parent { parents[id] = parent }
             guard let children = node.children else {
                 placements[id] = Placement(depth: depth, disclosure: .leaf)
@@ -89,6 +97,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             }
         }
         self.values = values
+        self.traits = anyTraits ? traits : nil
         self.placements = placements
         self.parents = parents
         self.branches = branches

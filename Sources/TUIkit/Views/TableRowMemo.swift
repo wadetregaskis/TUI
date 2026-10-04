@@ -126,19 +126,24 @@ struct TableRowMemoLine {
     /// follows its POSITION: a row that moved to the other parity draws
     /// another background over the same cells.
     let isStriped: Bool
+    /// Whether the row drew faint, refusing selection
+    /// (`.selectionDisabled()`), which its cells do not say.
+    let isDimmed: Bool
     let line: String
     let claims: [OpacityRegion]
 
     /// Whether this entry answers for a row whose cells are `cells`.
-    func answers(cells other: [String], isSelected: Bool, isStriped: Bool) -> Bool {
-        self.isSelected == isSelected && self.isStriped == isStriped && cells == other
+    func answers(cells other: [String], isSelected: Bool, isStriped: Bool, isDimmed: Bool) -> Bool {
+        self.isSelected == isSelected && self.isStriped == isStriped && self.isDimmed == isDimmed
+            && cells == other
     }
 
     /// Whether this entry answers for `row` WITHOUT computing its cells — only
     /// for a table whose every column names its value, where the cells are a
     /// pure function of the row.
-    func answers(row other: AnyEquatableBox, isSelected: Bool, isStriped: Bool) -> Bool {
-        self.isSelected == isSelected && self.isStriped == isStriped && self.row == other
+    func answers(row other: AnyEquatableBox, isSelected: Bool, isStriped: Bool, isDimmed: Bool) -> Bool {
+        self.isSelected == isSelected && self.isStriped == isStriped && self.isDimmed == isDimmed
+            && self.row == other
     }
 }
 

@@ -53,8 +53,15 @@ struct _TableRowList<Value: Identifiable> {
     /// Whether any row has rows beneath it — only then is the table an outline.
     private(set) var isTree = false
 
+    /// Whether a row modifier reached any of these rows — only then does the
+    /// table read their traits at all.
+    private(set) var hasTraits = false
+
     /// The rows' values, in order: the whole table, when it is not a tree.
     var values: [Value] { nodes.map(\.value) }
+
+    /// The rows' traits, in order, or `nil` when no row modifier reached them.
+    var traits: [_TableRowTraits]? { hasTraits ? nodes.map(\.traits) : nil }
 
     /// Appends a row with nothing beneath it.
     mutating func append(_ value: Value) {
@@ -76,7 +83,16 @@ struct _TableRowList<Value: Identifiable> {
     /// Appends another list's rows.
     mutating func append(contentsOf other: _TableRowList<Value>) {
         isTree = isTree || other.isTree
+        hasTraits = hasTraits || other.hasTraits
         nodes += other.nodes
+    }
+
+    /// Applies a row modifier to every row here, and to every row beneath
+    /// them whenever those are built.
+    @MainActor
+    mutating func modifyTraits(_ apply: @escaping (inout _TableRowTraits) -> Void) {
+        hasTraits = true
+        nodes = nodes.map { $0.applying(apply) }
     }
 }
 
@@ -93,11 +109,27 @@ struct _TableRowNode<Value: Identifiable> {
     ///
     /// Main-actor isolated because building rows is: a `DisclosureTableRow`'s
     /// children come from its row builder.
-    let children: (@MainActor () -> [_TableRowNode<Value>])?
+    private(set) var children: (@MainActor () -> [_TableRowNode<Value>])?
 
     /// The expansion a `DisclosureTableRow` was handed, or `nil` for one the
     /// table keeps itself.
     let isExpanded: Binding<Bool>?
+
+    /// What the row modifiers around this row said about it.
+    private(set) var traits = _TableRowTraits()
+
+    /// This row with a row modifier applied — to it, and to the rows beneath
+    /// it as they are built, since a modifier on a branch's content reaches
+    /// every row that content makes.
+    @MainActor
+    func applying(_ apply: @escaping (inout _TableRowTraits) -> Void) -> Self {
+        var node = self
+        apply(&node.traits)
+        if let children {
+            node.children = { children().map { $0.applying(apply) } }
+        }
+        return node
+    }
 }
 
 /// Row content that hands the renderer its rows itself, rather than through
