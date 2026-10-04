@@ -576,10 +576,6 @@
       "tuikit": "ScrollGranularity",
       "why": "Sources/TUIkit/Views/ScrollGranularity.swift:22-27. TUIkit answers \"where may the viewport rest\" with a closed two-case enum (.line / .row) rather than an open protocol an app conforms to; `.row` is the view-aligned rule."
     },
-    "Text.DateStyle": {
-      "tuikit": "Text.init(_:format:)",
-      "why": "Sources/TUIkit/Views/Text.swift:111-114 — `init<F: FormatStyle>(_ input: F.FormatInput, format: F)` covers the formatting half via Foundation (Text(date, format: .dateTime), .relative(presentation:)). The part that does NOT transfer is the live behaviour: SwiftUI's .timer/.relati"
-    },
     "ToolbarContent": {
       "tuikit": "StatusBarItemProtocol",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/StatusBar/StatusBarItem.swift:118-130 — the protocol a bar item conforms to (shortcut, label, triggerKey, order, matches(_:)). It is the item-content abstraction the status bar consumes, the role ToolbarContent plays for a toolbar."

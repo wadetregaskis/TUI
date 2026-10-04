@@ -913,3 +913,54 @@ private struct PaddedTableStyle: TableStyle {
             .padding()
     }
 }
+// MARK: - Live time text
+
+/// Dates and timers that keep themselves up to date, written as SwiftUI's
+/// documentation writes them — the styles, the timer interval with its pause,
+/// and both inside a localized literal.
+@MainActor
+private struct LiveTimeTextShapes: View {
+    let event: Date
+    let start: Date
+
+    var body: some View {
+        VStack {
+            Text(event, style: .relative)
+            Text(event, style: .time)
+            Text(event, style: .date)
+            Text(event, style: .offset)
+            Text(event, style: .timer)
+            Text(
+                timerInterval: Date.now...Date(timeInterval: 12 * 60, since: .now),
+                pauseTime: Date.now + (10 * 60))
+            Text(timerInterval: start...event, countsDown: false, showsHours: false)
+            Text("Ends \(event, style: .relative)")
+            Text("Left: \(timerInterval: start...event, pauseTime: nil, countsDown: true)")
+            Text(event, style: .relative).textVariant(.fixed)
+        }
+    }
+}
+
+/// The system formats over a time data source. On macOS SwiftUI's own
+/// `.offset(to:)` and the rest are visible here too, through AppKit; every one
+/// of these must still bind to TUIkit's (`SystemFormatStyle+DiscreteStatics`).
+@available(macOS 15, *)
+@MainActor
+private struct TimeDataSourceShapes: View {
+    let startDate: Date
+
+    var body: some View {
+        VStack {
+            Text(.currentDate, format: .offset(to: startDate))
+            Text(.currentDate, format: .offset(to: startDate, sign: .always()))
+            Text(.currentDate, format: .stopwatch(startingAt: startDate))
+            Text(.currentDate, format: .dateTime)
+            Text(.durationOffset(to: startDate), format: .time(pattern: .minuteSecond))
+            Text(.currentDate, format: .reference(to: startDate, allowedFields: [.hour, .minute], thresholdField: .hour))
+            Text(.currentDate, format: .timer(countingDownIn: startDate..<startDate + 60, maxPrecision: .milliseconds(10)))
+            Text(.currentDate, format: .timer(countingUpIn: startDate..<startDate + 60))
+            Text(Date.now, format: .offset(to: startDate))
+            Text("Started \(Date.now, format: .reference(to: startDate))")
+        }
+    }
+}
