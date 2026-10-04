@@ -94,8 +94,9 @@ public struct AnyTransition: Sendable, Equatable {
         case move(edge: Edge)
         /// Slides from a displacement of its own choosing.
         case offset(x: Int, y: Int)
-        /// Reveals from an anchor, a cell at a time.
-        case scale(anchor: UnitPoint)
+        /// Reveals from an anchor, a cell at a time, starting from `factor`
+        /// of the view.
+        case scale(factor: Double, anchor: UnitPoint)
         /// Both, applied in order.
         case combined(Self, Self)
     }
@@ -103,17 +104,42 @@ public struct AnyTransition: Sendable, Equatable {
     let insertion: Effect
     let removal: Effect
 
+    /// A transition with a body of the app's own, drawn through that body —
+    /// in which case `insertion` and `removal` are unused. `nil` for every
+    /// transition made of the effects above, which keep their buffer path.
+    /// See ``Transition``.
+    let custom: _AnyTransitionBox?
+
     /// An animation this transition insists on, overriding the ambient one.
     var explicitAnimation: Animation?
 
     init(insertion: Effect, removal: Effect, explicitAnimation: Animation? = nil) {
         self.insertion = insertion
         self.removal = removal
+        self.custom = nil
+        self.explicitAnimation = explicitAnimation
+    }
+
+    /// A transition drawn through a ``Transition``'s body.
+    init(custom: _AnyTransitionBox, explicitAnimation: Animation? = nil) {
+        self.insertion = .identity
+        self.removal = .identity
+        self.custom = custom
         self.explicitAnimation = explicitAnimation
     }
 
     private init(_ effect: Effect) {
         self.init(insertion: effect, removal: effect)
+    }
+
+    /// Create an instance that type-erases `transition`.
+    ///
+    /// The built-in transitions erase to the effects they are made of, and
+    /// combine as those do; a transition of your own is drawn through its
+    /// body — see ``Transition``.
+    @MainActor
+    public init<T: Transition>(_ transition: T) {
+        self = transition._erased
     }
 }
 
@@ -142,13 +168,24 @@ extension AnyTransition {
         .offset(x: offset.width, y: offset.height)
     }
 
-    /// Grows from the anchor, and shrinks back to it.
-    public static func scale(anchor: UnitPoint = .center) -> AnyTransition {
-        AnyTransition(.scale(anchor: anchor))
+    /// Grows from `scale` of the view at the anchor, and shrinks back to it.
+    ///
+    /// A cell grid cannot draw a view smaller than its cells, so the view is
+    /// uncovered from the anchor rather than shrunk: `scale` is how much of it
+    /// shows when the transition starts, `0` for none. Above `1` it would be a
+    /// view drawn larger than its slot, which nothing here can draw, so such
+    /// a transition shows the view whole.
+    public static func scale(scale: Double, anchor: UnitPoint = .center) -> AnyTransition {
+        AnyTransition(.scale(factor: scale, anchor: anchor))
     }
 
-    /// Grows from the centre, and shrinks back to it.
-    public static let scale = AnyTransition.scale(anchor: .center)
+    /// Grows from nothing at the centre, and shrinks back to it.
+    public static let scale = AnyTransition.scale(scale: defaultScale)
+
+    /// What ``scale`` scales from: SwiftUI's own value (measured), a hair
+    /// above zero so that its transform stays invertible. In whole cells it is
+    /// nothing.
+    static let defaultScale = 1e-5
 
     /// In from the leading edge, out to the trailing one — SwiftUI's own
     /// definition of a slide, which is asymmetric on purpose: a row leaving a
@@ -156,27 +193,60 @@ extension AnyTransition {
     public static let slide = AnyTransition.asymmetric(
         insertion: .move(edge: .leading), removal: .move(edge: .trailing))
 
+    /// In from `edge` while fading in, and out towards the opposite edge
+    /// while fading out — the way a new screen pushes the old one along.
+    public static func push(from edge: Edge) -> AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: edge).combined(with: .opacity),
+            removal: .move(edge: edge.opposite).combined(with: .opacity))
+    }
+
     /// A transition that arrives one way and leaves another.
     public static func asymmetric(
         insertion: AnyTransition, removal: AnyTransition
     ) -> AnyTransition {
-        AnyTransition(
+        let animation = insertion.explicitAnimation ?? removal.explicitAnimation
+        guard insertion.custom == nil, removal.custom == nil else {
+            return AnyTransition(
+                custom: _AnyTransitionBox(.asymmetric, insertion, removal),
+                explicitAnimation: animation)
+        }
+        return AnyTransition(
             insertion: insertion.insertion, removal: removal.removal,
-            explicitAnimation: insertion.explicitAnimation ?? removal.explicitAnimation)
+            explicitAnimation: animation)
     }
 
     /// This transition and another, applied together.
     public func combined(with other: AnyTransition) -> AnyTransition {
-        AnyTransition(
+        let animation = explicitAnimation ?? other.explicitAnimation
+        guard custom == nil, other.custom == nil else {
+            return AnyTransition(
+                custom: _AnyTransitionBox(.combined, self, other),
+                explicitAnimation: animation)
+        }
+        return AnyTransition(
             insertion: .combined(insertion, other.insertion),
             removal: .combined(removal, other.removal),
-            explicitAnimation: explicitAnimation ?? other.explicitAnimation)
+            explicitAnimation: animation)
     }
 
     /// This transition, run with a particular animation whatever the change
     /// that caused it was made under.
     public func animation(_ animation: Animation?) -> AnyTransition {
-        AnyTransition(
-            insertion: insertion, removal: removal, explicitAnimation: animation)
+        var animated = self
+        animated.explicitAnimation = animation
+        return animated
+    }
+}
+
+extension Edge {
+    /// The edge across from this one.
+    var opposite: Edge {
+        switch self {
+        case .top: .bottom
+        case .bottom: .top
+        case .leading: .trailing
+        case .trailing: .leading
+        }
     }
 }

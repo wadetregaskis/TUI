@@ -226,3 +226,45 @@ it goes. That is a re-layout of the transition's container per frame — the
 cost the buffer-based design exists to avoid — and needs the measure walk to
 scrub as well, which the memoised measure path makes delicate. About two days.
 I would wait for a port that needs it.
+
+### B-W12-2 `TransitionProperties.hasMotion` is recorded, and nothing reads it yet
+
+*`TransitionProperties`, `TransitionProperties.hasMotion`,
+`TransitionProperties.init(hasMotion:)`, `Transition.properties`*
+
+SwiftUI: "When this behavior is included in a transition, that transition will
+be replaced by opacity when Reduce Motion is enabled." TUIkit reads no
+reduce-motion setting (O1 of the refusal review), so Reduce Motion is never on
+and the replacement never happens — which is what SwiftUI does on a Mac with
+the setting off. The built-ins report the values measured on SwiftUI: opacity
+and identity have no motion, everything else has, and a combined or asymmetric
+pair has motion if either half does.
+
+**The fuller version** comes with O1 (b): when the host's reduce-motion
+setting (or `TUIKIT_REDUCE_MOTION`) is on, `View.transition(_:)` swaps a
+transition with motion for `.opacity`. A few lines once the setting exists.
+
+### B-W12-3 A scale transition uncovers from its anchor, and a scale above 1 draws the view whole
+
+*`ScaleTransition` (`init(_:anchor:)`, `scale`, `anchor`),
+`Transition.scale`, `Transition.scale(_:anchor:)`,
+`AnyTransition.scale(scale:anchor:)`*
+
+TUIkit's `.scale` already reveals the view from its anchor a whole cell at a
+time, there being no sub-cell rendering to shrink. The scale factor is now
+where that reveal starts: `.scale(0.5)` shows half the view at once and
+uncovers the rest. `.scale` itself is `ScaleTransition(1e-5)`, SwiftUI's own
+value (measured) — nothing, in whole cells.
+
+A factor above 1 asks for the view to start larger than its slot. A cell grid
+cannot draw that: the reveal is clamped at the whole view, so the transition
+draws the view whole from the first frame. `opacity` above 1 is clamped the
+same way in SwiftUI itself.
+
+TUIkit's own spelling, `AnyTransition.scale(anchor:)`, was not SwiftUI's and is
+gone; `scale(scale: 0, anchor:)` is the same transition.
+
+**The fuller version** would draw an oversized start by cropping the view to
+its middle and widening the crop as it settles — a zoom-out rather than a
+grow. Nothing in TUIkit crops from the middle today; half a day, and I would
+wait for someone to ask.

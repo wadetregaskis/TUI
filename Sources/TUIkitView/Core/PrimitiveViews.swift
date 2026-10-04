@@ -306,7 +306,7 @@ extension ConditionalView: ChildViewProvider {
 /// of one view comes back transparent, so it is pinned to `(its type, 0)` here,
 /// the step a tuple splice would give it, or as a container's only content it
 /// rendered at the container's own identity. Content with several members (a
-/// tuple, a `ForEach`) has no single slot to keep; ``View/transition(_:)``
+/// tuple, a `ForEach`) has no single slot to keep; `View.transition(_:)`
 /// lists it among the removals that still jump.
 extension Optional: ChildViewProvider where Wrapped: View {
     public func childViews(context: RenderContext) -> [ChildView] {

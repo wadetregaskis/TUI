@@ -108,11 +108,31 @@ extension View {
     public func transition(_ transition: AnyTransition) -> some View {
         _TransitionView(content: self, transition: transition)
     }
+
+    /// How this view arrives when it is inserted, and how it leaves when it is
+    /// removed, described by a ``Transition``.
+    ///
+    /// ```swift
+    /// if showDetail {
+    ///     Detail().transition(.push(from: .trailing))
+    /// }
+    /// ```
+    ///
+    /// The transition is erased to an ``AnyTransition`` and then plays exactly
+    /// as `transition(_:)` with an `AnyTransition` describes, including what still
+    /// jumps. A transition with a body of your own is drawn through that body —
+    /// see ``Transition``.
+    ///
+    /// - Parameter transition: How to come and go.
+    /// - Returns: A view that transitions.
+    public func transition<T: Transition>(_ transition: T) -> some View {
+        _TransitionView(content: self, transition: AnyTransition(transition))
+    }
 }
 
 /// Applies a transition to its content while the content is arriving, and
 /// leaves behind what is needed to play it out when the content goes.
-/// See ``View/transition(_:)``.
+/// See `View.transition(_:)`.
 struct _TransitionView<Content: View>: View {
     let content: Content
     let transition: AnyTransition
@@ -129,6 +149,7 @@ private enum StateIndex {
 
 extension _TransitionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let custom = transition.custom { return renderBody(of: custom, context: context) }
         let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, let storage = context.stateStorage else { return buffer }
 
@@ -189,9 +210,82 @@ extension _TransitionView: Renderable {
 extension _TransitionView: Layoutable {
     /// A transition never changes the size of its slot — see ``AnyTransition``
     /// on why the effects are applied to the buffer rather than to layout — so
-    /// this measures exactly as its content.
+    /// this measures exactly as its content, or as a custom body at rest.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+        guard let custom = transition.custom else {
+            return measureChild(content, proposal: proposal, context: context)
+        }
+        return custom.measure(
+            phase: .identity,
+            content: .transitionContent(
+                content, at: context.identity, keepingIn: TransitionContentPicture()),
+            proposal: proposal, context: context)
+    }
+}
+
+// MARK: - A body of the app's own
+
+extension _TransitionView {
+    /// A ``Transition`` with a body of the app's own: the body at rest, or —
+    /// arriving — scrubbed from `.willAppear`, leaving behind the body
+    /// scrubbed towards `.didDisappear` around the content's last picture.
+    ///
+    /// The same arrival phase, explicit animation and departure contract as
+    /// the effects path above; only what is drawn at a given presence
+    /// differs. See ``Transition`` and `TransitionScrub`.
+    private func renderBody(of custom: _AnyTransitionBox, context: RenderContext) -> FrameBuffer {
+        let picture = TransitionContentPicture()
+        let live = PlaceholderSource.transitionContent(
+            content, at: context.identity, keepingIn: picture)
+        guard !context.isMeasuring, let storage = context.stateStorage else {
+            return custom.render(phase: .identity, content: live, context: context)
+        }
+
+        let animation =
+            transition.explicitAnimation
+            ?? (context.environment.canAnimate
+                ? context.environment.transaction.effectiveAnimation : nil)
+        // Per-frame work no memo may skip, for the reasons the effects path
+        // gives.
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+
+        let key = AnimationStore.Key(
+            identity: context.identity, owner: ObjectIdentifier(Self.self),
+            slot: StateIndex.phase)
+        let phase = storage.animations.arrivalPhase(
+            for: key, animation: animation,
+            nowNanos: context.environment.frameNowNanos, isMeasuring: false)
+        var buffer = custom.render(
+            presence: phase, from: .willAppear, content: live,
+            recordingAround: .transitionBlank(content, at: context.identity), context: context)
+        if phase != 1 {
+            // The slot is the body's size at rest, which is what the layout
+            // measured; a body bigger part-way is drawn inside it.
+            let rest = custom.measure(
+                phase: .identity, content: live,
+                proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+                context: context)
+            buffer = buffer.clamped(toWidth: rest.width, height: rest.height)
+        }
+
+        // The content's picture, as the body was handed it this frame: a
+        // departing view has nothing else left to draw.
+        let parting = picture.buffer ?? FrameBuffer()
+        let arrival = min(1, max(0, phase))
+        let (width, height) = (buffer.width, buffer.lines.count)
+        storage.departures.present(
+            DepartureStore.Departure(
+                viewType: Self.self, width: width, height: height,
+                explicitAnimation: transition.explicitAnimation,
+                render: { departurePhase in
+                    custom.render(
+                        presence: departurePhase * arrival, from: .didDisappear,
+                        content: .departedContent(parting),
+                        recordingAround: .departedBlank(parting), context: context
+                    ).clamped(toWidth: width, height: height)
+                }),
+            at: context.identity)
+        return buffer
     }
 }
 

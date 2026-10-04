@@ -129,6 +129,16 @@ public final class AnimationStore: @unchecked Sendable {
     /// sweep can be skipped entirely when nothing did.
     private var servedAnyByRuns = false
 
+    /// A transition body being drawn part-way between two of its phases, which
+    /// answers every lookup while it is installed — see ``TransitionScrub``.
+    ///
+    /// `nil` but for the length of one such draw. The one cost it puts on
+    /// everything else is a load and a compare in ``isSettled(_:at:isMeasuring:)``
+    /// and ``value(for:target:animation:nowNanos:isMeasuring:)``: a field of
+    /// this object, beside the records already being read, not an environment
+    /// probe or a field of every `RenderContext` copy.
+    package var scrub: TransitionScrub?
+
     /// Creates an empty store.
     public init() {}
 
@@ -154,6 +164,9 @@ extension AnimationStore {
     public func value<D: VectorArithmetic>(
         for key: Key, target: D, animation: Animation?, nowNanos: Int64, isMeasuring: Bool
     ) -> D {
+        // A transition body drawn part-way answers from its own two renders,
+        // and must neither read nor write the records — see `TransitionScrub`.
+        if let scrub { return scrub.value(for: key, target: target) }
         // The settled case is answered by ``isSettled(_:at:isMeasuring:)``
         // before this is reached; what follows is the first sight, the
         // change, and the animation in flight.
@@ -289,7 +302,8 @@ extension AnimationStore {
     public func cycle<D: VectorArithmetic & Sendable>(
         for key: Key, nowNanos: Int64, step: Int
     ) -> AnimationCycle<D>? {
-        guard let record = records[key],
+        // A scrubbed body is a picture of one instant, not a cycle to replay.
+        guard scrub == nil, let record = records[key],
             let animation = record.animation, animation.repeatsForever,
             let from = record.from as? D, let target = record.target as? D
         else { return nil }
@@ -370,7 +384,9 @@ extension AnimationStore {
     /// revisits this needs the settled test and the value fetch to share ONE
     /// lookup, not two.
     public func isSettled<D: VectorArithmetic>(_ key: Key, at target: D, isMeasuring: Bool) -> Bool {
-        guard let index = records.index(forKey: key),
+        // Never settled while a scrub is drawing: the value must reach
+        // `value(for:…)`, where the scrub answers it.
+        guard scrub == nil, let index = records.index(forKey: key),
             records.values[index].animation == nil,
             let recorded = records.values[index].target as? D, recorded == target,
             let from = records.values[index].from as? D, from == target

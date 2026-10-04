@@ -178,7 +178,7 @@ content is *coloured* rather than what it *says*, the lower-level route in
 
 ## Coming and going
 
-``View/transition(_:)`` says how a view arrives when it is inserted and how it
+`View.transition(_:)` says how a view arrives when it is inserted and how it
 leaves when it is removed:
 
 ```swift
@@ -188,12 +188,33 @@ if showDetail {
 ```
 
 ``AnyTransition/opacity``, ``AnyTransition/move(edge:)``,
-``AnyTransition/slide``, ``AnyTransition/offset(x:y:)``,
-``AnyTransition/scale(anchor:)`` and ``AnyTransition/identity`` compose with
-``AnyTransition/combined(with:)`` and ``AnyTransition/asymmetric(insertion:removal:)``.
-A transition runs *only* when the change that caused it was animated, so
-leaving one on a view that also appears for other reasons — a page opening, a
-list rebuilding — stays instant.
+``AnyTransition/slide``, ``AnyTransition/push(from:)``,
+``AnyTransition/offset(x:y:)``, ``AnyTransition/scale(scale:anchor:)`` and
+``AnyTransition/identity`` compose with ``AnyTransition/combined(with:)`` and
+``AnyTransition/asymmetric(insertion:removal:)``. Each is also a ``Transition``
+type of its own — ``OpacityTransition``, ``MoveTransition`` and the rest — and
+`.transition(_:)` takes either spelling. A transition runs *only* when the change
+that caused it was animated, so leaving one on a view that also appears for
+other reasons — a page opening, a list rebuilding — stays instant.
+
+A ``Transition`` of your own describes the view at each ``TransitionPhase`` with
+ordinary modifiers, and what animates is each modifier's value between one phase
+and the next:
+
+```swift
+struct SlideAndFade: Transition {
+    func body(content: Content, phase: TransitionPhase) -> some View {
+        content
+            .opacity(phase.isIdentity ? 1 : 0)
+            .offset(x: Int(phase.value) * 4)
+    }
+}
+```
+
+It is drawn by rendering its body at the end phase, noting every animatable
+value, and rendering it again at rest with each value part-way there — the same
+interpolation an animated change performs. ``Transition`` lists what differs
+from SwiftUI.
 
 The effects apply to the rendered cells rather than to layout: a view sliding
 in gets its space at once and moves into it. `.scale` has no sub-cell rendering
@@ -209,7 +230,7 @@ siblings or is the stack's only content, and with a `.frame` or an `.opacity`
 around it. Put the `.transition` on the view the `if` holds — after anything
 that draws, though a modifier that draws nothing of its own, such as
 `.onAppear` or `.foregroundStyle`, may come after it: a few shapes still remove
-at once, and ``View/transition(_:)`` lists them.
+at once, and `View.transition(_:)` lists them.
 
 ## Springs
 
@@ -235,8 +256,19 @@ animation retires there.
 
 ### Coming and going
 
-- ``View/transition(_:)``
 - ``AnyTransition``
+- ``Transition``
+- ``TransitionPhase``
+- ``TransitionProperties``
+- ``PlaceholderContentView``
+- ``OpacityTransition``
+- ``MoveTransition``
+- ``OffsetTransition``
+- ``ScaleTransition``
+- ``SlideTransition``
+- ``PushTransition``
+- ``IdentityTransition``
+- ``AsymmetricTransition``
 
 ### Declaring what moves
 

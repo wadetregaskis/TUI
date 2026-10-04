@@ -135,10 +135,10 @@ struct TransitionTests {
     @Test("A view revealed by scale uncovers a cell at a time")
     func insertionScales() {
         let screen = Screen(.linear(duration: 1))
-        _ = screen.draw(false, .scale(anchor: .leading), atMillis: 0)
-        _ = screen.draw(true, .scale(anchor: .leading), atMillis: 0)
-        #expect(screen.draw(true, .scale(anchor: .leading), atMillis: 500)[0] == "XX  ")
-        #expect(screen.draw(true, .scale(anchor: .leading), atMillis: 1000)[0] == "XXXX")
+        _ = screen.draw(false, .scale(scale: 0, anchor: .leading), atMillis: 0)
+        _ = screen.draw(true, .scale(scale: 0, anchor: .leading), atMillis: 0)
+        #expect(screen.draw(true, .scale(scale: 0, anchor: .leading), atMillis: 500)[0] == "XX  ")
+        #expect(screen.draw(true, .scale(scale: 0, anchor: .leading), atMillis: 1000)[0] == "XXXX")
     }
 
     @Test("Without an animation an appearance is instant")

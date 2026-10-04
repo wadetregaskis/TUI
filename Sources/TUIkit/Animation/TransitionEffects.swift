@@ -79,8 +79,10 @@ extension AnyTransition.Effect {
             let away = 1 - present
             return Self.moved(
                 buffer, dx: Self.scaled(x, away), dy: Self.scaled(y, away), away: away)
-        case .scale(let anchor):
-            let grown = min(1, present)
+        case .scale(let factor, let anchor):
+            // From `factor` of the view at no presence to all of it at full;
+            // never more than all of it — see `AnyTransition.scale(scale:anchor:)`.
+            let grown = min(1, max(0, factor + (1 - factor) * present))
             guard grown < 1 else { return TransitionPicture(buffer: buffer) }
             return TransitionPicture(buffer: Self.revealed(buffer, by: grown, anchor: anchor))
         case .combined(let first, let second):

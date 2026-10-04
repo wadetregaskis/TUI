@@ -36,7 +36,7 @@ import TUIkitCore
 /// A provider with a picture of its own between the `if` and the view — a
 /// modifier on a `Group`, say — cannot conform: the slot would draw the view's
 /// parting picture without it. Nor can one with several members, which has no
-/// single slot to keep. Both still remove at once; ``View/transition(_:)``
+/// single slot to keep. Both still remove at once; `View.transition(_:)`
 /// lists them.
 @MainActor
 package protocol DepartingSlotAddressing {
