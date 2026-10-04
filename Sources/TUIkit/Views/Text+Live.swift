@@ -149,7 +149,10 @@ extension Text {
     /// A text with no next change — a finished timer, a time of day — declares
     /// nothing, and memoises like any other.
     func readingLive(declaringIn context: RenderContext, measuring: Bool) -> Text? {
-        guard runs != nil else { return nil }
+        // Asked before the environment is copied out: building the calendar
+        // with the environment's zone on it allocates, and a concatenation
+        // with nothing live must not pay for that on every frame.
+        guard isLive else { return nil }
         let date = context.renderCache?.frameDate ?? Date()
         guard let (text, next) = readingLive(at: date, in: LiveTextEnvironment(context.environment)) else {
             return nil
