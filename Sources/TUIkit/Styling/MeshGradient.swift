@@ -71,6 +71,8 @@ import TUIkitStyling
 ///   the stage before its final matrix.
 /// - **Translucent colours blend premultiplied**: halfway between red and
 ///   `.clear` is red at half strength, not a darker red.
+/// - **Inside `withAnimation`** the vertices slide and the colours fade, each
+///   on its own, as a gradient's stops do; a mesh that changes shape snaps.
 /// - **`background`** fills whatever the patches do not cover. A mesh with
 ///   fewer than two vertices in either direction, or a point count other than
 ///   `width × height`, draws nothing but its background; a vertex with no

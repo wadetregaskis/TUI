@@ -62,9 +62,59 @@ enum PaintAnimation {
             return .color(ColorAnimation.resolving(colour, owner: owner, context: context))
         case .gradient(let ramped):
             return .gradient(resolving(ramped, owner: owner, context: context))
-        case .mesh:
-            return target
+        case .mesh(let mesh):
+            return .mesh(resolving(mesh, owner: owner, context: context))
         }
+    }
+
+    /// A mesh with every vertex — its colour, its position and any control
+    /// points it states — and its background moved to where they are this frame.
+    ///
+    /// As SwiftUI moves one, measured on macOS 15.8: a mesh whose middle column
+    /// moved inside `withAnimation(.linear(duration: 2))` drew it at 50, 82,
+    /// 118 and 150 of 200 points at each 0.4 s, and its colours stepped exactly
+    /// as a `LinearGradient`'s stops did beside it. The `points:` form's implied
+    /// control points are not animated: they follow the moving vertices, worked
+    /// out afresh each frame, which is what a mesh that only states positions
+    /// means.
+    ///
+    /// A mesh of another shape — another width or height, or the other form of
+    /// locations — snaps, its slots being others (``Slot/mesh(_:)``).
+    @MainActor
+    private static func resolving(_ target: MeshPaint, owner: Any.Type, context: RenderContext) -> MeshPaint {
+        var moved = target
+        let base = Slot.mesh(target)
+        @MainActor
+        func scalar(_ value: Float, vertex: Int, component: Int) -> Float {
+            let drawn = Self.scalar(
+                Double(value), owner: owner, slot: base - vertex * Slot.perVertex - 1 - component, context: context)
+            return Float(drawn)
+        }
+        @MainActor
+        func point(_ value: SIMD2<Float>, vertex: Int, _ which: Int) -> SIMD2<Float> {
+            SIMD2(
+                scalar(value.x, vertex: vertex, component: 2 * which),
+                scalar(value.y, vertex: vertex, component: 2 * which + 1))
+        }
+        moved.colors = target.colors.enumerated().map { vertex, colour in
+            ColorAnimation.resolving(colour, owner: owner, slot: base - vertex * Slot.perVertex, context: context)
+        }
+        moved.background = ColorAnimation.resolving(target.background, owner: owner, slot: base + 1, context: context)
+        switch target.locations {
+        case .points(let points):
+            moved.locations = .points(points.enumerated().map { point($1, vertex: $0, 0) })
+        case .bezierPoints(let points):
+            moved.locations = .bezierPoints(
+                points.enumerated().map { vertex, bezier in
+                    MeshGradient.BezierPoint(
+                        position: point(bezier.position, vertex: vertex, 0),
+                        leadingControlPoint: point(bezier.leadingControlPoint, vertex: vertex, 1),
+                        topControlPoint: point(bezier.topControlPoint, vertex: vertex, 2),
+                        trailingControlPoint: point(bezier.trailingControlPoint, vertex: vertex, 3),
+                        bottomControlPoint: point(bezier.bottomControlPoint, vertex: vertex, 4))
+                })
+        }
+        return moved
     }
 
     /// A ramp with every stop — and the geometry — moved to where it is this
@@ -159,5 +209,24 @@ enum PaintAnimation {
         static func stopLocation(_ index: Int) -> Int { 2 + 2 * index }
         /// Negative, so no number of stops can reach it.
         static func geometry(_ kind: Int, _ component: Int) -> Int { -1 - (kind * 4 + component) }
+
+        /// A mesh vertex's slots: its colour, then two numbers for its position
+        /// and two for each of the four control points the `bezierPoints:` form
+        /// states.
+        static let perVertex = 11
+
+        /// Where a mesh's slots start, counting DOWN from it by vertex, with the
+        /// background one above. Far below the geometries', and different for
+        /// every shape of mesh — width, height and form, each taken modulo 64 —
+        /// so a mesh that changes shape starts afresh rather than moving vertex
+        /// 4 of a 3 × 3 grid toward vertex 4 of a 2 × 4 one. A shape 64 vertices
+        /// wider or taller shares slots, and a mesh past 95,000 vertices runs
+        /// into the next shape's; both are far from anything drawn in a
+        /// terminal, and the worst they do is start a move from the wrong place.
+        static func mesh(_ paint: MeshPaint) -> Int {
+            let form = if case .bezierPoints = paint.locations { 1 } else { 0 }
+            let shape = (form * 64 + (paint.width & 63)) * 64 + (paint.height & 63)
+            return -(1 << 40) - shape * (1 << 20)
+        }
     }
 }

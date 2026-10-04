@@ -1051,7 +1051,12 @@ overshoots; `.perceptual` decides those slopes in OKLab's **cube-root cone
 space**, not in OKLab itself; translucent colours blend **premultiplied**; and
 `background` fills what the patches leave uncovered. A malformed mesh (fewer
 than two vertices across, or a point count other than `width × height`) draws
-its background alone, and a missing colour is `.clear`, as in SwiftUI.
+its background alone, and a missing colour is `.clear`, as in SwiftUI. Inside
+`withAnimation` a mesh's vertices slide and its colours and background fade,
+each vertex's numbers on their own animation entries as a gradient's stops are;
+SwiftUI's does the same (measured: a column moved at even steps, its colours
+stepping exactly as a `LinearGradient`'s stops beside it), and a mesh that
+changes shape snaps.
 
 ---
 
