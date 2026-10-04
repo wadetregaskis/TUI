@@ -375,9 +375,18 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
 
     /// Whether a label line is drawn above the bar — shared by `sizeThatFits`
     /// and `renderToBuffer` so the height the two report cannot diverge.
+    ///
+    /// The `EmptyView` case is answered by type first: an unlabelled bar's
+    /// labels are `EmptyView?`, nil or not, and a non-nil `EmptyView` is `is
+    /// EmptyView`, so both spellings say false. The metatype compare is what
+    /// spares it `label != nil`, which in this unspecialised generic is an
+    /// `Optional<Label>` metadata lookup per call (69 µs of a frame of 200
+    /// bars).
     private var hasLabelLine: Bool {
-        let hasLabel = label != nil && !(label is EmptyView)
-        let hasValueLabel = currentValueLabel != nil && !(currentValueLabel is EmptyView)
+        let hasLabel = Label.self != EmptyView.self && label != nil && !(label is EmptyView)
+        let hasValueLabel =
+            CurrentValueLabel.self != EmptyView.self && currentValueLabel != nil
+            && !(currentValueLabel is EmptyView)
         return hasLabel || hasValueLabel
     }
 

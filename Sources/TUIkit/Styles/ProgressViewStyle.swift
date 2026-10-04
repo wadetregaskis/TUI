@@ -239,18 +239,50 @@ struct _StyledProgressView<Label: View, CurrentValueLabel: View>: View, Renderab
         .environment(\.progressViewStyleChain, styles.inside)
     }
 
+    /// Whether `style` is a built-in linear style — one of the two conformers of
+    /// the internal ``LinearProgressViewStyleKind`` — asked by metatype identity.
+    ///
+    /// Two pointer compares, where `style is any LinearProgressViewStyleKind` was a
+    /// `swift_dynamicCast` to a constrained existential, a conformance-cache probe
+    /// on every measure and every render: 134 µs of a frame of 200 progress bars.
+    /// Exact because the protocol is internal and has exactly these two
+    /// conformers; the assert says so if a third is ever added. NOT a public
+    /// requirement on ``ProgressViewStyle``, which is SwiftUI's protocol and
+    /// keeps SwiftUI's shape.
+    private static func drawsLinearBar(_ style: any ProgressViewStyle) -> Bool {
+        let styleType = type(of: style)
+        let isLinear = styleType == DefaultProgressViewStyle.self || styleType == LinearProgressViewStyle.self
+        assert(
+            isLinear == (style is any LinearProgressViewStyleKind),
+            "a LinearProgressViewStyleKind conformer drawsLinearBar does not name")
+        return isLinear
+    }
+
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let styles = context.environment.progressViewStyleChain
-        if styles.style is any LinearProgressViewStyleKind {
-            return TUIkit.renderToBuffer(core, context: context)
+        if Self.drawsLinearBar(styles.style) {
+            // In place, at this view's own identity and context: what the generic
+            // `renderToBuffer` does for the core (not Animatable, so no
+            // substitution) minus its clamp — which the render that reached this
+            // one applies to the same context anyway, and a clamp is idempotent.
+            return core.renderToBuffer(context: context)
         }
         return TUIkit.renderToBuffer(styledBody(styles), context: context.withBranchIdentity("styled"))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let styles = context.environment.progressViewStyleChain
-        if styles.style is any LinearProgressViewStyleKind {
-            return measureChild(core, proposal: proposal, context: context)
+        if Self.drawsLinearBar(styles.style) {
+            // In place, with no measure memo entry of its own. `measureChild` here
+            // was a second entry at this view's identity, for the same proposal and
+            // the same reads (the style chain is not volatile), so it could never
+            // serve a miss of this view's own entry — it was only ever stored, at
+            // the cost of a value hash, a key, a lookup, a lease and a store per
+            // bar per pass. `isMeasuring` as `measureChild` would have set it.
+            if context.isMeasuring { return core.sizeThatFits(proposal: proposal, context: context) }
+            var measuring = context
+            measuring.isMeasuring = true
+            return core.sizeThatFits(proposal: proposal, context: measuring)
         }
         return measureChild(styledBody(styles), proposal: proposal, context: context.withBranchIdentity("styled"))
     }
