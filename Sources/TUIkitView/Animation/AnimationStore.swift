@@ -139,6 +139,11 @@ public final class AnimationStore: @unchecked Sendable {
     /// probe or a field of every `RenderContext` copy.
     package var scrub: TransitionScrub?
 
+    /// Where the animations a pass starts are reported, for the completions
+    /// waiting on them — see ``AnimationCompletionTracker``. Wired by the
+    /// ``StateStorage`` that owns both.
+    package var completionTracker: AnimationCompletionTracker?
+
     /// Creates an empty store.
     public init() {}
 
@@ -225,6 +230,7 @@ extension AnimationStore {
         store(
             Record(from: presented, target: target, animation: animation, startNanos: nowNanos),
             for: key, isMeasuring: isMeasuring)
+        noteStarted(animation, at: nowNanos, key: key, isMeasuring: isMeasuring)
         return presented
     }
 
@@ -254,7 +260,29 @@ extension AnimationStore {
         store(
             Record(from: 0.0, target: 1.0, animation: animation, startNanos: nowNanos),
             for: key, isMeasuring: isMeasuring)
+        noteStarted(animation, at: nowNanos, key: key, isMeasuring: isMeasuring)
         return 0
+    }
+
+    /// Reports an animation this pass started to the completions waiting on
+    /// the change — a measure starts nothing.
+    private func noteStarted(
+        _ animation: Animation, at nowNanos: Int64, key: Key, isMeasuring: Bool
+    ) {
+        guard !isMeasuring, let completionTracker, completionTracker.isCollecting else { return }
+        completionTracker.noteStarted(animation, at: nowNanos, key: key)
+    }
+
+    /// Whether anything is recorded at `key` — whether the tree still asks
+    /// about the value there.
+    package func hasRecord(at key: Key) -> Bool {
+        records[key] != nil
+    }
+
+    /// Whether the value at `key` is still moving at `nowNanos`.
+    package func isAnimating(at key: Key, nowNanos: Int64) -> Bool {
+        guard let record = records[key], let animation = record.animation else { return false }
+        return !animation.isFinished(at: elapsed(record, nowNanos))
     }
 
     /// Whether `value` differs from the last one seen at `key`.

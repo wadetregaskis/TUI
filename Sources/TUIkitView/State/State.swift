@@ -30,6 +30,10 @@ public final class AppState: Sendable {
     private struct StateData: Sendable {
         var needsRender = false
         var pendingTransaction: Transaction?
+        /// Every completion a change since the last frame was made under — not
+        /// only the last transaction's: a frame renders under one transaction,
+        /// but each completion must still fire exactly once.
+        var pendingCompletions: [AnimationCompletion] = []
         var pendingAnimationClocks: Set<AnimationClock> = []
         var needsCacheClear = false
         var shouldExit = false
@@ -47,6 +51,13 @@ public final class AppState: Sendable {
         mutating func recordAmbientTransaction() {
             guard let ambient = Transaction.ambient else { return }
             pendingTransaction = ambient
+            for completion in ambient.completions
+            where !pendingCompletions.contains(where: { $0 === completion }) {
+                // Claimed: the render that shows this change decides when it
+                // fires, rather than the `withTransaction` it was made in.
+                completion.claim()
+                pendingCompletions.append(completion)
+            }
         }
     }
 
@@ -120,6 +131,17 @@ extension AppState {
         lock.withLock { state in
             defer { state.pendingTransaction = nil }
             return state.pendingTransaction
+        }
+    }
+
+    /// Takes the completions every change since the last frame was made
+    /// under, clearing them. Called by the run loop with
+    /// ``consumePendingTransaction()``: the pass that renders the change
+    /// places them (``AnimationCompletionTracker``).
+    public func consumePendingCompletions() -> [AnimationCompletion] {
+        lock.withLock { state in
+            defer { state.pendingCompletions = [] }
+            return state.pendingCompletions
         }
     }
 

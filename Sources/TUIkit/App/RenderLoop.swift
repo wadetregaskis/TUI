@@ -623,6 +623,11 @@ extension RenderLoop {
 
         keepAnimating(scheduler: animationScheduler, frameNowNanos: frameNowNanos)
 
+        // After the prune, so a value whose view left counts as removed. Run
+        // last: a completion may change state, which only asks for a frame.
+        tuiContext.stateStorage.animationCompletions.endPass(
+            at: frameNowNanos, animations: tuiContext.stateStorage.animations)
+
         return recordActivity(
             usesPulse: (environment.volatileReadTracker?.reads ?? 0) > 0,
             usesCursor: cursorTimer?.didReadThisFrame ?? false,
@@ -1199,6 +1204,10 @@ extension RenderLoop {
         // that first shows the change. A frame that renders for some other
         // reason must not restart animations that already began.
         environment.transaction = AppState.shared.consumePendingTransaction() ?? Transaction()
+        // The completions waiting on the change go with it: this pass starts
+        // its animations, and so decides when they fire.
+        tuiContext.stateStorage.animationCompletions.beginPass(
+            placing: AppState.shared.consumePendingCompletions())
     }
 
     /// Keeps the frames coming while anything is still moving.

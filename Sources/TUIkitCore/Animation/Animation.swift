@@ -55,6 +55,12 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
     /// The rate multiplier. 2 runs it twice as fast.
     let speedFactor: Double
 
+    /// When ``logicallyComplete(after:)`` says the animation logically
+    /// completes, counted from its start and before ``speed(_:)``; negative
+    /// for "when it naturally does". A sentinel rather than an optional so the
+    /// struct stays whole words.
+    let logicalCompletion: TimeInterval
+
     /// How the pass repeats.
     let repeatMode: Repeat
 
@@ -63,13 +69,29 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
         passDuration: TimeInterval,
         delayInterval: TimeInterval = 0,
         speedFactor: Double = 1,
+        logicalCompletion: TimeInterval = -1,
         repeatMode: Repeat = .count(1, autoreverses: false)
     ) {
         self.curve = curve
         self.passDuration = max(0, passDuration)
         self.delayInterval = max(0, delayInterval)
         self.speedFactor = speedFactor > 0 ? speedFactor : 1
+        self.logicalCompletion = logicalCompletion.isNaN ? -1 : logicalCompletion
         self.repeatMode = repeatMode
+    }
+
+    /// This animation with some of its modifiers replaced — the one place
+    /// every modifier rebuilds it, so a new field cannot be dropped by one.
+    private func with(
+        delayInterval: TimeInterval? = nil, speedFactor: Double? = nil,
+        logicalCompletion: TimeInterval? = nil, repeatMode: Repeat? = nil
+    ) -> Self {
+        Self(
+            curve: curve, passDuration: passDuration,
+            delayInterval: delayInterval ?? self.delayInterval,
+            speedFactor: speedFactor ?? self.speedFactor,
+            logicalCompletion: logicalCompletion ?? self.logicalCompletion,
+            repeatMode: repeatMode ?? self.repeatMode)
     }
 }
 
@@ -193,17 +215,36 @@ extension Animation {
 extension Animation {
     /// This animation, started `delay` seconds later.
     public func delay(_ delay: TimeInterval) -> Animation {
-        Animation(
-            curve: curve, passDuration: passDuration, delayInterval: delayInterval + delay,
-            speedFactor: speedFactor, repeatMode: repeatMode)
+        with(
+            delayInterval: delayInterval + delay,
+            // A completion time is counted from the start, which moved.
+            logicalCompletion: logicalCompletion < 0 ? nil : logicalCompletion + delay)
     }
 
     /// This animation, run `speed` times as fast. The delay scales with it, as
     /// it does in SwiftUI.
     public func speed(_ speed: Double) -> Animation {
-        Animation(
-            curve: curve, passDuration: passDuration, delayInterval: delayInterval,
-            speedFactor: speedFactor * speed, repeatMode: repeatMode)
+        with(speedFactor: speedFactor * speed)
+    }
+
+    /// Causes the animation to report logical completion after the specified
+    /// duration, if it has not already logically completed.
+    ///
+    /// Note that the indicated duration will not cause the animation to
+    /// continue running after the base animation has fully completed.
+    ///
+    /// If the animation is removed before the given duration is reached,
+    /// logical completion will be reported immediately.
+    ///
+    /// The duration is counted from the animation's start, delay included, and
+    /// scales with ``speed(_:)`` as the delay does.
+    ///
+    /// - Parameter duration: The duration after which the animation should
+    ///   report that it is logically complete.
+    /// - Returns: An animation that reports logical completion after the given
+    ///   duration.
+    public func logicallyComplete(after duration: TimeInterval) -> Animation {
+        with(logicalCompletion: max(0, duration))
     }
 
     /// This animation, played `repeatCount` times.
@@ -212,10 +253,7 @@ extension Animation {
     /// pass runs backwards, so an even count ends where it started and an odd
     /// one ends at the target.
     public func repeatCount(_ repeatCount: Int, autoreverses: Bool = true) -> Animation {
-        Animation(
-            curve: curve, passDuration: passDuration, delayInterval: delayInterval,
-            speedFactor: speedFactor,
-            repeatMode: .count(max(1, repeatCount), autoreverses: autoreverses))
+        with(repeatMode: .count(max(1, repeatCount), autoreverses: autoreverses))
     }
 
     /// This animation, played until something stops it.
@@ -227,9 +265,7 @@ extension Animation {
     ///   where it cannot, it re-renders the affected subtree for as long as the
     ///   view is on screen.
     public func repeatForever(autoreverses: Bool = true) -> Animation {
-        Animation(
-            curve: curve, passDuration: passDuration, delayInterval: delayInterval,
-            speedFactor: speedFactor, repeatMode: .forever(autoreverses: autoreverses))
+        with(repeatMode: .forever(autoreverses: autoreverses))
     }
 }
 
@@ -249,6 +285,26 @@ extension Animation {
         case .count(let n, _): effectiveDelay + effectivePassDuration * Double(n)
         case .forever: nil
         }
+    }
+
+    /// How long from the animation's start until it LOGICALLY completes — the
+    /// moment a ``AnimationCompletionCriteria/logicallyComplete`` completion
+    /// fires — or `nil` if it never does.
+    ///
+    /// For a curve that is its end. For a spring it is the end of the last
+    /// pass's PACE, the `duration:` the spring was made with: the value has
+    /// all but arrived and what remains is its settling, the "long tail"
+    /// SwiftUI's criterion describes. ``logicallyComplete(after:)`` can bring
+    /// it forward, never past the end.
+    public var logicalCompletionDuration: TimeInterval? {
+        guard let total = totalDuration, case .count(let passes, _) = repeatMode else { return nil }
+        var natural = total
+        if case .spring(let omega, _) = curve, omega > 0 {
+            let pace = min(passDuration, 2 * Double.pi / omega)
+            natural = (delayInterval + passDuration * Double(passes - 1) + pace) / speedFactor
+        }
+        guard logicalCompletion >= 0 else { return natural }
+        return min(natural, logicalCompletion / speedFactor)
     }
 
     /// Whether this animation runs without end.
@@ -335,6 +391,7 @@ extension Animation {
         var text = curveDescription
         if delayInterval != 0 { text += ".delay(\(delayInterval))" }
         if speedFactor != 1 { text += ".speed(\(speedFactor))" }
+        if logicalCompletion >= 0 { text += ".logicallyComplete(after: \(logicalCompletion))" }
         switch repeatMode {
         case .count(1, _): break
         case .count(let n, let autoreverses):

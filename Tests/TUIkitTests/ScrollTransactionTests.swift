@@ -86,7 +86,7 @@ struct ScrollTransactionTests {
         transaction.scrollTargetAnchor = nil
         #expect(transaction.scrollTargetAnchor == nil)
         // A Binding carries a transaction inline; the anchor costs two bytes.
-        #expect(MemoryLayout<Transaction>.size == 84)
+        #expect(MemoryLayout<Transaction>.size == 92)
         #expect(interiorPadding(of: Transaction.self).isEmpty)
     }
 

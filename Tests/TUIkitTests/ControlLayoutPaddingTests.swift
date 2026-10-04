@@ -23,12 +23,13 @@ struct ControlLayoutPaddingTests {
     /// on a word, so the disabled flag moved from before the binding to after it.
     /// 206 since custom transaction values (2026-10-03): the binding's
     /// transaction leads with a reference to them, a word it adds without
-    /// padding.
-    @Test("A Toggle titled with a string: no padding, 208 → 206 bytes")
+    /// padding. 214 since `Animation.logicallyComplete(after:)` (the same
+    /// day): the transaction's animation carries the completion time, a word.
+    @Test("A Toggle titled with a string: no padding, 208 → 214 bytes")
     func toggle() {
         typealias Titled = Toggle<Text>
         #expect(interiorPadding(of: Titled.self).isEmpty, "\(interiorPadding(of: Titled.self))")
-        #expect(MemoryLayout<Titled>.size == 206)
+        #expect(MemoryLayout<Titled>.size == 214)
     }
 
     @Test("A ProgressView with no labels: no padding, 97 → 90 → 106 bytes")

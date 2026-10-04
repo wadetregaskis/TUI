@@ -99,6 +99,11 @@ public final class DepartureStore: @unchecked Sendable {
 
     private var entries: [ViewIdentity: Entry] = [:]
 
+    /// Where a removal starting is reported, for the completions waiting on
+    /// the change that removed the view — see ``AnimationCompletionTracker``.
+    /// Wired by the ``StateStorage`` that owns both.
+    package var completionTracker: AnimationCompletionTracker?
+
     /// Creates an empty store.
     public init() {}
 
@@ -165,6 +170,10 @@ extension DepartureStore {
         else {
             entries.removeValue(forKey: identity)
             return nil
+        }
+        if entry.leftAtNanos == nil {
+            // The removal starts on this frame, under this frame's change.
+            completionTracker?.noteStarted(animation, at: nowNanos, key: nil)
         }
         let left = entry.leftAtNanos ?? nowNanos
         entry.leftAtNanos = left

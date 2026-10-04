@@ -296,3 +296,52 @@ takes over from an animated change made earlier in the same frame.
 
 **The fuller version** of `tracksVelocity` is O3's: velocity-preserving
 retargeting needs integrated animations, the `CustomAnimation` question.
+
+### B-W12-5 When a completion fires: the pass that shows the change decides, and a spring logically completes at its pace
+
+*`AnimationCompletionCriteria` (`.logicallyComplete`, `.removed`),
+`Transaction.addAnimationCompletion(criteria:_:)`,
+`withAnimation(_:completionCriteria:_:completion:)`,
+`Animation.logicallyComplete(after:)`*
+
+SwiftUI fires a completion "when the animations created with this
+transaction are all complete", exactly once, and "immediately after `body`"
+if the changes created none.
+
+**Shipped.** A completion rides the transaction onto the state change made
+under it; the frame that renders the change starts its animations, and the
+stores report each one they start (an animated value, an arriving transition,
+a departing one) for that pass only. Then:
+
+- **Nothing changed** in `body` (no state change claimed the completion): it
+  runs as `withTransaction` returns.
+- **Something changed but nothing animated:** it runs when that frame's pass
+  ends.
+- **`.logicallyComplete`:** when the latest logical completion among the
+  started animations has passed. A curve completes at its end. A spring
+  completes at the end of its pace — the `duration:` it was made with — and
+  settles after that; SwiftUI calls that "the long tail". `.logicallyComplete
+  (after:)` brings the point forward (it scales with `speed`, as the delay
+  does), never past the end. A later change does not move it.
+- **`.removed`:** when the latest end has passed and none of the values the
+  pass started is still animating, so a retarget makes it wait for the new
+  animation too.
+- **A value whose view has left** is removed, so its completion fires
+  whatever the deadlines say; a `repeatForever` animation still on screen
+  never completes, as in SwiftUI.
+
+Two transactions in one frame render under the last one (the rule TUIkit
+already had), but each keeps its completion: the pending completions are
+collected separately from the pending transaction.
+
+**Readings, not measurements.** That a spring logically completes at its
+perceptual duration is from SwiftUI's description of a spring's `duration`
+("the perceptual duration, which defines the pace of the spring"); a
+completion's timing could not be measured with an offscreen hosting view.
+"The animations created with this transaction" is read as every animation the
+change's frame starts — an unrelated `.animation(_:value:)` whose value moved
+in the same frame is included.
+
+**Not honoured:** a completion added by a view's `transaction(_:)` modifier
+while rendering. No change was made under that transaction, so nothing claims
+the completion and nothing runs it. SwiftUI documents no such use either.

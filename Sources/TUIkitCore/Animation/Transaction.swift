@@ -18,9 +18,9 @@ public struct Transaction: Sendable, Equatable {
     /// transaction that sets neither, which is nearly all of them: they cost
     /// one word.
     ///
-    /// First, and a word: the animation after it is 73 bytes and the switches
+    /// First, and a word: the animation after it is 81 bytes and the switches
     /// after that are bytes, so leading with the reference keeps the struct
-    /// free of interior padding (84 bytes). Put after them it would have cost
+    /// free of interior padding (92 bytes). Put after them it would have cost
     /// seven undefined bytes in every `Binding`.
     private var extras: TransactionExtras?
 
@@ -28,7 +28,7 @@ public struct Transaction: Sendable, Equatable {
     public var animation: Animation?
 
     // Every field after the animation is a byte, and the booleans share one,
-    // so the struct has no interior padding and is 84 bytes: every `Binding`
+    // so the struct has no interior padding and is 92 bytes: every `Binding`
     // carries one inline, and the per-pass memos hash a view's bytes, padding
     // included unless it is skipped (`ControlLayoutPaddingTests`). The scroll
     // members cost two bytes, the anchor's; as three `Bool`s and two
@@ -177,6 +177,14 @@ public struct Transaction: Sendable, Equatable {
         }
     }
 
+    /// The completions waiting on this change, in the order they were added.
+    package var completions: [AnimationCompletion] { extras?.completions ?? [] }
+
+    /// Adds `completion` — see ``addAnimationCompletion(criteria:_:)``.
+    mutating func appendCompletion(_ completion: AnimationCompletion) {
+        uniqueExtras().completions.append(completion)
+    }
+
     /// The extras, made unique to this copy and created if there were none —
     /// the copy-on-write step of every mutation that reaches them.
     private mutating func uniqueExtras() -> TransactionExtras {
@@ -283,17 +291,27 @@ private final class TransactionValueIdentity {}
 final class TransactionExtras: @unchecked Sendable {
     fileprivate var values: [ObjectIdentifier: TransactionValue] = [:]
 
+    /// The completions waiting on the change. See `AnimationCompletion`.
+    var completions: [AnimationCompletion] = []
+
     init() {}
 
     /// A copy, for a transaction about to change what it shares.
     init(copying other: TransactionExtras) {
         values = other.values
+        completions = other.completions
     }
 
     /// Whether two transactions' extras say the same thing — `nil` and empty
-    /// alike saying nothing.
+    /// alike saying nothing. Completions are the same only if they are the
+    /// same handlers.
     static func equal(_ lhs: TransactionExtras?, _ rhs: TransactionExtras?) -> Bool {
         if lhs === rhs { return true }
+        let leftCompletions = lhs?.completions ?? []
+        let rightCompletions = rhs?.completions ?? []
+        guard leftCompletions.count == rightCompletions.count,
+            zip(leftCompletions, rightCompletions).allSatisfy({ $0 === $1 })
+        else { return false }
         let left = lhs?.values ?? [:]
         let right = rhs?.values ?? [:]
         guard left.count == right.count else { return false }
@@ -335,11 +353,27 @@ extension Transaction {
 /// Nesting works by construction: the inner scope shadows the outer one, and
 /// the outer transaction is restored when it returns.
 ///
+/// A completion on `transaction` (``Transaction/addAnimationCompletion(criteria:_:)``)
+/// that no state change in `body` claimed — `body` changed nothing, so the
+/// change started no animations — runs as soon as `body` returns, as SwiftUI
+/// documents. One the enclosing transaction already carried belongs to the
+/// enclosing call, which decides.
+///
 /// - Returns: Whatever `body` returns.
 public func withTransaction<Result>(
     _ transaction: Transaction, _ body: () throws -> Result
 ) rethrows -> Result {
-    try Transaction.$ambient.withValue(transaction, operation: body)
+    guard !transaction.completions.isEmpty else {
+        return try Transaction.$ambient.withValue(transaction, operation: body)
+    }
+    let enclosing = Transaction.ambient?.completions ?? []
+    defer {
+        for completion in transaction.completions
+        where !completion.isClaimed && !enclosing.contains(where: { $0 === completion }) {
+            completion.fire()
+        }
+    }
+    return try Transaction.$ambient.withValue(transaction, operation: body)
 }
 
 /// Executes a closure with the specified transaction key path and value and

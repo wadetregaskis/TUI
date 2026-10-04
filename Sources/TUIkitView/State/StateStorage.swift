@@ -176,8 +176,15 @@ public final class StateStorage: @unchecked Sendable {
     /// something to play out. See ``DepartureStore``.
     public let departures = DepartureStore()
 
+    /// The completions waiting on the animations a change started. See
+    /// ``AnimationCompletionTracker``.
+    public let animationCompletions = AnimationCompletionTracker()
+
     /// Creates an empty state storage.
-    public init() {}
+    public init() {
+        animations.completionTracker = animationCompletions
+        departures.completionTracker = animationCompletions
+    }
 
     /// The number of stored state entries (for testing/debugging).
     public var count: Int { values.count }
