@@ -61,6 +61,8 @@ struct ImageRenderCache: Equatable {
     /// The colour a template image's pixels were drawn in, or `nil` for an
     /// image drawn in its own colours.
     var templateInk: RGBA?
+    /// How a resizable image filled its box: stretched, or in slices.
+    var resizing: _ImageResizing?
     var art: ASCIIArt
 
     /// Returns whether `self` was built from the same inputs as the
@@ -76,7 +78,8 @@ struct ImageRenderCache: Equatable {
         aspectRatioOverride: Double?,
         cellAspect: Double,
         terminalColors: TerminalColors,
-        templateInk: RGBA?
+        templateInk: RGBA?,
+        resizing: _ImageResizing?
     ) -> Bool {
         self.rawImageWidth == rawImageWidth
             && self.rawImageHeight == rawImageHeight
@@ -95,6 +98,7 @@ struct ImageRenderCache: Equatable {
             && self.cellAspect == cellAspect
             && self.terminalColors == terminalColors
             && self.templateInk == templateInk
+            && self.resizing == resizing
             // Last: the scalar comparisons above reject the frequent miss — a
             // resize — before this one runs. It is the field that decides
             // correctness, not the one that usually decides the answer.

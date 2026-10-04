@@ -40,6 +40,10 @@ struct _ImageCore: View, Renderable, Layoutable {
     /// foreground colour (``Image/renderingMode(_:)``).
     var isTemplate = false
 
+    /// How the image fills its frame when it is resizable — see
+    /// ``Image/resizable(capInsets:resizingMode:)``.
+    var resizing: _ImageResizing?
+
     var body: Never {
         fatalError("_ImageCore renders via Renderable")
     }
@@ -87,11 +91,12 @@ struct _ImageCore: View, Renderable, Layoutable {
             let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
                 for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
             if case .success(let rawImage) = phaseBox.value, rawImage.width > 0, rawImage.height > 0 {
-                let fitted = ASCIIConverter.targetSize(
+                let fitted = Self.cellBox(
                     imageWidth: rawImage.width, imageHeight: rawImage.height,
                     maxWidth: fitWidth, maxHeight: fitHeight,
+                    stretches: effectiveResizing(in: environment) != nil,
                     contentMode: environment.imageContentMode,
-                    overrideAspectRatio: environment.imageAspectRatio,
+                    aspectRatio: environment.imageAspectRatio,
                     cellAspect: environment.imageCellAspect)
                 return .fixed(Self.zoomed(fitted.width, zoom), Self.zoomed(fitted.height, zoom))
             }
@@ -252,7 +257,9 @@ struct _ImageCore: View, Renderable, Layoutable {
             // error path, it is the path this framework has always taken.
             // A template is drawn as cells: its pixels are recoloured, and a
             // picture of them would be one more thing to keep current.
-            if !isTemplate, let drawn = renderWithTerminalGraphics(
+            // So is an image in slices: its pixels are made for the box.
+            let resizing = effectiveResizing(in: context.environment)
+            if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
                 rawImage, width: renderWidth, height: renderHeight, context: context)
             {
                 return drawn
@@ -275,6 +282,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                 cellAspect: context.environment.imageCellAspect,
                 monoColours: ImageMonoColours(for: colorMode, in: context.environment),
                 templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
+                resizing: resizing,
                 stateStorage: stateStorage,
                 identity: identity
             )
@@ -441,16 +449,18 @@ extension _ImageCore {
         cellAspect: Double,
         monoColours: ImageMonoColours?,
         templateInk: RGBA?,
+        resizing: _ImageResizing?,
         stateStorage: StateStorage,
         identity: ViewIdentity
     ) -> FrameBuffer {
-        let targetSize = ASCIIConverter.targetSize(
+        let targetSize = Self.cellBox(
             imageWidth: rawImage.width,
             imageHeight: rawImage.height,
             maxWidth: width,
             maxHeight: height,
+            stretches: resizing != nil,
             contentMode: contentMode,
-            overrideAspectRatio: aspectRatioOverride,
+            aspectRatio: aspectRatioOverride,
             cellAspect: cellAspect
         )
 
@@ -483,7 +493,8 @@ extension _ImageCore {
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
             terminalColors: terminalColors,
-            templateInk: templateInk
+            templateInk: templateInk,
+            resizing: resizing
         ) {
             return Self.buffer(for: cache.art, monoColours: monoColours)
         }
@@ -498,7 +509,11 @@ extension _ImageCore {
             toneCurve: toneCurve,
             edgeContrast: edgeContrast
         )
-        let pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
+        var pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
+        if let resizing, resizing.slices {
+            pixels = pixels.sliced(
+                resizing, columns: targetSize.width, rows: targetSize.height, cellAspect: cellAspect)
+        }
         let art = converter.convert(pixels, width: targetSize.width, height: targetSize.height)
 
         cacheBox.value = ImageRenderCache(
@@ -520,6 +535,7 @@ extension _ImageCore {
             cellAspect: cellAspect,
             terminalColors: terminalColors,
             templateInk: templateInk,
+            resizing: resizing,
             art: art
         )
 
@@ -876,11 +892,12 @@ extension _ImageCore {
         // The same cell box the glyph renderer would fill, from the same
         // function — so switching renderers cannot move the image or change
         // what the layout around it was told.
-        let target = ASCIIConverter.targetSize(
+        let target = Self.cellBox(
             imageWidth: rawImage.width, imageHeight: rawImage.height,
             maxWidth: width, maxHeight: height,
+            stretches: effectiveResizing(in: context.environment) != nil,
             contentMode: context.environment.imageContentMode,
-            overrideAspectRatio: context.environment.imageAspectRatio,
+            aspectRatio: context.environment.imageAspectRatio,
             cellAspect: context.environment.imageCellAspect)
         guard target.width > 0, target.height > 0 else { return nil }
 

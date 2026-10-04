@@ -316,6 +316,19 @@ palette's foreground), each at its own alpha, so an icon takes the colour of
 the text beside it; a template draws as cells, never as a terminal picture.
 A symbol is a single-colour glyph in the foreground already, and stays one.
 
+**`resizable(capInsets:resizingMode:)` ships**, with `Image.ResizingMode`. A
+resizable image fills its frame, its aspect not kept, as SwiftUI's does — unless
+a content mode around it (`scaledToFit()`, `scaledToFill()`,
+`aspectRatio(_:contentMode:)`) keeps it, which is the usual
+`.resizable().scaledToFit()` and draws as an `Image` always has. Where SwiftUI's
+resizable image takes its natural pixel size on an axis it is offered nothing,
+TUIkit's takes the extent its aspect gives it (see below: there is no size in
+cells to take). Cap insets are in the image's pixels; the caps keep the scale the
+whole image fits its frame at, and the edges and centre stretch, or with `.tile`
+repeat at that scale, between them. An image in slices draws as cells, never as
+a terminal picture. **Deviation:** an image that is NOT resizable fits what it is
+offered rather than drawing at its pixel size — the paragraph below says why.
+
 **A raster `Image` renders as text everywhere, and as REAL PIXELS where the
 terminal has a graphics protocol.** The glyph renderer is the universal path and
 the one this section used to describe as the only one: a raster source converted
@@ -349,9 +362,9 @@ scroll view's probe budget, thousands of cells, and was drawn the size of a
 wall.) Code ported from SwiftUI that relies on a natural size should give the
 image an explicit `.frame`.
 
-**`.mono` plays the template image's part.** SwiftUI tints a template image with
-`foregroundStyle`. TUIkit has no `renderingMode(_:)`; `.imageColorMode(.mono)` draws
-a picture in two tones instead, and its ink is the view's `foregroundStyle`, so it is
+**`.mono` is the two-tone version of a template image.** `renderingMode(.template)`
+(above) draws each pixel in the foreground style at its own alpha;
+`.imageColorMode(.mono)` draws a picture in two tones instead, and its ink is the view's `foregroundStyle`, so it is
 re-inked wherever `Text` would be (a button's label, a menu row's highlight). Its
 paper is the view's `backgroundStyle`, which is TUI-specific: a template image's
 unlit pixels are transparent, but a half-block cell's unlit half is the cell's

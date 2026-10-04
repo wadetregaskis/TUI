@@ -583,3 +583,16 @@ private struct TemplateImageShapes: View {
         Image(systemName: "star").renderingMode(.template).foregroundStyle(.tint)
     }
 }
+
+/// Resizable images: stretched, fitted, and in slices.
+@MainActor
+private struct ResizableImageShapes: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "star").resizable().frame(width: 20, height: 4)
+            Image(systemName: "star").resizable().scaledToFit()
+            Image(systemName: "star")
+                .resizable(capInsets: EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4), resizingMode: .tile)
+        }
+    }
+}

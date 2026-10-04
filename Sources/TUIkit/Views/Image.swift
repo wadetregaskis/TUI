@@ -58,6 +58,16 @@ enum ImageLoadingPhase: Sendable {
 ///     .frame(width: 80, height: 40)
 /// ```
 ///
+/// ## Sizing
+///
+/// A raster image has no natural size in cells — how many pixels make a cell
+/// depends on the font — so where SwiftUI draws an image that is not
+/// resizable at its pixel size, TUIkit fits it to the space it is offered,
+/// keeping its aspect. ``resizable(capInsets:resizingMode:)`` makes it fill
+/// its frame instead, as SwiftUI's does, unless a content mode
+/// (``View/scaledToFit()``, ``View/aspectRatio(_:contentMode:)``) says to keep
+/// the aspect.
+///
 /// ## Placeholder
 ///
 /// While loading, a centered placeholder is displayed. By default this is an
@@ -115,6 +125,10 @@ public struct Image: View {
     /// How ``renderingMode(_:)`` said to draw the image, if it was called.
     var templateRenderingMode: TemplateRenderingMode?
 
+    /// How ``resizable(capInsets:resizingMode:)`` said to fill the frame, or
+    /// `nil` for an image that was not made resizable.
+    var resizing: _ImageResizing?
+
     /// The supersampling factor this image's own modifiers ask for, or `nil`
     /// to take the environment's: an interpolation quality, else `1` for an
     /// image told not to antialias.
@@ -154,7 +168,8 @@ public struct Image: View {
         switch content {
         case .raster(let source):
             let core = _ImageCore(
-                source: source, decoded: decoded, isTemplate: templateRenderingMode == .template)
+                source: source, decoded: decoded, isTemplate: templateRenderingMode == .template,
+                resizing: resizing)
             if let samplingFactor {
                 core.environment(\.imageSupersampling, samplingFactor)
             } else {
@@ -177,6 +192,7 @@ extension Image: @preconcurrency Equatable {
             && lhs.interpolationQuality == rhs.interpolationQuality
             && lhs.isAntialiased == rhs.isAntialiased
             && lhs.templateRenderingMode == rhs.templateRenderingMode
+            && lhs.resizing == rhs.resizing
     }
 }
 
@@ -258,7 +274,7 @@ private struct ImagePlaceholderSpinnerKey: EnvironmentKey {
 
 /// Environment key for the image content mode.
 private struct ImageContentModeKey: EnvironmentKey {
-    static let defaultValue: ContentMode = .fit
+    static let defaultValue: ContentMode? = nil
 }
 
 /// Environment key for an explicit aspect ratio override.
@@ -399,10 +415,18 @@ extension EnvironmentValues {
         set { self[ImagePlaceholderSpinnerKey.self] = newValue }
     }
 
-    /// The content mode for image scaling.
+    /// The content mode for image scaling: the one
+    /// ``View/aspectRatio(_:contentMode:)`` set, or `.fit`.
     var imageContentMode: ContentMode {
-        get { self[ImageContentModeKey.self] }
+        get { self[ImageContentModeKey.self] ?? .fit }
         set { self[ImageContentModeKey.self] = newValue }
+    }
+
+    /// The content mode a modifier set, or `nil` where none did: a resizable
+    /// image stretches to its frame unless one did — see
+    /// ``Image/resizable(capInsets:resizingMode:)``.
+    var imageExplicitContentMode: ContentMode? {
+        self[ImageContentModeKey.self]
     }
 
     /// An explicit aspect ratio override for images (width/height).
