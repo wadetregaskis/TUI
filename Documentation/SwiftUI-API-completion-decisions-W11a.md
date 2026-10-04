@@ -15,6 +15,85 @@ available, so nothing here is checked against it.
 
 ## A. Needs your decision
 
+### A-W11a-1. `.textVariant(.sizeDependent)`: the narrower spellings of every live text
+
+*`SizeDependentTextVariant`, `TextVariantPreference.sizeDependent`*
+
+**Shipped:** `TextVariantPreference`, `FixedTextVariant`, `.fixed` and
+`Text.textVariant(_:)`. Fixed is SwiftUI's default — always the widest
+variant — and what every TUIkit text does, so `textVariant(.fixed)` returns
+the text as it is. `.sizeDependent` is absent, so asking for it does not
+compile.
+
+It is not a no-op in SwiftUI. Measured on macOS 15 (one line, the width
+falling in 6 pt steps), a size-dependent text chooses the widest of a ladder of
+spellings that fits:
+
+| Text | Ladder, widest first |
+|---|---|
+| `.offset(to:)` | `1 hour, 2 minutes` → `1 hr, 2 min` → `1h 2m` |
+| `.reference(to:)`, relative | `2 minutes ago` → `2 min. ago` → `2m ago`; `in 1 hour` → `in 1 hr.` → `in 1h`; `yesterday` has none |
+| `.reference(to:)`, absolute | `Friday, May 8` → `Fri, May 8` → `5/8`; `June 2025` → `Jun 2025` → `6/25`; with three fields `Friday, May 8 at 11 PM` → `Fri, May 8 at 11 PM` → `5/8, 11` |
+| `.timer`, in units | `1 hour, 2 minutes` → `1 hr 2 min` → `1:02` |
+| `.stopwatch` | `01:02:05.50` → `1:02:05` → `1:02` → `1h` |
+| `Text(_:style: .relative)` | `1 hr, 2 min` → `1h 2m` |
+| `Text(_:style: .offset)` | `+1 hour` → `+1 hr` → `+1h` |
+| `Text(_:style: .date)` | `May 8, 2026` → `May 2026` → `2026` |
+| `Text(_:style: .time)` | `11:13 PM` → `11 PM` |
+| `Text(_:style: .timer)`, the timer on its face | none |
+
+Without a line limit the widest always fits by wrapping, and nothing changes
+(measured the same way).
+
+**Options:**
+
+1. **Build it.** Each live source offers its ladder (Foundation spells most
+   rungs: `Duration.UnitsFormatStyle` and `Date.ComponentsFormatStyle` have
+   abbreviated and narrow widths, `Date.FormatStyle` has abbreviated and
+   numeric months, and the anchored relative style abbreviated units); a
+   `.sizeDependent` text measures its rungs against the proposal and its line
+   limit and draws the first that fits, the measure and the render choosing
+   alike. About a day, most of it the per-rung measurements (German among
+   them) and the tests. Only a text that asks pays: a measure per rung tried.
+2. **Build the unit spellings only** (offset, relative, the timer's units):
+   the abbreviated and narrow widths, half a day. The reference's absolute
+   form and the date and time styles stay fixed — a quiet difference from
+   SwiftUI for those, which the parity rules argue against.
+3. **Leave it absent** (as now): ported code that asks for it does not
+   compile.
+
+**Recommendation:** 1, later — after the waves, since it touches every live
+source and nothing else depends on it. 2 is the kind of partial honour the
+parity rules warn about.
+
+### A-W11a-2. `\(accessibilityName: color)`: a colour's spoken name
+
+*`LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)`*
+
+SwiftUI interpolates "a localized description of a color for accessibility".
+Measured on macOS 15, in light mode: `.red` reads `dark red`, `.blue` and
+`Color(red: 0.2, green: 0.4, blue: 0.8)` `dark blue`, `Color(white: 0.5)`
+`dark gray`, `.primary` `black`, the accent colour `dark blue`. The names
+come from Apple's accessibility colour naming, which is private and has no
+counterpart in the open-source Foundation.
+
+**Options:**
+
+1. **A namer of TUIkit's own:** a colour's resolved RGB in OKLCH, bucketed to
+   a dozen hue names with `dark`/`light`/`vivid` qualifiers, in the
+   framework's seven languages. It would not say what SwiftUI says for every
+   colour (`.red` is `dark red` there, which no simple rule predicts); a
+   palette colour names its resolved value. Half a day with the
+   translations.
+2. **Decline** (a `notImplemented` entry): code that uses it does not
+   compile, and the app says what it means in words.
+3. **Interpolate the colour's own description** (`String(describing:)`):
+   compiles, and reads `Color(…)` to a screen reader — the quiet wrong answer
+   the parity rules forbid.
+
+**Recommendation:** 2 now; 1 if a screen-reader user of a TUIkit app asks for
+it. Shipped: nothing, so it does not compile.
+
 ## B. Shipped the safe option
 
 ### B-W11a-1. On Linux, a span of a month or more is spelt in English
