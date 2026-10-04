@@ -88,6 +88,7 @@ scale live · `a` toggle autopilot.
 | `alpharamp` | per-cell alpha compositing over a patterned ground, blend arithmetic |
 | `menus` | `ButtonStyle` body measure, menu hug-width pass, shortcut hint column, per-row `@Environment` resolution |
 | `keyrows` | per-row registrations (`onKeyEvent`, `.statusBarItems`) under the row memo, per-frame key and status-bar registries, a `.refreshable` panel |
+| `controls` | **a matrix**: rows of one common control each — `onTapGesture` text (churning and memo-served), default-style `Label`, `TextField`, interpolated and Markdown `Text` literals, `ProgressView` — and a scroll view resized every frame; one control's per-render cost in isolation |
 | `kitchensink` | split-view + list windowing + container grid simultaneously |
 
 ## Matrix scenarios and variants
@@ -106,6 +107,11 @@ swift run Stress -- --bench --scenario table-api --variant width-fit
 `--selfcheck` renders every variant of every matrix scenario, not just the one a
 config selects, so the whole space is smoke-tested (and, with
 `TUIKIT_VERIFY_RENDER_MEMO=1`, memo-verified) on every run.
+
+`controls` is the narrowest kind: one control per variant, so a change to that
+control's per-render cost reads in its variant and is not diluted by a page
+around it. Its rows fold the harness tick into their content so no memo serves
+them; `tap-stable` holds them still to price what a served row replays instead.
 
 `app-shapes` is the other kind of matrix: not one API's space but whole
 applications, because the costs worth finding live in the COMBINATIONS. A file

@@ -45,6 +45,7 @@ enum ScenarioVariants {
     static let byScenario: [String: [ScenarioVariant]] = [
         TableAPIMatrix.scenarioID: TableAPIMatrix.variants,
         AppShapeMatrix.scenarioID: AppShapeMatrix.variants,
+        ControlRowsMatrix.scenarioID: ControlRowsMatrix.variants,
     ]
 
     /// The variants of `scenario`, or an empty array for an ordinary scenario.
