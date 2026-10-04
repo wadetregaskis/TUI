@@ -56,7 +56,7 @@ struct TableColumnTests {
     @Test("TableColumn defaults to leading alignment")
     func defaultAlignment() {
         let column = TableColumn("Name", value: \FileInfo.name)
-        #expect(column.alignment == .leading)
+        #expect(column.spec.alignment == .leading)
     }
 
     @Test("TableColumn defaults to flexible width")
@@ -65,13 +65,13 @@ struct TableColumnTests {
         #expect(column.width == .flexible)
     }
 
-    @Test("TableColumn alignment modifier creates new instance")
+    @Test("TableColumn alignment modifier creates new content")
     func alignmentModifier() {
         let column = TableColumn("Size", value: \FileInfo.size)
         let aligned = column.alignment(.trailing)
 
-        #expect(column.alignment == .leading)
-        #expect(aligned.alignment == .trailing)
+        #expect(column.spec.alignment == .leading)
+        #expect(tableColumns(of: aligned).map(\.alignment) == [.trailing])
     }
 
     @Test("TableColumn width modifier creates new instance")
@@ -85,12 +85,13 @@ struct TableColumnTests {
 
     @Test("TableColumn modifiers can be chained")
     func chainedModifiers() {
-        let column = TableColumn("Size", value: \FileInfo.size)
-            .alignment(.trailing)
-            .width(.fixed(10))
+        let columns = tableColumns(
+            of: TableColumn("Size", value: \FileInfo.size)
+                .width(.fixed(10))
+                .alignment(.trailing))
 
-        #expect(column.alignment == .trailing)
-        #expect(column.width == .fixed(10))
+        #expect(columns.map(\.alignment) == [.trailing])
+        #expect(columns.map(\.width) == [.fixed(10)])
     }
 }
 

@@ -155,7 +155,7 @@ struct TableMatrixColumn: Sendable {
     var width: ColumnWidth = .flexible
     var lineLimit: Int = 1
     var truncation: TruncationMode = .tail
-    var alignment: HorizontalAlignment = .leading
+    var alignment: TableColumnAlignment = .leading
     var cost: TableCellCost = .cheap
     /// Whether the column NAMES its value (a key path) or computes one (a
     /// closure). Closures are the default because they are what the fixture's
@@ -284,7 +284,7 @@ extension TableMatrixShape {
                     ])))
         }
         for (label, alignment) in [
-            ("leading", HorizontalAlignment.leading), ("center", .center), ("trailing", .trailing),
+            ("leading", TableColumnAlignment.leading), ("center", .center), ("trailing", .trailing),
         ] {
             cases.append(
                 TableMatrixCase(
@@ -490,9 +490,7 @@ final class TableMatrixHarness {
 
     /// The shape's columns, built by a column loop: the shape is data, and a
     /// column builder takes no `for`.
-    private func columns() -> TableColumnForEach<
-        Range<Int>, Int, TableMatrixRow, Never, TableColumn<TableMatrixRow, Never, Text, Text>
-    > {
+    private func columns() -> some TableColumnContent<TableMatrixRow, Never> {
         let calls = self.calls
         let specs = shape.columns
         return TableColumnForEach(specs.indices) { index in
@@ -515,10 +513,7 @@ final class TableMatrixHarness {
     /// The same columns over the row type that cannot be compared. Closures
     /// only: a key path here would name a property of the WRONG row type, and
     /// the point of this arm is the row type rather than the column kind.
-    private func opaqueColumns() -> TableColumnForEach<
-        Range<Int>, Int, TableMatrixOpaqueRow, Never,
-        TableColumn<TableMatrixOpaqueRow, Never, Text, Text>
-    > {
+    private func opaqueColumns() -> some TableColumnContent<TableMatrixOpaqueRow, Never> {
         let calls = self.calls
         let specs = shape.columns
         return TableColumnForEach(specs.indices) { index in

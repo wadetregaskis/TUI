@@ -230,7 +230,7 @@ struct TableRenderTests {
         // short value like "10K" gains leading pad inside the fixed(6) cell:
         // "   10K". Compare against the default (leading) alignment, where the
         // same value hugs the left of the column.
-        func sizeColumn(_ alignment: HorizontalAlignment) -> [String] {
+        func sizeColumn(_ alignment: TableColumnAlignment) -> [String] {
             strippedLines(
                 Table(sampleRows, selection: .constant(String?.none)) {
                     TableColumn("Name", value: \Row.name)

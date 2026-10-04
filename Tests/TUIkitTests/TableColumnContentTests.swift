@@ -162,6 +162,43 @@ struct TableColumnContentTests {
         #expect(order.count == 2)
     }
 
+    // MARK: Alignment
+
+    @Test("Each TableColumnAlignment places its column", arguments: [
+        (TableColumnAlignment.automatic, HorizontalAlignment.leading),
+        (.leading, .leading), (.center, .center), (.trailing, .trailing),
+        (.numeric, .trailing), (.numeric(Locale.NumberingSystem("arab")), .trailing),
+    ])
+    func alignmentPlacement(_ alignment: TableColumnAlignment, _ expected: HorizontalAlignment) {
+        let columns = tableColumns(of: TableColumn("Name", value: \Row.name).alignment(alignment))
+        #expect(columns.map(\.alignment) == [expected])
+    }
+
+    @Test("A numeric column right-aligns its header and its cells")
+    func numericDrawsTrailing() {
+        let buffer = render(
+            Table(Self.rows) {
+                TableColumn("N") { (row: Row) in Text(verbatim: "\(row.size)") }
+                    .width(.fixed(6))
+                    .alignment(.numeric)
+                TableColumn("Name", value: \Row.name)
+            })
+        // Inside the border and its padding, the six-cell column ends at 8.
+        #expect(buffer.lines[1].stripped.dropFirst(2).prefix(6) == "     N")
+        #expect(line(containing: "alpha", in: buffer)?.dropFirst(2).prefix(6) == "    30")
+    }
+
+    @Test("An alignment on a group of columns yields to one a column states itself")
+    func nearestAlignmentWins() {
+        let columns = tableColumns(
+            of: Group {
+                TableColumn("A", value: \Row.name).alignment(.center)
+                TableColumn("B", value: \Row.name)
+            }
+            .alignment(.trailing))
+        #expect(columns.map(\.alignment) == [.center, .trailing])
+    }
+
     // MARK: Builder
 
     @Test("A column list of ten builds ten columns")

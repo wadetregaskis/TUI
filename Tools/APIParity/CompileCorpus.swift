@@ -596,6 +596,7 @@ private struct TableColumnShapes: View {
                 TableColumn("Given Name", value: \.givenName)
                 TableColumn("Family Name", value: \.familyName) { Text($0.familyName) }
                 TableColumn("Age", value: \.age) { Text($0.age, format: .number) }
+                    .alignment(.numeric)
                 TableColumn("Notes") { _ in Text("-") }
                 if showsEmail {
                     TableColumn("Email", value: \.email)

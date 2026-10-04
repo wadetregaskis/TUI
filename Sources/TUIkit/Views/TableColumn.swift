@@ -54,6 +54,7 @@ public enum ColumnWidth: Sendable, Equatable {
 ///     TableColumn("Family name", value: \.familyName)
 ///     TableColumn("Age") { Text("\($0.age)") }
 ///         .width(.fixed(5))
+///         .alignment(.numeric)
 /// }
 /// ```
 ///
@@ -97,9 +98,6 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
 
     /// The column header title.
     let title: String
-
-    /// The horizontal alignment for column content.
-    var alignment: HorizontalAlignment = .leading
 
     /// The width mode for this column.
     var width: ColumnWidth = .flexible
@@ -192,7 +190,7 @@ extension TableColumn: _TableColumnPrimitive {
     /// This column as the renderer draws it.
     var spec: _TableColumnSpec<RowValue> {
         _TableColumnSpec(
-            title: title, alignment: alignment, width: width,
+            title: title, alignment: .leading, width: width,
             truncationMode: truncationMode, lineLimit: lineLimit,
             cell: cell, namesAProperty: namesAProperty,
             sortComparator: sortComparator)
@@ -526,16 +524,6 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
 // MARK: - Modifiers
 
 extension TableColumn {
-    /// Sets the alignment for this column.
-    ///
-    /// - Parameter alignment: The horizontal alignment.
-    /// - Returns: A modified column with the specified alignment.
-    public func alignment(_ alignment: HorizontalAlignment) -> TableColumn {
-        var copy = self
-        copy.alignment = alignment
-        return copy
-    }
-
     /// Sets the width mode for this column.
     ///
     /// - Parameter width: The column width mode.

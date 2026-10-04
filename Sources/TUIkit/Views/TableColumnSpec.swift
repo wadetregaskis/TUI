@@ -26,6 +26,10 @@ struct _TableColumnSpec<Value> {
     /// The horizontal alignment of the column's header and cells.
     var alignment: HorizontalAlignment
 
+    /// Whether ``alignment`` was stated by a modifier, so that one further out
+    /// — on a `Group` of columns, say — leaves it be.
+    var alignmentIsStated = false
+
     /// The width mode for this column.
     var width: ColumnWidth
 

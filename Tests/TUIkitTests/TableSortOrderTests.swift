@@ -81,19 +81,19 @@ struct TableSortOrderTests {
                     ? AnyView(
                         Table(rows, selection: .constant(Int?.none), sortOrder: binding) {
                             fitFirstColumn ? nameColumn.width(.fit) : nameColumn
-                            trailingSizeColumn ? sortedSize.alignment(.trailing) : sortedSize
+                            sortedSize.alignment(trailingSizeColumn ? .trailing : .automatic)
                         })
                     : AnyView(
                         Table(rows, selection: .constant(Int?.none), sortOrder: binding) {
                             fitFirstColumn ? nameColumn.width(.fit) : nameColumn
-                            trailingSizeColumn ? unsortedSize.alignment(.trailing) : unsortedSize
+                            unsortedSize.alignment(trailingSizeColumn ? .trailing : .automatic)
                         })
             } else {
                 let nameColumn = TableColumn(nameTitle, value: \Row.name)
                 table = AnyView(
                     Table(rows, selection: .constant(Int?.none)) {
                         fitFirstColumn ? nameColumn.width(.fit) : nameColumn
-                        trailingSizeColumn ? unsortedSize.alignment(.trailing) : unsortedSize
+                        unsortedSize.alignment(trailingSizeColumn ? .trailing : .automatic)
                     })
             }
             buffer = renderToBuffer(

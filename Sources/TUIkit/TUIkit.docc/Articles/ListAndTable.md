@@ -232,12 +232,17 @@ large tables where a per-frame content scan is undesirable.
 
 ### Column Alignment
 
-Align column content to leading, center, or trailing:
+A column's alignment places both its header and its cells: `.leading` (and
+`.automatic`, the default), `.center`, `.trailing`, or `.numeric` for a column
+of numbers:
 
 ```swift
-TableColumn("Amount", value: \.amount)
-    .alignment(.trailing)    // Right-align numbers
+TableColumn("Amount") { Text($0.amount, format: .number) }
+    .alignment(.numeric)     // Right-align numbers
 ```
+
+On a `Group` of columns, `.alignment(_:)` aligns each of them that does not
+state an alignment of its own.
 
 ### Multi-Line Cells and Truncation
 
