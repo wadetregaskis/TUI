@@ -167,7 +167,7 @@ public struct _ViewModifier_Content<Modifier: ViewModifier>: View {
 
 // MARK: - ModifiedContent
 
-/// A value with a modifier applied to it — what ``View/modifier(_:)`` returns,
+/// A value with a modifier applied to it — what ``View/modifier(_:)->ModifiedContent<Self,T>`` returns,
 /// and what ``ViewModifier/concat(_:)`` builds from two modifiers.
 ///
 /// It is a ``View`` when its content is a view and its modifier a

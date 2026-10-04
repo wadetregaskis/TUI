@@ -21,7 +21,7 @@
 /// ```
 ///
 /// The default style draws the label, then the content in a bordered box — the
-/// border the current ``Appearance`` draws, as ``Box`` uses. A style set with
+/// border the current ``Appearance`` draws, as `Box` uses. A style set with
 /// ``View/groupBoxStyle(_:)`` lays it out instead.
 public struct GroupBox<Label: View, Content: View>: View {
     let label: Label

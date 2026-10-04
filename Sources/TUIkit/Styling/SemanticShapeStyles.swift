@@ -90,7 +90,7 @@ extension EnvironmentValues {
 /// With no foreground style set, the levels are the palette's own tiers —
 /// `foreground`, `foregroundSecondary`, `foregroundTertiary`,
 /// `foregroundQuaternary`, and that at half strength — chosen per palette to
-/// stay legible. Under a ``View/foregroundStyle(_:)``, the levels are that style
+/// stay legible. Under a ``View/foregroundStyle(_:)-(S)``, the levels are that style
 /// at falling opacity, as macOS's label colours are (1, 0.5, 0.26, 0.1, 0.05),
 /// composited at the cell; ``View/foregroundStyle(_:_:)`` and
 /// ``View/foregroundStyle(_:_:_:)`` name the second and third levels outright.
@@ -222,7 +222,7 @@ extension View {
 // MARK: - Roles
 
 /// The foreground style in the current context: what text and symbols are
-/// drawn in — the style a ``View/foregroundStyle(_:)`` set, or the palette's
+/// drawn in — the style a ``View/foregroundStyle(_:)-(S)`` set, or the palette's
 /// foreground.
 public struct ForegroundStyle: ShapeStyle, Equatable {
     /// Creates a foreground style instance.

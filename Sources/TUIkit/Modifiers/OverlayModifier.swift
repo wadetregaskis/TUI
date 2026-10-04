@@ -43,7 +43,7 @@ extension OverlayModifier: @preconcurrency Equatable where Base: Equatable, Over
 
 extension OverlayModifier: Renderable {
     /// The base at this modifier's identity, then the overlay laid out in its
-    /// frame and composited over it — ``compositeLayer(_:over:alignment:context:modifierType:)``.
+    /// frame and composited over it — `compositeLayer(_:over:alignment:context:modifierType:)`.
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         compositeLayer(
             overlay, over: TUIkit.renderToBuffer(base, context: context), alignment: alignment,
@@ -56,7 +56,7 @@ extension OverlayModifier: Renderable {
 extension OverlayModifier: Layoutable {
     /// The base's size, flexibility and all: the overlay is laid out inside it
     /// and ``renderToBuffer(context:)`` cuts the composite back to it, so the
-    /// overlay cannot contribute a cell — see ``layeredSize(_:baseSize:proposal:context:modifierType:)``
+    /// overlay cannot contribute a cell — see `layeredSize(_:baseSize:proposal:context:modifierType:)`
     /// for the axis the base has no extent on.
     ///
     /// This answered `max(base, overlay)` on each axis until 2026-09-20, which

@@ -66,7 +66,7 @@ public struct GeometryProxy: Equatable, Sendable {
         frame(in: coordinateSpace.coordinateSpace)
     }
 
-    /// Whether ``frame(in:)`` can answer `.global` exactly.
+    /// Whether ``frame(in:)-(CoordinateSpace)`` can answer `.global` exactly.
     public var hasGlobalPosition: Bool { globalOrigin != nil }
 }
 

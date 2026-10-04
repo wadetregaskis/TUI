@@ -151,7 +151,7 @@ enum HoverTransition {
 // MARK: - Hover Phase
 
 /// Where the pointer is over a view — SwiftUI's `HoverPhase`, as
-/// ``View/onContinuousHover(coordinateSpace:perform:)`` hands it to its action.
+/// ``View/onContinuousHover(coordinateSpace:perform:)-(CoordinateSpace,_)`` hands it to its action.
 ///
 /// The location is a ``CellPoint`` where SwiftUI's is a `CGPoint`: a terminal
 /// reports the pointer's cell and nothing finer (§2.2 of

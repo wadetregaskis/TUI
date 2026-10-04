@@ -273,7 +273,10 @@ struct MyApp: App {
 - ``ButtonStyle``
 - ``ButtonStyleConfiguration``
 - ``DefaultButtonStyle``
-- ``PrimaryButtonStyle``
+- ``BorderedButtonStyle``
+- ``BorderedProminentButtonStyle``
+- ``BorderlessButtonStyle``
+- ``LinkButtonStyle``
 - ``DestructiveButtonStyle``
 - ``SuccessButtonStyle``
 - ``PlainButtonStyle``

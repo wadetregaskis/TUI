@@ -34,7 +34,7 @@ import Foundation
 /// ```
 ///
 /// A path whose every value is `Codable` can be saved and restored through
-/// ``codable`` and ``init(_:)-(CodableRepresentation)`` — see
+/// ``codable`` and ``init(_:)-(NavigationPath.CodableRepresentation)`` — see
 /// ``CodableRepresentation``.
 public struct NavigationPath: Equatable {
 

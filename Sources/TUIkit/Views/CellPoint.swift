@@ -8,8 +8,8 @@
 /// ``CellSize`` and ``CellRect``.
 ///
 /// Where SwiftUI hands an action a `CGPoint` — the pointer under
-/// ``View/onContinuousHover(coordinateSpace:perform:)``, a tap under
-/// ``View/onTapGesture(count:coordinateSpace:perform:)`` — TUIkit hands it the
+/// ``View/onContinuousHover(coordinateSpace:perform:)-(CoordinateSpace,_)``, a tap under
+/// ``View/onTapGesture(count:coordinateSpace:perform:)-(_,CoordinateSpace,_)`` — TUIkit hands it the
 /// cell, because that is all a terminal reports (see
 /// `Documentation/SwiftUI-compatibility.md` §2.2).
 public struct CellPoint: Hashable, Sendable {

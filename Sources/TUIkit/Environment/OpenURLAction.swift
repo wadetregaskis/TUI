@@ -138,7 +138,7 @@ public struct OpenURLAction: Sendable {
     ///
     /// `completion` is `true` when a handler dealt with the URL or the system
     /// opener was started for it, and `false` when a handler discarded it or
-    /// no opener could run — over ssh, say (see ``TerminalURLOpening``).
+    /// no opener could run — over ssh, say (see `TerminalURLOpening`).
     ///
     /// - Parameters:
     ///   - url: The URL to open.
