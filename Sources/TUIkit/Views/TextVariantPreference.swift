@@ -4,7 +4,7 @@
 //  `TextVariantPreference` and `Text.textVariant(_:)`: how a text chooses
 //  among the sizes of what it can say. TUIkit has the fixed preference,
 //  SwiftUI's default; the size-dependent one is not here yet (decisions
-//  A-W11a-1), so asking for it does not compile.
+//  A32), so asking for it does not compile.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
