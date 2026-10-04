@@ -45,6 +45,44 @@ road: grow rows automatically only where the column's view is not a `Text` —
 `VStack`s and the like, which are the cases that are actually taller.
 Roughly a day, plus a measured A/B on `table` and `table-churn`.
 
+### B-W08a-2. Column customization is the app's to change; no gesture changes it yet
+
+*`TableColumnCustomization` (all members), `TableColumnCustomizationBehavior`,
+`TableColumnContent.customizationID(_:)`, `.defaultVisibility(_:)`,
+`.disabledCustomizationBehavior(_:)`, the eight `columnCustomization:`
+initializer keys*
+
+On macOS a table bound to a `TableColumnCustomization` lets the user reorder
+columns by dragging their headers, resize them by dragging the dividers, and
+show or hide them from the header's context menu (measured: column reordering
+is enabled only with a binding; resizing always). The binding records what the
+user did, so it can be persisted.
+
+**Shipped:** the whole vocabulary, and everything that does not need a
+gesture. A column's default visibility hides it, with or without a binding —
+measured, SwiftUI does the same. A bound customization shows and hides columns
+by identifier, reads `.automatic` for anything nothing stated, encodes and
+decodes (in TUIkit's own encoding: SwiftUI's is private), and persists through
+`@SceneStorage` or `@AppStorage` with no default written, as Apple's sample
+does. A stated column order, which only decoding can produce today, is
+applied. `disabledCustomizationBehavior(_:)` is recorded with the column; with
+no gesture to disable it takes nothing away, and it never restricted the app
+in SwiftUI either.
+
+**The fuller version** is the three gestures, each gated by the disabled
+behaviors:
+
+- **Visibility**: a column menu from the header — a right-click (or
+  Ctrl-click, see the context-menu notes) and a key chord on the focused table
+  — listing the identified columns with a mark, toggling one. Half a day: the
+  menu engine and the row chords exist.
+- **Reorder**: drag a header, and a chord pair to move the focused column
+  left and right, which first needs a focused-column notion the table does not
+  have. A day.
+- **Resize**: drag the gap between two headers within the column's bounds, and
+  a chord pair. A day, plus a decision on whether a resized width persists in
+  the customization (SwiftUI's does).
+
 ---
 
 ## C. Declined without asking

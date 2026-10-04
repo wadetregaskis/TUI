@@ -252,6 +252,29 @@ TableColumn("Amount") { Text($0.amount, format: .number) }
 On a `Group` of columns, `.alignment(_:)` aligns each of them that does not
 state an alignment of its own.
 
+### Showing and Hiding Columns
+
+`.defaultVisibility(.hidden)` hides a column. Bind the table to a
+``TableColumnCustomization`` and give the columns identifiers, and the
+customization decides — persisted, if you like, in `@SceneStorage`:
+
+```swift
+@SceneStorage("ReportsTable") private var stored: TableColumnCustomization<Report>
+@State private var customization = TableColumnCustomization<Report>()
+
+Table(reports, columnCustomization: $customization) {
+    TableColumn("Title", value: \.title).customizationID("title")
+    TableColumn("Owner", value: \.owner)
+        .customizationID("owner")
+        .defaultVisibility(.hidden)
+}
+
+customization[visibility: "owner"] = .visible
+```
+
+The customization records only what has been changed: a column it says
+nothing about follows its default visibility.
+
 ### Multi-Line Cells and Truncation
 
 By default each cell occupies a single line (the classic table look). Raise a

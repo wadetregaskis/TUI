@@ -65,3 +65,61 @@ extension TableColumnContent {
         }
     }
 }
+
+// MARK: - Customization
+
+extension TableColumnContent {
+    /// Sets the identifier to be associated with a column when persisting its
+    /// state with ``TableColumnCustomization``.
+    ///
+    /// This is required to allow user customization of a specific table
+    /// column, in addition to the table as a whole being provided a binding to
+    /// a `TableColumnCustomization`. The identifier needs to be stable,
+    /// including across app version updates, since it is used to persist the
+    /// customization.
+    ///
+    /// - Parameter id: The identifier to associate with a column.
+    public func customizationID(
+        _ id: String
+    ) -> some TableColumnContent<TableRowValue, TableColumnSortComparator> {
+        _ModifiedTableColumnContent(base: self) { column in
+            if column.customizationID == nil { column.customizationID = id }
+        }
+    }
+
+    /// Sets the default visibility of a table column.
+    ///
+    /// A `.hidden` column is not shown unless the table is also bound to a
+    /// ``TableColumnCustomization`` that makes it visible — measured in
+    /// SwiftUI, it is hidden whether or not the table has such a binding.
+    ///
+    /// - Parameter visibility: The default visibility to apply to columns.
+    public func defaultVisibility(
+        _ visibility: Visibility
+    ) -> some TableColumnContent<TableRowValue, TableColumnSortComparator> {
+        _ModifiedTableColumnContent(base: self) { column in
+            if column.defaultVisibility == nil { column.defaultVisibility = visibility }
+        }
+    }
+
+    /// Sets the disabled customization behavior for a table column.
+    ///
+    /// A table bound to a ``TableColumnCustomization`` lets the user reorder,
+    /// resize and hide its columns in SwiftUI on macOS, and this disables the
+    /// behaviors given. A TUIkit table offers its user none of those gestures
+    /// yet, so there is nothing for this to take away; it is recorded with the
+    /// column. It never stops the app changing a customization itself, in
+    /// SwiftUI or here.
+    ///
+    /// - Parameter behavior: The behavior to disable, or `.all` to not allow
+    ///   any customization.
+    public func disabledCustomizationBehavior(
+        _ behavior: TableColumnCustomizationBehavior
+    ) -> some TableColumnContent<TableRowValue, TableColumnSortComparator> {
+        _ModifiedTableColumnContent(base: self) { column in
+            if column.disabledCustomizationBehavior == nil {
+                column.disabledCustomizationBehavior = behavior
+            }
+        }
+    }
+}

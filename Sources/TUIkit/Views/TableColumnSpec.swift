@@ -30,6 +30,22 @@ struct _TableColumnSpec<Value> {
     /// — on a `Group` of columns, say — leaves it be.
     var alignmentIsStated = false
 
+    /// The identifier a ``TableColumnCustomization`` knows this column by, or
+    /// `nil` when it has none and cannot be customized.
+    var customizationID: String?
+
+    /// Whether the column is shown when no customization says otherwise;
+    /// `nil` when nothing stated it, which is `.automatic`.
+    var defaultVisibility: Visibility?
+
+    /// What a user may not do to this column; `nil` when nothing stated it.
+    var disabledCustomizationBehavior: TableColumnCustomizationBehavior?
+
+    /// The column's place among the table's declared columns, before any is
+    /// hidden or moved — what a cell's identity and a kept `.fit` width are
+    /// keyed by, so that they stay with the column rather than its position.
+    var declarationIndex = 0
+
     /// How this column is sized.
     var width: _TableColumnWidth
 

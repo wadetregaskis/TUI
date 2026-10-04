@@ -738,6 +738,54 @@ private struct ResizableImageShapes: View {
     }
 }
 
+/// Column customization as SwiftUI's documentation writes it: persisted in
+/// scene storage with no default written, bound through `State`, columns with
+/// identifiers, a default visibility, and a disabled behavior.
+@MainActor
+private struct TableCustomizationShapes: View {
+    struct BugReport: Identifiable {
+        let id: Int
+        var title: String
+        var reporter: String
+    }
+
+    @SceneStorage("BugReportTableConfig")
+    private var columnCustomizationData: TableColumnCustomization<BugReport>
+    @State private var columnCustomization = TableColumnCustomization<BugReport>()
+    @State private var reports: [BugReport] = []
+    @State private var selection = Set<BugReport.ID>()
+    @State private var sortOrder = [KeyPathComparator(\BugReport.title)]
+
+    var body: some View {
+        VStack {
+            Table(reports, columnCustomization: $columnCustomization) {
+                TableColumn("Title", value: \.title)
+                    .customizationID("title")
+                    .disabledCustomizationBehavior(.visibility)
+                TableColumn("Reporter", value: \.reporter)
+                    .customizationID("reporter")
+                    .defaultVisibility(.hidden)
+            }
+            Table(
+                reports, selection: $selection, sortOrder: $sortOrder,
+                columnCustomization: $columnCustomization
+            ) {
+                TableColumn("Title", value: \.title).customizationID("title")
+            }
+            Table(of: BugReport.self, columnCustomization: $columnCustomization) {
+                TableColumn("Title", value: \.title).customizationID("title")
+            } rows: {
+                ForEach(reports)
+            }
+        }
+        .onAppear {
+            columnCustomization = columnCustomizationData
+            columnCustomization[visibility: "reporter"] = .visible
+            columnCustomization.resetOrder()
+        }
+    }
+}
+
 /// SwiftUI's row surface: a table whose rows come from a row builder, with a
 /// fixed row, `ForEach` in both forms, an `if`, a `Group`, and row content
 /// factored into a type of the app's own.

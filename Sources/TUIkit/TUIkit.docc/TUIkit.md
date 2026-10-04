@@ -161,6 +161,8 @@ struct MyApp: App {
 - ``TableColumnBuilder``
 - ``TableColumnForEach``
 - ``TableColumnAlignment``
+- ``TableColumnCustomization``
+- ``TableColumnCustomizationBehavior``
 - ``TupleTableColumnContent``
 - ``TableRow``
 - ``TableRowContent``

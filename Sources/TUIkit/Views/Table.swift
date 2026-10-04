@@ -201,10 +201,19 @@ public struct Table<Value: Identifiable>: View {
     /// payload type; the erased pair is `(accepts, perform)`.
     var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
 
+    /// The customization the table's columns are shown by, when it was given
+    /// one with a `columnCustomization:` initializer.
+    let columnCustomization: Binding<TableColumnCustomization<Value>>?
+
     public var body: some View {
         _TableCore(
             data: data,
-            columns: columns,
+            // Read here, at the body, so a change to the customization shows
+            // on the next frame; an empty customization still hides the
+            // columns whose default visibility is `.hidden`, as SwiftUI's
+            // table does with no binding at all.
+            columns: (columnCustomization?.wrappedValue ?? TableColumnCustomization())
+                .shownColumns(columns),
             singleSelection: singleSelection,
             multiSelection: multiSelection,
             sortModel: sortModel,
@@ -313,10 +322,16 @@ extension Table {
     init(
         rows: [Value], columns: [_TableColumnSpec<Value>],
         single: Binding<Value.ID?>?, multi: Binding<Set<Value.ID>>?,
-        sortModel: _TableSortModel<Value>?
+        sortModel: _TableSortModel<Value>?,
+        customization: Binding<TableColumnCustomization<Value>>? = nil
     ) {
         self.data = rows
-        self.columns = columns
+        self.columns = columns.enumerated().map { index, column in
+            var column = column
+            column.declarationIndex = index
+            return column
+        }
+        self.columnCustomization = customization
         self.singleSelection = single
         self.multiSelection = multi
         self.sortModel = sortModel
@@ -1598,9 +1613,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var cells: [[String]] = []
         cells.reserveCapacity(columns.count)
         var height = 1
-        for (index, (column, width)) in zip(columns, columnWidths).enumerated() {
-            let wrapped = cellLines(
-                column, at: index, for: item, width: width, context: context)
+        for (column, width) in zip(columns, columnWidths) {
+            let wrapped = cellLines(column, for: item, width: width, context: context)
             height = max(height, wrapped.count)
             cells.append(wrapped)
         }
@@ -1610,10 +1624,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// One cell's lines on a multi-line row: a string wrapped into its column
     /// with `TextWrapping`, or a view's own lines, clipped to the column.
     private func cellLines(
-        _ column: _TableColumnSpec<Value>, at index: Int, for item: Value, width: Int,
-        context: RenderContext
+        _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> [String] {
-        let value = cellValue(column, at: index, for: item, width: width, context: context)
+        let value = cellValue(column, for: item, width: width, context: context)
         guard column.laysOutItsOwnLines else {
             return TextWrapping.fit(
                 value, width: max(1, width), maxLines: column.lineLimit,
@@ -1634,9 +1647,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var height = 1
         // A height is a measurement, asked of rows that are not drawn too.
         let probe = Self.probing(context)
-        for (index, (column, width)) in zip(columns, columnWidths).enumerated() {
-            let lineCount = cellLines(
-                column, at: index, for: item, width: width,
+        for (column, width) in zip(columns, columnWidths) {
+            let lineCount = cellLines(column, for: item, width: width,
                 context: column.laysOutItsOwnLines ? probe : context
             ).count
             height = max(height, lineCount)
@@ -3401,8 +3413,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 widths[index] = ratioWidth
                 usedWidth += ratioWidth
             case .fit:
-                let fitted = fitWidth(
-                    of: column, at: index, cappedAt: fitScanCap, context: context)
+                let fitted = fitWidth(of: column, cappedAt: fitScanCap, context: context)
                 widths[index] = fitted
                 usedWidth += fitted
             case .flexible(let minimum, let ideal, let maximum):
@@ -3438,8 +3449,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// fit scan or an off-screen row's height must pass a measuring one, or a
     /// control in the cell would register for focus from a row nobody sees.
     private func cellValue(
-        _ column: _TableColumnSpec<Value>, at columnIndex: Int, for item: Value, width: Int,
-        context: RenderContext
+        _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> String {
         context.renderCache?.rowWork.cellValues += 1
         switch column.cell {
@@ -3457,14 +3467,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return Self.cellLines(
                 TUIkit.renderToBuffer(
                     text,
-                    context: cellContext(
-                        column, at: columnIndex, for: item, width: width, context: context)),
+                    context: cellContext(column, for: item, width: width, context: context)),
                 limit: column.lineLimit)
         case .view(let render):
             return Self.cellLines(
                 render(
                     item,
-                    cellContext(column, at: columnIndex, for: item, width: width, context: context)),
+                    cellContext(column, for: item, width: width, context: context)),
                 limit: column.lineLimit)
         }
     }
@@ -3475,13 +3484,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// column's line limit and truncation as the environment's, so a `Text`
     /// cell clips and wraps as the column says.
     private func cellContext(
-        _ column: _TableColumnSpec<Value>, at columnIndex: Int, for item: Value, width: Int,
-        context: RenderContext
+        _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> RenderContext {
         var cellContext =
             context
             .withChildIdentity(erasedType: _TableColumnSpec<Value>.self, key: identityKey(item.id))
-            .withChildIdentity(erasedType: _TableColumnSpec<Value>.self, index: columnIndex)
+            .withChildIdentity(
+                erasedType: _TableColumnSpec<Value>.self, index: column.declarationIndex)
             .withAvailableSize(width: max(1, width), height: column.lineLimit)
         cellContext.environment.lineLimit = .lines(column.lineLimit)
         cellContext.environment.truncationMode = column.truncationMode
@@ -3554,8 +3563,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Data that cannot be compared — a row type that is not `Equatable` — has
     /// no signature, so it scans every frame exactly as before.
     private func fitWidth(
-        of column: _TableColumnSpec<Value>, at index: Int, cappedAt cap: Int?,
-        context: RenderContext
+        of column: _TableColumnSpec<Value>, cappedAt cap: Int?, context: RenderContext
     ) -> Int {
         // The cap is in the key: a scan that stopped early answers for the
         // interior it stopped against, and a wider table wants the real width.
@@ -3565,7 +3573,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let key = RenderCache.SizeKey(
             identityHash: context.identity.structuralHash,
             proposalWidth: cap, proposalHeight: nil,
-            availableWidth: cap ?? -1, availableHeight: index,
+            availableWidth: cap ?? -1, availableHeight: column.declarationIndex,
             hasExplicitWidth: false, hasExplicitHeight: false,
             measureGeneration: context.measureGeneration)
         let memo: (cache: RenderCache, signature: AnyEquatableBox)? =
@@ -3583,11 +3591,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // width is the one laid out: the check the value memo's sizes
                 // get, for the size this table keeps in the same store.
                 return verifyServedSize(
-                    cached, label: "\(Self.self) column \(index) fit width",
+                    cached, label: "\(Self.self) column \(column.declarationIndex) fit width",
                     proposal: ProposedSize(width: cap, height: nil), context: context
                 ) {
                     ViewSize.fixed(
-                        scanForFitWidth(of: column, at: index, cappedAt: cap, context: $0), 0)
+                        scanForFitWidth(of: column, cappedAt: cap, context: $0), 0)
                 }.width
             }
         }
@@ -3601,7 +3609,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // at the table, so a write drops the width it fitted.
         let leaseMark = context.renderCache?.leases.beginComputation()
         let fitted = observingKeptResult(of: Self.self, kind: .keptMeasure, context: context) {
-            scanForFitWidth(of: column, at: index, cappedAt: cap, context: context)
+            scanForFitWidth(of: column, cappedAt: cap, context: context)
         }
         let lease = context.renderCache?.leases.endComputation(leaseMark)
 
@@ -3618,8 +3626,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// The widest of `column`'s header and cells, stopping at `cap` — the scan
     /// ``fitWidth(of:at:cappedAt:context:)`` keeps the answer of.
     private func scanForFitWidth(
-        of column: _TableColumnSpec<Value>, at index: Int, cappedAt cap: Int?,
-        context: RenderContext
+        of column: _TableColumnSpec<Value>, cappedAt cap: Int?, context: RenderContext
     ) -> Int {
         // The header measured here is the one that will be DRAWN, sort
         // indicator and all: measuring the bare title instead fitted the
@@ -3630,7 +3637,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let probe = column.laysOutItsOwnLines ? Self.probing(context) : context
         let probeWidth = cap ?? context.availableWidth
         for item in data {
-            let value = cellValue(column, at: index, for: item, width: probeWidth, context: probe)
+            let value = cellValue(column, for: item, width: probeWidth, context: probe)
             fitted = max(fitted, Self.widestLine(of: value, laidOut: column.laysOutItsOwnLines))
             if let cap, fitted >= cap { break }
         }
@@ -4022,8 +4029,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cells.reserveCapacity(count)
         for index in 0..<count {
             cells.append(
-                cellValue(
-                    columns[index], at: index, for: item, width: columnWidths[index],
+                cellValue(columns[index], for: item, width: columnWidths[index],
                     context: context))
         }
         return cells
@@ -4273,8 +4279,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The picture is of the row's FIRST line, as the hand carries it, and
         // it is a picture: measured, never drawn as live cells.
         let clipped = (0..<count).map {
-            let value = cellValue(
-                columns[$0], at: $0, for: item, width: columnWidths[$0],
+            let value = cellValue(columns[$0], for: item, width: columnWidths[$0],
                 context: Self.probing(context))
             let firstLine =
                 value.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
