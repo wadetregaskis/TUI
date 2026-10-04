@@ -138,13 +138,14 @@ public struct NavigationSplitViewColumn: Equatable, Hashable, Sendable {
 /// able to notice, so every memo below one declines to cache at all — and what
 /// sits below this modifier is a whole split view, all of its columns.
 ///
-/// All four built-in styles are therefore `Equatable`. This protocol is pure
-/// data: it builds no view and has no `makeBody(configuration:)`, only the three
-/// read-only requirements below, and ``NavigationSplitView`` consults nothing
-/// else. None of the four holds anything either, so `==` within a type is
-/// vacuously true, and two instances of one type really do size the columns
-/// identically — there is no state for them to differ in, and the numbers they
-/// answer with depend only on the type they share.
+/// All four built-in styles are therefore `Equatable`. A built-in's body is its
+/// columns laid out by its three read-only proportions below, which is all
+/// ``NavigationSplitView`` consults under one; a custom style's
+/// ``makeBody(configuration:)`` draws around that. None of the four holds
+/// anything, so `==` within a type is vacuously true, and two instances of one
+/// type really do size the columns identically — there is no state for them to
+/// differ in, and the numbers they answer with depend only on the type they
+/// share.
 ///
 /// Equality is per-type, and that is load-bearing rather than incidental here.
 /// ``SizeToFitFromLeftNavigationSplitViewStyle`` carries exactly
@@ -166,6 +167,34 @@ public struct NavigationSplitViewColumn: Equatable, Hashable, Sendable {
 ///   whether an environment value changed; TUIkit re-runs `body` and compares
 ///   values, so here the question must be answerable.
 public protocol NavigationSplitViewStyle: Sendable {
+    /// A view that represents the body of a navigation split view.
+    associatedtype Body: View
+
+    /// The properties of a navigation split view instance.
+    typealias Configuration = NavigationSplitViewStyleConfiguration
+
+    /// Creates a view that represents the body of a navigation split view.
+    ///
+    /// SwiftUI's requirement, and the way to write a style that changes what
+    /// surrounds a split rather than how its columns are sized: draw a
+    /// built-in style's body and decorate it.
+    ///
+    /// ```swift
+    /// struct FramedSplitStyle: NavigationSplitViewStyle {
+    ///     func makeBody(configuration: Configuration) -> some View {
+    ///         BalancedNavigationSplitViewStyle().makeBody(configuration: configuration)
+    ///             .border()
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// A style that implements only the proportions below gets a body that
+    /// lays the columns out by them.
+    ///
+    /// - Parameter configuration: The split view to draw.
+    @MainActor @ViewBuilder
+    func makeBody(configuration: Configuration) -> Body
+
     /// The proportion of width allocated to the sidebar in a two-column layout.
     ///
     /// Value between 0 and 1. For example, 0.33 means sidebar gets 1/3 of width.
@@ -188,6 +217,74 @@ extension NavigationSplitViewStyle {
     /// Proportional styles don't size to fit; ``SizeToFitFromLeftNavigationSplitViewStyle``
     /// overrides this.
     public var sizesToFit: Bool { false }
+
+    /// The automatic style's, so a style written SwiftUI's way — only
+    /// ``makeBody(configuration:)`` — compiles and sizes as the default does.
+    public var sidebarProportion: Double { AutomaticNavigationSplitViewStyle().sidebarProportion }
+
+    /// The automatic style's — see ``sidebarProportion``.
+    public var threeColumnProportions: (sidebar: Double, content: Double, detail: Double) {
+        AutomaticNavigationSplitViewStyle().threeColumnProportions
+    }
+
+    /// The columns, laid out by this style's proportions.
+    @MainActor
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.columns(styledBy: self)
+    }
+}
+
+// MARK: - Configuration
+
+/// The properties of a navigation split view instance. Mirrors SwiftUI's
+/// `NavigationSplitViewStyleConfiguration`, which has no public members
+/// either: a style draws it through a built-in style's
+/// ``NavigationSplitViewStyle/makeBody(configuration:)``.
+public struct NavigationSplitViewStyleConfiguration {
+    /// The split's columns, which read the style they are laid out by from the
+    /// environment.
+    let columns: AnyView
+
+    /// The columns, laid out by `style`.
+    @MainActor
+    func columns(styledBy style: some NavigationSplitViewStyle) -> some View {
+        columns.environment(\.navigationSplitViewStyle, style)
+    }
+}
+
+/// The styles TUIkit ships, whose bodies are their columns laid out by their
+/// own proportions: a split under one draws its columns directly, with no
+/// body to erase.
+protocol BuiltInNavigationSplitViewStyle {}
+
+/// What a ``NavigationSplitView``'s body is: the columns, drawn through the
+/// style in the environment.
+struct _NavigationSplitViewStyleHost<Columns: View>: View {
+    let columns: Columns
+
+    @Environment(\.navigationSplitViewStyle) private var style
+
+    var body: some View {
+        if let customBody {
+            customBody
+        } else {
+            columns
+        }
+    }
+
+    /// A custom style's body around the columns, or `nil` under a built-in
+    /// style, whose body is the columns themselves.
+    private var customBody: AnyView? {
+        let style: any NavigationSplitViewStyle = style
+        guard !(style is any BuiltInNavigationSplitViewStyle) else { return nil }
+        return Self.body(of: style, around: AnyView(columns))
+    }
+
+    /// `style`'s body around the columns.
+    @MainActor
+    private static func body<S: NavigationSplitViewStyle>(of style: S, around columns: AnyView) -> AnyView {
+        AnyView(style.makeBody(configuration: NavigationSplitViewStyleConfiguration(columns: columns)))
+    }
 }
 
 // MARK: - AutomaticNavigationSplitViewStyle
@@ -295,6 +392,44 @@ public struct SizeToFitFromLeftNavigationSplitViewStyle: NavigationSplitViewStyl
 
     public var threeColumnProportions: (sidebar: Double, content: Double, detail: Double) {
         (0.25, 0.25, 0.50)
+    }
+}
+
+// MARK: - Built-in Style Bodies
+
+// Each built-in's body is the columns laid out by its proportions — the same
+// view the protocol's default draws, declared on the type as SwiftUI's are, so
+// a custom style can draw one and decorate it.
+
+extension AutomaticNavigationSplitViewStyle: BuiltInNavigationSplitViewStyle {
+    /// The columns, laid out by this style's proportions.
+    @MainActor
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.columns(styledBy: self)
+    }
+}
+
+extension BalancedNavigationSplitViewStyle: BuiltInNavigationSplitViewStyle {
+    /// The columns, laid out by this style's proportions.
+    @MainActor
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.columns(styledBy: self)
+    }
+}
+
+extension ProminentDetailNavigationSplitViewStyle: BuiltInNavigationSplitViewStyle {
+    /// The columns, laid out by this style's proportions.
+    @MainActor
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.columns(styledBy: self)
+    }
+}
+
+extension SizeToFitFromLeftNavigationSplitViewStyle: BuiltInNavigationSplitViewStyle {
+    /// The columns, each sized to fit its content from the left.
+    @MainActor
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.columns(styledBy: self)
     }
 }
 

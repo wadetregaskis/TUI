@@ -1067,10 +1067,6 @@
       "how": "View.dimmed() / Palette.overlayBackground",
       "why": "The scrim role Material fills for modals exists: View.dimmed() (Sources/TUIkit/Extensions/View+Layout.swift:72) wraps DimmedModifier, whose dimmedAsBackdrop(foreground:background:) (Sources/TUIkit/Modifiers/DimmedModifier.swift:80) recolours everything behind a modal to palette.f"
     },
-    "NavigationSplitViewStyleConfiguration": {
-      "how": "NavigationSplitViewStyle's proportion members (sidebarProportion / threeColumnProportions / sizesToFit)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Styles/NavigationSplitViewStyle.swift:131-148 — TUIkit's style protocol is declarative geometry rather than `makeBody(configuration:)`, so there is nothing for a Configuration value to carry. Custom styles are written by supplying prop"
-    },
     "ObservedObject": {
       "how": "a plain @Observable reference, or @Bindable for write-through",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitView/State/Bindable.swift:41 (`Bindable`, shipped); §2.3 (Documentation/SwiftUI-compatibility.md:180) maps `@ObservedObject var m: M` to passing the object via `@Environment(M.self)` or init with Observation tracking doing the invalidat"

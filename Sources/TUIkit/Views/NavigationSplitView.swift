@@ -129,13 +129,16 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
     let columnVisibility: Binding<NavigationSplitViewVisibility>?
 
     public var body: some View {
-        _NavigationSplitViewCore(
-            sidebar: sidebar,
-            content: content,
-            detail: detail,
-            isThreeColumn: isThreeColumn,
-            columnVisibility: columnVisibility
-        )
+        // Through the style in the environment: a built-in style's body IS the
+        // columns, and a custom one's `makeBody` draws around them.
+        _NavigationSplitViewStyleHost(
+            columns: _NavigationSplitViewCore(
+                sidebar: sidebar,
+                content: content,
+                detail: detail,
+                isThreeColumn: isThreeColumn,
+                columnVisibility: columnVisibility
+            ))
     }
 }
 
