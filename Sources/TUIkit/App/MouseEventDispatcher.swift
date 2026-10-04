@@ -739,43 +739,59 @@ extension MouseEventDispatcher {
         let matching = matchingRegions(at: event.x, y: event.y)
         guard !matching.isEmpty else { return false }
 
-        for region in matching {
-            guard let handler = handlers[region.handlerID] else { continue }
-            let localized = localize(
-                event, byOffsetX: region.localOriginX, offsetY: region.localOriginY)
-            gestureHandedOff = false
-            let consumed = handler(localized)
-            if consumed {
-                // A press captures the rest of the gesture — unless the handler
-                // handed it off (``handOffGesture()``), which a menu-opening
-                // press does so the drag and release find the open menu. That
-                // hand-off is recorded, because it is what entitles the release
-                // to be hit-tested live with nothing captured.
-                if event.phase == .pressed {
-                    if gestureHandedOff {
-                        handedOffPresses.insert(event.button)
-                    } else {
-                        pressedHandlers[event.button] = PressCapture(
-                            handler: handler,
-                            regionOffsetX: region.localOriginX,
-                            regionOffsetY: region.localOriginY
-                        )
-                    }
-                }
-                return true
-            }
-            // Fall through when the handler declined: `false` means "not
-            // mine" for every button, the way it always did for the wheel
-            // and the right button (which is what lets a `.contextMenu` on a
-            // container open when you right-click a child with no context
-            // action of its own). The left button used to STOP at the first
-            // matching region regardless — so a decline-everything wrapper
-            // region, `.onHover`'s, sat over its own content and made every
-            // hover-wrapped control unclickable. A region that wants to
-            // BLOCK what is beneath it consumes (returns true), as the
-            // dimmed backdrops do.
+        // Fall through when the handler declined: `false` means "not mine" for
+        // every button, the way it always did for the wheel and the right
+        // button (which is what lets a `.contextMenu` on a container open when
+        // you right-click a child with no context action of its own). The left
+        // button used to STOP at the first matching region regardless — so a
+        // decline-everything wrapper region, `.onHover`'s, sat over its own
+        // content and made every hover-wrapped control unclickable. A region
+        // that wants to BLOCK what is beneath it consumes (returns true), as
+        // the dimmed backdrops do.
+        for region in matching where offer(event, to: region) != .declined {
+            return true
         }
         return false
+    }
+
+    /// What a region's handler did with an event offered to it.
+    enum Offer: Equatable {
+        /// Not its event: offer it to the next region.
+        case declined
+
+        /// Consumed. A press is captured, so the rest of its gesture comes
+        /// back to the same handler.
+        case captured
+
+        /// Consumed, and — a press only — handed back to live hit-testing
+        /// (``handOffGesture()``).
+        case handedOff
+    }
+
+    /// Offers `event` to `region`'s handler, in the region's own coordinates,
+    /// and records what consuming a press commits the rest of its gesture to.
+    func offer(_ event: MouseEvent, to region: HitTestRegion) -> Offer {
+        guard let handler = handlers[region.handlerID] else { return .declined }
+        let localized = localize(
+            event, byOffsetX: region.localOriginX, offsetY: region.localOriginY)
+        gestureHandedOff = false
+        guard handler(localized) else { return .declined }
+        // A press captures the rest of the gesture — unless the handler handed
+        // it off (``handOffGesture()``), which a menu-opening press does so the
+        // drag and release find the open menu. That hand-off is recorded,
+        // because it is what entitles the release to be hit-tested live with
+        // nothing captured.
+        guard event.phase == .pressed else { return .captured }
+        if gestureHandedOff {
+            handedOffPresses.insert(event.button)
+            return .handedOff
+        }
+        pressedHandlers[event.button] = PressCapture(
+            handler: handler,
+            regionOffsetX: region.localOriginX,
+            regionOffsetY: region.localOriginY
+        )
+        return .captured
     }
 
     /// Settles a drag or release against the press that began the gesture.
@@ -784,7 +800,7 @@ extension MouseEventDispatcher {
     ///   event's fate — routed to a live capture, to the legacy-release
     ///   fallback, or dropped for having no press behind it at all — and `nil`
     ///   when the event should go on to ordinary live hit-testing.
-    private func routeAgainstItsPress(_ event: MouseEvent) -> Bool? {
+    func routeAgainstItsPress(_ event: MouseEvent) -> Bool? {
         // When a button is held, every subsequent event for it goes to the
         // handler that took the press, wherever the cursor sits now.
         if let capture = pressedHandlers[event.button] {
