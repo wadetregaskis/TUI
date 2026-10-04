@@ -44,11 +44,60 @@ public protocol TableRowContent<TableRowValue>: _TableRowValued {
 
 // MARK: - Flattening
 
-/// A table's rows, flattened for the renderer: the row values in the order
-/// they are drawn.
+/// A table's rows, in order, for the renderer: each a value, with the rows
+/// beneath it when it is a branch of a hierarchical table.
 struct _TableRowList<Value: Identifiable> {
-    /// The rows' values, in order.
-    var values: [Value] = []
+    /// The rows, in order.
+    private(set) var nodes: [_TableRowNode<Value>] = []
+
+    /// Whether any row has rows beneath it — only then is the table an outline.
+    private(set) var isTree = false
+
+    /// The rows' values, in order: the whole table, when it is not a tree.
+    var values: [Value] { nodes.map(\.value) }
+
+    /// Appends a row with nothing beneath it.
+    mutating func append(_ value: Value) {
+        nodes.append(_TableRowNode(value: value, children: nil, isExpanded: nil))
+    }
+
+    /// Appends rows with nothing beneath them.
+    mutating func append<S: Sequence>(contentsOf values: S) where S.Element == Value {
+        nodes += values.lazy.map { _TableRowNode(value: $0, children: nil, isExpanded: nil) }
+    }
+
+    /// Appends a row of a tree — a branch, or a leaf beside one — which makes
+    /// the table an outline.
+    mutating func append(treeNode node: _TableRowNode<Value>) {
+        isTree = true
+        nodes.append(node)
+    }
+
+    /// Appends another list's rows.
+    mutating func append(contentsOf other: _TableRowList<Value>) {
+        isTree = isTree || other.isTree
+        nodes += other.nodes
+    }
+}
+
+/// One row of a table, and — when it is a branch of a hierarchical table — how
+/// to reach the rows beneath it.
+struct _TableRowNode<Value: Identifiable> {
+    /// The row's value.
+    let value: Value
+
+    /// The rows beneath this one, built only when the branch is opened — a
+    /// closed folder's contents are never walked. `nil` for a leaf; an empty
+    /// result is a branch with nothing in it, which still draws a triangle,
+    /// as in SwiftUI.
+    ///
+    /// Main-actor isolated because building rows is: a `DisclosureTableRow`'s
+    /// children come from its row builder.
+    let children: (@MainActor () -> [_TableRowNode<Value>])?
+
+    /// The expansion a `DisclosureTableRow` was handed, or `nil` for one the
+    /// table keeps itself.
+    let isExpanded: Binding<Bool>?
 }
 
 /// Row content that hands the renderer its rows itself, rather than through
@@ -91,7 +140,7 @@ func appendTableRows<Content: TableRowContent>(
         assertionFailure("\(Content.self)'s tableRowBody has rows of another type than its TableRowValue")
         return
     }
-    rows.values += typed.values
+    rows.append(contentsOf: typed)
 }
 
 // MARK: - TableRow
@@ -133,7 +182,7 @@ extension TableRow: _TableRowPrimitive {
     typealias PrimitiveRowValue = Value
 
     func appendRows(to rows: inout _TableRowList<Value>) {
-        rows.values.append(value)
+        rows.append(value)
     }
 }
 
@@ -222,7 +271,7 @@ extension TableForEachContent: _TableRowPrimitive {
     typealias PrimitiveRowValue = Data.Element
 
     func appendRows(to rows: inout _TableRowList<Data.Element>) {
-        rows.values += data
+        rows.append(contentsOf: data)
     }
 }
 

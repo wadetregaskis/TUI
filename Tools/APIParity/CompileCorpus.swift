@@ -841,3 +841,52 @@ private struct TableRowShapes: View {
         }
     }
 }
+
+// MARK: - Hierarchical tables
+
+private struct TableOutlineShapes: View {
+    struct File: Identifiable {
+        let id: Int
+        var name: String
+        var children: [Self]?
+    }
+
+    @State private var files: [File] = []
+    @State private var selection: File.ID?
+    @State private var picked = Set<File.ID>()
+    @State private var sortOrder = [KeyPathComparator(\File.name)]
+    @State private var customization = TableColumnCustomization<File>()
+    @State private var showsDownloads = false
+
+    var body: some View {
+        VStack {
+            Table(files, children: \.children) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(files, children: \.children, selection: $selection) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(
+                files, children: \.children, selection: $picked, sortOrder: $sortOrder,
+                columnCustomization: $customization
+            ) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(of: File.self) {
+                TableColumn("Name", value: \.name)
+            } rows: {
+                DisclosureTableRow(File(id: 0, name: "Downloads"), isExpanded: $showsDownloads) {
+                    ForEach(files) { TableRow($0) }
+                }
+                DisclosureTableRow(File(id: 1, name: "Archive")) {
+                    TableRow(File(id: 2, name: "old"))
+                }
+                OutlineGroup(files, children: \.children)
+                OutlineGroup(File(id: 3, name: "root"), children: \.children)
+                OutlineGroup(files, children: \.children) { file in
+                    TableRow(file)
+                }
+            }
+        }
+    }
+}

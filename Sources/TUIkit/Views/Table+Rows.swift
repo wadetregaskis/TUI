@@ -38,7 +38,7 @@ extension Table {
         @TableRowBuilder<Value> rows: () -> Rows
     ) where Columns.TableRowValue == Value, Rows.TableRowValue == Value {
         self.init(
-            rows: tableRows(of: rows()).values, columns: tableColumns(of: columns()),
+            rowList: tableRows(of: rows()), columns: tableColumns(of: columns()),
             single: nil, multi: nil, sortModel: nil)
     }
 
@@ -56,7 +56,7 @@ extension Table {
         @TableRowBuilder<Value> rows: () -> Rows
     ) where Columns.TableRowValue == Value, Rows.TableRowValue == Value {
         self.init(
-            rows: tableRows(of: rows()).values, columns: tableColumns(of: columns()),
+            rowList: tableRows(of: rows()), columns: tableColumns(of: columns()),
             single: selection, multi: nil, sortModel: nil)
     }
 
@@ -74,7 +74,7 @@ extension Table {
         @TableRowBuilder<Value> rows: () -> Rows
     ) where Columns.TableRowValue == Value, Rows.TableRowValue == Value {
         self.init(
-            rows: tableRows(of: rows()).values, columns: tableColumns(of: columns()),
+            rowList: tableRows(of: rows()), columns: tableColumns(of: columns()),
             single: nil, multi: selection, sortModel: nil)
     }
 
@@ -91,7 +91,7 @@ extension Table {
         @TableRowBuilder<Value> rows: () -> Rows
     ) where Sort.Compared == Value, Columns.TableRowValue == Value, Rows.TableRowValue == Value {
         self.init(
-            rows: tableRows(of: rows()).values, columns: tableColumns(of: columns()),
+            rowList: tableRows(of: rows()), columns: tableColumns(of: columns()),
             single: nil, multi: nil, sortModel: _TableSortModel(sortOrder))
     }
 
@@ -110,7 +110,7 @@ extension Table {
         @TableRowBuilder<Value> rows: () -> Rows
     ) where Sort.Compared == Value, Columns.TableRowValue == Value, Rows.TableRowValue == Value {
         self.init(
-            rows: tableRows(of: rows()).values, columns: tableColumns(of: columns()),
+            rowList: tableRows(of: rows()), columns: tableColumns(of: columns()),
             single: selection, multi: nil, sortModel: _TableSortModel(sortOrder))
     }
 
@@ -129,7 +129,7 @@ extension Table {
         @TableRowBuilder<Value> rows: () -> Rows
     ) where Sort.Compared == Value, Columns.TableRowValue == Value, Rows.TableRowValue == Value {
         self.init(
-            rows: tableRows(of: rows()).values, columns: tableColumns(of: columns()),
+            rowList: tableRows(of: rows()), columns: tableColumns(of: columns()),
             single: nil, multi: selection, sortModel: _TableSortModel(sortOrder))
     }
 

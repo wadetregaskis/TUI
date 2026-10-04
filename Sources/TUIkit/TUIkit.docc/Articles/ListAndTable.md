@@ -252,6 +252,38 @@ TableColumn("Amount") { Text($0.amount, format: .number) }
 On a `Group` of columns, `.alignment(_:)` aligns each of them that does not
 state an alignment of its own.
 
+### Hierarchical Tables
+
+Give a table a key path to each row's children and it draws a tree in its
+first column — each level indented a step, a triangle on every row whose
+children are not `nil`:
+
+```swift
+Table(files, children: \.children) {
+    TableColumn("Name", value: \.name)
+    TableColumn("Size", value: \.size)
+}
+```
+
+Every branch starts closed. A click on a triangle opens or closes it; with the
+keyboard, Right opens the focused row and Left closes it, or — on a row with
+nothing to close — moves to the row it sits under. Held with ⌥, either key
+carries that through every branch beneath the row.
+
+A `rows:` closure builds a tree too: an `OutlineGroup` of rows, or a
+`DisclosureTableRow` whose expansion an `isExpanded:` binding can own.
+
+```swift
+Table(of: File.self) {
+    TableColumn("Name", value: \.name)
+} rows: {
+    DisclosureTableRow(downloads, isExpanded: $showsDownloads) {
+        ForEach(downloads.files) { TableRow($0) }
+    }
+    OutlineGroup(projects, children: \.children)
+}
+```
+
 ### Striped Rows
 
 `.alternatingRowBackgrounds()` tints every other row of the tables and lists

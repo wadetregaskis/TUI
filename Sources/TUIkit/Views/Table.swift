@@ -205,6 +205,12 @@ public struct Table<Value: Identifiable>: View {
     /// one with a `columnCustomization:` initializer.
     let columnCustomization: Binding<TableColumnCustomization<Value>>?
 
+    /// The rows as a tree, when the table is hierarchical — `Table(_:children:)`,
+    /// or rows with an `OutlineGroup` or a `DisclosureTableRow` among them.
+    /// ``data`` is empty then: which rows show is the expansion's to say, and
+    /// only the render knows where the expansion lives.
+    var rowTree: [_TableRowNode<Value>]?
+
     public var body: some View {
         _TableCore(
             data: data,
@@ -224,7 +230,8 @@ public struct Table<Value: Identifiable>: View {
             columnSpacing: columnSpacing,
             primaryAction: primaryAction,
             moveAction: moveAction,
-            dropInsertion: dropInsertion
+            dropInsertion: dropInsertion,
+            rowTree: rowTree
         )
         // The same pairing as `ScrollView.body` and `List.body`. A table's rows
         // are its own focus stops, so its stored flag alone already suppressed
@@ -337,6 +344,20 @@ extension Table {
         self.sortModel = sortModel
         self.focusID = nil
         self.isDisabled = false
+    }
+
+    /// The same, from a row builder's rows: flat ones become the table's data,
+    /// a tree its ``rowTree``.
+    init(
+        rowList: _TableRowList<Value>, columns: [_TableColumnSpec<Value>],
+        single: Binding<Value.ID?>?, multi: Binding<Set<Value.ID>>?,
+        sortModel: _TableSortModel<Value>?,
+        customization: Binding<TableColumnCustomization<Value>>? = nil
+    ) {
+        self.init(
+            rows: rowList.isTree ? [] : rowList.values, columns: columns, single: single,
+            multi: multi, sortModel: sortModel, customization: customization)
+        if rowList.isTree { rowTree = rowList.nodes }
     }
 
     /// Creates a table that computes its rows based on a collection of
@@ -549,6 +570,9 @@ private enum StateIndex {
     /// The focus id, persisted so it survives a frame where the declaration is
     /// momentarily absent (see `FocusRegistration.persistFocusID`).
     static let focusID = 1
+    /// A hierarchical table's open branches — those no `DisclosureTableRow`
+    /// binding owns — by row id.
+    static let outlineExpansion = 2
 }
 
 /// Internal core view that handles table rendering inside a ContainerView.
@@ -574,8 +598,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// mark reserves none of it and they would otherwise disagree by two cells.
     static var selectionGutterWidth: Int { 2 }
 
-    let data: [Value]
-    let columns: [_TableColumnSpec<Value>]
+    var data: [Value]
+    var columns: [_TableColumnSpec<Value>]
     let singleSelection: Binding<Value.ID?>?
     let multiSelection: Binding<Set<Value.ID>>?
     let sortModel: _TableSortModel<Value>?
@@ -588,8 +612,44 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     var moveAction: ((IndexSet, Int) -> Void)?
     var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
 
+    /// The table's rows as a tree, when it is hierarchical; ``data`` is empty
+    /// until ``resolvingOutline(_:)`` flattens it.
+    let rowTree: [_TableRowNode<Value>]?
+
+    /// This frame's flattening of ``rowTree``: the rows that show and where
+    /// each sits. Set only on the copy ``resolvingOutline(_:)`` returns.
+    var outline: _TableOutline<Value>?
+
     var body: Never {
         fatalError("_TableCore renders via Renderable")
+    }
+
+    /// Whether this is a hierarchical table whose tree this pass has not yet
+    /// flattened — true only at the two entry points, before they resolve it.
+    private var needsOutline: Bool { rowTree != nil && outline == nil }
+
+    /// This table with its tree flattened into the rows this frame shows, and
+    /// its first column drawing each row's place in the tree.
+    ///
+    /// Done at the entry points rather than when the table is built, because
+    /// the open branches are state, kept at this table's identity, which only
+    /// a pass's context can reach. Everything past the entry points then reads
+    /// an ordinary table of rows.
+    private func resolvingOutline(_ context: RenderContext) -> Self {
+        guard let rowTree else { return self }
+        let expansion: StateBox<Set<AnyHashable>> =
+            context.stateStorage?.storage(
+                for: StateStorage.StateKey(
+                    identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
+                default: []) ?? StateBox([])
+        let outline = _TableOutline(tree: rowTree, expansion: expansion)
+        var resolved = self
+        resolved.data = outline.values
+        resolved.outline = outline
+        if let first = columns.first {
+            resolved.columns[0] = outline.disclosing(first)
+        }
+        return resolved
     }
 
     /// The lines the column header takes: one, or none under
@@ -633,6 +693,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if needsOutline {
+            return resolvingOutline(context).sizeThatFits(proposal: proposal, context: context)
+        }
         var measureContext = context
         measureContext.isMeasuring = true
         // Match the fallback: report the natural (minimum) size, not an expanded one.
@@ -932,6 +995,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if needsOutline { return resolvingOutline(context).renderToBuffer(context: context) }
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
 
@@ -2091,6 +2155,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// paths, so what a row can do cannot differ between them.
     private func syncRowActions(_ handler: ItemListHandler<Value.ID>) {
         handler.primaryAction = primaryAction
+        handler.outlineActivation = outline
         handler.onMove = moveAction
         handler.onSort = sortKeyAction
     }
@@ -3235,6 +3300,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // per frame for a lookup that is made once per click.
         let rows = data
         let capturedPrimaryAction = primaryAction
+        let triangleHit = outlineTriangleHit(
+            columnWidths: state.columnWidths,
+            firstColumnLeft: rowContentLeft + selectionGutter(context.environment),
+            context: context)
         let dragSession = context.environment.dragAndDropSession
         // Where inside the grabbed row the press landed — the cell a `.cursor`
         // drag keeps under the pointer. Held in the closure because the closure
@@ -3368,7 +3437,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     focusManager?.focus(id: captureFocusID)
                     return true
                 }
-                if let index = rowAt(y: event.y) {
+                if let index = rowAt(y: event.y), let triangleHit, triangleHit(index, event.x) {
+                    // The triangle discloses, and moves the cursor to its row
+                    // without selecting it — the selection is the text's.
+                    captureHandler.focusedIndex = index
+                } else if let index = rowAt(y: event.y) {
                     // A double-click fires the row's primary action ("open");
                     // a single click selects with macOS semantics (plain =
                     // sole selection, shift = range, ctrl/option = toggle) —
@@ -3389,6 +3462,40 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 return true
             }
             return false
+        }
+    }
+
+    /// Whether a click at column `x` of row `index` lands on that row's
+    /// disclosure triangle — and when it does, opens or closes the branch.
+    /// `nil` for a table that is not a tree.
+    ///
+    /// The triangle sits where the first column's cell put it: at the cell's
+    /// leading edge, or wherever its alignment moved the cell's text.
+    private func outlineTriangleHit(
+        columnWidths: [Int], firstColumnLeft: Int, context: RenderContext
+    ) -> (@MainActor (Int, Int) -> Bool)? {
+        guard let outline, let column = columns.first, let width = columnWidths.first else {
+            return nil
+        }
+        let rows = data
+        let probe = Self.probing(context)
+        return { index, x in
+            guard rows.indices.contains(index),
+                let triangle = outline.triangleColumns(for: rows[index].id)
+            else { return false }
+            let firstLine =
+                cellValue(column, for: rows[index], width: width, context: probe)
+                .split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+                .first.map(String.init) ?? ""
+            let start =
+                firstColumnLeft
+                + column.alignment.childOffset(
+                    childWidth: min(width, firstLine.strippedLength), in: width)
+            guard (start + triangle.lowerBound..<start + triangle.upperBound).contains(x) else {
+                return false
+            }
+            return outline.setExpanded(
+                AnyHashable(rows[index].id), to: nil, includingDescendants: false)
         }
     }
 

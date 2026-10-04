@@ -171,6 +171,8 @@ struct MyApp: App {
 - ``TupleTableRowContent``
 - ``TableForEachContent``
 - ``EmptyTableRowContent``
+- ``DisclosureTableRow``
+- ``TableOutlineGroupContent``
 - ``ColumnWidth``
 - ``SelectionMode``
 - ``RowReorderFeedback``

@@ -57,12 +57,12 @@ struct _TableColumnSpec<Value> {
     var lineLimit: Int
 
     /// What the column draws in each row's cell.
-    let cell: _TableCellSource<Value>
+    var cell: _TableCellSource<Value>
 
     /// Whether ``cell`` NAMES a property rather than computing one.
     /// See ``TableColumn/namesAProperty`` — this is the same flag, carried
     /// through, and the row memo's whole soundness argument rests on it.
-    let namesAProperty: Bool
+    var namesAProperty: Bool
 
     /// The column's comparator, with its type erased, or `nil` when the column
     /// cannot sort. Only a ``_TableSortModel`` — which knows the table's
