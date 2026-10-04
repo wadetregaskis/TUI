@@ -95,3 +95,45 @@ struct SceneEnvironmentTests {
         #expect(lines.contains { $0.contains("count 5") }, "\(lines)")
     }
 }
+
+// MARK: - onChange
+
+private final class ChangeLog: @unchecked Sendable {
+    var entries: [String] = []
+}
+
+private let sceneChanges = ChangeLog()
+
+private struct ChangingApp: App {
+    var body: some Scene {
+        WindowGroup { CountLabel() }
+            .onChange(of: SceneChangeSource.value, initial: true) { old, new in
+                sceneChanges.entries.append("\(old)→\(new)")
+            }
+            .palette(SystemPalette.green)
+    }
+}
+
+@MainActor
+private enum SceneChangeSource {
+    static var value = 1
+}
+
+@MainActor
+@Suite("Scene-level onChange")
+struct SceneOnChangeTests {
+    @Test("A scene's onChange runs initially, and again when its value changes between frames")
+    func runsOnChange() {
+        sceneChanges.entries = []
+        SceneChangeSource.value = 1
+        let app = HeadlessApp(ChangingApp(), width: 30, height: 12)
+        app.frame(atNanos: 0)
+        #expect(sceneChanges.entries == ["1→1"])
+        app.frame(atNanos: 16_666_667)
+        #expect(sceneChanges.entries == ["1→1"], "an unchanged value runs nothing")
+        SceneChangeSource.value = 2
+        app.frame(atNanos: 33_333_334)
+        #expect(sceneChanges.entries == ["1→1", "1→2"])
+        #expect(app.screen.contains { $0.stripped.contains("count 0") }, "and the content still draws")
+    }
+}
