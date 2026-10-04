@@ -272,17 +272,16 @@ extension GestureAttachment: Renderable {
         // Nothing to arbitrate: the gesture is off and its subviews' are not.
         guard isLive || !mask.contains(.subviews) else { return buffer }
 
-        dispatcher.requestFeature(.clicks, in: context)
-        dispatcher.requestFeature(.drag, in: context)
         let subtree: Set<HitTestRegion.HandlerID> =
             priority == .high || !mask.contains(.subviews)
             ? Set(buffer.hitTestRegions.map(\.handlerID)) : []
         let role = GestureRole(
             participant: isLive ? participant : nil, priority: priority,
             disablesSubviews: !mask.contains(.subviews), subtree: subtree)
-        // Filed again by a memo that serves this subtree, as the region's
-        // handler is: the recognizers live in the participant, not in the
-        // frame, so a served frame's gesture is the same gesture. Its clock
+        // One filing — the region's handler, the role, and the click and drag
+        // reporting the gesture hears through — made again by a memo that
+        // serves this subtree: the recognizers live in the participant, not in
+        // the frame, so a served frame's gesture is the same gesture. Its clock
         // needs nothing from the render either — the run loop ticks the arena
         // and asks for the wake (`advanceGestures`, `gestureDeadline`).
         let id = dispatcher.registerGesture(in: context, role)

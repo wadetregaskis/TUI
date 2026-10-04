@@ -35,6 +35,18 @@ private struct ButtonCard: View, @MainActor Equatable {
     }
 }
 
+/// A memoizable row holding a tap gesture, equal by title as ``ButtonCard`` is.
+private struct TapCard: View, @MainActor Equatable {
+    let title: String
+    let tally: Tally
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.title == rhs.title }
+
+    var body: some View {
+        Text(title).onTapGesture { tally.clicks.append(title) }
+    }
+}
+
 /// Renders frames the way `RenderLoop` brackets them — every per-walk registry
 /// emptied first — and publishes the frame's regions to the dispatcher as the
 /// loop publishes the composited root buffer's.
@@ -239,5 +251,37 @@ struct MouseRegionMemoTests {
         // The middle row, not its neighbours: each row's handler is its own,
         // under the id its own region carries.
         #expect(tally.clicks == ["bravo"], "the click landed on \(tally.clicks)")
+    }
+
+    @Test("A served tap gesture is filed again: a click on the served frame taps, and clicks and drags are asked for")
+    func servedTapGestureIsFiledAgain() {
+        let harness = LoopHarness()
+        let tally = Tally()
+        @MainActor func page() -> some View {
+            VStack {
+                Text("ahead")
+                TapCard(title: "tap me", tally: tally).equatable()
+            }
+        }
+
+        harness.frame(page())
+        #expect(!harness.cache.isEmpty, "the tap's buffer was never stored")
+        let missesBefore = harness.cache.stats.misses
+        let served = harness.frame(page())
+        #expect(harness.cache.stats.misses == missesBefore, "the memoized tap rendered again")
+
+        // The gesture's whole filing — its region's handler, its role in the
+        // arena, and the reporting it hears the pointer through — is one
+        // journal entry, so a served frame that dropped any part of it would
+        // show here.
+        let support = harness.dispatcher.effectiveSupport(baseConfig: .disabled)
+        #expect(support.clicks, "a served frame asked for no click reporting")
+        #expect(support.drag, "a served frame asked for no drag reporting")
+        guard let spot = cell(of: "tap me", in: served) else {
+            Issue.record("the tap was not drawn: \(served.lines.map(\.stripped))")
+            return
+        }
+        harness.click(x: spot.x, y: spot.y)
+        #expect(tally.clicks == ["tap me"], "the click on the served frame reached nothing")
     }
 }

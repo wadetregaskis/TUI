@@ -18,24 +18,46 @@ extension MouseEventDispatcher {
     /// The region is a hover OBSERVER's: a gesture is not a control, and must
     /// not take the hover from the control it is attached to, nor answer for
     /// one behind it. Its handler declines everything — a gesture hears the
-    /// pointer through the arena, never through ordinary dispatch.
+    /// pointer through the arena, never through ordinary dispatch. The filing
+    /// also asks for the click and drag reporting the arena hears it through.
     ///
-    /// While a memo records, the filing is journaled beside the region's
-    /// handler, so a frame that serves the stored subtree files the same
-    /// gesture again.
+    /// One registration, not the four it was made of — the observer's handler,
+    /// the role, and a request for each feature, each through its own entry
+    /// point. Each of those declared its own replayable effect, read the
+    /// channel token from the environment and, while a memo recorded, built
+    /// and journaled a closure of its own; a served row replayed all four, each
+    /// looking the dispatcher up again. The filing is one thing, recorded and
+    /// replayed as one ``fileGesture(_:id:)``.
     @MainActor
     func registerGesture(in context: RenderContext, _ role: GestureRole) -> HitTestRegion.HandlerID {
-        let id = registerHoverObserver(in: context) { _ in false }
-        gestureRoles[id] = role
+        let id = handlerIDs.id(registeredIn: context)
+        fileGesture(role, id: id)
+        // As every registration: a measure pass makes nothing a frame can be
+        // served from (`registerInterned`), though an attachment files nothing
+        // while it measures anyway.
+        guard !context.isMeasuring else { return id }
+        context.environment.volatileReadTracker?.recordReplayableEffect()
         if let journal = context.recordingEffectJournal {
             journal.append(
                 EffectJournal.Entry(
                     kind: Self.gestureRoleKind, channelToken: context.environment.keyChannelToken
                 ) { replay in
-                    replay.environment.mouseEventDispatcher?.gestureRoles[id] = role
+                    replay.environment.mouseEventDispatcher?.fileGesture(role, id: id)
                 })
         }
         return id
+    }
+
+    /// Files `role` under `id`: the region's handler on the observer lane, the
+    /// role, and the reporting a gesture needs — what a render and a memo's
+    /// replay of it both do.
+    @MainActor
+    private func fileGesture(_ role: GestureRole, id: HitTestRegion.HandlerID) {
+        // Captures nothing, so a constant: no closure context is allocated.
+        MouseHandlerRegistrar.register(id: id, handler: { _ in false }, isHoverObserver: true, into: self)
+        gestureRoles[id] = role
+        requestFeature(.clicks)
+        requestFeature(.drag)
     }
 
     /// The journal kind of an attached gesture's filing.

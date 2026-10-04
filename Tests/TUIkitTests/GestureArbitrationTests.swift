@@ -145,6 +145,24 @@ struct GestureArbitrationTests {
         #expect(log.entries == ["drag changed", "drag ended"])
     }
 
+    @Test("A gesture's region leaves the pointer's hover to the control behind it")
+    func controlBehindKeepsItsHover() {
+        let harness = makeHarness()
+        harness.tui.mouseEventDispatcher.setActiveSupport(.full)
+        let view = {
+            Button("Press") {}
+                .overlay(alignment: .topLeading) { Text("").frame(width: 1, height: 1).onTapGesture {} }
+                .frame(width: 40, height: 12, alignment: .topLeading)
+        }
+        let resting = harness.frame(view())
+        harness.mouse(MouseEvent(button: .none, phase: .moved, x: 0, y: 0))
+        let hovered = harness.frame(view())
+        // The tap's region is in front of the button's, but on the hover
+        // observers' lane: were it an ordinary region, the pointer would
+        // resolve to it, and the button under it would never light.
+        #expect(hovered.lines[0] != resting.lines[0], "the gesture's region took the button's hover")
+    }
+
     // MARK: - Taps that wait
 
     @Test("A double tap inside a single tap holds the single tap until the double-tap interval passes")
