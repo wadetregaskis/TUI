@@ -576,22 +576,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         settleRevealPursuit(armed: pursuitArmed, handler: handler, context: context)
         let sliceOriginY = contentSlice?.originY ?? 0
 
-        // Only be a Tab stop when there is actually something to scroll.
-        // Registering unconditionally made a non-overflowing ScrollView an
-        // invisible focus trap between the real controls (Tab would land on it
-        // with no visible indicator). Overflow is known now the content is
-        // measured.
-        let hasVerticalOverflow = handler.contentHeight > contentViewportHeight
-        // From the handler, which `syncHorizontalAxis` has already set from the
-        // MEASURED content width: the buffer is a band now and its width is the
-        // widest row in it, not the widest row there is.
-        let hasHorizontalOverflow = wantsHorizontal && handler.horizontal.extent > contentWidth
-        // `.scrollDisabled` leaves no scroll command for the keys to run, so the
-        // view drops out of the Tab ring for the same reason a non-overflowing
-        // one does: a stop that can do nothing is only an obstacle.
-        handler.canBeFocused =
-            isFocusStop && !isDisabled(in: context) && handler.isScrollEnabled
-            && (hasVerticalOverflow || hasHorizontalOverflow)
+        decideTabStop(
+            handler: handler, contentWidth: contentWidth,
+            contentViewportHeight: contentViewportHeight, wantsHorizontal: wantsHorizontal,
+            context: context)
 
         // Register so the dispatchKeyEvent → handler chain is wired up; the
         // handler's `canBeFocused` (above) keeps a non-scrollable view out of
@@ -631,6 +619,28 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
 
         finishFrame(handler, contentWidth: contentWidth, viewportHeight: contentViewportHeight, context: context)
         return visibleBuffer
+    }
+
+    /// Makes this scroll view a Tab stop only when there is actually something
+    /// to scroll. Registering unconditionally made a non-overflowing ScrollView
+    /// an invisible focus trap between the real controls (Tab would land on it
+    /// with no visible indicator). Overflow is known once the content is
+    /// measured.
+    private func decideTabStop(
+        handler: ScrollViewHandler, contentWidth: Int, contentViewportHeight: Int,
+        wantsHorizontal: Bool, context: RenderContext
+    ) {
+        let hasVerticalOverflow = handler.contentHeight > contentViewportHeight
+        // From the handler, which `syncHorizontalAxis` has already set from the
+        // MEASURED content width: the buffer is a band now and its width is the
+        // widest row in it, not the widest row there is.
+        let hasHorizontalOverflow = wantsHorizontal && handler.horizontal.extent > contentWidth
+        // `.scrollDisabled` leaves no scroll command for the keys to run, so the
+        // view drops out of the Tab ring for the same reason a non-overflowing
+        // one does: a stop that can do nothing is only an obstacle.
+        handler.canBeFocused =
+            isFocusStop && !isDisabled(in: context) && handler.isScrollEnabled
+            && (hasVerticalOverflow || hasHorizontalOverflow)
     }
 
     /// Slides the windowed content by the overscroll excursion, blank-filling the
