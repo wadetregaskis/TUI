@@ -332,9 +332,15 @@ extension ModalPresentationModifier: Renderable {
         // rather than a preference (see ``PresentationDetentsProviding``).
         let detentHeight = presentationTrait(PresentationDetentsProviding.self, of: modal)?
             .resolvedHeight(in: overlayHeight)
+        // A `presentationBackground` the content named fills the presentation —
+        // the sheet's box, or the cover's whole area — so it goes around what
+        // is presented here, where that size is known.
+        let background = presentationTrait(PresentationBackgroundProviding.self, of: modal)
 
         switch style {
         case .sheet:
+            var sheetContext = modalContext
+            var capHeight = overlayHeight
             if let detentHeight {
                 // The height goes to the sheet's own box, via the environment
                 // (``EnvironmentValues/sheetDetentHeight``) — NOT as a frame
@@ -342,15 +348,16 @@ extension ModalPresentationModifier: Renderable {
                 // to its content, so wrapping left the leftover rows as blank,
                 // unstyled, opaque overlay lines: a hole punched through the
                 // page below the dialog, belonging to nothing.
-                var detentContext = modalContext
-                detentContext.availableHeight = detentHeight
-                detentContext.environment.sheetDetentHeight = detentHeight
-                return renderPresentedDialog(
-                    modal, context: detentContext, capHeight: detentHeight)
-            } else {
-                return renderPresentedDialog(
-                    modal, context: modalContext, capHeight: overlayHeight)
+                sheetContext.availableHeight = detentHeight
+                sheetContext.environment.sheetDetentHeight = detentHeight
+                capHeight = detentHeight
             }
+            if let background {
+                return renderPresentedDialog(
+                    background.presentationBackground(behind: modal), context: sheetContext,
+                    capHeight: capHeight)
+            }
+            return renderPresentedDialog(modal, context: sheetContext, capHeight: capHeight)
         case .fullScreen:
             // The cover IS the screen: full width and the whole content area,
             // so there is nothing of the page left to show through and nothing
@@ -362,11 +369,14 @@ extension ModalPresentationModifier: Renderable {
             // smaller than the screen, with the whole screen as its stage, and
             // SwiftUI centres it. Left at the default, a three-line message
             // huddles in the top-left corner of an otherwise empty terminal.
-            return renderPresentedDialog(
-                modal.frame(
-                    width: context.environment.terminalWidth, height: overlayHeight,
-                    alignment: .center),
-                context: modalContext, capHeight: overlayHeight)
+            let cover = modal.frame(
+                width: context.environment.terminalWidth, height: overlayHeight, alignment: .center)
+            if let background {
+                return renderPresentedDialog(
+                    background.presentationBackground(behind: cover), context: modalContext,
+                    capHeight: overlayHeight)
+            }
+            return renderPresentedDialog(cover, context: modalContext, capHeight: overlayHeight)
         }
     }
 }

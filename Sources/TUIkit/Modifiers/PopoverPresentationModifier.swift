@@ -251,11 +251,19 @@ extension PopoverPresentationModifier: Renderable {
     /// room, over the app background so the page cannot show through the gaps
     /// between what the content draws — the same opaque fill the drop-down
     /// menus rely on.
+    ///
+    /// A `presentationBackground` the content named takes the place of the
+    /// page's background, filling the same panel.
+    @ViewBuilder
     private func panelView(context: RenderContext) -> some View {
-        popover
-            .padding(EdgeInsets(horizontal: 1, vertical: 0))
-            .background(context.environment.palette.background)
-            .border(context.environment.palette.border)
+        let padded = popover.padding(EdgeInsets(horizontal: 1, vertical: 0))
+        if let background = withPresentationBackground(padded, from: popover) {
+            background.border(context.environment.palette.border)
+        } else {
+            padded
+                .background(context.environment.palette.background)
+                .border(context.environment.palette.border)
+        }
     }
 
     /// Where the panel goes in the presenting view's own coordinate space.
