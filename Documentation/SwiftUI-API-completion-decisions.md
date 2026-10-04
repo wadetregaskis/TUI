@@ -568,6 +568,44 @@ Wave 17 review never saw it, because it was absent rather than mapped.
 **Recommendation:** 1 for this batch, 2 only if light palettes are wanted for
 their own sake.
 
+### A18. Apple-only public API behind `#if canImport`: allowed or not?
+
+*Policy, with these symbols waiting on it: `AppStorage`/`SceneStorage`'s
+`store: UserDefaults` spellings, `View.defaultAppStorage(_:)`,
+`Scene.defaultAppStorage(_:)`; and, if allowed, Core Data's `FetchRequest`
+family (declined in the map today)*
+
+The Wave 17 review treats "no Apple-only public API surface" as settled (its
+`SectionedFetchRequest` note). The batch has not kept to it:
+
+- **Wave 7** shipped `onDrag`, `onDrop(of:…)`, `DropDelegate`, `itemProvider`
+  and the `onCopyCommand`/`onCutCommand` forms that take `NSItemProvider`,
+  behind `#if canImport(UniformTypeIdentifiers)`.
+- **Wave 13** shipped `Color(cgColor:)`, `Color(nsColor:)`, `NSColor(_:)` and
+  `Color.Resolved.cgColor`, behind `canImport(AppKit)`/`(CoreGraphics)`.
+
+Each is honoured where it exists, and absent elsewhere. A Linux build simply
+does not offer it, so it cannot compile there and do nothing.
+
+**Options.**
+
+1. **Allow it, behind `canImport`, where the feature is honoured on Apple
+   platforms.** Then `store: UserDefaults` and `defaultAppStorage(_:)` ship
+   (`UserDefaultsStorage` gains an `init(_ defaults: UserDefaults)`), and Core
+   Data's `FetchRequest` becomes possible for macOS-only apps (a few days).
+2. **Forbid it.** Remove the Wave 7 and Wave 13 surfaces above, and keep the
+   storage spellings TUIkit's own (`StorageBackend`), with
+   `defaultAppStorage(_:)` taking one. A ported `@AppStorage(…, store:
+   UserDefaults(…))` then fails to compile.
+3. **Allow bridges and value conversions only** (colours, item providers),
+   not frameworks (Core Data).
+
+**Recommendation:** 1, with "honoured where it exists" as the test, which is
+the rule the batch has been following in practice.
+`defaultAppStorage(_:)` also needs `@AppStorage` to resolve its store from
+the environment at render, through a nested `@Environment`; that part is
+half a day whichever option is chosen.
+
 ## B. Shipped the safe option
 
 ### B1. `\.layoutDirection` is read-only (always left-to-right)
