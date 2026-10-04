@@ -1457,3 +1457,20 @@ private struct DefaultFontShapes: View {
         .font(.headline)
     }
 }
+
+/// A view's three animatable properties as one AnimatableValues.
+@MainActor
+private struct AnimatableValuesShapes: View, Animatable {
+    var x: Double
+    var y: Double
+    var fade: Double
+
+    var animatableData: AnimatableValues<Double, Double, Double> {
+        get { AnimatableValues(x, y, fade) }
+        set { (x, y, fade) = newValue.value }
+    }
+
+    var body: some View {
+        Text("Moving").offset(x: Int(x), y: Int(y)).opacity(fade)
+    }
+}

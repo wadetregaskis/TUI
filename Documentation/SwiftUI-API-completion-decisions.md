@@ -1536,6 +1536,26 @@ A-to-Z strip down an iOS list's edge. macOS has no section index:
 label is inert. Exactly O8's question (APIs inert on macOS too); it ships or
 is declined with O8's answer. Shipping it inert is ten minutes.
 
+### A52. The `@Animatable` macros need a macro plugin
+
+*`Animatable()` (`@Animatable`), `AnimatableIgnored()` (`@AnimatableIgnored`)*
+
+macOS 26's macros synthesise a type's `animatableData` from its stored
+properties, as an `AnimatableValues` (which has shipped) of them, skipping the
+ones marked `@AnimatableIgnored`. A macro is a compiler plugin built against
+swift-syntax: TUIkit would gain a package dependency and a macro target.
+
+**Options.**
+
+1. **Add the plugin.** A swift-syntax dependency (pinned to the toolchain's
+   release), a `TUIkitMacros` target and the two macros, about a day. Every
+   client then builds swift-syntax once, a minute or two of a clean build.
+2. **Decline**, with the type's own `animatableData` as the spelling, which is
+   what the macro writes.
+
+**Recommendation:** 2 for now. The dependency's cost lands on every client for
+a convenience; revisit if TUIkit takes on macros for another reason.
+
 ## B. Shipped the safe option
 
 ### B1. `\.layoutDirection` is read-only (always left-to-right)
