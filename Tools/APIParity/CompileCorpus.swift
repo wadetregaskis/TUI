@@ -1249,3 +1249,177 @@ private func pinnedOptions() -> Bool {
     pinned.remove(.sectionFooters)
     return pinned.contains(.sectionHeaders) && pinned.rawValue == 1 && PinnedScrollableViews().isEmpty
 }
+// MARK: - Tabs
+
+/// SwiftUI's tab surface as its documentation writes it: `Tab` in its common
+/// forms, a `TabSection`, a loop of tabs, conditionals, the tab modifiers, the
+/// sidebar style with its customization, and an optional selection whose tabs
+/// promote their values.
+@MainActor
+private struct TabShapes: View {
+    enum Pane: Hashable { case inbox, sent, folder(String) }
+
+    @State private var pane = Pane.inbox
+    @State private var optionalTab: Int?
+    @AppStorage("sidebar") private var customization: TabViewCustomization
+    @Environment(\.tabBarPlacement) private var placement
+    @Environment(\.isTabBarShowingSections) private var showingSections
+    let folders: [String]
+    let showsArchive: Bool
+
+    var body: some View {
+        VStack {
+            TabView(selection: $pane) {
+                Tab("Inbox", systemImage: "tray", value: Pane.inbox) { Text("inbox") }
+                    .badge(3)
+                    .customizationID("inbox")
+                Tab("Sent", systemImage: "paperplane", value: .sent) { Text("sent") }
+                    .badge("new")
+                    .defaultVisibility(.hidden, for: .tabBar)
+                    .customizationBehavior(.automatic, for: .tabBar)
+                TabSection("Folders") {
+                    ForEach(folders, id: \.self) { folder in
+                        Tab(folder, systemImage: "folder", value: Pane.folder(folder)) { Text(folder) }
+                    }
+                }
+                .customizationID("folders")
+                .sectionActions {
+                    Button("Add Folder") {}
+                }
+                if showsArchive {
+                    Tab("Archive", systemImage: "archivebox", value: Pane.folder("archive")) { Text("archive") }
+                        .tabPlacement(.sidebarOnly)
+                        .disabled(true)
+                }
+            }
+            .tabViewStyle(.sidebarAdaptable)
+            .tabViewCustomization($customization)
+            .tabViewSidebarHeader { Text("Mail") }
+            TabView {
+                Tab("Home", systemImage: "house") { Text("home") }
+                Tab(role: .search) { Text("search") }
+                Tab {
+                    Text("custom")
+                } label: {
+                    Label("Custom", systemImage: "star")
+                }
+                Group {
+                    Tab("Hidden", systemImage: "eye.slash") { Text("hidden") }
+                        .hidden()
+                }
+            }
+            .tabViewStyle(.tabBarOnly)
+            TabView(selection: $optionalTab) {
+                Tab("One", systemImage: "1.circle", value: 1) { Text("one") }
+                TabSection("More") {
+                    Tab("Two", systemImage: "2.circle", value: 2) { Text("two") }
+                }
+            }
+            .tabViewStyle(.grouped)
+        }
+    }
+}
+
+// MARK: - List editing and styling
+
+@MainActor
+private struct ListStylingShapes: View {
+    struct Fruit: Identifiable {
+        let id: Int
+        var name: String
+    }
+
+    @State private var fruit: [Fruit] = []
+    @State private var selection: Fruit.ID?
+    @State private var picked = Set<Fruit.ID>()
+    @State private var expanded = true
+    @Environment(\.backgroundProminence) private var backgroundProminence
+    @Environment(\.sidebarRowSize) private var sidebarRowSize
+
+    var body: some View {
+        VStack {
+            List($fruit, editActions: .all) { $item in
+                Text(item.name)
+            }
+            List($fruit, editActions: .delete, selection: $selection) { $item in
+                Text(item.name)
+            }
+            List($fruit, editActions: .move, selection: $picked) { $item in
+                Text(item.name)
+            }
+            List {
+                Section("Fruit", isExpanded: $expanded) {
+                    ForEach(fruit) { item in
+                        Label(item.name, systemImage: "leaf")
+                            .listItemTint(.monochrome)
+                            .listRowInsets(.horizontal, 2)
+                            .badge(2)
+                            .badgeProminence(.decreased)
+                            .typeSelectEquivalent(item.name)
+                            .contextMenu {
+                                Button("Eat") {}
+                            } preview: {
+                                Text(item.name)
+                            }
+                    }
+                }
+                .sectionActions {
+                    Button("Add", systemImage: "plus") {}
+                }
+                Section(isExpanded: $expanded) {
+                    Text("row")
+                        .typeSelectEquivalent(Text("row"))
+                } header: {
+                    Text("Header")
+                }
+            }
+            .listStyle(.sidebar)
+            .listItemTint(.red)
+            .environment(\.defaultMinListRowHeight, 2)
+            .environment(\.defaultMinListHeaderHeight, 1)
+            List(fruit) { Text($0.name) }
+                .listStyle(.inset)
+            List(fruit) { Text($0.name) }
+                .listStyle(.bordered)
+            List(fruit) { Text($0.name) }
+                .listStyle(.automatic)
+        }
+    }
+}
+
+// MARK: - Table row drag and drop
+
+@MainActor
+private struct TableRowDragShapes: View {
+    struct Purchase: Identifiable {
+        let id: Int
+        var item: String
+    }
+
+    @State private var purchases: [Purchase] = []
+    @State private var basket: [Purchase] = []
+
+    var body: some View {
+        VStack {
+            Table(of: Purchase.self) {
+                TableColumn("Item", value: \.item)
+            } rows: {
+                ForEach(purchases) { purchase in
+                    TableRow(purchase)
+                        .draggable(purchase.item)
+                        .dropDestination(for: String.self) { items in print(items) }
+                }
+                .dropDestination(for: String.self) { index, items in print(index, items) }
+            }
+            Table(of: Purchase.self) {
+                TableColumn("Item", value: \.item)
+            } rows: {
+                ForEach(basket) { purchase in
+                    TableRow(purchase)
+                        .itemProvider { NSItemProvider(object: purchase.item as NSString) }
+                }
+                .onInsert(of: [.plainText]) { index, providers in print(index, providers) }
+            }
+        }
+    }
+}
