@@ -612,6 +612,7 @@ private struct TableColumnShapes: View {
             Table(people, selection: $selections, sortOrder: $descriptors) {
                 TableColumn("Age", sortUsing: SortDescriptor(\Person.age)) { Text("\($0.age)") }
             }
+            .tableColumnHeaders(.hidden)
             Table(people) {
                 Group {
                     TableColumn("Label", value: \Person.email)

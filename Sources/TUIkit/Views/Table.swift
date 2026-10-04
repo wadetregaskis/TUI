@@ -592,6 +592,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         fatalError("_TableCore renders via Renderable")
     }
 
+    /// The lines the column header takes: one, or none under
+    /// `.tableColumnHeaders(.hidden)`.
+    private func headerLines(_ environment: EnvironmentValues) -> Int {
+        environment.tableColumnHeadersVisibility == .hidden ? 0 : 1
+    }
+
+    /// The lines of chrome around the rows: the two border rules and the
+    /// column header. Every height the rows are budgeted is the space on
+    /// offer less these.
+    private func chromeLines(_ environment: EnvironmentValues) -> Int {
+        2 + headerLines(environment)
+    }
+
     /// Whether this table has a selection binding — the only thing that can
     /// ever put a mark in the gutter.
     private var hasSelection: Bool { singleSelection != nil || multiSelection != nil }
@@ -688,7 +701,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
         let innerWidth = max(0, context.availableWidth - 4)
-        let rowArea = max(1, context.availableHeight - 3)
+        let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         let wantsScrollbar =
             !data.isEmpty
             && context.environment.verticalScrollIndicators(
@@ -800,7 +813,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
         let innerWidth = max(0, context.availableWidth - 4)
-        let rowArea = max(1, context.availableHeight - 3)
+        let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         // Decide the bar exactly as `renderToBuffer` does — at the width a bar
         // WOULD leave, where rows wrap taller and so overflow soonest.
         let overflows = multiLineOverflows(
@@ -864,7 +877,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             VStack(alignment: .leading, spacing: 0) {
                 // No claims on the analytic MEASURE path: it reports a size and draws
                 // nothing, and a claim describes cells that were never on screen.
-                _TableHeaderView(line: headerLine, claims: [])
+                _TableHeaderView(
+                    line: headerLines(context.environment) > 0 ? headerLine : nil, claims: [])
                 _TableSizeStub(width: content.width, height: content.height)
             }
         }
@@ -937,7 +951,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // walk is only run when a bar is in play at all — scrollbars are opt-in
         // (`.hidden` by default), which is what keeps the default path free of
         // it (see `multiLineOverflows`).
-        let rowArea = max(1, context.availableHeight - 3)
+        let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         let isMultiLine = columns.contains { $0.lineLimit > 1 }
         let wantsScrollbar =
             !data.isEmpty
@@ -1035,7 +1049,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // padded to the same content width (see `contentWidth` below), not to the
             // full interior, keeping every line the same width.
             VStack(alignment: .leading, spacing: 0) {
-                _TableHeaderView(line: headerLine, claims: header.claims)
+                _TableHeaderView(
+                    line: headerLines(context.environment) > 0 ? headerLine : nil,
+                    claims: header.claims)
                 _TableContentView(
                     lines: filledContentLines, runs: contentRuns, claims: contentClaims)
             }
@@ -1074,11 +1090,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
 
         // The fixed chrome is 3 lines: the top border, the bottom
-        // border, and the column-header line. What's left is the
+        // border, and the column-header line (2 under
+        // `tableColumnHeaders(.hidden)`). What's left is the
         // scrollable content area, shared between the visible rows
         // and whichever scroll indicators are present.
         let availableHeight = context.availableHeight
-        let chromeRows = 3
+        let chromeRows = chromeLines(context.environment)
         let contentHeight = max(1, availableHeight - chromeRows)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -1168,7 +1185,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
         state: PopulatedRenderState
     ) {
-        let contentHeight = max(1, context.availableHeight - 3)
+        let contentHeight = max(1, context.availableHeight - chromeLines(context.environment))
         let persistedFocusID = FocusRegistration.persistFocusID(
             context: context, explicitFocusID: focusID, defaultPrefix: "table",
             propertyIndex: StateIndex.focusID)
@@ -1326,7 +1343,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ) {
         let gutter = selectionGutter(context.environment)
         // 3 = top border + column header + bottom border.
-        let contentHeight = max(1, context.availableHeight - 3)
+        let contentHeight = max(1, context.availableHeight - chromeLines(context.environment))
 
         // Row heights are answered lazily. The scroll arithmetic below touches only
         // a viewport's worth of rows — the visible window, plus the bottom suffix
@@ -2939,7 +2956,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         firstRowY: Int
     ) {
         guard state.hasScrollbar else { return }
-        let barHeight = max(1, context.availableHeight - 3)
+        let barHeight = max(1, context.availableHeight - chromeLines(context.environment))
         let barHandler = ScrollbarRenderer.verticalMouseHandler(
             for: state.handler, length: barHeight,
             arrows: context.environment.scrollbarArrows,
@@ -2979,7 +2996,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         state: PopulatedRenderState,
         mouseDispatcher: MouseEventDispatcher
     ) {
-        guard sortModel != nil, !state.columnWidths.isEmpty else { return }
+        guard sortModel != nil, !state.columnWidths.isEmpty,
+            headerLines(context.environment) > 0
+        else { return }
         let focusManager = context.environment.focusManager
         let focusID = state.focusID
         let originX = 1 + Self.containerPadding.leading
@@ -3018,8 +3037,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         else { return }
         let focusManager = context.environment.focusManager
         // The table's interior: past the top border (0) and the column header
-        // (1). A constant — the header is always drawn, and nothing else sits
-        // between it and the content.
+        // (1), when it is drawn — nothing else sits between it and the content.
         //
         // THIS is the origin the drag geometry works in, matching `_ListCore`'s
         // `topInset`: `DrawnBand.yStart` counts from the first CONTENT line, so
@@ -3027,7 +3045,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // than subtracted out before it. Anything that hit-tests a BAND —
         // `ReorderHost.topInset`, the drop destination, the session-less
         // `dragContentY` — measures from here.
-        let interiorTopY = 2
+        let interiorTopY = 1 + headerLines(context.environment)
         // …and the first ROW line, which is one lower when an indicator is
         // drawn. Only the scrollbar wants this now: its cells are one per ROW,
         // so the bar's region has to start where the rows do. Everything that
@@ -3153,7 +3171,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     // in, it ate the whole upward hot margin: the border and the
                     // header were the two hot rows, so the "▲ N more above" line
                     // — the one place a user aims to scroll up — was inert.
-                    topInset: 1,
+                    topInset: headerLines(context.environment),
                     shiftStep: context.environment.shiftStepMultiplier),
                 in: context)
         }
@@ -3631,7 +3649,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The header measured here is the one that will be DRAWN, sort
         // indicator and all: measuring the bare title instead fitted the
         // column two cells short and truncated its own header ("Track…").
-        var fitted = headerTitle(for: column).strippedLength
+        var fitted =
+            headerLines(context.environment) > 0 ? headerTitle(for: column).strippedLength : 0
         // A view cell is measured at the widest the column could be, under a
         // measuring context: this walks every row, drawn or not.
         let probe = column.laysOutItsOwnLines ? Self.probing(context) : context
@@ -4546,7 +4565,9 @@ private struct _TableContentView: View, Renderable {
 
 /// Simple view that renders the header line.
 private struct _TableHeaderView: View, Renderable {
-    let line: String
+    /// The header line, or `nil` when the headers are hidden — which draws no
+    /// line at all, so the rows begin under the top border.
+    let line: String?
 
     /// What the header's own colours owe, in the line's columns.
     ///
@@ -4562,6 +4583,7 @@ private struct _TableHeaderView: View, Renderable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        guard let line else { return FrameBuffer(lines: []) }
         var buffer = FrameBuffer(lines: [line])
         buffer.opacityRegions += claims
         return buffer

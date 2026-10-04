@@ -252,6 +252,11 @@ TableColumn("Amount") { Text($0.amount, format: .number) }
 On a `Group` of columns, `.alignment(_:)` aligns each of them that does not
 state an alignment of its own.
 
+### Hiding the Column Headers
+
+`.tableColumnHeaders(.hidden)` takes the header line away and gives it to the
+rows. A sortable table still sorts from the keyboard.
+
 ### Showing and Hiding Columns
 
 `.defaultVisibility(.hidden)` hides a column. Bind the table to a
