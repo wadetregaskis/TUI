@@ -228,6 +228,9 @@ struct MyApp: App {
 - ``DragGesture``
 - ``GestureState``
 - ``GestureStateGesture``
+- ``SimultaneousGesture``
+- ``SequenceGesture``
+- ``ExclusiveGesture``
 - ``GestureMask``
 
 ### Mouse & Drag and Drop
