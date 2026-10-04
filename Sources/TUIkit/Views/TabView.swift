@@ -72,6 +72,9 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View {
 
     @Environment(\.tabViewStyle) private var style
 
+    /// What ``View/tabViewCustomization(_:)`` bound the sidebar to, if anything.
+    @Environment(\.tabViewCustomization) private var customization
+
     public var body: some View {
         if style.stripLook == .sidebar {
             _TabSidebarLayout(tabs: sidebarTabs, selection: erasedSelection)
@@ -84,9 +87,11 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View {
         }
     }
 
-    /// The tabs a sidebar lists: every one not hidden.
+    /// The tabs a sidebar lists: every one not hidden, as a bound
+    /// customization arranges them.
     private var sidebarTabs: [_RawTab] {
-        tabs.filter { !$0.isHidden }
+        let shown = tabs.filter { !$0.isHidden }
+        return customization?.arrangedSidebar(shown) ?? shown
     }
 
     /// The tabs a strip shows: every one not hidden, and not placed only in a

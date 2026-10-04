@@ -261,6 +261,44 @@ Where it differs:
   a test run. That is the list's own limit: it does not see a `Section`
   through an environment modifier, with or without actions.
 
+### B-W08b-8. Tab view customization is the app's to change; no gesture changes it
+
+*`TabViewCustomization` (all members, `SectionCustomization`,
+`TabCustomization`), `View.tabViewCustomization(_:)`,
+`TabContent.customizationID(_:)`, `.defaultVisibility(_:for:)`,
+`.customizationBehavior(_:for:)`, `AdaptableTabBarPlacement`,
+`TabCustomizationBehavior`, `AppStorage`/`SceneStorage`
+`init(wrappedValue:_:)` for a customization*
+
+Measured on macOS 15.8 (offscreen `NSHostingView`, a customization bound): a
+tab whose `[tab:].sidebarVisibility` is `.hidden` leaves the
+`.sidebarAdaptable` sidebar and stays in a `.tabBarOnly` tab bar;
+`.defaultVisibility(.hidden, for: .tabBar)` and `for: .automatic` leave the
+tab in both. macOS lets the user drag sections to reorder them and offers no
+visibility control of its own ("a custom experience should be provided",
+says the documentation). Its encoding is private (a UUID, `perTabState`,
+`perSectionState`).
+
+**Shipped:** all of it, as measured, with the B45 shape: a hidden tab leaves
+the sidebar and not a strip; a stated tab order (per section) and section
+order are applied to the sidebar, the identified items taking the slots
+identified items had; `Codable` in TUIkit's own encoding; persisted through
+`@AppStorage`/`@SceneStorage` with no default written. The binding is read,
+never written: the environment carries the value, not the binding, so the
+render memos below the tab view stay on.
+
+Where it differs:
+
+- **No gesture reorders sections.** macOS drags them; a keyboard pair to move
+  the focused section up and down needs a notion of a focused section the
+  sidebar list does not have — about a day, with a decision on whether the
+  list's cursor row or its section header is the thing moved. So a stated
+  order comes only from the app or a decoded value.
+- **`.defaultVisibility(_:for:)` and `.customizationBehavior(_:for:)` do
+  nothing**, as on macOS: the placement the first acts on (`.sidebar`) and the
+  behaviors the second restricts (`.reorderable`, `.disabled`) are not
+  macOS's, so no macOS source can ask either for anything.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

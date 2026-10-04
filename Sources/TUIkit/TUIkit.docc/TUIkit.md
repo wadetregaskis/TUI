@@ -155,6 +155,9 @@ struct MyApp: App {
 - ``DefaultTabLabel``
 - ``TabRole``
 - ``TabPlacement``
+- ``TabViewCustomization``
+- ``AdaptableTabBarPlacement``
+- ``TabCustomizationBehavior``
 - ``ScrollView``
 - ``Form``
 - ``LabeledContent``

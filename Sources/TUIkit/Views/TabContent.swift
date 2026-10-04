@@ -104,6 +104,9 @@ struct _RawTab {
 
     /// The section the tab is declared in, or `nil` for a tab outside any.
     var section: _RawTabSection?
+
+    /// The identifier a ``TabViewCustomization`` knows the tab by, or `nil`.
+    var customizationID: String?
 }
 
 /// The ``TabSection`` a tab was declared in.
@@ -115,6 +118,9 @@ struct _RawTabSection {
     let header: AnyView
     /// The actions `.sectionActions(content:)` gave the section, or `nil`.
     var actions: AnyView?
+    /// The identifier a ``TabViewCustomization`` knows the section by, or
+    /// `nil`.
+    var customizationID: String?
 }
 
 /// The tabs a tab view's content declares, in order, for the tab view.
@@ -143,6 +149,23 @@ struct _TabList {
         build(&self)
         for index in start..<tabs.count where tabs[index].section == nil {
             tabs[index].section = section
+        }
+    }
+
+    /// Gives `build`'s content the customization identifier `id`: the section
+    /// it declares, when it declares one — whose tabs carry it by now, an
+    /// enclosing section being written onto its tabs only after its content is
+    /// built — else each of its tabs. An inner identifier keeps its own.
+    mutating func identifying(_ id: String, _ build: (inout Self) -> Void) {
+        let start = tabs.count
+        let firstSection = sectionCount
+        build(&self)
+        for index in start..<tabs.count {
+            if let section = tabs[index].section, section.ordinal >= firstSection {
+                if section.customizationID == nil { tabs[index].section?.customizationID = id }
+            } else if tabs[index].customizationID == nil {
+                tabs[index].customizationID = id
+            }
         }
     }
 
