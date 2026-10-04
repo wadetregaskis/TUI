@@ -23,8 +23,13 @@ traced back to it.
 
 Every gap `api_parity.py` still reports names one of these questions, and
 nothing else is waiting. The batch closed the rest: 2,022 gaps when it started,
-392 now, plus three overloads only CI's SDK lists. Each line gives the
-recommendation in a few words; the entry has the options and their prices.
+404 now, plus three overloads only CI's SDK lists. (The count rose from 392 at
+the end, when 14 drag-session modifiers a wrong refusal had hidden became gaps
+under A53.) Besides the gaps, the refusal review's implementable P items have
+shipped, and the one lane not run is Wave 11b, underline and strikethrough
+patterns and colours, which needs real terminals measured (screen capture
+needs your approval). Each line gives the recommendation in a few words; the
+entry has the options and their prices.
 
 **Questions other answers hang on.** Answer these first.
 

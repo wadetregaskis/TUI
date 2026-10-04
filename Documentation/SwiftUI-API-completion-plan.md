@@ -88,6 +88,7 @@ vocabulary commit.
 | 15 | Toolbars | 44 | owner decision (§2.6 of the compatibility doc made them a divergence) |
 | 16 | Pixel effects: blur, shadow, rotation/scale/projection, blend modes, masks, clip shapes | 19 | owner decision; basic where honest |
 | 17 | Re-examining the existing refusals (124 `notImplemented` entries, 28 `families`) | — | confirm or escalate |
+| 18 | done | — | Every lane integrated; 2,022 gaps → 404, each tracing to a decision or review item (checked by a sweep); the baseline re-recorded by hand (three task overloads only CI's SDK lists kept); full suite 9,640 tests, Stress self-check, Linux 6.3.3 static cross-compile and DocC `--strict` from a clean clone all clean on the final tree; the decisions document opens with a start-here index. **Not run:** Wave 11b (line styles), which needs real-terminal measurement. **Owed:** the performance pass the owner planned, with the A/Bs each lane noted. |
 | 18 | Finish: re-baseline, full gate sweep, decisions doc complete | — | — |
 
 The symbol-to-wave mapping is mechanical (fnmatch patterns over the report),
