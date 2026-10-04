@@ -977,6 +977,7 @@ way). What ships:
 | `ShapeStyle` | the protocol, conformable — `resolve(in:)` with public defaults, as since macOS 14. SwiftUI's underscored `_apply`/`_makeView` are omitted: they are over types that exist only inside SwiftUI |
 | `Gradient`, `Gradient.Stop` | source-identical, `location` a `Double`. A bare `Gradient` as a style is a **vertical** linear gradient, measured |
 | `LinearGradient`, `RadialGradient`, `EllipticalGradient`, `AngularGradient` | all four, with their `colors:`/`stops:` twins and the `.linearGradient(…)` static-member spellings |
+| `MeshGradient` (`BezierPoint`, `Locations`, `Colors`) | every initialiser and stored property; each cell takes the mesh's colour at its centre. The rules SwiftUI draws by — Coons patches, bisector control points, limited Hermite smoothing, the cone space for `.perceptual`, premultiplied alpha — are measured and set out below the table |
 | `AnyShapeStyle` | erasure — the runtime style-choice idiom |
 | `AnyGradient`, `Color.gradient` | a colour with a little depth in it: `.foregroundStyle(.blue.gradient)`. A derived gradient carries its BASE colour and works its stops out at paint time, because `Color.palette.accent` is a reference with no palette to resolve against until something paints. The lightening is `+0.15` HSL lightness with hue and saturation held — measured against SwiftUI's own renderer and recorded in the API docs, along with the one row it misses (black) |
 | `Color.mix(with:by:in:)` | a two-stop gradient evaluated at the fraction, in whichever space you name — default `.perceptual`, as SwiftUI's is |
@@ -1030,9 +1031,26 @@ overload is the disfavoured one, exactly as in SwiftUI. And
 a cell does not have — but the levels are also what `.secondary` below resolves
 to, which a terminal honours fully (decisions B22).
 
-`MeshGradient` is declined and recorded: "given a cell, what is `t`?"
-generalises to `(u, v)`, so it is not impossible — it is simply not worth it at
-80×24.
+`MeshGradient` **ships** (it was declined here as "not worth it at 80×24";
+the Wave 17 review, P11, found that wrong — a mesh is a function from a
+position to a colour, exactly as the four gradients are). All of SwiftUI's
+surface: the `points:`, `bezierPoints:` and `locations:` initialisers with
+`colors:` or `resolvedColors:`, `MeshGradient.BezierPoint`, `.Locations`,
+`.Colors`, and the stored properties, settable. It is a style and a view: a
+cell takes the mesh's colour at its centre, which draws a smooth mesh as a
+staircase of cells. Every rule was measured on
+macOS 15.8 by reading back SwiftUI's pixels — meshes painted with colours that
+encode each pixel's place in the mesh give the patches' shape directly — and
+the answers are not the obvious ones: a patch is a **Coons patch**; an implied
+control point lies a third of the way to its neighbour along the line that
+**bisects** the vertex's two edges (not Catmull–Rom, not straight thirds); a
+smooth blend is per-channel Hermite with Catmull–Rom slopes that are **zero at
+the mesh's edges and at a peak, and limited** so a monotone run never
+overshoots; `.perceptual` decides those slopes in OKLab's **cube-root cone
+space**, not in OKLab itself; translucent colours blend **premultiplied**; and
+`background` fills what the patches leave uncovered. A malformed mesh (fewer
+than two vertices across, or a point count other than `width × height`) draws
+its background alone, and a missing colour is `.clear`, as in SwiftUI.
 
 ---
 

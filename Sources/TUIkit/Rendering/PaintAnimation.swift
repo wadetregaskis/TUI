@@ -62,6 +62,8 @@ enum PaintAnimation {
             return .color(ColorAnimation.resolving(colour, owner: owner, context: context))
         case .gradient(let ramped):
             return .gradient(resolving(ramped, owner: owner, context: context))
+        case .mesh:
+            return target
         }
     }
 

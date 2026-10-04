@@ -17,7 +17,7 @@ import TUIkit
 /// gradient at all, and `ab_bench.py` could only ever answer the "nothing when
 /// unused" half of the performance question.
 ///
-/// The four bands are the four costs, and they are different costs:
+/// The five bands are five costs, and they are different costs:
 ///
 /// - **A subtree ramp down a long list.** The expensive one, and the one the
 ///   design note gates on: every container that places a child hands the child
@@ -34,6 +34,9 @@ import TUIkit
 /// - **Gradient backgrounds under text.** The compositing path, where the
 ///   overlay's cells are painted over a field the base states — the thing that
 ///   made `insertOverlay` quadratic once already.
+/// - **Mesh gradients.** A grid mesh, placed by two divisions a cell, and a
+///   warped one, placed by subdividing its patches — the two ways a mesh
+///   reaches a cell, each evaluated as a smooth Hermite blend per cell.
 ///
 /// Deterministic like every other scenario: the ramps are fixed, the row data
 /// is `mix(seed, index)`, and the only clock read is the harness's own tick,
@@ -44,9 +47,9 @@ enum GradientsScenario {
     static let descriptor = Scenario(
         id: "gradients",
         title: "Gradients",
-        blurb: "A subtree ramp down a long list, per-leaf ramps, four geometries, ramped fills.",
+        blurb: "A subtree ramp down a long list, per-leaf ramps, four geometries, ramped fills, meshes.",
         stresses:
-            "ramp quantisation · per-cell geometry · origin propagation · re-ink on move · SGR runs",
+            "ramp quantisation · per-cell geometry · origin propagation · re-ink on move · SGR runs · mesh patches",
         make: { config in AnyView(GradientsView(config: config)) }
     )
 }
@@ -67,6 +70,12 @@ private struct GradientsView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    // Band 5, first so the screen a self-check renders shows it:
+                    // meshes, on the grid and warped off it.
+                    ForEach(0..<config.sized(4), id: \.self) { index in
+                        MeshBand(ramp: ramp, index: index)
+                    }
+
                     // Band 1: one ramp spanning every row below it.
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(0..<rows, id: \.self) { index in
@@ -157,6 +166,29 @@ private struct GeometryBand: View {
             EllipticalGradient(gradient: ramp, center: .center)
                 .frame(width: 18, height: 5)
             AngularGradient(gradient: ramp, center: .center, angle: .zero)
+                .frame(width: 18, height: 5)
+        }
+    }
+}
+
+/// Two meshes in the ramp's colours: a grid, which each cell finds its place
+/// in by two divisions, and the same mesh with its middle vertex moved, which
+/// each cell finds by subdividing the patches.
+private struct MeshBand: View {
+    let ramp: Gradient
+    let index: Int
+
+    var body: some View {
+        let colours = (0..<9).map { ramp.stops[($0 + index) % ramp.stops.count].color }
+        let grid: [SIMD2<Float>] = [
+            [0, 0], [0.5, 0], [1, 0], [0, 0.5], [0.5, 0.5], [1, 0.5], [0, 1], [0.5, 1], [1, 1],
+        ]
+        var warped = grid
+        warped[4] = [0.7, 0.3]
+        return HStack(spacing: 1) {
+            MeshGradient(width: 3, height: 3, points: grid, colors: colours)
+                .frame(width: 18, height: 5)
+            MeshGradient(width: 3, height: 3, points: warped, colors: colours, colorSpace: .perceptual)
                 .frame(width: 18, height: 5)
         }
     }

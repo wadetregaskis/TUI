@@ -486,11 +486,22 @@ struct StyledPiece {
 /// those to `t`. That is why a radial gradient costs a square root and an
 /// angular one an `atan2`, and a linear one still costs neither.
 struct RampSampler {
-    /// The quantised ramp — sampled once at the resolution it actually spans,
-    /// so `quantisedRamp`'s monotonicity repair applies to the SEQUENCE. A
-    /// per-cell nearest match has no memory of its neighbours, which is the
-    /// banding that repair exists to remove.
-    let ramp: [Color]
+    /// The colours an entry names. For a gradient, the quantised ramp —
+    /// sampled once at the resolution it actually spans, so `quantisedRamp`'s
+    /// monotonicity repair applies to the SEQUENCE. A per-cell nearest match
+    /// has no memory of its neighbours, which is the banding that repair
+    /// exists to remove.
+    ///
+    /// For a mesh, the colours met so far (``MeshCells``): this GROWS as cells
+    /// are asked about, so read it after ``entry(column:rowTerm:)``, not before
+    /// — `ramp[entry(…)]` evaluates `ramp` first.
+    var ramp: [Color] {
+        if case .mesh(let cells) = mapping { return cells.colours }
+        return gradientRamp
+    }
+
+    /// A gradient's ramp; empty for a mesh.
+    private let gradientRamp: [Color]
 
     /// Whether the colour changes along a row. It does not for a vertical
     /// linear ramp, and that collapses the whole per-cell walk to one run —
@@ -523,6 +534,10 @@ struct RampSampler {
         /// `t` is the position of the cell's angle within the sweep, and
         /// outside the sweep it is whichever end is nearer.
         case sweep(base: Double, scale: Double, span: Double, midpoint: Double)
+
+        /// No `t` at all: a mesh's cell is looked up, and its row term is
+        /// the row itself.
+        case mesh(MeshCells)
     }
 
     private let mapping: Mapping
@@ -549,7 +564,37 @@ struct RampSampler {
     ///     Only the geometries with a centre use it, and they use it so that a
     ///     circle looks like one.
     init?(paint: Paint, extent: GradientFrame, depth: ColorDepth, cellAspect: Double) {
-        guard case .gradient(let ramped) = paint else { return nil }
+        switch paint {
+        case .color:
+            return nil
+        case .gradient(let ramped):
+            self.init(ramped: ramped, extent: extent, depth: depth, cellAspect: cellAspect)
+        case .mesh(let mesh):
+            // `.in(_:)` re-anchors a mesh as it does a ramp, below.
+            let extent = mesh.extent.map { GradientFrame(width: $0.width, height: $0.height) } ?? extent
+            self.init(mesh: MeshCells(paint: mesh, extent: extent, depth: depth))
+        }
+    }
+
+    /// A mesh: every cell looked up, so none of the arithmetic below applies.
+    /// It varies both ways — a mesh that happens not to is not worth the walk
+    /// that would find out.
+    private init(mesh cells: MeshCells) {
+        mapping = .mesh(cells)
+        gradientRamp = []
+        variesAcrossRow = true
+        variesDownColumn = true
+        columnBase = 0
+        columnScale = 0
+        // The row term is the row: ``rowTerm(_:)`` is `rowBase + rowScale × row`.
+        rowBase = 0
+        rowScale = 1
+        stepScale = 0
+        lastEntry = 0
+    }
+
+    /// A gradient's ramp over `extent`.
+    private init?(ramped: GradientPaint, extent: GradientFrame, depth: ColorDepth, cellAspect: Double) {
         // One stop is a solid colour: `nil` sends the caller down the flat
         // path, which paints the paint's representative — that colour — with
         // no ramp, no run table and no per-cell walk.
@@ -656,7 +701,7 @@ struct RampSampler {
 
         let sampled = Color.quantisedRamp(ramped.gradient, count: steps, depth: depth)
         guard !sampled.isEmpty else { return nil }
-        ramp = sampled
+        gradientRamp = sampled
         stepScale = Double(steps - 1)
         lastEntry = sampled.count - 1
     }
@@ -725,6 +770,8 @@ struct RampSampler {
             } else {
                 along = span > 0 ? turn / span : 0
             }
+        case .mesh(let cells):
+            return cells.entry(column: column, row: Int(rowTerm))
         }
         // Clamped BEFORE the conversion, not after: `Int(_: Double)` traps on
         // a NaN or an infinity, so a clamp on the far side of it never runs.
@@ -738,7 +785,9 @@ struct RampSampler {
 
     /// The colour of a whole row, for a ramp that does not vary along one.
     func colour(row: Int) -> Color {
-        ramp[entry(column: 0, rowTerm: rowTerm(row))]
+        // The entry first: a mesh's `ramp` grows as entries are named.
+        let index = entry(column: 0, rowTerm: rowTerm(row))
+        return ramp[index]
     }
 
     /// How much of this ramp's translucency can be stated as rectangles.
@@ -791,6 +840,9 @@ struct RampSampler {
 
     /// - Returns: The narrowest ``AlphaShape`` that describes this ramp.
     var alphaShape: AlphaShape {
+        // A mesh's colours are not all known until every cell has been asked
+        // about, and it varies both ways: the general shape, whatever it holds.
+        if case .mesh = mapping { return .perCell }
         guard let first = ramp.first else { return .opaque }
         var sharesOneAlpha = true
         var allOpaque = true
@@ -822,10 +874,13 @@ struct RampSampler {
     /// share an alpha, so a claim per colour run over-splits — a `uniform` ramp
     /// would come back as eighty width-1 rectangles instead of one.
     func alphaRuns(row: Int, columns: Range<Int>) -> [(columns: Range<Int>, alpha: UInt8)] {
-        guard !columns.isEmpty, !ramp.isEmpty else { return [] }
+        guard !columns.isEmpty else { return [] }
         let term = rowTerm(row)
         func alpha(at column: Int) -> UInt8 {
-            ramp[max(0, min(ramp.count - 1, entry(column: column, rowTerm: term)))].alpha
+            // The entry first: a mesh's `ramp` grows as entries are named.
+            let index = entry(column: column, rowTerm: term)
+            let colours = ramp
+            return colours[max(0, min(colours.count - 1, index))].alpha
         }
         var out: [(columns: Range<Int>, alpha: UInt8)] = []
         var start = columns.lowerBound

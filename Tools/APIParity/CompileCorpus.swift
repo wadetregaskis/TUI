@@ -1698,3 +1698,69 @@ private struct GestureShapes: View {
         }
     }
 }
+
+// MARK: - Mesh gradients
+
+/// SwiftUI's own example from `MeshGradient`'s documentation, the mesh as a
+/// style and as a view, its other initialisers, and the stored properties an
+/// app reads back and edits.
+@MainActor
+private struct MeshGradientShapes: View {
+    @State private var mesh = MeshGradient(width: 3, height: 3, points: [
+        .init(0, 0), .init(0.5, 0), .init(1, 0),
+        .init(0, 0.5), .init(0.5, 0.5), .init(1, 0.5),
+        .init(0, 1), .init(0.5, 1), .init(1, 1)
+    ], colors: [
+        .red, .purple, .indigo,
+        .orange, .white, .blue,
+        .yellow, .green, .mint
+    ])
+
+    var body: some View {
+        VStack {
+            mesh
+            Text("mesh.text").foregroundStyle(mesh)
+            Text("mesh.background").background(
+                MeshGradient(
+                    width: 2, height: 2, points: [[0, 0], [1, 0], [0, 1], [1, 1]],
+                    colors: [.red, .blue, .green, .yellow], background: .black, smoothsColors: false,
+                    colorSpace: .perceptual))
+            MeshGradient(
+                width: 2, height: 2,
+                bezierPoints: [
+                    .init(
+                        position: [0, 0], leadingControlPoint: [0, 0], topControlPoint: [0, 0],
+                        trailingControlPoint: [0.33, 0.2], bottomControlPoint: [0, 0.33]),
+                    .init(
+                        position: [1, 0], leadingControlPoint: [0.67, 0.2], topControlPoint: [1, 0],
+                        trailingControlPoint: [1, 0], bottomControlPoint: [1, 0.33]),
+                    .init(
+                        position: [0, 1], leadingControlPoint: [0, 1], topControlPoint: [0, 0.67],
+                        trailingControlPoint: [0.33, 1], bottomControlPoint: [0, 1]),
+                    .init(
+                        position: [1, 1], leadingControlPoint: [0.67, 1], topControlPoint: [1, 0.67],
+                        trailingControlPoint: [1, 1], bottomControlPoint: [1, 1]),
+                ],
+                resolvedColors: [
+                    Color.Resolved(red: 1, green: 0, blue: 0), Color.Resolved(red: 0, green: 0, blue: 1),
+                    Color.Resolved(red: 0, green: 1, blue: 0), Color.Resolved(red: 1, green: 1, blue: 0),
+                ])
+            MeshGradient(
+                width: 2, height: 2, locations: .points([[0, 0], [1, 0], [0, 1], [1, 1]]),
+                colors: .colors([.red, .blue, .green, .yellow]))
+        }
+        .onAppear {
+            if case .points(var points) = mesh.locations {
+                points[4] = [0.6, 0.4]
+                mesh.locations = .points(points)
+            }
+            if case .colors(let colors) = mesh.colors {
+                mesh.colors = .colors(colors.reversed())
+            }
+            mesh.smoothsColors.toggle()
+            mesh.background = .black
+            mesh.colorSpace = .device
+            print(mesh.width, mesh.height)
+        }
+    }
+}

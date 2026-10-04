@@ -241,6 +241,25 @@ horizontal axis, with the vertical derived through
 ``AngularGradient``'s angles are corrected the same way.
 ``EllipticalGradient`` follows the box's own shape and needs no correction.
 
+``MeshGradient`` is the two-dimensional one: a grid of positioned colours,
+drawn as patches between them. Its positions are in the unit space of whatever
+it paints, as a ``LinearGradient``'s points are, so it stretches with its box
+and takes no correction either. Each cell takes the mesh's colour at its
+centre, which draws a smooth mesh as a staircase of cells:
+
+```swift
+MeshGradient(width: 3, height: 3, points: [
+    [0, 0], [0.5, 0], [1, 0],
+    [0, 0.5], [0.7, 0.3], [1, 0.5],
+    [0, 1], [0.5, 1], [1, 1]
+], colors: [
+    .red, .purple, .indigo,
+    .orange, .white, .blue,
+    .yellow, .green, .mint
+])
+.frame(width: 40, height: 12)
+```
+
 ### Fading a Whole View
 
 ``View/opacity(_:)`` fades everything a subtree draws, without

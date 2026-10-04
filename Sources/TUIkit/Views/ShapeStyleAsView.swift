@@ -49,3 +49,10 @@ extension AngularGradient: View {
         _StyleFillBlock().background(self)
     }
 }
+
+extension MeshGradient: View {
+    /// See ``LinearGradient/body``.
+    public var body: some View {
+        _StyleFillBlock().background(self)
+    }
+}

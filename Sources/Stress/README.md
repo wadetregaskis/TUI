@@ -84,7 +84,7 @@ scale live · `a` toggle autopilot.
 | `churn` | full re-render per frame, cache invalidation, measure with no memo hits |
 | `animating` | animation store lookups, uncacheable subtrees, colour resolution per frame |
 | `translucent` | cell decomposition of both sides, per-cell region lookup, SGR re-emission |
-| `gradients` | ramp quantisation, per-cell geometry, origin propagation, re-ink on move, SGR runs |
+| `gradients` | ramp quantisation, per-cell geometry, origin propagation, re-ink on move, SGR runs, mesh patches |
 | `alpharamp` | per-cell alpha compositing over a patterned ground, blend arithmetic |
 | `menus` | `ButtonStyle` body measure, menu hug-width pass, shortcut hint column, per-row `@Environment` resolution |
 | `keyrows` | per-row registrations (`onKeyEvent`, `.statusBarItems`) under the row memo, per-frame key and status-bar registries, a `.refreshable` panel |

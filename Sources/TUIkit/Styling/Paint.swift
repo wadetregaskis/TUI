@@ -47,6 +47,13 @@ public enum Paint: Equatable, Sendable {
 
     /// A ramp, and the geometry that decides where each cell sits along it.
     case gradient(GradientPaint)
+
+    /// A ``MeshGradient``: a grid of positioned colours, drawn as patches.
+    ///
+    /// Indirect so the enum stays the size its other two cases make it: a mesh
+    /// is two arrays and a handful of flags, and every environment that holds a
+    /// paint would otherwise carry the room for one.
+    indirect case mesh(MeshPaint)
 }
 
 extension Paint {
@@ -60,6 +67,7 @@ extension Paint {
         switch self {
         case .color(let colour): colour
         case .gradient(let paint): paint.gradient.representative
+        case .mesh(let mesh): mesh.representative
         }
     }
 
@@ -81,6 +89,7 @@ extension Paint {
         switch self {
         case .color(let colour): colour.isOpaque
         case .gradient(let paint): paint.gradient.isOpaqueThroughout
+        case .mesh(let mesh): mesh.isOpaqueThroughout
         }
     }
 
@@ -99,6 +108,11 @@ extension Paint {
                 Gradient.Stop(color: $0.color.opacity(opacity), location: $0.location)
             }
             return .gradient(ramp)
+        case .mesh(var mesh):
+            // Every vertex and the background — the fill is part of the paint.
+            mesh.colors = mesh.colors.map { $0.opacity(opacity) }
+            mesh.background = mesh.background.opacity(opacity)
+            return .mesh(mesh)
         }
     }
 }
