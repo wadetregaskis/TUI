@@ -38,7 +38,7 @@ extension AttributeScopes {
     ///
     /// > Important: On macOS, SwiftUI's scope of the same name is visible to
     /// > an app too, because TUIkit imports AppKit and AppKit loads SwiftUICore.
-    /// > Setting an attribute picks this scope (``AttributeDynamicLookup``'s
+    /// > Setting an attribute picks this scope (`AttributeDynamicLookup`'s
     /// > subscripts here are more specific than SwiftUI's), but spelling the
     /// > scope's NAME in a type position — `let k: AttributeScopes.SwiftUIAttributes.FontAttribute.Type`
     /// > — is ambiguous there, and an attribute only SwiftUI has, such as

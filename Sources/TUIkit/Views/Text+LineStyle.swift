@@ -9,8 +9,8 @@ extension Text {
     /// `Text.LineStyle`.
     ///
     /// It is the value of an attributed string's
-    /// ``Foundation/AttributeScopes/SwiftUIAttributes/underlineStyle`` and
-    /// ``Foundation/AttributeScopes/SwiftUIAttributes/strikethroughStyle``:
+    /// ``AttributeScopes/SwiftUIAttributes/underlineStyle`` and
+    /// ``AttributeScopes/SwiftUIAttributes/strikethroughStyle``:
     ///
     /// ```swift
     /// var deadline = AttributedString("Friday")

@@ -20,7 +20,7 @@ extension Text {
     /// ```
     ///
     /// Each run of the string becomes a run of this text, drawn with the
-    /// attributes of ``Foundation/AttributeScopes/SwiftUIAttributes``:
+    /// attributes of ``AttributeScopes/SwiftUIAttributes``:
     /// foreground and background colour, semantic font, and a single underline
     /// or strikethrough. Where Foundation has `inlinePresentationIntent` (on
     /// Apple platforms), its strong emphasis draws bold, its emphasis italic and

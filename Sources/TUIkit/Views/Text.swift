@@ -107,8 +107,8 @@ public struct Text: View, Equatable {
     /// ```
     ///
     /// `**strong**` and `__strong__` draw bold, `*emphasis*` and `_emphasis_`
-    /// italic, `~~strikethrough~~` struck through, and `` `code` `` as it is,
-    /// every cell being monospaced already. A `[link](destination)` — and a
+    /// italic, `~~strikethrough~~` struck through, and a code span (between
+    /// backticks) as it is, every cell being monospaced already. A `[link](destination)` — and a
     /// bare `https://…`, `www.…` or email address — draws as a link (see
     /// ``init(_:)-(AttributedString)``). Everything else is text: headings,
     /// lists and quotes are not inline syntax, whitespace is kept as written,
