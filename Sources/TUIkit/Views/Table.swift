@@ -1425,9 +1425,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // which passes `contentHeight` for the same reason.
         handler.contentHeight = contentHeight
         handler.canBeFocused = !isDisabled(in: context)
-        handler.primaryAction = primaryAction
-        handler.onMove = moveAction
-        handler.onSort = sortKeyAction
+        syncRowActions(handler)
         // BEFORE the rows are composed — see the List's twin call site.
         handler.carryReorderTargetThroughAutoScroll()
         // As on the single-line path, in one shared call — see
@@ -2089,6 +2087,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             claims: claims)
     }
 
+    /// Hands the handler this frame's row actions: one call for both layout
+    /// paths, so what a row can do cannot differ between them.
+    private func syncRowActions(_ handler: ItemListHandler<Value.ID>) {
+        handler.primaryAction = primaryAction
+        handler.onMove = moveAction
+        handler.onSort = sortKeyAction
+    }
+
     /// Fetches (or creates) the persistent ``ItemListHandler``
     /// and syncs its per-frame inputs.
     /// - Parameter overflows: Whether the rows overflow `contentHeight`, given
@@ -2169,9 +2175,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // and this value outlives the pass that wrote it.
         if !context.isMeasuring { handler.viewportHeight = provisionalViewport }
         handler.canBeFocused = !isDisabled(in: context)
-        handler.primaryAction = primaryAction
-        handler.onMove = moveAction
-        handler.onSort = sortKeyAction
+        syncRowActions(handler)
         // BEFORE the rows are composed — see the List's twin call site.
         handler.carryReorderTargetThroughAutoScroll()
         // Everything the handler's EVENTS will read out of the environment, in
