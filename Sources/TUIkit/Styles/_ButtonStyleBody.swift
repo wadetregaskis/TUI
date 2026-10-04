@@ -83,7 +83,8 @@ struct _ButtonStyleBody: View, Renderable {
         let chromeWidth = Self.chromeWidth(for: appearance)
         let labelText = Self.fitLabel(
             configuration.title, into: context.availableWidth, chrome: chromeWidth)
-        let paddedLabel = padding + labelText + padding
+        let paddedLabel = Self.filling(
+            padding + labelText + padding, context: context, caps: chromeWidth - 2 * padding.count)
 
         // Standard: half-block caps around an accent-tinted
         // background. Hover bumps the tint slightly so the
@@ -470,7 +471,10 @@ struct _ButtonStyleBody: View, Renderable {
         let caps = ButtonCapCycle(
             isFocused: configuration.isFocused && configuration.isEnabled,
             background: ink.face, palette: ink.palette, context: context)
-        return (standardRow(labelView, caps: caps.colorNow, label: ink.label, face: ink.face), caps)
+        let row = standardRow(
+            labelView, caps: caps.colorNow, label: ink.label, face: ink.face,
+            fills: context.environment.buttonSizing.fills)
+        return (row, caps)
     }
 
     /// Draws the standard variant's row, and hands its caps' breath to the run
@@ -516,12 +520,20 @@ struct _ButtonStyleBody: View, Renderable {
 
     /// The standard variant's row for a `@ViewBuilder` label: the label,
     /// padded on the button's face, between the two half-block caps.
+    ///
+    /// When buttons are flexible (``ButtonSizing/flexible``) the label is
+    /// centred between spacers, which the face is painted under too, so the
+    /// face widens to what the row is offered.
     private func standardRow(
-        _ labelView: AnyView, caps: Color, label: Color, face: Color
+        _ labelView: AnyView, caps: Color, label: Color, face: Color, fills: Bool
     ) -> some View {
         HStack(spacing: 0) {
             Text(String(TerminalSymbols.openCap)).foregroundStyle(caps)
-            labelView
+            HStack(spacing: 0) {
+                if fills { Spacer(minLength: 0) }
+                labelView
+                if fills { Spacer(minLength: 0) }
+            }
                 .foregroundStyle(label)
                 .padding(.horizontal, appearance.horizontalPadding)
                 .background(face)
@@ -555,6 +567,17 @@ struct _ButtonStyleBody: View, Renderable {
                 + 2 * appearance.horizontalPadding
             // `▐ … ▌` end caps plus the padding either side.
             : 2 + 2 * appearance.horizontalPadding
+    }
+
+    /// `padded` centred in the width a flexible button fills — everything it is
+    /// offered less its `caps` — or as it is when buttons fit their labels
+    /// (``ButtonSizing``). Only a variant with a face calls this; a plain one
+    /// has nothing to widen.
+    fileprivate static func filling(_ padded: String, context: RenderContext, caps: Int) -> String {
+        let spare = context.availableWidth - caps - padded.strippedLength
+        guard context.environment.buttonSizing.fills, spare > 0 else { return padded }
+        return String(repeating: " ", count: spare / 2) + padded
+            + String(repeating: " ", count: spare - spare / 2)
     }
 
     fileprivate static func fitLabel(_ label: String, into availableWidth: Int, chrome: Int) -> String {
@@ -599,7 +622,12 @@ extension _ButtonStyleBody: Layoutable {
         let chrome = Self.chromeWidth(for: appearance)
         let label = Self.fitLabel(
             configuration.title, into: context.availableWidth, chrome: chrome)
-        return ViewSize.fixed(chrome + label.strippedLength, 1)
+        let natural = chrome + label.strippedLength
+        guard !appearance.isPlain, context.environment.buttonSizing.fills else {
+            return ViewSize.fixed(natural, 1)
+        }
+        // A flexible button with a face fills what it is offered, and says so.
+        return ViewSize(width: max(natural, context.availableWidth), height: 1, isWidthFlexible: true)
     }
 
     /// A `@ViewBuilder` label's button: drawn under the context

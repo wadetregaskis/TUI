@@ -443,3 +443,17 @@ private struct ExpressionSceneApp: App {
         WindowGroup { Text("one") }
     }
 }
+
+/// A button that spans its container, and a style that reads the sizing.
+@MainActor
+private struct ButtonSizingShapes: View {
+    @Environment(\.buttonSizing) private var buttonSizing
+
+    var body: some View {
+        VStack {
+            Button("Open Document…") {}
+                .buttonSizing(.flexible)
+            Button("Fit") {}.buttonSizing(buttonSizing == .flexible ? .fitted : .automatic)
+        }
+    }
+}

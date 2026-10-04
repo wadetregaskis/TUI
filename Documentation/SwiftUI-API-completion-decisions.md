@@ -1462,6 +1462,28 @@ under `.always`/`.automatic`, sprung back once the scroll phase returns to
 idle (B27 gives the moment). Half a day, and it changes the default feel
 of every scrollable, so it is yours to want.
 
+### B32. `buttonSizing(.flexible)` widens a button's face; a plain button keeps its width
+
+*`ButtonSizing` (`.automatic`, `.fitted`, `.flexible`), `View.buttonSizing(_:)`,
+`EnvironmentValues.buttonSizing`*
+
+A macOS 26 API, so SwiftUI's behaviour could not be measured on this
+machine's macOS 15. What shipped follows its documentation: a flexible button
+fills its primary axis. A button with a face (the bordered and prominent
+styles and the other built-ins with caps) widens the face to the width it is
+offered and centres its label; measured, it reports the offered width, flexible.
+`.fitted` and `.automatic` fit the label, which is what every button did before.
+
+**The open question** is plain, borderless and link buttons. They have no face,
+so widening one changes only its hit area, invisibly. I left them at their
+own width. SwiftUI's documentation says only that "certain styles" adapt. If a
+macOS 26 measurement shows `.plain` widening, the change is the same
+centring in `renderPlainStringLabel`, about an hour.
+
+`Picker`, `ControlGroup` and `Toggle`'s button style, which the documentation
+also names, do not read it yet. Each is a frame of its own, an hour apiece
+once wanted.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`
