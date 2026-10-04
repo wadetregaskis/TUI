@@ -212,6 +212,13 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// translation degrades to itself rather than eating the character after
     /// it.
     static func substituting(_ arguments: [String], into template: String) -> String {
+        if let plain = substitutingBarePlaceholders(arguments, into: template) { return plain }
+        return substitutingByWalk(arguments, into: template)
+    }
+
+    /// ``substituting(_:into:)`` by ``walk(_:text:placeholder:)``: every
+    /// template, every conversion it reads.
+    static func substitutingByWalk(_ arguments: [String], into template: String) -> String {
         var result = ""
         walk(
             template, text: { result.append($0) },
@@ -220,6 +227,47 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
                     result += placeholder.filled(with: arguments[placeholder.argument])
                 }
             })
+        return result
+    }
+
+    /// ``substituting(_:into:)`` for the commonest template — all ASCII,
+    /// every `%` a bare `%@`, which is every interpolated key an app builds
+    /// with no translation registered — or `nil` for any other.
+    ///
+    /// For such a template the walk's answer is fixed: its text segments
+    /// as they are, with `arguments[n]` for the n-th `%@` (nothing when there
+    /// is no such argument), since a bare `%@` has no width to pad to. This
+    /// answers that from the bytes in one pass, where the walk compares and
+    /// appends Character by Character — a grapheme break per character, ~40
+    /// µs/frame on a dashboard of interpolated labels. It is NOT a second
+    /// reading of the template: on the first byte that is not ASCII, or a
+    /// `%` not followed by `@` (`%%`, `%2$@`, `%d`, a trailing `%`), it
+    /// gives up and the walk reads the whole template, as it always did.
+    /// In ASCII every byte is a Character boundary either side of a `%@`
+    /// (only CR LF joins two bytes into one), so the segments cut here are
+    /// the walk's Characters, byte for byte.
+    static func substitutingBarePlaceholders(_ arguments: [String], into template: String) -> String? {
+        let utf8 = template.utf8
+        var result = ""
+        var next = 0
+        var segmentStart = utf8.startIndex
+        var index = segmentStart
+        while index != utf8.endIndex {
+            let byte = utf8[index]
+            guard byte < 0x80 else { return nil }
+            guard byte == UInt8(ascii: "%") else {
+                index = utf8.index(after: index)
+                continue
+            }
+            let conversion = utf8.index(after: index)
+            guard conversion != utf8.endIndex, utf8[conversion] == UInt8(ascii: "@") else { return nil }
+            result += template[segmentStart..<index]
+            if arguments.indices.contains(next) { result += arguments[next] }
+            next += 1
+            index = utf8.index(after: conversion)
+            segmentStart = index
+        }
+        result += template[segmentStart...]
         return result
     }
 

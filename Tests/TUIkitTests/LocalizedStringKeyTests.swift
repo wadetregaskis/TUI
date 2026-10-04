@@ -250,6 +250,66 @@ struct LocalizedStringKeyTests {
         #expect(LocalizedStringKey.substituting(["3.14"], into: "%.2f rad") == "3.14 rad")
     }
 
+    /// SplitMix64, so the sampled templates are the same on every run and platform.
+    private struct SeededGenerator: RandomNumberGenerator {
+        var state: UInt64
+
+        mutating func next() -> UInt64 {
+            state &+= 0x9E37_79B9_7F4A_7C15
+            var mixed = state
+            mixed = (mixed ^ (mixed >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            mixed = (mixed ^ (mixed >> 27)) &* 0x94D0_49BB_1331_11EB
+            return mixed ^ (mixed >> 31)
+        }
+    }
+
+    @Test("The bare-placeholder substitution agrees with the walk wherever it answers")
+    func barePlaceholderFastPathAgreesWithWalk() {
+        // `substituting` answers an all-ASCII template of bare `%@`s from its
+        // bytes and leaves every other template to the walk. Where it answers,
+        // it must say what the walk says — and it must decline the forms it
+        // cannot read, or a `%%` or `%2$@` would come out wrong.
+        #expect(LocalizedStringKey.substitutingBarePlaceholders(["x", "y"], into: "a %@ b %@!") == "a x b y!")
+        #expect(LocalizedStringKey.substitutingBarePlaceholders(["x"], into: "%@ and %@") == "x and ")
+        #expect(LocalizedStringKey.substitutingBarePlaceholders([], into: "no placeholders") == "no placeholders")
+        for declined in ["100%% and %@", "%2$@ %1$@", "%d items", "%@ 100%", "%3@", "é %@", "%@ 日本"] {
+            #expect(
+                LocalizedStringKey.substitutingBarePlaceholders(["x", "y"], into: declined) == nil,
+                "\(declined) is the walk's to read")
+        }
+
+        // Then a few thousand templates built from the pieces either side of
+        // the line: bare and positional placeholders, escapes, widths, a
+        // trailing percent, CR LF (the one ASCII pair that is ONE Character),
+        // a combining mark, wide and non-ASCII text.
+        let pieces = [
+            "%@", "%@", "%@", "a", "b", " ", "@", "%", "%%", "%1$@", "%2$@", "%-3@", "%3@", "%d",
+            "\r\n", "\r", "\n", "e\u{301}", "\u{301}", "日", "é", "🇦🇺", ".",
+        ]
+        let values = ["", "x", "yy", "日本", "%@", "%%", "a b"]
+        var generator = SeededGenerator(state: 0x5EED_F00D)
+        var answered = 0
+        for _ in 0..<4_000 {
+            var template = ""
+            for _ in 0..<Int.random(in: 0...8, using: &generator) {
+                template += pieces.randomElement(using: &generator)!
+            }
+            let arguments = (0..<Int.random(in: 0...3, using: &generator)).map { _ in
+                values.randomElement(using: &generator)!
+            }
+            let walked = LocalizedStringKey.substitutingByWalk(arguments, into: template)
+            if let fast = LocalizedStringKey.substitutingBarePlaceholders(arguments, into: template) {
+                answered += 1
+                #expect(Array(fast.utf8) == Array(walked.utf8), "\(template.debugDescription) \(arguments)")
+            }
+            #expect(
+                Array(LocalizedStringKey.substituting(arguments, into: template).utf8) == Array(walked.utf8),
+                "\(template.debugDescription) \(arguments)")
+        }
+        // Not vacuous: a good share of the samples took the fast path.
+        #expect(answered > 400, "only \(answered) templates took the fast path")
+    }
+
     @Test("A String or Int argument is what String(describing:) makes of it, whatever its static type")
     func describingFastPathAgrees() {
         // The catch-all interpolation answers a String and an Int without
