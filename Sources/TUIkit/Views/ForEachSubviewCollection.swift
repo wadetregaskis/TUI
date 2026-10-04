@@ -23,7 +23,7 @@ protocol ContextResolvedCollection {
     func resolved(in context: RenderContext) -> Self
 }
 
-extension ForEach {
+extension ForEach where Content: View {
     /// ``data`` resolved in `context`, for a collection that needs one —
     /// see ``ContextResolvedCollection``.
     ///
@@ -39,7 +39,7 @@ extension ForEach {
 
 // MARK: - ForEach(subviews:content:)
 
-extension ForEach {
+extension ForEach where Content: View {
     /// Creates an instance that uniquely identifies and creates views across
     /// updates based on the subviews of a given view.
     ///

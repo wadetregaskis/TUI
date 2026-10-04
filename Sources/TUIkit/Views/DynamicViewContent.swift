@@ -55,7 +55,7 @@ struct ListRowEditOwner {
     let rows: Range<Int>
 }
 
-extension ForEach: DynamicViewContentActions {
+extension ForEach: DynamicViewContentActions where Content: View {
     var moveAction: ((IndexSet, Int) -> Void)? { onMoveAction }
     var deleteAction: ((IndexSet) -> Void)? { onDeleteAction }
     var dropInsertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
@@ -65,7 +65,7 @@ extension ForEach: DynamicViewContentActions {
 
 // MARK: - ForEach modifiers
 
-extension ForEach {
+extension ForEach where Content: View {
     /// Makes the rows a drop destination that reports WHERE the drop landed —
     /// mirrors SwiftUI's `DynamicViewContent.dropDestination(for:action:)`.
     ///

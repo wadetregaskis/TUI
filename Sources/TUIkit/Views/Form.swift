@@ -258,7 +258,7 @@ extension TupleView: FormContentExtractor {
     }
 }
 
-extension ForEach: FormContentExtractor {
+extension ForEach: FormContentExtractor where Content: View {
     func extractFormElements() -> [_FormElement] {
         data.flatMap { element in formElements(from: content(element)) }
     }

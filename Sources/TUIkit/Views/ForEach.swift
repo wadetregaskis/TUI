@@ -55,14 +55,19 @@ import Foundation
 ///     }
 /// }
 /// ```
-public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content: View>: View {
+///
+/// `ForEach` is not only a view: as in SwiftUI it also computes a table's rows,
+/// and it is a view exactly when what it computes is one. It is main-actor
+/// isolated as a whole, as it was when its `View` conformance said so.
+@MainActor
+public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// The underlying data collection.
     let data: Data
 
     /// The key path to the unique ID of each element.
     let idKeyPath: KeyPath<Data.Element, ID>
 
-    /// The closure that creates a view for each element.
+    /// The closure that creates the content for each element.
     let content: (Data.Element) -> Content
 
     /// The `.onMove(perform:)` row-reorder action, if attached: `(source
@@ -79,6 +84,16 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content: View>
     /// the payload type; the erased pair is `(accepts, perform)`.
     var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
 
+    /// Stores the loop. Every kind of content's own initializers delegate here;
+    /// declared so that no memberwise initializer exists beside them.
+    init(storing data: Data, id: KeyPath<Data.Element, ID>, content: @escaping (Data.Element) -> Content) {
+        self.data = data
+        self.idKeyPath = id
+        self.content = content
+    }
+}
+
+extension ForEach: View where Content: View {
     /// Creates a ForEach with an explicit ID key path.
     ///
     /// - Parameters:
@@ -90,9 +105,7 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content: View>
         id: KeyPath<Data.Element, ID>,
         @ViewBuilder content: @escaping (Data.Element) -> Content
     ) {
-        self.data = data
-        self.idKeyPath = id
-        self.content = content
+        self.init(storing: data, id: id, content: content)
     }
 
     /// Never called — a container resolves `ForEach` into its elements, and a
@@ -110,7 +123,7 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content: View>
 
 // MARK: - Reading the Data
 
-extension ForEach {
+extension ForEach where Content: View {
     /// The collection this loop iterates, as it stands in `context`: the one
     /// place a walk that has a context reads ``data``.
     ///
@@ -134,7 +147,7 @@ extension ForEach {
 
 // MARK: - ForEach rendered on its own
 
-extension ForEach: Renderable, Layoutable {
+extension ForEach: Renderable, Layoutable where Content: View {
     /// Stacks the elements vertically, for the case where nothing above has
     /// resolved them into siblings of their own.
     ///
@@ -170,7 +183,7 @@ extension ForEach: Renderable, Layoutable {
 
 // MARK: - ForEach as a ChildViewProvider
 
-extension ForEach: ChildViewProvider {
+extension ForEach: ChildViewProvider where Content: View {
     /// Emits one ``ChildView`` per element so containers (HStack/VStack/ZStack)
     /// can lay each iteration out as its own sibling.
     ///
@@ -287,7 +300,7 @@ extension ForEach: ChildViewProvider {
 
 // MARK: - ForEach as a LazyChildViewProvider
 
-extension ForEach: LazyChildViewProvider {
+extension ForEach: LazyChildViewProvider where Content: View {
     /// The rows as an on-demand collection (Stage 4 of "Locating things
     /// without drawing them"): count and keys come straight from `data` —
     /// O(1) and per-touch respectively, with `content` never invoked — and
@@ -319,7 +332,7 @@ extension ForEach: LazyChildViewProvider {
 
 // MARK: - ForEach with Identifiable
 
-extension ForEach where Data.Element: Identifiable, ID == Data.Element.ID {
+extension ForEach where Content: View, Data.Element: Identifiable, ID == Data.Element.ID {
     /// Creates a ForEach for Identifiable elements.
     ///
     /// - Parameters:
@@ -337,7 +350,7 @@ extension ForEach where Data.Element: Identifiable, ID == Data.Element.ID {
 
 // MARK: - ForEach with Range
 
-extension ForEach where Data == Range<Int>, ID == Int {
+extension ForEach where Content: View, Data == Range<Int>, ID == Int {
     /// Creates a ForEach over an integer range.
     ///
     /// - Parameters:
@@ -355,7 +368,7 @@ extension ForEach where Data == Range<Int>, ID == Int {
 
 // MARK: - ForEach over a Binding
 
-extension ForEach {
+extension ForEach where Content: View {
     /// One `Binding` per element of `data`, each writing back through the
     /// collection binding at its own index.
     ///
@@ -376,7 +389,7 @@ extension ForEach {
     }
 }
 
-extension ForEach {
+extension ForEach where Content: View {
     /// Creates a ForEach over a *binding* to a collection, handing each element
     /// to `content` as a `Binding` — SwiftUI's `ForEach($items) { $item in … }`.
     ///

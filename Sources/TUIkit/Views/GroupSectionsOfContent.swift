@@ -100,7 +100,7 @@ private struct _GroupSectionsCore<Sections: View, Content: View>: View, Renderab
 
 // MARK: - ForEach(sections:content:)
 
-extension ForEach {
+extension ForEach where Content: View {
     /// Creates an instance that uniquely identifies and creates views across
     /// updates based on the sections of a given view.
     ///

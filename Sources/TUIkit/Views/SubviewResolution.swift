@@ -132,7 +132,7 @@ protocol SubviewsLoop {
     var rowsAreSingleMembers: Bool { get }
 }
 
-extension ForEach: SubviewsLoop {
+extension ForEach: SubviewsLoop where Content: View {
     var rowsAreSingleMembers: Bool {
         !(Content.self is any SectionPartsProviding.Type) && Content.self != EmptyView.self
     }

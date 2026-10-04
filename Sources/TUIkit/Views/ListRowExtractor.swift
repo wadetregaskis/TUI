@@ -284,7 +284,7 @@ extension ConditionalView: ListRowsPassThrough {
 
 // MARK: - ForEach Conformance
 
-extension ForEach: ListRowExtractor, WindowedListRowExtractor {
+extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
     func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         (0..<data.count).map { index -> ListRow<RowID> in
             // Resolve the row's selection ID up front — it's cheap (a key-path
@@ -490,7 +490,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor {
 
 // MARK: - ForEach's rows among other rows
 
-extension ForEach: KeyedRowProvider, KeyedLoop {
+extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// This loop's rows, as the flattening emits them: one per element, in
     /// order — see ``FlattenedRowIDs``.
     func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {

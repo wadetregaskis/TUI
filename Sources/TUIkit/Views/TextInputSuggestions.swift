@@ -67,7 +67,7 @@ extension TupleView: TextSuggestionProvider {
     }
 }
 
-extension ForEach: TextSuggestionProvider {
+extension ForEach: TextSuggestionProvider where Content: View {
     func textSuggestions() -> [_TextSuggestionEntry] {
         data.flatMap { element -> [_TextSuggestionEntry] in
             if let provider = content(element) as? TextSuggestionProvider {

@@ -49,7 +49,7 @@ extension TupleView: TabContentProvider {
     }
 }
 
-extension ForEach: TabContentProvider {
+extension ForEach: TabContentProvider where Content: View {
     func tabs() -> [_RawTab] {
         data.flatMap { element -> [_RawTab] in
             (content(element) as? TabContentProvider)?.tabs() ?? []

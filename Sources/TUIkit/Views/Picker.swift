@@ -60,7 +60,7 @@ extension TupleView: PickerOptionProvider {
     }
 }
 
-extension ForEach: PickerOptionProvider {
+extension ForEach: PickerOptionProvider where Content: View {
     /// One option per element, tagged by the element's own id when the row
     /// does not tag itself.
     ///
