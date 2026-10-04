@@ -378,7 +378,25 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         /// Interpolates any value, as `String(describing:)` would render it.
         public mutating func appendInterpolation(_ value: some Any) {
             key += "%@"
-            arguments.append(String(describing: value))
+            // The two commonest arguments, answered as `String(describing:)`
+            // answers them — a String is itself, an Int its decimal digits —
+            // without its conformance probes: a dynamic cast each for
+            // `TextOutputStreamable`, `CustomStringConvertible` and the rest,
+            // about a microsecond per interpolated value built, every frame.
+            // The `type(of:)` test is what keeps this exact: a value
+            // interpolated as `Any` (or any existential) reports the
+            // existential's metatype, not `String`, so it — like an
+            // `Optional<String>`, whose description is `Optional("…")` — keeps
+            // the general path. The cast alone would NOT do: `as? String`
+            // unwraps that Optional. Behind the test it is the same-type cast,
+            // which cannot fail.
+            if type(of: value) == String.self, let string = value as? String {
+                arguments.append(string)
+            } else if type(of: value) == Int.self, let number = value as? Int {
+                arguments.append(String(number))
+            } else {
+                arguments.append(String(describing: value))
+            }
         }
 
         /// Interpolates a `Text`, contributing its own text — mirroring

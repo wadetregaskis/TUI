@@ -250,6 +250,43 @@ struct LocalizedStringKeyTests {
         #expect(LocalizedStringKey.substituting(["3.14"], into: "%.2f rad") == "3.14 rad")
     }
 
+    @Test("A String or Int argument is what String(describing:) makes of it, whatever its static type")
+    func describingFastPathAgrees() {
+        // The catch-all interpolation answers a String and an Int without
+        // `String(describing:)`'s conformance probes. It must agree with it —
+        // including for the look-alikes the shortcut must NOT take: an
+        // Optional (described as `Optional(…)`) and a value boxed in `Any`.
+        let name = "Ada"
+        let empty = ""
+        let count = 42
+        let negative = Int.min
+        let optional: String? = "Ada"
+        let boxed: Any = "Ada"
+        let boxedNumber: Any = 7
+        // Built call by call rather than as a literal, so the Optional reaches
+        // the catch-all as `String?` itself (a literal's `\(optional)` draws
+        // the debug-description warning, and `as Any` would box it).
+        var interpolation = LocalizedStringKey.StringInterpolation(literalCapacity: 0, interpolationCount: 7)
+        interpolation.appendInterpolation(name)
+        interpolation.appendInterpolation(empty)
+        interpolation.appendInterpolation(count)
+        interpolation.appendInterpolation(negative)
+        interpolation.appendInterpolation(optional)
+        interpolation.appendInterpolation(boxed)
+        interpolation.appendInterpolation(boxedNumber)
+        let key = LocalizedStringKey(stringInterpolation: interpolation)
+        #expect(key.key == "%@%@%@%@%@%@%@")
+        #expect(
+            key.arguments == [
+                String(describing: name), String(describing: empty), String(describing: count),
+                String(describing: negative), String(describing: optional),
+                String(describing: boxed), String(describing: boxedNumber),
+            ])
+        #expect(key.arguments[0] == "Ada")
+        #expect(key.arguments[3] == "-9223372036854775808")
+        #expect(key.arguments[4] == "Optional(\"Ada\")")
+    }
+
     @Test("A specifier formats the value, as SwiftUI's interpolation does")
     func specifierInterpolation() {
         let price = 3.14159
