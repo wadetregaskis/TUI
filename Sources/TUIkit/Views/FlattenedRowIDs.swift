@@ -512,7 +512,7 @@ extension Optional: KeyedRowProvider where Wrapped: View {
     }
 }
 
-extension OutlineGroup: KeyedRowProvider {
+extension OutlineGroup: KeyedRowProvider where Leaf: View {
     func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
         runs.append(.outline)
     }

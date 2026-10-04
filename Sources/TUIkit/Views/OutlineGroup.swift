@@ -111,7 +111,12 @@ import TUIkitView
 ///   unchanged; only spelling the type out by hand differs. (Same call as
 ///   ``Gauge``, which likewise drops a generic parameter with no terminal
 ///   meaning.)
-public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf: View>: View {
+///
+/// `OutlineGroup` is not only a view: as in SwiftUI it also builds a table's
+/// rows, and it is a view exactly when what it builds is one. It is
+/// main-actor isolated as a whole, as its `View` conformance made it.
+@MainActor
+public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf> {
     /// The top-level elements, flattened out of whichever initializer was used
     /// so one implementation serves both the `root` and the collection forms.
     let roots: [Data.Element]
@@ -132,7 +137,9 @@ public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf: Vie
     /// closure inside has to survive from the render that installs it to the
     /// keystroke that calls it.
     let activation = OutlineActivation()
+}
 
+extension OutlineGroup: View where Leaf: View {
     /// Never called: an outline is a run of rows, not one view, so it hands its
     /// children to its container instead of rendering itself. `ForEach` says
     /// the same thing the same way.
@@ -243,7 +250,7 @@ final class OutlineSubtreeIndex<Element, ID: Hashable>: @unchecked Sendable {
 
 // MARK: - The rows
 
-extension OutlineGroup {
+extension OutlineGroup where Leaf: View {
     /// The rows to draw, depth-first, stopping at every closed branch.
     ///
     /// Recomputed per pass rather than cached: it is a function of the data and
@@ -361,7 +368,7 @@ extension OutlineGroup {
 
 // MARK: - One row per visible node
 
-extension OutlineGroup: ChildViewProvider {
+extension OutlineGroup: ChildViewProvider where Leaf: View {
     /// One child per visible node, keyed by the node's id — so a stack lays the
     /// tree out as a column of siblings, and each row's own state follows its
     /// node rather than its position.
@@ -376,7 +383,7 @@ extension OutlineGroup: ChildViewProvider {
     }
 }
 
-extension OutlineGroup: OutlineRowActivating {
+extension OutlineGroup: OutlineRowActivating where Leaf: View {
     /// `nonisolated` because key dispatch is: the handler reaches this from
     /// outside the main actor, and everything it touches — a `let` reference
     /// and the closure inside it — is written only by the render loop.
@@ -393,7 +400,7 @@ extension OutlineGroup: OutlineRowActivating {
     }
 }
 
-extension OutlineGroup: ListRowExtractor {
+extension OutlineGroup: ListRowExtractor where Leaf: View {
     /// One list row per visible node, so a `List` selects, reveals and scrolls
     /// to *nodes* rather than to the outline as a whole.
     ///
@@ -615,7 +622,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
 
 // MARK: - Initializers (Identifiable)
 
-extension OutlineGroup where Data.Element: Identifiable, ID == Data.Element.ID {
+extension OutlineGroup where Leaf: View, Data.Element: Identifiable, ID == Data.Element.ID {
     /// Creates an outline rooted at a single element.
     ///
     /// - Parameters:
@@ -647,7 +654,7 @@ extension OutlineGroup where Data.Element: Identifiable, ID == Data.Element.ID {
 
 // MARK: - Initializers (explicit id)
 
-extension OutlineGroup {
+extension OutlineGroup where Leaf: View {
     /// Creates an outline rooted at a single element, keyed by an explicit id.
     ///
     /// - Parameters:
@@ -680,9 +687,14 @@ extension OutlineGroup {
     ) where DataElement == Data.Element {
         self.init(roots: Array(data), id: id, children: children, content: content)
     }
+}
 
-    /// The one designated initializer the four public ones funnel through.
-    private init(
+// MARK: - Storing it
+
+extension OutlineGroup {
+    /// The one designated initializer every public one funnels through, for
+    /// views and for table rows alike.
+    init(
         roots: [Data.Element],
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
