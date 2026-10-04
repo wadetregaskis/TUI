@@ -42,6 +42,17 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
     /// The shape of one pass.
     let curve: AnimationCurve
 
+    /// When ``logicallyComplete(after:)`` says the animation logically
+    /// completes, counted from its start and before ``speed(_:)``; negative
+    /// for "when it naturally does".
+    ///
+    /// A `Float`, and declared here, for the bytes: the curve ends four bytes
+    /// short of a word, and a 4-byte field fills that gap where a `Double`
+    /// would have added a word to every `Animation` — and so to every
+    /// `Transaction`, and every `Binding`. A completion time does not need more
+    /// than seven significant digits.
+    let logicalCompletion: Float
+
     /// How long one pass takes, before ``speed(_:)``.
     ///
     /// For a spring this is the settling time, not the `duration:` argument —
@@ -54,12 +65,6 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
 
     /// The rate multiplier. 2 runs it twice as fast.
     let speedFactor: Double
-
-    /// When ``logicallyComplete(after:)`` says the animation logically
-    /// completes, counted from its start and before ``speed(_:)``; negative
-    /// for "when it naturally does". A sentinel rather than an optional so the
-    /// struct stays whole words.
-    let logicalCompletion: TimeInterval
 
     /// How the pass repeats.
     let repeatMode: Repeat
@@ -76,7 +81,7 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
         self.passDuration = max(0, passDuration)
         self.delayInterval = max(0, delayInterval)
         self.speedFactor = speedFactor > 0 ? speedFactor : 1
-        self.logicalCompletion = logicalCompletion.isNaN ? -1 : logicalCompletion
+        self.logicalCompletion = logicalCompletion.isNaN ? -1 : Float(logicalCompletion)
         self.repeatMode = repeatMode
     }
 
@@ -90,7 +95,7 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
             curve: curve, passDuration: passDuration,
             delayInterval: delayInterval ?? self.delayInterval,
             speedFactor: speedFactor ?? self.speedFactor,
-            logicalCompletion: logicalCompletion ?? self.logicalCompletion,
+            logicalCompletion: logicalCompletion ?? TimeInterval(self.logicalCompletion),
             repeatMode: repeatMode ?? self.repeatMode)
     }
 }
@@ -345,7 +350,7 @@ extension Animation {
         with(
             delayInterval: delayInterval + delay,
             // A completion time is counted from the start, which moved.
-            logicalCompletion: logicalCompletion < 0 ? nil : logicalCompletion + delay)
+            logicalCompletion: logicalCompletion < 0 ? nil : TimeInterval(logicalCompletion) + delay)
     }
 
     /// This animation, run `speed` times as fast. The delay scales with it, as
@@ -431,7 +436,7 @@ extension Animation {
             natural = (delayInterval + passDuration * Double(passes - 1) + pace) / speedFactor
         }
         guard logicalCompletion >= 0 else { return natural }
-        return min(natural, logicalCompletion / speedFactor)
+        return min(natural, TimeInterval(logicalCompletion) / speedFactor)
     }
 
     /// Whether this animation runs without end.

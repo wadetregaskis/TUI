@@ -120,10 +120,9 @@ struct TransactionKeyTests {
 
     @Test("A transaction's custom values cost a word, with no interior padding")
     func layout() {
-        // The extras lead: a reference before the 81-byte animation and the
-        // byte switches after it pads nothing (84 with the 73-byte animation
-        // before `logicallyComplete(after:)` added a word to it).
-        #expect(MemoryLayout<Transaction>.size == 92)
+        // The extras lead: a reference before the 73-byte animation and the
+        // byte switches after it pads nothing.
+        #expect(MemoryLayout<Transaction>.size == 84)
         #expect(interiorPadding(of: Transaction.self).isEmpty)
     }
 }

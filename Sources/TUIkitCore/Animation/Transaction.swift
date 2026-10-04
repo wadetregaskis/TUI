@@ -18,9 +18,9 @@ public struct Transaction: Sendable, Equatable {
     /// transaction that sets neither, which is nearly all of them: they cost
     /// one word.
     ///
-    /// First, and a word: the animation after it is 81 bytes and the switches
+    /// First, and a word: the animation after it is 73 bytes and the switches
     /// after that are bytes, so leading with the reference keeps the struct
-    /// free of interior padding (92 bytes). Put after them it would have cost
+    /// free of interior padding (84 bytes). Put after them it would have cost
     /// seven undefined bytes in every `Binding`.
     private var extras: TransactionExtras?
 
@@ -28,7 +28,7 @@ public struct Transaction: Sendable, Equatable {
     public var animation: Animation?
 
     // Every field after the animation is a byte, and the booleans share one,
-    // so the struct has no interior padding and is 92 bytes: every `Binding`
+    // so the struct has no interior padding and is 84 bytes: every `Binding`
     // carries one inline, and the per-pass memos hash a view's bytes, padding
     // included unless it is skipped (`ControlLayoutPaddingTests`). The scroll
     // members cost two bytes, the anchor's; as three `Bool`s and two
