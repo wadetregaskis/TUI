@@ -268,3 +268,31 @@ gone; `scale(scale: 0, anchor:)` is the same transition.
 its middle and widening the crop as it settles — a zoom-out rather than a
 grow. Nothing in TUIkit crops from the middle today; half a day, and I would
 wait for someone to ask.
+
+### B-W12-4 `tracksVelocity` is recorded, and no velocity is carried; `isContinuous` is set by TUIkit's own continuous controls
+
+*`Transaction.tracksVelocity`, `Transaction.isContinuous`*
+
+**`tracksVelocity`.** SwiftUI accumulates the velocity of values changed under
+such a transaction, so a later animation can start moving at that speed.
+TUIkit's animations are closed-form functions of elapsed time that start at
+rest — a spring retargeted mid-flight already restarts from where its picture
+is, without its speed — so there is nothing to track, and the flag is a value
+the transaction carries for whoever reads it. This is the one place the
+"retargets at rest" deviation of every TUIkit spring shows up as a property;
+the Wave 17 review (W6) asked for it to be documented in one place rather than
+used to refuse spellings, and `Animation.interpolatingSpring` will point here
+too.
+
+**`isContinuous`.** SwiftUI sets it when "a continuous action created the
+transaction" — dragging a slider, holding a stepper. TUIkit now sets it on the
+writes its own controls make that way: a press and drag on a `Slider`'s track,
+and the repeats of a held arrow (`Slider`, `Stepper`) or a repeating
+`Button` (the first action of the press is a click, and is not continuous).
+A key the terminal repeats arrives as separate presses with nothing to say
+they are one hold, so a held arrow KEY is not continuous. Setting the flag
+makes the write an explicit transaction, which — like any `withTransaction` —
+takes over from an animated change made earlier in the same frame.
+
+**The fuller version** of `tracksVelocity` is O3's: velocity-preserving
+retargeting needs integrated animations, the `CustomAnimation` question.

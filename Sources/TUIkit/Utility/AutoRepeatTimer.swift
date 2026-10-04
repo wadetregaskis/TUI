@@ -144,7 +144,9 @@ public final class AutoRepeatTimer {
             // holding, and an app whose frames outlast the 80 ms interval would
             // otherwise never repeat at all.
             while !Task.isCancelled {
-                action()
+                // A held press is a continuous action: these repeats are the
+                // sequence it produces (the first, a plain click's, is not).
+                withTransaction(\.isContinuous, true) { action() }
                 do {
                     try await Task.sleep(nanoseconds: repeatIntervalNanos)
                 } catch {

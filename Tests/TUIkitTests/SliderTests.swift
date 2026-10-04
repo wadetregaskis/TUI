@@ -295,6 +295,27 @@ struct SliderTrackStyleTests {
         _ = dispatcher.dispatch(MouseEvent(button: .scrollUp, phase: .scrolled, x: x, y: y))
         #expect(value < 0.5, "wheel up should decrease the value, got \(value)")
     }
+
+    @Test("Pressing and dragging the track writes under a continuous transaction")
+    func trackDragIsContinuous() {
+        var continuous: [Bool] = []
+        let binding = Binding<Double>(
+            get: { 0.5 }, set: { _ in continuous.append(Transaction.ambient?.isContinuous ?? false) })
+        let context = makeRenderContext(width: 40, height: 1)
+        let dispatcher = context.environment.mouseEventDispatcher!
+        dispatcher.setActiveSupport(.standard)
+        let buffer = renderToBuffer(Slider(value: binding, in: 0...1), context: context)
+        dispatcher.setRegions(buffer.hitTestRegions)
+        guard let region = buffer.hitTestRegions.max(by: { $0.width < $1.width }) else {
+            Issue.record("expected a slider hit-test region"); return
+        }
+        // The track starts after the two cells of "◀ ".
+        let x = region.offsetX + 4
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x, y: region.offsetY))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: x + 2, y: region.offsetY))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: x + 2, y: region.offsetY))
+        #expect(continuous == [true, true])
+    }
 }
 
 /// The slider's three click zones. The arrows are GLYPHS, one cell each — not

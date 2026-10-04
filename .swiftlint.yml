@@ -236,6 +236,8 @@ identifier_name:
     # A `Transition`'s erasure to `AnyTransition`: the built-ins answer with
     # the buffer effects they are made of, a body of the app's own is boxed.
     - _erased
+    # `TransactionKey`'s comparison of two values, SwiftUI's own witness name.
+    - _valuesEqual
     # The value hash's typed reader (`_ValueHashing`), the same convention for
     # a witness the framework calls and nothing else should.
     - _mixValueHash

@@ -13,11 +13,22 @@
 /// affected by it animates, without any of them having been told in advance
 /// which changes to expect.
 public struct Transaction: Sendable, Equatable {
+    /// The values set through ``subscript(_:)``, and the completions waiting
+    /// on the change, held by reference and copied on write. `nil` for every
+    /// transaction that sets neither, which is nearly all of them: they cost
+    /// one word.
+    ///
+    /// First, and a word: the animation after it is 73 bytes and the switches
+    /// after that are bytes, so leading with the reference keeps the struct
+    /// free of interior padding (84 bytes). Put after them it would have cost
+    /// seven undefined bytes in every `Binding`.
+    private var extras: TransactionExtras?
+
     /// The animation to apply to the change, or `nil` for an immediate one.
     public var animation: Animation?
 
     // Every field after the animation is a byte, and the booleans share one,
-    // so the struct has no interior padding and is 76 bytes: every `Binding`
+    // so the struct has no interior padding and is 84 bytes: every `Binding`
     // carries one inline, and the per-pass memos hash a view's bytes, padding
     // included unless it is skipped (`ControlLayoutPaddingTests`). The scroll
     // members cost two bytes, the anchor's; as three `Bool`s and two
@@ -34,6 +45,8 @@ public struct Transaction: Sendable, Equatable {
     private static let disablesAnimationsBit: UInt8 = 1 << 0
     private static let preservesVelocityBit: UInt8 = 1 << 1
     private static let disablesScrollAdjustmentBit: UInt8 = 1 << 2
+    private static let isContinuousBit: UInt8 = 1 << 3
+    private static let tracksVelocityBit: UInt8 = 1 << 4
 
     private func flag(_ bit: UInt8) -> Bool { flags & bit != 0 }
 
@@ -61,6 +74,33 @@ public struct Transaction: Sendable, Equatable {
     public var scrollPositionUpdatePreservesVelocity: Bool {
         get { flag(Self.preservesVelocityBit) }
         set { setFlag(Self.preservesVelocityBit, newValue) }
+    }
+
+    /// A Boolean value that indicates whether the transaction originated from
+    /// an action that produces a sequence of values.
+    ///
+    /// `true` if a continuous action created the transaction — dragging a
+    /// slider, holding a stepper's arrow — and `false` for a single one, like
+    /// a button press. Set by whoever makes the change, and read by whatever
+    /// wants to treat a stream of changes differently from one.
+    public var isContinuous: Bool {
+        get { flag(Self.isContinuousBit) }
+        set { setFlag(Self.isContinuousBit, newValue) }
+    }
+
+    /// Whether this transaction will track the velocity of any animatable
+    /// properties that change.
+    ///
+    /// SwiftUI accumulates the velocity of values changed under such a
+    /// transaction, so that a later animation can start from it. TUIkit's
+    /// animations are closed-form functions of elapsed time that start at
+    /// rest — a spring retargeted mid-flight restarts from where its picture
+    /// is, without its speed — so there is no velocity to track, and this is
+    /// recorded for whoever reads the transaction and changes nothing else.
+    /// See `SwiftUI-API-completion-decisions-W12.md`, B-W12-4.
+    public var tracksVelocity: Bool {
+        get { flag(Self.tracksVelocityBit) }
+        set { setFlag(Self.tracksVelocityBit, newValue) }
     }
 
     /// Where TUIkit's `scrollContentOffsetAdjustmentBehavior` keeps its one
@@ -107,6 +147,162 @@ public struct Transaction: Sendable, Equatable {
     public var effectiveAnimation: Animation? {
         disablesAnimations ? nil : animation
     }
+
+    /// Accesses the transaction value associated with a custom key.
+    ///
+    /// Create custom transaction values by defining a key that conforms to
+    /// ``TransactionKey``, and then using that key with this subscript:
+    ///
+    /// ```swift
+    /// private struct MyTransactionKey: TransactionKey {
+    ///     static let defaultValue = false
+    /// }
+    ///
+    /// extension Transaction {
+    ///     var myCustomValue: Bool {
+    ///         get { self[MyTransactionKey.self] }
+    ///         set { self[MyTransactionKey.self] = newValue }
+    ///     }
+    /// }
+    /// ```
+    public subscript<K: TransactionKey>(key: K.Type) -> K.Value {
+        get {
+            guard let stored = extras?.values[ObjectIdentifier(key)]?.value as? K.Value else {
+                return K.defaultValue
+            }
+            return stored
+        }
+        set {
+            uniqueExtras().values[ObjectIdentifier(key)] = TransactionValue(newValue, of: key)
+        }
+    }
+
+    /// The extras, made unique to this copy and created if there were none —
+    /// the copy-on-write step of every mutation that reaches them.
+    private mutating func uniqueExtras() -> TransactionExtras {
+        if let extras, isKnownUniquelyReferenced(&self.extras) { return extras }
+        let unique = extras.map(TransactionExtras.init(copying:)) ?? TransactionExtras()
+        extras = unique
+        return unique
+    }
+
+    /// Two transactions are equal when every field is, and every custom value
+    /// is: the same value set once (a copy of the transaction), or two values
+    /// their key's `_valuesEqual(_:_:)` calls equal. A value
+    /// whose type is not `Equatable` is equal only to itself.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.animation == rhs.animation && lhs.flags == rhs.flags
+            && lhs.scrollAnchorX == rhs.scrollAnchorX && lhs.scrollAnchorY == rhs.scrollAnchorY
+            && TransactionExtras.equal(lhs.extras, rhs.extras)
+    }
+}
+
+// MARK: - Custom values
+
+/// A key for accessing values in a transaction.
+///
+/// You can create custom transaction values by extending ``Transaction`` with
+/// new properties. First declare a new transaction key type and specify a value
+/// for the required ``defaultValue`` property:
+///
+/// ```swift
+/// private struct MyTransactionKey: TransactionKey {
+///     static let defaultValue = false
+/// }
+/// ```
+///
+/// Then use the key to define a new transaction value property, and set it for
+/// a change with ``withTransaction(_:_:_:)``:
+///
+/// ```swift
+/// withTransaction(\.myCustomValue, true) {
+///     isActive.toggle()
+/// }
+/// ```
+///
+/// To use the value from inside a view or one of its descendants, read it in a
+/// ``View/transaction(_:)`` modifier.
+public protocol TransactionKey {
+    /// The associated type representing the type of the transaction key's
+    /// value.
+    associatedtype Value
+
+    /// The default value for the transaction key.
+    static var defaultValue: Value { get }
+
+    /// Whether two values of this key are the same — what makes two
+    /// transactions equal. Not to be implemented by hand: a key whose `Value`
+    /// is `Equatable` compares with `==`, and any other compares unequal (a
+    /// value set once is still equal to itself, as a copy of the transaction
+    /// carries the same value).
+    static func _valuesEqual(_ lhs: Value, _ rhs: Value) -> Bool
+}
+
+extension TransactionKey {
+    /// A value that cannot be compared is not known to equal another.
+    public static func _valuesEqual(_ lhs: Value, _ rhs: Value) -> Bool {
+        false
+    }
+}
+
+extension TransactionKey where Value: Equatable {
+    /// An `Equatable` value compares with `==`.
+    public static func _valuesEqual(_ lhs: Value, _ rhs: Value) -> Bool {
+        lhs == rhs
+    }
+}
+
+/// One custom value, with its key's comparison.
+private struct TransactionValue {
+    let value: Any
+
+    /// Whether `value` equals another value of the same key, erased.
+    let equals: (Any) -> Bool
+
+    /// The value set once: what a copy of the transaction shares, so a value
+    /// that cannot be compared is still equal to itself.
+    let identity = TransactionValueIdentity()
+
+    init<K: TransactionKey>(_ value: K.Value, of _: K.Type) {
+        self.value = value
+        equals = { other in
+            guard let other = other as? K.Value else { return false }
+            return K._valuesEqual(value, other)
+        }
+    }
+}
+
+/// What tells one setting of a value from another.
+private final class TransactionValueIdentity {}
+
+/// The part of a ``Transaction`` held by reference: its custom values.
+///
+/// `@unchecked Sendable` because a key's value need not be `Sendable` — as in
+/// SwiftUI — while a transaction must be, to be a task local. A transaction is
+/// made and read on the main actor by every path TUIkit has.
+final class TransactionExtras: @unchecked Sendable {
+    fileprivate var values: [ObjectIdentifier: TransactionValue] = [:]
+
+    init() {}
+
+    /// A copy, for a transaction about to change what it shares.
+    init(copying other: TransactionExtras) {
+        values = other.values
+    }
+
+    /// Whether two transactions' extras say the same thing — `nil` and empty
+    /// alike saying nothing.
+    static func equal(_ lhs: TransactionExtras?, _ rhs: TransactionExtras?) -> Bool {
+        if lhs === rhs { return true }
+        let left = lhs?.values ?? [:]
+        let right = rhs?.values ?? [:]
+        guard left.count == right.count else { return false }
+        for (key, value) in left {
+            guard let other = right[key] else { return false }
+            guard value.identity === other.identity || value.equals(other.value) else { return false }
+        }
+        return true
+    }
 }
 
 // MARK: - The ambient transaction
@@ -144,6 +340,34 @@ public func withTransaction<Result>(
     _ transaction: Transaction, _ body: () throws -> Result
 ) rethrows -> Result {
     try Transaction.$ambient.withValue(transaction, operation: body)
+}
+
+/// Executes a closure with the specified transaction key path and value and
+/// returns the result.
+///
+/// The transaction in force is the one around the call, if there is one, with
+/// `keyPath` set — so the value composes with an enclosing
+/// ``withAnimation(_:_:)`` rather than replacing it:
+///
+/// ```swift
+/// withTransaction(\.myCustomValue, true) {
+///     isActive.toggle()
+/// }
+/// ```
+///
+/// - Parameters:
+///   - keyPath: A key path that indicates the property of the ``Transaction``
+///     structure to update.
+///   - value: The new value to set for the item specified by `keyPath`.
+///   - body: A closure to execute.
+/// - Returns: The result of executing the closure with the specified
+///   transaction value.
+public func withTransaction<R, V>(
+    _ keyPath: WritableKeyPath<Transaction, V>, _ value: V, _ body: () throws -> R
+) rethrows -> R {
+    var transaction = Transaction.ambient ?? Transaction()
+    transaction[keyPath: keyPath] = value
+    return try withTransaction(transaction, body)
 }
 
 /// Runs `body` with `animation` in force, so any state change it makes is

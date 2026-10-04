@@ -555,8 +555,12 @@ struct _SliderCore: View, Renderable, Layoutable {
         } else {
             snapped = raw
         }
-        // Mapped across the whole track, and kept to what may be selected.
-        value.wrappedValue = min(selectable.upperBound, max(selectable.lowerBound, snapped))
+        // Mapped across the whole track, and kept to what may be selected. A
+        // press and drag on the track is one gesture producing a sequence of
+        // values, which is what `Transaction.isContinuous` names.
+        withTransaction(\.isContinuous, true) {
+            value.wrappedValue = min(selectable.upperBound, max(selectable.lowerBound, snapped))
+        }
     }
 
     /// Fetches (or creates) the auto-repeat timer at the given

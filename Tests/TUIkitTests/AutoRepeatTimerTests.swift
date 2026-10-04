@@ -92,6 +92,19 @@ struct AutoRepeatTimerTests {
         #expect(fires > 1, "past the initial delay the repeat loop runs (\(fires) fires)")
     }
 
+    @Test("A hold's repeats are continuous changes; the press that began it is not")
+    func repeatsAreContinuous() async {
+        var continuous: [Bool] = []
+        let timer = Self.timer()
+        timer.start { continuous.append(Transaction.ambient?.isContinuous ?? false) }
+        for _ in 0..<20 where continuous.count <= 2 {
+            await Self.settle(ms: Self.delayMs)
+        }
+        timer.stop()
+        #expect(continuous.first == false, "the press itself is a single action")
+        #expect(continuous.count > 1 && continuous.dropFirst().allSatisfy { $0 }, "\(continuous)")
+    }
+
     /// The regression. The main actor is blocked right through the initial
     /// delay — the app rendering a frame that outlasts it — and only then does
     /// the loop get to read the release. Without the awake-time gate the timer
