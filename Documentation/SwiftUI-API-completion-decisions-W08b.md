@@ -55,8 +55,9 @@ SwiftUI raises the prominence for the content of a focused list's selected
 rows, whose fill is the vivid accent, and resolves the system content styles
 there to a monochrome that keeps their contrast.
 
-**Shipped:** a `List` raises it for the row under the cursor while the list has
-the focus, when that row is also selected — the row whose fill is the accent's
+**Shipped:** a `List` and a `Table` raise it for the row under the cursor while
+the control has the focus, when that row is also selected (in a table, for its
+view cells) — the row whose fill is the accent's
 breath (TUIkit has one cursor, so one row; SwiftUI raises every selected row of
 a focused list, all of which it fills alike). The content levels `.primary`
 through `.quinary` resolve to the palette's own text tiers under a raised

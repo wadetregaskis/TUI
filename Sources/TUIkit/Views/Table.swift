@@ -1254,6 +1254,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // which are focus EFFECTS.
         let tableHasFocus = context.indicatesFocus(
             handler.engageFocus(context: context, focusID: persistedFocusID))
+        raiseBackgroundProminence(handler: handler, tableHasFocus: tableHasFocus, context: context)
 
         // Also when nothing overflows but `.scrollIndicators(.visible)` asked for
         // the lines anyway: they come out of the rows' budget there too, and this
@@ -1350,6 +1351,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // which are focus EFFECTS.
         let tableHasFocus = context.indicatesFocus(
             handler.engageFocus(context: context, focusID: persistedFocusID))
+        raiseBackgroundProminence(handler: handler, tableHasFocus: tableHasFocus, context: context)
 
         // The handler's accessor, not a raw `scrollOffset..<min(…)`: the
         // persisted offset can exceed a freshly-shrunk `data.count` during a
@@ -1513,10 +1515,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // cells for a screenful of rows nothing draws.
         var layoutCache: [Int: (cells: [[String]], height: Int)] = [:]
         var heightCache: [Int: Int] = [:]
+        /// The focused, selected row, laid out over a raised background once the
+        /// focus is known (``raiseBackgroundProminence(handler:tableHasFocus:context:)``)
+        /// — before the window walk, which is the first to lay a row out.
+        var raisedRow: Int?
         /// The wrapped cells and the height of a row that is about to be drawn.
         func layoutOf(_ index: Int) -> (cells: [[String]], height: Int) {
             if let cached = layoutCache[index] { return cached }
-            let layout = cellLayout(for: data[index], columnWidths: columnWidths, context: context)
+            let rowContext = index == raisedRow ? Self.raised(context) : context
+            let layout = cellLayout(for: data[index], columnWidths: columnWidths, context: rowContext)
             layoutCache[index] = layout
             return layout
         }
@@ -1622,8 +1629,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // still runs with the true answer: it publishes the Escape claim and
         // the status bar's Return verb, and sets `isFocusEngaged`, none of
         // which are focus EFFECTS.
-        let tableHasFocus = context.indicatesFocus(
-            handler.engageFocus(context: context, focusID: persistedFocusID))
+        let tableHasFocus = context.indicatesFocus(handler.engageFocus(context: context, focusID: persistedFocusID))
+        raisedRow = raiseBackgroundProminence(handler: handler, tableHasFocus: tableHasFocus, context: context)
 
         let window = ScrollRowWindow.resolve(
             scrollOffset: handler.scrollOffset, count: data.count,
@@ -3762,6 +3769,47 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return cellContext
     }
 
+    /// Raises the background prominence of the focused, selected row — the row
+    /// under the cursor while the table has the focus, when it is selected — and
+    /// returns its index, or `nil` when no row is raised.
+    ///
+    /// The same rule as `_ListCore.raiseBackgroundProminence`, for the same
+    /// reason: the raise reaches the row's view cells through their
+    /// environment, which no memo below the row compares, so the frame the
+    /// raised row changes clears both rows' cached renders — the row's
+    /// identity, which every cell of it renders below (``cellContext(_:for:width:context:)``).
+    @discardableResult
+    private func raiseBackgroundProminence(
+        handler: ItemListHandler<Value.ID>, tableHasFocus: Bool, context: RenderContext
+    ) -> Int? {
+        let index = handler.focusedIndex
+        let raised =
+            tableHasFocus && index < data.count && handler.isCursorRow(index)
+                && handler.isSelected(at: index)
+            ? index : nil
+        let identity = raised.map {
+            context.withChildIdentity(
+                erasedType: _TableColumnSpec<Value>.self, key: identityKey(data[$0].id)
+            ).identity
+        }
+        guard !context.isMeasuring, identity != handler.raisedProminenceRow else { return raised }
+        if let cache = context.renderCache {
+            for row in [handler.raisedProminenceRow, identity].compactMap(\.self) {
+                cache.clearAffected(by: row)
+            }
+        }
+        handler.raisedProminenceRow = identity
+        return raised
+    }
+
+    /// `context` over a raised background: what the focused, selected row's
+    /// cells render under (``BackgroundProminence``).
+    private static func raised(_ context: RenderContext) -> RenderContext {
+        var raised = context
+        raised.environment.backgroundProminence = .increased
+        return raised
+    }
+
     /// A rendered cell's lines, at most `limit` of them, as one string.
     private static func cellLines(_ buffer: FrameBuffer, limit: Int) -> String {
         guard buffer.height > 1 else { return buffer.lines.first ?? "" }
@@ -4187,7 +4235,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard let handler, handler.tableRowMemo.isOpen, !isReturningHome, paint.ramp == nil,
             !isFocused
         else {
-            return compose(rowCells(for: item, columnWidths: columnWidths, context: context))
+            // The focused, selected row's cells render over a raised background.
+            let cellContext = isFocused && isSelected ? Self.raised(context) : context
+            return compose(rowCells(for: item, columnWidths: columnWidths, context: cellContext))
         }
         let kept = handler.tableRowMemo.entry(for: item.id)
         let rowBox = Self.rowsSignature(of: item)
