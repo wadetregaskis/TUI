@@ -37,7 +37,9 @@ Those 23 are written up, each with options and a recommendation, as O0–O17 in
 [`SwiftUI-API-completion-refusal-review.md`](SwiftUI-API-completion-refusal-review.md#owner-decision).
 They are not repeated here. In brief:
 
-- **O0** The unit of a shape's path. This gates the whole Shapes cluster.
+- **O0** The unit of a shape's path. This gates the whole Shapes cluster:
+  `Shape`, `Rectangle` and its members (`path(in:)`, `inset(by:)`,
+  `corners(in:)`, `InsetShape`), `clipShape`, `contentShape`, `background(_:in:)`.
 - **O1** Reduce-motion and the other accessibility preferences.
 - **O2** `PhaseAnimator` and `KeyframeAnimator`.
 - **O3** `CustomAnimation`.
@@ -1206,7 +1208,7 @@ draws the change at once, as it always has; `contentTransition(_:)` shipped
 *`ShapeStyle.ultraThinMaterial`, `.thinMaterial`, `.regularMaterial`,
 `.thickMaterial`, `.ultraThickMaterial`, `ShapeStyle.materialActiveAppearance(_:)`,
 `View.materialActiveAppearance(_:)`, `\.materialActiveAppearance`,
-`\.backgroundMaterial`*
+`\.backgroundMaterial`, and `ShapeStyle.bar`, the material a bar draws with*
 
 A material is a blurred, translucent surface. O5 of the refusal review asks
 whether TUIkit's should be a translucent palette surface composited over what
@@ -1222,7 +1224,7 @@ declined with that answer.
 `AttributedString.transform(updating:body:)`,
 `AttributedString.transformAttributes(in:body:)`,
 `AttributedString.init(transferable:in:)`,
-`View.attributedTextFormattingDefinition(_:)`*
+`View.attributedTextFormattingDefinition(_:)`, `Optional.Scope` (an optional formatting definition's scope)*
 
 SwiftUI's rich-text editing: a `TextEditor` over an `AttributedString`, its
 selection carrying typing attributes, and constraints on which attributes an
