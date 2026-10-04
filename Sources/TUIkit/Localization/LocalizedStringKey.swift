@@ -181,6 +181,30 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
         return (leftAligned, digits)
     }
 
+    /// One conversion in a template — `%@`, `%2$@`, `%3d` — and how to fill
+    /// it: which argument, and the width a printf width pads it to.
+    struct Placeholder: Hashable, Sendable {
+        /// The argument it takes, counting from zero.
+        let argument: Int
+        /// The cells a width pads the value to, or `nil` for none.
+        let width: Int?
+        /// Whether the padding goes after the value (printf's `-`).
+        let leftAligned: Bool
+
+        /// `value` padded to the width, if there is one.
+        ///
+        /// A width is a COLUMN count — every other padding site here measures
+        /// cells — so a CJK or emoji argument is padded by what it occupies,
+        /// not by its grapheme count.
+        func filled(with value: String) -> String {
+            guard let width else { return value }
+            let cells = value.strippedLength
+            guard cells < width else { return value }
+            let pad = String(repeating: " ", count: width - cells)
+            return leftAligned ? value + pad : pad + value
+        }
+    }
+
     /// Replaces `%@` / `%N$@` (and the numeric conversions a translator might
     /// reasonably write) in `template` with `arguments`.
     ///
@@ -189,23 +213,43 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// it.
     static func substituting(_ arguments: [String], into template: String) -> String {
         var result = ""
+        walk(
+            template, text: { result.append($0) },
+            placeholder: { placeholder in
+                if arguments.indices.contains(placeholder.argument) {
+                    result += placeholder.filled(with: arguments[placeholder.argument])
+                }
+            })
+        return result
+    }
+
+    /// Walks `template`, handing each character of text to `text` and each
+    /// conversion to `placeholder`, in order.
+    ///
+    /// The one reading of a template's conversions, so the plain substitution
+    /// and a `Text`'s Markdown parse cannot disagree about which argument goes
+    /// where. `%%` is text (one `%`); anything that is not a conversion is text
+    /// too, character by character.
+    static func walk(
+        _ template: String, text: (Character) -> Void, placeholder: (Placeholder) -> Void
+    ) {
         var next = 0
         var index = template.startIndex
 
         while index < template.endIndex {
             guard template[index] == "%" else {
-                result.append(template[index])
+                text(template[index])
                 index = template.index(after: index)
                 continue
             }
             var cursor = template.index(after: index)
             guard cursor < template.endIndex else {
-                result.append("%")
+                text("%")
                 break
             }
             // `%%` is an escaped percent.
             if template[cursor] == "%" {
-                result.append("%")
+                text("%")
                 index = template.index(after: cursor)
                 continue
             }
@@ -256,29 +300,19 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
             guard cursor < template.endIndex, Self.isConversion(template[cursor]) else {
                 // Not a conversion at all: emit the `%` and carry on from the
                 // character after it, so nothing is swallowed.
-                result.append("%")
+                text("%")
                 index = template.index(after: index)
                 continue
             }
             let argumentIndex = position.map { $0 - 1 } ?? next
-            if argumentIndex >= 0, argumentIndex < arguments.count {
-                var value = arguments[argumentIndex]
-                // A width is a COLUMN count — every other padding site here
-                // measures cells — so a CJK or emoji argument is padded by
-                // what it occupies, not by its grapheme count.
-                let cells = value.strippedLength
-                if let width, cells < width {
-                    let pad = String(repeating: " ", count: width - cells)
-                    value = leftAligned ? value + pad : pad + value
-                }
-                result += value
+            if argumentIndex >= 0 {
+                placeholder(Placeholder(argument: argumentIndex, width: width, leftAligned: leftAligned))
             }
             // A positional reference does not advance the implicit cursor —
             // that is what lets a translation use %1$@ twice.
             if position == nil { next += 1 }
             index = template.index(after: cursor)
         }
-        return result
     }
 }
 
