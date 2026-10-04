@@ -10,6 +10,46 @@ doc comments in the SDK's symbol graph unless an entry says it was measured.*
 
 ## A. Needs your decision
 
+### A-W09-1 Let the reader move a sheet between its detents, and reach the page behind it?
+
+*`View.presentationDragIndicator(_:)`, `PresentationContentInteraction.resizes`,
+`PresentationBackgroundInteraction.enabled`,
+`PresentationBackgroundInteraction.enabled(upThrough:)`*
+
+Four symbols that only mean something if a sheet can be resized by the person
+using it, or left half-open while they work in the page behind it. Neither is
+possible here today: a multi-detent sheet changes size only through its
+`selection:` binding (there is no grabber to drag), and the page behind any
+presentation is drawn as an inert, dimmed backdrop under a throwaway focus
+manager. What shipped are the values that describe that:
+`PresentationContentInteraction.automatic`/`.scrolls` and
+`PresentationBackgroundInteraction.automatic`/`.disabled`, each modifier
+returning the view unchanged. The four above are left out, so they fail to
+compile. On macOS they are probably inert too (sheets are window-modal there,
+and the drag indicator is an iOS affordance), but I could not measure that with
+an offscreen hosting view.
+
+**Options.**
+
+1. **Leave them out.** Free; the status quo.
+2. **A grabber, by keyboard and pointer.** A `▔▔▔` row on top of a
+   multi-detent sheet when `presentationDragIndicator(.visible)` (or
+   `.automatic` with more than one detent), dragged with the pointer or moved
+   by a key pair (Ctrl-Up/Ctrl-Down, say) to the next detent, writing the
+   `selection:` binding when there is one. `.resizes` then means the wheel
+   over the sheet resizes it before scrolling it. About a day with tests; the
+   key pair has to be checked against the terminals' own bindings
+   (`Terminal-compatibility.md`).
+3. **Option 2, plus a live page behind a sheet** for `.enabled(upThrough:)`:
+   the page renders live rather than as a backdrop, the sheet stops grabbing
+   input below the given detent, and Tab crosses between them. That changes
+   the presentation model's central rule (a presentation owns the keyboard),
+   so it is two to three days and needs its own design note.
+4. **Follow O8** if you rule there that APIs inert on macOS ship as inert.
+
+**Recommendation:** 1 for now; 2 if detented sheets turn up in real apps.
+
+
 ## B. Shipped the safe option
 
 ### B-W09-1 A focused-value reader drawn ahead of its publisher catches up a frame later
