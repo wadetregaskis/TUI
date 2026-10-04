@@ -483,3 +483,8 @@ forms are implemented. `Tab.init(_:image:*` is added to that family's
 patterns.
 
 ## D. Deferred to other waves or lanes
+
+None. Wave 8a's two deferrals to this wave — `IndexedIdentifierCollection` with
+the `editActions:` initialisers, and table row drag and drop — are both closed
+here (B-W08b-9 for the latter). `Optional.Scope`, in the gap list, is Wave
+11's (attributed text).
