@@ -121,6 +121,10 @@ public struct TextEditor: View {
     var focusID: String?
     var isDisabled: Bool
 
+    /// The app's selection binding, as the editor reads and writes it, or
+    /// `nil` for none.
+    var selection: _TextSelectionChannel?
+
     /// Creates a text editor over a string binding.
     ///
     /// - Parameter text: The multi-line text to edit.
@@ -130,13 +134,29 @@ public struct TextEditor: View {
         self.isDisabled = false
     }
 
+    /// Creates a plain text editor that captures the current selection —
+    /// mirrors SwiftUI's `init(text:selection:)`.
+    ///
+    /// The editor writes its caret and selection to `selection` as they move,
+    /// and a selection the app writes moves them. An editor selects one range,
+    /// so a multiple selection selects its first.
+    ///
+    /// - Parameters:
+    ///   - text: The multi-line text to edit.
+    ///   - selection: The current selection.
+    @available(macOS 15, *)
+    public init(text: Binding<String>, selection: Binding<TextSelection?>) {
+        self.init(text: text)
+        self.selection = _TextSelectionChannel(selection, text: text)
+    }
+
     @Environment(\.textEditorStyle) private var style
 
     @ViewBuilder public var body: some View {
         // The two built-in styles are drawn by the core, which reads which one
         // is in force; a custom style draws its body in the editor's place.
         if style is AutomaticTextEditorStyle || style is PlainTextEditorStyle {
-            _TextEditorCore(text: text, focusID: focusID, isDisabled: isDisabled)
+            _TextEditorCore(text: text, focusID: focusID, isDisabled: isDisabled, selection: selection)
         } else {
             style.makeAnyBody(configuration: TextEditorStyleConfiguration())
         }
@@ -174,6 +194,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     let text: Binding<String>
     let focusID: String?
     let isDisabled: Bool
+    var selection: _TextSelectionChannel?
 
     private typealias StateIndex = TextEditorStateIndex
 
@@ -214,6 +235,9 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let tabWidth = context.environment.tabWidth
         handler.tabWidth = tabWidth
         handler.clampCursor()
+        handler.selectionChannel = selection
+        handler.selectionAffinity = context.environment.textSelectionAffinity
+        handler.adoptSelectionFromApp()
 
         FocusRegistration.register(
             context: context, handler: handler, focusID: persistedFocusID)
@@ -712,6 +736,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         }
 
         let handlerID = mouseDispatcher.register(in: context) { event in
+            defer { handler.publishSelection() }
             switch event.phase {
             case .pressed where event.button == .left:
                 focusManager?.focus(id: focusID)

@@ -27,6 +27,18 @@ final class TextEditorHandler: PersistedFocusable {
     /// Shift-click sets it; the selection then spans anchor…cursor. Set by the
     /// mouse handler and consumed/cleared by the next keystroke.
     var selectionAnchor: TextEditorPosition?
+
+    /// The app's selection binding — `TextField(…selection:)`,
+    /// `TextEditor(text:selection:)` — or `nil` for none. See
+    /// ``_TextSelectionChannel``.
+    var selectionChannel: _TextSelectionChannel?
+
+    /// The affinity reported with each selection written to the app.
+    var selectionAffinity: TextSelectionAffinity = .automatic
+
+    /// The selection last exchanged with the app, as character offsets, so
+    /// each side writes only a change.
+    var exchangedSelection: Range<Int>?
     /// The DISPLAY column vertical motion tries to preserve (so Up/Down
     /// through a short line don't lose the horizontal position). Display, not
     /// character, space: on tab-bearing lines the visual column runs ahead of
@@ -143,6 +155,7 @@ final class TextEditorHandler: PersistedFocusable {
     // MARK: - Key handling
 
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        defer { publishSelection() }
         normalizeStaleState()
         // Before anything writes: a history of text the app has since
         // replaced is forgotten, so undo never brings that text back.

@@ -140,6 +140,18 @@ final class TextFieldHandler: PersistedFocusable {
     /// When set, the selection spans from `selectionAnchor` to `cursorPosition`.
     var selectionAnchor: Int?
 
+    /// The app's selection binding — `TextField(…selection:)`,
+    /// `TextEditor(text:selection:)` — or `nil` for none. See
+    /// ``_TextSelectionChannel``.
+    var selectionChannel: _TextSelectionChannel?
+
+    /// The affinity reported with each selection written to the app.
+    var selectionAffinity: TextSelectionAffinity = .automatic
+
+    /// The selection last exchanged with the app, as character offsets, so
+    /// each side writes only a change.
+    var exchangedSelection: Range<Int>?
+
     /// Callback triggered when the user presses Enter.
     var onSubmit: (() -> Void)?
 
@@ -420,6 +432,7 @@ extension TextFieldHandler {
 
 extension TextFieldHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        defer { publishSelection() }
         normalizeStaleState()
         if let handled = handleSuggestionKeyEvent(event) {
             return handled

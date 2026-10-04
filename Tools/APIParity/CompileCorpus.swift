@@ -510,3 +510,21 @@ private struct TransferShapes: View {
         }
     }
 }
+
+/// An editor that reports its selection, read as SwiftUI's example reads it.
+@available(macOS 15, *)
+@MainActor
+private struct TextSelectionShapes: View {
+    @State private var text = ""
+    @State private var selection: TextSelection?
+
+    var body: some View {
+        VStack {
+            TextEditor(text: $text, selection: $selection)
+            if case .selection(let range)? = selection?.indices, !(selection?.isInsertion ?? true) {
+                Text(text[range])
+            }
+        }
+        .textSelectionAffinity(.upstream)
+    }
+}
