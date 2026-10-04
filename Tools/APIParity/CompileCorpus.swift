@@ -1434,3 +1434,14 @@ private struct ImageNameLabelShapes: View {
         }
     }
 }
+
+/// A font resolved in the environment, to read whether it is bold.
+@MainActor
+private struct FontResolvedShapes: View {
+    @Environment(\.fontResolutionContext) private var fontContext
+
+    var body: some View {
+        let resolved = Font.headline.resolve(in: fontContext)
+        Text(resolved.isBold ? "Bold" : "Regular").fontWeight(resolved.weight)
+    }
+}

@@ -712,9 +712,6 @@
     "EnvironmentValues.allowsTightening": {
       "why": "The environment half of allowsTightening(_:); absent for the same reason — a cell grid has no inter-character spacing to tighten."
     },
-    "EnvironmentValues.fontResolutionContext": {
-      "why": "The Font.Context a Font resolves in (declined under its own entry): TUIkit resolves a semantic font straight to terminal attributes, with no resolution step for a context to describe."
-    },
     "EnvironmentValues.minimumScaleFactor": {
       "why": "The environment half of minimumScaleFactor(_:); absent for the same reason — glyph size belongs to the terminal emulator, not to the app."
     },
@@ -723,9 +720,6 @@
     },
     "FillStyle": {
       "why": "eoFill and isAntialiased only mean something to a path rasterizer resolving self-intersection and edge coverage; there is no path and no partial cell coverage (see Shape)."
-    },
-    "Font.Context": {
-      "why": "The environment a Font resolves in — the display metrics and dynamic-type size feeding Font.Resolved. TUIkit resolves a semantic style straight to terminal attributes (Sources/TUIkit/Styling/Font.swift, `defaultAttributes`), with no intermediate resolution step for a context to parameterise."
     },
     "Font.Design.rounded": {
       "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI-API-completion-refusal-review.md P1)."
@@ -736,14 +730,20 @@
     "Font.Leading": {
       "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUIkit spells `View.lineSpacing(_:)` (Sources/TUIkit/Modifiers/LineSpacingModifier.swift) — a different unit and a different meaning, so it is not this API under another name."
     },
-    "Font.Resolved": {
-      "why": "The result of resolving a Font against a display: pointSize, ctFont, width, smallCaps state. Every field names a typeface property TUIkit never chose, because the emulator chose it. There is nothing to report, and `ctFont` is CoreText — absent on Linux and Windows, which TUIkit builds for."
-    },
     "Font.leading(_:)": {
       "why": "Leading is fractional-point spacing between baselines; a terminal's baselines are exactly one cell apart. The nearest expressible thing is a WHOLE blank row between wrapped lines — `View.lineSpacing(_:)` (Sources/TUIkit/Modifiers/LineSpacingModifier.swift) — a different unit and a different granularity, so it is not this API renamed. See also the `Font.Leading` entry."
     },
-    "Font.resolve(in:)": {
-      "why": "Resolves a Font against a display context to a Font.Resolved (pointSize, ctFont, width…). TUIkit resolves a semantic style straight to terminal attributes — Sources/TUIkit/Styling/Font.swift, `defaultAttributes` — so there is no intermediate resolved form to hand back, and CoreText is absent on the Linux and Windows builds anyway."
+    "Font.Resolved.ctFont": {
+      "why": "A CoreText font, absent on Linux and Windows, and a terminal draws in the one face the user configured: there is no font object to hand out. Font.Resolved ships the flags a cell can vary (refusal review P2)."
+    },
+    "Font.Resolved.leading": {
+      "why": "Line spacing in points; a terminal's rows are fixed, and TUIkit's lineSpacing counts whole rows. Omitted so the spelling fails to compile."
+    },
+    "Font.Resolved.pointSize": {
+      "why": "A terminal draws every cell at one size, the user's, which the app cannot read in points; omitted so the spelling fails to compile rather than answer a guess."
+    },
+    "Font.Resolved.width": {
+      "why": "A font's width axis (condensed, expanded) has no cell equivalent: every glyph advances one cell; omitted as Font.Width is."
     },
     "GeometryEffect": {
       "why": "Its one requirement, `effectValue(size:) -> ProjectionTransform`, has no representation here (see ProjectionTransform). TUIkit's geometry customisation point is `Layout`, which places children at whole cells."
