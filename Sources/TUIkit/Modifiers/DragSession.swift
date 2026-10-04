@@ -15,7 +15,7 @@
 ///
 /// The values exist; nothing in TUIkit hands one out yet. SwiftUI's
 /// `onDragSessionUpdated(_:)`, which reports them, is an open question
-/// (decisions A-W17d-1), so its spelling does not compile here.
+/// (decisions A53), so its spelling does not compile here.
 ///
 /// A macOS 26 API, so nothing about it could be measured on the machine this
 /// was written on (macOS 15.8): it follows SwiftUI's documentation, and its
@@ -100,7 +100,7 @@ public struct DragSession: Identifiable {
 /// destination sees it.
 ///
 /// The values exist; nothing in TUIkit hands one out yet — see
-/// ``DragSession``, and decisions A-W17d-1 for `onDropSessionUpdated(_:)`
+/// ``DragSession``, and decisions A53 for `onDropSessionUpdated(_:)`
 /// and `dropConfiguration(_:)`, which do in SwiftUI. A macOS 26 API, written
 /// from its documentation.
 public struct DropSession: Identifiable, CustomDebugStringConvertible {

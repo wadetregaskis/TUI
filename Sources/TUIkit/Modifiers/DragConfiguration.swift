@@ -14,7 +14,7 @@
 /// `DragConfiguration`.
 ///
 /// The value exists; the `dragConfiguration(_:)` modifier that applies one is
-/// an open question (decisions A-W17d-1), so its spelling does not compile
+/// an open question (decisions A53), so its spelling does not compile
 /// here. A macOS 26 API, written from its documentation: nothing about it
 /// could be measured on macOS 15.8.
 public struct DragConfiguration: CustomDebugStringConvertible {
@@ -133,7 +133,7 @@ public struct DragConfiguration: CustomDebugStringConvertible {
 /// operation a drop destination chooses.
 ///
 /// The value exists; the `dropConfiguration(_:)` modifier that asks a
-/// destination for one is an open question (decisions A-W17d-1). A macOS 26
+/// destination for one is an open question (decisions A53). A macOS 26
 /// API, written from its documentation.
 public struct DropConfiguration {
     /// The drop operation that the drop chooses to perform.
@@ -162,7 +162,7 @@ public struct DropConfiguration {
 ///
 /// The value exists; the `dragPreviewsFormation(_:)` and
 /// `dropPreviewsFormation(_:)` modifiers that apply one are an open question
-/// (decisions A-W17d-1), so their spellings do not compile here.
+/// (decisions A53), so their spellings do not compile here.
 public struct DragDropPreviewsFormation: Hashable, Sendable, CustomStringConvertible {
     /// Which formation this is.
     private let name: String
