@@ -183,6 +183,44 @@ struct ListStyleTests {
         var rowPadding: EdgeInsets { EdgeInsets(all: 0) }
     }
 
+    /// A style with row padding either side — which no built-in style had, so
+    /// the widths ignored it and the container's padding pushed the rows' last
+    /// cells past the border.
+    private struct PaddedListStyle: ListStyle {
+        var showsBorder: Bool { true }
+        var rowPadding: EdgeInsets { EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2) }
+        var alternatingRowColors: Bool { false }
+    }
+
+    @Test("A style's row padding comes out of the rows' width, not off their trailing cells")
+    @MainActor
+    func rowPaddingIsInTheWidths() {
+        let list = List {
+            HStack { Text("left"); Spacer(); Text("RIGHT") }
+        }
+        .listStyle(PaddedListStyle())
+        .frame(height: 5)
+        let lines = renderToBuffer(list, context: makeRenderContext(width: 30, height: 6)).lines.map(\.stripped)
+        let row = lines.first { $0.contains("left") } ?? ""
+        #expect(row.contains("RIGHT"), "the trailing view survives: \(lines)")
+        #expect(row.hasSuffix("│") && row.strippedLength == 30, "the row ends at the border: '\(row)'")
+        #expect(row.contains("RIGHT   │"), "two cells of padding before the border's own: '\(row)'")
+    }
+
+    @Test("A hugging list's width counts its style's row padding")
+    @MainActor
+    func huggedWidthCountsRowPadding() {
+        let list = List { Text("abcdef") }
+            .listStyle(PaddedListStyle())
+            .fixedSize(horizontal: true, vertical: false)
+            .frame(height: 4)
+        let lines = renderToBuffer(list, context: makeRenderContext(width: 40, height: 5)).lines.map(\.stripped)
+        let row = lines.first { $0.contains("abcdef") } ?? ""
+        // Border, two cells of padding, the gutter, six cells, the right gutter,
+        // two cells of padding, border.
+        #expect(row.strippedLength == 2 + 4 + 6 + 2, "'\(row)' in \(lines)")
+    }
+
     /// The style decides WHETHER rows alternate; the palette decides which
     /// colour. `ListStyle` used to declare an `alternatingColorPair` for a
     /// style to name its own two colours, but nothing ever read it — even

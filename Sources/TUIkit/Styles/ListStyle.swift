@@ -74,6 +74,16 @@ public protocol ListStyle: Sendable {
     var alternatingRowColors: Bool { get }
 }
 
+extension ListStyle {
+    /// The cells a list in this style spends across its width on chrome: the
+    /// two border columns when it draws a border, and its row padding either
+    /// side. Every width a list proposes its rows or reports for itself takes
+    /// this off, or adds it on.
+    var horizontalChrome: Int {
+        (showsBorder ? 2 : 0) + rowPadding.leading + rowPadding.trailing
+    }
+}
+
 // MARK: - Plain List Style
 
 /// A list style that uses minimal visual styling with no borders or backgrounds.

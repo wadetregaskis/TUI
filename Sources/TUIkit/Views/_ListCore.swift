@@ -495,10 +495,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let source = extractRows(from: content, context: rowContext)
         let widest = widestRowWidth(source: source, context: rowContext)
         let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
-        let borderOverhead = context.environment.listStyle.showsBorder ? 2 : 0
         // The widest row still gets its gutters when composed, so the hugged
-        // width must include them or the row's trailing cells are clipped.
-        return max(widest + listRowGutter, titleWidth) + borderOverhead
+        // width must include them or the row's trailing cells are clipped — and
+        // the style's border and row padding around them, for the same reason.
+        return max(widest + listRowGutter, titleWidth) + context.environment.listStyle.horizontalChrome
     }
 
     /// The widest row's cells, badge included — the answer a hug needs, from
@@ -753,7 +753,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowContext.environment.fixedSizeWidth = false
         } else {
             rowContext.availableWidth = max(
-                1, context.availableWidth - borderOverhead - listRowGutter)
+                1, context.availableWidth - style.horizontalChrome - listRowGutter)
         }
         // The rows' `containerRelativeFrame` container: the width a row gets,
         // and the height inside the border.
@@ -953,10 +953,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let intrinsicWidth = max(placeholderWidth, titleWidth)
         let targetWidth: Int
         if context.hasExplicitWidth {
-            // Subtract the two border columns only when the style draws a border;
-            // a borderless (`.plain`) list fills the full available width.
-            let borderOverhead = context.environment.listStyle.showsBorder ? 2 : 0
-            targetWidth = max(intrinsicWidth, context.availableWidth - borderOverhead)
+            // Subtract the two border columns only when the style draws a border,
+            // and the style's row padding; a borderless (`.plain`) list fills the
+            // full available width.
+            targetWidth = max(intrinsicWidth, context.availableWidth - context.environment.listStyle.horizontalChrome)
         } else {
             targetWidth = intrinsicWidth
         }
@@ -3555,10 +3555,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             return widestRowWidth(source: source, context: context) + listRowGutter
         }
         // Fill the interior: full available width when borderless (`.plain`),
-        // minus the two border columns when bordered.
+        // minus the two border columns when bordered, and minus the style's row
+        // padding, which the container puts either side of these rows.
         let maxRowWidth = visibleRows.map { $0.row.buffer.width }.max() ?? 0
-        let borderOverhead = style.showsBorder ? 2 : 0
-        return max(maxRowWidth, context.availableWidth - borderOverhead)
+        return max(maxRowWidth, context.availableWidth - style.horizontalChrome)
     }
 
     // MARK: - Row Rendering
