@@ -104,11 +104,20 @@ extension RenderContext {
     /// Reads the flags in cost order — the process-wide support answer first,
     /// which is `false` on most terminals and costs nothing — so a page full
     /// of gradients on a glyph terminal pays one static read per ramp.
-    func gradientGraphics(token: String, frames: Int = 1) -> GradientGraphicsContext? {
+    ///
+    /// `token` is an autoclosure for the same reason: a track's token is its
+    /// identity path, `"track-\(context.identity.path)"`, an uncached walk of
+    /// the identity chain into a string, and every frame that draws cells —
+    /// headless, and every terminal without the graphics protocol — threw it
+    /// away at the guard. That was 3.8 µs a bar, 750 µs of a frame of 200
+    /// progress bars. It is spelled once, after the guard, and only for a
+    /// picture that will be kept.
+    func gradientGraphics(token: @autoclosure () -> String, frames: Int = 1) -> GradientGraphicsContext? {
         guard KittyGraphics.isSupported, !isMeasuring,
             environment.terminalGraphics, environment.gradientGraphics,
             let store = environment.terminalImageStore
         else { return nil }
+        let token = token()
         let graphics = GradientGraphicsContext(
             store: store, token: token, cellPixels: environment.imageCellPixels, frames: frames)
         // A subtree whose cells name an image is a subtree the memo cannot
