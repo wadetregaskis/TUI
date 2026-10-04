@@ -295,49 +295,8 @@ extension ModalPresentationModifier: Renderable {
         modalContext.environment.isPresented = true
         modalContext.environment.dismissalGate = gate
 
-        // A detent, if the content named one, decides the height instead of the
-        // content's own. It has to be read BEFORE the render — it is the height
-        // being rendered into — which is why it rides a static conformance
-        // rather than a preference (see ``PresentationDetentsProviding``).
-        let detentHeight = presentationTrait(PresentationDetentsProviding.self, of: modal)?
-            .resolvedHeight(in: overlayHeight)
-
-        var modalBuffer: FrameBuffer
-        switch style {
-        case .sheet:
-            if let detentHeight {
-                // The height goes to the sheet's own box, via the environment
-                // (``EnvironmentValues/sheetDetentHeight``) — NOT as a frame
-                // around it. A fixed frame is top-aligned and a `Dialog` sizes
-                // to its content, so wrapping left the leftover rows as blank,
-                // unstyled, opaque overlay lines: a hole punched through the
-                // page below the dialog, belonging to nothing.
-                var detentContext = modalContext
-                detentContext.availableHeight = detentHeight
-                detentContext.environment.sheetDetentHeight = detentHeight
-                modalBuffer = renderPresentedDialog(
-                    modal, context: detentContext, capHeight: detentHeight)
-            } else {
-                modalBuffer = renderPresentedDialog(
-                    modal, context: modalContext, capHeight: overlayHeight)
-            }
-        case .fullScreen:
-            // The cover IS the screen: full width and the whole content area,
-            // so there is nothing of the page left to show through and nothing
-            // to dim.
-            //
-            // Centred, explicitly. `frame(width:height:)` defaults to
-            // `.topLeading` — deliberately, because a fixed frame is usually a
-            // left-aligned column — but a cover is the opposite case: content
-            // smaller than the screen, with the whole screen as its stage, and
-            // SwiftUI centres it. Left at the default, a three-line message
-            // huddles in the top-left corner of an otherwise empty terminal.
-            modalBuffer = renderPresentedDialog(
-                modal.frame(
-                    width: context.environment.terminalWidth, height: overlayHeight,
-                    alignment: .center),
-                context: modalContext, capHeight: overlayHeight)
-        }
+        var modalBuffer = renderModal(
+            context: context, modalContext: modalContext, overlayHeight: overlayHeight)
 
         guard !modalBuffer.isEmpty else { return baseBuffer }
 
@@ -360,6 +319,55 @@ extension ModalPresentationModifier: Renderable {
                 offsetX: dragOffset.x, offsetY: dragOffset.y, content: modalBuffer,
                 level: .modal, centered: true, dimsBackground: style == .sheet))
         return baseBuffer
+    }
+
+    /// Renders the presented content at the size its style gives it: a sheet
+    /// at its own height or its detent's, a cover over the whole content area.
+    private func renderModal(
+        context: RenderContext, modalContext: RenderContext, overlayHeight: Int
+    ) -> FrameBuffer {
+        // A detent, if the content named one, decides the height instead of the
+        // content's own. It has to be read BEFORE the render — it is the height
+        // being rendered into — which is why it rides a static conformance
+        // rather than a preference (see ``PresentationDetentsProviding``).
+        let detentHeight = presentationTrait(PresentationDetentsProviding.self, of: modal)?
+            .resolvedHeight(in: overlayHeight)
+
+        switch style {
+        case .sheet:
+            if let detentHeight {
+                // The height goes to the sheet's own box, via the environment
+                // (``EnvironmentValues/sheetDetentHeight``) — NOT as a frame
+                // around it. A fixed frame is top-aligned and a `Dialog` sizes
+                // to its content, so wrapping left the leftover rows as blank,
+                // unstyled, opaque overlay lines: a hole punched through the
+                // page below the dialog, belonging to nothing.
+                var detentContext = modalContext
+                detentContext.availableHeight = detentHeight
+                detentContext.environment.sheetDetentHeight = detentHeight
+                return renderPresentedDialog(
+                    modal, context: detentContext, capHeight: detentHeight)
+            } else {
+                return renderPresentedDialog(
+                    modal, context: modalContext, capHeight: overlayHeight)
+            }
+        case .fullScreen:
+            // The cover IS the screen: full width and the whole content area,
+            // so there is nothing of the page left to show through and nothing
+            // to dim.
+            //
+            // Centred, explicitly. `frame(width:height:)` defaults to
+            // `.topLeading` — deliberately, because a fixed frame is usually a
+            // left-aligned column — but a cover is the opposite case: content
+            // smaller than the screen, with the whole screen as its stage, and
+            // SwiftUI centres it. Left at the default, a three-line message
+            // huddles in the top-left corner of an otherwise empty terminal.
+            return renderPresentedDialog(
+                modal.frame(
+                    width: context.environment.terminalWidth, height: overlayHeight,
+                    alignment: .center),
+                context: modalContext, capHeight: overlayHeight)
+        }
     }
 }
 
