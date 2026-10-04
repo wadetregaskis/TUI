@@ -187,6 +187,49 @@ five, at the price of one more product to import for the bridges (half a day
 with the documentation). Your call whether that is worth it now; nothing else
 in this wave needs it.
 
+### B-W11a-4. A live text read for its string is read once, when it is built
+
+*`Text(_:style:)`, `Text(timerInterval:…)`, the live interpolations,
+`Text(_:format:)` over a `TimeDataSource`*
+
+A live `Text` draws its words at each frame. But some of TUIkit's API takes a
+`Text` only for its string — `navigationTitle(Text)`, `help(Text)`,
+`dismissalConfirmationDialog`'s title — and a `LocalizedStringKey` handed to a
+control other than `Text` (a button's title) is resolved to a string where the
+control is built. Those read a live text or a live interpolation once, as it
+read when built; it moves only when the view around it is rebuilt. SwiftUI
+keeps them live, since its titles are `Text` all the way down.
+
+To give those consumers a reading at all, a live text formats once when it is
+built, as well as at each frame it is drawn. Only live texts pay it (about
+6 µs for a unit spelling, 30 µs for `.time`/`.date`, which use a
+`DateFormatter`).
+
+**Fuller version:** the string-taking consumers keep the `Text` and draw it,
+which each of them could (a title is drawn by a `Text` in the end); a title
+that changes would then also have to re-measure the bar it sits in. About two
+hours a consumer, and none has asked. **A/B owed:** the build-time reading
+could be deferred to the first consumer that asks, saving it for every live
+text drawn only as a view — worth measuring on a list of a few hundred
+`Text(date, style: .relative)` rows before deciding.
+
 ## C. Declined without asking
 
+None. The two symbols nothing shipped for are the owner's (A-W11a-1,
+A-W11a-2) and stay in the baseline as gaps.
+
 ## D. Deferred
+
+- **The attributes of an `AttributedString` output** (`SystemFormatStyle`,
+  `Text(_:format:)` with an attributed style, `appendInterpolation(_:format:)`):
+  the characters are drawn and the attributes wait on `Text(AttributedString)`
+  (P8). SwiftUI's system styles carry only semantic attributes (which field a
+  run is), so nothing visible is lost for them today.
+- **SwiftUI's reduced-luminance redaction** of live text has nothing to act on
+  in a terminal, which has no always-on display; `TimelineView` already
+  reports the `.live` cadence for the same reason.
+- **An Example page for live time text:** the Example's pages are pinned by
+  golden snapshots and a PTY walk, and a live text makes a page's bytes depend
+  on the clock. It wants a frozen-clock hook in the walk first.
+- **macOS 26:** every measurement here is macOS 15's. A pass over the same
+  probes on macOS 26 is owed before the owner's review closes the wave.
