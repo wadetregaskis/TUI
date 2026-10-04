@@ -20,8 +20,10 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
     case bezier(p1x: Double, p1y: Double, p2x: Double, p2y: Double)
 
     /// A damped harmonic oscillator, by undamped natural angular frequency
-    /// (`omega`, rad/s) and damping ratio (`zeta`).
-    case spring(omega: Double, zeta: Double)
+    /// (`omega`, rad/s) and damping ratio (`zeta`), starting at
+    /// `initialVelocity` — in units of the whole change per second, as
+    /// `Animation.interpolatingSpring` takes it.
+    case spring(omega: Double, zeta: Double, initialVelocity: Double = 0)
 
     /// One of ``UnitCurve``'s circular curves, from
     /// ``Animation/timingCurve(_:duration:)``.
@@ -36,8 +38,9 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
         switch self {
         case .bezier(let p1x, let p1y, let p2x, let p2y):
             Self.bezierValue(atX: fraction, p1x: p1x, p1y: p1y, p2x: p2x, p2y: p2y)
-        case .spring(let omega, let zeta):
-            Self.springValue(at: fraction * duration, omega: omega, zeta: zeta)
+        case .spring(let omega, let zeta, let initialVelocity):
+            Self.springValue(
+                at: fraction * duration, omega: omega, zeta: zeta, initialVelocity: initialVelocity)
         case .circular(let curve):
             curve.value(at: min(1, max(0, fraction)))
         }
@@ -159,27 +162,19 @@ extension AnimationCurve {
     /// the elapsed time can be asked for at any point, in any order, and
     /// answers identically. A stepped simulation cannot — it would drift with
     /// the frame rate, and could not be pre-rendered at all.
-    static func springValue(at t: TimeInterval, omega: Double, zeta: Double) -> Double {
+    ///
+    /// The three regimes — underdamped (decaying oscillation about 1, the
+    /// overshoot), critically damped (the fastest approach with none; a BAND,
+    /// not `== 1`, see `criticalBand`) and overdamped (two real roots, a long
+    /// slow tail) — are `SpringMotion`'s, the one closed form ``Spring``
+    /// answers with too.
+    static func springValue(
+        at t: TimeInterval, omega: Double, zeta: Double, initialVelocity: Double = 0
+    ) -> Double {
         guard t > 0 else { return 0 }
         guard omega > 0 else { return 1 }
-
-        if zeta < Self.criticalBand {
-            // Underdamped: decaying oscillation about 1 — the overshoot.
-            let damped = omega * (1 - zeta * zeta).squareRoot()
-            let decay = exp(-zeta * omega * t)
-            return 1 - decay * (cos(damped * t) + (zeta * omega / damped) * sin(damped * t))
-        } else if zeta <= 1 / Self.criticalBand {
-            // Critically damped: the fastest approach with no overshoot. A
-            // BAND, not `== 1`: see `criticalBand`.
-            let decay = exp(-omega * t)
-            return 1 - decay * (1 + omega * t)
-        } else {
-            // Overdamped: two real roots, no overshoot, a long slow tail.
-            let root = omega * (zeta * zeta - 1).squareRoot()
-            let r1 = -zeta * omega + root
-            let r2 = -zeta * omega - root
-            return 1 - (r2 * exp(r1 * t) - r1 * exp(r2 * t)) / (r2 - r1)
-        }
+        let motion = SpringMotion(omega: omega, ratio: zeta, time: t)
+        return 1 - motion.displacement + initialVelocity * motion.impulse
     }
 
     /// How long the spring takes to become indistinguishable from settled.
@@ -194,8 +189,18 @@ extension AnimationCurve {
     /// response. The envelope is monotonic where the response is not — an
     /// underdamped spring passes exactly through 1 on every oscillation, so the
     /// first sample within the threshold is not the end of anything.
-    static func springSettleDuration(omega: Double, zeta: Double) -> TimeInterval {
+    ///
+    /// A starting velocity (`interpolatingSpring`) changes the envelope's
+    /// amplitude, and for a critically damped spring may carry it past the
+    /// target first; each is solved from the same envelope with the velocity
+    /// in it.
+    static func springSettleDuration(
+        omega: Double, zeta: Double, initialVelocity: Double = 0
+    ) -> TimeInterval {
         guard omega > 0 else { return 0 }
+        guard initialVelocity == 0 else {
+            return movingSpringSettleDuration(omega: omega, zeta: zeta, velocity: initialVelocity)
+        }
         let threshold = 0.002
         let limit = 10.0
 
@@ -217,6 +222,42 @@ extension AnimationCurve {
             let r1 = -zeta * omega + root
             let r2 = -zeta * omega - root
             settle = log(abs(r2 / (r2 - r1)) / threshold) / -r1
+        }
+        return min(max(settle, 0), limit)
+    }
+
+    /// ``springSettleDuration(omega:zeta:initialVelocity:)`` for a spring that
+    /// starts moving: displaced by −1 from its target, at `velocity`.
+    private static func movingSpringSettleDuration(
+        omega: Double, zeta: Double, velocity: Double
+    ) -> TimeInterval {
+        let threshold = 0.002
+        let limit = 10.0
+        let settle: TimeInterval
+        if zeta < Self.criticalBand {
+            // The envelope of y₀·cos + ((v₀ + ζω·y₀)/ω_d)·sin, y₀ = −1.
+            let damped = omega * (1 - zeta * zeta).squareRoot()
+            let sine = (velocity - zeta * omega) / damped
+            let amplitude = (1 + sine * sine).squareRoot()
+            settle = zeta > 0 ? log(amplitude / threshold) / (zeta * omega) : limit
+        } else if zeta <= 1 / Self.criticalBand {
+            // |e^(−ωt)·(y₀ + (v₀ + ω·y₀)·t)| falls monotonically once past its
+            // peak, at t = 1/ω − y₀/(v₀ + ω·y₀); bisect from there.
+            let slope = velocity - omega
+            let peak = slope == 0 ? 0 : max(0, 1 / omega + 1 / slope)
+            settle =
+                peak
+                + Self.crossing(limit: max(0, limit - peak)) { t in
+                    let time = peak + t
+                    return abs(exp(-omega * time) * (-1 + slope * time)) - threshold
+                }
+        } else {
+            // The slower root's share of the motion is the tail.
+            let root = omega * (zeta * zeta - 1).squareRoot()
+            let r1 = -zeta * omega + root
+            let r2 = -zeta * omega - root
+            let share = abs((velocity + r2) / (r1 - r2))
+            settle = share > 0 ? log(share / threshold) / -r1 : 0
         }
         return min(max(settle, 0), limit)
     }

@@ -373,3 +373,60 @@ A circular curve is a new case of the animation curve, so
 `Animation.timingCurve(.circularEaseIn, duration:)` moves along the circle;
 a Bézier or `.linear` builds the animation `timingCurve(_:_:_:_:duration:)` and
 `linear(duration:)` already build, and compares equal to it.
+
+### B-W12-7 `Spring` is SwiftUI's numbers, two quirks kept and one not; a spring animation keeps no velocity across a retarget
+
+*`Spring` (its four initialisers, `duration`, `bounce`, `response`,
+`dampingRatio`, `mass`, `stiffness`, `damping`, `settlingDuration`, `value`,
+`velocity`, `force`, `update`, `settlingDuration(…)`, `.smooth`/`.snappy`/
+`.bouncy` and their tunable forms), `Animation.spring(_:blendDuration:)`,
+`spring(duration:bounce:blendDuration:)`, `spring(response:dampingFraction:blendDuration:)`,
+`interactiveSpring` (all three), `interpolatingSpring` (all four)*
+
+The Wave 17 review (W6) found the refusal of all of these to be a judgement,
+not a limit: TUIkit already drew springs in closed form. `Spring` is that
+closed form made public — one implementation (`SpringMotion`) behind both the
+type's arithmetic and the curve a spring animation is drawn with — and every
+number was checked against SwiftUI's `Spring` on a probe
+(`w12/probe/p4.swift`, `p5.swift`): values, velocities with and without a
+starting velocity in all three damping regimes, force, `update`, the
+settling durations, the conversions, the presets.
+
+**Quirks kept, because ported arithmetic reads them:**
+
+- An overdamped spring's `stiffness` reads `(2ζ² − 1)` times the stiffness it
+  moves with, and `force` uses it.
+- A critically or overdamped spring's settling duration is found in steps of
+  a tenth of a second (0.8 s for the default spring); an underdamped one's is
+  the bound `ln((|y₀| + |v₀ + ζω·y₀|)/ε)/(ζω)`.
+- `init(settlingDuration:dampingRatio:epsilon:)` solves a different relation
+  from the one `settlingDuration` answers by, so the spring it makes reports
+  a longer settling duration than it was asked for (1 s asks, 1.25 s
+  reported, at ζ = 0.8), and a ratio above 1 is treated as 1.
+
+**A quirk not kept:** SwiftUI's overdamped `velocity(…)` reads exactly one
+more than the derivative of its own `value(…)` (1 at rest at t = 0). TUIkit
+answers the derivative.
+
+**Bounce at or below −1** is NaN in SwiftUI; here it stops at −0.999, a spring
+too sluggish to visibly arrive, rather than a NaN on its way to a cell.
+
+**Retargeting.** SwiftUI's `spring` hands its velocity to the next spring on
+the same value, blending the durations over `blendDuration`; its
+`interpolatingSpring` adds overlapping animations so velocity is preserved.
+TUIkit's animations are functions of elapsed time from a start at rest: a
+change that retargets a running spring starts the new one from where the
+picture is, without the speed it had. So `blendDuration` has nothing to blend,
+and `interpolatingSpring`'s `initialVelocity` is honoured for the change it
+is given to — it moves the start of the curve and lengthens the settling the
+loop waits for — but not inherited by the next. This is the deviation every
+TUIkit spring already had (B-W12-4 records `tracksVelocity` against it); the
+`interactiveSpring` presets are, accordingly, the quick springs their numbers
+describe.
+
+**The fuller version** is velocity-preserving retargeting: store the
+velocity at retarget and start the next closed form with it
+(`SpringMotion` already takes one). For springs alone that is a day — the
+store records where the picture is; it would also record how fast — but a
+curve retargeting into a spring, or a spring into a curve, has no velocity
+model, which is O3's question.

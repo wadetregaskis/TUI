@@ -162,21 +162,148 @@ extension Animation {
     ///   - bounce: How springy. `0` is the fastest approach that does not
     ///     overshoot; positive values overshoot and oscillate; negative values
     ///     are sluggish. Clamped to `-1...1`.
+    ///   - blendDuration: The duration in seconds over which to interpolate
+    ///     changes to the duration. See ``spring(_:blendDuration:)``.
     public static func spring(
-        duration: TimeInterval = 0.5, bounce: Double = 0
+        duration: TimeInterval = 0.5, bounce: Double = 0, blendDuration: Double = 0
     ) -> Animation {
-        let clamped = min(1, max(-1, bounce))
-        // Apple's mapping: bounce ≥ 0 reduces damping towards zero (more
-        // oscillation), bounce < 0 raises it above 1 (overdamped).
-        let zeta = clamped >= 0 ? 1 - clamped : 1 / (1 + clamped)
-        let omega = duration > 0 ? 2 * Double.pi / duration : 0
-        return Animation(
-            curve: .spring(omega: omega, zeta: zeta),
-            passDuration: AnimationCurve.springSettleDuration(omega: omega, zeta: zeta))
+        spring(Spring(duration: duration, bounce: bounce), blendDuration: blendDuration)
+    }
+
+    /// A persistent spring animation.
+    ///
+    /// When mixed with other `spring()` or `interactiveSpring()` animations on
+    /// the same property, each animation will be replaced by their successor,
+    /// preserving velocity from one animation to the next. Optionally blends
+    /// the duration values between springs over a time period.
+    ///
+    /// TUIkit's springs are closed-form functions of elapsed time, and a
+    /// change that retargets one mid-flight starts the next from where its
+    /// picture is, at rest: neither velocity nor a blend of durations carries
+    /// over, and `blendDuration` has nothing to blend.
+    ///
+    /// - Parameters:
+    ///   - spring: A description of the spring's motion.
+    ///   - blendDuration: The duration in seconds over which to interpolate
+    ///     changes to the duration.
+    public static func spring(_ spring: Spring, blendDuration: TimeInterval = 0.0) -> Animation {
+        Animation(spring: spring, initialVelocity: 0)
+    }
+
+    /// A persistent spring animation, by response and damping fraction.
+    ///
+    /// - Parameters:
+    ///   - response: The stiffness of the spring, defined as an approximate
+    ///     duration in seconds. A value of zero requests an infinitely-stiff
+    ///     spring, suitable for driving interactive animations.
+    ///   - dampingFraction: The amount of drag applied to the value being
+    ///     animated, as a fraction of an estimate of amount needed to produce
+    ///     critical damping.
+    ///   - blendDuration: The duration in seconds over which to interpolate
+    ///     changes to the response value of the spring.
+    @_disfavoredOverload
+    public static func spring(
+        response: Double = 0.5, dampingFraction: Double = 0.825, blendDuration: TimeInterval = 0
+    ) -> Animation {
+        spring(Spring(response: response, dampingRatio: dampingFraction), blendDuration: blendDuration)
     }
 
     /// A spring at the default pace, with no bounce.
     public static var spring: Animation { spring() }
+
+    /// A convenience for a ``spring(response:dampingFraction:blendDuration:)``
+    /// with a lower response value, intended for driving interactive
+    /// animations.
+    ///
+    /// SwiftUI tunes these for a pointer that is continuously retargeting the
+    /// spring. A terminal's pointer reports a cell at a time, and TUIkit's
+    /// spring restarts from rest when retargeted, so here they are the quick
+    /// springs their numbers describe.
+    @_disfavoredOverload
+    public static func interactiveSpring(
+        response: Double = 0.15, dampingFraction: Double = 0.86, blendDuration: TimeInterval = 0.25
+    ) -> Animation {
+        spring(response: response, dampingFraction: dampingFraction, blendDuration: blendDuration)
+    }
+
+    /// A convenience for a ``spring(duration:bounce:blendDuration:)`` with a
+    /// short pace, intended for driving interactive animations.
+    public static var interactiveSpring: Animation { interactiveSpring() }
+
+    /// A convenience for a ``spring(duration:bounce:blendDuration:)`` with a
+    /// short pace and a little bounce, intended for driving interactive
+    /// animations.
+    ///
+    /// - Parameters:
+    ///   - duration: The perceptual duration, which defines the pace of the
+    ///     spring.
+    ///   - extraBounce: How much additional bounce should be added to the base
+    ///     bounce of 0.15.
+    ///   - blendDuration: The duration in seconds over which to interpolate
+    ///     changes to the duration.
+    public static func interactiveSpring(
+        duration: TimeInterval = 0.15, extraBounce: Double = 0.0, blendDuration: TimeInterval = 0.25
+    ) -> Animation {
+        spring(duration: duration, bounce: 0.15 + extraBounce, blendDuration: blendDuration)
+    }
+
+    /// An interpolating spring animation that uses a damped spring model to
+    /// produce values in the range [0, 1] that are then used to interpolate
+    /// within the [from, to] range of the animated property.
+    ///
+    /// SwiftUI preserves velocity across overlapping changes by ADDING the
+    /// animations. TUIkit's springs carry no velocity across a retarget (see
+    /// ``spring(_:blendDuration:)``); the starting velocity is honoured, in the
+    /// closed form, for the change it is given to.
+    ///
+    /// - Parameters:
+    ///   - spring: A description of the spring's motion.
+    ///   - initialVelocity: The initial velocity of the spring, as a value in
+    ///     the range [0, 1] representing the magnitude of the value being
+    ///     animated.
+    public static func interpolatingSpring(_ spring: Spring, initialVelocity: Double = 0.0) -> Animation {
+        Animation(spring: spring, initialVelocity: initialVelocity)
+    }
+
+    /// An interpolating spring animation, by mass, stiffness and damping —
+    /// see ``interpolatingSpring(_:initialVelocity:)``. Overdamping is
+    /// allowed.
+    public static func interpolatingSpring(
+        mass: Double = 1.0, stiffness: Double, damping: Double, initialVelocity: Double = 0.0
+    ) -> Animation {
+        interpolatingSpring(
+            Spring(mass: mass, stiffness: stiffness, damping: damping, allowOverDamping: true),
+            initialVelocity: initialVelocity)
+    }
+
+    /// An interpolating spring animation, by pace and bounce — see
+    /// ``interpolatingSpring(_:initialVelocity:)``.
+    public static func interpolatingSpring(
+        duration: TimeInterval = 0.5, bounce: Double = 0.0, initialVelocity: Double = 0.0
+    ) -> Animation {
+        interpolatingSpring(Spring(duration: duration, bounce: bounce), initialVelocity: initialVelocity)
+    }
+
+    /// An interpolating spring animation at the default pace, with no
+    /// bounce.
+    public static var interpolatingSpring: Animation { interpolatingSpring() }
+
+    /// The animation `spring` moves with, starting at `initialVelocity` (in
+    /// units of the whole change per second).
+    ///
+    /// The one place a ``Spring`` becomes a curve. Its pace becomes the
+    /// angular frequency, and a pace of zero or a ratio no number describes
+    /// is an instant change rather than a NaN on its way to a cell.
+    init(spring: Spring, initialVelocity: Double) {
+        let ratio = spring.dampingRatio
+        let omega = spring.response > 0 && spring.response.isFinite ? 2 * Double.pi / spring.response : 0
+        let zeta = ratio.isFinite ? max(0, ratio) : 1
+        let velocity = initialVelocity.isFinite ? initialVelocity : 0
+        self.init(
+            curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity),
+            passDuration: AnimationCurve.springSettleDuration(
+                omega: omega, zeta: zeta, initialVelocity: velocity))
+    }
 
     /// A spring with no bounce — the one to reach for when a change should feel
     /// physical but not playful.
@@ -299,7 +426,7 @@ extension Animation {
     public var logicalCompletionDuration: TimeInterval? {
         guard let total = totalDuration, case .count(let passes, _) = repeatMode else { return nil }
         var natural = total
-        if case .spring(let omega, _) = curve, omega > 0 {
+        if case .spring(let omega, _, _) = curve, omega > 0 {
             let pace = min(passDuration, 2 * Double.pi / omega)
             natural = (delayInterval + passDuration * Double(passes - 1) + pace) / speedFactor
         }
@@ -384,7 +511,7 @@ extension Animation {
     /// logged or `#expect`-printed animation says what it is rather than
     /// dumping its stored curve. The curve names follow the factories that
     /// produce them (``Animation/easeInOut(duration:)``,
-    /// ``Animation/spring(duration:bounce:)``,
+    /// ``Animation/spring(duration:bounce:blendDuration:)``,
     /// ``Animation/timingCurve(_:_:_:_:duration:)``), and any repeat or delay
     /// is appended in modifier order, so the string round-trips by eye.
     public var description: String {
@@ -428,12 +555,16 @@ extension Animation {
                 case .easeOutIn: ".circularEaseInOut.inverse"
                 }
             return "timingCurve(\(name), duration: \(passDuration))"
-        case .spring(let omega, let zeta):
+        case .spring(let omega, let zeta, let initialVelocity):
             // Inverted back through `spring(duration:bounce:)`'s own mapping.
             // This used to print the stored `omega`/`zeta`/`settles`, which no
             // factory accepts — the one spelling that cannot round-trip.
             let duration = omega > 0 ? 2 * Double.pi / omega : 0
             let bounce = zeta <= 1 ? 1 - zeta : 1 / zeta - 1
+            guard initialVelocity == 0 else {
+                return "interpolatingSpring(duration: \(Self.solved(duration)), "
+                    + "bounce: \(Self.solved(bounce)), initialVelocity: \(initialVelocity))"
+            }
             return "spring(duration: \(Self.solved(duration)), bounce: \(Self.solved(bounce)))"
         }
     }

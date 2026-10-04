@@ -234,11 +234,14 @@ at once, and `View.transition(_:)` lists them.
 
 ## Springs
 
-``Animation/spring(duration:bounce:)`` is a real damped oscillator, evaluated in
+``Animation/spring(duration:bounce:blendDuration:)`` is a real damped oscillator, evaluated in
 closed form. `bounce: 0` is the fastest approach that does not overshoot;
 positive values overshoot and oscillate; negative values are sluggish.
 ``Animation/smooth``, ``Animation/snappy`` and ``Animation/bouncy`` are the
-usual three points on that scale.
+usual three points on that scale. ``Spring`` is the same oscillator as a value
+of its own — convert between duration and bounce and mass, stiffness and
+damping, or ask where a spring is at a given time — and
+``Animation/spring(_:blendDuration:)`` animates with one.
 
 A spring approaches its target asymptotically, so it has no exact end. It is
 given one where the answer stops mattering: a terminal draws whole cells and at
@@ -253,6 +256,9 @@ animation retires there.
 - ``View/animation(_:value:)``
 - ``Binding/animation(_:)``
 - ``Animation``
+- ``Spring``
+- ``UnitCurve``
+- ``AnimationCompletionCriteria``
 
 ### Coming and going
 
