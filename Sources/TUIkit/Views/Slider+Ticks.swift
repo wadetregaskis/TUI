@@ -22,7 +22,9 @@ extension Slider {
     ///   - currentValueLabel: A view describing `value`, drawn in place of the
     ///     slider's own read-out.
     ///   - minimumValueLabel: A view describing `bounds.lowerBound`.
-    ///   - maximumValueLabel: A view describing `bounds.upperBound`.
+    ///   - maximumValueLabel: A view describing `bounds.upperBound`. Leave both
+    ///     out for none; SwiftUI's empty defaults cannot type a label that two
+    ///     parameters share, so the forms without them are their own.
     ///   - onEditingChanged: A callback for when editing begins and ends.
     @_disfavoredOverload
     public init<V: BinaryFloatingPoint>(
@@ -32,8 +34,8 @@ extension Slider {
         enabledBounds: ClosedRange<V>? = nil,
         @ViewBuilder label: () -> Label,
         @ViewBuilder currentValueLabel: () -> some View = { EmptyView() },
-        @ViewBuilder minimumValueLabel: () -> ValueLabel = { EmptyView() },
-        @ViewBuilder maximumValueLabel: () -> ValueLabel = { EmptyView() },
+        @ViewBuilder minimumValueLabel: () -> ValueLabel,
+        @ViewBuilder maximumValueLabel: () -> ValueLabel,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where V.Stride: BinaryFloatingPoint {
         self.init(
@@ -59,7 +61,9 @@ extension Slider {
     ///   - currentValueLabel: A view describing `value`, drawn in place of the
     ///     slider's own read-out.
     ///   - minimumValueLabel: A view describing `bounds.lowerBound`.
-    ///   - maximumValueLabel: A view describing `bounds.upperBound`.
+    ///   - maximumValueLabel: A view describing `bounds.upperBound`. Leave both
+    ///     out for none; SwiftUI's empty defaults cannot type a label that two
+    ///     parameters share, so the forms without them are their own.
     ///   - ticks: The ticks drawn under the track, each a mark with its label
     ///     under it.
     ///   - onEditingChanged: A callback for when editing begins and ends.
@@ -71,8 +75,8 @@ extension Slider {
         enabledBounds: ClosedRange<V>? = nil,
         @ViewBuilder label: () -> Label,
         @ViewBuilder currentValueLabel: () -> some View = { EmptyView() },
-        @ViewBuilder minimumValueLabel: () -> ValueLabel = { EmptyView() },
-        @ViewBuilder maximumValueLabel: () -> ValueLabel = { EmptyView() },
+        @ViewBuilder minimumValueLabel: () -> ValueLabel,
+        @ViewBuilder maximumValueLabel: () -> ValueLabel,
         @SliderTickBuilder<V> ticks: () -> some SliderTickContent<V>,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where V.Stride: BinaryFloatingPoint {
@@ -101,7 +105,9 @@ extension Slider {
     ///   - currentValueLabel: A view describing `value`, drawn in place of the
     ///     slider's own read-out.
     ///   - minimumValueLabel: A view describing `bounds.lowerBound`.
-    ///   - maximumValueLabel: A view describing `bounds.upperBound`.
+    ///   - maximumValueLabel: A view describing `bounds.upperBound`. Leave both
+    ///     out for none; SwiftUI's empty defaults cannot type a label that two
+    ///     parameters share, so the forms without them are their own.
     ///   - tick: The tick for each step's value, or `nil` for none there.
     ///   - onEditingChanged: A callback for when editing begins and ends.
     @_disfavoredOverload
@@ -113,8 +119,8 @@ extension Slider {
         enabledBounds: ClosedRange<V>? = nil,
         @ViewBuilder label: () -> Label,
         @ViewBuilder currentValueLabel: () -> some View = { EmptyView() },
-        @ViewBuilder minimumValueLabel: () -> ValueLabel = { EmptyView() },
-        @ViewBuilder maximumValueLabel: () -> ValueLabel = { EmptyView() },
+        @ViewBuilder minimumValueLabel: () -> ValueLabel,
+        @ViewBuilder maximumValueLabel: () -> ValueLabel,
         tick: (V) -> SliderTick<V>? = { _ in nil },
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where V.Stride: BinaryFloatingPoint {
@@ -153,5 +159,72 @@ extension Slider {
         for tick in ticks { marks.append(_SliderTickMark(tick)) }
         self.ticks = marks
         self.currentValueLabel = currentValueLabel is EmptyView ? nil : AnyView(currentValueLabel)
+    }
+}
+
+// The forms with no value labels. SwiftUI writes these as `{ EmptyView() }`
+// defaults on the minimum and maximum labels, but a generic parameter two
+// parameters share cannot be inferred from a default (Swift 6.3 warns, and a
+// later language mode refuses), so they are spelled out.
+extension Slider where ValueLabel == EmptyView {
+    /// Creates a slider with a neutral value, enabled bounds and a
+    /// current-value label, and no value labels — see
+    /// ``Slider/init(value:in:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:onEditingChanged:)``.
+    @_disfavoredOverload
+    public init<V: BinaryFloatingPoint>(
+        value: Binding<V>,
+        in bounds: ClosedRange<V> = 0...1,
+        neutralValue: V? = nil,
+        enabledBounds: ClosedRange<V>? = nil,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder currentValueLabel: () -> some View = { EmptyView() },
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where V.Stride: BinaryFloatingPoint {
+        self.init(
+            value: value, in: bounds, neutralValue: neutralValue, enabledBounds: enabledBounds,
+            label: label, currentValueLabel: currentValueLabel,
+            minimumValueLabel: { EmptyView() }, maximumValueLabel: { EmptyView() },
+            onEditingChanged: onEditingChanged)
+    }
+
+    /// Creates a slider with ticks and no value labels — see
+    /// ``Slider/init(value:in:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:ticks:onEditingChanged:)``.
+    @_disfavoredOverload
+    public init<V>(
+        value: Binding<V>,
+        in bounds: ClosedRange<V> = 0...1,
+        neutralValue: V? = nil,
+        enabledBounds: ClosedRange<V>? = nil,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder currentValueLabel: () -> some View = { EmptyView() },
+        @SliderTickBuilder<V> ticks: () -> some SliderTickContent<V>,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where V.Stride: BinaryFloatingPoint {
+        self.init(
+            value: value, in: bounds, neutralValue: neutralValue, enabledBounds: enabledBounds,
+            label: label, currentValueLabel: currentValueLabel,
+            minimumValueLabel: { EmptyView() }, maximumValueLabel: { EmptyView() },
+            ticks: ticks, onEditingChanged: onEditingChanged)
+    }
+
+    /// Creates a stepped slider with a tick per step and no value labels — see
+    /// ``Slider/init(value:in:step:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:tick:onEditingChanged:)``.
+    @_disfavoredOverload
+    public init<V: BinaryFloatingPoint>(
+        value: Binding<V>,
+        in bounds: ClosedRange<V>,
+        step: V.Stride = 1,
+        neutralValue: V? = nil,
+        enabledBounds: ClosedRange<V>? = nil,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder currentValueLabel: () -> some View = { EmptyView() },
+        tick: (V) -> SliderTick<V>? = { _ in nil },
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) where V.Stride: BinaryFloatingPoint {
+        self.init(
+            value: value, in: bounds, step: step, neutralValue: neutralValue, enabledBounds: enabledBounds,
+            label: label, currentValueLabel: currentValueLabel,
+            minimumValueLabel: { EmptyView() }, maximumValueLabel: { EmptyView() },
+            tick: tick, onEditingChanged: onEditingChanged)
     }
 }
