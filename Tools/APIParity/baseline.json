@@ -225,6 +225,12 @@
   "SpacerSizing",
   "SpacerSizing.fixed",
   "SpacerSizing.flexible",
+  "TabContent.contextMenu(menuItems:)",
+  "TabContent.draggable(_:)",
+  "TabContent.dropDestination(for:action:)",
+  "TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:)",
+  "TabContent.popover(item:attachmentAnchor:arrowEdge:content:)",
+  "TabContent.swipeActions(edge:allowsFullSwipe:content:)",
   "TabSearchActivation",
   "TabSearchActivation.automatic",
   "TabSearchActivation.searchTabSelection",
@@ -390,27 +396,13 @@
   "VisualEffect.scaleEffect(_:anchor:)",
   "VisualEffect.scaleEffect(x:y:anchor:)",
   "VisualEffect.transformEffect(_:)",
-  "WiggleSymbolEffect.custom(angle:)",
-  "TabContent.contextMenu(menuItems:)",
-  "TabContent.draggable(_:)",
-  "TabContent.dropDestination(for:action:)",
-  "TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:)",
-  "TabContent.popover(item:attachmentAnchor:arrowEdge:content:)",
-  "TabContent.swipeActions(edge:allowsFullSwipe:content:)"
+  "WiggleSymbolEffect.custom(angle:)"
  ],
  "labelDeviations": [
   "EdgeInsets.init(_:)",
-  "List.init(_:editActions:rowContent:)",
-  "List.init(_:editActions:selection:rowContent:)",
-  "List.init(_:id:editActions:rowContent:)",
-  "Tab.init(_:image:content:)",
-  "Tab.init(_:systemImage:content:)",
-  "Tab.init(role:content:label:)",
-  "Tab.init(value:content:label:)",
-  "Tab.init(value:role:content:)",
-  "View.background(ignoresSafeAreaEdges:)",
-  "WindowGroup.init(makeContent:)",
   "Tab.init(_:image:role:content:)",
-  "Tab.init(_:image:value:content:)"
+  "Tab.init(_:image:value:content:)",
+  "View.background(ignoresSafeAreaEdges:)",
+  "WindowGroup.init(makeContent:)"
  ]
 }
