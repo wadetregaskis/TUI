@@ -1546,8 +1546,7 @@ menu brings its keyboard handling, dismissal and colours with it.
 *`TabContent.contextMenu(menuItems:)`,
 `TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:)`,
 `TabContent.popover(item:attachmentAnchor:arrowEdge:content:)`,
-`TabContent.draggable(_:)`, `TabContent.dropDestination(for:action:)`,
-`TabContent.springLoadingBehavior(_:)`*
+`TabContent.draggable(_:)`, `TabContent.dropDestination(for:action:)`*
 
 These surfaced once `TabContent` existed. In a `.sidebarAdaptable` sidebar a
 tab is a list row, and each would be the view modifier of the same name on
@@ -4246,7 +4245,7 @@ Where it differs:
   or Space activates the focused control, with the drag still in hand — the
   route the no-mouse-only rule asks for, and pinned by a test.
 
-This also takes `TabContent.springLoadingBehavior(_:)` out of A49 (A49):
+This also takes `TabContent.springLoadingBehavior(_:)` out of A49:
 a strip's chips already register a click region each, so a pause over one
 needed nothing new. The other five per-tab interactions there are unchanged.
 
