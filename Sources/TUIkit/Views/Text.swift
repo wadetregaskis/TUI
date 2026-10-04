@@ -812,7 +812,9 @@ extension Text: Renderable, Layoutable {
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
         let wrapped = TextWrapping.wrapMeasured(
-            Self.displayString(content, textCase: textCase, context: context), width: maxWidth)
+            Self.displayString(
+                content, textCase: textCase, redaction: context.environment.effectiveRedactionReasons),
+            width: maxWidth)
 
         // Reuse the per-line widths the wrap already computed instead of
         // re-`strippedLength`-ing every line.
@@ -905,8 +907,11 @@ extension Text: Renderable, Layoutable {
         let linesThatFit = LineSpacingRows.lines(
             fittingRows: context.availableHeight, spacing: spacing)
         let maxHeight = min(linesThatFit, lineLimit ?? linesThatFit)
+        // Read once for the content and every run of a concatenation, which
+        // each used to read it again — see `displayString`.
+        let redaction = context.environment.effectiveRedactionReasons
         let wrapped = TextWrapping.fitMeasured(
-            Self.displayString(content, textCase: effectiveCase, context: context),
+            Self.displayString(content, textCase: effectiveCase, redaction: redaction),
             width: maxWidth, maxLines: maxHeight, mode: mode, atWordBoundary: atWordBoundary)
 
         let knownWidth = wrapped.widths.max() ?? 0
@@ -949,10 +954,12 @@ extension Text: Renderable, Layoutable {
         // that produce claims both work in line indices, and spacing shifts rows.
         var perLineClaims: [[OpacityRegion]] = []
         if let runs {
+            let runTexts = runs.map {
+                Self.displayString($0.text, textCase: effectiveCase, redaction: redaction)
+            }
             let concatenated = concatenatedLines(
-                plainLines, runs: runs, blockWidth: lineWidths.max() ?? 0,
-                effectiveStyle: effectiveStyle, effectiveCase: effectiveCase,
-                font: font, ramp: ramp, context: context)
+                plainLines, runs: runs, runTexts: runTexts, blockWidth: lineWidths.max() ?? 0,
+                effectiveStyle: effectiveStyle, font: font, ramp: ramp, context: context)
             styledLines = concatenated.lines
             perLineClaims = concatenated.claims
         } else if let ramp, !context.isMeasuring {
@@ -1124,29 +1131,31 @@ extension Text: Renderable, Layoutable {
     /// - Parameters:
     ///   - plainLines: The laid-out lines, unstyled.
     ///   - runs: The fragments this text was concatenated from.
+    ///   - runTexts: The runs' texts as DRAWN — cased and redacted exactly as
+    ///     the content was, so they are matched against the same source the
+    ///     wrap saw.
     ///   - blockWidth: The widest line, for a ramp's own rectangle.
     ///   - effectiveStyle: This text's resolved attributes, cascade included.
-    ///   - effectiveCase: The case transform, so the runs are matched against
-    ///     the same source the wrap saw.
     ///   - font: This text's font, for deciding which fragments re-cascade.
     ///   - ramp: The gradient in force, when there is one.
     ///   - context: The render context.
     /// - Returns: One styled string per line.
     private func concatenatedLines(
-        _ plainLines: [String], runs: [Text.Run], blockWidth: Int,
-        effectiveStyle: TextStyle, effectiveCase: Text.Case?, font: Font?, ramp: Paint?,
-        context: RenderContext
+        _ plainLines: [String], runs: [Text.Run], runTexts: [String], blockWidth: Int,
+        effectiveStyle: TextStyle, font: Font?, ramp: Paint?, context: RenderContext
     ) -> (lines: [String], claims: [[OpacityRegion]]) {
-        let runTexts = runs.map {
-            Self.displayString($0.text, textCase: effectiveCase, context: context)
-        }
+        // Read once for every run, not copied out of the environment per run.
+        let palette = context.environment.palette
+        // Whether the ramp arm at the end runs. Only it reads `runTakesRamp`,
+        // so without one that array is not built at all.
+        let paintsRamp = ramp != nil && !context.isMeasuring
         var resolvedRunStyles: [TextStyle] = []
         resolvedRunStyles.reserveCapacity(runs.count)
         // Which fragments the ramp is entitled to colour: the ones that stated
         // no colour of their own and so took this text's, which under a ramp is
         // only the ramp's stand-in.
         var runTakesRamp: [Bool] = []
-        runTakesRamp.reserveCapacity(runs.count)
+        if paintsRamp { runTakesRamp.reserveCapacity(runs.count) }
         for run in runs {
             // What the run states, with what being a link adds beneath that.
             let own = run.styleStatingLink(in: context.environment)
@@ -1166,7 +1175,7 @@ extension Text: Renderable, Layoutable {
                 // The colours were resolved once, at text level (the
                 // semantic-role remapping there reads this text's own
                 // foreground); a fragment states its own or takes those.
-                runTakesRamp.append(runStyle.foregroundColor == nil)
+                if paintsRamp { runTakesRamp.append(runStyle.foregroundColor == nil) }
                 runStyle.foregroundColor =
                     runStyle.foregroundColor ?? effectiveStyle.foregroundColor
                 runStyle.backgroundColor =
@@ -1175,10 +1184,10 @@ extension Text: Renderable, Layoutable {
                 // The run's own attributes sit above the base this Text resolved
                 // (its own style + the cascade); anything the run left unset
                 // falls through to that.
-                runTakesRamp.append(own.foregroundColor == nil)
+                if paintsRamp { runTakesRamp.append(own.foregroundColor == nil) }
                 runStyle = own.merged(over: effectiveStyle)
             }
-            resolvedRunStyles.append(runStyle.resolved(with: context.environment.palette))
+            resolvedRunStyles.append(runStyle.resolved(with: palette))
         }
 
         var cursor = (run: 0, offset: 0)
@@ -1190,14 +1199,10 @@ extension Text: Renderable, Layoutable {
             // The OPAQUE spelling into the bytes and the alpha into a claim, as
             // the single-style arm does — a translucent colour has no SGR spelling
             // at all, so the compositor is the only place it can be answered.
-            let opaque = resolvedRunStyles.map(\.opaqueColours)
+            // One SGR introducer per RUN, however many fragments it spans.
+            let sequences = resolvedRunStyles.map { ANSIRenderer.styleSequence(for: $0.opaqueColours) }
             return (
-                lines: fragments.map { line in
-                    line.map {
-                        Self.hyperlinked(
-                            ANSIRenderer.render($0.text, with: opaque[$0.run]), opening: openings[$0.run])
-                    }.joined()
-                },
+                lines: fragments.map { Self.styledLine($0, sequences: sequences, openings: openings) },
                 claims: Self.fragmentAlphaClaims(fragments, styles: resolvedRunStyles)
             )
         }
@@ -1214,10 +1219,10 @@ extension Text: Renderable, Layoutable {
         // claimed by `fragmentAlphaClaims` two branches up.
         let painted = PaintRenderer.styled(
             pieces: fragments.map { line in
-                line.map {
+                line.map { fragment in
                     StyledPiece(
-                        text: $0.text, style: resolvedRunStyles[$0.run],
-                        takesRamp: runTakesRamp[$0.run], hyperlink: openings[$0.run])
+                        text: fragment.text, style: resolvedRunStyles[fragment.run],
+                        takesRamp: runTakesRamp[fragment.run], hyperlink: openings.flatMap { $0[fragment.run] })
                 }
             },
             blockWidth: blockWidth, frame: context.gradientFrame, paint: ramp,
@@ -1300,9 +1305,15 @@ extension Text: Renderable, Layoutable {
     /// string while drawing a transformed one is the measure/render parity bug
     /// class; `.textCase` was already routed this way for exactly that reason
     /// (ß → SS changes the width), and redaction joins it.
+    ///
+    /// The redaction is the caller's read of
+    /// `EnvironmentValues.effectiveRedactionReasons` rather than a read made
+    /// here: the render draws its content AND every run of a concatenation,
+    /// and a read per string was an environment lookup each time (two under
+    /// `.privacy`) for the same answer.
     private static func displayString(
-        _ string: String, textCase: TextCase?, context: RenderContext
+        _ string: String, textCase: TextCase?, redaction: RedactionReasons
     ) -> String {
-        context.environment.effectiveRedactionReasons.redacting(applyingCase(textCase, to: string))
+        redaction.redacting(applyingCase(textCase, to: string))
     }
 }

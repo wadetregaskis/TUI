@@ -37,7 +37,9 @@ extension Text.Run {
 
 extension Text {
     /// For each run, the OSC 8 sequence that opens its link, or `nil` when it
-    /// has none or none may be emitted here.
+    /// has none; or `nil` for them ALL when no run links or none may be
+    /// emitted here — which is nearly every concatenation, and so pays for no
+    /// array of `nil`s.
     ///
     /// Emitted under the same three conditions as ``Link``'s: the subtree
     /// allows it (``EnvironmentValues/terminalHyperlinks``), the text is
@@ -50,10 +52,10 @@ extension Text {
     /// parameter treats the pieces as one link.
     static func hyperlinkOpenings(
         for runs: [Run], lineCount: Int, context: RenderContext
-    ) -> [String?] {
+    ) -> [String?]? {
         guard runs.contains(where: { $0.link != nil }), context.environment.terminalHyperlinks,
             context.environment.isEnabled, TerminalHyperlink.isSupported
-        else { return Array(repeating: nil, count: runs.count) }
+        else { return nil }
         return runs.enumerated().map { index, run in
             guard let link = run.link else { return nil }
             let id = lineCount > 1 ? "\(context.identity.path)#\(index)" : nil
@@ -66,5 +68,53 @@ extension Text {
     nonisolated static func hyperlinked(_ styled: String, opening: String?) -> String {
         guard let opening, !styled.isEmpty else { return styled }
         return opening + styled + TerminalHyperlink.closing
+    }
+
+    /// One line of a concatenation in its runs' styles: per fragment, its
+    /// link's opening, its run's SGR introducer, the text, a reset, and the
+    /// link's closing.
+    ///
+    /// Byte for byte what `hyperlinked(ANSIRenderer.render(text, with:),
+    /// opening:)` per fragment, `joined()`, spells — a fragment is never empty
+    /// (the attribution emits none), so `hyperlinked`'s empty guard never
+    /// applies — but written into ONE string, reserved to its exact size first.
+    /// The per-fragment spelling built an interpolated string per fragment,
+    /// an array of them per line and the join, and re-derived the run's
+    /// introducer for every fragment; a `String` grown by doubling instead of
+    /// reserved would give back most of those allocations in reallocations
+    /// (a two-run Markdown line is ~70 bytes).
+    ///
+    /// - Parameters:
+    ///   - line: The line's fragments, each tagged with its run.
+    ///   - sequences: Per run, its SGR introducer, or `nil` for an unstyled run
+    ///     (drawn bare, as `render` draws it).
+    ///   - openings: Per run, its link's opening, as
+    ///     ``hyperlinkOpenings(for:lineCount:context:)`` answers.
+    static func styledLine(
+        _ line: [(text: String, run: Int)], sequences: [String?], openings: [String?]?
+    ) -> String {
+        let resetBytes = ANSIRenderer.reset.utf8.count
+        let closingBytes = TerminalHyperlink.closing.utf8.count
+        var bytes = 0
+        for (text, run) in line {
+            bytes += text.utf8.count
+            if let sequence = sequences[run] { bytes += sequence.utf8.count + resetBytes }
+            if let opening = openings.flatMap({ $0[run] }) { bytes += opening.utf8.count + closingBytes }
+        }
+        var styled = ""
+        styled.reserveCapacity(bytes)
+        for (text, run) in line {
+            let opening = openings.flatMap { $0[run] }
+            if let opening { styled += opening }
+            if let sequence = sequences[run] {
+                styled += sequence
+                styled += text
+                styled += ANSIRenderer.reset
+            } else {
+                styled += text
+            }
+            if opening != nil { styled += TerminalHyperlink.closing }
+        }
+        return styled
     }
 }

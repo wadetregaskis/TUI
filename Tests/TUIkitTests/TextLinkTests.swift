@@ -127,6 +127,44 @@ struct TextLinkTests {
         }
     }
 
+    @Test("A concatenation's line is spelled as each fragment rendered, hyperlinked and joined")
+    func styledLineIsThePerFragmentSpelling() {
+        // `styledLine` writes a line into one reserved string. It must be the
+        // per-fragment spelling it replaced, byte for byte: with and without a
+        // style (an empty one draws bare), with and without links, a run
+        // split over fragments, and no links at all (`openings == nil`).
+        var bold = TextStyle()
+        bold.isBold = true
+        bold.foregroundColor = red
+        var tinted = TextStyle()
+        tinted.foregroundColor = Color.rgb(1, 2, 3)
+        tinted.backgroundColor = Color.rgb(250, 240, 230)
+        let styles = [bold, TextStyle(), tinted]
+        let sequences = styles.map { ANSIRenderer.styleSequence(for: $0) }
+        #expect(sequences[1] == nil)
+        let lines: [[(text: String, run: Int)]] = [
+            [("See ", 0), ("docs", 1), (" now", 2)],
+            [("one", 0)],
+            [("bare", 1)],
+            [("a", 2), ("日本", 0), ("e\u{301}", 1), ("z", 2)],
+            [],
+        ]
+        let openingSets: [[String?]?] = [
+            nil, [nil, opening, nil], [opening, opening, "\u{1B}]8;id=x;https://x\u{1B}\\"],
+        ]
+        for openings in openingSets {
+            for line in lines {
+                let perFragment = line.map { fragment in
+                    Text.hyperlinked(
+                        ANSIRenderer.render(fragment.text, with: styles[fragment.run]),
+                        opening: openings.flatMap { $0[fragment.run] })
+                }.joined()
+                let written = Text.styledLine(line, sequences: sequences, openings: openings)
+                #expect(Array(written.utf8) == Array(perFragment.utf8), "\(line) \(String(describing: openings))")
+            }
+        }
+    }
+
     // MARK: - It survives what a run goes through
 
     @Test("A link survives concatenation and a live read")
