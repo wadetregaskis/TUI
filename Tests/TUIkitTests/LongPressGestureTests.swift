@@ -3,10 +3,10 @@
 //
 //  SwiftUI's onLongPressGesture: the left button held on the view for the
 //  minimum duration runs the action; onPressingChanged hears true on the
-//  press and false when it ends — on success, on an early release, or on a
-//  drag past the maximum distance, none of which then runs the action. The
-//  frames are driven on the harness's own clock, so nothing waits on real
-//  time.
+//  press and false when it ends — on success (just before the action, the
+//  order macOS 15.8 uses), on an early release, or on a drag past the maximum
+//  distance, neither of which then runs the action. The frames are driven on
+//  the harness's own clock, so nothing waits on real time.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -52,10 +52,10 @@ struct LongPressGestureTests {
         #expect(log.entries == ["pressing true"])
         harness.now = 500 * millisecond
         harness.frame(view(log))
-        #expect(log.entries == ["pressing true", "perform", "pressing false"])
+        #expect(log.entries == ["pressing true", "pressing false", "perform"])
         mouse(harness, .released, 1, 0)
         harness.frame(view(log))
-        #expect(log.entries == ["pressing true", "perform", "pressing false"], "the release adds nothing")
+        #expect(log.entries == ["pressing true", "pressing false", "perform"], "the release adds nothing")
     }
 
     @Test("Released early, the press ends without the action")
@@ -75,7 +75,7 @@ struct LongPressGestureTests {
 
     @Test("A drag past the maximum distance ends the press; one within it does not")
     func dragDistance() {
-        for (distance, expected) in [(1, ["pressing true", "perform", "pressing false"]), (0, ["pressing true", "pressing false"])] {
+        for (distance, expected) in [(1, ["pressing true", "pressing false", "perform"]), (0, ["pressing true", "pressing false"])] {
             let log = GestureLog()
             let harness = InputChainHarness()
             harness.frame(view(log, maximumDistance: distance))
