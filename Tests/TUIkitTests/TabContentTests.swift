@@ -49,6 +49,18 @@ struct TabContentTests {
         #expect(!second.contains { $0.contains("ALPHA BODY") }, "\(second)")
     }
 
+    @Test("A section's tabs take an optional selection's promoted values")
+    func optionalSelectionInASection() {
+        let out = lines(
+            TabView(selection: .constant(Int?.some(2))) {
+                Tab("One", value: 1) { Text("ONE BODY") }
+                TabSection("More") {
+                    Tab("Two", value: 2) { Text("TWO BODY") }
+                }
+            })
+        #expect(out.contains { $0.contains("TWO BODY") }, "\(out)")
+    }
+
     // MARK: - Composition
 
     @Test("Tab content composes: a type of the app's own, a section, a loop, a group, conditionals, erasure")

@@ -93,3 +93,67 @@ extension TabSection where Footer == EmptyView {
         self.content = content()
     }
 }
+
+// MARK: - Optional selections
+
+// The same three families for a tab view whose selection is optional. They
+// add no behaviour: what they add is a builder pinned to `V?`, which is what
+// lets a `Tab(_:systemImage:value:)` inside take its promoting `V?` form. The
+// section's content is type-checked before the tab view's requirement reaches
+// the section, so through the forms above `Tab("Two", value: 2)` settles on
+// `Int` and the section then fails `Int?` (the compile corpus caught it).
+
+extension TabSection where Header == Text, Footer == EmptyView {
+    /// Creates a section with a localized title as its header, in a tab view
+    /// whose selection is optional.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the section's title.
+    ///   - content: The section's tabs.
+    public init<V: Hashable>(
+        _ titleKey: LocalizedStringKey, @TabContentBuilder<V?> content: () -> Content
+    ) where SelectionValue == V? {
+        header = Text(titleKey)
+        self.content = content()
+    }
+
+    /// Creates a section with a title shown as written as its header, in a
+    /// tab view whose selection is optional.
+    ///
+    /// - Parameters:
+    ///   - title: The section's title.
+    ///   - content: The section's tabs.
+    @_disfavoredOverload
+    public init<V: Hashable, S: StringProtocol>(
+        _ title: S, @TabContentBuilder<V?> content: () -> Content
+    ) where SelectionValue == V? {
+        header = Text(verbatim: String(title))
+        self.content = content()
+    }
+}
+
+extension TabSection where Header == EmptyView, Footer == EmptyView {
+    /// Creates a section with no header, in a tab view whose selection is
+    /// optional.
+    ///
+    /// - Parameter content: The section's tabs.
+    public init<V: Hashable>(@TabContentBuilder<V?> content: () -> Content) where SelectionValue == V? {
+        header = EmptyView()
+        self.content = content()
+    }
+}
+
+extension TabSection where Footer == EmptyView {
+    /// Creates a section with a header of your own, in a tab view whose
+    /// selection is optional.
+    ///
+    /// - Parameters:
+    ///   - content: The section's tabs.
+    ///   - header: The section's header.
+    public init<V: Hashable>(
+        @TabContentBuilder<V?> content: () -> Content, @ViewBuilder header: () -> Header
+    ) where SelectionValue == V? {
+        self.header = header()
+        self.content = content()
+    }
+}
