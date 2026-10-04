@@ -46,7 +46,8 @@ own; 1 until then. Nothing ships.
 
 *`View.symbolEffect(_:options:isActive:)`, `View.symbolEffect(_:options:value:)`,
 `View.symbolEffectsRemoved(_:)`, `Transition.symbolEffect`,
-`Transition.symbolEffect(_:options:)`, `WiggleSymbolEffect.custom(angle:)`*
+`Transition.symbolEffect(_:options:)`, `ContentTransition.symbolEffect`,
+`ContentTransition.symbolEffect(_:options:)`, `WiggleSymbolEffect.custom(angle:)`*
 
 Every one of these takes a value from Apple's **Symbols** framework
 (`SymbolEffect`, `IndefiniteSymbolEffect`, `DiscreteSymbolEffect`,
