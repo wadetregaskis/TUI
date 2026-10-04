@@ -557,6 +557,31 @@ private struct TextFieldAxisShapes: View {
     }
 }
 
+/// Text fields that report their selection, as SwiftUI's examples write them.
+@available(macOS 15, *)
+@MainActor
+private struct TextFieldSelectionShapes: View {
+    @State private var message = ""
+    @State private var selection: TextSelection? = nil
+    let caption: String
+
+    var body: some View {
+        VStack {
+            TextField("Message", text: $message, selection: $selection)
+            TextField(caption, text: $message, selection: $selection, prompt: Text("Say hello"))
+            TextField("Message", text: $message, selection: $selection, axis: .vertical)
+                .lineLimit(2...4)
+            TextField(text: $message, selection: $selection) {
+                Text("Message")
+            }
+            TextField(text: $message, selection: $selection, prompt: Text("Say hello"), axis: .vertical) {
+                Text("Message")
+            }
+        }
+        .textSelectionAffinity(.downstream)
+    }
+}
+
 /// Text sized by each of SwiftUI's line-limit range forms.
 @MainActor
 private struct LineLimitRangeShapes: View {

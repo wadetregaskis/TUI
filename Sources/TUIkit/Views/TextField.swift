@@ -195,6 +195,10 @@ public struct TextField<Label: View>: View {
     /// scrolling sideways, or rows growing downward — the `axis:` initialisers.
     var axis: Axis = .horizontal
 
+    /// The app's selection binding, as the field reads and writes it, or `nil`
+    /// for none — the `selection:` initialisers.
+    var selection: _TextSelectionChannel?
+
     @ViewBuilder
     public var body: some View {
         if let formatting {
@@ -217,7 +221,8 @@ public struct TextField<Label: View>: View {
                     isDisabled: isDisabled,
                     onSubmitAction: onSubmitAction,
                     onEditingChangedAction: onEditingChangedAction,
-                    axis: axis
+                    axis: axis,
+                    selection: selection
                 ))
         }
     }
@@ -354,6 +359,57 @@ extension TextField where Label == Text {
         self.init(title, text: text, prompt: prompt)
         self.axis = axis
     }
+
+    /// Creates a text field with a binding to the current selection and a
+    /// localized label.
+    ///
+    /// The field writes its caret and selection to `selection` as they move,
+    /// and a selection the app writes moves them — a ``TextSelection`` whose
+    /// range is empty is the caret. A field selects one range, so a multiple
+    /// selection selects its first.
+    ///
+    /// ```swift
+    /// @State private var message = ""
+    /// @State private var selection: TextSelection? = nil
+    ///
+    /// TextField("Message", text: $message, selection: $selection)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the field's title, describing its purpose.
+    ///   - text: The text to display and edit.
+    ///   - selection: The current selection.
+    ///   - prompt: A `Text` providing guidance on what to type into the field.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space; `nil` for the field on one line.
+    @available(macOS 15, *)
+    public init(
+        _ titleKey: LocalizedStringKey, text: Binding<String>, selection: Binding<TextSelection?>,
+        prompt: Text? = nil, axis: Axis? = nil
+    ) {
+        self.init(titleKey, text: text, prompt: prompt, axis: axis ?? .horizontal)
+        self.selection = _TextSelectionChannel(selection, text: text)
+    }
+
+    /// Creates a text field with a binding to the current selection and a
+    /// label generated from a title string.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field, describing its purpose.
+    ///   - text: The text to display and edit.
+    ///   - selection: The current selection.
+    ///   - prompt: A `Text` providing guidance on what to type into the field.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space; `nil` for the field on one line.
+    @available(macOS 15, *)
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S, text: Binding<String>, selection: Binding<TextSelection?>, prompt: Text? = nil,
+        axis: Axis? = nil
+    ) {
+        self.init(title, text: text, prompt: prompt, axis: axis ?? .horizontal)
+        self.selection = _TextSelectionChannel(selection, text: text)
+    }
 }
 
 // MARK: - TextField Initializers (Generic Label)
@@ -411,6 +467,32 @@ extension TextField {
     ) {
         self.init(text: text, prompt: prompt, label: label)
         self.axis = axis
+    }
+
+    /// Creates a text field with a binding to the current selection, a prompt
+    /// generated from a `Text`, and a custom label.
+    ///
+    /// The field writes its caret and selection to `selection` as they move,
+    /// and a selection the app writes moves them. A field selects one range,
+    /// so a multiple selection selects its first.
+    ///
+    /// - Parameters:
+    ///   - text: The text to display and edit.
+    ///   - selection: The current selection.
+    ///   - prompt: A `Text` providing guidance on what to type into the field.
+    ///   - axis: The axis in which to scroll text when it doesn't fit in the
+    ///     available space; `nil` for the field on one line.
+    ///   - label: A view that describes the purpose of the text field.
+    @available(macOS 15, *)
+    public init(
+        text: Binding<String>,
+        selection: Binding<TextSelection?>,
+        prompt: Text? = nil,
+        axis: Axis? = nil,
+        @ViewBuilder label: () -> Label
+    ) {
+        self.init(text: text, prompt: prompt, axis: axis ?? .horizontal, label: label)
+        self.selection = _TextSelectionChannel(selection, text: text)
     }
 }
 
@@ -506,6 +588,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// `.vertical` for a field whose text wraps over rows — drawn by
     /// `TextField+Vertical.swift` — or `.horizontal` for one line.
     let axis: Axis
+
+    /// The app's selection binding, or `nil` for none: set on the handler each
+    /// render, which adopts what the app wrote there.
+    let selection: _TextSelectionChannel?
 
     /// Minimum width for the text field content area. Small, so an explicit
     /// narrow `.frame(width:)` is honoured (e.g. a 0–255 / "100%" numeric field
@@ -803,6 +889,8 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // that changes axis between frames does not keep the old one's keys.
         handler.wrapWidth = nil
         handler.clampCursorPosition()
+        handler.selectionChannel = selection
+        handler.adoptSelectionFromApp()
         return handler
     }
 }

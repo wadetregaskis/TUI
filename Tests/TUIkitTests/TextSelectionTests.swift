@@ -53,6 +53,50 @@ struct TextSelectionTests {
         if #available(macOS 15, *) { editorTypingBody() }
     }
 
+    @Test("A text field writes its caret and selection, and an app's selection moves them")
+    func fieldRoundTrip() {
+        if #available(macOS 15, *) { fieldRoundTripBody() }
+    }
+
+    @Test("A vertical text field exchanges its selection the same way, across its rows")
+    func verticalFieldRoundTrip() {
+        if #available(macOS 15, *) { verticalFieldRoundTripBody() }
+    }
+
+    @available(macOS 15, *)
+    private func fieldRoundTripBody() {
+        let model = Model("hello world")
+        let harness = InputChainHarness { $0.textSelectionAffinity = .downstream }
+        let field = { TextField("Message", text: model.textBinding, selection: model.selectionBinding) }
+        harness.play([KeyEvent(key: .home)], field)
+        #expect(model.offsets == 0..<0, "the caret is written as it moves: \(String(describing: model.offsets))")
+        #expect(model.selection?.affinity == .downstream)
+        harness.play([KeyEvent(key: .right, shift: true), KeyEvent(key: .right, shift: true)], field)
+        #expect(model.offsets == 0..<2, "and the selection as it grows")
+
+        // The app selects "world"; the field adopts it, so typing replaces it.
+        model.select(6..<11)
+        harness.play([KeyEvent(key: .character("X"))], field)
+        #expect(model.text == "hello X")
+        #expect(model.offsets == 7..<7, "\(String(describing: model.offsets))")
+    }
+
+    @available(macOS 15, *)
+    private func verticalFieldRoundTripBody() {
+        let model = Model("one\ntwo")
+        let harness = InputChainHarness()
+        let field = {
+            TextField(text: model.textBinding, selection: model.selectionBinding, axis: .vertical) {
+                Text("Notes")
+            }
+        }
+        harness.play([KeyEvent(key: .up, shift: true)], field)
+        #expect(model.offsets == 3..<7, "Shift-Up from the end selects back a row: \(String(describing: model.offsets))")
+        model.select(0..<3)
+        harness.play([KeyEvent(key: .character("X"))], field)
+        #expect(model.text == "X\ntwo")
+    }
+
     @available(macOS 15, *)
     private func editorRoundTripBody() {
         let model = Model("one\ntwo")
