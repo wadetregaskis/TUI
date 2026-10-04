@@ -529,15 +529,27 @@ struct _ButtonStyleBody: View, Renderable {
     ) -> some View {
         HStack(spacing: 0) {
             Text(String(TerminalSymbols.openCap)).foregroundStyle(caps)
-            HStack(spacing: 0) {
-                if fills { Spacer(minLength: 0) }
-                labelView
-                if fills { Spacer(minLength: 0) }
-            }
+            centred(labelView, fills: fills)
                 .foregroundStyle(label)
                 .padding(.horizontal, appearance.horizontalPadding)
                 .background(face)
             Text(String(TerminalSymbols.closeCap)).foregroundStyle(caps)
+        }
+    }
+
+    /// The label between spacers when the button fills its offer, and the
+    /// label alone — no stack to lay out — when it fits it, which is nearly
+    /// every button.
+    @ViewBuilder
+    private func centred(_ labelView: AnyView, fills: Bool) -> some View {
+        if fills {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                labelView
+                Spacer(minLength: 0)
+            }
+        } else {
+            labelView
         }
     }
 
