@@ -102,7 +102,7 @@
 /// > follow the cursor (a common terminal-editor behaviour), and vertically when
 /// > the text is taller than the view. SwiftUI's editor wraps them; a vertical
 /// > ``TextField`` wraps its text by the same rules, and whether the editor
-/// > should too is open (`SwiftUI-API-completion-decisions-W06b.md`, A-W06b-1).
+/// > should too is open (`SwiftUI-API-completion-decisions-W06b.md`, A43).
 ///
 /// ## The selection and the caret where the terminal decides the colours
 ///
