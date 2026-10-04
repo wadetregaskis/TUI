@@ -38,6 +38,35 @@ extension View {
         // unmodified row already does — so it is the identity, not zero.
         _ListRowInsetsView(content: self, insets: insets)
     }
+
+    /// Sets the insets of this list row's content on the given edges. Matches
+    /// SwiftUI's `listRowInsets(_:_:)`.
+    ///
+    /// ```swift
+    /// Text(item.name)
+    ///     .listRowInsets(.horizontal, 2)
+    /// ```
+    ///
+    /// The edges not named keep the list's default, as they do in SwiftUI; a
+    /// list row's default insets here are none, so they are left as they are.
+    /// Written twice on one row, the two insets add up, where SwiftUI's inner
+    /// statement replaces the outer one on the edges they share.
+    ///
+    /// - Parameters:
+    ///   - edges: The edges to inset. Defaults to all of them.
+    ///   - length: The inset, in cells, or `nil` for the list's default.
+    /// - Returns: A row with `length` cells of inset on `edges`.
+    public func listRowInsets(_ edges: Edge.Set = .all, _ length: Int?) -> some View {
+        _ListRowInsetsView(
+            content: self,
+            insets: length.map { length in
+                EdgeInsets(
+                    top: edges.contains(.top) ? length : 0,
+                    leading: edges.contains(.leading) ? length : 0,
+                    bottom: edges.contains(.bottom) ? length : 0,
+                    trailing: edges.contains(.trailing) ? length : 0)
+            })
+    }
 }
 
 /// Applies `insets` to `content`, or nothing at all when they are `nil`.

@@ -49,6 +49,17 @@ struct ListRowStyleTests {
         #expect(lines(Text("row").listRowInsets(nil)) == lines(Text("row")))
     }
 
+    @Test("The edge form insets the edges it names and no others")
+    func edgeFormInsetsTheNamedEdges() {
+        let leading = lines(Text("row").listRowInsets(.leading, 3))
+        #expect(leading[0].hasPrefix("   row"))
+        #expect(leading == lines(Text("row").listRowInsets(EdgeInsets(top: 0, leading: 3, bottom: 0, trailing: 0))))
+        let vertical = lines(Text("row").listRowInsets(.vertical, 1))
+        #expect(vertical.count == 3 && vertical[1].hasPrefix("row"), "\(vertical)")
+        #expect(lines(Text("row").listRowInsets(.all, 2)) == lines(Text("row").listRowInsets(EdgeInsets(all: 2))))
+        #expect(lines(Text("row").listRowInsets(.leading, nil)) == lines(Text("row")))
+    }
+
     // MARK: - Background
 
     @Test("A background fills the row, not just the text")
