@@ -193,7 +193,18 @@ extension TextFieldStyle where Self == SquareBorderTextFieldStyle {
 /// list of fields measured +27% over the plain core the fields drew before
 /// the styles existed. An unbordered field draws its core where it stands; a
 /// bordered one draws it inside the border, under a branch identity of its own.
-struct _StyledFieldFrame<Content: View>: View, Renderable, Layoutable {
+///
+/// "Where it stands" is literal: the unbordered core is measured and drawn by a
+/// direct call, not through `measureChild` and the generic `renderToBuffer`.
+/// Those put a second per-pass measure memo entry at this frame's identity —
+/// same proposal, same reads — which could never serve a miss of the frame's
+/// own entry, so it was only ever stored: a value hash of the whole core, a key,
+/// a lookup, two gate reads, a lease and a store per field per pass. And a
+/// render dispatch whose clamp the frame's own render repeats on the same
+/// context. Both cores are `Renderable & Layoutable`, which is what the
+/// constraint states. An `Animatable` core would still take the general path,
+/// for the substitution it makes.
+struct _StyledFieldFrame<Content: View & Renderable & Layoutable>: View, Renderable, Layoutable {
     let content: Content
 
     var body: Never {
@@ -202,14 +213,26 @@ struct _StyledFieldFrame<Content: View>: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let border = context.environment.textFieldStyle.fieldBorder else {
-            return TUIkit.renderToBuffer(content, context: context)
+            // An Animatable core needs the substitution the generic render makes;
+            // the test is static, so it folds away for the two cores there are.
+            if Content._isAnimatable { return TUIkit.renderToBuffer(content, context: context) }
+            // In place, at this frame's identity: the generic render minus a clamp
+            // the render that reached this frame applies to the same context.
+            return content.renderToBuffer(context: context)
         }
         return TUIkit.renderToBuffer(content.border(style: border), context: context.withBranchIdentity("bordered"))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard let border = context.environment.textFieldStyle.fieldBorder else {
-            return measureChild(content, proposal: proposal, context: context)
+            if Content._isAnimatable { return measureChild(content, proposal: proposal, context: context) }
+            // No memo entry of its own: this frame's entry (same identity, same
+            // proposal, same reads) answers every repeat this pass. `isMeasuring`
+            // as `measureChild` would have set it.
+            if context.isMeasuring { return content.sizeThatFits(proposal: proposal, context: context) }
+            var measuring = context
+            measuring.isMeasuring = true
+            return content.sizeThatFits(proposal: proposal, context: measuring)
         }
         return measureChild(
             content.border(style: border), proposal: proposal, context: context.withBranchIdentity("bordered"))
