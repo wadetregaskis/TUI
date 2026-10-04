@@ -1526,3 +1526,43 @@ private struct SpringLoadingShapes: View {
         }
     }
 }
+
+// MARK: - Drag and drop session values
+
+/// The values of SwiftUI's own session examples, as an app's helpers take
+/// them: a phase matched with its operation, the dragged items' identifiers,
+/// the configurations a source and a destination build, a formation.
+@MainActor
+private enum DragSessionValueShapes {
+    static func update(_ session: DragSession, remove: ([UUID]) -> Void) {
+        if session.phase == .ended(.delete) {
+            remove(session.draggedItemIDs(for: UUID.self))
+        }
+        switch session.phase {
+        case .ended(let operation) where operation == .move:
+            remove(session.draggedItemIDs(for: UUID.self))
+        default:
+            break
+        }
+        print(session.id, session.location, session.draggedItemIndex)
+    }
+
+    static func configuration(for session: DropSession) -> DropConfiguration {
+        if session.suggestedOperations.contains(.move) {
+            return DropConfiguration(operation: .move)
+        }
+        print(session.phase, session.itemsCount, session.size, session.localSession?.draggedItemIDs(for: UUID.self) ?? [])
+        return DropConfiguration(operation: .copy)
+    }
+
+    static func makeConfiguration() -> DragConfiguration {
+        let operations = DragConfiguration.OperationsOutsideApp(allowCopy: true, allowMove: true)
+        _ = DragConfiguration(allowMove: false, allowDelete: true)
+        _ = DragConfiguration(
+            operationsWithinApp: .init(allowMove: true, allowDelete: true),
+            operationsOutsideApp: .init(allowMove: true, allowDelete: true))
+        return DragConfiguration(operationsOutsideApp: operations)
+    }
+
+    static let formations: [DragDropPreviewsFormation] = [.default, .list, .none, .pile, .stack]
+}

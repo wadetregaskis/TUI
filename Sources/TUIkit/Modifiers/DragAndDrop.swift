@@ -525,8 +525,9 @@ extension View {
     /// ```
     ///
     /// The action is handed a ``DropInfo`` where SwiftUI's is handed a
-    /// `DropSession`, which TUIkit does not have; the drop's ``DropInfo/location``
-    /// is on both. A drop the action is called for is taken. While
+    /// ``DropSession``, which TUIkit has as a value and hands out nowhere yet
+    /// (decisions A-W17d-1); the drop's ``DropInfo/location`` is on both. A
+    /// drop the action is called for is taken. While
     /// `isEnabled` is `false` the view is no destination at all: a drag
     /// passes over it as over anything else.
     ///

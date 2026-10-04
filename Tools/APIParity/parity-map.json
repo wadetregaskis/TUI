@@ -290,28 +290,6 @@
     },
     {
       "match": [
-        "DragSession*",
-        "DropSession*",
-        "DragConfiguration*",
-        "DropConfiguration*",
-        "DragDropPreviewsFormation*",
-        "View.dragContainer*",
-        "View.dragPreviewsFormation*",
-        "View.dropPreviewsFormation*",
-        "View.onDragSessionUpdated*",
-        "View.onDropSessionUpdated*",
-        "View.draggable(containerItemID:containerNamespace:)",
-        "View.draggable(_:containerNamespace:_:)",
-        "View.draggable(_:id:containerNamespace:_:)",
-        "View.draggable(_:id:item:containerNamespace:)",
-        "View.draggable(_:item:containerNamespace:)",
-        "*.dragConfiguration*",
-        "*.dropConfiguration*"
-      ],
-      "why": "The macOS 26 drag-session API: sessions, containers, formations and multi-item previews, with per-operation policies negotiated between processes. TUIkit's drag and drop lives inside one terminal process — `draggable(_:)`, `dropDestination(for:action:isTargeted:)` and ForEach's row reordering. What this rule excuses is the cross-process session machinery, which would need a pasteboard server and a drag image something has to composite."
-    },
-    {
-      "match": [
         "Commands*",
         "CommandGroup*",
         "CommandMenu*",
@@ -942,6 +920,12 @@
     },
     "DebugReplaceableView": {
       "why": "Xcode's previews machinery: the type Xcode substitutes for a view while it hot-reloads a preview. It exists for the Xcode preview canvas, which never hosts a TUIkit view."
+    },
+    "DragSession.ID.matches(_:)": {
+      "why": "It compares a drag session with AppKit's NSDraggingSession, an Apple-only class a TUIkit drag never is: a terminal app's drags happen inside it, without AppKit (and on Linux without it at all). DragSession and its ID, phase and items ship as values."
+    },
+    "DropSession.ID.matches(_:)": {
+      "why": "It compares a drop session with AppKit's NSDraggingInfo, an Apple-only protocol a TUIkit drag never conforms to: a terminal app's drags happen inside it, without AppKit (and on Linux without it at all). DropSession and its ID, phase and local session ship as values."
     }
   },
   "differentShape": {

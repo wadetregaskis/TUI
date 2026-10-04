@@ -234,6 +234,11 @@ it sits in the view.
 - ``DropInfo``
 - ``DragPreviewAnchor``
 - ``SpringLoadingBehavior``
+- ``DragSession``
+- ``DropSession``
+- ``DragConfiguration``
+- ``DropConfiguration``
+- ``DragDropPreviewsFormation``
 
 The raw event types (`MouseEvent`, `MouseButton`, `MousePhase`) live in the
 re-exported `TUIkitCore` module.
