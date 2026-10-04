@@ -471,4 +471,15 @@ Where it differs:
 
 ## C. Declined without asking
 
+### C-W08b-1. `Tab`'s `image:` initialisers join the asset-catalogue family
+
+*`Tab.init(_:image:content:)`, `Tab.init(_:image:role:content:)`,
+`Tab.init(_:image:value:content:)`, `Tab.init(_:image:value:role:content:)`*
+
+The `image:` spelling names an `ImageResource` from an asset catalogue, which
+a terminal app's build does not have — the reason `Button`, `Label`, `Picker`,
+`Menu` and the rest already give in `parity-map.json`. The `systemImage:`
+forms are implemented. `Tab.init(_:image:*` is added to that family's
+patterns.
+
 ## D. Deferred to other waves or lanes
