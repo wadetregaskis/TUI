@@ -426,6 +426,12 @@ enum PaintRenderer {
                 flush(cursor)
                 runEntry = next
                 runStart = cursor
+                // Grown rather than trusted: a sampler that names its colours as
+                // it meets them can hand back an entry past the table sized
+                // when this style first painted.
+                if next >= sequences.count {
+                    sequences += repeatElement(nil, count: next + 1 - sequences.count)
+                }
                 if sequences[next] == nil {
                     var run = style
                     run.foregroundColor = sampler.ramp[next].opaqueSpelling

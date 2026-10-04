@@ -137,6 +137,11 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             if escapes.isEmpty {
                 escapes = [String?](repeating: nil, count: sampler.ramp.count)
             }
+            // Grown rather than trusted, as `band`'s table is: a sampler that
+            // names its colours as it meets them can pass the size above.
+            if entry >= escapes.count {
+                escapes += repeatElement(nil, count: entry + 1 - escapes.count)
+            }
             // Bound with `if let` rather than tested for `nil` and then read
             // again with `??`: this runs once per run, and each `[String?]`
             // subscript is a retain and release of the cached string, so the
