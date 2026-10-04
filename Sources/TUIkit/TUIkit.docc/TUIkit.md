@@ -161,6 +161,13 @@ struct MyApp: App {
 - ``TableColumnBuilder``
 - ``TableColumnForEach``
 - ``TupleTableColumnContent``
+- ``TableRow``
+- ``TableRowContent``
+- ``TableRowBuilder``
+- ``DynamicTableRowContent``
+- ``TupleTableRowContent``
+- ``TableForEachContent``
+- ``EmptyTableRowContent``
 - ``ColumnWidth``
 - ``SelectionMode``
 - ``RowReorderFeedback``

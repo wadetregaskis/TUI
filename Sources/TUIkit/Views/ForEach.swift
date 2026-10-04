@@ -61,14 +61,15 @@ import Foundation
 /// isolated as a whole, as it was when its `View` conformance said so.
 @MainActor
 public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
-    /// The underlying data collection.
-    let data: Data
+    /// The collection of underlying identified data the loop creates its
+    /// content from.
+    public var data: Data
 
     /// The key path to the unique ID of each element.
     let idKeyPath: KeyPath<Data.Element, ID>
 
-    /// The closure that creates the content for each element.
-    let content: (Data.Element) -> Content
+    /// A function to create content on demand using the underlying data.
+    public var content: (Data.Element) -> Content
 
     /// The `.onMove(perform:)` row-reorder action, if attached: `(source
     /// offsets, destination offset)`. `nil` unless a `.onMove` modifier set it.

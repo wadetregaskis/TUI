@@ -190,6 +190,24 @@ Columns compose the way SwiftUI's do: an `if`/`else` in the column list, a
 ``TableColumnForEach`` for columns computed from data. A column list has no
 `for` loop.
 
+### Rows
+
+A table built from a collection has a row per element. A table can instead
+take its rows from a row builder, exactly as in SwiftUI — fixed rows, rows
+from a collection, an `if`, a `Group`:
+
+```swift
+Table(of: Purchase.self) {
+    TableColumn("Item", value: \.item)
+    TableColumn("Price") { Text($0.price, format: .currency(code: "USD")) }
+} rows: {
+    TableRow(Purchase(item: "Coffee", price: 2.50))
+    ForEach(purchases) { purchase in
+        TableRow(purchase)
+    }
+}
+```
+
 ### Column Configuration
 
 Columns support four width modes:

@@ -59,6 +59,10 @@ import Foundation
 /// columns computed from data. A cell is one line unless its column's
 /// `lineLimit(_:)` allows more.
 ///
+/// The rows are a collection's elements, or — with the `rows:` initializers,
+/// `Table(of:columns:rows:)` and its siblings — whatever a ``TableRowBuilder``
+/// closure gives: ``TableRow``s, `ForEach` of rows, an `if`, a `Group`.
+///
 /// ## Sorting
 ///
 /// Give the table a `sortOrder` binding and the sortable columns' headers
@@ -306,7 +310,7 @@ extension Table {
     /// The one initializer that stores anything; the public ones differ only in
     /// which selection binding and which sort order they hand it, and `nil`
     /// for both selections is the no-selection table.
-    private init(
+    init(
         rows: [Value], columns: [_TableColumnSpec<Value>],
         single: Binding<Value.ID?>?, multi: Binding<Set<Value.ID>>?,
         sortModel: _TableSortModel<Value>?

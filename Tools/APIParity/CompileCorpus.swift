@@ -734,3 +734,55 @@ private struct ResizableImageShapes: View {
         TableColumn("Family", value: \.familyName)
     }
 }
+
+/// SwiftUI's row surface: a table whose rows come from a row builder, with a
+/// fixed row, `ForEach` in both forms, an `if`, a `Group`, and row content
+/// factored into a type of the app's own.
+@MainActor
+private struct TableRowShapes: View {
+    struct Purchase: Identifiable {
+        let id: Int
+        var item: String
+        var price: Double
+    }
+
+    struct Specials: TableRowContent {
+        let purchases: [Purchase]
+
+        @TableRowBuilder<Purchase>
+        var tableRowBody: some TableRowContent<Purchase> {
+            ForEach(purchases) { purchase in
+                TableRow(purchase)
+            }
+        }
+    }
+
+    @State private var purchases: [Purchase] = []
+    @State private var selection: Purchase.ID?
+    @State private var sortOrder = [KeyPathComparator(\Purchase.item)]
+    let showsTotal: Bool
+
+    var body: some View {
+        VStack {
+            Table(of: Purchase.self) {
+                TableColumn("Item", value: \.item)
+                TableColumn("Price") { Text($0.price, format: .number) }
+            } rows: {
+                TableRow(Purchase(id: 0, item: "Coffee", price: 2.5))
+                ForEach(purchases) { TableRow($0) }
+                ForEach(purchases)
+                if showsTotal {
+                    TableRow(Purchase(id: -1, item: "Total", price: 0))
+                }
+                Group {
+                    Specials(purchases: purchases)
+                }
+            }
+            Table(selection: $selection, sortOrder: $sortOrder) {
+                TableColumn("Item", value: \.item)
+            } rows: {
+                ForEach(purchases) { TableRow($0) }
+            }
+        }
+    }
+}

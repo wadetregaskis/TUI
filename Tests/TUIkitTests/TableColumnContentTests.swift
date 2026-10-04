@@ -180,7 +180,13 @@ struct TableColumnContentTests {
     func optionalColumn() {
         let present: TableColumn<Row, Never, Text, Text>? = TableColumn("Name", value: \Row.name)
         let absent: TableColumn<Row, Never, Text, Text>? = nil
-        #expect(tableColumns(of: present).count == 1)
-        #expect(tableColumns(of: absent).isEmpty)
+        // Typed, not inferred: an inferred `Optional<…>.TableRowValue` names
+        // one of two type aliases (Optional is both column and row content),
+        // which the asserts build of Swift 6.2.4 cannot round-trip through its
+        // debug info, and aborts.
+        let presentColumns: [_TableColumnSpec<Row>] = tableColumns(of: present)
+        let absentColumns: [_TableColumnSpec<Row>] = tableColumns(of: absent)
+        #expect(presentColumns.count == 1)
+        #expect(absentColumns.isEmpty)
     }
 }
