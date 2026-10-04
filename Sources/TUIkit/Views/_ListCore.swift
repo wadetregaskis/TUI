@@ -1036,7 +1036,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // which only a striped list reads, and which a source whose rows'
         // types are still to be asked can only learn by asking the rows above.
         let firstSectionContentIndex =
-            style.alternatingRowColors ? source.sectionContentIndex(at: origin.offset) : 0
+            stripesRows(style: style, environment: context.environment) ? source.sectionContentIndex(at: origin.offset) : 0
         if wantsScrollbar {
             let bar = listScrollbarCells(
                 source: source,
@@ -4164,6 +4164,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     return alternatingBackgroundIfAny(
                         sectionContentIndex: sectionContentIndex,
                         style: style,
+                        context: context,
                         palette: palette)
                 }
                 // A tint of the accent, and nothing at all where that tint cannot be
@@ -4174,6 +4175,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 return alternatingBackgroundIfAny(
                     sectionContentIndex: sectionContentIndex,
                     style: style,
+                    context: context,
                     palette: palette)
             }
         }
@@ -4190,13 +4192,19 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     private func alternatingBackgroundIfAny(
         sectionContentIndex: Int,
         style: any ListStyle,
+        context: RenderContext,
         palette: any Palette
     ) -> RowBackground {
-        guard style.alternatingRowColors, sectionContentIndex.isMultiple(of: 2) else { return .none }
-        return .tint(
-            palette.highlightFill(
-                palette.accent.opacity(ViewConstants.alternatingRowBackground, over: palette.background),
-                tint: palette.accent))
+        guard stripesRows(style: style, environment: context.environment),
+            sectionContentIndex.isMultiple(of: 2)
+        else { return .none }
+        return .alternatingStripe(palette: palette)
+    }
+
+    /// Whether this list stripes its rows: as `.alternatingRowBackgrounds(_:)`
+    /// says, and as the style says when that is `.automatic`.
+    private func stripesRows(style: any ListStyle, environment: EnvironmentValues) -> Bool {
+        environment.alternatingRowBackgrounds.stripes(byDefault: style.alternatingRowColors)
     }
 
     /// How a badged line is laid out: the content fitted to leave room, the fill

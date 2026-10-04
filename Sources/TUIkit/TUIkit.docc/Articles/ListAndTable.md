@@ -252,6 +252,12 @@ TableColumn("Amount") { Text($0.amount, format: .number) }
 On a `Group` of columns, `.alignment(_:)` aligns each of them that does not
 state an alignment of its own.
 
+### Striped Rows
+
+`.alternatingRowBackgrounds()` tints every other row of the tables and lists
+inside it, counting from each section's first row however far the content has
+scrolled. A focused or selected row keeps its own highlight.
+
 ### Hiding the Column Headers
 
 `.tableColumnHeaders(.hidden)` takes the header line away and gives it to the

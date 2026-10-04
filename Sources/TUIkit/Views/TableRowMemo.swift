@@ -122,19 +122,23 @@ struct TableRowMemoLine {
     /// row of a focused table is never kept (see `Table.renderRow`), so every
     /// entry is a row the cursor was not on.
     let isSelected: Bool
+    /// Whether the row drew a stripe (`.alternatingRowBackgrounds()`), which
+    /// follows its POSITION: a row that moved to the other parity draws
+    /// another background over the same cells.
+    let isStriped: Bool
     let line: String
     let claims: [OpacityRegion]
 
     /// Whether this entry answers for a row whose cells are `cells`.
-    func answers(cells other: [String], isSelected: Bool) -> Bool {
-        self.isSelected == isSelected && cells == other
+    func answers(cells other: [String], isSelected: Bool, isStriped: Bool) -> Bool {
+        self.isSelected == isSelected && self.isStriped == isStriped && cells == other
     }
 
     /// Whether this entry answers for `row` WITHOUT computing its cells — only
     /// for a table whose every column names its value, where the cells are a
     /// pure function of the row.
-    func answers(row other: AnyEquatableBox, isSelected: Bool) -> Bool {
-        self.isSelected == isSelected && self.row == other
+    func answers(row other: AnyEquatableBox, isSelected: Bool, isStriped: Bool) -> Bool {
+        self.isSelected == isSelected && self.isStriped == isStriped && self.row == other
     }
 }
 

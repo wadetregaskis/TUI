@@ -476,3 +476,21 @@ struct RowSelectionIndicator: Equatable {
         )
     }
 }
+
+// MARK: - Alternating rows
+
+extension RowBackground {
+    /// What a striped row draws: the palette's accent at low opacity over its
+    /// page — and nothing where that tint cannot be measured, since a band of
+    /// reverse video down every other row would read as a screen full of
+    /// cursors (``tint(_:)``).
+    ///
+    /// One answer for `_ListCore` and `Table`, which stripe the same rows the
+    /// same way.
+    static func alternatingStripe(palette: any Palette) -> RowBackground {
+        .tint(
+            palette.highlightFill(
+                palette.accent.opacity(ViewConstants.alternatingRowBackground, over: palette.background),
+                tint: palette.accent))
+    }
+}

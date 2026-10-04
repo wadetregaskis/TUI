@@ -10,7 +10,40 @@ in the session notes (`w08a/probe/`), not in the repository.*
 
 ## A. Needs your decision
 
-*(none yet)*
+### A-W08a-1. Should a table stripe its rows by default?
+
+*`AlternatingRowBackgroundBehavior.automatic`*
+
+`.alternatingRowBackgrounds(_:)` shipped for tables and lists alike:
+`.enabled` stripes every other row with the tint a striped `ListStyle` has
+always drawn (the accent at 15% over the page), `.disabled` never stripes.
+`.automatic` defers to the component, and SwiftUI documents what the
+components do: a macOS `Table` stripes by default, a `List` does not.
+Measured: a plain SwiftUI `Table` on macOS 26.2 has
+`usesAlternatingRowBackgroundColors` on.
+
+TUIkit's table has never striped. Shipped: `.automatic` leaves it so.
+
+**Options.**
+
+1. **Unstriped by default** (shipped). Every existing table keeps its look,
+   and SwiftUI source that asks for stripes gets them. The divergence is the
+   default alone. Free.
+2. **Striped by default, as SwiftUI's macOS table is.** Every table changes:
+   half its rows draw a background, so frames grow by a background SGR per
+   striped row (row memos keep them, but a churning table pays), and the
+   accent tint sits under every other row of tables whose palettes were
+   tuned without it. Golden and render tests that read a table's bytes need
+   re-baselining. Half a day, most of it the tests.
+3. **Striped by default under one table style.** SwiftUI ties the stripes to
+   the `.inset` style's look; when `TableStyle` lands, `.inset` could stripe
+   and `.bordered` (TUIkit's look today) not, with the default style deciding
+   which a plain table gets. Folds into the table-style work.
+
+**Recommendation:** 1, revisited with 3 when `TableStyle` ships. A terminal's
+rows are a single line of text on a fixed grid, where a reader's eye does not
+drift between rows the way it does across a wide window, and a stripe the
+palette did not plan for is a cost every theme pays.
 
 ---
 

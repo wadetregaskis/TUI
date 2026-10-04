@@ -613,6 +613,9 @@ private struct TableColumnShapes: View {
                 TableColumn("Age", sortUsing: SortDescriptor(\Person.age)) { Text("\($0.age)") }
             }
             .tableColumnHeaders(.hidden)
+            .alternatingRowBackgrounds()
+            List(people) { Text($0.givenName) }
+                .alternatingRowBackgrounds(.disabled)
             Table(people) {
                 Group {
                     TableColumn("Label", value: \Person.email)

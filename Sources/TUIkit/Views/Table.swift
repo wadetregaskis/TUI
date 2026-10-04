@@ -1980,7 +1980,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let gutter = selectionGutter(context.environment)
         let spacing = asciiSpaces(columnSpacing)
         let visual = rowVisualState(
-            isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
+            isFocused: isFocused, isSelected: isSelected,
+            isStriped: isStriped(row: row, environment: context.environment),
+            context: context, palette: palette)
         let styledIndicator = ANSIRenderer.colorize(
             visual.indicator, foreground: visual.indicatorColor.opaqueSpelling)
         // See `renderRow`: one step of the ramp per ROW, so every line of a
@@ -3944,12 +3946,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         let kept = handler.tableRowMemo.entry(for: item.id)
         let rowBox = Self.rowsSignature(of: item)
+        // A row that moved to the other parity changes its stripe, which
+        // neither its cells nor its selection say.
+        let isStriped = isStriped(row: paint.row, environment: context.environment)
 
         // The cheapest hit there is: every column names its value, so the cells
         // are a pure function of the row, and an equal row needs no cells built
         // at all. Only available to a comparable row type.
         if let kept, let rowBox, handler.tableRowMemo.namesItsValues,
-            kept.answers(row: rowBox, isSelected: isSelected)
+            kept.answers(row: rowBox, isSelected: isSelected, isStriped: isStriped)
         {
             return serve(kept, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
@@ -3959,7 +3964,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // nothing can skip it — but what they produced settles the question
         // outright, for any row type and any column.
         let cells = rowCells(for: item, columnWidths: columnWidths, context: context)
-        if let kept, kept.answers(cells: cells, isSelected: isSelected) {
+        if let kept, kept.answers(cells: cells, isSelected: isSelected, isStriped: isStriped) {
             // Re-point the entry at THIS row, or a row that changed in a way its
             // columns do not show would take this path for ever — see
             // `TableRowMemoStore.refresh(row:for:)`.
@@ -3981,7 +3986,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         handler.tableRowMemo.keep(
             TableRowMemoLine(
-                row: rowBox, cells: cells, isSelected: isSelected,
+                row: rowBox, cells: cells, isSelected: isSelected, isStriped: isStriped,
                 line: result.line, claims: result.claims),
             for: item.id)
         return result
@@ -4083,6 +4088,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let visualState = rowVisualState(
             isFocused: isFocused,
             isSelected: isSelected,
+            isStriped: isStriped(row: row, environment: context.environment),
             context: context,
             palette: palette
         )
@@ -4420,6 +4426,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func rowVisualState(
         isFocused: Bool,
         isSelected: Bool,
+        isStriped: Bool,
         context: RenderContext,
         palette: any Palette
     ) -> (indicator: String, indicatorColor: Color, background: RowBackground) {
@@ -4451,10 +4458,22 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // at all. `unfocusedSelectionVisibility(.hidden)` suppresses it, as it
                 // does the List's.
                 .tint(palette.selectedRowFill())
+            } else if isStriped {
+                // Every other row, under `.alternatingRowBackgrounds()` — the
+                // tint a striped `List` draws, from the same place.
+                .alternatingStripe(palette: palette)
             } else {
                 .none
             }
         return (indicator.glyph, indicator.color, background)
+    }
+
+    /// Whether the row at `row` in `data` draws a stripe: every other row,
+    /// counting from the first however far the table has scrolled, so the
+    /// stripes stay on their rows — under `.alternatingRowBackgrounds()`. A
+    /// table does not stripe by default (decisions A-W08a-1).
+    private func isStriped(row: Int, environment: EnvironmentValues) -> Bool {
+        row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: false)
     }
 
     // MARK: - Text Alignment
