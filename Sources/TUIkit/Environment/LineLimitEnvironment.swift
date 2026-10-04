@@ -41,12 +41,19 @@ public enum LineLimit: Sendable, Equatable {
     /// reservation too, and a `Bool` of its own would linger over it.
     case lines(Int, reservesSpace: Bool = false)
 
+    /// At least ``LineRange/minimum`` lines, and at most
+    /// ``LineRange/maximum`` — SwiftUI's `lineLimit(_:)` with a range whose
+    /// lower bound reserves more than one line. A range that reserves nothing,
+    /// or exactly its limit, is one of the cases above.
+    case range(LineRange)
+
     /// The cap as a row count, or `nil` for ``unlimited`` — the form the
     /// wrapping code wants.
     var rowCount: Int? {
         switch self {
         case .unlimited: nil
         case .lines(let count, _): max(1, count)
+        case .range(let range): range.maximum.map { max(1, $0) }
         }
     }
 
@@ -55,6 +62,7 @@ public enum LineLimit: Sendable, Equatable {
     var reservedLines: Int? {
         switch self {
         case .lines(let count, true): max(1, count)
+        case .range(let range): max(1, range.minimum)
         default: nil
         }
     }
@@ -63,6 +71,49 @@ public enum LineLimit: Sendable, Equatable {
     /// *unlimited* rather than *unset*.
     init(_ limit: Int?, reservesSpace: Bool = false) {
         self = limit.map { .lines($0, reservesSpace: reservesSpace) } ?? .unlimited
+    }
+
+    /// Builds a limit from a range of lines: the lower bound reserved, the
+    /// upper bound a cap.
+    init(_ range: ClosedRange<Int>) {
+        if range.lowerBound <= 1 {
+            self = .lines(range.upperBound)
+        } else if range.lowerBound == range.upperBound {
+            self = .lines(range.upperBound, reservesSpace: true)
+        } else {
+            self = .range(LineRange(minimum: range.lowerBound, maximum: range.upperBound))
+        }
+    }
+
+    /// Builds a limit from a lower bound alone: reserved, with no cap.
+    init(_ range: PartialRangeFrom<Int>) {
+        self = range.lowerBound <= 1 ? .unlimited : .range(LineRange(minimum: range.lowerBound, maximum: nil))
+    }
+}
+
+/// A range of lines a ``LineLimit`` allows: a floor and an optional cap.
+///
+/// Its bounds are held as 32-bit counts, which no line limit outgrows, so a
+/// limit is no wider for having a range: a `Text` stores one, and every `Text`
+/// would pay for the extra word.
+@frozen
+public struct LineRange: Sendable, Equatable {
+    private let storedMinimum: Int32
+    private let storedMaximum: Int32
+
+    /// The lines occupied however short the text is.
+    public var minimum: Int { Int(storedMinimum) }
+
+    /// The most lines the text may occupy, or `nil` for no cap.
+    public var maximum: Int? { storedMaximum == .max ? nil : Int(storedMaximum) }
+
+    /// A range from `minimum` lines to `maximum`, or upward without a cap where
+    /// `maximum` is `nil`. Bounds past what 32 bits count are held at the
+    /// largest that fits.
+    init(minimum: Int, maximum: Int?) {
+        let largest = Int(Int32.max - 1)
+        storedMinimum = Int32(min(max(1, minimum), largest))
+        storedMaximum = maximum.map { Int32(min(max(1, $0), largest)) } ?? .max
     }
 }
 
@@ -155,6 +206,46 @@ extension View {
     ///   padded, at `limit` lines.
     public func lineLimit(_ limit: Int, reservesSpace: Bool) -> some View {
         environment(\.lineLimit, LineLimit(limit, reservesSpace: reservesSpace))
+    }
+
+    /// Lets text in this subtree occupy between the range's bounds of lines.
+    /// Matches SwiftUI's `lineLimit(_:)` with a `ClosedRange`.
+    ///
+    /// The lower bound is a floor and the upper a cap, as
+    /// ``lineLimit(_:reservesSpace:)``'s reservation and limit are. A ``Text``
+    /// shorter than the floor keeps the rows anyway; one longer than the cap
+    /// is truncated:
+    ///
+    /// ```swift
+    /// Text(item.summary)
+    ///     .lineLimit(2...4)
+    /// ```
+    ///
+    /// - Parameter limit: The fewest and the most lines.
+    /// - Returns: A view whose descendant text occupies that many lines.
+    public func lineLimit(_ limit: ClosedRange<Int>) -> some View {
+        environment(\.lineLimit, LineLimit(limit))
+    }
+
+    /// Lets text in this subtree occupy at least `limit`'s lower bound of
+    /// lines, with no cap. Matches SwiftUI's `lineLimit(_:)` with a
+    /// `PartialRangeFrom`.
+    ///
+    /// - Parameter limit: The fewest lines.
+    /// - Returns: A view whose descendant text occupies at least that many
+    ///   lines.
+    public func lineLimit(_ limit: PartialRangeFrom<Int>) -> some View {
+        environment(\.lineLimit, LineLimit(limit))
+    }
+
+    /// Caps text in this subtree at `limit`'s upper bound of lines, reserving
+    /// none. Matches SwiftUI's `lineLimit(_:)` with a `PartialRangeThrough`,
+    /// and means what the `Int` form with the bound does.
+    ///
+    /// - Parameter limit: The most lines.
+    /// - Returns: A view whose descendant text is capped at that many lines.
+    public func lineLimit(_ limit: PartialRangeThrough<Int>) -> some View {
+        environment(\.lineLimit, LineLimit(limit.upperBound))
     }
 }
 

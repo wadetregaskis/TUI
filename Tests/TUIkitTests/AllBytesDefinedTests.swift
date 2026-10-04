@@ -103,6 +103,8 @@ struct AllBytesDefinedTests {
         ]),
         Conformer(LineLimit.self, [
             { $0.pointee = .unlimited }, { $0.pointee = .lines(3) }, { $0.pointee = .lines(2, reservesSpace: true) },
+            { $0.pointee = .range(LineRange(minimum: 2, maximum: 5)) },
+            { $0.pointee = .range(LineRange(minimum: 3, maximum: nil)) },
         ]),
         Conformer(AnimationCurve.self, [
             { $0.pointee = .bezier(p1x: 0.1, p1y: 0.2, p2x: 0.3, p2y: 0.4) },
@@ -110,7 +112,10 @@ struct AllBytesDefinedTests {
             { $0.pointee = .circular(.easeInOut) },
         ]),
         Conformer(StatedColor.self, [{ $0.pointee = .unstated }, { $0.pointee = .stated(.rgb(1, 2, 3)) }]),
-        Conformer(StatedLineLimit.self, [{ $0.pointee = .unstated }, { $0.pointee = .stated(.lines(4)) }]),
+        Conformer(StatedLineLimit.self, [
+            { $0.pointee = .unstated }, { $0.pointee = .stated(.lines(4)) },
+            { $0.pointee = .stated(.range(LineRange(minimum: 2, maximum: 5))) },
+        ]),
         Conformer(StatedFont.self, [
             { $0.pointee = .unstated }, { $0.pointee = .statedNone }, { $0.pointee = .stated(.headline) },
         ]),

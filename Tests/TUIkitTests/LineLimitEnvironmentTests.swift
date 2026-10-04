@@ -172,4 +172,39 @@ struct LineLimitEnvironmentTests {
             VStack { Text("one").lineLimit(2) }.lineLimit(4, reservesSpace: true))
         #expect(inner.count == 1, "the inner limit reserves nothing: \(inner)")
     }
+
+    // MARK: - Ranges
+
+    @Test("A closed range reserves its lower bound and caps at its upper")
+    func closedRange() {
+        let short = rendered(VStack { Text("one") }.lineLimit(2...4))
+        #expect(short.count == 2, "padded to the floor: \(short)")
+        #expect(short[0].contains("one") && short[1].isEmpty)
+        let long = rendered(VStack { Text(prose) }.lineLimit(2...4))
+        #expect(long.count == 4, "capped at the ceiling: \(long)")
+        #expect(measured(VStack { Text("one") }.lineLimit(2...4)).height == 2)
+        #expect(measured(VStack { Text(prose) }.lineLimit(2...4)).height == 4)
+    }
+
+    @Test("A partial range from a bound reserves it with no cap")
+    func partialRangeFrom() {
+        #expect(rendered(VStack { Text("one") }.lineLimit(3...)).count == 3)
+        let free = rendered(VStack { Text(prose) })
+        #expect(rendered(VStack { Text(prose) }.lineLimit(3...)).count == free.count)
+    }
+
+    @Test("A partial range through a bound caps it and reserves nothing")
+    func partialRangeThrough() {
+        #expect(rendered(VStack { Text("one") }.lineLimit(...3)).count == 1)
+        #expect(rendered(VStack { Text(prose) }.lineLimit(...2)).count == 2)
+    }
+
+    @Test("A range that reserves nothing, or exactly its cap, is the plain limit")
+    func rangesNormalise() {
+        #expect(LineLimit(1...3) == .lines(3))
+        #expect(LineLimit(3...3) == .lines(3, reservesSpace: true))
+        #expect(LineLimit(1...) == .unlimited)
+        #expect(LineLimit(2...5).rowCount == 5 && LineLimit(2...5).reservedLines == 2)
+        #expect(LineLimit(2...).rowCount == nil && LineLimit(2...).reservedLines == 2)
+    }
 }

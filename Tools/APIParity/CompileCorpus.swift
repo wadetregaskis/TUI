@@ -530,6 +530,20 @@ private struct TextSelectionShapes: View {
     }
 }
 
+/// Text sized by each of SwiftUI's line-limit range forms.
+@MainActor
+private struct LineLimitRangeShapes: View {
+    let summary: String
+
+    var body: some View {
+        VStack {
+            Text(summary).lineLimit(2...4)
+            Text(summary).lineLimit(3...)
+            Text(summary).lineLimit(...2)
+        }
+    }
+}
+
 /// A number formatted through a printf-style specifier inside a Text literal.
 @MainActor
 private struct SpecifierShapes: View {
