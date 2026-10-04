@@ -55,7 +55,7 @@ extension View {
     /// `compositingGroup()`.
     ///
     /// Already true: a container's children are composited into one picture
-    /// before an effect above it — ``opacity(_:)``, a colour effect — applies,
+    /// before an effect above it — ``View/opacity(_:)``, a colour effect — applies,
     /// so overlapping children never show through one another, which is what
     /// the modifier asks for in SwiftUI. A `Group` has a modifier distributed
     /// to each of its members, here as in SwiftUI, so each member is its own

@@ -302,7 +302,7 @@ extension TextField where Label == Text {
     /// Creates a text field with a preferred axis and a localized label.
     ///
     /// On `.vertical` the text wraps over rows, and the field grows a row at a
-    /// time as it is typed, up to its ``View/lineLimit(_:)``, then scrolls —
+    /// time as it is typed, up to its ``View/lineLimit(_:)-(Int?)``, then scrolls —
     /// see "Vertical fields" on ``TextField``. `.horizontal` is the field on
     /// one line.
     ///

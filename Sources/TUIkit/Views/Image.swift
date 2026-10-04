@@ -184,7 +184,7 @@ public struct Image: View {
 // MARK: - Equatable
 
 extension Image: @preconcurrency Equatable {
-    /// Every stored property but ``decoded``, which is what the source decodes
+    /// Every stored property but `decoded`, which is what the source decodes
     /// to: an image drawn at another quality, or as a template, is a different
     /// image to a memo that compares them.
     public static func == (lhs: Image, rhs: Image) -> Bool {

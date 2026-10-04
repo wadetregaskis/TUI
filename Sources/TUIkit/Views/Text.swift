@@ -437,7 +437,7 @@ extension Text {
     /// When the wrapped text would exceed the limit, the final visible line
     /// absorbs the remaining content and is truncated with an ellipsis.
     /// Passing `nil` removes the limit — including one that
-    /// ``View/lineLimit(_:)`` cascaded from above, since a limit stated here
+    /// ``View/lineLimit(_:)-(Int?)`` cascaded from above, since a limit stated here
     /// always wins for this one view.
     ///
     /// ```swift
@@ -731,7 +731,7 @@ extension Text: Renderable, Layoutable {
     /// This text's line cap in rows, or `nil` for none.
     ///
     /// One resolution for both passes: a limit set on this `Text` wins, a
-    /// cascaded ``View/lineLimit(_:)`` fills in otherwise. Measure and render
+    /// cascaded ``View/lineLimit(_:)-(Int?)`` fills in otherwise. Measure and render
     /// must agree — a divergence here reserves rows nothing draws into, or
     /// clips text the parent left no room for.
     private func resolvedLineLimit(context: RenderContext) -> Int? {

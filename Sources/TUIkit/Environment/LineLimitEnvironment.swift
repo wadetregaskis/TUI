@@ -126,7 +126,7 @@ private struct LineLimitKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// The line limit cascaded by ``View/lineLimit(_:)``, which every ``Text``
+    /// The line limit cascaded by ``View/lineLimit(_:)-(Int?)``, which every ``Text``
     /// below obeys unless it set its own.
     ///
     /// Defaults to ``LineLimit/unlimited``.

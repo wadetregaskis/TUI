@@ -43,7 +43,7 @@ extension View {
     /// Spacing goes BETWEEN lines, so a single-line text is unaffected however
     /// large the value, and *n* lines occupy `n + (n − 1) × spacing` rows.
     ///
-    /// It also does not change what ``View/lineLimit(_:)`` counts: a limit is a
+    /// It also does not change what ``View/lineLimit(_:)-(Int?)`` counts: a limit is a
     /// number of LINES OF TEXT, as in SwiftUI, not of rows on screen. Three
     /// lines at spacing 1 are three lines and five rows.
     ///
