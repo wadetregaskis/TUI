@@ -107,7 +107,7 @@ extension TableRowContent {
     /// Press a row and move to begin the drag: the row's own line follows the
     /// pointer, and releasing over a destination that takes the payload
     /// delivers it — a view's `.dropDestination(for:action:isTargeted:)`,
-    /// another row's ``dropDestination(for:action:)``, or a table or list
+    /// another row's ``TableRowContent/dropDestination(for:action:)``, or a table or list
     /// that inserts it. A press released without moving is a click, which
     /// selects the row as ever. The payload is evaluated when the drag begins.
     ///
@@ -205,7 +205,7 @@ extension DynamicTableRowContent {
         /// items of `supportedContentTypes` dropped between two of the loop's
         /// rows inserts them there.
         ///
-        /// See ``dropDestination(for:action:)`` for the gap and the offset. A
+        /// See ``DynamicTableRowContent/dropDestination(for:action:)`` for the gap and the offset. A
         /// drag from `onDrag(_:)` or ``TableRowContent/itemProvider(_:)``
         /// carries its provider; one from `draggable(_:)` with a string or a URL
         /// carries it as a provider of text or a URL.

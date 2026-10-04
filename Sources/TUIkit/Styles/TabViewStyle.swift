@@ -129,7 +129,7 @@ extension TabViewStyle where Self == GroupedTabViewStyle {
 }
 
 extension TabViewStyle where Self == DefaultTabViewStyle {
-    /// The default tab view style: ``compact`` in TUIkit.
+    /// The default tab view style: ``TabViewStyle/compact`` in TUIkit.
     public static var automatic: DefaultTabViewStyle { DefaultTabViewStyle() }
 }
 
