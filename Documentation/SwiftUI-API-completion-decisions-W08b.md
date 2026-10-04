@@ -226,6 +226,37 @@ Where it differs:
   seen, behind the memo the list wraps such rows in. Half an hour with the
   badge's own unwrapping (`extractRowBadgeValue`).
 
+### B-W08b-7. Section actions: always shown, after the header's title
+
+*`View.sectionActions(content:)`*
+
+macOS shows a list section's actions at the trailing end of its header while
+the pointer is over the section.
+
+**Shipped:** in a `List`, the actions are drawn one cell after the header's
+title, all the time, and are ordinary controls there — Tab moves onto each, a
+click presses one. A section with no header shows them alone on the header's
+line. A custom container reads them as `SectionConfiguration.actions`.
+Outside a list (a `Section` in a stack) the view draws as it would without
+them, as SwiftUI's does.
+
+Where it differs:
+
+- **Always shown.** An action shown only under the pointer is one the
+  keyboard cannot reach; showing them while the focus is inside the section
+  as well as on hover is a line, if the owner prefers the quieter header.
+- **After the title, not flush right.** The list builds a header row before
+  it knows the width a hugging list (a sidebar) settles on, so a flush-right
+  action there would lose its trailing cells. Flushing right in a list that
+  fills its width, and after the title in one that hugs, is half a day: the
+  header row would carry the actions apart from its buffer and the list
+  would place them as it places a badge.
+- **An environment modifier between the section and `.sectionActions`**
+  (`Section { … }.headerProminence(.increased).sectionActions { … }`) hides
+  the section from the list, which draws it without its actions — checked in
+  a test run. That is the list's own limit: it does not see a `Section`
+  through an environment modifier, with or without actions.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

@@ -190,18 +190,22 @@ func isEmptyMember(_ child: ChildView) -> Bool {
 
 // MARK: - Sections as Members
 
-/// A section's three parts, each a view.
+/// A section's three parts, each a view, and the actions
+/// `.sectionActions(content:)` gave it.
 @MainActor
 struct SectionParts {
     let header: any View
     let content: any View
     let footer: any View
+    var actions: (any View)?
 
     /// The parts with a view applied to each — how a modifier written on a
     /// section reaches its parts, as one written on a `Group` reaches its
-    /// members.
+    /// members — and to the actions, which it is written over too.
     func map(_ transform: (any View) -> any View) -> Self {
-        Self(header: transform(header), content: transform(content), footer: transform(footer))
+        Self(
+            header: transform(header), content: transform(content), footer: transform(footer),
+            actions: actions.map(transform))
     }
 
     /// Each part with the scope its members resolve in: a step of its own

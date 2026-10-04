@@ -41,13 +41,19 @@ public struct SectionConfiguration: Identifiable {
 
     /// The type-erased actions of a section.
     ///
-    /// A view, empty: no TUIkit view can attach an action to a section yet
-    /// (SwiftUI's `sectionActions(content:)`), so every section has none, which
-    /// is what an empty view says.
+    /// The view `.sectionActions(content:)` gave the section, and an empty view
+    /// for a section given none — every implicit section among them.
     @MainActor
     public struct Actions: View {
+        /// The actions, or `nil` for none.
+        let content: AnyView?
+
+        init(_ content: (any View)? = nil) {
+            self.content = content.map { AnyView($0) }
+        }
+
         public var body: some View {
-            EmptyView()
+            content ?? AnyView(EmptyView())
         }
     }
 
@@ -68,9 +74,9 @@ public struct SectionConfiguration: Identifiable {
     /// implicit section's are empty.
     public let containerValues: ContainerValues
 
-    /// Custom actions associated with a section. Always empty — see
-    /// ``Actions``.
-    public var actions: Actions { Actions() }
+    /// Custom actions associated with a section — those
+    /// `.sectionActions(content:)` wrote on it.
+    public let actions: Actions
 }
 
 // MARK: - Section Collection
@@ -126,7 +132,8 @@ extension SectionCollection {
                     header: SubviewsCollection(members: .empty),
                     content: SubviewsCollection(members: SubviewMembers(loose)),
                     footer: SubviewsCollection(members: .empty),
-                    containerValues: ContainerValues()))
+                    containerValues: ContainerValues(),
+                    actions: SectionConfiguration.Actions()))
             loose = []
         }
 
@@ -153,7 +160,8 @@ extension SectionCollection {
                     content: collections[1],
                     footer: collections[2],
                     containerValues: ContainerValues(
-                        of: child, implicitTag: rowIDs?.elementID(ofChildAt: index))))
+                        of: child, implicitTag: rowIDs?.elementID(ofChildAt: index)),
+                    actions: SectionConfiguration.Actions(parts.actions)))
         }
         closeImplicitSection()
         if sections.isEmpty {
@@ -163,7 +171,8 @@ extension SectionCollection {
                     header: SubviewsCollection(members: .empty),
                     content: SubviewsCollection(members: .empty),
                     footer: SubviewsCollection(members: .empty),
-                    containerValues: ContainerValues()))
+                    containerValues: ContainerValues(),
+                    actions: SectionConfiguration.Actions()))
         }
         self.sections = sections
     }
