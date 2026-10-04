@@ -25,8 +25,9 @@ import TUIkitCore
 /// Main-actor isolated, because building rows is — a `DisclosureTableRow`'s
 /// children come from its row builder, and a recursive open builds them. The
 /// handler's key dispatch is nonisolated in its type but runs on the main
-/// actor all the same (`StdinArrivalStream` delivers input there), and the two
-/// ``OutlineRowActivating`` witnesses say so with `MainActor.assumeIsolated`.
+/// actor all the same (`StdinArrivalStream` delivers input there): the opening
+/// witness says so with `MainActor.assumeIsolated`, and the parent lookup
+/// reads only a map written once, in the initializer.
 @MainActor
 final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// Whether a row has rows beneath it, and whether they show.
@@ -259,7 +260,8 @@ where Data.Element: Identifiable {
 
     /// The type of the rows: an outline of one ``TableRow`` per element.
     ///
-    /// Named rather than opaque, as SwiftUI's is, so the type states it.
+    /// Spelled out where SwiftUI's is opaque: SwiftUI declares the alias, and an
+    /// opaque body here would declare none.
     public typealias TableRowBody = OutlineGroup<Data, Data.Element.ID, TableRow<Data.Element>>
 
     /// The rows: an outline of one ``TableRow`` per element.

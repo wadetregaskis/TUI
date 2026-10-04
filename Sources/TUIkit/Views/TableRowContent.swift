@@ -295,7 +295,8 @@ where Data.Element: Identifiable {
 
     /// The type of the rows: one ``TableRow`` per element.
     ///
-    /// Named rather than opaque, as SwiftUI's is, so the type states it.
+    /// Spelled out where SwiftUI's is opaque: SwiftUI declares the alias, and an
+    /// opaque body here would declare none.
     public typealias TableRowBody = ForEach<Data, Data.Element.ID, TableRow<Data.Element>>
 
     /// The rows: one ``TableRow`` per element.
