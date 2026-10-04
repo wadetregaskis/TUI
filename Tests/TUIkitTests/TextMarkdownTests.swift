@@ -163,4 +163,73 @@ struct TextMarkdownTests {
         #expect(text.runs?.last?.live != nil)
         #expect(text.runs?.first?.live == nil)
     }
+
+    // MARK: - The kept parse
+
+    @Test("A template is parsed once, and its parse is kept")
+    func templateIsKept() {
+        // A template no other test uses, so the first build is the one that
+        // files it — or, at the cap, empties the cache and then files it.
+        let before = MarkdownTemplate.keptCount
+        let first = 1
+        _ = Text("**\(first)** kept, in `TextMarkdownTests`")
+        let filed = MarkdownTemplate.keptCount
+        #expect(filed == before + 1 || filed == 1)
+        let second = 2
+        _ = Text("**\(second)** kept, in `TextMarkdownTests`")
+        #expect(MarkdownTemplate.keptCount == filed)
+    }
+
+    @Test("One template's kept parse takes each build's own values")
+    func keptParseTakesEachValue() {
+        for (name, status) in [("ann", "ok"), ("bo", "failed"), ("*c*", "`x`")] {
+            #expect(runs(Text("**\(name)** in `\(status)`")) == ["\(name)|b", " in \(status)"])
+        }
+        for id in [42, 7] {
+            #expect(runs(Text("[ticket](https://example.com/t/\(id))")) == ["ticket|→https://example.com/t/\(id)"])
+        }
+    }
+
+    @Test("A kept parse is not live because the build that filed it was")
+    func keptParseKeepsNoLiveness() {
+        // `\(date, style: .relative)` and `\(name)` both make "Due **%@**".
+        let due = Date(timeIntervalSinceNow: 7200)
+        #expect(Text("Due **\(due, style: .relative)**").runs?.last?.live != nil)
+        let name = "Friday"
+        #expect(runs(Text("Due **\(name)**")) == ["Due ", "Friday|b"])
+        #expect(Text("Due **\(due, style: .relative)**").runs?.last?.live != nil)
+    }
+
+    @Test("A template with values and the same one without are parsed apart")
+    func keptParseKnowsWhetherThereAreValues() {
+        // Without values a `%` is a percent; with them, a placeholder — so the
+        // same template parses two ways, whichever comes first.
+        let template = "%@ **x** kept"
+        for _ in 0..<2 {
+            #expect(Text(LocalizedStringKey(template)).content == "%@ x kept")
+            #expect(Text(LocalizedStringKey(key: template, arguments: ["5"])).content == "5 x kept")
+        }
+    }
+
+    @Test("A translation registered later is parsed as itself")
+    func keptParseFollowsTheTranslation() {
+        // The parse is kept by the text the key resolves to, so a new
+        // translation of the same key is a new template.
+        LocalizationService.shared.register(translations: [
+            "en": ["test.markdown.kept": "*first* text"]
+        ])
+        #expect(runs(Text("test.markdown.kept")) == ["first|i", " text"])
+        LocalizationService.shared.register(translations: [
+            "en": ["test.markdown.kept": "**second** text"]
+        ])
+        #expect(runs(Text("test.markdown.kept")) == ["second|b", " text"])
+    }
+
+    @Test("The kept parses are bounded")
+    func keptParsesAreBounded() {
+        for index in 0...MarkdownTemplate.cacheLimit {
+            _ = Text(LocalizedStringKey("**bounded \(index)**"))
+            #expect(MarkdownTemplate.keptCount <= MarkdownTemplate.cacheLimit)
+        }
+    }
 }

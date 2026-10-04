@@ -4501,9 +4501,10 @@ placeholder is `%@`, and the scan took any `@` as a possible email address, so
 `scrollfollow` +53%, `churn` +18% and `gradients` +12% against the build before
 this lane. The scan now takes an `@` only after a byte an address's local part
 can end with, as the email scan itself requires; that recovered `scrollfollow`
-−33%, `churn` −14%, `gradients` −9%. A key that really holds Markdown still
-parses on every construction; caching the parse per key is the follow-up, if a
-measured app needs it.
+−33%, `churn` −14%, `gradients` −9%. A key that really holds Markdown parses
+its template once: the parse never reads a value, so it is kept per resolved
+template (`MarkdownTemplate`, with whether the key has values), and each
+construction only puts its values in.
 
 **Recommendation:** leave both differences until a translation needs them.
 
