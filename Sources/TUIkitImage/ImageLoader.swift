@@ -267,7 +267,17 @@ extension PlatformImageLoader {
             guard let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) else {
                 throw ImageLoadError.decodingFailed("NSImage has no CoreGraphics representation")
             }
+            return try decode(cgImage, maxPixelCount: maxPixelCount)
+        }
 
+        /// Decodes a `CGImage` into straight-alpha, row-major RGBA (row 0 =
+        /// top), the pixel contract every backend meets.
+        ///
+        /// - Parameters:
+        ///   - cgImage: The image to draw out.
+        ///   - maxPixelCount: The most pixels to accept, or `nil` for any.
+        /// - Returns: The image's pixels.
+        package func decode(_ cgImage: CGImage, maxPixelCount: Int?) throws -> RGBAImage {
             let width = cgImage.width
             let height = cgImage.height
             let pixelCount = width * height
