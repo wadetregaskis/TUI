@@ -7,10 +7,18 @@
 /// A style that customizes the appearance of lists.
 ///
 /// List styles control how lists render: whether the list draws a border, the
-/// padding around its rows, and whether rows alternate backgrounds. TUIkit
-/// provides two built-in styles that match SwiftUI's behavior:
-/// - ``PlainListStyle``: Minimal appearance with no borders or background
-/// - ``InsetGroupedListStyle``: Bordered container with inset padding
+/// padding around its rows, and whether rows alternate backgrounds. The
+/// built-in styles:
+/// - ``DefaultListStyle`` (`.automatic`): the default — a bordered box in
+///   TUIkit, where SwiftUI's macOS default has no border.
+/// - ``BorderedListStyle`` (`.bordered`): a box around full-width rows.
+/// - ``InsetListStyle`` (`.inset`): no border, the rows inset a cell from the
+///   edges.
+/// - ``PlainListStyle`` (`.plain`): no border, full-width rows.
+/// - ``SidebarListStyle`` (`.sidebar`): no border, and the rows' `Label` icons
+///   in the list item tint.
+/// - ``InsetGroupedListStyle`` (`.insetGrouped`): bordered, as `.bordered` is
+///   (iOS's name; SwiftUI does not offer it on macOS).
 ///
 /// # Usage
 ///

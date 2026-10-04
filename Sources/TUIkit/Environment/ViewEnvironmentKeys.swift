@@ -97,7 +97,7 @@ extension EnvironmentValues {
 
 /// Environment key for list styles.
 private struct ListStyleKey: EnvironmentKey {
-    static let defaultValue: any ListStyle = InsetGroupedListStyle()
+    static let defaultValue: any ListStyle = DefaultListStyle()
 }
 
 extension EnvironmentValues {
@@ -105,8 +105,8 @@ extension EnvironmentValues {
     ///
     /// Controls how lists render, including borders, padding, and row backgrounds.
     /// Set via `.listStyle()` modifier on List views.
-    /// Default: ``InsetGroupedListStyle`` (bordered and inset; it does NOT
-    /// alternate row backgrounds — neither built-in style does).
+    /// Default: ``DefaultListStyle`` (bordered; it does NOT alternate row
+    /// backgrounds — no built-in style does).
     ///
     /// The render cache compares this value between frames to decide whether
     /// what it memoized below is still good, so a style that is not `Equatable`

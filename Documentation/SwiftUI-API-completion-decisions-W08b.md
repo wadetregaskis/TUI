@@ -11,6 +11,33 @@ not in the repository. macOS 26 APIs could not be probed.*
 
 ## A. Needs your decision
 
+### A-W08b-1. Should a list look like SwiftUI's by default — borderless?
+
+*`DefaultListStyle`, `ListStyle.automatic`*
+
+The table's question (A29) asked of lists. Measured on macOS 15.8: a SwiftUI
+`List` with no style, and one with `.inset`, is an `NSTableView` of style
+`.inset` in a scroll view with no border; `.bordered` is style `.fullWidth` in
+a line-bordered scroll view; `.sidebar` is `.sourceList`; `.plain` is `.plain`.
+None stripes its rows.
+
+Shipped: `.automatic` is the bordered box every TUIkit list has always drawn,
+and `.bordered`, `.inset`, `.plain` and `.sidebar` draw as named.
+
+**Options.**
+
+1. **Bordered by default** (shipped). The divergence is the default alone.
+   Free.
+2. **SwiftUI's default: `.inset`.** Every list without a style loses its
+   border, which gives its rows two lines and moves every click target a line
+   up and a cell left, and its title (drawn in the top border today) needs a
+   line of its own. Golden and render tests that read a list's bytes need
+   re-baselining. Half a day, most of it the tests.
+
+**Recommendation:** answer it with A29, the same way. A list and a table side
+by side should not disagree about whether they are boxed; whichever answer
+A29 gets, this one takes.
+
 ## B. Shipped the safe option
 
 ### B-W08b-1. Badge prominence: two inks, read from the list's environment

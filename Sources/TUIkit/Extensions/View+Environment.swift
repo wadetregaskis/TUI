@@ -140,9 +140,9 @@ extension View {
     /// Sets the list style for List views in this view and its descendants.
     ///
     /// The list style controls how lists render, including borders, padding,
-    /// and row backgrounds. Built-in styles match SwiftUI's behavior:
-    /// - ``PlainListStyle``: Minimal appearance with no borders
-    /// - ``InsetGroupedListStyle``: Bordered with inset padding and alternating rows
+    /// and row backgrounds. The built-in styles are SwiftUI's macOS ones —
+    /// `.automatic`, `.bordered`, `.inset`, `.plain`, `.sidebar` — and iOS's
+    /// `.insetGrouped`; see ``ListStyle``.
     ///
     /// # Example
     ///

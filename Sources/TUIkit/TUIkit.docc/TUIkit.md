@@ -333,8 +333,13 @@ struct MyApp: App {
 - ``IndeterminateStyle``
 - ``IndeterminateConfiguration``
 - ``ListStyle``
+- ``DefaultListStyle``
+- ``BorderedListStyle``
+- ``InsetListStyle``
 - ``PlainListStyle``
+- ``SidebarListStyle``
 - ``InsetGroupedListStyle``
+- ``ListItemTint``
 - ``SpinnerStyle``
 - ``TextCursorStyle``
 - ``TextContentType``

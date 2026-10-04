@@ -755,6 +755,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowContext.availableWidth = max(
                 1, context.availableWidth - style.horizontalChrome - listRowGutter)
         }
+        // A sidebar list draws its rows' label icons in the list item tint
+        // (`SidebarListStyle`). Written only where it changes, so a list nested
+        // in a sidebar's row does not pass the sidebar on to its own rows.
+        let isSidebar = style is SidebarListStyle
+        if rowContext.environment.isSidebarListRow != isSidebar {
+            rowContext.environment.isSidebarListRow = isSidebar
+        }
         // The rows' `containerRelativeFrame` container: the width a row gets,
         // and the height inside the border.
         rowContext = rowContext.publishingContainerSize(

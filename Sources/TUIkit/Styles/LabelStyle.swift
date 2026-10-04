@@ -133,6 +133,8 @@ private struct _IconAndTitle: View {
     let configuration: LabelStyleConfiguration
     @Environment(\.labelIconToTitleSpacing) private var spacing
     @Environment(\.labelReservedIconWidth) private var reservedIconWidth
+    /// The list item tint, in a sidebar list's row (``ListItemTint``).
+    @Environment(\.labelIconTint) private var iconTint
 
     @ViewBuilder var body: some View {
         if configuration.iconIsVisible {
@@ -149,10 +151,17 @@ private struct _IconAndTitle: View {
         }
     }
 
-    private var icon: some View {
-        configuration.icon
+    /// The icon, without the title's text decorations — and in a sidebar
+    /// list's row, in the list item tint.
+    @ViewBuilder private var icon: some View {
+        let icon = configuration.icon
             .underline(false)
             .strikethrough(false)
+        if let iconTint {
+            icon.foregroundStyle(iconTint)
+        } else {
+            icon
+        }
     }
 }
 
