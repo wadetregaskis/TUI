@@ -1,11 +1,12 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  DragSessionRegistryMemoTests.swift
 //
-//  The drag session keeps THREE per-frame registries — drop targets,
-//  auto-scroll zones and reorder hosts — and `beginFrame()` empties all three
-//  before every walk, exactly as the mouse dispatcher empties its handler
-//  table. A subtree served from a value memo does not render, so it refilled
-//  none of them: the stored buffer still carried the region, the handler
+//  The drag session keeps FOUR per-frame registries — drop targets,
+//  auto-scroll zones, reorder hosts and spring-load targets — and
+//  `beginFrame()` empties all four before every walk, exactly as the mouse
+//  dispatcher empties its handler table. A subtree served from a value memo
+//  does not render, so it refilled the first three of them before they were
+//  journalled: the stored buffer still carried the region, the handler
 //  behind it was refiled from the effect journal, and the registry the drop
 //  resolves that id against was empty. The row looked alive and accepted
 //  nothing.
@@ -84,6 +85,19 @@ private struct ScrollCard: View, @MainActor Equatable {
             }
         }
         .frame(width: 20, height: 3)
+    }
+}
+
+/// A memoizable card holding a spring-loaded button, which registers a
+/// spring-load target beside its mouse handler.
+private struct SpringCard: View, @MainActor Equatable {
+    let title: String
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.title == rhs.title }
+
+    var body: some View {
+        Button(title) {}
+            .springLoadingBehavior(.enabled)
     }
 }
 
@@ -287,6 +301,24 @@ struct DragSessionRegistryMemoTests {
                 "frame \(number) registered \(harness.session.targets.count) of 3 row destinations")
         }
         #expect(harness.cache.stats.hits > 0, "no row was ever served, so this proves nothing")
+    }
+
+    @Test("A served button keeps its spring-load target")
+    func servedButtonKeepsItsSpringLoadTarget() {
+        let harness = DropLoopHarness()
+        let page = VStack {
+            Text("ahead").focusable()
+            SpringCard(title: "go").equatable()
+        }
+        harness.frame(page)
+        #expect(harness.session.springLoadTargets.count == 1, "frame 1 registered the button's target")
+
+        for number in 2...3 {
+            harness.servedFrame(page, number)
+            #expect(
+                harness.session.springLoadTargets.count == 1,
+                "frame \(number) lost the served button's spring-load target")
+        }
     }
 
     @Test("A served ScrollView keeps its auto-scroll zone")
