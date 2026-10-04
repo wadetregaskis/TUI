@@ -118,12 +118,18 @@ struct ClipboardAccess: Sendable {
     /// Reads the clipboard, or `nil` when there is nothing to read.
     var read: @Sendable () -> String?
 
+    /// The values behind the text this app last copied, where the app keeps
+    /// them — see ``TypedClipboard``. Filled in by the clipboard commands from
+    /// the environment; `nil` copies and pastes text alone.
+    var typed: TypedClipboard?
+
     /// The real thing. `SystemClipboard` owns the child I/O and its hardening
     /// (non-blocking, deadline-bounded pipes) — see its doc comment for the
     /// failure modes that motivated it.
     static let system = Self(
         write: { SystemClipboard.copy($0) },
-        read: { SystemClipboard.paste() }
+        read: { SystemClipboard.paste() },
+        typed: nil
     )
 }
 

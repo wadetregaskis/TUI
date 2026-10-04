@@ -96,6 +96,10 @@ private struct DragAndDropSessionKey: EnvironmentKey {
     static let defaultValue: DragAndDropSession? = nil
 }
 
+private struct TypedClipboardKey: EnvironmentKey {
+    static let defaultValue: TypedClipboard? = nil
+}
+
 // MARK: - Terminal image store
 
 /// EnvironmentKey for the images this app has put in the terminal.
@@ -159,6 +163,13 @@ extension EnvironmentValues {
     var terminalImageStore: TerminalImageStore? {
         get { self[TerminalImageStoreKey.self] }
         set { self[TerminalImageStoreKey.self] = newValue }
+    }
+
+    /// The values this app last copied, or `nil` outside a live app — where a
+    /// copy puts its text on the clipboard and nothing more.
+    var typedClipboard: TypedClipboard? {
+        get { self[TypedClipboardKey.self] }
+        set { self[TypedClipboardKey.self] = newValue }
     }
 
     /// The app-wide drag-and-drop session, or `nil` outside a live app.
@@ -236,6 +247,7 @@ extension EnvironmentValues {
         synthesizeKeyEvent = context.synthesizeKeyEvent
         mouseEventDispatcher = context.mouseEventDispatcher
         dragAndDropSession = context.dragAndDropSession
+        typedClipboard = context.typedClipboard
         tooltipState = context.tooltipState
         terminalImageStore = context.terminalImageStore
         renderCache = context.renderCache

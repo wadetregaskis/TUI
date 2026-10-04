@@ -21,6 +21,7 @@
   "button.forward": "Avancer",
   "button.refresh": "Actualiser",
   "button.rename": "Renommer",
+  "button.paste": "Coller",
 
   "label.search": "Recherche",
   "label.name": "Nom",

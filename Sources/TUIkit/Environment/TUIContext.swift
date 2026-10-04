@@ -284,6 +284,11 @@ final class TUIContext: @unchecked Sendable {
     /// sensible meaning to two contexts sharing a tooltip.
     let tooltipState = TooltipState()
 
+    /// The values a `copyable` or `cuttable` view last put on the clipboard,
+    /// beside the text the clipboard got — so a paste in this app can have the
+    /// values back. Stored as ``tooltipState`` is, and for the same reasons.
+    let typedClipboard = TypedClipboard()
+
     /// App-wide drag-and-drop state (active drag + per-frame drop targets).
     let dragAndDropSession: DragAndDropSession
 

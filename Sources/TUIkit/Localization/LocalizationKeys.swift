@@ -42,6 +42,7 @@ public enum LocalizationKey {
         case forward = "button.forward"
         case refresh = "button.refresh"
         case rename = "button.rename"
+        case paste = "button.paste"
     }
 
     /// Label and field names

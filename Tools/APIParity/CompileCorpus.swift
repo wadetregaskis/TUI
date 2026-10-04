@@ -491,3 +491,22 @@ private struct SliderTickShapes: View {
         }
     }
 }
+
+/// Copy, cut and paste of values, as SwiftUI's Transferable-era modifiers spell them.
+@MainActor
+private struct TransferShapes: View {
+    @State private var names: [String] = ["Ada"]
+
+    var body: some View {
+        VStack {
+            List(names, id: \.self) { Text($0) }
+                .copyable(names)
+                .cuttable(for: String.self) {
+                    defer { names = [] }
+                    return names
+                }
+                .pasteDestination(for: String.self) { names += $0 } validator: { $0.filter { !$0.isEmpty } }
+            PasteButton(payloadType: String.self) { names += $0 }
+        }
+    }
+}

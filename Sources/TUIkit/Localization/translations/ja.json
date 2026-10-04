@@ -21,6 +21,7 @@
   "button.forward": "進む",
   "button.refresh": "更新",
   "button.rename": "名前を変更",
+  "button.paste": "ペースト",
 
   "label.search": "検索",
   "label.name": "名前",

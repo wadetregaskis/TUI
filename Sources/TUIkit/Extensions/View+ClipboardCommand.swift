@@ -26,7 +26,8 @@ extension View {
         return FocusPathModifier(content: self, stage: .command) { context in
             let chord = KeyboardShortcut(key, modifiers: .command)
                 .resolved(commandKey: context.environment.commandKey)?.trigger
-            let clipboard = context.environment.clipboardAccess
+            var clipboard = context.environment.clipboardAccess
+            clipboard.typed = clipboard.typed ?? context.environment.typedClipboard
             return { event in
                 let isPaste: Bool
                 if case .paste = event.key { isPaste = true } else { isPaste = false }
