@@ -91,7 +91,7 @@ struct InlineMarkdownParser {
 
     private mutating func parseOne() {
         guard let scalar = source[position].scalar else {
-            appendText([source[position]])
+            appendText(source[position])
             position += 1
             return
         }
@@ -119,7 +119,7 @@ struct InlineMarkdownParser {
         case ":" where matchURLAutolink():
             break
         default:
-            appendText([source[position]])
+            appendText(source[position])
             position += 1
         }
     }
@@ -134,6 +134,17 @@ struct InlineMarkdownParser {
             nodes[last].atoms += atoms
         } else {
             nodes.append(Node(atoms: atoms, kind: .text))
+        }
+    }
+
+    /// Appends one literal atom, as the array form does: the parse's
+    /// commonest step, a plain character, without building a one-element
+    /// array for it.
+    mutating func appendText(_ atom: Atom) {
+        if let last = nodes.indices.last, nodes[last].kind == .text, !nodes[last].removed {
+            nodes[last].atoms.append(atom)
+        } else {
+            nodes.append(Node(atoms: [atom], kind: .text))
         }
     }
 
@@ -156,14 +167,14 @@ struct InlineMarkdownParser {
     private mutating func parseBackslash() {
         let next = atom(at: position + 1)
         if let escaped = next?.scalar, Self.isASCIIPunctuation(escaped) {
-            appendText([.scalar(escaped)])
+            appendText(.scalar(escaped))
             position += 2
         } else if next?.is("\n") == true {
             // A hard line break, which SwiftUI draws as the newline it is.
-            appendText([.scalar("\n")])
+            appendText(.scalar("\n"))
             position += 2
         } else {
-            appendText([.scalar("\\")])
+            appendText(.scalar("\\"))
             position += 1
         }
     }
@@ -259,12 +270,12 @@ struct InlineMarkdownParser {
     private mutating func closeBracket() {
         position += 1
         guard let opener = brackets.last else {
-            appendText([.scalar("]")])
+            appendText(.scalar("]"))
             return
         }
         guard opener.active else {
             brackets.removeLast()
-            appendText([.scalar("]")])
+            appendText(.scalar("]"))
             return
         }
         let destination: [Atom]?
@@ -275,7 +286,7 @@ struct InlineMarkdownParser {
         }
         guard let destination else {
             brackets.removeLast()
-            appendText([.scalar("]")])
+            appendText(.scalar("]"))
             return
         }
         processEmphasis(bottom: opener.delimiterBottom)

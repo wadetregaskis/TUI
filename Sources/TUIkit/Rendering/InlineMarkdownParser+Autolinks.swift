@@ -21,7 +21,7 @@ extension InlineMarkdownParser {
             nodes.append(Node(atoms: Array(source[position..<end]), kind: .html))
             position = end
         } else {
-            appendText([.scalar("<")])
+            appendText(.scalar("<"))
             position += 1
         }
     }

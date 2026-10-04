@@ -12,10 +12,10 @@ extension InlineMarkdownParser {
     /// literal `&`.
     mutating func parseReference() {
         if let (scalar, length) = Self.reference(in: source, at: position) {
-            appendText([.scalar(scalar)])
+            appendText(.scalar(scalar))
             position += length
         } else {
-            appendText([.scalar("&")])
+            appendText(.scalar("&"))
             position += 1
         }
     }
