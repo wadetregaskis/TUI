@@ -218,6 +218,7 @@
         "View.allowedDynamicRange*",
         "EnvironmentValues.allowedDynamicRange",
         "Image.DynamicRange*",
+        "Image.allowedDynamicRange*",
         "VisualEffect.blur*",
         "VisualEffect.brightness*",
         "VisualEffect.colorEffect*",
@@ -757,8 +758,17 @@
     "HelpLink.init(anchor:book:)": {
       "why": "As HelpLink.init(anchor:): an Apple Help book, through AppKit's NSHelpManager, which a terminal app cannot open. See decisions C5."
     },
+    "Image.init(size:label:opaque:colorMode:renderer:)": {
+      "why": "An image drawn by a closure into a GraphicsContext. TUIkit's drawing context is a FrameBuffer (see GraphicsContext under differentShape), and code that draws is a view rather than an image: a Renderable, which draws into the cells it is given at every frame instead of into pixels once."
+    },
+    "Image.Representation": {
+      "why": "The type of Image's transferRepresentation; see that entry."
+    },
     "Image.Scale": {
       "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkit/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI-compatibility.md:452 records the same constraint for Font generally."
+    },
+    "Image.transferRepresentation": {
+      "why": "Image's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUIkit's copyable/draggable payloads need no Transferable conformance, so there is no representation for an image to declare."
     },
     "ImagePaint": {
       "why": "A ShapeStyle that fills a shape with a tiled/scaled image, resolved per pixel against the shape's coverage. There are no shapes, no ShapeStyle, and no per-pixel coverage; TUIkit's Image already IS the raster-to-cell renderer (Sources/TUIkit/Views/_ImageCore.swift, Sources/TUIkitI"
