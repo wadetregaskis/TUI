@@ -1788,6 +1788,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func cellLines(
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> [String] {
+        // A plain `Text`'s lines go straight to the row: through
+        // ``cellValue(_:for:width:context:)`` they were joined into one string
+        // only to be split here again, which on table-multiline was most of
+        // what that path cost.
+        if case .text(let make) = column.cell {
+            context.renderCache?.rowWork.cellValues += 1
+            let text = make(item)
+            if let lines = Self.plainLines(of: text, in: column, width: width) { return lines }
+            return renderedCell(text, column, for: item, width: width, context: context)
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .prefix(column.lineLimit).map(String.init)
+        }
         let value = cellValue(column, for: item, width: width, context: context)
         guard column.laysOutItsOwnLines else {
             return TextWrapping.fit(
@@ -3741,30 +3753,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return extract(item)
         case .text(let make):
             let text = make(item)
-            // A plain `Text` says exactly what a `String` key path's value
-            // says, and is drawn the same way — which keeps the commonest
-            // content closure on the string path, and keeps its bytes identical
-            // to the key-path column it most often replaces. On one line that
-            // is its string; on several, its string laid out as `Text` lays
-            // itself out, with `TextWrapping.fit` at the cell's width and the
-            // column's limit and truncation, because the column reads this
-            // cell's value as lines already laid out. Rendering it as a view
-            // instead drew the same lines and cost a third of the frame
-            // (table-multiline, table-churn-wrapped: −29%, −31% without it).
-            if column.lineLimit == 1, text.drawsAsPlainString {
-                return text.content
+            // The one-line case without the array: this is the single-line
+            // table's every cell.
+            if column.lineLimit == 1, text.drawsAsPlainString { return text.content }
+            if let lines = Self.plainLines(of: text, in: column, width: width) {
+                return lines.joined(separator: "\n")
             }
-            if column.lineLimit > 1, text.isUnstyled {
-                return TextWrapping.fit(
-                    text.content, width: max(1, width), maxLines: column.lineLimit,
-                    mode: column.truncationMode
-                ).joined(separator: "\n")
-            }
-            return Self.cellLines(
-                TUIkit.renderToBuffer(
-                    text,
-                    context: cellContext(column, for: item, width: width, context: context)),
-                limit: column.lineLimit)
+            return renderedCell(text, column, for: item, width: width, context: context)
         case .view(let render):
             return Self.cellLines(
                 render(
@@ -3772,6 +3767,39 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     cellContext(column, for: item, width: width, context: context)),
                 limit: column.lineLimit)
         }
+    }
+
+    /// A plain `Text` cell's lines, or `nil` for a text that must be rendered.
+    ///
+    /// A plain `Text` says exactly what a `String` key path's value says, and
+    /// is drawn the same way — which keeps the commonest content closure on
+    /// the string path, and keeps its bytes identical to the key-path column it
+    /// most often replaces. On one line that is its string (a line break makes
+    /// it two, so it is rendered); on several, its string laid out as `Text`
+    /// lays itself out — `TextWrapping.fit` at the cell's width and the
+    /// column's limit and truncation. Rendering it as a view instead drew the
+    /// same lines at about a third of the frame (table-multiline,
+    /// table-churn-wrapped: −29% and −31% without it).
+    private static func plainLines(
+        of text: Text, in column: _TableColumnSpec<Value>, width: Int
+    ) -> [String]? {
+        if column.lineLimit == 1 {
+            return text.drawsAsPlainString ? [text.content] : nil
+        }
+        guard text.isUnstyled else { return nil }
+        return TextWrapping.fit(
+            text.content, width: max(1, width), maxLines: column.lineLimit, mode: column.truncationMode)
+    }
+
+    /// A `Text` cell rendered as the view it is, its lines joined by newlines.
+    private func renderedCell(
+        _ text: Text, _ column: _TableColumnSpec<Value>, for item: Value, width: Int,
+        context: RenderContext
+    ) -> String {
+        Self.cellLines(
+            TUIkit.renderToBuffer(
+                text, context: cellContext(column, for: item, width: width, context: context)),
+            limit: column.lineLimit)
     }
 
     /// The context a view cell renders under: its own identity — the row's,
