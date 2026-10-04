@@ -214,4 +214,20 @@ struct AnimationCompletionTests {
             Animation.linear(duration: 1).logicallyComplete(after: 0.5).description
                 == "linear(duration: 1.0).logicallyComplete(after: 0.5)")
     }
+
+    // MARK: - Debugging
+
+    @Test("debugDescription marks the description as an animation; the mirror names the parts")
+    func debugging() {
+        let animation = Animation.easeIn(duration: 2).delay(1).repeatCount(3)
+        #expect(animation.debugDescription == "Animation(\(animation.description))")
+        let children = Dictionary(
+            uniqueKeysWithValues: Mirror(reflecting: animation).children.map { ($0.label ?? "", "\($0.value)") })
+        #expect(children["curve"] == "easeIn(duration: 2.0)")
+        #expect(children["duration"] == "2.0")
+        #expect(children["delay"] == "1.0")
+        #expect(children["repeatCount"] == "3")
+        #expect(children["speed"] == nil, "a default is left out")
+        #expect(Mirror(reflecting: Animation.linear).displayStyle == .struct)
+    }
 }

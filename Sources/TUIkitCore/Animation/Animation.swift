@@ -403,7 +403,7 @@ extension Animation {
     }
 
     /// The factory call that would build ``curve`` at ``passDuration``.
-    private var curveDescription: String {
+    fileprivate var curveDescription: String {
         switch curve {
         case .bezier(let p1x, let p1y, let p2x, let p2y):
             // Recognised by control points rather than remembered: nothing is
@@ -439,6 +439,39 @@ extension Animation {
     private static func solved(_ value: Double) -> String {
         guard value.isFinite else { return "\(value)" }
         return "\((value * 1_000_000).rounded() / 1_000_000)"
+    }
+}
+
+// MARK: - Debugging
+
+extension Animation: CustomDebugStringConvertible, CustomReflectable {
+    /// The description, marked as an animation: `Animation(easeInOut(duration:
+    /// 0.35))`. SwiftUI prints its internal animator types here; neither
+    /// string is a format to parse.
+    public var debugDescription: String {
+        "Animation(\(description))"
+    }
+
+    /// What the animation is made of, one child per part: the curve as the
+    /// factory that builds it, the pass's length, and each modifier that
+    /// differs from its default.
+    public var customMirror: Mirror {
+        var children: [(label: String?, value: Any)] = [
+            ("curve", curveDescription), ("duration", passDuration),
+        ]
+        if delayInterval != 0 { children.append(("delay", delayInterval)) }
+        if speedFactor != 1 { children.append(("speed", speedFactor)) }
+        if logicalCompletion >= 0 { children.append(("logicallyCompleteAfter", logicalCompletion)) }
+        switch repeatMode {
+        case .count(1, _): break
+        case .count(let passes, let autoreverses):
+            children.append(("repeatCount", passes))
+            children.append(("autoreverses", autoreverses))
+        case .forever(let autoreverses):
+            children.append(("repeatsForever", true))
+            children.append(("autoreverses", autoreverses))
+        }
+        return Mirror(self, children: children, displayStyle: .struct)
     }
 }
 
