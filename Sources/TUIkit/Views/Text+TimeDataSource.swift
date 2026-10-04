@@ -28,7 +28,7 @@ extension Text {
     /// reads "in 5 minutes" is drawn again in a minute, not every frame. The
     /// output's characters are drawn; its attributes are not yet, though the
     /// one-off `Text(_:format:)` draws them — a live text reads only words at
-    /// each frame (decisions B-W17t-5).
+    /// each frame (decisions B88).
     ///
     /// SwiftUI's reduced-luminance redaction has nothing to act on in a
     /// terminal, which has no always-on display.
