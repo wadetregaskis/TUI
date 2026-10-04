@@ -15,6 +15,7 @@ import Testing
 
 @testable import TUIkit
 @testable import TUIkitStyling
+@testable import TUIkitView
 
 // MARK: - Helpers
 
@@ -97,6 +98,18 @@ struct MeshGradientValueTests {
         // Equal to a mesh built that way from the start: the other form's
         // storage was cleared, not left behind to make two equal meshes unequal.
         #expect(mesh == MeshGradient(width: 1, height: 1, points: [[0.5, 0.5]], colors: [.blue]))
+    }
+
+    /// SwiftUI's `locations` and `colors` are payload enums, which the per-pass
+    /// memos' value hash cannot read: a view holding one is measured every time
+    /// and kept nowhere. A mesh stores them as arrays and flags instead, so a
+    /// mesh view — or a background holding one — is read whole.
+    @MainActor
+    @Test("The value hash reads a mesh whole, as a view and as a background")
+    func memoReadsAMesh() {
+        let plans = ValueHashPlans()
+        #expect(plans.plan(for: MeshGradient.self).pointee.shape == .dense)
+        #expect(plans.plan(for: BackgroundModifier<MeshGradient>.self).pointee.shape == .dense)
     }
 
     @Test("Resolved colours paint as the colours they resolve to")
