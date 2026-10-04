@@ -177,4 +177,94 @@ struct EditActionsTests {
         #expect(handler?.onMove != nil)
         #expect(handler?.onDelete != nil)
     }
+
+    // MARK: - The loop's data
+
+    @Test("The loop iterates an IndexedIdentifierCollection: the positions, each with its element's id")
+    func dataIsIndexedIdentifiers() {
+        let fixture = Fixture([Row(id: 7, name: "a"), Row(id: 9, name: "b"), Row(id: 4, name: "c")])
+        let loop: ForEach<IndexedIdentifierCollection<[Row], Int>, Int, Text> =
+            ForEach(fixture.binding, editActions: .all) { $row in Text(row.name) }
+        #expect(loop.data.startIndex == 0 && loop.data.endIndex == 3)
+        #expect(loop.data.map(\.index) == [0, 1, 2])
+        #expect(loop.data.map(\.id) == [7, 9, 4])
+        #expect(loop.data[loop.data.index(before: loop.data.endIndex)].id == 4)
+        #expect(loop.data.index(after: 0) == 1)
+        let byName: ForEach<IndexedIdentifierCollection<[Row], String>, String, Text> =
+            ForEach(fixture.binding, id: \.name, editActions: .move) { $row in Text(row.name) }
+        #expect(byName.data.map(\.id) == ["a", "b", "c"])
+    }
+
+    // MARK: - List(_:editActions:)
+
+    @Test("List(_:editActions:rowContent:) edits the bound collection and arms both gestures")
+    func listForm() {
+        let fixture = Fixture([Row(id: 1, name: "a"), Row(id: 2, name: "b"), Row(id: 3, name: "c")])
+        let lines = fixture.render(
+            List(fixture.binding, editActions: .all) { $row in Text(row.name) }
+                .frame(height: 8)
+        ).lines.map(\.stripped)
+        #expect(lines.contains { $0.contains("a") } && lines.contains { $0.contains("c") })
+        guard let handler = fixture.handler else {
+            Issue.record("the list registered focus")
+            return
+        }
+        handler.onMove?(IndexSet(integer: 0), 3)
+        #expect(names(fixture) == ["b", "c", "a"])
+        handler.onDelete?(IndexSet(integer: 0))
+        #expect(names(fixture) == ["c", "a"])
+    }
+
+    @Test("The selection forms bind the elements' ids", arguments: [false, true])
+    func listSelectionForms(multiple: Bool) {
+        let fixture = Fixture([Row(id: 1, name: "a"), Row(id: 2, name: "b")])
+        var single: Int?
+        var many: Set<Int> = []
+        let view: AnyView =
+            multiple
+            ? AnyView(
+                List(
+                    fixture.binding, editActions: .move,
+                    selection: Binding(get: { many }, set: { many = $0 })
+                ) { $row in Text(row.name) })
+            : AnyView(
+                List(
+                    fixture.binding, editActions: .delete,
+                    selection: Binding(get: { single }, set: { single = $0 })
+                ) { $row in Text(row.name) })
+        fixture.render(view.frame(height: 8))
+        fixture.render(view.frame(height: 8))
+        guard let handler = fixture.handler else {
+            Issue.record("the list registered focus")
+            return
+        }
+        #expect((handler.onMove != nil) == multiple)
+        #expect((handler.onDelete != nil) == !multiple)
+        handler.focusedIndex = 1
+        handler.toggleSelectionAtFocusedIndex()
+        #expect(multiple ? many == [2] : single == 2)
+    }
+
+    @Test("The id: forms key the rows and the selection by the key path")
+    func listKeyPathForms() {
+        let fixture = Fixture([Row(id: 1, name: "a"), Row(id: 2, name: "b")])
+        var single: String?
+        let view = List(
+            fixture.binding, id: \.name, editActions: .all,
+            selection: Binding(get: { single }, set: { single = $0 })
+        ) { $row in Text(row.name) }
+        fixture.render(view.frame(height: 8))
+        fixture.render(view.frame(height: 8))
+        let handler = fixture.env.focusManager?.currentFocused as? ItemListHandler<String>
+        #expect(handler?.onMove != nil && handler?.onDelete != nil)
+        handler?.focusedIndex = 1
+        handler?.toggleSelectionAtFocusedIndex()
+        #expect(single == "b")
+        var many: Set<String> = []
+        _ = List(
+            fixture.binding, id: \.name, editActions: .all,
+            selection: Binding(get: { many }, set: { many = $0 })
+        ) { $row in Text(row.name) }
+        _ = List(fixture.binding, id: \.name, editActions: .all) { $row in Text(row.name) }
+    }
 }

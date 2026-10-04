@@ -69,7 +69,12 @@ extension ForEach where Content: View {
     /// the rows can move or be deleted, so no drag-reorder gesture arms and no
     /// delete key is claimed.
     ///
-    /// - Parameters:
+    /// The loop's data is an ``IndexedIdentifierCollection`` — the collection's
+    /// positions, each with its element's identity — as SwiftUI's is; each row
+    /// is handed a binding to the element at its position and keyed by the
+    /// element's identity, so a row's `@State` follows its element through a
+    /// move.
+    ///
     /// **One deviation:** the collection must be `Int`-indexed (an `Array`,
     /// `ContiguousArray` or `ArraySlice` — what backs a `List` in practice).
     /// That is not a choice about editing; it is the constraint TUIkit's
@@ -90,11 +95,10 @@ extension ForEach where Content: View {
     )
     where
         C: MutableCollection, C: RandomAccessCollection, C: RangeReplaceableCollection,
-        C.Index == Int, C.Element: Identifiable, Data == [Binding<C.Element>],
+        C.Index == Int, C.Element: Identifiable, Data == IndexedIdentifierCollection<C, ID>,
         ID == C.Element.ID
     {
-        self.init(data, content: content)
-        applyEditActions(editActions, to: data)
+        self.init(data, id: \C.Element.id, editActions: editActions, content: content)
     }
 
     /// Creates a `ForEach` over a binding to a collection whose elements are
@@ -115,9 +119,15 @@ extension ForEach where Content: View {
     )
     where
         C: MutableCollection, C: RandomAccessCollection, C: RangeReplaceableCollection,
-        C.Index == Int, Data == [Binding<C.Element>]
+        C.Index == Int, Data == IndexedIdentifierCollection<C, ID>
     {
-        self.init(data, id: id, content: content)
+        // Each row's binding is the bound collection's own element binding at
+        // the row's position (`Binding+Collection.swift`), which carries the
+        // guard against a position the collection no longer has.
+        self.init(
+            storing: IndexedIdentifierCollection(data.wrappedValue, id: id),
+            id: \.id,
+            content: { element in content(data[element.index]) })
         applyEditActions(editActions, to: data)
     }
 
