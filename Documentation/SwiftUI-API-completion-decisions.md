@@ -19,6 +19,75 @@ Three parts:
 Each entry names the SwiftUI symbols it covers, so `api_parity.py` output can be
 traced back to it.
 
+## Start here: the questions in one list
+
+Every gap `api_parity.py` still reports names one of these questions, and
+nothing else is waiting. The batch closed the rest: 2,022 gaps when it started,
+392 now, plus three overloads only CI's SDK lists. Each line gives the
+recommendation in a few words; the entry has the options and their prices.
+
+**Questions other answers hang on.** Answer these first.
+
+- **A0 — the refusal review's O0–O17.** O0, the unit of a shape's path, gates
+  every shape and `clipShape`/`contentShape`. O8, whether APIs that are inert
+  on macOS ship inert, settles A11, A21 and A51. O9, multi-scene apps, settles
+  A22 and A26.
+- **A18 — Apple-only API behind `#if canImport`.** Allow it where the feature
+  is honoured (what the batch has done). A35 and the `UserDefaults` storage
+  spellings wait on it.
+- **A2 — anchors and named coordinate spaces.** Markers stamped where a reader
+  or anchor sits (G1). A7, scroll visibility, builds on the same markers.
+- **A13 — text selection.** TUIkit draws its own, after the batch. A25 waits
+  on it.
+
+**Looks and defaults.**
+
+- A29, A46 — tables and lists borderless and striped as SwiftUI's? Keep
+  bordered and unstriped.
+- A40 — a content change dissolves under an animation by default? Keep it
+  instant.
+- A43 — `TextEditor` wraps as SwiftUI's does? Yes, with a modifier that keeps
+  the sideways scroll, after the batch.
+- A45 — a plain `List` pins its section headers? Yes, in the plain style.
+- A17 — `preferredColorScheme`? Keep it absent unless light palettes are
+  wanted for their own sake.
+
+**Features, priced.**
+
+- A1 — undo: one `UndoManager` per app, on Ctrl-_.
+- A3 — `layoutDirectionBehavior`: wait for right-to-left support.
+- A4 — the kitty keyboard protocol: negotiate it where the terminal answers.
+- A5 — a live resize from `SIGWINCH`: synthesise it.
+- A6 — scroll target behaviours: SwiftUI's protocol, staged.
+- A8, A9, A10 — scroll anchors, `scrollContentBackground`, `scrollClipDisabled`:
+  parity, paint it, and wait for Wave 16 respectively.
+- A14 — string tables: look keys up through Foundation's bundle tables.
+- A15 — asset catalogues: plain image files (shipped), no named colours.
+- A16 — colour providers and HDR: decline the provider, ship `ResolvedHDR`.
+- A19, A20, A21 — sheet detents by hand, `presentationSizing`, compact
+  adaptation: leave out for now; ship sizing with `.automatic` as today's
+  sheet; decide with B3 and O8.
+- A27 — pixel effects: decline the transforms, a cell-coverage `mask`,
+  `drawingGroup` as `compositingGroup`.
+- A28 — toolbars: host `.toolbar` content in the chrome TUIkit draws,
+  reversing the compatibility doc's §2.6.
+- A30, A31 — table context menus and section rows: both menus, with
+  `primaryAction` replacing `onRowActivate`; header rows.
+- A32 — size-dependent text variants: build the ladders, after the batch.
+- A33 — a colour's spoken name: decline.
+- A34, A35 — the blur transition and symbol effects: a scale and a fade;
+  TUIkit's own Symbols vocabulary once A18 allows it.
+- A44 — pinning in horizontal stacks: leave out until B16's fuller version.
+- A47, A48, A49, A50 — list separators, swipe actions, per-tab interactions,
+  tab search: underline a row's last line; a menu from a chord and a
+  horizontal scroll; all six in both looks; defer until macOS 26 can be
+  measured.
+- A52 — the `@Animatable` macros: decline rather than take on swift-syntax.
+
+**Waiting on another answer.** A7 (A2), A11 (O8), A12 (O7), A22 and A26 (O9),
+A23 and A36 (O4), A24 (O0, O15), A25 (A13), A37 (O2), A38 (O3), A39 (A27), A41
+(O5), A42 (P8, which is being implemented), A51 (O8).
+
 ---
 
 ## A. Needs your decision
