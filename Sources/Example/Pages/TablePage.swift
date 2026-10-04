@@ -210,10 +210,9 @@ struct TablePage: View {
     @TableColumnBuilder<NoteEntry, Never>
     private var notesColumns: some TableColumnContent<NoteEntry, Never> {
         TableColumn("#", value: \NoteEntry.index)
-            .width(.fixed(5))
+            .width(5)
             .alignment(.trailing)
         TableColumn("page.table.column.details", value: \NoteEntry.note)
-            .width(.flexible)
             .lineLimit(3)
     }
 
@@ -232,17 +231,16 @@ struct TablePage: View {
                 selection: $singleSelection
             ) {
                 TableColumn("", value: \BrowserEntry.icon)
-                    .width(.fixed(2))
+                    .width(2)
                 // `.fit` sizes the Name column to its widest entry.
                 TableColumn("page.table.column.name", value: \BrowserEntry.name)
                     .width(.fit)
                 TableColumn("page.table.column.size", value: \BrowserEntry.size)
-                    .width(.fixed(10))
+                    .width(10)
                     .alignment(.trailing)
                 TableColumn("page.table.column.modified", value: \BrowserEntry.modified)
-                    .width(.fixed(12))
+                    .width(12)
                 TableColumn("page.table.column.type", value: \BrowserEntry.typeLabel)
-                    .width(.flexible)
             }
             // `.onRowActivate` is a `Table` modifier, so it chains before the
             // generic view modifiers below.
@@ -284,7 +282,7 @@ struct TablePage: View {
                         // A narrow column with .lineLimit(2): the Details value wraps
                         // onto a second line, growing the row, and clips the rest.
                         TableColumn("page.table.column.details", value: \FileEntry.details)
-                            .width(.fixed(22))
+                            .width(22)
                             .lineLimit(2)
                     }
                     ValueDisplayRow(
@@ -315,7 +313,7 @@ struct TablePage: View {
                     // how early. Only the highlight goes away with the binding.
                     FollowMarginPicker(selection: $fixedHeightFollowMargin)
                     // 300 rows in a fixed 20-row viewport → it scrolls. The Note
-                    // column is `.flexible` with `.lineLimit(3)`, so each row's
+                    // column has the default width and `.lineLimit(3)`, so each row's
                     // height varies: short notes stay one line, longer ones wrap
                     // to two or three, and the tallest fold their tail with an
                     // ellipsis (plus mid-word truncation and explicit breaks).
@@ -358,9 +356,8 @@ struct TablePage: View {
                 TableColumn("page.table.column.name", value: \TransferEntry.name)
                     .width(.fit)
                 TableColumn("page.table.column.status", value: \TransferEntry.status)
-                    .width(.flexible)
                 TableColumn("page.table.column.elapsed", value: \TransferEntry.elapsed)
-                    .width(.fixed(8))
+                    .width(8)
                     .alignment(.trailing)
             }
             .frame(height: 6)
@@ -377,12 +374,11 @@ struct TablePage: View {
                         TableColumn("page.table.column.track", value: \Track.title)
                             .width(.fit)
                         TableColumn("page.table.column.artist", value: \Track.artist)
-                            .width(.flexible)
                         // Shows the "m:ss" string, orders by the Int behind it.
                         TableColumn("page.table.column.length", value: \Track.seconds) {
                             Text($0.length)
                         }
-                        .width(.fixed(9))
+                        .width(9)
                         .alignment(.trailing)
                     }
                     .frame(height: 8)
@@ -408,9 +404,8 @@ struct TablePage: View {
                         TableColumn("page.table.column.track", value: \Track.title)
                             .width(.fit)
                         TableColumn("page.table.column.artist", value: \Track.artist)
-                            .width(.flexible)
                         TableColumn("page.table.column.length", value: \Track.length)
-                            .width(.fixed(6))
+                            .width(6)
                             .alignment(.trailing)
                     }
                     .onMove { playlist.move(fromOffsets: $0, toOffset: $1) }

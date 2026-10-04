@@ -226,7 +226,7 @@ struct ScrollExtentPrecisionTests {
 
     private func render(_ data: [ExtentRow], precision: ScrollExtentPrecision) -> FrameBuffer {
         let table = Table(data, selection: .constant(Int?.none)) {
-            TableColumn("Name", value: \ExtentRow.name).lineLimit(4).width(.fixed(7))
+            TableColumn("Name", value: \ExtentRow.name).lineLimit(4).width(7)
             TableColumn("Detail", value: \ExtentRow.detail)
         }
         .scrollIndicators(.visible)

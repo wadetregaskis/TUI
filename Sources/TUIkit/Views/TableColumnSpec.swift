@@ -30,8 +30,8 @@ struct _TableColumnSpec<Value> {
     /// — on a `Group` of columns, say — leaves it be.
     var alignmentIsStated = false
 
-    /// The width mode for this column.
-    var width: ColumnWidth
+    /// How this column is sized.
+    var width: _TableColumnWidth
 
     /// How a cell value is shortened when it is wider than the column.
     var truncationMode: TruncationMode

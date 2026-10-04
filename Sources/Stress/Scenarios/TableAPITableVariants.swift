@@ -28,8 +28,8 @@ extension TableAPIMatrix {
             variant("lines-wrapped", axis: "layout", "a three-line column, so the scrollbar is metered in lines") { config in
                 table("lines-wrapped", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(20))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name).width(20)
                         TableColumn("Summary", value: \APIRow.summary).lineLimit(3)
                     }
                 }
@@ -41,10 +41,10 @@ extension TableAPIMatrix {
             variant("lines-mixed", axis: "layout", "columns with line limits 1, 2 and 4 in one row") { config in
                 table("lines-mixed", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(18)).lineLimit(2)
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name).width(18).lineLimit(2)
                         TableColumn("Summary", value: \APIRow.summary).lineLimit(4)
-                        TableColumn("Status", value: \APIRow.status).width(.fixed(10))
+                        TableColumn("Status", value: \APIRow.status).width(10)
                     }
                 }
             },
@@ -52,9 +52,9 @@ extension TableAPIMatrix {
             variant("align-trailing", axis: "layout", "every column trailing-aligned — the pad goes in front") { config in
                 table("align-trailing", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(9)).alignment(.trailing)
-                        TableColumn("Size", value: \APIRow.size).width(.fixed(12)).alignment(.trailing)
-                        TableColumn("Score", value: \APIRow.index).width(.fixed(9)).alignment(.trailing)
+                        TableColumn("ID", value: \APIRow.index).width(9).alignment(.trailing)
+                        TableColumn("Size", value: \APIRow.size).width(12).alignment(.trailing)
+                        TableColumn("Score", value: \APIRow.index).width(9).alignment(.trailing)
                         TableColumn("Name", value: \APIRow.name).alignment(.trailing)
                     }
                 }
@@ -63,11 +63,11 @@ extension TableAPIMatrix {
             variant("align-mixed", axis: "layout", "leading, centre and trailing columns together") { config in
                 table("align-mixed", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7)).alignment(.trailing)
-                        TableColumn("Status", value: \APIRow.status).width(.fixed(12)).alignment(.center)
+                        TableColumn("ID", value: \APIRow.index).width(7).alignment(.trailing)
+                        TableColumn("Status", value: \APIRow.status).width(12).alignment(.center)
                         TableColumn("Name", value: \APIRow.name)
-                        TableColumn("Load", value: \APIRow.bar).width(.fixed(10)).alignment(.center)
-                        TableColumn("Size", value: \APIRow.size).width(.fixed(12)).alignment(.trailing)
+                        TableColumn("Load", value: \APIRow.bar).width(10).alignment(.center)
+                        TableColumn("Size", value: \APIRow.size).width(12).alignment(.trailing)
                     }
                 }
             },
@@ -79,9 +79,9 @@ extension TableAPIMatrix {
             variant("spacing-none", axis: "layout", "columnSpacing 0 — cells abut, styled runs meet") { config in
                 table("spacing-none", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("Status", value: \APIRow.status).width(.fixed(12))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(20))
-                        TableColumn("Status2", value: \APIRow.status).width(.fixed(12))
+                        TableColumn("Status", value: \APIRow.status).width(12)
+                        TableColumn("Name", value: \APIRow.name).width(20)
+                        TableColumn("Status2", value: \APIRow.status).width(12)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
                     .tableColumnSpacing(0)
@@ -91,7 +91,7 @@ extension TableAPIMatrix {
             variant("spacing-wide", axis: "layout", "columnSpacing 6 — a third of the line is separator") { config in
                 table("spacing-wide", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Slug", value: \APIRow.slug)
                         TableColumn("Status", value: \APIRow.status)
@@ -119,7 +119,7 @@ extension TableAPIMatrix {
             variant("select-none", axis: "interaction", "no selection binding at all — no gutter is reserved") { config in
                 table("select-none", config) { rows in
                     Table(rows) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
@@ -158,7 +158,7 @@ extension TableAPIMatrix {
             variant("disabled", axis: "interaction", "a disabled table — out of the focus ring entirely") { config in
                 table("disabled", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
@@ -182,7 +182,7 @@ extension TableAPIMatrix {
             variant("churn-none", axis: "churn", "data built once and never changed") { config in
                 stillTable("churn-none", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Status", value: \APIRow.status)
                         TableColumn("Summary", value: \APIRow.summary)
@@ -193,7 +193,7 @@ extension TableAPIMatrix {
             variant("churn-all", axis: "churn", "every row differs every frame — the memo ceiling") { config in
                 table("churn-all", config, churn: .all) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Status", value: \APIRow.status)
                         TableColumn("Summary", value: \APIRow.summary)
@@ -207,7 +207,7 @@ extension TableAPIMatrix {
             variant("churn-tail", axis: "churn", "a window over a growing sequence — rows move, content does not") { config in
                 table("churn-tail", config, churn: .tail) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("Seq", value: \APIRow.index).width(.fixed(9))
+                        TableColumn("Seq", value: \APIRow.index).width(9)
                         TableColumn("Source", value: \APIRow.slug)
                         TableColumn("Level", value: \APIRow.status)
                         TableColumn("Message", value: \APIRow.summary)
@@ -234,7 +234,7 @@ extension TableAPIMatrix {
             variant("size-tiny", axis: "shape", "twelve rows — everything on screen, nothing to scroll") { config in
                 stillTable("size-tiny", config, count: 12) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
@@ -247,8 +247,8 @@ extension TableAPIMatrix {
                 // it to the other one.
                 table("size-wrapped-250", config, count: 250) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(20))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name).width(20)
                         TableColumn("Summary", value: \APIRow.summary).lineLimit(3)
                     }
                 }
@@ -257,8 +257,8 @@ extension TableAPIMatrix {
             variant("size-wrapped-1000", axis: "shape", "1,000 wrapped rows — above the limit, so 64 are sampled") { config in
                 table("size-wrapped-1000", config, count: 1_000) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(20))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name).width(20)
                         TableColumn("Summary", value: \APIRow.summary).lineLimit(3)
                     }
                 }
@@ -267,7 +267,7 @@ extension TableAPIMatrix {
             variant("size-huge", axis: "shape", "100,000 static rows, a 35-row window") { config in
                 stillTable("size-huge", config, count: config.sized(100_000)) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(9))
+                        TableColumn("ID", value: \APIRow.index).width(9)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Status", value: \APIRow.status)
                         TableColumn("Summary", value: \APIRow.summary)
@@ -278,7 +278,7 @@ extension TableAPIMatrix {
             variant("empty", axis: "shape", "no rows — the placeholder path") { config in
                 stillTable("empty", config, count: 0) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                     }
                     .tableEmptyPlaceholder("nothing here")
@@ -293,8 +293,8 @@ extension TableAPIMatrix {
             variant("precision-exact", axis: "shape", "wrapped rows with .scrollExtentPrecision(.exact)") { config in
                 table("precision-exact", config, count: 1_000) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(20))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name).width(20)
                         TableColumn("Summary", value: \APIRow.summary).lineLimit(3)
                     }
                     .scrollExtentPrecision(.exact)
@@ -304,7 +304,7 @@ extension TableAPIMatrix {
             variant("chrome-text", axis: "shape", "\"N more below\" text indicators instead of a scrollbar") { config in
                 table("chrome-text", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
@@ -315,7 +315,7 @@ extension TableAPIMatrix {
             variant("chrome-hidden", axis: "shape", "no scroll indicator at all") { config in
                 table("chrome-hidden", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
@@ -330,7 +330,7 @@ extension TableAPIMatrix {
             variant("padded-bordered", axis: "shape", "inside padding and a border") { config in
                 table("padded-bordered", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
@@ -347,7 +347,7 @@ extension TableAPIMatrix {
                 table("in-scrollview", config, count: 500) { rows in
                     ScrollView {
                         Table(rows, selection: Binding<Int?>.constant(nil)) {
-                            TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                            TableColumn("ID", value: \APIRow.index).width(7)
                             TableColumn("Name", value: \APIRow.name)
                             TableColumn("Summary", value: \APIRow.summary)
                         }
@@ -372,7 +372,7 @@ private struct SingleSelectionTable: View {
             Text(Lf("stress.scenario.table-api.heading", "select-single", count)).bold()
             Divider()
             Table(rows, selection: $selection) {
-                TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                TableColumn("ID", value: \APIRow.index).width(7)
                 TableColumn("Name", value: \APIRow.name)
                 TableColumn("Status", value: \APIRow.status)
                 TableColumn("Summary", value: \APIRow.summary)
@@ -399,7 +399,7 @@ private struct MultiSelectionTable: View {
             Text(Lf("stress.scenario.table-api.heading", "select-multi", count)).bold()
             Divider()
             Table(rows, selection: $selection) {
-                TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                TableColumn("ID", value: \APIRow.index).width(7)
                 TableColumn("Name", value: \APIRow.name)
                 TableColumn("Status", value: \APIRow.status)
                 TableColumn("Summary", value: \APIRow.summary)
@@ -427,10 +427,10 @@ private struct SortedTable: View {
             Text(Lf("stress.scenario.table-api.heading", "sorted", count)).bold()
             Divider()
             Table(rows, selection: $selection, sortOrder: $order) {
-                TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(.fixed(7))
+                TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(7)
                 TableColumn("Name", value: \APIRow.name)
                 TableColumn("Score", value: \APIRow.score) { Text(verbatim: "\($0.score)") }
-                    .width(.fixed(8)).alignment(.trailing)
+                    .width(8).alignment(.trailing)
                 TableColumn("Summary", value: \APIRow.summary)
             }
         }
@@ -460,10 +460,10 @@ private struct DecoratedSortTable: View {
             Text(Lf("stress.scenario.table-api.heading", "sorted-decorated", count)).bold()
             Divider()
             Table(rows, selection: $selection, sortOrder: $order) {
-                TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(.fixed(7))
+                TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(7)
                 TableColumn("Name", value: \APIRow.name)
                 TableColumn("Score", value: \APIRow.score) { Text(verbatim: "\($0.score)") }
-                    .width(.fixed(8)).alignment(.trailing)
+                    .width(8).alignment(.trailing)
                 TableColumn("Summary", value: \APIRow.summary)
             }
         }

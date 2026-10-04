@@ -179,7 +179,7 @@ struct TableColumnContentTests {
         let buffer = render(
             Table(Self.rows) {
                 TableColumn("N") { (row: Row) in Text(verbatim: "\(row.size)") }
-                    .width(.fixed(6))
+                    .width(6)
                     .alignment(.numeric)
                 TableColumn("Name", value: \Row.name)
             })
@@ -197,6 +197,55 @@ struct TableColumnContentTests {
             }
             .alignment(.trailing))
         #expect(columns.map(\.alignment) == [.center, .trailing])
+    }
+
+    // MARK: Width
+
+    @Test("width(_:) fixes a column, and width(nil) changes nothing")
+    func fixedWidth() {
+        let column = TableColumn("Name", value: \Row.name)
+        #expect(column.width(7).spec.width == .fixed(7))
+        #expect(column.width(.fit).width(nil).spec.width == .fit)
+        #expect(column.width(-3).spec.width == .fixed(0))
+    }
+
+    @Test("width(min:ideal:max:) keeps a bound it is not given")
+    func boundsAccumulate() {
+        let column = TableColumn("Name", value: \Row.name).width(min: 4).width(max: 9)
+        #expect(column.spec.width == .flexible(min: 4, ideal: nil, max: 9))
+    }
+
+    @Test("Bounded columns start at their ideal and share the rest, as SwiftUI's do")
+    func sharingMatchesSwiftUI() {
+        // SwiftUI on macOS 26.2: three resizable columns sharing 457 points —
+        // (min 40, ideal 90, max 200), (ideal 120), and an unbounded one whose
+        // ideal is NSTableColumn's 100 — ended at 139, 169 and 149.
+        #expect(
+            TableFlexibleWidths.widths(
+                [(40, 90, 200), (nil, 120, nil), (nil, 100, nil)], sharing: 457)
+                == [139, 169, 149])
+        // Unbounded columns split evenly, the first taking the odd cells.
+        #expect(TableFlexibleWidths.widths([(nil, nil, nil), (nil, nil, nil)], sharing: 7) == [4, 3])
+        // A maximum caps a column and hands its share to the others.
+        #expect(TableFlexibleWidths.widths([(nil, nil, 2), (nil, nil, nil)], sharing: 10) == [2, 8])
+        // Ideals that do not fit shrink toward the minimums.
+        #expect(TableFlexibleWidths.widths([(2, 10, nil), (4, 10, nil)], sharing: 10) == [4, 6])
+        // Minimums that do not fit are kept, and the row clips.
+        #expect(TableFlexibleWidths.widths([(8, nil, nil), (8, nil, nil)], sharing: 10) == [8, 8])
+    }
+
+    @Test("A bounded column is laid out within its bounds")
+    func boundedColumnDraws() {
+        let buffer = render(
+            Table(Self.rows) {
+                TableColumn("Name", value: \Row.name).width(max: 5)
+                TableColumn("Size") { (row: Row) in Text(verbatim: "\(row.size)") }
+            },
+            width: 40)
+        // The five-cell name column ends before the gap; "alpha" just fits.
+        let header = buffer.lines[1].stripped
+        let size = header.range(of: "Size").map { header.distance(from: header.startIndex, to: $0.lowerBound) }
+        #expect(size == 2 + 5 + 2)
     }
 
     // MARK: Builder

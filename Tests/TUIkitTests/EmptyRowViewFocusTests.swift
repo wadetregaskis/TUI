@@ -59,7 +59,7 @@ struct EmptyRowViewFocusTests {
     @Test("An empty Table can be Tab-focused")
     func emptyTableTakesFocus() {
         let emptyTable = Table([Row](), selection: .constant(Set<Int>())) {
-            TableColumn("Name", value: \Row.name).width(.flexible)
+            TableColumn("Name", value: \Row.name)
         }
         .frame(height: 5)
 

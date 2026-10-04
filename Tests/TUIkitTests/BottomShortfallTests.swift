@@ -197,7 +197,7 @@ struct TableBottomBlankLineTests {
         func frame() -> [String] {
             let rows = (1...300).map(Note.init(id:))
             let table = Table(rows, selection: .constant(Int?.none)) {
-                TableColumn("Note", value: \Note.note).width(.flexible).lineLimit(3)
+                TableColumn("Note", value: \Note.note).lineLimit(3)
             }
             .frame(height: 20)
 

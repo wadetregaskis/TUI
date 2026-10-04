@@ -590,7 +590,9 @@ private struct TableColumnShapes: View {
         VStack {
             Table(people) {
                 TableColumn("Given Name", value: \.givenName)
+                    .width(min: 40, ideal: 90, max: 200)
                 TableColumn("Age") { person in Text("\(person.age)") }
+                    .width(60)
             }
             Table(people, selection: $selection, sortOrder: $sortOrder) {
                 TableColumn("Given Name", value: \.givenName)

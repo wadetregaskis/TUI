@@ -39,7 +39,7 @@ struct FramedTableFillsTests {
 
     private func table(rows: Int, lineLimit: Int) -> some View {
         Table((0..<rows).map { Row(id: $0) }, selection: .constant(Int?.none)) {
-            TableColumn("Name", value: \Row.name).width(.flexible).lineLimit(lineLimit)
+            TableColumn("Name", value: \Row.name).lineLimit(lineLimit)
         }
     }
 

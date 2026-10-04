@@ -234,7 +234,7 @@ struct TableRenderTests {
             strippedLines(
                 Table(sampleRows, selection: .constant(String?.none)) {
                     TableColumn("Name", value: \Row.name)
-                    TableColumn("Size", value: \Row.size).width(.fixed(6)).alignment(alignment)
+                    TableColumn("Size", value: \Row.size).width(6).alignment(alignment)
                 },
                 context: tableContext(width: 30, height: 8)
             )
@@ -267,7 +267,7 @@ struct TableRenderTests {
         let fit = strippedLines(
             Table(rows, selection: .constant(String?.none)) {
                 TableColumn("Name", value: \Row.name).width(.fit)
-                TableColumn("Size", value: \Row.size).width(.fixed(4))
+                TableColumn("Size", value: \Row.size).width(4)
             },
             context: tableContext(width: 40, height: 8)
         )
@@ -279,8 +279,8 @@ struct TableRenderTests {
         // confirming the fit width is genuinely derived from the content.
         let fixed = strippedLines(
             Table(rows, selection: .constant(String?.none)) {
-                TableColumn("Name", value: \Row.name).width(.fixed(4))
-                TableColumn("Size", value: \Row.size).width(.fixed(4))
+                TableColumn("Name", value: \Row.name).width(4)
+                TableColumn("Size", value: \Row.size).width(4)
             },
             context: tableContext(width: 40, height: 8)
         )
@@ -293,8 +293,8 @@ struct TableRenderTests {
         let rows = [Row(id: "1", name: "Alpha", size: "one two three four five six")]
         let lines = strippedLines(
             Table(rows, selection: .constant(String?.none)) {
-                TableColumn("Name", value: \Row.name).width(.fixed(6))
-                TableColumn("Notes", value: \Row.size).width(.fixed(10)).lineLimit(2)
+                TableColumn("Name", value: \Row.name).width(6)
+                TableColumn("Notes", value: \Row.size).width(10).lineLimit(2)
             },
             context: tableContext(width: 30, height: 8)
         )
@@ -335,7 +335,7 @@ struct TableRenderTests {
         let lines = strippedLines(
             Table(rows, selection: .constant("0")) {
                 TableColumn("Name", value: \Row.name).width(.fit)
-                TableColumn("Details", value: \Row.size).width(.fixed(8)).lineLimit(2)
+                TableColumn("Details", value: \Row.size).width(8).lineLimit(2)
             },
             context: tableContext(width: 40, height: 10)
         )
@@ -364,7 +364,7 @@ struct TableRenderTests {
         let lines = strippedLines(
             Table(rows, selection: .constant(String?.none)) {
                 TableColumn("Name", value: \Row.name)
-                TableColumn("Size", value: \Row.size).width(.fixed(6))
+                TableColumn("Size", value: \Row.size).width(6)
             }
             .scrollIndicators(.visible),
             context: tableContext(width: 30, height: 8)

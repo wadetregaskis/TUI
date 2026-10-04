@@ -166,7 +166,7 @@ struct ThemesPage: View {
         ) {
             TableColumn("Task", value: \ThemeBoard.Task.title)
             TableColumn("Owner", value: \ThemeBoard.Task.owner).width(.fit)
-            TableColumn("Hours") { Text(verbatim: "\($0.hours)h") }.width(.fixed(6)).alignment(.trailing)
+            TableColumn("Hours") { Text(verbatim: "\($0.hours)h") }.width(6).alignment(.trailing)
         }
         .focused($focus, equals: .table)
         .frame(height: 8)

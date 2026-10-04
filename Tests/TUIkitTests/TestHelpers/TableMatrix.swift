@@ -149,10 +149,27 @@ enum TableCellCost: Sendable, CaseIterable {
     }
 }
 
+/// How wide a fixture column is: every way a column can be sized, as data.
+enum TableMatrixWidth: Sendable, Equatable {
+    case flexible, fixed(Int), ratio(Double), fit
+}
+
+extension TableColumn {
+    /// This column, sized as `width` says.
+    func sized(_ width: TableMatrixWidth) -> TableColumn {
+        switch width {
+        case .flexible: self
+        case .fixed(let cells): self.width(cells)
+        case .ratio(let ratio): self.width(.ratio(ratio))
+        case .fit: self.width(.fit)
+        }
+    }
+}
+
 /// One column of the fixture.
 struct TableMatrixColumn: Sendable {
     var title: String
-    var width: ColumnWidth = .flexible
+    var width: TableMatrixWidth = .flexible
     var lineLimit: Int = 1
     var truncation: TruncationMode = .tail
     var alignment: TableColumnAlignment = .leading
@@ -240,7 +257,7 @@ extension TableMatrixShape {
                     ])))
         }
         for (label, width) in [
-            ("flexible", ColumnWidth.flexible), ("fixed", .fixed(12)),
+            ("flexible", TableMatrixWidth.flexible), ("fixed", .fixed(12)),
             ("ratio", .ratio(0.4)), ("fit", .fit),
         ] {
             cases.append(
@@ -503,7 +520,7 @@ final class TableMatrixHarness {
                     return Text(verbatim: spec.cost.text(id: row.id, generation: row.generation))
                 }
             column
-                .width(spec.width)
+                .sized(spec.width)
                 .lineLimit(spec.lineLimit)
                 .truncationMode(spec.truncation)
                 .alignment(spec.alignment)
@@ -522,7 +539,7 @@ final class TableMatrixHarness {
                 calls.note(row: row.id)
                 return Text(verbatim: spec.cost.text(id: row.id, generation: row.generation))
             }
-            .width(spec.width)
+            .sized(spec.width)
             .lineLimit(spec.lineLimit)
             .truncationMode(spec.truncation)
             .alignment(spec.alignment)

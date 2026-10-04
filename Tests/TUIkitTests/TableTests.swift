@@ -77,7 +77,7 @@ struct TableColumnTests {
     @Test("TableColumn width modifier creates new instance")
     func widthModifier() {
         let column = TableColumn("Size", value: \FileInfo.size)
-        let fixed = column.width(.fixed(10))
+        let fixed = column.width(10)
 
         #expect(column.width == .flexible)
         #expect(fixed.width == .fixed(10))
@@ -87,7 +87,7 @@ struct TableColumnTests {
     func chainedModifiers() {
         let columns = tableColumns(
             of: TableColumn("Size", value: \FileInfo.size)
-                .width(.fixed(10))
+                .width(10)
                 .alignment(.trailing))
 
         #expect(columns.map(\.alignment) == [.trailing])
@@ -199,7 +199,7 @@ struct TableRenderingTests {
         let table = Table(testFiles, selection: Binding(get: { selection }, set: { selection = $0 })) {
             TableColumn("Name", value: \FileInfo.name)
             TableColumn("Size", value: \FileInfo.size)
-                .width(.fixed(10))
+                .width(10)
         }
 
         let buffer = renderToBuffer(table, context: context)
@@ -216,7 +216,7 @@ struct TableRenderingTests {
 
         let table = Table(singleFile, selection: Binding(get: { selection }, set: { selection = $0 })) {
             TableColumn("Size", value: \FileInfo.size)
-                .width(.fixed(10))
+                .width(10)
                 .alignment(.trailing)
         }
 
@@ -435,7 +435,7 @@ struct TableColumnAlignmentTests {
         var selection: String?
         let table = Table(rows, selection: Binding(get: { selection }, set: { selection = $0 })) {
             TableColumn("Name", value: \Row.name)
-            TableColumn("Tag", value: \Row.tag).width(.fixed(5))
+            TableColumn("Tag", value: \Row.tag).width(5)
         }
         let buffer = renderToBuffer(table, context: createTestContext(width: 32, height: 10))
         let plain = buffer.lines.map { $0.stripped }
@@ -460,8 +460,8 @@ struct TableColumnAlignmentTests {
         let rows = [Row(id: "1", name: "this-name-is-far-too-long-to-fit", tag: "T")]
         var selection: String?
         let table = Table(rows, selection: Binding(get: { selection }, set: { selection = $0 })) {
-            TableColumn("Name", value: \Row.name).width(.fixed(10))
-            TableColumn("Tag", value: \Row.tag).width(.fixed(5))
+            TableColumn("Name", value: \Row.name).width(10)
+            TableColumn("Tag", value: \Row.tag).width(5)
         }
         let buffer = renderToBuffer(table, context: createTestContext(width: 40, height: 10))
         let truncated = buffer.lines.contains { $0.stripped.contains("…") }
@@ -474,9 +474,9 @@ struct TableColumnAlignmentTests {
         var selection: String?
         let table = Table(rows, selection: Binding(get: { selection }, set: { selection = $0 })) {
             TableColumn("Path", value: \Row.name)
-                .width(.fixed(10))
+                .width(10)
                 .truncationMode(.head)
-            TableColumn("Tag", value: \Row.tag).width(.fixed(5))
+            TableColumn("Tag", value: \Row.tag).width(5)
         }
         let buffer = renderToBuffer(table, context: createTestContext(width: 40, height: 10))
         // .head truncation keeps the END of the path, so "swift" must survive.

@@ -178,13 +178,13 @@ private struct ChurningTableView: View {
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
                 TableColumn("ID", value: \ChurningRow.identifier)
-                    .width(.fixed(7))
+                    .width(7)
                 TableColumn("Name", value: \ChurningRow.name)
                 TableColumn("Slug", value: \ChurningRow.slug)
                 TableColumn("Status", value: \ChurningRow.status)
                 TableColumn("Summary", value: \ChurningRow.summary)
                 TableColumn("Load", value: \ChurningRow.bar)
-                    .width(.fixed(8))
+                    .width(8)
             }
         }
     }
@@ -207,7 +207,7 @@ private struct TailingTableView: View {
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
                 TableColumn("Seq", value: \ChurningRow.identifier)
-                    .width(.fixed(9))
+                    .width(9)
                 TableColumn("Source", value: \ChurningRow.slug)
                 TableColumn("Level", value: \ChurningRow.status)
                 TableColumn("Message", value: \ChurningRow.summary)
@@ -231,7 +231,7 @@ private struct ChurningWrappedTableView: View {
             Divider()
             Table(rows, selection: Binding<Int?>.constant(nil)) {
                 TableColumn("ID") { Text(verbatim: ChurnCell.identifier($0)) }
-                    .width(.fixed(7))
+                    .width(7)
                 TableColumn("Name") { Text(verbatim: ChurnCell.name($0)) }
                 TableColumn("Details") { Text(verbatim: ChurnCell.summary($0, words: 18)) }
                     .lineLimit(3)

@@ -46,7 +46,7 @@ struct TableAnalyticMeasureTests {
                 AnyView(
                     Table(data, selection: .constant(Int?.none)) {
                         TableColumn("Name", value: \MeasureRow.name)
-                        TableColumn("Detail", value: \MeasureRow.detail).width(.fixed(10))
+                        TableColumn("Detail", value: \MeasureRow.detail).width(10)
                     })
             ),
             (
@@ -159,7 +159,7 @@ struct TableAnalyticMeasureTests {
                 AnyView(
                     Table(data, selection: .constant(Int?.none)) {
                         TableColumn("Name", value: \MeasureRow.name).lineLimit(3)
-                            .width(.fixed(12))
+                            .width(12)
                         TableColumn("Detail", value: \MeasureRow.detail).width(.fit)
                     })
             ),

@@ -69,10 +69,10 @@ struct FileBrowserApp: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Table(sorted, selection: $selection, sortOrder: $order) {
                         TableColumn("Name", value: \FileEntry.name).width(.fit)
-                        TableColumn("Kind", value: \FileEntry.kind).width(.fixed(18))
+                        TableColumn("Kind", value: \FileEntry.kind).width(18)
                         TableColumn("Size", value: \FileEntry.bytes) { Text(verbatim: $0.size) }
-                            .width(.fixed(12)).alignment(.trailing)
-                        TableColumn("Modified", value: \FileEntry.stamp).width(.fixed(22))
+                            .width(12).alignment(.trailing)
+                        TableColumn("Modified", value: \FileEntry.stamp).width(22)
                     }
                     Divider()
                     HStack(spacing: 2) {
@@ -202,17 +202,17 @@ struct ProcessMonitorApp: View {
             Divider()
             Table(sorted, selection: $selection, sortOrder: $order) {
                 TableColumn("PID", value: \ProcSample.id) { Text(verbatim: "\($0.id)") }
-                    .width(.fixed(6)).alignment(.trailing)
+                    .width(6).alignment(.trailing)
                 TableColumn("Command", value: \ProcSample.command)
-                TableColumn("User", value: \ProcSample.user).width(.fixed(10))
+                TableColumn("User", value: \ProcSample.user).width(10)
                 TableColumn("CPU%", value: \ProcSample.cpu) { Text(verbatim: $0.cpuText) }
-                    .width(.fixed(7)).alignment(.trailing)
-                TableColumn("", value: \ProcSample.bar).width(.fixed(12))
+                    .width(7).alignment(.trailing)
+                TableColumn("", value: \ProcSample.bar).width(12)
                 TableColumn("Memory", value: \ProcSample.resident) { Text(verbatim: $0.memory) }
-                    .width(.fixed(11)).alignment(.trailing)
+                    .width(11).alignment(.trailing)
                 TableColumn("Thr", value: \ProcSample.threads) { Text(verbatim: "\($0.threads)") }
-                    .width(.fixed(4)).alignment(.trailing)
-                TableColumn("State", value: \ProcSample.state).width(.fixed(9))
+                    .width(4).alignment(.trailing)
+                TableColumn("State", value: \ProcSample.state).width(9)
             }
         }
     }

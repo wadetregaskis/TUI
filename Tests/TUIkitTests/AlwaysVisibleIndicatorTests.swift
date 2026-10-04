@@ -78,7 +78,7 @@ struct AlwaysVisibleIndicatorTests {
         case 1:
             return body(loud(
                 Table(rows, selection: .constant(Int?.none)) {
-                    TableColumn("Name", value: \Row.name).width(.flexible)
+                    TableColumn("Name", value: \Row.name)
                 }
                 .frame(height: 8)))
         case 2:
@@ -86,7 +86,7 @@ struct AlwaysVisibleIndicatorTests {
             // which is the path with its own window arithmetic.
             return body(loud(
                 Table(rows, selection: .constant(Int?.none)) {
-                    TableColumn("Name", value: \Row.name).width(.fixed(6)).lineLimit(3)
+                    TableColumn("Name", value: \Row.name).width(6).lineLimit(3)
                 }
                 .frame(height: 8)))
         default:
@@ -255,7 +255,7 @@ struct AlwaysVisibleHugMeasureTests {
         let rows = (0..<3).map(Row.init(id:))
         let (measured, drawn) = measuredAndDrawn(
             Table(rows, selection: .constant(Int?.none)) {
-                TableColumn("Name", value: \Row.name).width(.flexible).lineLimit(lineLimit)
+                TableColumn("Name", value: \Row.name).lineLimit(lineLimit)
             }
             .scrollIndicatorStyle(.text)
             .scrollIndicators(.visible))
@@ -270,7 +270,7 @@ struct AlwaysVisibleHugMeasureTests {
         let rows = (0..<3).map(Row.init(id:))
         let (measured, drawn) = measuredAndDrawn(
             Table(rows, selection: .constant(Int?.none)) {
-                TableColumn("Name", value: \Row.name).width(.flexible).lineLimit(lineLimit)
+                TableColumn("Name", value: \Row.name).lineLimit(lineLimit)
             }
             .scrollIndicatorStyle(.text))
         #expect(measured == drawn, "measured \(measured), drew \(drawn)")
@@ -307,7 +307,7 @@ struct TableIndicatorLatchTests {
             availableWidth: 40, availableHeight: 8, environment: environment, tuiContext: tui)
         return counts.map { count in
             let view = Table((0..<count).map(Row.init(id:)), selection: .constant(Int?.none)) {
-                TableColumn("Name", value: \Row.name).width(.flexible)
+                TableColumn("Name", value: \Row.name)
             }
             .frame(height: 8)
             tui.stateStorage.beginRenderPass()

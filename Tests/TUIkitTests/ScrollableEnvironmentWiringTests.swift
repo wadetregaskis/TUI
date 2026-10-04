@@ -93,14 +93,14 @@ struct ScrollableEnvironmentWiringTests {
 
     private func singleLineTable() -> some View {
         Table(Self.rows, selection: .constant(Set<Int>())) {
-            TableColumn("Name", value: \Row.name).width(.flexible)
+            TableColumn("Name", value: \Row.name)
         }
         .frame(height: 6)
     }
 
     private func multiLineTable() -> some View {
         Table(Self.rows, selection: .constant(Set<Int>())) {
-            TableColumn("Note", value: \Row.note).width(.flexible).lineLimit(3)
+            TableColumn("Note", value: \Row.note).lineLimit(3)
         }
         .frame(height: 6)
     }
@@ -274,14 +274,14 @@ struct ScrollableEnvironmentWiringTests {
                 focusedRowHandler(
                     loud(
                         Table(data, selection: .constant(Set<Int>())) {
-                            TableColumn("Name", value: \Row.name).width(.flexible)
+                            TableColumn("Name", value: \Row.name)
                         }
                         .frame(height: 6)), session: session)
             case 1:
                 focusedRowHandler(
                     loud(
                         Table(data, selection: .constant(Set<Int>())) {
-                            TableColumn("Note", value: \Row.note).width(.flexible).lineLimit(3)
+                            TableColumn("Note", value: \Row.note).lineLimit(3)
                         }
                         .frame(height: 6)), session: session)
             default:
@@ -329,14 +329,14 @@ struct ScrollableEnvironmentWiringTests {
                 focusedRowHandler(
                     quiet(
                         Table(data, selection: .constant(Set<Int>())) {
-                            TableColumn("Name", value: \Row.name).width(.flexible)
+                            TableColumn("Name", value: \Row.name)
                         }
                         .frame(height: 6)), session: session)
             case 1:
                 focusedRowHandler(
                     quiet(
                         Table(data, selection: .constant(Set<Int>())) {
-                            TableColumn("Note", value: \Row.note).width(.flexible).lineLimit(3)
+                            TableColumn("Note", value: \Row.note).lineLimit(3)
                         }
                         .frame(height: 6)), session: session)
             default:

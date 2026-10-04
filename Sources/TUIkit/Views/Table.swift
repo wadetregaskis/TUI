@@ -44,7 +44,7 @@ import Foundation
 /// Table(files, selection: $selectedID) {
 ///     TableColumn("Name", value: \.name)
 ///     TableColumn("Size", value: \.size)
-///         .width(.fixed(10))
+///         .width(10)
 ///         .alignment(.trailing)
 ///     TableColumn("Modified") { file in
 ///         Text(file.modified).foregroundStyle(.palette.foregroundSecondary)
@@ -652,14 +652,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             size = analyticSingleLineSize(context: measureContext)
         }
 
-        let fillsWidth = columns.contains { column in
-            switch column.width {
-            case .flexible, .ratio: return true
-            // `.fit` is content-sized (a fixed width derived from the data), so
-            // like `.fixed` it does not grow with the available width.
-            case .fixed, .fit: return false
-            }
-        }
+        // `.fit` is content-sized (a fixed width derived from the data), so
+        // like `.fixed` it does not grow with the available width.
+        let fillsWidth = columns.contains { $0.width.growsWithAvailableWidth }
         return fillsWidth
             ? ViewSize.flexibleWidth(minWidth: size.width, height: size.height)
             : ViewSize.fixed(size.width, size.height)
@@ -3382,6 +3377,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var widths = [Int](repeating: 0, count: columns.count)
         var usedWidth = 0
         var flexibleIndices: [Int] = []
+        var flexibleBounds: [(min: Int?, ideal: Int?, max: Int?)] = []
 
         for (index, column) in columns.enumerated() {
             switch column.width {
@@ -3409,18 +3405,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     of: column, at: index, cappedAt: fitScanCap, context: context)
                 widths[index] = fitted
                 usedWidth += fitted
-            case .flexible:
+            case .flexible(let minimum, let ideal, let maximum):
                 flexibleIndices.append(index)
+                flexibleBounds.append((minimum, ideal, maximum))
             }
         }
 
         if !flexibleIndices.isEmpty {
-            let remainingWidth = max(0, contentWidth - usedWidth)
-            let perColumn = remainingWidth / flexibleIndices.count
-            let remainder = remainingWidth % flexibleIndices.count
-
+            let shared = TableFlexibleWidths.widths(
+                flexibleBounds, sharing: max(0, contentWidth - usedWidth))
             for (offset, index) in flexibleIndices.enumerated() {
-                widths[index] = perColumn + (offset < remainder ? 1 : 0)
+                widths[index] = shared[offset]
             }
         }
 

@@ -209,15 +209,14 @@ struct EmojiPage: View {
                 // Two cells: every entry here has emoji presentation, which is
                 // what makes it wide, and the page exists to show that.
                 TableColumn("page.emoji.column.glyph", value: \EmojiEntry.cluster)
-                    .width(.fixed(7))
+                    .width(7)
                 // Sorted by the NUMBER, shown as the label. Sorting the label
                 // would order it as text, which puts U+FE0F before U+1F600.
                 TableColumn("page.emoji.column.code", value: \EmojiEntry.codepoint) {
                     Text($0.codepointLabel)
                 }
-                .width(.fixed(10))
+                .width(10)
                 TableColumn("page.emoji.column.description", value: \EmojiEntry.name)
-                    .width(.flexible)
             }
             // Every row here begins with the glyph the page is about, and a
             // second mark beside it read as one mark too many. The highlight
@@ -248,13 +247,12 @@ struct EmojiPage: View {
                     // Plane-16 Private-Use, two cells wide with Terminal.app
                     // compensation — a cleanly aligned column is the proof.
                     TableColumn("page.emoji.column.glyph", value: \SymbolEntry.glyph)
-                        .width(.fixed(7))
+                        .width(7)
                     TableColumn("page.emoji.column.code", value: \SymbolEntry.codepoint) {
                         Text($0.codepointLabel)
                     }
-                    .width(.fixed(10))
+                    .width(10)
                     TableColumn("page.emoji.column.description", value: \SymbolEntry.name)
-                        .width(.flexible)
                 }
                 .tableEmptyPlaceholder(L("page.emoji.sfSymbolsEmpty"))
                 .rowSelectionIndicator(.hidden)

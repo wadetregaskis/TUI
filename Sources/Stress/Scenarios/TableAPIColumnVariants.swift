@@ -28,12 +28,12 @@ extension TableAPIMatrix {
             variant("keypath", axis: "data", "every column names a property (KeyPath<Value, String>)") { config in
                 table("keypath", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Slug", value: \APIRow.slug)
                         TableColumn("Status", value: \APIRow.status)
                         TableColumn("Summary", value: \APIRow.summary)
-                        TableColumn("Load", value: \APIRow.bar).width(.fixed(10))
+                        TableColumn("Load", value: \APIRow.bar).width(10)
                     }
                 }
             },
@@ -41,12 +41,12 @@ extension TableAPIMatrix {
             variant("closure", axis: "data", "every column computes its value in a closure") { config in
                 table("closure", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID") { (row: APIRow) in Text(verbatim: row.index) }.width(.fixed(7))
+                        TableColumn("ID") { (row: APIRow) in Text(verbatim: row.index) }.width(7)
                         TableColumn("Name") { (row: APIRow) in Text(verbatim: row.name) }
                         TableColumn("Slug") { (row: APIRow) in Text(verbatim: row.slug) }
                         TableColumn("Status") { (row: APIRow) in Text(verbatim: row.status) }
                         TableColumn("Summary") { (row: APIRow) in Text(verbatim: row.summary) }
-                        TableColumn("Load") { (row: APIRow) in Text(verbatim: row.bar) }.width(.fixed(10))
+                        TableColumn("Load") { (row: APIRow) in Text(verbatim: row.bar) }.width(10)
                     }
                 }
             },
@@ -59,12 +59,12 @@ extension TableAPIMatrix {
             variant("mixed-columns", axis: "data", "five key-path columns and one closure") { config in
                 table("mixed-columns", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Slug", value: \APIRow.slug)
                         TableColumn("Status", value: \APIRow.status)
                         TableColumn("Summary") { (row: APIRow) in Text(verbatim: row.summary) }
-                        TableColumn("Load", value: \APIRow.bar).width(.fixed(10))
+                        TableColumn("Load", value: \APIRow.bar).width(10)
                     }
                 }
             },
@@ -82,12 +82,12 @@ extension TableAPIMatrix {
                         rows, selection: Binding<Int?>.constant(nil),
                         sortOrder: .constant([KeyPathComparator(\APIRow.id)])
                     ) {
-                        TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.id) { Text(verbatim: "\($0.id)") }.width(7)
                         TableColumn("Name", value: \APIRow.name)
                         TableColumn("Score", value: \APIRow.score) { Text(verbatim: "\($0.score)") }
-                            .width(.fixed(7)).alignment(.trailing)
+                            .width(7).alignment(.trailing)
                         TableColumn("Size", value: \APIRow.bytes) { Text(verbatim: $0.size) }
-                            .width(.fixed(10)).alignment(.trailing)
+                            .width(10).alignment(.trailing)
                         TableColumn("Summary", value: \APIRow.summary)
                     }
                 }
@@ -112,7 +112,7 @@ extension TableAPIMatrix {
                         },
                         content: { rows in
                             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                                TableColumn("ID", value: \APIOpaqueRow.index).width(.fixed(7))
+                                TableColumn("ID", value: \APIOpaqueRow.index).width(7)
                                 TableColumn("Name", value: \APIOpaqueRow.name)
                                 TableColumn("Summary", value: \APIOpaqueRow.summary)
                             }
@@ -137,7 +137,7 @@ extension TableAPIMatrix {
                         },
                         content: { rows in
                             Table(rows, selection: Binding<Int?>.constant(nil)) {
-                                TableColumn("ID", value: \APIClassRow.index).width(.fixed(7))
+                                TableColumn("ID", value: \APIClassRow.index).width(7)
                                 TableColumn("Name", value: \APIClassRow.name)
                                 TableColumn("Summary", value: \APIClassRow.summary)
                             }
@@ -151,9 +151,9 @@ extension TableAPIMatrix {
 
 extension TableAPIMatrix {
 
-    /// The four ``ColumnWidth`` modes plus the mixture an app actually writes.
+    /// The four width modes plus the mixture an app actually writes.
     ///
-    /// `.flexible` is the baseline (`keypath` above); the rest are here because
+    /// The default width is the baseline (`keypath` above); the rest are here because
     /// they are not merely different arithmetic. `.fit` is O(rows) — it scans
     /// every cell in the column, on every frame, to find the widest — which is
     /// the single most expensive thing a column declaration can do, and the
@@ -163,11 +163,11 @@ extension TableAPIMatrix {
             variant("width-fixed", axis: "width", "every column a fixed width") { config in
                 table("width-fixed", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Name", value: \APIRow.name).width(.fixed(20))
-                        TableColumn("Slug", value: \APIRow.slug).width(.fixed(18))
-                        TableColumn("Status", value: \APIRow.status).width(.fixed(10))
-                        TableColumn("Summary", value: \APIRow.summary).width(.fixed(40))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name).width(20)
+                        TableColumn("Slug", value: \APIRow.slug).width(18)
+                        TableColumn("Status", value: \APIRow.status).width(10)
+                        TableColumn("Summary", value: \APIRow.summary).width(40)
                     }
                 }
             },
@@ -203,11 +203,11 @@ extension TableAPIMatrix {
             variant("width-mixed", axis: "width", "fixed, fit, ratio and flexible columns in one table") { config in
                 table("width-mixed", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
+                        TableColumn("ID", value: \APIRow.index).width(7)
                         TableColumn("Status", value: \APIRow.status).width(.fit)
                         TableColumn("Name", value: \APIRow.name).width(.ratio(0.25))
                         TableColumn("Summary", value: \APIRow.summary)
-                        TableColumn("Load", value: \APIRow.bar).width(.fixed(10))
+                        TableColumn("Load", value: \APIRow.bar).width(10)
                     }
                 }
             },
@@ -219,16 +219,16 @@ extension TableAPIMatrix {
             variant("width-many", axis: "width", "ten narrow columns — mostly boundaries") { config in
                 table("width-many", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("#", value: \APIRow.index).width(.fixed(5))
-                        TableColumn("A", value: \APIRow.status).width(.fixed(5))
-                        TableColumn("B", value: \APIRow.slug).width(.fixed(5))
-                        TableColumn("C", value: \APIRow.name).width(.fixed(5))
-                        TableColumn("D", value: \APIRow.summary).width(.fixed(5))
-                        TableColumn("E", value: \APIRow.bar).width(.fixed(5))
-                        TableColumn("F", value: \APIRow.index).width(.fixed(5))
-                        TableColumn("G", value: \APIRow.status).width(.fixed(5))
-                        TableColumn("H", value: \APIRow.slug).width(.fixed(5))
-                        TableColumn("I", value: \APIRow.name).width(.fixed(5))
+                        TableColumn("#", value: \APIRow.index).width(5)
+                        TableColumn("A", value: \APIRow.status).width(5)
+                        TableColumn("B", value: \APIRow.slug).width(5)
+                        TableColumn("C", value: \APIRow.name).width(5)
+                        TableColumn("D", value: \APIRow.summary).width(5)
+                        TableColumn("E", value: \APIRow.bar).width(5)
+                        TableColumn("F", value: \APIRow.index).width(5)
+                        TableColumn("G", value: \APIRow.status).width(5)
+                        TableColumn("H", value: \APIRow.slug).width(5)
+                        TableColumn("I", value: \APIRow.name).width(5)
                     }
                 }
             },
@@ -253,9 +253,9 @@ extension TableAPIMatrix {
             variant("text-cheap", axis: "text", "cells are interpolated integers — the cheapest possible") { config in
                 table("text-cheap", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(9))
-                        TableColumn("Score", value: \APIRow.index).width(.fixed(9))
-                        TableColumn("Also", value: \APIRow.index).width(.fixed(9))
+                        TableColumn("ID", value: \APIRow.index).width(9)
+                        TableColumn("Score", value: \APIRow.index).width(9)
+                        TableColumn("Also", value: \APIRow.index).width(9)
                         TableColumn("Again", value: \APIRow.index)
                     }
                 }
@@ -268,9 +268,9 @@ extension TableAPIMatrix {
             variant("text-formatted", axis: "text", "cells built by Foundation formatters (byte count, date)") { config in
                 table("text-formatted", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Size", value: \APIRow.size).width(.fixed(12)).alignment(.trailing)
-                        TableColumn("Modified", value: \APIRow.stamp).width(.fixed(22))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Size", value: \APIRow.size).width(12).alignment(.trailing)
+                        TableColumn("Modified", value: \APIRow.stamp).width(22)
                         TableColumn("Name", value: \APIRow.name)
                     }
                 }
@@ -290,9 +290,9 @@ extension TableAPIMatrix {
             variant("text-wide", axis: "text", "CJK and emoji cells — every width question goes per-cluster") { config in
                 table("text-wide", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
-                        TableColumn("ID", value: \APIRow.index).width(.fixed(7))
-                        TableColumn("Glyphs", value: \APIRow.glyphs).width(.fixed(14))
-                        TableColumn("More", value: \APIRow.glyphs).width(.fixed(9))
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Glyphs", value: \APIRow.glyphs).width(14)
+                        TableColumn("More", value: \APIRow.glyphs).width(9)
                         TableColumn("Name", value: \APIRow.name)
                     }
                 }

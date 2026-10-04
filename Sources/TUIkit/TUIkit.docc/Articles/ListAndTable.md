@@ -210,14 +210,17 @@ Table(of: Purchase.self) {
 
 ### Column Configuration
 
-Columns support four width modes:
+A column shares the width the others leave unless it says otherwise. SwiftUI's
+two width modifiers take cells here, and two more modes are TUIkit's own:
 
 ```swift
-TableColumn("Name", value: \.name)
-    .width(.flexible)        // Shares remaining space (default)
+TableColumn("Name", value: \.name)          // Shares remaining space (default)
 
 TableColumn("Size", value: \.size)
-    .width(.fixed(12))       // Exactly 12 characters
+    .width(12)               // Exactly 12 cells
+
+TableColumn("Notes", value: \.notes)
+    .width(min: 10, ideal: 30, max: 60)     // Starts at 30, shares the rest, stays in bounds
 
 TableColumn("Progress", value: \.progress)
     .width(.ratio(0.3))      // 30% of available width
@@ -226,9 +229,14 @@ TableColumn("Title", value: \.title)
     .width(.fit)             // Sizes to the widest header/cell (O(rows))
 ```
 
+Bounded columns follow the rule a SwiftUI table on macOS lays its resizable
+columns out with: each starts at its ideal width and the space left over is
+shared evenly, never outside a column's bounds. Columns are not resized by
+dragging here.
+
 `.fit` scans every value in the column (not just the visible rows) so the
-width stays stable while scrolling; prefer `.fixed` or `.flexible` for very
-large tables where a per-frame content scan is undesirable.
+width stays stable while scrolling; prefer a fixed width or the default for
+very large tables where a per-frame content scan is undesirable.
 
 ### Column Alignment
 

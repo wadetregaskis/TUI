@@ -578,8 +578,8 @@ struct ScrollGranularityTests {
             VStack(alignment: .leading, spacing: 0) {
                 Text("caption")
                 Table(rows, selection: .constant(Set<Int>())) {
-                    TableColumn("#", value: \NoteRow.index).width(.fixed(4))
-                    TableColumn("Note", value: \NoteRow.note).width(.flexible).lineLimit(3)
+                    TableColumn("#", value: \NoteRow.index).width(4)
+                    TableColumn("Note", value: \NoteRow.note).lineLimit(3)
                 }
                 .frame(height: 12)
                 .scrollIndicators(.visible)

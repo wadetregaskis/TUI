@@ -9,34 +9,6 @@
 // depends on, and present on every platform TUIkit builds for.
 import Foundation
 
-// MARK: - Column Width
-
-/// Defines the width behavior for a table column.
-public enum ColumnWidth: Sendable, Equatable {
-    /// Fixed width in characters.
-    case fixed(Int)
-
-    /// Flexible width that expands to fill available space.
-    /// Multiple flexible columns share space equally.
-    case flexible
-
-    /// Proportional width as a ratio of total available space.
-    /// For example, `.ratio(0.5)` takes 50% of available width.
-    case ratio(Double)
-
-    /// Sizes the column to fit its content — the width of the widest of the
-    /// column header and every cell value in the column (so nothing in the
-    /// column is truncated, space permitting). This mirrors the content-based
-    /// sizing of a SwiftUI table's automatic columns.
-    ///
-    /// It scans all of the column's values to find that width, so it is O(rows);
-    /// for very large tables where a per-frame content scan is undesirable,
-    /// prefer `.fixed` or `.flexible`. The fitted width is stable as the table
-    /// scrolls (it considers every row, not just the visible ones), so the
-    /// columns do not jump while scrolling.
-    case fit
-}
-
 // MARK: - Table Column
 
 /// A column that displays a view for each row in a table.
@@ -53,7 +25,7 @@ public enum ColumnWidth: Sendable, Equatable {
 ///     }
 ///     TableColumn("Family name", value: \.familyName)
 ///     TableColumn("Age") { Text("\($0.age)") }
-///         .width(.fixed(5))
+///         .width(5)
 ///         .alignment(.numeric)
 /// }
 /// ```
@@ -81,14 +53,15 @@ public enum ColumnWidth: Sendable, Equatable {
 /// — is drawn exactly as the `String` key-path column draws its value. Any
 /// other content is rendered as a view at the column's width.
 ///
-/// ## Width Modes
+/// ## Widths
 ///
-/// | Mode | Behavior |
+/// | Modifier | Behavior |
 /// |------|----------|
-/// | `.fixed(n)` | Exactly n characters wide |
-/// | `.flexible` | Expands to fill remaining space (shared equally) |
-/// | `.ratio(r)` | Takes r proportion of available width (0.0-1.0) |
-/// | `.fit` | Sizes to the widest of the header and all cell values (O(rows)) |
+/// | (none) | Shares the width the other columns leave, evenly |
+/// | `.width(n)` | Exactly n cells wide |
+/// | `.width(min:ideal:max:)` | Starts at its ideal, shares what is left, stays in bounds |
+/// | `.width(.ratio(r))` | Takes r of the width available (0.0–1.0) |
+/// | `.width(.fit)` | The widest of the header and every cell value (O(rows)) |
 public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content: View, Label: View>:
     TableColumnContent
 {
@@ -99,8 +72,8 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     /// The column header title.
     let title: String
 
-    /// The width mode for this column.
-    var width: ColumnWidth = .flexible
+    /// How this column is sized.
+    var width: _TableColumnWidth = .flexible
 
     /// How a cell value is shortened when it is wider than the column.
     ///
@@ -524,13 +497,60 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
 // MARK: - Modifiers
 
 extension TableColumn {
-    /// Sets the width mode for this column.
+    /// Creates a fixed width table column.
+    ///
+    /// SwiftUI's `width(_:)`, in cells rather than points. Columns are not
+    /// resized by the user here, so a fixed column differs from the others
+    /// only in being given exactly this width.
+    ///
+    /// - Parameter width: A fixed width for the resulting column. If `width`
+    ///   is `nil`, the resulting column has no change in sizing.
+    /// - Returns: A modified column with the specified width.
+    public func width(_ width: Int? = nil) -> TableColumn {
+        guard let width else { return self }
+        var copy = self
+        copy.width = .fixed(max(0, width))
+        return copy
+    }
+
+    /// Creates a column bounded by the provided constraints.
+    ///
+    /// SwiftUI's `width(min:ideal:max:)`, in cells. The column starts at its
+    /// ideal width and takes an even share of whatever the columns leave, but
+    /// never less than `min` or more than `max` — the rule a SwiftUI table on
+    /// macOS lays its resizable columns out with. When the ideals do not fit,
+    /// the columns shrink toward their minimums. Pass `nil`, or leave a
+    /// constraint out, for no change to it.
+    ///
+    /// - Parameters:
+    ///   - min: The minimum width of the column.
+    ///   - ideal: The width the column starts from.
+    ///   - max: The maximum width of the column.
+    /// - Returns: A modified column with the specified constraints.
+    public func width(min: Int? = nil, ideal: Int? = nil, max: Int? = nil) -> TableColumn {
+        var copy = self
+        let current: (min: Int?, ideal: Int?, max: Int?) =
+            if case .flexible(let oldMin, let oldIdeal, let oldMax) = width {
+                (oldMin, oldIdeal, oldMax)
+            } else {
+                (nil, nil, nil)
+            }
+        copy.width = .flexible(
+            min: min ?? current.min, ideal: ideal ?? current.ideal, max: max ?? current.max)
+        return copy
+    }
+
+    /// Sizes the column in one of the two TUI-only ways: to fit its widest
+    /// value, or as a ratio of the width available.
     ///
     /// - Parameter width: The column width mode.
     /// - Returns: A modified column with the specified width.
     public func width(_ width: ColumnWidth) -> TableColumn {
         var copy = self
-        copy.width = width
+        switch width {
+        case .ratio(let ratio): copy.width = .ratio(ratio)
+        case .fit: copy.width = .fit
+        }
         return copy
     }
 
