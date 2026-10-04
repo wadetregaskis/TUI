@@ -111,6 +111,32 @@ struct ClaimingRow {
         text += String(repeating: " ", count: max(0, count))
         cells += max(0, count)
     }
+
+    /// The cells in `range` of this row, as a row of their own: the bytes with
+    /// the styling in force at the first cell, closed with a reset so the next
+    /// piece starts clean, and the claims cut to the range and moved to its
+    /// origin.
+    ///
+    /// For a row put together from pieces of rows drawn differently — a
+    /// slider's track filled from its neutral value, its disabled ends.
+    func slice(_ range: Range<Int>) -> Self {
+        let lower = max(0, min(cells, range.lowerBound))
+        let upper = max(lower, min(cells, range.upperBound))
+        var piece = Self()
+        guard upper > lower else { return piece }
+        piece.text = text.ansiAwareSlice(visibleStart: lower, visibleCount: upper - lower) + ANSIRenderer.reset
+        piece.cells = upper - lower
+        for claim in claims {
+            let start = max(claim.offsetX, lower)
+            let end = min(claim.offsetX + claim.width, upper)
+            guard end > start else { continue }
+            var cut = claim
+            cut.offsetX = start - lower
+            cut.width = end - start
+            piece.claims.appendCoalescing(cut)
+        }
+        return piece
+    }
 }
 
 // MARK: - A column of single cells

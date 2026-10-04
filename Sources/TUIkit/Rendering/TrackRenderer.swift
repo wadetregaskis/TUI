@@ -57,7 +57,9 @@ enum TrackRenderer {
         fillScaling: TrackGradientScaling = .track,
         backgroundScaling: TrackGradientScaling = .track,
         palette: any Palette,
-        graphics: GradientGraphicsContext? = nil
+        graphics: GradientGraphicsContext? = nil,
+        neutralFraction: Double? = nil,
+        showsHead: Bool = true
     ) -> ClaimingRow {
         let style = style.resolvingColours(with: palette)
         // Read once per render, not once per cell. A gradient can only be
@@ -68,6 +70,10 @@ enum TrackRenderer {
 
         // Clamp fraction to [0, 1] to prevent track overflow
         let fraction = min(1.0, max(0.0, fraction))
+        // Where the fill starts: the low end unless a slider names a neutral
+        // value (SwiftUI's `neutralValue:`), and then from there to the value,
+        // in whichever direction the value lies.
+        let neutral = neutralFraction.map { min(1.0, max(0.0, $0)) }.flatMap { $0 > 0 ? $0 : nil }
 
         // The "fill" family — a run of full cells, an optional fractional
         // boundary cell, then the unfilled remainder — is one parameterized
@@ -76,6 +82,11 @@ enum TrackRenderer {
         // The named cases are just presets; `.custom` carries a caller-supplied
         // recipe.
         func configured(_ config: TrackConfiguration) -> ClaimingRow {
+            fromNeutral { configured(config, at: $0, graphics: neutral == nil ? graphics : nil) }
+        }
+        func configured(
+            _ config: TrackConfiguration, at fraction: Double, graphics: GradientGraphicsContext?
+        ) -> ClaimingRow {
             // A PICTURE has no alpha channel to send — `GradientRaster.Picture.format`
             // is `.rgb`, and a terminal would in any case composite it against its own
             // background rather than against what TUIkit drew behind the cell. So a
@@ -105,6 +116,10 @@ enum TrackRenderer {
                 fillScaling: fillScaling, backgroundScaling: backgroundScaling, depth: depth)
         }
 
+        func fromNeutral(_ draw: (Double) -> ClaimingRow) -> ClaimingRow {
+            Self.drawn(from: neutral, to: fraction, draw)
+        }
+
         switch style {
         case .block: return configured(.block)
         case .blockFine: return configured(.blockFine)
@@ -119,6 +134,8 @@ enum TrackRenderer {
         case .dot:
             return renderHeadStyle(
                 fraction: fraction,
+                neutral: neutral,
+                showsHead: showsHead,
                 width: width,
                 filledChar: "▬",
                 headChar: "●",
@@ -130,6 +147,8 @@ enum TrackRenderer {
         case .knob:
             return renderHeadStyle(
                 fraction: fraction,
+                neutral: neutral,
+                showsHead: showsHead,
                 width: width,
                 filledChar: "━",
                 headChar: "●",
@@ -143,25 +162,52 @@ enum TrackRenderer {
                 fraction: fraction,
                 width: width,
                 lineChar: "─",
-                markerChar: "●",
+                markerChar: showsHead ? "●" : "─",
                 lineColor: backgroundColor,
                 markerColor: accentColor
             )
         case .threeSegment(let leading, let middle, let trailing, let backgroundPattern, let coloring):
-            return renderThreeSegmentStyle(
-                fraction: fraction,
-                width: width,
-                leading: leading,
-                middle: middle,
-                trailing: trailing,
-                backgroundPattern: backgroundPattern,
-                coloring: coloring,
-                fillColor: fillColor,
-                backgroundColor: backgroundColor,
-                fillScaling: fillScaling,
-                depth: depth
-            )
+            return fromNeutral { fraction in
+                renderThreeSegmentStyle(
+                    fraction: fraction,
+                    width: width,
+                    leading: leading,
+                    middle: middle,
+                    trailing: trailing,
+                    backgroundPattern: backgroundPattern,
+                    coloring: coloring,
+                    fillColor: fillColor,
+                    backgroundColor: backgroundColor,
+                    fillScaling: fillScaling,
+                    depth: depth)
+            }
         }
+    }
+
+    /// A fill style drawn from a neutral value: put together from whole cells
+    /// of the track drawn empty, drawn to the value, and drawn to the neutral
+    /// value, so no style needs a second way to draw its fill. The boundary
+    /// nearest the neutral value is a whole cell; the one at the value keeps
+    /// the style's own sub-cell ramp when the value lies above it.
+    private static func drawn(
+        from neutral: Double?, to fraction: Double, _ draw: (Double) -> ClaimingRow
+    ) -> ClaimingRow {
+        guard let neutral else { return draw(fraction) }
+        let toValue = draw(fraction)
+        let empty = draw(0)
+        let total = toValue.cells
+        let neutralCell = Int((neutral * Double(total)).rounded())
+        var row = ClaimingRow()
+        if fraction >= neutral {
+            row.append(contentsOf: empty.slice(0..<neutralCell))
+            row.append(contentsOf: toValue.slice(neutralCell..<total))
+        } else {
+            let valueCell = Int((fraction * Double(total)).rounded())
+            row.append(contentsOf: empty.slice(0..<valueCell))
+            row.append(contentsOf: draw(neutral).slice(valueCell..<neutralCell))
+            row.append(contentsOf: empty.slice(neutralCell..<total))
+        }
+        return row
     }
 
     /// The colour a gradient shows at cell `index` of a `span`-cell ramp — the
@@ -740,6 +786,8 @@ extension TrackRenderer {
     /// knob-style slider must never lose its grab handle at the ends.
     private static func renderHeadStyle(
         fraction: Double,
+        neutral: Double? = nil,
+        showsHead: Bool = true,
         width: Int,
         filledChar: Character,
         headChar: Character,
@@ -750,25 +798,38 @@ extension TrackRenderer {
     ) -> ClaimingRow {
         var row = ClaimingRow()
         guard width > 1 else {
-            row.append(String(headChar), cells: 1, ink: headColor)
+            row.append(String(showsHead ? headChar : filledChar), cells: 1, ink: showsHead ? headColor : fillColor)
             return row
         }
         let position = Int((fraction * Double(width - 1)).rounded())
+        // The fill runs from the neutral cell (the first, without one) to the
+        // head, on whichever side of it the head is.
+        let neutralPosition = neutral.map { Int(($0 * Double(width - 1)).rounded()) } ?? 0
+        let fill = position >= neutralPosition
+            ? neutralPosition..<position : (position + 1)..<(neutralPosition + 1)
 
-        if position > 0 {
-            row.append(
-                String(repeating: filledChar, count: position), cells: position, ink: fillColor)
+        /// One run per stretch of the same kind of cell.
+        func run(_ cells: Range<Int>, _ glyph: Character, _ ink: Color) {
+            guard !cells.isEmpty else { return }
+            row.append(String(repeating: glyph, count: cells.count), cells: cells.count, ink: ink)
         }
+        run(0..<min(position, fill.lowerBound), emptyChar, backgroundColor)
+        run(fill.clamped(to: 0..<position), filledChar, fillColor)
         // `.knob` — a `Slider`'s default — takes BOTH `fillColor` and `headColor`
         // from the accent, so `.tint(.red.opacity(0.5))` fades the lit rail and the
         // knob together. That is the shortest route from a public modifier to this
-        // renderer, and it is what used to reach the emitter's assertion.
-        row.append(String(headChar), cells: 1, ink: headColor)
-        let trailing = width - 1 - position
-        if trailing > 0 {
-            row.append(
-                String(repeating: emptyChar, count: trailing), cells: trailing, ink: backgroundColor)
+        // renderer, and it is what used to reach the emitter's assertion. A hidden
+        // head (`sliderThumbVisibility(.hidden)`) is the cell it sits on: the
+        // fill's end, or the rail where nothing is filled.
+        if showsHead {
+            row.append(String(headChar), cells: 1, ink: headColor)
+        } else if position != neutralPosition || neutral == nil && position > 0 {
+            row.append(String(filledChar), cells: 1, ink: fillColor)
+        } else {
+            row.append(String(emptyChar), cells: 1, ink: backgroundColor)
         }
+        run(fill.clamped(to: (position + 1)..<width), filledChar, fillColor)
+        run(max(position + 1, fill.upperBound)..<width, emptyChar, backgroundColor)
         return row
     }
 }

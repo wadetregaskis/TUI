@@ -30,6 +30,24 @@ struct _SliderCore: View, Renderable, Layoutable {
     let isDisabled: Bool
     let onEditingChanged: ((Bool) -> Void)?
 
+    /// Where the fill starts — SwiftUI's `neutralValue:` — or `nil` for the
+    /// low end.
+    var neutralValue: Double?
+
+    /// The values the user may select — SwiftUI's `enabledBounds:` — or `nil`
+    /// for all of `bounds`. The track outside them is drawn disabled.
+    var enabledBounds: ClosedRange<Double>?
+
+    /// The marks drawn under the track.
+    var ticks: [_SliderTickMark] = []
+
+    /// The values the keyboard, the wheel and the pointer may land on: the
+    /// enabled bounds, within the bounds.
+    var selectableBounds: ClosedRange<Double> {
+        guard let enabledBounds else { return bounds }
+        return enabledBounds.clamped(to: bounds)
+    }
+
     /// Minimum track width.
     private let minTrackWidth = 10
 
@@ -100,7 +118,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         let trackWidth = max(minTrackWidth, proposedWidth - chrome)
         return ViewSize(
             width: trackWidth + chrome,
-            height: 1,
+            height: 1 + tickRowCount,
             isWidthFlexible: true,
             isHeightFlexible: false
         )
@@ -137,7 +155,7 @@ struct _SliderCore: View, Renderable, Layoutable {
             default: SliderHandler(
                 focusID: persistedFocusID,
                 value: value,
-                bounds: bounds,
+                bounds: selectableBounds,
                 step: step,
                 canBeFocused: !isDisabled
             )
@@ -149,7 +167,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         // (stale bounds made clampValue force-write the app's value back
         // inside a range the view no longer declares).
         handler.value = value
-        handler.bounds = bounds
+        handler.bounds = selectableBounds
         handler.step = step
         handler.canBeFocused = !isDisabled
         // Captured at render so Shift+arrow can accelerate at event time.
@@ -202,10 +220,12 @@ struct _SliderCore: View, Renderable, Layoutable {
             showsValue: showsValue,
             fillScaling: context.environment.trackFillGradientScaling,
             backgroundScaling: context.environment.trackBackgroundGradientScaling,
-            graphics: context.gradientGraphics(token: "track-\(context.identity.path)")
+            graphics: context.gradientGraphics(token: "track-\(context.identity.path)"),
+            showsThumb: context.environment.sliderThumbVisibility != .hidden
         )
 
-        var buffer = FrameBuffer(text: content)
+        var buffer = FrameBuffer(
+            lines: [content] + tickRows(drawnTrackWidth: drawnTrackWidth, isDisabled: isDisabled, context: context))
         buffer.opacityRegions += valueClaim.map { [$0] } ?? []
         // The track's own claims, in the track's coordinates, moved to where the
         // layout actually puts it: `"◀ "` is two cells, which `arrowRuns` states as
@@ -349,17 +369,18 @@ struct _SliderCore: View, Renderable, Layoutable {
     ) -> @MainActor (MouseEvent) -> Bool {
         let value = self.value
         let bounds = self.bounds
+        let selectable = self.selectableBounds
         let step = self.step
 
         let decrementOnce: @MainActor () -> Void = {
             value.wrappedValue = min(
-                bounds.upperBound,
-                max(bounds.lowerBound, value.wrappedValue - step))
+                selectable.upperBound,
+                max(selectable.lowerBound, value.wrappedValue - step))
         }
         let incrementOnce: @MainActor () -> Void = {
             value.wrappedValue = min(
-                bounds.upperBound,
-                max(bounds.lowerBound, value.wrappedValue + step))
+                selectable.upperBound,
+                max(selectable.lowerBound, value.wrappedValue + step))
         }
         let stopArrowTimers: @MainActor () -> Void = {
             leftArrowTimer.stop()
@@ -402,6 +423,7 @@ struct _SliderCore: View, Renderable, Layoutable {
                     handler: handler,
                     value: value,
                     bounds: bounds,
+                    selectable: selectable,
                     step: step,
                     track: track,
                     leftArrowTimer: leftArrowTimer,
@@ -430,6 +452,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         handler: SliderHandler<Double>,
         value: Binding<Double>,
         bounds: ClosedRange<Double>,
+        selectable: ClosedRange<Double>,
         step: Double,
         track: TrackGeometry,
         leftArrowTimer: AutoRepeatTimer,
@@ -484,6 +507,7 @@ struct _SliderCore: View, Renderable, Layoutable {
                     eventX: event.x,
                     value: value,
                     bounds: bounds,
+                    selectable: selectable,
                     step: step,
                     track: track
                 )
@@ -515,6 +539,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         eventX: Int,
         value: Binding<Double>,
         bounds: ClosedRange<Double>,
+        selectable: ClosedRange<Double>,
         step: Double,
         track: TrackGeometry
     ) {
@@ -530,7 +555,8 @@ struct _SliderCore: View, Renderable, Layoutable {
         } else {
             snapped = raw
         }
-        value.wrappedValue = min(bounds.upperBound, max(bounds.lowerBound, snapped))
+        // Mapped across the whole track, and kept to what may be selected.
+        value.wrappedValue = min(selectable.upperBound, max(selectable.lowerBound, snapped))
     }
 
     /// Fetches (or creates) the auto-repeat timer at the given
@@ -599,7 +625,8 @@ struct _SliderCore: View, Renderable, Layoutable {
         showsValue: Bool,
         fillScaling: TrackGradientScaling,
         backgroundScaling: TrackGradientScaling,
-        graphics: GradientGraphicsContext?
+        graphics: GradientGraphicsContext?,
+        showsThumb: Bool
     ) -> (
         content: String, drawnTrackWidth: Int, valueClaim: OpacityRegion?,
         trackClaims: [OpacityRegion]
@@ -640,18 +667,33 @@ struct _SliderCore: View, Renderable, Layoutable {
             guard isDisabled else { return color }
             return color.opacity(ViewConstants.disabledForeground, over: palette.background)
         }
-        let track = TrackRenderer.render(
-            fraction: fraction,
-            width: trackWidth,
-            style: trackStyle,
-            fillColor: forState(palette.foregroundSecondary),
-            backgroundColor: forState(palette.foregroundTertiary),
-            accentColor: forState(palette.accent),
-            fillScaling: fillScaling,
-            backgroundScaling: backgroundScaling,
-            palette: palette,
-            graphics: graphics
-        )
+        // A neutral value or enabled bounds draw the track in pieces, which a
+        // picture cannot be cut into, so the cells are drawn instead.
+        let enabled = enabledFractions
+        func drawTrack(_ colour: (Color) -> Color, graphics: GradientGraphicsContext?) -> ClaimingRow {
+            TrackRenderer.render(
+                fraction: fraction,
+                width: trackWidth,
+                style: trackStyle,
+                fillColor: colour(palette.foregroundSecondary),
+                backgroundColor: colour(palette.foregroundTertiary),
+                accentColor: colour(palette.accent),
+                fillScaling: fillScaling,
+                backgroundScaling: backgroundScaling,
+                palette: palette,
+                graphics: graphics,
+                neutralFraction: neutralFraction,
+                showsHead: showsThumb
+            )
+        }
+        var track = drawTrack(forState, graphics: enabled == nil ? graphics : nil)
+        if let enabled {
+            // The values that cannot be selected, drawn as a disabled slider
+            // draws its whole track.
+            let outside = drawTrack(
+                { $0.opacity(ViewConstants.disabledForeground, over: palette.background) }, graphics: nil)
+            track = Self.splice(track, outside: outside, enabled: enabled)
+        }
 
         // Build arrows
         let leftArrow = ANSIRenderer.colorize(TerminalSymbols.leftArrow, foreground: arrowColor)

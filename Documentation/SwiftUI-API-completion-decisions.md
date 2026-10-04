@@ -1522,6 +1522,39 @@ centring in `renderPlainStringLabel`, about an hour.
 also names, do not read it yet. Each is a frame of its own, an hour apiece
 once wanted.
 
+### B33. Slider ticks, neutral value, enabled bounds and thumb visibility, read from the documentation
+
+*`SliderTick`, `SliderTickBuilder`, `SliderTickContent`,
+`SliderTickContentForEach`, `TupleSliderTickContent`, the three `Slider`
+initialisers with `neutralValue:`/`enabledBounds:`/`ticks:`/`tick:`,
+`View.sliderThumbVisibility(_:)`*
+
+All macOS 26, so none of it was measured; what shipped follows SwiftUI's
+documentation, and each reading below is a guess at the look:
+
+- **Ticks:** a `╵` on the row under the track at each tick's value, at the
+  column the knob takes for that value. Labels go on the row under that,
+  centred on their marks; a label that would touch the one before it is left
+  out rather than overlap. The rows exist only when there are ticks (or
+  labels), and the row's other contents stay on the track's row.
+- **`neutralValue:`:** the fill runs from the neutral value to the knob, on
+  whichever side. For the knob and dot styles this is exact. For the fill
+  styles (`.block`, `.bar`, the custom ones), the track is put together from
+  whole cells of renders at the neutral value and at the value, so the edge at
+  the neutral value is a whole cell. A neutral value draws the track as cells,
+  never as a picture.
+- **`enabledBounds:`:** every input stops at the bounds, and a value the app
+  writes outside them is brought inside, as `bounds` already does. The track
+  beyond them is drawn in a disabled slider's colours.
+- **`currentValueLabel:`:** SwiftUI says not every style shows it. TUIkit's
+  slider draws a numeric read-out, so a label given here replaces it.
+- **`sliderThumbVisibility(.hidden)`:** the knob's cell shows the fill's end.
+  On the `.marker` track, which has no fill, nothing then shows the value.
+
+**Fuller versions:** sub-cell edges at the neutral value for the fill styles
+(the ramps only grow rightward, so a leftward edge needs mirrored glyphs most
+fonts lack); and a measured look once a macOS 26 machine is available.
+
 ## C. Declined without asking
 
 ### C1. `CGPoint`, `CGSize` and `CGRect` as `Animatable`

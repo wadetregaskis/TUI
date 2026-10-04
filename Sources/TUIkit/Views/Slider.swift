@@ -99,6 +99,21 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     /// Callback when editing begins or ends.
     let onEditingChanged: ((Bool) -> Void)?
 
+    /// Where the fill starts, or `nil` for the low end — SwiftUI's
+    /// `neutralValue:`.
+    var neutralValue: Double?
+
+    /// The values that may be selected, or `nil` for all of `bounds` —
+    /// SwiftUI's `enabledBounds:`.
+    var enabledBounds: ClosedRange<Double>?
+
+    /// The marks drawn under the track.
+    var ticks: [_SliderTickMark] = []
+
+    /// The app's description of the value, drawn in place of the slider's own
+    /// read-out — SwiftUI's `currentValueLabel:` — or `nil` for the read-out.
+    var currentValueLabel: AnyView?
+
     /// Default track width when no explicit frame is set.
     private static var defaultTrackWidth: Int { 20 }
 
@@ -118,21 +133,36 @@ public struct Slider<Label: View, ValueLabel: View>: View {
         // The value labels go either side of the core for the same reason, a
         // cell apart from it. The maximum one follows the read-out rather than
         // sitting between the ▶ and it: the read-out is drawn by the core.
-        HStack(spacing: 0) {
+        // Top-aligned, so a slider with ticks — whose core is taller than its
+        // row — keeps its labels on the track's row.
+        HStack(alignment: .top, spacing: 0) {
             _CollapsingLabel(label: label, controlDisabled: isDisabled)
-            if let minimumValueLabel {
+            // An `EmptyView` value label — what SwiftUI's newer initialisers
+            // default to — takes no cell, padding included.
+            if let minimumValueLabel, !(minimumValueLabel is EmptyView) {
                 minimumValueLabel.padding(.trailing, 1)
             }
-            _SliderCore(
+            let core = _SliderCore(
                 value: value,
                 bounds: bounds,
                 step: step,
                 trackStyle: trackStyle,
                 focusID: focusID,
                 isDisabled: isDisabled,
-                onEditingChanged: onEditingChanged
+                onEditingChanged: onEditingChanged,
+                neutralValue: neutralValue,
+                enabledBounds: enabledBounds,
+                ticks: ticks
             )
-            if let maximumValueLabel {
+            // The app's description of the value stands where the read-out
+            // would, and the read-out steps aside for it.
+            if let currentValueLabel {
+                core.environment(\.sliderShowsValue, false)
+                currentValueLabel.padding(.leading, 1)
+            } else {
+                core
+            }
+            if let maximumValueLabel, !(maximumValueLabel is EmptyView) {
                 maximumValueLabel.padding(.leading, 1)
             }
         }

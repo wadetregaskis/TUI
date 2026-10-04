@@ -457,3 +457,37 @@ private struct ButtonSizingShapes: View {
         }
     }
 }
+
+/// The macOS 26 slider: a neutral value, enabled bounds, a current-value label,
+/// ticks from a builder and per step, and a hidden thumb.
+@MainActor
+private struct SliderTickShapes: View {
+    @State private var balance = 0.0
+    @State private var percentage = 0.5
+    @State private var level = 3.0
+    let showsHalf: Bool
+
+    var body: some View {
+        VStack {
+            Slider(value: $balance, in: -1...1, neutralValue: 0) {
+                Text("Balance")
+            }
+            Slider(value: $percentage, enabledBounds: 0.1...0.9) {
+                Text("Percentage")
+            } currentValueLabel: {
+                Text("\(Int(percentage * 100))%")
+            } ticks: {
+                SliderTickContentForEach(stride(from: 0.0, through: 1.0, by: 0.25).map { $0 }, id: \.self) { value in
+                    SliderTick(value) { Text("\(Int(value * 100))") }
+                }
+                if showsHalf {
+                    SliderTick("half", 0.5)
+                }
+            }
+            Slider(value: $level, in: 0...5, step: 1) {
+                Text("Level")
+            } tick: { SliderTick($0) }
+            .sliderThumbVisibility(.hidden)
+        }
+    }
+}
