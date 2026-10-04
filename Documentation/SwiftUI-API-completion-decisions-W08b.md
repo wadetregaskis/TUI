@@ -82,6 +82,24 @@ cursor will be.
   content above it too. A `background(_:)` whose style is `.selection` would
   set the value for its content. An hour.
 
+### B-W08b-3. `\.sidebarRowSize` is read-only (always `.medium`)
+
+*`SidebarRowSize` (all members), `EnvironmentValues.sidebarRowSize`*
+
+On macOS the value follows the "Sidebar icon size" setting, and a write
+forces a sidebar's rows — their height and their `Label` icons — to that
+size. Off macOS SwiftUI always reports `.medium` and ignores a write.
+
+A terminal row is one line in the terminal's one font, so TUIkit's is always
+`.medium`. **Shipped:** the type with its three cases, and the value
+read-only, so a write fails to compile rather than being ignored (the B1/B2
+precedent).
+
+**The fuller version** would make the value settable with a meaning a
+terminal can give it — `.large` adding a blank line under each sidebar row,
+say, and `.small` dropping a `Label`'s icon. Neither is what the setting means
+on macOS, so it is not recommended without a use for it.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes
