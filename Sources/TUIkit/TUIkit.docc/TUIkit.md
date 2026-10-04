@@ -316,6 +316,11 @@ struct MyApp: App {
 - ``AccessoryCircularTinyGaugeStyle``
 - ``FormStyle``
 - ``FormStyleConfiguration``
+- ``TableStyle``
+- ``TableStyleConfiguration``
+- ``AutomaticTableStyle``
+- ``BorderedTableStyle``
+- ``InsetTableStyle``
 - ``TrackStyle``
 - ``TrackConfiguration``
 - ``IndeterminateStyle``

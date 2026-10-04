@@ -308,6 +308,22 @@ Table(of: Item.self, selection: $selection) {
 inside it, counting from each section's first row however far the content has
 scrolled. A focused or selected row keeps its own highlight.
 
+### Table Styles
+
+A table draws inside a rounded border unless `.tableStyle(_:)` says
+otherwise. `.inset` takes the border away: the header and rows sit a cell in
+from the table's edges, and the two lines the border took go to the rows.
+
+```swift
+Table(people) {
+    TableColumn("Name", value: \.name)
+}
+.tableStyle(.inset)
+```
+
+`.automatic` and `.bordered` both draw the border. Stripes are a separate
+choice under any style: `.alternatingRowBackgrounds()`.
+
 ### Hiding the Column Headers
 
 `.tableColumnHeaders(.hidden)` takes the header line away and gives it to the

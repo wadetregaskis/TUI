@@ -690,11 +690,42 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         environment.tableColumnHeadersVisibility == .hidden ? 0 : 1
     }
 
-    /// The lines of chrome around the rows: the two border rules and the
-    /// column header. Every height the rows are budgeted is the space on
-    /// offer less these.
+    /// The cells the table's border takes on each side: one under a bordered
+    /// style, none under `.inset`.
+    private func borderWidth(_ environment: EnvironmentValues) -> Int {
+        environment.tableStyle.builtInChrome == .inset ? 0 : 1
+    }
+
+    /// The lines of chrome around the rows: the border's two rules, when it
+    /// has them, and the column header. Every height the rows are budgeted is
+    /// the space on offer less these.
     private func chromeLines(_ environment: EnvironmentValues) -> Int {
-        2 + headerLines(environment)
+        2 * borderWidth(environment) + headerLines(environment)
+    }
+
+    /// The width inside the border and its padding, out of `width` — what
+    /// the header and the rows lay out in.
+    private func innerWidth(_ width: Int, _ environment: EnvironmentValues) -> Int {
+        max(
+            0,
+            width - 2 * borderWidth(environment) - Self.containerPadding.leading
+                - Self.containerPadding.trailing)
+    }
+
+    /// The container the header and rows are drawn in: bordered, or not, as
+    /// the table style says.
+    private func containerStyle(_ environment: EnvironmentValues) -> ContainerStyle {
+        ContainerStyle(
+            showHeaderSeparator: true, showFooterSeparator: false,
+            hasBorder: borderWidth(environment) > 0)
+    }
+
+    /// The style's own body, when the table style in force is not one of the
+    /// built-in ones: a custom style draws the table — or not — through
+    /// ``TableStyle/makeBody(configuration:)``, as in SwiftUI.
+    private func customStyle(_ environment: EnvironmentValues) -> (any TableStyle)? {
+        let style = environment.tableStyle
+        return style.builtInChrome == nil ? style : nil
     }
 
     /// Whether this table has a selection binding — the only thing that can
@@ -725,6 +756,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let style = customStyle(context.environment) {
+            return style.measureBody(
+                configuration: TableStyleConfiguration(table: AnyView(self)), proposal: proposal,
+                context: context)
+        }
         if needsResolution {
             return resolvingRows(context).sizeThatFits(proposal: proposal, context: context)
         }
@@ -795,7 +831,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func analyticSingleLineSize(context: RenderContext) -> (width: Int, height: Int) {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
-        let innerWidth = max(0, context.availableWidth - 4)
+        let innerWidth = innerWidth(context.availableWidth, context.environment)
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         let wantsScrollbar =
             !data.isEmpty
@@ -907,7 +943,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard !data.isEmpty else { return nil }
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
-        let innerWidth = max(0, context.availableWidth - 4)
+        let innerWidth = innerWidth(context.availableWidth, context.environment)
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         // Decide the bar exactly as `renderToBuffer` does — at the width a bar
         // WOULD leave, where rows wrap taller and so overflow soonest.
@@ -966,7 +1002,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ) -> (width: Int, height: Int) {
         let container = ContainerView(
             title: nil,
-            style: ContainerStyle(showHeaderSeparator: true, showFooterSeparator: false),
+            style: containerStyle(context.environment),
             padding: Self.containerPadding
         ) {
             VStack(alignment: .leading, spacing: 0) {
@@ -1027,6 +1063,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let style = customStyle(context.environment) {
+            return style.makeBuffer(
+                configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
+        }
         if needsResolution { return resolvingRows(context).renderToBuffer(context: context) }
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
@@ -1040,7 +1080,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         // Calculate available width inside container (subtract border + padding).
         let gutter = selectionGutter(context.environment)
-        let innerWidth = max(0, context.availableWidth - 4)
+        let innerWidth = innerWidth(context.availableWidth, context.environment)
 
         // A single-line table decides a scrollbar cheaply (one line per row).
         // A multi-line table's overflow is its total WRAPPED height, so that
@@ -1136,8 +1176,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         let container = ContainerView(
             title: nil,
-            style: ContainerStyle(showHeaderSeparator: true, showFooterSeparator: false),
-            padding: EdgeInsets(horizontal: 1, vertical: 0)
+            style: containerStyle(context.environment),
+            padding: Self.containerPadding
         ) {
             // `.leading`: the header sits left, over its columns. A focused/selected
             // row or a scroll indicator must never be wider than the other lines, or
@@ -1186,10 +1226,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
 
         // The fixed chrome is 3 lines: the top border, the bottom
-        // border, and the column-header line (2 under
-        // `tableColumnHeaders(.hidden)`). What's left is the
-        // scrollable content area, shared between the visible rows
-        // and whichever scroll indicators are present.
+        // border, and the column-header line — less the header under
+        // `tableColumnHeaders(.hidden)`, and the borders under
+        // `.tableStyle(.inset)`. What's left is the scrollable content
+        // area, shared between the visible rows and whichever scroll
+        // indicators are present.
         let availableHeight = context.availableHeight
         let chromeRows = chromeLines(context.environment)
         let contentHeight = max(1, availableHeight - chromeRows)
@@ -1438,7 +1479,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         state: PopulatedRenderState
     ) {
         let gutter = selectionGutter(context.environment)
-        // 3 = top border + column header + bottom border.
+        // The chrome: top border + column header + bottom border, as the
+        // style and the header visibility leave them.
         let contentHeight = max(1, context.availableHeight - chromeLines(context.environment))
 
         // Row heights are answered lazily. The scroll arithmetic below touches only
@@ -3040,7 +3082,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// wheel scrolls, click on a data row selects + focuses,
     /// click anywhere else focuses without changing selection.
     ///
-    /// Buffer layout from the container wrap:
+    /// Buffer layout from the container wrap, bordered (`.inset` has no
+    /// border lines, and everything below moves up one):
     /// ```
     ///   y=0           top border
     ///   y=1           column header line
@@ -3077,7 +3120,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 focusManager: context.environment.focusManager))
         buffer.hitTestRegions.insert(
             HitTestRegion(
-                offsetX: max(0, context.availableWidth - 3), offsetY: firstRowY,
+                offsetX: max(
+                    0,
+                    context.availableWidth - borderWidth(context.environment)
+                        - Self.containerPadding.trailing - 1),
+                offsetY: firstRowY,
                 width: 1, height: barHeight, handlerID: barHandlerID),
             at: 0
         )
@@ -3095,8 +3142,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// there fall through to the table's own handler and simply focus it — the
     /// header of an unsortable column stays as inert as it looks.
     ///
-    /// The header line is `y = 1`: the container's top border is `y = 0` and
-    /// the rows start below it (see the layout sketch above).
+    /// The header line is `y = 1` under a bordered style — the container's top
+    /// border is `y = 0` and the rows start below it (see the layout sketch
+    /// above) — and `y = 0` under `.inset`, which has no border.
     @MainActor
     private func attachHeaderSortHandlers(
         to buffer: inout FrameBuffer,
@@ -3109,7 +3157,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         else { return }
         let focusManager = context.environment.focusManager
         let focusID = state.focusID
-        let originX = 1 + Self.containerPadding.leading
+        let originX = borderWidth(context.environment) + Self.containerPadding.leading
         for (index, xRange) in headerColumnRanges(
             columnWidths: state.columnWidths, originX: originX,
             gutter: selectionGutter(context.environment))
@@ -3128,7 +3176,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             }
             buffer.hitTestRegions.insert(
                 HitTestRegion(
-                    offsetX: xRange.lowerBound, offsetY: 1,
+                    offsetX: xRange.lowerBound, offsetY: borderWidth(context.environment),
                     width: xRange.count, height: 1, handlerID: handlerID),
                 at: 0
             )
@@ -3144,8 +3192,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let mouseDispatcher = context.environment.mouseEventDispatcher
         else { return }
         let focusManager = context.environment.focusManager
-        // The table's interior: past the top border (0) and the column header
-        // (1), when it is drawn — nothing else sits between it and the content.
+        // The table's interior: past the top border (when the style draws one)
+        // and the column header (when it is drawn) — nothing else sits between
+        // it and the content.
         //
         // THIS is the origin the drag geometry works in, matching `_ListCore`'s
         // `topInset`: `DrawnBand.yStart` counts from the first CONTENT line, so
@@ -3153,7 +3202,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // than subtracted out before it. Anything that hit-tests a BAND —
         // `ReorderHost.topInset`, the drop destination, the session-less
         // `dragContentY` — measures from here.
-        let interiorTopY = 1 + headerLines(context.environment)
+        let interiorTopY = borderWidth(context.environment) + headerLines(context.environment)
         // …and the first ROW line, which is one lower when an indicator is
         // drawn. Only the scrollbar wants this now: its cells are one per ROW,
         // so the bar's region has to start where the rows do. Everything that
@@ -3182,7 +3231,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // y) must not select — see the x-guard in the handler. Tables always
         // render inside a bordered container, so one column each side. (The
         // List sibling got this guard in a6ba424d; this is its Table mirror.)
-        let contentColumns = 1..<max(1, buffer.width - 1)
+        let border = borderWidth(context.environment)
+        let contentColumns = border..<max(border, buffer.width - border)
         // The row, rendered as its own object: no selection background, no
         // padding out to the grid's interior. Built on demand — only a drag
         // that actually starts pays for it.

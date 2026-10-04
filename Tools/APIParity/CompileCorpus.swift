@@ -614,6 +614,11 @@ private struct TableColumnShapes: View {
             }
             .tableColumnHeaders(.hidden)
             .alternatingRowBackgrounds()
+            .tableStyle(.inset)
+            Table(people) { TableColumn("Name", value: \.givenName) }
+                .tableStyle(.bordered)
+            Table(people) { TableColumn("Name", value: \.givenName) }
+                .tableStyle(PaddedTableStyle())
             List(people) { Text($0.givenName) }
                 .alternatingRowBackgrounds(.disabled)
             Table(people) {
@@ -893,5 +898,12 @@ private struct TableOutlineShapes: View {
                 }
             }
         }
+    }
+}
+
+private struct PaddedTableStyle: TableStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        InsetTableStyle().makeBody(configuration: configuration)
+            .padding()
     }
 }

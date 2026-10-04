@@ -10,40 +10,50 @@ in the session notes (`w08a/probe/`), not in the repository.*
 
 ## A. Needs your decision
 
-### A-W08a-1. Should a table stripe its rows by default?
+### A-W08a-1. Should a table look like SwiftUI's by default — borderless and striped?
 
-*`AlternatingRowBackgroundBehavior.automatic`*
+*`AlternatingRowBackgroundBehavior.automatic`, `AutomaticTableStyle`,
+`TableStyle.automatic`*
 
 `.alternatingRowBackgrounds(_:)` shipped for tables and lists alike:
 `.enabled` stripes every other row with the tint a striped `ListStyle` has
 always drawn (the accent at 15% over the page), `.disabled` never stripes.
-`.automatic` defers to the component, and SwiftUI documents what the
-components do: a macOS `Table` stripes by default, a `List` does not.
-Measured: a plain SwiftUI `Table` on macOS 26.2 has
-`usesAlternatingRowBackgroundColors` on.
+`TableStyle` shipped too: `.bordered` is the rounded box every TUIkit table
+has always drawn, `.inset` draws no border.
 
-TUIkit's table has never striped. Shipped: `.automatic` leaves it so.
+Both have an `.automatic`, and SwiftUI's macOS answers differ from TUIkit's
+look. Measured on macOS 26.2: a plain SwiftUI `Table`, `.automatic` and
+`.inset` alike, is an `NSTableView` of style `.inset` in a scroll view with no
+border, with `usesAlternatingRowBackgroundColors` on; `.bordered` is style
+`.fullWidth` in a scroll view with a line border, striped too. Stripes follow
+`.alternatingRowBackgrounds(.disabled)` under either style.
+
+Shipped: `.automatic` is bordered and unstriped — every TUIkit table keeps
+its look, and SwiftUI source that names a style or asks for stripes gets
+them.
 
 **Options.**
 
-1. **Unstriped by default** (shipped). Every existing table keeps its look,
-   and SwiftUI source that asks for stripes gets them. The divergence is the
-   default alone. Free.
-2. **Striped by default, as SwiftUI's macOS table is.** Every table changes:
-   half its rows draw a background, so frames grow by a background SGR per
-   striped row (row memos keep them, but a churning table pays), and the
-   accent tint sits under every other row of tables whose palettes were
-   tuned without it. Golden and render tests that read a table's bytes need
-   re-baselining. Half a day, most of it the tests.
-3. **Striped by default under one table style.** SwiftUI ties the stripes to
-   the `.inset` style's look; when `TableStyle` lands, `.inset` could stripe
-   and `.bordered` (TUIkit's look today) not, with the default style deciding
-   which a plain table gets. Folds into the table-style work.
+1. **Bordered and unstriped by default** (shipped). The divergence is the two
+   defaults alone. Free.
+2. **SwiftUI's default: inset and striped.** Every table without a style
+   changes: the border goes, which gives the rows two lines and moves every
+   click target a line up and a cell left; half the rows draw a background,
+   so frames grow by a background SGR per striped row (row memos keep them,
+   but a churning table pays), under a tint palettes were tuned without.
+   Golden and render tests that read a table's bytes need re-baselining.
+   Half a day, most of it the tests.
+3. **Inset by default, unstriped.** The border is where a terminal table's
+   look differs most from a window's: a box around a table in a window of
+   boxes reads as one more panel. The two lines it frees are worth the most
+   on a short terminal. Same test cost as 2, without the stripe's.
 
-**Recommendation:** 1, revisited with 3 when `TableStyle` ships. A terminal's
-rows are a single line of text on a fixed grid, where a reader's eye does not
-drift between rows the way it does across a wide window, and a stripe the
-palette did not plan for is a cost every theme pays.
+**Recommendation:** 1. A terminal's rows are a single line of text on a fixed
+grid, where a reader's eye does not drift between rows the way it does across
+a wide window, and a stripe the palette did not plan for is a cost every theme
+pays; the border is what tells a table from the text around it when nothing
+else draws a frame. 3 is the one to take if TUIkit apps tend to put tables
+inside their own bordered panels.
 
 ---
 
