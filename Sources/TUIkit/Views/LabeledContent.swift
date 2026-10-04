@@ -132,7 +132,7 @@ extension LabeledContent where Label == Text, Content == Text {
     ///
     /// The value is the thing being labelled, so it is never a lookup key — a
     /// format style is how a *number* becomes text a reader can take in, and
-    /// the style carries its own locale. This is ``Text/init(_:format:)``'s
+    /// the style carries its own locale. This is `Text(_:format:)`'s
     /// rule applied to a form row, and it saves the row from interpolating a
     /// string by hand, which is how a form ends up with `0.4285714285714286`
     /// in it.

@@ -44,7 +44,7 @@ import Foundation
 /// ```
 ///
 /// Values are converted to text **eagerly**, at the point of interpolation, the
-/// same way ``Text/init(_:format:)`` formats eagerly — so
+/// same way `Text(_:format:)` formats eagerly — so
 /// `\(value, format: .percent)` works and the result is a plain, `Sendable`
 /// key.
 ///
@@ -382,7 +382,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         /// mirrors SwiftUI's `appendInterpolation(_:specifier:)`:
         /// `Text("\(price, specifier: "%.2f")")`.
         ///
-        /// Formatted at once, in the current locale, as ``Text/init(_:format:)``
+        /// Formatted at once, in the current locale, as `Text(_:format:)`
         /// formats. The key carries `%@` where the value goes, like every other
         /// interpolation here, where SwiftUI's carries the specifier itself;
         /// the two differ only in what a translation table must be keyed by.
@@ -396,7 +396,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         }
 
         /// Interpolates a value through a format style — the same eager
-        /// formatting ``Text/init(_:format:)`` does.
+        /// formatting `Text(_:format:)` does.
         public mutating func appendInterpolation<F: FormatStyle>(
             _ value: F.FormatInput, format: F
         ) where F.FormatInput: Equatable, F.FormatOutput == String {
