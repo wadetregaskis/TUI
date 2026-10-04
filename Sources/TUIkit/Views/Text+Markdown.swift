@@ -32,8 +32,15 @@ extension Text {
             // `%` is a percent, as everywhere else.
             atoms = template.unicodeScalars.map(InlineMarkdown.Atom.scalar)
         } else {
+            // A UTF-8 byte count bounds the scalar count, so this is the one
+            // allocation; and each character's scalars go straight in, where a
+            // `map` per character allocated an array for every one.
+            atoms.reserveCapacity(template.utf8.count)
             LocalizedStringKey.walk(
-                template, text: { atoms += $0.unicodeScalars.map(InlineMarkdown.Atom.scalar) },
+                template,
+                text: { character in
+                    for scalar in character.unicodeScalars { atoms.append(.scalar(scalar)) }
+                },
                 placeholder: { placeholder in
                     atoms.append(.argument(placeholders.count))
                     placeholders.append(placeholder)
