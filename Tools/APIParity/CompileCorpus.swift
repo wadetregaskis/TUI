@@ -477,7 +477,7 @@ private struct SliderTickShapes: View {
             } currentValueLabel: {
                 Text("\(Int(percentage * 100))%")
             } ticks: {
-                SliderTickContentForEach(stride(from: 0.0, through: 1.0, by: 0.25).map { $0 }, id: \.self) { value in
+                SliderTickContentForEach(Array(stride(from: 0.0, through: 1.0, by: 0.25)), id: \.self) { value in
                     SliderTick(value) { Text("\(Int(value * 100))") }
                 }
                 if showsHalf {
