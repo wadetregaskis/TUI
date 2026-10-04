@@ -1423,3 +1423,14 @@ private struct TableRowDragShapes: View {
         }
     }
 }
+
+/// Labels and an empty state with an icon from an image resource's name.
+@MainActor
+private struct ImageNameLabelShapes: View {
+    var body: some View {
+        VStack {
+            Label("Settings", image: "gear")
+            ContentUnavailableView("No Mail", image: "tray", description: Text("New mail appears here."))
+        }
+    }
+}

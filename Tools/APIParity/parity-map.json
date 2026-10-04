@@ -116,16 +116,14 @@
     },
     {
       "match": [
-        "Label.init(_:image:)",
         "Button.init(_:image:*",
         "Toggle.init(_:image:*",
         "Picker.init(_:image:*",
-        "ContentUnavailableView.init(_:image:*",
         "ControlGroup.init(_:image:content:)",
         "Menu.init(_:image:*",
         "Tab.init(_:image:*"
       ],
-      "why": "The `image:` spelling of these initializers names an `ImageResource` — a symbol the Xcode build generates from an asset catalogue, whose value is a raster bitmap at one of several scale factors. A terminal app has neither: no asset catalogue in the build (SwiftPM resources are files, not named image constants), and no way to place a bitmap in a cell. The `systemImage:` spelling of every one of these IS implemented (Sources/TUIkit/SFSymbols/ControlSymbolInitializers.swift), because an SF Symbol is a character: it resolves to a Private-Use scalar the terminal font may carry, and falls back to the title alone when it does not."
+      "why": "The `image:` spelling of these initializers names an `ImageResource` — a symbol the Xcode build generates from an asset catalogue, whose value is a raster bitmap at one of several scale factors. A terminal app has neither: no asset catalogue in the build (SwiftPM resources are files, not named image constants), and no way to place a bitmap in a cell. The `systemImage:` spelling of every one of these IS implemented (Sources/TUIkit/SFSymbols/ControlSymbolInitializers.swift), because an SF Symbol is a character: it resolves to a Private-Use scalar the terminal font may carry, and falls back to the title alone when it does not. `Label(_:image:)` and `ContentUnavailableView(_:image:description:)` with an image NAME (a String) ship, the name found as `Image(_:bundle:)` finds a resource file (refusal review P12); their `ImageResource` forms share the parity key and stay declined by this rule."
     },
     {
       "match": [

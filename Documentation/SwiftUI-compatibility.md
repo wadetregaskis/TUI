@@ -407,6 +407,13 @@ there is no title to fall back to, and the one place `Label` still does better:
 it can close the gap it was going to leave, and a bare `Image` in an `HStack`
 cannot, the spacing being the stack's.
 
+**`Label(_:image:)` and `ContentUnavailableView(_:image:description:)` take an
+image resource's name** (a `String`), found as `Image(_:bundle:)` finds it — a
+plain image file among the main bundle's resources — and drawn as a raster
+stretched into the two cells a symbol takes, beside the title. Their
+`ImageResource` forms stay declined: an asset-catalogue symbol is a build
+product a SwiftPM app does not have.
+
 **SF Symbols DO render as glyphs — but only in very limited circumstances.**
 `Label(_:systemImage:)` matches SwiftUI's signature, and `SFSymbol.glyph(named:)`
 / `SFSymbol.all` expose the mapping directly. Each SF Symbol lives in the
