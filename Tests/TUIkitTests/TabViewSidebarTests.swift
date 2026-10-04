@@ -134,6 +134,27 @@ struct TabViewSidebarTests {
         #expect(EnvironmentValues().tabViewBottomAccessoryPlacement == nil)
     }
 
+    @Test("The sidebar is a sidebar list: a Label tab label's icon is drawn in the list item tint")
+    func sidebarTintsLabelIcons() {
+        let tabs = TabView {
+            Tab {
+                Text("BODY")
+            } label: {
+                Label {
+                    Text("Work")
+                } icon: {
+                    Text("*")
+                }
+            }
+        }
+        .tabViewStyle(.sidebarAdaptable)
+        .listItemTint(.fixed(.red))
+        let row =
+            renderToBuffer(tabs, context: makeRenderContext(width: 40, height: 6)).lines
+            .first { $0.stripped.contains("Work") } ?? ""
+        #expect(row.contains(ANSIRenderer.colorize("*", foreground: Color.red.opaqueSpelling)), "\(row.debugDescription)")
+    }
+
     @Test("A section's actions are drawn after its header in the sidebar; on a lone tab, and in a strip, nowhere")
     func sectionActions() {
         let tabs = TabView {

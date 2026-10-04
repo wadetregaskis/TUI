@@ -165,9 +165,10 @@ Tab content reads `\.tabBarPlacement` as `.sidebar` there and
 `\.isTabBarShowingSections` as true; under every other style `.topBar` and
 false.
 
-**Shipped:** the sidebar is a `List` hugging its widest row, a rule, then the
-content, sized and kept as a strip's content is. Its sections, badges and
-disabled rows are the list's own. The header, footer and bottom bar sit above
+**Shipped:** the sidebar is a `.sidebar`-style `List` hugging its widest row,
+a rule, then the content, sized and kept as a strip's content is. Its
+sections, badges and disabled rows are the list's own, and a `Label` tab
+label's icon takes the list item tint, as a sidebar list's does. The header, footer and bottom bar sit above
 and below the list. The two environment values report as measured.
 
 Where it differs:

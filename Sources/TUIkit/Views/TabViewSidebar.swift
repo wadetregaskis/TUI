@@ -106,7 +106,9 @@ private struct _TabSidebarList: View {
                 .sectionActions { run.actions }
             }
         }
-        .listStyle(.plain)
+        // A sidebar list: no border, and a `Label` tab label's icon in the
+        // list item tint, as a macOS sidebar draws it.
+        .listStyle(.sidebar)
     }
 
     /// One tab's row: its label — a label view of the app's own drawn as
