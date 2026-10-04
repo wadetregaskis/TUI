@@ -159,9 +159,10 @@ class GestureNode<Value>: GestureNodeBase {
 /// The recognizers of one attached gesture, kept between frames by their place
 /// in the gesture tree.
 ///
-/// The gesture value is rebuilt every frame and handed the recognizers it had
-/// last frame; a place whose gesture changed type gets a new one, and a place
-/// no longer visited drops its recognizer at the end of the build.
+/// Each build of the gesture value — the latest frame's, when the arena next
+/// looks (``GestureParticipant``) — is handed the recognizers the last build
+/// left; a place whose gesture changed type gets a new one, and a place no
+/// longer visited drops its recognizer at the end of the build.
 @MainActor
 final class GestureNodeCache {
     private struct Key: Hashable {
@@ -179,7 +180,7 @@ final class GestureNodeCache {
         return node
     }
 
-    /// Ends a build: what this frame's gesture visited is what next frame's
+    /// Ends a build: what this build's gesture visited is what the next build
     /// will find.
     func commit() {
         swap(&nodes, &visited)

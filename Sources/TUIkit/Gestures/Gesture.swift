@@ -93,7 +93,7 @@ public struct _GestureInputs {
     let cache: GestureNodeCache
 
     /// This gesture's place in the gesture tree, so a recognizer comes back to
-    /// the same gesture next frame.
+    /// the same gesture at the next build.
     let path: Int
 
     init(cache: GestureNodeCache, path: Int = 0) {
@@ -106,8 +106,8 @@ public struct _GestureInputs {
         Self(cache: cache, path: path &* 8 &+ index &+ 1)
     }
 
-    /// The recognizer at this place in the tree — last frame's if it was one
-    /// of the same type, else a new one.
+    /// The recognizer at this place in the tree — the last build's if it was
+    /// one of the same type, else a new one.
     @MainActor
     func node<Node: GestureNodeBase>(at slot: Int = 0, _ make: () -> Node) -> Node {
         cache.node(at: path &* 8 &+ slot, make)

@@ -229,9 +229,10 @@ final class GestureParticipants {
 /// ``View/highPriorityGesture(_:including:)`` and
 /// ``View/simultaneousGesture(_:including:)``.
 ///
-/// Each frame it rebuilds the gesture's recognizers from the gesture value —
-/// they keep their state across frames, the closures and parameters are the
-/// frame's — and files the gesture with the mouse dispatcher under a region
+/// Each frame it hands the gesture value to the gesture's recognizers — they
+/// keep their state across frames, the closures and parameters are the
+/// frame's, built when the arena next looks (``GestureParticipant``) — and
+/// files the gesture with the mouse dispatcher under a region
 /// the size of the view. The region goes BEHIND the content's regions, so a
 /// gesture inside the view comes first, which is what makes an attached
 /// gesture rank below the view's own; the dispatcher's ``GestureArena`` does
@@ -267,7 +268,7 @@ extension GestureAttachment: Renderable {
         var buffer = TUIkit.renderToBuffer(content, context: context)
 
         let isLive = mask.contains(.gesture)
-        if isLive { participant.rebuild(gesture) }
+        if isLive { participant.update(gesture) }
         // Nothing to arbitrate: the gesture is off and its subviews' are not.
         guard isLive || !mask.contains(.subviews) else { return buffer }
 
@@ -315,17 +316,57 @@ extension GestureAttachment: DrawsContentUnchanged {}
 
 /// One attached gesture, as the dispatcher's arena sees it: its recognizers,
 /// kept across frames, and the root it reports through.
+///
+/// The recognizers are built from the gesture value of the last frame that
+/// rendered the attachment — its closures and parameters — but not in that
+/// frame. A frame only hands its value over (``update(_:)``); the build waits
+/// until the arena next reads ``root``, which is when a press lands on the
+/// view, and each frame-start tick and event while one is under way. Building
+/// every frame instead cost every gesture on screen a walk of its gesture tree
+/// — a recognizer looked up per node, with the generic metadata of each node
+/// type fetched at run time — on every frame, for the rare frame a press
+/// lands on. Nothing reads the recognizers between the render and the arena's
+/// next look, so what the arena sees is the build it would have seen.
+///
+/// The one thing deferring can change is which recognizer a place in the tree
+/// keeps. A gesture whose shape changed and changed back across frames no
+/// press touched — `isOn ? tap : nil`, flipped twice — comes back to the
+/// recognizer it had, where a build per frame would have dropped it and made a
+/// new one. That recognizer is at rest: one under way is in the arena, which
+/// reads every build while it lasts. And a recognizer at rest taking the next
+/// press is what every gesture whose shape holds still does anyway — it keeps
+/// its recognizers for as long as its view is on screen.
 @MainActor
 final class GestureParticipant {
     private let cache = GestureNodeCache()
 
-    /// The recognizer for the gesture as of the last frame that built it.
-    private(set) var root: GestureNodeBase?
+    /// The gesture value of the last frame that rendered the attachment, until
+    /// ``root`` builds it. An existential: a tap's value fits its inline
+    /// buffer, so handing one over allocates nothing.
+    private var pending: (any Gesture)?
 
-    /// Rebuilds the recognizers from this frame's gesture value.
-    func rebuild<G: Gesture>(_ gesture: G) {
-        root = G._makeGesture(gesture: gesture, inputs: _GestureInputs(cache: cache)).node
-        cache.commit()
+    /// The recognizer as of the last build.
+    private var built: GestureNodeBase?
+
+    /// Takes this frame's gesture value, to be built when the arena next looks.
+    func update(_ gesture: some Gesture) {
+        pending = gesture
+    }
+
+    /// The recognizer for the gesture as of the last frame that rendered it,
+    /// built from that frame's value if it has not been yet.
+    var root: GestureNodeBase? {
+        if let gesture = pending.take() {
+            built = Self.build(gesture, into: cache)
+            cache.commit()
+        }
+        return built
+    }
+
+    /// Builds `gesture`'s recognizers against `cache`, opening the existential
+    /// ``update(_:)`` stored it in.
+    private static func build<G: Gesture>(_ gesture: G, into cache: GestureNodeCache) -> GestureNodeBase {
+        G._makeGesture(gesture: gesture, inputs: _GestureInputs(cache: cache)).node
     }
 
     /// When the gesture next has to hear the clock.
