@@ -47,6 +47,40 @@ value, in the list's environment.
   is peeled off, or by rendering the row's badge inside the row's own
   environment. A couple of hours; nothing else changes.
 
+### B-W08b-2. Background prominence: raised on the rows a list builds itself
+
+*`BackgroundProminence` (all members), `EnvironmentValues.backgroundProminence`*
+
+SwiftUI raises the prominence for the content of a focused list's selected
+rows, whose fill is the vivid accent, and resolves the system content styles
+there to a monochrome that keeps their contrast.
+
+**Shipped:** a `List` raises it for the row under the cursor while the list has
+the focus, when that row is also selected — the row whose fill is the accent's
+breath (TUIkit has one cursor, so one row; SwiftUI raises every selected row of
+a focused list, all of which it fills alike). The content levels `.primary`
+through `.quinary` resolve to the palette's own text tiers under a raised
+background, whatever foreground style the row inherited: those are the inks the
+row fills were chosen to carry. The list clears the raised row's cached renders
+on the frame the raise moves, since the value reaches the row through its
+environment and no memo below the row would notice it.
+
+Raised: every row the list builds lazily — the rows of a `ForEach` and an
+`OutlineGroup`, which is every data-driven list. **Not raised:** a hand-written
+row beside them (`List { Text("All"); ForEach(items) { … } }`), which the
+list's child walk hands over already drawn, before anyone knows where the
+cursor will be.
+
+**The fuller version:**
+
+- **Hand-written rows.** Draw them lazily too — keep the child's render
+  closure in the row's content box, as a looped row's is — and the raise
+  reaches them unchanged. Half a day, most of it the child walk's badge and
+  tag reads, which today come off the drawn row.
+- **`.background(.selection)`.** SwiftUI says its selection style raises the
+  content above it too. A `background(_:)` whose style is `.selection` would
+  set the value for its content. An hour.
+
 ## C. Declined without asking
 
 ## D. Deferred to other waves or lanes

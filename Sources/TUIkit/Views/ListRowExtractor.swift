@@ -374,13 +374,19 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 }
                 return (size, rowContext.availableWidth)
             },
-            render: { [content] placement in
+            render: { [content] placement, prominence in
                 // Where this row sits in a ramp spanning the whole list (`nil`
                 // unless one is in force). Applied HERE because the render is
                 // here, and the colour is decided by the render it is about to
                 // run.
                 var rowContext = rowContext
                 rowContext.gradientFrame = placement ?? rowContext.gradientFrame
+                // The focused, selected row's raised background. Written
+                // straight in rather than through a modifier: the list clears
+                // this row's cached renders whenever its prominence changes
+                // (`_ListCore.raiseBackgroundProminence`), which is what an
+                // environment modifier's note would otherwise do.
+                if prominence != .standard { rowContext.environment.backgroundProminence = prominence }
                 // Which row of the LIST this is, for anything inside it that
                 // needs to name itself to that list — `deleteDisabled` /
                 // `moveDisabled` / `selectionDisabled`, all of which the

@@ -101,6 +101,12 @@ public struct HierarchicalShapeStyle: ShapeStyle, Equatable {
     public typealias Resolved = Never
 
     public func paint(in environment: EnvironmentValues) -> Paint {
+        // Over a raised background — a list's focused, selected row — the
+        // levels are the palette's own tiers, the inks the row's fill is chosen
+        // to carry, whatever style the content inherited (`BackgroundProminence`).
+        if environment.backgroundProminence == .increased {
+            return Self.paletteTier(level, of: environment.palette)
+        }
         // A named level answers for itself and fades for the levels past it.
         if level >= 2, let tertiary = environment.tertiaryForegroundStyle {
             return level == 2 ? tertiary : tertiary.faded(Self.opacities[level - 2])
@@ -109,16 +115,21 @@ public struct HierarchicalShapeStyle: ShapeStyle, Equatable {
             return level == 1 ? secondary : secondary.faded(Self.opacities[level - 1])
         }
         guard let primary = environment.foregroundStyle else {
-            let palette = environment.palette
-            switch level {
-            case 0: return .color(palette.foreground)
-            case 1: return .color(palette.foregroundSecondary)
-            case 2: return .color(palette.foregroundTertiary)
-            case 3: return .color(palette.foregroundQuaternary)
-            default: return .color(palette.foregroundQuaternary.opacity(0.5))
-            }
+            return Self.paletteTier(level, of: environment.palette)
         }
         return level == 0 ? primary : primary.faded(Self.opacities[level])
+    }
+
+    /// The palette's own text tier for `level`: what the levels are with no
+    /// foreground style set, and over a raised background whatever is set.
+    private static func paletteTier(_ level: Int, of palette: any Palette) -> Paint {
+        switch level {
+        case 0: .color(palette.foreground)
+        case 1: .color(palette.foregroundSecondary)
+        case 2: .color(palette.foregroundTertiary)
+        case 3: .color(palette.foregroundQuaternary)
+        default: .color(palette.foregroundQuaternary.opacity(0.5))
+        }
     }
 
     /// Each level's strength against the one named at the top: macOS's label

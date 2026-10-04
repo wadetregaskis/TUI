@@ -88,8 +88,26 @@ final class ListRowRamp {
 /// ``SelectableListRow`` remain `Sendable` while carrying deferred content.
 @MainActor
 final class LazyListRowContent {
-    private var thunk: ((GradientFrame?) -> (buffer: FrameBuffer, badge: BadgeValue?))?
+    private var thunk: ((GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: BadgeValue?))?
     private var cached: (buffer: FrameBuffer, badge: BadgeValue?)?
+
+    /// The prominence of the background the list paints under this row — raised
+    /// for the focused, selected row, whose content then renders with
+    /// `\.backgroundProminence` set to it (``BackgroundProminence``).
+    ///
+    /// Read when the row renders, like ``gradientRamp``, because the list knows
+    /// which row that is only once its handler has settled, and the overflow
+    /// check may have rendered the row before then. Changing it after a render
+    /// drops that render, so the next read of ``buffer`` renders again with the
+    /// new value — which is why the render closure is kept after the first.
+    /// A row whose buffer was handed over already rendered (chrome and the
+    /// eager rows) has no render to repeat and keeps the buffer it was given.
+    var backgroundProminence = BackgroundProminence.standard {
+        didSet {
+            guard backgroundProminence != oldValue, thunk != nil else { return }
+            cached = nil
+        }
+    }
 
     /// This row's size without rendering it, when the content can answer —
     /// measured at the width the row would be rendered at, which comes back
@@ -143,7 +161,7 @@ final class LazyListRowContent {
         identity: ViewIdentity? = nil,
         carriesBadge: Bool = true,
         measure: (() -> (size: ViewSize, availableWidth: Int))? = nil,
-        render: @escaping (GradientFrame?) -> (buffer: FrameBuffer, badge: BadgeValue?)
+        render: @escaping (GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: BadgeValue?)
     ) {
         self.rowIdentity = identity
         self.carriesBadge = carriesBadge
@@ -164,13 +182,23 @@ final class LazyListRowContent {
         self.cached = (buffer, badge)
     }
 
+    /// Forgets the render, so the next read of ``buffer`` renders the row again
+    /// — for a row whose cached render the list cleared after this box was
+    /// served it. Nothing for a box handed its buffer already rendered.
+    func discardRender() {
+        guard thunk != nil else { return }
+        cached = nil
+    }
+
     /// Renders the row if it has not been rendered, leaving the answer in
     /// ``cached``. Separate from the two accessors below so that neither has to
     /// hand back a COPY of the pair to read one half of it.
     private func resolveIfNeeded() {
         guard cached == nil else { return }
-        cached = thunk!(gradientRamp?.placement(row: rowIndex))
-        thunk = nil  // release the captured view / context
+        // Kept after the render, for a row whose ``backgroundProminence`` the
+        // list raises after something has already rendered it. A box lives for
+        // one frame's row source, so what the closure holds goes with it.
+        cached = thunk!(gradientRamp?.placement(row: rowIndex), backgroundProminence)
     }
 
     /// The row's rendered buffer, BORROWED rather than returned.

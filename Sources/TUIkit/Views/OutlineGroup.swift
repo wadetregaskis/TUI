@@ -459,9 +459,13 @@ extension OutlineGroup: ListRowExtractor where Leaf: View {
                                 rowContext.availableWidth
                             )
                         },
-                        render: { placement in
+                        render: { placement, prominence in
                             var rowContext = rowContext
                             rowContext.gradientFrame = placement ?? rowContext.gradientFrame
+                            // As a `ForEach` row's render applies it — see there.
+                            if prominence != .standard {
+                                rowContext.environment.backgroundProminence = prominence
+                            }
                             return (TUIkit.renderToBuffer(view, context: rowContext), nil)
                         })))
         }

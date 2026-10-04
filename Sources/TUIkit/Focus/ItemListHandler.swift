@@ -731,6 +731,13 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// The currently focused item index (keyboard cursor).
     var focusedIndex: Int = 0
 
+    /// The identity of the row last drawn over a raised background — the
+    /// focused, selected row of a `List` — or `nil` when there was none. Kept
+    /// so the frame that moves the raise can clear both rows' cached renders:
+    /// the raise reaches the row's content through its environment, which no
+    /// memo below the row compares (``BackgroundProminence``).
+    var raisedProminenceRow: ViewIdentity?
+
     /// The anchor row for range selection (macOS semantics): the last row
     /// plainly clicked, modifier-toggled, or Space-toggled. Shift-clicks and
     /// keyboard range extension both select the whole span between the anchor

@@ -275,6 +275,18 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
         return content
     }
 
+    /// Drops this frame's render of any row already built whose content renders
+    /// under one of `identities`, so the next read renders it again — for a row
+    /// whose cached render the list has just cleared, which an earlier read this
+    /// frame may already have been served (``LazyListRowContent/discardRender()``).
+    func discardRenders(of identities: [ViewIdentity]) {
+        guard !identities.isEmpty else { return }
+        for content in materialized.values.map(\.content) + materializedContent.values
+        where content.rowIdentity.map(identities.contains) == true {
+            content.discardRender()
+        }
+    }
+
     /// Builds the content box for the row at `index`, placed in this source's
     /// ramp.
     private func makeContent(at index: Int) -> LazyListRowContent {
@@ -887,6 +899,40 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             width: context.availableWidth, height: source.count * pitch)
     }
 
+    /// Raises the background prominence of the focused, selected row: the row
+    /// under the cursor, while the list has the focus, when that row is also
+    /// selected — the one whose fill is the accent's breath, over which its
+    /// content renders with ``BackgroundProminence/increased``.
+    ///
+    /// The raise reaches the row's content through its environment, written by
+    /// the row's render rather than by a modifier, so no memo below the row
+    /// would notice it come or go. This is what notices instead: the frame the
+    /// raised row changes — another row, or none — clears both rows' cached
+    /// renders. A row whose content was handed over already rendered (static
+    /// rows beside a loop, a section's hand-written rows) has no identity to
+    /// clear and no render to repeat, and is not raised.
+    private func raiseBackgroundProminence(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>,
+        listHasFocus: Bool, context: RenderContext
+    ) {
+        let index = handler.focusedIndex
+        let raised: LazyListRowContent? =
+            listHasFocus && index < source.count && handler.isCursorRow(index)
+                && handler.isSelected(at: index)
+            ? source.content(at: index) : nil
+        raised?.backgroundProminence = .increased
+        let identity = raised?.rowIdentity
+        guard !context.isMeasuring, identity != handler.raisedProminenceRow else { return }
+        let changed = [handler.raisedProminenceRow, identity].compactMap(\.self)
+        if let cache = context.renderCache {
+            for row in changed { cache.clearAffected(by: row) }
+        }
+        // The overflow check may already have read a row this frame, and been
+        // served the render just cleared.
+        source.discardRenders(of: changed)
+        handler.raisedProminenceRow = identity
+    }
+
     // MARK: - Empty-state placeholder
 
     /// Builds the single-line empty-state content for a list
@@ -957,8 +1003,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // still runs with the true answer: it publishes the Escape claim and
         // the status bar's Return verb, and sets `isFocusEngaged`, none of
         // which are focus EFFECTS.
-        let listHasFocus = context.indicatesFocus(
-            handler.engageFocus(context: context, focusID: persistedFocusID))
+        let listHasFocus = context.indicatesFocus(handler.engageFocus(context: context, focusID: persistedFocusID))
+        raiseBackgroundProminence(source: source, handler: handler, listHasFocus: listHasFocus, context: context)
 
         // Which rows are on screen — the shared rule, so this cannot drift from
         // the two `Table` composers again (`ScrollRowWindow`). It reserves a line
