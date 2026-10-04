@@ -312,7 +312,7 @@ is, without its speed — so there is nothing to track, and the flag is a value
 the transaction carries for whoever reads it. This is the one place the
 "retargets at rest" deviation of every TUIkit spring shows up as a property;
 the Wave 17 review (W6) asked for it to be documented in one place rather than
-used to refuse spellings, and `Animation.interpolatingSpring` will point here
+used to refuse spellings, and B-W12-7 (the spring animations) points here
 too.
 
 **`isContinuous`.** SwiftUI sets it when "a continuous action created the
@@ -377,7 +377,7 @@ in the same frame is included.
 while rendering. No change was made under that transaction, so nothing claims
 the completion and nothing runs it. SwiftUI documents no such use either.
 
-### B-W12-6 `UnitCurve` follows its documentation where SwiftUI's measured answers do not
+### B-W12-6 `UnitCurve` is SwiftUI's arithmetic, except where its answers contradict its documentation
 
 *`UnitCurve` (`value(at:)`, `velocity(at:)`, `inverse`, `bezier(startControlPoint:endControlPoint:)`,
 the eight named curves), `Animation.timingCurve(_:duration:)`*
@@ -385,7 +385,7 @@ the eight named curves), `Animation.timingCurve(_:duration:)`*
 The Bézier curves share the solver an `Animation`'s timing curve uses (the
 Wave 17 review asked for one formula, not two), and match SwiftUI's values and
 velocities to the sixth place (measured, `w12/probe/p3.swift`). Two readings
-differ from what SwiftUI answers, both in the documentation's favour:
+differ from what SwiftUI answers, in the documentation's favour:
 
 - **Out-of-range input is clamped**, as `value(at:)` and `velocity(at:)`
   document. SwiftUI clamps its Bézier curves, but not `.linear` (1.5 gives
@@ -569,3 +569,29 @@ symbol-effect content transitions wait on A-W12-2.
 **The fuller version** is A-W12-8's second option: the dissolve inside `Text`
 and `Image`, reading the environment, which also gives the leaf-level
 semantics above.
+
+---
+
+## C. Declined without asking
+
+None. Everything this wave did not ship is an owner question above, or waits
+on one.
+
+---
+
+## D. Deferred to other waves
+
+### D-W12-1 The scroll transitions can now be written; they still wait on A7
+
+*`View.scrollTransition(…)`, `ScrollTransitionConfiguration`,
+`ScrollTransitionPhase` (Wave 10's deferral)*
+
+Wave 10 deferred the scroll transitions for two things: this wave's
+`VisualEffect`, and its own A7 (finding a view inside the scroll content to
+know how visible it is). `VisualEffect` has shipped, with offset, opacity and
+the colour effects; a scroll transition's body is a `VisualEffect` built from
+a `ScrollTransitionPhase`, so once A7 answers where a view is in its scroll
+view, the phase is the only new arithmetic. The geometric effects a scroll
+transition often uses (`scaleEffect`, `rotationEffect`) wait on Wave 16 with
+A-W12-7.
+

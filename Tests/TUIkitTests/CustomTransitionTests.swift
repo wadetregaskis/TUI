@@ -282,6 +282,23 @@ struct CustomTransitionTests {
         #expect(screen.lines(ReadsDisabled().transition(Disabling()), atMillis: 0).first == "off")
     }
 
+    @Test("A colour the body sets is drawn part-way between its phases too")
+    func coloursScrub() {
+        struct Tint: Transition {
+            func body(content: Content, phase: TransitionPhase) -> some View {
+                content.foregroundStyle(phase.isIdentity ? Color.rgb(250, 0, 0) : Color.rgb(0, 0, 250))
+            }
+        }
+        let screen = Screen(.linear(duration: 1))
+        _ = screen.draw(Optional<Text>.none.map { $0.transition(Tint()) }, atMillis: 0)
+        let away = screen.draw(Text("XX").transition(Tint()), atMillis: 0).lines
+        let halfway = screen.draw(Text("XX").transition(Tint()), atMillis: 500).lines
+        let rest = screen.draw(Text("XX").transition(Tint()), atMillis: 1000).lines
+        #expect(away != rest)
+        #expect(halfway != away && halfway != rest, "a colour between: \(halfway)")
+        #expect(halfway.first?.contains("125") == true, "half of 250 in each channel: \(halfway)")
+    }
+
     // MARK: - Leaving
 
     @Test("A departing body is drawn around the content's last picture, towards didDisappear")
