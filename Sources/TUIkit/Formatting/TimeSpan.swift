@@ -272,6 +272,36 @@ enum TimeSpan {
         guard let candidate, candidate > now else { return now.addingTimeInterval(1) }
         return candidate
     }
+
+    /// The last instant before `now` at which the spelling read differently —
+    /// ``nextChange(counted:from:now:calendar:signFlips:)`` run backwards.
+    ///
+    /// - Going back, a growing span shrinks: it read less just before `date`
+    ///   plus what was counted. One down to nothing reads differently just
+    ///   before `date` when it is signed, and at one finest unit before it
+    ///   when it is not.
+    /// - A shrinking span grows going back: it read more from `date` minus the
+    ///   counted fields with the finest one more.
+    static func previousChange(
+        counted: [TimeSpanField], from date: Date, now: Date, calendar: Calendar, signFlips: Bool
+    ) -> Date {
+        guard let finest = counted.last else { return now.justBefore }
+        var candidate: Date?
+        if now >= date {
+            if counted.allSatisfy({ $0.value == 0 }) {
+                let unit = [TimeSpanField(unit: finest.unit, value: 1)]
+                candidate = signFlips ? date.justBefore : calendar.date(byAdding: components(unit, sign: -1), to: date)
+            } else {
+                candidate = calendar.date(byAdding: components(counted, sign: 1), to: date).map(\.justBefore)
+            }
+        } else {
+            var grown = counted
+            grown[grown.count - 1] = TimeSpanField(unit: finest.unit, value: finest.value + 1)
+            candidate = calendar.date(byAdding: components(grown, sign: -1), to: date)
+        }
+        guard let candidate, candidate < now else { return now.justBefore }
+        return candidate
+    }
 }
 
 extension TimeSpanUnit {
