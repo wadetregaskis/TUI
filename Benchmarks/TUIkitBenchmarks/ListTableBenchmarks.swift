@@ -124,9 +124,9 @@ enum ListTableBenchmarks {
                     people,
                     selection: Binding<Int?>.constant(nil)
                 ) {
-                    TableColumn<Person>("Name", value: \.name)
-                    TableColumn<Person>("Age") { "\($0.age)" }
-                    TableColumn<Person>("City", value: \.city)
+                    TableColumn("Name", value: \Person.name)
+                    TableColumn("Age") { (person: Person) in Text(verbatim: "\(person.age)") }
+                    TableColumn("City", value: \Person.city)
                 }
                 let context = tallContext()
                 for _ in iterations {
