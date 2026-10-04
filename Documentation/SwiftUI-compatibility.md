@@ -310,7 +310,11 @@ nothing, since an image here is sized by its frame, never by its pixel count.
 each cell's sub-pixels take: `.none` (or `antialiased(false)`) picks the
 nearest pixel, `.low`, `.medium` and `.high` average two, three and four. That
 is `imageSupersampling(_:)`'s factor, set on the one image and winning over
-the environment's.
+the environment's. **`renderingMode(_:)`** with `Image.TemplateRenderingMode`:
+`.template` draws a raster's pixels in the foreground style (else the
+palette's foreground), each at its own alpha, so an icon takes the colour of
+the text beside it; a template draws as cells, never as a terminal picture.
+A symbol is a single-colour glyph in the foreground already, and stays one.
 
 **A raster `Image` renders as text everywhere, and as REAL PIXELS where the
 terminal has a graphics protocol.** The glyph renderer is the universal path and

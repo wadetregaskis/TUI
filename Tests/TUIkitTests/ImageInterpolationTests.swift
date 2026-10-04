@@ -45,4 +45,26 @@ struct ImageInterpolationTests {
         #expect(lines(checkerboard().antialiased(false)) == lines(checkerboard().interpolation(.none)))
         #expect(lines(checkerboard().antialiased(true)) == lines(checkerboard()))
     }
+
+    /// A solid red image, already decoded.
+    private func red() -> Image {
+        var image = Image(.url("tuikit-test://red"))
+        image.decoded = _DecodedImage(
+            RGBAImage(width: 8, height: 8, pixels: Array(repeating: RGBA(r: 255, g: 0, b: 0), count: 64)))
+        return image
+    }
+
+    private func drawn(_ view: some View) -> String {
+        InputChainHarness(width: 8, height: 4)
+            .frame(view.imageColorMode(.trueColor).frame(width: 8, height: 4)).lines.joined()
+    }
+
+    @Test("A template draws the pixels in the foreground style; the original draws them as they are")
+    func templateRendering() {
+        let blue = Color.rgb(0, 0, 255)
+        let template = drawn(red().renderingMode(.template).foregroundStyle(blue))
+        #expect(template.contains("0;0;255") && !template.contains("255;0;0"), "\(template.debugDescription)")
+        let original = drawn(red().renderingMode(.original).foregroundStyle(blue))
+        #expect(original.contains("255;0;0") && !original.contains("0;0;255"))
+    }
 }

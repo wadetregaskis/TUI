@@ -575,3 +575,11 @@ private struct ImageInterpolationShapes: View {
         }
     }
 }
+
+/// An icon drawn as a template in the surrounding foreground.
+@MainActor
+private struct TemplateImageShapes: View {
+    var body: some View {
+        Image(systemName: "star").renderingMode(.template).foregroundStyle(.tint)
+    }
+}

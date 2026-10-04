@@ -112,6 +112,9 @@ public struct Image: View {
     /// Whether ``antialiased(_:)`` asked for smoothing, if it was called.
     var isAntialiased: Bool?
 
+    /// How ``renderingMode(_:)`` said to draw the image, if it was called.
+    var templateRenderingMode: TemplateRenderingMode?
+
     /// The supersampling factor this image's own modifiers ask for, or `nil`
     /// to take the environment's: an interpolation quality, else `1` for an
     /// image told not to antialias.
@@ -150,10 +153,12 @@ public struct Image: View {
     public var body: some View {
         switch content {
         case .raster(let source):
+            let core = _ImageCore(
+                source: source, decoded: decoded, isTemplate: templateRenderingMode == .template)
             if let samplingFactor {
-                _ImageCore(source: source, decoded: decoded).environment(\.imageSupersampling, samplingFactor)
+                core.environment(\.imageSupersampling, samplingFactor)
             } else {
-                _ImageCore(source: source, decoded: decoded)
+                core
             }
         case .symbol(let name):
             _SymbolIcon(name: name)

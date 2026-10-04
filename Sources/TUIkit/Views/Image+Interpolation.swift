@@ -2,7 +2,8 @@
 //  Image+Interpolation.swift
 //
 //  SwiftUI's image interpolation quality and antialiasing, which a raster
-//  image's cells honour through how many samples each one takes.
+//  image's cells honour through how many samples each one takes; and its
+//  template rendering mode.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -68,6 +69,35 @@ extension Image {
     public func antialiased(_ isAntialiased: Bool) -> Image {
         var copy = self
         copy.isAntialiased = isAntialiased
+        return copy
+    }
+
+    /// Indicates whether SwiftUI renders an image as-is, or by using a
+    /// different mode — mirrors SwiftUI's `Image.TemplateRenderingMode`.
+    public enum TemplateRenderingMode: Sendable, Hashable {
+        /// A mode that renders all non-transparent pixels as the foreground
+        /// color.
+        case template
+
+        /// A mode that renders pixels of bitmap images as-is.
+        case original
+    }
+
+    /// Indicates whether SwiftUI renders an image as-is, or by using a
+    /// different mode — mirrors SwiftUI's `renderingMode(_:)`.
+    ///
+    /// `.template` draws a raster image's pixels in the foreground style (or
+    /// the palette's foreground), each at its own alpha, so an icon takes the
+    /// colour of the text around it; it is drawn as cells, never as a
+    /// terminal picture. `.original`, and `nil`, draw the pixels as they are.
+    /// A symbol image is a single-colour glyph in the foreground already —
+    /// a template by nature — and stays one.
+    ///
+    /// - Parameter renderingMode: The mode, or `nil` for the default.
+    /// - Returns: The image, drawn in that mode.
+    public func renderingMode(_ renderingMode: TemplateRenderingMode?) -> Image {
+        var copy = self
+        copy.templateRenderingMode = renderingMode
         return copy
     }
 }

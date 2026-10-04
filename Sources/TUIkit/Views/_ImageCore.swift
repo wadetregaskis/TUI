@@ -71,6 +71,9 @@ private struct ImageRenderCache: Equatable {
     /// By value, not by `TerminalColors.generation`: a task-local pin changes
     /// what a slot measures as without moving the generation.
     var terminalColors: TerminalColors
+    /// The colour a template image's pixels were drawn in, or `nil` for an
+    /// image drawn in its own colours.
+    var templateInk: RGBA?
     var art: ASCIIArt
 
     /// Returns whether `self` was built from the same inputs as the
@@ -85,7 +88,8 @@ private struct ImageRenderCache: Equatable {
         contentMode: ContentMode,
         aspectRatioOverride: Double?,
         cellAspect: Double,
-        terminalColors: TerminalColors
+        terminalColors: TerminalColors,
+        templateInk: RGBA?
     ) -> Bool {
         self.rawImageWidth == rawImageWidth
             && self.rawImageHeight == rawImageHeight
@@ -103,6 +107,7 @@ private struct ImageRenderCache: Equatable {
             && self.aspectRatioOverride == aspectRatioOverride
             && self.cellAspect == cellAspect
             && self.terminalColors == terminalColors
+            && self.templateInk == templateInk
             // Last: the scalar comparisons above reject the frequent miss — a
             // resize — before this one runs. It is the field that decides
             // correctness, not the one that usually decides the answer.
@@ -125,6 +130,10 @@ struct _ImageCore: View, Renderable, Layoutable {
     /// The source's pixels when they are already decoded, so nothing is
     /// loaded — see ``Image/decoded``.
     var decoded: _DecodedImage?
+
+    /// Whether the image draws as a template: its pixels' coverage in the
+    /// foreground colour (``Image/renderingMode(_:)``).
+    var isTemplate = false
 
     var body: Never {
         fatalError("_ImageCore renders via Renderable")
@@ -336,7 +345,9 @@ struct _ImageCore: View, Renderable, Layoutable {
             // glyphs, and every request the protocol cannot express — which is
             // why this is an `if let` and not a branch: the fallback is not an
             // error path, it is the path this framework has always taken.
-            if let drawn = renderWithTerminalGraphics(
+            // A template is drawn as cells: its pixels are recoloured, and a
+            // picture of them would be one more thing to keep current.
+            if !isTemplate, let drawn = renderWithTerminalGraphics(
                 rawImage, width: renderWidth, height: renderHeight, context: context)
             {
                 return drawn
@@ -358,6 +369,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                 aspectRatioOverride: aspectRatioOverride,
                 cellAspect: context.environment.imageCellAspect,
                 monoColours: ImageMonoColours(for: colorMode, in: context.environment),
+                templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
                 stateStorage: stateStorage,
                 identity: identity
             )
@@ -523,6 +535,7 @@ extension _ImageCore {
         aspectRatioOverride: Double?,
         cellAspect: Double,
         monoColours: ImageMonoColours?,
+        templateInk: RGBA?,
         stateStorage: StateStorage,
         identity: ViewIdentity
     ) -> FrameBuffer {
@@ -564,7 +577,8 @@ extension _ImageCore {
             contentMode: contentMode,
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
-            terminalColors: terminalColors
+            terminalColors: terminalColors,
+            templateInk: templateInk
         ) {
             return Self.buffer(for: cache.art, monoColours: monoColours)
         }
@@ -579,7 +593,8 @@ extension _ImageCore {
             toneCurve: toneCurve,
             edgeContrast: edgeContrast
         )
-        let art = converter.convert(rawImage, width: targetSize.width, height: targetSize.height)
+        let pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
+        let art = converter.convert(pixels, width: targetSize.width, height: targetSize.height)
 
         cacheBox.value = ImageRenderCache(
             source: source,
@@ -599,6 +614,7 @@ extension _ImageCore {
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
             terminalColors: terminalColors,
+            templateInk: templateInk,
             art: art
         )
 
