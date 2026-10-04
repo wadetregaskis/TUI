@@ -108,7 +108,7 @@ extension Text {
     /// and nothing live left; and the earliest instant any of them changes.
     ///
     /// `nil` when nothing in the text is live. A text that is one live run with
-    /// no style of its own comes back as a plain text — no runs at all — so it
+    /// no style or link of its own comes back as a plain text — no runs at all — so it
     /// takes exactly the path, and makes exactly the bytes, of a `Text` built
     /// from the same string.
     func readingLive(at date: Date, in environment: LiveTextEnvironment) -> (text: Text, next: Date?)? {
@@ -119,11 +119,11 @@ extension Text {
             if let change = live.source.nextChange(after: date, in: environment) {
                 next = min(next ?? change, change)
             }
-            return Run(text: live.source.text(at: date, in: environment), style: run.style)
+            return Run(text: live.source.text(at: date, in: environment), style: run.style, link: run.link)
         }
         var text = Text(verbatim: read.map(\.text).joined())
         text.style = style
-        if read.count > 1 || read.first?.style != TextStyle() {
+        if read.count > 1 || read.first?.style != TextStyle() || read.first?.link != nil {
             text.runs = read
         }
         return (text, next)

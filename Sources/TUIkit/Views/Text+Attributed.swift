@@ -26,7 +26,14 @@ extension Text {
     /// Apple platforms), its strong emphasis draws bold, its emphasis italic and
     /// its strikethrough struck through, so a string parsed from Markdown there
     /// draws as it does in SwiftUI; its code spans are already monospaced.
-    /// Every other attribute is ignored, as SwiftUI ignores them.
+    ///
+    /// A run carrying Foundation's `link` draws as a link: in the accent colour
+    /// (which follows ``View/tint(_:)``, as SwiftUI's links do) unless the run
+    /// states a colour of its own, underlined as a ``Link`` is (see
+    /// ``View/linkUnderline(_:)``), and as a real OSC 8 hyperlink wherever the
+    /// terminal honours one (``View/terminalHyperlinks(_:)``) — which is how the
+    /// destination is reached: the terminal shows and opens it on its own
+    /// gesture. Every other attribute is ignored, as SwiftUI ignores them.
     ///
     /// The string's attributes take precedence over the text's modifiers, which
     /// is SwiftUI's rule: in
@@ -54,7 +61,7 @@ extension Text {
         let runs = Self.runs(of: attributedContent)
         // A string with nothing to say about its one run is a plain text, and
         // takes a plain text's path: no runs at all.
-        if runs.count > 1 || runs.first.map({ $0.style != TextStyle() }) == true {
+        if runs.count > 1 || runs.first.map({ $0.style != TextStyle() || $0.link != nil }) == true {
             self.runs = runs
         }
     }
@@ -66,10 +73,10 @@ extension Text {
             let text = String(string[run.range].characters)
             guard !text.isEmpty else { continue }
             let style = Self.style(of: run)
-            if let last = result.last, last.style == style, last.live == nil {
-                result[result.count - 1] = Run(text: last.text + text, style: style)
+            if let last = result.last, last.style == style, last.link == run.link, last.live == nil {
+                result[result.count - 1] = Run(text: last.text + text, style: style, link: run.link)
             } else {
-                result.append(Run(text: text, style: style))
+                result.append(Run(text: text, style: style, link: run.link))
             }
         }
         return result

@@ -235,7 +235,8 @@ enum PaintRenderer {
             for piece in pieces {
                 let start = column
                 guard piece.takesRamp else {
-                    painted += ANSIRenderer.render(piece.text, with: piece.style.opaqueColours)
+                    painted += Text.hyperlinked(
+                        ANSIRenderer.render(piece.text, with: piece.style.opaqueColours), opening: piece.hyperlink)
                     column += piece.text.reduce(0) { $0 + $1.terminalWidth }
                     guard wantsClaims else { continue }
                     rowClaims.appendCoalescing(
@@ -250,9 +251,11 @@ enum PaintRenderer {
                     tables.append((bandStyle, []))
                     index = tables.count - 1
                 }
+                if let opening = piece.hyperlink { painted += opening }
                 band(
                     piece.text, column: &column, row: row, style: bandStyle,
                     sampler: sampler, sequences: &tables[index!].sequences, into: &painted)
+                if piece.hyperlink != nil { painted += TerminalHyperlink.closing }
                 guard wantsClaims else { continue }
                 // `band` leaves `column` where it was for a ramp that does not vary
                 // along the row — deliberately, because nothing downstream read it and
@@ -295,7 +298,8 @@ enum PaintRenderer {
             for piece in pieces {
                 var flat = piece.style
                 if piece.takesRamp { flat.foregroundColor = representative }
-                line += ANSIRenderer.render(piece.text, with: flat.opaqueColours)
+                line += Text.hyperlinked(
+                    ANSIRenderer.render(piece.text, with: flat.opaqueColours), opening: piece.hyperlink)
                 guard wantsClaims else { continue }
                 let width = piece.text.reduce(0) { $0 + $1.terminalWidth }
                 row.appendCoalescing(
@@ -453,6 +457,11 @@ struct StyledPiece {
     /// `false` for a fragment that stated a colour of its own, which keeps it:
     /// an explicit colour beats an inherited style here as it does everywhere.
     let takesRamp: Bool
+
+    /// The OSC 8 sequence opening the piece's link, or `nil` — see
+    /// `Text.hyperlinkOpenings`. The piece is wrapped in it whole, so the pair
+    /// is balanced within the line.
+    var hyperlink: String?
 }
 
 // MARK: - Sampling a ramp over a rectangle

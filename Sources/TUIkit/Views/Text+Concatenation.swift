@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitCore
 import TUIkitStyling
 
@@ -28,6 +29,10 @@ extension Text {
         /// are a function of the clock (`Text(date, style: .relative)` and
         /// the other live texts); `nil` for the words in ``text``.
         var live: LiveTextBox?
+
+        /// Where the fragment links — an attributed string's `link`, or a
+        /// Markdown link in a key — or `nil`. See `Text+Links.swift`.
+        var link: URL?
     }
 }
 
@@ -75,7 +80,7 @@ extension Text.Run {
     /// This run with `base` beneath it: the run's own attributes win, the
     /// base fills anything it left unset.
     func rebased(on base: TextStyle) -> Self {
-        Self(text: text, style: style.merged(over: base), live: live)
+        Self(text: text, style: style.merged(over: base), live: live, link: link)
     }
 }
 

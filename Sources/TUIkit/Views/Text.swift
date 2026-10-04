@@ -1118,8 +1118,10 @@ extension Text: Renderable, Layoutable {
         var runTakesRamp: [Bool] = []
         runTakesRamp.reserveCapacity(runs.count)
         for run in runs {
+            // What the run states, with what being a link adds beneath that.
+            let own = run.styleStatingLink(in: context.environment)
             var runStyle: TextStyle
-            if let stated = run.style.font, stated != font {
+            if let stated = own.font, stated != font {
                 // A fragment that brought its own font resolves its OWN cascade
                 // — the font decides both the baseline intensity and which
                 // `.font(_:)` scope entries match, neither of which can be
@@ -1128,7 +1130,7 @@ extension Text: Renderable, Layoutable {
                 // so that what the cascade fills in is the fragment's answer and
                 // not the text's.
                 runStyle = applyingCascadedEmphasis(
-                    to: run.style.merged(over: style),
+                    to: own.merged(over: style),
                     cascadedAttributes(context: context, font: stated),
                     context: context)
                 // The colours were resolved once, at text level (the
@@ -1143,8 +1145,8 @@ extension Text: Renderable, Layoutable {
                 // The run's own attributes sit above the base this Text resolved
                 // (its own style + the cascade); anything the run left unset
                 // falls through to that.
-                runTakesRamp.append(run.style.foregroundColor == nil)
-                runStyle = run.style.merged(over: effectiveStyle)
+                runTakesRamp.append(own.foregroundColor == nil)
+                runStyle = own.merged(over: effectiveStyle)
             }
             resolvedRunStyles.append(runStyle.resolved(with: context.environment.palette))
         }
@@ -1153,6 +1155,7 @@ extension Text: Renderable, Layoutable {
         let fragments = plainLines.map { line in
             TextRunAttribution.fragments(of: line, runTexts: runTexts, cursor: &cursor)
         }
+        let openings = Self.hyperlinkOpenings(for: runs, lineCount: plainLines.count, context: context)
         guard let ramp, !context.isMeasuring else {
             // The OPAQUE spelling into the bytes and the alpha into a claim, as
             // the single-style arm does — a translucent colour has no SGR spelling
@@ -1160,7 +1163,10 @@ extension Text: Renderable, Layoutable {
             let opaque = resolvedRunStyles.map(\.opaqueColours)
             return (
                 lines: fragments.map { line in
-                    line.map { ANSIRenderer.render($0.text, with: opaque[$0.run]) }.joined()
+                    line.map {
+                        Self.hyperlinked(
+                            ANSIRenderer.render($0.text, with: opaque[$0.run]), opening: openings[$0.run])
+                    }.joined()
                 },
                 claims: Self.fragmentAlphaClaims(fragments, styles: resolvedRunStyles)
             )
@@ -1181,7 +1187,7 @@ extension Text: Renderable, Layoutable {
                 line.map {
                     StyledPiece(
                         text: $0.text, style: resolvedRunStyles[$0.run],
-                        takesRamp: runTakesRamp[$0.run])
+                        takesRamp: runTakesRamp[$0.run], hyperlink: openings[$0.run])
                 }
             },
             blockWidth: blockWidth, frame: context.gradientFrame, paint: ramp,
