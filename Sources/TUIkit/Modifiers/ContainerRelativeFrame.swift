@@ -146,3 +146,11 @@ extension View {
         _ContainerRelativeFrame(content: self, axes: axes, alignment: alignment, length: length)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _ContainerRelativeFrame: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _container.resolveEnvironment(environment)
+    }
+}

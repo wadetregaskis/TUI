@@ -615,3 +615,11 @@ struct _DatePickerCore: View, Renderable, Layoutable {
         return nil
     }
 }
+
+// MARK: - Environment without reflection
+
+extension DatePicker: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _style.resolveEnvironment(environment)
+    }
+}

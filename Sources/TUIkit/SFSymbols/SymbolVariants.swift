@@ -218,3 +218,11 @@ public struct _SymbolIcon: View {
         return SFSymbol.glyph(named: name) ?? ""
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _SymbolIcon: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _variants.resolveEnvironment(environment)
+    }
+}

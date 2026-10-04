@@ -158,3 +158,11 @@ struct _PickerSegments<SelectionValue: Hashable>: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _PickerSegments: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _effect.resolveEnvironment(environment)
+    }
+}

@@ -117,3 +117,11 @@ extension RenameButton where Label == TUIkit.Label<Text, Image> {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension RenameButton: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _rename.resolveEnvironment(environment)
+    }
+}

@@ -516,3 +516,11 @@ extension View {
         environment(\.navigationSplitViewStyle, style)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _NavigationSplitViewStyleHost: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _style.resolveEnvironment(environment)
+    }
+}

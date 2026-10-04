@@ -223,3 +223,15 @@ struct SearchableModifier<Content: View>: View {
         return _SearchFieldFocus(content: field, search: dismissal)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension SearchableModifier: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _focusManager.resolveEnvironment(environment)
+        _supportsEmojiChrome.resolveEnvironment(environment)
+        _iconPlacement.resolveEnvironment(environment)
+        _suggestions.resolveEnvironment(environment)
+        _scopeBar.resolveEnvironment(environment)
+    }
+}

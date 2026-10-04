@@ -197,3 +197,11 @@ private struct _StyledGroupBox: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _StyledGroupBox: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

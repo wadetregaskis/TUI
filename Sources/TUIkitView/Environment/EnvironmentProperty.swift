@@ -197,10 +197,53 @@ public func resolveEnvironmentProperties<V>(of view: V, in environment: Environm
     let typeID = ObjectIdentifier(V.self)
     if EnvironmentResolutionCache.typesWithoutEnvironment.contains(typeID) { return }
 
+    // A framework view that names its own properties skips the reflection.
+    if let named = view as? any ResolvesOwnEnvironment {
+        named.resolveOwnEnvironment(environment)
+        #if DEBUG
+            EnvironmentResolutionCache.verifyOwnResolution(of: view, typeID: typeID)
+        #endif
+        return
+    }
+
     if !resolveEnvironmentProperties(nestedIn: view, in: environment) {
         EnvironmentResolutionCache.typesWithoutEnvironment.insert(typeID)
     }
 }
+
+/// A framework view that hands its own `@Environment` properties their
+/// environment, so the renderer need not reflect over it to find them.
+///
+/// ``resolveEnvironmentProperties(of:in:)`` otherwise walks the view with
+/// `Mirror` on every `body` — boxing each stored property into `Any`, a copy
+/// of the content a style host wraps among them — and casts each one. A style
+/// host around a common control (a `ProgressView`'s, a `Label`'s) paid that on
+/// every measure and render: on a dashboard of progress bars, measured cold,
+/// the walk was 12% of the frame. Listing the properties costs nothing.
+///
+/// A debug build checks each conforming type the first time it renders: every
+/// `@Environment` the reflection would have found must have been resolved, so
+/// a property added without being listed fails the first test that draws it.
+@MainActor
+package protocol ResolvesOwnEnvironment {
+    /// Resolves every `@Environment` property of this view against
+    /// `environment` — `_name.resolveEnvironment(environment)` for each.
+    func resolveOwnEnvironment(_ environment: EnvironmentValues)
+}
+
+extension Environment {
+    /// Whether this wrapper has been handed an environment: what a debug build
+    /// checks of a ``ResolvesOwnEnvironment`` view.
+    var isResolved: Bool { box.environment != nil }
+}
+
+/// Reads ``Environment/isResolved`` through an existential, as `Mirror` hands
+/// the wrappers back.
+private protocol ResolutionInspectable {
+    var isResolved: Bool { get }
+}
+
+extension Environment: ResolutionInspectable {}
 
 /// One level of ``resolveEnvironmentProperties(of:in:)``, descending into any
 /// property that holds properties of its own — an app's ``DynamicProperty``, or
@@ -230,4 +273,21 @@ private func resolveEnvironmentProperties(nestedIn value: Any, in environment: E
 @MainActor
 private enum EnvironmentResolutionCache {
     static var typesWithoutEnvironment: Set<ObjectIdentifier> = []
+
+    #if DEBUG
+        /// The ``ResolvesOwnEnvironment`` types already checked.
+        static var verifiedOwnResolution: Set<ObjectIdentifier> = []
+
+        /// Checks, once per type, that `view`'s own resolution reached every
+        /// `@Environment` property reflection finds on it.
+        static func verifyOwnResolution(of view: Any, typeID: ObjectIdentifier) {
+            guard verifiedOwnResolution.insert(typeID).inserted else { return }
+            for child in Mirror(reflecting: view).children {
+                guard let wrapper = child.value as? ResolutionInspectable else { continue }
+                assert(
+                    wrapper.isResolved,
+                    "\(type(of: view)).resolveOwnEnvironment(_:) does not resolve \(child.label ?? "a property")")
+            }
+        }
+    #endif
 }

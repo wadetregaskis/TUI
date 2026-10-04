@@ -334,3 +334,11 @@ struct FieldChrome {
         style.drawsFieldSurface ? 2 : 0
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _StyledFieldFrame: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _style.resolveEnvironment(environment)
+    }
+}

@@ -80,3 +80,12 @@ public struct PasteButton: View {
         }
     }
 #endif
+
+// MARK: - Environment without reflection
+
+extension PasteButton: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _clipboard.resolveEnvironment(environment)
+        _typedClipboard.resolveEnvironment(environment)
+    }
+}

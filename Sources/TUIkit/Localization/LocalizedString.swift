@@ -51,3 +51,11 @@ public struct LocalizedString: View {
         Text(service.string(for: key))
     }
 }
+
+// MARK: - Environment without reflection
+
+extension LocalizedString: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _service.resolveEnvironment(environment)
+    }
+}

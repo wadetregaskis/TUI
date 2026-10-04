@@ -325,3 +325,11 @@ private struct _StyledControlGroup: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _StyledControlGroup: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

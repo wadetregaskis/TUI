@@ -155,3 +155,11 @@ extension Label where Title == Text, Icon == _SymbolIcon {
             iconIsVisible: showIcon)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension Label: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

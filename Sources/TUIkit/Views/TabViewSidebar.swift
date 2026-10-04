@@ -309,3 +309,17 @@ public enum TabViewBottomAccessoryPlacement: Hashable, Sendable {
     /// The accessory is expanded above the tab bar.
     case expanded
 }
+
+// MARK: - Environment without reflection
+
+extension _TabSidebarLayout: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _accessories.resolveEnvironment(environment)
+    }
+}
+
+extension _TabSidebarList: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _springLoading.resolveEnvironment(environment)
+    }
+}

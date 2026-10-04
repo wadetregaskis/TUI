@@ -182,3 +182,11 @@ struct _StyledDisclosureGroup: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _StyledDisclosureGroup: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _style.resolveEnvironment(environment)
+    }
+}

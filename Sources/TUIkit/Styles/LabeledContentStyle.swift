@@ -145,3 +145,11 @@ struct _StyledLabeledContent: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _StyledLabeledContent: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

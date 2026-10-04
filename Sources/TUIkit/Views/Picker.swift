@@ -420,3 +420,12 @@ extension View {
         style(.control(.picker), build)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension Picker: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _pickerStyle.resolveEnvironment(environment)
+        _horizontalLayout.resolveEnvironment(environment)
+    }
+}

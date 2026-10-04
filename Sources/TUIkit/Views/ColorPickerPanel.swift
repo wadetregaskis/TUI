@@ -700,3 +700,23 @@ struct _EditableValueField: View {
             }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension ColorPickerPanel: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _palette.resolveEnvironment(environment)
+    }
+}
+
+extension _ColorPickerBody: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _palette.resolveEnvironment(environment)
+    }
+}
+
+extension _EditableValueField: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _focusManager.resolveEnvironment(environment)
+    }
+}

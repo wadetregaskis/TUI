@@ -832,3 +832,12 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                 handlerID: handlerID, focusID: focusID))
     }
 }
+
+// MARK: - Environment without reflection
+
+extension TextEditor: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _style.resolveEnvironment(environment)
+        _find.resolveEnvironment(environment)
+    }
+}

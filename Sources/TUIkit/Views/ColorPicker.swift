@@ -378,3 +378,13 @@ extension View {
         environment(\.colorPickerChannels, visibility)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension ColorPicker: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _labelWidth.resolveEnvironment(environment)
+        _labelsVisibility.resolveEnvironment(environment)
+        _channelsVisibility.resolveEnvironment(environment)
+    }
+}

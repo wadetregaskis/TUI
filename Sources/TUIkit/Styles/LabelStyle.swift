@@ -338,3 +338,13 @@ extension View {
         environment(\.labelReservedIconWidth, value)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _IconAndTitle: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _spacing.resolveEnvironment(environment)
+        _reservedIconWidth.resolveEnvironment(environment)
+        _iconTint.resolveEnvironment(environment)
+    }
+}

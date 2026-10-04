@@ -52,3 +52,11 @@ public struct HelpLink: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension HelpLink: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _openURL.resolveEnvironment(environment)
+    }
+}

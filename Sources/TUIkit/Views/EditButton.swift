@@ -47,3 +47,11 @@ public struct EditButton: View {
         .disabled(editMode == nil)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension EditButton: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _editMode.resolveEnvironment(environment)
+    }
+}

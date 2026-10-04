@@ -582,3 +582,11 @@ extension Form where Content == FormStyleConfiguration.Content {
         self.init { configuration.content }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _FormFieldRow: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

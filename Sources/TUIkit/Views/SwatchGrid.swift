@@ -371,3 +371,11 @@ struct _NamedSwatchGrid: View {
         return entries.indices.contains(index) ? entries[index].name : ""
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _NamedSwatchGrid: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _palette.resolveEnvironment(environment)
+    }
+}

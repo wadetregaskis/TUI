@@ -247,3 +247,11 @@ where
             label: configuration.label, currentValueLabel: configuration.currentValueLabel)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _StyledProgressView: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

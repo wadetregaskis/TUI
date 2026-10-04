@@ -221,3 +221,11 @@ extension View {
         environment(\.isPrivacySensitive, sensitive)
     }
 }
+
+// MARK: - Environment without reflection
+
+extension RedactionScope: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _inherited.resolveEnvironment(environment)
+    }
+}

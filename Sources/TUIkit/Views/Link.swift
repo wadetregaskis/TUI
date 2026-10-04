@@ -471,3 +471,15 @@ private struct _Link<Label: View>: View {
         }
     }
 }
+
+// MARK: - Environment without reflection
+
+extension _Link: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _openURL.resolveEnvironment(environment)
+        _underline.resolveEnvironment(environment)
+        _terminalHyperlinks.resolveEnvironment(environment)
+        _focusIndicator.resolveEnvironment(environment)
+        _display.resolveEnvironment(environment)
+    }
+}

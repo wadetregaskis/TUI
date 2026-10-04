@@ -153,3 +153,12 @@ extension _ColorSwatchButtonStyle {
     /// and odd so the state bullet has a true centre.
     static let width = 3
 }
+
+// MARK: - Environment without reflection
+
+extension _ColorSwatchCells: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _palette.resolveEnvironment(environment)
+        _emphasis.resolveEnvironment(environment)
+    }
+}

@@ -1135,3 +1135,12 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
 // `TabStripHandler` (the strip's focus/keyboard handler) lives in
 // `TabStripHandler.swift`.
+
+// MARK: - Environment without reflection
+
+extension TabView: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _style.resolveEnvironment(environment)
+        _customization.resolveEnvironment(environment)
+    }
+}
