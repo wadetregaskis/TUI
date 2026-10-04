@@ -69,7 +69,9 @@ extension Text {
 ///
 /// What is left for each `Text` is what its values decide: the words of a
 /// span a placeholder stands in, whether that span is live, and a link whose
-/// destination a placeholder completes.
+/// destination a placeholder completes — and so which neighbouring spans
+/// merge into one run. Where no value can be live and no link waits on one,
+/// that merge is the template's too, and is kept as well (`plan`).
 @MainActor
 struct MarkdownTemplate {
     /// One span of the parse, as far as it goes without values.
@@ -89,11 +91,43 @@ struct MarkdownTemplate {
         let linkPieces: [MarkdownRunSource.Piece]?
     }
 
+    /// One run of a key with no live values, as far as it goes without them:
+    /// neighbouring spans merged, their pieces laid end to end.
+    struct PlannedRun {
+        /// The merged spans' pieces, in order.
+        let pieces: [MarkdownRunSource.Piece]
+        /// The style they share.
+        let style: TextStyle
+        /// The link they share.
+        let link: URL?
+    }
+
     let spans: [Span]
 
     /// The text and runs, when no span holds a placeholder: then they are
     /// every key's alike, so they are made once, with the parse.
     private var finished: (content: String, runs: [Text.Run]?)?
+
+    /// The runs, merged, for a key with no live values — when no placeholder
+    /// stands in a link's destination; `nil` otherwise, and when `finished`
+    /// answers.
+    ///
+    /// For such a key everything the merge in ``filledBySpans(by:)`` decides
+    /// by is the template's: no span is live (liveness is a key's live
+    /// VALUES), and every link is the parse's. So it is decided once, here,
+    /// and a build only fills each merged run's words. Spans that merge
+    /// become ONE run whose words are their pieces end to end — the same
+    /// text, since a span's words are only its pieces joined.
+    private var plan: [PlannedRun]?
+
+    /// Whether `plan` makes no runs worth keeping: at most one, unstyled
+    /// and unlinked — the guard at the end of ``filledBySpans(by:)``, with no
+    /// run live.
+    private var planIsPlain = false
+
+    /// Whether ``filled(by:)`` answers a key with no live values from
+    /// `plan`, for the tests.
+    var fillsFromPlan: Bool { plan != nil }
 
     /// Parses `template` as `key` reads it.
     init(parsing template: String, for key: LocalizedStringKey) {
@@ -135,13 +169,58 @@ struct MarkdownTemplate {
                 linkPieces: linkIsFilled ? destination?.pieces : nil)
         }
         if spans.allSatisfy({ $0.text != nil && $0.linkPieces == nil }) {
-            finished = filled(by: key)
+            finished = filledBySpans(by: key)
+        } else if spans.allSatisfy({ $0.linkPieces == nil }) {
+            // `filledBySpans`' merge, with no run live: neighbours of one style
+            // and link merge, and the merged run takes the later span's (equal)
+            // style and link, as it does there.
+            var planned: [PlannedRun] = []
+            planned.reserveCapacity(spans.count)
+            for span in spans {
+                if let last = planned.last, last.style == span.style, last.link == span.link {
+                    planned[planned.count - 1] = PlannedRun(
+                        pieces: last.pieces + span.pieces, style: span.style, link: span.link)
+                } else {
+                    planned.append(PlannedRun(pieces: span.pieces, style: span.style, link: span.link))
+                }
+            }
+            plan = planned
+            planIsPlain = planned.count <= 1 && planned.allSatisfy { $0.style == TextStyle() && $0.link == nil }
         }
     }
 
     /// The text and runs `key`'s values make of this template.
     func filled(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
         if let finished { return finished }
+        if let plan, key.liveArguments.isEmpty {
+            // No value is live, so the spans merge as they did at parse time:
+            // only the words are this key's. Each run's fields are read in
+            // place, by index — a `for planned in plan` copies the whole
+            // element out, pieces, style and the resilient `URL?` (through
+            // its value witnesses) with it, which is the cost this saves.
+            if planIsPlain {
+                return (plan.isEmpty ? "" : MarkdownRunSource(pieces: plan[0].pieces, key: key).text, nil)
+            }
+            var runs: [Text.Run] = []
+            runs.reserveCapacity(plan.count)
+            var length = 0
+            for index in plan.indices {
+                let text = MarkdownRunSource(pieces: plan[index].pieces, key: key).text
+                length += text.utf8.count
+                runs.append(Text.Run(text: text, style: plan[index].style, link: plan[index].link))
+            }
+            // The runs' words joined, into a string reserved to their length.
+            var content = ""
+            content.reserveCapacity(length)
+            for index in runs.indices { content += runs[index].text }
+            return (content, runs)
+        }
+        return filledBySpans(by: key)
+    }
+
+    /// ``filled(by:)`` span by span: any key, live values and links a value
+    /// completes included — and the reading the plan must agree with.
+    func filledBySpans(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
         var content = ""
         var runs: [Text.Run] = []
         runs.reserveCapacity(spans.count)

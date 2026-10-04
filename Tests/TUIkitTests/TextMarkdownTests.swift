@@ -225,6 +225,38 @@ struct TextMarkdownTests {
         #expect(runs(Text("test.markdown.kept")) == ["second|b", " text"])
     }
 
+    @Test("A key with no live values fills the kept merge exactly as span by span")
+    func plannedRunsAgreeWithTheSpans() {
+        // `filled(by:)` answers a key with no live values from the merge kept
+        // with the parse; the span-by-span fill is the reading it must agree
+        // with — the same content and the same runs, merged or not. Every
+        // source of the measured inline table, with a placeholder at four
+        // places, under values that are empty, wide, or look like Markdown.
+        var planned = 0
+        var cases = 0
+        for source in InlineMarkdownTests.measured.map(\.source) {
+            let characters = Array(source)
+            let templates = [0, min(1, characters.count), characters.count / 2, characters.count].map { cut in
+                String(characters[..<cut]) + "%@" + String(characters[cut...])
+            }
+            for template in templates {
+                for values in [["x"], [""], ["**y** `z`"], ["日本 a"], ["a", "b"]] {
+                    let key = LocalizedStringKey(key: template, arguments: values)
+                    let parse = MarkdownTemplate(parsing: template, for: key)
+                    if parse.fillsFromPlan { planned += 1 }
+                    cases += 1
+                    let filled = parse.filled(by: key)
+                    let bySpans = parse.filledBySpans(by: key)
+                    #expect(filled.content == bySpans.content, "\(template.debugDescription) \(values)")
+                    #expect(filled.runs == bySpans.runs, "\(template.debugDescription) \(values)")
+                }
+            }
+        }
+        // Not vacuous: most cases have a placeholder in their words and
+        // none in a destination, which is when the kept merge answers.
+        #expect(planned > cases / 2, "only \(planned) of \(cases) cases filled from the kept merge")
+    }
+
     @Test("The kept parses are bounded")
     func keptParsesAreBounded() {
         for index in 0...MarkdownTemplate.cacheLimit {
