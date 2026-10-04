@@ -248,11 +248,21 @@ Two things are paid by stacks that do not pin:
 
 And by a scroll view: one scan of its content's floating layers for a pinned
 one per frame, and one more on a frame whose focus moved — usually a scan of
-nothing. A pinned section pays a copy of its header per render.
+nothing. Every `Section` reads the scope once per render. A pinned section
+pays a copy of its header per render. A `LazyVGrid` resolves its views once
+more per measure and render, to ask whether a section is among them — the
+grid's layout resolves them again — which is the one cost a grid with no
+sections pays.
 
 None of this was measured: the machine is shared. The A/B owed is `deep`,
-`kitchensink` and `megalist` on a quiet machine, against the parent commit.
+`kitchensink` and `megalist` on a quiet machine, against the parent commit
+(no Stress scenario has a lazy grid).
 
 ## C. Declined without asking
 
+None.
+
 ## D. Deferred to other waves
+
+None. The two open gaps, `LazyHStack`'s and `LazyHGrid`'s `pinnedViews:`
+initialisers, are A-W10b-1's.
