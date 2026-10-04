@@ -163,7 +163,10 @@ public struct LazyVStack<Content: View>: View {
 ///
 /// - Note: `LazyHStack` is the horizontal twin of ``LazyVStack`` — see its
 ///   discussion for the render-window semantics, the `ScrollView` caveat, and
-///   the documented deviations from SwiftUI.
+///   the documented deviations from SwiftUI. It takes no `pinnedViews:` yet:
+///   a `Section` in a row draws as a column, header above its views, where
+///   SwiftUI lays it along the row with its header at the leading edge to pin
+///   (§4a of `Documentation/SwiftUI-compatibility.md`).
 ///
 /// - Note: `LazyHStack` shares its rendering core (`_HStackCore`) with
 ///   ``HStack``; the only difference is the `.window` overflow policy, which

@@ -30,7 +30,12 @@ import TUIkitCore
 /// section's last row pushes it up and away — so the next section's header
 /// takes over; a pinned footer stays at the bottom the same way. Outside a
 /// scroll view, or for a view that is not a `Section`, pinning changes
-/// nothing. See ``LazyVStack/init(alignment:spacing:pinnedViews:content:)``.
+/// nothing. See ``LazyVStack/init(alignment:spacing:pinnedViews:content:)``
+/// and ``LazyVGrid/init(columns:alignment:spacing:pinnedViews:content:)``,
+/// whose headers span the columns. `LazyHStack` and `LazyHGrid` take no
+/// `pinnedViews:` yet: a section in one does not lie along the row, so there
+/// is no header at the leading edge to pin (§4a of
+/// `Documentation/SwiftUI-compatibility.md`).
 public struct PinnedScrollableViews: OptionSet, Sendable {
     /// The corresponding value of the raw type.
     public let rawValue: UInt32
