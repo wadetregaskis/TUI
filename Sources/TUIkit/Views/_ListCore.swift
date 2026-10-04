@@ -1978,13 +1978,32 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             (extentLines, offsetLines) = (metrics.extent, metrics.offset)
         }
 
-        return ScrollbarRenderer.verticalScrollbar(
+        // Kept on the handler with everything the cells are a function of, as
+        // `ScrollViewHandler.verticalScrollbarMemo` keeps a scroll view's: each cell
+        // is a full SGR spelling, and the inputs rarely move between frames. The
+        // colours are all the palette's (compared by value where it can be) and
+        // the bytes the depth's and the terminal report's; a list's bar never
+        // pulses and never lifts under the pointer, so those inputs are constants.
+        let arrows = context.environment.scrollbarArrows
+        let proportional = context.environment.scrollbarProportionalThumb
+        let key = ScrollbarMemo<ClaimingColumn>.Key(
+            length: contentHeight, extent: extentLines, viewport: contentHeight, offset: offsetLines,
+            arrows: arrows, proportional: proportional,
+            isFocused: false, isScrollEnabled: true, hoveredCell: nil,
+            palette: ComparablePalette(palette), depth: ColorDepth.current,
+            terminalColors: TerminalColors.current, cycle: nil)
+        if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
+            handler.verticalScrollbarMemoHits += 1
+            return remembered.bar
+        }
+        let bar = ScrollbarRenderer.verticalScrollbar(
             height: contentHeight, extent: extentLines, viewport: contentHeight, offset: offsetLines,
-            arrows: context.environment.scrollbarArrows,
-            proportional: context.environment.scrollbarProportionalThumb,
+            arrows: arrows, proportional: proportional,
             colors: ScrollbarColors(
                 thumb: palette.foregroundSecondary, track: ScrollbarColors.track(in: palette),
                 arrow: palette.foregroundTertiary))
+        handler.verticalScrollbarMemo = ScrollbarMemo(key: key, bar: bar, runs: [])
+        return bar
     }
 
     /// Like ``composeRowLines`` but draws a vertical scrollbar (`bar`, one styled

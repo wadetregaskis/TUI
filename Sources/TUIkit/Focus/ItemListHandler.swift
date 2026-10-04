@@ -123,6 +123,18 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// to ask.
     var extentProfileCache: (signature: Int, profile: ScrollExtentProfile)?
 
+    /// The vertical scrollbar a `List` drew last time, with everything it was
+    /// drawn from — `ScrollViewHandler.verticalScrollbarMemo`'s twin, kept the
+    /// same way (see `_ListCore.listScrollbarCells`). A list's bar neither
+    /// pulses nor lifts, so it has no runs; but every one of its cells is a full
+    /// SGR spelling, and it was drawn afresh on every frame for inputs that had
+    /// not moved: 3.5% of a `kitchensink` frame.
+    var verticalScrollbarMemo: ScrollbarMemo<ClaimingColumn>?
+
+    /// How many times ``verticalScrollbarMemo`` answered — for the test that
+    /// pins it answering.
+    var verticalScrollbarMemoHits = 0
+
     /// A `Table`'s composed row lines, kept across frames.
     ///
     /// Here, rather than in the render cache, for the reason `TableRowMemo.swift`

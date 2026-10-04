@@ -154,3 +154,85 @@ struct ScrollbarMemoTests {
         #expect(edited.lines == expected.lines, "the bar kept the colours from before the edit")
     }
 }
+
+/// A `List`'s bar is kept on its handler the same way: it never pulses, but every
+/// cell of it is a full SGR spelling, drawn afresh each frame for inputs that had
+/// not moved.
+@MainActor
+@Suite("A list's scrollbar is drawn again only when its inputs move", .serialized)
+struct ListScrollbarMemoTests {
+
+    @MainActor
+    private struct Harness {
+        let tui = TUIContext()
+        let focusManager = FocusManager()
+
+        func frame(palette: any Palette = SystemPalette(.green), depth: ColorDepth = .truecolor) -> FrameBuffer {
+            let view = List(selection: .constant(Int?.none)) {
+                ForEach(0..<60, id: \.self) { Text("row \($0)") }
+            }
+            .scrollIndicators(.visible)
+            var environment = EnvironmentValues()
+            environment.focusManager = focusManager
+            environment.applyRuntimeServices(from: tui)
+            environment.palette = palette
+            var context = RenderContext(
+                availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: tui)
+            context.hasExplicitHeight = true
+            return ColorDepth.withCurrent(depth) {
+                tui.stateStorage.beginRenderPass()
+                tui.renderCache.beginRenderPass()
+                focusManager.beginRenderPass()
+                let buffer = renderToBuffer(view, context: context)
+                focusManager.endRenderPass()
+                tui.renderCache.removeInactive()
+                tui.stateStorage.endRenderPass()
+                return buffer
+            }
+        }
+
+        var handler: ItemListHandler<Int>? {
+            focusManager.activeSection?.focusables.compactMap { $0 as? ItemListHandler<Int> }.first
+        }
+    }
+
+    @Test("Same inputs: the second frame's bar comes from the memo and matches the first")
+    func memoAnswersUnchangedInputs() throws {
+        let harness = Harness()
+        let first = harness.frame()
+        let handler = try #require(harness.handler, "no list handler registered")
+        #expect(handler.verticalScrollbarMemo != nil, "precondition: the list draws a bar")
+        let hitsAfterFirst = handler.verticalScrollbarMemoHits
+        let second = harness.frame()
+        #expect(handler.verticalScrollbarMemoHits > hitsAfterFirst, "the memo answered: \(handler.verticalScrollbarMemoHits)")
+        #expect(first.lines == second.lines)
+    }
+
+    @Test("A scrolled offset, a palette edited in place and another depth each draw a new bar")
+    func movedInputsInvalidate() throws {
+        var palette = EditablePalette()
+        let harness = Harness()
+        _ = harness.frame(palette: palette)
+        let handler = try #require(harness.handler, "no list handler registered")
+
+        // Each step moves one input; what it draws must be what a harness that
+        // has only ever seen the new input draws, frame for frame.
+        func expectFresh(_ drawn: FrameBuffer, _ what: String, depth: ColorDepth = .truecolor) {
+            let oracle = Harness()
+            _ = oracle.frame(palette: palette, depth: depth)
+            oracle.handler?.scrollOffset = handler.scrollOffset
+            let expected = oracle.frame(palette: palette, depth: depth)
+            #expect(drawn.lines == expected.lines, "\(what) served the bar drawn before it")
+        }
+
+        handler.scrollOffset = 20
+        let hitsBefore = handler.verticalScrollbarMemoHits
+        expectFresh(harness.frame(palette: palette), "a scrolled offset")
+        #expect(handler.verticalScrollbarMemoHits == hitsBefore, "moved inputs were served")
+
+        palette.foregroundQuaternary = .rgb(90, 0, 90)
+        expectFresh(harness.frame(palette: palette), "a palette edited in place")
+
+        expectFresh(harness.frame(palette: palette, depth: .palette256), "another depth", depth: .palette256)
+    }
+}
