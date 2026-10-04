@@ -65,7 +65,19 @@ extension ANSIRenderer {
     ///   - style: The TextStyle to apply.
     /// - Returns: The formatted string with ANSI codes.
     static func render(_ text: String, with style: TextStyle) -> String {
-        guard let sequence = styleSequence(for: style) else { return text }
+        wrap(text, in: styleSequence(for: style))
+    }
+
+    /// `text` styled by an introducer already derived with
+    /// ``styleSequence(for:)``: `sequence + text + reset`, or `text` untouched
+    /// when there is no sequence — byte for byte what ``render(_:with:)``
+    /// produces for the style the sequence was derived from, because `render`
+    /// is this.
+    ///
+    /// For a caller drawing several strings in one style, which derives the
+    /// sequence once instead of once per string.
+    static func wrap(_ text: String, in sequence: String?) -> String {
+        guard let sequence else { return text }
         return "\(sequence)\(text)\(reset)"
     }
 

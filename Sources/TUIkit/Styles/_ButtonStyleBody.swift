@@ -144,14 +144,16 @@ struct _ButtonStyleBody: View, Renderable {
         // and `ButtonCapCycle` spends a translucent tint's or tier's alpha against
         // that face, so every phase of the breath states a concrete colour (§29).
         // They therefore need no spelling and earn no claim.
-        let openCap = ANSIRenderer.colorize(
-            String(TerminalSymbols.openCap),
-            foreground: caps.colorNow
-        )
-        let closeCap = ANSIRenderer.colorize(
-            String(TerminalSymbols.closeCap),
-            foreground: caps.colorNow
-        )
+        //
+        // One introducer for the pair: both caps are the same colour, and a
+        // `colorize` each derived the identical sequence twice per button per
+        // render. Wrapped as `colorize` wraps (`ANSIRenderer.wrap` is what
+        // `render` returns), so the bytes are the same.
+        var capStyle = TextStyle()
+        capStyle.foregroundColor = caps.colorNow
+        let capSequence = ANSIRenderer.styleSequence(for: capStyle)
+        let openCap = ANSIRenderer.wrap(String(TerminalSymbols.openCap), in: capSequence)
+        let closeCap = ANSIRenderer.wrap(String(TerminalSymbols.closeCap), in: capSequence)
         // The label's ink is not: `labelFg` is the app author's cascade colour
         // where there is one, left unfloored on purpose, or a palette slot through
         // `ensuringRenderedContrast`, a re-spelling that carries its alpha (§28).
