@@ -393,6 +393,16 @@ def main():
                     dump.write(data)
             timeout = 0.0
 
+    def drain_for(seconds):
+        """Drain for all of `seconds`, however the output arrives: `drain`
+        returns once a burst has been read, and this keeps reading until the
+        time is up. Returns -1 once the child is gone, else 0."""
+        end = time.time() + seconds
+        while time.time() < end:
+            if drain(min(0.01, max(0.0, end - time.time()))) < 0:
+                return -1
+        return 0
+
     drain(args.settle)  # startup + first frames
 
     xctrace = None
@@ -421,10 +431,7 @@ def main():
         """
         for delay, payload in steps:
             if delay:
-                end = time.time() + delay
-                while time.time() < end:
-                    if drain(min(0.01, max(0.0, end - time.time()))) < 0:
-                        break
+                drain_for(delay)
             if mark:
                 markers.append({
                     "index": len(markers), "offset": total,
