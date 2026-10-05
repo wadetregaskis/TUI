@@ -13,9 +13,10 @@ import Foundation
 /// re-render.
 ///
 /// The text is stored in the bound `String` (lines joined by `\n`); this handler
-/// keeps only the cursor/scroll position. Each edit reads the bound string into
-/// per-line character arrays, mutates, and writes it back — simple and correct
-/// for the interactive editing sizes a terminal handles.
+/// keeps the cursor/scroll position, and the document's layout
+/// (``EditorLayout``) for the text it last saw. Each edit reads the lines,
+/// mutates them, and writes the string back with its lines, so nothing splits
+/// the document again until the app replaces it.
 final class TextEditorHandler: PersistedFocusable {
     var focusID: String
     var canBeFocused: Bool
@@ -113,16 +114,31 @@ final class TextEditorHandler: PersistedFocusable {
 
     // MARK: - Line access
 
+    /// The document laid out, for the text it was laid out from.
+    private var cachedLayout: EditorLayout?
+
+    /// The layout of the text the binding holds now: the one kept, while the
+    /// text is the one it was made from, and a new one otherwise.
+    func layout() -> EditorLayout {
+        let current = text.wrappedValue
+        if let cachedLayout, cachedLayout.text == current { return cachedLayout }
+        let fresh = EditorLayout(text: current)
+        cachedLayout = fresh
+        return fresh
+    }
+
     /// The bound text as per-line character arrays (always at least one line).
     func readLines() -> [[Character]] {
-        let parts = text.wrappedValue
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { Array($0) }
-        return parts.isEmpty ? [[]] : parts
+        layout().lines
     }
 
     private func writeLines(_ lines: [[Character]]) {
-        write(lines.map { String($0) }.joined(separator: "\n"))
+        let joined = lines.map { String($0) }.joined(separator: "\n")
+        write(joined)
+        // The lines just written are the layout of the text just written —
+        // unless the binding kept something else (one that transforms what it
+        // is given), which the next read lays out afresh.
+        if text.wrappedValue == joined { cachedLayout = EditorLayout(text: joined, lines: lines) }
     }
 
     /// Writes `newText` to the bound text. Every edit the editor makes goes

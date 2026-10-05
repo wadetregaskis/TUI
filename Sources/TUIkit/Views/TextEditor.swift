@@ -272,7 +272,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let width = context.fillingWidth(proposal: proposal)
-        let contentHeight = max(1, lines(of: text.wrappedValue).count)
+        let contentHeight = max(1, layout(context: context).lines.count)
         let height = proposal.height ?? min(contentHeight, max(1, context.availableHeight))
         return ViewSize(width: width, height: height, isWidthFlexible: true, isHeightFlexible: true)
     }
@@ -318,7 +318,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, handler: handler, focusID: persistedFocusID)
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
-        let displayLines = lines(of: text.wrappedValue)
+        let displayLines = handler.readLines()
 
         // When the text is taller than the view, reserve the trailing column for
         // a scroll indicator so the user can see there's content out of view —
@@ -517,10 +517,12 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
 
     // MARK: - Helpers
 
-    /// Splits a string into per-line character arrays (always ≥ 1 line).
-    private func lines(of string: String) -> [[Character]] {
-        let parts = string.split(separator: "\n", omittingEmptySubsequences: false).map { Array($0) }
-        return parts.isEmpty ? [[]] : parts
+    /// The document's layout, from the editor's handler where it has one — a
+    /// measure before the first render has not made it yet.
+    private func layout(context: RenderContext) -> EditorLayout {
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
+        let box: StateBox<TextEditorHandler>? = context.stateStorage?.existingStorage(for: key)
+        return box?.value.layout() ?? EditorLayout(text: text.wrappedValue)
     }
 
     /// Advances the handler's scroll offsets so the cursor stays visible.
@@ -790,7 +792,6 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         // so translate through the clicked line's tab layout (a click anywhere
         // in a tab's span puts the caret on the tab).
         let tabWidth = context.environment.tabWidth
-        let text = self.text
         func placeCursor(at event: MouseEvent) {
             let row = max(0, min(event.y, height - 1))
             // Valid content columns are 0..<contentWidth: clamping to
@@ -802,8 +803,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             let displayColumn =
                 handler.scrollColumn + max(0, min(event.x, contentWidth - 1))
             let line = handler.scrollLine + row
-            let allLines = text.wrappedValue
-                .split(separator: "\n", omittingEmptySubsequences: false).map { Array($0) }
+            let allLines = handler.readLines()
             let lineChars = allLines.indices.contains(line) ? allLines[line] : []
             let column = TabLayout.charIndex(
                 forDisplayColumn: displayColumn, in: lineChars, tabWidth: tabWidth)
