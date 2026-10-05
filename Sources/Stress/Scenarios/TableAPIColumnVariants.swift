@@ -51,6 +51,26 @@ extension TableAPIMatrix {
                 }
             },
 
+            // `Table(of:columns:rows:)`: the rows come from a row builder —
+            // SwiftUI's spelling for rows written out, or a `ForEach` over the
+            // data — rather than from a collection, so every body evaluation
+            // flattens every row through the builder. The columns are the
+            // default's, so the difference is the rows' path alone.
+            variant("rows-builder", axis: "data", "rows from a row builder: ForEach(rows) { TableRow($0) }") { config in
+                table("rows-builder", config) { rows in
+                    Table(of: APIRow.self, selection: Binding<Int?>.constant(nil)) {
+                        TableColumn("ID", value: \APIRow.index).width(7)
+                        TableColumn("Name", value: \APIRow.name)
+                        TableColumn("Slug", value: \APIRow.slug)
+                        TableColumn("Status", value: \APIRow.status)
+                        TableColumn("Summary", value: \APIRow.summary)
+                        TableColumn("Load", value: \APIRow.bar).width(10)
+                    } rows: {
+                        ForEach(rows) { TableRow($0) }
+                    }
+                }
+            },
+
             // One closure among five key paths, because a table is only as
             // memoisable as its least specific column: the closure could read
             // anything, so nothing about the ROW can settle whether the ROW's
