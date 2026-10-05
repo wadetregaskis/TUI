@@ -217,9 +217,16 @@ final class ClipboardWriter: @unchecked Sendable {
         return result
     }
 
-    /// This machine's clipboard: what a paste chord reads.
+    /// This machine's clipboard, when it is the user's: what a paste chord —
+    /// a field's Ctrl-V, a `PasteButton` — reads.
+    ///
+    /// Over ssh this machine's clipboard is the server's, which holds nothing
+    /// the user put there (and something someone else may have), so a paste
+    /// chord finds nothing, and the terminal's own paste — bracketed, from
+    /// the user's machine — is the way in. Never OSC 52's `?`: a read prompts
+    /// the user on Ghostty, and its reply would arrive in the input stream.
     @MainActor func read() -> String? {
-        systemRead()
+        hasSystemHelper && isLocal() ? systemRead() : nil
     }
 
     /// The OSC 52 writes owed to the terminal, oldest first, and forgets them.

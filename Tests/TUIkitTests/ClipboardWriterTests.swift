@@ -353,6 +353,16 @@ struct ClipboardWriterTests {
         #expect(writer.statusNote(atNanos: note.expiresAtNanos) == nil)
     }
 
+    @Test("A paste chord reads this machine's clipboard only when it is the user's")
+    func readsOnlyHere() {
+        let log = SystemClipboardLog()
+        log.writes = ["on this machine"]
+        #expect(ClipboardWriter.stated(terminal: .honoured, isLocal: true, log: log).read() == "on this machine")
+        #expect(ClipboardWriter.stated(terminal: .honoured, isLocal: false, log: log).read() == nil)
+        #expect(
+            ClipboardWriter.stated(terminal: .unsupported, isLocal: true, hasHelper: false, log: log).read() == nil)
+    }
+
     @Test("A writer asks for the frame that sends its copy")
     func requestsAFrame() {
         let frames = SystemClipboardLog()
@@ -426,6 +436,23 @@ struct ClipboardWriterAppTests {
         #expect(writer.takePendingSequences() == ClipboardSequence.write("cd"))
         // A field's success is quiet; a maybe is not.
         #expect((writer.statusNote(atNanos: 0) != nil) == !confirmed)
+    }
+
+    /// Over ssh this machine's clipboard is the server's: a paste chord must
+    /// not bring its contents — someone else's — into the field.
+    @Test("A field's Ctrl-V reads this machine's clipboard only at this machine", arguments: [true, false])
+    func fieldPastesOnlyHere(isLocal: Bool) {
+        let log = SystemClipboardLog()
+        log.writes = ["server"]
+        let writer = ClipboardWriter.stated(terminal: .unconfirmed, isLocal: isLocal, log: log)
+        let harness = InputChainHarness { $0.clipboardAccess = ClipboardAccess(writer: writer) }
+        let text = Box("")
+        let page = FieldPage(text: text)
+        harness.frame(page)
+        harness.frame(page)
+        harness.press(KeyEvent(key: .character("v"), ctrl: true))
+        harness.frame(page)
+        #expect(text.value == (isLocal ? "server" : ""))
     }
 
     struct Page: App {

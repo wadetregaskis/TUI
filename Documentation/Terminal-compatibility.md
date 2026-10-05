@@ -4902,6 +4902,13 @@ when both apply (§4.4). The owner's rule (2026-10-04) is that this machine's
 clipboard is written only when it is the user's; when it is, it is also the
 surer route, so a second write adds nothing.
 
+**Paste chords read on the same evidence.** A field's Ctrl-V and a
+`PasteButton` read this machine's clipboard only when rung 2's evidence
+holds; otherwise they find nothing, because over ssh it is the server's
+clipboard and holds nothing the user put there. The terminal's own paste —
+⌘V, bracketed, from the user's machine — is the way in, and works
+everywhere.
+
 **The spelling** follows Ghostty's OSC 52 page, which is stricter than
 xterm's (`Documentation/Ghostty-VT-adoption.md`, C1):
 

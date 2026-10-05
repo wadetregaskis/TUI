@@ -178,7 +178,7 @@ struct ClipboardAccess: Sendable {
             guard route == .system else { return .unavailable }
             return SystemClipboard.copy(text) ? .copied : .failed
         },
-        read: { SystemClipboard.paste() })
+        read: { SystemClipboard.hasHelper && ClipboardLocality.isLocal() ? SystemClipboard.paste() : nil })
 }
 
 private struct ClipboardAccessKey: EnvironmentKey {
