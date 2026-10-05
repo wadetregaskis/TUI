@@ -2362,3 +2362,51 @@ private struct TextSelectabilityShapes: View {
         .navigationTitle("New Invitation")
     }
 }
+
+// MARK: - Toolbars
+
+/// SwiftUI's toolbar vocabulary as its documentation writes it: items by
+/// placement, a group, spacers, a conditional item, a hidden one, the
+/// view-builder form, and toolbar content of the app's own.
+@MainActor
+private struct ToolbarShapes: View {
+    @State private var showDownloads = false
+    @State private var editing = false
+
+    private struct EditingItems: ToolbarContent {
+        var body: some ToolbarContent {
+            ToolbarItem(placement: .confirmationAction) { Button("Done") {} }
+            ToolbarItem(placement: .cancellationAction) { Button("Cancel") {} }
+        }
+    }
+
+    var body: some View {
+        VStack {
+            Text("notes")
+                .navigationTitle("Notes")
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { Button("Back") {} }
+                    ToolbarItem(placement: .principal) { Text("Inbox") }
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button("New") {}
+                        Button("Share") {}
+                    }
+                    ToolbarSpacer(.fixed)
+                    ToolbarItem(id: "downloads") { Button("Downloads") {} }
+                        .hidden(!showDownloads)
+                    if editing {
+                        EditingItems()
+                    } else {
+                        ToolbarItem(placement: .secondaryAction) { Button("Edit") { editing = true } }
+                    }
+                    ToolbarItem(placement: .status) { Text("3 notes") }
+                    ToolbarItem(placement: .bottomBar) { Text("hints") }
+                }
+            Text("more")
+                .toolbar {
+                    Button("Refresh") {}
+                    Button("Filter") {}
+                }
+        }
+    }
+}

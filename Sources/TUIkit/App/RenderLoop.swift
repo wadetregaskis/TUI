@@ -647,9 +647,11 @@ extension RenderLoop {
             // job. Anything that guards itself on the measure phase must not be
             // load-bearing for the chrome.
             measureContext.isMeasuring = true
+            // The chrome host seeds every bar's rows from what this walk
+            // declares, and `.toolbar` declares its items here although the
+            // walk measures.
+            measureContext.environment.seedsWindowChrome = true
             _ = renderScene(scene, context: measureContext.withChildIdentity(type: type(of: scene)))
-            windowChrome.seed(.top, rows: appHeader.contentRows)
-            windowChrome.seed(.bottom, rows: statusBar.hasItems ? 1 : 0)
             isFirstFrame = false
         }
         windowChrome.beginFrame()
@@ -874,6 +876,7 @@ extension RenderLoop {
         // header the page draws: what each walk declares is that walk's.
         statusBar.beginSceneRender()
         appHeader.beginRenderPass()
+        windowChrome.beginWalk()
         // And for a tooltip's FOCUS candidate, republished by the focused
         // control every render for the same reason. Its hover candidate is not
         // cleared here: the pointer stays where it is between frames, and only

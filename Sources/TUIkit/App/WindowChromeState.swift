@@ -52,10 +52,26 @@ import TUIkitCore
 final class WindowChromeState: @unchecked Sendable {
     /// Which of the window's bars.
     enum Edge: CaseIterable {
-        /// Above the content: the app header.
+        /// The app header, at the very top.
+        case header
+        /// The top toolbar, under the header.
         case top
-        /// Below the content: the status bar.
+        /// The bottom toolbar, above the status bar.
         case bottom
+        /// The status bar, at the very bottom.
+        case statusBar
+    }
+
+    /// A toolbar item a walk declared, as the bar draws it.
+    struct ToolbarEntry {
+        /// Where the item goes.
+        let placement: ToolbarItemPlacement
+        /// What the item draws.
+        let view: AnyView
+        /// The environment of the view that declared it.
+        let environment: EnvironmentValues
+        /// The identity it was declared at.
+        let identity: ViewIdentity
     }
 
     /// One bar's reservation and the history its oscillation guard reads.
@@ -99,11 +115,35 @@ final class WindowChromeState: @unchecked Sendable {
     /// one second, sixty frames.
     static let pinNanos: Int64 = 1_000_000_000
 
-    /// The top bar's reservation.
+    /// The app header's reservation.
+    private(set) var header = Bar()
+
+    /// The top toolbar's reservation.
     private(set) var top = Bar()
 
-    /// The bottom bar's reservation.
+    /// The bottom toolbar's reservation.
     private(set) var bottom = Bar()
+
+    /// The status bar's reservation.
+    private(set) var statusBar = Bar()
+
+    /// The toolbar items this walk has declared, in the order it declared them.
+    private(set) var toolbarEntries: [ToolbarEntry] = []
+
+    /// The identities of ``toolbarEntries``, so an item a walk renders twice —
+    /// the first frame's measuring walk measures some views by rendering them —
+    /// is declared once.
+    private var declaredIdentities: Set<ViewIdentity> = []
+
+    /// The window's title: the root `.navigationTitle`, as the last frame's
+    /// content published it.
+    ///
+    /// Scene-level data: the top bar shows it in its title slot, and it is
+    /// what a terminal window title (OSC 2) would be set from.
+    var title = ""
+
+    /// The window's subtitle: the root `.navigationSubtitle`.
+    var subtitle = ""
 
     /// Frames begun, counted by ``beginFrame()``.
     private(set) var frame = 0
@@ -123,6 +163,24 @@ final class WindowChromeState: @unchecked Sendable {
     /// Counts a frame. Called by the run loop before the scene is walked.
     func beginFrame() {
         frame += 1
+    }
+
+    /// Forgets the toolbar items the last walk declared. Called by the run loop
+    /// before every walk of the scene: what a walk declares is that walk's.
+    func beginWalk() {
+        toolbarEntries.removeAll(keepingCapacity: true)
+        declaredIdentities.removeAll(keepingCapacity: true)
+    }
+
+    /// Records a toolbar item the walk declared — once per identity.
+    func declare(_ entry: ToolbarEntry) {
+        guard declaredIdentities.insert(entry.identity).inserted else { return }
+        toolbarEntries.append(entry)
+    }
+
+    /// The items this walk declared for the toolbar at `edge`.
+    func toolbarEntries(for edge: Edge) -> [ToolbarEntry] {
+        toolbarEntries.filter { $0.placement.bar == edge }
     }
 
     /// Takes `rows` as `edge`'s reservation outright: what the first frame's
@@ -186,14 +244,18 @@ final class WindowChromeState: @unchecked Sendable {
     private subscript(edge: Edge) -> Bar {
         get {
             switch edge {
+            case .header: header
             case .top: top
             case .bottom: bottom
+            case .statusBar: statusBar
             }
         }
         set {
             switch edge {
+            case .header: header = newValue
             case .top: top = newValue
             case .bottom: bottom = newValue
+            case .statusBar: statusBar = newValue
             }
         }
     }
@@ -219,7 +281,20 @@ private struct WindowChromeKey: EnvironmentKey {
     static let defaultValue: WindowChromeState? = nil
 }
 
+/// Environment key for the first frame's seeding walk.
+private struct SeedsWindowChromeKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
+    /// Whether this walk is the first frame's measuring walk, which seeds the
+    /// window's chrome: a `.toolbar` declares its items there although the walk
+    /// measures, and nowhere else that measures. Read by `.toolbar` alone.
+    var seedsWindowChrome: Bool {
+        get { self[SeedsWindowChromeKey.self] }
+        set { self[SeedsWindowChromeKey.self] = newValue }
+    }
+
     /// The window's chrome state: the rows each bar holds this frame.
     ///
     /// `nil` outside a running application, as every runtime service is — a

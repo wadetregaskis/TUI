@@ -178,4 +178,64 @@ struct ScreenSelectionMenuTests {
         #expect(app.services.screenSelection.menuAnchor == nil)
         #expect(!app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
     }
+
+    /// The same page under a window top bar: the pointer's rows are the
+    /// screen's, the selection's the page's.
+    struct BarredPage: App {
+        var body: some Scene {
+            WindowGroup {
+                VStack(alignment: .leading) {
+                    Text("alpha beta gamma")
+                    Text("second row text")
+                }
+                .toolbar { ToolbarItem(placement: .primaryAction) { Text("TOP") } }
+            }
+        }
+    }
+
+    /// Selects `second` with a drag, opens the selection's menu on it and
+    /// chooses Copy: whether a top bar was drawn above, what was selected and
+    /// copied, and how many rows below the clicked row the menu's Copy was.
+    func copySecond<A: App>(_ page: A) throws -> (barDrawn: Bool, selected: String?, copied: [String], menuBelow: Int) {
+        let log = SystemClipboardLog()
+        let app = HeadlessApp(page, width: 40, height: 12)
+        app.services.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: true, log: log)
+        let clock = Clock()
+        func frame() {
+            clock.nanos += 16_666_667
+            app.frame(atNanos: clock.nanos)
+        }
+        frame()
+        frame()
+        let lines = app.screen.map(\.stripped)
+        let y = try #require(lines.firstIndex { $0.contains("second") })
+        let x = lines[y][..<(try #require(lines[y].range(of: "second")).lowerBound)].count
+        app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        app.send(MouseEvent(button: .left, phase: .dragged, x: x + 5, y: y))
+        app.send(MouseEvent(button: .left, phase: .released, x: x + 5, y: y))
+        frame()
+        let selected = app.services.screenSelection.current?.text
+        app.send(MouseEvent(button: .right, phase: .pressed, x: x + 1, y: y))
+        app.send(MouseEvent(button: .right, phase: .released, x: x + 1, y: y))
+        frame()
+        let menuRow = try #require(app.screen.map(\.stripped).firstIndex { $0.contains(copyTitle) })
+        app.send(KeyEvent(key: .down))
+        frame()
+        app.send(KeyEvent(key: .enter))
+        frame()
+        return (lines[..<y].contains { $0.contains("TOP") }, selected, log.writes, menuRow - y)
+    }
+
+    /// The pointer and the hit regions are in the screen's rows, the selection
+    /// and its menu's anchor in the page's: under a bar the two differ by the
+    /// bar's rows.
+    @Test("Under a window's top bar a drag selects the cells under the pointer, and Copy opens where it was clicked")
+    func underATopBar() throws {
+        let bare = try copySecond(Page())
+        let barred = try copySecond(BarredPage())
+        #expect(!bare.barDrawn && barred.barDrawn)
+        #expect(barred.selected == "second")
+        #expect(barred.copied == ["second"])
+        #expect(barred.menuBelow == bare.menuBelow)
+    }
 }

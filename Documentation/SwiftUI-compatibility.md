@@ -539,23 +539,56 @@ header, a modal's backdrop — renders against the app's ROOT palette, so a
 `\.colorScheme` pin (or a `.palette`) written inside content does not reach it,
 just as a SwiftUI subview's pin does not reach its window.
 
-### 2.6 Chrome is the status bar, not toolbars/commands
+### 2.6 Toolbars are the window's bars; commands are not yet
 
 ```swift
-// SwiftUI                              // TUIkit
-.toolbar { Button("Save"){…} }          .statusBarItems { StatusBarItem(shortcut:"s", label:"save"){…} }
-.keyboardShortcut("s", modifiers:.command)  // shortcut lives in the StatusBarItem
+// SwiftUI, and TUIkit: the same source, the same meaning
+NoteList()
+    .navigationTitle("Notes")
+    .toolbar {
+        ToolbarItem(placement: .primaryAction) { Button("New") { … } }
+        ToolbarItem(placement: .status) { Text("3 notes") }
+    }
 ```
 
-**Why it's intentional / should NOT change:** terminals have no title bar or menu
-bar; the universal idiom is a one-line status/shortcut bar at the bottom. TUIkit
-models that directly. (A `keyboardShortcut`-style modifier for non-status-bar
-actions is a fair §4a request, but the toolbar *container* concept does not
-transfer.)
+`.toolbar { … }` — both forms, `ToolbarItem` (with and without `id:`),
+`ToolbarItemGroup`, `ToolbarSpacer` with `SpacerSizing`, `ToolbarContent` and
+its builder, `ToolbarContent.hidden(_:)` — joins the **window's** bars, as on
+macOS: items declared anywhere in the page go to the bar their placement names.
+The window has a top bar (above the page) and a bottom bar (below it), and each
+exists while something is placed in it:
 
-`.toolbar(removing: .sidebarToggle)` is the one `toolbar`-spelled API TUIkit has,
-and it is a **removal**, not a container: it takes away `NavigationSplitView`'s
-own toggle handles (the ◀ on the leftmost divider and the ▶ edge column), which
+| Placement | Where |
+|---|---|
+| `.navigation` (`.topBarLeading`) | top bar, leading |
+| `.principal` | top bar, centre, in place of the title |
+| `.automatic`, `.primaryAction` (`.topBarTrailing`) | top bar, trailing |
+| `.secondaryAction` | top bar, trailing, before the primary items |
+| `.confirmationAction`, `.cancellationAction`, `.destructiveAction` | top bar, trailing (macOS's reading outside a sheet) |
+| `.bottomBar`, `.status` | bottom bar — `.status` takes iOS's reading, where macOS centres it in the window toolbar |
+
+A root `.navigationTitle` (and `.navigationSubtitle`) is shown in the top bar's
+title slot when there is a top bar; a title alone draws no bar. An item is drawn
+in the environment of the view that declared it (a `.disabled` above
+`.toolbar` disables it), keeps its `@State` from frame to frame, and its
+controls are in the Tab ring after the page's, in a section of their own that
+never takes the first focus; their keyboard shortcuts are live. While a modal
+holds the input, the top bar is inert.
+
+**The one difference that follows from the medium:** the page is what declares
+the items, and a bar's rows have to be known before the page is laid out, so a
+bar that appears or goes does so **one frame after** the page that changed it
+(the frame between is drawn at the old reservation). An app that declares its
+bars once, at its root, never sees it.
+
+**Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the bar modifiers
+(`toolbarVisibility`, `toolbarBackground`, `toolbarRole`, …), a
+`NavigationStack`'s bar hosting a pushed screen's items, the customisation
+family (`toolbar(id:)`), and `Commands`/the menu bar. The status bar of key
+hints (`.statusBarItems`, §4c) is drawn below the bottom bar.
+
+`.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
+toggle handles (the ◀ on the leftmost divider and the ▶ edge column), which
 stand in for SwiftUI's toolbar sidebar button. `ToolbarDefaultItemKind.title` is
 not provided, because TUIkit draws no default title item to remove.
 

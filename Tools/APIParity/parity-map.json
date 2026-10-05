@@ -569,14 +569,6 @@
     "ProposedViewSize": {
       "tuikit": "ProposedSize",
       "why": "Sources/TUIkitCore/Rendering/LayoutTypes.swift:16 — `public struct ProposedSize` with `width: Int?` / `height: Int?` and `.unspecified` / `.fixed(_:_:)`. Same role and same nil-means-ideal semantics as `ProposedViewSize`, in cells rather than CGFloat per §2.2. It is what `Layout."
-    },
-    "ToolbarContent": {
-      "tuikit": "StatusBarItemProtocol",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/StatusBar/StatusBarItem.swift:118-130 — the protocol a bar item conforms to (shortcut, label, triggerKey, order, matches(_:)). It is the item-content abstraction the status bar consumes, the role ToolbarContent plays for a toolbar."
-    },
-    "ToolbarItem": {
-      "tuikit": "StatusBarItem",
-      "why": "`StatusBarItem(shortcut:label:key:order:displayInStatusBar:action:)`. An item is a shortcut and a label rather than arbitrary `@ViewBuilder` content, because the bar is one line of shortcut hints; toolbars are decisions A28."
     }
   },
   "notImplemented": {
@@ -1046,18 +1038,6 @@
     "Text.Body": {
       "how": "typealias Body = Never (inferred)",
       "why": "Extraction artifact, not a real gap: TUIkit's Text declares `public var body: Never`, so `Body` is inferred as `Never` exactly as in SwiftUI. An inferred typealias is absent from the symbol graph of source, as `ForEach.Body` is."
-    },
-    "ToolbarContentBuilder": {
-      "how": "@StatusBarItemBuilder",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/StatusBar/StatusBarItemBuilder.swift (result builder), consumed by `.statusBarItems(@StatusBarItemBuilder _:)` at /Users/robot/Documents/TUIkit/Sources/TUIkit/Extensions/View+Events.swift:535."
-    },
-    "ToolbarItemPlacement": {
-      "how": "StatusBarItemOrder + StatusBarAlignment",
-      "why": "`StatusBarItemOrder` (a sort key, lower first) and `StatusBarAlignment` (leading, trailing, centre, justified). Position within the one bar is a sort key plus a bar-wide alignment, not a semantic placement; toolbars are decisions A28."
-    },
-    "ToolbarPlacement": {
-      "how": "choice of modifier: .appHeader (top surface) vs .statusBarItems (bottom surface)",
-      "why": "The choice of modifier: `.appHeader` for the top surface, `.statusBarItems` for the bottom. Both surfaces are real and drawn outside the view tree, their rows subtracted from what the content is offered; toolbars are decisions A28."
     },
     "View.fixedSize()": {
       "how": "View.fixedSize(horizontal:vertical:) — both parameters default to true",

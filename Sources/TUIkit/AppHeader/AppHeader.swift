@@ -26,6 +26,11 @@ struct AppHeader: View {
     /// How the header frames itself against the page below it.
     let style: ChromeStyle
 
+    /// Whether a `.rule` style draws its rule above the content rather than
+    /// below it: the page's side of a bar drawn BELOW the page, which is how
+    /// the window's bottom toolbar is framed with this view.
+    var ruleAbove = false
+
     var body: Never {
         fatalError("AppHeader renders via Renderable")
     }
@@ -51,15 +56,19 @@ extension AppHeader: Renderable {
 
         switch style {
         case .rule:
-            // A thin rule below the content, drawn from the same place the
-            // status bar draws its own — that shared source is what keeps the
-            // two ends of the frame looking like a pair, and it follows the
-            // current appearance so a custom border restyles both at once.
-            lines.append(ChromeStyle.ruleRow(width: width, context: context))
-            // The rule is the last line, so its row is what the content already
-            // occupies — claimed after `replacingLines` below, where the content's
-            // own claims are already in these coordinates.
-            ruleRow = lines.count - 1
+            // A thin rule on the page's side of the content, drawn from the
+            // same place the status bar draws its own — that shared source is
+            // what keeps the two ends of the frame looking like a pair, and it
+            // follows the current appearance so a custom border restyles both
+            // at once. Claimed after `replacingLines` below, where the
+            // content's own claims are already in these coordinates.
+            if ruleAbove {
+                lines.insert(ChromeStyle.ruleRow(width: width, context: context), at: 0)
+                ruleRow = 0
+            } else {
+                lines.append(ChromeStyle.ruleRow(width: width, context: context))
+                ruleRow = lines.count - 1
+            }
         case .bordered:
             let border = context.environment.appearance.borderStyle
             let innerWidth = max(0, width - BorderRenderer.borderWidthOverhead)
@@ -100,7 +109,7 @@ extension AppHeader: Renderable {
             // nothing at all, because the layer carrying its picture was thrown
             // away before anything could composite it.
             overlayShiftX: style == .bordered ? 1 : 0,
-            overlayShiftY: style == .bordered ? 1 : 0)
+            overlayShiftY: style == .bordered || (style == .rule && ruleAbove) ? 1 : 0)
         // The chrome's own cells, when the theme's `border` is faded. Appended
         // AFTER `replacingLines` has shifted the content's own claims inward, so
         // the two sets are in the same coordinates.
