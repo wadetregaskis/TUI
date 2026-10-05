@@ -130,7 +130,11 @@ public struct UndoShortcuts: Hashable, Sendable {
     /// keys. An Option chord counts as deliverable, the terminal sending it
     /// where Option is Meta, which nothing can ask.
     ///
-    /// What the status bar names beside "undo" and "redo".
+    /// The key the status bar names beside "undo" and "redo", written as a
+    /// menu writes it (``KeyboardShortcut/displayString``): `⌃Z`, `⌥_`, and
+    /// `U` for a bare u. The bar itself writes a letter held with nothing but
+    /// Shift in the case it types, as its own items are written — `u`, and
+    /// `U` for Shift-U — because in the bar the case is the Shift.
     public func hint(
         for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding = .control
     ) -> String? {
@@ -239,9 +243,11 @@ final class AppUndoKeys: @unchecked Sendable {
     }
 
     /// The key the status bar names for `command` on this terminal, or `nil`
-    /// where none of its keys can be sent.
+    /// where none of its keys can be sent — written as the bar writes a key,
+    /// a bare letter in the case it types (`KeySymbols.statusBarName(of:)`).
     func hint(for command: UndoCommand) -> String? {
-        shortcuts.hint(for: command, on: reporting, commandKey: commandKey)
+        shortcuts.hintShortcut(for: command, on: reporting, commandKey: commandKey)
+            .flatMap(KeySymbols.statusBarName(of:))
     }
 }
 

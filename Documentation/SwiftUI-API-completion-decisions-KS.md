@@ -42,6 +42,15 @@ vocabulary spells Shift as the case. Drawing `"q"` as `Q` would make every
 status bar read as if it wanted Shift, and drawing `"N"` as `⇧N` needs the
 drawn text to come apart from the string that binds the key.
 
+The framework's own undo and redo hints follow the bar, not the menu, for the
+same reason: a hint on a letter held with nothing but Shift is written in the
+case it types (`u redo`, and `U redo` for Shift-U), where a menu would draw
+`U` and `⇧U`. Drawn the menu's way, a redo on a bare u read `U` beside an
+app's Shift-letter items, and the bar — which tells its items apart by that
+string — hid it behind an app's `"U"` item (another key) and showed it beside
+an app's `"u"` (the same key). A hint with ⌃, ⌥ or ⌘ is the menu's (`⌃Z`,
+`⌃⇧Z`). The fuller version below takes the hints with it.
+
 **The fuller version:** draw a single-character item's key through the
 formatter (`Q`, `⇧N`), with the bound key unchanged. Half a day once the bar
 draws an item's key from the key rather than from the string — which is the

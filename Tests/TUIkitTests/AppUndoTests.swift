@@ -284,12 +284,67 @@ struct AppUndoTests {
         #expect(model.value == 2, "a plain ← is not Option-←, whatever the bar prints beside undo")
         manager.undo()
         let redo = try #require(harness.statusBar.currentSystemItems.first { $0.order == .redo })
-        // A letter key is drawn in upper case, as a macOS menu draws one; its
-        // Shift would be a ⇧ of its own.
-        #expect(redo.shortcut == "U")
+        // In the case it types, as the bar writes its own items: `U` would be
+        // Shift-U there (`letterHintsAreWrittenAsTheBarWritesItsItems`).
+        #expect(redo.shortcut == "u")
         harness.play([KeyEvent(character: "u")], page)
         #expect(heard == [.character("u")], "the view's handler hears u, as it does with nothing to redo")
         #expect(model.value == 1)
+    }
+
+    /// The bar's vocabulary spells Shift as a letter's case — an app's `"N"`
+    /// item is Shift-N — so a hint on a letter is written that way too, and
+    /// not as a menu draws it (`U` for a bare u, `⇧U` for Shift-U): drawn the
+    /// menu's way, a redo on a bare u read `U`, the bar's spelling of a key
+    /// that does not redo.
+    @Test("A hint on a letter is written in the case it types, as the bar's own items are")
+    func letterHintsAreWrittenAsTheBarWritesItsItems() {
+        let manager = makeManager()
+        let model = Model()
+        let statusBar = StatusBarState()
+        statusBar.undoManager = manager
+        set(model, to: 1, on: manager)
+        set(model, to: 2, on: manager)
+        manager.undo()
+        func redoHint(_ shortcut: KeyboardShortcut) -> String? {
+            statusBar.undoKeys.publish(UndoShortcuts([.redo: .only(shortcut)]), commandKey: .control)
+            return statusBar.currentSystemItems.first { $0.order == .redo }?.shortcut
+        }
+        #expect(redoHint(KeyboardShortcut("u", modifiers: [])) == "u")
+        #expect(redoHint(KeyboardShortcut("u", modifiers: .shift)) == "U")
+        #expect(redoHint(KeyboardShortcut("U", modifiers: [])) == "U")
+        #expect(redoHint(KeyboardShortcut("é", modifiers: .shift)) == "É")
+        // A letter whose capital is two letters has no case to carry Shift.
+        #expect(redoHint(KeyboardShortcut("ß", modifiers: .shift)) == "⇧ß")
+        // A chord with another modifier is the menu's, its Shift a ⇧.
+        #expect(redoHint(KeyboardShortcut("u", modifiers: .option)) == "⌥U")
+        #expect(redoHint(KeyboardShortcut("u", modifiers: [.option, .shift])) == "⌥⇧U")
+        // Anything but a letter, too.
+        #expect(redoHint(KeyboardShortcut("?", modifiers: [])) == "?")
+        #expect(redoHint(KeyboardShortcut(.home, modifiers: [])) == "↖")
+    }
+
+    /// The bar tells an app's item and a system item apart by their strings,
+    /// an app's item taking the place of a system item on the same key. An
+    /// app's `"u"` is the redo key, and its item swallows u at layer 1 before
+    /// the undo keys hear it; an app's `"U"` is Shift-U, another key.
+    @Test("An app's item on the hint's key replaces it, and one on another key leaves it")
+    func anAppItemReplacesTheHintOnlyOnItsKey() {
+        let manager = makeManager()
+        let model = Model()
+        let statusBar = StatusBarState()
+        statusBar.undoManager = manager
+        set(model, to: 1, on: manager)
+        set(model, to: 2, on: manager)
+        manager.undo()
+        statusBar.undoKeys.publish(
+            UndoShortcuts([.redo: .only(KeyboardShortcut("u", modifiers: []))]), commandKey: .control)
+        let showsRedo = { statusBar.currentItems.contains { $0.id == StatusBarState.redoItemID } }
+        #expect(showsRedo())
+        statusBar.setItems([StatusBarItem(shortcut: "U", label: "upper")])
+        #expect(showsRedo(), "Shift-U is another key, so the redo hint stays")
+        statusBar.setItems([StatusBarItem(shortcut: "u", label: "update")])
+        #expect(!showsRedo(), "the app's u is the redo key: its item takes the hint's place")
     }
 
     @Test("Undo and redo with no key to name are still two items")

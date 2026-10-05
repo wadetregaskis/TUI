@@ -350,8 +350,10 @@ public struct KeyboardShortcut: Hashable, Sendable {
     ]
 
     /// The printable form of this shortcut — what a menu row prints in its
-    /// shortcut column, and the status bar beside "undo" — or `nil` for the
-    /// semantic roles, which have no key to show.
+    /// shortcut column — or `nil` for the semantic roles, which have no key to
+    /// show. The status bar writes its undo and redo hints this way too, but
+    /// for a letter held with nothing but Shift, which it writes in the case
+    /// the key types (`u`, `U` for Shift-U), as its own items are written.
     ///
     /// Drawn as a macOS menu draws a key equivalent: the modifiers in the order
     /// ⌃ ⌥ ⇧ ⌘, then the key, a letter in upper case — `⌃S`, `⌃⇧Z` (Control-

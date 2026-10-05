@@ -119,6 +119,34 @@ enum KeySymbols {
     static var spaceBar: String {
         LocalizationService.shared.string(for: LocalizationKey.KeyName.space.rawValue)
     }
+
+    /// `shortcut` as the status bar names a key the framework puts in it (the
+    /// undo and redo hints), or `nil` for the semantic roles.
+    ///
+    /// As a menu draws it (``KeyboardShortcut/displayString``), with one
+    /// exception: a letter held with nothing but Shift is written as the bar's
+    /// own items are, in the case the key types — `u` for u, `U` for Shift-U.
+    /// In the bar an upper-case letter MEANS Shift: an app's `"N"` item is
+    /// Shift-N (`StatusBarItem.matches(_:)`), and the bar tells its items
+    /// apart by that string. Drawn as a menu draws it, a redo on a bare u read
+    /// `U` beside the app's Shift-letter items, and hid behind an app's `"U"`
+    /// item (Shift-U, another key) while an app's `"u"` (the same key) left it
+    /// showing. A chord with ⌃ ⌥ or ⌘ in it is the menu's (`⌃Z`, `⌃⇧Z`): its
+    /// Shift is a ⇧ either way, and no item of the bar's own is spelled so.
+    static func statusBarName(of shortcut: KeyboardShortcut) -> String? {
+        guard case .key(let equivalent, let modifiers) = shortcut.trigger else { return nil }
+        // `trigger` has folded a capital into Shift, so the letter is its
+        // lower-case form here and `modifiers` says whether Shift is held.
+        let letter = equivalent.character
+        if letter.isLowercase, modifiers.subtracting([.capsLock, .numericPad]).isSubset(of: .shift) {
+            guard modifiers.contains(.shift) else { return String(letter) }
+            // A letter whose capital is not one character (ß) has no case
+            // to carry its Shift, and keeps the menu's ⇧.
+            let capital = keyCap(letter)
+            if capital != String(letter) { return capital }
+        }
+        return shortcut.displayString
+    }
 }
 
 // MARK: - A key equivalent's key

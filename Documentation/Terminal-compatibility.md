@@ -408,7 +408,11 @@ language (`Space`, `Leertaste`, `Espace`, `Barra spaziatrice`, `Espacio`,
 `空格键`, and `Space` again in Japanese). It replaced the terminal spellings
 `^S`, `M-s` and `^S-Z` (for Control-Shift-Z), and the names `Esc`, `Return`,
 `PgDn`, `Del`, which existed because those four modifier symbols were believed
-to be ambiguous-width. Only one of them is.
+to be ambiguous-width. Only one of them is. The status bar keeps one spelling
+of its own: in it a letter's case is its Shift (an app's `"N"` item is
+Shift-N), so its undo and redo hints write a letter held with nothing but
+Shift in the case it types — `u`, and `U` for Shift-U — where a menu draws
+`U` and `⇧U`.
 
 | Glyph | Codepoint | Key | East Asian Width | Drawn before 2026-10-05? | Advance / ink |
 |---|---|---|---|---|---|

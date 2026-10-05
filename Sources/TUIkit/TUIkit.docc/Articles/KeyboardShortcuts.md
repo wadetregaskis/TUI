@@ -456,6 +456,13 @@ Command (⌘) is shown only by a shortcut that still holds it once
 ``EnvironmentValues/commandKey`` has resolved it, which is to say never under
 the default: ⌘S is shown as the `⌃S` that fires it.
 
+The status bar is the one place a letter is written otherwise. In the bar an
+upper-case letter means Shift — an item on `"N"` is Shift-N — so the undo and
+redo hints write a letter held with nothing but Shift in the case it types,
+as the bar's own items are written: a redo on a bare u reads `u redo`, and one
+on Shift-U `U redo`. A chord with ⌃, ⌥ or ⌘ in it is written as a menu
+writes it there too (`⌃Z`, `⌃⇧Z`).
+
 The symbols are drawn in the terminal's font. For a font with no glyph for
 them, the user sets `TUIKIT_KEY_SYMBOLS=0`, or the app asks with
 `.keyNotation(.spelledOut)` on its scene, and the status bar and a menu's
