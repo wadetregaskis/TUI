@@ -13,8 +13,9 @@
 /// `▐ S │ M │ L ▌`, the selected option drawn in the accent.
 ///
 /// The control is one focus stop, as macOS's is. Left and Right move a cursor
-/// among the segments without choosing, wrapping at the ends; Return or Space
-/// chooses the segment under it, as does a click (measured on macOS 15.8).
+/// among the segments without choosing, wrapping at the ends; Space chooses the
+/// segment under it, as does a click (measured on macOS 15.8). Return chooses
+/// too, as it does in a radio group — on macOS it does nothing.
 public struct SegmentedPickerStyle: PickerStyle, Equatable {
     /// Creates a segmented picker style.
     public init() {}
