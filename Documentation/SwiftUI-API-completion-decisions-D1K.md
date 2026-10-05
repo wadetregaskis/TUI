@@ -164,8 +164,18 @@ reply) or where the kitty protocol is spoken.
 **Shipped:** the status bar's "undo" and "redo" appear while each has a step
 and perform it on a click — on every terminal — naming `^_` for redo where the
 protocol tells Ctrl-_ apart and `M-_` elsewhere. `showUndoItems` turns them
-off. Shown only while there is a step, so an app that never registers one
-never sees them.
+off. Shown only while there is a step — but `TextField` and `TextEditor`
+register their edits (B-D1K-6), so every app with one shows "undo" once the
+user has typed in it; only an app with neither, registering nothing of its
+own, never sees them. That is the point (the owner wants undo), and an app
+with its own undo affordance turns them off.
+
+**Their cost** is two reads of the manager per frame, `canUndo` and
+`canRedo`, while the bar is shown. Kept: both are O(1), and a cache would
+need to know when a step might have changed, which is not only on a key —
+an app registers from a task or a timer too — so it would need the manager
+to say so, and `NSUndoManager`'s checkpoint notifications have no
+counterpart in the `UndoManager` TUIkit provides on Linux (B-D1K-5).
 
 **The alternative** is to show them always (greyed when empty): steadier, but
 two more permanent entries in every app's bar. Free either way.

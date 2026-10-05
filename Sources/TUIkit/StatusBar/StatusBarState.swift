@@ -124,7 +124,10 @@ public final class StatusBarState: @unchecked Sendable {
     /// On by default. Undo's key, Ctrl-minus, reaches the app on every
     /// terminal, but redo's reach only some (see
     /// ``EnvironmentValues/undoManager``), and on the rest these items are the
-    /// way to it. An app that shows its own undo affordance can turn them off.
+    /// way to it. ``TextField`` and ``TextEditor`` register their edits with
+    /// the app's undo manager, so an app with either shows "undo" once the
+    /// user has typed in it. An app that shows its own undo affordance can
+    /// turn them off.
     public var showUndoItems: Bool = true
 
     /// The app's undo manager, whose undo and redo the bar offers; set by the
