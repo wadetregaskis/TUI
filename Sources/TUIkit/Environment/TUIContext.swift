@@ -291,6 +291,12 @@ final class TUIContext: @unchecked Sendable {
     /// sensible meaning to two contexts sharing a tooltip.
     let tooltipState = TooltipState()
 
+    /// The modifier keys held, as a terminal speaking the kitty keyboard
+    /// protocol reports them, and the views listening for them
+    /// (`onModifierKeysChanged`, `modifierKeyAlternate`). Kept by the key
+    /// dispatcher, whose per-walk clear clears its listeners too.
+    var modifierKeys: ModifierKeyMonitor { keyEventDispatcher.modifierKeys }
+
     /// The values a `copyable` or `cuttable` view last put on the clipboard,
     /// beside the text the clipboard got — so a paste in this app can have the
     /// values back. Stored as ``tooltipState`` is, and for the same reasons.

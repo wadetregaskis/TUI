@@ -56,6 +56,12 @@ final class KeyEventDispatcher: @unchecked Sendable {
     /// captured) worked. Cleared with the handlers each render pass.
     private(set) var grabbingSectionID: String?
 
+    /// The modifier keys held, and the views listening for them. A modifier
+    /// key reported on its own is a keyboard event too, and its listeners are
+    /// registered per walk as the handlers here are, so they are cleared with
+    /// them (``clearHandlers()``).
+    let modifierKeys = ModifierKeyMonitor()
+
     /// Creates a new key event dispatcher.
     init() {}
 }
@@ -115,6 +121,7 @@ extension KeyEventDispatcher {
         handlers.removeAll()
         focusPathHandlers.removeAll()
         grabbingSectionID = nil
+        modifierKeys.beginSceneRender()
     }
 
     /// Registers a focus-path handler — SwiftUI's `onKeyPress` and its kin —

@@ -271,6 +271,11 @@ extension EnvironmentValues {
         // loop's `EnvironmentSnapshot` either.
         if context.keyboardReporting.isEnhanced {
             keyboardReporting = context.keyboardReporting
+            // And the modifier keys, only where they are reported at all: a
+            // view that listens for them finds nothing to listen to elsewhere.
+            if context.keyboardReporting.reportsModifierKeys {
+                modifierKeyMonitor = context.modifierKeys
+            }
         }
     }
 }

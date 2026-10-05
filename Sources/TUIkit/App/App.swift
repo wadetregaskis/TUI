@@ -762,12 +762,15 @@ extension AppRunner {
                 terminalFocusChanged(
                     isFocused: isFocused, cursorTimer: cursorTimer, renderer: renderer)
 
-            case .modifierKeys:
+            case .modifierKeys(let state):
                 // A modifier key on its own (kitty keyboard protocol only).
-                // Not a key, so no handler hears it and it does not make the
-                // keyboard the input source: a Shift held for a Shift-click is
-                // the pointer's.
-                break
+                // Not a key, so no key handler hears it and it does not make
+                // the keyboard the input source: a Shift held for a Shift-click
+                // is the pointer's. The views listening for it hear it now,
+                // and a frame follows only if one drew from it.
+                if tuiContext.modifierKeys.record(state) {
+                    appState.setNeedsRender()
+                }
             }
             eventsProcessed += 1
         }

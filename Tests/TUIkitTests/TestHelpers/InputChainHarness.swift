@@ -9,6 +9,7 @@
 //  License: MIT
 
 @testable import TUIkit
+@testable import TUIkitCore
 @testable import TUIkitStyling
 
 @MainActor
@@ -32,9 +33,16 @@ final class InputChainHarness {
         var value = 0
     }
 
-    /// - Parameter configure: Changes the root environment before any frame —
-    ///   to hand the page a fake clipboard, for one.
-    init(width: Int = 40, height: Int = 12, configure: (inout EnvironmentValues) -> Void = { _ in }) {
+    /// - Parameters:
+    ///   - keyboard: The kitty keyboard protocol's flags the terminal took, for
+    ///     a test of what it reports; none, a legacy terminal, by default.
+    ///   - configure: Changes the root environment before any frame — to hand
+    ///     the page a fake clipboard, for one.
+    init(
+        width: Int = 40, height: Int = 12, keyboard: KittyKeyboardFlags = [],
+        configure: (inout EnvironmentValues) -> Void = { _ in }
+    ) {
+        tui.keyboardReporting = KeyboardReporting(flags: keyboard)
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
         environment.applyRuntimeServices(from: tui)
