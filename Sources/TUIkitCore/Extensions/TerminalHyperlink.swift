@@ -59,8 +59,13 @@
 /// the gate belongs where the escape is written, not in each caller.
 public struct TerminalHyperlink: Sendable, Equatable {
 
-    /// Where the link points. Encoded on the way out, so it may be given as
-    /// written.
+    /// Where the link points: a URI, such as `URL.absoluteString`.
+    ///
+    /// Encoded on the way out, but as a URI, not as raw text. Bytes outside
+    /// printable ASCII are percent-encoded; a `%` followed by two hex digits
+    /// is taken to be an escape already and passes unchanged. So a literal
+    /// `%` must be written `%25`, as `URL` writes it: given
+    /// `file:///tmp/100%41.txt`, a terminal opens `100A.txt`.
     public let destination: String
 
     /// An optional identity, shared by every run belonging to the same link.
@@ -85,7 +90,8 @@ public struct TerminalHyperlink: Sendable, Equatable {
     /// Creates a hyperlink.
     ///
     /// - Parameters:
-    ///   - destination: The URI to open. Encoded by ``opening``.
+    ///   - destination: The URI to open, with any literal `%` written
+    ///     `%25` (``destination`` says why). Encoded by ``opening``.
     ///   - id: An identity shared by every run of one logical link.
     ///   - localHostName: The name of the machine the application runs on,
     ///     for a `file:` destination that names no host.
