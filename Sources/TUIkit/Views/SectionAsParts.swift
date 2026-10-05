@@ -86,3 +86,74 @@ extension Section {
     /// and collapsed.
     var showsContent: Bool { isExpanded?.wrappedValue ?? true }
 }
+
+// MARK: - Whether a Section Can Be Among a View's Children
+
+/// A provider that knows from its TYPE whether a `Section` can be among the
+/// children it hands its container — see ``mayHandOverSections(_:)``.
+@MainActor
+protocol SectionMembershipKnowing {
+    /// Whether an instance of this type can hand its container a `Section`.
+    static var mayHandOverSections: Bool { get }
+}
+
+/// Whether a `Section` can be among the children a view of type `type` hands
+/// the container resolving it: `false` only where the type proves there is
+/// none, so a container that treats sections specially — a lazy grid drawing
+/// them section by section, a lazy stack keeping them whole — can skip the
+/// walk that would look for one, which is every child of its content.
+///
+/// A view that is no provider is one child, and no section. A `Section` (or a
+/// section under modifiers that reach its parts) is one. The providers whose
+/// content is spelled in their type — a tuple, a `Group`, an `if`, a
+/// `ForEach`'s row, a modifier on several views — answer for their content.
+/// Any other provider — an `AnyView`, the subview and section APIs, one added
+/// later — may hand over anything, and is answered `true`: the walk finds out.
+@MainActor
+func mayHandOverSections<V: View>(_ type: V.Type) -> Bool {
+    if type is any SectionPartsProviding.Type { return true }
+    guard type is any ChildViewProvider.Type else { return false }
+    if let known = type as? any SectionMembershipKnowing.Type { return known.mayHandOverSections }
+    if let wrapper = type as? any ContentRewrapping.Type { return wrappedMayHandOverSections(wrapper) }
+    return true
+}
+
+/// ``mayHandOverSections(_:)`` of a wrapper's content, the existential opened.
+@MainActor
+private func wrappedMayHandOverSections<W: ContentRewrapping>(_: W.Type) -> Bool {
+    mayHandOverSections(W.WrappedContent.self)
+}
+
+extension TupleView: SectionMembershipKnowing {
+    static var mayHandOverSections: Bool {
+        var found = false
+        func check<T: View>(_: T.Type) {
+            if !found, TUIkit.mayHandOverSections(T.self) { found = true }
+        }
+        repeat check((each V).self)
+        return found
+    }
+}
+
+extension ConditionalView: SectionMembershipKnowing {
+    static var mayHandOverSections: Bool {
+        TUIkit.mayHandOverSections(TrueContent.self) || TUIkit.mayHandOverSections(FalseContent.self)
+    }
+}
+
+extension Optional: SectionMembershipKnowing where Wrapped: View {
+    static var mayHandOverSections: Bool { TUIkit.mayHandOverSections(Wrapped.self) }
+}
+
+extension ModifiedView: SectionMembershipKnowing where Content: ChildViewProvider {
+    static var mayHandOverSections: Bool { TUIkit.mayHandOverSections(Content.self) }
+}
+
+extension Group: SectionMembershipKnowing where Content: View {
+    static var mayHandOverSections: Bool { TUIkit.mayHandOverSections(Content.self) }
+}
+
+/// A loop's rows are its children, so its row type answers.
+extension ForEach: SectionMembershipKnowing where Content: View {
+    static var mayHandOverSections: Bool { TUIkit.mayHandOverSections(Content.self) }
+}

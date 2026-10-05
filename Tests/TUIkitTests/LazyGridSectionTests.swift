@@ -99,4 +99,54 @@ struct LazyGridSectionTests {
                 "Head 0", "", "0.0        0.1", "", "0.2", "", "Head 1", "", "1.0        1.1",
             ])
     }
+
+    /// A cell that is not `Equatable`, so its loop builds it each time a walk
+    /// resolves the grid's children rather than serving it from the row memo.
+    private struct Cell {
+        let name: String
+    }
+
+    @MainActor
+    private final class Builds {
+        var count = 0
+    }
+
+    @Test("A grid of a loop of cells resolves its children once a render, not again to look for sections")
+    func noSectionWalkForCells() {
+        let builds = Builds()
+        let cells = (0..<5).map { Cell(name: "c\($0)") }
+        func cell(_ cell: Cell) -> Text {
+            builds.count += 1
+            return Text(cell.name)
+        }
+        _ = renderToBuffer(
+            LazyHGrid(rows: [GridItem(.fixed(1)), GridItem(.fixed(1))]) { ForEach(cells, id: \.name) { cell($0) } },
+            context: makeBareRenderContext(width: 30, height: 4))
+        #expect(builds.count == cells.count, "a row grid built \(builds.count) cells for \(cells.count)")
+        builds.count = 0
+        _ = renderToBuffer(
+            LazyVGrid(columns: columns) { ForEach(cells, id: \.name) { cell($0) } },
+            context: makeBareRenderContext(width: 30, height: 8))
+        #expect(builds.count == cells.count, "a column grid built \(builds.count) cells for \(cells.count)")
+    }
+
+    @Test("Whether a section can be among a view's children is read from its type, or looked for when it cannot be")
+    func sectionMembershipFromTheType() {
+        #expect(!mayHandOverSections(ForEach<Range<Int>, Int, Text>.self))
+        #expect(!mayHandOverSections(TupleView<Text, Text>.self))
+        #expect(mayHandOverSections(TupleView<Text, Section<Text, Text, EmptyView>>.self))
+        #expect(mayHandOverSections(ForEach<Range<Int>, Int, Section<Text, Text, EmptyView>>.self))
+        #expect(mayHandOverSections(Optional<Group<Section<EmptyView, Text, EmptyView>>>.self))
+        // A view of the app's own is one child, which no grid takes apart.
+        #expect(!mayHandOverSections(Cells.self))
+        // A provider whose members its type does not spell is walked.
+        #expect(mayHandOverSections(SubviewsCollection.self))
+    }
+}
+
+/// A view of the app's own around a loop of cells.
+private struct Cells: View {
+    var body: some View {
+        ForEach(0..<2, id: \.self) { Text("\($0)") }
+    }
 }

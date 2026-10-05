@@ -381,8 +381,15 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
 
     /// Whether a `Section` is among the grid's views — asked of a walk that
     /// keeps sections whole, to be found (`RenderContext.keepsSectionsWhole`).
+    ///
+    /// The content's type is asked first (``mayHandOverSections(_:)``), so a
+    /// grid of a `ForEach` of cells — nearly every grid — resolves no child to
+    /// learn it has no sections: that walk is a full resolve of every cell,
+    /// under a context the layout's own resolve does not share, on every
+    /// measure and render.
     private func hasSections(_ context: RenderContext) -> Bool {
-        resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
+        guard mayHandOverSections(Content.self) else { return false }
+        return resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
             sectionParts(of: $0) != nil
         }
     }
