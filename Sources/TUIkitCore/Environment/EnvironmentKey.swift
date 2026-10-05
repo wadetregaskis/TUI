@@ -43,7 +43,10 @@ public protocol EnvironmentKey {
 /// for its children.
 public struct EnvironmentValues: @unchecked Sendable {
     /// Storage for environment values.
-    private var storage: [ObjectIdentifier: Any] = [:]
+    ///
+    /// `@usableFromInline` for the key subscript's getter, which is inlined
+    /// into every accessor — see the note there.
+    @usableFromInline var storage: [ObjectIdentifier: Any] = [:]
 
     /// Creates an empty environment values container.
     public init() {}
@@ -53,7 +56,13 @@ public struct EnvironmentValues: @unchecked Sendable {
     /// - Parameter key: The type of the environment key.
     /// - Returns: The value for the key, or its default value if not set.
     public subscript<K: EnvironmentKey>(key: K.Type) -> K.Value {
-        get {
+        // Inlinable, so each accessor — `EnvironmentValues.lineLimit` and the
+        // rest, all in other modules — gets a copy specialised to its key.
+        // Unspecialised, the `as?` below makes a `K.Value?` whose metadata
+        // the runtime looked up on EVERY read, hit or miss, at the getter's
+        // entry: 16.6% of a frame of the `scrolleager` scenario, 9% of
+        // `controls`/`tap`. A pattern cast instead still looked it up.
+        @inlinable get {
             // Unwrap the STORAGE lookup before the cast. Doing it in one step
             // — `storage[…] as? K.Value` — reads correctly and is wrong for
             // every Optional-valued key: a miss gives `Optional<Any>.none`,
