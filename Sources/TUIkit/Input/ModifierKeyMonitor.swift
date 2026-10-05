@@ -43,13 +43,91 @@ final class ModifierKeyMonitor: @unchecked Sendable {
     /// needs a frame to show.
     private var isDrawnFrom = false
 
+    /// Where the focus was in a modified view that an alternate has replaced,
+    /// keyed by the modified view's identity — see ``alternateShown(at:focusManager:)``.
+    private var heldFocus: [ViewIdentity: HeldFocus] = [:]
+
+    /// Counts walks of the scene, so a held focus knows which walk made it.
+    private var walk = 0
+
+    /// The focus a modified view held when an alternate replaced it.
+    private struct HeldFocus {
+        /// The control in the modified view that held the focus, or `nil` when
+        /// the focus was elsewhere.
+        let focusID: String?
+        /// The walk that drew the alternate first.
+        let since: Int
+        /// Where the focus recovery sent it once the control left the ring,
+        /// read on the first walk after ``since``: `nil` until then.
+        var landedID: String?
+        /// The last walk an alternate in this chain was drawn.
+        var touched: Int
+    }
+
     init() {}
 
     /// Forgets the last walk's observers and drawing; the walk about to start
-    /// registers its own.
+    /// registers its own. A held focus whose view drew nothing last walk has
+    /// left the scene, and goes too.
     func beginSceneRender() {
         observers.removeAll()
         isDrawnFrom = false
+        if !heldFocus.isEmpty {
+            heldFocus = heldFocus.filter { $0.value.touched >= walk }
+        }
+        walk &+= 1
+    }
+
+    // MARK: - The focus an alternate takes
+
+    /// Notes that the view at `identity` is replaced this walk by one of its
+    /// modifier-key alternates.
+    ///
+    /// On the first walk it is, remembers which of its controls held the
+    /// focus: that control is not drawn now, so the focus system recovers the
+    /// focus to a neighbour at the end of the pass — the alternate's own
+    /// control, where it has one in the same place, or the next control on the
+    /// page. On the walk after, remembers where it landed, so the return can
+    /// tell the recovery's move from one the user made.
+    func alternateShown(at identity: ViewIdentity, focusManager: FocusManager?) {
+        if var held = heldFocus[identity] {
+            if held.landedID == nil, held.since < walk {
+                held.landedID = focusManager?.currentFocusedID
+            }
+            held.touched = walk
+            heldFocus[identity] = held
+            return
+        }
+        heldFocus[identity] = HeldFocus(
+            focusID: focusManager.flatMap { Self.focusedID(in: identity, of: $0) },
+            since: walk, landedID: nil, touched: walk)
+    }
+
+    /// Notes that the view at `identity` is drawn this walk, and if an
+    /// alternate replaced it while it held the focus, gives the focus back.
+    ///
+    /// Back only if nothing moved it on purpose meanwhile: the focus is where
+    /// the recovery put it (or the alternate showed for a single walk, too
+    /// short to tell), or on a control of the alternate, or nowhere. The
+    /// control is not registered yet — it renders after this — so the focus is
+    /// asked for by id, which the focus system holds until it registers in
+    /// this same pass.
+    func modifiedViewShown(at identity: ViewIdentity, focusManager: FocusManager?) {
+        guard !heldFocus.isEmpty, let held = heldFocus.removeValue(forKey: identity),
+            let focusID = held.focusID, let focusManager
+        else { return }
+        let current = focusManager.currentFocusedID
+        let inAlternate = focusManager.focusedIdentity.map { identity.isAncestor(of: $0) } ?? false
+        guard current == nil || held.landedID == nil || current == held.landedID || inAlternate else { return }
+        focusManager.focus(id: focusID)
+    }
+
+    /// The focused control's id if it rendered at `identity` or below it.
+    private static func focusedID(in identity: ViewIdentity, of focusManager: FocusManager) -> String? {
+        guard let focused = focusManager.focusedIdentity,
+            focused == identity || identity.isAncestor(of: focused)
+        else { return nil }
+        return focusManager.currentFocusedID
     }
 
     /// Adds an observer for this walk, asked with the old and new state, both

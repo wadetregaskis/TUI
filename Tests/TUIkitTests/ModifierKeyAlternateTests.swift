@@ -83,6 +83,67 @@ struct ModifierKeyAlternateTests {
         #expect(fired == ["forward", "page"])
     }
 
+    /// A view with state of its own, for the tests of what an alternate keeps.
+    private struct Counter: View {
+        @State private var count = 0
+        var body: some View {
+            Button("n=\(count)") { count += 1 }
+        }
+    }
+
+    @Test("The modified view keeps its @State through a frame of its alternate")
+    func keepsState() {
+        let harness = InputChainHarness(keyboard: .requested)
+        let view = { Counter().modifierKeyAlternate(.option) { Text("alt") } }
+        harness.play([KeyEvent(key: .enter), KeyEvent(key: .enter), KeyEvent(key: .enter)], view)
+        #expect(text(harness.frame(view())).contains("n=3"))
+        hold(harness, ModifierKeyState(option: true))
+        #expect(text(harness.frame(view())) == "alt")
+        hold(harness, ModifierKeyState())
+        #expect(text(harness.frame(view())).contains("n=3"))
+    }
+
+    /// Two buttons and a third, the first with an alternate that has no control
+    /// of its own, each named so a test can ask where the focus is.
+    private func focusPage() -> some View {
+        VStack {
+            Button("Forward") {}.focusID("forward")
+                .modifierKeyAlternate(.option) { Text("Go to…") }
+            Button("Other") {}.focusID("other")
+            Button("Third") {}.focusID("third")
+        }
+    }
+
+    @Test("The focus goes back to the modified view when the keys are released", arguments: [1, 3])
+    func focusReturns(framesHeld: Int) {
+        let harness = InputChainHarness(keyboard: .requested)
+        harness.frame(focusPage())
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "forward")
+        hold(harness, ModifierKeyState(option: true))
+        for _ in 0..<framesHeld { harness.frame(focusPage()) }
+        #expect(harness.focusManager.currentFocusedID == "other", "the recovery moves it off the hidden control")
+        hold(harness, ModifierKeyState())
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "forward")
+    }
+
+    @Test("A focus the user moved while the alternate showed stays where they put it")
+    func movedFocusStays() {
+        let harness = InputChainHarness(keyboard: .requested)
+        harness.frame(focusPage())
+        harness.frame(focusPage())
+        hold(harness, ModifierKeyState(option: true))
+        harness.frame(focusPage())
+        harness.frame(focusPage())
+        harness.press(KeyEvent(key: .tab))
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "third")
+        hold(harness, ModifierKeyState())
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "third")
+    }
+
     @Test("Where modifier keys are not reported, the view is always drawn")
     func legacyTerminal() {
         let harness = InputChainHarness()

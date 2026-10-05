@@ -24,6 +24,11 @@ extension View {
     /// on different keys; when more than one matches the held keys, the one
     /// on the most keys prevails, wherever it sits in the chain.
     ///
+    /// The modified view keeps its `@State` while the alternate is drawn, and
+    /// if the focus was in it when the alternate took its place, the focus
+    /// goes back to it when the keys are released — unless it has been moved
+    /// somewhere else in the meantime.
+    ///
     /// ## Where it works
     ///
     /// A terminal reports a modifier key held on its own only under the kitty
@@ -68,9 +73,16 @@ protocol ModifierKeyAlternating {
 
 /// The view behind ``View/modifierKeyAlternate(_:_:)``.
 ///
-/// Draws the modified view at its own identity, so its `@State` and focus
-/// stay put, and the alternate one level below, so the two never share a
-/// state slot.
+/// Draws the modified view at its own identity and the alternate one level
+/// below, so the two never share a state slot.
+///
+/// While an alternate is drawn the modified view is not, so nothing in it
+/// renders and marks its state active. Left at that, a tap of the modifier
+/// key would cost the modified view its `@State` — a counter reset to zero
+/// for one frame of "Go to…". So while any alternate in the chain shows, this
+/// declares the subtree retained, as a collapsed `DisclosureGroup` does for
+/// its content, and the modified view comes back with its state. The focus
+/// comes back too: see ``ModifierKeyMonitor`` and its held focus.
 struct ModifierKeyAlternateModifier<Content: View, Alternate: View>: View, ModifierKeyAlternating {
     let content: Content
     let modifiers: EventModifiers
@@ -116,11 +128,35 @@ extension ModifierKeyAlternateModifier: Renderable {
         // state changing, so no memo may keep it, and a change of them needs
         // a frame.
         context.environment.volatileReadTracker?.recordVolatileRead()
-        if !context.isMeasuring { monitor.noteDrawnFrom() }
+        if !context.isMeasuring {
+            monitor.noteDrawnFrom()
+            keepModifiedView(context: context, monitor: monitor)
+        }
         guard showsAlternate(held: monitor.current) else {
             return TUIkitView.renderToBuffer(content, context: context)
         }
         return TUIkitView.renderToBuffer(alternate, context: alternateContext(context))
+    }
+
+    /// Keeps the modified view's state, and its focus, through the frames an
+    /// alternate replaces it. Render path only; the claims are per pass.
+    ///
+    /// Asked of every modifier in a chain that renders, and every one of them
+    /// gives the same answer — whether ANY alternate in the chain shows — since
+    /// an inner one renders only while no outer one shows its own. Each step is
+    /// idempotent, so a chain of two makes the same claims as one.
+    private func keepModifiedView(context: RenderContext, monitor: ModifierKeyMonitor) {
+        let focusManager = context.environment.focusManager
+        guard mostSpecificMatch(held: monitor.current) != nil else {
+            monitor.modifiedViewShown(at: context.identity, focusManager: focusManager)
+            return
+        }
+        // The modified view renders at this identity, so its own `@State` is
+        // here, which a retained subtree's root does not cover: only what is
+        // strictly below it.
+        context.stateStorage?.markActive(context.identity)
+        context.stateStorage?.retainSubtree(context.identity)
+        monitor.alternateShown(at: context.identity, focusManager: focusManager)
     }
 }
 
