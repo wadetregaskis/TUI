@@ -657,4 +657,22 @@ struct ClipboardWriterAppTests {
         #expect(!harness.statusBar.showsNoteInPlaceOfItems)
         #expect(harness.statusBar.height == height)
     }
+
+    /// Where the line is wider than the bar, it is cut rather than wrapped: a
+    /// second row would be a row taken from the page all the same.
+    @Test("On a narrow terminal the line about a copy is cut to one row", arguments: [20, 30, 40])
+    func narrowNoteKeepsTheBarsHeight(width: Int) {
+        let tui = TUIContext()
+        tui.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: false, now: { 0 })
+        let harness = RenderLoopHarness(tuiContext: tui)
+        harness.terminal.size = (width, 24)
+        let loop = harness.loop(Page())
+        loop.render(frameNowNanos: 0)
+        let height = harness.statusBar.height
+        tui.clipboardWriter.write("x", announcingSuccess: false)
+        loop.render(frameNowNanos: 1)
+        #expect(harness.statusBar.showsNoteInPlaceOfItems)
+        #expect(harness.statusBar.tooltipLines.count == 1)
+        #expect(harness.statusBar.height == height)
+    }
 }

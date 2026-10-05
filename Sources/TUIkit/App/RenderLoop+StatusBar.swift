@@ -36,10 +36,13 @@ extension RenderLoop {
         // The copy's line yields to a tooltip, which the user asked for, and
         // comes back if it is still fresh when the tooltip goes. It stands in
         // for the items rather than above them, so the page keeps its height
-        // (``StatusBarState/showsNoteInPlaceOfItems``). It asks for the frame
-        // that takes it away: nothing else would draw one.
+        // (``StatusBarState/showsNoteInPlaceOfItems``) — which holds only if
+        // it is ONE row, so it is cut to the bar's width rather than wrapped:
+        // at forty columns "Not copied: no clipboard reachable from here"
+        // wrapped to two, and the second was a row taken from the page. It
+        // asks for the frame that takes it away: nothing else would draw one.
         if let note = tuiContext.clipboardWriter.statusNote(atNanos: UInt64(bitPattern: nowNanos)) {
-            statusBar.tooltipLines = TextWrapping.wrap(note.text, width: width)
+            statusBar.tooltipLines = [note.text.truncatedToWidth(width)]
             statusBar.showsNoteInPlaceOfItems = true
             scheduler?.requestWake("clipboard-note", at: Int64(bitPattern: note.expiresAtNanos))
             return
