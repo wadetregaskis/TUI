@@ -220,14 +220,31 @@ struct SoftWrapLayout: Equatable {
         return max(row.start, row.end - 1)
     }
 
+    /// The smallest offset on `row` whose caret is drawn there: the row's
+    /// start, except under `.upstream` on a row that continues a paragraph,
+    /// whose start is drawn at the end of the row before it
+    /// (``row(of:affinity:)``), so its first caret is after its first
+    /// character.
+    func firstCaretOffset(inRow row: Int, affinity: TextSelectionAffinity) -> Int {
+        let span = rows[row]
+        guard affinity == .upstream, row > 0, !rows[row - 1].endsParagraph else { return span.start }
+        return min(span.start + 1, span.end)
+    }
+
     /// The caret offset on `row` nearest `column`: before the character whose
-    /// cells hold the column, or the row's last caret offset past its text.
+    /// cells hold the column, or the row's last caret offset past its text —
+    /// and always one whose caret is drawn on `row` by `affinity`, so a caret
+    /// moved to a row, or clicked onto one, is on it. Under `.upstream` the
+    /// start of a wrapped row is the end of the row before, and Down landing
+    /// there drew the caret back on the row it came from: every later Down
+    /// came back to it.
     func offset(inRow row: Int, atColumn column: Int, affinity: TextSelectionAffinity) -> Int {
+        let first = firstCaretOffset(inRow: row, affinity: affinity)
         let last = lastCaretOffset(inRow: row, affinity: affinity)
         var cellX = 0
         for offset in rows[row].start..<rows[row].end {
             let next = cellX + cellWidths[offset]
-            if column < next { return min(offset, last) }
+            if column < next { return max(first, min(offset, last)) }
             cellX = next
         }
         return last

@@ -98,6 +98,14 @@ struct SoftWrapLayoutTests {
         // end is drawn on the next row, unless the caret leans upstream.
         #expect(wrapped.offset(inRow: 0, atColumn: 30, affinity: .automatic) == 5)
         #expect(wrapped.offset(inRow: 0, atColumn: 30, affinity: .upstream) == 6)
+        // The start of a wrapped row is drawn at the end of the row before it
+        // upstream, so the row's first caret there is after its first character.
+        #expect(wrapped.offset(inRow: 1, atColumn: 0, affinity: .automatic) == 6)
+        #expect(wrapped.offset(inRow: 1, atColumn: 0, affinity: .upstream) == 7)
+        for column in 0..<6 {
+            let offset = wrapped.offset(inRow: 1, atColumn: column, affinity: .upstream)
+            #expect(wrapped.row(of: offset, affinity: .upstream) == 1)
+        }
         // Either cell of a wide character is that character.
         let wide = layout("中文", width: 6)
         #expect(wide.offset(inRow: 0, atColumn: 3, affinity: .automatic) == 1)

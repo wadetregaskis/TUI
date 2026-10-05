@@ -17,8 +17,12 @@
 /// the macOS text system draws an insertion point an arrow key moved there
 /// (macOS leans one placed by typing or a click upstream instead, per caret,
 /// which TUIkit does not track). Up and Down, and a click past a wrapped row's
-/// end, keep to the row the affinity picks.
-/// ``TextEditor`` scrolls rather than wraps, so it only reports the affinity.
+/// end, keep to the row the affinity picks: under `.upstream` the start of a
+/// wrapped row is the end of the row before it, so a caret moved or clicked
+/// onto that row lands after its first character. A wrapping ``TextEditor``
+/// draws its caret the same way; one that scrolls sideways
+/// (``View/textEditorWrapsLines(_:)``) has no shared positions, and only
+/// reports the affinity.
 public enum TextSelectionAffinity: Sendable, Hashable {
     /// The affinity the text view chooses.
     case automatic
@@ -117,10 +121,11 @@ extension View {
     /// this view — mirrors SwiftUI's `textSelectionAffinity(_:)`.
     ///
     /// The affinity is reported with each ``TextSelection`` a field writes, and
-    /// a vertical ``TextField`` draws its caret by it where its text wrapped —
-    /// see ``TextSelectionAffinity``. A field on one line, and a
-    /// ``TextEditor``, which scrolls rather than wraps, share no position
-    /// between rows, so for them it changes nothing drawn.
+    /// a vertical ``TextField`` and a wrapping ``TextEditor`` draw their caret
+    /// by it where their text wrapped — see ``TextSelectionAffinity``. A field
+    /// on one line, and an editor that scrolls sideways
+    /// (``View/textEditorWrapsLines(_:)``), share no position between rows, so
+    /// for them it changes nothing drawn.
     ///
     /// - Parameter affinity: The affinity.
     /// - Returns: A view whose text fields report selections with it.

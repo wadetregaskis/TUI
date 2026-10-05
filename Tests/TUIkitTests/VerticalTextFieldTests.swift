@@ -139,6 +139,19 @@ struct VerticalTextFieldTests {
         #expect(model.text == "abc\ndefX", "Down from the last row goes to the end")
     }
 
+    /// Upstream, the start of a wrapped row is drawn at the end of the row
+    /// before it, so Down landing there drew the caret on the row it left, and
+    /// the next Down came back to it.
+    @Test("Upstream, Down moves a row at a time through wrapped rows")
+    func upstreamDown() {
+        let harness = InputChainHarness(width: 7)
+        let model = Model("aaaa bbbb cccc")
+        harness.play([KeyEvent(key: .home), KeyEvent(key: .down), KeyEvent(key: .down), key("X")]) {
+            field(model).textSelectionAffinity(.upstream)
+        }
+        #expect(model.text == "aaaa bbbb cXccc")
+    }
+
     @Test("A run of Up presses keeps the column it started from through a shorter row")
     func columnMemory() {
         let harness = InputChainHarness(width: 20)

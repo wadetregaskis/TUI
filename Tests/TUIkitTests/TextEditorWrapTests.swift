@@ -30,19 +30,22 @@ struct TextEditorWrapTests {
         let width: Int
         let height: Int
         var wraps = true
+        var affinity = TextSelectionAffinity.automatic
         var body: some View {
             TextEditor(text: Binding(get: { text.value }, set: { text.value = $0 }))
                 .frame(width: width, height: height)
                 .textEditorWrapsLines(wraps)
+                .textSelectionAffinity(affinity)
         }
     }
 
     /// A harness drawing `text` in an editor `width` × `height`, focused.
     func editor(
-        _ text: String = document, width: Int = 16, height: Int = 12, wraps: Bool = true
+        _ text: String = document, width: Int = 16, height: Int = 12, wraps: Bool = true,
+        affinity: TextSelectionAffinity = .automatic
     ) throws -> (InputChainHarness, Page, TextEditorHandler) {
         let harness = InputChainHarness(width: 40, height: 20)
-        let page = Page(text: Box(text), width: width, height: height, wraps: wraps)
+        let page = Page(text: Box(text), width: width, height: height, wraps: wraps, affinity: affinity)
         harness.frame(page)
         harness.frame(page)
         let handler = try #require(harness.focusManager.currentFocused as? TextEditorHandler)
@@ -77,6 +80,33 @@ struct TextEditorWrapTests {
         }
         // Offsets 22, 37, 52, 65 and 73 in the probe.
         #expect(visited == [[0, 22], [0, 37], [0, 52], [1, 5], [2, 7]])
+    }
+
+    /// Upstream, the start of a wrapped row is drawn at the end of the row
+    /// before it. Down put the caret there and read its row back upstream —
+    /// the row it came from — so every later Down came back to the same place.
+    @Test("Upstream, Down and Up move a row at a time, and a click lands on the row clicked")
+    func upstreamRows() throws {
+        let (harness, page, handler) = try editor("aaaa bbbb cccc", width: 6, affinity: .upstream)
+        handler.moveCursor(toLine: 0, column: 0)
+        var visited: [[Int]] = []
+        for key in [KeyEvent(key: .down), KeyEvent(key: .down), KeyEvent(key: .up)] {
+            press(harness, page, key)
+            visited.append(caret(handler))
+        }
+        // Each row's first caret upstream is after its first character.
+        #expect(visited == [[0, 6], [0, 11], [0, 6]])
+        handler.moveCursor(toLine: 0, column: 0)
+        press(harness, page, KeyEvent(key: .character("n"), ctrl: true))
+        press(harness, page, KeyEvent(key: .character("n"), ctrl: true))
+        #expect(caret(handler) == [0, 11])
+        // A click at the start of the second row is on the second row.
+        let drawn = harness.frame(page)
+        let rowY = try #require(drawn.lines.firstIndex { $0.stripped.hasPrefix("bbbb") })
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 0, y: rowY))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: rowY))
+        harness.frame(page)
+        #expect(handler.caretRow(in: try #require(handler.wrappedRows())) == 1)
     }
 
     @Test("Up from the first row goes to the start, and Down from the last to the end")

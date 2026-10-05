@@ -57,11 +57,14 @@ extension TextEditorHandler {
         moveToRow(target, in: rows)
     }
 
-    /// Puts the caret on `row`, at the column it keeps.
+    /// Puts the caret on `row`, at the column it keeps — an offset whose caret
+    /// the editor's affinity draws on that row, which ``caretRow(in:)`` reads
+    /// back by the same affinity.
     private func moveToRow(_ row: Int, in rows: WrappedRows) {
         let (line, rowInLine) = rows.location(ofRow: row)
         cursorLine = line
-        cursorColumn = rows.lines[line].offset(inRow: rowInLine, atColumn: desiredColumn, affinity: .automatic)
+        cursorColumn = rows.lines[line].offset(
+            inRow: rowInLine, atColumn: desiredColumn, affinity: selectionAffinity)
     }
 
     /// Keeps the caret's row on screen, moving the top row as little as it
@@ -88,6 +91,6 @@ extension TextEditorHandler {
     /// caret offset past its text.
     func position(atScreenRow row: Int, column: Int, in rows: WrappedRows) -> (line: Int, column: Int) {
         let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
-        return (line, rows.lines[line].offset(inRow: rowInLine, atColumn: column, affinity: .automatic))
+        return (line, rows.lines[line].offset(inRow: rowInLine, atColumn: column, affinity: selectionAffinity))
     }
 }
