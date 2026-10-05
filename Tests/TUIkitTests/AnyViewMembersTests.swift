@@ -97,18 +97,22 @@ struct AnyViewMembersTests {
         #expect(drawn.first?.hasPrefix("a b c") == true, "\(drawn)")
     }
 
-    @Test("An AnyView's views keep identities of their own, the same on every frame")
+    @Test("An AnyView's views are the container's children, each at an identity of its own, the same on every frame")
     func identities() {
         let paths = Paths()
-        let view = VStack {
+        let view = HStack(spacing: 1) {
             AnyView(Group { PathProbe(paths: paths, name: "a"); PathProbe(paths: paths, name: "b") })
+            PathProbe(paths: paths, name: "c")
         }
-        _ = lines(view)
+        let drawn = lines(view)
+        // Laid along the row: taken apart, not one child stacking its two.
+        #expect(drawn.first?.hasPrefix("a b c") == true, "\(drawn)")
         let first = paths.drawn
         paths.drawn = []
         _ = lines(view)
-        // Measured and drawn more than once a frame; two places either way.
-        #expect(Set(first).count == 2, "\(first)")
+        // Measured and drawn more than once a frame; three places either way,
+        // none shared with the sibling of the same type beside them.
+        #expect(Set(first).count == 3, "\(first)")
         #expect(Set(paths.drawn) == Set(first))
     }
 
@@ -125,11 +129,16 @@ struct AnyViewMembersTests {
         #expect((0..<2).map { handler?.id(at: $0) } == ["alpha", "beta"])
     }
 
-    @Test("As a ForEach's row an AnyView stays one child, keeping the loop's row memo and laziness")
+    @Test("An AnyView in a container is taken apart, and as a ForEach's row stays one child, keeping the loop's row memo and laziness")
     func loopRowsStayWhole() {
-        let loop = ForEach(0..<3, id: \.self) { _ in AnyView(Group { Text("a"); Text("b") }) }
+        let loop = ForEach(0..<2, id: \.self) { i in AnyView(Group { Text("r\(i)"); Text("s\(i)") }) }
         #expect(loop.rowShape(sectionWholeness: .apart) == .single)
-        #expect(resolveChildViews(from: loop, context: makeRenderContext(width: 10, height: 4)).count == 3)
+        #expect(resolveChildViews(from: loop, context: makeRenderContext(width: 10, height: 4)).count == 2)
+        // Beside it in one row: the AnyView written in the HStack lays its two
+        // along the row, each erased row stacks its two in a column.
+        let drawn = lines(HStack(alignment: .top, spacing: 1) { AnyView(Group { Text("a"); Text("b") }); loop })
+            .map { String($0.reversed().drop { $0 == " " }.reversed()) }
+        #expect(Array(drawn.prefix(2)) == ["a b r0 r1", "    s0 s1"], "\(drawn)")
     }
 
     @Test("An AnyView around one view costs a lazy stack no section scope, as a plain view costs it none")
