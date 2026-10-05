@@ -425,12 +425,18 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         /// rather than falling back to the pair.
         let indicators: ResolvedScrollIndicators
         /// Drawn at every offset, and so reserved out of the content window —
-        /// ``EnvironmentValues/alwaysShowsVerticalTextIndicators``.
+        /// ``EnvironmentValues/alwaysShowsVerticalTextIndicators``, or a view
+        /// that lands its steps under a scroll target behaviour
+        /// (``_ScrollViewCore/textIndicatorLines(_:)``).
         let alwaysShown: Bool
 
-        init(_ environment: EnvironmentValues) {
+        /// The pair as `environment` states it; `landsScrollTargets`, asked
+        /// only of the text form, says whether a scroll target behaviour lands
+        /// this view's steps.
+        init(_ environment: EnvironmentValues, landsScrollTargets: () -> Bool) {
             indicators = environment.verticalScrollIndicators(overflowing: true)
-            alwaysShown = indicators.text && environment.alwaysShowsVerticalTextIndicators
+            alwaysShown =
+                indicators.text && (environment.alwaysShowsVerticalTextIndicators || landsScrollTargets())
         }
 
         /// Whether the pair is drawn, whether it is reserved rather than written
@@ -443,6 +449,17 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             let reserved = drawn && alwaysShown
             return (drawn, reserved, max(1, area - (reserved ? 2 : 0)))
         }
+    }
+
+    /// This view's "N more" pair. Under a scroll target behaviour it is
+    /// reserved, drawn at every offset as under `.visible`: a behaviour lands
+    /// pages and views in the content window, and drawn over the window's
+    /// first and last line the pair made the window a line shorter at each end
+    /// wherever it showed — so `.paging` either left those lines unread at
+    /// every stop or, stepping the lines between them, stopped off every page a
+    /// `containerRelativeFrame` sized against the viewport.
+    func textIndicatorLines(_ environment: EnvironmentValues) -> TextIndicatorLines {
+        TextIndicatorLines(environment) { scrollTargetBehaviorInForce(environment) != nil }
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -796,7 +813,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         chrome: ScrollChrome, contentWidth: Int, contentViewportHeight: Int,
         settled: (width: Int, height: Int)?
     ) {
-        let textLines = TextIndicatorLines(context.environment)
+        let textLines = textIndicatorLines(context.environment)
         // Read around the measures that decide the bars, which are the ones the
         // hint is for: see `ScrollViewHandler.contentWalksNestedStacks`.
         let nestedWalksBefore = context.renderCache?.nestedStackWalks
@@ -914,11 +931,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
                 // `AnimatedCellRun`). Still only when one will be drawn —
                 // building a cycle is cheap but not free, and a scroll view
                 // that scrolls only horizontally has no vertical indicators.
-                cycle: context.environment.alwaysShowsVerticalTextIndicators
-                    || handler.hasContentAbove || handler.hasContentBelow
+                cycle: chrome.reservesIndicatorLines || handler.hasContentAbove || handler.hasContentBelow
                     ? scrollIndicatorCycle(isFocused: isFocused, context: context) : nil,
                 locale: context.environment.locale,
-                always: context.environment.alwaysShowsVerticalTextIndicators,
+                // Reserved is drawn at every offset: the two are one answer.
+                always: chrome.reservesIndicatorLines,
                 reserving: chrome.reservesIndicatorLines
             )
             attachIndicatorMouseHandlers(

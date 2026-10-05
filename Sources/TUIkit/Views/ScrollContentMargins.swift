@@ -258,7 +258,8 @@ extension _ScrollViewCore {
     /// The container size a `containerRelativeFrame` in the content sizes
     /// against: the viewport, less the content's margins, as SwiftUI's is
     /// (measured) — and less the "N more" lines when they are reserved out of
-    /// the window the content is seen through, at every offset. Then the
+    /// the window the content is seen through, at every offset (under
+    /// `.visible`, or a scroll target behaviour). Then the
     /// window is what the content is seen through, and is
     /// ``ScrollGeometry/containerSize`` and a scroll target behaviour's
     /// container too, so a page sized against it is the page `.paging` steps:
@@ -270,7 +271,7 @@ extension _ScrollViewCore {
     /// container is two lines short.
     func containerSize(viewport: CellSize, context: RenderContext) -> CellSize {
         let reserved =
-            TextIndicatorLines(context.environment)
+            textIndicatorLines(context.environment)
             .fitted(viewportHeight: viewport.height, horizontalBar: false).reserved ? 2 : 0
         guard appliesContentMargins else {
             return reserved == 0 ? viewport : CellSize(width: viewport.width, height: max(0, viewport.height - reserved))

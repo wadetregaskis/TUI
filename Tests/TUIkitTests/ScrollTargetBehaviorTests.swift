@@ -87,7 +87,7 @@ struct ScrollTargetBehaviorTests {
         }
     }
 
-    @Test("Paging under the \"N more\" lines: a page is the lines between them, so every line is read")
+    @Test("Paging under the \"N more\" lines: they are kept out of the page, so every line is read")
     func pagingUnderTextIndicators() {
         let frames = Frames()
         let view = ScrollView { scrollTargetRows(30) }
@@ -104,8 +104,9 @@ struct ScrollTargetBehaviorTests {
             read.formUnion(readableRows(frames))
             stops.append(frames.scrollView?.scrollOffset ?? -1)
         }
-        // Eight readable lines a page: the band starts a line below the offset.
-        #expect(stops == [0, 7, 15, 20, 20], "\(stops)")
+        // Eight lines a page, between the two lines the indicators keep at
+        // every stop; the last page ends at the end.
+        #expect(stops == [0, 8, 16, 22, 22], "\(stops)")
         #expect(read == Set(0..<30), "never readable: \(Set(0..<30).subtracting(read).sorted())")
     }
 
@@ -126,7 +127,7 @@ struct ScrollTargetBehaviorTests {
 
     @Test(
         "Container-sized pages under the \"N more\" lines: every stop shows one page whole, between them",
-        arguments: [ScrollIndicatorVisibility.visible])
+        arguments: [ScrollIndicatorVisibility.visible, .automatic])
     func containerPagesUnderTextIndicators(visibility: ScrollIndicatorVisibility) {
         let frames = Frames()
         let view = ScrollView { containerPages(5) }
@@ -162,8 +163,8 @@ struct ScrollTargetBehaviorTests {
         #expect(lines.first?.contains("more") == true, "\(lines)")
         // Rows are two lines with the number on the first: the row landed on
         // starts on the first line the indicator leaves.
-        #expect(lines.dropFirst().first?.contains("row 2") == true, "\(lines)")
-        #expect(frames.scrollView?.scrollOffset == 3)
+        #expect(lines.dropFirst().first?.contains("row 1") == true, "\(lines)")
+        #expect(frames.scrollView?.scrollOffset == 2)
     }
 
     @Test("Without a behaviour a wheel tick moves three lines")

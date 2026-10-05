@@ -113,6 +113,38 @@ cells rather than per line, an hour or two with tests, no cost where nothing is
 unclipped), but two texts interleaved cell by cell are hardly legible, which is
 why it is not the default. Owner's call.
 
+### B-D2S-6. Under a scroll target behaviour, the "N more" lines are kept out of the content
+
+The `.text` indicator style draws "▲ N more" / "▼ N more" over a scroll view's
+first and last line while something is hidden that way (`.automatic`), or
+reserves both lines at every offset (`.visible`). A behaviour lands pages and
+views in the visible area, and drawn over the content the pair made that area
+a line shorter at each end wherever it showed. Two reviews pulled opposite
+ways: handed the whole viewport, `.paging` left the lines under the indicators
+at every page boundary unread at every stop; handed the lines between them
+(2add33c43), it stopped off every page sized with `containerRelativeFrame` —
+SwiftUI's paging idiom — since those pages were sized against the whole
+viewport.
+
+Shipped: a `ScrollView` under any behaviour but the default reserves the pair
+at every offset, as `.visible` does, and reserved lines come off the
+`containerRelativeFrame` container (under `.visible` too, with or without a
+behaviour). The content window is then one size at every stop: it is the page
+`.paging` steps, the container a page is sized against, and `ScrollGeometry`'s
+container. Every line is read at some stop, every container-sized page lands
+whole between the two lines, and `.viewAligned` lands a row on the first line
+below "▲". The cost is `.visible`'s look: at the very top "▲ 0 more lines
+above" holds the first line, where `.automatic` shows content. Only the `.text`
+style under a behaviour changes; the bar style, the default, spends a column.
+
+**The alternative:** keep `.automatic`'s coming-and-going hint under a
+behaviour and size the container to the lines between the two indicators
+whatever is drawn. Pages land between them too, but a page is two lines shorter
+than the view even at the top, where only "▼" shows, and the container would
+have to depend on the behaviour, or every `.text` scroll view's full-height
+content would lose two lines. About as small a change; owner's call if the
+always-drawn pair reads badly.
+
 ### Notes on A6 that are not decisions
 
 - `ScrollGranularity.row` did nothing `.viewAligned` cannot: on `List` and

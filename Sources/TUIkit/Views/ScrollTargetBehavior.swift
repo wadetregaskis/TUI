@@ -81,8 +81,10 @@ public struct ScrollTargetBehaviorContext {
     public let contentSize: CellSize
 
     /// The size of the area the content is seen through: the viewport, less
-    /// what the scroll bars take, and less the "N more" lines where they are
-    /// drawn over its first and last line — the lines that can be read.
+    /// what the scroll bars take, and less the "N more" lines, which a view
+    /// under a behaviour reserves at every offset rather than drawing them
+    /// over its content — so every line of it can be read, and it is the
+    /// container a `containerRelativeFrame` in the content sizes against.
     public let containerSize: CellSize
 
     /// The axes in which the scrollable view is scrollable.
@@ -294,6 +296,11 @@ extension View {
     /// See ``ScrollTargetBehavior`` for where it applies, and
     /// ``TUIkit/View/scrollGranularity(_:)`` to take a subtree back to the
     /// default, line-by-line scrolling.
+    ///
+    /// A `ScrollView` under a behaviour other than the default draws its "N
+    /// more" lines (`.scrollIndicatorStyle(.text)`) at every offset, keeping
+    /// them out of the content as `.scrollIndicators(.visible)` does, so the
+    /// window it lands pages and views in is the same at every stop.
     ///
     /// - Parameter behavior: The scroll behaviour to use.
     /// - Returns: A view whose scrollables use `behavior`.

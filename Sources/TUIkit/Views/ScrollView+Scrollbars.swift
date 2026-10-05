@@ -108,7 +108,7 @@ extension _ScrollViewCore {
         if wantsHorizontal {
             let resolved = resolveScrollbars(
                 viewportWidth: viewportWidth, viewportHeight: viewportHeight,
-                horizontal: true, textLines: TextIndicatorLines(environment), context: context)
+                horizontal: true, textLines: textIndicatorLines(environment), context: context)
             bars = (resolved.vertical, resolved.horizontal)
         } else {
             // Only `widens` reaches here, so the content is `content.width`

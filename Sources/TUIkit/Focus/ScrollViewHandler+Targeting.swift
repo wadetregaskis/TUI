@@ -48,28 +48,24 @@ extension ScrollViewHandler {
     /// names none. The offsets are not clamped here: the step that moves there
     /// clamps them, as it clamps any step.
     ///
-    /// The visible area is what can be READ. Under the "N more" lines drawn
-    /// over the viewport's first and last line (``textIndicatorInset``) that is
-    /// the band between them: ``pageDistance`` lines, starting a line below the
-    /// offset — Page Down's page, for the reason it is Page Down's. Handed the
-    /// whole viewport, `.paging` stepped a full viewport and left the two lines
-    /// under the indicators at every boundary unreadable at every stop, and
-    /// `.viewAligned` landed each row's first line under "▲ N more". At the top
-    /// and bottom, where one indicator is not drawn, the band is a line short of
-    /// what shows; the safe direction, as it is for Page Down.
+    /// The visible area is the content window, every line of which can be
+    /// read: under a behaviour the "N more" lines are reserved out of it at
+    /// every offset, as under `.visible`, rather than drawn over its first and
+    /// last line (``_ScrollViewCore/textIndicatorLines(_:)``). So the window is
+    /// the same at every stop — the container a page is sized against, and the
+    /// page `.paging` steps — and a row `.viewAligned` lands on is read whole.
     func targetedOffsets(proposedX: Int, proposedY: Int, velocity: CellVector) -> (x: Int, y: Int)? {
         guard let targeting = scrollTargeting else { return nil }
-        let inset = textIndicatorInset
         let scrollsAcross = targeting.axes.contains(.horizontal)
         let container = CellSize(
-            width: scrollsAcross ? horizontal.viewportHeight : targeting.width, height: pageDistance)
+            width: scrollsAcross ? horizontal.viewportHeight : targeting.width, height: viewportHeight)
         let original = ScrollTarget(
             rect: CellRect(
-                x: horizontal.scrollOffset, y: scrollOffset + inset,
+                x: horizontal.scrollOffset, y: scrollOffset,
                 width: container.width, height: container.height))
         var target = original
         target.rect.x = proposedX
-        target.rect.y = proposedY + inset
+        target.rect.y = proposedY
         let context = ScrollTargetBehaviorContext(
             originalTarget: original, velocity: velocity,
             contentSize: CellSize(width: scrollsAcross ? horizontal.extent : targeting.width, height: contentHeight),
@@ -79,8 +75,7 @@ extension ScrollViewHandler {
         let anchor = target.anchor ?? .topLeading
         return (
             x: target.rect.x + Int((anchor.x * Double(target.rect.width - container.width)).rounded(.down)),
-            y: target.rect.y - inset
-                + Int((anchor.y * Double(target.rect.height - container.height)).rounded(.down))
+            y: target.rect.y + Int((anchor.y * Double(target.rect.height - container.height)).rounded(.down))
         )
     }
 
@@ -165,8 +160,7 @@ extension _ScrollViewCore {
     /// behaviour: the page's `.paging` is for the page's scroll views, and
     /// paged an inline menu's rows a screenful a wheel tick.
     func captureScrollTargeting(handler: ScrollViewHandler, context: RenderContext) {
-        let behavior = isChrome ? nil : context.environment.scrollTargetBehavior
-        guard let behavior, !(behavior is _FreeScrollTargetBehavior) else {
+        guard let behavior = scrollTargetBehaviorInForce(context.environment) else {
             if handler.scrollTargeting != nil { handler.scrollTargeting = nil }
             return
         }
@@ -174,6 +168,17 @@ extension _ScrollViewCore {
         handler.scrollTargeting = ScrollViewTargeting(
             behavior: behavior, axes: axes, environment: context.environment.detachedFromRuntime(),
             width: previous?.width ?? 0, rows: previous?.rows ?? .none, columns: previous?.columns ?? .none)
+    }
+
+    /// The scroll target behaviour this view lands its user's steps under, or
+    /// `nil`: none stated (the free one, the default), or a framework scroller,
+    /// which takes none (``captureScrollTargeting(handler:context:)``). One
+    /// predicate, because the "N more" lines are reserved under exactly the
+    /// behaviours the steps are landed by (``textIndicatorLines(_:)``).
+    func scrollTargetBehaviorInForce(_ environment: EnvironmentValues) -> (any ScrollTargetBehavior)? {
+        guard !isChrome else { return nil }
+        let behavior = environment.scrollTargetBehavior
+        return behavior is _FreeScrollTargetBehavior ? nil : behavior
     }
 
     /// Records the width a drawn frame settled on, for a behaviour's context.
