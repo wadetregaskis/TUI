@@ -2641,120 +2641,6 @@ since a terminal's field is never hidden. That reads well for a dedicated
 search page but makes `.onTextEntry` meaningless, so it would have to be a
 TUIkit-only activation rather than a reading of SwiftUI's.
 
-### B39. Suggested search tokens are a row of buttons, not entries in the suggestions menu
-
-*`View.searchable(text:tokens:suggestedTokens:placement:prompt:token:)`,
-`View.searchable(text:tokens:suggestedTokens:isPresented:placement:prompt:token:)`*
-
-SwiftUI lists suggested tokens in the search field's suggestions, as it lists
-`searchSuggestions`. TUIkit's suggestions are a drop-down of text completions
-(`TextSuggestions`), opened by Down at the caret; an entry fills the field
-with its text and has no notion of becoming a token.
-
-**Shipped:** the suggested tokens are a row of buttons under the field, shown
-while the field holds the focus with nothing typed (and while the focus is in
-the row), on the same terms as the scopes; choosing one appends it to `tokens`,
-and a token already chosen is not offered again. The tokens themselves draw in
-the field as `[Apple] [Pear]`, in the accent colour, and Backspace in an empty
-field removes the last.
-
-**The fuller version** teaches the suggestions drop-down a second kind of entry,
-one that appends a token instead of completing text, and offers the suggested
-tokens there, above any `searchSuggestions`: the menu, its keyboard handling
-and its Return-to-submit rule all live in one place (`TextInputSuggestions`),
-so it is about half a day with tests.
-
-### B40. An inspector is a split view's trailing pane: always a column, and its width bounds are not enforced
-
-*`View.inspector(isPresented:content:)`, `View.inspectorColumnWidth(_:)`,
-`View.inspectorColumnWidth(min:ideal:max:)`*
-
-**Shipped:** the inspector is the trailing pane of an `HSplitView` beside the
-view — macOS's presentation in a regular size class — starting at the width
-named on its content (in columns) or 30, with the split's divider: a focus
-stop the arrow keys move and the pointer drags. The view keeps its identity and
-state while the inspector comes and goes.
-
-**What differs:**
-
-- A compact horizontal size class does not turn the inspector into a sheet,
-  as iOS does. Here the size class is only compact when an app sets it, and
-  nothing TUIkit draws reads it yet (B3).
-- `min` and `max` are accepted and not enforced: the divider moves the column
-  from one cell to all but one. SwiftUI documents that a platform may use a
-  different width than asked, so this is within the contract, but it is the
-  weaker reading.
-- There is no keyboard command to show or hide the inspector — SwiftUI's comes
-  from `InspectorCommands`, and `Commands` are O13.
-
-**The fuller version** gives `HSplitView`'s panes bounds — a per-pane minimum
-and maximum the divider stops at, which a `.frame(minWidth:maxWidth:)` on a
-pane could state for every split, not only inspectors — about half a day; and
-the sheet adaptation follows whatever B3 decides about compact size classes.
-
-### B41. Three drawings chosen without a measurement: critical severity, the dialog icon, the subtitle
-
-*`DialogSeverity.critical`, `View.dialogIcon(_:)`, `View.navigationSubtitle(_:)`*
-
-- **Critical severity** is macOS's large caution symbol. Shipped: the
-  dialog's border and title in the palette's warning colour, unless the alert
-  was given colours of its own. A `⚠` before the title would say it in a
-  glyph too, but U+26A0 is drawn one or two cells wide depending on the
-  terminal, so it wants a `Terminal-compatibility.md` measurement and the
-  chrome-glyph fallback first (an hour with the probes).
-- **The dialog icon** sits at the leading edge of the message: an SF Symbol as
-  its glyph, a raster image fitted into 8×4 cells. macOS draws it above the
-  title in the new alert style and beside it in the old; beside the message
-  costs no extra rows.
-- **The subtitle** follows the title on the navigation bar's one row, in the
-  secondary colour and truncating first; macOS puts it under the window title.
-  A second bar row would vary the bar's height, which the stack's layout
-  forbids (`NavigationStack.barHeight`).
-
-Each is a one-line change if you would rather the other drawing.
-
-### B42. A resizable image stretches; one that isn't still fits; caps keep the fitted scale
-
-*`Image.resizable(capInsets:resizingMode:)`, `Image.ResizingMode`*
-
-**Shipped:** `.resizable()` fills the frame, aspect ignored, as SwiftUI's does
-(measured on macOS 15), unless a content mode around it keeps the aspect, so
-the common `.resizable().scaledToFit()` draws exactly as before. Cap insets
-are in source pixels; the caps keep the scale at which the whole image fits
-the frame, and the middle stretches, or for `.tile` repeats at that scale.
-
-**What differs, and what a fuller version would cost:**
-
-- An image that is **not** resizable fits what it is offered, where SwiftUI
-  draws it at its pixel size. A terminal has no pixel size in cells (the
-  compatibility doc's image sizing note). A natural size would need a
-  pixels-per-cell figure: the cell pixel size the terminal reports
-  (`imageCellPixels`) would give one where it is reported. That is about half
-  a day, but it would make every existing `Image` without a frame change size,
-  so it is a design change, not a fix.
-- On an axis offered a scroll view's natural-extent budget, a resizable image
-  takes the extent its aspect gives it, not its pixel size, for the same
-  reason.
-- An image drawn in slices (with caps, or tiled) draws as cells even where the
-  terminal shows pictures. Sending the sliced pixels as a picture is about two
-  hours: the picture's signature would have to name the box and the insets.
-
-### B43. A `CGImage` or `NSImage` is drawn out once, and its address names it
-
-*`Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`,
-`Image(nsImage:)`, `Image.Orientation`*
-
-**Shipped**, behind `canImport(AppKit)` (A18's practice), with
-`Image.Orientation` everywhere. The pixels are drawn out the first time the
-image is drawn. The orientations' raw values and turns were measured on
-macOS 15. `scale` and `label` are accepted and change nothing.
-
-**What differs:** the image's identity is its object's address, kept unique
-by holding the object for as long as a view draws it. An `NSImage` drawn into
-in place after it was first drawn keeps its first pixels. Noticing that would
-mean hashing the pixels at every `body`, which costs time in proportion to
-the image's size on every frame.
-
 ### B44. A cell is one line unless its column says more
 
 *`TableColumn.init(_:content:)` and every other initializer that takes a
@@ -2858,27 +2744,6 @@ root on the key path (`\Person.email`), it compiles.
 (views, rows, commands, tab content) takes the solver's attention in that
 one shape and disfavours it. Half a day, most of it reducing the case.
 
-### B48. On Linux, a span of a month or more is spelt in English
-
-*`Text(_:style: .relative)` and `.offset`; `SystemFormatStyle.DateOffset`*
-
-SwiftUI spells a span in units: `2 min, 5 sec`, `1 yr, 3 mths`, `−2 minutes`.
-Under a month TUIkit spells them with Foundation's `Duration.UnitsFormatStyle`,
-which is localised, pluralised and list-joined on every platform (`1 Std.,
-2 Min.` in German, as SwiftUI draws it). `Duration` has no years or months,
-though. On Apple platforms those go through `Date.ComponentsFormatStyle`,
-which matches SwiftUI's strings. The open-source Foundation declares that type
-with no initialiser (only its `Field` exists), so on Linux years and months are
-spelt from a small English table, CLDR's English abbreviations included
-(`yr`/`yrs`, `mth`/`mths`).
-
-**Fuller version:** the unit names for years and months (wide and abbreviated,
-one and other) in the framework's own translation tables, joined with each
-language's list pattern. About sixteen strings for each of the seven
-languages, plus plural rules for French (where 0 is singular) and none for
-Japanese and Chinese. Half a day; worth it only if an app on Linux shows
-spans that long in a language other than English.
-
 ### B49. `SystemFormatStyle`: where the rules go beyond the measurements
 
 *`SystemFormatStyle.Timer`, `.Stopwatch`, `.DateOffset`, `.DateReference`*
@@ -2910,44 +2775,6 @@ measurements, these were chosen:
 
 **Fuller version:** a macOS 26 measurement pass over the same probes, and the
 three-field clock face. An hour each.
-
-### B50. On macOS, SwiftUI's own `.offset(to:)` and the rest are visible beside TUIkit's
-
-*`FormatStyle.offset(to:…)`, `.reference(to:…)`, `.timer(countingDownIn:…)`,
-`.timer(countingUpIn:…)`, `.stopwatch(startingAt:…)`*
-
-TUIkit imports AppKit publicly (its `NSColor` bridges are public API), and
-from the macOS 15 SDK AppKit imports SwiftUICore. Until an app opts into
-Swift's member-import-visibility rule, an extension member of any module
-imported however indirectly is visible, so every app that imports TUIkit sees
-SwiftUICore's five statics on Foundation's `FormatStyle` beside TUIkit's. The
-types do not leak; these extension members do. Measured with a two-module
-probe:
-
-- both on `FormatStyle`: `Text(.currentDate, format: .offset(to: d))` is
-  ambiguous and does not compile;
-- TUIkit's only on `DiscreteFormatStyle`: a context that takes any
-  `FormatStyle` picks SwiftUI's, which then fails to LINK (SwiftUICore admits
-  no direct clients);
-- both (shipped): a `DiscreteFormatStyle` context picks TUIkit's (the
-  refining protocol's extension is the more specialised), and a plain
-  `FormatStyle` context is ambiguous — a compile error, not a link error.
-
-So TUIkit declares each static twice, and takes these styles as
-`DiscreteFormatStyle` everywhere: `Text(_:format:)` over a time data source
-already does, and `Text(_:format:)` and `appendInterpolation(_:format:)` for
-an `AttributedString` output gained a discrete overload beside the
-`FormatStyle` one. What stays ambiguous on macOS is a `FormatStyle` context
-outside TUIkit, such as `Date.now.formatted(.offset(to: d))`; spelling the type
-(`SystemFormatStyle.DateOffset(to: d)`) settles it. Linux has no SwiftUICore.
-
-**Fuller version:** move the AppKit bridges (`Color(nsColor:)`,
-`NSColor(_:)`, the `CGColor` pair) into a module of their own, so TUIkit can
-import AppKit `internal`ly and nothing of SwiftUICore reaches an app. That
-fixes this for every Foundation extension SwiftUI declares, not only these
-five, at the price of one more product to import for the bridges (half a day
-with the documentation). Your call whether that is worth it now; nothing else
-in this wave needs it.
 
 ### B51. A live text read for its string is read once, when it is built
 
@@ -3079,23 +2906,6 @@ it goes. That is a re-layout of the transition's container per frame — the
 cost the buffer-based design exists to avoid — and needs the measure walk to
 scrub as well, which the memoised measure path makes delicate. About two days.
 I would wait for a port that needs it.
-
-### B53. `TransitionProperties.hasMotion` is recorded, and nothing reads it yet
-
-*`TransitionProperties`, `TransitionProperties.hasMotion`,
-`TransitionProperties.init(hasMotion:)`, `Transition.properties`*
-
-SwiftUI: "When this behavior is included in a transition, that transition will
-be replaced by opacity when Reduce Motion is enabled." TUIkit reads no
-reduce-motion setting (O1 of the refusal review), so Reduce Motion is never on
-and the replacement never happens — which is what SwiftUI does on a Mac with
-the setting off. The built-ins report the values measured on SwiftUI: opacity
-and identity have no motion, everything else has, and a combined or asymmetric
-pair has motion if either half does.
-
-**The fuller version** comes with O1 (b): when the host's reduce-motion
-setting (or `TUIKIT_REDUCE_MOTION`) is on, `View.transition(_:)` swaps a
-transition with motion for `.opacity`. A few lines once the setting exists.
 
 ### B54. A scale transition uncovers from its anchor, and a scale above 1 draws the view whole
 
@@ -4127,6 +3937,12 @@ visible, so a TUIkit app on macOS sees SwiftUICore's
 `AttributeScopes.SwiftUIAttributes` as well as TUIkit's. This is the same leak
 B50 met with `SystemFormatStyle`'s statics.
 
+**Since 2026-10-05 this applies only to an app that imports `TUIkitAppKit`
+(or AppKit itself).** B50 shipped: the AppKit bridges are the `TUIkitAppKit`
+module, no module TUIkit is built from imports AppKit (a test guards it), and
+an app that imports TUIkit alone sees no SwiftUICore member. The rest of this
+entry describes the app that imports the bridges too.
+
 **Shipped:**
 
 - **Setting and reading an attribute binds to TUIkit's.**
@@ -4151,12 +3967,11 @@ B50 met with `SystemFormatStyle`'s statics.
   link.** It binds to SwiftUICore's subscript, and SwiftUICore admits no
   direct clients. On Linux it fails to compile, as rule 2 wants.
 
-**The fuller version** is B50's: move the AppKit bridges (`Color(nsColor:)`,
-`NSColor(_:)`, the `CGColor` pair, `Image`'s `NSImage`/`CGImage` initializers)
-into a module of their own. TUIkit could then import AppKit internally, and no
-SwiftUICore member would reach an app. That fixes this and B50 together. It
-costs half a day with the documentation, plus one more product to import for
-the bridges.
+**The fuller version** was B50's, and shipped with it on 2026-10-05: the AppKit
+bridges (`Color(nsColor:)`, `NSColor(_:)`, the `CGColor` pair, `Image`'s
+`NSImage`/`CGImage` initializers) are the `TUIkitAppKit` module. An
+`internal import` of AppKit was not enough — it still loads SwiftUICore into
+clients of a SwiftPM module — so TUIkit imports none.
 
 ### B85. A link in a `Text` is drawn and hyperlinked, but is not a control
 
