@@ -80,7 +80,6 @@ entry has the options and their prices.
 - A33 — a colour's spoken name: decline.
 - A34, A35 — the blur transition and symbol effects: a scale and a fade;
   TUIkit's own Symbols vocabulary once A18 allows it.
-- A44 — pinning in horizontal stacks: leave out until B16's fuller version.
 - A47, A48, A49, A50 — list separators, swipe actions, per-tab interactions,
   tab search: underline a row's last line; a menu from a chord and a
   horizontal scroll; all six in both looks; defer until macOS 26 can be
@@ -1293,45 +1292,6 @@ a column (probes in the session notes, `w10b/probe/`):
   from the header's reported frame, which a floating table row may not update,
   so weaker evidence than the pixels above.
 
-### A44. Pinned sections in a horizontal stack or grid
-
-*`LazyHStack.init(alignment:spacing:pinnedViews:content:)`,
-`LazyHGrid.init(rows:alignment:spacing:pinnedViews:content:)`*
-
-In SwiftUI a section in a `LazyHStack` is laid out along the row: its header
-at the leading end, its views after it, its footer at the trailing end; in a
-`LazyHGrid` the header spans the rows. Pinned, a header stays at the
-horizontal scroll view's leading edge while its section's views are under it,
-and is pushed off by the last of them; a footer stays at the trailing edge
-(both measured on macOS 15.8, the vertical rule turned on its side).
-
-Here a section in a `LazyHStack` draws as one unit, which is a column — header
-above, views below, footer under them (B16) — and in a `LazyHGrid` it takes a
-single cell. Pinning a header to the leading edge needs the header to BE at
-the leading edge, so these two `pinnedViews:` initialisers are not offered:
-SwiftUI code using them does not compile, rather than compiling and pinning
-nothing.
-
-**Options.**
-
-1. **Lay sections out along the row, and pin to the leading edge.** A
-   section whose container is horizontal (the stack cores publish their axis
-   to their children already) draws header, views and footer side by side;
-   a `LazyHGrid` takes its sections apart as `LazyVGrid` now does (B70);
-   the scroll pin gains a leading and a trailing edge, which a horizontal
-   scroll view resolves against its horizontal offset before it slices each
-   line to the viewport. About a day and a half with the tests. It changes
-   the drawing of every `Section` in an `HStack` — from a column to a row —
-   which is B16's fuller version for the horizontal stacks, and B16 asked you
-   whether a header outside a list keeps its dimmed styling.
-2. **Leave them out** (what ships). Nothing that compiles misbehaves.
-3. Accept `pinnedViews:` on the horizontal pair and pin nothing. Ruled out by
-   the second parity rule.
-
-**Recommendation:** 2 now, and 1 with B16's fuller version when that is
-decided: the drawing change is the same change, and doing it twice would cost
-more than once.
-
 ### A45. Should a `List` pin its section headers?
 
 *`List`, `Section`, `PlainListStyle`, `InsetGroupedListStyle`*
@@ -1964,68 +1924,6 @@ target stepping the selected component (S, half a day with tests); and a
 compact field that opens the graphical calendar (`.graphical`, which has
 shipped) in a popover; small now that the calendar exists.
 
-### B15. A `ForEach` row of several views is one subview, not several
-
-*`Group(subviews:transform:)`, `ForEach(subviews:content:)`,
-`SubviewsCollection`, `LayoutSubviews`, `SectionCollection`*
-
-SwiftUI takes a multi-view row apart: `ForEach(0..<2) { _ in Group { a; b } }`
-is four subviews, and so is the same row as a `TupleView`. It does not take
-`AnyView(Group { a; b })` apart: that is one subview per `AnyView`.
-
-TUIkit resolves one child per element everywhere — stacks, `List`, `Table`,
-layouts — and the subview APIs inherit that, so the loop above is two
-subviews here, and `HStack { ForEach(…) { Group { a; b } } }` stacks each pair
-vertically inside the row. A row of one view, which is nearly every row, is
-exact.
-
-**The fuller version** flattens a row that is itself a provider of several
-views. That changes `ForEach.makeChild` (one element → several children), the
-lazy child collection (its count is no longer the data's count, so a lazy
-stack's window over a million rows needs an index from element to first
-child), the row memo (keyed per element today) and the identity keys (a
-row's children need a step under the element's key). It is a resolver change
-for every container, not a subviews change, and it needs an A/B on `fanout`,
-`megalist` and `table`, the scenarios whose frames are mostly row
-resolution. Two to three days with the measurement.
-
-### B16. A `Section` is taken apart only by the subview and section APIs
-
-*`Section`, `Group(subviews:transform:)`, `Group(sections:transform:)`*
-
-SwiftUI flattens a `Section` in a stack into its header, content and footer,
-as the subview counts show (a section of two views with a header and a footer
-is four subviews). TUIkit's `Section` in a stack still draws as one unit, with
-the dimmed, bold header styling it has in a `List`.
-
-The subview and section APIs take sections apart as SwiftUI counts them, and
-hand the parts over as written — no header styling — because there the
-custom container decides how a header looks.
-
-**The fuller version** makes `Section` a provider of its parts in every
-container that is not a `List`, `Form` or `Table`. That moves the drawing of
-every page with a sectioned stack, so it is its own commit with the Stress
-self-check, and it needs a decision on whether a header outside a list keeps
-any styling. Half a day.
-
-### B17. A subview proxy does not pass on a spacer flag or an alignment guide
-
-*`Subview`*
-
-`Subview` is a view that draws its member. A container laying out
-`ForEach(subviews: content) { $0 }` sees the proxy, which says nothing about
-being a `Spacer` or carrying an `.alignmentGuide` — those are static
-properties of the member's type, and the proxy is one type for every member.
-A stack therefore gives a proxied `Spacer` the share a flexible view gets,
-which is close to but not the same as a spacer's.
-
-Placing the collection or a slice (`HStack { subviews }`) hands the members
-to the container directly, flags and guides intact, and that is the shape
-SwiftUI's own examples use. The fuller version reads the flags off the
-member at run time wherever a container meets a `Subview`; it is a cast per
-child on the stack path, so it would be gated behind a stored flag. Half a
-day.
-
 ### B18. `SectionConfiguration.actions` is always empty
 
 *`SectionConfiguration.actions`, `SectionConfiguration.Actions`*
@@ -2144,8 +2042,8 @@ begins. What changes for an app:
 **Residual:** a `ForEach` of rows is taken apart only by containers that lay
 cells out — `Grid`, `GridLayout`, and the stack layouts `AnyLayout` switches
 it with. In a `VStack`, an `HStack` or an app's own layout each looped row is
-still one child (B15's multi-view row), drawn as its cells stacked
-vertically.
+still one child (B15's multi-view row, which shipped 2026-10-05: re-check
+this residual against it), drawn as its cells stacked vertically.
 
 ### B22. The content levels, and the two- and three-style `foregroundStyle`
 
@@ -3384,7 +3282,8 @@ the header under the line, and only its second line onward showing.
 
 SwiftUI pins the sections in the stack's own list of subviews, however
 wrapped, and not one inside a row. TUIkit's stack sees each section as one
-child — a section in a stack draws as one unit (B16) — so the question is
+child — a section in a stack draws as one unit (B16; shipped 2026-10-05, so
+the compatibility doc now says where a section is taken apart) — so the question is
 asked from the section's side, by two tests:
 
 - the stack hands its rows the scope in the environment entry every stack
@@ -3450,7 +3349,8 @@ among its views is drawn as it always was. Three consequences:
 - `spacing` falls between rows and between sections, but not between a
   header and its section's first row, nor before the footer, where SwiftUI
   puts it as well (measured). It is the deviation a `LazyVStack`'s sections
-  have already, since a section draws as one unit (B16).
+  have already, since a section draws as one unit (B16, shipped 2026-10-05;
+  the compatibility doc says where it is now taken apart).
 - The header keeps the dimmed, bold styling a section's header has in every
   container that is not a `List`, where SwiftUI's is plain.
 
