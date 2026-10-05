@@ -363,6 +363,12 @@ struct KeyEquivalentShortcutTests {
         // Shift is the case, both when written that way and when asked for.
         #expect(KeyboardShortcut("S", modifiers: []).displayString == "S")
         #expect(KeyboardShortcut("s", modifiers: .shift).displayString == "S")
+        // A Control chord's letter is uppercase anyway, so Shift is marked:
+        // Redo's ⇧⌘Z is not printed as Undo's ⌘Z.
+        #expect(KeyboardShortcut("z", modifiers: [.control, .shift]).displayString == "^S-Z")
+        #expect(KeyboardShortcut("Z", modifiers: .control).displayString == "^S-Z")
+        #expect(KeyboardShortcut("z", modifiers: .control).displayString == "^Z")
+        #expect(KeyboardShortcut("z", modifiers: [.control, .option, .shift]).displayString == "^M-S-Z")
         // The semantic roles have no key to print.
         #expect(KeyboardShortcut.defaultAction.displayString == nil)
         #expect(KeyboardShortcut.cancelAction.displayString == nil)

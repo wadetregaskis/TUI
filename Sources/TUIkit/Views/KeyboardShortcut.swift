@@ -351,8 +351,9 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// hint — or `nil` for the semantic roles, which have no key to show.
     ///
     /// Terminal conventions, not Apple's key glyphs: `^S` for Control (what
-    /// every TUI menu from nano to htop prints) and `M-s` for Option/Alt (its
-    /// Meta name). ⌃⌥⇧⌘ would read better on a Mac but are ambiguous-width
+    /// every TUI menu from nano to htop prints), `M-s` for Option/Alt (its
+    /// Meta name), and `S-` for Shift on a Control chord, whose letter is
+    /// uppercase either way (`^S-Z` is Control-Shift-Z, Emacs's `C-S-z`). ⌃⌥⇧⌘ would read better on a Mac but are ambiguous-width
     /// characters, so a CJK-configured terminal would advance two cells and
     /// shear the column they are aligned in.
     ///
@@ -364,6 +365,10 @@ public struct KeyboardShortcut: Hashable, Sendable {
         var prefix = ""
         if modifiers.contains(.control) { prefix += "^" }
         if modifiers.contains(.option) { prefix += "M-" }
+        // A Control chord prints its letter uppercase either way, so Shift
+        // there needs a mark of its own, or ⇧⌘Z (Redo) would print as ⌘Z
+        // (Undo) does: `S-`, Emacs's, not ⇧, whose width is ambiguous.
+        if modifiers.contains(.control), modifiers.contains(.shift) { prefix += "S-" }
         // A non-printable key prints as its name, not as the private-use
         // scalar that stands for it (see `KeyEquivalent.upArrow`) — which would
         // otherwise reach the screen as a missing-glyph box.
