@@ -1027,6 +1027,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // it is served where it was stored.
         let mouseHandlerID = mouseDispatcher.register(
             in: context, reportingChangesTo: { captureHandler.drawnPositions }, viewportHandler)
+        // The viewport acts on a left CLICK (the focus, at the release) and on
+        // nothing else a left press does: its press is held until it shows
+        // whether it is one (`PressRole`).
+        mouseDispatcher.filePressRole(.background, for: mouseHandlerID, in: context)
         // The ScrollView's focusID rides on this region: it is how an
         // ENCLOSING ScrollView locates a focused embedded ScrollView to
         // scroll it into view (`snapViewportToFocusedControl` scans regions

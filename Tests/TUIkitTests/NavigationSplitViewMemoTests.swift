@@ -165,10 +165,11 @@ struct NavigationSplitViewMemoTests {
         let harness = SplitHarness(focus: false)
         let tracker = VolatileReadTracker()
         harness.frame(split(VisibilityBox()), tracker: tracker)
-        // One for the chords and one per column handler. Counted exactly on
-        // purpose: an unreplayable registration hidden among them is what would
-        // quietly stop a split being served.
-        #expect(tracker.replayableEffects == 3)
+        // One for the chords, and per column its handler and the press role
+        // filed beside it (`PressRole`). Counted exactly on purpose: an
+        // unreplayable registration hidden among them is what would quietly
+        // stop a split being served.
+        #expect(tracker.replayableEffects == 5)
         #expect(tracker.sideEffects == 0)
     }
 
@@ -185,8 +186,9 @@ struct NavigationSplitViewMemoTests {
         let entries = Array(journal.entries(since: start))
         journal.endRecording()
         // The chords first — registered before any column renders — then a
-        // handler per column.
-        #expect(entries.map(\.kind.name) == ["sidebarChords", "mouseHandler", "mouseHandler"])
+        // handler per column, each with its press role.
+        #expect(
+            entries.map(\.kind.name) == ["sidebarChords", "mouseHandler", "pressRole", "mouseHandler", "pressRole"])
 
         // A later walk, whose registry is empty, served from those entries.
         harness.beginWalk()

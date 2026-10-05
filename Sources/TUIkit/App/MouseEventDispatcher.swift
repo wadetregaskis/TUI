@@ -54,7 +54,7 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// from. The offset lets us keep delivering coordinates relative
     /// to the original region even when the cursor wanders elsewhere
     /// during the drag.
-    private struct PressCapture {
+    struct PressCapture {
         /// The handler that claimed the press — captured directly, NOT by id.
         /// `pressedHandlers` spans frames (a press and its release can straddle
         /// one or more renders), and while an id now names the same control
@@ -78,7 +78,7 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// to route subsequent `.dragged` / `.released` events for the
     /// same button to the original handler, and cleared on
     /// `.released`.
-    private var pressedHandlers: [MouseButton: PressCapture] = [:]
+    var pressedHandlers: [MouseButton: PressCapture] = [:]
 
     /// The support in force at the END of the previous frame — what the
     /// terminal's reporting mode was actually set to. The mid-gesture
@@ -249,6 +249,11 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// the handler table. See ``GestureArena``.
     var gestureRoles: [HitTestRegion.HandlerID: GestureRole] = [:]
 
+    /// The regions that take a left press only for its click, by handler id —
+    /// see ``PressRole``. Cleared with the handler table, refiled by every walk
+    /// (and every memo replay) that registers them.
+    var pressRoles: [HitTestRegion.HandlerID: PressRole] = [:]
+
     /// The gestures contending for the left button: built at a press that
     /// lands on a gesture, kept until every one of them has decided — which
     /// can be after the release, for a tap waiting on its next click.
@@ -285,6 +290,7 @@ extension MouseEventDispatcher {
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)
         gestureRoles.removeAll(keepingCapacity: true)
+        pressRoles.removeAll(keepingCapacity: true)
         regions.removeAll(keepingCapacity: true)
         // The interned ids survive this: only the per-identity slot counters
         // restart, because this runs once per WALK of the scene.
@@ -756,6 +762,11 @@ extension MouseEventDispatcher {
         // handle wheel events, so the wheel bubbles past them to
         // the surrounding scroller.
         let matching = matchingRegions(at: event.x, y: event.y)
+        // A left press a pane's background would take for its click is held
+        // until it shows whether it is a click — see ``PressRole``.
+        if event.phase == .pressed, event.button == .left, !pressRoles.isEmpty {
+            return dispatchLeftPress(event, matching: matching)
+        }
         guard !matching.isEmpty else { return false }
 
         // Fall through when the handler declined: `false` means "not mine" for
@@ -892,7 +903,7 @@ extension MouseEventDispatcher {
     /// Returns every region containing the given point, ordered
     /// innermost-first (last-registered first). Used by
     /// ``dispatch`` to implement wheel-event fall-through.
-    private func matchingRegions(at x: Int, y: Int) -> [HitTestRegion] {
+    func matchingRegions(at x: Int, y: Int) -> [HitTestRegion] {
         regions.reversed().filter { $0.contains(x: x, y: y) }
     }
 
@@ -1113,7 +1124,7 @@ extension MouseEventDispatcher {
 
     /// Translates the event's coordinates from absolute screen-space
     /// into the local coordinate space of a hit region.
-    private func localize(_ event: MouseEvent, byOffsetX dx: Int, offsetY dy: Int) -> MouseEvent {
+    func localize(_ event: MouseEvent, byOffsetX dx: Int, offsetY dy: Int) -> MouseEvent {
         MouseEvent(
             button: event.button,
             phase: event.phase,

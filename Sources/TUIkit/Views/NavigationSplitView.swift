@@ -331,8 +331,7 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
             if !columnContext.isMeasuring,
                 let mouseDispatcher = columnContext.environment.mouseEventDispatcher
             {
-                let captureManager = focusManager
-                let captureSectionID = sectionID
+                let (captureManager, captureSectionID) = (focusManager, sectionID)
                 let columnHandlerID = mouseDispatcher.register(in: context) { event in
                     guard event.button == .left else { return false }
                     switch event.phase {
@@ -343,6 +342,10 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
                     default: return false
                     }
                 }
+                // A click on the column is all it acts on, at the release:
+                // its press is held until it shows whether it is one
+                // (`PressRole`).
+                mouseDispatcher.filePressRole(.background, for: columnHandlerID, in: context)
                 // Place the region at the very back of the list so
                 // children win the hit-test.
                 buffer.hitTestRegions.insert(
