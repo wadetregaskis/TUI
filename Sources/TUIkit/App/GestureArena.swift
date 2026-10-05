@@ -442,7 +442,9 @@ final class GestureArena {
         case .tick(let now):
             root.receive(.tick(now), deliver: deliver)
         case .pointer(let event, let time):
-            root.receive(.pointer(Self.pointer(event, in: contender.region, at: time)), deliver: deliver)
+            var pointer = Self.pointer(event, in: contender.region, at: time)
+            pointer.spaceOrigin = contender.participant.pointerSpaces
+            root.receive(.pointer(pointer), deliver: deliver)
         }
     }
 

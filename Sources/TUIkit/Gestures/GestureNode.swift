@@ -74,6 +74,11 @@ struct GesturePointer {
     /// release. A long press reads it as not pressing.
     var isOver = false
 
+    /// Where the view is in the named spaces its gesture reports locations
+    /// in, as of the frame the event arrived over — `nil` when it reports in
+    /// none.
+    var spaceOrigin: PointerSpaceOrigin?
+
     /// This report, standing in for a press: how the second gesture of a
     /// sequence takes the event that ended the first, or the first event
     /// after a first that ended on its clock. A release makes a press that
@@ -90,8 +95,20 @@ struct GesturePointer {
     }
 
     /// The location in the requested coordinate space.
+    ///
+    /// A named space is the location moved by where the view's owner found the
+    /// view in that space; a name nothing declared is the global space, as in
+    /// SwiftUI — which is also the answer before any frame has found the view.
     func location(in space: CoordinateSpace) -> CellPoint {
-        space == .global ? globalLocation : location
+        switch space {
+        case .local:
+            return location
+        case .global:
+            return globalLocation
+        case .named:
+            guard let offset = spaceOrigin?.offset(in: space) else { return globalLocation }
+            return CellPoint(x: location.x + offset.x, y: location.y + offset.y)
+        }
     }
 }
 

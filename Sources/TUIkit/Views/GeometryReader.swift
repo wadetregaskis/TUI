@@ -12,62 +12,96 @@ import TUIkitView
 /// The size and coordinate space of the container reading it.
 ///
 /// Handed to a ``GeometryReader``'s content closure so the content can size
-/// itself against the space it was actually given.
+/// itself against the space it was actually given, and place itself against
+/// the spaces around it: ``frame(in:)-(CoordinateSpace)`` in its own space, the
+/// global one, one a parent named with ``View/coordinateSpace(_:)``, or the
+/// nearest scroll view's; ``bounds(of:)`` for the reverse.
+///
+/// ## How a terminal answers where a view is
+///
+/// TUIkit draws bottom-up: a container renders a child, then places it, so a
+/// reader does not know where it sits while its content is being built — which
+/// is when it asks. It is answered with where the owner of the space found it
+/// LAST frame; the owner (the named view, the scroll view, the scene root)
+/// finds it again once it has drawn, and when the two differ — the first frame,
+/// or a frame on which something above the reader moved it — draws its subtree
+/// once more with the right answer, in the same frame. What reaches the screen
+/// is always drawn from where the reader really is. (Design study A2, G1; a
+/// reader is greedy, so its own content can never move it, and one more
+/// drawing always settles it.)
 ///
 /// ## What this deliberately does not have
 ///
-/// SwiftUI's `GeometryProxy` also carries `safeAreaInsets` and an `Anchor`
-/// subscript. A terminal has no safe area — the whole grid is addressable, and
-/// TUIkit's chrome (app header, status bar) has already been subtracted from
-/// what a view is offered — and no anchor/preference geometry to resolve
-/// against. Adding either as a constant would be answering a question the
-/// caller should not be asking.
+/// SwiftUI's `GeometryProxy` also carries `safeAreaInsets`. A terminal has no
+/// safe area — the whole grid is addressable, and TUIkit's chrome (app header,
+/// status bar) has already been subtracted from what a view is offered —
+/// so answering it with a constant would be answering a question the caller
+/// should not be asking.
 public struct GeometryProxy: Equatable, Sendable {
     /// The container's size in cells.
     public let size: CellSize
 
-    /// The container's origin in the terminal's coordinate space, if known.
-    let globalOrigin: (x: Int, y: Int)?
+    /// Where the container asks about the spaces around it, or `nil` for a
+    /// proxy that can only answer its own: one made by hand, or in a measure.
+    let ask: GeometryAsk?
 
+    /// Two proxies are the same proxy: the same size, asking through the same
+    /// walk's ask.
     public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.size == rhs.size && lhs.globalOrigin?.x == rhs.globalOrigin?.x
-            && lhs.globalOrigin?.y == rhs.globalOrigin?.y
+        lhs.size == rhs.size && lhs.ask === rhs.ask
     }
 
-    init(width: Int, height: Int, globalOrigin: (x: Int, y: Int)? = nil) {
+    init(width: Int, height: Int, ask: GeometryAsk? = nil) {
         self.size = CellSize(width: width, height: height)
-        self.globalOrigin = globalOrigin
+        self.ask = ask
     }
+
+    /// What the container was told about the spaces around it, in the order
+    /// it asked — what a reader notes so a move clears what is cached below it.
+    var toldAnswers: [GeometryObservation?] { ask?.toldAnswers ?? [] }
 
     /// The container's frame in the given coordinate space.
     ///
-    /// `.local` is always exact. `.global` is only exact when the renderer knows
-    /// where the reader sits on screen; where it does not — inside a buffer that
-    /// is composed into its parent afterwards, which is most of them — this
-    /// falls back to the local frame rather than inventing a position. Check
-    /// ``hasGlobalPosition`` when the difference matters.
+    /// `.local` is always `(0, 0)` and the size. Every other space answers with
+    /// where its owner found the container (see the type's discussion), and a
+    /// name no view around the container declared — like `.scrollView` outside
+    /// any scroll view — answers in the global space, as SwiftUI's does.
     public func frame(in coordinateSpace: CoordinateSpace) -> CellRect {
+        let origin: CellPoint
         switch coordinateSpace {
         case .local:
-            return CellRect(x: 0, y: 0, width: size.width, height: size.height)
-        case .global:
-            let origin = globalOrigin ?? (x: 0, y: 0)
-            return CellRect(
-                x: origin.x, y: origin.y, width: size.width, height: size.height)
+            origin = CellPoint(x: 0, y: 0)
+        case .global, .named:
+            origin = ask?.observation(in: coordinateSpace)?.origin ?? CellPoint(x: 0, y: 0)
         }
+        return CellRect(x: origin.x, y: origin.y, width: size.width, height: size.height)
     }
 
     /// The container's frame in the given coordinate space — the protocol form
-    /// SwiftUI moved ``frame(in:)`` to, answered the same way.
+    /// SwiftUI moved ``frame(in:)-(CoordinateSpace)`` to, answered the same way.
     ///
-    /// - Parameter coordinateSpace: `.local` or `.global`.
+    /// - Parameter coordinateSpace: `.local`, `.global`, `.named(_:)`,
+    ///   `.scrollView` or `.scrollView(axis:)`.
     /// - Returns: The frame, in cells.
     public func frame(in coordinateSpace: some CoordinateSpaceProtocol) -> CellRect {
         frame(in: coordinateSpace.coordinateSpace)
     }
 
-    /// Whether ``frame(in:)-(CoordinateSpace)`` can answer `.global` exactly.
-    public var hasGlobalPosition: Bool { globalOrigin != nil }
+    /// The given coordinate space's bounds rectangle, converted to the local
+    /// coordinate space — `nil` when no view around the container declares it
+    /// (an unknown name, `.scrollView` outside any scroll view), as SwiftUI's
+    /// is.
+    ///
+    /// - Parameter coordinateSpace: The space whose bounds to convert.
+    /// - Returns: The space's rectangle, measured from the container's origin.
+    public func bounds(of coordinateSpace: NamedCoordinateSpace) -> CellRect? {
+        guard let observation = ask?.observation(in: coordinateSpace.coordinateSpace),
+            let spaceSize = observation.spaceSize
+        else { return nil }
+        return CellRect(
+            x: -observation.origin.x, y: -observation.origin.y,
+            width: spaceSize.width, height: spaceSize.height)
+    }
 }
 
 /// A size in whole terminal cells.
@@ -121,6 +155,22 @@ public struct CellRect: Hashable, Sendable {
     /// The bottom edge (exclusive).
     public var maxY: Int { y + height }
 
+    /// The leading edge: ``x``, under the name `CGRect`'s readers use —
+    /// `proxy.frame(in: .named("scroll")).minY` is how SwiftUI code tracks a
+    /// scroll offset. There is no `midX`/`midY`: a midpoint floored before it
+    /// is subtracted from another is the trap integral geometry sets (see
+    /// ``AlignmentID``), so the spelling that invites it is left out.
+    public var minX: Int { x }
+
+    /// The top edge: ``y``, under `CGRect`'s name — see ``minX``.
+    public var minY: Int { y }
+
+    /// The top-leading corner, as `CGRect.origin` is.
+    public var origin: CellPoint { CellPoint(x: x, y: y) }
+
+    /// The width and height, as `CGRect.size` is.
+    public var size: CellSize { CellSize(width: width, height: height) }
+
     /// Creates a rectangle in whole cells.
     ///
     /// Public because a `CellRect` is not only something a ``GeometryProxy``
@@ -138,15 +188,6 @@ public struct CellRect: Hashable, Sendable {
         self.width = width
         self.height = height
     }
-}
-
-/// The coordinate space a ``GeometryProxy`` frame is measured in.
-public enum CoordinateSpace: Hashable, Sendable {
-    /// Relative to the ``GeometryReader`` itself, whose origin is `(0, 0)`.
-    case local
-
-    /// Relative to the terminal's top-left cell.
-    case global
 }
 
 // MARK: - Geometry Reader
@@ -221,24 +262,39 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
-        let proxy = GeometryProxy(width: width, height: height)
+        // What the content asks about the spaces around it goes through this,
+        // and is held to by the spaces' owners — see `GeometryProxy`.
+        let ask = context.makeGeometryAsk(role: .reader)
+        let proxy = GeometryProxy(width: width, height: height, ask: ask)
 
-        let buffer = TUIkitView.renderToBuffer(content(proxy), context: contentContext(noting: proxy, in: context))
+        var buffer = TUIkitView.renderToBuffer(content(proxy), context: contentContext(noting: proxy, in: context))
 
         // The reader occupies everything it was offered even when its content
         // does not, so a sibling below starts where the reader ends rather than
         // where its content happens to stop. Rebuilt through `replacingLines`
         // rather than `FrameBuffer(lines:)`, which would silently drop the
         // content's overlays and hit-test regions.
-        guard buffer.width < width || buffer.lines.count < height else { return buffer }
-        var padded = buffer.lines.map { line -> String in
-            let shortfall = width - line.strippedLength
-            return shortfall > 0 ? line + String(repeating: " ", count: shortfall) : line
+        if buffer.width < width || buffer.lines.count < height {
+            var padded = buffer.lines.map { line -> String in
+                let shortfall = width - line.strippedLength
+                return shortfall > 0 ? line + String(repeating: " ", count: shortfall) : line
+            }
+            while padded.count < height {
+                padded.append(String(repeating: " ", count: width))
+            }
+            buffer = buffer.replacingLines(padded, width: width, uniformWidth: true)
         }
-        while padded.count < height {
-            padded.append(String(repeating: " ", count: width))
+
+        // A reader that asked about another space stamps where it begins, for
+        // that space's owner to find; one that asked about nothing but its own
+        // size stamps nothing and costs nothing more.
+        if let ask {
+            ask.finishRecording(size: CellSize(width: width, height: height))
+            if context.geometryCoordinator?.register(ask) == true {
+                buffer.hitTestRegions.append(.geometryMarker(ask.id))
+            }
         }
-        return buffer.replacingLines(padded, width: width, uniformWidth: true)
+        return buffer
     }
 
     /// The context the content is built in, once the size handed to it is
@@ -263,16 +319,31 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
     /// The depth goes up for the content, as a timeline's does, so a reader
     /// whose content is another reader drawn at this identity notes under a
     /// slot of its own.
+    ///
+    /// Where the reader is is noted the same way, for the same reason: what the
+    /// content was told about the spaces around it moves when something above
+    /// the reader moves it, which nothing below keys on either. Evaluated after
+    /// the content closure — Swift evaluates the arguments in order — so what
+    /// the closure asked is known.
     private func contentContext(noting proxy: GeometryProxy, in context: RenderContext) -> RenderContext {
         var contentContext = context
         contentContext.environmentApplicationDepth += 1
-        if !context.isMeasuring, let cache = context.renderCache,
+        guard !context.isMeasuring, let cache = context.renderCache else { return contentContext }
+        var moved = false
+        if case .changed = cache.noteAppliedEnvironment(
+            proxy.size, identity: context.identity, keyPath: \GeometryProxy.size,
+            depth: context.environmentApplicationDepth)
+        {
+            moved = true
+        }
+        if let told = proxy.ask?.toldAnswers, !told.isEmpty,
             case .changed = cache.noteAppliedEnvironment(
-                proxy.size, identity: context.identity, keyPath: \GeometryProxy.size,
+                told, identity: context.identity, keyPath: \GeometryProxy.toldAnswers,
                 depth: context.environmentApplicationDepth)
         {
-            cache.clearAffected(by: context.identity)
+            moved = true
         }
+        if moved { cache.clearAffected(by: context.identity) }
         return contentContext
     }
 }

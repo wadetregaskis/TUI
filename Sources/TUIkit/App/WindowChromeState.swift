@@ -119,6 +119,19 @@ final class WindowChromeState: @unchecked Sendable {
     /// The bottom toolbar's reservation.
     private(set) var bottom = Bar()
 
+    /// Both bars' reservations, with the history their guard reads — what
+    /// ``settle(_:wanting:nowNanos:)`` changes.
+    ///
+    /// For a frame that walks the scene a second time (the scene root's
+    /// geometry correction, `RenderLoop.renderContent`): read before the first
+    /// walk and put back before the second, so the second is laid out against
+    /// the rows the first was and settles from where the first did — a frame
+    /// adopts a change once, for the next frame, however many walks it takes.
+    var reservation: (top: Bar, bottom: Bar) {
+        get { (top, bottom) }
+        set { (top, bottom) = newValue }
+    }
+
     /// How every bar frames itself: the scene's `.windowToolbarStyle(_:)`,
     /// adopted each frame before anything is laid out. A box by default.
     var style: ChromeStyle = .bordered

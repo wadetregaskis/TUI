@@ -114,6 +114,11 @@ extension StressStrings {
         "stress.scenario.preferences.blurb": "N righe, ognuna pubblica una preferenza a un collettore.",
         "stress.scenario.preferences.stresses": "dichiarazione dell'effetto collaterale di preferenza · elusione del memo dei valori · nuova misurazione per riga",
         "stress.scenario.preferences.heading": "{0} righe · {1} pubblicate",
+        "stress.scenario.geometry.title": "Geometria",
+        "stress.scenario.geometry.blurb": "Righe pigre che leggono la loro posizione in uno spazio con nome e in quello della vista a scorrimento, mentre scorre.",
+        "stress.scenario.geometry.stresses": "marcatori di geometria · proprietari degli spazi di coordinate · rendering di correzione · visibilità allo scorrimento",
+        "stress.scenario.geometry.heading": "{0} righe · {1} visibili",
+        "stress.scenario.geometry.global": "x globale {0}",
 
         // MARK: customlayout
         "stress.scenario.customlayout.title": "Layout personalizzato",

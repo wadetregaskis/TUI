@@ -116,14 +116,19 @@ final class InputChainHarness {
         frameContext.environment.frameNowNanos = now
         var buffer = renderToBuffer(view, context: frameContext)
         for _ in 1..<max(1, walks) {
-            tui.keyEventDispatcher.clearHandlers()
-            tui.mouseEventDispatcher.beginRenderPass()
-            tui.keyboardShortcuts.beginRenderPass()
-            tui.preferences.beginRenderPass()
-            tui.stateStorage.beginSceneRender()
-            focusManager.beginSceneRender()
-            statusBar.beginSceneRender()
+            beginSceneRender()
             buffer = renderToBuffer(view, context: frameContext)
+        }
+        // The scene root's geometry: `.global` and every name nothing nearer
+        // declared, answered from the frame, and drawn once more when a reader
+        // drew from a wrong answer — as `RenderLoop.renderContent` does.
+        let geometry = tui.mouseEventDispatcher.geometry
+        let size = CellSize(width: context.availableWidth, height: context.availableHeight)
+        if geometry.resolveRemaining(in: buffer, size: size) {
+            geometry.noteCorrection(.root)
+            beginSceneRender()
+            buffer = renderToBuffer(view, context: frameContext)
+            if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }
         }
         tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
         // As the run loop hands it each composited frame: what a selection reads
@@ -131,10 +136,26 @@ final class InputChainHarness {
         buffer = tui.screenSelection.takeFrame(
             buffer, width: context.availableWidth, palette: frameContext.environment.palette)
         focusManager.endRenderPass()
+        geometry.endFrame(frame: buffer, retainedBy: tui.stateStorage)
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()
         return buffer
     }
+
+    /// Clears the per-walk registries for another walk of the same frame, as
+    /// `RenderLoop.beginSceneRender()` does.
+    private func beginSceneRender() {
+        tui.keyEventDispatcher.clearHandlers()
+        tui.mouseEventDispatcher.beginRenderPass()
+        tui.keyboardShortcuts.beginRenderPass()
+        tui.preferences.beginRenderPass()
+        tui.stateStorage.beginSceneRender()
+        focusManager.beginSceneRender()
+        statusBar.beginSceneRender()
+    }
+
+    /// How often the frames' geometry owners have drawn their subtrees again.
+    var geometryCorrections: GeometryCorrections { tui.mouseEventDispatcher.geometry.corrections }
 
     /// Hands `event` to the chain and reports whether some layer took it.
     @discardableResult

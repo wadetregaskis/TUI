@@ -339,6 +339,23 @@ extension StateStorage {
         return index
     }
 
+    /// How many `onChange` indices `identity` has claimed so far in this walk.
+    package func onChangeCount(at identity: ViewIdentity) -> Int? {
+        onChangeCounters[identity]
+    }
+
+    /// Puts the `onChange` counters back to where they were before a subtree
+    /// rooted at `identity` rendered: `identity`'s own to `count`, and every
+    /// identity below it to none — so a subtree drawn a second time in one walk
+    /// claims the indices its first drawing claimed, and compares against what
+    /// that drawing stored rather than an empty slot. See
+    /// `MouseHandlerIDTable.rewind(at:to:)`, which does the same for ids.
+    package func rewindOnChangeCounters(at identity: ViewIdentity, to count: Int?) {
+        onChangeCounters[identity] = count
+        let below = onChangeCounters.keys.filter { identity.isAncestor(of: $0) }
+        for key in below { onChangeCounters.removeValue(forKey: key) }
+    }
+
     /// Returns the previously tracked value for the given key, if any.
     ///
     /// - Parameter key: The state key (identity + property index).

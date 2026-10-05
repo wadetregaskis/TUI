@@ -114,6 +114,11 @@ extension StressStrings {
         "stress.scenario.preferences.blurb": "N lignes publiant chacune une préférence vers un collecteur.",
         "stress.scenario.preferences.stresses": "déclaration d'effet de bord de préférence · mise en échec du mémo de valeur · re-mesure par ligne",
         "stress.scenario.preferences.heading": "{0} lignes · {1} publiées",
+        "stress.scenario.geometry.title": "Géométrie",
+        "stress.scenario.geometry.blurb": "Lignes paresseuses lisant leur place dans un espace nommé et dans celui de la vue défilante, pendant qu'elle défile.",
+        "stress.scenario.geometry.stresses": "marqueurs de géométrie · propriétaires d'espaces de coordonnées · rendus de correction · visibilité au défilement",
+        "stress.scenario.geometry.heading": "{0} lignes · {1} visibles",
+        "stress.scenario.geometry.global": "x global {0}",
 
         // MARK: customlayout
         "stress.scenario.customlayout.title": "Layout personnalisé",

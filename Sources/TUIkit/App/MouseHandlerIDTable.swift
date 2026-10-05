@@ -124,6 +124,28 @@ final class MouseHandlerIDTable {
     func beginWalk() {
         slotsUsed.removeAll(keepingCapacity: true)
     }
+
+    /// How many slots `identity` has taken so far in this walk.
+    func slotCount(at identity: ViewIdentity) -> Int? {
+        slotsUsed[identity]
+    }
+
+    /// Puts the slot counters back to where they were before a subtree rooted
+    /// at `identity` rendered: `identity`'s own to `count` (what
+    /// ``slotCount(at:)`` read then), and every identity below it to none.
+    ///
+    /// For a view that draws its subtree a second time in one walk — a
+    /// coordinate space correcting a reader (`RenderWalkCheckpoint`) — so the
+    /// second drawing's controls take the ids the first drawing's took, rather
+    /// than the next slots along: a control whose id moved would lose its hover
+    /// and its held press, and a geometry marker would lose what was found for
+    /// it. Assumes nothing below `identity` registered earlier in the walk,
+    /// which holds wherever the subtree is drawn once before the correction.
+    func rewind(at identity: ViewIdentity, to count: Int?) {
+        slotsUsed[identity] = count
+        let below = slotsUsed.keys.filter { identity.isAncestor(of: $0) }
+        for key in below { slotsUsed.removeValue(forKey: key) }
+    }
 }
 
 // MARK: - Pruning

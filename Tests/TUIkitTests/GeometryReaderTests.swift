@@ -209,30 +209,31 @@ struct GeometryReaderTests {
         #expect(frame.maxY == 5)
     }
 
-    @Test("A global frame says so when it does not know the position")
-    func globalFrameIsHonestAboutNotKnowing() {
-        // Most readers render into a buffer that is composed into its parent
-        // afterwards, so there is no screen position to report. Falling back to
-        // the local frame is the least-wrong answer; `hasGlobalPosition` is how
-        // a caller tells the difference instead of being quietly misled.
-        let unpositioned = GeometryProxy(width: 20, height: 5)
-        #expect(!unpositioned.hasGlobalPosition)
-        #expect(unpositioned.frame(in: .global) == unpositioned.frame(in: .local))
-
-        let positioned = GeometryProxy(width: 20, height: 5, globalOrigin: (x: 4, y: 2))
-        #expect(positioned.hasGlobalPosition)
-        #expect(positioned.frame(in: .global) == CellRect(x: 4, y: 2, width: 20, height: 5))
-        #expect(positioned.frame(in: .local).x == 0)
+    @Test("A proxy made by hand, with no frame around it, answers every other space at the origin")
+    func handMadeProxyAnswersAtTheOrigin() {
+        // A proxy only knows where it is through the frame that drew it
+        // (`CoordinateSpaceTests` covers those). One made outside any frame —
+        // in a test, in a measure — has nothing to ask, and answers `(0, 0)`
+        // rather than inventing a position; `bounds(of:)` answers `nil`.
+        let proxy = GeometryProxy(width: 20, height: 5)
+        #expect(proxy.frame(in: .global) == proxy.frame(in: .local))
+        #expect(proxy.frame(in: .named("anything")) == proxy.frame(in: .local))
+        #expect(proxy.bounds(of: .named("anything")) == nil)
+        #expect(proxy.bounds(of: .scrollView) == nil)
     }
 
     @Test("The protocol spaces answer as the enum cases they resolve to")
     func protocolSpaces() {
-        let proxy = GeometryProxy(width: 20, height: 5, globalOrigin: (x: 4, y: 2))
+        let proxy = GeometryProxy(width: 20, height: 5)
         #expect(proxy.frame(in: LocalCoordinateSpace()) == proxy.frame(in: CoordinateSpace.local))
-        #expect(proxy.frame(in: GlobalCoordinateSpace()) == CellRect(x: 4, y: 2, width: 20, height: 5))
+        #expect(proxy.frame(in: GlobalCoordinateSpace()) == proxy.frame(in: CoordinateSpace.global))
         #expect(frame(of: proxy, in: .global) == proxy.frame(in: CoordinateSpace.global))
+        #expect(frame(of: proxy, in: .named("s")) == proxy.frame(in: CoordinateSpace.named("s")))
         #expect(CoordinateSpace.global.isGlobal && !CoordinateSpace.global.isLocal)
         #expect(CoordinateSpace.local.isLocal && !CoordinateSpace.local.isGlobal)
+        #expect(NamedCoordinateSpace.named("s").coordinateSpace == .named("s"))
+        #expect(NamedCoordinateSpace.scrollView != NamedCoordinateSpace.scrollView(axis: .vertical))
+        #expect(NamedCoordinateSpace.scrollView(axis: .horizontal) == .scrollView(axis: .horizontal))
     }
 
     /// Through the protocol only, so `.global` resolves as SwiftUI's

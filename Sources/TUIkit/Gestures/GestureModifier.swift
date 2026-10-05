@@ -272,7 +272,13 @@ extension GestureAttachment: Renderable {
             default: GestureParticipants())
         let participant = box.value.participant(for: ObjectIdentifier(Self.self))
 
+        // A gesture reporting locations in a named space asks to be found in
+        // it; claimed before the content renders, as every marker slot is.
+        let pointerSpaces = PointerSpaceOrigin(
+            named: namedPointerSpaces(of: gesture), global: false, context: context)
         var buffer = TUIkit.renderToBuffer(content, context: context)
+        pointerSpaces?.stamp(into: &buffer, context: context)
+        participant.pointerSpaces = pointerSpaces
 
         let isLive = mask.contains(.gesture)
         if isLive { participant.update(gesture) }
@@ -345,6 +351,11 @@ extension GestureAttachment: DrawsContentUnchanged {}
 @MainActor
 final class GestureParticipant {
     private let cache = GestureNodeCache()
+
+    /// Where the attachment's view is in the named spaces its gesture reports
+    /// locations in, as of the last frame that drew it — `nil` when it reports
+    /// in none. Read by the arena as it hands each event to the recognizers.
+    var pointerSpaces: PointerSpaceOrigin?
 
     /// The gesture value of the last frame that rendered the attachment, until
     /// ``root`` builds it. An existential: a tap's value fits its inline

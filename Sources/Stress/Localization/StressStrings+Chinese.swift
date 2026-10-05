@@ -112,6 +112,11 @@ extension StressStrings {
         "stress.scenario.preferences.blurb": "N 行，每行向一个收集器发布一个偏好。",
         "stress.scenario.preferences.stresses": "偏好副作用声明 · 值备忘失效 · 逐行重新测量",
         "stress.scenario.preferences.heading": "{0} 行 · 已发布 {1}",
+        "stress.scenario.geometry.title": "几何",
+        "stress.scenario.geometry.blurb": "惰性行在滚动时读取自己在命名空间和滚动视图空间中的位置。",
+        "stress.scenario.geometry.stresses": "几何标记 · 坐标空间所有者 · 校正重绘 · 滚动可见性",
+        "stress.scenario.geometry.heading": "{0} 行 · {1} 可见",
+        "stress.scenario.geometry.global": "全局 x {0}",
 
         // MARK: customlayout
         "stress.scenario.customlayout.title": "自定义布局",

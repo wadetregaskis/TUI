@@ -110,6 +110,27 @@ extension KeyEventDispatcher {
     /// ``insertHandler(at:sectionID:_:)`` files a handler at.
     var handlerCount: Int { handlers.count }
 
+    /// How far registration has got: what ``rollBack(to:)`` returns to.
+    struct Mark {
+        fileprivate let handlers: Int
+        fileprivate let focusPathHandlers: Int
+    }
+
+    /// Where registration has got so far in this walk.
+    var mark: Mark {
+        Mark(handlers: handlers.count, focusPathHandlers: focusPathHandlers.count)
+    }
+
+    /// Drops every handler registered since `mark` was read — what a subtree
+    /// drawn a second time in one walk registered the first time
+    /// (`RenderWalkCheckpoint`), which would otherwise run twice.
+    func rollBack(to mark: Mark) {
+        if handlers.count > mark.handlers { handlers.removeLast(handlers.count - mark.handlers) }
+        if focusPathHandlers.count > mark.focusPathHandlers {
+            focusPathHandlers.removeLast(focusPathHandlers.count - mark.focusPathHandlers)
+        }
+    }
+
     /// Declares that `id` owns the keyboard for the rest of this frame — see
     /// ``grabbingSectionID``. Called by a presented surface as it renders.
     func grabInput(sectionID id: String) {

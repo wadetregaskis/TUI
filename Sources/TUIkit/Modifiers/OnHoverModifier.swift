@@ -70,10 +70,14 @@ extension OnHoverModifier: Renderable {
 
         let capturedObserve = observe
         // The dispatcher hands a handler cells local to its region; the
-        // terminal's are those plus the region's origin, which is known only
+        // global ones are those plus the region's origin, which is known only
         // where the region was composited — so it is looked up when the event
-        // comes, by the id the registration returns.
-        let globalOrigin = coordinateSpace == .global ? RegionOrigin(dispatcher: dispatcher) : nil
+        // comes, by the id the registration returns. A named space's are those
+        // plus where the space's owner found this view (`PointerSpaceOrigin`).
+        let space = coordinateSpace
+        let spaceOrigin = PointerSpaceOrigin(
+            named: space.isNamed ? [space] : [], global: space == .global, context: context)
+        spaceOrigin?.stamp(into: &buffer, context: context)
         // An OBSERVER, not an ordinary region. This region goes on after the
         // content's, so on every cell it is the innermost match, and as an
         // ordinary region it took the `.entered` / `.exited` the wrapped
@@ -81,8 +85,7 @@ extension OnHoverModifier: Renderable {
         // never lit up, where SwiftUI keeps both. See
         // `MouseEventDispatcher.registerHoverObserver(in:_:)`.
         let handlerID = dispatcher.registerHoverObserver(in: context) { event in
-            let origin = globalOrigin?.offset ?? (x: 0, y: 0)
-            let cell = CellPoint(x: event.x + origin.x, y: event.y + origin.y)
+            let cell = pointerCell(of: event, in: space, origin: spaceOrigin)
             switch event.phase {
             case .entered:
                 capturedObserve(.entered(cell))
@@ -103,7 +106,7 @@ extension OnHoverModifier: Renderable {
                 return false
             }
         }
-        globalOrigin?.handlerID = handlerID
+        spaceOrigin?.handlerID = handlerID
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,

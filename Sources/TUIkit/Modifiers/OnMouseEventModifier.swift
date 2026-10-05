@@ -60,19 +60,26 @@ extension OnMouseEventModifier: Renderable {
             return buffer
         }
 
-        // The terminal's cell is the region's plus its origin, which is known
-        // only where the region was composited, so it is looked up when the
-        // event comes — see `RegionOrigin`.
-        let globalOrigin = coordinateSpace == .global ? RegionOrigin(dispatcher: dispatcher) : nil
+        // The global cell is the region's plus its origin, which is known only
+        // where the region was composited, so it is looked up when the event
+        // comes — see `RegionOrigin`; a named space's is the region's plus
+        // where the space's owner found this view (`PointerSpaceOrigin`).
+        let space = coordinateSpace
+        let spaceOrigin = PointerSpaceOrigin(
+            named: space.isNamed ? [space] : [], global: space == .global, context: context)
+        spaceOrigin?.stamp(into: &buffer, context: context)
         let handler: (MouseEvent) -> Bool
-        if let globalOrigin {
+        if let spaceOrigin {
             let local = self.handler
-            handler = { event in local(event.moved(by: globalOrigin.offset)) }
+            handler = { event in
+                let cell = pointerCell(of: event, in: space, origin: spaceOrigin)
+                return local(event.moved(by: (x: cell.x - event.x, y: cell.y - event.y)))
+            }
         } else {
             handler = self.handler
         }
         let handlerID = dispatcher.register(in: context, handler)
-        globalOrigin?.handlerID = handlerID
+        spaceOrigin?.handlerID = handlerID
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,

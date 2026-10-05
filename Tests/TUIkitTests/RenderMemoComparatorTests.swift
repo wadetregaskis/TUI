@@ -305,7 +305,15 @@ struct RenderMemoComparatorTests {
             identical: GeometryProxy(width: 4, height: 5),
             variants: [
                 ("size", GeometryProxy(width: 6, height: 5)),
-                ("globalOrigin", GeometryProxy(width: 4, height: 5, globalOrigin: (x: 1, y: 2))),
+                (
+                    "ask",
+                    GeometryProxy(
+                        width: 4, height: 5,
+                        ask: GeometryAsk(
+                            id: HitTestRegion.HandlerID(HitTestRegion.HandlerID.geometryMarkerBit),
+                            identity: ViewIdentity(path: "reader"), role: .reader,
+                            coordinator: GeometryCoordinator(), tracker: nil))
+                ),
             ])
     }
 

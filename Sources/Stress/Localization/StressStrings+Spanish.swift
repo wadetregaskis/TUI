@@ -114,6 +114,11 @@ extension StressStrings {
         "stress.scenario.preferences.blurb": "N filas, cada una publica una preferencia a un recolector.",
         "stress.scenario.preferences.stresses": "declaración del efecto secundario de preferencia · anulación del memo de valores · re-medición por fila",
         "stress.scenario.preferences.heading": "{0} filas · {1} publicadas",
+        "stress.scenario.geometry.title": "Geometría",
+        "stress.scenario.geometry.blurb": "Filas perezosas que leen su posición en un espacio con nombre y en el de la vista de desplazamiento, mientras se desplaza.",
+        "stress.scenario.geometry.stresses": "marcadores de geometría · propietarios de espacios de coordenadas · renderizados de corrección · visibilidad al desplazar",
+        "stress.scenario.geometry.heading": "{0} filas · {1} visibles",
+        "stress.scenario.geometry.global": "x global {0}",
 
         // MARK: customlayout
         "stress.scenario.customlayout.title": "Layout personalizado",

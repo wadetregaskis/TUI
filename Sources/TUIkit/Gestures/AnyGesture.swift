@@ -22,11 +22,16 @@ public struct AnyGesture<Value>: Gesture {
     /// The erased gesture, kept as the one thing a recognizer needs of it.
     private let makeGesture: @MainActor (_GestureInputs) -> _GestureOutputs<Value>
 
+    /// The named spaces the erased gesture reports locations in, read before
+    /// its type was erased — see `PointerSpaceReporting`.
+    let pointerSpaces: [CoordinateSpace]
+
     /// Creates an instance from another gesture.
     ///
     /// - Parameter gesture: A gesture that you use to create a new gesture.
     public init<T: Gesture>(_ gesture: T) where Value == T.Value {
         makeGesture = { T._makeGesture(gesture: gesture, inputs: $0) }
+        pointerSpaces = namedPointerSpaces(of: gesture)
     }
 
     /// The type of gesture representing the body of `Self`.

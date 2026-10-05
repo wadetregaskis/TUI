@@ -2450,3 +2450,52 @@ private struct ScrollVisibilityShapes: View {
         }
     }
 }
+
+// MARK: - Coordinate spaces (lane D5G)
+
+/// SwiftUI's own example for `coordinateSpace(_:)` — a drag located in a named
+/// space — and the readers SwiftUI code writes against named spaces and the
+/// scroll view's.
+@MainActor
+private struct CoordinateSpaceShapes: View {
+    @State private var location = CellPoint(x: 0, y: 0)
+    @State private var offset = 0
+
+    var body: some View {
+        VStack {
+            Text("Location: \(location.x), \(location.y)")
+                .gesture(
+                    DragGesture(coordinateSpace: .named("stack"))
+                        .onChanged { info in location = info.location })
+            ScrollView {
+                VStack {
+                    GeometryReader { proxy in
+                        let minY = proxy.frame(in: .named("scroll")).minY
+                        let viewport = proxy.frame(in: .scrollView).minY
+                        let vertical = proxy.frame(in: .scrollView(axis: .vertical))
+                        let bounds: CellRect? = proxy.bounds(of: .scrollView)
+                        let named: CellRect? = proxy.bounds(of: .named("scroll"))
+                        Text("\(minY) \(viewport) \(vertical.origin.y) \(bounds?.size.height ?? 0) \(named?.minX ?? 0)")
+                    }
+                    Text("row")
+                        .onGeometryChange(for: Int.self) { proxy in
+                            proxy.frame(in: .scrollView).minY
+                        } action: { newValue in
+                            offset = newValue
+                        }
+                }
+            }
+            .coordinateSpace(.named("scroll"))
+            Text("tap")
+                .onTapGesture(coordinateSpace: .named("stack")) { location = $0 }
+        }
+        .coordinateSpace(.named("stack"))
+        .coordinateSpace(NamedCoordinateSpace.named("other"))
+    }
+}
+
+private func coordinateSpaceValues() -> Bool {
+    let named: CoordinateSpace = .named("stack")
+    let resolved = NamedCoordinateSpace.scrollView.coordinateSpace
+    return named != resolved && CoordinateSpace.global.isGlobal
+}

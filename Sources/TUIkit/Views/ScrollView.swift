@@ -554,6 +554,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // draw landed its row one line down.
         let pendingSeek = consumedSeek(
             handler: handler, edgeInset: chrome.edgeInset, context: context)
+        // Where the walk stood before the content rendered, for a correction of
+        // a reader asking this view's space (`ownScrollSpace`).
+        let checkpoint = context.isMeasuring ? nil : RenderWalkCheckpoint(context: context)
         var (fullBuffer, contentSlice, seekOffset, contentExtent, drawnLines) = renderedContent(
             contentWidth: contentWidth, viewportHeight: contentViewportHeight,
             horizontal: wantsHorizontal, verticalScrollOffset: handler.scrollOffset,
@@ -628,7 +631,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // Settle the pursuit AFTER coverage/re-glue, when the frame's offset
         // is final — see the helper.
         settleRevealPursuit(armed: pursuitArmed, handler: handler, context: context)
-        let sliceOriginY = contentSlice?.originY ?? 0
+
+        var visibleBuffer = ownedContentWindow(
+            full: fullBuffer, slice: contentSlice, checkpoint: checkpoint, handler: handler, chrome: chrome,
+            viewport: CellSize(width: contentWidth, height: contentViewportHeight),
+            horizontal: wantsHorizontal, context: context)
 
         decideTabStop(
             handler: handler, contentWidth: contentWidth,
@@ -641,15 +648,6 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // scrollbar (below) so there's a visible focus indicator.
         FocusRegistration.register(context: context, handler: handler, focusID: persistedFocusID)
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
-
-        var visibleBuffer = drawnViewport(
-            full: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
-            width: contentWidth, height: contentViewportHeight, horizontal: wantsHorizontal, context: context)
-        // What the content window shows, before the chrome is drawn around it:
-        // the viewport `onScrollVisibilityChange` measures against.
-        context.measureScrollVisibility(
-            in: visibleBuffer,
-            viewport: CellRect(x: 0, y: 0, width: contentWidth, height: contentViewportHeight))
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bars and
         // the "N more" lines breathe as the scroll view's focus indication, so
@@ -685,7 +683,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// That is read from the environment here, once a frame, and handed to
     /// everything below; the framework's own scrollers do not read it, and
     /// always clip (``ScrollView/asChrome()``).
-    private func drawnViewport(
+    func drawnViewport(
         full fullBuffer: FrameBuffer, sliceOriginY: Int, handler: ScrollViewHandler, chrome: ScrollChrome,
         width: Int, height: Int, horizontal: Bool, context: RenderContext
     ) -> FrameBuffer {

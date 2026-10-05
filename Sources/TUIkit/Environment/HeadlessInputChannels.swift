@@ -57,6 +57,39 @@ package final class HeadlessInputChannels {
         mouseEventDispatcher.beginRenderPass()
     }
 
+    /// Answers the frame's readers of `.global` and of names nothing declared,
+    /// as the scene root does in `RenderLoop`, and draws the frame once more
+    /// when one of them drew from a wrong answer — the root's correction.
+    ///
+    /// - Parameters:
+    ///   - frame: The frame as rendered.
+    ///   - width: The width it was rendered at.
+    ///   - height: The height it was rendered at.
+    ///   - stateStorage: The storage it rendered against, whose per-walk
+    ///     counters a second walk restarts.
+    ///   - redraw: Renders the frame again.
+    /// - Returns: The frame to show.
+    package func settleRootGeometry(
+        _ frame: FrameBuffer, width: Int, height: Int, stateStorage: StateStorage?,
+        redraw: () -> FrameBuffer
+    ) -> FrameBuffer {
+        let geometry = mouseEventDispatcher.geometry
+        let size = CellSize(width: width, height: height)
+        guard geometry.resolveRemaining(in: frame, size: size) else { return frame }
+        geometry.noteCorrection(.root)
+        beginWalk()
+        stateStorage?.beginSceneRender()
+        let redrawn = redraw()
+        if geometry.resolveRemaining(in: redrawn, size: size) { geometry.noteResidual() }
+        return redrawn
+    }
+
+    /// How often the frame's geometry owners have drawn their subtrees again,
+    /// so far — the Stress `geometry` scenario's acceptance metric.
+    package var geometryCorrections: GeometryCorrections {
+        mouseEventDispatcher.geometry.corrections
+    }
+
     /// Reports what the frame owes its geometry observers, as `RenderLoop`
     /// does once a frame is drawn (`GeometryCoordinator.endFrame`).
     ///

@@ -15,24 +15,31 @@ import TUIkitView
 // MARK: - Geometry Coordinator
 
 /// The bookkeeping behind the views that need to know where a view ended up:
-/// scroll visibility (`onScrollVisibilityChange`), and the coordinate spaces
-/// and anchors that build on the same markers.
+/// scroll visibility (`onScrollVisibilityChange`), the coordinate spaces
+/// (`GeometryProxy.frame(in:)`, `bounds(of:)`, a gesture located in a named
+/// space), and the anchors that build on the same markers.
 ///
 /// TUIkit renders bottom-up — a container renders a child, then places it — so
 /// no view knows where it sits while it is drawn. Each such view stamps a
 /// geometry marker (`HitTestRegion.geometryMarker(_:)`) into its buffer and
 /// registers here what it wants to know, under the marker's id. The view that
 /// owns the answer reads the markers back out of what it drew — a scroll view
-/// its content, against its viewport — and records what it found here. What
-/// is REPORTED (a callback fired) waits for the frame to end, so a view a
+/// its content, against its viewport; a `coordinateSpace(_:)` view its
+/// subtree; the scene root the whole frame — and records what it found here.
+///
+/// A view whose content is BUILT from an answer (a `GeometryReader`) is
+/// answered, while it renders, with what its owner found last frame; the owner
+/// checks that against where it finds the view now, and draws its subtree
+/// once more when they differ (G1 of the design study: the correction). What
+/// is REPORTED — a callback fired — waits for the frame to end, so a view a
 /// frame draws more than once reports once, and reports what was finally
 /// drawn.
 ///
 /// One per mouse dispatcher, which already interns the marker ids and is
 /// wired wherever a frame is rendered (`MouseEventDispatcher.geometry`).
 /// Per-walk state is cleared with the dispatcher's
-/// (`MouseEventDispatcher.beginRenderPass()`); what is reported across frames
-/// is kept here.
+/// (`MouseEventDispatcher.beginRenderPass()`); what is kept across frames is
+/// kept here, and pruned with the views it belongs to.
 ///
 /// Unsynchronised, on the dispatcher's terms: it is only touched on the
 /// render path and at the end of a frame, both on the main actor.
@@ -79,29 +86,92 @@ final class GeometryCoordinator: @unchecked Sendable {
     /// What each observer was last told.
     var reported: [HitTestRegion.HandlerID: Reported] = [:]
 
+    // MARK: - Coordinate Spaces (state; GeometryCoordinator+Spaces.swift)
+
+    /// What owners found for one view, kept across frames: what the view is
+    /// told while it renders next.
+    struct KeptObservations {
+        let identity: ViewIdentity
+        var bySpace: [CoordinateSpace: GeometryObservation] = [:]
+        /// Whether the view asked this walk — a view that did not is pruned
+        /// unless a lazy container still holds it (``endSpacesFrame(isRetained:)``).
+        var askedThisWalk = true
+    }
+
+    /// This walk's asks, by marker id.
+    var asks: [HitTestRegion.HandlerID: GeometryAsk] = [:]
+
+    /// The order they registered in, which is the order reports are made in.
+    var askOrder: [HitTestRegion.HandlerID] = []
+
+    /// How many (ask, space) pairs no owner has answered yet, by space — what
+    /// an owner asks before it scans what it drew.
+    var unanswered: [CoordinateSpace: Int] = [:]
+
+    /// The total of ``unanswered``: what the scene root asks.
+    var unansweredTotal = 0
+
+    /// What owners found, across frames, by marker id.
+    var kept: [HitTestRegion.HandlerID: KeptObservations] = [:]
+
+    /// Spaces a view asked about after its render — from an action, at the end
+    /// of a frame — which it is found in from its next render on.
+    var lateAsks: [HitTestRegion.HandlerID: [CoordinateSpace]] = [:]
+
+    /// What each reporter (`onGeometryChange` asking another space) does once
+    /// the frame is done, by marker id.
+    var reporters: [HitTestRegion.HandlerID: (GeometryProxy) -> Void] = [:]
+
+    /// How often owners have drawn their subtrees again — see
+    /// ``GeometryCorrections``.
+    private(set) var corrections = GeometryCorrections()
+
     /// Clears the walk's registrations — see ``MouseEventDispatcher/beginRenderPass()``.
     func beginWalk() {
-        guard !observers.isEmpty else { return }
-        observers.removeAll(keepingCapacity: true)
-        observerOrder.removeAll(keepingCapacity: true)
-        unmeasuredObservers = 0
+        if !observers.isEmpty {
+            observers.removeAll(keepingCapacity: true)
+            observerOrder.removeAll(keepingCapacity: true)
+            unmeasuredObservers = 0
+        }
+        if !asks.isEmpty {
+            asks.removeAll(keepingCapacity: true)
+            askOrder.removeAll(keepingCapacity: true)
+            unanswered.removeAll(keepingCapacity: true)
+            unansweredTotal = 0
+            reporters.removeAll(keepingCapacity: true)
+        }
+    }
+
+    /// Counts a correction an owner of `kind` made.
+    func noteCorrection(_ kind: GeometryOwnerKind) {
+        corrections.note(kind)
+    }
+
+    /// Counts a reader found still wrong after its owner's correction — which
+    /// one correction cannot leave if readers are greedy (the design study's
+    /// one-pass convergence), so a non-zero count is a bug to look for.
+    func noteResidual() {
+        corrections.residual += 1
     }
 
     // MARK: - Ending the Frame
 
-    /// Settles what the frame owes its geometry views, once it is drawn.
+    /// Settles what the frame owes its geometry views, once it is drawn: the
+    /// reporters' callbacks, the visibility reports, and the pruning of what is
+    /// kept for views that have gone.
     ///
     /// - Parameters:
     ///   - frame: The frame as it will be shown, every layer composited.
     ///   - isRetained: Whether an identity that drew nothing this frame is
     ///     still in the tree (`StateStorage.retainedSubtrees()`).
     func endFrame(frame: FrameBuffer, isRetained: (ViewIdentity) -> Bool) {
+        endSpacesFrame(isRetained: isRetained)
         endVisibilityFrame(frame: frame, isRetained: isRetained)
     }
 
     /// ``endFrame(frame:isRetained:)``, asking `storage` which identities are
-    /// still in the tree — and only if some observer vanished, since building
-    /// the index is the cost.
+    /// still in the tree — and only if some view vanished, since building the
+    /// index is the cost.
     func endFrame(frame: FrameBuffer, retainedBy storage: StateStorage?) {
         var retained: RetainedSubtreeIndex?
         endFrame(frame: frame) { identity in
@@ -110,6 +180,48 @@ final class GeometryCoordinator: @unchecked Sendable {
             return retained?.retains(identity) ?? false
         }
     }
+}
+
+// MARK: - Corrections
+
+/// Which kind of view owned a coordinate space a reader asked about.
+enum GeometryOwnerKind {
+    /// A ``View/coordinateSpace(_:)`` view.
+    case named
+    /// A scroll view, for `.scrollView` and `.scrollView(axis:)`.
+    case scrollView
+    /// The scene root, for `.global` and every name nothing declared.
+    case root
+    /// An `overlayPreferenceValue` / `backgroundPreferenceValue` layer,
+    /// resolving anchors relative to a reader inside it.
+    case layer
+}
+
+/// How many times each kind of owner drew its subtree again because a reader
+/// in it had drawn from an answer that turned out wrong — the acceptance
+/// metric of the design study's prediction rungs (the Stress `geometry`
+/// scenario prints it per frame).
+package struct GeometryCorrections: Equatable, Sendable {
+    package var named = 0
+    package var scrollView = 0
+    package var root = 0
+    package var layer = 0
+    /// Readers still wrong after a correction: should stay zero.
+    package var residual = 0
+
+    package init() {}
+
+    mutating func note(_ kind: GeometryOwnerKind) {
+        switch kind {
+        case .named: named += 1
+        case .scrollView: scrollView += 1
+        case .root: root += 1
+        case .layer: layer += 1
+        }
+    }
+
+    /// Every correction, whatever owned it.
+    package var total: Int { named + scrollView + root + layer }
 }
 
 // MARK: - Reaching It

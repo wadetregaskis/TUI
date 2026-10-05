@@ -32,11 +32,12 @@ extension View {
     /// resizes knowing nothing. It runs on the render pass only, so a measure
     /// (of which there are several per frame) cannot fire it.
     ///
-    /// What a terminal `GeometryProxy` can answer is `size` and a `.local`
-    /// frame; `.global` is exact only where the renderer knows where the view
-    /// sits (see ``GeometryProxy/hasGlobalPosition``). `transform` runs against
-    /// that, so a value derived from a `.global` frame inherits the same
-    /// caveat.
+    /// A `transform` that asks only the view's size or `.local` frame runs as
+    /// the view renders. One that asks another space — `.global`, a name
+    /// declared with ``View/coordinateSpace(_:)``, `.scrollView` — is run again
+    /// once the frame is done, against where that space's owner found the
+    /// view, and the action fires then: the view's position is only known once
+    /// its ancestors have placed it (decisions A2, the owner's answer 7).
     ///
     /// - Parameters:
     ///   - type: The type of the derived value, stated so the closure's return
@@ -118,23 +119,47 @@ extension OnGeometryChangeModifier: Renderable {
         let key = StateStorage.StateKey(
             identity: context.identity,
             propertyIndex: storage.nextOnChangeIndex(for: context.identity))
+        // Claimed before the content renders too, for the same reason: the
+        // marker's slot is an ordinal at this identity.
+        let ask = context.makeGeometryAsk(role: .reporter)
 
-        let buffer = TUIkit.renderToBuffer(content, context: context)
-        // The view's OWN size — what its content actually came out at, not what
-        // was offered. That is the whole difference from `GeometryReader`.
-        let value = transform(GeometryProxy(width: buffer.width, height: buffer.height))
-        let previous: T? = storage.trackedValue(for: key)
-        storage.setTrackedValue(value, for: key)
+        var buffer = TUIkit.renderToBuffer(content, context: context)
         // Manual tracked values are pruned unless the identity is marked — see
         // the same call in `OnChangeModifier`.
         storage.markActive(context.identity)
+        // The view's OWN size — what its content actually came out at, not what
+        // was offered. That is the whole difference from `GeometryReader`.
+        let value = transform(GeometryProxy(width: buffer.width, height: buffer.height, ask: ask))
 
+        // A transform that asked about another space is asked again once the
+        // frame is done, with where that space's owner found the view.
+        if let ask {
+            ask.finishRecording(size: buffer.cellSize)
+            if !ask.wanted.isEmpty, let geometry = context.geometryCoordinator {
+                let (transform, action) = (self.transform, self.action)
+                geometry.registerReporter(ask) { proxy in
+                    Self.report(transform(proxy), at: key, in: storage, action: action)
+                }
+                buffer.hitTestRegions.append(.geometryMarker(ask.id))
+                return buffer
+            }
+        }
+        Self.report(value, at: key, in: storage, action: action)
+        return buffer
+    }
+
+    /// Calls `action` when `value` differs from the one last reported at
+    /// `key` — and on the first report, with the same value as old and new.
+    private static func report(
+        _ value: T, at key: StateStorage.StateKey, in storage: StateStorage, action: (T, T) -> Void
+    ) {
+        let previous: T? = storage.trackedValue(for: key)
+        storage.setTrackedValue(value, for: key)
         if let previous {
             if previous != value { action(previous, value) }
         } else {
             action(value, value)
         }
-        return buffer
     }
 }
 

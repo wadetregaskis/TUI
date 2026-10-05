@@ -603,7 +603,8 @@ extension RenderLoop {
     }
 
     /// Renders the scene — the content framed by its chrome — and returns the
-    /// frame. One walk, on every frame after the first.
+    /// frame. One walk, on every frame after the first, but one on which the
+    /// scene root corrects a geometry reader (a second).
     ///
     /// The chrome host reserves the bars' rows before the content draws, and
     /// the content is what declares them, so the rows are last frame's answer
@@ -651,7 +652,26 @@ extension RenderLoop {
 
         context.hasExplicitWidth = true
         context.hasExplicitHeight = true
-        return renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
+        let reservation = windowChrome.reservation
+        var frame = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
+
+        // The scene root owns `.global` — the screen, which the frame is, with
+        // the layers the window composited into it — and every name nothing
+        // nearer declared: a reader that drew from a wrong answer is drawn
+        // again, in a second walk of the scene. The one walk a frame after the
+        // first ever draws again, and only on a frame a reader moved: the
+        // chrome's rows never need it (they are last frame's answer).
+        let geometry = tuiContext.mouseEventDispatcher.geometry
+        let size = CellSize(width: terminalWidth, height: terminalHeight)
+        if geometry.resolveRemaining(in: frame, size: size) {
+            geometry.noteCorrection(.root)
+            // Laid out against the rows the first walk was, which its settling
+            // may have changed for the NEXT frame — and settled again from them.
+            windowChrome.reservation = reservation
+            frame = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
+            if geometry.resolveRemaining(in: frame, size: size) { geometry.noteResidual() }
+        }
+        return frame
     }
 
     /// Invalidates the diff cache, forcing a full repaint on the next render.
@@ -811,9 +831,10 @@ extension RenderLoop {
     /// find the chrome the content declares, then the drawn one. (Every frame
     /// used to be exposed: a correction re-render ran whenever the app header's
     /// height disagreed with the estimate the frame was laid out against. The
-    /// window's chrome now adopts a change a frame later instead.) Only the
-    /// LAST walk's buffer is drawn — so only the last walk's registrations
-    /// should survive.
+    /// window's chrome now adopts a change a frame later instead.) It walks
+    /// it again on any frame whose scene root corrects a geometry reader
+    /// (`GeometryCoordinator.resolveRemaining`). Only the LAST walk's buffer
+    /// is drawn — so only the last walk's registrations should survive.
     ///
     /// Resetting these once per PASS instead let the discarded walk's entries
     /// pile up on top of the drawn walk's:

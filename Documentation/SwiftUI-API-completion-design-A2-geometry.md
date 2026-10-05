@@ -493,6 +493,20 @@ use of it I know (offset tracking, transitions) needs it to move with the
 scroll. Re-run M3 at offset 40 before step 3; I expect `(0, 0, 100, 20)`
 (viewport space), and the design above assumes it.
 
+**Re-measured (2026-10-05, lane D5G, macOS 15, probes in the session notes
+`D5G/probe`):** confirmed. A reader 40 points down a 100-point `ScrollView`
+scrolled 40 points reports `frame(in: .scrollView) == (0, 0, 100, 20)` and
+`bounds(of: .scrollView) == (0, 0, 100, 100)` — the viewport; `.named` on the
+`ScrollView` itself answers the same, and `.named` on its content answers
+`(0, 40, …)`. Two findings beside it, re-measured with the reader OFF the
+window's origin (M2 had it at the origin, where local and global coincide):
+**an unknown name answers in the global space**, not the local one
+(`bounds(of:)` is still `nil`); and `.scrollView` outside any scroll view, or
+`.scrollView(axis:)` with no scroll view along that axis, answers in the global
+space too. The innermost scroll view answers `.scrollView` whatever its axis.
+The implementation follows these: the scene root answers every name nothing
+nearer declared, in the global space.
+
 ---
 
 ## 10. Staged implementation plan

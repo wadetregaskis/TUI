@@ -88,6 +88,7 @@ enum Scenarios {
         WideFanoutScenario.descriptor,
         ModifierChainsScenario.descriptor,
         PreferenceRowsScenario.descriptor,
+        GeometryScenario.descriptor,
         CustomLayoutScenario.descriptor,
         TextWallScenario.descriptor,
         AnyViewStormScenario.descriptor,

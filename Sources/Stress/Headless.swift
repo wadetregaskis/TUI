@@ -211,8 +211,7 @@ enum Headless {
             context.environment.stateStorage?.beginRenderPass()
             context.environment.renderCache?.beginRenderPass()
             stampFrameDate(context)
-            let warmUp = renderToBuffer(view, context: context)
-            channels.endFrame(warmUp, stateStorage: context.environment.stateStorage)
+            _ = renderFrame(view, context: context, channels: channels, cols: 120, rows: 40)
             context.environment.stateStorage?.endRenderPass()
             context.environment.renderCache?.removeInactive()
             driven?.advance(1)
@@ -220,8 +219,7 @@ enum Headless {
             context.environment.stateStorage?.beginRenderPass()
             context.environment.renderCache?.beginRenderPass()
             stampFrameDate(context)
-            let buffer = renderToBuffer(view, context: context)
-            channels.endFrame(buffer, stateStorage: context.environment.stateStorage)
+            let buffer = renderFrame(view, context: context, channels: channels, cols: 120, rows: 40)
             context.environment.stateStorage?.endRenderPass()
             let staleServes = context.environment.renderCache?.renderMemoMismatches ?? []
             let trimmed = StackGuard.truncationCount - trimmedBefore
@@ -278,6 +276,38 @@ enum Headless {
                     + "and every session verified (\(Sessions.all.count))"
                 : "selfcheck: \(failures) FAILED")
         return failures
+    }
+
+    /// One frame of `view`: the walk, the scene root's geometry correction, and
+    /// what the frame owes its geometry observers — the part of
+    /// `RenderLoop.render` a headless walk still needs.
+    @MainActor
+    private static func renderFrame(
+        _ view: AnyView, context: RenderContext, channels: HeadlessInputChannels, cols: Int, rows: Int
+    ) -> FrameBuffer {
+        let storage = context.environment.stateStorage
+        let buffer = channels.settleRootGeometry(
+            renderToBuffer(view, context: context), width: cols, height: rows, stateStorage: storage
+        ) { renderToBuffer(view, context: context) }
+        channels.endFrame(buffer, stateStorage: storage)
+        return buffer
+    }
+
+    /// Prints how often the geometry owners drew their subtrees again, per
+    /// frame and by owner kind — the acceptance metric of the A2 design
+    /// study's prediction rungs. Silent for a scenario that corrected nothing,
+    /// unless it is the one built to watch it.
+    private static func printGeometryCorrections(
+        from before: GeometryCorrections, to after: GeometryCorrections, frames: Int, always: Bool
+    ) {
+        let total = after.total - before.total
+        guard always || total > 0 || after.residual > before.residual else { return }
+        let divisor = Double(max(1, frames))
+        let perFrame = { (count: Int) in String(format: "%.2f", Double(count) / divisor) }
+        print("  geometry corrections/frame: \(perFrame(total)) — named \(perFrame(after.named - before.named)), "
+            + "scroll view \(perFrame(after.scrollView - before.scrollView)), "
+            + "root \(perFrame(after.root - before.root)), layer \(perFrame(after.layer - before.layer)); "
+            + "still wrong after one: \(after.residual - before.residual)")
     }
 
     /// Prints the memos' totals and what the last walk left registered.
@@ -376,6 +406,7 @@ enum Headless {
         // `--census`: installed after the warm-up, so the loop is all it counts.
         let observation = BenchObservationCounter(
             requested: countsObservation, cold: cold, cache: warm.renderCache)
+        let correctionsBefore = channels.geometryCorrections
         for iteration in 0..<iterations {
             if iteration.isMultiple(of: 64) { memory.sample() }
             if cold {
@@ -403,8 +434,7 @@ enum Headless {
             warm.stateStorage?.beginRenderPass()
             warm.renderCache?.beginRenderPass()
             stampFrameDate(warm)
-            let buffer = renderToBuffer(view, context: warm)
-            channels.endFrame(buffer, stateStorage: warm.stateStorage)
+            let buffer = renderFrame(view, context: warm, channels: channels, cols: cols, rows: rows)
             warm.stateStorage?.endRenderPass()
             warm.renderCache?.removeInactive()
             ns &+= DispatchTime.now().uptimeNanoseconds - frameStart.uptimeNanoseconds
@@ -456,6 +486,9 @@ enum Headless {
         }
         printMemoTotals(warm.renderCache, channels: channels, frames: iterations)
         print(memoCounts.report(frames: iterations))
+        printGeometryCorrections(
+            from: correctionsBefore, to: channels.geometryCorrections, frames: iterations,
+            always: id == GeometryScenario.descriptor.id)
         MemoCounts.printValueHashCensus(of: warm.renderCache)
         observation?.report(frames: iterations)
         // `TUIKIT_VERIFY_MEASURE_MEMO=1` re-measures every memo hit and reports
