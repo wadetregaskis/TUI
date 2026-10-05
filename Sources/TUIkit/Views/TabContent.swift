@@ -191,8 +191,10 @@ struct _TabList {
 
 /// Tab content that hands the tab view its tabs itself, rather than through
 /// ``TabContent/body``. Every tab type this framework defines is one; tab
-/// content an app writes is not, and is walked through its body. The tab twin
-/// of `_TableRowPrimitive`.
+/// content an app writes is not, and is walked through its body. A cast to it
+/// is a plain conformance check: nothing parameterizes it. The table's row and
+/// column content, whose casts named the row type, have hidden requirements
+/// instead (``TableRowContent/_appendRows(_:to:)``).
 @MainActor
 protocol _TabContentPrimitive {
     /// Appends this content's tabs, in order.

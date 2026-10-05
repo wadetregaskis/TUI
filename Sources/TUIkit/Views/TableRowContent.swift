@@ -40,13 +40,29 @@ public protocol TableRowContent<TableRowValue>: _TableRowValued {
 
     /// The composition of content that comprise the table row content.
     var tableRowBody: TableRowBody { get }
+
+    /// Appends `content`'s rows to `rows`, in order.
+    ///
+    /// Not to be implemented by hand. Every row type the framework defines
+    /// implements it, and the default — for content an app writes — finds the
+    /// rows of ``tableRowBody``.
+    ///
+    /// A static requirement rather than a cast to an internal protocol, for
+    /// the reason ``TableColumnContent/_appendColumns(_:to:)`` is one: that
+    /// cast was to `any P<Content.TableRowValue>`, whose metadata the runtime
+    /// looked up by mangled name on every call — and a `ForEach` of rows made
+    /// it once per ROW, on every body evaluation.
+    static func _appendRows(_ content: Self, to rows: inout _TableRowList<TableRowValue>)
 }
 
 // MARK: - Flattening
 
 /// A table's rows, in order, for the renderer: each a value, with the rows
 /// beneath it when it is a branch of a hierarchical table.
-struct _TableRowList<Value: Identifiable> {
+///
+/// You don't use this type directly: it is what
+/// ``TableRowContent/_appendRows(_:to:)`` appends to.
+public struct _TableRowList<Value: Identifiable> {
     /// The rows, in order.
     private(set) var nodes: [_TableRowNode<Value>] = []
 
@@ -148,46 +164,37 @@ struct _TableRowNode<Value: Identifiable> {
     }
 }
 
-/// Row content that hands the renderer its rows itself, rather than through
-/// ``TableRowContent/tableRowBody``.
-///
-/// Every row type this framework defines is one; a `TableRowContent` an app
-/// writes is not, and is walked through its body.
-@MainActor
-protocol _TableRowPrimitive<PrimitiveRowValue> {
-    /// The value of the rows this content appends; always its
-    /// ``TableRowContent/TableRowValue``.
-    associatedtype PrimitiveRowValue: Identifiable
-
-    /// Appends this content's rows, in order.
-    func appendRows(to rows: inout _TableRowList<PrimitiveRowValue>)
+extension TableRowContent {
+    /// Appends the rows of `content`'s body: what content an app writes
+    /// declares. Every row type the framework defines appends its own.
+    ///
+    /// Checked rather than assumed to be of the same row type, as the
+    /// columns' default is: content whose body names another row type
+    /// contributes nothing (and trips an assertion in a debug build).
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<TableRowValue>) {
+        let body = tableRows(of: content.tableRowBody)
+        guard let typed = body as? _TableRowList<TableRowValue> else {
+            assertionFailure("\(Self.self)'s tableRowBody has rows of another type than its TableRowValue")
+            return
+        }
+        rows.append(contentsOf: typed)
+    }
 }
 
 /// The rows `content` declares, in order, flattened for the renderer.
 @MainActor
 func tableRows<Content: TableRowContent>(of content: Content) -> _TableRowList<Content.TableRowValue> {
     var rows = _TableRowList<Content.TableRowValue>()
-    appendTableRows(content, to: &rows)
+    Content._appendRows(content, to: &rows)
     return rows
 }
 
-/// Appends `content`'s rows to `rows`: a primitive's own, anything else's
-/// through its body — checked rather than assumed to be of the same row type,
-/// as ``appendTableColumns(_:to:)`` does for columns.
+/// Appends `content`'s rows to `rows`.
 @MainActor
 func appendTableRows<Content: TableRowContent>(
     _ content: Content, to rows: inout _TableRowList<Content.TableRowValue>
 ) {
-    if let primitive = content as? any _TableRowPrimitive<Content.TableRowValue> {
-        primitive.appendRows(to: &rows)
-        return
-    }
-    let body = tableRows(of: content.tableRowBody)
-    guard let typed = body as? _TableRowList<Content.TableRowValue> else {
-        assertionFailure("\(Content.self)'s tableRowBody has rows of another type than its TableRowValue")
-        return
-    }
-    rows.append(contentsOf: typed)
+    Content._appendRows(content, to: &rows)
 }
 
 // MARK: - TableRow
@@ -225,11 +232,10 @@ public struct TableRow<Value: Identifiable>: TableRowContent {
     public var tableRowBody: Never { fatalError("TableRow is primitive table row content") }
 }
 
-extension TableRow: _TableRowPrimitive {
-    typealias PrimitiveRowValue = Value
-
-    func appendRows(to rows: inout _TableRowList<Value>) {
-        rows.append(value)
+extension TableRow {
+    /// Appends this row: a row hands itself to the table directly.
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Value>) {
+        rows.append(content.value)
     }
 }
 
@@ -260,11 +266,10 @@ public struct TupleTableRowContent<Value: Identifiable, T>: TableRowContent {
     public var tableRowBody: Never { fatalError("TupleTableRowContent renders its rows directly") }
 }
 
-extension TupleTableRowContent: _TableRowPrimitive {
-    typealias PrimitiveRowValue = Value
-
-    func appendRows(to rows: inout _TableRowList<Value>) {
-        appendElements(&rows)
+extension TupleTableRowContent {
+    /// Appends the tuple's rows, in order.
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Value>) {
+        content.appendElements(&rows)
     }
 }
 
@@ -284,10 +289,9 @@ public struct EmptyTableRowContent<Value: Identifiable>: TableRowContent {
     public var tableRowBody: Never { fatalError("EmptyTableRowContent has no rows") }
 }
 
-extension EmptyTableRowContent: _TableRowPrimitive {
-    typealias PrimitiveRowValue = Value
-
-    func appendRows(to rows: inout _TableRowList<Value>) {}
+extension EmptyTableRowContent {
+    /// Appends nothing.
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Value>) {}
 }
 
 // MARK: - TableForEachContent
@@ -320,11 +324,10 @@ where Data.Element: Identifiable {
     }
 }
 
-extension TableForEachContent: _TableRowPrimitive {
-    typealias PrimitiveRowValue = Data.Element
-
-    func appendRows(to rows: inout _TableRowList<Data.Element>) {
-        rows.append(contentsOf: data)
+extension TableForEachContent {
+    /// Appends a row for each element of the data.
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Data.Element>) {
+        rows.append(contentsOf: content.data)
     }
 }
 
@@ -346,12 +349,12 @@ extension Optional: TableRowContent where Wrapped: TableRowContent {
     public var tableRowBody: Never { fatalError("Optional renders its rows directly") }
 }
 
-extension Optional: _TableRowPrimitive where Wrapped: TableRowContent {
-    typealias PrimitiveRowValue = Wrapped.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<Wrapped.TableRowValue>) {
-        guard let self else { return }
-        appendTableRows(self, to: &rows)
+extension Optional where Wrapped: TableRowContent {
+    /// Appends the wrapped content's rows, or none.
+    @MainActor
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Wrapped.TableRowValue>) {
+        guard let content else { return }
+        appendTableRows(content, to: &rows)
     }
 }
 
@@ -371,11 +374,11 @@ extension Group: TableRowContent where Content: TableRowContent {
     }
 }
 
-extension Group: _TableRowPrimitive where Content: TableRowContent {
-    typealias PrimitiveRowValue = Content.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<Content.TableRowValue>) {
-        appendTableRows(content, to: &rows)
+extension Group where Content: TableRowContent {
+    /// Appends the group's rows.
+    @MainActor
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Content.TableRowValue>) {
+        appendTableRows(content.content, to: &rows)
     }
 }
 
@@ -392,15 +395,17 @@ where
     public var tableRowBody: Never { fatalError("_ConditionalContent renders its rows directly") }
 }
 
-extension _ConditionalContent: _TableRowPrimitive
+extension _ConditionalContent
 where
     TrueContent: TableRowContent, FalseContent: TableRowContent,
     TrueContent.TableRowValue == FalseContent.TableRowValue
 {
-    typealias PrimitiveRowValue = TrueContent.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<TrueContent.TableRowValue>) {
-        switch self {
+    /// Appends the rows of the branch taken.
+    @MainActor
+    public static func _appendRows(
+        _ content: Self, to rows: inout _TableRowList<TrueContent.TableRowValue>
+    ) {
+        switch content {
         case .trueContent(let content): appendTableRows(content, to: &rows)
         case .falseContent(let content): appendTableRows(content, to: &rows)
         }
@@ -470,12 +475,12 @@ extension ForEach: TableRowContent where Content: TableRowContent {
     }
 }
 
-extension ForEach: _TableRowPrimitive where Content: TableRowContent {
-    typealias PrimitiveRowValue = Content.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<Content.TableRowValue>) {
-        for element in data {
-            appendTableRows(content(element), to: &rows)
+extension ForEach where Content: TableRowContent {
+    /// Appends the rows built for each element, in order.
+    @MainActor
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Content.TableRowValue>) {
+        for element in content.data {
+            appendTableRows(content.content(element), to: &rows)
         }
     }
 }

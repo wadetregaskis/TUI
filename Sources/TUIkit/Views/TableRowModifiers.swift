@@ -80,12 +80,12 @@ where Content: TableRowContent, Modifier: _TableRowContentModifier {
     public var tableRowBody: Never { fatalError("ModifiedContent renders its rows directly") }
 }
 
-extension ModifiedContent: _TableRowPrimitive
-where Content: TableRowContent, Modifier: _TableRowContentModifier {
-    typealias PrimitiveRowValue = Content.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<Content.TableRowValue>) {
-        var own = tableRows(of: content)
+extension ModifiedContent where Content: TableRowContent, Modifier: _TableRowContentModifier {
+    /// Appends the modified rows, with the modifier applied to them.
+    @MainActor
+    public static func _appendRows(_ rowContent: Self, to rows: inout _TableRowList<Content.TableRowValue>) {
+        let modifier = rowContent.modifier
+        var own = tableRows(of: rowContent.content)
         if let modifier = modifier as? any _TableRowTraitModifier {
             own.modifyTraits { modifier.apply(to: &$0) }
         }

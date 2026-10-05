@@ -270,12 +270,11 @@ where Data.Element: Identifiable {
     }
 }
 
-extension TableOutlineGroupContent: _TableRowPrimitive {
-    typealias PrimitiveRowValue = Data.Element
-
-    func appendRows(to rows: inout _TableRowList<Data.Element>) {
-        for element in data {
-            rows.append(treeNode: Self.node(element, children: children))
+extension TableOutlineGroupContent {
+    /// Appends a tree node for each root element.
+    public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Data.Element>) {
+        for element in content.data {
+            rows.append(treeNode: node(element, children: content.children))
         }
     }
 
@@ -388,13 +387,13 @@ where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Elem
     }
 }
 
-extension OutlineGroup: _TableRowPrimitive
+extension OutlineGroup
 where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Element.ID {
-    typealias PrimitiveRowValue = Leaf.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<Leaf.TableRowValue>) {
-        for root in roots {
-            rows.append(treeNode: Self.node(root, children: childrenKeyPath, content: content))
+    /// Appends a tree node for each root.
+    @MainActor
+    public static func _appendRows(_ group: Self, to rows: inout _TableRowList<Leaf.TableRowValue>) {
+        for root in group.roots {
+            rows.append(treeNode: node(root, children: group.childrenKeyPath, content: group.content))
         }
     }
 
@@ -468,15 +467,14 @@ where Label.TableRowValue == Content.TableRowValue {
     public var tableRowBody: Never { fatalError("DisclosureTableRow renders its rows directly") }
 }
 
-extension DisclosureTableRow: _TableRowPrimitive {
-    typealias PrimitiveRowValue = Label.TableRowValue
-
-    func appendRows(to rows: inout _TableRowList<Label.TableRowValue>) {
-        guard let value = tableRows(of: label).values.first else { return }
-        let content = content
+extension DisclosureTableRow {
+    /// Appends this row, with the rows disclosed beneath it.
+    public static func _appendRows(_ row: Self, to rows: inout _TableRowList<Label.TableRowValue>) {
+        guard let value = tableRows(of: row.label).values.first else { return }
+        let content = row.content
         rows.append(
             treeNode: _TableRowNode(
                 value: value, children: { tableRows(of: content()).nodes },
-                isExpanded: isExpanded))
+                isExpanded: row.isExpanded))
     }
 }
