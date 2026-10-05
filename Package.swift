@@ -123,7 +123,9 @@ let package = Package(
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
             // exclude them from the build rather than declaring them as resources.
-            exclude: ["__Snapshots__"]
+            // The same for the fixtures read by path (an asset catalogue, and the
+            // `Assets.car` Xcode compiled from it).
+            exclude: ["__Snapshots__", "__Fixtures__"]
         ),
         // C declarations a test needs that only the C importer makes — a struct
         // with bitfields, which the runtime's field list leaves out. Tests

@@ -4,7 +4,10 @@
 //  TUIkitAppKit: the bridges between TUIkit and Apple's own graphics types —
 //  `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`,
 //  `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`
-//  and `Image(nsImage:)`. Import it beside TUIkit where you use them:
+//  and `Image(nsImage:)` — and the named colours and images of a compiled
+//  asset catalogue (`Color(_:bundle:)` and `Image(_:bundle:)` reading
+//  `Assets.car`, after TUIkit's own reading of an uncompiled one). Import it
+//  beside TUIkit where you use them:
 //
 //      import TUIkit
 //      import TUIkitAppKit

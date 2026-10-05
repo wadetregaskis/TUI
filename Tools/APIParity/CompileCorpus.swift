@@ -2243,3 +2243,21 @@ private struct StringTableShapes: View {
         }
     }
 }
+
+// MARK: - Asset catalogues (D6M A15)
+
+/// SwiftUI's named colour and image. This file imports `TUIkitAppKit`, so
+/// these bind to its declarations (which also read `Assets.car`); the
+/// TUIkit-only corpus binds the same calls to TUIkit's.
+@MainActor
+private struct AssetCatalogShapes: View {
+    var body: some View {
+        VStack {
+            Text("asset.title").foregroundStyle(Color("Brand"))
+            Image("Logo", bundle: .main)
+            Image("Logo", bundle: nil, label: Text("asset.logo"))
+            Image(decorative: "Logo")
+        }
+        .background(Color("Background", bundle: .main))
+    }
+}

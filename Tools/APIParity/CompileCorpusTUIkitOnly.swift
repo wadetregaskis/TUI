@@ -33,3 +33,17 @@ private struct FormatStylesWithoutSwiftUICore: View {
         }
     }
 }
+
+/// SwiftUI's named colour and image, bound to TUIkit's own declarations
+/// (decisions A15): with `TUIkitAppKit` absent they are the only ones.
+@MainActor
+private struct AssetCatalogShapesWithoutAppKit: View {
+    var body: some View {
+        VStack {
+            Text("asset.title").foregroundStyle(Color("Brand"))
+            Image("Logo", bundle: .main)
+            Image(decorative: "Logo")
+        }
+        .background(Color("Background", bundle: .main))
+    }
+}
