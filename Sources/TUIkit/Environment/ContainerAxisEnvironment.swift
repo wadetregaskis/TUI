@@ -80,7 +80,7 @@ extension RenderContext {
     func publishingContainerAxis(_ axis: Axis) -> Self {
         var copy = self
         copy.environment.containerAxis = axis
-        copy.keepsSectionsWhole = false
+        copy.sectionWholeness = .apart
         return copy
     }
 }

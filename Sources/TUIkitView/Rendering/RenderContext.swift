@@ -277,46 +277,57 @@ public struct RenderContext {
     /// No real depth: the scroll view marks none this deep.
     package static let belowScrollContentOrigin = UInt16.max
 
-    /// Whether the provider walk this context is handed to hands every
-    /// `Section` it meets to its container WHOLE, as one child, rather than
-    /// taking it apart into its header's, content's and footer's views
-    /// (``ChildViewProvider/staysWhole(in:)``).
+    /// Which `Section`s the provider walk this context is handed to hands its
+    /// container WHOLE, as one child, rather than taking them apart into their
+    /// header's, content's and footer's views
+    /// (``ChildViewProvider/staysWhole(in:)``) — see ``SectionWholeness``.
     ///
     /// A `Section` is its parts in every container, as SwiftUI's is, except
     /// those that read sections as sections: a `List`, and the section APIs
-    /// (`Group(sections:)`, `ForEach(sections:)`), which set this on the
-    /// context they RESOLVE their content with and on no other — the views
-    /// they then draw are drawn in their ordinary context — and a lazy stack
-    /// that pins its sections, which sets it for its walks and its rows alike,
-    /// and which the next container down clears — a stack as it publishes its
-    /// axis, a `ZStack` or a `Layout` with no axis as it resolves its own
-    /// children (``takingSectionsApart()``). So it reaches every provider in
-    /// the walk (a `Group`, an `if`, a `ForEach` of sections) and no container
-    /// below a row.
+    /// (`Group(sections:)`, `ForEach(sections:)`), which keep every section
+    /// whole on the context they RESOLVE their content with and on no other —
+    /// the views they then draw are drawn in their ordinary context — and a
+    /// lazy stack, which keeps its own sections whole to pin them, or to stay
+    /// lazy over a loop of them, and sets it for its walks and its rows alike.
+    /// The next container down clears it — a stack as it publishes its axis, a
+    /// `ZStack` or a `Layout` with no axis as it resolves its own children
+    /// (``takingSectionsApart()``). So it reaches every provider in the walk
+    /// (a `Group`, an `if`, a `ForEach` of sections) and no container below a
+    /// row.
     ///
-    /// A `Bool` among the flags, in padding that was already there, for the
+    /// One byte among the flags, in padding that was already there, for the
     /// reason ``measureGeneration`` gives: this struct's stride is load-bearing.
     /// Folded into the per-pass child memo's key, since one content value can
-    /// be resolved both ways at one identity.
-    package var keepsSectionsWhole: Bool = false
+    /// be resolved more than one way at one identity.
+    package var sectionWholeness: SectionWholeness = .apart
+
+    /// Whether the walk keeps EVERY section whole (``sectionWholeness``).
+    package var keepsSectionsWhole: Bool {
+        get { sectionWholeness == .all }
+        set { sectionWholeness = newValue ? .all : .apart }
+    }
+
+    /// Whether the walk keeps a `ForEach`'s section rows whole — every walk
+    /// that keeps any section whole does (``sectionWholeness``).
+    package var keepsLoopedSectionsWhole: Bool { sectionWholeness != .apart }
 
     /// This context for a provider walk that keeps sections whole — see
     /// ``keepsSectionsWhole``.
     package func keepingSectionsWhole() -> Self {
         var copy = self
-        copy.keepsSectionsWhole = true
+        copy.sectionWholeness = .all
         return copy
     }
 
     /// This context for a container's own walk, which takes its sections
-    /// apart whatever the walk that drew it kept whole — ``keepsSectionsWhole``
+    /// apart whatever the walk that drew it kept whole — ``sectionWholeness``
     /// is a property of ONE walk, and a container in one of that walk's rows
     /// starts its own. `self` when it already takes them apart, which is
     /// nearly always.
     package func takingSectionsApart() -> Self {
-        guard keepsSectionsWhole else { return self }
+        guard sectionWholeness != .apart else { return self }
         var copy = self
-        copy.keepsSectionsWhole = false
+        copy.sectionWholeness = .apart
         return copy
     }
 
@@ -659,4 +670,24 @@ public struct RenderContext {
     public func resolveContainerHeight(contentHeight: Int, borderOverhead: Int = 0) -> Int {
         contentHeight
     }
+}
+
+// MARK: - Which Sections a Walk Keeps Whole
+
+/// Which `Section`s a provider walk hands its container whole
+/// (`RenderContext.sectionWholeness`). One byte, as the `Bool` it replaced
+/// was.
+package enum SectionWholeness: UInt8 {
+    /// None: every section is its parts, as in SwiftUI's containers.
+    case apart
+    /// The sections a `ForEach` makes as its rows, and no other: an unpinned
+    /// lazy stack's walk, which keeps `ForEach(groups) { Section … }` to one
+    /// child per group so that it stays lazy — taken apart, every row of
+    /// every section is built to be counted — and has each lay its parts out
+    /// as the stack would (`PinnedSectionLayout`). A section written in the
+    /// stack's content is its parts there, as anywhere.
+    case loopRows
+    /// Every section: a `List`'s walk, the section APIs', and a pinned lazy
+    /// stack's, whose own sections pin their headers and footers themselves.
+    case all
 }

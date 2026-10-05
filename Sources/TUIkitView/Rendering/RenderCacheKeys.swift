@@ -314,6 +314,11 @@ extension RenderCache {
         /// is the collision the hash-only key already accepts.
         package static let sectionsWholeSalt = 0x5EC7_10E5_A5ED_0001
 
+        /// Mixed into ``identityHash`` for a walk that keeps only a loop's
+        /// section rows whole (`SectionWholeness.loopRows`), for the same
+        /// reason; another arbitrary odd constant.
+        package static let loopedSectionsWholeSalt = 0x5EC7_10E5_100F_0003
+
         public init(identityHash: Int, viewType: ObjectIdentifier, valueHash: Int) {
             self.identityHash = identityHash
             self.viewType = viewType

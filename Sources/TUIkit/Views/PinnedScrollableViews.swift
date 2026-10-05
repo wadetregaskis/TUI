@@ -54,8 +54,9 @@ public struct PinnedScrollableViews: OptionSet, Sendable {
 
 // MARK: - The Scope a Pinned Stack Hands Its Sections
 
-/// What a lazy stack with `pinnedViews:` tells the sections it holds: which of
-/// their parts to pin, and where the stack is.
+/// What a lazy stack tells the sections it keeps whole (``PinningStackCore``):
+/// which of their parts to pin — none without `pinnedViews:` — and where the
+/// stack is.
 ///
 /// Only the stack's OWN sections pin, as in SwiftUI (measured on macOS 15.8):
 /// a section written in the stack's content or made there by a `ForEach`,
@@ -82,6 +83,13 @@ struct PinnedSectionScope: Equatable {
     /// Whether a section at `identity` is one of the stack's own.
     func owns(sectionAt identity: ViewIdentity) -> Bool {
         identity.siblingSteps(belowDepth: Int(stackDepth)) == 1
+    }
+
+    /// Which sections the stack's walks keep whole: every one of its own
+    /// while it pins, and otherwise only a loop's section rows, which keep it
+    /// lazy (`SectionWholeness`).
+    var wholeness: SectionWholeness {
+        pinsHeaders || pinsFooters ? .all : .loopRows
     }
 
     /// What a section at `identity` pins — nothing unless it is one of the
@@ -151,9 +159,20 @@ func sectionStaysWhole(in context: RenderContext) -> Bool {
 
 // MARK: - The Stack That Hands It Out
 
-/// A stack core that can pin its sections' headers and footers: a lazy
-/// stack's, in a column (`LazyVStack`, a `LazyVGrid`'s sections) or along a
-/// row (`LazyHStack`, a `LazyHGrid`'s).
+/// A stack core that keeps its own sections whole: a lazy stack's, in a
+/// column (`LazyVStack`, a `LazyVGrid`'s sections) or along a row
+/// (`LazyHStack`, a `LazyHGrid`'s) — to pin their headers and footers, with
+/// `pinnedViews:`, and without it to stay lazy over a loop of them.
+///
+/// Taken apart, `ForEach(groups) { Section { ForEach(group.items) … } }` is
+/// a loop whose rows make a number of children only each row knows
+/// (decisions B15), so every row of every section was built on every walk
+/// that asked the stack for its children, where kept whole the stack windows
+/// over the sections, building only those it draws — as it did before a
+/// section was its parts. Each such section lays its parts out as the stack
+/// would (``PinnedSectionLayout``), so the stack draws what it would taken
+/// apart, with the deviations a pinned stack's sections have (decisions D1S,
+/// B-D1S-1).
 @MainActor
 protocol PinningStackCore {
     /// Whether the stack pins its sections' headers.
@@ -164,6 +183,12 @@ protocol PinningStackCore {
 
     /// How the stack lays out its children, for the sections it keeps whole.
     var pinnedSectionLayout: PinnedSectionLayout { get }
+
+    /// Whether the stack's content can hand it a `Section`, from its type
+    /// (``mayHandOverSections(_:)``) — so a lazy stack of anything else, which
+    /// is nearly every lazy stack, keeps no section scope and pays nothing
+    /// for it.
+    var contentMayHoldSections: Bool { get }
 }
 
 extension PinningStackCore {
@@ -179,7 +204,9 @@ extension PinningStackCore {
     ///
     /// The stack's walks keep its sections whole while it pins
     /// (`RenderContext.keepsSectionsWhole`), so its own sections — written in
-    /// it or made there by a `ForEach` — reach it as sections to pin; the next
+    /// it or made there by a `ForEach` — reach it as sections to pin; and,
+    /// while it does not, a `ForEach`'s section rows only
+    /// (`SectionWholeness.loopRows`), so a loop of them stays lazy. The next
     /// container down takes its own apart again (a stack as it publishes its
     /// axis, a `ZStack` or an axis-less `Layout` through
     /// `RenderContext.takingSectionsApart()`).
@@ -209,7 +236,7 @@ extension PinningStackCore {
         var scoped = context
         scoped.environment.pinnedSectionScope = scope
         scoped.environment.pinnedSectionLayout = layout
-        scoped.keepsSectionsWhole = true
+        scoped.sectionWholeness = scope.wholeness
         return scoped
     }
 
@@ -223,14 +250,15 @@ extension PinningStackCore {
         var scoped = context
         scoped.environment.pinnedSectionScope = scope
         scoped.environment.pinnedSectionLayout = pinnedSectionLayout
-        scoped.keepsSectionsWhole = true
+        scoped.sectionWholeness = scope.wholeness
         return scoped
     }
 
-    /// The scope this stack hands its rows in `context`, or `nil` when it pins
-    /// nothing.
+    /// The scope this stack hands its rows in `context`, or `nil` when it
+    /// keeps no section whole: it pins nothing, and its content's type says no
+    /// section can be among its children.
     private func pinnedSectionScope(_ context: RenderContext) -> PinnedSectionScope? {
-        guard pinsSectionHeaders || pinsSectionFooters else { return nil }
+        guard pinsSectionHeaders || pinsSectionFooters || contentMayHoldSections else { return nil }
         return PinnedSectionScope(
             stackDepth: Int32(clamping: context.identity.depth),
             pinsHeaders: pinsSectionHeaders, pinsFooters: pinsSectionFooters)
@@ -238,6 +266,8 @@ extension PinningStackCore {
 }
 
 extension _VStackCore: PinningStackCore {
+    var contentMayHoldSections: Bool { mayHandOverSections(Content.self) }
+
     /// A column: its sections lay out downward, aligned across by its
     /// alignment.
     var pinnedSectionLayout: PinnedSectionLayout {
@@ -248,6 +278,8 @@ extension _VStackCore: PinningStackCore {
 }
 
 extension _HStackCore: PinningStackCore {
+    var contentMayHoldSections: Bool { mayHandOverSections(Content.self) }
+
     /// A row: its sections lay out along it, aligned up and down by its
     /// alignment.
     var pinnedSectionLayout: PinnedSectionLayout {

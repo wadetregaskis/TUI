@@ -49,9 +49,9 @@ extension ForEach where Content: View {
     /// rows take the path they always took: the loop's hot path is untouched
     /// for everything but rows of several views.
     ///
-    /// - Parameter keepingSectionsWhole: Whether the walk keeps sections whole
-    ///   (`RenderContext.keepsSectionsWhole`): a row that is a section is then
-    ///   one child, as it always was in a `List`.
+    /// - Parameter keepingSectionsWhole: Whether the walk keeps a loop's
+    ///   section rows whole (`RenderContext.keepsLoopedSectionsWhole`): a row
+    ///   that is a section is then one child, as it always was in a `List`.
     func rowShape(keepingSectionsWhole: Bool) -> ForEachRowShape {
         guard Content.self is any ChildViewProvider.Type || Content.self == EmptyView.self else {
             return .single

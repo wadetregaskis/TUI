@@ -86,12 +86,12 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     /// stack's: a section in its content is that section's, not the stack's,
     /// and is taken apart there.
     private func drawingContext(_ context: RenderContext) -> RenderContext {
-        guard context.environment.pinnedSectionScope != nil || context.keepsSectionsWhole else {
+        guard context.environment.pinnedSectionScope != nil || context.sectionWholeness != .apart else {
             return context
         }
         var drawing = context
         if drawing.environment.pinnedSectionScope != nil { drawing.environment.pinnedSectionScope = nil }
-        drawing.keepsSectionsWhole = false
+        drawing.sectionWholeness = .apart
         return drawing
     }
 

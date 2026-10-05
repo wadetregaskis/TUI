@@ -11,24 +11,36 @@ C declined with a parity-map reason. SwiftUI's behaviour was measured on macOS
 
 ## B. Shipped the safe option
 
-### B-D1S-1. A pinned lazy stack keeps its own sections whole
+### B-D1S-1. A lazy stack keeps its own sections whole: all of them pinned, a loop's unpinned
 
 *`LazyVStack(alignment:spacing:pinnedViews:content:)`,
-`LazyVGrid(columns:alignment:spacing:pinnedViews:content:)`, `Section`*
+`LazyHStack(alignment:spacing:pinnedViews:content:)`, the lazy grids'
+sections, `Section`*
 
 Everywhere outside a `List`, a `Form` and a `Table` a `Section` is now its
 parts (B16): the container lays its header's, content's and footer's views out
-as its own children. A lazy stack that pins its sections' headers or footers is
-the exception. Pinning is done by the section, which knows where its header,
-content and footer are and emits a copy of the header marked to pin; a stack
-handed the parts as anonymous rows could not say which row is whose header, and
-its windowed paths would not draw a header that has scrolled out of the band
-while its rows are still on screen. So a pinned stack keeps its own sections
-whole, and each lays its parts out as the stack would — along its axis, its
-`spacing` between every two (between the header and the first row too, as
-SwiftUI spaces them), each aligned across by its alignment.
+as its own children. A lazy stack is the exception, in two ways:
 
-What differs from taking the section apart:
+- **Pinned**, it keeps every one of its own sections whole. Pinning is done by
+  the section, which knows where its header, content and footer are and emits a
+  copy of the header marked to pin; a stack handed the parts as anonymous rows
+  could not say which row is whose header, and its windowed paths would not
+  draw a header that has scrolled out of the band while its rows are still on
+  screen.
+- **Unpinned**, it keeps the sections a `ForEach` makes as its rows whole —
+  `ForEach(groups) { Section … }`, Apple's own shape — and takes any other
+  apart (`SectionWholeness.loopRows`). Taken apart, such a loop's rows make a
+  number of children only each row knows (B15), so every row of every section
+  was built on every walk that asked the stack for its children; kept whole,
+  the stack windows over the sections and builds only those it draws, as it did
+  before a section was its parts. A stack whose content's type shows no section
+  can be among its children (`mayHandOverSections(_:)`) — nearly every lazy
+  stack — keeps no scope and pays nothing.
+
+Each section kept whole lays its parts out as the stack would — along its
+axis, its `spacing` between every two (between the header and the first row
+too, as SwiftUI spaces them), each aligned across by its alignment — so the
+stack draws what it would with the parts as its children, but for:
 
 - **Centre alignment can be a cell off.** The section centres its views within
   its widest view, and the stack centres the section. Where those two widths
@@ -38,7 +50,8 @@ What differs from taking the section apart:
   each part (`Section { … }.padding(.top, 10)` pads the section once, above
   its header, not above each row).
 - **The stack windows by section.** A section in the band draws all of its
-  rows, as before this lane; unpinned, the stack windows over the rows.
+  rows, as before this lane; a section written in an unpinned stack's content
+  is taken apart, and the stack windows over its rows.
 
 **The fuller version.** The stack takes its own sections apart like any other
 container and does the pinning itself: it keeps a map from each section to its
@@ -47,7 +60,9 @@ seek, the anchored window, the exact walk, and the append-while-fits walk)
 draws the header and footer of any section that meets the band even when they
 are outside it; and the stack emits the pin layers from the rows' positions.
 About two days with the tests, most of it in the anchored window, whose rows
-away from the band have estimated positions.
+away from the band have estimated positions. Unpinned, it needs B-D1S-5's
+fuller version too — a loop of sections counted without building every row —
+or taking them apart costs every row again.
 
 ### B-D1S-2. A section header in a menu is a plain item
 

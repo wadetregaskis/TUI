@@ -999,12 +999,14 @@ package func resolveChildViews<V: View>(
         return provider.childViews(context: context)
     }
     // A walk that keeps sections whole resolves the same content differently
-    // (`RenderContext.keepsSectionsWhole`): a `List` and the stack drawing one
+    // (`RenderContext.sectionWholeness`): a `List` and the stack drawing one
     // of its rows can resolve one content value at one identity in a pass.
-    let identityHash =
-        context.keepsSectionsWhole
-        ? context.identity.structuralHash ^ RenderCache.ChildViewsKey.sectionsWholeSalt
-        : context.identity.structuralHash
+    let identityHash: Int
+    switch context.sectionWholeness {
+    case .apart: identityHash = context.identity.structuralHash
+    case .loopRows: identityHash = context.identity.structuralHash ^ RenderCache.ChildViewsKey.loopedSectionsWholeSalt
+    case .all: identityHash = context.identity.structuralHash ^ RenderCache.ChildViewsKey.sectionsWholeSalt
+    }
     let key = RenderCache.ChildViewsKey(
         identityHash: identityHash, viewType: ObjectIdentifier(V.self), valueHash: valueHash)
     if let remembered = cache.lookupChildViews(key: key) { return remembered }

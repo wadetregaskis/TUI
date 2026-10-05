@@ -71,10 +71,12 @@
 /// glyph, so here the header's cells replace the rows' glyphs across the
 /// section's width, and keep only their background. And to pin them, the
 /// stack keeps its own sections whole where any other container takes a
-/// section apart: a centre-aligned section's views are centred within the
-/// section's widest view and the section within the stack, which can be a
-/// cell from where the stack would centre the same views unpinned, and a
-/// modifier on such a section wraps the section rather than each view.
+/// section apart — unpinned too, for the sections a `ForEach` makes, so a
+/// loop of them stays lazy: a centre-aligned section's views are centred
+/// within the section's widest view and the section within the stack, which
+/// can be a cell from where the stack would centre the same views taken
+/// apart, and a modifier on such a section wraps the section rather than
+/// each view.
 ///
 /// - Note: Documented deviations from SwiftUI (per the parity rule): the
 ///   cross-axis width hugs the widest *placed* child (SwiftUI's ideal width
