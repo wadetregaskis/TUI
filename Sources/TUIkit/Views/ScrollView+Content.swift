@@ -356,13 +356,18 @@ extension _ScrollViewCore {
     /// Builds the visible-window buffer from `full`, dropping
     /// overlays and hit-test regions that fall entirely outside
     /// the viewport and shifting the rest up by `scrollOffset`.
+    ///
+    /// - Parameter clipsLayers: Whether the content's floating layers are cut
+    ///   at the viewport — `false` under `scrollClipDisabled`, which lets them
+    ///   float past it (``viewportOverlay(_:shiftedByX:y:width:height:clips:)``).
     func windowedBuffer(
         full: FrameBuffer,
         scrollOffset: Int,
         viewportHeight: Int,
         viewportWidth: Int,
         horizontalEnabled: Bool,
-        horizontalOffset: Int
+        horizontalOffset: Int,
+        clipsLayers: Bool = true
     ) -> FrameBuffer {
         guard viewportHeight > 0 else {
             return FrameBuffer(lines: [], width: viewportWidth)
@@ -427,7 +432,8 @@ extension _ScrollViewCore {
         let dx = horizontalEnabled ? -horizontalOffset : 0
         let visibleOverlays = full.overlays.compactMap {
             viewportOverlay(
-                $0, shiftedByX: dx, y: -scrollOffset, width: viewportWidth, height: viewportHeight)
+                $0, shiftedByX: dx, y: -scrollOffset, width: viewportWidth, height: viewportHeight,
+                clips: clipsLayers)
         }
 
         // The same filter-and-shift the overlays got, and the same trim — which
@@ -562,10 +568,15 @@ extension _ScrollViewCore {
     /// (`applyOverscroll`). The slide carried its layers by `replacingLines`
     /// alone, a translation that culls and clips nothing, so a layer it pushed
     /// out of the viewport kept painting beside it.
+    ///
+    /// Under `scrollClipDisabled` (`clips` false) a layer that is a piece of
+    /// the content is neither culled nor cut: it floats where the content puts
+    /// it, past the viewport as within it, as the content's own lines do.
     func viewportOverlay(
-        _ overlay: OverlayLayer, shiftedByX dx: Int, y dy: Int, width: Int, height: Int
+        _ overlay: OverlayLayer, shiftedByX dx: Int, y dy: Int, width: Int, height: Int, clips: Bool = true
     ) -> OverlayLayer? {
         guard !overlay.centered else { return overlay }
+        if !clips, !overlay.isOpaque { return overlay.shifted(byX: dx, y: dy) }
         // The overlay's extent includes its ANCHOR (the control spanning
         // `anchorHeight` rows immediately above `offsetY`): a drop-down
         // attached to a control on the LAST visible row starts exactly at the

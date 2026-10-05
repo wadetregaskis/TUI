@@ -2188,3 +2188,27 @@ private func erasedBehaviour() -> Bool {
     return erased.base is ViewAlignedScrollTargetBehavior && limits.count == 5
         && ScrollTargetBehaviorProperties() == ScrollTargetBehaviorProperties()
 }
+
+// MARK: - Unclipped scroll views (lane D2S)
+
+/// SwiftUI's own example for `scrollClipDisabled`, in cells.
+@MainActor
+private struct ScrollClipDisabledShapes: View {
+    var disabled: Bool
+    let colors: [Color] = [.red, .green, .blue, .mint, .teal]
+
+    var body: some View {
+        VStack {
+            ScrollView(.horizontal) {
+                HStack(spacing: 2) {
+                    ForEach(colors, id: \.self) { color in
+                        Text("■").foregroundStyle(color)
+                    }
+                }
+            }
+            .scrollClipDisabled(disabled)
+            ScrollView { Text("x") }
+                .scrollClipDisabled()
+        }
+    }
+}

@@ -397,9 +397,11 @@ extension FrameBuffer {
             return
         }
 
-        // `other`'s content lands below the current lines (plus spacing).
+        // `other`'s content lands below the current lines (plus spacing), over
+        // an earlier scroll view's overflow there.
         let spacingApplied = priorHeight > 0 ? spacing : 0
         let verticalShift = priorHeight + spacingApplied
+        coverScrollOverflow(under: other, at: (x: 0, y: verticalShift))
 
         // Pre-compute the new width (avoids redundant computation in didSet)
         let newWidth = max(width, other.width)
@@ -614,6 +616,7 @@ extension FrameBuffer {
         // `.offset`/`.position` child leaves behind, and that one declares
         // columns (`other.width > 0`), so it is untouched here.
         let spacingApplied = priorWidth > 0 && other.width > 0 ? spacing : 0
+        coverScrollOverflow(under: other, at: (x: myWidth + spacingApplied, y: 0))
 
         // Pre-compute the new width
         let newWidth = myWidth + spacingApplied + other.width
@@ -839,10 +842,12 @@ extension FrameBuffer {
         }
 
         var composited = Self(lines: result)
-        // Keep this buffer's own layers + hit-test regions; lift the
-        // overlay's nested ones, shifted to where the overlay was placed.
+        // Keep this buffer's own layers + hit-test regions (a scroll view's
+        // overflow cut where the overlay lands); lift the overlay's nested
+        // ones, shifted to where the overlay was placed.
         composited.overlays =
-            overlays + overlay.shiftedOverlays(byX: position.x, y: position.y)
+            Self.coveringScrollOverflow(overlays, under: overlay, at: position)
+            + overlay.shiftedOverlays(byX: position.x, y: position.y)
         composited.hitTestRegions =
             hitTestRegions
             + overlay.shiftedHitTestRegions(byX: position.x, y: position.y)
@@ -963,6 +968,7 @@ extension FrameBuffer {
         width = resultWidth
         linesAreUniformWidth = true
         lineWidths = nil
+        coverScrollOverflow(under: overlay, at: position)
         overlays.append(contentsOf: overlay.shiftedOverlays(byX: position.x, y: position.y))
         hitTestRegions.append(
             contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))

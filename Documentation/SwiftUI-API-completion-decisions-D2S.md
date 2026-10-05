@@ -77,6 +77,23 @@ so the row nearest the anchor meets the view's anchor point — a walk of the
 heights of the rows on screen, which the list already makes for its reveal.
 About half a day, with tests over rows of mixed heights.
 
+### B-D2S-4. `scrollClipDisabled` reaches `ScrollView`; `List` and `Table` keep clipping
+
+*`View.scrollClipDisabled(_:)` (A10)*
+
+The owner's A10 decision is about the scroll view: its content past the
+viewport draws as a floating layer around it, over the neighbours, with its hit
+regions. That ships for `ScrollView`. SwiftUI's `List` on macOS honours the
+modifier too (measured on macOS 15: rows draw on below a 100-point list's frame
+when it is set, and do not when it is not), and TUIkit's `List` and `Table`
+still clip: the modifier compiles on them and changes nothing.
+
+**The fuller version:** a list draws only the rows its window walks, so it
+would draw a row or two past each edge under the modifier (its band, as a lazy
+stack's), and hand them out as the scroll view's overflow layers are; the
+header, the border and the indicators stay where they are. About half a day
+for both, with tests, and no cost to a list without the modifier.
+
 ### Notes on A6 that are not decisions
 
 - `ScrollGranularity.row` did nothing `.viewAligned` cannot: on `List` and

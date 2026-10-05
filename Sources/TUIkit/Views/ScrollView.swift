@@ -637,6 +637,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// origin, so the clip offset rebases into slice space (clamped: a snap can
     /// propose an offset a row above the slice; the next frame's slice covers
     /// it).
+    ///
+    /// Under `scrollClipDisabled` the content's floating layers are not cut at
+    /// the viewport, and the content past it floats around the view
+    /// (``overflowLayers(of:sliceOriginY:handler:chrome:width:height:horizontal:context:)``).
     private func drawnViewport(
         full fullBuffer: FrameBuffer, sliceOriginY: Int, handler: ScrollViewHandler, chrome: ScrollChrome,
         width: Int, height: Int, horizontal: Bool, context: RenderContext
@@ -649,9 +653,14 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             viewportHeight: height,
             viewportWidth: width,
             horizontalEnabled: horizontal,
-            horizontalOffset: handler.horizontal.scrollOffset
+            horizontalOffset: handler.horizontal.scrollOffset,
+            clipsLayers: !context.environment.scrollClipDisabled
         )
-        return applyOverscroll(to: window, handler: handler, width: width, context: context)
+        var drawn = applyOverscroll(to: window, handler: handler, width: width, context: context)
+        drawn.overlays += overflowLayers(
+            of: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
+            width: width, height: height, horizontal: horizontal, context: context)
+        return drawn
     }
 
     /// Makes this scroll view a Tab stop only when there is actually something
@@ -740,8 +749,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         slid.opacityRegions = slid.opacityRegions.compactMap {
             $0.clipped(toColumns: viewportColumns, rows: viewportRows)
         }
+        let clips = !context.environment.scrollClipDisabled
         slid.overlays = slid.overlays.compactMap {
-            viewportOverlay($0, shiftedByX: 0, y: 0, width: max(0, width), height: lines.count)
+            viewportOverlay($0, shiftedByX: 0, y: 0, width: max(0, width), height: lines.count, clips: clips)
         }
         return slid
     }
