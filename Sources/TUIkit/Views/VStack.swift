@@ -397,7 +397,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// available height (clipping trailing rows at the cell), render, align, and
     /// clamp.
     private func renderClip(context: RenderContext) -> FrameBuffer {
-        resolveEagerSeek(context: context)
+        let window = resolveEagerSeek(context: context)
         let children = resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return FrameBuffer() }
 
@@ -443,7 +443,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             available: context.availableHeight,
             spacing: spacing
         )
-        reportEagerTargetLayout(heights: finalHeights, children: children, context: context)
+        reportEagerTargetLayout(heights: finalHeights, children: children, window: window, context: context)
 
         // === PASS 2: Render each child into its allocated height ===
         //
@@ -799,20 +799,23 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// the ScrollView to adopt this frame. Without this,
     /// `ScrollView { VStack { ForEach } }` (the most natural SwiftUI
     /// composition) silently ignored `scrollTo`.
-    private func resolveEagerSeek(context: RenderContext) {
-        guard !context.isMeasuring,
-            let window = consumableScrollWindow(context: context),
-            let seek = window.seek, let reply = window.reply
-        else { return }
+    ///
+    /// Returns the window this stack consumes, on a render pass, for the
+    /// frame's other use of it (``reportEagerTargetLayout(heights:children:window:context:)``),
+    /// so the environment is read for it once.
+    private func resolveEagerSeek(context: RenderContext) -> ScrollContentWindow? {
+        guard !context.isMeasuring, let window = consumableScrollWindow(context: context) else { return nil }
+        guard let seek = window.seek, let reply = window.reply else { return window }
         var childContext = context
         childContext.environment.scrollContentWindow = nil
         let slots = naturalRowSlots(width: context.availableWidth, context: childContext)
         guard let index = slots.firstIndex(where: { $0.child.matchesSeekKey(seek.key) })
-        else { return }
+        else { return window }
         let total = slots.last.map { $0.y + $0.height } ?? 0
         reply.seekResolvedOffset = window.offset(
             realising: seek, targetY: slots[index].y, rowHeight: slots[index].height,
             stackHeight: total)
+        return window
     }
 
     /// Renders only the children intersecting an enclosing ScrollView's visible

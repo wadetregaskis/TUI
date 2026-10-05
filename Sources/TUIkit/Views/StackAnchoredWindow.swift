@@ -832,16 +832,17 @@ extension _VStackCore {
             contentBelow: lastPlaced < frame.children.count - 1
                 || window.hasContentBelow(stackBottom: bottomY))
         var sampledOrdinal: Int?
-        // The band's rows as placed, for a scroll view settling on them: this
-        // path knows no row's place outside the band.
-        var placedSpans: [TargetLayoutSpans.Span] = []
-        placedSpans.reserveCapacity(sorted.count)
+        // The band's rows as placed, for a scroll view settling on them (this
+        // path knows no row's place outside the band) — collected only when one
+        // asks, which almost none does: `nil` otherwise.
+        var placedSpans: [TargetLayoutSpans.Span]? = reportsTargetLayout(window: window, context: context) ? [] : nil
+        placedSpans?.reserveCapacity(sorted.count)
         for (ordinal, y) in sorted {
             let rowHeight =
                 frame.pitch(of: ordinal)
                 - (ordinal < frame.children.count - 1 ? spacing : 0)
             let slotY = max(y, cursor)
-            placedSpans.append(.init(origin: slotY, length: rowHeight))
+            placedSpans?.append(.init(origin: slotY, length: rowHeight))
             if slotY > cursor {
                 result.appendVertically(FrameBuffer(emptyWithHeight: slotY - cursor), spacing: 0)
             }
@@ -942,7 +943,7 @@ extension _VStackCore {
             // origin itself drifts with past estimates. Even at the tail
             // (remaining == 0) the prefix above is estimated.
             reply.sliceTotalIsEstimate = true
-            reportTargetLayout(placedSpans, into: reply, window: window, context: context)
+            reportTargetLayout(placedSpans, into: reply)
             if let sampledOrdinal {
                 reply.anchorID = frame.children.anyID(at: sampledOrdinal)
             }

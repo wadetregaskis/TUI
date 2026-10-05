@@ -5,8 +5,9 @@
 //  to the scroll view whose content it is, for a scroll target behaviour to
 //  settle on (`ScrollContentReply.targetLayoutRows` / `targetLayoutColumns`).
 //  Asked only by a scroll view with a behaviour
-//  (`ScrollContentWindow.reportsTargetLayout`), so every other stack pays the
-//  one test.
+//  (`ScrollContentWindow.reportsTargetLayout`), so every other stack pays a
+//  test of its context, or of the window it already holds, and reads nothing
+//  from the environment for it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -15,10 +16,13 @@ extension _VStackCore {
     /// The rows of an EAGER (`.clip`) stack, from the heights its layout just
     /// gave them, placed as `appendVertically` places them — a gap only
     /// between rows that occupy a line. Spacers are not views to settle on.
-    func reportEagerTargetLayout(heights: [Int], children: [ChildView], context: RenderContext) {
-        guard !context.isMeasuring, context.environment.isScrollTargetLayout,
-            let window = consumableScrollWindow(context: context), window.reportsTargetLayout,
-            let reply = window.reply
+    ///
+    /// `window` is the one the stack consumes this render, already in hand
+    /// (`resolveEagerSeek`).
+    func reportEagerTargetLayout(
+        heights: [Int], children: [ChildView], window: ScrollContentWindow?, context: RenderContext
+    ) {
+        guard let window, let reply = window.reply, reportsTargetLayout(window: window, context: context)
         else { return }
         var spans: [TargetLayoutSpans.Span] = []
         var cursor = 0
@@ -35,7 +39,7 @@ extension _VStackCore {
     /// The rows of the full walk (a lazy stack under the anchored threshold):
     /// its slots carry every row's true place.
     func reportTargetLayout(slots: [RowSlot], window: ScrollContentWindow, context: RenderContext) {
-        guard window.reportsTargetLayout, context.environment.isScrollTargetLayout else { return }
+        guard reportsTargetLayout(window: window, context: context) else { return }
         window.reply?.targetLayoutRows = TargetLayoutSpans(
             placed: slots.map { .init(origin: $0.y, length: $0.height) })
     }
@@ -47,7 +51,7 @@ extension _VStackCore {
         _ children: ChildViewCollection, window: ScrollContentWindow, context: RenderContext
     ) -> FrameBuffer? {
         guard let drawn = renderUniformSeekWindow(children, window: window, context: context) else { return nil }
-        guard window.reportsTargetLayout, context.environment.isScrollTargetLayout,
+        guard reportsTargetLayout(window: window, context: context),
             let reply = window.reply, let extent = uniformWindowState(context: context).hypothesisExtent
         else { return drawn }
         reply.targetLayoutRows = TargetLayoutSpans(
@@ -55,14 +59,32 @@ extension _VStackCore {
         return drawn
     }
 
-    /// The rows of the anchored window's band, as it placed them: the path
-    /// knows no row's place outside the band.
-    func reportTargetLayout(
-        _ spans: [TargetLayoutSpans.Span], into reply: ScrollContentReply, window: ScrollContentWindow,
-        context: RenderContext
-    ) {
-        guard window.reportsTargetLayout, context.environment.isScrollTargetLayout else { return }
+    /// The rows of the anchored window's band, as it placed them — `nil` when
+    /// no scroll view asked for them (``reportsTargetLayout(window:context:)``).
+    /// The path knows no row's place outside the band.
+    func reportTargetLayout(_ spans: [TargetLayoutSpans.Span]?, into reply: ScrollContentReply) {
+        guard let spans else { return }
         reply.targetLayoutRows = TargetLayoutSpans(placed: spans)
+    }
+
+    /// Whether this stack reports its rows into `window`: the window asks —
+    /// tested first, a field — and the stack is marked.
+    func reportsTargetLayout(window: ScrollContentWindow, context: RenderContext) -> Bool {
+        window.reportsTargetLayout && context.environment.isScrollTargetLayout
+    }
+}
+
+extension RenderContext {
+    /// Whether a view here is at the scroll content's origin — reached from a
+    /// scroll view's content by single-child steps — answered from the context
+    /// alone: what a horizontal stack tests before it reads the scroll window
+    /// from the environment to ask whether its columns are wanted, which they
+    /// almost never are. A necessary condition of
+    /// ``ScrollContentWindow/isAtOrigin(_:)``, which compares the lineage too.
+    var mayConsumeScrollWindow: Bool {
+        let origin = scrollContentOriginDepth
+        guard origin != 0, origin != Self.belowScrollContentOrigin else { return false }
+        return identity.isDirectDescent(fromDepth: Int(origin) - 1)
     }
 }
 
@@ -70,10 +92,7 @@ extension _HStackCore {
     /// The lazy row's report: its columns as its walk placed them, each after
     /// the gap the walk gave it.
     func reportTargetLayout(collected: [(FrameBuffer, Int, ChildView?)], context: RenderContext) {
-        guard !context.isMeasuring, context.environment.isScrollTargetLayout,
-            let window = context.environment.scrollContentWindow, window.reportsTargetLayout,
-            window.isAtOrigin(context.identity), let reply = window.reply
-        else { return }
+        guard let reply = targetLayoutReply(context: context) else { return }
         var spans: [TargetLayoutSpans.Span] = []
         var cursor = 0
         // The walk decided each entry's gap: a column after its gap, and a
@@ -91,10 +110,7 @@ extension _HStackCore {
     /// `appendHorizontally` places it, a gap only once a column has drawn cells
     /// and none for one that draws none. Spacers are not views to settle on.
     func reportTargetLayout(buffers: [FrameBuffer?], spacerWidths: [Int], context: RenderContext) {
-        guard !context.isMeasuring, context.environment.isScrollTargetLayout,
-            let window = context.environment.scrollContentWindow, window.reportsTargetLayout,
-            window.isAtOrigin(context.identity), let reply = window.reply
-        else { return }
+        guard let reply = targetLayoutReply(context: context) else { return }
         var spans: [TargetLayoutSpans.Span] = []
         var cursor = 0
         for (index, buffer) in buffers.enumerated() {
@@ -105,5 +121,18 @@ extension _HStackCore {
             cursor += width
         }
         reply.targetLayoutColumns = TargetLayoutSpans(placed: spans)
+    }
+
+    /// The reply this row reports its columns into, or `nil` when none asks:
+    /// a render pass at the scroll content's origin (the context's test, read
+    /// first), whose window asks (a field), and a row marked with
+    /// `scrollTargetLayout()` (the environment, read last).
+    private func targetLayoutReply(context: RenderContext) -> ScrollContentReply? {
+        guard !context.isMeasuring, context.mayConsumeScrollWindow,
+            let window = context.environment.scrollContentWindow, window.reportsTargetLayout,
+            window.isAtOrigin(context.identity), let reply = window.reply,
+            context.environment.isScrollTargetLayout
+        else { return nil }
+        return reply
     }
 }
