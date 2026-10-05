@@ -1175,7 +1175,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var contentPayload = _TableRowPayload()
         let renderState: PopulatedRenderState?
         if data.isEmpty {
-            contentLines = [emptyPlaceholder]
+            (contentLines, contentPayload) = emptyContent(columnWidths: columnWidths, rowArea: rowArea, innerWidth: innerWidth, context: context)
             // Empty is a state, not an absence: the table still occupies its
             // frame, so it is still the thing under the pointer, still
             // clickable, still focusable, and still somewhere a drag can be
@@ -1951,6 +1951,39 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 .withChildIdentity(erasedType: _TableSectionHeader.self, index: index)
                 .withAvailableSize(width: width, height: max(1, context.availableHeight)),
             .sectionHeader)
+    }
+
+    /// What a table with no rows draws where the rows would be: its
+    /// placeholder — or, for a table of sections with no rows, their headers,
+    /// since a collapsed section keeps its header, and the header is the only
+    /// control that expands it again.
+    ///
+    /// The headers go across the cells' span, padded to the rows' width — as
+    /// many as the content area holds whole, and the first one clipped to it
+    /// when not even that does. With no row to carry them there is nothing to
+    /// scroll; a header that does not fit is not drawn, so its control (a
+    /// collapsible section's triangle) is not a Tab stop nobody can see.
+    private func emptyContent(
+        columnWidths: [Int], rowArea: Int, innerWidth: Int, context: RenderContext
+    ) -> (lines: [String], payload: _TableRowPayload) {
+        guard let indices = sections?.headersAfterLastRow, !indices.isEmpty else {
+            return ([emptyPlaceholder], _TableRowPayload())
+        }
+        let contentWidth = tableContentWidth(
+            columnWidths, within: innerWidth, gutter: selectionGutter(context.environment))
+        let heights = sectionHeaderHeights(columnWidths: columnWidths, context: context)
+        var fitting: [Int] = []
+        var used = 0
+        for index in indices where heights.indices.contains(index) {
+            guard fitting.isEmpty || used + heights[index] <= rowArea else { break }
+            fitting.append(index)
+            used += heights[index]
+        }
+        let drawn = renderedSectionHeaders(fitting, columnWidths: columnWidths, context: context)
+        let lines = drawn.lines.prefix(max(1, rowArea)).map { line in
+            line + String(repeating: " ", count: max(0, contentWidth - line.strippedLength))
+        }
+        return (lines, drawn.payload.clipped(toRows: 0..<lines.count))
     }
 
     /// The height of row `index` with the section headers drawn with it — its

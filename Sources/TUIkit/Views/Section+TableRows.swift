@@ -65,6 +65,10 @@ struct _TableSectionLayout {
 
     /// The headers drawn below row `index`: those after the last row.
     func headers(below index: Int) -> [Int] { index == lastRow ? below : [] }
+
+    /// The headers after the last row — in a table with no rows, every one,
+    /// which then has no row to be drawn with and is drawn on its own.
+    var headersAfterLastRow: [Int] { below }
 }
 
 /// A table row that displays a single view instead of columned content.

@@ -23,6 +23,10 @@ private final class Produce {
     var fruitsShown = true
     var collapsible = false
     var emptyMiddle = false
+    /// Only the fruits' section: no vegetables, no "Last".
+    var onlyFruits = false
+    /// Every section empty.
+    var noRows = false
     var rows = 4
     var menuSets: [[Int]] = []
 }
@@ -49,8 +53,12 @@ private struct ProduceApp: App {
 private struct ProducePage: View {
     let produce: Produce
 
-    private var fruits: [Item] { (1...produce.rows).map { Item(id: $0, name: "fruit\($0)") } }
-    private let vegetables = [Item(id: 11, name: "veg11"), Item(id: 12, name: "veg12")]
+    private var fruits: [Item] {
+        produce.noRows ? [] : (1...produce.rows).map { Item(id: $0, name: "fruit\($0)") }
+    }
+    private var vegetables: [Item] {
+        produce.noRows ? [] : [Item(id: 11, name: "veg11"), Item(id: 12, name: "veg12")]
+    }
 
     var body: some View {
         Table(of: Item.self, selection: Bindable(produce).selection) {
@@ -71,13 +79,15 @@ private struct ProducePage: View {
                     ForEach([Item]()) { TableRow($0) }
                 }
             }
-            Section {
-                ForEach(vegetables) { TableRow($0) }
-            } header: {
-                Text(verbatim: "Vegetables")
-            }
-            Section("Last") {
-                ForEach([Item]()) { TableRow($0) }
+            if !produce.onlyFruits {
+                Section {
+                    ForEach(vegetables) { TableRow($0) }
+                } header: {
+                    Text(verbatim: "Vegetables")
+                }
+                Section("Last") {
+                    ForEach([Item]()) { TableRow($0) }
+                }
             }
         }
         .contextMenu(forSelectionType: Int.self) { ids in
@@ -199,6 +209,42 @@ struct TableSectionTests {
         harness.click(x: harness.column(of: "▶", on: header) ?? 0, y: header)
         #expect(harness.produce.fruitsShown, "\(harness.screen)")
         #expect(harness.line(of: "fruit1") == header + 1)
+    }
+
+    @Test("A table whose only section is collapsed keeps the header, which expands it again")
+    func collapsedOnlySection() throws {
+        let harness = Harness {
+            $0.collapsible = true
+            $0.onlyFruits = true
+        }
+        harness.key(KeyEvent(key: .tab))
+        harness.key(KeyEvent(key: .enter))
+        #expect(!harness.produce.fruitsShown)
+        let header = try #require(harness.line(of: "Fruits"), "the collapsed section lost its header:\n\(harness.screen)")
+        #expect(harness.lines[header].contains("▶"), "\(harness.lines[header])")
+        #expect(harness.line(of: "No items") == nil, "\(harness.screen)")
+        // The keyboard still holds the header's control: Return opens it again.
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.produce.fruitsShown, "\(harness.screen)")
+        #expect(harness.line(of: "fruit1") == header + 1, "\(harness.screen)")
+        // And collapsed again, a click on the triangle opens it.
+        harness.key(KeyEvent(key: .enter))
+        #expect(!harness.produce.fruitsShown)
+        harness.click(x: harness.column(of: "▶", on: header) ?? 0, y: header)
+        #expect(harness.produce.fruitsShown, "\(harness.screen)")
+    }
+
+    @Test("A table whose sections have no rows draws their headers, not its placeholder")
+    func rowlessSections() throws {
+        let harness = Harness { $0.noRows = true }
+        let fruits = try #require(harness.line(of: "Fruits"), "\(harness.screen)")
+        #expect(harness.line(of: "Vegetables") == fruits + 1, "\(harness.screen)")
+        #expect(harness.line(of: "Last") == fruits + 2, "\(harness.screen)")
+        #expect(harness.line(of: "No items") == nil, "\(harness.screen)")
+        // Drawn where the rows would be, in line with the first column.
+        let title = try #require(harness.line(of: "Name"))
+        #expect(fruits == title + 1)
+        #expect(harness.column(of: "Fruits", on: fruits) == harness.column(of: "Name", on: title))
     }
 
     @Test("Scrolled, the headers scroll with their rows and the clicks still land on the rows")

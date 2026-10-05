@@ -118,17 +118,19 @@ the multi-line layout, which already lays rows out at their own heights. A
 collapsible section's header is the `List`'s: its disclosure triangle is a
 control, so the keyboard reaches it with Tab.
 
-Three edges follow. A table whose sections all have no rows draws its
-placeholder, not their headers (there is no row to carry them). A
+Three edges follow. A table whose sections all have no rows — a collapsed
+section alone, say — draws their headers on their own, in place of its
+placeholder, as many as the content area holds whole (there is no row to
+carry them, so nothing to scroll; one that does not fit is not drawn). A
 hierarchical table draws its sections' rows without their headers. Stripes
 (`alternatingRowBackgrounds`) count rows, headers aside.
 
 **The fuller version:** headers as entries of their own in the table's
 numbering, with every path taught to skip them — what A31 sketched. It would
-draw a table of empty sections, and put a header on screen when only it fits
-in the viewport (today the row below it comes too, or neither). Two days: the
-cursor, selection, select-all, reorder and drop offsets all translate
-between the two numberings.
+scroll a table of more empty sections than fit, and put a header on screen
+when only it fits in the viewport (today the row below it comes too, or
+neither). Two days: the cursor, selection, select-all, reorder and drop
+offsets all translate between the two numberings.
 
 ### B-D4T-6. A table section takes no section actions
 
