@@ -8,9 +8,9 @@
 
 /// A single input event read from the terminal.
 ///
-/// Terminals report keys, mouse activity and focus changes through the
-/// same input stream, distinguished only by the escape sequence that wraps
-/// each event. `TerminalInput` is the discriminated union the parser
+/// Terminals report keys, mouse activity, focus changes and (under the kitty
+/// keyboard protocol) modifier keys through the same input stream,
+/// distinguished only by the escape sequence that wraps each event. `TerminalInput` is the discriminated union the parser
 /// returns so call sites can pattern-match against each kind.
 public enum TerminalInput: Sendable, Equatable {
     /// A keyboard event (key press, paste, etc.).
@@ -27,4 +27,12 @@ public enum TerminalInput: Sendable, Equatable {
     /// mode, or tmux without its `focus-events` option. Treat one as a hint
     /// that arrived, never as a signal that is guaranteed to.
     case focusChanged(isFocused: Bool)
+
+    /// A modifier key went down or came up on its own, or a lock key changed
+    /// state, leaving the modifiers as reported.
+    ///
+    /// Only a terminal speaking the kitty keyboard protocol sends one; see
+    /// ``ModifierKeyState``. Never a key: a Shift held for a Shift-click is not
+    /// typing, so nothing that hears keys hears these.
+    case modifierKeys(ModifierKeyState)
 }

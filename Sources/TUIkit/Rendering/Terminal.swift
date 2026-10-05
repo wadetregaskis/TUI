@@ -162,6 +162,24 @@ final class Terminal: TerminalProtocol {
     /// out to be a split sequence's introducer rather than the Escape key.
     var pendingAltEsc: Bool = false
 
+    /// The kitty keyboard protocol's enhancements the terminal took when this
+    /// process pushed them, or empty for the legacy encodings — which is also
+    /// what it is between a pop (exit, suspend) and the push that follows.
+    ///
+    /// The parser reads it to decide how to read a key: the protocol gives the
+    /// legacy forms' shared bits a meaning of their own (see
+    /// `KittyKeyDecoder`). Declared here rather than beside the parser because
+    /// an extension cannot hold stored properties.
+    var keyboardEnhancement: KittyKeyboardFlags = []
+
+    /// Events one sequence decoded to beyond the first, waiting their turn.
+    ///
+    /// A kitty key report carries the text its key typed, and an input method
+    /// can commit several characters through one key. Each is delivered as a
+    /// key event of its own, as the legacy encoding's bytes would be, so all
+    /// but the first wait here for the next ``readEvent()``.
+    var queuedInputs: Deque<TerminalInput> = []
+
     /// Colour answers the terminal volunteered, siphoned out of the keystrokes
     /// by the parser and waiting for the run loop to take them.
     ///

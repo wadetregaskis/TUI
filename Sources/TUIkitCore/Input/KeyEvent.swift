@@ -7,6 +7,16 @@
 // MARK: - Key Event
 
 /// Represents a keyboard event.
+///
+/// What a terminal can say about a key depends on how it encodes keys. In the
+/// legacy encodings every terminal speaks, a key event is the bytes the key
+/// produces: it is sent when the key goes down and again for each auto-repeat,
+/// with nothing to tell the two apart, and a release sends nothing. So there
+/// every event is a ``Phase/press``, and ``capsLock`` and ``numericPad`` are
+/// `false`. Where the terminal speaks the kitty keyboard protocol, which TUIkit
+/// turns on when the terminal answers its query, the same fields carry what
+/// the terminal reported: a repeat, a release, the Caps Lock state and the
+/// keypad.
 public struct KeyEvent: Equatable, Sendable {
     /// The key that was pressed.
     public let key: Key
@@ -20,12 +30,36 @@ public struct KeyEvent: Equatable, Sendable {
     /// Whether the Shift modifier was held.
     public let shift: Bool
 
+    /// Whether the key went down, repeated while held, or came up.
+    ///
+    /// Always ``Phase/press`` from a terminal in its legacy encoding, where a
+    /// held key's repeats arrive as more presses and a release is never sent.
+    /// A ``Phase/repeat`` or ``Phase/release`` comes only from a terminal
+    /// speaking the kitty keyboard protocol.
+    public let phase: Phase
+
+    /// Whether Caps Lock was on. Reported only by a terminal speaking the kitty
+    /// keyboard protocol; `false` everywhere else, where a Caps-Locked letter
+    /// arrives as the uppercase character.
+    public let capsLock: Bool
+
+    /// Whether the key is on the numeric keypad. Reported only by a terminal
+    /// speaking the kitty keyboard protocol; elsewhere a keypad digit arrives
+    /// as the digit.
+    public let numericPad: Bool
+
     /// Creates a key event.
-    public init(key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false) {
+    public init(
+        key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false,
+        phase: Phase = .press, capsLock: Bool = false, numericPad: Bool = false
+    ) {
         self.key = key
         self.ctrl = ctrl
         self.alt = alt
         self.shift = shift
+        self.phase = phase
+        self.capsLock = capsLock
+        self.numericPad = numericPad
     }
 
     /// Creates a key event from a character.
@@ -34,6 +68,65 @@ public struct KeyEvent: Equatable, Sendable {
         self.ctrl = false
         self.alt = false
         self.shift = character.isUppercase
+        self.phase = .press
+        self.capsLock = false
+        self.numericPad = false
+    }
+}
+
+// MARK: - Phase
+
+extension KeyEvent {
+    /// What happened to a key: SwiftUI's `KeyPress.Phases`, as one event has
+    /// exactly one of them.
+    public enum Phase: Sendable, Hashable {
+        /// The key went down. In a terminal's legacy encoding, also each
+        /// auto-repeat of a held key, which arrives as another press.
+        case press
+
+        /// The key repeated while held. Only from a terminal speaking the kitty
+        /// keyboard protocol.
+        case `repeat`
+
+        /// The key came up. Only from a terminal speaking the kitty keyboard
+        /// protocol; every consumer but a key-press handler that asks for
+        /// releases ignores one.
+        case release
+    }
+}
+
+// MARK: - Modifier key state
+
+/// The modifier keys a terminal reported held, and whether Caps Lock was on,
+/// when a modifier key went down or came up on its own.
+///
+/// Only a terminal speaking the kitty keyboard protocol, with its "report all
+/// keys as escape codes" enhancement on, reports a modifier key by itself. In
+/// a legacy encoding a modifier is only ever a bit on another key's event, so
+/// none of these ever arrives there.
+public struct ModifierKeyState: Hashable, Sendable {
+    /// Whether Shift is held.
+    public var shift: Bool
+    /// Whether Control is held.
+    public var control: Bool
+    /// Whether Option (Alt) is held.
+    public var option: Bool
+    /// Whether Command is held: the protocol's Super modifier, which is what
+    /// the macOS terminals that speak the protocol report ⌘ as.
+    public var command: Bool
+    /// Whether Caps Lock is on.
+    public var capsLock: Bool
+
+    /// Creates a modifier key state.
+    public init(
+        shift: Bool = false, control: Bool = false, option: Bool = false, command: Bool = false,
+        capsLock: Bool = false
+    ) {
+        self.shift = shift
+        self.control = control
+        self.option = option
+        self.command = command
+        self.capsLock = capsLock
     }
 }
 

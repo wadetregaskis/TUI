@@ -139,7 +139,8 @@ extension View {
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> FocusPathModifier<Self> {
         let handler: (KeyEvent) -> Bool = { event in
-            guard phases.hearsTerminalPress, let press = KeyPress(event), matches(press) else { return false }
+            guard phases.hears(event.phase, repeatsReported: false), let press = KeyPress(event), matches(press)
+            else { return false }
             return action(press) == .handled
         }
         return FocusPathModifier(content: self, stage: .keyPress) { _ in handler }

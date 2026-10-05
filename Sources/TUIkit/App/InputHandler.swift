@@ -114,6 +114,14 @@ extension InputHandler {
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
     func handle(_ event: KeyEvent) -> Bool {
+        // A release goes to the focus path's key-press handlers and nowhere
+        // else. Every other layer acts on a key going down, and a release
+        // offered to them would act a second time for one keystroke. Only a
+        // terminal speaking the kitty keyboard protocol sends one; a repeat,
+        // which it also reports, is a press to every layer, as the legacy
+        // encodings' identical copies always were.
+        guard event.phase != .release else { return handleRelease(event) }
+
         // The focus path: SwiftUI's `onKeyPress` handlers on the way to the
         // focused view, outermost first, BEFORE the focused control has the
         // key — a text input included, so a `.handled` letter is never typed.
@@ -249,6 +257,13 @@ extension InputHandler {
         // only the ESC key; it doesn't ground the chrome shortcuts the way
         // an open drop-down does — hence the grabs-input qualifier.
         return handleGlobalShortcut(event, inputGrabbed: globalChromeGrabbed)
+    }
+
+    /// Offers a key's release to the focus path's key-press handlers, the
+    /// only layer that takes one — see the top of ``handle(_:)``.
+    private func handleRelease(_ event: KeyEvent) -> Bool {
+        guard focusPathHearsKeys, let focused = focusManager.focusedIdentity else { return false }
+        return keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .keyPress)
     }
 
     /// Whether a transient surface holds the input, so the global chrome keys

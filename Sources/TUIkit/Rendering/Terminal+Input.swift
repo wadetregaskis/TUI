@@ -10,7 +10,8 @@ import Foundation
 // MARK: - Turning bytes from stdin into events
 
 /// The input parser: bracketed paste, CSI / SS3 / meta sequences, mouse
-/// reports, focus reports, typed UTF-8, and the Escape-versus-sequence
+/// reports, focus reports, typed UTF-8, the kitty keyboard protocol's key
+/// reports while it is on (`KittyKeyDecoder`), and the Escape-versus-sequence
 /// disambiguation that holds a lone `ESC` for a round rather than committing
 /// it.
 ///
@@ -435,7 +436,7 @@ extension Terminal {
     /// user's next keystroke was swallowed as paste content instead of being
     /// dispatched.
     var hasPendingInput: Bool {
-        !input.isEmpty || pendingBareEsc || pendingAltEsc || inPasteMode
+        !input.isEmpty || pendingBareEsc || pendingAltEsc || inPasteMode || !queuedInputs.isEmpty
     }
 
     /// Peels sequences off the front of the buffer until one of them is
@@ -515,6 +516,10 @@ extension Terminal {
     /// bytes), parses events out of the buffer, and never blocks
     /// the run loop.
     func readEvent() -> TerminalInput? {
+        // The rest of a sequence that decoded to more than one event goes
+        // first: its bytes arrived before anything still in the buffer.
+        if let queued = queuedInputs.popFirst() { return queued }
+
         // Make sure there's something to inspect.
         if input.isEmpty {
             appendDrain()
@@ -707,6 +712,19 @@ extension Terminal {
         // and would drop them.
         if bytes == Self.focusIn { return .focusChanged(isFocused: true) }
         if bytes == Self.focusOut { return .focusChanged(isFocused: false) }
+
+        // While the kitty keyboard protocol is on, a CSI is read in its
+        // grammar, whose legacy-looking forms mean something else (bit 8 is
+        // ⌘, not Option) and which carry a repeat or a release. Anything it
+        // does not claim — an SS3 key, a lone byte, a reply — goes on to the
+        // legacy parser below as before.
+        if !keyboardEnhancement.isEmpty, bytes.count >= 3, bytes[0] == 0x1B, bytes[1] == 0x5B,
+            let decoded = KittyKeyDecoder.decode(bytes)
+        {
+            guard let first = decoded.first else { return nil }
+            queuedInputs.append(contentsOf: decoded.dropFirst())
+            return first
+        }
 
         if let key = KeyEvent.parse(bytes) {
             // Apple Terminal encodes Shift on a function key by sending a

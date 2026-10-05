@@ -728,7 +728,7 @@ extension AppRunner {
                 // Markdown snippet in a TextEditor) silently wrote a frame
                 // file into the user's working directory. Force a full
                 // repaint first so the snapshot captures every line.
-                if keyEvent.key == .character("`"), frameDumpEnabled {
+                if keyEvent.key == .character("`"), keyEvent.phase == .press, frameDumpEnabled {
                     renderer.invalidateDiffCache()
                     renderOutsidePacer(renderer: renderer, cursorTimer: cursorTimer)
                     terminal.dumpLastFrame()
@@ -751,6 +751,13 @@ extension AppRunner {
                 // pointer.
                 terminalFocusChanged(
                     isFocused: isFocused, cursorTimer: cursorTimer, renderer: renderer)
+
+            case .modifierKeys:
+                // A modifier key on its own (kitty keyboard protocol only).
+                // Not a key, so no handler hears it and it does not make the
+                // keyboard the input source: a Shift held for a Shift-click is
+                // the pointer's.
+                break
             }
             eventsProcessed += 1
         }

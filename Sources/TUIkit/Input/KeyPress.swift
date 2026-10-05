@@ -72,7 +72,9 @@ public struct KeyPress: Sendable, CustomDebugStringConvertible {
             guard let equivalent = Self.equivalents[event.key] else { return nil }
             key = equivalent
         }
-        self.init(phase: .down, key: key, characters: String(key.character), modifiers: EventModifiers(event))
+        self.init(
+            phase: Phases(event.phase), key: key, characters: String(key.character),
+            modifiers: EventModifiers(event))
     }
 
     /// A press with these fields, for the framework and its tests: SwiftUI's
@@ -145,10 +147,36 @@ extension KeyPress {
             return names.count == 1 ? names[0] : "[" + names.joined(separator: ", ") + "]"
         }
 
-        /// Whether a handler for these phases hears a press: any phase a
-        /// terminal's press could be, which is a press or a repeat.
-        var hearsTerminalPress: Bool {
-            !isDisjoint(with: [.down, .repeat])
+        /// The phase a terminal reported for one key event.
+        init(_ phase: KeyEvent.Phase) {
+            switch phase {
+            case .press: self = .down
+            case .repeat: self = .repeat
+            case .release: self = .up
+            }
+        }
+
+        /// Whether a handler for these phases hears an event in `phase`.
+        ///
+        /// A repeat or a release comes only from a terminal that reports
+        /// them, so it is exact. A press is exact only there too: in a legacy
+        /// encoding a held key's repeats arrive as more presses, so a press
+        /// may be a repeat, and a handler for either phase hears it — the
+        /// default `[.down, .repeat]` means what it means in SwiftUI, and a
+        /// `.down`-only or `.repeat`-only handler over-fires rather than
+        /// silently missing anything.
+        ///
+        /// - Parameters:
+        ///   - phase: The event's phase.
+        ///   - repeatsReported: Whether the terminal tells a repeat from a
+        ///     press, which makes a press exact.
+        func hears(_ phase: KeyEvent.Phase, repeatsReported: Bool) -> Bool {
+            switch phase {
+            case .press:
+                return repeatsReported ? contains(.down) : !isDisjoint(with: [.down, .repeat])
+            case .repeat: return contains(.repeat)
+            case .release: return contains(.up)
+            }
         }
     }
 
