@@ -53,8 +53,12 @@ extension TextVariantPreference where Self == SizeDependentTextVariant {
 /// walk has, and take the first that ``Text/fitsWhole(width:height:context:)``.
 /// Both read the same frame's words and the same rules, so a render given the
 /// size its measure reported chooses as the measure did.
+///
+/// What `textVariant(_:)` returns for either preference: with
+/// `choosesBySize` false (`.fixed`) it measures and draws the text as it is.
 struct _SizeDependentText: View {
     let text: Text
+    let choosesBySize: Bool
 
     var body: Never {
         fatalError("_SizeDependentText renders via Renderable")
@@ -76,14 +80,16 @@ struct _SizeDependentText: View {
 
 extension _SizeDependentText: Renderable, Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        chosen(
+        guard choosesBySize else { return text.sizeThatFits(proposal: proposal, context: context) }
+        return chosen(
             width: proposal.width ?? context.availableWidth, height: proposal.height, context: context,
             measuring: true
         ).sizeThatFits(proposal: proposal, context: context)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        chosen(width: context.availableWidth, height: context.availableHeight, context: context, measuring: false)
+        guard choosesBySize else { return text.renderToBuffer(context: context) }
+        return chosen(width: context.availableWidth, height: context.availableHeight, context: context, measuring: false)
             .renderToBuffer(context: context)
     }
 }

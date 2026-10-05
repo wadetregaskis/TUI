@@ -34,18 +34,16 @@ extension Text {
     /// `textVariant(_:)`.
     ///
     /// ``TextVariantPreference/fixed`` is what every text does already, so it
-    /// returns the text as it is. ``TextVariantPreference/sizeDependent``
+    /// draws the text as it is. ``TextVariantPreference/sizeDependent``
     /// chooses the widest of the text's spellings that fits where it is laid
     /// out; see it for which texts have spellings to choose from.
     ///
     /// - Parameter preference: How the variant is chosen.
     /// - Returns: The text, choosing its variant as `preference` says.
-    @ViewBuilder
     public func textVariant<V: TextVariantPreference>(_ preference: V) -> some View {
-        if preference is SizeDependentTextVariant {
-            _SizeDependentText(text: self)
-        } else {
-            self
-        }
+        // One view for either preference, not an `if`: a conditional records
+        // its branch and allocates a branch identity on every render, which
+        // `.fixed` — the default, written out — has no reason to pay.
+        _SizeDependentText(text: self, choosesBySize: preference is SizeDependentTextVariant)
     }
 }

@@ -151,6 +151,19 @@ struct SizeDependentTextTests {
         #expect(drawn(Text(past, style: .offset).textVariant(.fixed).lineLimit(1), width: 4).line != "+1h")
     }
 
+    /// `.fixed` is the default written out: it draws the text as it is, and
+    /// through one view, not a conditional that records a branch per render.
+    @Test("The fixed preference is the same one view, drawing the text as it is")
+    func theFixedPreferenceIsOneView() {
+        let fixed = ObjectIdentifier(type(of: Text("a").textVariant(.fixed)))
+        let sizeDependent = ObjectIdentifier(type(of: Text("a").textVariant(.sizeDependent)))
+        #expect(fixed == ObjectIdentifier(_SizeDependentText.self))
+        #expect(sizeDependent == ObjectIdentifier(_SizeDependentText.self))
+        let past = base.addingTimeInterval(-3_600)
+        let text = Text(past, style: .offset)
+        #expect(drawn(text.textVariant(.fixed), width: 20).line == drawn(text, width: 20).line)
+    }
+
     @Test("Without a line limit the widest wraps and is kept, as SwiftUI keeps it")
     func wrappingKeepsTheWidest() {
         let past = base.addingTimeInterval(-3_725)
