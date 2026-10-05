@@ -102,7 +102,7 @@
       "match": [
         "*.animatableData"
       ],
-      "why": "TUIkit has `Animatable`, `AnimatablePair`, `AnimatableValues` and `VectorArithmetic`, and interpolates through them. What stays absent under this rule: the conformances on types TUIkit does not have (CoreGraphics geometry, decisions C1; SwiftUI's shapes, O0 of the refusal review; `Color.ResolvedHDR`, A16), the deprecated `AnimatableModifier`, and the `@Animatable`/`@AnimatableIgnored` macros, which need a swift-syntax macro plugin (decisions A52)."
+      "why": "TUIkit has `Animatable`, `AnimatablePair`, `AnimatableValues` and `VectorArithmetic`, and interpolates through them. What stays absent under this rule: the conformances on types TUIkit does not have (CoreGraphics geometry, decisions C1; SwiftUI's shapes, O0 of the refusal review; `Color.ResolvedHDR`, A16), the deprecated `AnimatableModifier`. The `@Animatable`/`@AnimatableIgnored` macros ship in the opt-in `TUIkitMacros` product (decisions A52), which this tool does not extract: macros are not in its symbol graphs."
     },
     {
       "match": [

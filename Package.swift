@@ -1,5 +1,6 @@
 // swift-tools-version: 6.2
 
+import CompilerPluginSupport
 import PackageDescription
 
 let package = Package(
@@ -26,6 +27,12 @@ let package = Package(
         // AppKit — see Sources/TUIkitAppKit/Exports.swift.
         .library(name: "TUIkitAppKit", targets: ["TUIkitAppKit"]),
 
+        // ── SwiftUI's `@Animatable` macros, opt-in (decisions A52) ──────────────────────────────────────
+        // A product of their own, so that only an app that depends on it builds
+        // the compiler plugin and swift-syntax: SwiftPM resolves dependencies by
+        // target, and a client of `TUIkit` alone never fetches swift-syntax.
+        .library(name: "TUIkitMacros", targets: ["TUIkitMacros"]),
+
         // ── App ─────────────────────────────────────────────────────────────────────────────────────────
         .executable(name: "Example", targets: ["Example"]),
 
@@ -41,6 +48,11 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.3"),
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.5.1"),
+        // For the `TUIkitMacros` product's compiler plugin only. The release
+        // line of the oldest toolchain the package supports (602 is Swift
+        // 6.2's), which SwiftPM 6.2 and later take prebuilt where one is
+        // published rather than compiling it.
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
         // ordo-one/benchmark is added conditionally at the bottom of this file
         // (gated on TUIKIT_BENCHMARKS), so the default build/test graph stays
         // free of its plugin's upstream deprecation warnings and the jemalloc
@@ -103,6 +115,17 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // The `@Animatable` macros: the declarations, and the compiler plugin
+        // that expands them. Nothing else in the package depends on either.
+        .target(name: "TUIkitMacros", dependencies: ["TUIkitMacrosPlugin", "TUIkitCore"]),
+        .macro(
+            name: "TUIkitMacrosPlugin",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            ]
+        ),
+
         // ── App & Tests ─────────────────────────────────────────────────────────────────────────────────
         .executableTarget(
             name: "Example",
@@ -150,6 +173,13 @@ let package = Package(
         .testTarget(name: "TUIkitStylingTests", dependencies: ["TUIkitStyling"]),
         .testTarget(name: "TUIkitViewTests", dependencies: ["TUIkitView"]),
         .testTarget(name: "TUIkitImageTests", dependencies: ["TUIkitImage"]),
+
+        // The macros, used as an app uses them: expanded in test sources. Not
+        // also on the plugin target, to check expansions as source: a test
+        // target that depends on a macro target has SwiftPM build the whole
+        // test product for the host, and `ExampleTests` then cannot import the
+        // `Example` executable (measured, SwiftPM 6.2.4).
+        .testTarget(name: "TUIkitMacrosTests", dependencies: ["TUIkitMacros", "TUIkit"]),
 
         // ── Stress test ─────────────────────────────────────────────────────────────────────────────────
         // A performance stress harness shaped like an app: deep/wide view
