@@ -710,6 +710,25 @@ private struct TemplateImageShapes: View {
 
 #if canImport(AppKit)
     import AppKit
+    import TUIkitAppKit
+
+    /// Colours to and from AppKit's and Core Graphics' own.
+    @MainActor
+    private struct AppKitColourShapes: View {
+        let nsColor: NSColor
+        let cgColor: CGColor
+
+        var body: some View {
+            VStack {
+                Text("bridge.ns").foregroundStyle(Color(nsColor: nsColor))
+                Text("bridge.cg").foregroundStyle(Color(cgColor: cgColor))
+            }
+            .onAppear {
+                _ = NSColor(Color.red)
+                _ = Color.red.resolve(in: EnvironmentValues()).cgColor
+            }
+        }
+    }
 
     /// Images made from a Core Graphics image or an AppKit image.
     @MainActor

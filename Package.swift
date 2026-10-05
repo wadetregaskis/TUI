@@ -21,6 +21,11 @@ let package = Package(
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         .library(name: "TUIkit", targets: ["TUIkit"]),
 
+        // ── Bridges to Apple's graphics types (NSColor, CGColor, CGImage, NSImage) ────────────────────────
+        // A module of its own so that nothing TUIkit is built from imports
+        // AppKit — see Sources/TUIkitAppKit/Exports.swift.
+        .library(name: "TUIkitAppKit", targets: ["TUIkitAppKit"]),
+
         // ── App ─────────────────────────────────────────────────────────────────────────────────────────
         .executable(name: "Example", targets: ["Example"]),
 
@@ -80,10 +85,21 @@ let package = Package(
             resources: [.copy("Localization/translations"), .copy("VERSION")],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
-            // every module LOADED is in scope — and on macOS that includes
-            // SwiftUICore, which AppKit imports (not re-exports): its
-            // `AttributeScopes.SwiftUIAttributes` made TUIkit's own scope of
-            // that name ambiguous wherever TUIkit spelled it.
+            // every module LOADED is in scope — and on macOS that included
+            // SwiftUICore, which AppKit imports (not re-exports), while TUIkit
+            // imported AppKit: its `AttributeScopes.SwiftUIAttributes` made
+            // TUIkit's own scope of that name ambiguous wherever TUIkit spelled
+            // it. Nothing TUIkit is built from imports AppKit now (decisions
+            // B50: the bridges are `TUIkitAppKit`), and this stays as the
+            // guard that keeps a stray import from bringing that back.
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // The bridges to AppKit and Core Graphics: the one module that
+        // imports AppKit. Empty off Apple platforms.
+        .target(
+            name: "TUIkitAppKit",
+            dependencies: ["TUIkit", "TUIkitImage"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -103,7 +119,7 @@ let package = Package(
         // forward (see also the per-target import guard it applies).
         .testTarget(
             name: "TUIkitTests",
-            dependencies: ["TUIkit", "CTestSupport"],
+            dependencies: ["TUIkit", "TUIkitAppKit", "CTestSupport"],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
             // exclude them from the build rather than declaring them as resources.

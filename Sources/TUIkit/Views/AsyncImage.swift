@@ -46,7 +46,7 @@ public enum AsyncImagePhase: Sendable {
 /// Main-actor state in practice — views are built and drawn there — which is
 /// what the unchecked `Sendable` rests on, the drawn-out pixels being cached
 /// on first use.
-final class _DecodedImage: @unchecked Sendable {
+package final class _DecodedImage: @unchecked Sendable {
     /// What the pixels are drawn out of — a `CGImage` or an `NSImage` — or
     /// `nil` for pixels handed over as they are.
     ///
@@ -54,14 +54,14 @@ final class _DecodedImage: @unchecked Sendable {
     /// address can come straight back for a different picture. So the view
     /// keeps the owner it last drew for as long as it keeps that source, and
     /// no other picture can take the address while it does.
-    let owner: AnyObject?
+    package let owner: AnyObject?
 
     private var drawn: RGBAImage?
     private let draw: () -> RGBAImage
 
     /// How the pixels become the image's size in points: SwiftUI's natural
     /// size for an image that is not resizable.
-    enum PointSizing: Equatable, Sendable {
+    package enum PointSizing: Equatable, Sendable {
         /// Pixels per point — a `CGImage`'s `scale:`, an `AsyncImage`'s.
         case scale(Double)
 
@@ -71,7 +71,7 @@ final class _DecodedImage: @unchecked Sendable {
 
     /// How the pixels become points. A scale of 1 — a pixel a point — unless
     /// the image was made with another.
-    let pointSizing: PointSizing
+    package let pointSizing: PointSizing
 
     /// Pixels already decoded, at `scale` pixels per point.
     init(_ pixels: RGBAImage, scale: Double = 1) {
@@ -83,7 +83,7 @@ final class _DecodedImage: @unchecked Sendable {
 
     /// Pixels drawn out of `owner` by `draw`, the first time they are wanted,
     /// sized in points as `pointSizing` says.
-    init(owner: AnyObject, pointSizing: PointSizing = .scale(1), draw: @escaping () -> RGBAImage) {
+    package init(owner: AnyObject, pointSizing: PointSizing = .scale(1), draw: @escaping () -> RGBAImage) {
         self.owner = owner
         self.draw = draw
         switch pointSizing {
@@ -114,12 +114,12 @@ final class _DecodedImage: @unchecked Sendable {
 
     /// A scale that is finite and positive, or 1. SwiftUI's own is a
     /// `CGFloat` the app passes; nothing stops it being zero.
-    static func sanitized(_ scale: Double) -> Double {
+    package static func sanitized(_ scale: Double) -> Double {
         scale.isFinite && scale > 0 ? scale : 1
     }
 
     /// The pixels.
-    var pixels: RGBAImage {
+    package var pixels: RGBAImage {
         if let drawn { return drawn }
         let pixels = draw()
         drawn = pixels

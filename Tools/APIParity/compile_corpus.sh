@@ -23,4 +23,8 @@ if [ ! -d "$modules" ]; then
 fi
 
 swiftc -typecheck -I "$modules" "$here/CompileCorpus.swift"
+# On its own, never beside the file above: that one imports AppKit for the
+# bridges, and within one compilation an import in one file loads its module
+# for all of them — which is the very leak this one proves is gone.
+swiftc -typecheck -I "$modules" "$here/CompileCorpusTUIkitOnly.swift"
 echo "compile corpus: every SwiftUI snippet type-checks against TUIkit"

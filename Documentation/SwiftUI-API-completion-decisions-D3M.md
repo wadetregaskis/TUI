@@ -82,3 +82,39 @@ one elsewhere), the insets multiplied by the image's scale, and the image's
 per-view conversion cache keyed on the natural box too. About two hours with
 tests. Left for now because no app in the tree tiles an image, and a tile size
 that changes with the terminal's font is a behaviour change worth seeing first.
+
+### B-D3M-4. The doubled format-style statics stay, and three calls inside B50
+
+*`TUIkitAppKit` (B50); `FormatStyle`/`DiscreteFormatStyle` `.offset(to:)`,
+`.reference(to:)`, `.timer(…)`, `.stopwatch(…)`*
+
+**Shipped:** the bridges to Apple's graphics types are the `TUIkitAppKit`
+product, and nothing TUIkit is built from imports AppKit, so an app that
+imports only TUIkit sees nothing of SwiftUICore
+(`CompileCorpusTUIkitOnly.swift` proves it, and fails if AppKit is imported).
+
+**Calls made along the way:**
+
+- **`internal import AppKit` was not enough.** A two-module probe (Swift
+  6.2.4, macOS 15) shows a SwiftPM library built without library evolution
+  still makes its client load an internally imported module, and SwiftUICore's
+  members with it. `@_implementationOnly` hides it but warns of instability in
+  exactly this configuration, and library evolution needs unsafe flags a
+  dependency cannot carry. So no module below the bridges may import AppKit at
+  all — a test now guards that (`AppKitBridgeTests`).
+- **TUIkitImage decodes through ImageIO instead of `NSImage`**, its one reason
+  to import AppKit. It turns a picture by its EXIF orientation as `NSImage`
+  did. Vector formats `NSImage` rasterised (PDF, EPS) are no longer read; no
+  app in the tree used one. Rasterising PDF through Core Graphics
+  (`CGPDFDocument`) would bring them back without AppKit: about an hour.
+- **The `CGColor` and `CGImage` bridges moved too**, though Core Graphics does
+  not import SwiftUICore: one module for "Apple's graphics types" reads better
+  than a split by which framework happens to import which. Moving them back to
+  TUIkit is a few lines if you would rather they need no extra import.
+- **The doubled statics stay.** Re-measured with a three-module probe: with
+  TUIkit free of AppKit, a single declaration on `FormatStyle` serves an app
+  that imports TUIkit alone — `Date.now.formatted(.offset(to: d))` included —
+  but is ambiguous in a `DiscreteFormatStyle` context for an app that also
+  imports `TUIkitAppKit` (or AppKit). The pair works for both, so removing the
+  `DiscreteFormatStyle` copies would trade a compile error for every app that
+  bridges a colour.

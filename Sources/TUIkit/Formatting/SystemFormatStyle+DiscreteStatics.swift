@@ -3,7 +3,7 @@
 //
 //  The `.timer`, `.stopwatch`, `.offset` and `.reference` statics a second
 //  time, on `DiscreteFormatStyle`, so that SwiftUI's own — which reach every
-//  module importing TUIkit on macOS — do not take their place in a `Text`.
+//  module on macOS that imports AppKit — do not take their place in a `Text`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -12,13 +12,24 @@ import Foundation
 
 // Why these exist.
 //
-// TUIkit imports AppKit (for its `NSColor` bridges), and from the macOS 15 SDK
-// on AppKit imports SwiftUICore. Before Swift's member-import-visibility rule
-// (an upcoming feature an app must opt into), an EXTENSION member of any
-// module a module imports, however indirectly, is visible to it — so every app
-// that imports TUIkit sees SwiftUICore's `FormatStyle.offset(to:…)` and the
-// other three beside TUIkit's. The TYPES do not leak, only the extension
-// members, and these four are extension members of Foundation's `FormatStyle`.
+// From the macOS 15 SDK on AppKit imports SwiftUICore. Before Swift's
+// member-import-visibility rule (an upcoming feature an app must opt into), an
+// EXTENSION member of any module a module imports, however indirectly, is
+// visible to it — so a module that imports AppKit sees SwiftUICore's
+// `FormatStyle.offset(to:…)` and the other three beside TUIkit's. The TYPES do
+// not leak, only the extension members, and these four are extension members
+// of Foundation's `FormatStyle`.
+//
+// TUIkit itself no longer imports AppKit (decisions B50): its bridges to
+// `NSColor` and the rest are the `TUIkitAppKit` module, and an app that imports
+// only TUIkit sees TUIkit's statics alone — `Date.now.formatted(.offset(to:
+// d))` compiles, as `CompileCorpusTUIkitOnly.swift` proves. But an app that
+// imports `TUIkitAppKit`, or AppKit itself, loads SwiftUICore again, and for it
+// what follows still holds. So the second declaration stays: re-measured
+// 2026-10-05 with a three-module probe (a library with no AppKit, a bridge
+// module importing it, and two clients), a single declaration on `FormatStyle`
+// works for the client of the library alone and is AMBIGUOUS in a
+// `DiscreteFormatStyle` context for the client of both; the pair works for both.
 //
 // Measured with a two-module probe (W11a notes, `ambig/`):
 //
@@ -35,10 +46,11 @@ import Foundation
 //
 // So TUIkit declares both, and every TUIkit API that takes these styles takes
 // a `DiscreteFormatStyle` (adding that overload beside the `FormatStyle` one
-// where SwiftUI has only the latter). What stays ambiguous on macOS is a
-// `FormatStyle` context outside TUIkit — `Date.now.formatted(.offset(to: d))`
-// — where spelling the type (`SystemFormatStyle.DateOffset(to: d)`) settles
-// it. On Linux there is no SwiftUICore and nothing collides.
+// where SwiftUI has only the latter). What stays ambiguous, in an app that
+// imports AppKit, is a `FormatStyle` context outside TUIkit —
+// `Date.now.formatted(.offset(to: d))` — where spelling the type
+// (`SystemFormatStyle.DateOffset(to: d)`) settles it. On Linux there is no
+// SwiftUICore and nothing collides.
 
 @available(macOS 15, *)
 extension DiscreteFormatStyle where Self == SystemFormatStyle.Timer {

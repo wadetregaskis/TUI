@@ -54,7 +54,7 @@ BASELINE_PATH = os.path.join(HERE, "baseline.json")
 LIST_LIMIT = 30
 
 SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
-TUIKIT_MODULES = ["TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView"]
+TUIKIT_MODULES = ["TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitAppKit"]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are
 # artefacts of how a type is spelled rather than API anyone writes.

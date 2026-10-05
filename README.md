@@ -301,6 +301,11 @@ Sources/
 ├── TUIkitImage/          ASCII-art converter (braille / fine-blocks / shape / dithering),
 │                         image loading — ImageIO on Apple, else stb_image
 │                         (depends on CSTBImage + TUIkitStyling)
+├── TUIkitAppKit/         Bridges to AppKit and Core Graphics: Color(nsColor:), NSColor(_:),
+│                         Color(cgColor:), Color.Resolved.cgColor, Image(cgImage…),
+│                         Image(nsImage:) — the ONE module that imports AppKit, so that
+│                         SwiftUICore (which AppKit imports) never reaches an app that
+│                         imports only TUIkit. Empty off Apple platforms.
 ├── TUIkit/               Umbrella module: App, Views, Modifiers, Focus, StatusBar, ...
 │   ├── App/              App, Scene, WindowGroup
 │   ├── AppHeader/        App header chrome
@@ -354,7 +359,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-The package also vends each library as an individual product. `import TUIkit` re-exports `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the sub-modules individually for finer control.
+The package also vends each library as an individual product. `import TUIkit` re-exports `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the sub-modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

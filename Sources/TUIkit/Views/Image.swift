@@ -128,7 +128,7 @@ public struct Image: View {
     /// The source's pixels, already decoded — an ``AsyncImage``'s success phase
     /// hands its image over with them, so it draws at once rather than
     /// loading again. Not part of equality: it is what the source decodes to.
-    var decoded: _DecodedImage?
+    package var decoded: _DecodedImage?
 
     /// The interpolation quality ``interpolation(_:)`` set, if any.
     var interpolationQuality: Interpolation?

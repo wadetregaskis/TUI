@@ -12,6 +12,7 @@ import TUIkitImage
 
 #if canImport(AppKit)
     import AppKit
+    import TUIkitAppKit
 #endif
 
 @testable import TUIkit
