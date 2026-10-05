@@ -567,10 +567,14 @@ the `?`-plus-intermediate quadrant is exactly the leaking one.
 
 What follows for TUIkit:
 
-- The four queries it sends — `CSI c`, `CSI > c`, `CSI > 0 q`, `CSI 6 n` —
-  have no `?` and no intermediate, and all four were re-confirmed clean on
-  Terminal.app on 2026-08-26. `TerminalIdentityQueryTests` now pins this so a
-  future addition cannot quietly break it.
+- The four queries it sends — `CSI c`, `CSI > c`, `CSI > 0 q` and the
+  status fence `CSI 5 n` — have no `?` and no intermediate. The first three
+  were re-confirmed clean on Terminal.app on 2026-08-26, together with the
+  cursor report `CSI 6 n` that fenced the exchange until 2026-10-05 (see the
+  fence paragraph below); `CSI 5 n` was measured clean there, answered with
+  nothing printed, by the colour exchange ("Asking the terminal for its
+  colours"). `TerminalIdentityQueryTests` pins the shape so a future addition
+  cannot quietly break it.
 - **`CSI ? Ps $ p` — DECRQM in its DEC-private form — is exactly the unsafe
   shape**, and it is how modes 2026 (synchronised output) and 2027 (grapheme
   clustering) are negotiated. Sending one blind puts a `p` on the user's
@@ -3117,6 +3121,18 @@ Both are read, not measured here; the card is `hyperlink_probe.py` with
   popover; only the terminal's own link is missing.
   `TerminalHyperlink.opening` is `nil` for such a destination, so every
   caller has to decide what to do without one.
+
+**UNMEASURED: a host-named `file:` link on iTerm2.** iTerm2 honours OSC 8,
+and until 2026-10-04 it was sent `file:///path`; it is now sent
+`file://<hostname>/path`, the name being whatever `gethostname()` says
+(`my-mac.local`, say). Whether it still opens that, or treats a host other
+than `localhost` as remote — refusing it, or with shell integration
+offering to fetch it over SCP — is not known. If it does not, a local
+file link that worked on iTerm2 stopped working with this change, and the
+rule needs an exception there. The answer is `hyperlink_probe.py`'s three
+`file` rows (no host, the machine's name, `localhost`) run on iTerm2, owed
+alongside Ghostty and kitty. Until it is recorded here, nothing about
+host-named file links on iTerm2 is established.
 
 ---
 

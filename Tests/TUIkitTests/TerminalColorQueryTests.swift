@@ -90,7 +90,7 @@ struct TerminalColorQueryTests {
         #expect(TerminalQueryReplies.sawStatusFence(Self.bytes(Self.fence)))
         #expect(TerminalQueryReplies.sawStatusFence(Self.bytes("q\u{1B}]11;rgb:0/0/0\u{07}\u{1B}[0n")))
         #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[0")), "its final byte is still coming")
-        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[24;1R")), "a cursor report is another fence")
+        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[24;1R")), "a cursor report is not the fence: it is the shape of a modified F3")
         #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[?997;1n")))
         #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[3n")))
         #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("0n")))
