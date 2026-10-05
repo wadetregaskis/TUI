@@ -91,6 +91,21 @@ struct AssetCatalogTests {
             "color-space": "srgb", "components": ["red": "204", "green": "102", "blue": "51", "alpha": "1.000"],
         ])
         #expect(eightBit.map(components) == [204, 102, 51, 255])
+        // Digits alone are 8-bit whatever their size, as actool reads them
+        // (measured): "1" is 1/255, beside a float or an 8-bit component, in
+        // the alpha too; a JSON number is taken as it is.
+        let small = AssetCatalog.color(from: [
+            "color-space": "srgb", "components": ["red": "128", "green": "1", "blue": "0", "alpha": "1.000"],
+        ])
+        #expect(small.map(components) == [128, 1, 0, 255])
+        let mixed = AssetCatalog.color(from: [
+            "color-space": "srgb", "components": ["red": "1", "green": "0.500", "blue": "0", "alpha": "128"],
+        ])
+        #expect(mixed.map(components) == [1, 128, 0, 128])
+        let numbers = AssetCatalog.color(from: [
+            "color-space": "srgb", "components": ["red": 1.0, "green": 0.5, "blue": 0.0, "alpha": 1.0],
+        ])
+        #expect(numbers.map(components) == [255, 128, 0, 255])
         let grey = AssetCatalog.color(from: [
             "color-space": "gray-gamma-22", "components": ["white": "0.500", "alpha": "1.000"],
         ])
@@ -104,7 +119,7 @@ struct AssetCatalogTests {
         let made = try TemporaryBundle()
         let set = """
             {"colors": [{"idiom": "universal", "color": {"color-space": "srgb",
-              "components": {"red": "0", "green": "255", "blue": "0", "alpha": "1"}}}]}
+              "components": {"red": "0", "green": "255", "blue": "0", "alpha": "1.000"}}}]}
             """
         try made.write(set, to: "Assets.xcassets/Brand/Accent.colorset/Contents.json")
         try made.write(set, to: "Assets.xcassets/Group/Leaf.colorset/Contents.json")

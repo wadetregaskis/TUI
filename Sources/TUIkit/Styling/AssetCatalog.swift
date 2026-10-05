@@ -187,6 +187,13 @@ enum AssetCatalog {
     /// A colour as a colour set writes it: components in a colour space, as
     /// floating point (`"0.800"`), 8-bit (`"204"`) or hexadecimal (`"0xCC"`)
     /// text; or a reference to a system colour.
+    ///
+    /// Each component's text says how it is read, as `actool` reads it
+    /// (measured, Xcode 26): digits alone are 8-bit whatever their size, so
+    /// `"1"` is 1/255 and not 1.0, and that holds for the alpha too (Xcode
+    /// writes alpha with a point, `"1.000"`); text with a point is floating
+    /// point, even beside 8-bit components; and a JSON number, which Xcode
+    /// never writes, is taken as it is.
     static func color(from spec: [String: Any]) -> Color? {
         if let reference = spec["reference"] as? String {
             return systemColor(named: reference)
@@ -200,9 +207,12 @@ enum AssetCatalog {
             if lowered.hasPrefix("0x"), let hex = Int(lowered.dropFirst(2), radix: 16) {
                 return Double(hex) / 255
             }
-            guard let number = Double(text) else { return nil }
-            // An 8-bit integer component is written without a point.
-            return !text.contains(".") && number > 1 ? number / 255 : number
+            if !text.isEmpty, text.utf8.allSatisfy({ $0 >= UInt8(ascii: "0") && $0 <= UInt8(ascii: "9") }),
+                let eightBit = Int(text)
+            {
+                return Double(eightBit) / 255
+            }
+            return Double(text)
         }
         let opacity = value("alpha") ?? 1
         let space = (spec["color-space"] as? String) ?? "srgb"
