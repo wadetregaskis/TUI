@@ -1616,8 +1616,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// The wrapped cells and the height of a row that is about to be drawn.
         func layoutOf(_ index: Int) -> MultiLineRowLayout {
             if let cached = layoutCache[index] { return cached }
-            let rowContext = index == raisedRow ? Self.raised(context) : context
-            let layout = entryLayout(index, columnWidths: columnWidths, context: rowContext, headers: headers)
+            let layout = entryLayout(
+                index, columnWidths: columnWidths, raised: index == raisedRow, context: context,
+                headers: headers)
             layoutCache[index] = layout
             return layout
         }
@@ -2009,10 +2010,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// disclosure control registers and its regions travel in the payload —
     /// at the heights `headers` measured them at
     /// (``sectionHeaderHeights(columnWidths:context:)``).
+    ///
+    /// `raised` — the focused, selected row — raises the CELLS' background
+    /// prominence and nothing else: the headers carried with the row are not
+    /// on its fill, and drawn under the raise, one changed colour whenever the
+    /// cursor came to rest on its section's first selected row.
     private func entryLayout(
-        _ index: Int, columnWidths: [Int], context: RenderContext, headers: [Int]
+        _ index: Int, columnWidths: [Int], raised: Bool, context: RenderContext, headers: [Int]
     ) -> MultiLineRowLayout {
-        var layout = cellLayout(for: data[index], columnWidths: columnWidths, context: context)
+        var layout = cellLayout(
+            for: data[index], columnWidths: columnWidths, context: raised ? Self.raised(context) : context)
         guard let sections else { return layout }
         let aboveIndices = sections.headers(above: index)
         let belowIndices = sections.headers(below: index)

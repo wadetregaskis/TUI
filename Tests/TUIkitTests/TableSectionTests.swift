@@ -29,6 +29,8 @@ private final class Produce {
     var noRows = false
     /// The vegetables' header grows: a `Spacer` under its title.
     var flexibleHeader = false
+    /// The vegetables' header says when it is drawn over a raised background.
+    var prominenceHeader = false
     var rows = 4
     var menuSets: [[Int]] = []
 }
@@ -85,7 +87,9 @@ private struct ProducePage: View {
                 Section {
                     ForEach(vegetables) { TableRow($0) }
                 } header: {
-                    if produce.flexibleHeader {
+                    if produce.prominenceHeader {
+                        ProminenceProbe()
+                    } else if produce.flexibleHeader {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(verbatim: "Vegetables")
                             Spacer()
@@ -103,6 +107,15 @@ private struct ProducePage: View {
             Button("menu \(ids.sorted())") {}
         }
         .frame(height: 14)
+    }
+}
+
+/// A header that names the background prominence it is drawn under.
+private struct ProminenceProbe: View {
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        Text(verbatim: prominence == .increased ? "Vegetables raised" : "Vegetables")
     }
 }
 
@@ -267,6 +280,18 @@ struct TableSectionTests {
         // as many lines as it draws.
         harness.click(x: 6, y: veg + 1)
         #expect(harness.produce.selection == [12], "\(harness.produce.selection)\n\(harness.screen)")
+    }
+
+    @Test("A header is not raised with the focused, selected row it is carried by")
+    func headerIsNotRaised() throws {
+        let harness = Harness {
+            $0.prominenceHeader = true
+            $0.selection = [11]
+        }
+        // The cursor to veg11, the selected first row of the vegetables.
+        for _ in 0..<4 { harness.key(KeyEvent(key: .down)) }
+        #expect(harness.line(of: "Vegetables") != nil, "\(harness.screen)")
+        #expect(harness.line(of: "Vegetables raised") == nil, "\(harness.screen)")
     }
 
     @Test("Scrolled, the headers scroll with their rows and the clicks still land on the rows")
