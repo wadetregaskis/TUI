@@ -1,0 +1,71 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ImageIODecoderTests.swift
+//
+//  The Apple decoder is ImageIO, not NSImage, so that TUIkitImage need not
+//  import AppKit — and it turns a picture by its EXIF orientation, as NSImage
+//  did, and refuses one declared too large before drawing it.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+
+@testable import TUIkitImage
+
+#if canImport(ImageIO) && canImport(UniformTypeIdentifiers)
+    import CoreGraphics
+    import ImageIO
+    import UniformTypeIdentifiers
+
+    @Suite("The ImageIO decoder")
+    struct ImageIODecoderTests {
+        /// A 4 × 2 PNG, red on its left half and blue on its right, stored
+        /// with EXIF `orientation`.
+        private func picture(orientation: Int) throws -> Data {
+            let width = 4
+            let height = 2
+            var bytes = [UInt8](repeating: 0, count: width * height * 4)
+            for index in 0..<(width * height) {
+                let red = index % width < 2
+                bytes[index * 4] = red ? 255 : 0
+                bytes[index * 4 + 2] = red ? 0 : 255
+                bytes[index * 4 + 3] = 255
+            }
+            let context = try #require(
+                CGContext(
+                    data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            let image = try #require(context.makeImage())
+            let data = NSMutableData()
+            let destination = try #require(
+                CGImageDestinationCreateWithData(data as CFMutableData, UTType.png.identifier as CFString, 1, nil))
+            CGImageDestinationAddImage(destination, image, [kCGImagePropertyOrientation: orientation] as CFDictionary)
+            #expect(CGImageDestinationFinalize(destination))
+            return data as Data
+        }
+
+        @Test("A picture stored upright is decoded as stored")
+        func upright() throws {
+            let decoded = try PlatformImageLoader().loadImage(from: picture(orientation: 1))
+            #expect(decoded.width == 4 && decoded.height == 2)
+            #expect(decoded.pixels[0].r == 255 && decoded.pixels[3].b == 255)
+        }
+
+        @Test("A picture stored on its side is turned by its EXIF orientation, as NSImage turned it")
+        func turned() throws {
+            // Orientation 6: the stored pixels are turned 90° clockwise to show.
+            let decoded = try PlatformImageLoader().loadImage(from: picture(orientation: 6))
+            #expect(decoded.width == 2 && decoded.height == 4, "\(decoded.width) × \(decoded.height)")
+            // Turned clockwise, the red left half is the top.
+            #expect(decoded.pixels[0].r == 255 && decoded.pixels[decoded.pixels.count - 1].b == 255)
+        }
+
+        @Test("A picture declared larger than the limit is refused")
+        func tooLarge() throws {
+            #expect(throws: ImageLoadError.self) {
+                try PlatformImageLoader().loadImage(from: picture(orientation: 1), maxPixelCount: 4)
+            }
+        }
+    }
+#endif

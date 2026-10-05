@@ -268,7 +268,7 @@ worse than not:
   worse than absent, not better: source that compiles on a Mac would fail on
   Linux, which is the exact portability trap a cross-platform package exists to
   prevent. (The `#if canImport` rule of thumb is for *choosing an
-  implementation* of something that works everywhere — `NSImage` vs `stb_image`
+  implementation* of something that works everywhere — ImageIO vs `stb_image`
   — not for making public API appear and disappear.)
 - An `AsyncSequence` overload under the same name would be a different API
   wearing SwiftUI's, which the parity rule forbids. The deviations TUIkit does

@@ -6,9 +6,17 @@
 
 import Foundation
 
-#if canImport(AppKit)
-    import AppKit
+// ImageIO, not AppKit, on Apple platforms — and the difference is load-bearing.
+// From the macOS 15 SDK AppKit imports SwiftUICore, and a module that imports
+// AppKit at all — `internal import` included, in a package built without
+// library evolution, which a SwiftPM package is — makes every app that imports
+// it load SwiftUICore, whose extension members (`FormatStyle.offset(to:)` and
+// the rest) then sit beside TUIkit's. ImageIO decodes every raster format
+// `NSImage` did for this loader without that. See `SystemFormatStyle+DiscreteStatics.swift`
+// and the `TUIkitAppKit` target, which is where AppKit lives now.
+#if canImport(ImageIO)
     import CoreGraphics
+    import ImageIO
 #else
     import CSTBImage
 #endif
@@ -82,14 +90,17 @@ public enum ImageLoadError: Error, LocalizedError, CustomStringConvertible {
 /// the current build.
 ///
 /// Selection is by capability rather than a hard-coded platform list: when
-/// `canImport(AppKit)` holds (Apple platforms) it decodes via `NSImage`,
+/// `canImport(ImageIO)` holds (Apple platforms) it decodes via ImageIO,
 /// gaining the system image codecs and colour management with no third-party
-/// code; otherwise it falls back to the bundled stb_image C library
-/// (`CSTBImage`). Both paths produce straight-alpha, row-major RGBA, so the
-/// backends are interchangeable.
+/// code, and turning a picture by its EXIF orientation as `NSImage` does;
+/// otherwise it falls back to the bundled stb_image C library (`CSTBImage`).
+/// Both paths produce straight-alpha, row-major RGBA, so the backends are
+/// interchangeable.
 ///
 /// Formats via the stb_image fallback: PNG, JPEG, GIF, BMP, TGA, HDR, PSD, PNM.
-/// The `NSImage` path additionally decodes any format the host OS supports.
+/// The ImageIO path additionally decodes every raster format the host OS
+/// reads (HEIC, TIFF, WebP, …); vector formats (PDF, EPS) are not raster
+/// images and are not decoded.
 public struct PlatformImageLoader: ImageLoader {
 
     public init() {}
@@ -113,11 +124,10 @@ public struct PlatformImageLoader: ImageLoader {
         guard FileManager.default.fileExists(atPath: path) else {
             throw ImageLoadError.fileNotFound(path)
         }
-        #if canImport(AppKit)
-            guard let image = NSImage(contentsOfFile: path) else {
-                throw ImageLoadError.decodingFailed("NSImage could not load image at \(path)")
-            }
-            return try decodeWithNSImage(image, maxPixelCount: maxPixelCount)
+        #if canImport(ImageIO)
+            return try decodeWithImageIO(
+                CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
+                describing: "image at \(path)", maxPixelCount: maxPixelCount)
         #else
             return try decodeWithSTB(data: Self.fileBytes(atPath: path), maxPixelCount: maxPixelCount)
         #endif
@@ -131,11 +141,10 @@ public struct PlatformImageLoader: ImageLoader {
     /// - Returns: The decoded image as `RGBAImage`.
     /// - Throws: `ImageLoadError` if the data cannot be decoded or exceeds the limit.
     public func loadImage(from data: Data, maxPixelCount: Int?) throws -> RGBAImage {
-        #if canImport(AppKit)
-            guard let image = NSImage(data: data) else {
-                throw ImageLoadError.decodingFailed("NSImage could not decode image data")
-            }
-            return try decodeWithNSImage(image, maxPixelCount: maxPixelCount)
+        #if canImport(ImageIO)
+            return try decodeWithImageIO(
+                CGImageSourceCreateWithData(data as CFData, nil), describing: "image data",
+                maxPixelCount: maxPixelCount)
         #else
             return try decodeWithSTB(data: data, maxPixelCount: maxPixelCount)
         #endif
@@ -148,13 +157,13 @@ extension PlatformImageLoader {
     /// `byteCount` as the C `int` length `stbi_load_from_memory` takes,
     /// rejecting anything that does not fit.
     ///
-    /// Deliberately NOT inside the `#if !canImport(AppKit)` arm below, even
+    /// Deliberately NOT inside the `#if !canImport(ImageIO)` arm below, even
     /// though only that arm calls it: the ceiling comes from stb_image's own
     /// signature, not from the host, and a helper compiled only on non-Apple
     /// platforms could only be tested there. The conversion used to be
     /// `Int32(data.count)` — the trapping initialiser — so a payload over
     /// 2 GiB aborted the process, wrecking a terminal left in raw mode, where
-    /// the `NSImage` arm returns nil and throws for the same input.
+    /// the ImageIO arm throws for the same input.
     static func stbLength(forByteCount byteCount: Int) throws -> Int32 {
         guard let length = Int32(exactly: byteCount) else {
             throw ImageLoadError.decodingFailed(
@@ -166,7 +175,7 @@ extension PlatformImageLoader {
     /// The bytes of the file at `path`, as an `ImageLoadError` rather than a
     /// Foundation error.
     ///
-    /// Outside the `#if !canImport(AppKit)` arm below for the same reason as
+    /// Outside the `#if !canImport(ImageIO)` arm below for the same reason as
     /// ``stbLength(forByteCount:)``: a helper compiled only on non-Apple
     /// platforms could only be tested there.
     ///
@@ -191,7 +200,7 @@ extension PlatformImageLoader {
 
 // MARK: - stb_image Backend (non-Apple platforms)
 
-#if !canImport(AppKit)
+#if !canImport(ImageIO)
     extension PlatformImageLoader {
 
         /// Decodes in-memory data with stb_image into straight-alpha, row-major RGBA.
@@ -254,20 +263,54 @@ extension PlatformImageLoader {
     }
 #endif
 
-// MARK: - NSImage Backend (Apple platforms)
+// MARK: - ImageIO Backend (Apple platforms)
 
-#if canImport(AppKit)
+#if canImport(ImageIO)
     extension PlatformImageLoader {
 
-        /// Decodes an `NSImage` into straight-alpha, row-major RGBA (row 0 = top)
-        /// via a CoreGraphics bitmap context, matching the stb_image fallback's
-        /// pixel contract so the two backends are interchangeable.
-        private func decodeWithNSImage(_ image: NSImage, maxPixelCount: Int?) throws -> RGBAImage {
-            var proposedRect = CGRect(origin: .zero, size: image.size)
-            guard let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) else {
-                throw ImageLoadError.decodingFailed("NSImage has no CoreGraphics representation")
+        /// Decodes the first image of an ImageIO source into straight-alpha,
+        /// row-major RGBA (row 0 = top) via a CoreGraphics bitmap context,
+        /// matching the stb_image fallback's pixel contract so the two backends
+        /// are interchangeable.
+        ///
+        /// Turned by its EXIF orientation, as `NSImage` — this loader's backend
+        /// until it had to stop importing AppKit — turns it: a plain
+        /// `CGImageSourceCreateImageAtIndex` hands back the pixels as stored,
+        /// so a portrait photograph from a phone came out on its side. Only an
+        /// image that needs turning takes the thumbnail path, at its full size,
+        /// which is the one ImageIO call that applies the transform.
+        private func decodeWithImageIO(
+            _ source: CGImageSource?, describing what: String, maxPixelCount: Int?
+        ) throws -> RGBAImage {
+            guard let source, CGImageSourceGetCount(source) > 0 else {
+                throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
             }
-            return try decode(cgImage, maxPixelCount: maxPixelCount)
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+            let width = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
+            let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
+            // Before anything is drawn: a size declared too large is refused
+            // without decoding it.
+            let (declared, overflowed) = width.multipliedReportingOverflow(by: height)
+            if let limit = maxPixelCount, overflowed || declared > limit {
+                throw ImageLoadError.imageTooLarge(pixelCount: overflowed ? Int.max : declared, limit: limit)
+            }
+            let orientation = properties?[kCGImagePropertyOrientation] as? UInt32 ?? 1
+            let image: CGImage?
+            if orientation != 1, max(width, height) > 0 {
+                image = CGImageSourceCreateThumbnailAtIndex(
+                    source, 0,
+                    [
+                        kCGImageSourceCreateThumbnailFromImageAlways: true,
+                        kCGImageSourceCreateThumbnailWithTransform: true,
+                        kCGImageSourceThumbnailMaxPixelSize: max(width, height),
+                    ] as CFDictionary)
+            } else {
+                image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+            }
+            guard let image else {
+                throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
+            }
+            return try decode(image, maxPixelCount: maxPixelCount)
         }
 
         /// Decodes a `CGImage` into straight-alpha, row-major RGBA (row 0 =
