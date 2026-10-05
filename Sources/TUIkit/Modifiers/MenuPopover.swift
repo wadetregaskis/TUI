@@ -91,9 +91,13 @@ func measureMenuColumn(
 /// rows, the same idiom as the Picker drop-down. A `Toggle` in a POP-UP menu is
 /// one of those buttons too (`_ToggleCore`); in an inline menu, whose rows are
 /// page focus stops, it stays the ordinary control.
+///
+/// A `Section` among the items is drawn as a menu draws one
+/// (``_MenuSectionedItems``): between separators, under a header that is no
+/// row.
 @MainActor
 private func menuColumnBody(_ items: some View) -> some View {
-    VStack(alignment: .leading, spacing: 0) { items }
+    VStack(alignment: .leading, spacing: 0) { _MenuSectionedItems(items: items) }
         .buttonStyle(_MenuItemButtonStyle())
         .padding(.horizontal, 1)
 }
@@ -294,7 +298,7 @@ func renderMenuPopup(
     _ items: some View, context: RenderContext, controller: MenuPopupController,
     dismiss: @escaping () -> Void
 ) -> FrameBuffer {
-    let rowsOnly = VStack(alignment: .leading, spacing: 0) { items }
+    let rowsOnly = VStack(alignment: .leading, spacing: 0) { _MenuSectionedItems(items: items) }
         .buttonStyle(_MenuItemButtonStyle())
 
     // The channel goes in BEFORE anything is measured, not just before the

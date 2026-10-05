@@ -64,22 +64,6 @@ away from the band have estimated positions. Unpinned, it needs B-D1S-5's
 fuller version too — a loop of sections counted without building every row —
 or taking them apart costs every row again.
 
-### B-D1S-2. A section header in a menu is a plain item
-
-*`Menu`, `Section`*
-
-A `Section` in a `Menu` is its parts, as in any container that is not a
-`List`, a `Form` or a `Table` (B16), so its header is drawn as a line of plain
-text among the items. Before this lane it was drawn bold and dimmed, a section
-drawn as one unit. SwiftUI's macOS menus show a section's header as a smaller
-grey title, which is styling, so the owner's B16 rule ("a header outside a
-`List`, `Form` or `Table` gets no styling") and SwiftUI's menus disagree here.
-
-**The fuller version.** The menu's walk keeps sections whole (as a `List`'s
-does, `RenderContext.keepsSectionsWhole`) and the menu style draws a section's
-header as a disabled title in the menu's secondary colour, with a separator
-before every section but the first, as macOS does. Half a day.
-
 ### B-D1S-3. `AnyView` around several views is one subview
 
 *`AnyView`, `Group(subviews:transform:)`, `ForEach(subviews:content:)`,
