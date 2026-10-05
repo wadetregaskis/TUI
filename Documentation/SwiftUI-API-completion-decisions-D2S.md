@@ -94,6 +94,25 @@ stack's), and hand them out as the scroll view's overflow layers are; the
 header, the border and the indicators stay where they are. About half a day
 for both, with tests, and no cost to a list without the modifier.
 
+### B-D2S-5. A later view hides an unclipped scroll view's overflow from its first painted cell to its last
+
+Under `scrollClipDisabled`, the content after a scroll view hides the scroll
+view's overflow where that content draws — SwiftUI's stacking (measured). A
+terminal cell is drawn or not, so "where it draws" has to be said in cells.
+Shipped: on each line of the later content, from its first painted cell (a
+glyph other than a space, or a background) to its last; the unstyled blank
+cells either side — a stack's alignment padding, an overlay's `Spacer`, an
+`.offset` view's empty footprint — hide nothing, and the overflow shows there
+as SwiftUI's does. The overflow is drawn by the same rule: its blank cells at
+either end of a line draw nothing and take no click.
+
+**The fuller version:** treat EVERY unstyled blank cell as transparent, inside
+a line too, so the overflow shows between the words of a later `Text` as it
+does between SwiftUI's glyphs. It is a small change (cut per run of painted
+cells rather than per line, an hour or two with tests, no cost where nothing is
+unclipped), but two texts interleaved cell by cell are hardly legible, which is
+why it is not the default. Owner's call.
+
 ### Notes on A6 that are not decisions
 
 - `ScrollGranularity.row` did nothing `.viewAligned` cannot: on `List` and
