@@ -48,7 +48,20 @@
 /// counted from its data, but every view of such a row carries its element's
 /// key (`ChildView.keyedAsMember`). So it is placed by its keys instead: each
 /// element in turn owns the run of keyed children carrying its key, which may
-/// be none.
+/// be none. It is placed after the counted runs on both sides of it, so it
+/// claims only the keyed children between them: placed greedily from the
+/// front, its last element took the first row of a loop after it whose ids
+/// are spelled the same — `ForEach([1, 2, 3])` before `ForEach([3, 4])` — and
+/// the placement failed.
+///
+/// And the keyed children are placed slot by slot: each carries the static
+/// slot of the content's outermost tuple it was spliced from
+/// (`ChildView.spliceSlot`), and so does each run the walk finds, so the
+/// providers in one slot are placed on that slot's children alone. Two loops
+/// written side by side never meet, whatever their ids, and a provider this
+/// walk cannot see into (below) costs only the loops in its own slot. Where
+/// the slots do not tell the runs apart — content with no tuple, a run or a
+/// child from no slot — they are placed together, as one.
 ///
 /// Matching by the key alone is what this replaced, and a key names a value
 /// only up to its spelling: two loops over overlapping ids — projects 1, 2, 3
@@ -59,8 +72,8 @@
 ///
 /// A provider the walk cannot see into (``KeyedRowRun/opaque``) owns whatever
 /// keyed children are left between the loops placed from the front and from
-/// the back. Two of them leave the loops BETWEEN them unplaced, and a failed
-/// check unplaces every loop. An unplaced row keeps the hand-written rule —
+/// the back. Two of them in one slot leave the loops BETWEEN them unplaced,
+/// and a failed check unplaces every loop. An unplaced row keeps the hand-written rule —
 /// the answer it had before — with its tag read through the value memo, which
 /// is at least the tag it wrote.
 ///
@@ -282,9 +295,9 @@ final class FlattenedRowIDs<ID: Hashable> {
         // of its own: the list splices each section's rows, keyed by the
         // section's own items, and asks nothing here. So nothing is walked.
         guard !keyed.isEmpty, !keyed.allSatisfy({ Self.isSection(children[$0]) }) else { return [] }
-        var runs: [KeyedRowRun] = []
+        var runs = KeyedRowRuns()
         appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
-        let loops = runs.compactMap { run -> (any KeyedLoop)? in
+        let loops = runs.runs.compactMap { run -> (any KeyedLoop)? in
             if case .loop(let loop, _) = run { return loop }
             return nil
         }
@@ -310,61 +323,135 @@ final class FlattenedRowIDs<ID: Hashable> {
     /// `nil` when a loop's rows are not where the walk says they are.
     ///
     /// `keyed` holds the indices into `children` of the keyed ones, in order.
-    /// Runs are counted off from the front until a provider whose rows cannot
-    /// be counted, then from the back down to the last such provider; the
-    /// uncountable provider between owns what is left.
+    /// The runs and the keyed children of each slot are placed together
+    /// (``slotGroups(of:onKeyed:of:)``), and a slot whose placement fails
+    /// unplaces them all.
     private static func placements(
-        of runs: [KeyedRowRun], onKeyed keyed: [Int], of children: [ChildView]
+        of runs: KeyedRowRuns, onKeyed keyed: [Int], of children: [ChildView]
     ) -> [Placement]? {
         var placements = [Placement](repeating: .handWritten, count: children.count)
-        // Each run's loop number, in the order `place()` collects the loops.
-        var loopNumbers: [Int] = []
+        // Each run with its loop number, in the order `place()` collects the
+        // loops.
+        var numbered: [NumberedRun] = []
         var loopCount = 0
-        for run in runs {
-            loopNumbers.append(loopCount)
+        for run in runs.runs {
+            numbered.append(NumberedRun(run: run, loop: loopCount))
             if run.isLoop { loopCount += 1 }
         }
+        for group in slotGroups(of: runs, onKeyed: keyed, of: children) {
+            guard
+                place(
+                    group.runs.map { numbered[$0] }, onKeyed: group.keyed, of: children,
+                    into: &placements)
+            else { return nil }
+        }
+        return placements
+    }
+
+    /// A run, and the number of its loop among the loops the walk met.
+    private struct NumberedRun {
+        let run: KeyedRowRun
+        let loop: Int
+    }
+
+    /// The runs (their indices in `runs`) and the keyed children (their
+    /// indices in `children`) that are placed together: those of each slot of
+    /// the content's outermost tuple apart, in order — or all of them as one
+    /// group, where a run or a keyed child comes from no slot, or a child from
+    /// a slot no run came from, so the slots cannot be trusted to tell them
+    /// apart.
+    private static func slotGroups(
+        of runs: KeyedRowRuns, onKeyed keyed: [Int], of children: [ChildView]
+    ) -> [(runs: [Int], keyed: [Int])] {
+        let whole = [(runs: Array(runs.runs.indices), keyed: keyed)]
+        var runsBySlot: [Int: [Int]] = [:]
+        var slots: [Int] = []
+        for (index, slot) in runs.slots.enumerated() {
+            guard let slot else { return whole }
+            if runsBySlot[slot] == nil { slots.append(slot) }
+            runsBySlot[slot, default: []].append(index)
+        }
+        guard slots.count > 1 else { return whole }
+        var keyedBySlot: [Int: [Int]] = [:]
+        for index in keyed {
+            guard let slot = children[index].spliceSlot, runsBySlot[slot] != nil else { return whole }
+            keyedBySlot[slot, default: []].append(index)
+        }
+        return slots.map { (runs: runsBySlot[$0, default: []], keyed: keyedBySlot[$0, default: []]) }
+    }
+
+    /// Places `runs` on the keyed children at `keyed` (indices into
+    /// `children`), answering `false` when a loop's rows are not where the
+    /// walk says they are.
+    ///
+    /// The loops whose rows are counted are placed first, counted off from the
+    /// front and then from the back, each side up to the first run that is not
+    /// counted: one placed by its keys, or a provider whose rows cannot be
+    /// counted. Then the runs between are placed in the keyed children left
+    /// between those, a loop by its keys, from the front up to such a
+    /// provider and from the back down to it, and that provider owns what is
+    /// left. So a loop placed by its keys is bounded by the loops on either
+    /// side of it, and claims no row of theirs whose key is spelled like one of
+    /// its own.
+    private static func place(
+        _ runs: [NumberedRun], onKeyed keyed: [Int], of children: [ChildView],
+        into placements: inout [Placement]
+    ) -> Bool {
         let spans = KeyedSpans(keyed: keyed, children: children)
         var front = 0
+        var back = keyed.count
         var first = 0
-        frontwards: while first < runs.count {
-            switch runs[first] {
+        var last = runs.count
+        /// Places `run` from `front` — `false` when its rows are not there,
+        /// `nil` when it is a provider that cannot be counted.
+        func placeFromFront(_ run: NumberedRun, onlyCounted: Bool) -> Bool? {
+            switch run.run {
             case .loop(let loop, let rowsPerElement):
+                if onlyCounted, rowsPerElement == nil { return nil }
                 guard
                     let end = spans.place(
-                        loop, rowsPerElement: rowsPerElement, number: loopNumbers[first],
-                        from: front, within: front..<keyed.count, into: &placements)
-                else { return nil }
+                        loop, rowsPerElement: rowsPerElement, number: run.loop, from: front,
+                        within: front..<back, into: &placements)
+                else { return false }
                 front = end
             case .outline:
-                while front < keyed.count, isOutlineRow(children[keyed[front]]) { front += 1 }
+                while front < back, isOutlineRow(children[keyed[front]]) { front += 1 }
             case .opaque:
-                break frontwards
+                return nil
             }
-            first += 1
+            return true
         }
-        var back = keyed.count
-        var last = runs.count
-        backwards: while last > first {
-            switch runs[last - 1] {
+        /// Places `run` ending at `back` — the same answers.
+        func placeFromBack(_ run: NumberedRun, onlyCounted: Bool) -> Bool? {
+            switch run.run {
             case .loop(let loop, let rowsPerElement):
+                if onlyCounted, rowsPerElement == nil { return nil }
                 guard
                     let start = spans.place(
-                        loop, rowsPerElement: rowsPerElement, number: loopNumbers[last - 1],
-                        endingAt: back, within: front..<back, into: &placements)
-                else { return nil }
+                        loop, rowsPerElement: rowsPerElement, number: run.loop, endingAt: back,
+                        within: front..<back, into: &placements)
+                else { return false }
                 back = start
             case .outline:
                 while back > front, isOutlineRow(children[keyed[back - 1]]) { back -= 1 }
             case .opaque:
-                break backwards
+                return nil
             }
-            last -= 1
+            return true
         }
-        // Every run was counted, so every keyed child must have been claimed:
+        for onlyCounted in [true, false] {
+            while first < last, let placed = placeFromFront(runs[first], onlyCounted: onlyCounted) {
+                guard placed else { return false }
+                first += 1
+            }
+            while last > first, let placed = placeFromBack(runs[last - 1], onlyCounted: onlyCounted) {
+                guard placed else { return false }
+                last -= 1
+            }
+        }
+        // Every run was placed, so every keyed child must have been claimed:
         // one left over is one the walk does not know about.
-        if first == last, front != back { return nil }
-        return placements
+        return first != last || front == back
     }
 
     /// The keyed children of a container, in order, for its loops to be
@@ -503,6 +590,29 @@ enum KeyedRowRun {
     }
 }
 
+/// The runs a walk of a container's content finds, in order, each with the
+/// static slot of the content's OUTERMOST tuple it was found in — the slot the
+/// splice stamps on the keyed rows it hands over (`ChildView.spliceSlot`) —
+/// or `nil` for one found outside any tuple.
+@MainActor
+struct KeyedRowRuns {
+    /// The runs, in the order the splice emits their rows.
+    private(set) var runs: [KeyedRowRun] = []
+
+    /// Each run's slot, by its index in ``runs``.
+    private(set) var slots: [Int?] = []
+
+    /// The slot of the outermost tuple the walk is in now, `nil` while it is
+    /// in none.
+    fileprivate var slot: Int?
+
+    /// Appends `run`, found in the slot the walk is in now.
+    mutating func append(_ run: KeyedRowRun) {
+        runs.append(run)
+        slots.append(slot)
+    }
+}
+
 /// A loop, asked about its rows by the element that made them.
 @MainActor
 protocol KeyedLoop {
@@ -535,7 +645,7 @@ protocol KeyedRowProvider {
     /// Appends the runs of keyed rows this view flattens, in order — with each
     /// `Section` kept whole when `sectionsWhole`, as the walk that flattened
     /// the children did (`RenderContext.keepsSectionsWhole`).
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool)
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool)
 }
 
 /// Appends the runs of keyed rows `view` flattens into its container, going
@@ -548,7 +658,7 @@ protocol KeyedRowProvider {
 /// out one by one. Any other provider is a run of its own that cannot be
 /// counted.
 @MainActor
-func appendKeyedRowRuns(of view: some View, to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+func appendKeyedRowRuns(of view: some View, to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
     if let provider = view as? KeyedRowProvider {
         provider.appendKeyedRowRuns(to: &runs, sectionsWhole: sectionsWhole)
         return
@@ -567,22 +677,29 @@ func appendKeyedRowRuns(of view: some View, to runs: inout [KeyedRowRun], sectio
     }
 }
 
+/// A tuple's runs, each in its slot: the outermost tuple's slot is the one
+/// its splice stamps on what each slot hands over, over any inner tuple's.
 extension TupleView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+        let outermost = runs.slot == nil
+        var slot = 0
         for child in repeat each children {
+            if outermost { runs.slot = slot }
             TUIkit.appendKeyedRowRuns(of: child, to: &runs, sectionsWhole: sectionsWhole)
+            slot += 1
         }
+        if outermost { runs.slot = nil }
     }
 }
 
 extension Group: KeyedRowProvider where Content: View {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
 extension ConditionalView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         switch self {
         case .trueContent(let content):
             TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
@@ -595,13 +712,13 @@ extension ConditionalView: KeyedRowProvider {
 /// An `AnyView` hands its container what it erases, taken apart where that is
 /// several views, so the loops in it are runs of the container's.
 extension AnyView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         TUIkit.appendKeyedRowRuns(of: erasedView, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
 extension Optional: KeyedRowProvider where Wrapped: View {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         // A `nil` still leaving keeps a slot in its container (see
         // `Optional.childViews`), but a positional one: no keyed row.
         if case .some(let wrapped) = self {
@@ -611,7 +728,7 @@ extension Optional: KeyedRowProvider where Wrapped: View {
 }
 
 extension OutlineGroup: KeyedRowProvider where Leaf: View {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         runs.append(.outline)
     }
 }
@@ -620,7 +737,7 @@ extension OutlineGroup: KeyedRowProvider where Leaf: View {
 /// parts' loops are runs of the container's; kept whole, it is one positional
 /// child and makes none. A collapsed section's content makes none either.
 extension Section: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         guard !sectionsWhole else { return }
         TUIkit.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)
         if showsContent { TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: false) }

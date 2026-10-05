@@ -585,7 +585,7 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// the same number of each element's views (a row of several, decisions
     /// B15), or as many as each element's row makes — placed by their keys,
     /// which every one of them carries — in order; see ``FlattenedRowIDs``.
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         let shape = rowShape(keepingSectionsWhole: sectionsWhole)
         guard shape != .none else { return }
         runs.append(.loop(self, rowsPerElement: shape.childrenPerElement))

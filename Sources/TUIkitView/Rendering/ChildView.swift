@@ -336,6 +336,12 @@ public struct ChildView {
     /// for this child, or `nil` when it still derives one from its context.
     package var pinnedIdentity: ViewIdentity? { resolvedIdentity }
 
+    /// The static slot of the outermost tuple this keyed child was spliced out
+    /// of — each splice stamps its own slot over the one before — or `nil` for
+    /// a child no tuple spliced. What tells two sibling providers' keyed rows
+    /// apart when their keys are spelled alike (`FlattenedRowIDs`).
+    package var spliceSlot: Int? { providerSlot >= 0 ? Int(providerSlot) : nil }
+
     /// This child — pinned already — as one of the views a `ForEach` row of
     /// several hands its container: keyed by the row's element, so a seek for
     /// the element and a container placing the loop's rows find it under that
