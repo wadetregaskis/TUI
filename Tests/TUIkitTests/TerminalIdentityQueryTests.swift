@@ -253,31 +253,7 @@ struct TerminalIdentityQueryTests {
     /// forbidden shape, which is the addition this guards against.
     @Test("No query carries both a private marker and an intermediate byte")
     func requestAvoidsAppleTerminalsCSILeak() {
-        var offending: [String] = []
-        let scalars = Array(TerminalIdentityQuery.request.unicodeScalars)
-        var index = 0
-        while index < scalars.count {
-            guard scalars[index].value == 0x1B, index + 1 < scalars.count,
-                scalars[index + 1] == "["
-            else {
-                index += 1
-                continue
-            }
-            var cursor = index + 2
-            var isPrivate = false
-            var hasIntermediate = false
-            while cursor < scalars.count {
-                let value = scalars[cursor].value
-                if (0x3C...0x3F).contains(value) { isPrivate = true }
-                if (0x20...0x2F).contains(value) { hasIntermediate = true }
-                if (0x40...0x7E).contains(value) { break }
-                cursor += 1
-            }
-            if isPrivate && hasIntermediate {
-                offending.append(String(String.UnicodeScalarView(scalars[index...min(cursor, scalars.count - 1)])))
-            }
-            index = cursor + 1
-        }
+        let offending = csiSequencesAppleTerminalLeaks(in: TerminalIdentityQuery.request)
         #expect(offending.isEmpty,
                 "these leak their final byte on Apple Terminal: \(offending)")
     }
