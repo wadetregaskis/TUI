@@ -72,6 +72,18 @@ struct ColorResolvedTests {
         #expect(Color(resolved) == Color.rgb(0x33, 0x66, 0x99).opacity(0.5))
     }
 
+    /// SwiftUI's own example: a yellow brightened two stops, with its headroom.
+    /// A terminal is SDR, so the cap is met and the colour is what it was —
+    /// clamped to SDR when it was made, which no headroom changes.
+    @Test("headroom(_:) returns the colour as it is: a terminal is SDR")
+    func headroomIsAlwaysMet() {
+        let bright = Color(.sRGB, red: 1.83, green: 1.47, blue: 0)
+        #expect(bright.headroom(4) == bright)
+        #expect(bright.headroom(nil) == bright)
+        #expect(Color.palette.accent.headroom(2) == Color.palette.accent)
+        #expect(bright == Color(.sRGB, red: 1, green: 1, blue: 0), "the extended components were not clamped")
+    }
+
     @Test("A colour describes itself as SwiftUI's would, or by role")
     func colourDescription() {
         #expect(Color.rgb(1, 2, 3).description == "#010203FF")

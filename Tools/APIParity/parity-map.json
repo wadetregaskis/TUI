@@ -539,6 +539,14 @@
         "PrimitiveButtonStyle.glass*"
       ],
       "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, glass materials, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Opacity as composition.md) rather than by blending pixels."
+    },
+    {
+      "match": [
+        "Color.ResolvedHDR*",
+        "Color.resolveHDR(in:)",
+        "Color.exposureAdjust(_:)"
+      ],
+      "why": "No terminal renders HDR: every colour escape a terminal takes is 8-bit sRGB (truecolour SGR, the 256 cube, the 16 slots; OSC 4/10/11 and Ghostty's widest `rgb:`/`rgbi:` specifications are SDR too, Ghostty-VT-adoption.md), and none reports a display headroom. `Color.ResolvedHDR` and `resolveHDR(in:)` would hand an app linear components and a headroom above 1 that nothing on screen could show, and `exposureAdjust(_:)` would brighten by stops a colour whose top is already the terminal's white — each pretending to a range the medium does not have, which the owner ruled out (decisions A16: \"only APIs that fail gracefully; none that pretend\"). `Color.headroom(_:)` IS implemented: an SDR display always meets the cap, so the colour comes back as it is. SwiftUI has no query of the shape \"is HDR supported\" for TUIkit to answer \"no\" through; `allowedDynamicRange` is a setting, declined with the per-pixel family."
     }
   ],
   "renamed": {

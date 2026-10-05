@@ -2261,3 +2261,13 @@ private struct AssetCatalogShapes: View {
         .background(Color("Background", bundle: .main))
     }
 }
+
+// MARK: - HDR headroom (D6M A16)
+
+/// SwiftUI's own example of a colour annotated with its headroom.
+@MainActor
+private struct HeadroomShapes: View {
+    var body: some View {
+        Text("hdr.title").foregroundStyle(Color(.sRGB, red: 1.83, green: 1.47, blue: 0).headroom(4))
+    }
+}
