@@ -194,6 +194,40 @@ struct GestureArbitrationTests {
         #expect(log.entries == ["double"], "a double-click runs the double tap alone")
     }
 
+    /// Plays `clicks` — each a press and a release at one instant, the run
+    /// loop's frame after each — into a double tap ahead of a single tap,
+    /// spelt `form`, then a frame at `end`; returns what ran.
+    private func play(_ form: DoubleThenSingle, clicks: [Int64], end: Int64) -> [String] {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = { form.view(log) }
+        harness.frame(view())
+        for time in clicks {
+            harness.now = time * gestureMillisecond
+            harness.frame(view())
+            harness.click(2, 1, view)
+        }
+        harness.now = end * gestureMillisecond
+        harness.frame(view())
+        return log.entries
+    }
+
+    /// Measured on macOS 15.8 in all three spellings: a single tap behind a
+    /// double tap runs for each click the double tap gives up on, however many
+    /// came before. It ran for the first only — the recognizer marked its
+    /// action run, and the mark was cleared only by a click it was allowed to
+    /// report, which a tap held back behind the double never is.
+    @Test("A single tap behind a double tap runs for every lone click, not just the first", arguments: DoubleThenSingle.allCases)
+    func singleAfterSingle(_ form: DoubleThenSingle) {
+        #expect(play(form, clicks: [0, 1_000, 2_000], end: 3_000) == ["single", "single", "single"])
+    }
+
+    @Test("Between lone clicks a double click still runs the double tap alone", arguments: DoubleThenSingle.allCases)
+    func doubleAmongSingles(_ form: DoubleThenSingle) {
+        #expect(play(form, clicks: [0, 1_000, 1_150, 2_500], end: 3_500) == ["single", "double", "single"])
+        #expect(play(form, clicks: [0, 150, 1_000], end: 2_000) == ["double", "single"])
+    }
+
     @Test("A long press inside a tap: held, the press wins; clicked, the tap")
     func longPressBeforeTap() {
         for (hold, expected) in [(Int64(600), ["long"]), (Int64(20), ["tap"])] {
@@ -212,6 +246,40 @@ struct GestureArbitrationTests {
             harness.pointer([(.released, 2, 1)], view)
             #expect(log.entries == expected, "held \(hold) ms")
         }
+    }
+}
+
+/// The three ways to put a double tap ahead of a single tap, which macOS
+/// treats alike (measured on macOS 15.8).
+enum DoubleThenSingle: String, CaseIterable, Sendable, CustomTestStringConvertible {
+    /// `.gesture(TapGesture(count: 2)…).gesture(TapGesture()…)`
+    case gestures
+    /// `.onTapGesture(count: 2) {…}.onTapGesture {…}`
+    case onTapGestures
+    /// `TapGesture(count: 2).exclusively(before: TapGesture())`
+    case exclusive
+
+    var testDescription: String { rawValue }
+
+    /// A 10×3 box at the top-left of a larger page, holding the taps.
+    @MainActor
+    func view(_ log: GestureRecord) -> some View {
+        let box = Text("").frame(width: 10, height: 3)
+        let attached: AnyView =
+            switch self {
+            case .gestures:
+                AnyView(
+                    box.gesture(TapGesture(count: 2).onEnded { log("double") })
+                        .gesture(TapGesture().onEnded { log("single") }))
+            case .onTapGestures:
+                AnyView(box.onTapGesture(count: 2) { log("double") }.onTapGesture { log("single") })
+            case .exclusive:
+                AnyView(
+                    box.gesture(
+                        TapGesture(count: 2).onEnded { log("double") }
+                            .exclusively(before: TapGesture().onEnded { log("single") })))
+            }
+        return attached.frame(width: 40, height: 12, alignment: .topLeading)
     }
 }
 

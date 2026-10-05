@@ -189,14 +189,23 @@ class PassThroughGestureNode<Value>: WrappingGestureNode<Value, Value> {
 /// Runs `action` once per successful gesture.
 final class EndedGestureNode<Value>: PassThroughGestureNode<Value> {
     var action: (Value) -> Void = { _ in }
+
+    /// Whether `action` has run for the end the child is at.
     private var delivered = false
 
+    /// Re-arms the action whenever the child is anywhere but its end — on
+    /// every input, delivered or not. Cleared only in ``deliverOwn()``, it
+    /// stayed set across a gesture held back from start to end: a single tap
+    /// behind a double tap is fed each click with delivery off, so after it
+    /// ran once, every later click's end, released when the double tap gave
+    /// up, was taken for the end it had already reported.
+    override func mirror() {
+        super.mirror()
+        if phase != .ended { delivered = false }
+    }
+
     override func deliverOwn() {
-        guard phase == .ended else {
-            delivered = false
-            return
-        }
-        guard !delivered, let value else { return }
+        guard phase == .ended, !delivered, let value else { return }
         delivered = true
         action(value)
     }
