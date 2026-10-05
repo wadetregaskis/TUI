@@ -135,4 +135,25 @@ struct ScrollTargetViewAlignedTests {
         // Row 1 spans lines 4..<8, centred in ten lines from offset 1 (lines 1..<11).
         #expect(frames.scrollView?.scrollOffset == 1)
     }
+
+    @Test("View-aligned: a gesture with no direction near the end rests on the end")
+    func viewAlignedSettlesOnTheEnd() {
+        let frames = Frames()
+        // Ten-line rows but the last, three: the end, 83, is no row's top.
+        let view = ScrollView {
+            scrollTargetRows(10, height: { $0 == 9 ? 3 : 10 })
+        }
+        .scrollTargetBehavior(.viewAligned)
+        frames.render(view)
+        guard let handler = frames.scrollView else {
+            Issue.record("no scroll view")
+            return
+        }
+        for (start, rest) in [(83, 83), (82, 83), (78, 80)] {
+            handler.scrollToOffset(start)
+            frames.render(view)
+            handler.settleUserScroll()
+            #expect(handler.scrollOffset == rest, "from \(start)")
+        }
+    }
 }

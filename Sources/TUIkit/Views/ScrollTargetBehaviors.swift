@@ -98,8 +98,11 @@ extension ScrollTargetBehavior where Self == PagingScrollTargetBehavior {
 ///
 /// A step moves to the furthest view in its direction that it reaches, and at
 /// least to the next one, so a wheel tick over three-line rows moves a whole
-/// row. The ``anchor`` says which point of the view meets which point of the
-/// visible area: the top edge by default, the centre for `.center`.
+/// row. A gesture with no direction — a released scrollbar thumb, a resize, a
+/// step along the other axis — rests on the nearest view, or on the content's
+/// end when that is nearer, since the scroll stops there. The ``anchor`` says
+/// which point of the view meets which point of the visible area: the top edge
+/// by default, the centre for `.center`.
 ///
 /// Where it finds the views:
 /// - In a ``ScrollView``, the rows of a vertical stack and the columns of a
@@ -173,7 +176,8 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
                 proposed: target.rect.y, original: context.originalTarget.rect.y,
                 container: context.containerSize.height, unit: anchor.y,
                 spans: context.targetLayoutRows,
-                limit: limit(compact: context.environment.verticalSizeClass == .compact))
+                limit: limit(compact: context.environment.verticalSizeClass == .compact),
+                end: context.contentSize.height - context.containerSize.height)
         {
             target.rect.y = span.origin
             target.rect.height = span.length
@@ -184,7 +188,8 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
                 proposed: target.rect.x, original: context.originalTarget.rect.x,
                 container: context.containerSize.width, unit: anchor.x,
                 spans: context.targetLayoutColumns,
-                limit: limit(compact: context.environment.horizontalSizeClass == .compact))
+                limit: limit(compact: context.environment.horizontalSizeClass == .compact),
+                end: context.contentSize.width - context.containerSize.width)
         {
             target.rect.x = span.origin
             target.rect.width = span.length
@@ -218,9 +223,17 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
     /// LANDING). A gesture moving forward rests on the furthest landing it
     /// reaches, and at least on the first one past `original`; backward, the
     /// same the other way; one with no direction, on the nearest.
+    ///
+    /// `end`, where the visible area meets the content's end, is a resting
+    /// place for a gesture with no direction too, as it is for `.paging`: the
+    /// scroll stops there, so a view whose landing is past it rests there
+    /// anyway. Without it a two-axis view at its tail went to the nearest
+    /// row's top on a Left key — off the tail it was following — and a thumb
+    /// released at the end did the same. It comes back as a span the visible
+    /// area's size at `end`, which lands there whatever the anchor.
     static func settle(
         proposed: Int, original: Int, container: Int, unit: Double,
-        spans: TargetLayoutSpans, limit: Limit?
+        spans: TargetLayoutSpans, limit: Limit?, end: Int
     ) -> TargetLayoutSpans.Span? {
         guard !spans.isEmpty, container > 0 else { return nil }
         let reach = (min(original, proposed) - 2 * container)...(max(original, proposed) + 2 * container)
@@ -229,7 +242,11 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
             .sorted { $0.landing < $1.landing }
         guard !landings.isEmpty else { return nil }
         if proposed == original {
-            return landings.min { abs($0.landing - proposed) < abs($1.landing - proposed) }?.span
+            let nearest = landings.min { abs($0.landing - proposed) < abs($1.landing - proposed) }
+            if end > 0, let nearest, abs(end - proposed) < abs(nearest.landing - proposed) {
+                return TargetLayoutSpans.Span(origin: end, length: container)
+            }
+            return nearest?.span
         }
         let forward = proposed > original
         // In the gesture's direction, nearest first.

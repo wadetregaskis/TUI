@@ -250,6 +250,41 @@ struct ScrollTargetBehaviorTests {
         #expect(handler.scrollOffset == 85, "new rows are followed")
     }
 
+    /// `count` rows, each wide enough to scroll across: nine ten lines tall,
+    /// then one three lines tall, so the end of the first ten (83 over a
+    /// 10-line view) is no row's top, and one line each after that.
+    private func tallWideRows(_ count: Int) -> some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<count, id: \.self) { index in
+                Text("row \(index) " + String(repeating: "-", count: 60))
+                    .frame(height: index < 9 ? 10 : index == 9 ? 3 : 1, alignment: .top)
+            }
+        }
+        .scrollTargetLayout()
+    }
+
+    @Test("A step along the other axis leaves a view-aligned view at its tail, and it goes on following it")
+    func crossAxisStepKeepsTheTail() {
+        let frames = Frames(width: 20, height: 10)
+        func view(_ count: Int) -> some View {
+            ScrollView([.horizontal, .vertical]) { tallWideRows(count) }
+                .scrollTargetBehavior(.viewAligned)
+                .defaultScrollAnchor(.bottom)
+        }
+        frames.render(view(10))
+        guard let handler = frames.scrollView else {
+            Issue.record("no scroll view")
+            return
+        }
+        #expect(handler.scrollOffset == 83, "opens at the tail")
+        #expect(handler.scrollTargeting?.rows.isEmpty == false, "the rows are there to align to")
+        // The nearest row's top is 80, which the rows used to settle to.
+        _ = handler.handleKeyEvent(KeyEvent(key: .left))
+        #expect(handler.scrollOffset == 83)
+        frames.render(view(11))
+        #expect(handler.scrollOffset == 84, "still following the tail")
+    }
+
     @Test("A step along the other axis that moves this one is this one's scroll: a bound anchor is released")
     func crossAxisMoveReleasesTheAnchor() {
         final class Box { var anchor: ScrollAnchor<Int>? }
