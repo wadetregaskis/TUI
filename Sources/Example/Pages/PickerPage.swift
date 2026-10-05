@@ -12,6 +12,7 @@ import TUIkit
 /// Shows the `Picker` control across its styles:
 /// - Menu style — a collapsed control that opens a drop-down list
 /// - Radio-group style — every option shown inline
+/// - Segmented style — the same choice as one control, sharing its selection
 /// - Inline style with `ForEach`-generated options
 /// - Live state changes demonstrating `@State` persistence across re-renders
 struct PickerPage: View {
@@ -35,6 +36,7 @@ struct PickerPage: View {
     private var inPlaceColumn: some View {
         VStack(alignment: .leading, spacing: 1) {
             radioGroupSection
+            segmentedSection
             inlineStyleSection
         }
     }
@@ -73,6 +75,20 @@ struct PickerPage: View {
                     Text("page.picker.large").tag("large")
                 }
                 .pickerStyle(.radioGroup)
+            }
+    }
+
+    /// The radio group's choice again, as a segmented control: one Tab stop,
+    /// Left and Right to move, Return or Space to choose.
+    @ViewBuilder
+    private var segmentedSection: some View {
+            DemoSection("page.picker.segmentedStyle") {
+                Picker("page.picker.tshirtSize", selection: $size) {
+                    Text("page.picker.small").tag("small")
+                    Text("page.picker.medium").tag("medium")
+                    Text("page.picker.large").tag("large")
+                }
+                .pickerStyle(.segmented)
             }
     }
 
