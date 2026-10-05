@@ -103,7 +103,10 @@ extension ScrollViewHandler {
 
     /// The horizontal step a user scroll of `delta` columns takes — what the
     /// horizontal axis asks (``ScrollAxis/stepTargeting``). A behaviour that
-    /// also moved the target down moves the vertical axis with it.
+    /// also moved the target down moves the vertical axis with it, and that is
+    /// the user scrolling the rows: a bound anchor is released, as by any
+    /// user scroll (``releaseAnchorOnUserScroll()``). Left alone, the binding
+    /// went on naming the row the user had just scrolled off.
     ///
     /// A view that does not scroll across asks no behaviour: Left on a
     /// vertical pager used to settle its rows.
@@ -113,7 +116,10 @@ extension ScrollViewHandler {
                 proposedX: horizontal.scrollOffset + delta, proposedY: scrollOffset,
                 velocity: CellVector(dx: Double(delta), dy: 0))
         else { return delta }
-        if landed.y != scrollOffset { scrollToOffset(landed.y) }
+        if landed.y != scrollOffset {
+            scrollToOffset(landed.y)
+            releaseAnchorOnUserScroll()
+        }
         return landed.x - horizontal.scrollOffset
     }
 

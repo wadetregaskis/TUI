@@ -316,6 +316,30 @@ struct ScrollTargetBehaviorTests {
         #expect(handler.scrollOffset == 85, "new rows are followed")
     }
 
+    @Test("A step along the other axis that moves this one is this one's scroll: a bound anchor is released")
+    func crossAxisMoveReleasesTheAnchor() {
+        final class Box { var anchor: ScrollAnchor<Int>? }
+        let box = Box()
+        let frames = Frames(width: 20, height: 10)
+        let view = ScrollView([.horizontal, .vertical]) { wide(93) }
+            .scrollTargetBehavior(.paging)
+            .anchorPosition(Binding(get: { box.anchor }, set: { box.anchor = $0 }))
+        frames.render(view)
+        guard let handler = frames.scrollView else {
+            Issue.record("no scroll view")
+            return
+        }
+        // Off every page, holding the row at the top.
+        handler.scrollToOffset(41)
+        box.anchor = .row(41)
+        frames.render(view)
+        _ = handler.handleKeyEvent(KeyEvent(key: .left))
+        #expect(handler.scrollOffset == 40)
+        #expect(box.anchor == .window, "the user moved the rows, so they are no longer held")
+        frames.render(view)
+        #expect(handler.scrollOffset == 40, "and nothing puts them back")
+    }
+
     @Test("A behaviour that holds the view mid-content keeps the wheel: nothing chains to the parent")
     func heldStepDoesNotChain() {
         let frames = Frames()
