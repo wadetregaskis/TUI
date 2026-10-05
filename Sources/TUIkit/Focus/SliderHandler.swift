@@ -91,9 +91,13 @@ final class SliderHandler<V: BinaryFloatingPoint>: PersistedFocusable where V.St
 
 extension SliderHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        // The symbol keys are taken bare only. A Control or Option chord on one
+        // is never that symbol: Ctrl-minus (the legacy byte 0x1F, which Ctrl-_
+        // and Ctrl-/ also send) is the app's undo, and Option-_ its redo.
+        if case .character = event.key, event.ctrl || event.alt { return false }
         // Holding Shift with an arrow steps by the (env-configured) multiplier,
         // for coarse adjustment. (CSI arrow sequences carry the Shift modifier;
-        // the symbol keys don't, so `+`/`-` keep the single step.)
+        // a typed symbol's Shift is its case, so `+`/`-` keep the single step.)
         let multiplier = event.shift ? max(1, shiftStepMultiplier) : 1
         switch event.key {
         case .right, .character("+"), .character("="):

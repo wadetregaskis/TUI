@@ -144,9 +144,14 @@ final class StepperHandler<V: Strideable>: PersistedFocusable where V.Stride: Si
 
 extension StepperHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        // The symbol keys are taken bare only. A Control or Option chord on one
+        // is never that symbol: Ctrl-minus (the legacy byte 0x1F, which Ctrl-_
+        // and Ctrl-/ also send) is the app's undo, and Option-_ its redo.
+        if case .character = event.key, event.ctrl || event.alt { return false }
         // Holding Shift with an arrow steps by the (env-configured) multiplier,
         // for coarse adjustment. (Only the arrow keys carry an explicit Shift
-        // flag from the terminal; `+`/`-` don't, so they keep the single step.)
+        // flag from the terminal; a typed symbol's Shift is its case, so
+        // `+`/`-` keep the single step.)
         let times = event.shift ? max(1, shiftStepMultiplier) : 1
         switch event.key {
         case .right, .character("+"), .character("="):

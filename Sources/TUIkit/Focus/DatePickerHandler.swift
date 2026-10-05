@@ -77,7 +77,8 @@ final class DatePickerHandler: PersistedFocusable {
         case .character(let character):
             // Not `where`-guarded: the digit test and the digit's VALUE are one
             // question, and asking it twice is what let the two answers drift.
-            guard let digit = Self.positionalDigit(character) else { return false }
+            // A Control or Option chord on a digit is some other binding's.
+            guard !event.ctrl, !event.alt, let digit = Self.positionalDigit(character) else { return false }
             typeDigit(digit)
             return true
         default:
