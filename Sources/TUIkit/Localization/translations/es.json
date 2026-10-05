@@ -139,6 +139,8 @@
   "appearance.block": "Bloque",
   "appearance.blank": "Vacío",
 
+  "key.space": "Espacio",
+
   "timeSpan.year.wide.one": "%@ año",
   "timeSpan.year.wide.other": "%@ años",
   "timeSpan.year.abbreviated.one": "%@ a",

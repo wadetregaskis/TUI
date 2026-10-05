@@ -402,8 +402,7 @@ private struct _StatusBarCore: View, Renderable {
 
     /// Whether `shortcut` is the Return key, however the app spelled it.
     static func isReturnShortcut(_ shortcut: String) -> Bool {
-        shortcut == Shortcut.enter || shortcut == Shortcut.returnKey || shortcut == "enter"
-            || shortcut == "return"
+        shortcut == Shortcut.enter || shortcut == "enter" || shortcut == "return"
     }
 
     /// Renders a single item's `shortcut + " " + label` in `colours` and with the

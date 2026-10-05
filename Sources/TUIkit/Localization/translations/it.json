@@ -139,6 +139,8 @@
   "appearance.block": "Blocco",
   "appearance.blank": "Vuoto",
 
+  "key.space": "Barra spaziatrice",
+
   "timeSpan.year.wide.one": "%@ anno",
   "timeSpan.year.wide.other": "%@ anni",
   "timeSpan.year.abbreviated.one": "%@ anno",

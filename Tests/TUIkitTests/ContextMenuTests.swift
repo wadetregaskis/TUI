@@ -755,13 +755,13 @@ struct ContextMenuTests {
 
         let cut = lines.first { $0.contains("Cut") }
         let duplicate = lines.first { $0.contains("Duplicate") }
-        #expect(cut?.contains("^X") == true, "the shortcut is printed:\n\(rendered)")
-        #expect(duplicate?.contains("^V") == true, "…on every row:\n\(rendered)")
+        #expect(cut?.contains("⌃X") == true, "the shortcut is printed:\n\(rendered)")
+        #expect(duplicate?.contains("⌃V") == true, "…on every row:\n\(rendered)")
         // Aligned: each row pads its own label so the hints share a column,
         // and the longest label is intact rather than squeezed by its hint.
         #expect(
-            cut?.range(of: "^X")?.lowerBound.utf16Offset(in: cut ?? "")
-                == duplicate?.range(of: "^V")?.lowerBound.utf16Offset(in: duplicate ?? ""),
+            cut?.range(of: "⌃X")?.lowerBound.utf16Offset(in: cut ?? "")
+                == duplicate?.range(of: "⌃V")?.lowerBound.utf16Offset(in: duplicate ?? ""),
             "the hints line up in one column:\n\(rendered)")
     }
 

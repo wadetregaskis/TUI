@@ -429,9 +429,36 @@ EditorView()
 
 This is the correct way to repurpose `q` for a specific screen, dialog, or focus section. The matching user item handles the event in Layer 1, so Layer 4's built-in quit binding is never reached.
 
+## Key Symbols
+
+Every key TUIkit names on screen — a menu row's shortcut column, the status
+bar's keys and its undo and redo hints, the ``Shortcut`` constants — is named
+by one formatter, the way a macOS menu names a key equivalent: the modifiers
+in the order ⌃ ⌥ ⇧ ⌘ (Control, Option, Shift, Command), then the key, a
+letter in upper case. ``KeyboardShortcut/displayString`` is that name for a
+shortcut, `KeyEvent.displayString` for a key as it arrived, and
+``EventModifiers/displayString`` for a set of modifiers alone:
+
+| Shortcut | Shown |
+|----------|-------|
+| `KeyboardShortcut("s", modifiers: .control)` | `⌃S` |
+| `KeyboardShortcut("z", modifiers: [.control, .shift])` | `⌃⇧Z` |
+| `KeyboardShortcut("Z", modifiers: .control)` | `⌃⇧Z` — an upper-case key is its Shift chord |
+| `KeyboardShortcut("?", modifiers: .option)` | `⌥?` — punctuation as typed, with no ⇧ |
+| `KeyboardShortcut(.upArrow, modifiers: .option)` | `⌥↑` |
+| `KeyboardShortcut(.tab, modifiers: .shift)` | `⇧⇥` |
+
+The keys that type nothing are macOS's symbols for them: ⎋ Escape, ↩ Return,
+⇥ Tab, ⌫ Delete (backspace), ⌦ Forward Delete, ← → ↑ ↓, ↖ Home, ↘ End, ⇞ Page
+Up, ⇟ Page Down. The function keys are `F1`…`F20`, and the space bar is named
+in the app's language, as macOS names it: `Space`, `Leertaste`, `Espace`.
+Command (⌘) is shown only by a shortcut that still holds it once
+``EnvironmentValues/commandKey`` has resolved it, which is to say never under
+the default: ⌘S is shown as the `⌃S` that fires it.
+
 ## Status Bar Shortcuts
 
-The status bar displays available shortcuts to the user. Use the ``Shortcut`` namespace for consistent, platform-standard symbols:
+The status bar displays available shortcuts to the user. Use the ``Shortcut`` namespace for consistent symbols: a key's constant is the symbol a macOS menu draws for it, from the one formatter every key TUIkit names comes from (see <doc:KeyboardShortcuts#Key-Symbols>):
 
 ### Display Symbols
 
@@ -448,12 +475,16 @@ The status bar displays available shortcuts to the user. Use the ``Shortcut`` na
 | Symbol | Constant | Description |
 |--------|----------|-------------|
 | `⎋` | `Shortcut.escape` | Escape |
-| `↵` | `Shortcut.enter` | Enter |
+| `↩` | `Shortcut.enter` | Return |
 | `⇥` | `Shortcut.tab` | Tab |
-| `⇤` | `Shortcut.shiftTab` | Shift+Tab |
-| `⌫` | `Shortcut.backspace` | Backspace |
-| `⌦` | `Shortcut.delete` | Delete |
-| `␣` | `Shortcut.space` | Space |
+| `⇧⇥` | `Shortcut.shiftTab` | Shift-Tab |
+| `⌫` | `Shortcut.backspace` | Delete (backspace) |
+| `⌦` | `Shortcut.delete` | Forward Delete |
+| `Space` | `Shortcut.space` | The space bar, named in the app's language |
+| `↖` | `Shortcut.home` | Home |
+| `↘` | `Shortcut.end` | End |
+| `⇞` | `Shortcut.pageUp` | Page Up |
+| `⇟` | `Shortcut.pageDown` | Page Down |
 | `↑` | `Shortcut.arrowUp` | Arrow up |
 | `↓` | `Shortcut.arrowDown` | Arrow down |
 | `←` | `Shortcut.arrowLeft` | Arrow left |
@@ -462,17 +493,18 @@ The status bar displays available shortcuts to the user. Use the ``Shortcut`` na
 | `←→` | `Shortcut.arrowsLeftRight` | Horizontal arrows |
 | `↑↓←→` | `Shortcut.arrowsAll` | All arrows |
 | `⌃` | `Shortcut.control` | Control modifier |
+| `⌥` | `Shortcut.option` | Option (Alt) modifier |
 | `⇧` | `Shortcut.shift` | Shift modifier |
-| `⌥` | `Shortcut.option` | Option / Alt |
+| `⌘` | `Shortcut.command` | Command modifier |
 
 ### Shortcut Helpers
 
 ```swift
-// Combine modifier + key: "⌃c"
-Shortcut.combine(.control, "c")
-
-// Ctrl+key display: "^c"
+// Control and a key, named as a shortcut is: "⌃C"
 Shortcut.ctrl("c")
+
+// Join symbols: "↑↓"
+Shortcut.combine(Shortcut.arrowUp, Shortcut.arrowDown)
 
 // Range display: "1-9"
 Shortcut.range("1", "9")
@@ -492,7 +524,7 @@ Shortcut.range("1", "9")
 
 ``StatusBarItem`` automatically derives the trigger key from the shortcut string when no explicit `key:` parameter is given:
 
-- Symbol shortcuts (`⎋`, `↵`, `⇥`) map to their corresponding ``Key`` values
+- Symbol shortcuts (`⎋`, `↩`, `⇥`) map to their corresponding ``Key`` values
 - Single-character shortcuts (`"q"`, `"y"`) map to `.character(thatChar)`
 - Arrow combinations (`"↑↓"`) match **both** individual arrow keys
 - Multi-character non-symbol strings are informational only (no trigger key)

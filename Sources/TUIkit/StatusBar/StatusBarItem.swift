@@ -229,8 +229,9 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
     ///
     /// A string **literal** binds here, so it is a lookup key — see
     /// ``LocalizedStringKey``. Only `label` is: `shortcut` is the key *glyph*
-    /// (`"q"`, `"⎋"`, `"⌃q"`), which is the same in every language and which
-    /// the item also derives its trigger key and identity from.
+    /// (`"q"`, `"⎋"`, `"⌃Q"`), which the item also derives its trigger key and
+    /// identity from. ``Shortcut`` names the keys as every other key TUIkit
+    /// names is named.
     ///
     /// - Parameters:
     ///   - shortcut: The shortcut key(s) to display.
@@ -457,7 +458,7 @@ extension StatusBarItem {
         // Special keys
         case Shortcut.escape, "esc", "escape":
             return .escape
-        case Shortcut.enter, Shortcut.returnKey, "enter", "return":
+        case Shortcut.enter, "enter", "return":
             return .enter
         case Shortcut.tab, "tab":
             return .tab

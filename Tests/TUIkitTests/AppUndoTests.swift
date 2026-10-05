@@ -147,7 +147,7 @@ struct AppUndoTests {
         ])
         let lookup = table.lookup(commandKey: .control, onClash: { reports.append($0) })
         #expect(lookup[.key("u", .control)] == .undo)
-        #expect(reports == ["undoShortcuts binds ^U to both undo and redo; undo, which UndoCommand declares first, keeps it"])
+        #expect(reports == ["undoShortcuts binds ⌃U to both undo and redo; undo, which UndoCommand declares first, keeps it"])
     }
 
     @Test("A frame publishes the scene's undo keys to the input chain")
@@ -209,17 +209,17 @@ struct AppUndoTests {
         let model = Model()
         let statusBar = StatusBarState()
         statusBar.undoManager = manager
-        #expect(!labels(statusBar).contains("^-"))
+        #expect(!labels(statusBar).contains("⌃-"))
         set(model, to: 1, on: manager)
-        #expect(labels(statusBar).contains("^-"))
-        #expect(!labels(statusBar).contains("M-_"))
+        #expect(labels(statusBar).contains("⌃-"))
+        #expect(!labels(statusBar).contains("⌥_"))
 
-        let undo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "^-" })
+        let undo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌃-" })
         undo.execute()
         #expect(model.value == 0)
-        #expect(labels(statusBar) == labels(statusBar).filter { $0 != "^-" })
+        #expect(labels(statusBar) == labels(statusBar).filter { $0 != "⌃-" })
 
-        let redo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "M-_" })
+        let redo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌥_" })
         redo.execute()
         #expect(model.value == 1)
     }
@@ -236,10 +236,10 @@ struct AppUndoTests {
         // A legacy terminal: Ctrl-minus for undo; for redo, Ctrl-_ and
         // Ctrl-Shift-Z cannot be sent apart from Ctrl-minus and Ctrl-Z, so
         // Option-_.
-        #expect(labels(statusBar).contains("^-") && labels(statusBar).contains("M-_"))
+        #expect(labels(statusBar).contains("⌃-") && labels(statusBar).contains("⌥_"))
         // The kitty protocol with shifted keys: Ctrl-_.
         statusBar.undoKeys.reporting = KeyboardReporting(flags: .requested)
-        #expect(labels(statusBar).contains("^-") && labels(statusBar).contains("^_"))
+        #expect(labels(statusBar).contains("⌃-") && labels(statusBar).contains("⌃_"))
         // The app's own keys: Ctrl-Z alone for undo, Ctrl-Shift-Z alone for
         // redo — which a legacy terminal cannot send, so the bar names none.
         statusBar.undoKeys.publish(
@@ -248,9 +248,9 @@ struct AppUndoTests {
                 .redo: [KeyboardShortcut("z", modifiers: [.control, .shift])],
             ]),
             commandKey: .control)
-        #expect(labels(statusBar).contains("^Z") && labels(statusBar).contains("^S-Z"))
+        #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains("⌃⇧Z"))
         statusBar.undoKeys.reporting = .legacy
-        #expect(labels(statusBar).contains("^Z") && labels(statusBar).contains(""))
+        #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains(""))
     }
 
     @Test("The bar's items name their keys and bind none: each key goes where it would without them")
@@ -279,12 +279,14 @@ struct AppUndoTests {
             }
         }
         let undo = try #require(harness.statusBar.currentSystemItems.first { $0.order == .undo })
-        #expect(undo.shortcut == "M-←")
+        #expect(undo.shortcut == "⌥←")
         harness.play([KeyEvent(key: .left)], page)
         #expect(model.value == 2, "a plain ← is not Option-←, whatever the bar prints beside undo")
         manager.undo()
         let redo = try #require(harness.statusBar.currentSystemItems.first { $0.order == .redo })
-        #expect(redo.shortcut == "u")
+        // A letter key is drawn in upper case, as a macOS menu draws one; its
+        // Shift would be a ⇧ of its own.
+        #expect(redo.shortcut == "U")
         harness.play([KeyEvent(character: "u")], page)
         #expect(heard == [.character("u")], "the view's handler hears u, as it does with nothing to redo")
         #expect(model.value == 1)
@@ -340,7 +342,7 @@ struct AppUndoTests {
         statusBar.undoManager = manager
         statusBar.showUndoItems = false
         set(Model(), to: 1, on: manager)
-        #expect(!labels(statusBar).contains("^-"))
+        #expect(!labels(statusBar).contains("⌃-"))
     }
 }
 

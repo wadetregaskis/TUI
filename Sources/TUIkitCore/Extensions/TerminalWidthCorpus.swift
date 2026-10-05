@@ -179,13 +179,13 @@ package enum TerminalWidthCorpus {
         Entry(id: "bidi_lrm", category: "format_control", text: "\u{200E}"),
         Entry(id: "bidi_rlm", category: "format_control", text: "\u{200F}"),
         Entry(id: "key_escape", category: "chrome_key", text: "\u{238B}"),  // ⎋ Shortcut.escape
-        Entry(id: "key_return", category: "chrome_key", text: "\u{21B5}"),  // ↵ Shortcut.enter — reported 2 cells in Ghostty
-        Entry(id: "key_return_symbol", category: "chrome_key", text: "\u{23CE}"),  // ⏎ Shortcut.returnKey
+        Entry(id: "key_return", category: "chrome_key", text: "\u{21B5}"),  // ↵ Return until 2026-10-05, ↩ now — reported 2 cells in Ghostty
+        Entry(id: "key_return_symbol", category: "chrome_key", text: "\u{23CE}"),  // ⏎ an alternative Return, retired 2026-10-05
         Entry(id: "key_tab", category: "chrome_key", text: "\u{21E5}"),  // ⇥ Shortcut.tab
-        Entry(id: "key_backtab", category: "chrome_key", text: "\u{21E4}"),  // ⇤ Shortcut.shiftTab
+        Entry(id: "key_backtab", category: "chrome_key", text: "\u{21E4}"),  // ⇤ Shift-Tab until 2026-10-05, ⇧⇥ now
         Entry(id: "key_backspace", category: "chrome_key", text: "\u{232B}"),  // ⌫ Shortcut.backspace
         Entry(id: "key_delete", category: "chrome_key", text: "\u{2326}"),  // ⌦ Shortcut.delete
-        Entry(id: "key_space", category: "chrome_key", text: "\u{2423}"),  // ␣ Shortcut.space
+        Entry(id: "key_space", category: "chrome_key", text: "\u{2423}"),  // ␣ the space bar until 2026-10-05, a word now
         Entry(id: "key_arrow_up", category: "chrome_key", text: "\u{2191}"),  // ↑ Shortcut.arrowUp — EAW Ambiguous
         Entry(id: "key_arrow_down", category: "chrome_key", text: "\u{2193}"),  // ↓ Shortcut.arrowDown — EAW Ambiguous
         Entry(id: "key_arrow_left", category: "chrome_key", text: "\u{2190}"),  // ← Shortcut.arrowLeft — EAW Ambiguous

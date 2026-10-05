@@ -66,20 +66,20 @@ struct RowShortcutsTests {
     @Test("The one-chord hint prefers the framework's binding")
     func hintPrefersTheDefault() {
         let aliased = RowShortcuts([.selectAll: .default.and(KeyboardShortcut("b", modifiers: .control))])
-        #expect(aliased.hint(for: .selectAll) == "^A")
+        #expect(aliased.hint(for: .selectAll) == "⌃A")
         let replaced = RowShortcuts([.selectAll: [KeyboardShortcut("b", modifiers: .control)]])
-        #expect(replaced.hint(for: .selectAll) == "^B", "…unless it is gone")
+        #expect(replaced.hint(for: .selectAll) == "⌃B", "…unless it is gone")
     }
 
     /// The arrow keys had no `KeyEquivalent` at all until the nudge needed one,
     /// so a chord on them could not be written, let alone fired. They print as
-    /// their names — the private-use scalar behind `.upArrow` would otherwise
-    /// reach the screen as a missing-glyph box.
-    @Test("Non-printable keys are bindable, and print as names")
+    /// macOS's symbols for them — the private-use scalar behind `.upArrow`
+    /// would otherwise reach the screen as a missing-glyph box.
+    @Test("Non-printable keys are bindable, and print as their symbols")
     func nonPrintableKeys() {
         let ctrlUp = KeyboardShortcut(.upArrow, modifiers: .control)
-        #expect(ctrlUp.displayString == "^↑")
-        #expect(KeyboardShortcut(.pageDown, modifiers: []).displayString == "PgDn")
+        #expect(ctrlUp.displayString == "⌃↑")
+        #expect(KeyboardShortcut(.pageDown, modifiers: []).displayString == "⇟")
 
         let table = RowShortcuts()
         let lookup = table.lookup(commandKey: .control)
@@ -177,7 +177,7 @@ struct RowShortcutsTests {
             lookup.action(for: KeyEvent(key: .character("x"), ctrl: true))?.action == later,
             "the losing action keeps the chords nobody else claimed")
         #expect(
-            reports == ["rowShortcuts binds ^E to both \(earlier) and \(later); \(earlier), which RowAction declares first, keeps it"])
+            reports == ["rowShortcuts binds ⌃E to both \(earlier) and \(later); \(earlier), which RowAction declares first, keeps it"])
     }
 
     /// A shortcut written the SwiftUI way, `KeyboardShortcut("e")`, is ⌘E, and ⌘E
@@ -196,7 +196,7 @@ struct RowShortcutsTests {
 
         #expect(lookup.action(for: KeyEvent(key: .character("e"), ctrl: true))?.action == .selectAll)
         #expect(
-            reports == ["rowShortcuts binds ^E to both selectAll and extendSelection; selectAll, which RowAction declares first, keeps it"])
+            reports == ["rowShortcuts binds ⌃E to both selectAll and extendSelection; selectAll, which RowAction declares first, keeps it"])
     }
 
     // MARK: - What is advertised
@@ -212,12 +212,12 @@ struct RowShortcutsTests {
         #expect(replaced.shortcuts(for: .selectAll).isEmpty, "Ctrl-A reaches extendSelection now")
         #expect(replaced.hint(for: .selectAll) == nil)
         #expect(replaced.shortcuts(for: .extendSelection) == [ctrlA])
-        #expect(replaced.hint(for: .extendSelection) == "^A")
+        #expect(replaced.hint(for: .extendSelection) == "⌃A")
 
         let aliased = RowShortcuts([.selectAll: .default.and(ctrlB), .extendSelection: [ctrlA]])
         #expect(aliased.shortcuts(for: .selectAll) == [ctrlB], "the alias is all it keeps")
         #expect(
-            aliased.hint(for: .selectAll) == "^B",
+            aliased.hint(for: .selectAll) == "⌃B",
             "the stock chord is preferred only while it still reaches the action")
     }
 
@@ -236,7 +236,7 @@ struct RowShortcutsTests {
         let table = RowShortcuts([later: [ctrlE, ctrlX], earlier: [ctrlE]])
         #expect(table.shortcuts(for: earlier) == [ctrlE])
         #expect(table.shortcuts(for: later) == [ctrlX])
-        #expect(table.hint(for: later) == "^X")
+        #expect(table.hint(for: later) == "⌃X")
 
         let spelled = RowShortcuts([later: [ctrlE], earlier: [KeyboardShortcut("e")]])
         #expect(spelled.shortcuts(for: later).isEmpty, "⌘E is Ctrl-E, and the earlier action has it")
@@ -244,7 +244,7 @@ struct RowShortcutsTests {
     }
 
     /// Two spellings of one chord on one action are one key, so they are listed
-    /// once, not as "^E, ^E".
+    /// once, not as "⌃E, ⌃E".
     @Test("An action's two spellings of one chord are listed once")
     func oneChordListedOnce() {
         let table = RowShortcuts([.selectAll: .only(KeyboardShortcut("e"), ctrlE)])

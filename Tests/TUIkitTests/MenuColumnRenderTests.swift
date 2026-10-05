@@ -142,8 +142,10 @@ struct MenuColumnRenderTests {
         let lines = renderArmed(view, tui: tui, context: context).lines.map(\.stripped)
         let renameRow = lines.first { $0.contains("Rename") }
         #expect(renameRow != nil, "got \(lines)")
+        // The hint is the bare key "r", drawn in upper case as a menu draws a
+        // letter key — so the row holds two R's, the label's and the hint's.
         #expect(
-            renameRow?.hasSuffix("r  ") == false && renameRow?.contains("r") == true,
+            renameRow?.hasSuffix("R  ") == false && renameRow?.filter { $0 == "R" }.count == 2,
             "the hint sits at the trailing edge, inside the border: \(renameRow ?? "—")")
     }
 

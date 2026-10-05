@@ -112,16 +112,16 @@ extension TerminalWidthTraits.ChromeOverhang {
 
     /// Ghostty 1.3.1, `overhang_card.py`, 2026-09-04.
     static let ghosttyCodepoints: [UInt32] = [
-        0x21B5  // ↵ key_return — Shortcut.enter
+        0x21B5  // ↵ key_return — Return until 2026-10-05 (↩ now)
     ]
 
     /// Warp v0.2026.09.02, `overhang_card.py`, 2026-09-04.
     static let warpCodepoints: [UInt32] = [
         0x238B,  // ⎋ key_escape — Shortcut.escape
-        0x23CE,  // ⏎ key_return_symbol — Shortcut.returnKey
+        0x23CE,  // ⏎ key_return_symbol — an alternative Return, retired 2026-10-05
         0x232B,  // ⌫ key_backspace — Shortcut.backspace
         0x2326,  // ⌦ key_delete — Shortcut.delete
-        0x2423,  // ␣ key_space — Shortcut.space
+        0x2423,  // ␣ key_space — the space bar until 2026-10-05 (a word now)
         0x2325,  // ⌥ key_option — Shortcut.option
         0x2318,  // ⌘ key_command — Shortcut.command
     ]

@@ -340,57 +340,35 @@ public struct KeyboardShortcut: Hashable, Sendable {
 
     /// A parsed ``Key`` as the ``KeyEquivalent`` that stands for it. A terminal
     /// sends these as escape sequences, never as the scalars themselves, so this
-    /// is the only way one is ever produced.
-    private static let equivalents: [Key: KeyEquivalent] = [
+    /// is the only way one is ever produced. Read backwards, it is how a
+    /// shortcut's key is named (`Key.init(_:)`).
+    static let equivalents: [Key: KeyEquivalent] = [
         .enter: .return, .escape: .escape, .tab: .tab, .space: .space,
         .up: .upArrow, .down: .downArrow, .left: .leftArrow, .right: .rightArrow,
         .pageUp: .pageUp, .pageDown: .pageDown, .home: .home, .end: .end,
         .backspace: .delete, .delete: .deleteForward,
     ]
 
-    /// The printable form of this shortcut — what a menu row prints as its
-    /// hint — or `nil` for the semantic roles, which have no key to show.
+    /// The printable form of this shortcut — what a menu row prints in its
+    /// shortcut column, and the status bar beside "undo" — or `nil` for the
+    /// semantic roles, which have no key to show.
     ///
-    /// Terminal conventions, not Apple's key glyphs: `^S` for Control (what
-    /// every TUI menu from nano to htop prints), `M-s` for Option/Alt (its
-    /// Meta name), and `S-` for Shift on a Control chord, whose letter is
-    /// uppercase either way (`^S-Z` is Control-Shift-Z, Emacs's `C-S-z`). ⌃⌥⇧⌘ would read better on a Mac but are ambiguous-width
-    /// characters, so a CJK-configured terminal would advance two cells and
-    /// shear the column they are aligned in.
+    /// Drawn as a macOS menu draws a key equivalent: the modifiers in the order
+    /// ⌃ ⌥ ⇧ ⌘, then the key, a letter in upper case — `⌃S`, `⌃⇧Z` (Control-
+    /// Shift-Z), `⌥_`, `⌥↑`, `⇟`, `⌘?`. An upper-case key is its Shift chord, so
+    /// `KeyboardShortcut("Z", modifiers: .control)` is `⌃⇧Z` too. See
+    /// `KeySymbols` for every key's symbol and how they were measured.
     ///
-    /// Call it on a *resolved* shortcut (see `resolved(commandKey:)`);
-    /// `.command` has no printable form here because it is never what actually
-    /// fires.
+    /// Call it on a *resolved* shortcut (see `resolved(commandKey:)`), whose
+    /// `.command` has been replaced by the key that stands in for it here: ⌘
+    /// is drawn only where a shortcut still holds it.
+    ///
+    /// TUI-specific: SwiftUI has no printable form of a shortcut, AppKit
+    /// drawing a menu item's key equivalent itself.
     public var displayString: String? {
         guard case .key(let key, let modifiers) = trigger else { return nil }
-        var prefix = ""
-        if modifiers.contains(.control) { prefix += "^" }
-        if modifiers.contains(.option) { prefix += "M-" }
-        // A Control chord prints its letter uppercase either way, so Shift
-        // there needs a mark of its own, or ⇧⌘Z (Redo) would print as ⌘Z
-        // (Undo) does: `S-`, Emacs's, not ⇧, whose width is ambiguous.
-        if modifiers.contains(.control), modifiers.contains(.shift) { prefix += "S-" }
-        // A non-printable key prints as its name, not as the private-use
-        // scalar that stands for it (see `KeyEquivalent.upArrow`) — which would
-        // otherwise reach the screen as a missing-glyph box.
-        if let name = Self.keyNames[key] { return prefix + name }
-        // Shift is the character's case — a terminal has no other way to say
-        // it — and a Control shortcut is conventionally printed uppercase too.
-        let shifted = modifiers.contains(.shift) || modifiers.contains(.control)
-        let character = shifted ? String(key.character).uppercased() : String(key.character)
-        return prefix + character
+        return KeySymbols.chord(Key(key), modifiers)
     }
-
-    /// How the non-printable keys are named in a hint. Arrows as arrows; the
-    /// rest in the words a terminal UI uses, since ⇞/⌫ are ambiguous-width and
-    /// would shear an aligned column on a CJK-configured terminal (the same
-    /// reason ``displayString`` spells Control as `^`).
-    private static let keyNames: [KeyEquivalent: String] = [
-        .upArrow: "↑", .downArrow: "↓", .leftArrow: "←", .rightArrow: "→",
-        .pageUp: "PgUp", .pageDown: "PgDn", .home: "Home", .end: "End",
-        .delete: "Del", .deleteForward: "FwdDel", .return: "Return",
-        .escape: "Esc", .tab: "Tab", .space: "Space",
-    ]
 }
 
 // MARK: - Command key

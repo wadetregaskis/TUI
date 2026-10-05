@@ -66,7 +66,8 @@ struct MenuScrollingRowWidthTests {
     /// that row does not carry it at all.
     ///
     /// Searched from the END, because the hint lives at the row's trailing edge
-    /// and the same letter may well appear in the label.
+    /// and the same letter may well appear in the label — in upper case, as a
+    /// bare letter key is drawn (`KeySymbols`), so "Rename"'s own R does.
     private func hintColumn(_ hint: Character, on label: String, in lines: [String]) -> Int? {
         guard let row = lines.first(where: { $0.contains(label) }) else { return nil }
         return Array(row).lastIndex(of: hint)
@@ -78,8 +79,8 @@ struct MenuScrollingRowWidthTests {
     func hintsDrawnWhenHugging() {
         let drawn = lines(height: 20)
         for (hint, label) in [
-            (Character("r"), "Rename"), ("d", "Duplicate"), ("m", "Move to…"),
-            ("e", "Export as PDF"), ("c", "Compress"), ("x", "Delete"),
+            (Character("R"), "Rename"), ("D", "Duplicate"), ("M", "Move to…"),
+            ("E", "Export as PDF"), ("C", "Compress"), ("X", "Delete"),
         ] {
             // Border, inset, padding, ROW(15), padding, inset, border: the hint
             // is the row's last cell, at column 17 of 21.
@@ -98,10 +99,10 @@ struct MenuScrollingRowWidthTests {
         let scrolling = lines(height: 8)
 
         let huggingColumn = try #require(
-            hintColumn("r", on: "Rename", in: hugging), "hugging: \(hugging)")
+            hintColumn("R", on: "Rename", in: hugging), "hugging: \(hugging)")
         let scrollingColumn = try #require(
-            hintColumn("r", on: "Rename", in: scrolling),
-            "the 'r' hint is drawn at all once the menu scrolls: \(scrolling)")
+            hintColumn("R", on: "Rename", in: scrolling),
+            "the 'R' hint is drawn at all once the menu scrolls: \(scrolling)")
         #expect(
             scrollingColumn == huggingColumn - 1,
             "one column in, not two and not none: \(scrollingColumn) vs \(huggingColumn)")
@@ -124,7 +125,7 @@ struct MenuScrollingRowWidthTests {
     func everyVisibleRowKeepsItsHint() {
         let drawn = lines(height: 8)
         for (hint, label) in [
-            (Character("r"), "Rename"), ("d", "Duplicate"), ("m", "Move to…"),
+            (Character("R"), "Rename"), ("D", "Duplicate"), ("M", "Move to…"),
         ] {
             #expect(
                 hintColumn(hint, on: label, in: drawn) != nil,
@@ -144,8 +145,8 @@ struct MenuScrollingRowWidthTests {
             texted.contains { $0.contains("lines below") },
             "the text indicator is what this menu scrolls with: \(texted)")
         #expect(
-            hintColumn("r", on: "Rename", in: texted)
-                == hintColumn("r", on: "Rename", in: hugging),
+            hintColumn("R", on: "Rename", in: texted)
+                == hintColumn("R", on: "Rename", in: hugging),
             "the hint stays where the hugging arm puts it: \(texted)")
     }
 }

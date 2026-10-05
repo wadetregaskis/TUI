@@ -40,18 +40,21 @@ Items are registered per frame during rendering. When a view is removed from the
 
 ## Shortcut Display Symbols
 
-Use ``Shortcut`` to keep displayed shortcut symbols consistent:
+Use ``Shortcut`` to keep displayed shortcut symbols consistent. A key's
+constant is the symbol a macOS menu draws for it, from the same formatter as
+``KeyboardShortcut/displayString``, so the bar and a menu name a key the same
+way:
 
 | Constant | Display | Description |
 |----------|---------|-------------|
 | `Shortcut.quit` | `q` | Default quit display |
-| `Shortcut.enter` | `↵` | Enter / Return |
+| `Shortcut.enter` | `↩` | Return |
 | `Shortcut.escape` | `⎋` | Escape |
 | `Shortcut.tab` | `⇥` | Tab |
 | `Shortcut.arrowUp` | `↑` | Arrow up |
 | `Shortcut.arrowDown` | `↓` | Arrow down |
 | `Shortcut.arrowsUpDown` | `↑↓` | Vertical navigation |
-| `Shortcut.ctrl("q")` | `^q` | Ctrl+Q display (use `Shortcut.combine(Shortcut.control, "q")` for `⌃q`) |
+| `Shortcut.ctrl("q")` | `⌃Q` | Control-Q, named as a menu names it |
 
 `Shortcut` defines how the item is displayed. If you do not pass `key:`, `StatusBarItem` derives a trigger key from the shortcut string where possible.
 
@@ -86,7 +89,7 @@ TUIkit registers built-in system items automatically:
 | `a` | Appearance | Cycle to next border appearance |
 | `t` | Theme | Cycle to next color theme |
 | `⎋` | *(what claimed it)* | None — informational |
-| `↵` | *(what claimed it)* | None — informational |
+| `↩` | *(what claimed it)* | None — informational |
 
 These appear on the right side of the status bar. `q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
 

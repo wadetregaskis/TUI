@@ -97,8 +97,10 @@ Only **display text** is a key. A value the control is *showing you* is not:
 `LabeledContent("row.size", value: fileSize)` looks up the label and prints the
 size, an SF Symbol name is a symbol name, and a `Table`'s cells come from the
 data. Nor is a **glyph**: a ``StatusBarItem``'s `shortcut` — `"q"`, `"⎋"`,
-`"⌃q"` — is the key you press, the same in every language, and the item derives
-its identity from it. If it would be wrong to translate it, it is not a key.
+`"⌃Q"` — is the key you press, the same in every language, and the item derives
+its identity from it. (The one key named by a word, the space bar, is named in
+the app's language by ``Shortcut/space`` itself, as macOS names it in a menu.)
+If it would be wrong to translate it, it is not a key.
 
 > Tip: You never have to use this. `Button(myLocalizedString)` — a computed
 > `String` — is the disfavoured overload and is displayed exactly as given,

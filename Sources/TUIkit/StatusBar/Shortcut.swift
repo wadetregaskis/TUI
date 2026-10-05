@@ -6,69 +6,71 @@
 
 // MARK: - Shortcut Symbols
 
-/// A collection of Unicode symbols commonly used for keyboard shortcuts.
+/// The names of keys, and a few other symbols, for a status bar item's
+/// `shortcut`.
 ///
-/// Use these constants instead of typing Unicode characters directly.
-/// They provide a consistent look and are easier to read in code.
+/// Use these constants instead of typing the symbols. A key's constant is the
+/// symbol a macOS menu draws for it, from the same formatter as every other key
+/// TUIkit names (``KeyboardShortcut/displayString``), so a status bar and a
+/// menu name a key the same way: ⎋ Escape, ↩ Return, ⇥ Tab, ⌃ Control, and so
+/// on.
 ///
 /// # Example
 ///
 /// ```swift
-/// StatusBarItem(shortcut: .escape, label: "close") { dismiss() }
-/// StatusBarItem(shortcut: .arrowsUpDown, label: "nav")
-/// StatusBarItem(shortcut: .enter, label: "select", key: .enter)
+/// StatusBarItem(shortcut: Shortcut.escape, label: "close") { dismiss() }
+/// StatusBarItem(shortcut: Shortcut.arrowsUpDown, label: "nav")
+/// StatusBarItem(shortcut: Shortcut.enter, label: "select", key: .enter)
 /// ```
 public enum Shortcut {
     // MARK: - Special Keys
 
-    /// Escape key symbol: ⎋
-    public static let escape = "⎋"
+    /// Escape: ⎋
+    public static let escape = KeySymbols.key(.escape)
 
-    /// Return/Enter key symbol: ↵
-    public static let enter = "↵"
+    /// Return: ↩, as macOS draws it.
+    public static let enter = KeySymbols.key(.enter)
 
-    /// Alternative return symbol: ⏎
-    public static let returnKey = "⏎"
+    /// Tab: ⇥
+    public static let tab = KeySymbols.key(.tab)
 
-    /// Tab key symbol: ⇥
-    public static let tab = "⇥"
+    /// Shift-Tab: ⇧⇥, as macOS draws it.
+    public static let shiftTab = KeySymbols.chord(.tab, .shift)
 
-    /// Shift+Tab (backtab) symbol: ⇤
-    public static let shiftTab = "⇤"
+    /// Delete, the backspace key: ⌫
+    public static let backspace = KeySymbols.key(.backspace)
 
-    /// Backspace/Delete symbol: ⌫
-    public static let backspace = "⌫"
+    /// Forward delete: ⌦
+    public static let delete = KeySymbols.key(.delete)
 
-    /// Forward delete symbol: ⌦
-    public static let delete = "⌦"
-
-    /// Space bar symbol: ␣
-    public static let space = "␣"
+    /// The space bar, by name in the app's language, as macOS names it in a
+    /// menu: `Space` in English.
+    public static var space: String { KeySymbols.key(.space) }
 
     // MARK: - Arrow Keys (Single)
 
     /// Up arrow: ↑
-    public static let arrowUp = "↑"
+    public static let arrowUp = KeySymbols.key(.up)
 
     /// Down arrow: ↓
-    public static let arrowDown = "↓"
+    public static let arrowDown = KeySymbols.key(.down)
 
     /// Left arrow: ←
-    public static let arrowLeft = "←"
+    public static let arrowLeft = KeySymbols.key(.left)
 
     /// Right arrow: →
-    public static let arrowRight = "→"
+    public static let arrowRight = KeySymbols.key(.right)
 
     // MARK: - Arrow Key Combinations
 
     /// Up and down arrows: ↑↓
-    public static let arrowsUpDown = "↑↓"
+    public static let arrowsUpDown = arrowUp + arrowDown
 
     /// Left and right arrows: ←→
-    public static let arrowsLeftRight = "←→"
+    public static let arrowsLeftRight = arrowLeft + arrowRight
 
     /// All four arrows: ↑↓←→
-    public static let arrowsAll = "↑↓←→"
+    public static let arrowsAll = arrowsUpDown + arrowsLeftRight
 
     /// Vertical arrows (alternative): ⇅
     public static let arrowsVertical = "⇅"
@@ -78,17 +80,17 @@ public enum Shortcut {
 
     // MARK: - Modifier Keys
 
-    /// Command key (Mac): ⌘
-    public static let command = "⌘"
+    /// Command: ⌘
+    public static let command = KeySymbols.modifiers(.command)
 
-    /// Option/Alt key (Mac): ⌥
-    public static let option = "⌥"
+    /// Option (Alt): ⌥
+    public static let option = KeySymbols.modifiers(.option)
 
-    /// Control key: ⌃
-    public static let control = "⌃"
+    /// Control: ⌃
+    public static let control = KeySymbols.modifiers(.control)
 
-    /// Shift key: ⇧
-    public static let shift = "⇧"
+    /// Shift: ⇧
+    public static let shift = KeySymbols.modifiers(.shift)
 
     /// Caps Lock: ⇪
     public static let capsLock = "⇪"
@@ -99,54 +101,54 @@ public enum Shortcut {
     public static let fn = "Fn"
 
     /// Function key F1
-    public static let f1 = "F1"
+    public static let f1 = KeySymbols.key(.f1)
 
     /// Function key F2
-    public static let f2 = "F2"
+    public static let f2 = KeySymbols.key(.f2)
 
     /// Function key F3
-    public static let f3 = "F3"
+    public static let f3 = KeySymbols.key(.f3)
 
     /// Function key F4
-    public static let f4 = "F4"
+    public static let f4 = KeySymbols.key(.f4)
 
     /// Function key F5
-    public static let f5 = "F5"
+    public static let f5 = KeySymbols.key(.f5)
 
     /// Function key F6
-    public static let f6 = "F6"
+    public static let f6 = KeySymbols.key(.f6)
 
     /// Function key F7
-    public static let f7 = "F7"
+    public static let f7 = KeySymbols.key(.f7)
 
     /// Function key F8
-    public static let f8 = "F8"
+    public static let f8 = KeySymbols.key(.f8)
 
     /// Function key F9
-    public static let f9 = "F9"
+    public static let f9 = KeySymbols.key(.f9)
 
     /// Function key F10
-    public static let f10 = "F10"
+    public static let f10 = KeySymbols.key(.f10)
 
     /// Function key F11
-    public static let f11 = "F11"
+    public static let f11 = KeySymbols.key(.f11)
 
     /// Function key F12
-    public static let f12 = "F12"
+    public static let f12 = KeySymbols.key(.f12)
 
     // MARK: - Navigation
 
-    /// Home key symbol: ⤒
-    public static let home = "⤒"
+    /// Home: ↖, as macOS draws it.
+    public static let home = KeySymbols.key(.home)
 
-    /// End key symbol: ⤓
-    public static let end = "⤓"
+    /// End: ↘, as macOS draws it.
+    public static let end = KeySymbols.key(.end)
 
-    /// Page Up symbol: ⇞
-    public static let pageUp = "⇞"
+    /// Page Up: ⇞
+    public static let pageUp = KeySymbols.key(.pageUp)
 
-    /// Page Down symbol: ⇟
-    public static let pageDown = "⇟"
+    /// Page Down: ⇟
+    public static let pageDown = KeySymbols.key(.pageDown)
 
     // MARK: - Actions
 
@@ -219,19 +221,22 @@ extension Shortcut {
     /// # Example
     ///
     /// ```swift
-    /// Shortcut.combine(.control, "c") // "⌃c"
-    /// Shortcut.combine(.shift, .tab)   // "⇧⇥"
+    /// Shortcut.combine(Shortcut.arrowUp, Shortcut.arrowDown)  // "↑↓"
+    /// Shortcut.combine("1", "9", separator: "-")               // "1-9"
     /// ```
     public static func combine(_ shortcuts: String..., separator: String = "") -> String {
         shortcuts.joined(separator: separator)
     }
 
-    /// Creates a Ctrl+key shortcut display.
+    /// Control held with `key`, named as every other shortcut is: `⌃Q` for
+    /// `"q"`. An upper-case `key` is its Shift chord, `⌃⇧Q`, as it is in a
+    /// ``KeyboardShortcut``.
     ///
     /// - Parameter key: The key character.
-    /// - Returns: The formatted shortcut (e.g., "^c").
+    /// - Returns: The chord's name (e.g., "⌃C").
     public static func ctrl(_ key: Character) -> String {
-        "^\(key)"
+        let (folded, shifted) = KeyEquivalent(key).foldingCase
+        return KeySymbols.chord(.character(folded.character), shifted ? [.control, .shift] : .control)
     }
 
     /// Creates a range shortcut display (e.g., "1-9").

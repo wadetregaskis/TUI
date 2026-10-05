@@ -393,6 +393,84 @@ into. Four consequences are worth naming because none of them is obvious:
 `ChromeOverhangTests` holds the matrix — four hosts against 29 rows — so a
 reading edited into one host's table cannot silently become every host's.
 
+### Key symbols — macOS's spelling, adopted 2026-10-05
+
+Since 2026-10-05 every key TUIkit names on screen — a menu row's shortcut
+column, the status bar's keys and its undo and redo hints, the `Shortcut`
+constants, `KeyboardShortcut.displayString`, `KeyEvent.displayString` — is
+spelled by one formatter (`KeySymbols`), as a macOS menu spells a key
+equivalent: the modifiers in the order **⌃ ⌥ ⇧ ⌘**, then the key, a letter
+in upper case (`⌃⇧Z`, `⌥F`, `⇧⇥`, `⌘?`). The spelling was read from AppKit's
+`NSKeyboardShortcut` (the class that draws menus' and System Settings'
+shortcuts) on macOS 15, for every key and modifier set TUIkit can name, in all
+seven of TUIkit's languages; only the space bar's name changes with the
+language (`Space`, `Leertaste`, `Espace`, `Barra spaziatrice`, `Espacio`,
+`空格键`, and `Space` again in Japanese). It replaced the terminal spellings
+`^S`, `M-s` and `^S-Z` (for Control-Shift-Z), and the names `Esc`, `Return`,
+`PgDn`, `Del`, which existed because those four modifier symbols were believed
+to be ambiguous-width. Only one of them is.
+
+| Glyph | Codepoint | Key | East Asian Width | Drawn before 2026-10-05? | Advance / ink |
+|---|---|---|---|---|---|
+| `⌃` | U+2303 | Control | Neutral | status bar constant | measured 2026-09-04: 1 / contained |
+| `⌥` | U+2325 | Option | Neutral | status bar constant | measured: 1 / **Warp overhangs** |
+| `⇧` | U+21E7 | Shift | **Ambiguous** | status bar constant | measured: 1 / contained |
+| `⌘` | U+2318 | Command | Neutral | status bar constant | measured: 1 / **Warp overhangs** |
+| `⎋` | U+238B | Escape | Neutral | yes | measured: 1 / **Warp overhangs** |
+| `↩` | U+21A9 | Return | Neutral | **no** — `↵` U+21B5 was | **UNMEASURED** |
+| `⇥` | U+21E5 | Tab | Neutral | yes | measured: 1 / contained |
+| `⌫` | U+232B | Delete (backspace) | Neutral | yes | measured: 1 / **Warp overhangs** |
+| `⌦` | U+2326 | Forward Delete | Neutral | yes | measured: 1 / **Warp overhangs** |
+| `↑ ↓ ← →` | U+2191, 2193, 2190, 2192 | arrows | **Ambiguous** | yes | measured: 1 / contained |
+| `↖` | U+2196 | Home | **Ambiguous** | **no** — `⤒` U+2912 was | **UNMEASURED** |
+| `↘` | U+2198 | End | **Ambiguous** | **no** — `⤓` U+2913 was | **UNMEASURED** |
+| `⇞` | U+21DE | Page Up | Neutral | **no** (a constant nothing drew) | **UNMEASURED** |
+| `⇟` | U+21DF | Page Down | Neutral | **no** (likewise) | **UNMEASURED** |
+
+Shift-Tab is `⇧⇥`, as macOS draws it, so `⇤` (U+21E4) is no longer drawn by
+the framework; the space bar is a word, so `␣` (U+2423) is not either. Their
+corpus rows stay: they were measured, and an app may still draw them. No key
+TUIkit can name is keypad Enter (`⌤`, U+2324, which macOS draws for it): there
+is no such `KeyEquivalent`, in SwiftUI or here, and the kitty keyboard
+protocol reports it as Return with the numeric-pad flag, which macOS does not
+draw.
+
+**Width: every glyph claims one cell, the Ambiguous ones included.** That is
+TUIkit's standing treatment of East Asian Ambiguous chrome, not a new
+decision: the four measured hosts advance every Ambiguous chrome glyph one
+cell with their default settings (above), and the box drawing every border is
+made of (`─ │`) is Ambiguous too. Where a host is set to draw ambiguous
+characters wide (iTerm2's "Ambiguous characters are double-width"), every
+border and arrow already advances two, and TUIkit's answer to that setting is
+autowrap off — a row too wide by its own count loses its last cells rather
+than wrapping and scrolling the screen (see "Autowrap off while the app runs" below) — not a wider
+claim, which would be wrong on every other host. `⇧`, `↖` and `↘` join the
+arrows and the borders in that class and add no new kind of failure. The
+symbols that were measured to overhang on Warp keep the per-host two-cell
+claim and `ECH`+`CUF` walk described above.
+
+**Measured by the coordinator, 2026-10-05: UNMEASURED — coordinator to fill.**
+Advance (DSR, `advance_probe.py`) and ink (`overhang_card.py`, read by a
+person) for the four glyphs the framework draws for the first time, `↩ ↖ ↘ ⇞ ⇟`,
+and for the whole key-symbol set on the hosts the 2026-09-04 card did not
+cover. Until a row is filled, the claim is one cell and no host widens it.
+
+| Host | `↩` advance / ink | `↖` | `↘` | `⇞` | `⇟` | `⌃⌥⇧⌘ ⎋ ⇥ ⌫ ⌦ ↑↓←→` |
+|---|---|---|---|---|---|---|
+| Apple Terminal | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
+| iTerm2, ambiguous narrow | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
+| iTerm2, ambiguous wide | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
+| Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
+| kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| tmux in Ghostty / iTerm2 | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+
+A glyph that overhangs on a host joins that host's table in
+`TerminalWidthTraits.ChromeOverhang` (and its corpus row the `chrome_key`
+class, with `ChromeGlyphAdvanceTests`' count). A host measured to have no
+glyph for the symbols at all (a missing-glyph box) is a different case: it
+needs the keys' names spelled out instead, not a wider claim.
+
 ## Identifying the host terminal
 
 Every per-terminal model in this document is only as good as the answer to

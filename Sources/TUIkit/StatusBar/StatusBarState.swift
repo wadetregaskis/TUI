@@ -201,7 +201,7 @@ public final class StatusBarState: @unchecked Sendable {
     ///
     /// ```swift
     /// statusBar.quitShortcut = .escape   // ⎋ quit
-    /// statusBar.quitShortcut = .ctrlQ    // ⌃q quit
+    /// statusBar.quitShortcut = .ctrlQ    // ⌃Q quit
     /// ```
     ///
     /// The status bar display updates automatically.

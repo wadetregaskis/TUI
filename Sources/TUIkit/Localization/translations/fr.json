@@ -139,6 +139,8 @@
   "appearance.block": "Bloc",
   "appearance.blank": "Vide",
 
+  "key.space": "Espace",
+
   "timeSpan.year.wide.one": "%@\u00a0an",
   "timeSpan.year.wide.other": "%@ ans",
   "timeSpan.year.abbreviated.one": "%@\u00a0an",

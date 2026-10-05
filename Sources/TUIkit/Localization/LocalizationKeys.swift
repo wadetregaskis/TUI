@@ -258,6 +258,14 @@ public enum LocalizationKey {
         case menuPopUp = "statusbar.menu.popUp"
     }
 
+    /// The keys whose name is a word wherever TUIkit names a key (see
+    /// `KeySymbols`): only the space bar, the one key macOS names in a menu
+    /// rather than drawing a symbol for, in the words macOS uses. Internal: an
+    /// app names a key through ``KeyboardShortcut/displayString``.
+    enum KeyName: String, CaseIterable {
+        case space = "key.space"
+    }
+
     /// The names of years and months in a span, for the platforms whose
     /// Foundation cannot spell them (`TimeSpan.tableUnitList`): a pattern per
     /// unit, width and CLDR plural category, `%@` standing for the count.

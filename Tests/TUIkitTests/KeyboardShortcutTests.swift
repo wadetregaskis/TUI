@@ -351,24 +351,23 @@ struct KeyEquivalentShortcutTests {
         #expect((accepted, cancelled) == (1, 1))
     }
 
-    @Test("A shortcut prints itself the way a TUI menu prints shortcuts")
+    @Test("A shortcut prints itself the way a macOS menu prints a key equivalent")
     func displayString() {
         #expect(KeyboardShortcut("7", modifiers: []).displayString == "7")
-        #expect(KeyboardShortcut("s", modifiers: []).displayString == "s")
-        // nano/htop convention: ^ for Control, and the letter uppercased.
-        #expect(KeyboardShortcut("s", modifiers: .control).displayString == "^S")
-        // Meta, the terminal's name for Option/Alt — no ⌥, whose width is
-        // ambiguous and would shear the column the hints align in.
-        #expect(KeyboardShortcut("s", modifiers: .option).displayString == "M-s")
-        // Shift is the case, both when written that way and when asked for.
-        #expect(KeyboardShortcut("S", modifiers: []).displayString == "S")
-        #expect(KeyboardShortcut("s", modifiers: .shift).displayString == "S")
-        // A Control chord's letter is uppercase anyway, so Shift is marked:
-        // Redo's ⇧⌘Z is not printed as Undo's ⌘Z.
-        #expect(KeyboardShortcut("z", modifiers: [.control, .shift]).displayString == "^S-Z")
-        #expect(KeyboardShortcut("Z", modifiers: .control).displayString == "^S-Z")
-        #expect(KeyboardShortcut("z", modifiers: .control).displayString == "^Z")
-        #expect(KeyboardShortcut("z", modifiers: [.control, .option, .shift]).displayString == "^M-S-Z")
+        // A letter is drawn in upper case, with or without a modifier.
+        #expect(KeyboardShortcut("s", modifiers: []).displayString == "S")
+        #expect(KeyboardShortcut("s", modifiers: .control).displayString == "⌃S")
+        #expect(KeyboardShortcut("s", modifiers: .option).displayString == "⌥S")
+        // So Shift is a symbol of its own, whether written as the case or asked
+        // for — the case is how a terminal says it.
+        #expect(KeyboardShortcut("S", modifiers: []).displayString == "⇧S")
+        #expect(KeyboardShortcut("s", modifiers: .shift).displayString == "⇧S")
+        // Redo's Control-Shift-Z is not printed as Undo's Control-Z.
+        #expect(KeyboardShortcut("z", modifiers: [.control, .shift]).displayString == "⌃⇧Z")
+        #expect(KeyboardShortcut("Z", modifiers: .control).displayString == "⌃⇧Z")
+        #expect(KeyboardShortcut("z", modifiers: .control).displayString == "⌃Z")
+        // macOS's order, ⌃ ⌥ ⇧ ⌘, however the set was written.
+        #expect(KeyboardShortcut("z", modifiers: [.shift, .option, .control]).displayString == "⌃⌥⇧Z")
         // The semantic roles have no key to print.
         #expect(KeyboardShortcut.defaultAction.displayString == nil)
         #expect(KeyboardShortcut.cancelAction.displayString == nil)

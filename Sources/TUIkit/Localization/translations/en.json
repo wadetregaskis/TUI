@@ -139,6 +139,8 @@
   "appearance.block": "Block",
   "appearance.blank": "Blank",
 
+  "key.space": "Space",
+
   "timeSpan.year.wide.one": "%@ year",
   "timeSpan.year.wide.other": "%@ years",
   "timeSpan.year.abbreviated.one": "%@ yr",

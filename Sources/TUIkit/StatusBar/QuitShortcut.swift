@@ -29,7 +29,7 @@ public struct QuitShortcut: Sendable {
     /// Whether the Ctrl modifier is required.
     public let ctrl: Bool
 
-    /// The symbol displayed in the status bar (e.g., `"q"`, `"⎋"`, `"⌃q"`).
+    /// The symbol displayed in the status bar (e.g., `"q"`, `"⎋"`, `"⌃Q"`).
     public let shortcutSymbol: String
 
     /// The label displayed next to the shortcut symbol (e.g., `"quit"`).
@@ -120,14 +120,14 @@ extension QuitShortcut {
         shortcutSymbol: Shortcut.escape
     )
 
-    /// Quit with Ctrl+Q (`⌃q`).
+    /// Quit with Control-Q (`⌃Q`).
     public static let ctrlQ = QuitShortcut(
         key: .character("q"),
         ctrl: true,
         shortcutSymbol: Shortcut.ctrl("q")
     )
 
-    /// Quit with Ctrl+C (`⌃c`).
+    /// Quit with Control-C (`⌃C`).
     public static let ctrlC = QuitShortcut(
         key: .character("c"),
         ctrl: true,

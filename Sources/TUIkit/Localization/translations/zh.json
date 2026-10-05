@@ -139,6 +139,8 @@
   "appearance.block": "实块",
   "appearance.blank": "留白",
 
+  "key.space": "空格键",
+
   "timeSpan.year.wide.one": "%@年",
   "timeSpan.year.wide.other": "%@年",
   "timeSpan.year.abbreviated.one": "%@年",

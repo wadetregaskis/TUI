@@ -139,6 +139,8 @@
   "appearance.block": "Block",
   "appearance.blank": "Leer",
 
+  "key.space": "Leertaste",
+
   "timeSpan.year.wide.one": "%@ Jahr",
   "timeSpan.year.wide.other": "%@ Jahre",
   "timeSpan.year.abbreviated.one": "%@ J",
