@@ -260,6 +260,15 @@ public protocol ScrollableOffsetState: AnyObject {
     /// scroll target behaviour, as a gesture with no velocity. The default
     /// does nothing.
     func settleUserScroll()
+
+    /// The offset of this scrollable's OTHER axis, for a step to tell whether
+    /// it moved: a scroll target behaviour lands a target on both axes, so a
+    /// step along one (``userScrollStep(_:)``) can move the other — a two-axis
+    /// `.paging` view settles its rows when a Left key pages its columns. Such
+    /// a step is a scroll of this view, consumed and recorded like any other,
+    /// though this axis did not move. The default, `0`, is a scrollable with
+    /// one axis.
+    var acrossScrollOffset: Int { get }
 }
 
 // MARK: - Generic single-axis scroll state
@@ -317,6 +326,12 @@ public final class ScrollAxis: ScrollableOffsetState {
 
     /// Settles a user scroll of this axis (``ScrollableOffsetState``).
     public func settleUserScroll() { settleTargeting?() }
+
+    /// Reads the owning handler's vertical offset — see ``stepTargeting``.
+    var acrossOffset: (() -> Int)?
+
+    /// The owning handler's vertical offset (``ScrollableOffsetState``).
+    public var acrossScrollOffset: Int { acrossOffset?() ?? 0 }
 
     /// A fresh axis: parked at offset 0, with no measurements yet.
     ///
@@ -381,6 +396,9 @@ extension ScrollableOffsetState {
 
     /// No behaviour: nothing to settle. See the requirement.
     public func settleUserScroll() {}
+
+    /// One axis: nothing across it to move. See the requirement.
+    public var acrossScrollOffset: Int { 0 }
 
     /// ``maxOffset``, resolved exactly — the bottom, whatever it costs to find.
     ///
@@ -605,6 +623,12 @@ extension ScrollableOffsetState {
     /// stick. Note the engage happens whether or not an overscroll allowance
     /// exists — being blocked at the edge is the signal, and the excursion is
     /// only how far the push is then allowed to show.
+    ///
+    /// - Returns: Whether the step was spent on this scrollable — it moved
+    ///   (along this axis or, landed by a scroll target behaviour, across it),
+    ///   it pushed into an allowance, or a behaviour held it short of an edge —
+    ///   rather than blocked at an edge, which is what lets the wheel chain to
+    ///   an enclosing scroller.
     @discardableResult
     public func userScrollFine(by delta: Int) -> Bool {
         guard delta != 0 else { return false }
@@ -621,17 +645,25 @@ extension ScrollableOffsetState {
         }
 
         // 2. Ordinary movement, landed where the scroll target behaviour puts
-        //    it.
+        //    it — on this axis, and maybe across it.
+        let across = acrossScrollOffset
         let step = userScrollStep(delta)
         if step != 0, scrollFine(by: step) {
             releaseAnchorOnUserScroll()
             return true
         }
+        // Moved across only: a scroll of this view all the same, and spent here.
+        // This axis did not leave its edge or its anchor, so neither is touched.
+        if acrossScrollOffset != across {
+            noteUserScroll()
+            return true
+        }
         // A behaviour that held the view, short of the edge the step was moving
         // toward, moved nothing and pushed nothing: there is no edge to engage
-        // or overscroll there. With no behaviour the step is `delta`, and
-        // this is not asked.
-        if step != delta, delta < 0 ? scrollOffset > 0 : canScrollForward { return false }
+        // or overscroll there. The step is spent here all the same — the view
+        // is not at an edge, so it is not one for an enclosing scroller to take
+        // over. With no behaviour the step is `delta`, and this is not asked.
+        if heldShortOfEdge(step: step, delta: delta) { return true }
 
         // 3. Blocked: a deliberate push. Stick to that edge — but only if there
         //    IS one to speak of. A view whose content fits sits at its top and
@@ -648,6 +680,13 @@ extension ScrollableOffsetState {
         guard clamped != excursion else { return false }
         overscrollState.excursion = clamped
         return true
+    }
+
+    /// Whether a scroll target behaviour turned a step of `delta` into `step`
+    /// and so kept the view short of the edge `delta` was moving toward —
+    /// spent here, but no push against an edge.
+    func heldShortOfEdge(step: Int, delta: Int) -> Bool {
+        step != delta && (delta < 0 ? scrollOffset > 0 : canScrollForward)
     }
 
     /// The default user Home jump: engage, land row-aligned at the top, drop
@@ -802,19 +841,28 @@ extension ScrollableOffsetState {
     ) -> Bool {
         guard isScrollEnabled else { return false }
         switch event.button {
-        case .scrollLeft:
-            let before = scrollOffset
-            scroll(by: userScrollStep(-columnsPerTick))
-            if scrollOffset != before { noteUserScroll() }
-            return resolveWheelOutcome(moved: scrollOffset != before)
-        case .scrollRight:
-            let before = scrollOffset
-            scroll(by: userScrollStep(columnsPerTick))
-            if scrollOffset != before { noteUserScroll() }
-            return resolveWheelOutcome(moved: scrollOffset != before)
-        default:
-            return false
+        case .scrollLeft: return resolveWheelOutcome(moved: userHorizontalStep(-columnsPerTick))
+        case .scrollRight: return resolveWheelOutcome(moved: userHorizontalStep(columnsPerTick))
+        default: return false
         }
+    }
+
+    /// A user step of a horizontal axis by `delta` columns, landed where the
+    /// scroll target behaviour puts it: whether it was spent here — it moved
+    /// this axis or the other (``acrossScrollOffset``), or a behaviour held it
+    /// short of an edge. Recorded as a user scroll when anything moved.
+    ///
+    /// The horizontal wheel's and the Left and Right keys' one path. It has no
+    /// overscroll or edge anchor to keep, which is all that sets
+    /// ``userScrollFine(by:)`` apart.
+    func userHorizontalStep(_ delta: Int) -> Bool {
+        let before = scrollOffset
+        let across = acrossScrollOffset
+        let step = userScrollStep(delta)
+        scroll(by: step)
+        let moved = scrollOffset != before || acrossScrollOffset != across
+        if moved { noteUserScroll() }
+        return moved || heldShortOfEdge(step: step, delta: delta)
     }
 }
 

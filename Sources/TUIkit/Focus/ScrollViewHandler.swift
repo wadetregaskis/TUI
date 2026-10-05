@@ -320,6 +320,7 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
         // And the scroll target behaviour is held here for both axes.
         horizontal.stepTargeting = { [weak self] delta in self?.horizontalUserScrollStep(delta) ?? delta }
         horizontal.settleTargeting = { [weak self] in self?.settleUserScroll() }
+        horizontal.acrossOffset = { [weak self] in self?.scrollOffset ?? 0 }
     }
 
     /// Records that the user scrolled this view (``ScrollableOffsetState``).
@@ -440,18 +441,13 @@ extension ScrollViewHandler {
             return true
         case .left:
             // Scroll the horizontal axis (Shift-accelerated). Returns false (not
-            // consumed) when it can't move — no horizontal axis, or already at the
-            // edge — so the key still bubbles to whatever else might handle
-            // Left/Right.
-            let before = horizontal.scrollOffset
-            horizontal.scroll(by: horizontal.userScrollStep(-step))
-            if horizontal.scrollOffset != before { noteUserScroll() }
-            return horizontal.scrollOffset != before
+            // consumed) when nothing moves — no horizontal axis, or already at
+            // the edge — so the key still bubbles to whatever else might handle
+            // Left/Right; a step a scroll target behaviour lands on the rows
+            // instead, or holds short of the edge, is this view's.
+            return horizontal.userHorizontalStep(-step)
         case .right:
-            let before = horizontal.scrollOffset
-            horizontal.scroll(by: horizontal.userScrollStep(step))
-            if horizontal.scrollOffset != before { noteUserScroll() }
-            return horizontal.scrollOffset != before
+            return horizontal.userHorizontalStep(step)
         default:
             return false
         }

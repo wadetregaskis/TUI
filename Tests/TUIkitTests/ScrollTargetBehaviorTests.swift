@@ -237,6 +237,91 @@ struct ScrollTargetBehaviorTests {
         #expect(frames.scrollView?.horizontal.scrollOffset == 30)
     }
 
+    /// A behaviour that keeps the view's offset down its axis and moves it four
+    /// columns across with every step.
+    private struct StepAcross: ScrollTargetBehavior, Equatable {
+        func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+            target.rect.y = context.originalTarget.rect.y
+            target.rect.x = context.originalTarget.rect.x + 4
+        }
+    }
+
+    private func wide(_ count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<count, id: \.self) { Text("row \($0) " + String(repeating: "-", count: 60)) }
+        }
+    }
+
+    @Test("A step that moves only the other axis is a scroll: consumed, recorded, never chained")
+    func stepMovingAcrossIsAScroll() {
+        let frames = Frames(width: 20, height: 10)
+        let view = ScrollView([.horizontal, .vertical]) { wide(40) }
+            .scrollTargetBehavior(StepAcross())
+            .scrollChainingDelay(.zero)
+        frames.render(view)
+        guard let handler = frames.scrollView else {
+            Issue.record("no scroll view")
+            return
+        }
+        handler.userScrolledSinceRender = false
+        let consumed = handler.handleWheelEvent(MouseEvent(button: .scrollDown, phase: .scrolled, x: 1, y: 1))
+        #expect(handler.horizontal.scrollOffset == 4, "the behaviour moved it across")
+        #expect(consumed, "it moved, so the tick is not passed to an enclosing scroller")
+        #expect(handler.userScrolledSinceRender, "and the user scrolled it")
+    }
+
+    @Test("Left or Right that moves only the vertical axis is consumed")
+    func horizontalKeyMovingDownIsConsumed() {
+        let frames = Frames(width: 20, height: 10)
+        // 93 rows over 10 lines: the end, 83, is not a page boundary.
+        let view = ScrollView([.horizontal, .vertical]) { wide(93) }
+            .scrollTargetBehavior(.paging)
+        frames.render(view)
+        guard let handler = frames.scrollView else {
+            Issue.record("no scroll view")
+            return
+        }
+        _ = handler.handleKeyEvent(KeyEvent(key: .end))
+        frames.render(view)
+        #expect(handler.scrollOffset == handler.maxOffset && handler.horizontal.scrollOffset == 0)
+        let end = handler.scrollOffset
+        handler.userScrolledSinceRender = false
+        let consumed = handler.handleKeyEvent(KeyEvent(key: .left))
+        // Nothing to the left, but the gesture's target settles on a page down
+        // the other axis too.
+        #expect(handler.scrollOffset == end / 10 * 10, "\(handler.scrollOffset)")
+        #expect(consumed, "the view moved, so the key is spent")
+        #expect(handler.userScrolledSinceRender)
+    }
+
+    @Test("A behaviour that holds the view mid-content keeps the wheel: nothing chains to the parent")
+    func heldStepDoesNotChain() {
+        let frames = Frames()
+        let view = ScrollView { rows(95) }
+            .scrollTargetBehavior(Stay())
+            .scrollChainingDelay(.zero)
+        frames.render(view)
+        frames.scrollView?.scrollToOffset(20)
+        frames.render(view)
+        let consumed = frames.scrollView?.handleWheelEvent(
+            MouseEvent(button: .scrollDown, phase: .scrolled, x: 1, y: 1))
+        #expect(frames.scrollView?.scrollOffset == 20)
+        #expect(consumed == true, "held short of the bottom, the tick is this view's, not its parent's")
+    }
+
+    @Test("A vertical-only pager's Left key moves nothing, and is not consumed")
+    func horizontalKeyOnVerticalPager() {
+        let frames = Frames()
+        let view = ScrollView { rows(93) }.scrollTargetBehavior(.paging)
+        frames.render(view)
+        _ = frames.scrollView?.handleKeyEvent(KeyEvent(key: .end))
+        frames.render(view)
+        let end = frames.scrollView?.scrollOffset
+        let consumed = frames.scrollView?.handleKeyEvent(KeyEvent(key: .left))
+        #expect(frames.scrollView?.scrollOffset == end, "a horizontal key does not page a vertical view")
+        #expect(consumed == false)
+    }
+
     @Test("A released scrollbar thumb settles on the nearest page")
     func thumbReleaseSettles() {
         let handler = ScrollViewHandler(focusID: "t")

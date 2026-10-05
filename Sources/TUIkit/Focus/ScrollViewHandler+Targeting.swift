@@ -86,9 +86,13 @@ extension ScrollViewHandler {
 
     /// The vertical step a user scroll of `delta` lines takes
     /// (``ScrollableOffsetState`` requirement). A behaviour that also moved the
-    /// target across moves the horizontal axis with it.
+    /// target across moves the horizontal axis with it, which the step's caller
+    /// sees (``acrossScrollOffset``).
+    ///
+    /// A view that does not scroll down asks no behaviour, so a vertical tick
+    /// over a horizontal pager settles nothing and passes on.
     public func userScrollStep(_ delta: Int) -> Int {
-        guard delta != 0,
+        guard delta != 0, scrollTargeting?.axes.contains(.vertical) == true,
             let landed = targetedOffsets(
                 proposedX: horizontal.scrollOffset, proposedY: scrollOffset + delta,
                 velocity: CellVector(dx: 0, dy: Double(delta)))
@@ -100,8 +104,11 @@ extension ScrollViewHandler {
     /// The horizontal step a user scroll of `delta` columns takes — what the
     /// horizontal axis asks (``ScrollAxis/stepTargeting``). A behaviour that
     /// also moved the target down moves the vertical axis with it.
+    ///
+    /// A view that does not scroll across asks no behaviour: Left on a
+    /// vertical pager used to settle its rows.
     func horizontalUserScrollStep(_ delta: Int) -> Int {
-        guard delta != 0,
+        guard delta != 0, scrollTargeting?.axes.contains(.horizontal) == true,
             let landed = targetedOffsets(
                 proposedX: horizontal.scrollOffset + delta, proposedY: scrollOffset,
                 velocity: CellVector(dx: Double(delta), dy: 0))
@@ -128,6 +135,12 @@ extension ScrollViewHandler {
             horizontal.scrollToOffset(landed.x)
         }
     }
+}
+
+extension ScrollViewHandler {
+    /// The horizontal offset, for a vertical step to tell whether a behaviour
+    /// moved it (``ScrollableOffsetState`` requirement).
+    public var acrossScrollOffset: Int { horizontal.scrollOffset }
 }
 
 // MARK: - The scroll view's side
