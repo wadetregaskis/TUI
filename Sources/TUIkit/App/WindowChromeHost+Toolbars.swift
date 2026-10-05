@@ -48,9 +48,9 @@ extension _WindowChromeHost {
     /// Its items are in an optional focus section of their own, after the
     /// page's, so Tab reaches them last and they never take the initial focus.
     /// While a modal holds the input the bar is drawn inert — on throwaway
-    /// focus and key channels — and the top bar's hit regions go; the bottom
-    /// bar keeps its regions, so a click on the line of key hints still does
-    /// what the key would, as a press of the key does behind a modal.
+    /// focus and key channels, its items' click regions dropped — except for
+    /// the line of key hints, where a click still does what the key would, as
+    /// a press of the key does behind a modal (see `_ToolbarEntryView`).
     func toolbarBuffer(
         _ edge: WindowChromeState.Edge, chrome: WindowChromeState, contentRows: Int,
         tooltip: [String] = [], width: Int, isModal: Bool, context: RenderContext
@@ -84,13 +84,11 @@ extension _WindowChromeHost {
         let palette = context.environment.palette
         let backgrounds = RenderBackgroundCodes(palette: palette)
         let background = edge == .bottom ? backgrounds.statusBar : backgrounds.appHeader
-        var bar = framed(row, style: style, ruleAbove: edge == .bottom, width: width, context: context)
+        return framed(row, style: style, ruleAbove: edge == .bottom, width: width, context: context)
             .resolvingOpacity(
                 surface: edge == .bottom ? palette.statusBarBackground : palette.appHeaderBackground,
                 palette: palette)
             .groundedAsChrome(width: width, background: background)
-        if isModal, edge == .top { bar.hitTestRegions = [] }
-        return bar
     }
 
     /// The focus section the toolbar at `edge` puts its items in.

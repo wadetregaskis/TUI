@@ -234,7 +234,7 @@ private struct _AppStatusBarCore: View, Renderable {
         // — and writes the hover back to it.
         var lineContext = context
         lineContext.environment.statusBar = state
-        return TUIkit.renderToBuffer(
+        let line = TUIkit.renderToBuffer(
             _StatusBarCore(
                 userItems: note ? [] : state.currentUserItems,
                 systemItems: note ? [] : state.currentSystemItems,
@@ -245,6 +245,9 @@ private struct _AppStatusBarCore: View, Renderable {
                 tooltipLines: note ? state.tooltipLines : []
             ),
             context: lineContext)
+        // The regions an inert bar keeps: a click on a hint is the key.
+        if !context.isMeasuring { context.environment.windowChrome?.noteAppLine(line) }
+        return line
     }
 }
 

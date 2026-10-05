@@ -142,6 +142,21 @@ final class WindowChromeState: @unchecked Sendable {
     /// is declared once.
     private var declaredIdentities: Set<ViewIdentity> = []
 
+    /// The click regions the app's line of key hints (``StatusBar``'s
+    /// `init()`) registered this walk: the ones an inert bar keeps.
+    ///
+    /// A bar item drawn inert — every item while a modal holds the input, and
+    /// one declared by a backdrop — has its click regions dropped, as its keys
+    /// and focus are. The line of key hints is the exception: it shows what
+    /// the app's keys do NOW (the modal's, while one is up), and a click on an
+    /// item there does what the key would.
+    private(set) var appLineHandlerIDs: Set<HitTestRegion.HandlerID> = []
+
+    /// Records the regions of the app's line of key hints, drawn this walk.
+    func noteAppLine(_ buffer: FrameBuffer) {
+        for region in buffer.hitTestRegions { appLineHandlerIDs.insert(region.handlerID) }
+    }
+
     /// The window's title: the root `.navigationTitle`, as the last frame's
     /// content published it.
     ///
@@ -178,6 +193,7 @@ final class WindowChromeState: @unchecked Sendable {
         toolbarEntries.removeAll(keepingCapacity: true)
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
+        appLineHandlerIDs.removeAll(keepingCapacity: true)
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a

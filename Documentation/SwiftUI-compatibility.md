@@ -582,7 +582,9 @@ in the environment of the view that declared it (a `.disabled` above
 `.toolbar` disables it), keeps its `@State` from frame to frame, and its
 controls are in the Tab ring after the page's, in a section of their own that
 never takes the first focus; their keyboard shortcuts are live. While a modal
-holds the input, the top bar is inert.
+holds the input both bars are inert — no focus, keys or clicks — except the
+line of key hints, which shows the modal's keys and answers a click as the key;
+an item declared inside a `.dimmed()` subtree is drawn inert likewise.
 
 **The one difference that follows from the medium:** the page is what declares
 the items, and a bar's rows have to be known before the page is laid out, so a
