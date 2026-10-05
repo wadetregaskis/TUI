@@ -46,8 +46,14 @@ final class TextEditorHandler: PersistedFocusable {
     /// through a short line don't lose the horizontal position). Display, not
     /// character, space: on tab-bearing lines the visual column runs ahead of
     /// the character index, and the caret should track visually — the macOS
-    /// text system preserves the visual x the same way.
-    private var desiredColumn = 0
+    /// text system preserves the visual x the same way. In a wrapping editor
+    /// it is the column in the caret's ROW.
+    var desiredColumn = 0
+
+    /// The width the editor last wrapped its rows at, or `nil` where it
+    /// scrolls sideways instead — synced by the rendering core each frame, so
+    /// the vertical keys move by the rows on screen.
+    var wrapWidth: Int?
 
     /// How tabs are laid out — synced from the environment by the rendering
     /// core each frame, so vertical motion and the renderer agree on where a
@@ -56,6 +62,10 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Remembers the cursor's display column for vertical motion.
     func syncDesiredColumn(_ lines: [[Character]]? = nil) {
+        if let rows = wrappedRows() {
+            desiredColumn = caretColumnInRow(in: rows)
+            return
+        }
         let lines = lines ?? readLines()
         guard cursorLine < lines.count else {
             // Out-of-bounds cursor (stale state, normalised elsewhere): fall
@@ -69,6 +79,8 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Top visible line — the core advances it to follow the cursor.
     var scrollLine = 0
+    /// In a wrapping editor, which of ``scrollLine``'s rows is the top one.
+    var scrollRowInLine = 0
     /// Left visible column — advanced to follow the cursor horizontally.
     var scrollColumn = 0
     /// The visible row count, set by the core each render so Page Up / Page Down
@@ -537,6 +549,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// Moves the cursor up/down a line, preserving the desired column where the
     /// target line is long enough.
     private func moveVertical(by delta: Int) {
+        if let rows = wrappedRows() {
+            moveByRows(delta, in: rows, pastTheEnds: true)
+            return
+        }
         let lines = readLines()
         let target = cursorLine + delta
         guard target >= 0, target < lines.count else { return }
@@ -547,8 +563,12 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Moves the cursor up/down a screenful (Page Up / Page Down, Ctrl-V).
     private func movePage(by pages: Int) {
-        let lines = readLines()
         let step = max(1, viewportHeight - 1)
+        if let rows = wrappedRows() {
+            moveByRows(pages * step, in: rows, pastTheEnds: false)
+            return
+        }
+        let lines = readLines()
         let target = min(max(0, cursorLine + pages * step), lines.count - 1)
         cursorLine = target
         cursorColumn = TabLayout.charIndex(

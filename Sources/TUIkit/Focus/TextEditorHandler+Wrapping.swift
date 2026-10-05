@@ -1,0 +1,93 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  TextEditorHandler+Wrapping.swift
+//
+//  A wrapping editor's caret and scroll, by row: its document's lines are
+//  paragraphs, each laid out in rows (`WrappedRows`), and the vertical keys
+//  move between rows as an NSTextView's do.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+extension TextEditorHandler {
+    /// The document's rows at the width the editor last drew at, or `nil`
+    /// where it scrolls sideways (``View/textEditorWrapsLines(_:)``).
+    func wrappedRows() -> WrappedRows? {
+        guard let wrapWidth else { return nil }
+        return layout().wrapped(width: wrapWidth, tabWidth: tabWidth)
+    }
+
+    /// The row the caret is drawn on, among all of them, by its affinity.
+    func caretRow(in rows: WrappedRows) -> Int {
+        rows.row(ofLine: cursorLine, column: cursorColumn, affinity: selectionAffinity)
+    }
+
+    /// The caret's column in its row: what Up and Down keep.
+    func caretColumnInRow(in rows: WrappedRows) -> Int {
+        let (line, rowInLine) = rows.location(ofRow: caretRow(in: rows))
+        return rows.lines[line].column(of: cursorColumn, inRow: rowInLine)
+    }
+
+    /// The top row on screen, among all of them.
+    func topRow(in rows: WrappedRows) -> Int {
+        rows.row(line: scrollLine, rowInLine: scrollRowInLine)
+    }
+
+    /// Moves the caret `delta` rows, keeping the column it was asked to keep
+    /// through short rows, as an `NSTextView` does (measured on macOS 15.8):
+    /// Up from the first row goes to the start of the text, Down from the last
+    /// to its end. A row it lands on that wrapped keeps the caret before its
+    /// last character, whose end is drawn on the next row.
+    ///
+    /// - Parameter pastTheEnds: Whether a motion past the first or last row
+    ///   goes to the text's start or end — the arrows' and Ctrl-P's and N's,
+    ///   not a page's, which stops at the first or last row.
+    func moveByRows(_ delta: Int, in rows: WrappedRows, pastTheEnds: Bool) {
+        let target = caretRow(in: rows) + delta
+        guard target >= 0, target < rows.rowCount else {
+            guard pastTheEnds else {
+                moveToRow(min(max(0, target), rows.rowCount - 1), in: rows)
+                return
+            }
+            let lines = readLines()
+            cursorLine = target < 0 ? 0 : lines.count - 1
+            cursorColumn = target < 0 ? 0 : lines[cursorLine].count
+            syncDesiredColumn(lines)
+            return
+        }
+        moveToRow(target, in: rows)
+    }
+
+    /// Puts the caret on `row`, at the column it keeps.
+    private func moveToRow(_ row: Int, in rows: WrappedRows) {
+        let (line, rowInLine) = rows.location(ofRow: row)
+        cursorLine = line
+        cursorColumn = rows.lines[line].offset(inRow: rowInLine, atColumn: desiredColumn, affinity: .automatic)
+    }
+
+    /// Keeps the caret's row on screen, moving the top row as little as it
+    /// must, and never past the last screenful.
+    ///
+    /// The top is kept as a line and a row within it, not as a row, so a
+    /// change of width — a resize, the scroll bar's column arriving — keeps the
+    /// top paragraph where it was rather than the row number.
+    func followCaretRow(in rows: WrappedRows, height: Int) {
+        var top = topRow(in: rows)
+        let caret = caretRow(in: rows)
+        if caret < top {
+            top = caret
+        } else if caret >= top + height {
+            top = caret - height + 1
+        }
+        top = max(0, min(top, max(0, rows.rowCount - height)))
+        (scrollLine, scrollRowInLine) = rows.location(ofRow: top)
+        scrollColumn = 0
+    }
+
+    /// The caret position a click at `column` of the on-screen `row` lands
+    /// on: before the character whose cells hold the column, or the row's last
+    /// caret offset past its text.
+    func position(atScreenRow row: Int, column: Int, in rows: WrappedRows) -> (line: Int, column: Int) {
+        let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
+        return (line, rows.lines[line].offset(inRow: rowInLine, atColumn: column, affinity: .automatic))
+    }
+}

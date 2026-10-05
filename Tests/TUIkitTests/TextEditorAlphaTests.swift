@@ -49,10 +49,11 @@ struct TextEditorAlphaTests {
     /// selection: rendered once to register it, which focuses it, then again.
     private func focused(
         _ text: String, palette: any Palette = FadedAll(), cursor: TextCursorStyle = TextCursorStyle(),
-        width: Int = 20, height: Int = 4, place: (TextEditorHandler) -> Void = { _ in }
+        width: Int = 20, height: Int = 4, wraps: Bool = true, place: (TextEditorHandler) -> Void = { _ in }
     ) throws -> FrameBuffer {
         let context = context(palette: palette, width: width, height: height, focused: true)
         let view = TextEditor(text: .constant(text)).textCursor(cursor).frame(width: width, height: height)
+            .textEditorWrapsLines(wraps)
         _ = renderToBuffer(view, context: context)
         let handler = try #require(
             context.environment.focusManager?.activeSection?.focusables
@@ -199,6 +200,30 @@ struct TextEditorAlphaTests {
         #expect(before.ink == owed(palette.foreground) && before.field == owed(well(palette)), "(0, 0) owes \(before)")
     }
 
+    /// The same line wrapped instead, over four rows — and every cell but the
+    /// caret's owes the text and the well.
+    @Test("A wrapped editor claims what it drew")
+    func wrappedClaimsWhatItDrew() throws {
+        let palette = FadedAll()
+        let long = "\t" + String(repeating: "x", count: 20) + "😀\t" + String(repeating: "y", count: 16)
+        let drawn = try focused(long, palette: palette, height: 4) {
+            $0.moveCursor(toLine: 0, column: long.count)
+        }
+        #expect(drawn.lines.count == 4)
+        // The leading tab is a place to break, so the long run of x's starts on
+        // the second row, as the macOS text system breaks it.
+        #expect(drawn.lines[1].stripped.hasPrefix("xxxx"), "row 1: '\(drawn.lines[1].stripped)'")
+        for row in 0..<4 {
+            for column in 0..<20 {
+                let owes = owed(atColumn: column, row: row, in: drawn)
+                guard owes.ink != 1 else { continue }  // the caret's cell
+                #expect(
+                    owes.ink == owed(palette.foreground) && owes.field == owed(well(palette)),
+                    "(\(column), \(row)) owes \(owes)")
+            }
+        }
+    }
+
     /// Scrolled sideways past a tab, with a wide glyph straddling the window's left
     /// edge: the glyph's visible cell is drawn as a space in its colours and claimed,
     /// and every cell but the caret's owes the text and the well.
@@ -208,7 +233,7 @@ struct TextEditorAlphaTests {
         // Cells: the tab 0..<4, the x's 4..<24, 😀 24..<26, the tab 26..<28, the y's
         // 28..<44, and the caret at 44. Twenty cells wide, the window is 25..<45.
         let long = "\t" + String(repeating: "x", count: 20) + "😀\t" + String(repeating: "y", count: 16)
-        let drawn = try focused(long + "\nshort", palette: palette, height: 2) {
+        let drawn = try focused(long + "\nshort", palette: palette, height: 2, wraps: false) {
             $0.moveCursor(toLine: 0, column: long.count)
         }
         #expect(drawn.lines[0].stripped.first == " ", "row 0: '\(drawn.lines[0].stripped)'")

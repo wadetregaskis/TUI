@@ -19,13 +19,13 @@
 /// | Enter | Split the line (insert a newline) |
 /// | Backspace / Delete | Delete before / at the cursor (join lines at edges) |
 /// | Left / Right | Move by a character, wrapping across lines |
-/// | Up / Down | Move by a line, keeping the column where possible |
+/// | Up / Down | Move by a row, keeping the column where possible; from the first row to the start, from the last to the end |
 /// | Home / End | Start / end of the whole field (the document) |
 /// | Page Up / Down | Move a screenful up / down |
-/// | Ctrl-A / Ctrl-E | Start / end of the current line |
+/// | Ctrl-A / Ctrl-E | Start / end of the current line (the whole paragraph, however many rows it wraps over) |
 /// | Option-Ctrl-A | Select the whole document |
 /// | Ctrl-B / Ctrl-F | Back / forward one character |
-/// | Ctrl-P / Ctrl-N | Previous / next line |
+/// | Ctrl-P / Ctrl-N | Previous / next row |
 /// | Ctrl-D | Delete forward |
 /// | Ctrl-K | Kill to end of line (yank with Ctrl-Y) |
 /// | Ctrl-Y | Yank the last kill |
@@ -102,11 +102,20 @@
 /// vertical scroll indicator appears in the trailing column when the text is
 /// taller than the view, so it's clear there's content out of view.
 ///
-/// > Note: Long lines are **not** wrapped — the view scrolls horizontally to
-/// > follow the cursor (a common terminal-editor behaviour), and vertically when
-/// > the text is taller than the view. SwiftUI's editor wraps them; a vertical
-/// > ``TextField`` wraps its text by the same rules, and whether the editor
-/// > should too is open (`SwiftUI-API-completion-decisions-W06b.md`, A43).
+/// Long lines **wrap** at the editor's width, as SwiftUI's do, by the macOS
+/// text system's rules (measured on an `NSTextView`, macOS 15.8): a row breaks
+/// after a run of spaces or a tab, which hangs at the end of the row it breaks,
+/// or between the characters of a word too long for a row, and a tab's stop is
+/// counted from the start of its row. The last cell of a row is kept for the
+/// caret, so text wraps one cell short of the edge — a vertical ``TextField``
+/// wraps the same way. Up and Down, Ctrl-P and Ctrl-N, and Page Up and Page
+/// Down move by rows, keeping the caret's column through short ones; Up from
+/// the first row goes to the start of the text and Down from the last to its
+/// end, as an `NSTextView`'s do. The view scrolls vertically, by rows, to follow
+/// the caret. Where a wrap would break up columns — code, a log, a table in
+/// plain text — ``View/textEditorWrapsLines(_:)`` with `false` keeps each line
+/// on one row and scrolls sideways to follow the caret instead, as many terminal
+/// editors do; Up and Down then move by lines and stop at the first and last.
 ///
 /// ## The selection and the caret where the terminal decides the colours
 ///
@@ -272,7 +281,13 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let width = context.fillingWidth(proposal: proposal)
-        let contentHeight = max(1, layout(context: context).lines.count)
+        // A wrapping editor is as tall as its rows at the width it is given.
+        let layout = layout(context: context)
+        let contentHeight = max(
+            1,
+            context.environment.textEditorWrapsLines
+                ? layout.wrapped(width: max(1, width), tabWidth: context.environment.tabWidth).rowCount
+                : layout.lines.count)
         let height = proposal.height ?? min(contentHeight, max(1, context.availableHeight))
         return ViewSize(width: width, height: height, isWidthFlexible: true, isHeightFlexible: true)
     }
@@ -319,26 +334,10 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
         let displayLines = handler.readLines()
-
-        // When the text is taller than the view, reserve the trailing column for
-        // a scroll indicator so the user can see there's content out of view —
-        // the total width is unchanged, so measure == render still holds.
-        let hasVerticalOverflow = displayLines.count > height
-        let contentWidth = hasVerticalOverflow ? max(1, width - 1) : width
-
-        // Follow the cursor — in DISPLAY columns, since that's the space the
-        // scroll window and the caret cell live in (a tab makes the display
-        // column run ahead of the character index). Mutates persistent scroll
-        // state, so it is gated on the render pass — never during measuring.
-        let cursorDisplayColumn = TabLayout.displayColumn(
-            ofCharIndex: handler.cursorColumn,
-            in: displayLines[min(handler.cursorLine, displayLines.count - 1)],
-            tabWidth: tabWidth)
-        if !context.isMeasuring {
-            followCursor(
-                handler, cursorDisplayColumn: cursorDisplayColumn,
-                lineCount: displayLines.count, width: contentWidth, height: height)
-        }
+        let window = window(
+            handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
+            wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring)
+        let contentWidth = window.contentWidth
 
         // A subtle field background so the editor reads as a text field (like
         // TextField's chrome) rather than plain text — no full box. Opt into the
@@ -377,23 +376,29 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                 timing: context.environment.indicatorCycleTiming,
                 appearsActive: context.environment.appearsActive)
             caret = RowCaret(
-                column: cursorDisplayColumn,
+                column: window.caretColumn,
                 cycle: .init(shape: cursorStyle.shape, cursor: setup.cycle, colors: setup.colors))
         }
 
-        let rows = renderRows(
-            displayLines, handler: handler, width: contentWidth, height: height,
-            tabWidth: tabWidth, caret: caret, styling: styling)
+        let rows =
+            window.rows.map {
+                renderWrappedRows(
+                    $0, lines: displayLines, handler: handler, height: height, tabWidth: tabWidth,
+                    caret: caret, styling: styling)
+            }
+            ?? renderRows(
+                displayLines, handler: handler, width: contentWidth, height: height,
+                tabWidth: tabWidth, caret: caret, styling: styling)
         var output = rows.lines
 
         var bar: (runs: [AnimatedCellRun], claims: [OpacityRegion]) = ([], [])
-        if hasVerticalOverflow {
+        if window.hasVerticalOverflow {
             // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bar's
             // breath is a focus indication and goes with the effect; the caret
             // above is the insertion point and reads the raw `isFocused`.
             bar = appendScrollbar(
-                to: &output, height: height, extent: displayLines.count,
-                offset: handler.scrollLine, barColumn: contentWidth,
+                to: &output, height: height, extent: window.extent,
+                offset: window.offset, barColumn: contentWidth,
                 isFocused: context.indicatesFocus(isFocused), context: context)
         }
 
@@ -452,6 +457,122 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                 arrows: .none, proportional: true, pulse: pulse
             ).map { $0.shifted(byX: barColumn, y: 0) },
             claims)
+    }
+
+    /// What a frame draws its rows from: how wide they are, whether a scroll
+    /// bar takes the last column, the bar's extent and offset (in lines, or in
+    /// rows where the editor wraps), the caret's column in its line or row, and
+    /// the rows themselves where it wraps.
+    private struct Window {
+        let contentWidth: Int
+        let hasVerticalOverflow: Bool
+        let extent: Int
+        let offset: Int
+        let caretColumn: Int
+        let rows: WrappedRows?
+    }
+
+    /// The frame's window onto the document, its scroll moved to follow the
+    /// caret — in lines and display columns where the editor scrolls sideways,
+    /// in rows where it wraps. Moving the scroll is persistent state, so it is
+    /// done only in a render pass (`follows`), never while measuring.
+    ///
+    /// When the text is taller than the view, the trailing column is reserved
+    /// for a scroll indicator, so the user can see there is content out of
+    /// view — the total width is unchanged, so measure == render still holds.
+    /// A wrapping editor then lays its text out again a cell narrower, as a
+    /// scroll view lays out its content once a bar arrives; both widths stay
+    /// in the layout, so neither is laid out again the next frame.
+    private func window(
+        _ handler: TextEditorHandler, lines: [[Character]], width: Int, height: Int, tabWidth: TabWidth,
+        wraps: Bool, follows: Bool
+    ) -> Window {
+        guard wraps else {
+            handler.wrapWidth = nil
+            let overflows = lines.count > height
+            let contentWidth = overflows ? max(1, width - 1) : width
+            // In DISPLAY columns, the space the scroll window and the caret cell
+            // live in (a tab makes the display column run ahead of the index).
+            let caretColumn = TabLayout.displayColumn(
+                ofCharIndex: handler.cursorColumn, in: lines[min(handler.cursorLine, lines.count - 1)],
+                tabWidth: tabWidth)
+            if follows {
+                followCursor(
+                    handler, cursorDisplayColumn: caretColumn, lineCount: lines.count, width: contentWidth,
+                    height: height)
+            }
+            return Window(
+                contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: lines.count,
+                offset: handler.scrollLine, caretColumn: caretColumn, rows: nil)
+        }
+        let layout = handler.layout()
+        var rows = layout.wrapped(width: width, tabWidth: tabWidth)
+        let overflows = rows.rowCount > height
+        let contentWidth = overflows ? max(1, width - 1) : width
+        if overflows { rows = layout.wrapped(width: contentWidth, tabWidth: tabWidth) }
+        handler.wrapWidth = contentWidth
+        if follows { handler.followCaretRow(in: rows, height: height) }
+        return Window(
+            contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: rows.rowCount,
+            offset: handler.topRow(in: rows), caretColumn: handler.caretColumnInRow(in: rows), rows: rows)
+    }
+
+    /// Every visible row of a wrapping editor: each a slice of its line, from
+    /// its row's first character — tab stops counted from there — drawn by
+    /// the same row renderer the sideways editor uses, with nothing scrolled.
+    ///
+    /// A run of spaces may hang past the last cell; what starts past it is not
+    /// drawn, and a caret in such a run sits on the last cell
+    /// (``SoftWrapLayout/column(of:inRow:)``).
+    private func renderWrappedRows(
+        _ rows: WrappedRows, lines: [[Character]], handler: TextEditorHandler, height: Int,
+        tabWidth: TabWidth, caret: RowCaret?, styling: RowStyling
+    ) -> (lines: [String], claims: [OpacityRegion], caret: AnimatedCellRun?) {
+        var output: [String] = []
+        var claims: [OpacityRegion] = []
+        var caretRun: AnimatedCellRun?
+        output.reserveCapacity(height)
+        let top = handler.topRow(in: rows)
+        let caretRow = handler.caretRow(in: rows)
+        var (line, rowInLine) = rows.location(ofRow: top)
+        for screenRow in 0..<height {
+            let rendered: RenderedRow
+            if top + screenRow < rows.rowCount {
+                let layout = rows.lines[line]
+                let span = layout.rows[rowInLine]
+                // Only what starts inside the row: a hanging run may run on.
+                var (end, cell) = (span.start, 0)
+                while end < span.end, cell < rows.width {
+                    cell += layout.cellWidths[end]
+                    end += 1
+                }
+                let selection: Range<Int>? =
+                    caret == nil
+                    ? nil
+                    : handler.selectedColumns(inLine: line, lineLength: lines[line].count).flatMap { selected in
+                        let lower = max(selected.lowerBound, span.start)
+                        let upper = min(selected.upperBound, end)
+                        guard lower < upper else { return nil }
+                        return layout.cells(inRow: rowInLine, before: lower)
+                            ..< layout.cells(inRow: rowInLine, before: upper)
+                    }
+                rendered = styledRow(
+                    Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, width: rows.width,
+                    caret: top + screenRow == caretRow ? caret : nil, selection: selection, styling: styling)
+                // On to the next row: the rest of this line's, then the next line's.
+                if rowInLine + 1 < layout.rows.count {
+                    rowInLine += 1
+                } else {
+                    (line, rowInLine) = (line + 1, 0)
+                }
+            } else {
+                rendered = emptyRow(width: rows.width, background: styling.background)
+            }
+            output.append(rendered.line)
+            for claim in rendered.claims { claims.appendCoalescing(claim.shifted(byX: 0, y: screenRow)) }
+            caretRun = caretRun ?? rendered.caret?.shifted(byX: 0, y: screenRow)
+        }
+        return (output, claims, caretRun)
     }
 
     /// Every visible row: its line, the claims its colours owe — already in the
@@ -794,6 +915,14 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let tabWidth = context.environment.tabWidth
         func placeCursor(at event: MouseEvent) {
             let row = max(0, min(event.y, height - 1))
+            // Wrapping, a click lands in a ROW: on the character whose cells
+            // hold it, or past the row's text on its last caret position.
+            if let rows = handler.wrappedRows() {
+                let position = handler.position(
+                    atScreenRow: row, column: max(0, min(event.x, contentWidth - 1)), in: rows)
+                handler.moveCursor(toLine: position.line, column: position.column)
+                return
+            }
             // Valid content columns are 0..<contentWidth: clamping to
             // `contentWidth` put a scrollbar-column click one display column
             // PAST the window's right edge, so on a long line the caret

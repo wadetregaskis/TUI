@@ -22,6 +22,9 @@ final class EditorLayout {
     /// empty: an empty text is one empty line.
     let lines: [[Character]]
 
+    /// The lines wrapped at the widths last asked for (``wrapped(width:tabWidth:)``).
+    var wrappings: [(rows: WrappedRows, tabWidth: TabWidth)] = []
+
     /// Splits `text` into its lines.
     init(text: String) {
         self.text = text

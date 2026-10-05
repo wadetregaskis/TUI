@@ -23,14 +23,18 @@ import TUIkit
 struct TextEditorApp: View {
     let lines: Int
     var typing = false
+    /// Whether the editor wraps its lines, as it does by default, or scrolls
+    /// sideways (`textEditorWrapsLines(false)`): the pair prices the wrap.
+    var wraps = true
 
     /// The document, written once: synthesising it in the body would be
     /// measured as the editor's cost.
     let document: String
 
-    init(lines: Int, seed: UInt64, typing: Bool = false) {
+    init(lines: Int, seed: UInt64, typing: Bool = false, wraps: Bool = true) {
         self.lines = lines
         self.typing = typing
+        self.wraps = wraps
         self.document = Self.document(lines: lines, seed: seed)
     }
 
@@ -47,9 +51,10 @@ struct TextEditorApp: View {
             Text(
                 Lf(
                     "stress.scenario.app-shapes.heading",
-                    typing ? "text-editor-typing" : "text-editor", lines)
+                    typing ? "text-editor-typing" : wraps ? "text-editor" : "text-editor-unwrapped", lines)
             ).bold()
             TextEditor(text: .constant(text))
+                .textEditorWrapsLines(wraps)
         }
     }
 

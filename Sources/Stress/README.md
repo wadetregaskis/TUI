@@ -134,7 +134,9 @@ measured the settled shape would report the memo's best day as its only day.
 two thousand lines a tenth wider than the screen, settled and with its middle
 line edited every tick — the idle frame and the edit frame of a long note, and
 the pair a change to how the editor lays its document out is priced on (the
-`code-editor` shape is `Text` rows, not an editor).
+`code-editor` shape is `Text` rows, not an editor). `text-editor-unwrapped` is
+the same settled editor scrolling sideways (`textEditorWrapsLines(false)`), so
+it against `text-editor` is the price of the wrap.
 `sidebar`/`sidebar-untagged` is a pair along a third axis: one hand-written
 "All projects" row above 300 looped ones, which makes the `List` walk its
 flattened children eagerly and recover each looped row's selection value from

@@ -1,0 +1,193 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  TextEditorWrapTests.swift
+//
+//  A wrapping TextEditor, against what a SwiftUI TextEditor (an NSTextView)
+//  does with the same text, measured on macOS 15.8: the rows it wraps into,
+//  and where each key and click puts the caret.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+@MainActor
+@Suite("TextEditor: wrapping")
+struct TextEditorWrapTests {
+    final class Box: @unchecked Sendable {
+        var value: String
+        init(_ value: String) { self.value = value }
+    }
+
+    /// The probe's paragraph: it wraps into four rows at the probe's width.
+    static let paragraph = "aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll"
+    static let document = paragraph + "\nshort\n" + paragraph
+
+    struct Page: View {
+        let text: Box
+        let width: Int
+        let height: Int
+        var wraps = true
+        var body: some View {
+            TextEditor(text: Binding(get: { text.value }, set: { text.value = $0 }))
+                .frame(width: width, height: height)
+                .textEditorWrapsLines(wraps)
+        }
+    }
+
+    /// A harness drawing `text` in an editor `width` × `height`, focused.
+    func editor(
+        _ text: String = document, width: Int = 16, height: Int = 12, wraps: Bool = true
+    ) throws -> (InputChainHarness, Page, TextEditorHandler) {
+        let harness = InputChainHarness(width: 40, height: 20)
+        let page = Page(text: Box(text), width: width, height: height, wraps: wraps)
+        harness.frame(page)
+        harness.frame(page)
+        let handler = try #require(harness.focusManager.currentFocused as? TextEditorHandler)
+        return (harness, page, handler)
+    }
+
+    func caret(_ handler: TextEditorHandler) -> [Int] { [handler.cursorLine, handler.cursorColumn] }
+
+    func press(_ harness: InputChainHarness, _ page: Page, _ event: KeyEvent) {
+        harness.press(event)
+        harness.frame(page)
+    }
+
+    @Test("It wraps where an NSTextView does: after a run of spaces, which hangs")
+    func rows() throws {
+        let (harness, page, _) = try editor()
+        let drawn = harness.frame(page).lines.map { $0.stripped.trimmingTrailingSpaces() }
+        #expect(Array(drawn.prefix(9)) == [
+            "aaaa bbbb cccc", "dddd eeee ffff", "gggg hhhh iiii", "jjjj kkkk llll", "short",
+            "aaaa bbbb cccc", "dddd eeee ffff", "gggg hhhh iiii", "jjjj kkkk llll",
+        ])
+    }
+
+    @Test("Down moves a row at a time, keeping the column through a short line")
+    func downByRows() throws {
+        let (harness, page, handler) = try editor()
+        handler.moveCursor(toLine: 0, column: 7)
+        var visited: [[Int]] = []
+        for _ in 0..<5 {
+            press(harness, page, KeyEvent(key: .down))
+            visited.append(caret(handler))
+        }
+        // Offsets 22, 37, 52, 65 and 73 in the probe.
+        #expect(visited == [[0, 22], [0, 37], [0, 52], [1, 5], [2, 7]])
+    }
+
+    @Test("Up from the first row goes to the start, and Down from the last to the end")
+    func pastTheEnds() throws {
+        let (harness, page, handler) = try editor()
+        handler.moveCursor(toLine: 0, column: 3)
+        press(harness, page, KeyEvent(key: .up))
+        #expect(caret(handler) == [0, 0])
+        handler.moveCursor(toLine: 2, column: Self.paragraph.count - 3)
+        press(harness, page, KeyEvent(key: .down))
+        #expect(caret(handler) == [2, Self.paragraph.count])
+    }
+
+    @Test("Ctrl-A and Ctrl-E keep the paragraph; Ctrl-P and Ctrl-N move a row")
+    func emacsChords() throws {
+        let (harness, page, handler) = try editor()
+        let cases: [(Character, [Int])] = [("a", [0, 0]), ("e", [0, 59]), ("p", [0, 5]), ("n", [0, 35])]
+        for (letter, expected) in cases {
+            handler.moveCursor(toLine: 0, column: 20)
+            press(harness, page, KeyEvent(key: .character(letter), ctrl: true))
+            #expect(caret(handler) == expected, "Ctrl-\(letter)")
+        }
+    }
+
+    @Test("Page Down moves a screen of rows, less one")
+    func pageDown() throws {
+        let (harness, page, handler) = try editor(height: 4)
+        handler.moveCursor(toLine: 0, column: 2)
+        press(harness, page, KeyEvent(key: .pageDown))
+        // Three rows down from the first: the paragraph's fourth row.
+        #expect(caret(handler) == [0, 47])
+    }
+
+    @Test("A click past a row's text lands before its hanging space, and on a later row on its character")
+    func clicks() throws {
+        let (harness, page, handler) = try editor()
+        let lines = harness.frame(page).lines.map(\.stripped)
+        let top = try #require(lines.firstIndex { $0.hasPrefix("aaaa") })
+        let left = try #require(lines[top].range(of: "aaaa")).lowerBound.utf16Offset(in: lines[top])
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: left + 15, y: top))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: left + 15, y: top))
+        #expect(caret(handler) == [0, 14])
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: left + 2, y: top + 1))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: left + 2, y: top + 1))
+        #expect(caret(handler) == [0, 17])
+    }
+
+    @Test("A short editor scrolls by rows to keep the caret's row in view")
+    func scrollsByRows() throws {
+        let (harness, page, handler) = try editor(height: 3)
+        handler.moveCursor(toLine: 1, column: 2)
+        let drawn = harness.frame(page).lines.map { $0.stripped }
+        #expect(drawn.contains { $0.hasPrefix("short") })
+        #expect(!drawn.contains { $0.hasPrefix("aaaa bbbb") })
+        #expect(handler.scrollLine == 0 && handler.scrollRowInLine == 2)
+    }
+
+    @Test("The scroll bar counts rows, and the text wraps a cell narrower beside it")
+    func scrollBarCountsRows() throws {
+        // Nine rows at fifteen cells; in a view five tall the bar takes a
+        // column, and the text, laid out again at fourteen, takes more rows.
+        let (_, _, handler) = try editor(width: 15, height: 5)
+        let rows = try #require(handler.wrappedRows())
+        #expect(rows.width == 14)
+        #expect(rows.rowCount > 9)
+    }
+
+    @Test("A selection across a wrap is drawn on both rows")
+    func selectionAcrossAWrap() throws {
+        let (harness, page, handler) = try editor()
+        handler.moveCursor(toLine: 0, column: 12)
+        handler.startOrExtendSelection()
+        handler.moveCursor(toLine: 0, column: 17)
+        let drawn = harness.frame(page).lines
+        let palette = harness.context.environment.palette
+        let background = palette.fieldBackground.resolve(with: palette)
+        let selection = TextFieldContentRenderer.selectionColors(palette: palette, background: background)
+            .resolved(with: palette)
+        let field = String(
+            ANSIRenderer.backgroundCode(for: selection.isReversed ? selection.foreground : selection.background)
+                .dropFirst(2).dropLast())
+        #expect(drawn[0].contains(field))
+        #expect(drawn[1].contains(field))
+        #expect(!drawn[2].contains(field))
+    }
+
+    @Test("A tab after a wrap reaches its stop from the row's start")
+    func tabsAfterAWrap() throws {
+        let (harness, page, _) = try editor("aaaa bbbb cc\td", width: 10)
+        let drawn = harness.frame(page).lines.map(\.stripped)
+        // Row 1 is "cc", the tab to column 4, then "d".
+        #expect(drawn[1].hasPrefix("cc  d"))
+    }
+
+    @Test(".textEditorWrapsLines(false) keeps a long line on one row and scrolls sideways")
+    func sideways() throws {
+        let (harness, page, handler) = try editor(wraps: false)
+        #expect(handler.wrappedRows() == nil)
+        handler.moveCursor(toLine: 0, column: 40)
+        let drawn = harness.frame(page).lines.map(\.stripped)
+        #expect(handler.scrollColumn > 0)
+        #expect(!drawn[0].hasPrefix("aaaa"))
+        // Three lines, three rows.
+        #expect(drawn.count == 12 && drawn[3].trimmingTrailingSpaces().isEmpty)
+    }
+}
+
+private extension String {
+    func trimmingTrailingSpaces() -> String {
+        var text = self
+        while text.last == " " { text.removeLast() }
+        return text
+    }
+}
