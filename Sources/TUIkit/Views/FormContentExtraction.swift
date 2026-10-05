@@ -54,17 +54,33 @@ private func stamped(_ element: _FormElement, alignment: HorizontalAlignment) ->
     case .row(let row):
         return .row(apply(row))
     case .section(var section):
-        section.rows = section.rows.map(apply)
+        section.rows = section.rows.map { stamped($0, alignment: alignment) }
         return .section(section)
+    case .group(let elements, let branch):
+        return .group(elements.map { stamped($0, alignment: alignment) }, branch: branch)
     }
 }
 
-/// Flattens elements to their rows (a section contributes its rows).
+/// Flattens elements to their rows (a section contributes its rows, an `if`
+/// the ones it holds).
 func formRows(of elements: [_FormElement]) -> [_FormRow] {
     elements.flatMap { element -> [_FormRow] in
         switch element {
         case .row(let row): return [row]
+        case .section(let section): return formRows(of: section.rows)
+        case .group(let elements, _): return formRows(of: elements)
+        }
+    }
+}
+
+/// `elements` as a section's rows: a section among them — nested in the
+/// section's content — contributes its rows, and an `if` keeps its place.
+private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
+    elements.flatMap { element -> [_FormElement] in
+        switch element {
+        case .row: return [element]
         case .section(let section): return section.rows
+        case .group(let elements, let branch): return [.group(sectionRows(of: elements), branch: branch)]
         }
     }
 }
@@ -80,7 +96,7 @@ extension Section: FormContentExtractor {
         [.section(_FormSection(
             header: (header is EmptyView) ? nil : AnyView(header),
             footer: (footer is EmptyView) ? nil : AnyView(footer),
-            rows: formRows(of: formElements(from: content))))]
+            rows: sectionRows(of: formElements(from: content))))]
     }
 }
 
@@ -111,4 +127,35 @@ extension AnyView: FormContentExtractor {
 
 extension EmptyView: FormContentExtractor {
     func extractFormElements() -> [_FormElement] { [] }
+}
+
+/// A form reads its rows through a `Group`, as SwiftUI's does: a section in
+/// one is a section of the form, a control a control row (measured on macOS
+/// 15.8, `D1S/probe2/form`). It was a plain row before, drawn as written — a
+/// `Section` in one had no form styling, a `Toggle` no place in the control
+/// column.
+extension Group: FormContentExtractor where Content: View {
+    func extractFormElements() -> [_FormElement] {
+        formElements(from: content)
+    }
+}
+
+/// An `if`'s elements, kept in one place among the form's
+/// (``_FormElement/group(_:branch:)``), as SwiftUI lays a section out in one
+/// as it does written bare (measured). Nothing while the condition is false.
+extension Optional: FormContentExtractor where Wrapped: View {
+    func extractFormElements() -> [_FormElement] {
+        [.group(map { formElements(from: $0) } ?? [], branch: nil)]
+    }
+}
+
+/// An `if`/`else`'s live arm's elements, kept in one place among the form's
+/// and drawn under the arm's branch, so the arms keep their state apart.
+extension ConditionalView: FormContentExtractor {
+    func extractFormElements() -> [_FormElement] {
+        switch self {
+        case .trueContent(let content): [.group(formElements(from: content), branch: "true")]
+        case .falseContent(let content): [.group(formElements(from: content), branch: "false")]
+        }
+    }
 }

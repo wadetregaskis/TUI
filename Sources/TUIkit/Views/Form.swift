@@ -83,13 +83,16 @@ struct _FormRow {
 }
 
 /// A grouped run of rows with an optional header/footer (from a ``Section``).
+///
+/// Its rows are elements so that an `if` among them keeps its place
+/// (``_FormElement/group(_:branch:)``); a section nested in its content has
+/// been flattened into its rows, so none of them is a section.
 struct _FormSection {
     var header: AnyView?
     var footer: AnyView?
-    var rows: [_FormRow]
+    var rows: [_FormElement]
 }
 
-/// A top-level form element: a bare row or a section of rows.
 /// A form row paired with its position, for iterating display-only rows
 /// without the `ForEach(0..<count)` captured-data memo trap.
 ///
@@ -110,9 +113,17 @@ private func _indexed<Value>(_ items: [Value]) -> [_IndexedFormRow<Value>] {
     items.enumerated().map { _IndexedFormRow(id: $0.offset, value: $0.element) }
 }
 
+/// A form element: a bare row, a section of rows, or the elements an `if` or
+/// an `if`/`else` holds.
 enum _FormElement {
     case row(_FormRow)
     case section(_FormSection)
+    /// The elements of an `if` (none while its condition is false) or of one
+    /// arm of an `if`/`else`, drawn in ONE place among the form's elements, so
+    /// the ones after it keep theirs — a form's rows are identified by
+    /// position — and drawn under `branch`, so the two arms of an `if`/`else`
+    /// keep their state apart, as their views do anywhere else.
+    case group([Self], branch: String?)
 }
 
 // MARK: - Row-kind markers
@@ -247,11 +258,48 @@ private func columnsElementView(
             if !isFirst { Text("") }  // blank line between sections
             if let header = section.header { sectionHeaderView(header, pillar: pillar) }
             ForEach(_indexed(section.rows)) { row in
-                formRowView(row.value, pillar: pillar, contentWidth: contentWidth)
+                columnsSectionRowView(row.value, pillar: pillar, contentWidth: contentWidth)
             }
             if let footer = section.footer { footer }
         }
+    case .group(let elements, let branch):
+        groupView(branch: branch, spacing: 0) {
+            ForEach(_indexed(elements)) { entry in
+                columnsElementView(
+                    entry.value, pillar: pillar, contentWidth: contentWidth,
+                    isFirst: isFirst && entry.id == 0)
+            }
+        }
     }
+}
+
+/// One element of a columns section: a row, or an `if`'s rows (a section's
+/// rows hold no section).
+@MainActor @ViewBuilder
+private func columnsSectionRowView(_ element: _FormElement, pillar: Int, contentWidth: Int) -> some View {
+    switch element {
+    case .row(let row):
+        formRowView(row, pillar: pillar, contentWidth: contentWidth)
+    case .group(let elements, let branch):
+        groupView(branch: branch, spacing: 0) {
+            ForEach(_indexed(elements)) { entry in
+                columnsSectionRowView(entry.value, pillar: pillar, contentWidth: contentWidth)
+            }
+        }
+    case .section:
+        EmptyView()
+    }
+}
+
+/// The elements of an `if` or of an arm of an `if`/`else`
+/// (``_FormElement/group(_:branch:)``), stacked `spacing` apart as the form
+/// stacks its elements, under the arm's branch. Erased, as the element views
+/// that call it are what it draws.
+@MainActor
+private func groupView(branch: String?, spacing: Int, @ViewBuilder _ elements: () -> some View) -> AnyView {
+    let stack = VStack(alignment: .leading, spacing: spacing, content: elements)
+    guard let branch else { return AnyView(stack) }
+    return AnyView(stack.id(branch))
 }
 
 /// Grouped layout for one element: a section is a bordered box (its title bold
@@ -269,7 +317,7 @@ private func groupedElementView(_ element: _FormElement, pillar: Int, contentWid
             if let header = section.header { header.bold() }
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(_indexed(section.rows)) { row in
-                    groupedRowView(row.value, pillar: pillar)
+                    groupedSectionRowView(row.value, pillar: pillar)
                 }
             }
             .frame(width: contentWidth, alignment: .leading)
@@ -277,6 +325,30 @@ private func groupedElementView(_ element: _FormElement, pillar: Int, contentWid
             .border()
             if let footer = section.footer { footer }
         }
+    case .group(let elements, let branch):
+        groupView(branch: branch, spacing: 1) {
+            ForEach(_indexed(elements)) { entry in
+                groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth)
+            }
+        }
+    }
+}
+
+/// One element inside a grouped section's box: a row, or an `if`'s rows
+/// (a section's rows hold no section).
+@MainActor @ViewBuilder
+private func groupedSectionRowView(_ element: _FormElement, pillar: Int) -> some View {
+    switch element {
+    case .row(let row):
+        groupedRowView(row, pillar: pillar)
+    case .group(let elements, let branch):
+        groupView(branch: branch, spacing: 0) {
+            ForEach(_indexed(elements)) { entry in
+                groupedSectionRowView(entry.value, pillar: pillar)
+            }
+        }
+    case .section:
+        EmptyView()
     }
 }
 
