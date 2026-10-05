@@ -21,26 +21,24 @@ struct ScrollAnchorPositionTests {
 
     // MARK: - Precedence: nil falls back, non-nil overrides
 
+    /// The mode in effect for a bound anchor over a declared `defaultScrollAnchor`.
+    private func mode(bound: ErasedScrollAnchor?, declaring anchor: UnitPoint?) -> ScrollAnchorMode {
+        .effective(boundAnchor: bound, declared: .resolved(defaultScrollAnchor: anchor))
+    }
+
     @Test("nil means no departure — the declared anchor stands")
     func nilFallsBackToDeclaration() {
-        #expect(
-            ScrollAnchorMode.effective(boundAnchor: nil, defaultScrollAnchor: .bottom) == .bottom)
-        #expect(
-            ScrollAnchorMode.effective(boundAnchor: nil, defaultScrollAnchor: .top) == .top)
+        #expect(mode(bound: nil, declaring: .bottom) == .bottom)
+        #expect(mode(bound: nil, declaring: .top) == .top)
         // No declaration either → Window, the spec's default.
-        #expect(ScrollAnchorMode.effective(boundAnchor: nil, defaultScrollAnchor: nil) == .window)
+        #expect(mode(bound: nil, declaring: nil) == .window)
     }
 
     @Test("A non-nil bound anchor overrides the declaration")
     func boundAnchorOverrides() {
-        #expect(
-            ScrollAnchorMode.effective(boundAnchor: .window, defaultScrollAnchor: .bottom)
-                == .window)
-        #expect(
-            ScrollAnchorMode.effective(boundAnchor: .top, defaultScrollAnchor: .bottom) == .top)
-        #expect(
-            ScrollAnchorMode.effective(
-                boundAnchor: .row(AnyHashable("r7")), defaultScrollAnchor: .bottom) == .row)
+        #expect(mode(bound: .window, declaring: .bottom) == .window)
+        #expect(mode(bound: .top, declaring: .bottom) == .top)
+        #expect(mode(bound: .row(AnyHashable("r7")), declaring: .bottom) == .row)
     }
 
     /// The question that motivated the optional: with a plain `Binding<ID?>`
@@ -50,11 +48,9 @@ struct ScrollAnchorPositionTests {
         let declared = UnitPoint.bottom
 
         // Never departed: still following the declared bottom.
-        let stillFollowing = ScrollAnchorMode.effective(
-            boundAnchor: nil, defaultScrollAnchor: declared)
+        let stillFollowing = mode(bound: nil, declaring: declared)
         // Departed: the user scrolled away.
-        let released = ScrollAnchorMode.effective(
-            boundAnchor: .window, defaultScrollAnchor: declared)
+        let released = mode(bound: .window, declaring: declared)
 
         #expect(stillFollowing == .bottom)
         #expect(released == .window)
@@ -112,9 +108,8 @@ struct ScrollAnchorPositionTests {
     /// "simplifies" the enum by encoding edges as sentinel rows, this fails.
     @Test("Edge anchors and row anchors resolve to different modes")
     func edgesAreNotRows() {
-        let asRow = ScrollAnchorMode.effective(
-            boundAnchor: .row(AnyHashable(0)), defaultScrollAnchor: nil)
-        let asTop = ScrollAnchorMode.effective(boundAnchor: .top, defaultScrollAnchor: nil)
+        let asRow = mode(bound: .row(AnyHashable(0)), declaring: nil)
+        let asTop = mode(bound: .top, declaring: nil)
         #expect(asRow == .row)
         #expect(asTop == .top)
         #expect(asRow != asTop, "row 0 is not the same policy as 'stay at the top'")

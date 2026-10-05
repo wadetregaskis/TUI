@@ -60,22 +60,6 @@ enum ScrollAnchorMode: Equatable {
         return .window
     }
 
-    /// The mode actually in effect: a **non-nil** bound
-    /// ``TUIkit/View/anchorPosition(_:)`` overrides the declared
-    /// `defaultScrollAnchor`; `nil` means "no departure from the declaration"
-    /// and falls back to it.
-    ///
-    /// This is what makes writing `nil` restore the declared anchor — the
-    /// declaration is re-asserted by the view tree every render, so it is
-    /// always recoverable and the framework keeps no hidden shadow state. It is
-    /// also why `.window` and `nil` must stay distinct: `.window` is an
-    /// explicit release (the user scrolled away), `nil` is "never left".
-    static func effective(
-        boundAnchor: ErasedScrollAnchor?, defaultScrollAnchor anchor: UnitPoint?
-    ) -> Self {
-        effective(boundAnchor: boundAnchor, declared: resolved(defaultScrollAnchor: anchor))
-    }
-
     /// Which DECLARED mode governs this frame: a scrollable places itself by
     /// its ``ScrollAnchorRole/initialOffset`` anchor on the frame it first
     /// renders, and by its ``ScrollAnchorRole/sizeChanges`` anchor from then on.
@@ -101,9 +85,17 @@ enum ScrollAnchorMode: Equatable {
         hasOpened ? standing : (opening ?? standing)
     }
 
-    /// The same precedence, for callers that already hold the *resolved*
-    /// declaration rather than the raw `UnitPoint` — the scroll handlers, which
-    /// capture `declaredAnchorMode` at render so event-time code can read it.
+    /// The mode actually in effect: a **non-nil** bound
+    /// ``TUIkit/View/anchorPosition(_:)`` overrides the declared anchor
+    /// (``resolved(defaultScrollAnchor:)``); `nil` means "no departure from the
+    /// declaration" and falls back to it. The scroll handlers capture
+    /// `declaredAnchorMode` at render so event-time code can read it.
+    ///
+    /// This is what makes writing `nil` restore the declared anchor — the
+    /// declaration is re-asserted by the view tree every render, so it is
+    /// always recoverable and the framework keeps no hidden shadow state. It is
+    /// also why `.window` and `nil` must stay distinct: `.window` is an
+    /// explicit release (the user scrolled away), `nil` is "never left".
     static func effective(boundAnchor: ErasedScrollAnchor?, declared: Self) -> Self {
         switch boundAnchor {
         case .none: return declared
