@@ -4026,9 +4026,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // measuring context: this walks every row, drawn or not.
         let probe = column.laysOutItsOwnLines ? Self.probing(context) : context
         let probeWidth = cap ?? context.availableWidth
+        // A one-line column's cell is one line however it arrived — a view
+        // cell keeps its first — so only a taller one has lines to compare.
+        let mayHaveLines = column.laysOutItsOwnLines && column.lineLimit > 1
         for item in data {
             let value = cellValue(column, for: item, width: probeWidth, context: probe)
-            fitted = max(fitted, Self.widestLine(of: value, laidOut: column.laysOutItsOwnLines))
+            fitted = max(fitted, Self.widestLine(of: value, laidOut: mayHaveLines))
             if let cap, fitted >= cap { break }
         }
         return fitted
