@@ -289,7 +289,7 @@ not bind would, and Layer 3.5 fires your button.
 | Ctrl-O | `TextEditor`: open a line after the caret | Yours |
 | Ctrl-V | `TextEditor`: page down | Yours |
 | Option-Ctrl-A | Select all | The control's |
-| Ctrl-C, Ctrl-X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours |
+| Ctrl-C, Ctrl-X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours. While a mouse selection is on the screen, Ctrl-C copies that instead, until the control takes a key |
 | Ctrl-Z | Undo | The control's |
 | Ctrl-V, Ctrl-U | A field's paste and erase | The field's |
 
@@ -410,7 +410,9 @@ statusBar.quitShortcut = QuitShortcut(
 
 This changes both the Layer 4 quit binding and the displayed system item.
 `.ctrlC` quits from a focused text field or editor too, unless text is
-selected there: then Ctrl-C copies it.
+selected there: then Ctrl-C copies it. Nor does it quit while something on the
+screen is selected with the mouse: then Ctrl-C copies that, ahead of every
+layer (see <doc:MouseAndGestures>, "Selecting Text").
 
 ### Overriding `q` in a local view context
 

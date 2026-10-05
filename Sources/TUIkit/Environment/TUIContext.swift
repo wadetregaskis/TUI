@@ -313,6 +313,10 @@ final class TUIContext: @unchecked Sendable {
         didSet { clipboardAccess = ClipboardAccess(writer: clipboardWriter) }
     }
 
+    /// TUIkit's own selection of what is drawn — the one a drag that no
+    /// control uses makes. See ``ScreenSelection``.
+    let screenSelection = ScreenSelection()
+
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
     private(set) lazy var clipboardAccess = ClipboardAccess(writer: clipboardWriter)
@@ -413,6 +417,7 @@ final class TUIContext: @unchecked Sendable {
         // And the drag session at the cache, so a view lifted out of its place
         // — or landing back in it — is not served as it was stored.
         self.dragAndDropSession.renderInvalidation = self.renderCache.link
+        wireScreenSelection()
     }
 
     /// Creates a new TUI context with the given services.
@@ -449,6 +454,19 @@ final class TUIContext: @unchecked Sendable {
         self.renderCache.internedIDTable = self.mouseEventDispatcher
         // See init(): and the drag session, whose carried view draws as gone.
         self.dragAndDropSession.renderInvalidation = self.renderCache.link
+        wireScreenSelection()
+    }
+
+    /// Points the dispatcher at the screen selection, which its drags make, and
+    /// the selection at the clipboard writer, which its copies go through —
+    /// weakly, as the context owns all three.
+    private func wireScreenSelection() {
+        mouseEventDispatcher.screenSelection = screenSelection
+        screenSelection.copy = { [weak self] text in
+            // Read when the copy is made: a test may hand the context a writer.
+            guard let writer = self?.clipboardWriter else { return }
+            MainActor.assumeIsolated { _ = writer.write(text, announcingSuccess: true) }
+        }
     }
 }
 

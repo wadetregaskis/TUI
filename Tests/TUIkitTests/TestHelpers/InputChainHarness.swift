@@ -79,7 +79,8 @@ final class InputChainHarness {
             onQuit: { [quitCount] in quitCount.value += 1 },
             onSuspend: { [suspendCount] in suspendCount.value += 1 },
             undoManager: undoManager,
-            undoKeys: tui.undoKeys)
+            undoKeys: tui.undoKeys,
+            screenSelection: tui.screenSelection)
     }
 
     /// Renders one frame of `view`, clearing every per-frame registry first.
@@ -125,6 +126,10 @@ final class InputChainHarness {
             buffer = renderToBuffer(view, context: frameContext)
         }
         tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        // As the run loop hands it each composited frame: what a selection reads
+        // and where its highlight is drawn.
+        buffer = tui.screenSelection.takeFrame(
+            buffer, width: context.availableWidth, palette: frameContext.environment.palette)
         focusManager.endRenderPass()
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()

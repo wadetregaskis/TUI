@@ -98,7 +98,7 @@ package final class HeadlessApp<A: App> {
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState,
             // A script has no process to quit or suspend.
-            onQuit: {}, onSuspend: {})
+            onQuit: {}, onSuspend: {}, screenSelection: tuiContext.screenSelection)
         // As `AppRunner` wires it, so a click on a status-bar item that only
         // names a key goes through the same chain the key does.
         let inputHandler = self.inputHandler

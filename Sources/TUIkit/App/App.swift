@@ -175,7 +175,8 @@ extension AppRunner {
                 #endif
             },
             undoManager: tuiContext.undoManager,
-            undoKeys: tuiContext.undoKeys
+            undoKeys: tuiContext.undoKeys,
+            screenSelection: tuiContext.screenSelection
         )
     }
 

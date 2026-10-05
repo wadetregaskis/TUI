@@ -42,6 +42,11 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// needs the on-screen cursor position.
     weak var dragAndDropSession: DragAndDropSession?
 
+    /// The app's selection of what is on the screen (``ScreenSelection``), when
+    /// one is wired: a drag that no control uses makes it, and any left press
+    /// clears it.
+    weak var screenSelection: ScreenSelection?
+
     /// Per-frame handlers keyed by ``HitTestRegion/HandlerID``.
     ///
     /// `RenderLoop.beginRenderPass()` clears the table at the start of
@@ -763,9 +768,14 @@ extension MouseEventDispatcher {
         // the surrounding scroller.
         let matching = matchingRegions(at: event.x, y: event.y)
         // A left press a pane's background would take for its click is held
-        // until it shows whether it is a click — see ``PressRole``.
-        if event.phase == .pressed, event.button == .left, !pressRoles.isEmpty {
-            return dispatchLeftPress(event, matching: matching)
+        // until it shows whether it is a click — see ``PressRole`` — and one
+        // that nothing takes may start a selection. Any left press ends the
+        // selection there was, wherever it lands, as a click does on a Mac.
+        if event.phase == .pressed, event.button == .left {
+            screenSelection?.clear()
+            if !pressRoles.isEmpty || screenSelection != nil {
+                return dispatchLeftPress(event, matching: matching)
+            }
         }
         guard !matching.isEmpty else { return false }
 

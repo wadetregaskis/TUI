@@ -8,7 +8,8 @@
 
 /// The run loop's reading of the scene's own configuration — the modifiers
 /// written on a `WindowGroup` that the tree does not read: its mouse support,
-/// its chrome style, and its undo and redo keys.
+/// its chrome style, its undo and redo keys, and its screen selection's copy
+/// key and copy-on-release.
 ///
 /// Separate from `RenderLoop.swift` because that file is at its length limit,
 /// the bargain `RenderLoop+TerminalColors.swift` makes too; it is why
@@ -40,6 +41,9 @@ extension RenderLoop {
         // against the right config.
         tuiContext.mouseEventDispatcher.setActiveSupport(baseMouseSupport)
         applyChromeStyle(from: scene)
+        // The screen selection's copy key and the scene's copy-on-release.
+        tuiContext.screenSelection.adopt(
+            commandKey: environment.commandKey, copiesOnRelease: environment.textSelectionCopiesOnRelease)
     }
 
     /// Adopts a scene-level `.chromeStyle(...)` for this frame.

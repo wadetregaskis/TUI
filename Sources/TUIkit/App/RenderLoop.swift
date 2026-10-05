@@ -603,6 +603,10 @@ extension RenderLoop {
                 buffer, maxWidth: terminalWidth, maxHeight: contentHeight,
                 palette: environment.palette)
         }
+        // The screen selection reads what is drawn — overlays and all — and
+        // draws its highlight over it. Nothing but a reference to the lines
+        // while nothing is selected (`ScreenSelection`).
+        buffer = tuiContext.screenSelection.takeFrame(buffer, width: terminalWidth, palette: environment.palette)
 
         var mergedRegions = buffer.hitTestRegions
         // The app header is drawn OUTSIDE the composited content area, so

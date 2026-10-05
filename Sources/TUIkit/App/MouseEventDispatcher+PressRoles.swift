@@ -57,27 +57,36 @@ extension MouseEventDispatcher {
     static let pressRoleKind = EffectJournal.Kind("pressRole")
 
     /// Dispatches a left press, holding it for the first region with a role
-    /// it reaches.
+    /// it reaches — or for the screen selection, where it reaches none.
     ///
     /// The regions are offered the press innermost first, as for every other
     /// event, until one takes it. A region with a role is not offered it: the
     /// press is held for it instead (``HeldPress``), and the region hears its
-    /// press and release together at the release.
+    /// press and release together at the release, unless the gesture became a
+    /// selection. A press no region takes lands on the page's background,
+    /// where it can only select.
     func dispatchLeftPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
         for region in matching {
             if pressRoles[region.handlerID] != nil, let handler = handler(for: region.handlerID) {
-                hold(event, for: (handler, region.localOriginX, region.localOriginY))
+                // The selection keeps to the pane the press is in.
+                let pane = ScreenSelection.Rect(
+                    x: region.offsetX, y: region.offsetY, width: region.width, height: region.height)
+                hold(event, for: (handler, region.localOriginX, region.localOriginY), pane: pane)
                 return true
             }
             if offer(event, to: region) != .declined { return true }
         }
-        return false
+        guard let selection = screenSelection,
+            selection.contentArea.contains(ScreenSelection.Point(x: event.x, y: event.y))
+        else { return false }
+        hold(event, for: nil, pane: selection.contentArea)
+        return true
     }
 
-    /// Captures the left button for a held press whose click belongs to
-    /// `claimer`.
-    private func hold(_ press: MouseEvent, for claimer: HeldPress.Claimer) {
-        let held = HeldPress(press: press, claimer: claimer)
+    /// Captures the left button for a held press whose click, if it is one,
+    /// belongs to `claimer`, and whose drag selects within `pane`.
+    private func hold(_ press: MouseEvent, for claimer: HeldPress.Claimer?, pane: ScreenSelection.Rect) {
+        let held = HeldPress(press: press, claimer: claimer, pane: pane, selection: screenSelection)
         pressedHandlers[.left] = PressCapture(
             handler: { [held] event in held.receive(event) }, regionOffsetX: 0, regionOffsetY: 0)
     }
@@ -85,13 +94,23 @@ extension MouseEventDispatcher {
 
 // MARK: - The held press
 
-/// A left press held for a region with a ``PressRole`` until it shows whether
-/// it is a click.
+/// A left press held until it shows whether it is a click or a drag that
+/// selects.
 ///
 /// It receives the rest of the gesture in content-area coordinates, as the
-/// dispatcher's capture for it is anchored at the origin, and hands the
-/// claimer its press and release at the release, in the claimer's own
-/// coordinates and with the press's click count.
+/// dispatcher's capture for it is anchored at the origin.
+///
+/// - A **click** — a release on the cell pressed, with no motion — is the
+///   claimer's: it hears its press and release at the release, in its own
+///   coordinates and with the press's click count.
+/// - A **drag** — the pointer reaching another cell — selects what it crosses
+///   (``ScreenSelection``), within the pane the press is in; with Option (meta)
+///   held, a rectangle. The claimer hears nothing of it.
+/// - A **double-click** selects the word under it at once, a **triple-click**
+///   the row, and a drag after either extends by words or rows. The claimer
+///   still hears the click, which for a pane's background is harmless — it
+///   takes the focus — and keeps a double-click's meaning for anything that
+///   gives it one.
 final class HeldPress {
     /// The region the click belongs to: its handler, captured at the press
     /// (the table is rebuilt every frame, and a gesture spans frames), and its
@@ -101,22 +120,55 @@ final class HeldPress {
     /// The press, as the dispatcher stamped it.
     let press: MouseEvent
 
-    /// Whose click it is.
-    let claimer: Claimer
+    /// Whose click it is; `nil` on the page's background, where a click does
+    /// nothing.
+    let claimer: Claimer?
 
-    init(press: MouseEvent, claimer: Claimer) {
+    /// The rectangle a selection keeps to.
+    let pane: ScreenSelection.Rect
+
+    /// The app's selection, where there is one to make.
+    let selection: ScreenSelection?
+
+    /// Whether the gesture is making a selection.
+    private var isSelecting = false
+
+    init(press: MouseEvent, claimer: Claimer?, pane: ScreenSelection.Rect, selection: ScreenSelection?) {
         self.press = press
         self.claimer = claimer
+        self.pane = pane
+        self.selection = selection
+        if press.clickCount >= 2 { beginSelection(unit: press.clickCount == 2 ? .word : .row) }
     }
 
     /// One event of the rest of the gesture.
     func receive(_ event: MouseEvent) -> Bool {
-        if event.phase == .released { deliverClick(ending: event) }
+        switch event.phase {
+        case .dragged:
+            if !isSelecting, event.x != press.x || event.y != press.y { beginSelection(unit: .character) }
+            if isSelecting { selection?.extend(to: ScreenSelection.Point(x: event.x, y: event.y)) }
+        case .released:
+            if isSelecting { selection?.finish() }
+            // A drag is not a click; a multi-click that selected still is one.
+            if !isSelecting || press.clickCount >= 2 { deliverClick(ending: event) }
+        default:
+            break
+        }
         return true
+    }
+
+    /// Starts the selection at the press.
+    private func beginSelection(unit: ScreenSelection.Unit) {
+        guard let selection else { return }
+        selection.begin(
+            at: ScreenSelection.Point(x: press.x, y: press.y), clip: pane,
+            shape: press.meta ? .rectangle : .stream, unit: unit)
+        isSelecting = selection.hasSelection
     }
 
     /// The claimer's press, then its release.
     private func deliverClick(ending release: MouseEvent) {
+        guard let claimer else { return }
         func local(_ event: MouseEvent) -> MouseEvent {
             MouseEvent(
                 button: event.button, phase: event.phase, x: event.x - claimer.originX,

@@ -245,6 +245,52 @@ control activates once each time the pointer arrives on it. The keyboard needs
 no pause: while a drag is in flight, <kbd>Tab</kbd> still moves the focus and
 <kbd>Return</kbd> or <kbd>Space</kbd> still activates the focused control.
 
+## Selecting Text
+
+An app that reports the mouse takes it from the terminal, whose own selection
+then needs a modifier held: Option-drag in iTerm2, Shift-drag in Ghostty, Warp,
+kitty and xterm — and none at all in Apple Terminal, which has no bypass. So
+TUIkit selects by itself, as a terminal would:
+
+- **A drag that no control uses selects what is drawn** — over the page's
+  background, over plain text, over a scroll view's content. It runs from the
+  press to the pointer in reading order, whole rows between, and keeps to the
+  pane it started in: a scroll view's viewport, a split view's column, or else
+  the content area. The app header and the status bar are never selected.
+- **A double-click selects a word, a triple-click the row**, and a drag after
+  either extends by words or rows. **Option-drag** selects a rectangle (iTerm2
+  reports ⌘ the same way).
+- **A drag that starts on a control is the control's**: a button, a field, a
+  slider, a `.draggable` view, a list row.
+- **⌘C — Ctrl-C under the default `commandKey`** — copies the selection while
+  there is one, ahead of everything else, the focused text field included.
+  ⌘C itself never reaches the app: the terminal takes it for its own,
+  empty, selection. **Escape** clears the selection, and so does any click and
+  any key a focused text field takes.
+
+A selection reads characters, not views: a wide character once, each row's
+trailing blanks dropped, rows joined with line breaks. Its text is fixed when
+the drag ends, so a log that scrolls on under it still copies what was
+selected; the highlight goes as soon as the cells under it change.
+
+Nothing is copied until the user asks, as on a Mac. A scene can copy every
+selection at the release instead, as tmux and iTerm2 do:
+
+```swift
+WindowGroup { LogView() }
+    .textSelectionCopiesOnRelease()
+```
+
+Where a copy goes depends on where the user is: by OSC 52 to a terminal that
+writes it, to this machine's clipboard only when the terminal is on this
+machine, and otherwise nowhere — and the status bar says which. See
+`Documentation/Terminal-compatibility.md`, "OSC 52 clipboard writes".
+
+There is no keyboard route to the screen selection: what it selects is what a
+pointer points at. Text the app means to be copied from the keyboard belongs in
+a ``TextField`` or ``TextEditor``, whose Shift-arrow selection and Ctrl-C are
+the keyboard's.
+
 ## Raw Events
 
 For full control, handle the raw event and return whether you consumed it.

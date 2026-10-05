@@ -106,6 +106,11 @@ internal struct InputHandler {
     /// (``Scene/undoShortcuts(_:)``) — the app's, published each frame, in a
     /// running app; TUIkit's defaults by default.
     var undoKeys = AppUndoKeys()
+
+    /// TUIkit's selection of what is on the screen, whose copy and clear keys
+    /// come before every layer while something is selected. Optional and
+    /// defaulted, as ``tooltipState`` is.
+    var screenSelection: ScreenSelection?
 }
 
 // MARK: - Internal API
@@ -134,6 +139,13 @@ extension InputHandler {
         // which it also reports, is a press to every layer, as the legacy
         // encodings' identical copies always were.
         guard event.phase != .release else { return handleRelease(event) }
+        // Layer -1, while something on the screen is selected: the app's ⌘C
+        // (Ctrl-C by default) copies it, and Escape clears it. Ahead of
+        // everything, the focused text input included: the selection is the
+        // newest thing the user did — any left press clears it, and so does any
+        // key a text input takes (layer 0) — so a field focused before the drag
+        // must not copy its own older selection instead.
+        if let taken = screenSelection?.handleKey(event) { return taken }
         if dispatchPress(event) { return true }
 
         // Ctrl-H, I, J, M and [ arrive as themselves only where the kitty
@@ -179,6 +191,9 @@ extension InputHandler {
         // the input does not bind would, and Layer 3.5 fires the shortcut.
         if focusManager.hasTextInputFocus, !textInputGivesWay(event) {
             if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
+                // Typing or selecting in a field is the newest thing the user
+                // did; a selection on the screen gives way to it.
+                screenSelection?.clear()
                 return true
             }
         }
