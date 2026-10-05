@@ -41,11 +41,11 @@ final class ContextMenuState {
 /// dismisses it. Like the alert / modal presentation modifiers this is
 /// *modifier infrastructure* rendered via ``Renderable`` (it is a `some View`
 /// wrapper, never a public control with a `Never` body).
-public struct ContextMenuModifier<Content: View, MenuItems: View>: View {
+struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     let content: Content
     let menuItems: MenuItems
 
-    public var body: Never {
+    var body: Never {
         fatalError("ContextMenuModifier renders via Renderable")
     }
 }
@@ -60,7 +60,7 @@ private enum StateIndex {
 // MARK: - Renderable
 
 extension ContextMenuModifier: Renderable {
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let sectionID = "contextmenu-\(context.identity.path)"
         // Its own child identity, so the content's / menu's @State never collides
         // with this modifier's state slot (mirrors AlertPresentationModifier).
@@ -397,7 +397,7 @@ extension ContextMenuModifier: Layoutable {
     /// The menu is presented *over* the content, so the layout footprint is just
     /// the content — and forwarding keeps the focus-section / trigger side effects
     /// on the render pass, never a measure.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // One environment application deeper, as `publishIsFocused` makes the
         // render walk's — by hand, because a measure must not note.
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)

@@ -16,7 +16,7 @@
 /// `Button`.) This style is the view-composed counterpart, sharing the
 /// drop-down's palette and pulse endpoints so the two menus read as one idiom.
 ///
-/// Applied by ``ContextMenuModifier`` to the whole item stack, so every item
+/// Applied by `ContextMenuModifier` to the whole item stack, so every item
 /// picks it up without the caller styling anything.
 ///
 /// `Equatable` because it is injected into the environment around every menu
@@ -451,7 +451,7 @@ extension EnvironmentValues {
     /// is still measuring itself (rows hug then, so the measure yields the
     /// menu's natural width rather than whatever it was offered).
     ///
-    /// Set by ``ContextMenuModifier`` between its measure and its render.
+    /// Set by `ContextMenuModifier` between its measure and its render.
     /// How many cells of breathing room a menu row keeps INSIDE its highlight.
     ///
     /// A pop-up sets 1: its rows are placed straight into the drop-down's
