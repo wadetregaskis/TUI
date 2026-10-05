@@ -199,6 +199,90 @@ struct ScrollClipDisabledTests {
         #expect(lines.first?.hasPrefix("╭") == true && lines.last?.hasPrefix("╰") == true, "\(lines)")
     }
 
+    // MARK: - What the overflow draws is what is clicked
+
+    @Test("A click beside a short overflowing row reaches the view drawn there, not the row")
+    func clickBesideOverflowReachesTheViewBelow() {
+        let frames = Frames(width: 30, height: 8)
+        let deleted = Box(false)
+        let tapped = Box<Int?>(nil)
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Text("Delete all files").onTapGesture { deleted.value = true }
+            Text("keep")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<6, id: \.self) { index in
+                        // Row 1 is long, so the rows above the viewport are
+                        // wider than row 0 alone.
+                        Text(index == 1 ? "r1 " + String(repeating: "-", count: 22) : "r\(index)")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .onTapGesture { tapped.value = index }
+                    }
+                }
+            }
+            .frame(height: 3)
+            .scrollClipDisabled()
+        }
+        frames.render(view)
+        frames.scrollView?.scrollToOffset(2)
+        frames.render(view)
+        // Rows 0 and 1 run up over the first two lines: "r0" over the start of
+        // the text, whose rest still shows and is still the text's.
+        let first = frames.last.lines.first?.stripped ?? ""
+        #expect(first.hasPrefix("r0") && first.contains("files"), "\(frames.lines)")
+        let column = first.range(of: "files").map { first.distance(from: first.startIndex, to: $0.lowerBound) } ?? 0
+        let dispatcher = frames.tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        dispatcher.setRegions(frames.last.hitTestRegions)
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: column + 1, y: 0))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: column + 1, y: 0))
+        #expect(tapped.value == nil, "the row's blank cells took the click")
+        #expect(deleted.value, "the text drawn there was clicked")
+        // On the row's own cells, the row.
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: 0, y: 0))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
+        #expect(tapped.value == 0)
+    }
+
+    @Test("An overflow layer keeps the cells it paints, and its regions only over them")
+    func drawnPartsKeepPaintedCells() {
+        var content = FrameBuffer(lines: ["ab      ", "  cd    ", "        ", "efghij  ", "        "])
+        content.hitTestRegions = [
+            HitTestRegion(offsetX: 0, offsetY: 0, width: 8, height: 5, handlerID: .init(1))
+        ]
+        content.opacityRegions = [OpacityRegion(offsetX: 0, offsetY: 0, width: 8, height: 4, opacity: 0.5)]
+        var layer = OverlayLayer(offsetX: 10, offsetY: 20, content: content, isOpaque: false)
+        layer.isScrollOverflow = true
+        let parts = layer.drawnParts()
+        // Rows 0 and 1 start at different columns, row 2 paints nothing, and
+        // row 4 paints nothing either.
+        #expect(parts.map { [$0.offsetX, $0.offsetY] } == [[10, 20], [12, 21], [10, 23]])
+        #expect(parts.map { $0.content.lines.map(\.stripped) } == [["ab"], ["cd"], ["efghij"]])
+        let marked = parts.allSatisfy(\.isScrollOverflow)
+        #expect(marked)
+        let regions = parts.flatMap { part in
+            part.content.hitTestRegions.map { [part.offsetX + $0.offsetX, part.offsetY + $0.offsetY, $0.width, $0.height] }
+        }
+        #expect(regions == [[10, 20, 2, 1], [12, 21, 2, 1], [10, 23, 6, 1]], "\(regions)")
+        let faded = parts.flatMap { part in
+            part.content.opacityRegions.map { [part.offsetX + $0.offsetX, part.offsetY + $0.offsetY, $0.width, $0.height] }
+        }
+        #expect(faded == [[10, 20, 2, 1], [12, 21, 2, 1], [10, 23, 6, 1]], "\(faded)")
+    }
+
+    @Test("Lines that paint nothing leave nothing to click, however wide their regions")
+    func blankOverflowLeavesNothing() {
+        var content = FrameBuffer(lines: ["     ", "     "])
+        content.hitTestRegions = [HitTestRegion(offsetX: 0, offsetY: 0, width: 5, height: 2, handlerID: .init(1))]
+        var layer = OverlayLayer(offsetX: 0, offsetY: 0, content: content, isOpaque: false)
+        layer.isScrollOverflow = true
+        #expect(layer.drawnParts().isEmpty)
+        var trimmed = layer
+        trimmed.content = FrameBuffer(lines: [])
+        trimmed.content.hitTestRegions = content.hitTestRegions
+        #expect(trimmed.excluding(x: 50, y: 50, width: 1, height: 1).isEmpty, "a layer with no cells keeps no regions")
+    }
+
     @MainActor
     private final class Box<T> {
         var value: T

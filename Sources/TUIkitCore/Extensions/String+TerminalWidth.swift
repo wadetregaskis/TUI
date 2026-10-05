@@ -780,6 +780,36 @@ extension String {
         return keep
     }
 
+    /// The columns from this line's first painted cell to its last — a
+    /// painted cell being a glyph other than a space, or any cell with a
+    /// background in force — or `nil` when it paints none. The unstyled blank
+    /// space either side of them is a line's silhouette, not its drawing:
+    /// what a layer drawn over other content must leave alone, and what
+    /// content drawn after it must not count as covering it
+    /// (`OverlayLayer.drawnParts()`, `FrameBuffer.coverScrollOverflow`).
+    /// Its upper bound is ``visibleWidthBeforeTrailingBlanks()``.
+    func paintedColumns() -> Range<Int>? {
+        var width = 0
+        var first: Int?
+        var end = 0
+        var background = false
+        forEachANSISegment { segment in
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                if isSGR { background = Self.background(after: sequence, wasSet: background) }
+            case .visible(let character):
+                let start = width
+                width += character.terminalWidth
+                if character != " " || background {
+                    if first == nil { first = start }
+                    end = width
+                }
+            }
+            return true
+        }
+        return first.map { $0..<end }
+    }
+
     /// Whether a background colour is in force after `sequence`, given that it
     /// `wasSet` before. Parameters are applied in order, so `ESC[0;41m` ends up
     /// set and `ESC[41;0m` does not.

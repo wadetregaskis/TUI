@@ -55,8 +55,9 @@ extension View {
     /// SwiftUI's is (measured): over the views before the scroll view and under
     /// the views after it, so a sibling below a scroll view hides what runs
     /// down into it, while what runs up over the sibling above is drawn over
-    /// it. What is drawn there can be clicked there. Blank cells at the end of
-    /// a line draw nothing, so a short line does not erase what is beside it.
+    /// it. What is drawn there can be clicked there. Blank cells at either end
+    /// of a line draw nothing and take no click, so a short or indented line
+    /// neither erases nor steals the clicks of what is beside it.
     ///
     /// ``List`` and ``Table`` keep clipping (decisions-D2S B-D2S-4), and so do
     /// the scrollers the framework puts around a tall menu, a sheet's or a
@@ -87,7 +88,10 @@ extension _ScrollViewCore {
     /// its bars and reserved "N more" lines included, is cut out of it: that is
     /// drawn in the flow. Its layers are not carried: the window already
     /// carries them, unclipped (``viewportOverlay(_:shiftedByX:y:width:height:clips:)``).
-    /// Trailing blanks are trimmed, so a short line draws nothing past its end.
+    /// What is left is drawn as the cells it paints (`OverlayLayer.drawnParts()`):
+    /// the blank cells at either end of a line draw nothing and take no click,
+    /// so a short or indented line neither erases nor steals the clicks of what
+    /// is beside it.
     ///
     /// The layers are marked ``OverlayLayer/isScrollOverflow``, which places
     /// them at the scroll view's z position: content composed after the scroll
@@ -105,16 +109,18 @@ extension _ScrollViewCore {
         var layer = OverlayLayer(
             offsetX: horizontal ? -handler.horizontal.scrollOffset : 0,
             offsetY: sliceOriginY - handler.scrollOffset - slide,
-            content: content.trimmingTrailingBlankCells(),
+            content: content,
             zIndex: OverlayLayer.displacedDrawingZIndex,
             clampsToScreen: false, isOpaque: false)
         layer.isScrollOverflow = true
         // The whole view, in the content window's coordinates: the reserved
         // lines sit above and below the window, the bars beside and below it.
+        // Cut first, so only the overflow's lines are read for what they paint.
         let reserved = chrome.reservesIndicatorLines ? 1 : 0
         return layer.excluding(
             x: 0, y: -reserved,
             width: width + (chrome.verticalBar ? 1 + chrome.indicatorMargins.trailing : 0),
-            height: height + 2 * reserved + (chrome.horizontalBar ? 1 + chrome.indicatorMargins.bottom : 0))
+            height: height + 2 * reserved + (chrome.horizontalBar ? 1 + chrome.indicatorMargins.bottom : 0)
+        ).flatMap { $0.drawnParts() }
     }
 }

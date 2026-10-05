@@ -736,8 +736,11 @@ the content's own lines past it — above and below, and either side of a
 horizontal one — as layers floating around the view, with their hit regions:
 all of an eager stack, the band a lazy stack draws (the viewport's rows for a
 uniform one, a row past each edge for the others; SwiftUI's lazy stack drew
-nothing past its viewport in the same probe). Trailing blanks are trimmed, so a
-short line erases nothing beside it. **Stacking is SwiftUI's (measured on macOS
+nothing past its viewport in the same probe). A line draws from its first
+painted cell to its last: the unstyled blank cells at either end draw nothing
+and take no click, so a short, centred or indented line neither erases what is
+beside it nor takes that view's clicks, and a fade on the content fades only
+the cells it draws. **Stacking is SwiftUI's (measured on macOS
 15):** the overflow draws at the scroll view's own place in the order — over the
 views before it, under the views after it — so a sibling below the scroll view
 hides what runs down into it, and what runs up over the sibling above is drawn
