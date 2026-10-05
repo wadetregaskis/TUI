@@ -27,6 +27,29 @@ private struct PagingScrollApp: App {
     }
 }
 
+/// Paging scroll views in the places that hand closures and objects down the
+/// environment: a navigation stack (its `dismiss`, which holds the stack's
+/// coordinator) and a presented sheet (its own `dismiss`).
+///
+/// No `Menu` or `Button`: a single `Button` in an app keeps the focus manager,
+/// the status bar and the mouse dispatcher alive after its loop, with or
+/// without a behaviour (measured beside these probes) — a leak of its own,
+/// reported apart from this suite's question.
+private struct PagingInPresentationsApp: App {
+    var body: some Scene {
+        WindowGroup {
+            NavigationStack {
+                ScrollView { ForEach(0..<30, id: \.self) { Text("line \($0)") } }
+                    .sheet(isPresented: .constant(true)) {
+                        ScrollView { ForEach(0..<30, id: \.self) { Text("sheet \($0)") } }
+                            .frame(height: 5)
+                    }
+            }
+            .scrollTargetBehavior(.paging)
+        }
+    }
+}
+
 /// A scroll view keeps what its scroll target behaviour reads at event time on
 /// its handler, which lives in the state storage. What it keeps must not hold
 /// the storage, the render cache or any other of the app's objects: the handler
@@ -39,8 +62,10 @@ struct ScrollTargetBehaviorLifetimeTests {
     private typealias Probes = [(name: String, probe: () -> AnyObject?)]
 
     /// Runs `app` for two frames through a render loop assembled as `AppRunner`
-    /// assembles it, and returns weak probes of its objects with the loop gone.
-    private static func runAndRelease<A: App>(_ app: A) -> Probes {
+    /// assembles it, and returns weak probes of its objects with the loop gone
+    /// — after checking it drew each of `markers`, so a probe cannot pass by
+    /// drawing less than it says.
+    private static func runAndRelease<A: App>(_ app: A, drawing markers: [String] = []) -> Probes {
         weak var storage: StateStorage?
         weak var cache: RenderCache?
         weak var focus: FocusManager?
@@ -59,6 +84,10 @@ struct ScrollTargetBehaviorLifetimeTests {
             let timer = CursorTimer(renderNotifier: harness.appState)
             _ = loop.render(cursorTimer: timer)
             _ = loop.render(cursorTimer: timer)
+            let drawn = harness.terminal.writtenOutput.joined()
+            for marker in markers {
+                #expect(drawn.contains(marker), "the app drew no \"\(marker)\"")
+            }
         }
         return [
             ("state storage", { storage }), ("render cache", { cache }), ("focus manager", { focus }),
@@ -110,6 +139,13 @@ struct ScrollTargetBehaviorLifetimeTests {
     @Test("An app's objects go with its loop when a scroll view pages")
     func loopFreedWithABehaviour() {
         expectFreed(Self.runAndRelease(PagingScrollApp()), "paging")
+    }
+
+    @Test("An app's objects go with its loop when scroll views page in a navigation stack and a sheet")
+    func loopFreedWithBehavioursInPresentations() {
+        expectFreed(
+            Self.runAndRelease(PagingInPresentationsApp(), drawing: ["line 0", "sheet 0"]),
+            "paging in presentations")
     }
 
     @Test("A context's services go with it when a scroll view pages")
