@@ -196,6 +196,14 @@ extension RenderContext {
     func withThrowawayFrameDemand<Result>(_ body: (RenderContext) -> Result) -> Result {
         var copy = self
         copy.environment.animationScheduler = AnimationScheduler()
+        // Nor does it declare anything into the window's chrome. A `.toolbar`
+        // is drawn by the WINDOW's bars, not in the buffer this render throws
+        // away, so a navigation stack's covered root — drawn here, behind the
+        // screen pushed over it — put its items in the window's top bar, live:
+        // drawn, in the Tab ring, clickable, its shortcuts firing while the
+        // pushed screen was what the person saw. SwiftUI drops a covered
+        // view's toolbar items; so does a render nobody sees.
+        copy.environment.windowChrome = nil
         return copy.withVolatileReadTracker(VolatileReadTracker(), body)
     }
 }

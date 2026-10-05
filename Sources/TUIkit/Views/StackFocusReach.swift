@@ -97,6 +97,9 @@ extension _VStackCore {
         // never read.
         var isolated = context.withThrowawayKeyChannels()
         isolated.environment.mouseEventDispatcher = nil
+        // A row's `.toolbar` too: its items are drawn by the window's bars,
+        // which would draw them live for a row the frame never shows.
+        isolated.environment.windowChrome = nil
         var stops: [Int] = []
         for direction in [-1, 1] {
             if let stop = nearestFocusableRow(

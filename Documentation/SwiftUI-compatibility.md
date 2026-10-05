@@ -584,7 +584,9 @@ controls are in the Tab ring after the page's, in a section of their own that
 never takes the first focus; their keyboard shortcuts are live. While a modal
 holds the input both bars are inert — no focus, keys or clicks — except the
 line of key hints, which shows the modal's keys and answers a click as the key;
-an item declared inside a `.dimmed()` subtree is drawn inert likewise.
+an item declared inside a `.dimmed()` subtree is drawn inert likewise. A view
+nobody sees declares nothing: a `NavigationStack`'s root, while a screen is
+pushed over it, has no items in the bars and hides no bar.
 
 **The one difference that follows from the medium:** the page is what declares
 the items, and a bar's rows have to be known before the page is laid out, so a
