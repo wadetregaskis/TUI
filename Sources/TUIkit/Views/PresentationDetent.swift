@@ -221,7 +221,8 @@ extension EnvironmentValues {
     /// Consumed by that outermost container, which clears it for its children
     /// — the same one-shot discipline `focusIndicator` follows, and for the
     /// same reason: a `Panel` nested inside a detented `Dialog` must not also
-    /// stretch to the sheet's height.
+    /// stretch to the sheet's height. Boxes side by side under it each take
+    /// it, flexibly, so a stack of them shares it as it shares any surplus.
     ///
     /// Content with no box (a bare `Text`) has nothing to stretch, so it keeps
     /// its own size. The alternative — padding the presented buffer out to the

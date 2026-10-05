@@ -248,11 +248,17 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // instead would mislabel a container whose body merely *wraps* (a
         // wrapping `Text`) as filling when it actually shrinks to content.
         let fillsWidth = contentBasedWidth >= innerWidthAvailable
+        // A box taking a sheet's height is flexible in it, as a width it fills
+        // is flexible above: the sheet's height is offered to every box
+        // beneath it (it is cleared only INSIDE a box), so two boxes stacked
+        // in one sheet each took the whole of it, rigidly — the first got it
+        // all and the second none. Flexible, they share it as a stack shares
+        // its surplus, and a box alone still fills it.
         return ViewSize(
             width: min(totalWidth, max(0, base.availableWidth)),
             height: min(totalHeight, max(0, base.availableHeight)),
             isWidthFlexible: fillsWidth,
-            isHeightFlexible: bodyFlexibleHeight || footerFlexibleHeight
+            isHeightFlexible: sheetHeight != nil || bodyFlexibleHeight || footerFlexibleHeight
         )
     }
 

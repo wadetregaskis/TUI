@@ -121,6 +121,60 @@ struct PresentationSizingTests {
         #expect(sized?.width == 8 && sized?.height == 1, "\(String(describing: sized))")
     }
 
+    /// Every box below the sheet was offered the sizing, and each took all of
+    /// it: the first of two stacked panels the sheet's whole height, leaving
+    /// the second none, and the first of two cards side by side the whole
+    /// width. They share it now, as two flexible views share a stack.
+    @Test("Two boxes in a sized sheet share its size", arguments: [false, true])
+    func siblingBoxesShare(sideBySide: Bool) {
+        let sheet = Group {
+            if sideBySide {
+                HStack(spacing: 0) {
+                    Panel("Alpha") { Text("a") }
+                    Panel("Beta") { Text("b") }
+                }
+            } else {
+                VStack(spacing: 0) {
+                    Panel("Alpha") { Text("a") }
+                    Panel("Beta") { Text("b") }
+                }
+            }
+        }
+        let buffer = renderToBuffer(
+            Text("page").sheet(isPresented: .constant(true)) { sheet.presentationSizing(.form) },
+            context: context())
+        let lines = buffer.overlays.first?.content.lines.map(\.stripped) ?? []
+        let drawn = lines.joined(separator: "\n")
+        #expect(drawn.contains("Alpha") && drawn.contains("Beta"), "a box was squeezed out:\n\(drawn)")
+        #expect(lines.count == 25, "\(lines.count) rows")
+        #expect(lines.first.map(\.count) == 64, "\(lines.first.map(\.count) ?? 0) columns")
+        if sideBySide {
+            // Each card has a share of the width: neither is under a third.
+            let topBorder = lines.first ?? ""
+            let split = topBorder.distance(
+                from: topBorder.startIndex, to: topBorder.range(of: "Beta")?.lowerBound ?? topBorder.startIndex)
+            #expect(split > 20 && split < 44, "Beta's title at column \(split) of \(topBorder)")
+        } else {
+            let betaRow = lines.firstIndex { $0.contains("Beta") } ?? 0
+            #expect(betaRow > 8 && betaRow < 17, "Beta's title on row \(betaRow) of 25")
+        }
+    }
+
+    @Test("Two stacked boxes share a detent's height as well")
+    func siblingBoxesShareADetent() {
+        let sheet = VStack(spacing: 0) {
+            Panel("Alpha") { Text("a") }
+            Panel("Beta") { Text("b") }
+        }
+        let buffer = renderToBuffer(
+            Text("page").sheet(isPresented: .constant(true)) { sheet.presentationDetents([.height(12)]) },
+            context: context())
+        let lines = buffer.overlays.first?.content.lines.map(\.stripped) ?? []
+        #expect(lines.count == 12, "\(lines.count) rows")
+        let betaRow = lines.firstIndex { $0.contains("Beta") }
+        #expect(betaRow == 6, "Beta's title on row \(String(describing: betaRow)) of 12: \(lines)")
+    }
+
     @Test("sticky(horizontal:vertical:) marks its axes, through fitted, and fitted keeps them")
     func stickyAxesCompose() {
         func axes(_ sizing: some PresentationSizing) -> (Bool, Bool)? {
