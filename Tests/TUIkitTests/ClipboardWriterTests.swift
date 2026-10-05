@@ -203,6 +203,41 @@ struct ClipboardLocalityTests {
                 environment: [:], ownChain: ["zsh", daemon, "launchd"], tmuxClientChains: nil, inTmux: false))
     }
 
+    /// A session started at the desk and attached over ssh later: the pane's
+    /// chain ends at the keeper's daemonised server, and its environment was
+    /// set at the desk, so neither rung 1 nor 2 sees the ssh.
+    @Test(
+        "A session keeper in the chain says not",
+        arguments: ["screen", "SCREEN", "zellij", "dtach", "abduco", "shpool"])
+    func sessionKeepers(_ keeper: String) {
+        #expect(
+            !ClipboardLocality.isLocal(
+                environment: [:], ownChain: ["zsh", keeper, "launchd"], tmuxClientChains: nil, inTmux: false))
+    }
+
+    @Test(
+        "A session keeper's variable says not",
+        arguments: ["STY", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ABDUCO_SESSION", "SHPOOL_SESSION_NAME"])
+    func sessionKeeperVariables(_ name: String) {
+        #expect(
+            !ClipboardLocality.isLocal(
+                environment: [name: "0"], ownChain: Self.deskChain, tmuxClientChains: nil, inTmux: false))
+    }
+
+    @Test("A tmux server in the chain is evidence only through its clients")
+    func tmuxServerOutsideAPane() {
+        let chain = ["zsh", "tmux: server", "launchd"]
+        #expect(!ClipboardLocality.isLocal(environment: [:], ownChain: chain, tmuxClientChains: nil, inTmux: false))
+        #expect(
+            ClipboardLocality.isLocal(
+                environment: [:], ownChain: chain, tmuxClientChains: [Self.deskChain], inTmux: true))
+        // A client attached from inside a screen session is as far away as it.
+        #expect(
+            !ClipboardLocality.isLocal(
+                environment: [:], ownChain: chain, tmuxClientChains: [["tmux", "zsh", "screen", "launchd"]],
+                inTmux: true))
+    }
+
     @Test("A chain that could not be read is not evidence")
     func unreadableChain() {
         #expect(!ClipboardLocality.isLocal(environment: [:], ownChain: nil, tmuxClientChains: nil, inTmux: false))

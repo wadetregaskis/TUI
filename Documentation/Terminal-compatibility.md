@@ -4883,7 +4883,13 @@ takes ONE route per copy, in this order:
    passing `sshd` (or `sshd-session`), `mosh-server`, `dropbear`, `telnetd`,
    `etserver`, `ttyd` or `gotty`; and inside tmux, at least one client is
    attached and every client's parents pass the same test (the pane's own
-   chain ends at the tmux server, which says nothing of who is watching). A
+   chain ends at the tmux server, which says nothing of who is watching).
+   Every other session keeper — GNU `screen`, `zellij`, `dtach`, `abduco`,
+   `shpool`, in the chain or by its variable (`STY`, `ZELLIJ`,
+   `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`, `SHPOOL_SESSION_NAME`) — answers
+   "not here": its server is detached from the terminal that started it, so
+   a session begun at the desk may be attached over ssh with nothing in this
+   process to say so, and none can be asked for its clients as tmux can. A
    chain that cannot be read to the root is not evidence. The helper is
    `pbcopy` on macOS; on Linux `wl-copy` with `WAYLAND_DISPLAY`, then `xclip`
    or `xsel` with `DISPLAY`, and none without a display.

@@ -35,6 +35,16 @@ import Musl
 ///    pass the same test, and there must be at least one client. A session
 ///    started at the desk and attached from afar is the case this catches —
 ///    its variables were set when it was started, here.
+/// 4. No other session keeper is in the chain or named by its variable: GNU
+///    `screen` (`STY`), `zellij` (`ZELLIJ`, `ZELLIJ_SESSION_NAME`), `abduco`
+///    (`ABDUCO_SESSION`), `shpool` (`SHPOOL_SESSION_NAME`) and `dtach` (no
+///    variable; the chain is its only witness). Each runs its sessions under a
+///    server detached from the terminal that started it, as tmux does, so the
+///    pane's chain ends at that server whoever is attached — and none of them
+///    can be asked for its clients the way tmux can. A session inside one is
+///    therefore not evidence, and answers "not local" even at the desk. A tmux
+///    server in the chain of a process outside a tmux pane (`TMUX` unset) is
+///    the same case.
 ///
 /// A chain that cannot be read to the root is not evidence, so it answers
 /// "not local". A wrong "not local" costs a copy the user can redo with the
@@ -51,6 +61,24 @@ enum ClipboardLocality {
             .contains(name)
     }
 
+    /// The command names of programs that keep a terminal session for whoever
+    /// attaches next: rung 4's session keepers. tmux is one too, but its
+    /// clients can be asked for, so it counts here only for a process that is
+    /// not in a tmux pane.
+    ///
+    /// GNU screen's server renames itself `SCREEN` in its arguments while the
+    /// kernel keeps `screen`, so both are matched; tmux's server is
+    /// `tmux: server` on Linux, so tmux is matched by prefix.
+    static func isSessionKeeper(_ name: String, inTmux: Bool) -> Bool {
+        if !inTmux, name.hasPrefix("tmux") { return true }
+        return ["screen", "SCREEN", "zellij", "dtach", "abduco", "shpool"].contains(name)
+    }
+
+    /// The variables rung 4's session keepers set inside a session.
+    static let sessionKeeperVariables = [
+        "STY", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ABDUCO_SESSION", "SHPOOL_SESSION_NAME",
+    ]
+
     /// The decision, posed on its inputs.
     ///
     /// - Parameters:
@@ -64,16 +92,21 @@ enum ClipboardLocality {
     static func isLocal(
         environment: [String: String], ownChain: [String]?, tmuxClientChains: [[String]?]?, inTmux: Bool
     ) -> Bool {
-        for variable in ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"]
+        for variable in ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"] + sessionKeeperVariables
         where environment[variable]?.isEmpty == false {
             return false
         }
-        guard let ownChain, !ownChain.contains(where: isRemoteSessionDaemon) else { return false }
+        guard let ownChain,
+            !ownChain.contains(where: { isRemoteSessionDaemon($0) || isSessionKeeper($0, inTmux: inTmux) })
+        else { return false }
         guard inTmux else { return true }
         guard let clients = tmuxClientChains, !clients.isEmpty else { return false }
         return clients.allSatisfy { chain in
             guard let chain else { return false }
-            return !chain.contains(where: isRemoteSessionDaemon)
+            // A client is itself named tmux, so only the other keepers count
+            // against it: a tmux attached from inside a screen session is as
+            // far away as that session's own client.
+            return !chain.contains(where: { isRemoteSessionDaemon($0) || isSessionKeeper($0, inTmux: true) })
         }
     }
 
