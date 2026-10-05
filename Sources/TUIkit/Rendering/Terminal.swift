@@ -306,9 +306,12 @@ final class Terminal: TerminalProtocol {
     /// (`Documentation/Ghostty-VT-adoption.md`, K3): its phantom right-edge
     /// repaint (`FrameDiffWriter.repaintRightEdge`) and the peak its clip lets
     /// an over-advancer reach at the last cell were both written against a row
-    /// that wraps. So it keeps the terminal's default. Named by the
-    /// environment, it is known here; reached over ssh, only once the startup
-    /// exchange has named it (``keepAutowrapIfAppleTerminal(environment:)``).
+    /// that wraps. So it runs with the terminal's default, which it asserts
+    /// (``outputModesOn`` turns autowrap on there) rather than inherits: a
+    /// window a killed program left with autowrap off would otherwise run the
+    /// clip's bet on a row that does not wrap. Named by the environment, it is
+    /// known here; reached over ssh, only once the startup exchange has named
+    /// it (``keepAutowrapIfAppleTerminal(environment:)``).
     private(set) var keepsAutowrap: Bool
 
     /// Creates a new terminal instance.
@@ -648,7 +651,9 @@ extension Terminal {
     /// and on every resume, and put back by ``outputModesOff``:
     ///
     /// - Autowrap off (DECAWM, `CSI ? 7 l`), except where it is kept on
-    ///   (``keepsAutowrap``: Apple Terminal, until its card). Every row TUIkit
+    ///   (``keepsAutowrap``: Apple Terminal, until its card), where it is
+    ///   turned on (`CSI ? 7 h`), as the inherited defaults are asserted, not
+    ///   assumed. Every row TUIkit
     ///   writes is as wide as the screen by its own count, and nothing it draws
     ///   relies on wrapping. Where a host advances a cluster further than
     ///   TUIkit counted — a host it has not measured, or iTerm2 with
@@ -661,7 +666,7 @@ extension Terminal {
     ///   is known. Found by reading Ghostty's VT reference
     ///   (`Documentation/Ghostty-VT-adoption.md`, K3).
     var outputModesOn: String {
-        keepsAutowrap ? "" : Self.autowrapOff
+        keepsAutowrap ? Self.autowrapOn : Self.autowrapOff
     }
 
     /// `CSI ? 7 l`: autowrap (DECAWM) off.

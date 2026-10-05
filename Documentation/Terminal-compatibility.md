@@ -4955,7 +4955,9 @@ claim — and pins the Apple-shaped set to Terminal.app's clip with the same rul
 at the edge over the whole width corpus. Terminal.app's own clip still keeps a
 peak that ends on the last cell, the bet it has made since 2026-08-28 with
 autowrap on (unmeasured; its edge card is owed), so Apple Terminal keeps
-autowrap on until its card (above). The measured hosts other than Apple Terminal
+autowrap on until its card (above) — turned on at startup and on every
+resume (`CSI ? 7 h`), not inherited, so a window a killed program left with
+it off runs that bet on a row that wraps. The measured hosts other than Apple Terminal
 advance no cluster past its claim, except Warp's keycaps, its EAW-base VS-16
 exceptions and its tag flag, which no escape can repair and which still go
 out unguarded.

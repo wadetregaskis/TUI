@@ -139,16 +139,19 @@ extension TerminalOutputTests {
 
     /// K3's precondition: Apple Terminal's card decides, so until it is run
     /// that host keeps the terminal's default, at startup and on every resume.
-    @Test("Apple Terminal, named by the environment, keeps autowrap on")
+    @Test("Apple Terminal, named by the environment, runs with autowrap on, which raw mode turns on")
     func appleTerminalKeepsAutowrap() {
         let (terminal, output) = ScriptedTerminalOutput.terminal(environment: ["TERM_PROGRAM": "Apple_Terminal"])
         terminal.enableRawMode()
-        #expect(output.bytes.hasPrefix(Terminal.inheritedDefaults + "\u{1B}[?2004h"), "the defaults, and no autowrap off")
+        #expect(
+            output.bytes.hasPrefix(Terminal.inheritedDefaults + "\u{1B}[?7h" + "\u{1B}[?2004h"),
+            "the defaults, and autowrap asserted on: a killed program may have left it off")
         #expect(!output.bytes.contains("\u{1B}[?7l"))
         terminal.disableRawMode()
         output.clear()
         terminal.enableRawMode()
-        #expect(!output.bytes.contains("\u{1B}[?7l"), "nor on a resume")
+        #expect(output.bytes.contains("\u{1B}[?7h"), "and again on a resume")
+        #expect(!output.bytes.contains("\u{1B}[?7l"), "never off")
     }
 
     /// Over ssh nothing in the environment names the host, so raw mode has
@@ -167,6 +170,7 @@ extension TerminalOutputTests {
         output.clear()
         terminal.enableRawMode()
         #expect(!output.bytes.contains("\u{1B}[?7l"), "a resume leaves it on")
+        #expect(output.bytes.contains("\u{1B}[?7h"), "and asserts it")
 
         let (ghostty, ghosttyOutput) = ScriptedTerminalOutput.terminal()
         ghostty.enableRawMode()
