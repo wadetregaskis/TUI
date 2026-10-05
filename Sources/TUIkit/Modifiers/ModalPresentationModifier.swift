@@ -121,6 +121,9 @@ extension ModalPresentationModifier: Renderable {
                 context.environment.focusManager?.deactivateSection(id: sectionID)
                 // Recentre next time it opens.
                 DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
+                // And start a sticky sizing over: its largest size is kept for
+                // as long as the sheet stays presented, no longer.
+                existingKeptSheetSize(context: context)?.size = nil
             }
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
@@ -421,17 +424,31 @@ private enum StateIndex {
     static let dragHandler = 0
     static let dismissalGate = 1
     /// The largest size a sticky ``PresentationSizing`` has given the sheet,
-    /// for as long as it stays presented: a manual box, pruned once the sheet
-    /// closes, so presenting it again starts over.
+    /// for as long as it stays presented: emptied on the frames the sheet is
+    /// closed, so presenting it again starts over.
     static let keptSheetSize = 2
 }
 
 extension ModalPresentationModifier {
-    /// The presenter's box for the largest size a sticky sizing has kept.
-    fileprivate func keptSheetSize(context: RenderContext) -> StateBox<CellSize?>? {
+    /// The presenter's record of the largest size a sticky sizing has kept.
+    fileprivate func keptSheetSize(context: RenderContext) -> KeptSheetSize? {
         context.stateStorage?.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.keptSheetSize),
-            default: nil)
+            default: KeptSheetSize()
+        ).value
+    }
+
+    /// The same record, if a sticky sizing ever made one.
+    ///
+    /// Emptied on a closed frame rather than left to the end of the pass's
+    /// prune: a presenter whose identity something else keeps — a row of a
+    /// list, which keeps every row's state, or the root of a test harness —
+    /// was never pruned, and a sticky sheet presented again came back at the
+    /// size it had last time.
+    private func existingKeptSheetSize(context: RenderContext) -> KeptSheetSize? {
+        (context.stateStorage?.existingStorage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.keptSheetSize))
+            as StateBox<KeptSheetSize>?)?.value
     }
 }
 

@@ -309,6 +309,16 @@ extension EnvironmentValues {
 
 // MARK: - Resolving it
 
+/// The largest size a sticky sizing has given a sheet while it stays
+/// presented, kept in the presenter's state. A class, changed in place: the
+/// sheet draws at the size it records on the frame it records it, so neither
+/// growing it nor emptying it on close needs another frame, as a state write
+/// would ask for.
+@MainActor
+final class KeptSheetSize {
+    var size: CellSize?
+}
+
 /// The size a sheet's sizing gives it, applied to the context it renders in:
 /// a proposed width and height become the sheet's available space and the
 /// size its box takes (``EnvironmentValues/sheetProposedWidth``,
@@ -326,7 +336,7 @@ extension EnvironmentValues {
 @MainActor
 func applyPresentationSizing(
     _ sizing: any PresentationSizing, of content: some View, to context: inout RenderContext,
-    hasDetent: Bool, kept: StateBox<CellSize?>?
+    hasDetent: Bool, kept: KeptSheetSize?
 ) -> Int? {
     let area = CellSize(width: max(1, context.availableWidth), height: max(1, context.availableHeight))
     let measuring = context
@@ -344,9 +354,8 @@ func applyPresentationSizing(
             ? root.sizeThatFits(ProposedSize(width: width ?? area.width, height: height)) : nil
         let now = CellSize(width: width ?? fitted?.width ?? 0, height: height ?? fitted?.height ?? 0)
         let largest = CellSize(
-            width: max(now.width, kept.value?.width ?? 0), height: max(now.height, kept.value?.height ?? 0))
-        // Written only when it grew: a write asks for another frame.
-        if kept.value != largest { kept.value = largest }
+            width: max(now.width, kept.size?.width ?? 0), height: max(now.height, kept.size?.height ?? 0))
+        kept.size = largest
         if sticky.horizontal { width = min(largest.width, area.width) }
         if sticky.vertical { height = min(largest.height, area.height) }
     }

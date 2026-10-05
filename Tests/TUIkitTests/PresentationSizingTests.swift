@@ -146,6 +146,31 @@ struct PresentationSizingTests {
         }
     }
 
+    @Test("A sticky sheet presented again starts from its content, not the size it kept")
+    func stickyStartsOverWhenPresentedAgain() {
+        let rows = Rows()
+        var isPresented = true
+        let harness = InputChainHarness(width: 60, height: 30)
+        func view() -> some View {
+            Text("page").sheet(isPresented: Binding(get: { isPresented }, set: { isPresented = $0 })) {
+                Panel("t") {
+                    VStack(spacing: 0) {
+                        ForEach(0..<rows.count, id: \.self) { Text("row \($0)") }
+                    }
+                }
+                .presentationSizing(AnyStickyChoice.sticky)
+            }
+        }
+        #expect(harness.frame(view()).overlays.first?.content.height == 8)
+        rows.count = 2
+        #expect(harness.frame(view()).overlays.first?.content.height == 8, "precondition: it kept its size")
+        isPresented = false
+        #expect(harness.frame(view()).overlays.isEmpty)
+        isPresented = true
+        let height = harness.frame(view()).overlays.first?.content.height
+        #expect(height == 4, "presented again at \(String(describing: height)) rows, not its content's 4")
+    }
+
     @Test("A sticky axis grows with the content and does not shrink while presented")
     func stickyKeepsTheLargest() {
         let rows = Rows()
