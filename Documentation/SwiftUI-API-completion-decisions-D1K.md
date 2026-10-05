@@ -151,24 +151,38 @@ undo together. About half a day, with a timer or a "next non-typing key"
 boundary to choose; the per-key step is what the controls already did on
 their own.
 
-### B-D1K-7. Redo's keys reach the app only on some terminals; the status bar is the route everywhere
+### B-D1K-7. The undo and redo keys are data, Ctrl-Z among them; redo's reach only some terminals, and the status bar is the route everywhere
 
-*`EnvironmentValues.undoManager`, `StatusBarState.showUndoItems`*
+*`EnvironmentValues.undoManager`, `UndoCommand`, `UndoShortcuts`,
+`Scene.undoShortcuts(_:)`, `StatusBarState.showUndoItems`*
 
-Decision A1 named the keys. In a legacy encoding Ctrl-_ is the same byte as
-Ctrl-minus (undo) and Ctrl-Shift-Z the same as Ctrl-Z (suspend), so redo is on
-the keyboard only where Option is sent as Meta (`ESC _`, delivered after the
+Decision A1 named the keys; the owner added Ctrl-Z on 2026-10-04 ("If
+control-z works for undo, let's make that a shortcut for it too (with
+control--). Just so long as there's a way to customise those shortcuts
+app-wide, such as to remove control-z for apps which want to actually receive
+the SIGTSTP signal."). In a legacy encoding Ctrl-_ is the same byte as
+Ctrl-minus and Ctrl-Shift-Z the same as Ctrl-Z, both undo, so redo is on the
+keyboard only where Option is sent as Meta (`ESC _`, delivered after the
 parser's dead-sequence wait, about 200 ms, because `ESC _` also starts an APC
 reply) or where the kitty protocol is spoken.
 
-**Shipped:** the status bar's "undo" and "redo" appear while each has a step
-and perform it on a click — on every terminal — naming `^_` for redo where the
-protocol tells Ctrl-_ apart and `M-_` elsewhere. `showUndoItems` turns them
-off. Shown only while there is a step — but `TextField` and `TextEditor`
-register their edits (B-D1K-6), so every app with one shows "undo" once the
-user has typed in it; only an app with neither, registering nothing of its
-own, never sees them. That is the point (the owner wants undo), and an app
-with its own undo affordance turns them off.
+**Shipped:** the keys are `UndoCommand.defaultShortcuts` — undo on Ctrl-Z,
+Ctrl-minus and Ctrl-/, redo on Ctrl-Shift-Z, Ctrl-_ and Option-_ — and the
+TUI-only scene modifier `.undoShortcuts([.undo: …, .redo: …])` replaces
+either list app-wide, with `rowShortcuts`' rules (the two tables share their
+engine, `ShortcutTable`). A bound key is its command's whether or not there
+is a step: Ctrl-Z with nothing to undo does nothing, never "sometimes
+suspends"; taken out of undo, Ctrl-Z suspends exactly as before. An app's own
+shortcut on a chord still wins, and a focused text control's Ctrl-Z stays its
+undo. The status bar's "undo" and "redo" appear while each has a step and
+perform it on a click — on every terminal — each naming the first of its keys
+the terminal can deliver as itself: `^-` for undo, `^_` for redo where the
+protocol tells Ctrl-_ apart and `M-_` elsewhere, with the defaults.
+`showUndoItems` turns them off. Shown only while there is a step — but
+`TextField` and `TextEditor` register their edits (B-D1K-6), so every app with
+one shows "undo" once the user has typed in it; only an app with neither,
+registering nothing of its own, never sees them. That is the point (the owner
+wants undo), and an app with its own undo affordance turns them off.
 
 **Their cost** is two reads of the manager per frame, `canUndo` and
 `canRedo`, while the bar is shown. Kept: both are O(1), and a cache would
@@ -187,7 +201,7 @@ two more permanent entries in every app's bar. Free either way.
 Chosen as the brief asked — "releases need 2, modifiers-alone need 8 … the
 spec's 'report associated text' (16) and 'alternate keys' (4) exist for
 exactly that" — so flag 8 is on, and with it every key, Return included, is an
-escape code. Quit, Ctrl-C, Ctrl-Z, `SIGINT` and `SIGTERM` pop the flags in an
+escape code. Quit, Ctrl-C, a suspend, `SIGINT` and `SIGTERM` pop the flags in an
 orderly teardown; the crash signals (a trap, a bad access, `abort`,
 `SIGQUIT`, `SIGSYS`) and the quiet terminations nothing else handles
 (`SIGHUP`, `SIGUSR1`/`2`, `SIGALRM`, `SIGVTALRM`, `SIGPROF`, `SIGXCPU`,

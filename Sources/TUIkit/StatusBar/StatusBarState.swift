@@ -134,10 +134,10 @@ public final class StatusBarState: @unchecked Sendable {
     /// run loop.
     var undoManager: UndoManager?
 
-    /// Whether the terminal tells Ctrl-_ from Ctrl-minus (the kitty keyboard
-    /// protocol), which decides which redo key the bar names: Ctrl-_ there,
-    /// Option-_ everywhere else. Set by the run loop with ``undoManager``.
-    var redoIsControlUnderscore = false
+    /// The app's undo and redo keys, which decide the key the bar names
+    /// beside each: the first the terminal can deliver (``UndoShortcuts``'s
+    /// hint). Set by the run loop with ``undoManager``.
+    var undoKeys = AppUndoKeys()
 
     /// Whether the bar carries an Escape entry when something claims the key.
     ///
@@ -368,9 +368,11 @@ public final class StatusBarState: @unchecked Sendable {
     }
 
     /// "undo" and "redo", each while the undo manager has a step for it, each
-    /// performing it when clicked. They carry their action rather than a
-    /// trigger key, so the keys stay the input chain's default bindings
-    /// (``UndoKey``), behind an app's own shortcuts, and never match here.
+    /// performing it when clicked, and each naming the first of its keys the
+    /// terminal can deliver (none where it can deliver none). They carry their
+    /// action rather than a trigger key, so the keys stay the input chain's
+    /// default bindings (``UndoShortcuts``), behind an app's own shortcuts,
+    /// and never match here.
     ///
     /// The bar is not isolated to the main actor, though it only ever runs
     /// there; `UndoManager` is.
@@ -381,18 +383,18 @@ public final class StatusBarState: @unchecked Sendable {
         if canUndo {
             items.append(
                 StatusBarItem(
-                    shortcut: "^-",
+                    shortcut: undoKeys.hint(for: .undo) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.undo),
                     order: .undo
-                ) { _ = UndoKey.undo.perform(on: undoManager) })
+                ) { _ = UndoCommand.undo.perform(on: undoManager) })
         }
         if canRedo {
             items.append(
                 StatusBarItem(
-                    shortcut: redoIsControlUnderscore ? "^_" : "M-_",
+                    shortcut: undoKeys.hint(for: .redo) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.redo),
                     order: .redo
-                ) { _ = UndoKey.redo.perform(on: undoManager) })
+                ) { _ = UndoCommand.redo.perform(on: undoManager) })
         }
         return items
     }

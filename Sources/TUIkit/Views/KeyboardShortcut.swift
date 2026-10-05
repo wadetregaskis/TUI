@@ -293,9 +293,10 @@ public struct KeyboardShortcut: Hashable, Sendable {
     ///
     /// Ctrl-C and Ctrl-Z are deliverable. A cooked terminal turns them into
     /// SIGINT and SIGTSTP, but TUIkit's raw mode clears `ISIG`, so they arrive
-    /// as keys like any other Control letter. A shortcut on Ctrl-Z does take
-    /// the suspend key while it is registered: layer 4 re-raises Ctrl-Z as
-    /// SIGTSTP only when nothing before it claimed the key.
+    /// as keys like any other Control letter. Ctrl-Z is the app's undo by
+    /// default (``UndoCommand/defaultShortcuts``), and a shortcut of the app's
+    /// on it comes before that; layer 4 re-raises Ctrl-Z as SIGTSTP only when
+    /// nothing before it claimed the key and the app's undo keys leave it out.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }
         guard modifiers.isDisjoint(with: Self.unreportedModifiers) else { return false }

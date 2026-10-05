@@ -56,7 +56,7 @@ extension TextEditorHandler {
     /// nothing to undo it does nothing, and the key is still the editor's.
     func undo() {
         if let undoManager {
-            _ = UndoKey.undo.perform(on: undoManager)
+            _ = UndoCommand.undo.perform(on: undoManager)
         } else {
             _ = undoOwnStep(mark: nil)
         }
@@ -66,7 +66,7 @@ extension TextEditorHandler {
     /// Ctrl-Z: redoes, as ``undo()`` undoes.
     func redo() {
         if let undoManager {
-            _ = UndoKey.redo.perform(on: undoManager)
+            _ = UndoCommand.redo.perform(on: undoManager)
         } else {
             _ = redoOwnStep(mark: nil)
         }

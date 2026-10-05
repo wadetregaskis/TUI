@@ -40,22 +40,28 @@ extension EnvironmentValues {
     ///
     /// ## Undoing in a terminal
     ///
-    /// A terminal app has no Edit menu and no ⌘Z. The keys, which an app's own
-    /// keyboard shortcut on the same chord takes first:
+    /// A terminal app has no Edit menu and no ⌘Z. The keys
+    /// (``UndoCommand/defaultShortcuts``), which an app's own keyboard
+    /// shortcut on the same chord takes first:
     ///
-    /// - **Undo:** Ctrl-minus, on every terminal. Most terminals send the same
-    ///   byte for Ctrl-_ and Ctrl-/, so those undo too; under the kitty
-    ///   keyboard protocol Ctrl-/ still does. A focused text control's Ctrl-Z,
-    ///   the stand-in for ⌘Z, is this undo too, and its Ctrl-Shift-Z this
-    ///   redo.
+    /// - **Undo:** Ctrl-Z, Ctrl-minus and Ctrl-/, on every terminal. Most
+    ///   terminals send the same byte for Ctrl-minus, Ctrl-_ and Ctrl-/, and
+    ///   the same for Ctrl-Z and Ctrl-Shift-Z, so in a legacy encoding all of
+    ///   those undo. A focused text control's Ctrl-Z, the stand-in for ⌘Z, is
+    ///   this undo too, and its Ctrl-Shift-Z this redo.
     /// - **Redo:** Ctrl-Shift-Z and Ctrl-_ (Ctrl-Shift-minus) where the
     ///   terminal tells them from Ctrl-Z and Ctrl-minus — the kitty keyboard
     ///   protocol, ``KeyboardReporting/reportsShiftedKeys``; and Option-_
     ///   where the terminal sends Option as Meta (or reports Option under the
     ///   protocol). Ctrl-Y is the text controls' yank, and is not taken.
+    /// - **Ctrl-Z is the shell's suspend key too.** Bound to undo, with
+    ///   nothing to undo it does nothing; an app whose users expect it to
+    ///   stop the app takes it out of undo with ``Scene/undoShortcuts(_:)``,
+    ///   which sets either list app-wide, and it suspends again.
     /// - **The status bar** shows "undo" while there is something to undo and
-    ///   "redo" while there is something to redo, and a click performs it, so
-    ///   every terminal has a route to both.
+    ///   "redo" while there is something to redo, each naming the first of its
+    ///   keys the terminal can deliver, and a click performs it, so every
+    ///   terminal has a route to both.
     ///
     /// Each event's registrations are one undo step, as `UndoManager` groups
     /// them on macOS. Where Foundation has no `UndoManager` (Linux), TUIkit

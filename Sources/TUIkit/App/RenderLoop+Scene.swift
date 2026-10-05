@@ -7,8 +7,8 @@
 // MARK: - What the scene configures, each frame
 
 /// The run loop's reading of the scene's own configuration — the modifiers
-/// written on a `WindowGroup` that are not environment values: its mouse
-/// support and its chrome style.
+/// written on a `WindowGroup` that the tree does not read: its mouse support,
+/// its chrome style, and its undo and redo keys.
 ///
 /// Separate from `RenderLoop.swift` because that file is at its length limit,
 /// the bargain `RenderLoop+TerminalColors.swift` makes too; it is why
@@ -16,9 +16,13 @@
 extension RenderLoop {
 
     /// Adopts this frame's scene configuration: called straight after the
-    /// scene's root environment is applied, before anything asks either bar's
-    /// height.
-    func applySceneConfiguration(from scene: some Scene) {
+    /// scene's root environment is applied to `environment`, before anything
+    /// asks either bar's height.
+    func applySceneConfiguration(from scene: some Scene, environment: EnvironmentValues) {
+        // The app's undo and redo keys, which the scene may have set
+        // (`.undoShortcuts`), resolved through its `\.commandKey`, for the keys
+        // that arrive before the next frame. Rebuilt only when they changed.
+        tuiContext.undoKeys.publish(environment.undoShortcuts, commandKey: environment.commandKey)
         // Capture the scene's base ``MouseSupport`` configuration; the
         // effective per-frame configuration is the union of this and
         // any features requested by view modifiers during render. The

@@ -30,9 +30,9 @@ import Foundation
 /// 2. **View handlers** — registered via `onKeyEvent` modifiers
 /// 3. **Focus system** (conditional) — Tab/Shift+Tab navigation, Enter/Space
 ///    on focused buttons
-/// 4. **Default bindings** — `q` (quit), undo and redo (``UndoKey``), Ctrl-Z
-///    (re-raised as SIGTSTP, so the key and the external signal suspend by one
-///    path), `t` (theme), `a` (appearance)
+/// 4. **Default bindings** — `q` (quit), undo and redo (``UndoShortcuts``),
+///    Ctrl-Z where neither binds it (re-raised as SIGTSTP, so the key and the
+///    external signal suspend by one path), `t` (theme), `a` (appearance)
 ///
 /// Layers 0 and 3 are mutually exclusive, gated on
 /// `focusManager.hasTextInputFocus`: when a text-input element is focused,
@@ -96,11 +96,16 @@ internal struct InputHandler {
     /// external signal identically.
     let onSuspend: () -> Void
 
-    /// The app's undo manager, whose undo and redo keys (``UndoKey``) are
+    /// The app's undo manager, whose undo and redo keys (``undoKeys``) are
     /// default bindings: an app's own shortcut on the chord comes first.
     /// Optional and defaulted, as ``tooltipState`` is, for a test harness that
     /// does not exercise it.
     var undoManager: UndoManager?
+
+    /// The app's undo and redo keys, as the scene set them
+    /// (``Scene/undoShortcuts(_:)``) — the app's, published each frame, in a
+    /// running app; TUIkit's defaults by default.
+    var undoKeys = AppUndoKeys()
 }
 
 // MARK: - Internal API
@@ -257,27 +262,29 @@ extension InputHandler {
             return true
         }
 
-        // Undo and redo: Ctrl-minus, and Ctrl-Shift-Z, Ctrl-_ or Option-_
-        // where the terminal can send them (see `UndoKey`). Down here, after
-        // the app's shortcuts, so a binding of the app's own on the chord — a
-        // ⌘- zoom-out under `.commandKey(.control)` — keeps it. Taken only when
-        // there was a step to undo or redo.
-        if let undoManager, let command = UndoKey(event), command.perform(on: undoManager) {
+        // Undo and redo: the scene's keys (`UndoShortcuts`), by default Ctrl-Z,
+        // Ctrl-minus and Ctrl-/ for undo, Ctrl-Shift-Z, Ctrl-_ and Option-_ for
+        // redo, where the terminal can send them. Down here, after the app's
+        // shortcuts, so a binding of the app's own on the chord — a ⌘- zoom-out
+        // under `.commandKey(.control)` — keeps it. A bound key is the
+        // command's whether or not there is a step: with nothing to undo,
+        // Ctrl-Z does nothing, rather than suspend the app some of the time.
+        if let undoManager, let command = undoKeys.command(for: event) {
+            _ = command.perform(on: undoManager)
             return true
         }
 
-        // Ctrl-Z: job-control suspend. Raw mode clears ISIG, so the terminal
-        // driver never turns ^Z into SIGTSTP — it arrives here as an ordinary
-        // key event. Reaching THIS layer means no view claimed it (a text
-        // editor binding Ctrl-Z to undo wins, exactly as it should), so give
-        // it its shell meaning: re-raise it as the signal, which the suspend
-        // machinery observes and acts on between frames.
-        //
-        // Not with Shift: only the kitty keyboard protocol tells Ctrl-Shift-Z
-        // from Ctrl-Z (a legacy encoding sends both as 0x1A, without Shift),
-        // and there it is redo — with nothing to redo, it does nothing rather
-        // than stop the app.
-        if event.ctrl, !event.shift, case .character(let character) = event.key,
+        // Ctrl-Z: job-control suspend, where neither undo nor redo binds it.
+        // Raw mode clears ISIG, so the terminal driver never turns ^Z into
+        // SIGTSTP — it arrives here as an ordinary key event. Reaching THIS
+        // layer means no view claimed it (a text editor binding Ctrl-Z to undo
+        // wins, exactly as it should) and the app's undo keys do not include
+        // it, so give it its shell meaning: re-raise it as the signal, which
+        // the suspend machinery observes and acts on between frames. With
+        // Shift too, which a legacy encoding cannot even send apart from
+        // Ctrl-Z (both are 0x1A): only a Ctrl-Shift-Z the redo keys leave
+        // unbound reaches here.
+        if event.ctrl, case .character(let character) = event.key,
             character == "z" || character == "Z"
         {
             onSuspend()

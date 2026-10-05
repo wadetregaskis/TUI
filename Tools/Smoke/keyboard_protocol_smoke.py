@@ -18,8 +18,10 @@ stack as the specification says. Cases:
      screen is left.
   2. A terminal that does not: nothing is pushed or popped, and the one
      question rode on the colour exchange rather than costing a round trip.
-  3. Ctrl-Z, sent as its report: popped before the stop, pushed again on
-     SIGCONT; the app still quits.
+  3. Ctrl-Z, sent as its report, is the app's undo (the default), and with
+     nothing to undo does nothing; SIGTSTP, what an unbound Ctrl-Z is
+     re-raised as: popped before the stop, pushed again on SIGCONT; the app
+     still quits.
   4. SIGABRT after the push: the flags are popped on the way down, and the
      shell's line discipline (echo, canonical input) is put back.
   5. SIGHUP and SIGUSR1, which terminate by default and nothing in TUIkit
@@ -181,18 +183,28 @@ term.send(b"q")
 term.pump(2.0)
 term.finish()
 
-# 3. Suspend and resume.
+# 3. Suspend and resume. Ctrl-Z is the app's undo by default, so with
+# nothing to undo its report does nothing; the suspend comes from SIGTSTP,
+# which is what an unbound Ctrl-Z is re-raised as.
 term = FakeTerminal(speaks_protocol=True)
 term.pump(3.0)
-mark = len(term.out)
 term.send(b"\x1b[122;5u")  # Ctrl-Z, as its report
-stopped = False
-deadline = time.time() + 3.0
-while time.time() < deadline and not stopped:
-    term.pump(0.1)
-    done, status = os.waitpid(term.pid, os.WNOHANG | os.WUNTRACED)
-    stopped = done == term.pid and os.WIFSTOPPED(status)
-check(stopped, "suspend: Ctrl-Z, sent as a key report, stops the process")
+
+
+def wait_for_stop(term, seconds):
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        term.pump(0.1)
+        done, status = os.waitpid(term.pid, os.WNOHANG | os.WUNTRACED)
+        if done == term.pid and os.WIFSTOPPED(status):
+            return True
+    return False
+
+
+check(not wait_for_stop(term, 1.5) and term.stack == [31], "Ctrl-Z, sent as a key report, is undo: no stop")
+mark = len(term.out)
+os.kill(term.pid, signal.SIGTSTP)
+check(wait_for_stop(term, 3.0), "suspend: SIGTSTP stops the process")
 check(POP in term.out[mark:] and term.stack == [], "suspend: popped before the stop")
 mark = len(term.out)
 os.kill(term.pid, signal.SIGCONT)

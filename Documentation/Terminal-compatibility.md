@@ -2423,7 +2423,7 @@ just set is set.
 
 **What TUIkit does.** `Terminal.enableRawMode` sets mode 2031 straight after
 focus reporting's `?1004h`, and `disableRawMode` resets it just after `?1004l`,
-so a Ctrl-Z suspend and quitting both turn it off and resuming turns it back on —
+so a suspend (SIGTSTP, or a Ctrl-Z the undo keys leave unbound) and quitting both turn it off and resuming turns it back on —
 the mode outlives the process, and the shell never asked to be told about themes.
 `Tools/Smoke/suspend_probe.py` checks all four, beside the focus-reporting rows
 it already checked. It is sent blind to every host, as the focus request is: five
@@ -4056,10 +4056,13 @@ not of TUIkit's: `Terminal.enableRawMode()` clears `ISIG`, so the driver sends
 `.character("c")` and `.character("z")` with `ctrl`. What becomes of them is the
 input chain's business. Nothing binds Ctrl-C unless the app does — an app's
 ⌘C under `.control`, or `QuitShortcut.ctrlC` — so by default it does nothing at
-all. An unclaimed Ctrl-Z reaches layer 4, which re-raises it as SIGTSTP, so a
-shortcut on ⌃Z (an app's ⌘Z under `.control`) takes the suspend key for as long
-as it is on screen. SIGINT itself still shuts the app down; it comes from
-`kill -INT`, not from the keyboard.
+all. Ctrl-Z is the app's undo by default (2026-10-04, the owner's choice; see
+"Undo and redo"), with nothing to undo doing nothing; where the app takes it
+out of its undo keys (`.undoShortcuts`), an unclaimed Ctrl-Z reaches layer 4,
+which re-raises it as SIGTSTP, as it always did. A shortcut on ⌃Z (an app's
+⌘Z under `.control`) comes before either, for as long as it is on screen.
+SIGINT itself still shuts the app down; it comes from `kill -INT`, not from
+the keyboard.
 
 #### ⌘ shortcuts meet the text controls' Emacs chords (recorded 2026-09-24)
 
@@ -4248,7 +4251,8 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   grammar decodes a key whichever flags were taken, so the only cost of the
   guess is `\.keyboardReporting` claiming what was asked for; the late answer
   is dropped as input, as any reply is.
-- **Pops** with `CSI < u` on quit, on Ctrl-Z, on `SIGINT` and `SIGTERM` (an
+- **Pops** with `CSI < u` on quit, on a suspend (SIGTSTP, or a Ctrl-Z the undo
+  keys leave unbound), on `SIGINT` and `SIGTERM` (an
   orderly shutdown), and on any signal that would end the process with
   nothing run on the way out — a trap, a bad access, `abort`, `SIGQUIT`,
   `SIGSYS`, and the quiet terminations nothing in TUIkit handles (`SIGHUP`,
@@ -4407,12 +4411,18 @@ the route on every terminal. Nothing below has been captured yet — measure it
 with `keyboard_events_probe.py` (kitty protocol hosts) or `cat -v` / a raw-mode
 `od -c` (the rest), and replace "expected" with what the host sent.
 
+The keys are data: `UndoCommand.defaultShortcuts`, which an app replaces for
+either command, app-wide, with the TUI-only scene modifier
+`.undoShortcuts([.undo: …, .redo: …])` (a `ShortcutSet` each, under the rules
+of `rowShortcuts`). The defaults, and what each terminal makes of them:
+
 | Key | Legacy bytes | Read as | Kitty protocol |
 |---|---|---|---|
+| **Undo:** Ctrl-Z | `0x1A` | Ctrl-Z: **undo** (since 2026-10-04; before, the shell's suspend) | `CSI 122;5u`: undo |
 | **Undo:** Ctrl-minus | `0x1F` (`^_`), by the xterm convention most terminals follow | Ctrl-minus — `KeyEvent.parse`, since 2026-10-04 (it used to drop the byte) | `CSI 45;5u` |
-| Ctrl-/ | `0x1F` too, on most terminals | Ctrl-minus: **undo** | `CSI 47;5u`: undo |
-| **Redo:** Ctrl-Shift-minus (Ctrl-_) | `0x1F` — the same byte | Ctrl-minus: **undo**, not redo | `CSI 45:95;6u`: redo (with flag 4; Ctrl-Shift-minus without it) |
-| **Redo:** Ctrl-Shift-Z | `0x1A`, Ctrl-Z | Ctrl-Z: **suspend** (or a focused text control's undo) | `CSI 122:90;6u`: redo |
+| **Undo:** Ctrl-/ | `0x1F` too, on most terminals | Ctrl-minus: **undo** | `CSI 47;5u`: undo |
+| **Redo:** Ctrl-Shift-minus (Ctrl-_) | `0x1F` — the same byte | Ctrl-minus: **undo**, not redo | `CSI 45:95;6u`: redo (with flag 4; Ctrl-Shift-minus, so undo, without it) |
+| **Redo:** Ctrl-Shift-Z | `0x1A`, Ctrl-Z | Ctrl-Z: **undo**, not redo | `CSI 122:90;6u`: redo (with or without flag 4: a letter's capital is known) |
 | **Redo:** Option-_ (Option-Shift-minus) | `ESC _` where Option is sent as Meta; otherwise the composed `—` | Option-_, once the parser's dead-sequence wait (about 200 ms) is up — `ESC _` is also an APC reply's introducer; see below | `CSI 45:95;4u` where the host reports Option as Alt; the text `—` where it composes |
 
 So on a legacy terminal undo is always on the keyboard and redo is on it only
@@ -4420,14 +4430,33 @@ where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2'
 Esc+, Ghostty's `macos-option-as-alt`; none of them is the default on every
 host — expected, not measured); everywhere else redo is the status bar's.
 Where the kitty keyboard protocol is on (see that section), Ctrl-Shift-Z and
-Ctrl-_ redo as on a Mac, and the bar names Ctrl-_ (`^_`) rather than Option-_
-(`M-_`) for it.
+Ctrl-_ redo as on a Mac.
+
+**A bound key is its command's, step or no step.** With nothing to undo,
+Ctrl-Z does nothing: it never suspends the app some of the time and undoes
+the rest. **Ctrl-Z unbound suspends again, exactly as before:** an app whose
+users expect the shell's `^Z` writes
+`.undoShortcuts([.undo: .only(.init("-", modifiers: .control), .init("/", modifiers: .control))])`,
+and an unclaimed Ctrl-Z — or Ctrl-Shift-Z, which a legacy encoding cannot tell
+from it, wherever redo leaves it unbound — reaches layer 4 and is re-raised as
+SIGTSTP. A focused text control's own Ctrl-Z, the stand-in for ⌘Z, stays its
+undo either way, as it was before the app had one.
+
+**The status bar names the first key the terminal can deliver** as itself:
+the bound keys in `KeyboardShortcut` order, TUIkit's own first, filtered by
+what a terminal reporting as `\.keyboardReporting` says can be sent — in a
+legacy encoding a Control chord only on a letter (bar Ctrl-H, I, J, M) or
+minus, and never with Shift; under the protocol any Control chord, one on a
+shifted character only with flag 4; an Option chord always, since whether
+Option is Meta cannot be asked. With the defaults that is `^-` for undo
+everywhere, and `^_` for redo under the protocol, `M-_` elsewhere. A command
+with no key the terminal can deliver is shown with none, its click still
+working.
 
 **Why not Ctrl-Y for redo:** it is the text controls' yank (the Emacs and Cocoa
 binding), and on BSD-derived ttys "delayed suspend" — raw mode clears that, but
-it is an odd key to claim. **Why not Ctrl-Z for undo:** unclaimed, it suspends
-the app (job control); a focused `TextField` or `TextEditor` takes it as the
-stand-in for ⌘Z, as before, and its undo is the app's.
+it is an odd key to claim. An app that wants it adds it:
+`.undoShortcuts([.redo: .default.and(.init("y", modifiers: .control))])`.
 
 **`ESC _` is two things.** A meta-sending terminal's Option-_ and the introducer
 of an APC reply (`ESC _ G … ESC \`, a graphics acknowledgement) are the same two
@@ -4440,7 +4469,10 @@ lost.
 
 **An app's own shortcut wins.** The undo and redo keys are default bindings at
 the bottom of the input chain: under `.commandKey(.control)` an app's ⌘- (zoom
-out) is Ctrl-minus, and it keeps the key; undo is then the status bar's.
+out) is Ctrl-minus, and it keeps the key; undo is then on the others. **So
+does a focused control that takes the key** — but a Slider or Stepper declines
+a Control or Option chord on its `+ = - _` keys (until the 2026-10-04 review it
+took Ctrl-minus and Option-_ as a decrement, and undo and redo never ran).
 
 ## Mouse button codes: bit 7 means two different things
 
@@ -4470,7 +4502,8 @@ the probes (no five-button mouse was attached).
 **What TUIkit does.** Focus reporting is always on while an app runs.
 `Terminal.enableRawMode` writes `CSI ?1004h` straight after bracketed paste's
 `?2004h`, and `disableRawMode` writes `CSI ?1004l` just before `?2004l`. So a
-Ctrl-Z suspend and quitting both turn it off, and resuming turns it back on.
+suspend (SIGTSTP, or a Ctrl-Z the undo keys leave unbound) and quitting both
+turn it off, and resuming turns it back on.
 `Tools/Smoke/suspend_probe.py` checks all four. A terminal reports
 `ESC [ I` when its window, tab or pane gains focus and `ESC [ O` when it loses
 it. The parser (`Terminal.finalize`) reads both as `TerminalInput.focusChanged`,

@@ -63,7 +63,7 @@ In raw mode, the terminal delivers every keystroke immediately without waiting f
 
 - **No echo**: typed characters are not displayed
 - **No canonical mode**: input is byte-by-byte, not line-by-line
-- **No signal processing**: Ctrl+C and Ctrl+Z arrive as keys, not as SIGINT and SIGTSTP. Nothing binds Ctrl+C unless the app does; an unclaimed Ctrl+Z suspends the app from Layer 4
+- **No signal processing**: Ctrl+C and Ctrl+Z arrive as keys, not as SIGINT and SIGTSTP. Nothing binds Ctrl+C unless the app does; Ctrl+Z is the app's undo by default, and suspends the app from Layer 4 where the app's undo keys leave it out (`Scene.undoShortcuts(_:)`)
 - **Non-blocking reads**: input is drained without blocking; when nothing is pending the loop sleeps until woken rather than polling on a fixed timeout (see Main Loop)
 
 The original terminal settings are saved and restored during cleanup.
@@ -101,7 +101,7 @@ The rest set boolean flags and wake the loop; the actual rendering always happen
 | `SIGINT` | `kill -INT` (in raw mode Ctrl+C is a key, not this signal) | Sets a shutdown flag → main loop exits |
 | `SIGTERM` | `kill` | The same shutdown flag, so the terminal-restore teardown still runs |
 | `SIGWINCH` | Terminal resize | Sets a re-render flag → next iteration re-renders |
-| `SIGTSTP` | Ctrl+Z, re-raised by Layer 4 when no view claimed the key, or `kill -TSTP` | Sets a suspend flag. The default stop action is suppressed on purpose: stopping the moment the signal lands would strand the user's shell in raw mode on the alternate screen, so the loop hands the terminal back and only then stops for real |
+| `SIGTSTP` | Ctrl+Z, re-raised by Layer 4 when no view claimed the key and the app's undo keys do not include it, or `kill -TSTP` | Sets a suspend flag. The default stop action is suppressed on purpose: stopping the moment the signal lands would strand the user's shell in raw mode on the alternate screen, so the loop hands the terminal back and only then stops for real |
 | `SIGCONT` | `fg`, after an *external* `SIGSTOP` | Sets a repaint flag — nothing was torn down, but the screen may have been disturbed while the process slept. The suspend path's own `fg` is swallowed instead, so it does not repaint twice |
 | `SIGPIPE` | A clipboard helper or a pty reader that went away mid-write | No source at all: `SIG_IGN`, process-wide. Nothing wants to *observe* it, only to survive it, so the write returns `EPIPE` instead of killing the app mid-raw-mode |
 
@@ -171,7 +171,8 @@ Built-in key bindings that apply when no handler consumed the event:
 | Key | Action | Condition |
 |-----|--------|-----------|
 | `q` / `Q` | Quit application | `statusBar.isQuitAllowed` — offered even behind a modal, as its escape hatch |
-| Ctrl-Z | Suspend the app | Always. Raw mode clears `ISIG`, so the driver never turns `^Z` into SIGTSTP; reaching layer 4 means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
+| Undo, redo | The app's undo manager's undo and redo, on the scene's `UndoShortcuts`: by default Ctrl-Z, Ctrl-minus and Ctrl-/ undo, Ctrl-Shift-Z, Ctrl-_ and Option-_ redo | Always, after the app's own shortcuts; a bound key is taken whether or not there is a step |
+| Ctrl-Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode clears `ISIG`, so the driver never turns `^Z` into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
 | `t` / `T` | Cycle to next palette | `statusBar.showThemeItem`, and no transient surface has grabbed input |
 | `a` / `A` | Cycle to next appearance | No transient surface has grabbed input — otherwise `a` would restyle the app from behind a modal the user cannot see the controls for |
 

@@ -303,8 +303,10 @@ stand in for ⌘C, ⌘X, ⌘V and ⌘Z and do what those would, and a field's Ct
 erases it; those stay too, except that copy and cut have nothing to act on
 without a selection. Then Ctrl-C and Ctrl-X are not the control's at all: they
 go on down the chain whether or not you have a shortcut on them, so your ⌘C
-fires, and so does ``QuitShortcut/ctrlC``. Ctrl-Z never passes on: with nothing
-to undo it would reach Layer 4 and suspend the app.
+fires, and so does ``QuitShortcut/ctrlC``. Ctrl-Z never passes on: it is the
+app's undo, which a focused text control's Ctrl-Z stands in for, and so it
+stays the control's even in an app that has taken Ctrl-Z out of its undo keys
+to make it suspend.
 
 Only your shortcuts take a chord this way, and only one that is registered: an
 enabled button on screen, not on a page behind a modal. A framework default,
@@ -333,12 +335,13 @@ return `false` to let the key go on.
 
 ## Default Bindings
 
-Layer 4 provides five built-in key bindings, but only quit, suspend and help are enabled without configuration:
+Layer 4 provides six built-in key bindings, but only quit, undo and redo, and help are enabled without configuration:
 
 | Key | Action | Condition |
 |-----|--------|-----------|
 | `q` / `Q` | Quit application | Enabled by default; gated by ``QuitBehavior`` |
-| Ctrl-Z | Suspend the app, as the shell's `^Z` would | Always — but only once no view has claimed the key, so a focused text field's or editor's undo wins |
+| Undo and redo | ``UndoCommand/defaultShortcuts``: Ctrl-Z, Ctrl-minus and Ctrl-/ undo; Ctrl-Shift-Z, Ctrl-_ and Option-_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so Ctrl-Z with nothing to undo does nothing |
+| Ctrl-Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Active unless a modal surface has grabbed input (its status bar item is hidden by default) |

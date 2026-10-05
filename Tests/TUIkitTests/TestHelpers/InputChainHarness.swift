@@ -54,7 +54,9 @@ final class InputChainHarness {
     ) {
         tui.keyboardReporting = KeyboardReporting(flags: keyboard)
         tui.undoManager = undoManager
+        tui.undoKeys.reporting = tui.keyboardReporting
         statusBar.undoManager = undoManager
+        statusBar.undoKeys = tui.undoKeys
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
         environment.applyRuntimeServices(from: tui)
@@ -76,7 +78,8 @@ final class InputChainHarness {
             dragAndDropSession: tui.dragAndDropSession,
             onQuit: { [quitCount] in quitCount.value += 1 },
             onSuspend: { [suspendCount] in suspendCount.value += 1 },
-            undoManager: undoManager)
+            undoManager: undoManager,
+            undoKeys: tui.undoKeys)
     }
 
     /// Renders one frame of `view`, clearing every per-frame registry first.

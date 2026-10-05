@@ -174,7 +174,8 @@ extension AppRunner {
                     kill(getpid(), SIGTSTP)
                 #endif
             },
-            undoManager: tuiContext.undoManager
+            undoManager: tuiContext.undoManager,
+            undoKeys: tuiContext.undoKeys
         )
     }
 
@@ -187,16 +188,17 @@ extension AppRunner {
         let undoManager = UndoManager()
         tuiContext.undoManager = undoManager
         statusBar.undoManager = undoManager
+        statusBar.undoKeys = tuiContext.undoKeys
     }
 
     /// Turns on the kitty keyboard protocol where the terminal speaks it, and
     /// publishes what the terminal reports: to the environment
-    /// (`\.keyboardReporting`), and to the status bar, which names Ctrl-_ for
-    /// redo where the terminal tells it from Ctrl-minus and Option-_ elsewhere.
+    /// (`\.keyboardReporting`), and to the undo keys, which name in the status
+    /// bar the first of each command's keys this terminal can deliver.
     private func negotiateKeyboardProtocol() {
         terminal.negotiateKeyboardProtocol()
         tuiContext.keyboardReporting = KeyboardReporting(flags: terminal.keyboardEnhancement)
-        statusBar.redoIsControlUnderscore = tuiContext.keyboardReporting.reportsShiftedKeys
+        tuiContext.undoKeys.reporting = tuiContext.keyboardReporting
     }
 
     /// Has the focus system ask for the frames its changes need.

@@ -344,7 +344,7 @@ Tools/
 │                         executable (no-PTY render loop for `xctrace --launch`)
 ├── Smoke/                Drives the Example and Stress apps through a PTY: walks
 │                         every page (crashes only reachable interactively) and
-│                         probes the Ctrl-Z suspend / fg resume round trip
+│                         probes the suspend / fg resume round trip
 └── TerminalProbes/       Reproducible terminal-behaviour probes backing
                           Documentation/Terminal-compatibility.md
 

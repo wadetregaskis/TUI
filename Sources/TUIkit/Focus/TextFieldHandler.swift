@@ -968,7 +968,7 @@ extension TextFieldHandler {
     func undo() {
         forgetHistoryIfReplaced()
         if let undoManager {
-            _ = UndoKey.undo.perform(on: undoManager)
+            _ = UndoCommand.undo.perform(on: undoManager)
         } else {
             _ = undoOwnStep(mark: nil)
         }
@@ -979,7 +979,7 @@ extension TextFieldHandler {
     func redo() {
         forgetHistoryIfReplaced()
         if let undoManager {
-            _ = UndoKey.redo.perform(on: undoManager)
+            _ = UndoCommand.redo.perform(on: undoManager)
         } else {
             _ = redoOwnStep(mark: nil)
         }

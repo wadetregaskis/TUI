@@ -321,6 +321,11 @@ final class TUIContext: @unchecked Sendable {
     /// until then, and for a context with no terminal behind it.
     var keyboardReporting = KeyboardReporting.legacy
 
+    /// The app's undo and redo keys, as the scene set them
+    /// (`Scene.undoShortcuts(_:)`): published by the render loop each frame,
+    /// read by the input chain and the status bar between frames.
+    let undoKeys = AppUndoKeys()
+
     /// The app's undo manager, published to `\.undoManager`. Made by the run
     /// loop, on the main actor, which `UndoManager` is isolated to and this
     /// context's initialiser is not; `nil` until then, and for a context with

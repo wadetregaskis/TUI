@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Job-control smoke probe: Ctrl-Z suspend / fg resume.
+"""Job-control smoke probe: suspend / fg resume.
 
 Drives a TUIkit app (default: the debug Example) in a PTY and verifies the
 suspend round trip:
 
-  1. Ctrl-Z (0x1A — raw mode clears ISIG, so it arrives as a KEY) makes the
-     app hand the terminal back FIRST (exit the alternate screen, show the
-     cursor, mouse reporting off, focus and palette-change reporting off) and
-     then genuinely stop (WUNTRACED).
+  0. Ctrl-Z (0x1A — raw mode clears ISIG, so it arrives as a KEY) is the
+     app's undo by default (`UndoCommand.defaultShortcuts`), and with nothing
+     to undo it does nothing: the process does not stop.
+  1. SIGTSTP — what an app that takes Ctrl-Z out of its undo keys
+     (`.undoShortcuts`) re-raises the key as, and what `kill -TSTP` sends —
+     makes the app hand the terminal back FIRST (exit the alternate screen,
+     show the cursor, mouse reporting off, focus and palette-change reporting
+     off) and then genuinely stop (WUNTRACED).
   2. SIGCONT (what `fg` sends) resumes it: it re-enters the alternate screen,
      re-enables its modes, and repaints the UI.
   3. The app still quits cleanly afterwards.
@@ -88,18 +92,24 @@ check("TUIkit" in captured, "the UI painted")
 check(FOCUS_REPORTS_ON in captured, "startup turns focus reporting on")
 check(PALETTE_REPORTS_ON in captured, "startup turns palette-change reporting on")
 
-# 2. Ctrl-Z: the app must restore the terminal, then stop.
-marker = len(captured)
+def wait_for_stop(seconds: float) -> bool:
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        pump(0.1)
+        done, status = os.waitpid(pid, os.WNOHANG | os.WUNTRACED)
+        if done == pid and os.WIFSTOPPED(status):
+            return True
+    return False
+
+
+# 2. Ctrl-Z is undo, with nothing to undo: no stop.
 os.write(fd, b"\x1a")
-deadline = time.time() + 5.0
-stopped = False
-while time.time() < deadline:
-    pump(0.1)
-    done, status = os.waitpid(pid, os.WNOHANG | os.WUNTRACED)
-    if done == pid and os.WIFSTOPPED(status):
-        stopped = True
-        break
-check(stopped, "Ctrl-Z genuinely stops the process (WUNTRACED)")
+check(not wait_for_stop(1.5), "Ctrl-Z, the app's undo by default, does not stop it")
+
+# 3. SIGTSTP: the app must restore the terminal, then stop.
+marker = len(captured)
+os.kill(pid, signal.SIGTSTP)
+check(wait_for_stop(5.0), "SIGTSTP genuinely stops the process (WUNTRACED)")
 suspended_output = captured[marker:]
 check(EXIT_ALT in suspended_output, "the alternate screen was exited BEFORE stopping")
 check(SHOW_CURSOR in suspended_output, "the cursor was shown before stopping")
@@ -108,7 +118,7 @@ check(
     PALETTE_REPORTS_OFF in suspended_output,
     "palette-change reporting was turned off before stopping")
 
-# 3. SIGCONT (fg): re-init + repaint.
+# 4. SIGCONT (fg): re-init + repaint.
 marker = len(captured)
 os.kill(pid, signal.SIGCONT)
 pump(2.0)
@@ -118,7 +128,7 @@ check("TUIkit" in resumed_output, "resume repaints the UI")
 check(FOCUS_REPORTS_ON in resumed_output, "resume turns focus reporting back on")
 check(PALETTE_REPORTS_ON in resumed_output, "resume turns palette-change reporting back on")
 
-# 4. Still alive and quits cleanly.
+# 5. Still alive and quits cleanly.
 os.write(fd, b"q")
 deadline = time.time() + 5.0
 exited = False
