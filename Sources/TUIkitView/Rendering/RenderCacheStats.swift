@@ -28,12 +28,17 @@ extension RenderCache {
         public var rendered = 0
         /// Rows (or memoized subtrees) served from a memo instead.
         public var served = 0
+        /// Of ``served``, those served while drawing rather than measuring:
+        /// only these replay a subtree's registrations, so a test of what a
+        /// served row still registers needs these, not measure serves.
+        public var servedDrawing = 0
         /// Calls into an app's own cell value closures.
         public var cellValues = 0
 
-        public init(rendered: Int = 0, served: Int = 0, cellValues: Int = 0) {
+        public init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0) {
             self.rendered = rendered
             self.served = served
+            self.servedDrawing = servedDrawing
             self.cellValues = cellValues
         }
 
@@ -41,6 +46,7 @@ extension RenderCache {
         public func delta(since earlier: Self) -> Self {
             Self(
                 rendered: rendered - earlier.rendered, served: served - earlier.served,
+                servedDrawing: servedDrawing - earlier.servedDrawing,
                 cellValues: cellValues - earlier.cellValues)
         }
     }

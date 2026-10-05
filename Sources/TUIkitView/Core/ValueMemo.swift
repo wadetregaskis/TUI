@@ -118,6 +118,7 @@ func renderValueMemoized<Key: Equatable, Row>(
         // One row of `megalist` against one row of `table`, in a number: a
         // served subtree is a row a control did not have to compose.
         cache.rowWork.served += 1
+        if !context.isMeasuring { cache.rowWork.servedDrawing += 1 }
         if RenderCache.verifiesRenderMemo {
             return verifyServe(
                 entry, viewType: viewType, context: context, cache: cache, render: { render(build(), $0) })

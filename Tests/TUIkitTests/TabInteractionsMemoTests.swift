@@ -189,10 +189,12 @@ struct TabInteractionsMemoTests {
         frame()
         frame()
         #expect(tabs.selected == 3, "precondition: the arrows moved the selection")
-        let before = app.renderCache.rowWork.served
+        // Served while drawing, not while measuring: only a drawing serve
+        // replays the row's registrations, which is what this test is about.
+        let before = app.renderCache.rowWork.servedDrawing
         frame()
-        let served = app.renderCache.rowWork.served - before
-        #expect(served >= 6, "precondition: every row is served on a quiet frame (\(served))")
+        let served = app.renderCache.rowWork.servedDrawing - before
+        #expect(served >= 6, "precondition: every row is served as the quiet frame draws it (\(served))")
         app.send(KeyEvent(key: .f10, shift: true))
         frame()
         #expect(shows("Rename 3"), "Shift+F10 did not open the selected tab's menu: \(app.screen.map(\.stripped))")
