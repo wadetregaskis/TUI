@@ -85,6 +85,9 @@ public struct ToneCurveEditorPanel: View {
     /// read, so external shrinking of `stops` can't strand it.
     @State private var selectedStop = 0
 
+    /// What a drag across the diagram holds — see `Grab`.
+    @GestureState private var grab = Grab.idle
+
     /// The strips' width in cells. ``GradientEditorPanel``'s, deliberately:
     /// the stop strip is laid out by that panel's own row-wrapping helper, and
     /// two budgets would let the chips and their preview disagree.
@@ -198,34 +201,36 @@ public struct ToneCurveEditorPanel: View {
         // bright), and a preview that banded differently from the picture
         // beside it would be worse than one that bands with it.
         let outputs = (0..<Self.stripWidth).map { curve.color(atTone: Self.tone(atColumn: $0)) }
-        // One per render, and the drag holds the one from the render it
-        // started on: the dispatcher keeps calling the closure it captured at
-        // the press until the release, so this box is exactly the gesture's
-        // lifetime.
-        let grab = Grab()
         return VStack(alignment: .leading, spacing: 0) {
             strip(caption: "in", cells: inputs)
             markerRow
             strip(caption: "out", cells: outputs)
             strip(caption: "", cells: outputs)
         }
-        .onDragGesture { event in
-            // The whole diagram is the tone axis — all four rows, because
-            // they are four readings of the same one and a marker is a single
-            // cell to aim at. The gutter is not: `in` and `out` are captions.
-            let column = min(Self.stripWidth - 1, max(0, event.x - Self.gutter))
-            guard event.x >= Self.gutter else { return }
-            if event.phase == .began {
-                // Grab the stop under the pointer, or put one there — coloured
-                // with what the curve already produces at that tone, exactly as
-                // "+" does, so a press adds a stop without changing the
-                // picture and the drag that follows is the whole edit.
-                grab.stop =
-                    Self.stop(in: ordered, near: column) ?? addingStop(atColumn: column)
-            }
-            guard let held = grab.stop else { return }
-            grab.stop = moving(held, toTone: Self.tone(atColumn: column))
-        }
+        // From the press, not from the first move: a press alone adds a stop.
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .updating($grab) { drag, grab, _ in
+                    // The whole diagram is the tone axis — all four rows,
+                    // because they are four readings of the same one and a
+                    // marker is a single cell to aim at. The gutter is not:
+                    // `in` and `out` are captions.
+                    let x = drag.location.x
+                    let column = min(Self.stripWidth - 1, max(0, x - Self.gutter))
+                    if case .idle = grab {
+                        // Grab the stop under the pointer, or put one there —
+                        // coloured with what the curve already produces at that
+                        // tone, exactly as "+" does, so a press adds a stop
+                        // without changing the picture and the drag that
+                        // follows is the whole edit. A press on a caption grabs
+                        // nothing, for the whole drag.
+                        grab = .holding(
+                            x < Self.gutter
+                                ? nil : Self.stop(in: ordered, near: column) ?? addingStop(atColumn: column))
+                    }
+                    guard x >= Self.gutter, case .holding(let held?) = grab else { return }
+                    grab = .holding(moving(held, toTone: Self.tone(atColumn: column)))
+                })
     }
 
     /// One captioned row of per-cell coloured blocks. Glyph AND background in
@@ -353,14 +358,18 @@ public struct ToneCurveEditorPanel: View {
 
     // MARK: The pointer
 
-    /// The stop a drag is holding, from the press to the release.
+    /// What a drag across the diagram is holding.
     ///
-    /// A reference box rather than `@State` because it is the GESTURE's state,
-    /// not the view's: the closure the dispatcher captured at the press keeps
-    /// being called until the release, so the box it captured is alive for
-    /// exactly as long as the drag and is gone afterwards.
-    private final class Grab {
-        var stop: ASCIIToneCurve.Stop?
+    /// Gesture state (`@GestureState`), not view state: it lives from the press
+    /// to the release — or to whatever else ends the drag — and goes back to
+    /// `.idle` by itself afterwards.
+    private enum Grab {
+        /// No drag, or one that has not been delivered its press yet.
+        case idle
+
+        /// The stop the press grabbed, as it was last moved to — `nil` for a
+        /// press that grabbed none, so the rest of that drag moves nothing.
+        case holding(ASCIIToneCurve.Stop?)
     }
 
     /// How far from a stop a press still counts as grabbing it.

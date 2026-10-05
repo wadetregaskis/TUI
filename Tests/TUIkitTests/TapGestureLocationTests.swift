@@ -108,7 +108,11 @@ struct TapGestureLocationTests {
         #expect(log.entries == ["outside"])
 
         log.entries = []
-        harness.frame(page(Text("XYZ").onDragGesture { _ in log.entries.append("drag") }.disabled(true)))
+        harness.frame(
+            page(
+                Text("XYZ")
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { _ in log.entries.append("drag") })
+                    .disabled(true)))
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 3, y: 1))
         harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 4, y: 1))
         #expect(log.entries.isEmpty, "nor a drag")

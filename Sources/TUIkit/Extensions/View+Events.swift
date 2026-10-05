@@ -222,21 +222,6 @@ extension View {
             return true
         }
     }
-
-    /// Adds an action that fires while the user drags the left mouse
-    /// button across this view.
-    ///
-    /// The action is invoked for every `.dragged` event between the
-    /// initial `.pressed` and the matching `.released`, so the
-    /// handler is in continuous control of whatever it's animating
-    /// (a slider's value, a moving cursor, …). The first call carries
-    /// `phase == .began`, intermediate calls carry `phase == .moved`,
-    /// and the final call carries `phase == .ended`.
-    public func onDragGesture(
-        _ action: @escaping (DragGestureEvent) -> Void
-    ) -> some View {
-        DragGestureModifier(content: self, action: action)
-    }
 }
 
 /// Direction of a scroll-wheel tick reported to ``View/onScrollGesture(_:)``.
@@ -245,38 +230,6 @@ public enum ScrollDirection: Sendable, Equatable {
     case down
     case left
     case right
-}
-
-/// The state delivered to ``View/onDragGesture(_:)`` for each drag step.
-public struct DragGestureEvent: Sendable, Equatable {
-    /// Where the gesture is in its lifecycle.
-    public enum Phase: Sendable, Equatable {
-        case began
-        case moved
-        case ended
-    }
-
-    /// The current phase.
-    public let phase: Phase
-
-    /// The cursor's current position, in the view's OWN cells: `(0, 0)` is its
-    /// top-left, not the screen's.
-    ///
-    /// The same convention ``View/onMouseEvent(_:)`` reports in, and it holds
-    /// for the whole gesture — including after the cursor has left the view,
-    /// where the numbers simply go negative or past the view's width. (This
-    /// said "absolute screen position", which it never was: the dispatcher
-    /// subtracts the region's origin before it calls a handler.)
-    public let x: Int
-    public let y: Int
-
-    /// Where the gesture began, in the same view-local cells.
-    public let startX: Int
-    public let startY: Int
-
-    /// The displacement from the gesture's starting position.
-    public var translationX: Int { x - startX }
-    public var translationY: Int { y - startY }
 }
 
 // MARK: - Value Change

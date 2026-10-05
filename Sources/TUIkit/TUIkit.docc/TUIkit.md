@@ -238,7 +238,6 @@ struct MyApp: App {
 
 - ``MouseSupport``
 - ``MouseFeature``
-- ``DragGestureEvent``
 - ``DragPreviewAnchor``
 - ``DropInfo``
 

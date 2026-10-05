@@ -67,11 +67,15 @@ content
     }
 
 content
-    .onDragGesture { event in
-        // event.phase is .began / .moved / .ended;
-        // event.x / event.y and event.translationX / event.translationY
-        // give the current position and displacement from the start
-    }
+    .gesture(
+        DragGesture(minimumDistance: 0)
+            .onChanged { drag in
+                // from the press on: drag.location and drag.translation give
+                // the current cell and the displacement from drag.startLocation
+            }
+            .onEnded { drag in
+                // the release
+            })
 
 content
     .onHover { isHovering in
@@ -277,7 +281,6 @@ it sits in the view.
 
 - ``MouseSupport``
 - ``ScrollDirection``
-- ``DragGestureEvent``
 
 ### Drag and Drop
 

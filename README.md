@@ -97,7 +97,7 @@ struct ContentView: View {
 ### Mouse & trackpad
 
 - Left / middle / right clicks, vertical scroll-wheel, and horizontal + vertical trackpad scrolling, with drag tracking and enter/exit hit-testing. Both SGR and legacy X10 mouse-report encodings are parsed.
-- Gesture modifiers: `.onTapGesture` (including `count:` for double/triple-click, via synthesised `MouseEvent.clickCount`), `.onScrollGesture`, `.onDragGesture`, `.onHover`, and the raw `.onMouseEvent`.
+- Gesture modifiers: `.onTapGesture` (including `count:` for double/triple-click, via synthesised `MouseEvent.clickCount`), `.onScrollGesture`, `.onHover`, and the raw `.onMouseEvent`; and SwiftUI's gesture values — `DragGesture`, `LongPressGesture`, `TapGesture` and their combinators — attached with `.gesture(_:)`.
 - Drag and drop: `.draggable(_:)` (with an optional custom preview and grab-point anchoring) and `.dropDestination(for:action:)`, in the style of SwiftUI's Transferable API.
 - Enable the level you want with `.mouseSupport(.disabled | .scrollOnly | .standard | .full)` on a `View` or a `Scene`.
 

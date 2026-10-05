@@ -80,6 +80,12 @@ public struct ChannelCurveEditorPanel: View {
     /// read, so switching to a channel with fewer points can't strand it.
     @State private var selectedPoint = 0
 
+    /// What a drag on the plot holds — see `Grab`.
+    @GestureState private var plotGrab = Grab.idle
+
+    /// What a drag along the marker row holds — see `Grab`.
+    @GestureState private var markerGrab = Grab.idle
+
     /// Which of the three is on the plot.
     enum Channel: Int, CaseIterable {
         case red, green, blue
@@ -223,33 +229,30 @@ public struct ChannelCurveEditorPanel: View {
     /// so the plot would freeze at whatever it drew first.
     private var plot: some View {
         let color = channel.color
-        // One per render, and the drag holds the one from the render it
-        // started on: the dispatcher keeps calling the closure it captured at
-        // the press until the release, so this box is exactly the gesture's
-        // lifetime. `@State` would be wrong here — it is not part of the
-        // picture and it must not survive the drag.
-        let grab = Grab()
         return VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(Self.plotRows(for: ramp).enumerated()), id: \.offset) { _, row in
                 Text(verbatim: row).foregroundStyle(color)
             }
         }
-        .onDragGesture { event in
-            let column = min(Self.plotWidth - 1, max(0, event.x))
-            let row = min(Self.plotHeight - 1, max(0, event.y))
-            if event.phase == .began {
-                // Grab what is under the pointer, or put a point there. Adding
-                // on a press into empty chart is what a curve editor does, and
-                // it is what makes "click the tone you want to change and drag
-                // it" one gesture rather than a trip to the `+` button first.
-                grab.point =
-                    Self.point(in: ramp.points, near: column)
-                    ?? addingPoint(atColumn: column, row: row)
-            }
-            guard let held = grab.point else { return }
-            grab.point = moving(
-                held, toInput: Self.input(atColumn: column), output: Self.output(atRow: row))
-        }
+        // From the press, not from the first move: a press alone adds a point.
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .updating($plotGrab) { drag, grab, _ in
+                    let column = min(Self.plotWidth - 1, max(0, drag.location.x))
+                    let row = min(Self.plotHeight - 1, max(0, drag.location.y))
+                    if case .idle = grab {
+                        // Grab what is under the pointer, or put a point there.
+                        // Adding on a press into empty chart is what a curve
+                        // editor does, and it is what makes "click the tone you
+                        // want to change and drag it" one gesture rather than a
+                        // trip to the `+` button first.
+                        grab = .holding(
+                            Self.point(in: ramp.points, near: column) ?? addingPoint(atColumn: column, row: row))
+                    }
+                    guard case .holding(let held?) = grab else { return }
+                    grab = .holding(
+                        moving(held, toInput: Self.input(atColumn: column), output: Self.output(atRow: row)))
+                })
     }
 
     /// `ramp` as ``plotHeight`` rows of ``plotWidth`` fill glyphs, top row
@@ -289,7 +292,6 @@ public struct ChannelCurveEditorPanel: View {
             guard let index = owner[column] else { return nil }
             return index == selection ? .palette.accent : .palette.foregroundTertiary
         }
-        let grab = Grab()
         return HStack(spacing: 0) {
             ForEach(Array(cells.enumerated()), id: \.offset) { _, color in
                 if let color {
@@ -299,17 +301,21 @@ public struct ChannelCurveEditorPanel: View {
                 }
             }
         }
-        .onDragGesture { event in
-            let column = min(Self.plotWidth - 1, max(0, event.x))
-            // The markers are handles, not a canvas: a press that lands on
-            // nothing does nothing, where the same press on the plot would add
-            // a point. And the drag moves the point along ONE axis, because
-            // this row has only one — which is the gesture for "same level,
-            // different tone" that the plot cannot give you.
-            if event.phase == .began { grab.point = Self.point(in: ramp.points, near: column) }
-            guard let held = grab.point else { return }
-            grab.point = moving(held, toInput: Self.input(atColumn: column), output: nil)
-        }
+        // From the press: a press on a marker grabs it.
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .updating($markerGrab) { drag, grab, _ in
+                    let column = min(Self.plotWidth - 1, max(0, drag.location.x))
+                    // The markers are handles, not a canvas: a press that lands
+                    // on nothing does nothing, where the same press on the plot
+                    // would add a point. And the drag moves the point along ONE
+                    // axis, because this row has only one — which is the gesture
+                    // for "same level, different tone" that the plot cannot give
+                    // you.
+                    if case .idle = grab { grab = .holding(Self.point(in: ramp.points, near: column)) }
+                    guard case .holding(let held?) = grab else { return }
+                    grab = .holding(moving(held, toInput: Self.input(atColumn: column), output: nil))
+                })
     }
 
     /// One labelled 0…100% slider — the two axes of the selected point.
@@ -350,14 +356,18 @@ public struct ChannelCurveEditorPanel: View {
 
     // MARK: The pointer
 
-    /// The point a drag is holding, from the press to the release.
+    /// What a drag on the plot or the marker row is holding.
     ///
-    /// A reference box rather than `@State` because it is the GESTURE's state,
-    /// not the view's: the closure the dispatcher captured at the press keeps
-    /// being called until the release, so the box it captured is alive for
-    /// exactly as long as the drag and is gone afterwards.
-    private final class Grab {
-        var point: ASCIIToneCurve.Ramp.Point?
+    /// Gesture state (`@GestureState`), not view state: it lives from the press
+    /// to the release — or to whatever else ends the drag — and goes back to
+    /// `.idle` by itself afterwards.
+    private enum Grab {
+        /// No drag, or one that has not been delivered its press yet.
+        case idle
+
+        /// The point the press grabbed, as it was last moved to — `nil` for a
+        /// press that grabbed none, so the rest of that drag moves nothing.
+        case holding(ASCIIToneCurve.Ramp.Point?)
     }
 
     /// How far from a control point a press still counts as grabbing it.

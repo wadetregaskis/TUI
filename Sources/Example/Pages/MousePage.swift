@@ -9,10 +9,10 @@ import TUIkit
 
 /// Mouse demo page.
 ///
-/// Showcases the four public mouse modifiers:
+/// Showcases the four ways to wire the mouse into your own views:
 ///   - `.onTapGesture` — discrete left-clicks (also covered by Button)
 ///   - `.onScrollGesture` — wheel ticks
-///   - `.onDragGesture` — continuous press / drag / release with translation
+///   - `DragGesture` — continuous press / drag / release with translation
 ///   - `.onMouseEvent` — the raw stream of events, useful for hover
 ///     effects, right-clicks, and modifier-keyed clicks.
 ///
@@ -26,6 +26,10 @@ struct MousePage: View {
     @State private var scrollDeltaY: Int = 0
     @State private var scrollDeltaX: Int = 0
     @State private var dragPhase: String = L("page.mouse.phaseIdle")
+    /// Whether the drag under way has been reported yet — so its first report,
+    /// the press, reads "began" and every later one "moved". Gesture state, so
+    /// it goes back to `false` however the drag ends.
+    @GestureState private var dragReported = false
     @State private var dragX: Int = 0
     @State private var dragY: Int = 0
     @State private var dragDeltaX: Int = 0
@@ -240,18 +244,19 @@ struct MousePage: View {
                         .foregroundStyle(.palette.accent)
                         .padding(EdgeInsets(horizontal: 2, vertical: 0))
                         .border(.palette.border)
-                        .onDragGesture { event in
-                            dragPhase = describePhase(event.phase)
-                            // Clamp the drag position to the visible
-                            // box. Drag-capture lets the gesture
-                            // continue when the cursor leaves the
-                            // box, so without clamping the reported
-                            // coords can go negative or grow huge.
-                            dragX = max(0, min(dragBoxWidth - 1, event.x))
-                            dragY = max(0, min(dragBoxHeight - 1, event.y))
-                            dragDeltaX = event.translationX
-                            dragDeltaY = event.translationY
-                        }
+                        // From the press (`minimumDistance: 0`), so the press
+                        // itself is reported, as "began".
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .updating($dragReported) { drag, reported, _ in
+                                    dragPhase = reported ? L("page.mouse.phaseMoved") : L("page.mouse.phaseBegan")
+                                    reported = true
+                                    record(drag)
+                                }
+                                .onEnded { drag in
+                                    dragPhase = L("page.mouse.phaseEnded")
+                                    record(drag)
+                                })
                     HStack(spacing: 2) {
                         ValueDisplayRow("page.mouse.phaseLabel", dragPhase)
                         ValueDisplayRow("page.mouse.atLabel", "(\(dragX), \(dragY))")
@@ -602,12 +607,15 @@ struct MousePage: View {
         }
     }
 
-    private func describePhase(_ phase: DragGestureEvent.Phase) -> String {
-        switch phase {
-        case .began: return L("page.mouse.phaseBegan")
-        case .moved: return L("page.mouse.phaseMoved")
-        case .ended: return L("page.mouse.phaseEnded")
-        }
+    /// Shows where a drag is and how far it has come.
+    private func record(_ drag: DragGesture.Value) {
+        // Clamp the drag position to the visible box. A drag keeps reporting
+        // when the cursor leaves the box, so without clamping the reported
+        // coords can go negative or grow huge.
+        dragX = max(0, min(dragBoxWidth - 1, drag.location.x))
+        dragY = max(0, min(dragBoxHeight - 1, drag.location.y))
+        dragDeltaX = drag.translation.width
+        dragDeltaY = drag.translation.height
     }
 
     /// The wider of the two hover captions, in cells.
