@@ -630,6 +630,19 @@ extension Terminal {
                 // not arrived: wait for it; drop only a long-dead sequence.
                 if staleFrames >= Self.deadSequenceStaleFrames {
                     staleFrames = 0
+                    // Except an ESC and a string introducer with nothing at
+                    // all behind them: no reply stops after its introducer,
+                    // but a meta-sending terminal's Option chord on that key
+                    // does — Option-_ is `ESC _`, Option-] is `ESC ]`. Redo is
+                    // on Option-_ where nothing better reaches the app, so it
+                    // is delivered, a long-dead-sequence wait late, rather than
+                    // dropped. (Not `[` or `O`: a key's own CSI and SS3 split
+                    // across reads far more often than a reply does.)
+                    if input.count == 2, String.isStringFamilyIntroducer(UInt32(input[1])) {
+                        let chord = [input[0], input[1]]
+                        consume(2)
+                        return finalize(bytes: chord)
+                    }
                     consume(input.count)
                 }
                 return nil
