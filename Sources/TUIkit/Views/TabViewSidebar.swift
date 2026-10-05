@@ -54,10 +54,6 @@ private struct _TabSidebarList: View {
     /// own follows.
     @Environment(\.springLoadingBehavior) private var springLoading
 
-    /// Where the rows file their tabs' context menus for the sidebar's
-    /// Shift+F10.
-    @State private var menuOpeners = _TabMenuOpeners()
-
     /// Consecutive tabs of one section — or of none — with its header.
     private struct Run: Identifiable {
         /// The run's place among the runs.
@@ -102,16 +98,9 @@ private struct _TabSidebarList: View {
     }
 
     var body: some View {
-        let openers = menuOpeners
-        let selection = self.selection
         // Shift+F10 opens the selected tab's context menu while the list has
-        // the focus — once the list has let the key go, as a command is heard.
-        return FocusPathModifier(content: list, stage: .command) { _ in
-            { event in
-                guard event.key == .f10, event.shift else { return false }
-                return openers.open(selection.wrappedValue)
-            }
-        }
+        // the focus.
+        _TabSidebarMenuKeys(content: list, selection: selection)
     }
 
     private var list: some View {
@@ -161,8 +150,8 @@ private struct _TabSidebarList: View {
         if tab.interactions.isEmpty {
             label
         } else {
-            _TabInteractionsHost(
-                content: label, traits: tab.interactions, value: tab.value, title: tab.title, openers: menuOpeners)
+            // Its menu's opener goes where `_TabSidebarMenuKeys` put it.
+            _TabInteractionsHost(content: label, traits: tab.interactions, value: tab.value, title: tab.title)
         }
     }
 

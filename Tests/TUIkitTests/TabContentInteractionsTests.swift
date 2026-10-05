@@ -176,6 +176,36 @@ struct TabContentInteractionsTests {
         #expect(!overlayText(harness.frame(tabs(log, look))).contains("Pin"))
     }
 
+    /// The strip and the sidebar keep each tab's menu opener by its value.
+    /// One whose menu went away kept it, and Shift+F10 on that tab ran it on a
+    /// box nothing draws: the key was taken and nothing opened.
+    @Test("Shift+F10 on a tab whose menu went away is not taken", arguments: [TabInteractionsLook.compact, .sidebar])
+    func shiftF10AfterTheMenuWentAway(look: TabInteractionsLook) {
+        let log = Log()
+        log.selected = 2
+        var hasMenu = true
+        func view() -> some View {
+            let tabs = TabView(selection: log.selection) {
+                Tab("One", value: 1) { Text("first") }
+                if hasMenu {
+                    Tab("Two", value: 2) { Text("second") }
+                        .contextMenu { Button("Pin") { log.entries.append("pin") } }
+                } else {
+                    Tab("Two", value: 2) { Text("second") }
+                }
+            }
+            return Group {
+                if look == .sidebar { tabs.tabViewStyle(.sidebarAdaptable) } else { tabs }
+            }
+        }
+        let harness = InputChainHarness(width: 50, height: 14)
+        harness.play([]) { view() }
+        hasMenu = false
+        let taken = harness.play([KeyEvent(key: .f10, shift: true)]) { view() }
+        #expect(taken == [false], "Shift+F10 was taken for a menu the tab no longer has")
+        #expect(!overlayText(harness.frame(view())).contains("Pin"))
+    }
+
     @Test("A tab's popover hangs from its chip or row", arguments: TabInteractionsLook.allCases)
     func popoverHangsFromTheTab(look: TabInteractionsLook) {
         let log = Log()

@@ -164,14 +164,27 @@ extension TabContent {
 
 /// The context menus a tab view's tabs carry, by tab value, as the keyboard
 /// opens them: the selected tab's, while the strip or the sidebar holds the
-/// focus. Each tab's host files its opener every frame it draws; a tab that
-/// left keeps a stale opener for a box nothing draws, which opens nothing.
+/// focus.
+///
+/// Filed afresh every frame: the strip (``_TabViewCore``'s
+/// `attachTabInteractions`) and the sidebar (``_TabSidebarMenuKeys``) start
+/// each render of theirs with ``beginFrame()``, and each tab's host files its
+/// opener as it draws. A tab whose menu went away — or that left — files
+/// nothing, so Shift+F10 on it opens nothing and goes on, as on a tab that
+/// never had a menu. Kept from frame to frame instead, its opener opened a
+/// menu on a box nothing drew and said it had: the key was taken and nothing
+/// appeared.
 @MainActor
 final class _TabMenuOpeners {
     private var openers: [AnyHashable: () -> Void] = [:]
 
     /// Made by the strip's handler, which is not on the main actor.
     nonisolated init() {}
+
+    /// Forgets every opener, before a render files this frame's.
+    func beginFrame() {
+        openers.removeAll(keepingCapacity: true)
+    }
 
     func file(_ opener: @escaping () -> Void, for value: AnyHashable) {
         openers[value] = opener
@@ -206,11 +219,13 @@ private enum TabInteractionsStateIndex {
 struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let traits: _TabInteractionTraits
-    /// The tab's value, which ``openers`` files its menu under.
+    /// The tab's value, which the openers file its menu under.
     let value: AnyHashable
     /// The tab's title, which a drag carries as its picture.
     let title: String
-    let openers: _TabMenuOpeners
+    /// Where the menu's opener is filed: the strip's, or `nil` for the
+    /// sidebar's, which ``_TabSidebarMenuKeys`` puts in the environment.
+    var openers: _TabMenuOpeners?
     /// Told whether a drop the tab takes is over it.
     var setTargeted: (Bool) -> Void = { _ in }
 
@@ -267,7 +282,8 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
             default: ContextMenuState())
         let state = stateBox.value
         let onOpen = context.environment.menuOpenAction
-        openers.file({ ContextMenuPresentation.openFromKeyboard(stateBox, onOpen: onOpen) }, for: value)
+        (openers ?? context.environment.tabMenuOpeners)?.file(
+            { ContextMenuPresentation.openFromKeyboard(stateBox, onOpen: onOpen) }, for: value)
 
         guard state.isOpen else {
             if state.needsSectionTeardown {
@@ -359,6 +375,7 @@ extension _TabViewCore {
             let handler = (context.stateStorage?.existingStorage(for: handlerKey) as StateBox<TabStripHandler>?)?.value
         else { return }
         let openers = handler.menuOpeners
+        openers.beginFrame()
         let hoverBox = hoveredTabBox(context: context)
         for region in regions {
             let tab = tabs[region.index]
@@ -410,5 +427,73 @@ extension _TabViewCore {
         default:
             return nil
         }
+    }
+}
+
+// MARK: - On a sidebar's rows
+
+/// `StateStorage` property indices for ``_TabSidebarMenuKeys``. Lifted out of
+/// the generic struct because Swift does not allow static stored properties in
+/// generic types. From 0: the content renders at a child identity.
+private enum TabSidebarMenuKeysStateIndex {
+    static let openers = 0
+}
+
+/// The sidebar's Shift+F10, over its list: opens the selected tab's context
+/// menu while the list has the focus — once the list has let the key go, as a
+/// command is heard.
+///
+/// It keeps the sidebar's ``_TabMenuOpeners`` and hands them to the rows'
+/// hosts through the environment, starting them afresh on every render. A
+/// render-time keeper rather than the list's `@State`, because the rows are
+/// built before anything renders and a `@State` initial value is built on
+/// every evaluation of the body that makes the list.
+struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
+    let content: Content
+    let selection: Binding<AnyHashable>
+
+    private typealias StateIndex = TabSidebarMenuKeysStateIndex
+
+    var body: Never { fatalError("_TabSidebarMenuKeys renders via Renderable") }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context.withChildIdentity(type: Content.self, index: 0))
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var contentContext = context.withChildIdentity(type: Content.self, index: 0)
+        guard !context.isMeasuring, let storage = context.stateStorage else {
+            return TUIkit.renderToBuffer(content, context: contentContext)
+        }
+        // A manual box, which nothing else hydrates: marked, or the end of
+        // the pass would hand the next frame a new, empty one.
+        storage.markActive(context.identity)
+        let openers = storage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.openers),
+            default: _TabMenuOpeners()
+        ).value
+        openers.beginFrame()
+        contentContext.environment.tabMenuOpeners = openers
+        let selection = self.selection
+        let keyed = FocusPathModifier(content: content, stage: .command) { _ in
+            { event in
+                guard event.key == .f10, event.shift else { return false }
+                return openers.open(selection.wrappedValue)
+            }
+        }
+        return TUIkit.renderToBuffer(keyed, context: contentContext)
+    }
+}
+
+private struct TabMenuOpenersKey: EnvironmentKey {
+    static let defaultValue: _TabMenuOpeners? = nil
+}
+
+extension EnvironmentValues {
+    /// Where a sidebar's rows file their tabs' context menus, for its
+    /// Shift+F10 (``_TabSidebarMenuKeys``).
+    var tabMenuOpeners: _TabMenuOpeners? {
+        get { self[TabMenuOpenersKey.self] }
+        set { self[TabMenuOpenersKey.self] = newValue }
     }
 }
