@@ -122,7 +122,10 @@ struct TerminalClientSimulationTests {
                 #expect(
                     !Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)),
                     "claimed to column 10 of 10, it advances to 12 on the way")
-                #expect(Self.keepsTheTone(Self.row("abcdef👍🏽", on: writer)), "with room for its peak it stays")
+                #expect(
+                    !Self.keepsTheTone(Self.row("abcdef👍🏽", on: writer)),
+                    "its peak ends on column 10 of 10, leaving the cursor no column past it to pull back from")
+                #expect(Self.keepsTheTone(Self.row("abcde👍🏽", on: writer)), "with room past its peak it stays")
             }
         }
     }

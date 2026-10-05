@@ -548,7 +548,11 @@ extension FrameDiffWriter {
     /// no cluster past its claim, so its rows take the plain clip. The guard
     /// matters with autowrap on or off: such a peak wraps the row into the next
     /// one, or, as TUIkit runs (`Terminal.outputModesOn`), pins the cursor at
-    /// the last column, and the pull-back after it then lands short.
+    /// the last column, and the pull-back after it then lands short. The
+    /// quirks' guard also replaces a peak that ends ON the last cell, which
+    /// leaves the cursor no column past it; Terminal.app's still keeps one
+    /// there, a bet made with autowrap on, which Apple Terminal keeps
+    /// (`Terminal.keepsAutowrap`) until its card.
     private func clippedToRightEdge(_ line: String, width: Int) -> (String, Int) {
         // `TerminalClient.simulatedQuirks` rather than ``model``: they outrank
         // everything else in it, and one static read is all a row that is not

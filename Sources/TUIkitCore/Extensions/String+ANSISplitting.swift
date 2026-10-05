@@ -469,6 +469,15 @@ extension String {
     /// claim but not its peak, at the edge, and the terminal wrapped it, or —
     /// with autowrap off, as TUIkit runs — pinned the cursor at the last
     /// column, so the pull-back after it moved the cursor too far.
+    ///
+    /// Stricter at the edge than Terminal.app's: a peak that ends ON the last
+    /// cell is replaced too (`peakMayEndAtEdge: false`). The repair needs the
+    /// cursor one column past the peak, and there is no such column: with
+    /// autowrap off the cursor is pinned on the last cell, and with it on an
+    /// xterm-family host holds it there with its wrap pending, so either way
+    /// the `CUB` lands a column short and the next cell overwrites the
+    /// cluster's right half. Terminal.app's clip keeps its older bet
+    /// (``exactAnsiAwarePrefixForTerminalAppWithWidth(visibleCount:peakMayEndAtEdge:)``).
     package func ansiAwarePrefixWithWidth(
         visibleCount: Int, guardingPeaksOf quirks: TerminalQuirks
     ) -> (prefix: String, visibleWidth: Int) {
@@ -480,7 +489,9 @@ extension String {
             let width = strippedLength
             if width <= visibleCount { return (self, width) }
         }
-        return exactAnsiAwarePrefixGuardingPeaks(visibleCount: visibleCount) { quirks.peakAdvance(of: $0) }
+        return exactAnsiAwarePrefixGuardingPeaks(visibleCount: visibleCount, peakMayEndAtEdge: false) {
+            quirks.peakAdvance(of: $0)
+        }
     }
 
     /// The Terminal.app clip with no fast path — the walk itself, kept
@@ -492,10 +503,21 @@ extension String {
     /// advance (👨‍👩‍👧‍👦: 11) never happens, so budgeting it would replace
     /// clusters that actually fit. Everything else peaks at Terminal.app's
     /// internal advance.
+    ///
+    /// - Parameter peakMayEndAtEdge: `true`, the shipping clip's bet since
+    ///   2026-08-28 (77b842dd3): a peak may end on the last cell, so a tag flag
+    ///   or bare keycap there is kept. Unmeasured — its edge card is still
+    ///   owed — and made with autowrap on, which Apple Terminal keeps
+    ///   (`Terminal.keepsAutowrap`) until that card. With autowrap off the bet
+    ///   is lost (see ``ansiAwarePrefixWithWidth(visibleCount:guardingPeaksOf:)``),
+    ///   so turning it off there means passing `false`; the tests pass `false`
+    ///   to pin the quirks explorer's Apple-shaped set to this walk.
     func exactAnsiAwarePrefixForTerminalAppWithWidth(
-        visibleCount: Int
+        visibleCount: Int, peakMayEndAtEdge: Bool = true
     ) -> (prefix: String, visibleWidth: Int) {
-        exactAnsiAwarePrefixGuardingPeaks(visibleCount: visibleCount) { character in
+        exactAnsiAwarePrefixGuardingPeaks(
+            visibleCount: visibleCount, peakMayEndAtEdge: peakMayEndAtEdge
+        ) { character in
             character.terminalAppWalkRewritesToClaim
                 ? character.terminalWidth : character.terminalAppCursorAdvance
         }
@@ -506,10 +528,14 @@ extension String {
     /// edge on the way, when it is replaced with plain spaces of its claimed
     /// width.
     ///
-    /// - Parameter peak: How far past its first column the cursor reaches
-    ///   while the host draws a cluster as its walk emits it.
+    /// - Parameters:
+    ///   - peakMayEndAtEdge: Whether a peak may end on the last cell, rather
+    ///     than having to stop short of it to leave the cursor a column to
+    ///     stand in before its repair.
+    ///   - peak: How far past its first column the cursor reaches while the
+    ///     host draws a cluster as its walk emits it.
     private func exactAnsiAwarePrefixGuardingPeaks(
-        visibleCount: Int, peak: (Character) -> Int
+        visibleCount: Int, peakMayEndAtEdge: Bool, peak: (Character) -> Int
     ) -> (prefix: String, visibleWidth: Int) {
         guard visibleCount > 0 else { return ("", 0) }
 
@@ -549,12 +575,15 @@ extension String {
                 // the row — and a kept tag flag inflated the tally by its
                 // pre-CUB surplus, substituting later clusters that fit.)
                 let advance = peak(character)
-                if advance > charWidth && visible + advance > visibleCount {
+                let peakRoom = peakMayEndAtEdge ? visibleCount : visibleCount - 1
+                if advance > charWidth && visible + advance > peakRoom {
                     // Over-advancer whose peak would push the host's cursor
-                    // past the right edge.  Replace with `charWidth` plain
-                    // spaces to preserve the layout but avoid the
-                    // wrap-to-next-row bug.  Skin tone is sacrificed in this
-                    // narrow case.
+                    // past the right edge (or onto it, where the cursor then
+                    // has no column past the peak to pull back from).
+                    // Replace with `charWidth` plain spaces to preserve the
+                    // layout but avoid the wrap-to-next-row bug, or the
+                    // short repair.  Skin tone is sacrificed in this narrow
+                    // case.
                     if charWidth > 0 {
                         result.append(String(repeating: " ", count: charWidth))
                     }

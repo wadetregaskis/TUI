@@ -420,8 +420,72 @@ struct QuirksRightEdgeClipTests {
             #expect(clipped.prefix == "abcdefg  ")
             #expect(clipped.visibleWidth == 9)
             #expect(line.ansiAwarePrefixWithWidth(visibleCount: 9).prefix == line, "the plain clip keeps it")
-            let roomy = line.ansiAwarePrefixWithWidth(visibleCount: 11, guardingPeaksOf: quirks)
-            #expect(roomy.prefix == line, "with room for its peak it stays")
+            let onTheEdge = line.ansiAwarePrefixWithWidth(visibleCount: 11, guardingPeaksOf: quirks)
+            #expect(onTheEdge.prefix == "abcdefg  ", "a peak that ends on the last cell leaves no column to pull back from")
+            let roomy = line.ansiAwarePrefixWithWidth(visibleCount: 12, guardingPeaksOf: quirks)
+            #expect(roomy.prefix == line, "with room past its peak it stays")
+        }
+    }
+
+    /// Where each visible cluster of `emission` starts drawing on a row
+    /// `width` cells wide, on a host with autowrap off (DECAWM reset) whose
+    /// advances `quirks` describe: a cluster moves the cursor by its advance
+    /// and no further than the last cell, where the cursor then stays; `CUB`
+    /// and `CUF` move it within the row; nothing else moves it.
+    private static func landings(of emission: String, width: Int, quirks: TerminalQuirks) -> [Int] {
+        var column = 0
+        var landed: [Int] = []
+        for segment in emission.ansiSegments() {
+            switch segment {
+            case .visible(let character):
+                landed.append(column)
+                column = min(column + quirks.cursorAdvance(of: character), width - 1)
+            case .ansi(let sequence, _):
+                guard sequence.hasPrefix("\u{1B}["), let final = sequence.last, final == "C" || final == "D",
+                    let count = Int(sequence.dropFirst(2).dropLast())
+                else { continue }
+                column = final == "C" ? min(column + count, width - 1) : max(column - count, 0)
+            }
+        }
+        return landed
+    }
+
+    /// The peak guard checked against the cursor rather than against its own
+    /// arithmetic: clipped, padded to the width as the diff writer pads it,
+    /// and compensated, every row puts every cell where its claims say. An
+    /// over-advancer whose peak ends on the last cell fails this when kept: the
+    /// cursor pinned there pulls back to one column short of its claim, and
+    /// the next cell overwrites the cluster's right half.
+    @Test(
+        "With autowrap off, a guarded row's cells all land where its claims put them",
+        arguments: ["skin tone", "tag flag"])
+    func guardedRowsLandOnTheirClaims(overAdvancer: String) {
+        let (quirks, cluster) =
+            overAdvancer == "skin tone"
+            ? (TerminalQuirks(skinTones: .pullBack), "👍🏽")
+            : (TerminalQuirks(tagFlags: true), "🏴\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}")
+        TerminalWidthTraits.withTraits(quirks.widthTraits) {
+            let peak = quirks.peakAdvance(of: Character(cluster))
+            for lead in 0...6 {
+                let line = String(repeating: "a", count: lead) + cluster + "z"
+                for width in 1...(lead + peak + 3) {
+                    let (clipped, clippedWidth) = line.ansiAwarePrefixWithWidth(
+                        visibleCount: width, guardingPeaksOf: quirks)
+                    let row = clipped + String(repeating: " ", count: max(0, width - clippedWidth))
+                    var claimed: [Int] = []
+                    var column = 0
+                    for character in row {
+                        claimed.append(column)
+                        column += character.terminalWidth
+                    }
+                    let landed = Self.landings(
+                        of: row.withCursorCompensation(for: quirks), width: width, quirks: quirks)
+                    #expect(landed == claimed, "\(lead) cells, then the \(overAdvancer), at width \(width)")
+                    if lead + peak < width {
+                        #expect(clipped.contains(cluster), "kept with a column to spare past its peak")
+                    }
+                }
+            }
         }
     }
 
@@ -448,7 +512,8 @@ struct QuirksRightEdgeClipTests {
     }
 
     /// The mirror pin, for the clip: dialled in as Apple Terminal, the quirks
-    /// explorer cuts every row exactly where the real host's clip does.
+    /// explorer cuts every row exactly where the real host's clip would with
+    /// autowrap off.
     @Test("The Apple-shaped set clips as Terminal.app's clip does", arguments: TerminalWidthCorpus.all)
     func appleShapeClipsAsTerminalApp(entry: TerminalWidthCorpus.Entry) {
         let apple = QuirkPermutationTests.sets.first { $0.0 == "apple" }!.1
@@ -456,7 +521,10 @@ struct QuirksRightEdgeClipTests {
             let line = "ab" + entry.text + "c"
             for width in 1...(line.strippedLength + 2) {
                 let guarded = line.ansiAwarePrefixWithWidth(visibleCount: width, guardingPeaksOf: apple)
-                let terminalApp = line.ansiAwarePrefixForTerminalAppWithWidth(visibleCount: width)
+                // With the explorer's rule at the edge: Terminal.app's clip
+                // still lets a peak end on the last cell.
+                let terminalApp = line.exactAnsiAwarePrefixForTerminalAppWithWidth(
+                    visibleCount: width, peakMayEndAtEdge: false)
                 #expect(
                     guarded.prefix == terminalApp.prefix && guarded.visibleWidth == terminalApp.visibleWidth,
                     "\(entry) at \(width)")

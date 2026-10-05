@@ -4905,9 +4905,18 @@ repair — Apple Terminal's tag flags and bare keycaps, a hand-built set's
 column, so the repair pulls back too far. Terminal.app's clip already replaced
 such a cluster with spaces of its claim. The quirks explorer's hand-built sets
 (`TerminalClient.simulatedQuirks`) now get the same guard, priced by
-`TerminalQuirks.peakAdvance(of:)`; the Apple-shaped set clips exactly as
-Terminal.app's clip does over the whole width corpus
-(`QuirksRightEdgeClipTests`). The measured hosts other than Apple Terminal
+`TerminalQuirks.peakAdvance(of:)`, and one cell stricter: a peak that ends ON
+the last cell is replaced too, because the repair needs the cursor a column
+past the peak and none exists (pinned with autowrap off; held there with its
+wrap pending on an xterm-family host with it on), so the `CUB` lands a column
+short and the next cell overwrites the cluster's right half.
+`QuirksRightEdgeClipTests` checks it against a cursor model rather than its own
+arithmetic — every cell of a clipped, padded, compensated row lands on its
+claim — and pins the Apple-shaped set to Terminal.app's clip with the same rule
+at the edge over the whole width corpus. Terminal.app's own clip still keeps a
+peak that ends on the last cell, the bet it has made since 2026-08-28 with
+autowrap on (unmeasured; its edge card is owed), so Apple Terminal keeps
+autowrap on until its card (above). The measured hosts other than Apple Terminal
 advance no cluster past its claim, except Warp's keycaps, its EAW-base VS-16
 exceptions and its tag flag, which no escape can repair and which still go
 out unguarded.
