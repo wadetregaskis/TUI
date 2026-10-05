@@ -7,7 +7,7 @@ in its format, for the Phase 2 steps of
 2026-10-05.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Three.
+- **B. Shipped the safe option.** Four.
 - **C. Declined without asking.** None.
 
 ## B. Shipped the safe option
@@ -72,3 +72,20 @@ keyboards have neither key, so this is a choice about other keyboards only.
 
 **The alternative:** decode them without `.numericPad`, matching what the
 protocol would deliver. Five minutes either way.
+
+### B-G2-4. A terminal left non-blocking is waited on as long as a blocking write would wait
+
+*Review of V2 (O1).*
+
+**Shipped:** a frame write that meets `EAGAIN` (a terminal a crashed program
+left `O_NONBLOCK`) polls for room and carries on, with no deadline
+(`Terminal.writeAll`, `waitForRoom(on:until:)`). That is exactly what a
+blocking write, the normal case, does: it never gives up on a terminal that
+reads slowly, and it hangs on one that stops reading, as TUIkit always has.
+The review suggested a short deadline before the end marker's retry.
+
+**The alternative:** a deadline, about ten minutes' work. It would keep the app
+responsive while a terminal is not reading, at the price of a torn frame and,
+for a held one, an end marker that cannot be sent either, which is the freeze
+the change removes. Worth it only if a terminal is found that stops reading
+for long while the app should go on running.
