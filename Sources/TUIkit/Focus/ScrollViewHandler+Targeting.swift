@@ -14,7 +14,11 @@
 /// every scroll view without one pays: one test a step.
 struct ScrollViewTargeting {
     /// The behaviour, and what its contexts read: the scroll view's axes and
-    /// environment.
+    /// environment — without the framework's own objects
+    /// (``EnvironmentValues/detachedFromRuntime()``). The handler is in the
+    /// state storage, and the environment whole holds the storage, the render
+    /// cache, the focus manager and the dispatchers: kept here, it was a cycle
+    /// that outlived the app.
     let behavior: any ScrollTargetBehavior
     let axes: Axis.Set
     let environment: EnvironmentValues
@@ -144,7 +148,7 @@ extension _ScrollViewCore {
         }
         let previous = handler.scrollTargeting
         handler.scrollTargeting = ScrollViewTargeting(
-            behavior: behavior, axes: axes, environment: context.environment,
+            behavior: behavior, axes: axes, environment: context.environment.detachedFromRuntime(),
             width: previous?.width ?? 0, rows: previous?.rows ?? .none, columns: previous?.columns ?? .none)
     }
 

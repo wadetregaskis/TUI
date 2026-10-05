@@ -285,3 +285,69 @@ extension EnvironmentValues {
         }
     }
 }
+
+// MARK: - Detaching From the Runtime
+
+extension EnvironmentValues {
+    /// This environment without the framework's own objects: the runtime
+    /// services ``applyRuntimeServices(from:)`` wires, the app's managers the
+    /// render loop adds, the per-pass trackers, and the per-subtree objects a
+    /// presentation or a control hands down to the views it draws.
+    ///
+    /// For an environment kept PAST the render that handed it over, on
+    /// something the state storage holds: a scroll view keeps its environment
+    /// on its handler for the scroll target behaviour it asks at event time
+    /// (`ScrollViewTargeting`). Each of these objects reaches the state
+    /// storage, or is reached from it, so kept there whole the environment was
+    /// a cycle — storage, box, handler, environment, storage — and an app's
+    /// state, render cache, focus manager and dispatchers outlived it.
+    ///
+    /// What is left is every value an app can state and a behaviour can read:
+    /// the size classes, the layout direction, the app's own keys and objects.
+    /// None of the objects cleared is one an app reads from a behaviour; each
+    /// is the framework's.
+    func detachedFromRuntime() -> EnvironmentValues {
+        var detached = self
+        // `applyRuntimeServices(from:)`.
+        detached.keyboardShortcutRegistry = nil
+        detached.stateStorage = nil
+        detached.lifecycle = nil
+        detached.keyEventDispatcher = nil
+        detached.synthesizeKeyEvent = nil
+        detached.mouseEventDispatcher = nil
+        detached.dragAndDropSession = nil
+        detached.typedClipboard = nil
+        detached.tooltipState = nil
+        detached.terminalImageStore = nil
+        detached.renderCache = nil
+        detached.preferenceStorage = nil
+        // The render loop's managers and per-frame objects.
+        detached.statusBar = nil
+        detached.appHeader = nil
+        detached.focusManager = nil
+        detached.paletteManager = nil
+        detached.appearanceManager = nil
+        detached.notificationService = nil
+        detached.cursorTimer = nil
+        detached.animationScheduler = nil
+        detached.volatileReadTracker = nil
+        // Handed down to a subtree by what encloses it.
+        detached.scrollContentWindow = nil
+        detached.scrollToRegistry = nil
+        detached.scrollPositionBinding = nil
+        detached.scrollObservers = ScrollObservers()
+        detached.navigationCoordinator = nil
+        detached.dismissalGate = nil
+        detached.dialogSuppression = nil
+        detached.menuRowSink = nil
+        detached.assignedFocusID = nil
+        detached.assignedKeyboardShortcut = nil
+        detached.focusHandoffOffer = nil
+        detached.preferredFocusOffer = nil
+        detached.listRowEditRestrictions = nil
+        detached.searchDismissal = nil
+        detached.searchFocusOffer = nil
+        detached.searchScopeBar = nil
+        return detached
+    }
+}
