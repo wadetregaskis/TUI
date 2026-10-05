@@ -86,21 +86,22 @@ whose children are all erased: every child walk opens the existential and asks
 it for a provider conformance. Half a day, and an A/B on `anyview`, `deep` and
 `modifiers` before it lands.
 
-### B-D1S-4. A list offers no editing over rows of several views
+### B-D1S-4. A list offers no reordering over rows of several views
 
-*`ForEach.onDelete(perform:)`, `ForEach.onMove(perform:)`, `List`*
+*`ForEach.onMove(perform:)`, `List`*
 
 A `ForEach` row of several views is now several list rows (B15), each selected
-by its element. A list's editing owner maps one list row to one offset in the
-loop's collection, so for such a loop the list attaches no `.onDelete` /
-`.onMove` at all, rather than hand an action the offset of a row that is not
-an element: Delete on one of the rows does nothing, and none of them can be
-dragged to reorder. SwiftUI deletes the element (every one of its rows) and
-moves the element's rows together.
+by its element. A delete on any of an element's rows removes that element, as
+SwiftUI's does (measured, `D1S/probe2/listdel`): the list's editing owner says
+which element each row draws (`ListRowElements`). A reorder moves rows, and an
+element's rows must move together and land between elements, so for such a
+loop the list does not offer `.onMove` yet: none of its rows can be dragged or
+picked up to reorder.
 
-**The fuller version.** The owner carries the rows per element: a delete on any
-of an element's rows removes that element, and a move picks up all of its rows
-and lands between elements, never inside one. Half a day with the tests.
+**The fuller version.** A move picks up all of an element's rows (the
+handler's held rows grown to whole elements) and lands only between elements
+(every landing slot snapped to an element boundary), and the owner turns the
+rows and the slot into the elements' offsets.
 
 ### B-D1S-5. A loop whose rows vary is built to be counted
 

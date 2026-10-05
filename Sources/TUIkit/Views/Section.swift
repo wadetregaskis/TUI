@@ -405,6 +405,10 @@ struct SectionContentRows<RowID: Hashable> {
     /// editing gestures through it (an owner per loop, with its row span) is
     /// a change of its own, and until it is made the refusal stands.
     var actions: (any DynamicViewContentActions)?
+
+    /// Which element of the loop each row draws, for ``actions`` — one row per
+    /// element, or a row's several views (decisions B15).
+    var elements: ListRowElements = .onePerRow
 }
 
 /// Metadata about a section for List rendering.
@@ -512,25 +516,37 @@ extension Section: ListRowExtractor {
         // Only when the content IS the `ForEach`, seen through those wrappers:
         // `resolveChildViews` flattens a `ForEach` sitting among static rows,
         // so in that arrangement no row can be attributed to it and this is
-        // `nil` (see ``SectionContentRows/actions``). Nor when its rows are
-        // several list rows per element: an offset names one row.
-        let oneRowPerElement =
-            (content as? any WindowedListRowExtractor).map { $0.listRowsPerElement == 1 } ?? true
+        // `nil` (see ``SectionContentRows/actions``). A loop whose rows are
+        // several views each says which element each row draws: the same
+        // number from each, or — rows that vary — the run its key names.
+        let unwrapped: (rows: [ListRow<RowID>], rowKeys: [String?]?) = unwrappedListRows(
+            of: content, context: context)
+        let actions = content as? any DynamicViewContentActions
+        let elements: ListRowElements?
+        switch (content as? any WindowedListRowExtractor)?.listRowsPerElement {
+        case .some(let perElement) where perElement > 1: elements = .perElement(perElement)
+        case .some: elements = .onePerRow
+        case .none where content is any WindowedListRowExtractor:
+            elements = (content as? any KeyedLoop).flatMap { loop in
+                unwrapped.rowKeys.flatMap { ListRowElements.listed(rowKeys: $0, of: loop) }
+            }
+        case .none: elements = .onePerRow
+        }
         return SectionContentRows(
-            rows: unwrappedListRows(of: content, context: context),
-            actions: oneRowPerElement ? content as? any DynamicViewContentActions : nil)
+            rows: unwrapped.rows, actions: elements == nil ? nil : actions, elements: elements ?? .onePerRow)
     }
 
-    /// ``listRows(of:context:)``'s rows once the wrappers are off.
+    /// ``listRows(of:context:)``'s rows once the wrappers are off, with each
+    /// row's identity key where they came from the child walk.
     private static func unwrappedListRows<V: View, RowID: Hashable>(
         of content: V, context: RenderContext
-    ) -> [ListRow<RowID>] {
+    ) -> (rows: [ListRow<RowID>], rowKeys: [String?]?) {
         // Delegate to content if it's a ListRowExtractor (e.g., ForEach)
         // — unless its rows make a number of list rows only each row knows,
         // which the child walk below reads (decisions B15).
         let rowsVary = (content as? any WindowedListRowExtractor).map { $0.listRowsPerElement == nil } ?? false
         if let extractor = content as? ListRowExtractor, !rowsVary {
-            return extractor.extractListRows(context: context)
+            return (extractor.extractListRows(context: context), nil)
         }
 
         // Static children (a TupleView of rows, perhaps with a `ForEach`
@@ -548,6 +564,7 @@ extension Section: ListRowExtractor {
             // A `Section` nested in the content whole, as the list's own walk
             // keeps its sections (`RenderContext.keepsSectionsWhole`): one row.
             var rows: [ListRow<RowID>] = []
+            var rowKeys: [String?] = []
             let children = resolveChildViews(from: content, context: context.keepingSectionsWhole())
             let rowIDs = FlattenedRowIDs<RowID>(content: content, children: children, sectionsWhole: true)
             for (index, child) in children.enumerated() where !child.isSpacer {
@@ -574,18 +591,21 @@ extension Section: ListRowExtractor {
                 let row = ListRow(askedID: rowID, buffer: buffer, badge: badge)
                 row.content.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
                 rows.append(row)
+                rowKeys.append(child.identityChildKey)
             }
-            return rows
+            return (rows, rowKeys)
         }
 
         // Fallback: render content as a single row, carrying its badge.
         let badge = extractBadgeValue(from: content)
         let buffer = TUIkit.renderToBuffer(content, context: context)
-        guard !buffer.lines.isEmpty else { return [] }
-        return [
-            ListRow(
-                id: staticListRowID(of: content, ordinal: 0, as: RowID.self), buffer: buffer,
-                badge: badge)
-        ]
+        guard !buffer.lines.isEmpty else { return ([], nil) }
+        return (
+            [
+                ListRow(
+                    id: staticListRowID(of: content, ordinal: 0, as: RowID.self), buffer: buffer,
+                    badge: badge)
+            ], nil
+        )
     }
 }

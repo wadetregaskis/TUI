@@ -43,16 +43,79 @@ protocol DynamicViewContentActions {
 /// difference — the list row at which the collection's element 0 is drawn.
 ///
 /// One owner per editable `ForEach`, and its rows are contiguous by
-/// construction (a `ForEach` draws its elements in order, one row each), which
-/// is what lets a span stand in for the whole mapping.
+/// construction (a `ForEach` draws its elements in order), which is what lets
+/// a span stand in for the whole mapping — with ``elements`` saying which
+/// element each row draws, for a loop whose rows are several views each
+/// (decisions B15): a delete on any of an element's rows removes that element,
+/// as SwiftUI's does (measured on macOS 15.8, `D1S/probe2/listdel`: the second
+/// view of an element selected, `delete:` hands `.onDelete` that element's
+/// offset and both of its rows go).
 struct ListRowEditOwner {
     /// The actions the owning `ForEach` carries.
     let actions: any DynamicViewContentActions
 
-    /// The list rows its elements occupy — `rows.lowerBound + offset` is the
-    /// row drawing element `offset`, and `row - rows.lowerBound` the offset of
-    /// a row.
+    /// The list rows its elements occupy — `row - rows.lowerBound` is a row's
+    /// place among them, which ``elements`` maps to the element it draws.
     let rows: Range<Int>
+
+    /// Which element each of ``rows`` draws.
+    var elements: ListRowElements = .onePerRow
+
+    /// The offset in the loop's collection of the element row `row` draws.
+    func elementOffset(ofRow row: Int) -> Int {
+        let place = row - rows.lowerBound
+        switch elements {
+        case .onePerRow: return place
+        case .perElement(let count): return place / max(1, count)
+        case .listed(let offsets): return offsets[place]
+        }
+    }
+
+    /// The offsets of the elements `rows` draw, each once — the rows outside
+    /// this owner's span left out, as an offset into another collection would
+    /// be wrong.
+    func elementOffsets(ofRows rows: some Sequence<Int>) -> IndexSet {
+        IndexSet(rows.filter { self.rows.contains($0) }.map(elementOffset(ofRow:)))
+    }
+
+    /// Whether every element draws exactly one row, so a row's place IS its
+    /// element's offset — what a reorder, which moves rows, needs.
+    var isOneRowPerElement: Bool {
+        if case .onePerRow = elements { return true }
+        return false
+    }
+}
+
+/// Which element of its `ForEach` each of a ``ListRowEditOwner``'s rows draws.
+enum ListRowElements {
+    /// One row per element: a row's place among the owner's rows is its
+    /// element's offset.
+    case onePerRow
+    /// The same number of rows from every element — `Group { a; b }`, a row
+    /// of two views.
+    case perElement(Int)
+    /// Each row's element offset, by its place — a loop whose rows make a
+    /// number of views only each row knows (an `if` among them, a loop).
+    case listed([Int])
+
+    /// The elements a loop's rows draw, from the rows' keys: each element in
+    /// turn owns the run of rows carrying its key (``ChildView/keyedAsMember``
+    /// keys every view of a row of several by its element) — or `nil` when a
+    /// row carries no element's key in that order, and so cannot be attributed.
+    @MainActor
+    static func listed(rowKeys: [String?], of loop: any KeyedLoop) -> Self? {
+        var offsets: [Int] = []
+        offsets.reserveCapacity(rowKeys.count)
+        var place = 0
+        for element in 0..<loop.keyedElementCount {
+            let key = loop.keyedRowKey(ofElement: element)
+            while place < rowKeys.count, rowKeys[place] == key {
+                offsets.append(element)
+                place += 1
+            }
+        }
+        return place == rowKeys.count ? .listed(offsets) : nil
+    }
 }
 
 extension ForEach: DynamicViewContentActions where Content: View {

@@ -1603,14 +1603,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     let owner = editOwners.first(where: { $0.rows.contains(first) }),
                     let delete = owner.actions.deleteAction
                 else { return }
-                delete(
-                    IndexSet(
-                        rows.filter { owner.rows.contains($0) }
-                            .map { $0 - owner.rows.lowerBound }))
+                // By element: a row of a loop whose rows are several views each
+                // deletes the element it draws, every one of its rows with it.
+                delete(owner.elementOffsets(ofRows: rows))
             } : nil
         handler.movableRowSpan = { row in
+            // Not yet for a loop whose rows are several views each: a reorder
+            // moves rows, and such an element's rows must move together.
             guard let owner = editOwners.first(where: { $0.rows.contains(row) }),
-                owner.actions.moveAction != nil
+                owner.actions.moveAction != nil, owner.isOneRowPerElement
             else { return nil }
             return owner.rows
         }
@@ -3279,7 +3280,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let rowsPerElement = windowed?.listRowsPerElement
         if let windowed, windowed.listRowsAreSections || rowsPerElement == nil {
             let extracted = extractFromChildren(of: content, context: context)
-            return .eager(extracted.rows, editOwners: extracted.editOwners)
+            // A loop of sections hands its sections' loops the editing; one
+            // whose rows vary owns its rows itself, each element the run of
+            // rows its key names.
+            let loopOwner =
+                windowed.listRowsAreSections
+                ? nil : Self.varyingLoopEditOwner(of: content, rowKeys: extracted.rowKeys)
+            return .eager(extracted.rows, editOwners: extracted.editOwners + (loopOwner.map { [$0] } ?? []))
         }
 
         // Windowed path (ForEach): the row count is known in O(1) and each row's
@@ -3299,7 +3306,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     count: count,
                     allContent: true,
                     signature: windowed.listRowsSignature,
-                    editOwners: Self.editOwner(of: content, rows: 0..<count).map { [$0] } ?? [],
+                    editOwners: Self.editOwner(of: content, rows: 0..<count, rowsPerElement: rowsPerElement)
+                        .map { [$0] } ?? [],
                     typeAt: { index in
                         // Force-unwrap is safe: row 0 resolved and the data is
                         // id-homogeneous, so every index resolves as SelectionValue.
@@ -3320,9 +3328,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     SelectableListRow(
                         type: $0.id.map { .content(id: $0) } ?? .unselectable, content: $0.content)
                 },
-                // One row per element here too: `extractListRows` keeps a row
-                // whose id will not cast, as an unselectable one.
-                editOwners: Self.editOwner(of: content, rows: 0..<rows.count).map { [$0] } ?? [])
+                // One row per element here too (or the same number of each
+                // element's views): `extractListRows` keeps a row whose id will
+                // not cast, as an unselectable one.
+                editOwners: Self.editOwner(of: content, rows: 0..<rows.count, rowsPerElement: rowsPerElement ?? 1)
+                    .map { [$0] } ?? [])
         }
 
         // ChildViewProvider (TupleView with multiple children). The *view*
@@ -3386,6 +3396,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ) -> ExtractedRows {
         var result: [EagerListRow<SelectionValue>] = []
         var editOwners: [ListRowEditOwner] = []
+        var rowKeys: [String?] = []
         // These rows render HERE rather than through a deferred box, so this is
         // where a ramp spanning the list has to place them. There are only ever
         // a handful and none is deferred, so unlike the windowed path this can
@@ -3443,6 +3454,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     firstRowIndex: result.count)
                 result.append(contentsOf: extracted.rows)
                 editOwners.append(contentsOf: extracted.editOwners)
+                rowKeys += repeatElement(nil, count: extracted.rows.count)
                 continue
             }
 
@@ -3471,9 +3483,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 EagerListRow(
                     asked: rowIDs.askedID(ofChildAt: childIndices[childIndex], ordinal: result.count),
                     content: rowContent))
+            rowKeys.append(child.identityChildKey)
         }
 
-        return ExtractedRows(rows: result, editOwners: editOwners)
+        return ExtractedRows(rows: result, editOwners: editOwners, rowKeys: rowKeys)
     }
 
     /// A list's eagerly-extracted rows together with the editable `ForEach`es
@@ -3486,6 +3499,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     private struct ExtractedRows {
         var rows: [EagerListRow<SelectionValue>] = []
         var editOwners: [ListRowEditOwner] = []
+        /// Each row's identity key — `nil` for a row with none, and for every
+        /// row a `Section` among the children spliced in — which is how a loop
+        /// whose rows vary attributes its rows to its elements
+        /// (``ListRowElements/listed(rowKeys:of:)``).
+        var rowKeys: [String?] = []
     }
 
     /// The owner record for a `ForEach` that IS a list's whole content, or
@@ -3494,18 +3512,33 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// `nil` rather than an owner with two `nil` actions so the common list —
     /// which is not editable at all — carries an empty array and every lookup
     /// against it answers immediately.
-    private static func editOwner<V: View>(of content: V, rows: Range<Int>) -> ListRowEditOwner? {
-        // A loop whose rows are several views each draws several list rows per
-        // element, where an owner maps one row to one offset: its editing
-        // gestures are refused rather than handed the wrong element
-        // (decisions D1S).
-        if let windowed = content as? WindowedListRowExtractor, windowed.listRowsPerElement != 1 {
-            return nil
-        }
+    ///
+    /// - Parameter rowsPerElement: The list rows each element draws — one, or
+    ///   a row's several views (decisions B15) — as the caller already asked
+    ///   the loop.
+    private static func editOwner<V: View>(
+        of content: V, rows: Range<Int>, rowsPerElement: Int
+    ) -> ListRowEditOwner? {
         guard let actions = content as? any DynamicViewContentActions,
             actions.deleteAction != nil || actions.moveAction != nil
         else { return nil }
-        return ListRowEditOwner(actions: actions, rows: rows)
+        return ListRowEditOwner(
+            actions: actions, rows: rows,
+            elements: rowsPerElement == 1 ? .onePerRow : .perElement(rowsPerElement))
+    }
+
+    /// The owner record for a `ForEach` that is a list's whole content and
+    /// whose rows make a number of list rows only each row knows: each element
+    /// owns the run of rows carrying its key. `nil` when it carries neither
+    /// action, or when a row cannot be attributed (one a `Section` in a row
+    /// spliced in), which refuses the gestures rather than guess.
+    private static func varyingLoopEditOwner<V: View>(of content: V, rowKeys: [String?]) -> ListRowEditOwner? {
+        guard let actions = content as? any DynamicViewContentActions,
+            actions.deleteAction != nil || actions.moveAction != nil,
+            let loop = content as? any KeyedLoop,
+            let elements = ListRowElements.listed(rowKeys: rowKeys, of: loop)
+        else { return nil }
+        return ListRowEditOwner(actions: actions, rows: 0..<rowKeys.count, elements: elements)
     }
 
     /// The `Section` this child is, or `nil` — seeing past `ForEach`'s value
@@ -3575,7 +3608,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             editOwners.append(
                 ListRowEditOwner(
                     actions: actions,
-                    rows: firstItemRow..<(firstRowIndex + rows.count)))
+                    rows: firstItemRow..<(firstRowIndex + rows.count),
+                    elements: items.elements))
         }
 
         // Footer (non-selectable)
