@@ -63,8 +63,23 @@ public protocol TableRowContent<TableRowValue>: _TableRowValued {
 /// You don't use this type directly: it is what
 /// ``TableRowContent/_appendRows(_:to:)`` appends to.
 public struct _TableRowList<Value: Identifiable> {
+    /// The rows' values, in order: the whole table, when it is not a tree.
+    private(set) var values: [Value] = []
+
+    /// The rows as nodes, once one of them has needed to be more than its
+    /// value — a branch, or a row a row modifier reached — and `nil` until
+    /// then, with ``values`` as the whole of the list.
+    ///
+    /// A flat list of plain rows, which a `ForEach` of `TableRow`s makes, is
+    /// nearly every list, and a node per row — built, then mapped back to its
+    /// value for the table — was about a third of the body evaluation of such
+    /// a table. When it is set it has one node per value, in order.
+    private var builtNodes: [_TableRowNode<Value>]?
+
     /// The rows, in order.
-    private(set) var nodes: [_TableRowNode<Value>] = []
+    var nodes: [_TableRowNode<Value>] {
+        builtNodes ?? values.map { _TableRowNode(value: $0, children: nil, isExpanded: nil) }
+    }
 
     /// Whether any row has rows beneath it — only then is the table an outline.
     private(set) var isTree = false
@@ -77,27 +92,29 @@ public struct _TableRowList<Value: Identifiable> {
     /// each with the rows it drew.
     private(set) var insertions: [_TableRowInsertion] = []
 
-    /// The rows' values, in order: the whole table, when it is not a tree.
-    var values: [Value] { nodes.map(\.value) }
-
     /// The rows' traits, in order, or `nil` when no row modifier reached them.
-    var traits: [_TableRowTraits]? { hasTraits ? nodes.map(\.traits) : nil }
+    var traits: [_TableRowTraits]? { hasTraits ? nodes.map { $0.traits } : nil }
 
     /// Appends a row with nothing beneath it.
     mutating func append(_ value: Value) {
-        nodes.append(_TableRowNode(value: value, children: nil, isExpanded: nil))
+        values.append(value)
+        builtNodes?.append(_TableRowNode(value: value, children: nil, isExpanded: nil))
     }
 
     /// Appends rows with nothing beneath them.
-    mutating func append<S: Sequence>(contentsOf values: S) where S.Element == Value {
-        nodes += values.lazy.map { _TableRowNode(value: $0, children: nil, isExpanded: nil) }
+    mutating func append<S: Sequence>(contentsOf newValues: S) where S.Element == Value {
+        let start = values.endIndex
+        values += newValues
+        builtNodes? += values[start...].lazy.map { _TableRowNode(value: $0, children: nil, isExpanded: nil) }
     }
 
     /// Appends a row of a tree — a branch, or a leaf beside one — which makes
     /// the table an outline.
     mutating func append(treeNode node: _TableRowNode<Value>) {
         isTree = true
-        nodes.append(node)
+        buildNodes()
+        values.append(node.value)
+        builtNodes?.append(node)
     }
 
     /// Appends another list's rows, and its loops' insertions at the rows
@@ -105,18 +122,22 @@ public struct _TableRowList<Value: Identifiable> {
     mutating func append(contentsOf other: _TableRowList<Value>) {
         isTree = isTree || other.isTree
         hasTraits = hasTraits || other.hasTraits
-        let base = nodes.count
+        let base = values.count
         insertions += other.insertions.map { insertion in
             var moved = insertion
             moved.rows = (insertion.rows.lowerBound + base)..<(insertion.rows.upperBound + base)
             return moved
         }
-        nodes += other.nodes
+        if builtNodes != nil || other.builtNodes != nil {
+            buildNodes()
+            builtNodes? += other.nodes
+        }
+        values += other.values
     }
 
     /// Makes every row here one loop that takes payloads in between its rows.
     mutating func addInsertion(accepts: @escaping (Any) -> Bool, perform: @escaping (Int, [Any]) -> Void) {
-        insertions.append(_TableRowInsertion(rows: 0..<nodes.count, accepts: accepts, perform: perform))
+        insertions.append(_TableRowInsertion(rows: 0..<values.count, accepts: accepts, perform: perform))
     }
 
     /// Applies a row modifier to every row here, and to every row beneath
@@ -124,7 +145,12 @@ public struct _TableRowList<Value: Identifiable> {
     @MainActor
     mutating func modifyTraits(_ apply: @escaping (inout _TableRowTraits) -> Void) {
         hasTraits = true
-        nodes = nodes.map { $0.applying(apply) }
+        builtNodes = nodes.map { $0.applying(apply) }
+    }
+
+    /// Gives every row its node, from here on.
+    private mutating func buildNodes() {
+        if builtNodes == nil { builtNodes = nodes }
     }
 }
 
