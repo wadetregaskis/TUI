@@ -482,6 +482,16 @@ jobs:
       - name: Install Python
         run: apt-get update && apt-get install -y python3 python3-venv
 
+      # The swift-syntax range's floor, and its prebuilts (decisions B-D6M-2):
+      # unpinned, SwiftPM resolves the newest swift-syntax in range and
+      # compiles it, while it takes swift-syntax prebuilt only at 602.0.0 on a
+      # 6.2 toolchain. Pinning it on this lane keeps the prebuilt here and
+      # builds and tests TUIkitMacros against the oldest swift-syntax the
+      # range allows; every other lane tests the newest.
+      - name: Pin swift-syntax to the range's floor
+        if: matrix.image == 'swift:6.2-noble'
+        run: swift package resolve swift-syntax --version 602.0.0
+
       - name: Build
         run: swift build --build-tests
 

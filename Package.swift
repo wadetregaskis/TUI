@@ -29,8 +29,11 @@ let package = Package(
 
         // ── SwiftUI's `@Animatable` macros, opt-in (decisions A52) ──────────────────────────────────────
         // A product of their own, so that only an app that depends on it builds
-        // the compiler plugin and swift-syntax: SwiftPM resolves dependencies by
-        // target, and a client of `TUIkit` alone never fetches swift-syntax.
+        // the compiler plugin and swift-syntax: SwiftPM builds by target, and a
+        // client of `TUIkit` alone compiles none of swift-syntax. It does still
+        // RESOLVE and fetch it (measured: resolution is by package, so the
+        // repository is cloned into such a client's checkouts), which is why
+        // the version range below is kept wide.
         .library(name: "TUIkitMacros", targets: ["TUIkitMacros"]),
 
         // ── App ─────────────────────────────────────────────────────────────────────────────────────────
@@ -48,11 +51,18 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.3"),
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.5.1"),
-        // For the `TUIkitMacros` product's compiler plugin only. The release
-        // line of the oldest toolchain the package supports (602 is Swift
-        // 6.2's), which SwiftPM 6.2 and later take prebuilt where one is
-        // published rather than compiling it.
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
+        // For the `TUIkitMacros` product's compiler plugin only. From the
+        // release line of the oldest toolchain the package supports (602 is
+        // Swift 6.2's) up to the next major, as macro packages commonly take
+        // it: every client of TUIkit resolves this range, macros or not, so a
+        // narrower one would refuse any app that also depends on a package
+        // wanting a newer swift-syntax (a 602..<603 cap did, measured with
+        // one requiring `from: "603.0.0"`). SwiftPM resolves the newest in
+        // range; it takes swift-syntax PREBUILT only for 602.0.0 on a Swift
+        // 6.2 toolchain (Linux and Windows; measured: no prebuilts published
+        // for 603 or 604), so an app on 6.2 that wants them pins
+        // `exact: "602.0.0"` itself. See decisions B-D6M-2.
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"700.0.0"),
         // ordo-one/benchmark is added conditionally at the bottom of this file
         // (gated on TUIKIT_BENCHMARKS), so the default build/test graph stays
         // free of its plugin's upstream deprecation warnings and the jemalloc
