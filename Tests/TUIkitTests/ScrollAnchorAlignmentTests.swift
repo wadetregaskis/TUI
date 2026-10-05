@@ -207,7 +207,14 @@ struct ScrollAnchorAlignmentTests {
         #expect(reported?.contentInsets.top == 5)
         #expect(reported?.contentOffset.y == -5)
         #expect(reported?.contentSize.height == 3)
+        // The room is inset but does not come off the container, so the
+        // visible rect is taller than the view by it: SwiftUI's numbers,
+        // measured on macOS 15 (three 20-point rows at the bottom of a
+        // 300-point view: container 300, visibleRect 540 from -240, bounds 300
+        // from -240).
         #expect(reported?.containerSize.height == Self.viewport)
+        #expect(reported?.visibleRect.y == -5 && reported?.visibleRect.height == Self.viewport + 5)
+        #expect(reported?.bounds.y == -5 && reported?.bounds.height == Self.viewport)
     }
 
     // MARK: - List and Table ignore it, as macOS's do

@@ -26,13 +26,22 @@ import TUIkitView
 /// - ``contentSize`` is the content's own size, margins not included.
 /// - ``contentInsets`` are the content margins (and a `safeAreaPadding` along
 ///   the scrolling axes).
-/// - ``containerSize`` is the area the content is seen through, less those
-///   insets. Here that area is the viewport less what the scroll indicators
-///   take — a bar's column or row, the "N more" lines when they are reserved —
-///   since a terminal's bars are cells of the viewport, not overlays.
+/// - ``containerSize`` is the area the content is seen through, less the
+///   content margins. Here that area is the viewport less what the scroll
+///   indicators take — a bar's column or row, the "N more" lines when they are
+///   reserved — since a terminal's bars are cells of the viewport, not overlays.
 ///
 /// So `contentOffset.y + containerSize.height + contentInsets.bottom` reaches
 /// `contentSize.height + contentInsets.bottom` exactly at the bottom.
+///
+/// Content shorter than the view and placed lower down it by its alignment
+/// anchor (``ScrollAnchorRole/alignment``) reports the room above it as more
+/// top inset, with the offset above it, and that room does NOT come off
+/// ``containerSize``: SwiftUI's reading, measured on macOS 15 — three 20-point
+/// rows at the bottom of a 300-point view report a container of 300, a top
+/// inset of 240 and an offset of -240, so ``visibleRect`` is 540 tall and
+/// ``bounds`` is 300 tall from -240. The sum above still holds: the offset and
+/// the container reach the content's end.
 public struct ScrollGeometry: Equatable, Sendable {
     /// Where the scroll view is in its content: the column and row of the
     /// content at the top-leading corner of ``bounds``.
@@ -45,8 +54,9 @@ public struct ScrollGeometry: Equatable, Sendable {
     /// area.
     public var contentInsets: EdgeInsets
 
-    /// The size of the area the content is seen through, less
-    /// ``contentInsets``.
+    /// The size of the area the content is seen through, less the content
+    /// margins among ``contentInsets`` (not the alignment room, which SwiftUI
+    /// reports as inset without taking it off — see the type's discussion).
     public var containerSize: CellSize
 
     /// Creates a scroll geometry.
@@ -69,7 +79,8 @@ public struct ScrollGeometry: Equatable, Sendable {
     }
 
     /// The part of the content on screen: the whole visible area, insets
-    /// included, at ``contentOffset``.
+    /// included, at ``contentOffset``. Under an alignment anchor's room it is
+    /// taller than the view by that room, as SwiftUI's is (measured).
     public var visibleRect: CellRect {
         CellRect(
             x: contentOffset.x, y: contentOffset.y,
