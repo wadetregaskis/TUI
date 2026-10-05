@@ -34,9 +34,14 @@
 /// comes after them. Where more than one tiling exists — a loop placed by its
 /// keys beside another such loop or an outline, ending on a key the next one's
 /// rows start with — each such run takes as many rows as it can, the earlier
-/// first, and the runs after the last provider that cannot be seen into take
-/// as many as they can from it. That is the tiling the greedy two-pass
-/// placement this replaced found wherever it found one.
+/// first, so the earlier of two such loops takes a row both could have made
+/// (decisions D1S, B-D1S-5). After the last provider that cannot be seen into
+/// it is the same: the runs there start as early as they can be placed, taking
+/// as many rows as they can from that provider, and then each takes as many
+/// as it can, the earlier first. The greedy two-pass placement this replaced
+/// placed the runs after the last such provider from the back, so there it
+/// gave a row two loops could have made to the LATER one; one rule now holds
+/// on both sides of a provider, and with none.
 ///
 /// O(runs × children), plus each loop's elements once — but for a loop placed
 /// by its keys whose elements' keys repeat (ids whose keys are spelled alike,

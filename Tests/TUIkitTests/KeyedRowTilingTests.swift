@@ -61,6 +61,19 @@ struct KeyedRowTilingTests {
         #expect(found == [0..<1, nil, nil, nil, 2..<3])
     }
 
+    /// Two loops placed by their keys, the first ending on a key the second's
+    /// rows start with: either can have made the rows of that key, and the
+    /// earlier takes them — before a provider the walk cannot see into, with
+    /// none, and after one, where the placement this search replaced gave
+    /// them to the later loop (decisions D1S, B-D1S-5).
+    @Test("Of two loops tied on a key, the earlier takes its rows, on either side of a provider")
+    func tiedLoopsGiveTheRowsToTheEarlier() {
+        let tied: [KeyedRowTiling.Run] = [.byKeys(elementKeys: ["1", "2"]), .byKeys(elementKeys: ["2", "3"])]
+        #expect(spans(["1", "1", "2", "2", "3", "3"], tied) == [0..<4, 4..<6])
+        #expect(spans(["1", "1", "2", "2", "3", "3", "z"], tied + [.opaque]) == [0..<4, 4..<6, nil])
+        #expect(spans(["z", "1", "1", "2", "2", "3", "3"], [.opaque] + tied) == [nil, 1..<5, 5..<7])
+    }
+
     @Test("Where no tiling fits, nothing is placed")
     func noTiling() {
         #expect(spans(["a", "c"], [.counted(rows: 2, firstKey: "a", lastKey: "b")]) == nil)

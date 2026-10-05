@@ -118,7 +118,10 @@ views are still selected and tagged by their element, placed by the key each
 carries (`FlattenedRowIDs`), between the loops beside it wherever those can
 still be placed (`KeyedRowTiling`). Only a key's spelling tells two such loops
 apart where they sit side by side in one slot (in one `Group`): when the
-first ends on an id spelled as the second's first, the first takes that row.
+first ends on an id spelled as the second's first, the first takes that row —
+wherever they sit, after a view of the app's own whose rows the placement
+cannot see into too, where the placement `KeyedRowTiling` replaced gave the
+row to the second.
 An `if` without `else` around ONE view that is the row's only view stays one
 child, empty when false, as before, where SwiftUI counts none: no stack draws
 or spaces an empty child, and a `Layout` counts it. Counting it as it is
