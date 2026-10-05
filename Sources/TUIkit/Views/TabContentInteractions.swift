@@ -287,11 +287,14 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     /// whoever owns them (``_TabMenuOpeners``), so a served row that did not
     /// file its opener again would have a menu Shift+F10 could not open.
     ///
-    /// Belt and braces as far as the tests reach, as `.contextMenu`'s replayed
-    /// Shift+F10 handler is: in `TabInteractionsMemoTests`, the selected tab's
-    /// row — the one the key opens — was drawn afresh while the list held the
-    /// focus, and the key opened its menu with the entry left out. The entry
-    /// keeps the key working wherever such a row is served.
+    /// A row whose value is the same as the last frame's is served, and the
+    /// entry is then the one thing that files its opener:
+    /// `TabInteractionsMemoTests.keyboardOnAServedRow` serves every row of
+    /// the sidebar's parts composed over such rows, and Shift+F10 opened
+    /// nothing without it. A tab view's own sidebar rows are not served
+    /// across frames today (decisions D2C, found on the way: each is drawn at
+    /// two sizes a frame, and each tab's menu is a new value every time the
+    /// body that makes the tab view runs), so there it is belt and braces.
     private func fileOpener(for stateBox: StateBox<ContextMenuState>, context: RenderContext) {
         let onOpen = context.environment.menuOpenAction
         let value = self.value

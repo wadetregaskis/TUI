@@ -97,3 +97,13 @@ Not decisions; recorded so they are not lost.
   with the focus inside it (the compact picker's calendar, focused through
   `FocusManager.focus(id:)` as it appeared). Worked around inside the
   calendar's own handler; not investigated.
+- **A sidebar's rows are composed afresh every frame.** In a
+  `.sidebarAdaptable` tab view of six tabs, 50 by 14 (`TabInteractionsMemoTests`'
+  harness), every row is drawn twice per frame — once 7 by 1 and once 7 by 11
+  — and on a quiet frame all twelve draws are composed, none served; only the
+  measure is (the row memo keeps one entry per row, keyed by its size). That
+  holds with or without the tabs' context menus. With menus the rows could not
+  be served across frames anyway: a tab's menu is an `AnyView` built afresh
+  whenever the body that makes the tab view runs, and an `AnyView` is keyed by
+  its box. Not investigated further; it bears on what a sidebar costs, with
+  the tabs' interactions (A49) or without.
