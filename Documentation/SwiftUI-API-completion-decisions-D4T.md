@@ -139,3 +139,34 @@ shipped `sectionActions(content:)`, which `actions` reads, so B18 is resolved
 for sections of views. A section among a table's rows has none:
 `sectionActions(content:)` is a `View` modifier and a row section is not a
 view, in SwiftUI as here. Nothing shipped for it; noted so B18 can close.
+
+## C. Declined, with the reason
+
+### C-D4T-1. B47 is not a gap: SwiftUI rejects the shape too
+
+*`Group.init(content:)` for `TableColumnContent` (decisions B47)*
+
+B47 recorded that `Table(people) { Group { TableColumn("Email", value: \.email) } }`
+fails here with "cannot infer key path type from context" where SwiftUI
+compiles it, and the owner asked for the Group initializer that captures the
+type-checker to be found and disfavoured.
+
+**Measured** (the macOS 26.2 SDK, Swift 6.2.4, `swiftc -typecheck` of SwiftUI
+source; the probes are in the session notes, `D4T/probe/b47`): SwiftUI does
+not compile it either — the same error, at the same key path — and not with a
+second column beside the `Group` either, nor in a `@TableColumnBuilder`
+property. The compile corpus's existing comment ("SwiftUI cannot infer a key
+path's root here either") was right, and B47's premise was not.
+
+The solver's reason is the same on both sides: the `Group`'s row type is
+`Content.TableRowValue`, and the outer builder states it only through
+`Group<Content>`'s conformance, which cannot bind a type variable through an
+associated type; the closure inside is then solved with no row type. No
+other initializer is involved — the failing solution picks the column `Group`
+in TUIkit, and SwiftUI has no other candidates in play.
+
+**Nothing shipped:** TUIkit already rejects exactly what SwiftUI rejects, and
+SwiftUI source that names the root (`\Person.email`) compiles on both. B47
+can close. A TUIkit-only overload that infers the root for a lone column
+(`init` over `TableColumn<RowValue, Sort, C, L>` content) would compile source
+SwiftUI refuses, which the two parity rules do not ask for.
