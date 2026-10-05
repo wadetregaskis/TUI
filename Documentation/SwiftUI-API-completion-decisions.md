@@ -67,9 +67,8 @@ entry has the options and their prices.
 - A14 — string tables: look keys up through Foundation's bundle tables.
 - A15 — asset catalogues: plain image files (shipped), no named colours.
 - A16 — colour providers and HDR: decline the provider, ship `ResolvedHDR`.
-- A19, A20, A21 — sheet detents by hand, `presentationSizing`, compact
-  adaptation: leave out for now; ship sizing with `.automatic` as today's
-  sheet; decide with B3 and O8.
+- A19, A21 — sheet detents by hand, compact adaptation: leave out for now;
+  decide with B3 and O8.
 - A27 — pixel effects: decline the transforms, a cell-coverage `mask`,
   `drawingGroup` as `compositingGroup`.
 - A28 — toolbars: host `.toolbar` content in the chrome TUIkit draws,
@@ -80,15 +79,12 @@ entry has the options and their prices.
 - A33 — a colour's spoken name: decline.
 - A34, A35 — the blur transition and symbol effects: a scale and a fade;
   TUIkit's own Symbols vocabulary once A18 allows it.
-- A47, A48, A49, A50 — list separators, swipe actions, per-tab interactions,
-  tab search: underline a row's last line; a menu from a chord and a
-  horizontal scroll; all six in both looks; defer until macOS 26 can be
-  measured.
+- A47, A48, A50 — list separators, swipe actions, tab search: underline a
+  row's last line; a menu from a chord and a horizontal scroll; defer until
+  macOS 26 can be measured.
 - A52 — the `@Animatable` macros: decline rather than take on swift-syntax.
 - A53 — the drag-session behaviour (callbacks, configurations, containers,
   formations): callbacks and configurations on today's single-item drags.
-- A54 — `onDragGesture`, now that `DragGesture` ships: remove it and port its
-  three in-repo users.
 
 **Waiting on another answer.** A7 (A2), A11 (O8), A12 (O7), A22 and A26 (O9),
 A23 and A36 (O4), A24 (O0, O15), A25 (A13), A37 (O2), A38 (O3), A39 (A27), A41
@@ -638,41 +634,6 @@ an offscreen hosting view.
 4. **Follow O8** if you rule there that APIs inert on macOS ship as inert.
 
 **Recommendation:** 1 for now; 2 if detented sheets turn up in real apps.
-
-### A20. `presentationSizing(_:)`: what are `.form` and `.page` in cells?
-
-*`PresentationSizing` (`.automatic`, `.fitted`, `.form`, `.page`,
-`fitted(horizontal:vertical:)`, `sticky(horizontal:vertical:)`,
-`proposedSize(for:context:)`), `AutomaticPresentationSizing`,
-`FittedPresentationSizing`, `FormPresentationSizing`, `PagePresentationSizing`
-(and their `proposedSize(for:context:)`), `PresentationSizingRoot`
-(`sizeThatFits(_:)`), `PresentationSizingContext`, `View.presentationSizing(_:)`*
-
-macOS 15 sizes a sheet by one of these: `.fitted` is the content's ideal size,
-`.form` "appropriate for forms", `.page` "roughly the size of a page of paper",
-and `.automatic` is `.form.fitted(horizontal: false, vertical: true)` there. A
-custom sizing proposes a size from the content's (`PresentationSizingRoot`), and
-`sticky` keeps the largest size seen in an axis.
-
-A terminal sheet today is `.fitted` exactly: the content is the sheet, and
-only a detent changes its height, by handing the height to the content's
-outermost box (`sheetDetentHeight`).
-
-**Options.**
-
-1. **Leave them out** (the status quo): sizing code fails to compile.
-2. **Ship the family.** `.fitted` is today's sheet; `.form` proposes
-   `min(64, width)` columns (about macOS's 540-point form sheet), `.page`
-   `min(96, width)` columns by the content area's height; `.automatic` follows
-   macOS (form width, fitted height). A proposal reaches the sheet's box the
-   way a detent does, which needs a width twin of `sheetDetentHeight`
-   consumed by `Dialog`, `Panel`, `Card` and `.border()`; `sticky` keeps the
-   largest size in the presenter's state. A day with tests; it is a drawing
-   change for no sheet that does not ask.
-3. **Option 2 with `.automatic` left at `.fitted`**, so no existing sheet
-   changes width.
-
-**Recommendation:** 3. The numbers in 2 are mine and are the part to veto.
 
 ### A21. Compact-size-class adaptation and `preferredCompactColumn`
 
@@ -1415,35 +1376,6 @@ no-mouse-only rule, so the route has to be chosen.
 **Recommendation:** 1. A swipe action is a context menu for one edge, and the
 menu brings its keyboard handling, dismissal and colours with it.
 
-### A49. Per-tab interactions: context menus, popovers, drag and drop
-
-*`TabContent.contextMenu(menuItems:)`,
-`TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:)`,
-`TabContent.popover(item:attachmentAnchor:arrowEdge:content:)`,
-`TabContent.draggable(_:)`, `TabContent.dropDestination(for:action:)`*
-
-These surfaced once `TabContent` existed. In a `.sidebarAdaptable` sidebar a
-tab is a list row, and each would be the view modifier of the same name on
-that row — free. In a strip, a tab is a chip the tab view's core draws and
-hit-tests by column, so each needs the chip to carry its own regions: a
-right-click and Shift+F10 on the focused chip for the menu, an anchor for
-the popover, a press-and-move for the drag, a hover target for the drop
-(and spring loading: a drag held over a chip selects that tab, as macOS
-does). `SpringLoadingBehavior` itself is not in TUIkit yet.
-
-**Options.**
-
-1. **All six, in both looks.** A day and a half, most of it the strip's
-   per-chip regions, which all six share.
-2. **The sidebar only**, with each refused in a strip — not possible as a
-   compile-time refusal (the style is chosen at run time), so the strip would
-   ignore them: a silent no-op. Not recommended.
-3. **Decline** by reason: a terminal tab strip is a row of labels, not of
-   controls.
-
-**Recommendation:** 1, after the table rows' drag and drop, which builds the
-"a drawn row carries its own drag regions" half of it.
-
 ### A50. Search in a tab view (macOS 26): the search tab and its activation
 
 *`TabSearchActivation` (`.automatic`, `.searchTabSelection`),
@@ -1611,33 +1543,6 @@ What the probes established, and what now holds here too:
 | A sequence's `onEnded` | when its second gesture ends; the second takes the first event after the first ends as its start |
 | `@GestureState`'s reset | on end, failure or cancellation, before `onEnded` |
 | `modifiers(_:)` | read at the press; more keys than asked for satisfy it |
-
-### A54. `onDragGesture`, now that `DragGesture` ships
-
-*`View.onDragGesture(_:)`, `DragGestureEvent` (TUIkit's own)*
-
-`onDragGesture` predates the gesture API: a stream of `.began`/`.moved`/
-`.ended` events with integer positions, delivered by a mouse handler that
-takes the press it is offered, outside first. It does not take part in the
-gestures' arbitration, so it ranks as a control would — a `Button` inside an
-`.onDragGesture` view never gets its click, which is not how SwiftUI ranks a
-drag. `DragGesture(minimumDistance: 0)` with `onChanged`/`onEnded` now says
-the same thing in SwiftUI's words, and ranks as SwiftUI ranks it.
-
-**Options.**
-
-1. **Keep it as it is** (shipped): a TUI-only raw event stream beside
-   SwiftUI's gesture. Free; two ways to say one thing, ranked differently.
-2. **Rebuild it on `DragGesture(minimumDistance: 0)`**, so it keeps its
-   signature and ranks as a gesture. An hour; the three in-repo users (the
-   Mouse page, the tone- and channel-curve editors) need checking for a
-   control inside the drag area.
-3. **Remove it** — pre-1.0, no shims — and port the three users to
-   `DragGesture`. An hour and a half.
-
-**Recommendation:** 3. `DragGestureEvent` carries nothing `DragGesture.Value`
-does not, and a TUI-only spelling that ranks differently from the SwiftUI one
-beside it is a trap.
 
 ## B. Shipped the safe option
 
@@ -1883,46 +1788,6 @@ operation (`+` for copy, as Finder draws), and a source-side callback when a
 drop completes with `.move` or `.delete`. SwiftUI's is `onDragSessionUpdated`,
 which the `DragSession*` family rule declines. About half a day for the
 badge; the callback belongs with that family's re-examination in Wave 17.
-
-### B13. A segmented picker's segments are each a focus stop
-
-*`SegmentedPickerStyle` / `.segmented`, `PalettePickerStyle` / `.palette`,
-`PaletteSelectionEffect`, `View.paletteSelectionEffect(_:)`*
-
-**Shipped:** the options side by side as touching bordered buttons, the
-selected one bordered-prominent — `ControlGroup`'s strip, and the look a
-group of buttons already has here. Tab walks the segments and Return, Space or
-a click picks one. A palette lays out the same way, its marking set by the
-selection effect.
-
-**What differs:** a macOS segmented control is one focus stop whose segments
-the arrow keys walk. Here each segment is a stop, so Tab takes as many presses
-to cross a segmented picker as it has options.
-
-**The fuller version** draws the strip as one control — `▐ S │ M │ L ▌` on
-one face, the selected segment in the accent — and keys it as the horizontal
-radio group already is: one stop, Left and Right moving within it, Return
-choosing (or choosing as the arrows move, as macOS does for a single-choice
-segmented control). The radio group's handler is that model already; the
-work is the drawing, about half a day.
-
-### B14. `.stepperField` draws no arrows, and `.compact` opens no popover
-
-*`StepperFieldDatePickerStyle` / `.stepperField`, `CompactDatePickerStyle` /
-`.compact`*
-
-TUIkit's date picker is an editable field: Left and Right choose a component,
-Up and Down step it, and the wheel steps the component under the pointer.
-
-**Shipped:** both styles draw that field. A stepper field's job — stepping the
-selected component — the field does by key and by wheel, but it draws no
-arrows beside itself to click; and a compact picker's text is the field's,
-but clicking it opens no calendar.
-
-**The fuller version:** a `▲▼` pair after a stepper field, each a click
-target stepping the selected component (S, half a day with tests); and a
-compact field that opens the graphical calendar (`.graphical`, which has
-shipped) in a popover; small now that the calendar exists.
 
 ### B18. `SectionConfiguration.actions` is always empty
 
@@ -3785,7 +3650,8 @@ Where it differs:
 
 This also takes `TabContent.springLoadingBehavior(_:)` out of A49:
 a strip's chips already register a click region each, so a pause over one
-needed nothing new. The other five per-tab interactions there are unchanged.
+needed nothing new. The other five per-tab interactions shipped with A49 on
+2026-10-05.
 
 ### B83. The drag and drop session values ship; nothing hands them out yet
 
