@@ -3994,8 +3994,9 @@ CI PTY smoke walks Example's menu with `ESC O B` arrows
 `ESC O` is also how a meta-sending terminal spells Alt-Shift-O. Followed by
 another escape sequence, it is read as that chord. Followed by a byte no
 modifier spells (`17`, `123`, a `;` not after a lone `1`, a second `;`, a
-non-digit), or by `1;` and then anything but a digit, it is the chord at once
-and the bytes after it typing: the parser gives up on the key at the first
+non-digit), or by `1;` and then anything but a digit, or by a modifier (or
+none) and then a byte no SS3 key ends with (`ESC O z`, `ESC O 2 a`), it is the
+chord at once and the bytes after it typing: the parser gives up on the key at the first
 byte that cannot be one, rather than holding up to eight and then dropping the
 lot. What no parser can separate is the chord followed, within the
 dead-sequence wait (about 8 idle frames), by bytes that spell a key: `ESC O A`

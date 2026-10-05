@@ -279,6 +279,9 @@ extension Terminal {
     ///   byte that is not a digit. The chord goes out at once, and those
     ///   bytes after it as typing.
     /// - A `1;` that the next byte ends: the same.
+    /// - A modifier, or none, and then a byte that ends no SS3 key
+    ///   (`ESC O z`, `ESC O 2 a`; ``KeyEvent/endsSS3Key(_:)``): the same,
+    ///   rather than the whole run dropped as a key no terminal sends.
     ///
     /// What cannot be told apart is Alt-Shift-O followed, before the
     /// dead-sequence wait runs out (``deadSequenceStaleFrames``), by bytes
@@ -304,7 +307,7 @@ extension Terminal {
             consume(end)
             return end == 2 ? [0x1B, 0x4F] : nil
         }
-        if SS3Modifier(parameters) == .partial {
+        if SS3Modifier(parameters) == .partial || !KeyEvent.endsSS3Key(input[end]) {
             consume(2)
             return [0x1B, 0x4F]
         }

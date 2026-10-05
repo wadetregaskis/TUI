@@ -435,6 +435,15 @@ extension KeyEvent {
             numericPad: numericPad)
     }
 
+    /// Whether `byte`, after `ESC O` and any modifier, ends an SS3 key: one
+    /// of ``ss3Keys``, or `E`, the keypad's Begin, consumed as a key with no
+    /// `Key`. The input extractor asks, so that `ESC O` and a byte that ends
+    /// none is read as Alt-Shift-O and typing, not dropped as a key no one
+    /// sends.
+    package static func endsSS3Key(_ byte: UInt8) -> Bool {
+        ss3Keys[byte] != nil || byte == 0x45
+    }
+
     /// The key each SS3 byte stands for, and whether it is on the keypad: see
     /// ``parseSS3Sequence(_:)``.
     private static let ss3Keys: [UInt8: (key: Key, numericPad: Bool)] = {

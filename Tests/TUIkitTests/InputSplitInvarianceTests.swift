@@ -160,7 +160,7 @@ struct InputSplitInvarianceTests {
         // Alt-Shift-O and then typing that no modifier spells: the chord, and
         // then every byte typed, at once — not held, and not dropped.
         let altShiftO = TerminalInput.key(KeyEvent(key: .character("O"), alt: true, shift: true))
-        for typed in ["123", "17x", "1;x", "2;5A", "0p", ";A"] {
+        for typed in ["123", "17x", "1;x", "2;5A", "0p", ";A", "z", "2a", "1;5z"] {
             cases.append((
                 "alt-shift-o-then-\(typed)", esc + Array("O\(typed)".utf8),
                 [altShiftO] + typed.map { .key(KeyEvent(character: $0)) }))
