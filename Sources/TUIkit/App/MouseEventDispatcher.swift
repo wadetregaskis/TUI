@@ -119,6 +119,11 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// meet. See ``geometryMarkerID(in:)``.
     let geometryMarkerIDs = MouseHandlerIDTable(firstRaw: HitTestRegion.HandlerID.geometryMarkerBit)
 
+    /// What the views that stamp geometry markers asked, and what their
+    /// owners found — see ``GeometryCoordinator``. Here because the markers'
+    /// ids are, and because a dispatcher is wired wherever a frame is drawn.
+    let geometry = GeometryCoordinator()
+
     /// One lane of the hover state machine: the region the pointer was last
     /// resolved against, and the closure still owed its exit across a reshape.
     ///
@@ -342,6 +347,7 @@ extension MouseEventDispatcher {
         // restart, because this runs once per WALK of the scene.
         handlerIDs.beginWalk()
         geometryMarkerIDs.beginWalk()
+        geometry.beginWalk()
         requestedFeatures = .disabled
         configOverride = nil
     }

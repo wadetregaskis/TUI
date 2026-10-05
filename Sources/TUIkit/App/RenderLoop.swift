@@ -497,6 +497,8 @@ extension RenderLoop {
         // the screen's coordinates, which are the pointer's: the chrome is
         // drawn into the frame with the page, so nothing is translated.
         tuiContext.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        // What the frame's geometry observers are owed, now it is drawn (`GeometryCoordinator`).
+        tuiContext.mouseEventDispatcher.geometry.endFrame(frame: buffer, retainedBy: tuiContext.stateStorage)
 
         writeFrame(
             buffer: buffer,

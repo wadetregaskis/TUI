@@ -645,6 +645,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         var visibleBuffer = drawnViewport(
             full: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
             width: contentWidth, height: contentViewportHeight, horizontal: wantsHorizontal, context: context)
+        // What the content window shows, before the chrome is drawn around it:
+        // the viewport `onScrollVisibilityChange` measures against.
+        context.measureScrollVisibility(
+            in: visibleBuffer,
+            viewport: CellRect(x: 0, y: 0, width: contentWidth, height: contentViewportHeight))
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bars and
         // the "N more" lines breathe as the scroll view's focus indication, so

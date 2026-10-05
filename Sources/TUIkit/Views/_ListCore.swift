@@ -903,6 +903,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 topInset: contentTop,
                 mergesHitRegions: registered
             )
+            // A list is a scroll view to `onScrollVisibilityChange`, as it is
+            // in SwiftUI: its rows' lines are the viewport.
+            context.measureScrollVisibility(
+                in: buffer,
+                viewport: CellRect(x: 0, y: contentTop, width: buffer.width, height: targetContentHeight))
         }
         return buffer
     }

@@ -279,6 +279,14 @@ extension StateStorage {
         retainedSubtreeRoots.append(root)
     }
 
+    /// The subtrees this pass has declared retained so far
+    /// (``retainSubtree(_:)``), indexed for asking of many identities: whether a
+    /// view that drew nothing this pass is still in the tree — windowed out of
+    /// a lazy container — or has left it.
+    public func retainedSubtrees() -> RetainedSubtreeIndex {
+        RetainedSubtreeIndex(roots: retainedSubtreeRoots)
+    }
+
     // MARK: - Conditional Branch Tracking
 
     /// Records which branch a `ConditionalView` rendered this frame, and reports

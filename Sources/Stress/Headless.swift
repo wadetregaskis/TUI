@@ -211,7 +211,8 @@ enum Headless {
             context.environment.stateStorage?.beginRenderPass()
             context.environment.renderCache?.beginRenderPass()
             stampFrameDate(context)
-            _ = renderToBuffer(view, context: context)
+            let warmUp = renderToBuffer(view, context: context)
+            channels.endFrame(warmUp, stateStorage: context.environment.stateStorage)
             context.environment.stateStorage?.endRenderPass()
             context.environment.renderCache?.removeInactive()
             driven?.advance(1)
@@ -220,6 +221,7 @@ enum Headless {
             context.environment.renderCache?.beginRenderPass()
             stampFrameDate(context)
             let buffer = renderToBuffer(view, context: context)
+            channels.endFrame(buffer, stateStorage: context.environment.stateStorage)
             context.environment.stateStorage?.endRenderPass()
             let staleServes = context.environment.renderCache?.renderMemoMismatches ?? []
             let trimmed = StackGuard.truncationCount - trimmedBefore
@@ -402,6 +404,7 @@ enum Headless {
             warm.renderCache?.beginRenderPass()
             stampFrameDate(warm)
             let buffer = renderToBuffer(view, context: warm)
+            channels.endFrame(buffer, stateStorage: warm.stateStorage)
             warm.stateStorage?.endRenderPass()
             warm.renderCache?.removeInactive()
             ns &+= DispatchTime.now().uptimeNanoseconds - frameStart.uptimeNanoseconds

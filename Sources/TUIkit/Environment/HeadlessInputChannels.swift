@@ -57,6 +57,17 @@ package final class HeadlessInputChannels {
         mouseEventDispatcher.beginRenderPass()
     }
 
+    /// Reports what the frame owes its geometry observers, as `RenderLoop`
+    /// does once a frame is drawn (`GeometryCoordinator.endFrame`).
+    ///
+    /// - Parameters:
+    ///   - frame: The frame as rendered.
+    ///   - stateStorage: The storage the frame rendered against, which says
+    ///     whether a view that drew nothing is still in the tree.
+    package func endFrame(_ frame: FrameBuffer, stateStorage: StateStorage?) {
+        mouseEventDispatcher.geometry.endFrame(frame: frame, retainedBy: stateStorage)
+    }
+
     /// How many key handlers the last walk left registered.
     package var keyHandlerCount: Int { keyEventDispatcher.handlerCount }
 

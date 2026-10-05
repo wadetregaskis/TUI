@@ -2427,3 +2427,26 @@ private struct ToolbarStyleScenes: Scene {
             .windowToolbarStyle(.automatic)
     }
 }
+// MARK: - Scroll visibility (lane D5G)
+
+/// SwiftUI's own example for `onScrollVisibilityChange`, and the default
+/// threshold.
+@MainActor
+private struct ScrollVisibilityShapes: View {
+    @State private var playing = false
+
+    var body: some View {
+        ScrollView {
+            VStack {
+                Group {
+                    Text("video")
+                }
+                .onScrollVisibilityChange(threshold: 0.2) { isVisible in
+                    playing = isVisible
+                }
+                Text("row")
+                    .onScrollVisibilityChange { playing = $0 }
+            }
+        }
+    }
+}

@@ -245,7 +245,6 @@
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",
   "View.onScrollTargetVisibilityChange(idType:threshold:_:)",
-  "View.onScrollVisibilityChange(threshold:_:)",
   "View.overlay(_:ignoresSafeAreaEdges:)",
   "View.overlay(_:in:fillStyle:)",
   "View.phaseAnimator(_:trigger:content:animation:)",
