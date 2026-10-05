@@ -88,6 +88,13 @@ public struct StatusBarItemOrder: Comparable, Sendable {
     /// See ``escapeKey``.
     public static let returnKey = Self(860)
 
+    /// The app's undo, shown while there is a step to undo — see
+    /// ``StatusBarState/showUndoItems``.
+    public static let undo = Self(870)
+
+    /// The app's redo, beside ``undo``.
+    public static let redo = Self(875)
+
     public static let quit = Self(900)
 
     /// Order for the appearance item (middle system item).

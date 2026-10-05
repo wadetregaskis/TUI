@@ -331,8 +331,7 @@ extension KeyEvent {
             // Ctrl-_ and Ctrl-/ as well: the legacy encodings cannot tell the
             // three apart. Read as Ctrl-minus, the key TUIkit binds undo to
             // (the one zsh and Emacs bind to it too); see
-            // Documentation/Terminal-compatibility.md, "Control collides with
-            // the C0 range".
+            // Documentation/Terminal-compatibility.md, "Undo and redo".
             return KeyEvent(key: .character("-"), ctrl: true)
         case (ASCIIByte.printableStart + 1)...ASCIIByte.printableEnd:  // Skip space (0x20), handled above
             let char = Character(UnicodeScalar(byte))

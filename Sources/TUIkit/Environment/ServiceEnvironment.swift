@@ -269,6 +269,11 @@ extension EnvironmentValues {
         // answer, so a terminal that does not speak it pays no write per
         // frame. Constant for the run, so it needs no place in the render
         // loop's `EnvironmentSnapshot` either.
+        // The app's undo manager: a running app always has one, and nothing
+        // else does, so the key's `nil` default stands everywhere else.
+        if let undoManager = context.undoManager {
+            self.undoManager = undoManager
+        }
         if context.keyboardReporting.isEnhanced {
             keyboardReporting = context.keyboardReporting
             // And the modifier keys, only where they are reported at all: a

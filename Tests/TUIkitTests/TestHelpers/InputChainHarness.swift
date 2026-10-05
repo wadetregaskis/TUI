@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 @testable import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitStyling
@@ -38,11 +40,17 @@ final class InputChainHarness {
     ///     a test of what it reports; none, a legacy terminal, by default.
     ///   - configure: Changes the root environment before any frame — to hand
     ///     the page a fake clipboard, for one.
+    ///   - undoManager: The app's undo manager, published to the environment
+    ///     and given to the chain's undo keys and the status bar; none by
+    ///     default, as outside a running app.
     init(
         width: Int = 40, height: Int = 12, keyboard: KittyKeyboardFlags = [],
+        undoManager: UndoManager? = nil,
         configure: (inout EnvironmentValues) -> Void = { _ in }
     ) {
         tui.keyboardReporting = KeyboardReporting(flags: keyboard)
+        tui.undoManager = undoManager
+        statusBar.undoManager = undoManager
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
         environment.applyRuntimeServices(from: tui)
@@ -62,7 +70,8 @@ final class InputChainHarness {
             appearanceManager: ThemeManager(items: AppearanceRegistry.all, renderTrigger: {}),
             keyboardShortcuts: tui.keyboardShortcuts,
             dragAndDropSession: tui.dragAndDropSession,
-            onQuit: { [quitCount] in quitCount.value += 1 }, onSuspend: {})
+            onQuit: { [quitCount] in quitCount.value += 1 }, onSuspend: {},
+            undoManager: undoManager)
     }
 
     /// Renders one frame of `view`, clearing every per-frame registry first.

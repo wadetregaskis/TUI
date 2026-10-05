@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 #if canImport(Glibc)
     import Glibc
 #elseif canImport(Musl)
@@ -171,8 +173,30 @@ extension AppRunner {
                 #if !canImport(WASILibc)
                     kill(getpid(), SIGTSTP)
                 #endif
-            }
+            },
+            undoManager: tuiContext.undoManager
         )
+    }
+
+    /// Makes the app's one undo manager and hands it to everything that uses
+    /// it: the environment (`\.undoManager`, through the context), the input
+    /// chain's undo and redo keys, and the status bar's undo and redo items.
+    /// Here rather than in `TUIContext`'s initialiser because `UndoManager` is
+    /// isolated to the main actor, and that initialiser is not.
+    private func makeUndoManager() {
+        let undoManager = UndoManager()
+        tuiContext.undoManager = undoManager
+        statusBar.undoManager = undoManager
+    }
+
+    /// Turns on the kitty keyboard protocol where the terminal speaks it, and
+    /// publishes what the terminal reports: to the environment
+    /// (`\.keyboardReporting`), and to the status bar, which names Ctrl-_ for
+    /// redo where the terminal tells it from Ctrl-minus and Option-_ elsewhere.
+    private func negotiateKeyboardProtocol() {
+        terminal.negotiateKeyboardProtocol()
+        tuiContext.keyboardReporting = KeyboardReporting(flags: terminal.keyboardEnhancement)
+        statusBar.redoIsControlUnderscore = tuiContext.keyboardReporting.reportsShiftedKeys
     }
 
     /// Has the focus system ask for the frames its changes need.
@@ -192,6 +216,7 @@ extension AppRunner {
     }
 
     func run() async {
+        makeUndoManager()
         // Create run-loop dependencies (previously IUOs, now local variables)
         let inputHandler = makeInputHandler()
         // Wire the synthesised-key path: clicks on system status-
@@ -260,8 +285,7 @@ extension AppRunner {
         // and Ctrl-H/I/J/M/[ as themselves. Asked once — one round trip where
         // the terminal does not speak it, two where it does — and published
         // before the first frame, which is when a view first reads it.
-        terminal.negotiateKeyboardProtocol()
-        tuiContext.keyboardReporting = KeyboardReporting(flags: terminal.keyboardEnhancement)
+        negotiateKeyboardProtocol()
 
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.

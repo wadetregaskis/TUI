@@ -321,6 +321,13 @@ final class TUIContext: @unchecked Sendable {
     /// until then, and for a context with no terminal behind it.
     var keyboardReporting = KeyboardReporting.legacy
 
+    /// The app's undo manager, published to `\.undoManager`. Made by the run
+    /// loop, on the main actor, which `UndoManager` is isolated to and this
+    /// context's initialiser is not; `nil` until then, and for a context with
+    /// no app behind it, which is SwiftUI's answer for "a context that doesn't
+    /// support undo and redo operations".
+    var undoManager: UndoManager?
+
     /// Persistent `@State` value storage indexed by `ViewIdentity`.
     let stateStorage: StateStorage
 

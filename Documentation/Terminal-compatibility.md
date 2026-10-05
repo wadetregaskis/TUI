@@ -4329,6 +4329,51 @@ paste. Record per host and version:
    the event (the decoder copes either way; the record is for the
    specification).
 
+## Undo and redo — the keys, documented, NOT yet measured
+
+Added 2026-10-04 with the app's `UndoManager` (`\.undoManager`, decisions A1).
+A terminal app has no Edit menu and cannot receive ⌘Z, and no key reaches every
+terminal unclaimed; the owner chose these, and the status bar's "undo" and
+"redo" items (shown while there is a step for each, performed by a click) are
+the route on every terminal. Nothing below has been captured yet — measure it
+with `keyboard_events_probe.py` (kitty protocol hosts) or `cat -v` / a raw-mode
+`od -c` (the rest), and replace "expected" with what the host sent.
+
+| Key | Legacy bytes | Read as | Kitty protocol |
+|---|---|---|---|
+| **Undo:** Ctrl-minus | `0x1F` (`^_`), by the xterm convention most terminals follow | Ctrl-minus — `KeyEvent.parse`, since 2026-10-04 (it used to drop the byte) | `CSI 45;5u` |
+| Ctrl-/ | `0x1F` too, on most terminals | Ctrl-minus: **undo** | `CSI 47;5u`: undo |
+| **Redo:** Ctrl-Shift-minus (Ctrl-_) | `0x1F` — the same byte | Ctrl-minus: **undo**, not redo | `CSI 45:95;6u`: redo (with flag 4; Ctrl-Shift-minus without it) |
+| **Redo:** Ctrl-Shift-Z | `0x1A`, Ctrl-Z | Ctrl-Z: **suspend** (or a focused text control's undo) | `CSI 122:90;6u`: redo |
+| **Redo:** Option-_ (Option-Shift-minus) | `ESC _` where Option is sent as Meta; otherwise the composed `—` | Option-_, once the parser's dead-sequence wait (about 200 ms) is up — `ESC _` is also an APC reply's introducer; see below | `CSI 45:95;4u` where the host reports Option as Alt; the text `—` where it composes |
+
+So on a legacy terminal undo is always on the keyboard and redo is on it only
+where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's
+Esc+, Ghostty's `macos-option-as-alt`; none of them is the default on every
+host — expected, not measured); everywhere else redo is the status bar's.
+Where the kitty keyboard protocol is on (see that section), Ctrl-Shift-Z and
+Ctrl-_ redo as on a Mac, and the bar names Ctrl-_ (`^_`) rather than Option-_
+(`M-_`) for it.
+
+**Why not Ctrl-Y for redo:** it is the text controls' yank (the Emacs and Cocoa
+binding), and on BSD-derived ttys "delayed suspend" — raw mode clears that, but
+it is an odd key to claim. **Why not Ctrl-Z for undo:** unclaimed, it suspends
+the app (job control); a focused `TextField` or `TextEditor` takes it as the
+stand-in for ⌘Z, as before, and its undo is the app's.
+
+**`ESC _` is two things.** A meta-sending terminal's Option-_ and the introducer
+of an APC reply (`ESC _ G … ESC \`, a graphics acknowledgement) are the same two
+bytes. The parser waits for the reply's terminator; when nothing at all follows
+the pair for the dead-sequence wait, no reply can be meant, and it delivers
+Option-_ (`Terminal+Input.swift`, `resolveStuckPartial`). The same rule makes
+Option-], Option-P, Option-X and Option-^ deliverable. A key pressed within that
+wait after the chord still ends it as an interrupted reply, and the chord is
+lost.
+
+**An app's own shortcut wins.** The undo and redo keys are default bindings at
+the bottom of the input chain: under `.commandKey(.control)` an app's ⌘- (zoom
+out) is Ctrl-minus, and it keeps the key; undo is then the status bar's.
+
 ## Mouse button codes: bit 7 means two different things
 
 The SGR button code packs modifiers and group bits around a two-bit button

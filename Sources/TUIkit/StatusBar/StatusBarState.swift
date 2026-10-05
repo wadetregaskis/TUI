@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - Quit Behavior
 
 /// Controls when the quit shortcut (`q`) is active.
@@ -115,6 +117,24 @@ public final class StatusBarState: @unchecked Sendable {
     /// When `true`, pressing `t` cycles through available themes.
     /// Default is `false`.
     public var showThemeItem: Bool = false
+
+    /// Whether the bar shows "undo" while the app's undo manager has a step to
+    /// undo, and "redo" while it has one to redo; a click performs it.
+    ///
+    /// On by default. Undo's key, Ctrl-minus, reaches the app on every
+    /// terminal, but redo's reach only some (see
+    /// ``EnvironmentValues/undoManager``), and on the rest these items are the
+    /// way to it. An app that shows its own undo affordance can turn them off.
+    public var showUndoItems: Bool = true
+
+    /// The app's undo manager, whose undo and redo the bar offers; set by the
+    /// run loop.
+    var undoManager: UndoManager?
+
+    /// Whether the terminal tells Ctrl-_ from Ctrl-minus (the kitty keyboard
+    /// protocol), which decides which redo key the bar names: Ctrl-_ there,
+    /// Option-_ everywhere else. Set by the run loop with ``undoManager``.
+    var redoIsControlUnderscore = false
 
     /// Whether the bar carries an Escape entry when something claims the key.
     ///
@@ -339,6 +359,37 @@ public final class StatusBarState: @unchecked Sendable {
         }
         if showReturnItem, let label = activationLabelOverride {
             items.append(SystemStatusBarItem.returnKey(label: label))
+        }
+        if showUndoItems, let undoManager { items += undoItems(undoManager) }
+        return items
+    }
+
+    /// "undo" and "redo", each while the undo manager has a step for it, each
+    /// performing it when clicked. They carry their action rather than a
+    /// trigger key, so the keys stay the input chain's default bindings
+    /// (``UndoKey``), behind an app's own shortcuts, and never match here.
+    ///
+    /// The bar is not isolated to the main actor, though it only ever runs
+    /// there; `UndoManager` is.
+    private func undoItems(_ undoManager: UndoManager) -> [StatusBarItem] {
+        let (canUndo, canRedo) = MainActor.assumeIsolated { (undoManager.canUndo, undoManager.canRedo) }
+        let localization = LocalizationService.shared
+        var items: [StatusBarItem] = []
+        if canUndo {
+            items.append(
+                StatusBarItem(
+                    shortcut: "^-",
+                    label: localization.string(for: LocalizationKey.StatusBar.undo),
+                    order: .undo
+                ) { _ = UndoKey.undo.perform(on: undoManager) })
+        }
+        if canRedo {
+            items.append(
+                StatusBarItem(
+                    shortcut: redoIsControlUnderscore ? "^_" : "M-_",
+                    label: localization.string(for: LocalizationKey.StatusBar.redo),
+                    order: .redo
+                ) { _ = UndoKey.redo.perform(on: undoManager) })
         }
         return items
     }

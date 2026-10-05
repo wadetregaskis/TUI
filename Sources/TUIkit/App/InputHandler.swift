@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - Input Handler
 
 /// Dispatches key events through a five-layer priority chain (layers 0–4) plus
@@ -28,9 +30,9 @@
 /// 2. **View handlers** — registered via `onKeyEvent` modifiers
 /// 3. **Focus system** (conditional) — Tab/Shift+Tab navigation, Enter/Space
 ///    on focused buttons
-/// 4. **Default bindings** — `q` (quit), Ctrl-Z (re-raised as SIGTSTP, so the
-///    key and the external signal suspend by one path), `t` (theme), `a`
-///    (appearance)
+/// 4. **Default bindings** — `q` (quit), undo and redo (``UndoKey``), Ctrl-Z
+///    (re-raised as SIGTSTP, so the key and the external signal suspend by one
+///    path), `t` (theme), `a` (appearance)
 ///
 /// Layers 0 and 3 are mutually exclusive, gated on
 /// `focusManager.hasTextInputFocus`: when a text-input element is focused,
@@ -93,6 +95,12 @@ internal struct InputHandler {
     /// re-raises SIGTSTP so the suspend machinery handles the key and the
     /// external signal identically.
     let onSuspend: () -> Void
+
+    /// The app's undo manager, whose undo and redo keys (``UndoKey``) are
+    /// default bindings: an app's own shortcut on the chord comes first.
+    /// Optional and defaulted, as ``tooltipState`` is, for a test harness that
+    /// does not exercise it.
+    var undoManager: UndoManager?
 }
 
 // MARK: - Internal API
@@ -246,6 +254,15 @@ extension InputHandler {
                 // ask first.
                 statusBar.requestQuit(onQuit)
             }
+            return true
+        }
+
+        // Undo and redo: Ctrl-minus, and Ctrl-Shift-Z, Ctrl-_ or Option-_
+        // where the terminal can send them (see `UndoKey`). Down here, after
+        // the app's shortcuts, so a binding of the app's own on the chord — a
+        // ⌘- zoom-out under `.commandKey(.control)` — keeps it. Taken only when
+        // there was a step to undo or redo.
+        if let undoManager, let command = UndoKey(event), command.perform(on: undoManager) {
             return true
         }
 
