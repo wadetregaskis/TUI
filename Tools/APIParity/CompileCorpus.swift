@@ -1963,3 +1963,117 @@ private struct ReduceMotionShapes: View {
         }
     }
 }
+// MARK: - Segmented and palette pickers, date picker styles
+
+@MainActor
+private struct D2CPickersAndDates: View {
+    @State private var size = 1
+    @State private var when = Date()
+
+    var body: some View {
+        VStack {
+            Picker("Size", selection: $size) {
+                Text("S").tag(0)
+                Text("M").tag(1)
+                Text("L").tag(2)
+            }
+            .pickerStyle(.segmented)
+            Picker("Shape", selection: $size) {
+                Image(systemName: "circle").tag(0)
+                Image(systemName: "square").tag(1)
+            }
+            .pickerStyle(.palette)
+            .paletteSelectionEffect(.symbolVariant(.fill))
+            DatePicker("Starts", selection: $when).datePickerStyle(.stepperField)
+            DatePicker("Day", selection: $when, displayedComponents: .date).datePickerStyle(.compact)
+        }
+    }
+}
+
+// MARK: - A tab's own context menu, popovers, drag and drop
+
+private struct D2CPopoverModel: Identifiable {
+    var id: String { message }
+    let message: String
+}
+
+@MainActor
+private struct D2CTabInteractions: View {
+    @State private var isShowingPopover = false
+    @State private var popover: D2CPopoverModel?
+    @State private var favourites: [String] = []
+
+    var body: some View {
+        TabView {
+            Tab("Currently Reading", systemImage: "book") {
+                Text("books")
+            }
+            .contextMenu {
+                Button {
+                    // Pin this tab.
+                } label: {
+                    Label("Pin", systemImage: "pin")
+                }
+                Button {
+                    // Open a share sheet to share
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+            }
+            .popover(isPresented: $isShowingPopover) {
+                Text("Popover Content")
+                    .padding()
+            }
+            Tab("Popover Anchor", systemImage: "arrow.down") {
+                Button("Show Popover") {
+                    popover = D2CPopoverModel(message: "Custom Message")
+                }
+            }
+            .popover(item: $popover) { detail in
+                Text("\(detail.message)")
+                    .padding()
+            }
+            Tab("Family", systemImage: "list.bullet") {
+                Text("family")
+            }
+            .draggable("family")
+            Tab("Favorites", systemImage: "star.fill") {
+                Text("favourites")
+            }
+            .dropDestination(for: String.self) { receivedIds in
+                favourites += receivedIds
+            }
+        }
+    }
+}
+
+// MARK: - Presentation sizing
+
+@MainActor
+private struct D2CPresentationSizing: View {
+    @State private var presentInfo = true
+    @State private var presentSheet = false
+
+    var body: some View {
+        Text("page")
+            .sheet(isPresented: $presentInfo) {
+                Text("Flower facts")
+                    .presentationSizing(
+                        .page
+                            .fitted(horizontal: false, vertical: true)
+                            .sticky(horizontal: false, vertical: true))
+            }
+            .sheet(isPresented: $presentSheet) {
+                Text("Dynamic content")
+                    .presentationSizing(.form.sticky(horizontal: false, vertical: true))
+            }
+            .sheet(isPresented: .constant(false)) {
+                Text("Emoji grid")
+                    .presentationSizing(.fitted)
+            }
+            .sheet(isPresented: .constant(false)) {
+                Text("Default")
+                    .presentationSizing(.automatic)
+            }
+    }
+}
