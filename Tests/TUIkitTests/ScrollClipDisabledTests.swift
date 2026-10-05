@@ -279,6 +279,30 @@ struct ScrollClipDisabledTests {
         #expect(faded == [[10, 20, 2, 1], [12, 21, 2, 1], [10, 23, 6, 1]], "\(faded)")
     }
 
+    @Test("A space styled to show, or a cell a run repaints, is painted: the overflow keeps it, drawn and clicked")
+    func styledSpacesAndRunsArePainted() {
+        let reverse = "\u{1B}[7m", underline = "\u{1B}[4m", reset = "\u{1B}[0m"
+        var content = FrameBuffer(lines: [
+            "ab\(reverse) \(reset)     ",  // a reverse-video caret after the text
+            "  \(underline)  \(reset)    ",  // an underlined blank, nothing else
+            "        ",  // blank, but a run blinks a caret on its fourth cell
+        ])
+        content.hitTestRegions = [HitTestRegion(offsetX: 0, offsetY: 0, width: 8, height: 3, handlerID: .init(1))]
+        content.animatedCells = [
+            AnimatedCellRun(offsetX: 3, offsetY: 2, width: 1, frames: ["\(reverse) \(reset)", " "], clock: .content)
+        ]
+        var layer = OverlayLayer(offsetX: 0, offsetY: 0, content: content, isOpaque: false)
+        layer.isScrollOverflow = true
+        let parts = layer.drawnParts()
+        #expect(parts.map { [$0.offsetX, $0.offsetY, $0.content.height] } == [[0, 0, 1], [2, 1, 1], [3, 2, 1]], "\(parts)")
+        #expect(parts.map { $0.content.lines.first?.strippedLength ?? -1 } == [3, 2, 1])
+        #expect(parts.last?.content.animatedCells.count == 1, "the run goes with its cell")
+        let regions = parts.flatMap { part in
+            part.content.hitTestRegions.map { [part.offsetX + $0.offsetX, part.offsetY + $0.offsetY, $0.width] }
+        }
+        #expect(regions == [[0, 0, 3], [2, 1, 2], [3, 2, 1]], "\(regions)")
+    }
+
     @Test("Lines that paint nothing leave nothing to click, however wide their regions")
     func blankOverflowLeavesNothing() {
         var content = FrameBuffer(lines: ["     ", "     "])

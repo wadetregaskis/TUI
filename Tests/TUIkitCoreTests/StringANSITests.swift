@@ -264,4 +264,26 @@ struct StringANSITests {
     func extendedColourComponentsAreNotAttributes(line: String, painted: Int) {
         #expect(line.visibleWidthBeforeTrailingBlanks() == painted, "\(line.debugDescription)")
     }
+
+    /// A space shows reverse video (it is drawn in the foreground's colour)
+    /// and the lines drawn through a cell, so a blank so styled is painted, as
+    /// one with a background is; bold, dim and italic show nothing on a space.
+    /// Each line is "AB" and six more cells, the number how many are painted.
+    @Test(
+        "A space styled to show is painted; one styled only to change a glyph is not",
+        arguments: [
+            ("AB\u{1B}[7m  \u{1B}[0m    ", 4),  // reverse video
+            ("AB\u{1B}[4m  \u{1B}[24m    ", 4),  // underline, then off
+            ("AB\u{1B}[4:3m \u{1B}[0m     ", 3),  // a colon-form underline style
+            ("AB\u{1B}[4:0m      ", 2),  // the colon form's "no underline"
+            ("AB\u{1B}[9m   \u{1B}[29m   ", 5),  // strikethrough
+            ("AB\u{1B}[53m \u{1B}[55m     ", 3),  // overline
+            ("AB\u{1B}[7m\u{1B}[27m      ", 2),  // reverse, turned off again
+            ("AB\u{1B}[7;4m  \u{1B}[24m  \u{1B}[0m  ", 6),  // underline off leaves reverse on
+            ("AB\u{1B}[1;2;3m      \u{1B}[0m", 2),  // bold, dim, italic
+            ("\u{1B}[38;2;7;4;9mAB      \u{1B}[0m", 2),  // colour components, not attributes
+        ])
+    func styledSpacesArePainted(line: String, painted: Int) {
+        #expect(line.visibleWidthBeforeTrailingBlanks() == painted, "\(line.debugDescription)")
+    }
 }

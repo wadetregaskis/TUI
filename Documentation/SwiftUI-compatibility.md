@@ -737,8 +737,10 @@ horizontal one — as layers floating around the view, with their hit regions:
 all of an eager stack, the band a lazy stack draws (the viewport's rows for a
 uniform one, a row past each edge for the others; SwiftUI's lazy stack drew
 nothing past its viewport in the same probe). A line draws from its first
-painted cell to its last: the unstyled blank cells at either end draw nothing
-and take no click, so a short, centred or indented line neither erases what is
+painted cell to its last — a glyph, or a space styled to show (a background,
+reverse video, an underline, a strikethrough or an overline), or a cell an
+animated run repaints, such as a caret: the unstyled blank cells at either end
+draw nothing and take no click, so a short, centred or indented line neither erases what is
 beside it nor takes that view's clicks, and a fade on the content fades only
 the cells it draws. **Stacking is SwiftUI's (measured on macOS
 15):** the overflow draws at the scroll view's own place in the order — over the
@@ -754,7 +756,8 @@ to its last — at the cost of one test of a hint per operation (a buffer knows,
 after each combining step, that its layers hold no overflow). The
 blank space either side is not the later view drawing: a short `Text` padded to
 its stack's width, an overlay's `Spacer`, or an `.offset` view's empty footprint
-hides nothing, as in SwiftUI. No other layer is cut, so
+hides nothing, as in SwiftUI, and a click on the overflow drawn there is the
+overflow's (decisions-D2S B-D2S-5). No other layer is cut, so
 a view's own `.offset` drawing keeps the stacking it has always had: over the
 views after it as well. `List` and `Table` keep clipping (decisions-D2S
 B-D2S-4), where SwiftUI's `List` on macOS honours the modifier (measured). So

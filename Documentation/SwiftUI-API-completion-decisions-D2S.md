@@ -100,7 +100,9 @@ Under `scrollClipDisabled`, the content after a scroll view hides the scroll
 view's overflow where that content draws — SwiftUI's stacking (measured). A
 terminal cell is drawn or not, so "where it draws" has to be said in cells.
 Shipped: on each line of the later content, from its first painted cell (a
-glyph other than a space, or a background) to its last; the unstyled blank
+glyph other than a space; a space styled to show — a background, reverse
+video, an underline, a strikethrough, an overline; or a cell an animated run
+repaints) to its last; the unstyled blank
 cells either side — a stack's alignment padding, an overlay's `Spacer`, an
 `.offset` view's empty footprint — hide nothing, and the overflow shows there
 as SwiftUI's does. The overflow is drawn by the same rule: its blank cells at

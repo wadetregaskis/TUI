@@ -41,9 +41,9 @@ extension OverlayLayer {
         return parts
     }
 
-    /// This layer as the cells it paints (``String/paintedColumns()``): on each
-    /// line, from its first painted cell to its last, with the unstyled blank
-    /// cells either side of them left out — and every payload that rides on
+    /// This layer as the cells it paints (``FrameBuffer/paintedColumnsByLine()``):
+    /// on each line, from its first painted cell to its last, with the unstyled
+    /// blank cells either side of them left out — and every payload that rides on
     /// the lines (hit regions, opacity regions, animated runs) cut to the cells
     /// kept, so a cell the layer does not draw is neither clicked nor faded
     /// through it. As parts: one for each run of lines that start at the same
@@ -55,7 +55,7 @@ extension OverlayLayer {
     /// (``isScrollOverflow``), whose short or indented lines must not erase,
     /// or take the clicks of, what is beside them.
     package func drawnParts() -> [OverlayLayer] {
-        let painted = content.lines.map { $0.paintedColumns() }
+        let painted = content.paintedColumnsByLine()
         var parts: [OverlayLayer] = []
         var row = 0
         while row < painted.count {
@@ -79,12 +79,18 @@ extension OverlayLayer {
 
     /// This layer with each line `index` cut to its first `ends[index]`
     /// columns, and every payload with it — ``drawnParts()``'s ragged edge.
-    /// The lines past each end are unstyled blanks, so the cut is the trailing
-    /// trim; the payloads are cut row by row, a region over several rows split
-    /// where the ends differ.
+    /// The cells past each end are unstyled blanks no run repaints; the
+    /// payloads are cut row by row, a region over several rows split where the
+    /// ends differ.
     private func cut(toLineEnds ends: [Int]) -> OverlayLayer {
         var part = self
-        part.content = content.trimmingTrailingBlankCells()
+        var lines = content.lines
+        for index in lines.indices where index < ends.count {
+            let width = lines[index].strippedLength
+            guard ends[index] < width else { continue }
+            lines[index] = lines[index].ansiAwarePrefix(visibleCount: ends[index], knownVisibleWidth: width)
+        }
+        part.content.lines = lines
         part.content.hitTestRegions = Self.cut(
             content.hitTestRegions, toLineEnds: ends,
             rows: { $0.offsetY..<($0.offsetY + $0.height) },
@@ -161,7 +167,7 @@ extension FrameBuffer {
     /// operations that place later content — a stack's next child, a
     /// composited overlay — cut the earlier overflow out from under it.
     ///
-    /// Under the cells it PAINTS (``String/paintedColumns()``): on each line,
+    /// Under the cells it PAINTS (``paintedColumnsByLine()``): on each line,
     /// from its first painted cell to its last. The unstyled blank space either
     /// side is not the later view drawing — it is a stack's alignment padding,
     /// an overlay's `Spacer`, an `.offset` view's footprint — and SwiftUI shows
@@ -225,13 +231,28 @@ extension FrameBuffer {
         return covered
     }
 
-    /// The cells this buffer paints (``String/paintedColumns()``), as blocks
+    /// Each line's painted columns (``String/paintedColumns()``), widened to
+    /// the cells an animated run repaints on it — a caret blinking on a blank
+    /// cell is drawn there, whatever the line holds under it.
+    func paintedColumnsByLine() -> [Range<Int>?] {
+        var painted = lines.map { $0.paintedColumns() }
+        for run in animatedCells where painted.indices.contains(run.offsetY) && run.width > 0 {
+            let cells = run.offsetX..<(run.offsetX + run.width)
+            painted[run.offsetY] =
+                painted[run.offsetY].map {
+                    min($0.lowerBound, cells.lowerBound)..<max($0.upperBound, cells.upperBound)
+                } ?? cells
+        }
+        return painted
+    }
+
+    /// The cells this buffer paints (``paintedColumnsByLine()``), as blocks
     /// of consecutive lines whose painted columns agree — one rect for a block
     /// of text the same width, one a line for ragged text.
     func paintedBlocks() -> [(rows: Range<Int>, columns: Range<Int>)] {
         var blocks: [(rows: Range<Int>, columns: Range<Int>)] = []
-        for (row, line) in lines.enumerated() {
-            guard let columns = line.paintedColumns() else { continue }
+        for (row, painted) in paintedColumnsByLine().enumerated() {
+            guard let columns = painted else { continue }
             if let last = blocks.last, last.rows.upperBound == row, last.columns == columns {
                 blocks[blocks.count - 1].rows = last.rows.lowerBound..<(row + 1)
             } else {

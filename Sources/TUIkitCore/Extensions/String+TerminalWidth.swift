@@ -761,19 +761,20 @@ extension String {
     ///
     /// Compositing is opaque per cell (see ``FrameBuffer/composited(with:at:)``),
     /// so a floating drag preview writes its padding as blank cells and erases
-    /// whatever it passes over. Trailing blanks that carry a BACKGROUND are
-    /// kept: on a selected or filled row they are the fill, not padding.
+    /// whatever it passes over. Trailing blanks styled to show are kept
+    /// (``BlankMarks``): on a selected or filled row a background is the fill,
+    /// not padding, and a reverse-video or underlined space is drawn too.
     func visibleWidthBeforeTrailingBlanks() -> Int {
         var width = 0
         var keep = 0
-        var background = false
+        var marks = BlankMarks()
         forEachANSISegment { segment in
             switch segment {
             case .ansi(let sequence, let isSGR):
-                if isSGR { background = Self.background(after: sequence, wasSet: background) }
+                if isSGR { marks = Self.blankMarks(after: sequence, were: marks) }
             case .visible(let character):
                 width += character.terminalWidth
-                if character != " " || background { keep = width }
+                if character != " " || !marks.isEmpty { keep = width }
             }
             return true
         }
@@ -781,26 +782,27 @@ extension String {
     }
 
     /// The columns from this line's first painted cell to its last — a
-    /// painted cell being a glyph other than a space, or any cell with a
-    /// background in force — or `nil` when it paints none. The unstyled blank
-    /// space either side of them is a line's silhouette, not its drawing:
-    /// what a layer drawn over other content must leave alone, and what
-    /// content drawn after it must not count as covering it
+    /// painted cell being a glyph other than a space, or a space styled to
+    /// show (``BlankMarks``: a background, reverse video, an underline, a
+    /// strikethrough or an overline) — or `nil` when it paints none. The
+    /// unstyled blank space either side of them is a line's silhouette, not its
+    /// drawing: what a layer drawn over other content must leave alone, and
+    /// what content drawn after it must not count as covering it
     /// (`OverlayLayer.drawnParts()`, `FrameBuffer.coverScrollOverflow`).
     /// Its upper bound is ``visibleWidthBeforeTrailingBlanks()``.
     func paintedColumns() -> Range<Int>? {
         var width = 0
         var first: Int?
         var end = 0
-        var background = false
+        var marks = BlankMarks()
         forEachANSISegment { segment in
             switch segment {
             case .ansi(let sequence, let isSGR):
-                if isSGR { background = Self.background(after: sequence, wasSet: background) }
+                if isSGR { marks = Self.blankMarks(after: sequence, were: marks) }
             case .visible(let character):
                 let start = width
                 width += character.terminalWidth
-                if character != " " || background {
+                if character != " " || !marks.isEmpty {
                     if first == nil { first = start }
                     end = width
                 }
@@ -810,14 +812,66 @@ extension String {
         return first.map { $0..<end }
     }
 
-    /// Whether a background colour is in force after `sequence`, given that it
-    /// `wasSet` before. Parameters are applied in order, so `ESC[0;41m` ends up
-    /// set and `ESC[41;0m` does not.
-    private static func background(after sequence: String, wasSet: Bool) -> Bool {
-        var background = wasSet
+    /// The SGR attributes in force that show on a space, so make a blank cell
+    /// one that is drawn: a background, reverse video (a space in the
+    /// foreground's colour), and the lines drawn through a cell — underline,
+    /// strikethrough, overline. Bold, dim, italic and blink change nothing a
+    /// space shows. A reverse-video space used to count as blank, so a
+    /// selection or a caret drawn that way was cut out of a scroll view's
+    /// overflow and out of a drag preview.
+    struct BlankMarks: OptionSet {
+        let rawValue: UInt8
+        static let background = Self(rawValue: 1 << 0)
+        static let reverse = Self(rawValue: 1 << 1)
+        static let underline = Self(rawValue: 1 << 2)
+        static let strikethrough = Self(rawValue: 1 << 3)
+        static let overline = Self(rawValue: 1 << 4)
+
+        /// These marks after the SGR attribute `code`, whose whole `parameter`
+        /// carries the colon form's sub-parameters.
+        mutating func apply(_ code: Int, parameter: Substring) {
+            if code == 0 {
+                self = []
+            } else if code == 4, parameter.hasSuffix(":0") {
+                remove(.underline)  // the colon form's "no underline"; `4:1`… are its styles
+            } else if let mark = Self.mark(setBy: code) {
+                insert(mark)
+            } else if let mark = Self.mark(clearedBy: code) {
+                remove(mark)
+            }
+        }
+
+        private static func mark(setBy code: Int) -> Self? {
+            switch code {
+            case 40...47, 48, 100...107: .background
+            case 7: .reverse
+            case 4, 21: .underline  // 21 is ECMA-48's double underline
+            case 9: .strikethrough
+            case 53: .overline
+            default: nil  // 38/58 (foreground / underline colour) included
+            }
+        }
+
+        private static func mark(clearedBy code: Int) -> Self? {
+            switch code {
+            case 49: .background
+            case 27: .reverse
+            case 24: .underline
+            case 29: .strikethrough
+            case 55: .overline
+            default: nil
+            }
+        }
+    }
+
+    /// The ``BlankMarks`` in force after `sequence`, given those that `were`
+    /// before. Parameters are applied in order, so `ESC[0;41m` ends up with a
+    /// background and `ESC[41;0m` with none.
+    private static func blankMarks(after sequence: String, were: BlankMarks) -> BlankMarks {
+        var marks = were
         let body = sequence.dropFirst(2).dropLast()  // strip "ESC[" and the final "m"
         let parameters = body.split(separator: ";", omittingEmptySubsequences: false)
-        if parameters.isEmpty { return false }  // a bare ESC[m is a reset
+        if parameters.isEmpty { return [] }  // a bare ESC[m is a reset
         var index = 0
         while index < parameters.count {
             let parameter = parameters[index]
@@ -829,11 +883,7 @@ extension String {
             // An empty parameter is ECMA-48's default of 0.
             let attribute = parameter.prefix { $0 != ":" }
             let code = Int(attribute) ?? 0
-            switch code {
-            case 0, 49: background = false
-            case 40...47, 48, 100...107: background = true
-            default: break  // 38/58 (foreground / underline colour) included
-            }
+            marks.apply(code, parameter: parameter)
             // 38, 48 and 58 INTRODUCE a colour. In the `;` form its components
             // follow as further parameters — `5;n` or `2;r;g;b` — and walking
             // those through the switch above reads a colour channel as an
@@ -846,7 +896,7 @@ extension String {
             }
             index += 1
         }
-        return background
+        return marks
     }
 
     /// Whether SGR styling is still in force at the end of this string — i.e.
