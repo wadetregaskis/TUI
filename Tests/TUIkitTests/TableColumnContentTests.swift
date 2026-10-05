@@ -47,6 +47,20 @@ struct TableColumnContentTests {
         #expect(keyPath.lines == text.lines)
     }
 
+    @Test("A content closure that builds a Text takes the text path; any other view, the view path")
+    func textClosureTakesTextPath() {
+        // Both draw the same bytes, so only the path says which was taken: a
+        // Text closure that fell to the view path would render every cell.
+        let text = _TableCellSource<Row>.content { (row: Row) in Text(row.name) }
+        let view = _TableCellSource<Row>.content { (row: Row) in Text(row.name).padding(.leading, 1) }
+        if case .text(let make) = text {
+            #expect(make(Self.rows[0]).content == "alpha")
+        } else {
+            Issue.record("a Text content closure took the view path")
+        }
+        if case .text = view { Issue.record("a padded Text took the text path") }
+    }
+
     @Test("Any other view is rendered into its cell")
     func viewCell() {
         let buffer = render(

@@ -178,10 +178,12 @@ extension _TableCellSource {
     /// view otherwise.
     @MainActor
     static func content<Content: View>(_ content: @escaping (Value) -> Content) -> Self {
-        if Content.self == Text.self {
-            // Same type, so the cast cannot fail; the check above is what
-            // makes it a cast at all rather than a conversion.
-            return .text { content($0) as! Text }  // swiftlint:disable:this force_cast
+        // The CLOSURE is cast, once per column, not each `Text` it builds: that
+        // was a `swift_dynamicCast` per cell per pass, about 1.6% of a frame
+        // of the `truncate` scenario's six `Text` columns. The cast succeeds
+        // exactly when `Content` is `Text`.
+        if let text = content as? (Value) -> Text {
+            return .text(text)
         }
         return .view { row, context in
             let view = content(row)
