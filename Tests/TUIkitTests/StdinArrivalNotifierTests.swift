@@ -27,13 +27,50 @@ import Testing
 /// what's being verified. The notifier is `@MainActor`, so the tests are
 /// too.
 ///
-/// The one exception is ``eofDoesNotSpin()``, which needs a real source
-/// because what it pins is a property OF the source. It gets one without
-/// touching stdin: `start(descriptor:)` takes the read end of a pipe whose
-/// write end is already closed, which is a descriptor at EOF and nothing
-/// else's business.
+/// The exceptions are the end-of-file tests, which need a real source because
+/// what they pin is a property OF the source. They get one without touching
+/// stdin: `start(descriptor:)` takes the read end of a pipe, and closing its
+/// write end — see ``closeWriteEnd(_:awaitingHangUpOn:)`` for why that is not
+/// one call — makes a descriptor at EOF that is nothing else's business.
 @Suite("StdinArrivalNotifier")
 struct StdinArrivalNotifierTests {
+    /// Closes a pipe's write end, and returns once its read end reports the
+    /// hang-up: `false` if it never does.
+    ///
+    /// Closing the write end is not end of file. A pipe hangs up when the LAST
+    /// descriptor for its write end closes, and this process does not hold
+    /// every one: other suites spawn children while these tests run —
+    /// `SystemClipboardTests` runs `/bin/sh`, exit tests run this binary — and
+    /// a spawn copies the parent's whole descriptor table into the child,
+    /// dropping what the child may not keep only at its `exec`. A write end
+    /// closed inside that window stays open in the child until then, and a
+    /// zero-timeout poll of the read end meanwhile sees an open, empty pipe.
+    /// That, and not the code under test, is what failed
+    /// `zeroReadyBytesBeforeEOFKeepsTheSource` and
+    /// `endOfInputIsAskedOfTheDescriptor` in parallel runs and never alone: the
+    /// descriptor was still the test's own pipe, empty, with no hang-up yet.
+    /// (Measured on macOS 15, with `Process` spawning on another thread: a
+    /// write end was still open just after its close in 285 of 4,578 spawns —
+    /// and in 907 of 4,627 with `FD_CLOEXEC` set on it, which XNU copies too —
+    /// for up to 180 ms.)
+    ///
+    /// The child's copy goes at its `exec`, so the wait is short and always
+    /// ends; the bound only makes a regression fail instead of hang. What the
+    /// tests assert is unchanged — whether a descriptor whose writer has gone
+    /// is recognised — and this only makes "the writer has gone" true before
+    /// they ask.
+    private static func closeWriteEnd(_ writeEnd: Int32, awaitingHangUpOn readEnd: Int32) -> Bool {
+        close(writeEnd)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
+        var probe = pollfd(fd: readEnd, events: Int16(POLLIN), revents: 0)
+        while ContinuousClock.now < deadline {
+            probe.revents = 0
+            let ready = poll(&probe, 1, 100)
+            if ready == 1 { return probe.revents & Int16(POLLHUP) != 0 }
+            if ready < 0, errno != EINTR { return false }
+        }
+        return false
+    }
 
     @MainActor
     @Test("waitForArrival returns once the timeout elapses")
@@ -83,11 +120,12 @@ struct StdinArrivalNotifierTests {
     /// `pipe(2)` is the only way to get one — hence `start(descriptor:)`.
     @MainActor
     @Test("A descriptor at EOF does not spin the run loop")
-    func eofDoesNotSpin() async {
+    func eofDoesNotSpin() async throws {
         var fds: [Int32] = [-1, -1]
-        #expect(pipe(&fds) == 0)
-        close(fds[1])  // write end gone: the read end is at EOF from here on
+        try #require(pipe(&fds) == 0)
         defer { close(fds[0]) }
+        // Write end gone: the read end is at EOF from here on.
+        try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
 
         let notifier = StdinArrivalNotifier()
         notifier.start(descriptor: fds[0])
@@ -118,9 +156,9 @@ struct StdinArrivalNotifierTests {
     /// a time budget would test the machine.
     @MainActor
     @Test("A source told 0 bytes are ready, on a descriptor not at EOF, keeps watching it")
-    func zeroReadyBytesBeforeEOFKeepsTheSource() {
+    func zeroReadyBytesBeforeEOFKeepsTheSource() throws {
         var fds: [Int32] = [-1, -1]
-        #expect(pipe(&fds) == 0)
+        try #require(pipe(&fds) == 0)
         defer { close(fds[0]) }  // the write end is closed below
 
         let notifier = StdinArrivalNotifier()
@@ -130,7 +168,7 @@ struct StdinArrivalNotifierTests {
         notifier.handleReadable(reportedBytes: 0)
         #expect(notifier.isWatching, "the source was cancelled, so no key would wake the loop again")
 
-        close(fds[1])
+        try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
         notifier.handleReadable(reportedBytes: 0)
         #expect(!notifier.isWatching, "at end of file the source must go, or it fires forever")
     }
@@ -138,7 +176,7 @@ struct StdinArrivalNotifierTests {
     @Test("End of input is a descriptor that is readable with nothing to read")
     func endOfInputIsAskedOfTheDescriptor() throws {
         var fds: [Int32] = [-1, -1]
-        #expect(pipe(&fds) == 0)
+        try #require(pipe(&fds) == 0)
         defer { close(fds[0]) }
 
         #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "open and empty: the bytes were taken, more may come")
@@ -146,7 +184,7 @@ struct StdinArrivalNotifierTests {
         #expect(write(fds[1], &byte, 1) == 1)
         #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "a byte waiting")
         #expect(read(fds[0], &byte, 1) == 1)
-        close(fds[1])
+        try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
         #expect(StdinArrivalNotifier.isAtEndOfInput(fds[0]), "the writer is gone and nothing is left")
 
         let null = open("/dev/null", O_RDONLY)
