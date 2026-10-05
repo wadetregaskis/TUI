@@ -102,15 +102,16 @@ extension TerminalOutputTests {
 
 extension TerminalOutputTests {
 
-    /// K2 in `Documentation/Ghostty-VT-adoption.md`: a scrolling region or
-    /// origin mode left by a killed program offsets or clamps every absolute
-    /// cursor move a frame makes, and application cursor keys or keypad
-    /// change what the keys send.
+    /// K2 in `Documentation/Ghostty-VT-adoption.md`: origin mode left on by a
+    /// killed program offsets or clamps every absolute cursor move a frame
+    /// makes into the region it left, left-right margins stop every row at
+    /// the right margin, and application cursor keys or keypad change what
+    /// the keys send.
     @Test("Raw mode asserts the inherited defaults, turns autowrap off and the input modes on, and nothing else")
     func enableRawModeBytes() {
         let (terminal, output) = ScriptedTerminalOutput.terminal()
         terminal.enableRawMode()
-        #expect(output.bytes == "\u{1B}[r\u{1B}[?6l\u{1B}[?1l\u{1B}>" + "\u{1B}[?7l"
+        #expect(output.bytes == "\u{1B}[r\u{1B}[?69l\u{1B}[?6l\u{1B}[?1l\u{1B}>" + "\u{1B}[?7l"
             + "\u{1B}[?2004h" + "\u{1B}[?1004h" + "\u{1B}[?2031h" + "\u{1B}[>1;2m")
     }
 

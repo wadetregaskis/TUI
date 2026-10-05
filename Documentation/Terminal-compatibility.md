@@ -4858,33 +4858,38 @@ anything else, `Terminal.inheritedDefaults`:
 
 | Sequence | Puts back | What it cost when left changed |
 |---|---|---|
-| `CSI r` | the scrolling region (DECSTBM) to the whole screen | every absolute cursor move offset or clamped into the old region |
-| `CSI ? 6 l` | origin mode (DECOM) off | every row number taken relative to that region |
+| `CSI r` | the scrolling region (DECSTBM) to the whole screen | scrolling confined to the old region. With origin mode off no absolute cursor move minds a region, and no frame scrolls today; hardware scrolling (O2 in the adoption plan) will, with a region of its own |
+| `CSI ? 69 l` | left-right margin mode (DECLRMM) off, and with it any left and right margins (DECSLRM) | every row stopped (autowrap off) or wrapped (on) at the old right margin, and `CSI s` read as DECSLRM rather than a cursor save. tmux sets such margins where the terminal has them |
+| `CSI ? 6 l` | origin mode (DECOM) off | every row and column number taken relative to the region and margins and clamped into them: what offsets or clamps a frame |
 | `CSI ? 1 l` | normal cursor keys (DECCKM) | arrows, Home and End sent as `ESC O A`… |
 | `ESC >` | the numeric keypad (DECKPNM) | the keypad sent as `ESC O p`… instead of its digits |
 
 None is restored on the way out: they are the defaults a shell expects. DECSTBM
 and DECOM also home the cursor, which no frame minds, since each positions
-every row it writes.
+every row it writes. That resetting DECLRMM also resets the margins is xterm's
+and the VT510 manual's account; with the mode off they do not apply either
+way.
 
-**Shapes.** `CSI r` has neither a `?` nor an intermediate byte; `?6l` and
-`?1l` have a `?` and no intermediate; both shapes were measured clean on Apple
-Terminal 455.1, iTerm2, Ghostty and Warp ("Asking the terminal — Device
+**Shapes.** `CSI r` has neither a `?` nor an intermediate byte; `?69l`, `?6l`
+and `?1l` have a `?` and no intermediate; both shapes were measured clean on
+Apple Terminal 455.1, iTerm2, Ghostty and Warp ("Asking the terminal — Device
 Attributes"). `ESC >` is a two-byte VT100 escape, not measured here.
 `TerminalOutputTests` pins `enableRawMode`'s bytes and checks every sequence
 it and `disableRawMode` send against the shapes Apple Terminal prints.
 
-**To measure.** On each host and in tmux, run `printf '\e[5;10r\e[?6h\e[?1h\e='`
-and then launch Example: the frame must start at row 1 and fill the screen,
-and the arrows must move the focus.
+**To measure.** On each host and in tmux, run
+`printf '\e[5;10r\e[?6h\e[?69h\e[10;40s\e[?1h\e='` and then launch Example:
+the frame must start at row 1 and fill the screen, every row must reach the
+right edge, and the arrows must move the focus. (`CSI 10;40 s` sets margins only
+where `?69h` took; elsewhere it is a cursor save, harmless.)
 
-| Host | Frame at row 1 after a stale region | Nothing printed |
-|---|---|---|
-| Apple Terminal | UNMEASURED | UNMEASURED |
-| iTerm2 | UNMEASURED | UNMEASURED |
-| Ghostty | UNMEASURED | UNMEASURED |
-| Warp | UNMEASURED | UNMEASURED |
-| tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED |
+| Host | Frame at row 1 after a stale region | Rows full width after stale margins | Nothing printed |
+|---|---|---|---|
+| Apple Terminal | UNMEASURED | — (no DECLRMM, hypothesis) | UNMEASURED |
+| iTerm2 | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED |
+| Warp | UNMEASURED | UNMEASURED | UNMEASURED |
+| tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED | UNMEASURED |
 
 Found by reading Ghostty's VT reference (`Documentation/Ghostty-VT-adoption.md`,
 K2). It must land before any hardware scrolling (O2 there), which sets a

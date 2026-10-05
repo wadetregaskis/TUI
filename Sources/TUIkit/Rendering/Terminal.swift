@@ -589,11 +589,20 @@ extension Terminal {
     /// `rmkx`, hands the next program a terminal that is not in its defaults:
     ///
     /// - `CSI r` (DECSTBM, no parameters): the scrolling region back to the
-    ///   whole screen. Every cursor move TUIkit makes is absolute and assumes
-    ///   none, so a region left by a crashed program offset or clamped the
-    ///   whole frame.
-    /// - `CSI ? 6 l`: origin mode (DECOM) off, which would make every row
-    ///   number relative to that region.
+    ///   whole screen. With origin mode off an absolute cursor move ignores a
+    ///   region; what one left by a crashed program confines is scrolling — a
+    ///   line feed at its bottom margin scrolls only the region — which no
+    ///   frame does today, and which hardware scrolling (the adoption plan's
+    ///   O2) will rely on, with a region of its own.
+    /// - `CSI ? 69 l`: left-right margin mode (DECLRMM) off. While it is on,
+    ///   left and right margins a program set (DECSLRM; tmux sets them where
+    ///   the terminal has them) stop or wrap every row at the right margin,
+    ///   and `CSI s` sets margins instead of saving the cursor. Off, margins
+    ///   do not apply, and resetting it puts them back to the full width
+    ///   (xterm's control-sequence notes and the VT510 manual say so).
+    /// - `CSI ? 6 l`: origin mode (DECOM) off. On, every row (and column) number
+    ///   is taken relative to the region and the margins and clamped into
+    ///   them: this, not the region alone, is what offsets or clamps a frame.
     /// - `CSI ? 1 l`: cursor keys back to normal mode (DECCKM), so arrows,
     ///   Home and End arrive as `CSI A`… rather than their SS3 spellings —
     ///   which the parser reads as well, for a terminal that sends them
@@ -602,13 +611,14 @@ extension Terminal {
     ///   arrive as the characters on them.
     ///
     /// None is restored on the way out: these are the defaults a shell
-    /// expects. All four are shapes Apple Terminal consumes: `CSI r` has no
-    /// `?` and no intermediate byte, `?6l` and `?1l` a `?` and no
+    /// expects. All five are shapes Apple Terminal consumes: `CSI r` has no
+    /// `?` and no intermediate byte, `?69l`, `?6l` and `?1l` a `?` and no
     /// intermediate (`Documentation/Terminal-compatibility.md`, "Asking the
     /// terminal — Device Attributes"), and `ESC >` is a two-byte VT100
     /// escape. Found by reading Ghostty's VT reference
-    /// (`Documentation/Ghostty-VT-adoption.md`, K2).
-    static let inheritedDefaults = "\u{1B}[r" + "\u{1B}[?6l" + "\u{1B}[?1l" + "\u{1B}>"
+    /// (`Documentation/Ghostty-VT-adoption.md`, K2; DECLRMM, which K6 names,
+    /// joined in review).
+    static let inheritedDefaults = "\u{1B}[r" + "\u{1B}[?69l" + "\u{1B}[?6l" + "\u{1B}[?1l" + "\u{1B}>"
 
     /// Turns off every input mode ``enableRawMode()`` turned on, in one write
     /// — the orderly teardown's, and the debt a signal pays
