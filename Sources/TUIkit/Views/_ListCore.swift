@@ -3272,10 +3272,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `extractFromChildren` sees the per-element children it needs.
         // So is one whose rows make a number of list rows only each row knows
         // — a loop in a row, an `if` whose arms differ — which the windowed
-        // path, counting rows from the data, cannot describe either.
-        if let windowed = content as? WindowedListRowExtractor,
-            windowed.listRowsAreSections || windowed.listRowsPerElement == nil
-        {
+        // path, counting rows from the data, cannot describe either. The row
+        // type's shape is asked here once, and handed to every per-row
+        // question below rather than asked again by each.
+        let windowed = content as? WindowedListRowExtractor
+        let rowsPerElement = windowed?.listRowsPerElement
+        if let windowed, windowed.listRowsAreSections || rowsPerElement == nil {
             let extracted = extractFromChildren(of: content, context: context)
             return .eager(extracted.rows, editOwners: extracted.editOwners)
         }
@@ -3287,12 +3289,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // This is the hot path for a large flat List and what makes per-frame
         // cost O(visible), not O(total). Falls through to the eager path when the
         // ids can't be expressed as SelectionValue.
-        if let windowed = content as? WindowedListRowExtractor {
+        if let windowed, let rowsPerElement {
             let count = windowed.listRowCount
             // The conformer is id-homogeneous (see WindowedListRowExtractor), so
             // row 0's resolvability decides the whole list: probe it once rather
             // than resolving all N ids up front. An empty list windows trivially.
-            if count == 0 || (windowed.listRowID(at: 0) as SelectionValue?) != nil {
+            if count == 0 || (windowed.listRowID(at: 0, rowsPerElement: rowsPerElement) as SelectionValue?) != nil {
                 return RowSource(
                     count: count,
                     allContent: true,
@@ -3301,10 +3303,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     typeAt: { index in
                         // Force-unwrap is safe: row 0 resolved and the data is
                         // id-homogeneous, so every index resolves as SelectionValue.
-                        let id: SelectionValue = windowed.listRowID(at: index)!
+                        let id: SelectionValue = windowed.listRowID(at: index, rowsPerElement: rowsPerElement)!
                         return .content(id: id)
                     },
-                    make: { index in windowed.makeListRowContent(at: index, context: context) })
+                    make: { index in
+                        windowed.makeListRowContent(at: index, rowsPerElement: rowsPerElement, context: context)
+                    })
             }
         }
 

@@ -158,7 +158,7 @@ extension ForEach where Content: View {
     ///
     /// The walks that have no context read ``data`` directly, and so does
     /// `List`'s row family, whose windowed path asks `listRowCount` and
-    /// `listRowID(at:)` without one — its eager `extractListRows(context:)` must
+    /// `listRowID(at:rowsPerElement:)` without one — its eager `extractListRows(context:)` must
     /// count the same rows, so it reads the same collection. A collection that
     /// needs a context is empty until resolved, so any of those walks sees no
     /// rows rather than rows it cannot account for.

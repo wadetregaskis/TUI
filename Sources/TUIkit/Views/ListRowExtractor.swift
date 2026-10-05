@@ -126,7 +126,7 @@ protocol ListRowExtractor {
 /// eager ``ListRowExtractor`` when it isn't available (e.g. heterogeneous
 /// content) or the ids can't be expressed as the list's selection type.
 ///
-/// - Important: Conformers must be *id-homogeneous* — whether ``listRowID(at:)``
+/// - Important: Conformers must be *id-homogeneous* — whether ``listRowID(at:rowsPerElement:)``
 ///   resolves to a given `ID` must not vary by index. `List` relies on this:
 ///   it probes row 0 once to decide windowability and force-unwraps the rest.
 ///   `ForEach` satisfies this (one element type, one id key-path).
@@ -142,11 +142,18 @@ protocol WindowedListRowExtractor {
     /// preferred, then element-natural ids, with the row index as the fallback
     /// (matching ``ListRowExtractor/extractListRows``). Only a row type that
     /// can be carrying a tag is built to be asked for one.
-    func listRowID<ID: Hashable>(at index: Int) -> ID?
+    ///
+    /// - Parameter rowsPerElement: ``listRowsPerElement``, asked once by the
+    ///   caller for every row it asks about — it is a property of the row
+    ///   type, and asking it again for each row cost a conformance test a row.
+    func listRowID<ID: Hashable>(at index: Int, rowsPerElement: Int) -> ID?
 
     /// Builds the deferred content for the row at `index` (0-based over the
-    /// data). Only called for rows that are actually shown.
-    func makeListRowContent(at index: Int, context: RenderContext) -> LazyListRowContent
+    /// rows). Only called for rows that are actually shown.
+    ///
+    /// - Parameter rowsPerElement: ``listRowsPerElement``, asked once by the
+    ///   caller, as for ``listRowID(at:rowsPerElement:)``.
+    func makeListRowContent(at index: Int, rowsPerElement: Int, context: RenderContext) -> LazyListRowContent
 
     /// The rows' data, boxed for comparison, when it can be compared — what
     /// the hug memo checks the widest-row answer against (see
@@ -294,7 +301,10 @@ extension ConditionalView: ListRowsPassThrough {
 
 extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
     func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
-        (0..<listRowCount).map { index -> ListRow<RowID> in
+        // The row type's shape, once for every row: asked of each, it was a
+        // conformance test per row of every section's loop, every frame.
+        let perElement = max(1, listRowsPerElement ?? 1)
+        return (0..<data.count * perElement).map { index -> ListRow<RowID> in
             // Resolve the row's selection ID up front — it's cheap (a key-path
             // read or the index) and the scroll / selection handler needs it for
             // EVERY row, on- or off-screen. Building and rendering the row view,
@@ -306,7 +316,9 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
             // SwiftUI draws it — `Int` ids in a `String`-selection list. It used
             // to be dropped, which showed a section of them as its bare header
             // and a list of nothing else as the empty placeholder.
-            ListRow(id: rowID(at: index), content: makeListRowContent(at: index, context: context))
+            ListRow(
+                id: rowID(at: index, rowsPerElement: perElement),
+                content: makeListRowContent(at: index, rowsPerElement: perElement, context: context))
         }
     }
 
@@ -325,8 +337,8 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     // window + the focused row). `nil` when the element's id can't be expressed
     // as `RowID` — exactly the row `extractListRows` draws unselectable; the
     // list probes row 0 and bails to the eager path when it's `nil`.
-    func listRowID<RowID: Hashable>(at index: Int) -> RowID? {
-        rowID(at: index)
+    func listRowID<RowID: Hashable>(at index: Int, rowsPerElement: Int) -> RowID? {
+        rowID(at: index, rowsPerElement: rowsPerElement)
     }
 
     /// The collection itself, when its elements can be compared: a `Range`,
@@ -338,11 +350,11 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     // A static property of the row type — no element is built to answer it.
     var listRowsAreSections: Bool { Content.self is any SectionRowExtractor.Type }
 
-    func makeListRowContent(at index: Int, context: RenderContext) -> LazyListRowContent {
+    func makeListRowContent(at index: Int, rowsPerElement: Int, context: RenderContext) -> LazyListRowContent {
         // One of a row of several views: a list row of its own, as SwiftUI's
         // (decisions B15).
-        if let perElement = listRowsPerElement, perElement > 1 {
-            return makeMemberListRowContent(at: index, perElement: perElement, context: context)
+        if rowsPerElement > 1 {
+            return makeMemberListRowContent(at: index, perElement: rowsPerElement, context: context)
         }
         let element = self.element(at: index)
         // Which row of the enclosing LIST this element draws — the element's
@@ -503,7 +515,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     ///
     /// This is the SELECTION value only. The row's identity is still the
     /// element's `id` — the `@State`, focus and render-cache key in
-    /// ``makeListRowContent(at:context:)``, and the key a
+    /// ``makeListRowContent(at:rowsPerElement:context:)``, and the key a
     /// `ScrollViewProxy.scrollTo(_:)` seeks by — so a tag moves what the
     /// binding receives and moves nothing else.
     ///
@@ -511,10 +523,10 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     /// off a BUILT row, and this is asked for every row of the visible window
     /// on every frame, so a row type that cannot carry one pays a cached `is`
     /// check and keeps its bare key-path read.
-    private func rowID<RowID: Hashable>(at index: Int) -> RowID? {
+    private func rowID<RowID: Hashable>(at index: Int, rowsPerElement: Int) -> RowID? {
         // A row of several views is several list rows, each naming itself by
         // its element, as SwiftUI tags each (decisions B15).
-        let elementIndex = index / max(1, listRowsPerElement ?? 1)
+        let elementIndex = index / max(1, rowsPerElement)
         return selectionID(of: element(at: elementIndex)) ?? (elementIndex as? RowID)
     }
 
@@ -554,7 +566,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     }
 
     /// The selection value `element`'s row names itself by: its own
-    /// `.tag(_:)`, else the element's id — ``rowID(at:)`` without the index
+    /// `.tag(_:)`, else the element's id — ``rowID(at:rowsPerElement:)`` without the index
     /// fallback, which is a position in THIS collection rather than anything
     /// the row says about itself.
     private func selectionID<RowID: Hashable>(of element: Data.Element) -> RowID? {
@@ -587,7 +599,7 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
         identityKey(elementID(of: self.element(at: element)))
     }
 
-    /// Through `selectionID(of:)`, so without `rowID(at:)`'s index
+    /// Through `selectionID(of:)`, so without `rowID(at:rowsPerElement:)`'s index
     /// fallback: a row whose element id is not the selection type is
     /// answered as such, so its container falls back to its own ordinal for it
     /// — the number it had before.
