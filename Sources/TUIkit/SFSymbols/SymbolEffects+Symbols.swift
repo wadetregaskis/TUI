@@ -43,14 +43,30 @@
 
         /// How many times a discrete effect plays: a count the options give,
         /// else once.
+        ///
+        /// Read by its shape, not its spelling: the stored `repeat` is an
+        /// optional enum whose counted case mirrors as one child labelled
+        /// `count` holding an `Int` (`.repeat(3)`, `.nonRepeating`, and on
+        /// macOS 15 `.repeat(.periodic(3, delay:))` all store it so,
+        /// measured). Earlier this parsed `String(describing:)`, which
+        /// names the private type and would drop the count silently if its
+        /// printed form changed; `SymbolEffectTests` pins the reading on every
+        /// SDK the tests run against.
         var tuikitRepeatCount: Int {
-            guard let repeatOption = Mirror(reflecting: self).children.first(where: { $0.label == "repeat" })?.value
-            else { return 1 }
-            let spelled = String(describing: repeatOption)
-            guard let open = spelled.range(of: "count("), let close = spelled.range(of: ")", range: open.upperBound..<spelled.endIndex),
-                let count = Int(spelled[open.upperBound..<close.lowerBound])
-            else { return 1 }
-            return max(1, count)
+            Self.repeatCount(stored: Mirror(reflecting: self).children.first { $0.label == "repeat" }?.value)
+        }
+
+        /// The count in a stored repeat option: an optional enum's `count`
+        /// case, at least 1; 1 for anything else.
+        static func repeatCount(stored: Any?) -> Int {
+            guard var repeatOption = stored else { return 1 }
+            let optional = Mirror(reflecting: repeatOption)
+            if optional.displayStyle == .optional {
+                guard let wrapped = optional.children.first?.value else { return 1 }
+                repeatOption = wrapped
+            }
+            let count = Mirror(reflecting: repeatOption).children.first { $0.label == "count" }?.value as? Int
+            return max(1, count ?? 1)
         }
     }
 

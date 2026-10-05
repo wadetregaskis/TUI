@@ -44,6 +44,15 @@
         var body: some View { EffectReader(log: log) }
     }
 
+    /// A repeat option whose printed form names nothing the old reader
+    /// looked for — as an SDK's could, the field being private.
+    private enum RepeatOptionSpelledOtherwise: CustomStringConvertible {
+        case count(Int)
+        case indefinite
+
+        var description: String { "a repeat" }
+    }
+
     /// The value a discrete effect watches, changed between frames.
     @MainActor
     private final class Counter {
@@ -113,6 +122,17 @@
             #expect(SymbolEffectOptions.speed(2).tuikitSpeed == 2)
             #expect(SymbolEffectOptions.default.tuikitRepeatCount == 1)
             #expect(SymbolEffectOptions.repeat(3).tuikitRepeatCount == 3)
+            #expect(SymbolEffectOptions.nonRepeating.tuikitRepeatCount == 1)
+            #expect(SymbolEffectOptions.repeating.tuikitRepeatCount == 1, "an indefinite repeat has no count")
+            #expect(SymbolEffectOptions.speed(2).repeat(4).tuikitRepeatCount == 4)
+            if #available(macOS 15, *) {
+                #expect(SymbolEffectOptions.repeat(.periodic(5, delay: 1)).tuikitRepeatCount == 5)
+            }
+            // By its shape, not its printed form.
+            let spelled: RepeatOptionSpelledOtherwise? = .count(6)
+            #expect(SymbolEffectOptions.repeatCount(stored: spelled as Any) == 6)
+            #expect(SymbolEffectOptions.repeatCount(stored: RepeatOptionSpelledOtherwise.indefinite) == 1)
+            #expect(SymbolEffectOptions.repeatCount(stored: nil) == 1)
             #expect(SymbolBreath.frameTicks(speed: 1) == 3)
             #expect(SymbolBreath.frameTicks(speed: 3) == 1)
             #expect(SymbolBreath.frameTicks(speed: 0.5) == 6)
