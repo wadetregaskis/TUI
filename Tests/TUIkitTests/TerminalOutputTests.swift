@@ -169,4 +169,26 @@ extension TerminalOutputTests {
         let dumped = try Data(contentsOf: directory.appendingPathComponent(name))
         #expect(dumped == Data("\u{1B}[3;1H\u{1B}[1mframe".utf8), "the frame as it was sent")
     }
+
+    /// With autowrap off, a notice wider than the screen — the dump's path in
+    /// a deep working directory — lost its file name at the right edge.
+    @Test("The frame dump's notice wraps while the app runs with autowrap off, and leaves it off")
+    func frameDumpNoticeWraps() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        output.clear()
+        terminal.dumpLastFrame(inDirectory: FileManager.default.temporaryDirectory.path)
+        #expect(
+            output.writes == [
+                "\u{1B}7\u{1B}[?7h\u{1B}[1;1H\u{1B}[7m[TUIkit] No frame data to dump\u{1B}[0m\u{1B}[?7l\u{1B}8"
+            ])
+
+        let (apple, appleOutput) = ScriptedTerminalOutput.terminal(environment: ["TERM_PROGRAM": "Apple_Terminal"])
+        apple.enableRawMode()
+        appleOutput.clear()
+        apple.dumpLastFrame(inDirectory: FileManager.default.temporaryDirectory.path)
+        #expect(
+            appleOutput.writes == ["\u{1B}7\u{1B}[1;1H\u{1B}[7m[TUIkit] No frame data to dump\u{1B}[0m\u{1B}8"],
+            "where autowrap stays on there is nothing to put back")
+    }
 }

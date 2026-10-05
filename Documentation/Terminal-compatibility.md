@@ -4889,6 +4889,11 @@ named by the environment or, over ssh, as soon as the startup exchange names
 it: raw mode has sent `?7l` by then, and `?7h` follows at once, before the
 first frame. `?7h` is still in its teardown and debt, where it is harmless.
 
+The frame dump's notice (`TUIKIT_DEBUG_FRAME_DUMP=1`, the backtick) turns
+autowrap on for itself and off again inside its `ESC 7` / `ESC 8`, so a path
+wider than the screen wraps onto the rows below it as it always did, rather
+than losing its file name at the right edge.
+
 **What it buys.** Every row TUIkit writes is as wide as the screen by TUIkit's
 count, and nothing it draws relies on wrapping. Where a host advances a cluster
 further than that count — a host TUIkit has not measured, or iTerm2 (and, once

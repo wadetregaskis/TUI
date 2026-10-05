@@ -22,7 +22,7 @@ extension Terminal {
     /// (`RenderLoop.forgetTerminalStyling()`).
     func dumpLastFrame(inDirectory directory: String = FileManager.default.currentDirectoryPath) {
         guard !lastFrameData.isEmpty else {
-            writeImmediate(Self.frameDumpNotice("[TUIkit] No frame data to dump"))
+            writeImmediate(frameDumpNotice("[TUIkit] No frame data to dump"))
             return
         }
 
@@ -31,11 +31,11 @@ extension Terminal {
 
         do {
             try Data(lastFrameData).write(to: url)
-            writeImmediate(Self.frameDumpNotice("Frame dumped → \(url.path)"))
+            writeImmediate(frameDumpNotice("Frame dumped → \(url.path)"))
         } catch {
             // Show the error on-screen rather than crashing (a crash would leave
             // the terminal in raw-mode / alternate-screen).
-            writeImmediate(Self.frameDumpNotice("[TUIkit] Dump failed: \(error)"))
+            writeImmediate(frameDumpNotice("[TUIkit] Dump failed: \(error)"))
         }
     }
 
@@ -51,8 +51,17 @@ extension Terminal {
     /// reference lists it as DECSLRM there, which would set margins instead
     /// of saving anything. Found by reading Ghostty's VT reference
     /// (`Documentation/Ghostty-VT-adoption.md`, K6).
-    static func frameDumpNotice(_ message: String) -> String {
-        "\u{1B}7\u{1B}[1;1H\u{1B}[7m\(message)\u{1B}[0m\u{1B}8"
+    ///
+    /// Autowrap on for the notice and off again after it, where the app runs
+    /// with it off (``outputModesOn``): a path in a deep working directory
+    /// makes the notice wider than the screen, and it wraps onto the rows
+    /// below, as it did before autowrap went off, rather than losing the file
+    /// name at the right edge. DECRC does not restore the mode, so it is said.
+    /// The notice starts on the top row, so wrapping cannot scroll the screen.
+    func frameDumpNotice(_ message: String) -> String {
+        let wraps = isRawMode && !keepsAutowrap
+        let (wrapOn, wrapOff) = wraps ? (Self.autowrapOn, Self.autowrapOff) : ("", "")
+        return "\u{1B}7" + wrapOn + "\u{1B}[1;1H\u{1B}[7m\(message)\u{1B}[0m" + wrapOff + "\u{1B}8"
     }
 
     /// `tuikit-frame (yyyyMMdd-HHmmss).ansi`, in the local time zone.
