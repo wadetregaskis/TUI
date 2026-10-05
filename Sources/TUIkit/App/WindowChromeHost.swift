@@ -95,8 +95,15 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         contentContext.environment.overlayContentHeight = contentHeight
         var published: PreferenceValues?
         var page = placeContent(context: contentContext, rowsAbove: rows.top, published: &published)
+        let seeds = context.isMeasuring && context.environment.seedsWindowChrome
+        // The title before the seed, which sizes the top bar by it: the seeding
+        // walk publishes it although it measures (`WindowChromePreferenceKey`).
+        if let chrome, !context.isMeasuring || seeds {
+            chrome.title = published?[NavigationTitleKey.self] ?? ""
+            chrome.subtitle = published?[NavigationSubtitleKey.self] ?? ""
+        }
         guard !context.isMeasuring else {
-            if let chrome, context.environment.seedsWindowChrome {
+            if let chrome, seeds {
                 for edge in WindowChromeState.Edge.allCases {
                     chrome.seed(edge, rows: toolbarContentRows(edge, chrome: chrome, width: width, context: context))
                 }
@@ -109,10 +116,6 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         // The toolbars, after the content, so their sections follow the page's
         // in the Tab ring. Their anchored layers (a `Menu`'s drop-down) go onto
         // the page, to be composited with its own.
-        if let chrome {
-            chrome.title = published?[NavigationTitleKey.self] ?? ""
-            chrome.subtitle = published?[NavigationSubtitleKey.self] ?? ""
-        }
         var top = chrome.flatMap {
             toolbarBuffer(.top, chrome: $0, contentRows: $0.rows(.top), width: width, isModal: isModal, context: context)
         }

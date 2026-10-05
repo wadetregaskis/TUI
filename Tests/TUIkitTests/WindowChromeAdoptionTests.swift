@@ -69,6 +69,20 @@ private struct OscillatingHeaderApp: App {
     }
 }
 
+/// A title, a subtitle under it, and an item: a two-row top bar from frame 1.
+private struct TitledToolbarApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .navigationTitle("NOTES")
+                .navigationSubtitle("THREE")
+                .toolbar { ToolbarItem(placement: .primaryAction) { Button("NEW") {} } }
+        }
+    }
+}
+
 @MainActor
 @Suite("The window's chrome is adopted a frame later", .serialized)
 struct WindowChromeAdoptionTests {
@@ -153,5 +167,16 @@ struct WindowChromeAdoptionTests {
         #expect(loop.windowChrome.oscillationReports == [.top], "the flip is reported once")
         #expect(loop.windowChrome.rows(.top) == 1, "and held at the larger")
         #expect(screens[6] == screens[7], "the screen is still")
+    }
+
+    @Test("Frame 1 draws a top bar of a title and a subtitle at its full height, so frame 2 moves nothing")
+    func firstFrameSeedsTheTitle() {
+        let app = HeadlessApp(TitledToolbarApp(), width: 40, height: 12)
+        app.frame(atNanos: 0)
+        let first = app.screen.map(\.stripped)
+        #expect(first[1].contains("NOTES") && first[1].contains("NEW"), "\(first)")
+        #expect(first[2].contains("THREE"), "the subtitle's row: \(first)")
+        app.frame(atNanos: 20_000_000)
+        #expect(app.screen.map(\.stripped) == first, "nothing moved on frame 2")
     }
 }

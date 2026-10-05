@@ -36,6 +36,13 @@ extension PreferenceModifier: Renderable {
         if !context.isMeasuring {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             context.environment.preferenceStorage!.setValue(value, forKey: K.self)
+        } else if context.environment.seedsWindowChrome, K.self is any WindowChromePreferenceKey.Type {
+            // Except what the window's chrome reads, on the first frame's
+            // seeding walk — a measurement whose one job is to find the chrome
+            // (`EnvironmentValues.seedsWindowChrome`). The walk's preferences
+            // are its own, emptied before the drawn walk, so nothing else sees
+            // them; and a title read twice is read the same.
+            context.environment.preferenceStorage?.setValue(value, forKey: K.self)
         }
 
         // Render content
@@ -193,6 +200,16 @@ public struct NavigationTitleKey: PreferenceKey {
 struct NavigationSubtitleKey: PreferenceKey {
     static let defaultValue: String = ""
 }
+
+/// A preference the window's chrome reads — the title and subtitle its top bar
+/// shows — and so one published on the first frame's seeding walk too, which
+/// measures: the bar's rows are seeded from that walk, and they depend on
+/// whether there is a title, and a subtitle under it.
+protocol WindowChromePreferenceKey {}
+
+extension NavigationTitleKey: WindowChromePreferenceKey {}
+
+extension NavigationSubtitleKey: WindowChromePreferenceKey {}
 
 /// A preference key for whether a pushed screen hides its Back control.
 ///
