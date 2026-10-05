@@ -447,7 +447,7 @@ extension View {
 
     /// Adds a context menu with a custom preview to a view.
     ///
-    /// The menu is the one ``contextMenu(menuItems:)`` shows, opened the same
+    /// The menu is the one ``View/contextMenu(menuItems:)`` shows, opened the same
     /// ways. The preview is not shown, as on macOS: SwiftUI documents that
     /// "this view modifier produces a context menu on macOS, but that platform
     /// doesn't display the preview", which is the iOS lift-and-hold picture.
