@@ -119,6 +119,40 @@ extension Terminal {
 /// the bytes that belong to the input parser.
 enum TerminalQueryReplies {
 
+    // MARK: The status fence
+
+    /// `CSI 5 n`, a device status report: sent last, its answer `CSI 0 n`
+    /// says every query before it has answered or declined to. Every measured
+    /// host answered it, screen and Warp included
+    /// (`Documentation/Terminal-compatibility.md`, "Asking the terminal for
+    /// its colours").
+    static let statusFence = "\u{1B}[5n"
+
+    /// Whether `bytes` holds the status fence's reply, `CSI 0 n`, which ends
+    /// the read.
+    ///
+    /// The hand-back walk run for its fence alone, its kept bytes discarded:
+    /// so the read ends on exactly the sequence the hand-back will treat as
+    /// the fence, never on bytes that merely contain `ESC [ 0 n`.
+    static func sawStatusFence(_ bytes: [UInt8]) -> Bool {
+        var saw = false
+        _ = unconsumed(
+            bytes, isReply: { _ in false },
+            isFence: { sequence in
+                saw = isStatusFence(sequence)
+                return saw
+            })
+        return saw
+    }
+
+    /// Whether one complete escape sequence is `CSI 0 n`, the status fence's
+    /// reply. No key sends one.
+    static func isStatusFence(_ sequence: ArraySlice<UInt8>) -> Bool {
+        sequence.elementsEqual([0x1B, 0x5B, 0x30, 0x6E])  // ESC [ 0 n
+    }
+
+    // MARK: Replies and the rest
+
     /// The bytes in `bytes` that are neither a reply nor the fence, in arrival
     /// order.
     ///

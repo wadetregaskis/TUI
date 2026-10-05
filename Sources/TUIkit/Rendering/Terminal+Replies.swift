@@ -90,7 +90,7 @@ extension Terminal {
     /// far as it is going to be, which is what `TerminalColorRequester` waits
     /// for before sending the next one.
     func noteVolunteeredColorReply(_ bytes: [UInt8]) {
-        if TerminalColorQuery.isStatusFence(bytes[...]) {
+        if TerminalQueryReplies.isStatusFence(bytes[...]) {
             sawVolunteeredStatusFence = true
             return
         }

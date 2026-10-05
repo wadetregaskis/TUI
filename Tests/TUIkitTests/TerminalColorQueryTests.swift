@@ -87,16 +87,16 @@ struct TerminalColorQueryTests {
 
     @Test("CSI 0 n is the status fence, and nothing else is")
     func statusFence() {
-        #expect(TerminalColorQuery.sawStatusFence(Self.bytes(Self.fence)))
-        #expect(TerminalColorQuery.sawStatusFence(Self.bytes("q\u{1B}]11;rgb:0/0/0\u{07}\u{1B}[0n")))
-        #expect(!TerminalColorQuery.sawStatusFence(Self.bytes("\u{1B}[0")), "its final byte is still coming")
-        #expect(!TerminalColorQuery.sawStatusFence(Self.bytes("\u{1B}[24;1R")), "a cursor report is another fence")
-        #expect(!TerminalColorQuery.sawStatusFence(Self.bytes("\u{1B}[?997;1n")))
-        #expect(!TerminalColorQuery.sawStatusFence(Self.bytes("\u{1B}[3n")))
-        #expect(!TerminalColorQuery.sawStatusFence(Self.bytes("0n")))
-        #expect(!TerminalColorQuery.sawStatusFence([]))
-        #expect(TerminalColorQuery.isStatusFence(Self.bytes(Self.fence)[...]))
-        #expect(!TerminalColorQuery.isStatusFence(Self.bytes("\u{1B}[24;1R")[...]))
+        #expect(TerminalQueryReplies.sawStatusFence(Self.bytes(Self.fence)))
+        #expect(TerminalQueryReplies.sawStatusFence(Self.bytes("q\u{1B}]11;rgb:0/0/0\u{07}\u{1B}[0n")))
+        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[0")), "its final byte is still coming")
+        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[24;1R")), "a cursor report is another fence")
+        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[?997;1n")))
+        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("\u{1B}[3n")))
+        #expect(!TerminalQueryReplies.sawStatusFence(Self.bytes("0n")))
+        #expect(!TerminalQueryReplies.sawStatusFence([]))
+        #expect(TerminalQueryReplies.isStatusFence(Self.bytes(Self.fence)[...]))
+        #expect(!TerminalQueryReplies.isStatusFence(Self.bytes("\u{1B}[24;1R")[...]))
     }
 
     @Test("A terminal that answers only the fence reports nothing, and resolves to unknown")
@@ -276,10 +276,10 @@ struct TerminalColorQueryTests {
     /// back what is not a reply, parse what was read.
     private func exchange(_ terminal: Terminal, request: String) -> TerminalColorReport {
         let collected = terminal.fencedExchange(
-            request: request, timeout: 5, sawFence: TerminalColorQuery.sawStatusFence)
+            request: request, timeout: 5, sawFence: TerminalQueryReplies.sawStatusFence)
         terminal.handBackUnconsumed(
             from: collected, isReply: TerminalColorQuery.isReply,
-            isFence: TerminalColorQuery.isStatusFence)
+            isFence: TerminalQueryReplies.isStatusFence)
         return TerminalColorQuery.parse(collected)
     }
 
@@ -310,7 +310,7 @@ struct TerminalColorQueryTests {
             + "\u{1B}[?997;2n\u{1B}]11;rgb:ffff/ffff/ffff\u{07}" + Self.fence
         let kept = TerminalQueryReplies.unconsumed(
             Self.bytes(stream), isReply: TerminalColorQuery.isReply,
-            isFence: TerminalColorQuery.isStatusFence)
+            isFence: TerminalQueryReplies.isStatusFence)
         #expect(kept == Self.bytes("q" + Self.focusIn))
 
         let (terminal, _) = makeTerminal(reads: [stream])

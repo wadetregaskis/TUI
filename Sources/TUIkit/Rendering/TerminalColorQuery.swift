@@ -61,8 +61,8 @@ struct TerminalColorReport: Equatable, Sendable {
 /// `TerminalClient.detectColors(using:)` asks once at startup, before the
 /// first frame. It sends ``startupRequest(isTmux:)`` through
 /// `Terminal.fencedExchange(request:timeout:sawFence:)`, reads to
-/// ``sawStatusFence(_:)``, hands back what ``isReply(_:)`` and
-/// ``isStatusFence(_:)`` do not claim, and publishes
+/// ``TerminalQueryReplies/sawStatusFence(_:)``, hands back what ``isReply(_:)`` and
+/// ``TerminalQueryReplies/isStatusFence(_:)`` do not claim, and publishes
 /// ``colorsToPublish(_:environment:)`` of ``parse(_:)``.
 ///
 /// After that, `TerminalColorRequester` asks again without waiting for the
@@ -81,7 +81,8 @@ struct TerminalColorReport: Equatable, Sendable {
 /// Each request ends with `CSI 5 n`, a status report every measured host
 /// answered with `CSI 0 n`, including screen and Warp, which answer none of
 /// the colour queries. It is not `CSI 6 n`, the cursor report the other
-/// startup exchanges use, so ``isStatusFence(_:)`` is its own test.
+/// startup exchanges use, so the status fence is its own test
+/// (``TerminalQueryReplies/isStatusFence(_:)``).
 ///
 /// ## Why OSC and not DCS
 ///
@@ -98,7 +99,7 @@ enum TerminalColorQuery {
     ///
     /// Every slot is its own query. That is the spelling every measured host
     /// answered; the multi-pair spelling was measured only under tmux.
-    static let nativeRequest = foregroundQuery + backgroundQuery + slotQueries + statusQuery
+    static let nativeRequest = foregroundQuery + backgroundQuery + slotQueries + TerminalQueryReplies.statusFence
 
     /// Foreground and background only, then the fence: the startup request
     /// under tmux.
@@ -107,41 +108,18 @@ enum TerminalColorQuery {
     /// client does not answer, the fence waits about half a second (measured
     /// on tmux 3.7c). Foreground and background come from tmux's own record
     /// and are answered in under a millisecond.
-    static let tmuxStartupRequest = foregroundQuery + backgroundQuery + statusQuery
+    static let tmuxStartupRequest = foregroundQuery + backgroundQuery + TerminalQueryReplies.statusFence
 
     /// The sixteen slots, one query each, then the fence: for asking after the
     /// first frame, where tmux's wait holds up nothing that draws.
-    static let slotsRequest = slotQueries + statusQuery
+    static let slotsRequest = slotQueries + TerminalQueryReplies.statusFence
 
     private static let foregroundQuery = "\u{1B}]10;?\u{1B}\\"
     private static let backgroundQuery = "\u{1B}]11;?\u{1B}\\"
     private static let slotQueries = (0..<TerminalColorReport.slotCount)
         .map { "\u{1B}]4;\($0);?\u{1B}\\" }.joined()
-    private static let statusQuery = "\u{1B}[5n"
 
     // MARK: Telling replies apart
-
-    /// Whether `bytes` holds the fence's reply, `CSI 0 n`, which ends the read.
-    ///
-    /// The hand-back walk run for its fence alone, its kept bytes discarded:
-    /// so the read ends on exactly the sequence the hand-back will treat as
-    /// the fence, never on bytes that merely contain `ESC [ 0 n`.
-    static func sawStatusFence(_ bytes: [UInt8]) -> Bool {
-        var saw = false
-        _ = TerminalQueryReplies.unconsumed(
-            bytes, isReply: { _ in false },
-            isFence: { sequence in
-                saw = isStatusFence(sequence)
-                return saw
-            })
-        return saw
-    }
-
-    /// Whether one complete escape sequence is `CSI 0 n`, the fence. No key
-    /// sends one.
-    static func isStatusFence(_ sequence: ArraySlice<UInt8>) -> Bool {
-        sequence.elementsEqual([0x1B, 0x5B, 0x30, 0x6E])  // ESC [ 0 n
-    }
 
     /// Whether one complete escape sequence answers this exchange: an OSC 10,
     /// 11 or 4 reply, well formed or not, or a `CSI ? 997 ; Ps n` report.
@@ -173,7 +151,7 @@ enum TerminalColorQuery {
                 return isReply(sequence)
             },
             isFence: { sequence in
-                report.sawStatusFence = isStatusFence(sequence)
+                report.sawStatusFence = TerminalQueryReplies.isStatusFence(sequence)
                 return report.sawStatusFence
             })
         return report
@@ -475,10 +453,10 @@ extension Terminal {
     ) -> TerminalColorReport {
         let collected = fencedExchange(
             request: TerminalColorQuery.startupRequest(isTmux: isTmux), timeout: timeout,
-            sawFence: TerminalColorQuery.sawStatusFence)
+            sawFence: TerminalQueryReplies.sawStatusFence)
         handBackUnconsumed(
             from: collected, isReply: TerminalColorQuery.isReply,
-            isFence: TerminalColorQuery.isStatusFence)
+            isFence: TerminalQueryReplies.isStatusFence)
         return TerminalColorQuery.parse(collected)
     }
 }
