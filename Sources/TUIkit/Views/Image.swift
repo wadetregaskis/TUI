@@ -64,8 +64,10 @@ enum ImageLoadingPhase: Sendable {
 /// does: its size in points — its pixels over its scale, so a pixel a point
 /// for a file — in cells of the terminal's size in points, whatever it is
 /// offered. A 140 × 70-pixel picture is 20 × 5 cells in a terminal whose cell
-/// is 7 × 14 points, and a frame around it does not change it; a frame
-/// smaller than that draws it larger than the frame, as SwiftUI does.
+/// is 7 × 14 points, and a frame around it does not change it. A frame
+/// smaller than that cuts it to the frame, keeping its top-leading part:
+/// unlike SwiftUI's, which overflows its frame, a terminal image draws only
+/// within the space it is given.
 ///
 /// The cell's size in points is known where TUIkit has measured what the
 /// terminal reports: Apple Terminal, iTerm2 and Warp, and Ghostty when the app
