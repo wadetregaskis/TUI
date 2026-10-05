@@ -213,7 +213,7 @@ When the main loop exits: via SIGINT or SIGTERM, the quit key, or programmatic s
 
 The `Terminal` class also has a `deinit` safety net that disables raw mode if it was not explicitly restored.
 
-A process that dies of a signal it cannot survive — a trap, a bad access, an abort — runs none of this. While the kitty keyboard protocol's flags are pushed, a handler for those signals pops them before passing the signal on, because those flags make every key an escape code, Return included, and would leave a shell that cannot be typed at. A suspend (Ctrl-Z) pops them too, and the resume pushes them again.
+A process that dies of a signal with no orderly way out — a trap, a bad access, an abort, and the quiet terminations nothing in TUIkit handles (`SIGHUP`, `SIGUSR1` and the like, where the app has installed no handler of its own) — runs none of this. A handler for those signals pays what it can before passing the signal on: it pops the kitty keyboard protocol's flags if they are pushed, because they make every key an escape code, Return included, and would leave a shell that cannot be typed at; turns off the other input modes the app turned on; shows the cursor; and puts the shell's terminal settings back. It leaves the alternate screen up, with a crash's report on it. A suspend (Ctrl-Z, where it suspends) pops the flags too, and the resume pushes them again.
 
 ## Subsystem Dependency Graph
 
