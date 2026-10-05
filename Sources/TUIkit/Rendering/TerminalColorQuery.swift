@@ -445,9 +445,15 @@ extension Terminal {
     /// Asked of every host, measured or not. No measured host printed any of
     /// these queries, and one that answers none of them costs the round trip
     /// to its fence.
+    ///
+    /// The kitty keyboard protocol's first question rides on it, where the
+    /// protocol is to be asked about (``asksKeyboardProtocol``): one exchange
+    /// every app makes anyway, so a terminal that does not speak the protocol
+    /// pays no round trip for being asked. The answer is kept in
+    /// ``keyboardProtocolAnswer`` for ``negotiateKeyboardProtocol(timeout:)``.
     func queryColors(timeout: Double = TerminalColorQuery.startupTimeout) -> TerminalColorReport? {
         guard isatty(STDIN_FILENO) == 1, isRawMode else { return nil }
-        return askColors(isTmux: TerminalHost.isTmux, timeout: timeout)
+        return askColors(isTmux: TerminalHost.isTmux, timeout: timeout, askingKeyboardFlags: asksKeyboardProtocol)
     }
 
     /// The exchange behind ``queryColors(timeout:)``, without its guard.
@@ -455,15 +461,24 @@ extension Terminal {
     /// Apart so a test can run the exchange through ``readSource`` and
     /// ``exchangeTransport``: the guard wants a real TTY in raw mode, which a
     /// test process does not have.
+    ///
+    /// - Parameter askingKeyboardFlags: Whether to ask the kitty keyboard
+    ///   protocol's first question too (``KeyboardProtocolQuery/question``),
+    ///   ahead of the colours, so its answer lands before the fence. Its
+    ///   answer, or `nil`, goes to ``keyboardProtocolAnswer``; the reply is
+    ///   not handed back to the input parser.
     func askColors(
-        isTmux: Bool, timeout: Double = TerminalColorQuery.startupTimeout
+        isTmux: Bool, timeout: Double = TerminalColorQuery.startupTimeout, askingKeyboardFlags: Bool = false
     ) -> TerminalColorReport {
+        let question = askingKeyboardFlags ? KeyboardProtocolQuery.question : ""
         let collected = fencedExchange(
-            request: TerminalColorQuery.startupRequest(isTmux: isTmux), timeout: timeout,
+            request: question + TerminalColorQuery.startupRequest(isTmux: isTmux), timeout: timeout,
             sawFence: TerminalQueryReplies.sawStatusFence)
         handBackUnconsumed(
-            from: collected, isReply: TerminalColorQuery.isReply,
+            from: collected,
+            isReply: { TerminalColorQuery.isReply($0) || (askingKeyboardFlags && KeyboardProtocolQuery.isReply($0)) },
             isFence: TerminalQueryReplies.isStatusFence)
+        if askingKeyboardFlags { keyboardProtocolAnswer = KeyboardProtocolQuery.flags(in: collected) }
         return TerminalColorQuery.parse(collected)
     }
 }

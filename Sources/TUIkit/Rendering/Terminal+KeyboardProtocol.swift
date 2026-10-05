@@ -24,9 +24,15 @@ import WASILibc
 ///
 /// The protocol's own detection, from its specification
 /// (<https://sw.kovidgoyal.net/kitty/keyboard-protocol/>): ask for the current
-/// flags with `CSI ? u` and fence it with a Primary Device Attributes request,
-/// `CSI c`, which every terminal answers. A terminal that answers the fence
-/// without answering `CSI ? u` does not speak the protocol.
+/// flags with `CSI ? u` and fence it with a request every terminal answers. A
+/// terminal that answers the fence without answering `CSI ? u` does not speak
+/// the protocol. The specification's fence is Primary Device Attributes,
+/// `CSI c`; any answered request behind the question serves, since a terminal
+/// answers in order. So the first question rides on the startup colour
+/// exchange (``question``, fenced by its `CSI 5 n`), which every app already
+/// pays for, and a terminal that does not speak the protocol pays nothing
+/// more. Only the questions after a push (``request``) take a round trip of
+/// their own, on the terminals that answered.
 ///
 /// `CSI ? u` carries a `?` and no intermediate byte, the shape measured clean on
 /// Apple Terminal 455.1 (`Documentation/Terminal-compatibility.md`, "Asking the
@@ -40,8 +46,12 @@ import WASILibc
 /// keyboard as it was.
 enum KeyboardProtocolQuery {
 
-    /// The question and its fence, in one write.
-    static let request = "\u{1B}[?u\u{1B}[c"
+    /// The question alone, for an exchange that brings its own fence: the
+    /// startup colour exchange's (`Terminal.askColors(isTmux:timeout:askingKeyboardFlags:)`).
+    static let question = "\u{1B}[?u"
+
+    /// The question and its fence, in one write: what is asked after a push.
+    static let request = question + "\u{1B}[c"
 
     /// Pushes `flags` onto the terminal's stack.
     static func push(_ flags: KittyKeyboardFlags) -> String {
@@ -121,7 +131,10 @@ extension Terminal {
     /// Turns on the kitty keyboard protocol if the terminal speaks it, and
     /// records which of its enhancements the terminal took.
     ///
-    /// Asks first (`CSI ? u`, fenced by DA1). A terminal that answers gets
+    /// The first question has been asked already, on the startup colour
+    /// exchange (``KeyboardProtocolQuery/question``), and its answer is
+    /// ``keyboardProtocolAnswer``: so call this after
+    /// `TerminalClient.detectColors(using:)`. A terminal that answered gets
     /// ``KittyKeyboardFlags/requested`` pushed, and is asked again, because a
     /// terminal may implement only some of the enhancements and the second
     /// answer says which it took. A terminal that takes "report all keys as
@@ -129,17 +142,23 @@ extension Terminal {
     /// text as bare key codes, losing every dead key, compose sequence and
     /// non-US layout, so then the push is replaced by one without the former.
     ///
-    /// Costs one round trip on a terminal that does not speak the protocol and
-    /// two on one that does. Skipped where there is no TTY in raw mode, on
-    /// Apple Terminal, which does not speak it, and wherever
+    /// Costs nothing on a terminal that does not speak the protocol and one
+    /// round trip on one that does (two where the push is replaced). Skipped
+    /// where there is no TTY in raw mode, and wherever
+    /// ``asksKeyboardProtocol`` is `false`.
+    func negotiateKeyboardProtocol(timeout: Double = 0.5) {
+        guard isatty(STDIN_FILENO) == 1, isRawMode, asksKeyboardProtocol else { return }
+        negotiateKeyboardEnhancement(firstAnswer: keyboardProtocolAnswer, timeout: timeout)
+    }
+
+    /// Whether the startup exchange asks this terminal about the protocol at
+    /// all: not Apple Terminal, which does not speak it, and not where
     /// `TUIKIT_KEYBOARD_PROTOCOL=0` is set — the user's way out, should a
     /// terminal claim the protocol and then encode keys in a way TUIkit
     /// misreads.
-    func negotiateKeyboardProtocol(timeout: Double = 0.5) {
-        guard isatty(STDIN_FILENO) == 1, isRawMode, !TerminalHost.isAppleTerminal,
-            Self.keyboardProtocolAllowed(environment: ProcessInfo.processInfo.environment)
-        else { return }
-        negotiateKeyboardEnhancement(timeout: timeout)
+    var asksKeyboardProtocol: Bool {
+        !TerminalHost.isAppleTerminal
+            && Self.keyboardProtocolAllowed(environment: ProcessInfo.processInfo.environment)
     }
 
     /// Whether the environment lets TUIkit ask for the protocol at all: yes,
@@ -151,6 +170,10 @@ extension Terminal {
     /// The negotiation behind ``negotiateKeyboardProtocol(timeout:)``, without
     /// its guards, so a test can run it through ``readSource`` and
     /// ``exchangeTransport``.
+    ///
+    /// - Parameter firstAnswer: What the terminal answered to the first
+    ///   question, on the startup exchange; `nil` when it did not, and then
+    ///   nothing is pushed.
     ///
     /// ## An answer after the push that does not come
     ///
@@ -166,8 +189,8 @@ extension Terminal {
     /// terminal took, and `\.keyboardReporting` claims what was asked for.
     /// The late answer arrives as input afterwards, and the parser drops it as
     /// it drops any reply.
-    func negotiateKeyboardEnhancement(timeout: Double) {
-        guard askKeyboardFlags(timeout: timeout) != nil else { return }
+    func negotiateKeyboardEnhancement(firstAnswer: KittyKeyboardFlags?, timeout: Double) {
+        guard firstAnswer != nil else { return }
         var pushed = KittyKeyboardFlags.requested
         sendToTerminal(KeyboardProtocolQuery.push(pushed))
         var granted = askKeyboardFlags(timeout: timeout) ?? pushed

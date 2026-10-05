@@ -280,13 +280,6 @@ extension AppRunner {
         // protects is frozen into `FrameDiffWriter` at construction.
         terminal.pinGraphemeClusteringIfNeeded()
 
-        // The kitty keyboard protocol, where the terminal speaks it: key
-        // releases, repeats, modifier keys alone, Caps Lock and the keypad,
-        // and Ctrl-H/I/J/M/[ as themselves. Asked once — one round trip where
-        // the terminal does not speak it, two where it does — and published
-        // before the first frame, which is when a view first reads it.
-        negotiateKeyboardProtocol()
-
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.
         TerminalClient.applyWidthTraits()
@@ -315,6 +308,14 @@ extension AppRunner {
         // the fence about half a second when that client is silent. See
         // ``TerminalColorQuery``.
         TerminalClient.detectColors(using: terminal)
+        // The kitty keyboard protocol, where the terminal speaks it: key
+        // releases, repeats, modifier keys alone, Caps Lock and the keypad,
+        // and Ctrl-H/I/J/M/[ as themselves. Its first question rode on the
+        // colour exchange just made, so a terminal that does not speak it
+        // pays no round trip; one that does pays one, for the push and its
+        // answer. Published before the first frame, which is when a view
+        // first reads it.
+        negotiateKeyboardProtocol()
 
         let renderer = RenderLoop(
             app: app,

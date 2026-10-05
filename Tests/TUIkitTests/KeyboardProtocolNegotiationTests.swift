@@ -42,20 +42,20 @@ struct KeyboardProtocolNegotiationTests {
         return (terminal, script)
     }
 
-    @Test("A terminal that answers gets every enhancement pushed, and is asked what it took")
+    @Test("A terminal that answered gets every enhancement pushed, and is asked what it took")
     func supportedTerminal() {
-        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?0u" + Self.fence, "\u{1B}[?31u" + Self.fence])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
-        #expect(script.sent == [Self.query, "\u{1B}[>31u", Self.query])
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?31u" + Self.fence])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
+        #expect(script.sent == ["\u{1B}[>31u", Self.query])
         #expect(terminal.keyboardEnhancement == .requested)
         #expect(terminal.keyboardFlagsPushed)
     }
 
-    @Test("A terminal that answers only the fence is left in its legacy encoding")
+    @Test("A terminal that did not answer is left in its legacy encoding, and asked nothing more")
     func unsupportedTerminal() {
         let (terminal, script) = makeTerminal(reads: [Self.fence])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
-        #expect(script.sent == [Self.query])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: nil, timeout: 5)
+        #expect(script.sent.isEmpty)
         #expect(terminal.keyboardEnhancement.isEmpty)
         #expect(!terminal.keyboardFlagsPushed)
         #expect(terminal.negotiatedKeyboardFlags == nil)
@@ -63,28 +63,28 @@ struct KeyboardProtocolNegotiationTests {
 
     @Test("A terminal that takes only some enhancements is read with those")
     func partialSupport() {
-        let (terminal, _) = makeTerminal(reads: ["\u{1B}[?0u" + Self.fence, "\u{1B}[?3u" + Self.fence])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
+        let (terminal, _) = makeTerminal(reads: ["\u{1B}[?3u" + Self.fence])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
         #expect(terminal.keyboardEnhancement == [.disambiguateEscapeCodes, .reportEventTypes])
     }
 
     @Test("All keys as escape codes without their text is replaced by a push without the former")
     func escapeCodesWithoutText() {
         let (terminal, script) = makeTerminal(reads: [
-            "\u{1B}[?0u" + Self.fence, "\u{1B}[?15u" + Self.fence, "\u{1B}[?7u" + Self.fence,
+            "\u{1B}[?15u" + Self.fence, "\u{1B}[?7u" + Self.fence,
         ])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
-        #expect(script.sent == [Self.query, "\u{1B}[>31u", Self.query, "\u{1B}[<u\u{1B}[>7u", Self.query])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
+        #expect(script.sent == ["\u{1B}[>31u", Self.query, "\u{1B}[<u\u{1B}[>7u", Self.query])
         #expect(terminal.keyboardEnhancement == [.disambiguateEscapeCodes, .reportEventTypes, .reportAlternateKeys])
     }
 
     @Test("A second answer that misses the window is taken as the push, so keys still decode", arguments: [
-        ["\u{1B}[?0u\u{1B}[?62;22c"],
-        ["\u{1B}[?0u\u{1B}[?62;22c", "\u{1B}[?15u\u{1B}[?62;22c"],
+        [],
+        ["\u{1B}[?15u\u{1B}[?62;22c"],
     ])
     func lateSecondAnswer(answered: [String]) {
         let (terminal, script) = makeTerminal(reads: answered)
-        terminal.negotiateKeyboardEnhancement(timeout: 0.05)
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 0.05)
         let pushed = terminal.negotiatedKeyboardFlags?.pushed
         #expect(pushed != nil && terminal.keyboardFlagsPushed)
         #expect(terminal.keyboardEnhancement == pushed, "read in the grammar of what is on the terminal's stack")
@@ -98,8 +98,8 @@ struct KeyboardProtocolNegotiationTests {
 
     @Test("A pop is owed once, and a resume pushes the same flags without asking")
     func popAndRepush() {
-        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?0u" + Self.fence, "\u{1B}[?31u" + Self.fence])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?31u" + Self.fence])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
         script.sent.removeAll()
 
         terminal.popKeyboardFlags()
@@ -116,19 +116,56 @@ struct KeyboardProtocolNegotiationTests {
     @Test("Nothing is popped or pushed on a terminal that never took the protocol")
     func noPopWithoutAPush() {
         let (terminal, script) = makeTerminal(reads: [Self.fence])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
+        terminal.negotiateKeyboardEnhancement(firstAnswer: nil, timeout: 5)
         terminal.popKeyboardFlags()
         terminal.repushKeyboardFlags()
-        #expect(script.sent == [Self.query])
+        #expect(script.sent.isEmpty)
     }
 
     @Test("A keystroke typed during the exchange reaches the parser; the replies do not")
     func keystrokesHandedBack() {
-        let (terminal, _) = makeTerminal(reads: ["q\u{1B}[?0u" + Self.fence, "\u{1B}[?31u" + Self.fence + "x"])
-        terminal.negotiateKeyboardEnhancement(timeout: 5)
+        let (terminal, _) = makeTerminal(reads: ["q\u{1B}[?31u" + Self.fence + "x"])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
         var events: [TerminalInput] = []
         while let event = terminal.readEvent() { events.append(event) }
         #expect(events == [.key(KeyEvent(character: "q")), .key(KeyEvent(character: "x"))])
+    }
+
+    // MARK: - The first question, on the colour exchange
+
+    @Test("The first question rides on the colour exchange, ahead of the colours, in one write")
+    func firstQuestionOnTheColourExchange() {
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?0u\u{1B}[0n"])
+        _ = terminal.askColors(isTmux: false, askingKeyboardFlags: true)
+        #expect(script.sent == [KeyboardProtocolQuery.question + TerminalColorQuery.nativeRequest])
+        #expect(terminal.keyboardProtocolAnswer?.isEmpty == true)
+    }
+
+    @Test("A terminal that answers only the colour fence does not speak the protocol, and paid no other trip")
+    func noAnswerOnTheColourExchange() {
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[0n"])
+        _ = terminal.askColors(isTmux: true, askingKeyboardFlags: true)
+        #expect(script.sent.count == 1)
+        #expect(terminal.keyboardProtocolAnswer == nil)
+        terminal.negotiateKeyboardEnhancement(firstAnswer: terminal.keyboardProtocolAnswer, timeout: 5)
+        #expect(script.sent.count == 1, "nothing pushed, nothing more asked")
+    }
+
+    @Test("Not asking leaves the colour request as it was, and the answer unset")
+    func notAskedOnTheColourExchange() {
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[0n"])
+        _ = terminal.askColors(isTmux: false)
+        #expect(script.sent == [TerminalColorQuery.nativeRequest])
+        #expect(terminal.keyboardProtocolAnswer == nil)
+    }
+
+    @Test("The answer on the colour exchange is not handed to the input parser; a keystroke is")
+    func colourExchangeHandsBackKeystrokes() {
+        let (terminal, _) = makeTerminal(reads: ["q\u{1B}[?0u\u{1B}[0n"])
+        _ = terminal.askColors(isTmux: false, askingKeyboardFlags: true)
+        var events: [TerminalInput] = []
+        while let event = terminal.readEvent() { events.append(event) }
+        #expect(events == [.key(KeyEvent(character: "q"))])
     }
 
     @Test("The reply is told apart from a DA1 answer, and from a key report")

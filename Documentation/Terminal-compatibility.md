@@ -4225,17 +4225,22 @@ version-stamped measurement as it is made.
 The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
 
 - **Asks** at startup, after raw mode is on: `CSI ? u` (report the current
-  flags), fenced by `CSI c` (Primary Device Attributes), which every terminal
-  answers. A DA1 answer without a `CSI ? flags u` answer means the terminal does
-  not speak the protocol; that is the specification's own detection. One round
-  trip. Not asked of Apple Terminal, which does not speak it (and is not in the
-  specification's list). `CSI ? u` is a `?` with no intermediate byte, the shape
+  flags), at the head of the startup colour exchange, whose `CSI 5 n` fence
+  every measured terminal answers. A fence answered without a `CSI ? flags u`
+  answer means the terminal does not speak the protocol: the specification's
+  own detection, which fences with `CSI c` (DA1), with another fence — a
+  terminal answers in order, so any answered request behind the question
+  serves. So a terminal that does not speak the protocol pays no round trip
+  for being asked (until 2026-10-04's review it paid one, `CSI ? u CSI c` on
+  its own). Not asked of Apple Terminal, which does not speak it (and is not
+  in the specification's list). `CSI ? u` is a `?` with no intermediate byte, the shape
   measured clean on Apple Terminal 455.1 ("Asking the terminal — Device
   Attributes"), so an unidentified Apple Terminal behind ssh is asked safely.
 - **Pushes** `CSI > 31 u` where it answered, and asks again: a terminal may
   take only some flags, and the second answer is what TUIkit reads keys by. If
   it took flag 8 without flag 16, the push is replaced by one without 8 (see
-  the flags below). Two round trips in all. **A second answer that misses the
+  the flags below). One round trip in all, two with that replacement, and
+  only on a terminal that speaks the protocol. **A second answer that misses the
   window** (0.5 s; a slow ssh link) is taken as the push granted, since the
   terminal that answered the first question now encodes keys by the push:
   read as legacy bytes, Return, `q` and Ctrl-C would all be dropped and the app

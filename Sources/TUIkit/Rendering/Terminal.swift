@@ -172,6 +172,12 @@ final class Terminal: TerminalProtocol {
     /// an extension cannot hold stored properties.
     var keyboardEnhancement: KittyKeyboardFlags = []
 
+    /// What the terminal answered to the kitty keyboard protocol's first
+    /// question, asked on the startup colour exchange; `nil` until then, where
+    /// it did not answer (it does not speak the protocol), and where it was not
+    /// asked.
+    var keyboardProtocolAnswer: KittyKeyboardFlags?
+
     /// What the negotiation pushed, and which of it the terminal said it took,
     /// or `nil` when the terminal does not speak the kitty keyboard protocol
     /// (or was never asked). Kept across a suspend, so the resume pushes the

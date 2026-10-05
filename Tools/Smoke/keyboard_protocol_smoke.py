@@ -16,7 +16,8 @@ stack as the specification says. Cases:
   1. A terminal that speaks it: the flags are pushed, a key sent as a `CSI u`
      report works (`q` quits), and the flags are popped before the alternate
      screen is left.
-  2. A terminal that does not: nothing is pushed or popped.
+  2. A terminal that does not: nothing is pushed or popped, and the one
+     question rode on the colour exchange rather than costing a round trip.
   3. Ctrl-Z, sent as its report: popped before the stop, pushed again on
      SIGCONT; the app still quits.
   4. SIGABRT after the push: the flags are popped on the way down, and the
@@ -161,7 +162,9 @@ term.finish()
 # 2. A terminal that does not.
 term = FakeTerminal(speaks_protocol=False)
 term.pump(3.0)
-check(QUERY in term.out, "legacy: asked once")
+check(term.out.count(QUERY) == 1, "legacy: asked once")
+check(QUERY + b"\x1b]10;?" in term.out and QUERY + b"\x1b[c" not in term.out,
+      "legacy: asked on the colour exchange, with no round trip of its own")
 check(re.search(rb"\x1b\[>[0-9]+u", term.out) is None, "legacy: nothing pushed")
 term.send(b"q")
 term.pump(2.0)
