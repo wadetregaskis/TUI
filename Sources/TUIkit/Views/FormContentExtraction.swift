@@ -91,12 +91,24 @@ extension LabeledContent: FormContentExtractor {
     }
 }
 
+/// A collapsible section's header is a `List`'s — behind a disclosure
+/// triangle, one control the keyboard and a click toggle — and its rows and
+/// footer are drawn only while it is expanded, as SwiftUI collapses a form's
+/// section in either style (measured on macOS 15.8, `D1S/probe2/form`).
 extension Section: FormContentExtractor {
     func extractFormElements() -> [_FormElement] {
-        [.section(_FormSection(
-            header: (header is EmptyView) ? nil : AnyView(header),
-            footer: (footer is EmptyView) ? nil : AnyView(footer),
-            rows: sectionRows(of: formElements(from: content))))]
+        let header: AnyView? =
+            Parent.self == EmptyView.self
+            ? nil
+            : isExpanded.map { AnyView(_SectionHeader(header: self.header, isExpanded: $0)) } ?? AnyView(self.header)
+        return [
+            .section(
+                _FormSection(
+                    header: header,
+                    footer: (footer is EmptyView || !showsContent) ? nil : AnyView(footer),
+                    rows: showsContent ? sectionRows(of: formElements(from: content)) : [],
+                    isOpen: showsContent))
+        ]
     }
 }
 

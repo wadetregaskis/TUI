@@ -91,6 +91,10 @@ struct _FormSection {
     var header: AnyView?
     var footer: AnyView?
     var rows: [_FormElement]
+    /// Whether the section is drawn open: `false` for a collapsible section
+    /// that is collapsed, which draws its header (behind its disclosure
+    /// triangle) and nothing else — no rows, and in a grouped form no box.
+    var isOpen = true
 }
 
 /// A form row paired with its position, for iterating display-only rows
@@ -315,15 +319,17 @@ private func groupedElementView(_ element: _FormElement, pillar: Int, contentWid
     case .section(let section):
         VStack(alignment: .leading, spacing: 0) {
             if let header = section.header { header.bold() }
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(_indexed(section.rows)) { row in
-                    groupedSectionRowView(row.value, pillar: pillar)
+            if section.isOpen {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(_indexed(section.rows)) { row in
+                        groupedSectionRowView(row.value, pillar: pillar)
+                    }
                 }
+                .frame(width: contentWidth, alignment: .leading)
+                .padding(.horizontal, 1)
+                .border()
+                if let footer = section.footer { footer }
             }
-            .frame(width: contentWidth, alignment: .leading)
-            .padding(.horizontal, 1)
-            .border()
-            if let footer = section.footer { footer }
         }
     case .group(let elements, let branch):
         groupView(branch: branch, spacing: 1) {

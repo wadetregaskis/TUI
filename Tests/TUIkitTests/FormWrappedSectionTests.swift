@@ -87,4 +87,60 @@ struct FormWrappedSectionTests {
         #expect(shown.contains { $0.contains("Advanced") })
         #expect(capture.path == hiddenPath, "\(capture.path) vs \(hiddenPath)")
     }
+
+    // MARK: - A collapsible section
+
+    /// The expansion a collapsible section is bound to.
+    @MainActor
+    private final class Expansion {
+        var isExpanded: Bool
+        init(_ isExpanded: Bool) { self.isExpanded = isExpanded }
+        var binding: Binding<Bool> { Binding(get: { self.isExpanded }, set: { self.isExpanded = $0 }) }
+    }
+
+    @Test("A collapsible section in a form draws its header behind a triangle, and its rows only while expanded")
+    func collapsibleSection() {
+        for grouped in [false, true] {
+            func form(_ expansion: Expansion) -> [String] {
+                let form = Form {
+                    Section("Advanced", isExpanded: expansion.binding) {
+                        Toggle("Verbose", isOn: .constant(true))
+                    }
+                }
+                return (grouped ? drawn(form.formStyle(.grouped)) : drawn(form.formStyle(.columns)))
+                    .map(\.stripped)
+            }
+            let open = form(Expansion(true))
+            #expect(open.contains { $0.contains("▼") && $0.contains("Advanced") }, "grouped \(grouped): \(open)")
+            #expect(open.contains { $0.contains("Verbose") }, "grouped \(grouped): \(open)")
+            let closed = form(Expansion(false))
+            #expect(closed.contains { $0.contains("▶") && $0.contains("Advanced") }, "grouped \(grouped): \(closed)")
+            #expect(!closed.contains { $0.contains("Verbose") || $0.contains("╭") }, "grouped \(grouped): \(closed)")
+        }
+    }
+
+    @Test("A collapsible section's header in a form is a focus stop that Return toggles, wrapped in an if too")
+    func collapsibleHeaderToggles() {
+        let expansion = Expansion(false)
+        let flag = true
+        let view = Form {
+            if flag {
+                Section("Advanced", isExpanded: expansion.binding) { Text("Inside") }
+            }
+        }
+        let context = makeRenderContext(width: 40, height: 10)
+        _ = renderToBuffer(view, context: context)
+        guard let manager = context.environment.focusManager,
+            let header = manager.registeredFocusIDsInActiveSection().first
+        else {
+            Issue.record("the header is no focus stop")
+            return
+        }
+        manager.focus(id: header)
+        _ = renderToBuffer(view, context: context)
+        #expect(manager.dispatchKeyEvent(KeyEvent(key: .enter)))
+        #expect(expansion.isExpanded, "Return opened the section")
+        let open = renderToBuffer(view, context: context).lines.map(\.stripped)
+        #expect(open.contains { $0.contains("Inside") }, "\(open)")
+    }
 }
