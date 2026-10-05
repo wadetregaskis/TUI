@@ -241,6 +241,24 @@ struct ScreenSelectionGestureTests {
         #expect(log.writes.isEmpty)
     }
 
+    @Test("When the cells read the text again, the highlight and its keys come back")
+    func highlightReturns() throws {
+        let log = SystemClipboardLog()
+        let first = Box("alpha beta gamma")
+        let page = Page(first: first)
+        let harness = harness(page, log: log)
+        let alpha = try find("alpha", in: harness, page)
+        drag(harness, from: alpha, to: (alpha.x + 4, alpha.y), page: page)
+        first.value = "omega beta gamma"
+        harness.frame(page)
+        #expect(harness.tui.screenSelection.current?.isHighlighted == false)
+        first.value = "alpha beta gamma"
+        harness.frame(page)
+        #expect(harness.tui.screenSelection.current?.isHighlighted == true)
+        #expect(harness.press(KeyEvent(key: .character("c"), ctrl: true)))
+        #expect(log.writes == ["alpha"])
+    }
+
     struct CopyablePage: View {
         let first: Box
         var body: some View {
@@ -327,5 +345,68 @@ struct ScreenSelectionGestureTests {
         #expect(!harness.tui.screenSelection.hasSelection)
         harness.press(KeyEvent(key: .character("c"), ctrl: true))
         #expect(board.writes.count == 1)
+    }
+}
+
+// MARK: - Under a status-bar tooltip
+
+@MainActor
+@Suite("Screen selection: a status-bar tooltip")
+struct ScreenSelectionTooltipTests {
+    struct Page: App {
+        var body: some Scene {
+            WindowGroup {
+                VStack(alignment: .leading) {
+                    Text("alpha beta gamma")
+                    Text("explained").help("about it")
+                }
+            }
+            .mouseSupport(.full)
+        }
+    }
+
+    /// A status-bar tooltip adds a row above the bar's items, a row taken from
+    /// the page, which a WindowGroup re-centres: the selected cells move for as
+    /// long as the tooltip shows. The highlight used to go for good.
+    @Test("A selection the tooltip's row moved is highlighted again when the tooltip goes")
+    func tooltipMovesThePageAndBack() throws {
+        // Eleven rows: the page is centred in what the bar leaves, and at this
+        // height one row less moves it (at ten, it would not).
+        let app = HeadlessApp(Page(), width: 40, height: 11)
+        var now: Int64 = 16_666_667
+        func frame(after nanos: Int64 = 16_666_667) {
+            now += nanos
+            app.frame(atNanos: now)
+        }
+        func position(of text: String) throws -> (x: Int, y: Int) {
+            let lines = app.screen.map(\.stripped)
+            let row = try #require(lines.firstIndex { $0.contains(text) })
+            return (lines[row][..<(try #require(lines[row].range(of: text)).lowerBound)].count, row)
+        }
+        frame()
+        frame()
+        let alpha = try position(of: "alpha")
+        app.send(MouseEvent(button: .left, phase: .pressed, x: alpha.x, y: alpha.y))
+        frame()
+        app.send(MouseEvent(button: .left, phase: .dragged, x: alpha.x + 4, y: alpha.y))
+        frame()
+        app.send(MouseEvent(button: .left, phase: .released, x: alpha.x + 4, y: alpha.y))
+        frame()
+        let selection = app.services.screenSelection
+        try #require(selection.current?.text == "alpha")
+        let explained = try position(of: "explained")
+        app.send(MouseEvent(button: .none, phase: .moved, x: explained.x + 1, y: explained.y))
+        frame()
+        frame(after: 700_000_000)
+        try #require(app.screen.contains { $0.stripped.contains("about it") }, "precondition: the tooltip shows")
+        try #require(
+            (try position(of: "alpha")).y != alpha.y, "precondition: the tooltip's row moved the page")
+        #expect(selection.current?.isHighlighted == false)
+        app.send(MouseEvent(button: .none, phase: .moved, x: 39, y: 0))
+        frame()
+        frame()
+        try #require(!app.screen.contains { $0.stripped.contains("about it") }, "precondition: the tooltip went")
+        #expect(selection.current?.isHighlighted == true)
+        #expect(selection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) == true)
     }
 }

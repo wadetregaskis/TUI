@@ -26,7 +26,7 @@ import TUIkitCore
 /// wide characters once, trailing blanks dropped, rows joined with line
 /// breaks. The text is fixed when the drag ends; the highlight goes as soon as
 /// the cells under it no longer read that text, and with it the selection's
-/// keys.
+/// keys, and both come back if the cells read it again.
 ///
 /// **Copying** is Ctrl-C — the app's ⌘C, resolved through `commandKey` — while
 /// a selection is drawn, through the app's ``ClipboardWriter``, whose status-bar
@@ -101,8 +101,8 @@ final class ScreenSelection: @unchecked Sendable {
         var unit: Unit
         /// The text selected, as last read.
         var text: String
-        /// Whether the highlight is still drawn: dropped once the cells under
-        /// it no longer read ``text``.
+        /// Whether the highlight is drawn: while the cells under it read
+        /// ``text``.
         var isHighlighted = true
         /// Whether a drag is still making it.
         var isMaking = true
@@ -259,8 +259,10 @@ extension ScreenSelection {
     ///   width says so; the content area's height also moves with the status
     ///   bar's rows, which is no reason to lose a selection.
     /// - A selection being made follows the screen, as a terminal's does.
-    /// - A finished one keeps its text, and its highlight goes once the cells
-    ///   under it no longer read that text — the selection a log scrolled away.
+    /// - A finished one keeps its text, and its highlight goes while the cells
+    ///   under it do not read that text — the selection a log scrolled away —
+    ///   and comes back, keys and all, when they read it again: the page a
+    ///   status-bar tooltip moved by a row for as long as it showed.
     /// - A presentation over the page — a sheet, an alert, an open menu —
     ///   clears it too: what is under a modal's backdrop is not the user's to
     ///   copy, and its keys are the presentation's. The selection's own menu
@@ -280,8 +282,8 @@ extension ScreenSelection {
         let drawn = Self.text(of: selection, in: frameLines)
         if selection.isMaking {
             selection.text = drawn
-        } else if drawn != selection.text {
-            selection.isHighlighted = false
+        } else {
+            selection.isHighlighted = drawn == selection.text
         }
         current = selection
         guard selection.isHighlighted else { return buffer }
