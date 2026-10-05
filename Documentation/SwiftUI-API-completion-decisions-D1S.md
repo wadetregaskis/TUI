@@ -56,11 +56,19 @@ stack draws what it would with the parts as its children, but for:
 - **The stack windows by section.** A section in the band draws all of its
   rows, as before this lane; a section written in an unpinned stack's content
   is taken apart, and the stack windows over its rows.
-- **A loop's section under an `if` is not kept whole.** `ForEach(groups) { g
-  in if g.visible { Section … } }` makes rows of a number only each row
-  knows, so it is taken apart and every row of every section is built on
-  every walk, as any loop whose rows vary is (B-D1S-5). A section in a view of
-  the app's own (`ForEach(groups) { GroupView(group: $0) }`) is kept whole.
+- **A loop's section under an `if` is kept whole too**, empty while the `if`
+  holds nothing: `ForEach(groups) { g in if g.visible { Section … } }`, an
+  `if`/`else` with a section in one arm and a section, nothing or one view in
+  the other, and a view of the app's own whose body is either
+  (`mayBeSectionRowType(_:)`). Such a row is one child, pinned or not, so
+  the stack builds only the rows it draws and its section pins as the
+  stack's own wherever the loop is — taken apart, as it was, every row was
+  built on every walk to be counted, and beside a sibling the section did not
+  pin. SwiftUI counts no child for an `if` that holds nothing; no stack draws
+  or spaces an empty one (B-D1S-5). A `List` and the section APIs still count
+  such a row, a section or nothing. An `if` around a section among other views
+  in the row is taken apart, and every row built, as any loop whose rows vary
+  is (B-D1S-5).
 
 **The fuller version.** The stack takes its own sections apart like any other
 container and does the pinning itself: it keeps a map from each section to its

@@ -62,7 +62,10 @@ extension ForEach where Content: View {
     ///   only the sections it draws — and drawn whole, evaluated only where
     ///   it is drawn, which a stack whose loop has a sibling needs: the tuple
     ///   splice resolves the loop's rows eagerly, and handed over as its
-    ///   section each row's body was evaluated on every walk.
+    ///   section each row's body was evaluated on every walk. A row that is
+    ///   a section only some of the time (``mayBeSectionRowType(_:)``) is drawn
+    ///   whole in a lazy stack's walk too, empty while its `if` holds nothing,
+    ///   and counted in a `List`'s.
     func rowShape(sectionWholeness: SectionWholeness) -> ForEachRowShape {
         // A row of the app's own type is taken apart only when its body hands
         // over children (decisions D1S, B-D1S-6) — the static witness, a few
@@ -73,6 +76,13 @@ extension ForEach where Content: View {
         if sectionWholeness != .apart {
             if Content.self is any SectionPartsProviding.Type { return .single }
             if isSectionRowType(Content.self) { return sectionWholeness == .all ? .fixed(1) : .single }
+            // A row that is a section only some of the time — an `if` around
+            // one — is drawn whole in a lazy stack's walk, as one that always
+            // is: its section pins as the stack's own beside a sibling too,
+            // and no row is built to be counted. A `List` and the section APIs
+            // count it, as they must: it is a section, or else nothing or one
+            // view, and they read a section as a section.
+            if sectionWholeness != .all, mayBeSectionRowType(Content.self) { return .single }
         }
         switch staticRowMemberCount(Content.self) {
         case 1: return .single
@@ -157,4 +167,81 @@ private func isSectionRowType<V: View>(_ type: V.Type, depth: inout Int) -> Bool
     if V.Body.self is any SectionPartsProviding.Type { return true }
     depth += 1
     return isSectionRowType(V.Body.self, depth: &depth)
+}
+
+// MARK: - A Row That Is a Section Some of the Time
+
+/// Whether a loop's row of type `type` is a section, or else nothing or one
+/// view, whichever its `if` holds: an `if` around a section, an `if`/`else`
+/// with a section in one arm and a section, nothing or one view in the other —
+/// written in the loop, or as the body of a view of the app's own
+/// (`var body: some View { if shown { Section … } }`). A lazy stack's walk
+/// draws such a row whole (``ForEach/rowShape(sectionWholeness:)``), so its
+/// section is one sibling step below the stack, where it pins as the stack's
+/// own wherever the loop is, and a row is built only where it is drawn. Taken
+/// apart, its section resolved a step further from a stack whose loop has a
+/// sibling, and every row was built to be counted.
+///
+/// From the types alone: no body is evaluated to answer.
+@MainActor
+func mayBeSectionRowType<V: View>(_ type: V.Type) -> Bool {
+    sectionRowKind(type, depth: 0) != .other
+}
+
+/// What a row of a type is as a section, for ``mayBeSectionRowType(_:)``.
+enum SectionRowKind {
+    /// A section whatever the row holds.
+    case section
+    /// A section, or else nothing or one view.
+    case sectionOrLess
+    /// Anything else.
+    case other
+}
+
+/// ``mayBeSectionRowType(_:)``'s answer for `type`, `depth` bodies and arms
+/// down, and ``SectionRowKind/other`` past a depth no written view nests to.
+@MainActor
+func sectionRowKind<V: View>(_ type: V.Type, depth: Int) -> SectionRowKind {
+    guard depth < 32 else { return .other }
+    if type is any SectionPartsProviding.Type { return .section }
+    if let branches = type as? any SectionRowBranches.Type {
+        return branches.sectionRowKind(depth: depth + 1)
+    }
+    if isCompositeHandingOverChildren(type) { return sectionRowKind(V.Body.self, depth: depth + 1) }
+    return .other
+}
+
+/// Whether an arm of an `if`/`else` that is no section is nothing or one view,
+/// which a row drawn whole draws as the loop would have taken it apart.
+@MainActor
+private func armIsAtMostOneView<V: View>(_ type: V.Type) -> Bool {
+    (staticMemberCount(type) ?? 2) <= 1
+}
+
+/// An `if`'s view, which is what its arms are: `Optional` for an `if` alone,
+/// `ConditionalView` for an `if`/`else`.
+@MainActor
+private protocol SectionRowBranches {
+    static func sectionRowKind(depth: Int) -> SectionRowKind
+}
+
+extension Optional: SectionRowBranches where Wrapped: View {
+    /// A section or nothing, when what it holds may be a section.
+    fileprivate static func sectionRowKind(depth: Int) -> SectionRowKind {
+        TUIkit.sectionRowKind(Wrapped.self, depth: depth) == .other ? .other : .sectionOrLess
+    }
+}
+
+extension ConditionalView: SectionRowBranches {
+    /// A section when both arms always are; a section or less when one may be
+    /// and the other is too, or is nothing or one view.
+    fileprivate static func sectionRowKind(depth: Int) -> SectionRowKind {
+        let whenTrue = TUIkit.sectionRowKind(TrueContent.self, depth: depth)
+        let whenFalse = TUIkit.sectionRowKind(FalseContent.self, depth: depth)
+        if whenTrue == .section, whenFalse == .section { return .section }
+        guard whenTrue != .other || whenFalse != .other else { return .other }
+        let trueFits = whenTrue != .other || armIsAtMostOneView(TrueContent.self)
+        let falseFits = whenFalse != .other || armIsAtMostOneView(FalseContent.self)
+        return trueFits && falseFits ? .sectionOrLess : .other
+    }
 }
