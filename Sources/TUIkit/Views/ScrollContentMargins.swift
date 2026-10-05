@@ -190,6 +190,12 @@ extension _ScrollViewCore {
     /// margins without being taught about them, and a view with none pays
     /// nothing but the test. The copy keeps this view's identity, so its
     /// handler and its state are this view's.
+    ///
+    /// It is this view in every other respect, so it carries every stored
+    /// setting of this one: the copy does the whole render, and a setting it
+    /// dropped was one the view lost whenever it had margins — a chrome
+    /// scroller under a page's `.contentMargins` took the page's scroll target
+    /// behaviour and drew its rows past its box under `scrollClipDisabled`.
     func margined(context: RenderContext) -> _ScrollViewCore<_ScrollContentMargins<Content>>? {
         guard !appliesContentMargins else { return nil }
         let margins = resolvedContentMargins(context.environment)
@@ -197,7 +203,7 @@ extension _ScrollViewCore {
         return _ScrollViewCore<_ScrollContentMargins<Content>>(
             axes: axes, content: _ScrollContentMargins(content: content, insets: margins),
             explicitFocusID: explicitFocusID, isDisabled: isDisabled,
-            isFocusStop: isFocusStop, appliesContentMargins: true)
+            isFocusStop: isFocusStop, isChrome: isChrome, appliesContentMargins: true)
     }
 
     /// The margins around this view's scroll indicators — `.scrollIndicators`

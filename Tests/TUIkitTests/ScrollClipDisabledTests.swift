@@ -181,8 +181,13 @@ struct ScrollClipDisabledTests {
         #expect(lines(clipDisabled: true).firstIndex(of: "moved") == 3, "\(lines(clipDisabled: true))")
     }
 
-    @Test("The framework's own scroller — a tall inline menu's — keeps its rows inside its box")
-    func chromeScrollerClips() {
+    /// With a margin: the page's content margins reach the menu's scroller
+    /// too, and it used to draw them through a copy of itself that forgot it
+    /// was the framework's.
+    @Test(
+        "The framework's own scroller — a tall inline menu's — keeps its rows inside its box",
+        arguments: [0, 1])
+    func chromeScrollerClips(margin: Int) {
         let frames = Frames(width: 30, height: 14)
         frames.render(
             VStack {
@@ -191,12 +196,16 @@ struct ScrollClipDisabledTests {
                 }
                 .menuStyle(.inline)
             }
+            .contentMargins(margin)
             .scrollClipDisabled())
         let lines = frames.last.lines.map(\.stripped)
         let withItems = lines.indices.filter { lines[$0].contains("item") }
         #expect(!withItems.isEmpty)
         #expect(withItems.allSatisfy { lines[$0].hasPrefix("│") }, "an item drawn outside the box: \(lines)")
         #expect(lines.first?.hasPrefix("╭") == true && lines.last?.hasPrefix("╰") == true, "\(lines)")
+        // Nothing of the next item over the bottom border either: a wrapped
+        // label's second line has no "item" in it.
+        #expect(lines.last?.trimmingCharacters(in: .whitespaces).allSatisfy { "╰─╯".contains($0) } == true, "\(lines)")
     }
 
     // MARK: - What the overflow draws is what is clicked

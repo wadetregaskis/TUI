@@ -322,8 +322,13 @@ struct ScrollTargetBehaviorTests {
         #expect(consumed == false)
     }
 
-    @Test("The framework's own scroller — a tall inline menu's — does not take the page's behaviour")
-    func chromeScrollerIgnoresBehaviour() {
+    /// With a margin: the page's content margins reach the menu's scroller
+    /// too, and it used to draw them through a copy of itself that forgot it
+    /// was the framework's.
+    @Test(
+        "The framework's own scroller — a tall inline menu's — does not take the page's behaviour",
+        arguments: [0, 1])
+    func chromeScrollerIgnoresBehaviour(margin: Int) {
         let frames = Frames(width: 30, height: 14)
         let view = VStack {
             Menu("Pick") {
@@ -331,6 +336,7 @@ struct ScrollTargetBehaviorTests {
             }
             .menuStyle(.inline)
         }
+        .contentMargins(margin)
         .scrollTargetBehavior(.paging)
         frames.render(view)
         #expect(frames.scrollView?.maxOffset ?? 0 > 0, "the menu scrolls inside its box")
