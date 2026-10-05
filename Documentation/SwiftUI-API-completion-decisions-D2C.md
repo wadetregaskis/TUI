@@ -83,6 +83,33 @@ content is.
 **The alternative:** impose 14 by 5 on every sheet. Ten minutes, and a
 drawing change for every small sheet that exists today; not recommended.
 
+### B-D2C-5. A sized sheet's boxes share its size in a stack, and size to content in a scroll view — nowhere else
+
+*`PresentationSizing`, `PresentationDetent` (decisions A20)*
+
+A sheet's size — a detent's height, a sizing's width and height — goes to
+its box (`EnvironmentValues.sheetDetentHeight`, `sheetProposedWidth`), and a
+box clears it for what is inside it. Boxes stacked in a `VStack` or side by
+side in an `HStack` take it flexibly and share it. A `ScrollView` clears it
+as a box does, so the boxes in one are their content's size, as SwiftUI's are
+(measured on macOS 15.6: two `GroupBox`es in a `ScrollView` in a `.form`
+sheet 400 points tall are 43 points each — as they are in a `VStack`, where
+TUIkit's share the sheet because a terminal sheet has no material and its
+box is what shows the size). Every other container passes the size on to
+each box below, and each takes all of it: a `ZStack`'s boxes overlap at the
+sheet's size, which is what a sheet of layers wants; a `Grid`'s first box
+takes the sheet and the cells after it are not drawn; a lazy stack's first box
+takes it and the rest are not drawn; a lazy grid's rows each take it, so the
+sheet scrolls through boxes the sheet's height each.
+
+**The fuller version.** The grid, the lazy stacks and the lazy grids clear
+the size for their children as a scroll view does, so their boxes are their
+content's size, as SwiftUI's are. A lazy stack's every walk takes its rows'
+context from one of two helpers (its pinned-section scope), and a grid has
+two entry points; a lazy grid's paths are still to be traced. An hour or two
+with the tests, and a drawing change only for sheets that hold such a
+container.
+
 ## Found on the way
 
 Not decisions; recorded so they are not lost.

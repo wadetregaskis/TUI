@@ -160,6 +160,39 @@ struct PresentationSizingTests {
         }
     }
 
+    /// A scroll view offers its content as much as it wants along its axis,
+    /// so its boxes have nothing of the sheet's to share: SwiftUI's are their
+    /// content's size there (measured on macOS 15.6, two `GroupBox`es in a
+    /// `ScrollView` in a `.form` sheet 400 points tall: 43 points each, as
+    /// outside one). Here the sheet's size went on down past the scroll view,
+    /// and each box took the whole of it — two panels of 25 rows, mostly
+    /// empty, the second below the fold.
+    @Test("Boxes in a scroll view in a sized sheet are their content's size", arguments: [false, true])
+    func boxesInAScrollView(detented: Bool) {
+        let boxes = ScrollView {
+            VStack(spacing: 0) {
+                Panel("Alpha") { Text("a") }
+                Panel("Beta") { Text("b") }
+            }
+        }
+        let buffer = renderToBuffer(
+            Text("page").sheet(isPresented: .constant(true)) {
+                if detented {
+                    boxes.presentationDetents([.height(12)])
+                } else {
+                    boxes.presentationSizing(.form)
+                }
+            },
+            context: context())
+        let lines = buffer.overlays.first?.content.lines.map(\.stripped) ?? []
+        let betaRow = lines.firstIndex { $0.contains("Beta") }
+        #expect(betaRow == 3, "Beta's title on row \(String(describing: betaRow)): \(lines)")
+        // And as wide as its content makes it, as outside a sheet.
+        let alone = renderToBuffer(Panel("Alpha") { Text("a") }, context: context()).width
+        let alphaWidth = lines.first.map { $0.trimmingCharacters(in: .whitespaces).count }
+        #expect(alphaWidth == alone, "Alpha \(String(describing: alphaWidth)) columns, \(alone) alone: \(lines)")
+    }
+
     @Test("Two stacked boxes share a detent's height as well")
     func siblingBoxesShareADetent() {
         let sheet = VStack(spacing: 0) {

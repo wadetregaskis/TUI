@@ -20,9 +20,13 @@ import TUIkitView
 /// `.border()` — takes the proposed width and height, enclosing what its
 /// content leaves as empty interior, as it takes a detent's height
 /// (``View/presentationDetents(_:)``). An axis proposed `nil` is fitted: the
-/// sheet is as big as its content there. Boxes side by side or stacked share
-/// the proposal, as flexible views share a stack; content with no box keeps
-/// its own size, offered the proposal.
+/// sheet is as big as its content there. Boxes stacked in a ``VStack`` or
+/// side by side in an ``HStack`` share the proposal, as flexible views share a
+/// stack, and boxes in a ``ScrollView`` are their content's size, as the
+/// scroll view offers its content as much as it wants. Anywhere else — a
+/// ``ZStack``, a ``Grid``, a lazy stack or lazy grid outside a scroll view —
+/// each box takes the whole proposal. Content with no box keeps its own size,
+/// offered the proposal.
 ///
 /// You don't need to define your own version of this protocol. The system
 /// sizings ``PresentationSizing/form``, ``PresentationSizing/page`` and

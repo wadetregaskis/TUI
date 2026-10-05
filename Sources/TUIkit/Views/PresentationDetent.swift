@@ -222,7 +222,11 @@ extension EnvironmentValues {
     /// — the same one-shot discipline `focusIndicator` follows, and for the
     /// same reason: a `Panel` nested inside a detented `Dialog` must not also
     /// stretch to the sheet's height. Boxes side by side under it each take
-    /// it, flexibly, so a stack of them shares it as it shares any surplus.
+    /// it, flexibly, so a `VStack` or `HStack` of them shares it as it shares
+    /// any surplus. A `ScrollView` consumes it as a box does, so the boxes in
+    /// one are their content's size; a `ZStack`, a `Grid` and a lazy stack or
+    /// lazy grid outside a scroll view pass it on, and each box below takes
+    /// the whole of it.
     ///
     /// Content with no box (a bare `Text`) has nothing to stretch, so it keeps
     /// its own size. The alternative — padding the presented buffer out to the
