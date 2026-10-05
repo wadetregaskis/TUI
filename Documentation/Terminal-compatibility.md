@@ -312,6 +312,24 @@ with no VS-15. They are chosen because this reading has both advancing one cell
 with their ink contained on all four hosts; a glyph that overhung would paint
 into the neighbouring column's content.
 
+**Chrome that is an emoji: a critical dialog's ⚠️ (2026-10-05).** An alert or
+confirmation dialog whose severity is critical starts its title, in the top
+border, with U+26A0 U+FE0F — the owner's direction of 2026-10-04 being that
+emoji are welcome where they help, with the known hosts' defects worked
+around, and a host nobody has measured allowed to draw one wrong. It is spelt
+WITH the selector on purpose. Bare, U+26A0 is a text-presentation character
+whose width is the host's choice (one cell or two); with the selector it is a
+VS-16 pictograph, the measured row of the advance table below (`⚠️` is in it):
+claimed two cells, advanced two by Ghostty and Warp, and advanced ONE by
+Terminal.app and iTerm2, which the writer squares with `ECH(2)` + glyph +
+`CUF(1)` exactly as it does for a VS-16 pictograph in an app's own text. So
+the border closes at the claimed width on all four hosts, and the walls below
+it line up (`DialogModifierTests` checks the claim). Two things it does NOT
+rest on: the `supportsEmojiChrome` allowlist, which is about the VS-15
+*monochrome* chrome glyphs and gates nothing here — this sign is drawn on
+every host — and the overhang card, which has not been run for it: its ink
+is the font's, in the font's colours, and unread.
+
 **Recorded caveat: the FONT was not captured with this reading.** Overhang is a
 font property at least as much as a host one, and the card's own instructions
 ask for the font and its size. What is recorded here is host + version + date,

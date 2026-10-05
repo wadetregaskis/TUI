@@ -30,20 +30,27 @@ struct DialogModifierTests {
             .lines
     }
 
-    private func alert(_ severity: DialogSeverity) -> some View {
+    private func alert(_ severity: DialogSeverity, title: String = "Erase?") -> some View {
         Text("base")
-            .alert("Erase?", isPresented: .constant(true)) {
+            .alert(title, isPresented: .constant(true)) {
                 Button("Erase", role: .destructive) {}
             }
             .dialogSeverity(severity)
     }
 
-    @Test("A critical dialog is drawn differently from a standard one, in the same words")
-    func criticalIsColoured() {
+    @Test("A critical dialog's title starts with the caution sign, and it takes the warning colour")
+    func criticalIsMarkedAndColoured() throws {
         let critical = screen(alert(.critical))
-        let standard = screen(alert(.standard))
-        #expect(critical.map(\.stripped) == standard.map(\.stripped), "severity changes no text")
-        #expect(critical != standard, "a critical dialog takes the warning colour")
+        let marked = screen(alert(.standard, title: "\u{26A0}\u{FE0F} Erase?"))
+        #expect(critical.map(\.stripped) == marked.map(\.stripped), "the sign before the title is all the text adds")
+        #expect(critical != marked, "a critical dialog takes the warning colour")
+
+        // The sign claims two cells, so the titled top border is as wide as
+        // the walls below it.
+        let box = critical.map(\.stripped).filter { $0.contains("│") || $0.contains("─") }
+        let top = try #require(box.first { $0.contains("Erase?") })
+        let wall = try #require(box.first { $0.hasPrefix("│") || $0.contains(" │") })
+        #expect(top.strippedLength == wall.strippedLength, "\(box)")
     }
 
     @Test("The automatic severity is standard, except for an alert that presents an error")
@@ -64,17 +71,17 @@ struct DialogModifierTests {
 
     @Test("An alert given colours of its own keeps them under a critical severity")
     func explicitColoursWin() {
-        let coloured = { (severity: DialogSeverity) in
+        let coloured = { (severity: DialogSeverity, title: String) in
             self.screen(
                 Text("base")
                     .alert(
-                        "Erase?", isPresented: .constant(true),
+                        title, isPresented: .constant(true),
                         actions: { Button("Erase") {} },
                         borderColor: .blue, titleColor: .green
                     )
                     .dialogSeverity(severity))
         }
-        #expect(coloured(.critical) == coloured(.standard))
+        #expect(coloured(.critical, "Erase?") == coloured(.standard, "\u{26A0}\u{FE0F} Erase?"))
     }
 
     @Test("A dialog icon sits at the leading edge of the message")

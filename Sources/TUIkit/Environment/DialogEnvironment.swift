@@ -27,9 +27,9 @@ import TUIkitView
 ///     .dialogSeverity(.critical)
 /// ```
 ///
-/// macOS draws a critical dialog with a large caution symbol. A terminal draws
-/// it in the palette's warning colour — its border and its title — unless the
-/// alert was given colours of its own.
+/// macOS draws a critical dialog with a large caution symbol. A terminal starts
+/// its title with the ⚠️ emoji, and draws its border and title in the
+/// palette's warning colour unless the alert was given colours of its own.
 public struct DialogSeverity: Equatable, Sendable {
     private enum Kind: Equatable, Sendable {
         case automatic, standard, critical

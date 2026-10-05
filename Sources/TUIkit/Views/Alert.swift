@@ -202,22 +202,23 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         }
         let buttons = alertActionButtons(from: actions)
         let config = resolvedConfig(context)
+        let shownTitle = resolvedTitle(context)
         let body = messageBody(context)
         if let suppression = context.environment.dialogSuppression {
             return measureContainer(
-                title: title, config: config, content: body,
+                title: shownTitle, config: config, content: body,
                 footer: _AlertFooter(
                     buttons: buttons, verticalButtons: verticalButtons, suppression: suppression),
                 proposal: alertProposal, context: alertContext)
         }
         if verticalButtons {
             return measureContainer(
-                title: title, config: config, content: body,
+                title: shownTitle, config: config, content: body,
                 footer: buttons.isEmpty ? nil : AlertButtonColumn(buttons: buttons),
                 proposal: alertProposal, context: alertContext)
         }
         return measureContainer(
-            title: title, config: config, content: body,
+            title: shownTitle, config: config, content: body,
             footer: buttons.isEmpty ? nil : AlertButtonRow(buttons: buttons),
             proposal: alertProposal, context: alertContext)
     }
@@ -229,32 +230,53 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
 
         let buttons = alertActionButtons(from: actions)
         let config = resolvedConfig(context)
+        let shownTitle = resolvedTitle(context)
         let body = messageBody(context)
         // A suppression toggle needs the footer that draws it above the
         // buttons; without one the buttons are the footer, as they always were.
         if let suppression = context.environment.dialogSuppression {
             return renderContainer(
-                title: title, config: config, content: body,
+                title: shownTitle, config: config, content: body,
                 footer: _AlertFooter(
                     buttons: buttons, verticalButtons: verticalButtons, suppression: suppression),
                 context: alertContext)
         }
         if verticalButtons {
             return renderContainer(
-                title: title, config: config, content: body,
+                title: shownTitle, config: config, content: body,
                 footer: buttons.isEmpty ? nil : AlertButtonColumn(buttons: buttons),
                 context: alertContext)
         }
         return renderContainer(
-            title: title, config: config, content: body,
+            title: shownTitle, config: config, content: body,
             footer: buttons.isEmpty ? nil : AlertButtonRow(buttons: buttons),
             context: alertContext)
     }
 
+    /// The caution sign a critical dialog's title starts with: U+26A0 WARNING
+    /// SIGN with U+FE0F, the emoji presentation — two cells, coloured by the
+    /// font rather than the palette.
+    ///
+    /// Spelt with the selector, not bare: bare, U+26A0 is a text-presentation
+    /// character that terminals draw one cell wide or two, while the selector
+    /// form is a VS-16 pictograph, a measured row of the advance table in
+    /// `Terminal-compatibility.md` — claimed two cells, and compensated where a
+    /// host advances it one (Terminal.app, iTerm2) by the writer, as every
+    /// VS-16 pictograph in an app's own text is.
+    static var criticalMark: String { "\u{26A0}\u{FE0F}" }
+
+    /// The title as the environment's dialog severity leaves it: a critical
+    /// dialog's starts with ``criticalMark``, where macOS draws its large
+    /// caution symbol.
+    private func resolvedTitle(_ context: RenderContext) -> String {
+        guard context.environment.dialogIsCritical else { return title }
+        return title.isEmpty ? Self.criticalMark : Self.criticalMark + " " + title
+    }
+
     /// The configuration as the environment's dialog severity leaves it: a
     /// critical dialog takes the palette's warning colour for its border and
-    /// title, where the alert was not given colours of its own — the
-    /// terminal's caution symbol, since it has no large one to draw.
+    /// title, where the alert was not given colours of its own — beside the
+    /// caution sign its title starts with (``resolvedTitle(_:)``).
     private func resolvedConfig(_ context: RenderContext) -> ContainerConfig {
         guard context.environment.dialogIsCritical else { return config }
         var critical = config
