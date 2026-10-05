@@ -54,10 +54,13 @@ extension View {
     /// It is drawn at the scroll view's own place in the stacking order, as
     /// SwiftUI's is (measured): over the views before the scroll view and under
     /// the views after it, so a sibling below a scroll view hides what runs
-    /// down into it, while what runs up over the sibling above is drawn over
-    /// it. What is drawn there can be clicked there. Blank cells at either end
-    /// of a line draw nothing and take no click, so a short or indented line
-    /// neither erases nor steals the clicks of what is beside it.
+    /// down into it where the sibling draws, while what runs up over the
+    /// sibling above is drawn over it. A later view hides it only under the
+    /// cells it paints: its stack's alignment padding, an overlay's spacer or
+    /// an offset view's empty footprint hides nothing, as in SwiftUI. What is
+    /// drawn there can be clicked there. Blank cells at either end of a line
+    /// draw nothing and take no click, so a short or indented line neither
+    /// erases nor steals the clicks of what is beside it.
     ///
     /// ``List`` and ``Table`` keep clipping (decisions-D2S B-D2S-4), and so do
     /// the scrollers the framework puts around a tall menu, a sheet's or a

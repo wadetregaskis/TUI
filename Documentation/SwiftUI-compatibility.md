@@ -748,8 +748,12 @@ over that sibling. Every layer is composited at the screen root, over the
 in-flow content, which gives the first half; the second is a rule in the
 combining operations (`appendVertically`, `appendHorizontally`, `composite`):
 content placed after a scroll view cuts that scroll view's overflow away beneath
-it (`OverlayLayer.isScrollOverflow`, `FrameBuffer.coverScrollOverflow`), at the
-cost of one test of a buffer's layers per operation. No other layer is cut, so
+the cells it paints (`OverlayLayer.isScrollOverflow`,
+`FrameBuffer.coverScrollOverflow`) — on each line, from its first painted cell
+to its last — at the cost of one test of a buffer's layers per operation. The
+blank space either side is not the later view drawing: a short `Text` padded to
+its stack's width, an overlay's `Spacer`, or an `.offset` view's empty footprint
+hides nothing, as in SwiftUI. No other layer is cut, so
 a view's own `.offset` drawing keeps the stacking it has always had: over the
 views after it as well. `List` and `Table` keep clipping (decisions-D2S
 B-D2S-4), where SwiftUI's `List` on macOS honours the modifier (measured). So

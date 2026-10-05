@@ -148,8 +148,8 @@ extension OverlayLayer {
 
 extension FrameBuffer {
     /// Cuts the scroll overflow this buffer carries (``OverlayLayer/isScrollOverflow``)
-    /// away where content composed AFTER it lands — the rect `x`, `y`,
-    /// `width` × `height`.
+    /// away beneath content composed AFTER it — `later`, placed at `position`
+    /// — where that content paints.
     ///
     /// SwiftUI draws a scroll view's unclipped content at the scroll view's own
     /// z position: over what came before it, under what comes after it
@@ -161,40 +161,53 @@ extension FrameBuffer {
     /// operations that place later content — a stack's next child, a
     /// composited overlay — cut the earlier overflow out from under it.
     ///
+    /// Under the cells it PAINTS (``String/paintedColumns()``): on each line,
+    /// from its first painted cell to its last. The unstyled blank space either
+    /// side is not the later view drawing — it is a stack's alignment padding,
+    /// an overlay's `Spacer`, an `.offset` view's footprint — and SwiftUI shows
+    /// the overflow through it. Cut by its whole rect, a short `Text` padded to
+    /// its stack's width hid every overflowing line it sat on.
+    ///
     /// Costs one test of ``overlays`` on every combining operation, and
     /// nothing more unless a scroll view has disabled its clip.
-    package mutating func coverScrollOverflow(x: Int, y: Int, width: Int, height: Int) {
-        guard !overlays.isEmpty else { return }
-        overlays = Self.coveringScrollOverflow(overlays, x: x, y: y, width: width, height: height)
-    }
-
-    /// ``coverScrollOverflow(x:y:width:height:)`` for `later`, placed at
-    /// `position`: the rect it covers is its own.
     package mutating func coverScrollOverflow(under later: FrameBuffer, at position: (x: Int, y: Int)) {
         guard !overlays.isEmpty else { return }
-        coverScrollOverflow(x: position.x, y: position.y, width: later.width, height: later.lines.count)
+        overlays = Self.coveringScrollOverflow(overlays, under: later, at: position)
     }
 
-    /// `layers` with the scroll overflow among them cut away under `later`,
-    /// placed at `position` — see ``coverScrollOverflow(x:y:width:height:)``.
+    /// `layers` with the scroll overflow among them cut away where `later`,
+    /// placed at `position`, paints — see
+    /// ``coverScrollOverflow(under:at:)``. `layers` itself when there is
+    /// none, which is almost always.
     package static func coveringScrollOverflow(
         _ layers: [OverlayLayer], under later: FrameBuffer, at position: (x: Int, y: Int)
     ) -> [OverlayLayer] {
-        coveringScrollOverflow(
-            layers, x: position.x, y: position.y, width: later.width, height: later.lines.count)
+        guard !layers.isEmpty, layers.contains(where: \.isScrollOverflow) else { return layers }
+        var covered = layers
+        for block in later.paintedBlocks() {
+            covered = covered.flatMap { layer -> [OverlayLayer] in
+                guard layer.isScrollOverflow else { return [layer] }
+                return layer.excluding(
+                    x: position.x + block.columns.lowerBound, y: position.y + block.rows.lowerBound,
+                    width: block.columns.count, height: block.rows.count)
+            }
+        }
+        return covered
     }
 
-    /// `layers` with the scroll overflow among them cut away where the rect
-    /// `x`, `y`, `width` × `height` is covered — see
-    /// ``coverScrollOverflow(x:y:width:height:)``. `layers` itself when there is
-    /// none, which is almost always.
-    package static func coveringScrollOverflow(
-        _ layers: [OverlayLayer], x: Int, y: Int, width: Int, height: Int
-    ) -> [OverlayLayer] {
-        guard !layers.isEmpty, width > 0, height > 0, layers.contains(where: \.isScrollOverflow)
-        else { return layers }
-        return layers.flatMap {
-            $0.isScrollOverflow ? $0.excluding(x: x, y: y, width: width, height: height) : [$0]
+    /// The cells this buffer paints (``String/paintedColumns()``), as blocks
+    /// of consecutive lines whose painted columns agree — one rect for a block
+    /// of text the same width, one a line for ragged text.
+    func paintedBlocks() -> [(rows: Range<Int>, columns: Range<Int>)] {
+        var blocks: [(rows: Range<Int>, columns: Range<Int>)] = []
+        for (row, line) in lines.enumerated() {
+            guard let columns = line.paintedColumns() else { continue }
+            if let last = blocks.last, last.rows.upperBound == row, last.columns == columns {
+                blocks[blocks.count - 1].rows = last.rows.lowerBound..<(row + 1)
+            } else {
+                blocks.append((rows: row..<(row + 1), columns: columns))
+            }
         }
+        return blocks
     }
 }

@@ -229,8 +229,8 @@ public struct OverlayLayer: Sendable, Equatable {
     /// does: over what came before the scroll view, and under what comes after
     /// it. Every layer is composited over the in-flow content at the screen
     /// root, which gives the first half; the combining operations that place
-    /// later content give the second, by cutting this layer away beneath it
-    /// (``FrameBuffer/coverScrollOverflow(x:y:width:height:)``). No other layer
+    /// later content give the second, by cutting this layer away beneath what
+    /// it paints (``FrameBuffer/coverScrollOverflow(under:at:)``). No other layer
     /// is cut: a presentation is a window over the page, and a view's own
     /// displaced drawing (`.offset`) keeps the stacking it has always had.
     package var isScrollOverflow = false

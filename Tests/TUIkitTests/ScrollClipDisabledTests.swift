@@ -283,6 +283,42 @@ struct ScrollClipDisabledTests {
         #expect(trimmed.excluding(x: 50, y: 50, width: 1, height: 1).isEmpty, "a layer with no cells keeps no regions")
     }
 
+    // MARK: - A later view covers what it draws
+
+    private func overflowing() -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) { ForEach(0..<8, id: \.self) { Text("row \($0)") } }
+        }
+        .frame(width: 12, height: 2)
+        .scrollClipDisabled()
+    }
+
+    @Test("A short later view, aligned in its stack, covers its text and not the stack's padding")
+    func alignmentPaddingDoesNotCover() {
+        let frames = Frames(width: 30, height: 8)
+        frames.render(VStack(alignment: .trailing, spacing: 0) { overflowing(); Text("ab") })
+        #expect(frames.lines[2] == "row 2     ab", "\(frames.lines)")
+        #expect(frames.lines[3] == "row 3", "\(frames.lines)")
+    }
+
+    @Test("Blank later views cover nothing: a spacer, an offset view's footprint, an overlay's leading space")
+    func blankCellsDoNotCover() {
+        let frames = Frames(width: 30, height: 8)
+        frames.render(
+            VStack(alignment: .leading, spacing: 0) {
+                overflowing()
+                Text("moved").offset(x: 20)
+                Spacer().frame(width: 12, height: 3)
+            }
+            .overlay(alignment: .bottomLeading) {
+                HStack(spacing: 0) { Spacer(); Text("!") }.frame(width: 12)
+            })
+        let lines = frames.lines
+        #expect(lines[2].hasPrefix("row 2") && lines[2].contains("moved"), "\(lines)")
+        #expect(lines[3].hasPrefix("row 3"), "\(lines)")
+        #expect(lines[5].hasPrefix("row 5") && lines[5].hasSuffix("!"), "\(lines)")
+    }
+
     @MainActor
     private final class Box<T> {
         var value: T
