@@ -378,7 +378,6 @@ extension _ScrollViewCore {
         // at is the fallback, not the rule.
         let uniformPad = buffer.linesAreUniformWidth ? max(0, contentWidth - buffer.width) : nil
         let lineWidths = buffer.lineWidths
-        let trailing = String(repeating: " ", count: margins.trailing)
         for index in 0..<rows {
             let content = index < lines.count ? lines[index] : ""
             let known: Int? =
@@ -388,7 +387,16 @@ extension _ScrollViewCore {
             let pad = known ?? max(0, contentWidth - content.strippedLength)
             let barRow = index - span.top
             let cell = barRow >= 0 && barRow < height ? bar.lines[barRow] : " "
-            lines[index] = content + String(repeating: " ", count: pad) + cell + trailing
+            // One string, sized once, as `FrameBuffer` joins its lines: a chain
+            // of `+` copied the line again at every link, and the trailing
+            // margin — nearly always none — was a link of its own.
+            var line = ""
+            line.reserveCapacity(content.utf8.count + pad + cell.utf8.count + margins.trailing)
+            line += content
+            line += asciiSpaces(pad)
+            line += cell
+            line += asciiSpaces(margins.trailing)
+            lines[index] = line
         }
         var result = buffer.replacingLines(
             lines, width: contentWidth + 1 + margins.trailing, uniformWidth: true)
