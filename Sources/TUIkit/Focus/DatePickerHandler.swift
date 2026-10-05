@@ -14,8 +14,9 @@ import Foundation
 /// Left/Right move between components; Up/Down adjust the active component ±1
 /// and Page Up/Down by its coarse step (``DateFieldModel/pageStep(_:)``);
 /// Home/End send it to the ends of its own range; typing digits sets it and
-/// auto-advances when full. Tab/Enter/Escape are not consumed, so focus can
-/// leave the control. All calendar math is delegated to the value-type
+/// auto-advances when full. Tab and Escape are not consumed, so focus can
+/// leave the control; nor is Enter, except by a `.compact` picker, whose Enter
+/// opens its calendar. All calendar math is delegated to the value-type
 /// ``DateFieldModel``.
 final class DatePickerHandler: PersistedFocusable {
     var focusID: String
@@ -25,6 +26,11 @@ final class DatePickerHandler: PersistedFocusable {
 
     /// The index (into `model.orderedKinds()`) of the component being edited.
     var activeIndex = 0
+
+    /// What Return does on this field, if anything: a `.compact` picker opens
+    /// its calendar. Re-set by every render.
+    var onActivate: (() -> Void)?
+
     /// Digits typed into the active component before it auto-advances.
     private var digitBuffer = ""
 
@@ -74,6 +80,12 @@ final class DatePickerHandler: PersistedFocusable {
         case .end:
             jump(to: \.upperBound)
             return true
+        case .enter:
+            // A `.compact` picker's Return opens its calendar; any other
+            // field's goes on to the page.
+            guard let onActivate else { return false }
+            onActivate()
+            return true
         case .character(let character):
             // Not `where`-guarded: the digit test and the digit's VALUE are one
             // question, and asking it twice is what let the two answers drift.
@@ -82,7 +94,7 @@ final class DatePickerHandler: PersistedFocusable {
             typeDigit(digit)
             return true
         default:
-            // Tab/Enter/Escape and everything else propagate so focus can leave.
+            // Tab, Escape and everything else propagate so focus can leave.
             return false
         }
     }

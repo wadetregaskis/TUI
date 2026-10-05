@@ -139,3 +139,172 @@ struct GraphicalDatePickerStyleTests {
         #expect(selection.date == date(2026, 10, 7))
     }
 }
+
+@MainActor
+@Suite("Stepper-field and compact date pickers")
+struct StepperFieldAndCompactDatePickerTests {
+    /// A Gregorian calendar in UTC whose weeks start on Monday, so the field
+    /// and the grid are the same wherever the test runs.
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        calendar.firstWeekday = 2
+        calendar.locale = Locale(identifier: "en_US")
+        return calendar
+    }
+
+    private func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 9) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    /// The selection, outside the view.
+    private final class Selection: @unchecked Sendable {
+        var date: Date
+        init(_ date: Date) { self.date = date }
+        var binding: Binding<Date> { Binding(get: { self.date }, set: { self.date = $0 }) }
+    }
+
+    private func picker(
+        _ selection: Selection, style: some DatePickerStyle, components: DatePickerComponents = .date,
+        stepper: Bool? = nil, disabled: Bool = false
+    ) -> some View {
+        Group {
+            if let stepper {
+                DatePicker("", selection: selection.binding, displayedComponents: components)
+                    .datePickerShowsStepper(stepper)
+            } else {
+                DatePicker("", selection: selection.binding, displayedComponents: components)
+            }
+        }
+        .disabled(disabled)
+        .datePickerStyle(style)
+        .environment(\.calendar, calendar)
+        .environment(\.timeZone, calendar.timeZone)
+    }
+
+    /// The column `glyph` is drawn at on the first row of `buffer`.
+    private func column(of glyph: Character, in buffer: FrameBuffer) -> Int? {
+        let row = buffer.lines.first?.stripped ?? ""
+        return row.firstIndex(of: glyph).map { row.distance(from: row.startIndex, to: $0) }
+    }
+
+    /// Everything the popovers over `buffer` draw, stripped.
+    private func popoverText(_ buffer: FrameBuffer) -> String {
+        buffer.overlays.flatMap { $0.content.lines.map(\.stripped) }.joined(separator: "\n")
+    }
+
+    @Test("A stepper field draws its stepper only where it is asked for")
+    func stepperIsOptIn() {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 40, height: 3)
+        let plain = harness.frame(picker(selection, style: .stepperField)).lines.first?.stripped ?? ""
+        #expect(plain == "2026-10-03", "drawn by default: \(plain)")
+        let asked = harness.frame(picker(selection, style: .stepperField, stepper: true)).lines.first?.stripped
+        #expect(asked == "2026-10-03 ▲▼")
+        let field = harness.frame(picker(selection, style: .field, stepper: true)).lines.first?.stripped
+        #expect(field == "2026-10-03", "only a stepper field has a stepper")
+    }
+
+    /// A click on one of the stepper's arrows: the press acts on the next
+    /// main-actor turn (the arrows repeat while held, as a `Stepper`'s do), so
+    /// a yield before the release — not a sleep, which a timed wake can lose.
+    private func click(_ harness: InputChainHarness, at x: Int, row: Int = 0) async {
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
+        await Task.yield()
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: row))
+    }
+
+    @Test("▲ steps the selected component up and ▼ down, and focuses the field")
+    func stepperArrowsStep() async {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 40, height: 4)
+        let build = {
+            VStack {
+                Button("First") {}
+                picker(selection, style: .stepperField, stepper: true)
+            }
+        }
+        let buffer = harness.frame(build())
+        let row = buffer.lines[1].stripped
+        guard let up = row.firstIndex(of: "▲").map({ row.distance(from: row.startIndex, to: $0) }) else {
+            Issue.record("no stepper: \(buffer.lines.map(\.stripped))")
+            return
+        }
+        // The button has the focus; the year is the field's selected component.
+        await click(harness, at: up, row: 1)
+        #expect(selection.date == date(2027, 10, 3))
+        #expect(harness.focusManager.currentFocusedID?.hasPrefix("datepicker") == true, "the field did not take the focus")
+        // Right twice to the day, then ▼ twice.
+        harness.play([KeyEvent(key: .right), KeyEvent(key: .right)], build)
+        harness.frame(build())
+        await click(harness, at: up + 1, row: 1)
+        harness.frame(build())
+        await click(harness, at: up + 1, row: 1)
+        #expect(selection.date == date(2027, 10, 1))
+    }
+
+    @Test("A disabled stepper field's arrows step nothing")
+    func disabledStepper() async {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 40, height: 3)
+        let buffer = harness.frame(picker(selection, style: .stepperField, stepper: true, disabled: true))
+        await click(harness, at: column(of: "▲", in: buffer) ?? 0)
+        #expect(selection.date == date(2026, 10, 3))
+    }
+
+    @Test("Return opens a compact picker's calendar, whose keys move the day; Return closes it")
+    func compactReturnOpensTheCalendar() {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 40, height: 14)
+        let build = { picker(selection, style: .compact) }
+        #expect(popoverText(harness.frame(build())).isEmpty, "the calendar starts closed")
+        harness.play([KeyEvent(key: .enter)], build)
+        let opened = popoverText(harness.frame(build()))
+        #expect(opened.contains("October 2026"), "Return did not open the calendar: \(opened)")
+        // The calendar has the keys: Right is a day, not the field's next component.
+        harness.play([KeyEvent(key: .right)], build)
+        #expect(selection.date == date(2026, 10, 4))
+        harness.play([KeyEvent(key: .enter)], build)
+        #expect(popoverText(harness.frame(build())).isEmpty, "Return in the calendar did not close it")
+        #expect(selection.date == date(2026, 10, 4))
+        // Back on the field, whose Return opens the calendar again — with the keys.
+        harness.play([KeyEvent(key: .enter), KeyEvent(key: .down)], build)
+        #expect(selection.date == date(2026, 10, 11))
+    }
+
+    @Test("Escape closes a compact picker's calendar")
+    func compactEscapeCloses() {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 40, height: 14)
+        let build = { picker(selection, style: .compact) }
+        harness.play([KeyEvent(key: .enter), KeyEvent(key: .escape)], build)
+        #expect(popoverText(harness.frame(build())).isEmpty)
+    }
+
+    @Test("A click on a compact picker's field opens its calendar")
+    func compactClickOpens() {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 40, height: 14)
+        let build = { picker(selection, style: .compact) }
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 1, y: 0))
+        #expect(popoverText(harness.frame(build())).contains("October 2026"))
+    }
+
+    @Test("A compact picker of the time alone, or a disabled one, has no calendar to open")
+    func compactWithoutACalendar() {
+        let selection = Selection(date(2026, 10, 3))
+        let timeOnly = InputChainHarness(width: 40, height: 14)
+        let time = { picker(selection, style: .compact, components: .hourAndMinute) }
+        timeOnly.play([KeyEvent(key: .enter)], time)
+        #expect(popoverText(timeOnly.frame(time())).isEmpty)
+
+        let disabled = InputChainHarness(width: 40, height: 14)
+        let off = { picker(selection, style: .compact, disabled: true) }
+        disabled.frame(off())
+        disabled.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        disabled.mouse(MouseEvent(button: .left, phase: .released, x: 1, y: 0))
+        #expect(popoverText(disabled.frame(off())).isEmpty)
+    }
+}

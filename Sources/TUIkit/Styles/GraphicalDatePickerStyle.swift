@@ -74,6 +74,10 @@ final class _DatePickerCalendarHandler: PersistedFocusable {
     var range: ClosedRange<Date>?
     var calendar: Calendar
 
+    /// What Return does: a `.compact` picker's calendar closes. `nil` — Return
+    /// goes on to the page — for a `.graphical` picker's. Re-set every render.
+    var onReturn: (() -> Void)?
+
     /// The first day of the month shown, which ◀ and ▶ turn without moving the
     /// selection; a selection moved into another month brings it along.
     var displayedMonth: Date
@@ -99,6 +103,9 @@ final class _DatePickerCalendarHandler: PersistedFocusable {
         case .down: select(calendar.date(byAdding: .day, value: 7, to: current))
         case .pageUp: select(calendar.date(byAdding: .month, value: -1, to: current))
         case .pageDown: select(calendar.date(byAdding: .month, value: 1, to: current))
+        case .enter:
+            guard let onReturn else { return false }
+            onReturn()
         case .home: select(calendar.dateInterval(of: .month, for: current)?.start.keepingTime(of: current, in: calendar))
         case .end:
             let last = calendar.dateInterval(of: .month, for: current).flatMap {
@@ -150,15 +157,27 @@ extension Date {
 private enum DatePickerCalendarStateIndex {
     static let focusID = 0
     static let handler = 1
+    /// Whether a calendar that takes the focus as it appears has taken it.
+    static let hasTakenFocus = 2
 }
 
 /// Draws the month shown and registers the calendar's focus stop and click
 /// targets.
-private struct _DatePickerCalendarCore: View, Renderable, Layoutable {
+struct _DatePickerCalendarCore: View, Renderable, Layoutable {
     let selection: Binding<Date>
     let range: ClosedRange<Date>?
     let focusID: String?
     let isDisabled: Bool
+
+    /// What Return does on the calendar, if anything — a `.compact` picker's
+    /// closes it.
+    var onReturn: (() -> Void)?
+
+    /// Whether the calendar takes the focus the first time it is drawn — a
+    /// `.compact` picker's, which appears in a popover because the keys asked
+    /// for it, and whose popover would otherwise wait for a first key to find
+    /// it. Each opening draws it anew, so each takes the focus.
+    var takesFocusOnAppear = false
 
     var body: Never {
         fatalError("_DatePickerCalendarCore renders via Renderable")
@@ -185,6 +204,9 @@ private struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let handler = handler(focusID: persistedFocusID, calendar: calendar, context: context)
         handler.canBeFocused = !isDisabled
         FocusRegistration.register(context: context, handler: handler, focusID: persistedFocusID)
+        if takesFocusOnAppear, !isDisabled {
+            takeFocusOnce(focusID: persistedFocusID, context: context)
+        }
         let isFocused = context.indicatesFocus(
             FocusRegistration.isFocused(context: context, focusID: persistedFocusID))
 
@@ -206,6 +228,22 @@ private struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         return buffer
     }
 
+    /// Focuses the calendar on the first frame that draws it, and never again
+    /// while it stays drawn.
+    private func takeFocusOnce(focusID: String, context: RenderContext) {
+        guard !context.isMeasuring, let storage = context.stateStorage,
+            let focusManager = context.environment.focusManager
+        else { return }
+        // A side effect of drawing, which a memo serving this frame must not skip.
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        let taken: StateBox<Bool> = storage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.hasTakenFocus),
+            default: false)
+        guard !taken.value else { return }
+        taken.value = true
+        focusManager.focus(id: focusID)
+    }
+
     private func handler(
         focusID: String, calendar: Calendar, context: RenderContext
     ) -> _DatePickerCalendarHandler {
@@ -219,6 +257,7 @@ private struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         handler.selection = selection
         handler.range = range
         handler.calendar = calendar
+        handler.onReturn = onReturn
         return handler
     }
 

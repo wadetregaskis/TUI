@@ -79,6 +79,14 @@ struct _DatePickerField: View {
     var focusID: String?
     var isDisabled = false
 
+    /// Whether this is a `.stepperField` picker, whose stepper
+    /// ``View/datePickerShowsStepper(_:)`` can draw.
+    var isStepperField = false
+
+    /// What Return and a click on the field also do — a `.compact` picker's
+    /// calendar opening — or `nil`.
+    var onActivate: (() -> Void)?
+
     var body: some View {
         // `_CollapsingLabel` rather than the label and a stack gap: it is the
         // same "label, one separating space, or nothing at all" unit `Picker`,
@@ -89,7 +97,7 @@ struct _DatePickerField: View {
             _DatePickerCore(
                 selection: configuration.$selection, range: configuration.range,
                 displayedComponents: configuration.displayedComponents, focusID: focusID,
-                isDisabled: isDisabled)
+                isDisabled: isDisabled, isStepperField: isStepperField, onActivate: onActivate)
         }
     }
 }
@@ -122,29 +130,61 @@ public struct FieldDatePickerStyle: BuiltInDatePickerStyle, Equatable {
 /// A system style that displays the components in an editable field, with
 /// adjoining stepper that can increment and decrement the selected component.
 ///
-/// The field here steps its selected component with Up and Down and the wheel
-/// over a component, which is the stepper's job; it draws no arrows beside it
-/// (decisions B14).
+/// The field steps its selected component with Up and Down, and the wheel the
+/// component under the pointer, which is the stepper's job. The stepper itself
+/// — `▲▼` after the field, each a click target — is drawn only where
+/// ``View/datePickerShowsStepper(_:)`` asks for it: it costs three columns.
 public struct StepperFieldDatePickerStyle: BuiltInDatePickerStyle, Equatable {
     /// Creates a stepper field date picker style.
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        _DatePickerField(configuration: configuration)
+        _DatePickerField(configuration: configuration, isStepperField: true)
     }
 }
 
 /// A date picker style that displays the components in a compact, textual
 /// format.
 ///
-/// The field is that format already; it opens no calendar popover (decisions
-/// B14).
+/// The field, which Return or a click opens the graphical calendar from, in a
+/// popover under it — as macOS's compact picker opens its calendar overlay.
+/// The calendar picks the day, the field's own keys still edit every
+/// component, and Return or Escape closes the calendar again. A picker that
+/// shows only the time has no calendar to open.
 public struct CompactDatePickerStyle: BuiltInDatePickerStyle, Equatable {
     /// Creates a compact date picker style.
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        _DatePickerField(configuration: configuration)
+        _CompactDatePicker(configuration: configuration)
+    }
+}
+
+/// A `.compact` date picker: the field, and the graphical calendar in a
+/// popover that Return or a click on the field opens.
+struct _CompactDatePicker: View {
+    let configuration: DatePickerStyleConfiguration
+    var focusID: String?
+    var isDisabled = false
+
+    /// Whether the calendar is open.
+    @State private var showsCalendar = false
+
+    var body: some View {
+        let showsCalendar = $showsCalendar
+        // Only a picker with a date to pick has a calendar to open.
+        let opens = configuration.displayedComponents.contains(.date) && !isDisabled
+        _DatePickerField(
+            configuration: configuration, focusID: focusID, isDisabled: isDisabled,
+            onActivate: opens ? { showsCalendar.wrappedValue = true } : nil)
+            .popover(isPresented: showsCalendar) {
+                // The keys go straight to the calendar as it opens, and its
+                // Return closes it on the day it is on.
+                _DatePickerCalendarCore(
+                    selection: configuration.$selection, range: configuration.range, focusID: nil,
+                    isDisabled: isDisabled, onReturn: { showsCalendar.wrappedValue = false },
+                    takesFocusOnAppear: true)
+            }
     }
 }
 

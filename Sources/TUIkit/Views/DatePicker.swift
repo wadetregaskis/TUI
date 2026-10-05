@@ -39,8 +39,9 @@ public struct DatePickerComponents: OptionSet, Sendable {
 /// DatePicker("Time", selection: $when, in: earliest..., displayedComponents: .hourAndMinute)
 /// ```
 ///
-/// > Note: Unlike SwiftUI, this is an inline stepper-style field (no calendar
-/// > popup), it lays the components out in a fixed `YYYY-MM-DD HH:MM` order
+/// > Note: Unlike SwiftUI, this is an inline stepper-style field — the
+/// > `.graphical` style draws a calendar, and a `.compact` field opens one in
+/// > a popover — it lays the components out in a fixed `YYYY-MM-DD HH:MM` order
 /// > rather than the environment locale's, and it omits the watchOS-only
 /// > `.hourMinuteAndSecond` component. Components wrap within their field (no
 /// > carry) and the whole date is clamped to the `in:` range.
@@ -93,6 +94,11 @@ public struct DatePicker<Label: View>: View {
         // through its body.
         if style is GraphicalDatePickerStyle {
             _GraphicalDatePicker(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
+        } else if style is CompactDatePickerStyle {
+            _CompactDatePicker(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
+        } else if style is StepperFieldDatePickerStyle {
+            _DatePickerField(
+                configuration: configuration, focusID: focusID, isDisabled: isDisabled, isStepperField: true)
         } else if style is any BuiltInDatePickerStyle {
             _DatePickerField(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
         } else {
@@ -274,10 +280,15 @@ extension DatePicker {
 
 // MARK: - Internal Core
 
-private enum DatePickerStateIndex {
+enum DatePickerStateIndex {
     static let handler = 0
     static let focusID = 1
     static let isHovered = 2
+    /// The press-and-hold repeat of a stepper field's arrows.
+    static let stepperTimer = 3
+    /// Which of a stepper field's arrows is under the pointer: `0` ▲, `1` ▼,
+    /// `-1` neither.
+    static let hoveredArrow = 4
 }
 
 /// Renders the inline date/time field with the active component highlighted, and
@@ -289,7 +300,16 @@ struct _DatePickerCore: View, Renderable, Layoutable {
     let focusID: String?
     let isDisabled: Bool
 
-    private typealias StateIndex = DatePickerStateIndex
+    /// Whether this is a `.stepperField` picker's field, which draws its
+    /// stepper — the `▲▼` pair after it — where `.datePickerShowsStepper(_:)`
+    /// asks for one.
+    var isStepperField = false
+
+    /// What Return and a click on the field do besides what a field does: a
+    /// `.compact` picker opens its calendar. `nil` for every other field.
+    var onActivate: (() -> Void)?
+
+    typealias StateIndex = DatePickerStateIndex
 
     var body: Never {
         fatalError("_DatePickerCore renders via Renderable")
@@ -384,6 +404,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
         handler.selection = selection
         handler.model = model
         handler.canBeFocused = !isDisabled
+        handler.onActivate = isDisabled ? nil : onActivate
         handler.activeIndex = min(max(0, handler.activeIndex), max(0, model.orderedKinds().count - 1))
         return handler
     }
@@ -533,10 +554,20 @@ struct _DatePickerCore: View, Renderable, Layoutable {
             line += ANSIRenderer.render(cell.text, with: style.resolved(with: palette))
         }
 
+        let fieldWidth = line.strippedLength
+        let showsStepper = isStepperField && context.environment.datePickerShowsStepper
+        if showsStepper {
+            appendStepper(to: &line, claims: &claims, isFocused: isFocused, isDisabled: isDisabled, context: context)
+        }
         var buffer = FrameBuffer(lines: [line])
         buffer.animatedCells = runs
         buffer.opacityRegions = claims
-        registerMouse(context: context, buffer: &buffer, handler: handler, cells: cells, isDisabled: isDisabled)
+        registerMouse(
+            context: context, buffer: &buffer, width: fieldWidth, handler: handler, cells: cells,
+            isDisabled: isDisabled)
+        if showsStepper, !isDisabled {
+            registerStepper(at: fieldWidth, in: &buffer, handler: handler, context: context)
+        }
         return buffer
     }
 
@@ -544,9 +575,11 @@ struct _DatePickerCore: View, Renderable, Layoutable {
     /// under the cursor; the wheel steps the component under the pointer (the
     /// active one if the pointer is on a separator) and is swallowed, so it
     /// never also scrolls an enclosing page.
+    ///
+    /// A `.compact` field's click opens its calendar too (``onActivate``).
     @MainActor
     private func registerMouse(
-        context: RenderContext, buffer: inout FrameBuffer, handler: DatePickerHandler,
+        context: RenderContext, buffer: inout FrameBuffer, width: Int, handler: DatePickerHandler,
         cells: [DateFieldModel.Cell], isDisabled: Bool
     ) {
         guard !isDisabled, !context.isMeasuring,
@@ -606,6 +639,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
                 if let index = componentIndex(at: event.x, cells: cells) {
                     handler.activeIndex = index
                 }
+                handler.onActivate?()
                 return true
             default:
                 return false
@@ -613,7 +647,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
         }
         buffer.hitTestRegions.append(
             HitTestRegion(
-                offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,
+                offsetX: 0, offsetY: 0, width: width, height: buffer.height,
                 handlerID: handlerID, focusID: focusID))
     }
 
