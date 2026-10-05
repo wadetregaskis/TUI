@@ -255,14 +255,21 @@ enum TextUndoBridge {
     /// marks kept alive until then by this call.
     static func forget(_ marks: [TextUndoMark], on manager: UndoManager) {
         guard !marks.isEmpty else { return }
-        if Thread.isMainThread {
-            MainActor.assumeIsolated {
-                for mark in marks { manager.removeAllActions(withTarget: mark) }
+        #if canImport(WASILibc)
+            // wasip1 has one thread, the main actor's, and its Foundation no
+            // `Thread` to ask.
+            MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
+        #else
+            if Thread.isMainThread {
+                MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
+            } else {
+                Task { @MainActor in removeActions(of: marks, from: manager) }
             }
-        } else {
-            Task { @MainActor in
-                for mark in marks { manager.removeAllActions(withTarget: mark) }
-            }
-        }
+        #endif
+    }
+
+    @MainActor
+    private static func removeActions(of marks: [TextUndoMark], from manager: UndoManager) {
+        for mark in marks { manager.removeAllActions(withTarget: mark) }
     }
 }
