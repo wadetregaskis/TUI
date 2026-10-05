@@ -9,6 +9,11 @@
 //  Counted as rows of a number only each row knows, every view's body was
 //  evaluated, and unpinned every row of every section built, on every walk.
 //
+//  A view whose body is a loop — `LazyVStack { TodoRows() }` — is that loop's
+//  rows, one body step below the stack. A focused row scrolled out of the band
+//  must still be found by its focus ID and drawn, or it registers nothing and
+//  the focus is lost.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -47,6 +52,14 @@ private func bareGroup(_ group: Int) -> some View {
         ForEach(0..<(group % 3 + 1), id: \.self) { Text("row \(group).\($0)") }
     } header: {
         Text("Header \(group)")
+    }
+}
+
+/// A view whose body is a loop of buttons.
+private struct ButtonRows: View {
+    let count: Int
+    var body: some View {
+        ForEach(0..<count, id: \.self) { i in Button("row \(i)") {} }
     }
 }
 
@@ -133,5 +146,68 @@ struct CompositeMembersLazyTests {
             },
             context: makeRenderContext(width: 30, height: 8))
         #expect(counts == [1, 2, 3], "\(counts)")
+    }
+
+    // MARK: - A view whose body is a loop
+
+    /// The bottom row's focus ID, captured while it is on screen.
+    private func captureTailRowID(
+        _ view: some View, rows: Int, tuiContext: TUIContext, focusManager: FocusManager
+    ) -> String {
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: rows - Self.viewportHeight)
+        let id = focusManager.registeredFocusIDsInActiveSection().last
+        #expect(id?.contains("[\(rows - 1)]") == true, "the last row must have registered while visible: \(id ?? "nil")")
+        return id ?? ""
+    }
+
+    // Such content is no lazy collection — the view's members come resolved,
+    // in an array — so the stack takes its exact viewport walk, which finds
+    // the focused row by its identity (`rowIndex(addressedBy:)`), not the
+    // uniform window's parse of the focus ID for a `[key]` directly below the
+    // stack (`rowKey(inFocusID:belowStackPath:)`), which the body step would
+    // defeat. These pin that the row is found either way.
+    @Test("A focused row of a view whose body is a loop is kept, drawn and focused, scrolled out of the band")
+    func focusedRowKeptOffBand() {
+        let rows = 500
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        let view = LazyVStack(alignment: .leading, spacing: 0) { ButtonRows(count: rows) }
+
+        let tailID = captureTailRowID(view, rows: rows, tuiContext: tuiContext, focusManager: focusManager)
+        focusManager.focus(id: tailID)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: rows - Self.viewportHeight)
+        #expect(focusManager.currentFocusedID == tailID)
+
+        // Scrolled back to the top, the focused row is far out of the band.
+        for _ in 0..<3 {
+            renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: 0)
+        }
+        #expect(focusManager.currentFocusedID == tailID, "focus left the row scrolled away from")
+        #expect(
+            focusManager.registeredFocusIDsInActiveSection().contains(tailID),
+            "the focused row out of the band no longer registers")
+    }
+
+    @Test("Tab walks past the band's edge through a view whose body is a loop")
+    func tabWalksPastTheBand() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        let view = LazyVStack(alignment: .leading, spacing: 0) { ButtonRows(count: 500) }
+
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: 0)
+        let ring = focusManager.registeredFocusIDsInActiveSection()
+        guard let first = ring.first else {
+            Issue.record("nothing registered")
+            return
+        }
+        focusManager.focus(id: first)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: 0)
+        for _ in 1...12 {
+            focusManager.focusNext()
+            renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: 0)
+        }
+        #expect(
+            focusManager.currentFocusedID?.contains("[12]") == true,
+            "twelve steps from row 0: \(focusManager.currentFocusedID ?? "nil")")
     }
 }
