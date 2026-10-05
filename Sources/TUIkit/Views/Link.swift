@@ -307,12 +307,15 @@ private struct TerminalHyperlinkModifier: BufferModifier {
 
 /// Swallows the repeats a held Enter produces on a link.
 ///
-/// A held key auto-repeats in the terminal, so the application receives a
-/// stream of Enter presses and every one of them is a real activation. That is
-/// what a `Button` wants — holding a `+` should keep counting — and it is
-/// exactly wrong for a link, where each repeat is another browser window, or
-/// under a custom `OpenURLAction` another request. So a link is the exception,
-/// and only a link: nothing here reaches `Button`.
+/// A held key auto-repeats in the terminal, and in a legacy encoding the
+/// application receives a stream of Enter presses with nothing to tell a
+/// repeat from a press, so every one of them is a real activation. A `Button`
+/// takes them all there — holding Return on a `+` keeps counting — and where
+/// the terminal reports repeats (the kitty keyboard protocol) acts on them as
+/// its `buttonRepeatBehavior` says, once under `.automatic`. Every repeat is
+/// exactly wrong for a link, where each is another browser window, or under a
+/// custom `OpenURLAction` another request. So a link swallows them on every
+/// terminal, and only a link: nothing here reaches `Button`.
 ///
 /// A window rather than a count, because the two cases differ in TIMING and in
 /// nothing else — a key repeat arrives every few tens of milliseconds, and two
