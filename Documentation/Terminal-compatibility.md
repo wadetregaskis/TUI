@@ -4012,7 +4012,9 @@ not already spent:
 
 These five cannot be delivered under `.commandKey(.control)` by any means in
 the legacy encodings; under the kitty keyboard protocol's "disambiguate"
-enhancement they arrive as themselves (see "The kitty keyboard protocol") (Ctrl-H added 2026-09-24: `isDeliverableInTerminal` used to call it deliverable, though a ⌘H button could never fire). Ask
+enhancement they arrive as themselves (see "The kitty keyboard protocol"), and
+one that nothing binds goes round the input chain again as the key it would
+have been, so Ctrl-[ still leaves and Ctrl-H still rubs out (Ctrl-H added 2026-09-24: `isDeliverableInTerminal` used to call it deliverable, though a ⌘H button could never fire). Ask
 `KeyboardShortcut.isDeliverableInTerminal` (after `resolved(commandKey:)`)
 rather than wondering why one menu item is dead. `.commandKey(.option)` has no
 such collision, at the cost of Option itself being less reliable: Apple
@@ -4221,7 +4223,7 @@ not any terminal.
 
 | Flag | Enhancement | What it buys | Why it is safe |
 |---|---|---|---|
-| 1 | disambiguate escape codes | Escape as `CSI 27 u` (no Escape-vs-sequence timeout); Ctrl-H, Ctrl-I, Ctrl-J, Ctrl-M and Ctrl-[ as themselves; every Control/Option chord on an ASCII key as a `CSI u` report | — |
+| 1 | disambiguate escape codes | Escape as `CSI 27 u` (no Escape-vs-sequence timeout); Ctrl-H, Ctrl-I, Ctrl-J, Ctrl-M and Ctrl-[ as themselves; every Control/Option chord on an ASCII key as a `CSI u` report | one of the five chords that nothing binds is offered again as Backspace, Tab, Return or Escape, what the legacy encodings made of it |
 | 2 | report event types | repeats (`:2`) and releases (`:3`) | every layer but `onKeyPress` ignores a release; a repeat is a press to all of them |
 | 4 | report alternate keys | the shifted key of a chord (Ctrl-Shift-Z reports `z:Z`, decoded as `Z`), and the base-layout key, so Ctrl-С on a Russian layout is Ctrl-C | — |
 | 8 | report all keys as escape codes | a modifier key pressed alone; Caps Lock on every key; the keypad's digits as keypad keys; releases of Return, Tab and Backspace | the text a key types is taken from flag 16, not reconstructed |

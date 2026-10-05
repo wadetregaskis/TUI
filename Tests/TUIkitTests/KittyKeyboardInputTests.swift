@@ -145,6 +145,53 @@ struct KittyKeyboardInputTests {
         #expect(log.entries == [".down", ".repeat"])
     }
 
+    // MARK: - The chords the legacy bytes spent on other keys
+
+    @Test("Ctrl-H nothing binds rubs out, as the legacy Backspace it was")
+    func unboundControlHIsBackspace() {
+        let harness = InputChainHarness()
+        let text = TextBox(value: "ab")
+        harness.play([KeyEvent(key: .end), KeyEvent(key: .character("h"), ctrl: true)]) {
+            TextField("Name", text: Binding(get: { text.value }, set: { text.value = $0 }))
+        }
+        #expect(text.value == "a")
+    }
+
+    @Test("Ctrl-H an app binds fires the binding, and does not rub out")
+    func boundControlHIsTheBinding() {
+        let harness = InputChainHarness()
+        let text = TextBox(value: "ab")
+        let count = Counter()
+        harness.play([KeyEvent(key: .end), KeyEvent(key: .character("h"), ctrl: true)]) {
+            VStack {
+                TextField("Name", text: Binding(get: { text.value }, set: { text.value = $0 }))
+                Button("Help") { count.value += 1 }.keyboardShortcut("h", modifiers: .control)
+            }
+        }
+        #expect(count.value == 1)
+        #expect(text.value == "ab")
+    }
+
+    @Test("Each of the five chords falls back to its legacy key, keeping Option")
+    func legacyEquivalents() {
+        func fallback(_ character: Character, alt: Bool = false) -> KeyEvent? {
+            KeyEvent(key: .character(character), ctrl: true, alt: alt).legacyControlEquivalent
+        }
+        #expect(fallback("h") == KeyEvent(key: .backspace))
+        #expect(fallback("i") == KeyEvent(key: .tab))
+        #expect(fallback("j") == KeyEvent(key: .enter))
+        #expect(fallback("m") == KeyEvent(key: .enter))
+        #expect(fallback("[") == KeyEvent(key: .escape))
+        #expect(fallback("h", alt: true) == KeyEvent(key: .backspace, alt: true))
+        #expect(fallback("a") == nil)
+        #expect(KeyEvent(key: .character("H"), ctrl: true, shift: true).legacyControlEquivalent == nil)
+        #expect(KeyEvent(key: .character("h")).legacyControlEquivalent == nil)
+    }
+
     private final class Counter { var value = 0 }
     private final class Log { var entries: [String] = [] }
+    private final class TextBox {
+        var value: String
+        init(value: String) { self.value = value }
+    }
 }

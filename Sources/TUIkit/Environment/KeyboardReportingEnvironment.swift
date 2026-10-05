@@ -56,7 +56,9 @@ public struct KeyboardReporting: Hashable, Sendable {
     /// `false`, Ctrl-H, Ctrl-I, Ctrl-J, Ctrl-M and Ctrl-[ arrive as Backspace,
     /// Tab, Return, Return and Escape, because the legacy encodings spend
     /// those bytes on them (see
-    /// ``KeyboardShortcut/isDeliverableInTerminal``).
+    /// ``KeyboardShortcut/isDeliverableInTerminal``). Where `true`, a binding
+    /// on one of them fires, and one that nothing binds still acts as the key
+    /// it used to arrive as.
     public let disambiguatesKeys: Bool
 
     /// Whether a Control or Option chord with Shift arrives as its shifted

@@ -257,6 +257,30 @@ extension KeyEvent {
         return KeyEvent(key: base, ctrl: ctrl, alt: alt, shift: true)
     }
 
+    /// The key a legacy encoding delivers for this Control chord, or `nil`
+    /// for any other event.
+    ///
+    /// A legacy encoding sends Ctrl plus a letter as the C0 control byte, and
+    /// five of those bytes are other keys' too: Ctrl-H is Backspace's 0x08,
+    /// Ctrl-I is Tab, Ctrl-J and Ctrl-M are Return's LF and CR, and Ctrl-[ is
+    /// Escape. Under the kitty keyboard protocol the chords arrive as
+    /// themselves, and this is what each would have been without it. Option
+    /// is kept, as the legacy encoding's ESC prefix keeps it; a chord with
+    /// Shift is not one of these, its control byte having no case.
+    public var legacyControlEquivalent: KeyEvent? {
+        guard ctrl, !shift, case .character(let character) = key else { return nil }
+        let legacy: Key
+        switch character {
+        case "h": legacy = .backspace
+        case "i": legacy = .tab
+        case "j", "m": legacy = .enter
+        case "[": legacy = .escape
+        default: return nil
+        }
+        return KeyEvent(
+            key: legacy, alt: alt, phase: phase, capsLock: capsLock, numericPad: numericPad)
+    }
+
     /// - Parameter bytes: The raw input bytes.
     /// - Returns: The parsed key event, or nil if incomplete.
     public static func parse(_ bytes: [UInt8]) -> KeyEvent? {

@@ -121,7 +121,23 @@ extension InputHandler {
         // which it also reports, is a press to every layer, as the legacy
         // encodings' identical copies always were.
         guard event.phase != .release else { return handleRelease(event) }
+        if dispatchPress(event) { return true }
 
+        // Ctrl-H, I, J, M and [ arrive as themselves only where the kitty
+        // keyboard protocol is on. Everywhere else they arrive as Backspace,
+        // Tab, Return and Escape, and hands have learnt them as those: Ctrl-[
+        // to leave, Ctrl-H to rub out. So a chord nothing took goes round once
+        // more as the key it would have been — a binding on the chord still
+        // wins, and an unbound one does what it always did.
+        if let legacy = event.legacyControlEquivalent {
+            return dispatchPress(legacy)
+        }
+        return false
+    }
+
+    /// The five-layer chain for a key going down or repeating — everything
+    /// ``handle(_:)`` does but the release and the legacy fallback.
+    private func dispatchPress(_ event: KeyEvent) -> Bool {
         // The focus path: SwiftUI's `onKeyPress` handlers on the way to the
         // focused view, outermost first, BEFORE the focused control has the
         // key — a text input included, so a `.handled` letter is never typed.
