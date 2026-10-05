@@ -118,6 +118,20 @@ when unset), the visual/aspect probes print to the terminal.
   host's timeout, read by eye or from a recording. JSON to `$PROBE_OUT`;
   `PROBE_ALT=1` for the alternate screen. NOT YET RUN on any host
   (2026-10-05).
+- `clipboard_probe.py` — does the terminal put an application's OSC 52 write
+  on the clipboard? Writes a nonce exactly as TUIkit spells it
+  (`ESC ] 52 ; c ; <base64> ESC \`) and reads the clipboard back with this
+  machine's helper (`pbpaste`, `wl-paste`, `xclip`, `xsel`), so a local run
+  needs no person; `--manual` asks for a paste instead, for a run over ssh.
+  Also: DA1 and whether it carries `52`, BEL and an empty selector, the
+  largest copy that arrives whole (1 KiB to 1 MiB), and tmux's
+  `set-clipboard` with whether tmux kept the write as a buffer.
+  `--destructive` adds the empty and the non-base64 payloads, which Ghostty
+  documents as CLEARING the clipboard. The clipboard is restored at the end
+  where a helper can write it. JSON to `$PROBE_OUT`; `PROBE_ALT=1` for the
+  alternate screen. NOT YET RUN on any host (2026-10-05): Ghostty, iTerm2 with
+  its clipboard setting on and off, Apple Terminal, Warp, kitty, and tmux with
+  `set-clipboard on` and `external` are owed.
 - `identity_probe.py` — asks the terminal WHO it is over escape queries
   (DA1/DA2/DA3, XTVERSION, XTGETTCAP), DSR-fenced so a silent terminal
   cannot stall it. This is the measurement behind identifying a host over
