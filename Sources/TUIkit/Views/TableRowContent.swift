@@ -460,7 +460,7 @@ extension ForEach: TableRowContent where Content: TableRowContent {
     public init<V>(
         _ data: Data, @TableRowBuilder<V> content: @escaping (Data.Element) -> Content
     ) where ID == Data.Element.ID, V == Content.TableRowValue, Data.Element: Identifiable {
-        self.init(storing: data, id: \Data.Element.id, content: content)
+        self.init(storing: data, id: \Data.Element.id, directID: { $0.id }, content: content)
     }
 
     /// Creates an instance that uniquely identifies and creates table rows
@@ -485,7 +485,7 @@ extension ForEach: TableRowContent where Content: TableRowContent {
     /// - Parameter data: The identified data the rows are created from.
     public init(_ data: Data)
     where ID == Data.Element.ID, Content == TableRow<Data.Element>, Data.Element: Identifiable {
-        self.init(storing: data, id: \Data.Element.id) { TableRow($0) }
+        self.init(storing: data, id: \Data.Element.id, directID: { $0.id }, content: { TableRow($0) })
     }
 
     /// Creates an instance that computes table rows over a given constant
@@ -497,7 +497,7 @@ extension ForEach: TableRowContent where Content: TableRowContent {
     public init<V>(
         _ data: Range<Int>, @TableRowBuilder<V> content: @escaping (Int) -> Content
     ) where Data == Range<Int>, ID == Int, V == Content.TableRowValue {
-        self.init(storing: data, id: \.self, content: content)
+        self.init(storing: data, id: \.self, directID: { $0 }, content: content)
     }
 }
 

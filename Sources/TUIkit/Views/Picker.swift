@@ -95,7 +95,7 @@ extension ForEach: PickerOptionProvider where Content: View {
             }
             return [
                 .option(
-                    tagValue: AnyHashable(element[keyPath: idKeyPath]),
+                    tagValue: AnyHashable(elementID(of: element)),
                     includeOptional: true,
                     label: AnyView(row))
             ]

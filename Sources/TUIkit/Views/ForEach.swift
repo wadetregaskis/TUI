@@ -68,6 +68,11 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// The key path to the unique ID of each element.
     let idKeyPath: KeyPath<Data.Element, ID>
 
+    /// Reads an element's ID directly, when the initializer knew what the key
+    /// path reads — `\.id` of an `Identifiable` element, or `\.self` — and
+    /// `nil` when only the path says; see ``elementID(of:)``.
+    let directID: ((Data.Element) -> ID)?
+
     /// A function to create content on demand using the underlying data.
     public var content: (Data.Element) -> Content
 
@@ -87,10 +92,26 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
 
     /// Stores the loop. Every kind of content's own initializers delegate here;
     /// declared so that no memberwise initializer exists beside them.
-    init(storing data: Data, id: KeyPath<Data.Element, ID>, content: @escaping (Data.Element) -> Content) {
+    init(
+        storing data: Data, id: KeyPath<Data.Element, ID>, directID: ((Data.Element) -> ID)? = nil,
+        content: @escaping (Data.Element) -> Content
+    ) {
         self.data = data
         self.idKeyPath = id
+        self.directID = directID
         self.content = content
+    }
+
+    /// `element`'s ID.
+    ///
+    /// Asked of every row of every frame — its identity, its key, its
+    /// selection value. A key-path projection walks the path at run time, with
+    /// generic-metadata lookups in this unspecialised code: about 4% of a frame
+    /// of the `scrolleager` scenario. An `Identifiable` element's `id` read
+    /// directly is a witness call.
+    func elementID(of element: Data.Element) -> ID {
+        if let directID { return directID(element) }
+        return element[keyPath: idKeyPath]
     }
 }
 
@@ -222,7 +243,7 @@ extension ForEach: ChildViewProvider where Content: View {
     /// identity exactly what it is unwrapped — the memo is identity-
     /// transparent (the wrapper is Renderable, adds no identity).
     private func makeChild(for element: Data.Element) -> ChildView {
-        let key = identityKey(element[keyPath: idKeyPath])
+        let key = identityKey(elementID(of: element))
         // A row carrying an explicit `.alignmentGuide` is handed over bare. The
         // memo wrapper is `Renderable` and opaque, so a container reading its
         // children's guides finds none on a wrapped row and falls back to the
@@ -309,18 +330,18 @@ extension ForEach: LazyChildViewProvider where Content: View {
     /// `RandomAccessCollection` makes the per-ordinal element access O(1).
     public func childViewCollection(context: RenderContext) -> ChildViewCollection {
         let data = self.data(in: context)
-        let idKeyPath = self.idKeyPath
+        let loop = self
         return ChildViewCollection(
             count: data.count,
             // The same box `listRowsSignature` builds, taken once here rather
             // than by a `content as? any WindowedListRowExtractor` at each ask.
             key: { ordinal in
                 let element = data[data.index(data.startIndex, offsetBy: ordinal)]
-                return identityKey(element[keyPath: idKeyPath])
+                return identityKey(loop.elementID(of: element))
             },
             anyID: { ordinal in
                 let element = data[data.index(data.startIndex, offsetBy: ordinal)]
-                return AnyHashable(element[keyPath: idKeyPath])
+                return AnyHashable(loop.elementID(of: element))
             },
             // The same box `listRowsSignature` builds, taken once here rather
             // than by a `content as? any WindowedListRowExtractor` at each ask.
@@ -343,9 +364,7 @@ extension ForEach where Content: View, Data.Element: Identifiable, ID == Data.El
         _ data: Data,
         @ViewBuilder content: @escaping (Data.Element) -> Content
     ) {
-        self.data = data
-        self.idKeyPath = \Data.Element.id
-        self.content = content
+        self.init(storing: data, id: \Data.Element.id, directID: { $0.id }, content: content)
     }
 }
 
@@ -361,9 +380,7 @@ extension ForEach where Content: View, Data == Range<Int>, ID == Int {
         _ data: Range<Int>,
         @ViewBuilder content: @escaping (Int) -> Content
     ) {
-        self.data = data
-        self.idKeyPath = \.self
-        self.content = content
+        self.init(storing: data, id: \.self, directID: { $0 }, content: content)
     }
 }
 

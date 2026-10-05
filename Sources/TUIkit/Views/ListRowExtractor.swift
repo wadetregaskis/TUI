@@ -348,7 +348,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
         // for a row that is about to be shown, and every such row renders.
         let rowContext = context.withChildIdentity(
             erasedType: Content.self,
-            key: identityKey(element[keyPath: idKeyPath]))
+            key: identityKey(elementID(of: element)))
         // Defer view construction, badge extraction, and rendering until the row
         // enters the visible window (see ``LazyListRowContent``).
         let box = LazyListRowContent(
@@ -505,7 +505,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
             let tagged: RowID = extractTagValue(from: content(element), as: RowID.self) {
             return tagged
         }
-        return element[keyPath: idKeyPath] as? RowID
+        return elementID(of: element) as? RowID
     }
 }
 
@@ -522,7 +522,7 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
 
     /// Keyed as `makeChild(for:)` keys the row's identity.
     func keyedRowKey(at offset: Int) -> String {
-        identityKey(element(at: offset)[keyPath: idKeyPath])
+        identityKey(elementID(of: element(at: offset)))
     }
 
     /// Through `selectionID(of:)`, so without `rowID(at:)`'s index
@@ -535,6 +535,6 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     }
 
     func keyedRowElementID(at offset: Int) -> AnyHashable {
-        AnyHashable(element(at: offset)[keyPath: idKeyPath])
+        AnyHashable(elementID(of: element(at: offset)))
     }
 }

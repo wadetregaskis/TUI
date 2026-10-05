@@ -309,7 +309,7 @@ extension ForEach: TabContent where Content: TabContent {
     public init<V>(
         _ data: Data, @TabContentBuilder<V> content: @escaping (Data.Element) -> Content
     ) where ID == Data.Element.ID, V == Content.TabValue, Data.Element: Identifiable {
-        self.init(storing: data, id: \Data.Element.id, content: content)
+        self.init(storing: data, id: \Data.Element.id, directID: { $0.id }, content: content)
     }
 
     /// Creates an instance that uniquely identifies and creates tabs across
@@ -335,7 +335,7 @@ extension ForEach: TabContent where Content: TabContent {
     public init<V>(
         _ data: Range<Int>, @TabContentBuilder<V> content: @escaping (Int) -> Content
     ) where Data == Range<Int>, ID == Int, V == Content.TabValue {
-        self.init(storing: data, id: \.self, content: content)
+        self.init(storing: data, id: \.self, directID: { $0 }, content: content)
     }
 }
 
