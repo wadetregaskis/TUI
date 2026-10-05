@@ -2025,46 +2025,25 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 isFocused: handler.isFocused(at: rowIndex) && tableHasFocus,
                 isSelected: handler.drawsSelected(at: rowIndex),
                 columnWidths: rows.columnWidths, context: context, palette: palette)
-            var rowLines = rendered.lines
-            // Clipped alongside the lines, so `pulseFrames[i]` stays the frames
-            // of `rowLines[i]`.
-            var pulseFrames = rendered.pulseFrames
+            var row = rendered
             // A top clip means the top row enters partially, its first lines
             // scrolled off above the viewport. Clip by the WINDOW's resolved
             // origin, not the handler's raw state — the window may have
             // absorbed a one-line clip (drawing the line instead of a "▲ 1
             // more" indicator), and clipping it here anyway made that line
             // silently vanish while every row sat one line above its hit band.
-            // Clipped alongside them too: a claim names a line by index, so lines
-            // taken off the FRONT move every survivor's index down by as many.
-            var rowRegions = rendered.claims
             if rowIndex == window.range.lowerBound, window.topClip > 0 {
                 // Total by `max(0, …)`: the same guard `_ListCore.clipRow` carries,
                 // for the same reason — `clampTopClip()` keeps a zero-line row's clip at
                 // zero, and `removeFirst(-1)` would trap if that ever stopped holding.
-                let clipped = min(window.topClip, max(0, rowLines.count - 1))
-                rowLines.removeFirst(clipped)
-                pulseFrames?.removeFirst(clipped)
-                rowRegions = rowRegions.compactMap { claim in
-                    guard claim.offsetY >= clipped else { return nil }
-                    return claim.shifted(byX: 0, y: -clipped)
-                }
+                row = row.droppingFirst(min(window.topClip, max(0, row.lines.count - 1)))
             }
             // …and the bottom row leaves partially, clipped at the budget.
             let remaining = rowLineBudget - rowLinesEmitted
             if remaining <= 0 { break }
-            if rowLines.count > remaining {
-                let dropped = rowLines.count - remaining
-                rowLines.removeLast(dropped)
-                pulseFrames?.removeLast(dropped)
-                rowRegions = rowRegions.filter { $0.offsetY < rowLines.count }
-            }
-            collect(
-                RenderedRow(
-                    lines: rowLines, pulseFrames: pulseFrames, pulseTiming: rendered.pulseTiming,
-                    claims: rowRegions),
-                into: &slidableRows, runs: &pulseRuns, claims: &rowOpacity)
-            rowLinesEmitted += rowLines.count
+            if row.lines.count > remaining { row = row.keepingFirst(remaining) }
+            collect(row, into: &slidableRows, runs: &pulseRuns, claims: &rowOpacity)
+            rowLinesEmitted += row.lines.count
         }
         // The rows' own coordinates start below whatever indicator lines are
         // already in `lines`; `slid` shifts them by −excursion, exactly as the
@@ -2546,15 +2525,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var chromeClaims: [OpacityRegion] = []
         if indicators.above {
             let indicator = renderScrollIndicator(
-                direction: .up,
-                count: drawnAbove,
-                unit: .rows,
-                width: contentWidth,
-                palette: palette,
-                cycle: indicatorCycle,
-                over: indicatorSurface,
-                locale: numberLocale
-            )
+                direction: .up, count: drawnAbove, unit: .rows, width: contentWidth,
+                palette: palette, cycle: indicatorCycle, over: indicatorSurface, locale: numberLocale)
             appendIndicator(indicator, to: &lines, runs: &chromeRuns, claims: &chromeClaims)
         }
         let visibleRange = handler.drawnVisibleRange
@@ -2653,15 +2625,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             rowOpacity, slide: slide, topOffset: rowsTop, lineCount: rowsTop + rowLines.count)
         if indicators.below {
             let indicator = renderScrollIndicator(
-                direction: .down,
-                count: drawnBelow,
-                unit: .rows,
-                width: contentWidth,
-                palette: palette,
-                cycle: indicatorCycle,
-                over: indicatorSurface,
-                locale: numberLocale
-            )
+                direction: .down, count: drawnBelow, unit: .rows, width: contentWidth,
+                palette: palette, cycle: indicatorCycle, over: indicatorSurface, locale: numberLocale)
             appendIndicator(indicator, to: &lines, runs: &chromeRuns, claims: &chromeClaims)
         }
         // The row lines are handed back separately for a `.cursor` drag's
@@ -4667,7 +4632,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// same contract: `pulseFrames[line][step]`, index-aligned with `lines`, so
     /// whatever clipping the caller applies to one it applies to the other.
     private struct RenderedRow {
-        let lines: [String]
+        var lines: [String]
         var pulseFrames: [[String]]?
 
         /// The frame duration and clock `pulseFrames` step on: the cycle's, carried
@@ -4678,6 +4643,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// ``lines`` — the same frame `pulseFrames` is indexed in, so whatever
         /// clipping the caller applies to one it applies to all three.
         var claims: [OpacityRegion] = []
+
+        /// This row with its first `count` lines taken off: what a top clip
+        /// leaves of it. Everything indexed by line goes with them — the
+        /// frames, so `pulseFrames[i]` stays the frames of `lines[i]`, and the
+        /// claims, whose lines taken off the FRONT move every survivor's index
+        /// down by as many.
+        func droppingFirst(_ count: Int) -> Self {
+            guard count > 0 else { return self }
+            var row = self
+            row.lines.removeFirst(count)
+            row.pulseFrames?.removeFirst(count)
+            row.claims = claims.compactMap { claim in
+                guard claim.offsetY >= count else { return nil }
+                return claim.shifted(byX: 0, y: -count)
+            }
+            return row
+        }
+
+        /// This row cut to its first `count` lines: what the line budget leaves
+        /// of a row leaving the bottom of the viewport.
+        func keepingFirst(_ count: Int) -> Self {
+            guard lines.count > count else { return self }
+            var row = self
+            let dropped = lines.count - count
+            row.lines.removeLast(dropped)
+            row.pulseFrames?.removeLast(dropped)
+            row.claims = claims.filter { $0.offsetY < count }
+            return row
+        }
     }
 
     /// How many frames a row's travel is cut into.
