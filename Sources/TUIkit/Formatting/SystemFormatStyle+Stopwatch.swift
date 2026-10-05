@@ -129,3 +129,10 @@ extension FormatStyle where Self == SystemFormatStyle.Stopwatch {
             startingAt: startDate, showsHours: showsHours, maxFieldCount: maxFieldCount, maxPrecision: maxPrecision)
     }
 }
+
+@available(macOS 15, *)
+extension SystemFormatStyle.Stopwatch: DateSizeVariantFormatStyle {
+    func sizeVariants(of input: Date, locale: Locale) -> [String] {
+        face.sizeVariants(for: value(at: input), roundsUp: false, locale: locale)
+    }
+}

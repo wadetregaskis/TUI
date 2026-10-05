@@ -2271,3 +2271,21 @@ private struct HeadroomShapes: View {
         Text("hdr.title").foregroundStyle(Color(.sRGB, red: 1.83, green: 1.47, blue: 0).headroom(4))
     }
 }
+
+// MARK: - Size-dependent text variants (D6M A32)
+
+/// SwiftUI's size-dependent preference on the live texts that have spellings
+/// to choose from.
+@available(macOS 15, *)
+@MainActor
+private struct SizeDependentShapes: View {
+    let deadline: Date
+
+    var body: some View {
+        VStack {
+            Text(deadline, style: .relative).textVariant(.sizeDependent)
+            Text(.currentDate, format: .offset(to: deadline)).textVariant(.sizeDependent).lineLimit(1)
+            Text("Ends \(deadline, style: .offset)").textVariant(.fixed)
+        }
+    }
+}

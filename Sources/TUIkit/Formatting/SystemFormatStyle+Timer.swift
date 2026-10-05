@@ -177,3 +177,10 @@ extension FormatStyle where Self == SystemFormatStyle.Timer {
             countingUpIn: interval, showsHours: showsHours, maxFieldCount: maxFieldCount, maxPrecision: maxPrecision)
     }
 }
+
+@available(macOS 15, *)
+extension SystemFormatStyle.Timer: DateSizeVariantFormatStyle {
+    func sizeVariants(of input: Date, locale: Locale) -> [String] {
+        face.sizeVariants(for: value(at: input), roundsUp: countsDown, locale: locale)
+    }
+}

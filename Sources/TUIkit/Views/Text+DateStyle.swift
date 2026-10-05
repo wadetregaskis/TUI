@@ -125,6 +125,40 @@ struct DateStyleSource: LiveTextSource, Equatable {
         }
     }
 
+    /// The narrower spellings a `.sizeDependent` text steps down (measured on
+    /// macOS 15): `.relative` `1 hr, 2 min` → `1h 2m`; `.offset` `+1 hour` →
+    /// `+1 hr` → `+1h`; `.date` `May 8, 2026` → `May 2026` → `2026`; `.time`
+    /// `11:13 PM` → `11 PM`. A timer's face has none.
+    func sizeVariants(at now: Date, in environment: LiveTextEnvironment) -> [String] {
+        let widest = text(at: now, in: environment)
+        let style = Date.FormatStyle(
+            locale: environment.locale, calendar: environment.calendar, timeZone: environment.calendar.timeZone)
+        switch self.style.storage {
+        case .timer:
+            return [widest]
+        case .time:
+            return [widest, style.hour().format(date)]
+        case .date:
+            return [widest, style.month(.abbreviated).year().format(date), style.year().format(date)]
+        case .relative:
+            let counted = Self.relative.counted(
+                from: min(date, now), to: max(date, now), calendar: environment.calendar)
+            return [
+                widest,
+                TimeSpan.unitList(
+                    Self.relative.shown(counted), width: .narrow, locale: environment.locale,
+                    calendar: environment.calendar),
+            ]
+        case .offset:
+            let counted = Self.offset.counted(
+                from: min(date, now), to: max(date, now), calendar: environment.calendar)
+            let sign = now < date ? "\u{2212}" : "+"
+            return [widest] + [TimeSpanWidth.abbreviated, .narrow].map {
+                sign + TimeSpan.unitList(counted, width: $0, locale: environment.locale, calendar: environment.calendar)
+            }
+        }
+    }
+
     /// The date in one of the locale's own date and time styles.
     ///
     /// A `DateFormatter`, not `Date.FormatStyle`: the two disagree on the

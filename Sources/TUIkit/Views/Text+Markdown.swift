@@ -360,6 +360,19 @@ struct MarkdownRunSource: LiveTextSource, Equatable {
         }
     }
 
+    /// Each live argument's ladder, filled in rung by rung.
+    func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
+        let ladders = Dictionary(
+            uniqueKeysWithValues: key.liveArguments.map { ($0.key, $0.value.source.sizeVariants(at: date, in: environment)) })
+        let count = ladders.values.map(\.count).max() ?? 1
+        return (0..<count).map { rung in
+            words { argument in
+                if let ladder = ladders[argument], !ladder.isEmpty { return ladder[min(rung, ladder.count - 1)] }
+                return key.arguments.indices.contains(argument) ? key.arguments[argument] : nil
+            }
+        }
+    }
+
     func nextChange(after date: Date, in environment: LiveTextEnvironment) -> Date? {
         pieces.compactMap { piece -> Date? in
             guard case .argument(let placeholder) = piece, let live = key.liveArguments[placeholder.argument]

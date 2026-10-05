@@ -95,6 +95,47 @@ struct ClockFace: Sendable {
         return (first..<end).map { TimeSpanField(unit: units[$0], value: values[$0]) }
     }
 
+    /// The face's spellings of `value` seconds, widest first, for a
+    /// `.sizeDependent` text (decisions A32, measured on macOS 15):
+    ///
+    /// - in units, `1 hour, 2 minutes` → `1 hr 2 min` → `1:02`;
+    /// - a stopwatch's padded face, `01:02:05.50` → `1:02:05` → `1:02` → `1h`,
+    ///   each dropping what the last kept: the fraction and the padding, the
+    ///   seconds, then all but the leading field, in its narrowest unit;
+    /// - a timer's face, `1:02:05`, has no narrower spelling.
+    func sizeVariants(for value: Double, roundsUp: Bool, locale: Locale) -> [String] {
+        let widest = text(for: value, roundsUp: roundsUp, locale: locale)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        switch shape(for: value, roundsUp: roundsUp) {
+        case .units(let units):
+            let fields = counted(value, in: units)
+            var ladder = [widest]
+            ladder.append(TimeSpan.unitList(fields, width: .condensedAbbreviated, locale: locale, calendar: calendar))
+            if fields.count > 1 {
+                ladder.append(
+                    ([String(fields[0].value)] + fields.dropFirst().map { $0.value < 10 ? "0\($0.value)" : "\($0.value)" })
+                        .joined(separator: ":"))
+            }
+            return ladder
+        case .face:
+            guard padsLeading else { return [widest] }
+            let whole = Int((value + Self.slack).rounded(.down))
+            var ladder = [widest, TimeSpan.clock(seconds: whole, showsHours: showsHours, padsLeading: false)]
+            let hours = showsHours ? whole / 3_600 : 0
+            if hours > 0 {
+                let minutes = whole / 60 % 60
+                ladder.append("\(hours):\(minutes < 10 ? "0" : "")\(minutes)")
+            }
+            let leading: TimeSpanField =
+                hours > 0
+                ? TimeSpanField(unit: .hour, value: hours)
+                : whole >= 60 ? TimeSpanField(unit: .minute, value: whole / 60) : TimeSpanField(unit: .second, value: whole)
+            ladder.append(TimeSpan.unitList([leading], width: .narrow, locale: locale, calendar: calendar))
+            return ladder
+        }
+    }
+
     /// What the face reads for `value` seconds.
     func text(for value: Double, roundsUp: Bool, locale: Locale) -> String {
         switch shape(for: value, roundsUp: roundsUp) {

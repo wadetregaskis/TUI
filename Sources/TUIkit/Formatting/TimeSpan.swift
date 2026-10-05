@@ -64,10 +64,24 @@ enum TimeSpanUnit: Int, Comparable, CaseIterable, Sendable {
     }
 }
 
-/// How wide a unit's name is spelt: "2 minutes" or "2 min".
+/// How wide a unit's name is spelt: "1 hour, 2 minutes", "1 hr, 2 min",
+/// "1 hr 2 min" or "1h 2m" — `Duration.UnitsFormatStyle`'s widths, and the
+/// rungs a `.sizeDependent` text steps down (decisions A32).
 enum TimeSpanWidth: Sendable {
     case wide
     case abbreviated
+    case condensedAbbreviated
+    case narrow
+
+    /// The same width, as `Duration.UnitsFormatStyle` names it.
+    var durationWidth: Duration.UnitsFormatStyle.UnitWidth {
+        switch self {
+        case .wide: .wide
+        case .abbreviated: .abbreviated
+        case .condensedAbbreviated: .condensedAbbreviated
+        case .narrow: .narrow
+        }
+    }
 }
 
 /// One field of a spelt span: a unit and how many whole ones.
@@ -146,7 +160,7 @@ enum TimeSpan {
             let seconds = fields.reduce(Int64(0)) { $0 + Int64($1.value) * ($1.unit.seconds ?? 0) }
             let style = Duration.UnitsFormatStyle(
                 allowedUnits: Set(durationUnits),
-                width: width == .wide ? .wide : .abbreviated,
+                width: width.durationWidth,
                 maximumUnitCount: fields.count,
                 zeroValueUnits: .show(length: 1),
                 valueLength: nil,
@@ -201,8 +215,15 @@ enum TimeSpan {
             guard let start = calendar.date(byAdding: components(coarse, sign: -1), to: pivot),
                 let end = calendar.date(byAdding: components(fine, sign: 1), to: pivot)
             else { return "" }
+            let componentsWidth: Date.ComponentsFormatStyle.Style =
+                switch width {
+                case .wide: .wide
+                case .abbreviated: .abbreviated
+                case .condensedAbbreviated: .condensedAbbreviated
+                case .narrow: .narrow
+                }
             let style = Date.ComponentsFormatStyle(
-                style: width == .wide ? .wide : .abbreviated, locale: locale, calendar: calendar,
+                style: componentsWidth, locale: locale, calendar: calendar,
                 fields: Set(fields.map(\.unit.componentsField)))
             return style.format(start..<end)
         }

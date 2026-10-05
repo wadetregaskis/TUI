@@ -31,6 +31,28 @@ protocol LiveTextSource: Sendable {
 
     /// Whether `other` is a source of the same type holding the same values.
     func isEqual(to other: any LiveTextSource) -> Bool
+
+    /// The spellings of ``text(at:in:)`` from the widest to the narrowest,
+    /// the first being that text itself: the ladder a
+    /// `.textVariant(.sizeDependent)` text steps down until one fits
+    /// (decisions A32). The default is the one spelling.
+    func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String]
+}
+
+extension LiveTextSource {
+    func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
+        [text(at: date, in: environment)]
+    }
+}
+
+/// The rungs of several ladders read together: rung `k` takes each ladder's
+/// `k`th spelling, or its narrowest where it has fewer. As many rungs as the
+/// longest ladder; `[]` for no ladders.
+func zippedSizeVariants(_ ladders: [[String]], joining join: ([String]) -> String) -> [String] {
+    let count = ladders.map(\.count).max() ?? 0
+    return (0..<count).map { rung in
+        join(ladders.map { $0.isEmpty ? "" : $0[min(rung, $0.count - 1)] })
+    }
 }
 
 extension LiveTextSource where Self: Equatable {
@@ -127,6 +149,28 @@ extension Text {
             text.runs = read
         }
         return (text, next)
+    }
+
+    /// This text's spellings at `date`, widest first, for a
+    /// `.textVariant(.sizeDependent)` text: rung `k` reads each live run's
+    /// `k`th variant (or its narrowest), every other run as it is. `[]` when
+    /// nothing in the text is live, and one rung when nothing live has a
+    /// narrower spelling.
+    func liveSizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [Text] {
+        guard let runs, runs.contains(where: { $0.live != nil }) else { return [] }
+        let ladders = runs.map { run in run.live?.source.sizeVariants(at: date, in: environment) ?? [run.text] }
+        let count = ladders.map(\.count).max() ?? 1
+        return (0..<count).map { rung in
+            let read = zip(runs, ladders).map { run, ladder in
+                Run(text: ladder[min(rung, ladder.count - 1)], style: run.style, link: run.link)
+            }
+            var text = Text(verbatim: read.map(\.text).joined())
+            text.style = style
+            if read.count > 1 || read.first?.style != TextStyle() || read.first?.link != nil {
+                text.runs = read
+            }
+            return text
+        }
     }
 
     /// This text as it reads at the frame being drawn, having told the run loop

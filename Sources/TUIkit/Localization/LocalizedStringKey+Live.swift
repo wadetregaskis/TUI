@@ -88,6 +88,17 @@ struct LocalizedKeySource: LiveTextSource, Equatable {
         return arguments.isEmpty ? template : LocalizedStringKey.substituting(arguments, into: template)
     }
 
+    /// Each live argument's ladder, substituted rung by rung.
+    func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
+        let template = LocalizationService.shared.string(for: key.key, tableName: tableName, bundle: bundle)
+        let ladders = key.arguments.indices.map { index -> [String] in
+            guard let live = key.liveArguments[index] else { return [key.arguments[index]] }
+            return live.source.sizeVariants(at: date, in: environment)
+        }
+        guard !ladders.isEmpty else { return [template] }
+        return zippedSizeVariants(ladders) { LocalizedStringKey.substituting($0, into: template) }
+    }
+
     func nextChange(after date: Date, in environment: LiveTextEnvironment) -> Date? {
         key.liveArguments.values.compactMap { $0.source.nextChange(after: date, in: environment) }.min()
     }
@@ -101,6 +112,13 @@ struct TextRunsSource: LiveTextSource, Equatable {
 
     func text(at date: Date, in environment: LiveTextEnvironment) -> String {
         runs.map { $0.live?.source.text(at: date, in: environment) ?? $0.text }.joined()
+    }
+
+    /// Each live run's ladder, joined rung by rung.
+    func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
+        zippedSizeVariants(runs.map { $0.live?.source.sizeVariants(at: date, in: environment) ?? [$0.text] }) {
+            $0.joined()
+        }
     }
 
     func nextChange(after date: Date, in environment: LiveTextEnvironment) -> Date? {

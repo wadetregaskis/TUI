@@ -41,6 +41,11 @@ extension TimeSpan {
     /// A year or month field's words, from the translation tables: the
     /// pattern for its unit, width and plural category, with the count in
     /// `locale`'s digits.
+    ///
+    /// The tables hold the wide and the abbreviated names; a condensed or a
+    /// narrow width reads the abbreviated one (joined at its own width), so
+    /// off Darwin a `.sizeDependent` text's narrowest rung spells a year or a
+    /// month as its abbreviated rung does.
     static func tableName(of field: TimeSpanField, width: TimeSpanWidth, locale: Locale) -> String {
         let language = TimeSpanLanguage(locale).language
         let unit = field.unit == .year ? "year" : "month"
@@ -100,7 +105,7 @@ extension TimeSpan {
         _ units: Set<Duration.UnitsFormatStyle.Unit>, count: Int, width: TimeSpanWidth, locale: Locale
     ) -> Duration.UnitsFormatStyle {
         Duration.UnitsFormatStyle(
-            allowedUnits: units, width: width == .wide ? .wide : .abbreviated, maximumUnitCount: count,
+            allowedUnits: units, width: width.durationWidth, maximumUnitCount: count,
             zeroValueUnits: .show(length: 1), valueLength: nil, fractionalPart: .hide
         ).locale(locale)
     }

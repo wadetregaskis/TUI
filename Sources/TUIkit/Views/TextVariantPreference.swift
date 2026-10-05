@@ -2,9 +2,8 @@
 //  TextVariantPreference.swift
 //
 //  `TextVariantPreference` and `Text.textVariant(_:)`: how a text chooses
-//  among the sizes of what it can say. TUIkit has the fixed preference,
-//  SwiftUI's default; the size-dependent one is not here yet (decisions
-//  A32), so asking for it does not compile.
+//  among the sizes of what it can say — the fixed preference, SwiftUI's
+//  default, here, and the size-dependent one in `Text+SizeDependent.swift`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -14,10 +13,8 @@
 ///
 /// Certain texts — the live time formats above all — can say the same thing at
 /// several widths (`1 hour, 2 minutes`, `1 hr, 2 min`, `1h 2m`). The
-/// preference says how one is chosen. TUIkit offers ``fixed``, which always
-/// chooses the widest and is SwiftUI's default. SwiftUI's `.sizeDependent`,
-/// which chooses the widest that fits, is not offered yet, so code that asks
-/// for it does not compile rather than quietly getting the widest.
+/// preference says how one is chosen: ``fixed`` always chooses the widest and
+/// is SwiftUI's default, and ``sizeDependent`` the widest that fits.
 public protocol TextVariantPreference {}
 
 /// The default text variant preference that chooses the largest available
@@ -36,12 +33,19 @@ extension Text {
     /// Controls the way text size variants are chosen — mirrors SwiftUI's
     /// `textVariant(_:)`.
     ///
-    /// The one preference TUIkit offers, ``TextVariantPreference/fixed``, is
-    /// what every text does already, so this returns the text as it is.
+    /// ``TextVariantPreference/fixed`` is what every text does already, so it
+    /// returns the text as it is. ``TextVariantPreference/sizeDependent``
+    /// chooses the widest of the text's spellings that fits where it is laid
+    /// out; see it for which texts have spellings to choose from.
     ///
     /// - Parameter preference: How the variant is chosen.
     /// - Returns: The text, choosing its variant as `preference` says.
+    @ViewBuilder
     public func textVariant<V: TextVariantPreference>(_ preference: V) -> some View {
-        self
+        if preference is SizeDependentTextVariant {
+            _SizeDependentText(text: self)
+        } else {
+            self
+        }
     }
 }

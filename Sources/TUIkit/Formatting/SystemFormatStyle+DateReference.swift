@@ -114,19 +114,25 @@ extension SystemFormatStyle {
 
         // MARK: Formatting
 
-        private var relativeStyle: Date.AnchoredRelativeFormatStyle {
+        private var relativeStyle: Date.AnchoredRelativeFormatStyle { relativeStyle(units: .wide) }
+
+        /// The relative form's style with its unit names spelt `units` wide:
+        /// `.wide` is the format's own, and the narrower two the rungs of a
+        /// `.sizeDependent` text.
+        private func relativeStyle(units: Date.RelativeFormatStyle.UnitsStyle) -> Date.AnchoredRelativeFormatStyle {
             var style = Date.AnchoredRelativeFormatStyle(
-                anchor: date, presentation: .named, unitsStyle: .wide, locale: locale, calendar: calendar,
+                anchor: date, presentation: .named, unitsStyle: units, locale: locale, calendar: calendar,
                 capitalizationContext: .unknown)
             style.allowedFields = allowedFields.union([thresholdField])
             return style
         }
 
         /// The relative form, `now` where Foundation would say "this minute".
-        private func relative(_ input: Date) -> String {
+        private func relative(_ input: Date, units: Date.RelativeFormatStyle.UnitsStyle = .wide) -> String {
+            let relativeStyle = relativeStyle(units: units)
             // Counting seconds, Foundation says "now" itself; counting days
             // at finest, "today" stays.
-            let finest = units.last ?? .second
+            let finest = self.units.last ?? .second
             guard finest == .minute || finest == .hour else { return relativeStyle.format(input) }
             let half = Double(finest.seconds ?? 60) / 2
             guard abs(input.timeIntervalSince(date).rounded(.toNearestOrAwayFromZero)) < half else {
@@ -139,18 +145,27 @@ extension SystemFormatStyle {
 
         /// The absolute form: `maxFieldCount` fields from the first that
         /// differs.
-        private func absolute(_ input: Date) -> String {
+        ///
+        /// `rung` narrows it for a `.sizeDependent` text, as SwiftUI's does
+        /// (measured on macOS 15): 1 abbreviates the weekday and the month
+        /// (`Friday, May 8` → `Fri, May 8`, `June 2025` → `Jun 2025`), and 2
+        /// spells the date in digits with no weekday and the hour with no day
+        /// period (`5/8`, `6/25`, `5/8, 11`).
+        private func absolute(_ input: Date, rung: Int = 0) -> String {
             let fields: [TimeSpanUnit] = [.year, .month, .day, .hour, .minute]
             let first = fields.firstIndex(of: firstDifference(rounded(input)) ?? .minute) ?? fields.count - 1
             let shown = fields[first..<min(fields.count, first + max(1, maxFieldCount))]
             var style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
-            if shown.contains(.year) { style = style.year() }
-            if shown.contains(.month) { style = style.month(.wide) }
+            let numeric = rung >= 2
+            if shown.contains(.year) { style = style.year(numeric ? .twoDigits : .defaultDigits) }
+            if shown.contains(.month) {
+                style = style.month(numeric ? .defaultDigits : rung == 1 ? .abbreviated : .wide)
+            }
             if shown.contains(.day) {
                 style = style.day()
-                if !shown.contains(.year) { style = style.weekday(.wide) }
+                if !shown.contains(.year), !numeric { style = style.weekday(rung == 1 ? .abbreviated : .wide) }
             }
-            if shown.contains(.hour) { style = style.hour() }
+            if shown.contains(.hour) { style = style.hour(numeric ? .defaultDigits(amPM: .omitted) : .defaultDigits(amPM: .abbreviated)) }
             if shown.contains(.minute) { style = style.minute() }
             return style.format(date)
         }
@@ -258,5 +273,21 @@ extension FormatStyle where Self == SystemFormatStyle.DateReference {
     ) -> SystemFormatStyle.DateReference {
         SystemFormatStyle.DateReference(
             to: date, allowedFields: allowedFields, maxFieldCount: maxFieldCount, thresholdField: thresholdField)
+    }
+}
+
+@available(macOS 15, *)
+extension SystemFormatStyle.DateReference: DateSizeVariantFormatStyle {
+    /// Relative, `2 minutes ago` → `2 min. ago` → `2m ago` (a named day,
+    /// `yesterday`, has no narrower one); absolute, the three rungs of
+    /// `absolute(_:rung:)`. Measured on macOS 15.
+    func sizeVariants(of input: Date, locale: Locale) -> [String] {
+        let styled = self.locale(locale)
+        if styled.isRelative(input) {
+            return [Date.RelativeFormatStyle.UnitsStyle.wide, .abbreviated, .narrow].map {
+                styled.relative(input, units: $0)
+            }
+        }
+        return (0...2).map { styled.absolute(input, rung: $0) }
     }
 }

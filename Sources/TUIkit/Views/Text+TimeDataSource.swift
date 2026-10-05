@@ -140,4 +140,13 @@ where Format.FormatInput == Value {
         guard let other = other as? Self else { return false }
         return other.source.kind == source.kind && other.format == format
     }
+
+    /// The format's ladder, where it is one of TUIkit's date styles that has
+    /// one; else the one spelling.
+    func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
+        guard let ladder = format as? any DateSizeVariantFormatStyle, let input = source.read(date) as? Date else {
+            return [text(at: date, in: environment)]
+        }
+        return ladder.sizeVariants(of: input, locale: environment.locale)
+    }
 }

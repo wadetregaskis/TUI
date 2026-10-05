@@ -881,6 +881,27 @@ extension Text: Renderable, Layoutable {
         return ViewSize.fixed(width, height).declaringNaturalSize()
     }
 
+    /// Whether this text, laid out `width` cells wide and at most `height`
+    /// rows tall (`nil` for no bound), shows every character: no word cut at
+    /// the width, no line past its line limit or the height. What a
+    /// `.sizeDependent` text asks of each spelling (`_SizeDependentText`),
+    /// by the rules the measure above and the render below lay a text out by.
+    func fitsWhole(width: Int, height: Int?, context: RenderContext) -> Bool {
+        guard width > 0 else { return false }
+        let font = resolvedFont(stating: style.font, context: context)
+        let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
+        let wrapped = TextWrapping.wrapMeasured(
+            Self.displayString(content, textCase: textCase, redaction: context.environment.effectiveRedactionReasons),
+            width: width)
+        guard (wrapped.widths.max() ?? 0) <= width else { return false }
+        if let limit = resolvedLineLimitPolicy(context: context).rowCount, wrapped.lines.count > limit {
+            return false
+        }
+        guard let height else { return true }
+        return LineSpacingRows.displayRows(forLines: wrapped.lines.count, spacing: resolvedLineSpacing(context: context))
+            <= height
+    }
+
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A live text draws the words it reads at this frame — see
         // `sizeThatFits` for why a plain one pays only a nil check.
