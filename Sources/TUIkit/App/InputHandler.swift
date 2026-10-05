@@ -272,7 +272,12 @@ extension InputHandler {
         // editor binding Ctrl-Z to undo wins, exactly as it should), so give
         // it its shell meaning: re-raise it as the signal, which the suspend
         // machinery observes and acts on between frames.
-        if event.ctrl, case .character(let character) = event.key,
+        //
+        // Not with Shift: only the kitty keyboard protocol tells Ctrl-Shift-Z
+        // from Ctrl-Z (a legacy encoding sends both as 0x1A, without Shift),
+        // and there it is redo — with nothing to redo, it does nothing rather
+        // than stop the app.
+        if event.ctrl, !event.shift, case .character(let character) = event.key,
             character == "z" || character == "Z"
         {
             onSuspend()

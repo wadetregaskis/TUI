@@ -30,6 +30,10 @@ final class InputChainHarness {
     var quits: Int { quitCount.value }
     private let quitCount = QuitCount()
 
+    /// How many times the chain asked the app to suspend (an unclaimed Ctrl-Z).
+    var suspends: Int { suspendCount.value }
+    private let suspendCount = QuitCount()
+
     /// A box the quit callback counts into, built before `self` is.
     private final class QuitCount {
         var value = 0
@@ -70,7 +74,8 @@ final class InputChainHarness {
             appearanceManager: ThemeManager(items: AppearanceRegistry.all, renderTrigger: {}),
             keyboardShortcuts: tui.keyboardShortcuts,
             dragAndDropSession: tui.dragAndDropSession,
-            onQuit: { [quitCount] in quitCount.value += 1 }, onSuspend: {},
+            onQuit: { [quitCount] in quitCount.value += 1 },
+            onSuspend: { [suspendCount] in suspendCount.value += 1 },
             undoManager: undoManager)
     }
 

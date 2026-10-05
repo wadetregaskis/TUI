@@ -76,6 +76,15 @@ struct AppUndoTests {
         #expect(consumed == [true, true, false, true], "with nothing to undo, the key is not taken")
     }
 
+    @Test("Ctrl-Shift-Z with nothing to redo does nothing; Ctrl-Z still suspends")
+    func redoKeyNeverSuspends() {
+        let harness = InputChainHarness(undoManager: makeManager())
+        harness.play([KeyEvent(key: .character("Z"), ctrl: true, shift: true)]) { Text("page") }
+        #expect(harness.suspends == 0)
+        harness.play([KeyEvent(key: .character("z"), ctrl: true)]) { Text("page") }
+        #expect(harness.suspends == 1)
+    }
+
     @Test("An app's own shortcut on Ctrl-minus keeps the key")
     func appShortcutWins() {
         let manager = makeManager()
