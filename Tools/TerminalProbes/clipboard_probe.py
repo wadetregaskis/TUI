@@ -16,6 +16,8 @@ Run INSIDE the terminal under test. Nothing here needs TUIkit built.
                                             #    payloads, which may CLEAR it
   python3 clipboard_probe.py --manual       # no helper to read the clipboard
                                             #    back (ssh): paste when asked
+  python3 clipboard_probe.py --clobber      # run even though the clipboard
+                                            #    holds what cannot be put back
 
 Writes JSON to $PROBE_OUT (default ./clipboard_probe.json) and prints a
 summary. `PROBE_ALT=1` runs on the alternate screen, where TUIkit draws.
@@ -24,8 +26,16 @@ summary. `PROBE_ALT=1` runs on the alternate screen, where TUIkit draws.
 terminal writes, the read-back is `pbpaste` (macOS), `wl-paste` (Wayland), or
 `xclip`/`xsel` (X11), so no person is needed. Over ssh the clipboard written is
 the user's, on the far side: `--manual` writes the nonce and asks for it to be
-pasted back. The clipboard's contents before the run are restored at the end
-where a helper can write it (never in `--manual`).
+pasted back.
+
+**The clipboard is put back.** Its contents are saved before the first write
+and restored however the run ends — an interrupted `--manual` prompt, a helper
+that fails — where a helper can write it (never in `--manual`). A helper puts
+back TEXT only, so a clipboard holding anything else (a picture, files, rich
+text: `osascript`'s `clipboard info`, `wl-paste --list-types` or xclip's
+`TARGETS` say what it holds) stops the run before anything is written, unless
+`--clobber` says it may be lost. Where the types cannot be listed (`xsel`) the
+run stops the same way.
 
 1. **Leak.** The cursor column (DSR 6) before and after an OSC 52 write, as
    `hyperlink_probe.py` asks it of OSC 8. A column that moved means the host
@@ -127,14 +137,57 @@ def local_helpers():
     return None, None
 
 
+def type_lister():
+    """argv that lists the types this machine's clipboard holds, and how to
+    read its output into names — or (None, None) where nothing can list them."""
+    if sys.platform == "darwin":
+        return ["osascript", "-e", "clipboard info"], parse_clipboard_info
+    if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-paste"):
+        return ["wl-paste", "--list-types"], str.split
+    if os.environ.get("DISPLAY") and shutil.which("xclip"):
+        return ["xclip", "-selection", "clipboard", "-t", "TARGETS", "-o"], str.split
+    return None, None
+
+
+def parse_clipboard_info(output):
+    """The type names in `osascript -e 'clipboard info'`, which pairs each
+    with its size: `«class utf8», 5, «class ut16», 12, string, 5`."""
+    parts = [part.strip() for part in output.strip().split(", ") if part.strip()]
+    return parts[0::2]
+
+
+# Types a text helper's write puts back as they were. Anything else — a
+# picture, a file list, RTF — would be replaced by text.
+MAC_TEXT_TYPES = {"«class utf8»", "«class ut16»", "string", "Unicode text"}
+X_TEXT_TARGETS = {"UTF8_STRING", "STRING", "TEXT", "COMPOUND_TEXT"}
+# What X11 lists beside the data, which is not data.
+X_META_TARGETS = {"TARGETS", "TIMESTAMP", "MULTIPLE", "SAVE_TARGETS", "DELETE", "INCR"}
+
+
+def holds_only_text(types):
+    """Whether a clipboard holding `types` is put back whole by writing its text."""
+    for name in types:
+        if name in MAC_TEXT_TYPES or name in X_TEXT_TARGETS or name in X_META_TARGETS:
+            continue
+        if name.startswith("text/plain"):
+            continue
+        return False
+    return True
+
+
 class Clipboard:
     """Reads (and restores) the clipboard the terminal writes, by helper or by hand."""
 
-    def __init__(self, fd, manual):
+    def __init__(self, fd, manual, helpers=None, lister=None):
         self.fd = fd
         self.manual = manual
-        self.read_argv, self.write_argv = (None, None) if manual else local_helpers()
+        if manual:
+            self.read_argv, self.write_argv = None, None
+        else:
+            self.read_argv, self.write_argv = helpers or local_helpers()
+        self.list_argv, self.parse_types = (None, None) if manual else (lister or type_lister())
         self.saved = None
+        self.held = None
 
     @property
     def readable(self):
@@ -159,13 +212,37 @@ class Clipboard:
             if not select.select([self.fd], [], [], 120)[0]:
                 break
             got += os.read(self.fd, 65536)
+            # Raw mode delivers Ctrl-C as a byte, not a signal: it still stops
+            # the run, through the finally blocks that put things back.
+            if b"\x03" in got:
+                raise KeyboardInterrupt
         text = got.decode("utf-8", "replace")
         text = text.replace("\x1b[200~", "").replace("\x1b[201~", "")
         return text.rstrip("\r\n")
 
+    def types(self):
+        """The type names the clipboard holds, or None where they cannot be listed."""
+        if self.list_argv is None:
+            return None
+        try:
+            done = subprocess.run(self.list_argv, capture_output=True, timeout=5)
+        except Exception:
+            return None
+        if done.returncode != 0:
+            return None
+        return self.parse_types(done.stdout.decode("utf-8", "replace"))
+
     def save(self):
-        if self.read_argv is not None and self.write_argv is not None:
-            self.saved = self.read()
+        """Saves the clipboard for ``restore``. False when it holds what a text
+        helper cannot put back, or what it holds cannot be listed: nothing is
+        saved then, and nothing should be written."""
+        if self.read_argv is None or self.write_argv is None:
+            return False
+        self.held = self.types()
+        if self.held is None or not holds_only_text(self.held):
+            return False
+        self.saved = self.read()
+        return True
 
     def restore(self):
         if self.saved is None or self.write_argv is None:
@@ -276,17 +353,53 @@ def tmux_state(written):
     }
 
 
+def preserving(board, clobber, writes):
+    """Runs `writes` — everything that may write the clipboard — with the
+    clipboard saved first and put back however they end, an exception or an
+    interrupt included. Returns (ran, restored, refusal): a clipboard holding
+    what a text helper cannot put back is not written at all unless
+    `clobber`, and `refusal` says what it holds."""
+    if not board.manual and not board.save() and not clobber:
+        held = ", ".join(board.held) if board.held is not None else "types that cannot be listed"
+        return False, False, f"the clipboard holds {held}, which writing its text back would lose"
+    try:
+        writes()
+    finally:
+        restored = board.restore()
+    return True, restored, None
+
+
 def main():
     use_alt = os.environ.get("PROBE_ALT") == "1"
     out_path = os.environ.get("PROBE_OUT", "clipboard_probe.json")
     args = sys.argv[1:]
     manual = "--manual" in args
     want_destructive = "--destructive" in args
+    clobber = "--clobber" in args
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     tty.setraw(fd)
     result = {}
     board = Clipboard(fd, manual)
+
+    def writes():
+        # Every step from here writes the clipboard: the leak check's OSC 52
+        # too, so the clipboard is saved before it.
+        result["leak"] = leak_check(fd)
+        last = nonce()
+        result["write_st"] = write_and_read(fd, board, last, "ST")
+        # Before the next write replaces tmux's newest buffer.
+        result["tmux"] = tmux_state(last)
+        bel = nonce("bel")
+        result["write_bel"] = write_and_read(fd, board, bel, "BEL", terminator=BEL)
+        empty_selector = nonce("empty-selector")
+        result["write_empty_selector"] = write_and_read(
+            fd, board, empty_selector, "empty selector", selector=b"")
+        if not manual:
+            result["ceiling"] = ceiling(fd, board)
+        if want_destructive:
+            result["destructive"] = destructive(fd, board)
+
     try:
         if use_alt:
             os.write(fd, b"\x1b[?1049h")
@@ -296,27 +409,14 @@ def main():
         result["remote"] = {k: os.environ.get(k) for k in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY")
                             if os.environ.get(k)}
         result["read_back"] = "by hand" if manual else (" ".join(board.read_argv) if board.read_argv else None)
-        result["leak"] = leak_check(fd)
         result["identity"] = identity(fd)
         if not board.readable:
             result["note"] = ("no helper can read this machine's clipboard: run with --manual, "
                               "or on the machine the terminal runs on")
         else:
-            board.save()
-            last = nonce()
-            result["write_st"] = write_and_read(fd, board, last, "ST")
-            # Before the next write replaces tmux's newest buffer.
-            result["tmux"] = tmux_state(last)
-            bel = nonce("bel")
-            result["write_bel"] = write_and_read(fd, board, bel, "BEL", terminator=BEL)
-            empty_selector = nonce("empty-selector")
-            result["write_empty_selector"] = write_and_read(
-                fd, board, empty_selector, "empty selector", selector=b"")
-            if not manual:
-                result["ceiling"] = ceiling(fd, board)
-            if want_destructive:
-                result["destructive"] = destructive(fd, board)
-            result["restored"] = board.restore()
+            ran, result["restored"], refusal = preserving(board, clobber, writes)
+            if not ran:
+                result["note"] = refusal + ": copy some text first, or pass --clobber"
     finally:
         if manual:
             os.write(fd, b"\x1b[?2004l")
@@ -330,8 +430,9 @@ def main():
     print(f"{env.get('TERM_PROGRAM', '?')} {env.get('TERM_PROGRAM_VERSION', '')} "
           f"on the {'alternate' if use_alt else 'primary'} screen"
           + (" over ssh" if result["remote"] else ""))
-    leak = result["leak"]
-    print(f"  OSC 52 printed nothing: {leak['clean']} (cursor {leak['before']} -> {leak['after']})")
+    leak = result.get("leak")
+    if leak:
+        print(f"  OSC 52 printed nothing: {leak['clean']} (cursor {leak['before']} -> {leak['after']})")
     ident = result["identity"]
     print(f"  XTVERSION: {ident['xtversion'] or '(silent)'}   DA1: {ident['da1']!r}   52 in DA1: {ident['da1_has_52']}")
     if "write_st" in result:
@@ -347,6 +448,8 @@ def main():
         tmux = result["tmux"]
         print(f"  inside {tmux['version']}: set-clipboard {tmux['set_clipboard']}, "
               f"buffer kept the write: {tmux['buffer_holds_last_write']}")
+    if "restored" in result:
+        print(f"  clipboard put back: {result['restored']}")
     if result.get("note"):
         print(f"  {result['note']}")
     print(f"  written to {os.path.abspath(out_path)}")
