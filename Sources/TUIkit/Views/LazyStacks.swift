@@ -168,12 +168,41 @@ public struct LazyVStack<Content: View>: View {
 /// }
 /// ```
 ///
+/// # Pinned section headers and footers
+///
+/// A `Section` in a row is laid out along it, as SwiftUI's is: its header at
+/// the leading end, its views after it, its footer at the trailing end. With
+/// `pinnedViews:`, a section's header stays at the leading edge of the
+/// enclosing horizontal ``ScrollView`` while any of its section's content is
+/// under it, and is pushed off by the section's last column; a pinned footer
+/// stays at the trailing edge the same way — ``LazyVStack``'s rule turned on
+/// its side, as SwiftUI's is (measured on macOS 15.8):
+///
+/// ```swift
+/// ScrollView(.horizontal) {
+///     LazyHStack(pinnedViews: [.sectionHeaders, .sectionFooters]) {
+///         ForEach(albums) { album in
+///             Section {
+///                 ForEach(album.photos) { Text($0.caption) }
+///             } header: {
+///                 Text(album.title)
+///             } footer: {
+///                 Text("\(album.photos.count)")
+///             }
+///         }
+///     }
+/// }
+/// ```
+///
+/// The deviations are ``LazyVStack``'s, on their side: a pinned header's
+/// cells replace the columns' glyphs, and the stack keeps its own sections
+/// whole to pin them, so a centre-aligned section's views can sit a cell from
+/// where the stack would centre them unpinned. Focus moving onto a column does
+/// not scroll it clear of a pinned header, as it does in a column.
+///
 /// - Note: `LazyHStack` is the horizontal twin of ``LazyVStack`` — see its
 ///   discussion for the render-window semantics, the `ScrollView` caveat, and
-///   the documented deviations from SwiftUI. It takes no `pinnedViews:` yet:
-///   a `Section` in a row draws as a column, header above its views, where
-///   SwiftUI lays it along the row with its header at the leading edge to pin
-///   (§4a of `Documentation/SwiftUI-compatibility.md`).
+///   the documented deviations from SwiftUI.
 ///
 /// - Note: `LazyHStack` shares its rendering core (`_HStackCore`) with
 ///   ``HStack``; the only difference is the `.window` overflow policy, which
@@ -190,25 +219,37 @@ public struct LazyHStack<Content: View>: View {
     /// The content of the stack.
     public let content: Content
 
-    /// Creates a lazy horizontal stack with the specified options.
+    /// The kinds of child views pinned to the enclosing scroll view's edges.
+    let pinnedViews: PinnedScrollableViews
+
+    /// Creates a lazy horizontal stack with the given spacing, vertical
+    /// alignment, pinning behaviour and content.
     ///
     /// - Parameters:
     ///   - alignment: The vertical alignment of children (default: .center).
     ///   - spacing: The blank columns between children, or `nil` (the default)
     ///     for what views prefer between them: one column.
+    ///   - pinnedViews: The kinds of child views that will be pinned to the
+    ///     enclosing horizontal scroll view's leading and trailing edges: the
+    ///     headers and footers of the stack's `Section`s (default: none). See
+    ///     the discussion above.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: VerticalAlignment = .center,
         spacing: Int? = nil,
+        pinnedViews: PinnedScrollableViews = .init(),
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
         self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
+        self.pinnedViews = pinnedViews
     }
 
     public var body: some View {
-        _HStackCore(alignment: alignment, spacing: spacing, overflow: .window, content: content)
+        _HStackCore(
+            alignment: alignment, spacing: spacing, overflow: .window, pinnedViews: pinnedViews,
+            content: content)
     }
 }
 
@@ -224,5 +265,6 @@ extension LazyVStack: @preconcurrency Equatable where Content: Equatable {
 extension LazyHStack: @preconcurrency Equatable where Content: Equatable {
     public static func == (lhs: LazyHStack<Content>, rhs: LazyHStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
+            && lhs.pinnedViews == rhs.pinnedViews
     }
 }

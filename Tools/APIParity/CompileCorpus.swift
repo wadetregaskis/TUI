@@ -1319,6 +1319,42 @@ private struct PinnedSectionShapes: View {
     }
 }
 
+/// SwiftUI's pinned horizontal stack and grid, sections along a row.
+@MainActor
+private struct PinnedRowSectionShapes: View {
+    let groups: [(name: String, items: [String])] = [("A", ["a1", "a2"]), ("B", ["b1"])]
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(alignment: .top, spacing: nil, pinnedViews: [.sectionHeaders, .sectionFooters]) {
+                ForEach(groups, id: \.name) { group in
+                    Section {
+                        ForEach(group.items, id: \.self) { Text($0) }
+                    } header: {
+                        Text(group.name)
+                    } footer: {
+                        Text("end")
+                    }
+                }
+            }
+            LazyHStack(pinnedViews: .sectionHeaders) {
+                Section("Title") { Text("column") }
+            }
+            LazyHGrid(
+                rows: [GridItem(.fixed(1)), GridItem(.fixed(1))], alignment: .center, spacing: nil,
+                pinnedViews: .sectionHeaders
+            ) {
+                ForEach(groups, id: \.name) { group in
+                    Section(group.name) {
+                        ForEach(group.items, id: \.self) { Text($0) }
+                    }
+                }
+            }
+            LazyHGrid(rows: [GridItem(.flexible())]) { Text("plain") }
+        }
+    }
+}
+
 /// The option set's own surface: an `OptionSet` of `UInt32`.
 private func pinnedOptions() -> Bool {
     var pinned: PinnedScrollableViews = [.sectionHeaders, .sectionFooters]

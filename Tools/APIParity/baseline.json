@@ -104,8 +104,6 @@
   "LayoutDirectionBehavior.fixed",
   "LayoutDirectionBehavior.mirrors",
   "LayoutDirectionBehavior.mirrors(in:)",
-  "LazyHGrid.init(rows:alignment:spacing:pinnedViews:content:)",
-  "LazyHStack.init(alignment:spacing:pinnedViews:content:)",
   "LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)",
   "NamedCoordinateSpace",
   "NamedCoordinateSpace.coordinateSpace",

@@ -299,12 +299,13 @@ public struct LazyVGrid<Content: View>: View {
     }
 }
 
-// MARK: - A Vertical Grid's Sections
+// MARK: - A Grid's Sections
 
-/// A vertical grid's content: flowed across the tracks as written, or — when a
+/// A grid's content: flowed across the tracks as written, or — when a
 /// `Section` is among its views — section by section, each a section of its
 /// own around a grid of its views, stacked as a pinned ``LazyVStack`` stacks
-/// its sections.
+/// its sections, or laid along a row as a pinned ``LazyHStack`` lays out its
+/// own.
 ///
 /// The flat form is the grid as it always was, at this view's identity. The
 /// sectioned one is taken apart with the section APIs (``SectionCollection``),
@@ -325,13 +326,22 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
         _LayoutCore(layout: layout, content: content)
     }
 
-    /// Where a section's header and footer sit across the grid.
+    /// Where a section's header and footer sit across the grid: where the
+    /// grid's alignment puts a view in a cell, from the start of the section.
     private var chromeAlignment: Alignment {
-        Alignment(horizontal: layout.alignment.horizontal, vertical: .top)
+        layout.axis == .vertical
+            ? Alignment(horizontal: layout.alignment.horizontal, vertical: .top)
+            : Alignment(horizontal: .leading, vertical: layout.alignment.vertical)
     }
 
     /// The grid section by section.
-    private var sectioned: some View {
+    @ViewBuilder private var sectioned: some View {
+        if layout.axis == .vertical { sectionedColumn } else { sectionedRow }
+    }
+
+    /// A vertical grid section by section: each section's header across the
+    /// columns, its views flowed under it, its footer across them below.
+    private var sectionedColumn: some View {
         Group(sections: content) { [layout, pinnedViews, chromeAlignment] sections in
             _VStackCore(
                 alignment: chromeAlignment.horizontal, spacing: layout.spacing, overflow: .window,
@@ -349,10 +359,38 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
         }
     }
 
+    /// A horizontal grid section by section: each section's header down the
+    /// rows, its views flowed after it, its footer down them after that —
+    /// SwiftUI's vertical rule turned on its side (measured on macOS 15.8).
+    private var sectionedRow: some View {
+        Group(sections: content) { [layout, pinnedViews, chromeAlignment] sections in
+            _HStackCore(
+                alignment: chromeAlignment.vertical, spacing: layout.spacing, overflow: .window,
+                pinnedViews: pinnedViews,
+                content: ForEach(sections) { section in
+                    Section {
+                        _LayoutCore(layout: layout, content: section.content)
+                            .frame(maxHeight: .infinity, alignment: chromeAlignment)
+                    } header: {
+                        section.header.frame(maxHeight: .infinity, alignment: chromeAlignment)
+                    } footer: {
+                        section.footer.frame(maxHeight: .infinity, alignment: chromeAlignment)
+                    }
+                })
+        }
+    }
+
     /// Whether a `Section` is among the grid's views — asked of a walk that
     /// keeps sections whole, to be found (`RenderContext.keepsSectionsWhole`).
+    ///
+    /// A horizontal grid draws its sections section by section only when it
+    /// pins them: unpinned, its sections are a `ForEach`'s rows in a row that
+    /// draws each as one column, header above its views (decisions B15), so
+    /// until such a row takes them apart it flows them as one cell each, as it
+    /// always did.
     private func hasSections(_ context: RenderContext) -> Bool {
-        resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
+        guard layout.axis == .vertical || !pinnedViews.isEmpty else { return false }
+        return resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
             sectionParts(of: $0) != nil
         }
     }
@@ -392,6 +430,31 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
 /// Rows are measured in **lines**, so `.fixed(1)` is a single-line row — the
 /// usual case in a terminal, and why an explicit `.fixed` is more useful here
 /// than the `.adaptive` that suits columns.
+///
+/// # Sections
+///
+/// With `pinnedViews:`, a `Section` among the grid's views starts a new column
+/// with its header, which spans every row; its views flow down the rows from
+/// the column after it, and its footer spans the rows after them —
+/// ``LazyVGrid``'s sections on their side, as SwiftUI's are (measured on macOS
+/// 15.8) — and header and footer pin to the enclosing horizontal scroll view's
+/// leading and trailing edges exactly as a ``LazyHStack``'s do. Unpinned, a
+/// section is still one cell (decisions B15).
+///
+/// ```swift
+/// ScrollView(.horizontal) {
+///     LazyHGrid(rows: [GridItem(.fixed(1)), GridItem(.fixed(1))], pinnedViews: .sectionHeaders) {
+///         ForEach(albums) { album in
+///             Section(album.title) {
+///                 ForEach(album.photos) { Text($0.caption) }
+///             }
+///         }
+///     }
+/// }
+/// ```
+///
+/// A sectioned grid fills the height it is offered, so a section's header
+/// can sit down it.
 public struct LazyHGrid<Content: View>: View {
     /// The row tracks.
     public let rows: [GridItem]
@@ -405,32 +468,43 @@ public struct LazyHGrid<Content: View>: View {
     /// The views to flow.
     public let content: Content
 
+    /// The kinds of child views pinned to the enclosing scroll view's edges.
+    let pinnedViews: PinnedScrollableViews
+
     /// Creates a horizontally-growing grid.
     ///
     /// - Parameters:
     ///   - rows: The row tracks to flow content down.
-    ///   - alignment: Vertical placement within a cell (default: `.center`).
-    ///   - spacing: Blank columns between columns (default: none).
+    ///   - alignment: Vertical placement within a cell, and of a section's
+    ///     header and footer down the grid (default: `.center`).
+    ///   - spacing: Blank columns between columns, or `nil` (the default) for
+    ///     none.
+    ///   - pinnedViews: The kinds of child views that will be pinned to the
+    ///     enclosing horizontal scroll view's leading and trailing edges: the
+    ///     headers and footers of the grid's `Section`s (default: none). See
+    ///     the discussion above.
     ///   - content: The views to flow.
     public init(
         rows: [GridItem],
         alignment: VerticalAlignment = .center,
-        spacing: Int = 0,
+        spacing: Int? = nil,
+        pinnedViews: PinnedScrollableViews = .init(),
         @ViewBuilder content: () -> Content
     ) {
         self.rows = rows
         self.alignment = alignment
-        self.spacing = spacing
+        self.spacing = spacing ?? 0
         self.content = content()
+        self.pinnedViews = pinnedViews
     }
 
     public var body: some View {
-        _LazyGridLayout(
-            axis: .horizontal, items: rows,
-            alignment: Alignment(horizontal: .center, vertical: alignment),
-            spacing: spacing
-        ) {
-            content
-        }
+        _LazyGridSections(
+            layout: _LazyGridLayout(
+                axis: .horizontal, items: rows,
+                alignment: Alignment(horizontal: .center, vertical: alignment),
+                spacing: spacing),
+            pinnedViews: pinnedViews,
+            content: content)
     }
 }

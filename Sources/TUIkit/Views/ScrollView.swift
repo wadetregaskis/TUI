@@ -595,7 +595,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         var visibleBuffer = windowedBuffer(
             // Pinned at the offset the frame settled on, after every move above.
             full: pinningSectionChrome(
-                in: fullBuffer, handler: handler, sliceOriginY: sliceOriginY, chrome: chrome, context: context),
+                in: fullBuffer, handler: handler, sliceOriginY: sliceOriginY, chrome: chrome,
+                contentWidth: contentWidth, context: context),
             scrollOffset: max(0, handler.scrollOffset - sliceOriginY),
             viewportHeight: contentViewportHeight,
             viewportWidth: contentWidth,

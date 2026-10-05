@@ -215,10 +215,11 @@ public struct OverlayLayer: Sendable, Equatable {
     /// view knows its offset, which nothing between it and the section does,
     /// and every combining operation carries a layer to it at the right place,
     /// however deep in the content the section sits. The scroll view takes
-    /// each one off the buffer (`resolvingScrollPins`); one that reaches the
-    /// screen root without passing a vertical scroll view — a pinned stack
-    /// that is not scrolled — is dropped there, since the flow already shows
-    /// it where it belongs.
+    /// each one it pins along its own axes off the buffer
+    /// (`resolvingScrollPins`); one that reaches the screen root without
+    /// passing a scroll view along its edge's axis — a pinned stack that is
+    /// not scrolled — is dropped there, since the flow already shows it where
+    /// it belongs.
     package var scrollPin: ScrollPin?
 
     /// Creates an overlay layer.
@@ -551,8 +552,8 @@ extension OverlayLayer {
     /// ``OverlayLayer/scrollPin``.
     ///
     /// Both numbers are relative to where the layer was drawn, so the shift
-    /// every combining operation applies to ``OverlayLayer/offsetY`` carries
-    /// them too.
+    /// every combining operation applies to ``OverlayLayer/offsetX`` and
+    /// ``OverlayLayer/offsetY`` carries them too.
     package struct ScrollPin: Sendable, Equatable {
         /// The edge of the viewport the layer stays at.
         package enum Edge: Sendable, Equatable {
@@ -562,16 +563,27 @@ extension OverlayLayer {
             /// The bottom: a section footer, drawn at the viewport's bottom
             /// edge while its section's content is under that.
             case bottom
+            /// The leading edge: the header of a section laid out along a row
+            /// (a `LazyHStack`'s, a `LazyHGrid`'s), drawn at a horizontal
+            /// scroll view's leading edge while its section's content is under
+            /// it.
+            case leading
+            /// The trailing edge: such a section's footer.
+            case trailing
+
+            /// Whether the edge is one a horizontal scroll view pins to.
+            package var isHorizontal: Bool { self == .leading || self == .trailing }
         }
 
-        /// How many rows the layer may move from where it was drawn, toward
-        /// the far end of its section — down for a header, up for a footer —
-        /// before it leaves the section: the height of the section's content.
+        /// How far the layer may move from where it was drawn, toward the far
+        /// end of its section — down or right for a header, up or left for a
+        /// footer — in rows or columns along its edge's axis, before it leaves
+        /// the section.
         ///
-        /// A header moved that far sits on the content's last row, and the
-        /// content scrolling further takes it up with it — which is how the
-        /// next section's header takes over. A footer moved that far sits on
-        /// the content's first row, its header's bottom.
+        /// A header moved that far sits on the content's last row (or
+        /// column), and the content scrolling further takes it with it —
+        /// which is how the next section's header takes over. A footer moved
+        /// that far sits on the content's first.
         package var travel: Int
 
         /// Declared after ``travel`` so the pair has no interior padding.

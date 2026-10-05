@@ -257,94 +257,131 @@ extension _SectionCore {
     private func stackedSize(
         layout: PinnedSectionLayout, proposal: ProposedSize, context: RenderContext
     ) -> ViewSize {
+        let vertical = layout.axis == .vertical
         var along = 0
         var across = 0
         var placed = 0
         var widthFlexible = false
         var heightFlexible = false
         for child in partChildren(context).joined() {
-            let size = child.measure(proposal: ProposedSize(width: proposal.width, height: nil), context: context)
+            let size = child.measure(
+                proposal: vertical
+                    ? ProposedSize(width: proposal.width, height: nil)
+                    : ProposedSize(width: nil, height: proposal.height),
+                context: context)
             if size.isWidthFlexible { widthFlexible = true }
             if size.isHeightFlexible { heightFlexible = true }
-            // A view that draws no line takes no room and earns no gap — the
-            // stack's own rule (`FrameBuffer.appendVertically`).
-            guard size.height > 0 else { continue }
-            along += (placed > 0 ? layout.spacing : 0) + size.height
-            across = max(across, size.width)
+            // A view that draws no line (or column) takes no room and earns no
+            // gap — the stack's own rule (`FrameBuffer.appendVertically`,
+            // `appendHorizontally`).
+            let extent = vertical ? size.height : size.width
+            guard extent > 0 else { continue }
+            along += (placed > 0 ? layout.spacing : 0) + extent
+            across = max(across, vertical ? size.width : size.height)
             placed += 1
         }
         return ViewSize(
-            width: across, height: along, isWidthFlexible: widthFlexible,
-            isHeightFlexible: heightFlexible)
+            width: vertical ? across : along, height: vertical ? along : across,
+            isWidthFlexible: widthFlexible, isHeightFlexible: heightFlexible)
     }
 
     /// The section laid out as the stack lays out its children, its header
     /// and footer pinned.
     ///
     /// Each part is drawn as a block of its views, aligned across the
-    /// section's width by the stack's alignment, and the blocks are stacked
-    /// `spacing` apart: what the stack would draw with the parts as its own
-    /// children, the section's width standing in for the stack's.
+    /// section's breadth by the stack's alignment, and the blocks are laid
+    /// along the stack's axis `spacing` apart: what the stack would draw with
+    /// the parts as its own children, the section's breadth standing in for
+    /// the stack's.
     private func renderStacked(
         layout: PinnedSectionLayout, pins: (headers: Bool, footers: Bool), context: RenderContext
     ) -> FrameBuffer {
-        let width = context.availableWidth
+        let vertical = layout.axis == .vertical
         let drawn = partChildren(context).map { children in
             children.map { child in
-                let height =
-                    child.measure(proposal: ProposedSize(width: width, height: nil), context: context).height
-                return child.render(width: width, height: max(0, height), context: context)
+                // At the extent the view asks for along the axis, and as a
+                // lazy stack offers its children across it.
+                if vertical {
+                    let height = child.measure(
+                        proposal: ProposedSize(width: context.availableWidth, height: nil), context: context
+                    ).height
+                    return child.render(width: context.availableWidth, height: max(0, height), context: context)
+                }
+                let width = child.measure(proposal: .unspecified, context: context).width
+                return child.render(width: max(0, width), height: context.availableHeight, context: context)
             }
         }
-        let breadth = drawn.joined().filter { !$0.lines.isEmpty }.map(\.width).max() ?? 0
+        let occupied = drawn.joined().filter { vertical ? !$0.lines.isEmpty : $0.width > 0 }
+        let breadth = occupied.map { vertical ? $0.width : $0.height }.max() ?? 0
+        func append(_ buffer: FrameBuffer, to block: inout FrameBuffer) {
+            if vertical {
+                block.appendVertically(buffer, spacing: layout.spacing)
+            } else {
+                block.appendHorizontally(buffer, spacing: layout.spacing)
+            }
+        }
         let blocks = drawn.map { buffers in
             var block = FrameBuffer()
             for buffer in buffers {
-                block.appendVertically(
-                    buffer.horizontallyAligned(toWidth: breadth, alignment: layout.alignment.horizontal),
-                    spacing: layout.spacing)
+                append(
+                    vertical
+                        ? buffer.horizontallyAligned(toWidth: breadth, alignment: layout.alignment.horizontal)
+                        : buffer.verticallyAligned(toHeight: breadth, alignment: layout.alignment.vertical),
+                    to: &block)
             }
             return block
         }
         let (header, content, footer) = (blocks[0], blocks[1], blocks[2])
+        func extent(_ buffer: FrameBuffer) -> Int { vertical ? buffer.height : buffer.width }
 
         var section = FrameBuffer()
-        section.appendVertically(header, spacing: layout.spacing)
-        let contentTop = section.height + (section.height > 0 && content.height > 0 ? layout.spacing : 0)
-        section.appendVertically(content, spacing: layout.spacing)
-        let footerTop = section.height + (section.height > 0 && footer.height > 0 ? layout.spacing : 0)
-        section.appendVertically(footer, spacing: layout.spacing)
+        append(header, to: &section)
+        func start(of block: FrameBuffer) -> Int {
+            extent(section) + (extent(section) > 0 && extent(block) > 0 ? layout.spacing : 0)
+        }
+        let contentStart = start(of: content)
+        append(content, to: &section)
+        let footerStart = start(of: footer)
+        append(footer, to: &section)
 
-        if !context.isMeasuring, content.height > 0 {
-            let contentBottom = contentTop + content.height
-            if pins.headers, header.height > 0 {
+        if !context.isMeasuring, extent(content) > 0 {
+            let contentEnd = contentStart + extent(content)
+            if pins.headers, extent(header) > 0 {
                 section.overlays.append(
-                    Self.pinnedLayer(header, atY: 0, edge: .top, travel: contentBottom - header.height))
+                    Self.pinnedLayer(
+                        header, at: 0, vertical: vertical, edge: vertical ? .top : .leading,
+                        travel: contentEnd - extent(header)))
             }
-            if pins.footers, footer.height > 0 {
+            if pins.footers, extent(footer) > 0 {
                 section.overlays.append(
-                    Self.pinnedLayer(footer, atY: footerTop, edge: .bottom, travel: footerTop - contentTop))
+                    Self.pinnedLayer(
+                        footer, at: footerStart, vertical: vertical, edge: vertical ? .bottom : .trailing,
+                        travel: footerStart - contentStart))
             }
         }
         return section
     }
 
     /// A layer pinning `chrome` — a header or a footer, drawn where the flow
-    /// draws it — to an edge of the scroll view it is in (`OverlayLayer.scrollPin`),
-    /// free to travel `travel` rows toward the far end of its section: until a
-    /// header's bottom meets the content's last row, or a footer's top the
-    /// content's first, which is SwiftUI's rule (measured on macOS 15.8).
+    /// draws it, `offset` along the stack's axis — to an edge of the scroll
+    /// view it is in (`OverlayLayer.scrollPin`), free to travel `travel` rows
+    /// (or columns) toward the far end of its section: until a header's far
+    /// edge meets the content's last row, or a footer's near edge the
+    /// content's first, which is SwiftUI's rule (measured on macOS 15.8, on
+    /// both axes).
     ///
-    /// Padded to the section's width — the chrome block's, which every part is
-    /// aligned across — so a pinned header covers every cell of the rows it
-    /// lands on. Without its presentations: those ride on the chrome the flow
-    /// draws, and the scroll view moves them with it.
+    /// Padded to the chrome block's width, which every part is aligned across,
+    /// so a pinned header covers every cell of the rows it lands on. Without
+    /// its presentations: those ride on the chrome the flow draws, and the
+    /// scroll view moves them with it.
     private static func pinnedLayer(
-        _ chrome: FrameBuffer, atY y: Int, edge: OverlayLayer.ScrollPin.Edge, travel: Int
+        _ chrome: FrameBuffer, at offset: Int, vertical: Bool, edge: OverlayLayer.ScrollPin.Edge,
+        travel: Int
     ) -> OverlayLayer {
         var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(chrome.width) })
         copy.overlays = []
-        var layer = OverlayLayer(offsetX: 0, offsetY: y, content: copy, isOpaque: false)
+        var layer = OverlayLayer(
+            offsetX: vertical ? 0 : offset, offsetY: vertical ? offset : 0, content: copy, isOpaque: false)
         layer.scrollPin = OverlayLayer.ScrollPin(edge: edge, travel: travel)
         return layer
     }

@@ -28,14 +28,14 @@ import TUIkitCore
 /// Inside a vertical ``ScrollView`` a pinned `Section` header stays at the
 /// viewport's top while any of its section's content is under it, and the
 /// section's last row pushes it up and away — so the next section's header
-/// takes over; a pinned footer stays at the bottom the same way. Outside a
-/// scroll view, or for a view that is not a `Section`, pinning changes
+/// takes over; a pinned footer stays at the bottom the same way. A row's
+/// sections — ``LazyHStack/init(alignment:spacing:pinnedViews:content:)``'s and
+/// ``LazyHGrid/init(rows:alignment:spacing:pinnedViews:content:)``'s — pin the
+/// same way to a horizontal scroll view's leading and trailing edges. Outside
+/// a scroll view, or for a view that is not a `Section`, pinning changes
 /// nothing. See ``LazyVStack/init(alignment:spacing:pinnedViews:content:)``
 /// and ``LazyVGrid/init(columns:alignment:spacing:pinnedViews:content:)``,
-/// whose headers span the columns. `LazyHStack` and `LazyHGrid` take no
-/// `pinnedViews:` yet: a section in one does not lie along the row, so there
-/// is no header at the leading edge to pin (§4a of
-/// `Documentation/SwiftUI-compatibility.md`).
+/// whose headers span the columns.
 public struct PinnedScrollableViews: OptionSet, Sendable {
     /// The corresponding value of the raw type.
     public let rawValue: UInt32
@@ -152,10 +152,25 @@ func sectionStaysWhole(in context: RenderContext) -> Bool {
 
 // MARK: - The Stack That Hands It Out
 
-extension _VStackCore {
+/// A stack core that can pin its sections' headers and footers: a lazy
+/// stack's, in a column (`LazyVStack`, a `LazyVGrid`'s sections) or along a
+/// row (`LazyHStack`, a `LazyHGrid`'s).
+@MainActor
+protocol PinningStackCore {
+    /// Whether the stack pins its sections' headers.
+    var pinsSectionHeaders: Bool { get }
+
+    /// Whether the stack pins its sections' footers.
+    var pinsSectionFooters: Bool { get }
+
+    /// How the stack lays out its children, for the sections it keeps whole.
+    var pinnedSectionLayout: PinnedSectionLayout { get }
+}
+
+extension PinningStackCore {
     /// `context` with this stack's pinned-section scope for its rows, when it
-    /// pins (``PinnedSectionScope``) — the one place every windowed render
-    /// path takes its rows' context from.
+    /// pins (``PinnedSectionScope``) — the one place every render path takes
+    /// its rows' context from.
     ///
     /// The scope changes what a section row draws, and a memoized row is
     /// served by its view value, which the scope is not part of: so a change
@@ -212,11 +227,24 @@ extension _VStackCore {
             stackDepth: Int32(clamping: context.identity.depth),
             pinsHeaders: pinsSectionHeaders, pinsFooters: pinsSectionFooters)
     }
+}
 
-    /// How this stack lays out its children, for the sections it keeps whole.
-    private var pinnedSectionLayout: PinnedSectionLayout {
+extension _VStackCore: PinningStackCore {
+    /// A column: its sections lay out downward, aligned across by its
+    /// alignment.
+    var pinnedSectionLayout: PinnedSectionLayout {
         PinnedSectionLayout(
             axis: .vertical, spacing: spacing,
             alignment: Alignment(horizontal: alignment, vertical: .top))
+    }
+}
+
+extension _HStackCore: PinningStackCore {
+    /// A row: its sections lay out along it, aligned up and down by its
+    /// alignment.
+    var pinnedSectionLayout: PinnedSectionLayout {
+        PinnedSectionLayout(
+            axis: .horizontal, spacing: spacing,
+            alignment: Alignment(horizontal: .leading, vertical: alignment))
     }
 }

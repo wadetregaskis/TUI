@@ -4,7 +4,8 @@
 //  Pinned section headers and footers, drawn where a scroll view shows them.
 //  A pinned section emits a copy of its header (or footer) as a layer carrying
 //  a scroll pin (`OverlayLayer.ScrollPin`); the layer rides every combining
-//  operation to the nearest vertical scroll view, which is the one thing that
+//  operation to the nearest scroll view along its edge's axis — vertical for a
+//  column's sections, horizontal for a row's — which is the one thing that
 //  knows where its viewport is, and which moves the header to the viewport's
 //  edge while the section's content is under it.
 //
@@ -50,22 +51,67 @@ struct PinnedChromeViewport {
             let edge = height - bottomInset
             guard natural + chromeHeight > edge else { return nil }
             row = max(edge - chromeHeight, natural - pin.travel)
+        case .leading, .trailing:
+            return nil
         }
         guard row != natural, row + chromeHeight > 0, row < height else { return nil }
         return row
     }
 }
 
-/// A pinned layer, and the buffer row a viewport draws it at instead of where
-/// the flow drew it.
+/// Where a horizontal scroll view's viewport lies in its content buffer, as
+/// pinning asks — the leading and trailing edges a row's sections pin to.
+struct PinnedChromeHorizontalViewport {
+    /// The buffer's column the viewport starts at.
+    var left: Int
+
+    /// The viewport's width.
+    var width: Int
+
+    /// The viewport column a pinned layer is drawn at, or `nil` when it stays
+    /// where the flow drew it or none of it would show.
+    ///
+    /// The vertical rule turned on its side, as SwiftUI's horizontal stacks
+    /// and grids pin (measured on macOS 15.8): a header stays at the leading
+    /// edge while its section's content is under it, pushed off by the
+    /// content's last column; a footer stays at the trailing edge, never left
+    /// of its section's first column.
+    func pinnedColumn(of layer: OverlayLayer, pin: OverlayLayer.ScrollPin) -> Int? {
+        let chromeWidth = layer.content.width
+        guard chromeWidth > 0 else { return nil }
+        let natural = layer.offsetX - left
+        let column: Int
+        switch pin.edge {
+        case .leading:
+            guard natural < 0 else { return nil }
+            column = min(0, natural + pin.travel)
+        case .trailing:
+            guard natural + chromeWidth > width else { return nil }
+            column = max(width - chromeWidth, natural - pin.travel)
+        case .top, .bottom:
+            return nil
+        }
+        guard column != natural, column + chromeWidth > 0, column < width else { return nil }
+        return column
+    }
+}
+
+/// A pinned layer, and the buffer position a viewport draws it at instead of
+/// where the flow drew it.
 struct PinnedChromePlacement {
     let layer: OverlayLayer
 
     /// The buffer row its first line is drawn at.
     let row: Int
 
+    /// The buffer column its first cell is drawn at.
+    let column: Int
+
     /// The buffer rows the flow drew it on.
     var naturalRows: Range<Int> { layer.offsetY..<(layer.offsetY + layer.content.height) }
+
+    /// The buffer columns the flow drew it on.
+    var naturalColumns: Range<Int> { layer.offsetX..<(layer.offsetX + layer.content.width) }
 }
 
 extension FrameBuffer {
@@ -84,50 +130,69 @@ extension FrameBuffer {
     /// so a click on the header never reaches a row no one can see. The cells
     /// it leaves blank keep their field, so a row's background shows through
     /// them as SwiftUI's transparent header lets the row show.
-    func resolvingScrollPins(in viewport: PinnedChromeViewport) -> FrameBuffer {
+    ///
+    /// A vertical viewport resolves the top and bottom pins, a horizontal one
+    /// the leading and trailing pins; a pin along an axis this scroll view does
+    /// not scroll stays on the buffer, for one further out that does.
+    func resolvingScrollPins(
+        in viewport: PinnedChromeViewport?, horizontal: PinnedChromeHorizontalViewport? = nil
+    ) -> FrameBuffer {
         guard overlays.contains(where: { $0.scrollPin != nil }) else { return self }
         var result = self
-        result.overlays = overlays.filter { $0.scrollPin == nil }
-        for placement in scrollPinPlacements(in: viewport) {
-            result.move(pinned: placement.layer, toBufferRow: placement.row)
+        result.overlays = overlays.filter { layer in
+            guard let pin = layer.scrollPin else { return true }
+            return pin.edge.isHorizontal ? horizontal == nil : viewport == nil
+        }
+        for placement in scrollPinPlacements(in: viewport, horizontal: horizontal) {
+            result.move(pinned: placement)
         }
         return result
     }
 
-    /// Where `viewport` draws each pinned layer this buffer carries — every one
-    /// that leaves the place the flow drew it and shows.
-    func scrollPinPlacements(in viewport: PinnedChromeViewport) -> [PinnedChromePlacement] {
+    /// Where the viewports draw each pinned layer this buffer carries — every
+    /// one that leaves the place the flow drew it and shows.
+    func scrollPinPlacements(
+        in viewport: PinnedChromeViewport?, horizontal: PinnedChromeHorizontalViewport? = nil
+    ) -> [PinnedChromePlacement] {
         guard overlays.contains(where: { $0.scrollPin != nil }) else { return [] }
         return overlays.compactMap { layer in
-            guard let pin = layer.scrollPin, let row = viewport.pinnedRow(of: layer, pin: pin)
-            else { return nil }
-            return PinnedChromePlacement(layer: layer, row: viewport.top + row)
+            guard let pin = layer.scrollPin else { return nil }
+            if pin.edge.isHorizontal {
+                guard let horizontal, let column = horizontal.pinnedColumn(of: layer, pin: pin)
+                else { return nil }
+                return PinnedChromePlacement(
+                    layer: layer, row: layer.offsetY, column: horizontal.left + column)
+            }
+            guard let viewport, let row = viewport.pinnedRow(of: layer, pin: pin) else { return nil }
+            return PinnedChromePlacement(layer: layer, row: viewport.top + row, column: layer.offsetX)
         }
     }
 
-    /// Draws `layer` at buffer row `row`, moving everything that rode on the
-    /// header it copies there with it, and covering what it lands on.
-    private mutating func move(pinned layer: OverlayLayer, toBufferRow row: Int) {
+    /// Draws a pinned layer where `placement` puts it, moving everything that
+    /// rode on the header it copies there with it, and covering what it lands
+    /// on.
+    private mutating func move(pinned placement: PinnedChromePlacement) {
+        let layer = placement.layer
         let content = layer.content
-        let delta = row - layer.offsetY
-        let columns = layer.offsetX..<(layer.offsetX + content.width)
-        let naturalRows = layer.offsetY..<(layer.offsetY + content.height)
-        let pinnedRows = row..<(row + content.height)
+        let (dx, dy) = (placement.column - layer.offsetX, placement.row - layer.offsetY)
+        let (naturalColumns, naturalRows) = (placement.naturalColumns, placement.naturalRows)
+        let pinnedColumns = placement.column..<(placement.column + content.width)
+        let pinnedRows = placement.row..<(placement.row + content.height)
 
         // The header's own regions leave with it: drawn where the flow put it,
-        // a control in it would be found there too. The rows that stay behind
+        // a control in it would be found there too. The cells that stay behind
         // under the header lose theirs.
         hitTestRegions = hitTestRegions.flatMap { region -> [HitTestRegion] in
-            if Self.lies(region, within: columns, naturalRows) { return [] }
-            return Self.subtracting(columns, pinnedRows, from: region)
+            if Self.lies(region, within: naturalColumns, naturalRows) { return [] }
+            return Self.subtracting(pinnedColumns, pinnedRows, from: region)
         }
         // A presentation opened from the header — a picker's drop-down — is
         // anchored on the row it was opened from, and goes with it.
         overlays = overlays.map { overlay in
             guard !overlay.centered, naturalRows.contains(overlay.offsetY - overlay.anchorHeight),
-                columns.contains(overlay.offsetX)
+                naturalColumns.contains(overlay.offsetX)
             else { return overlay }
-            return overlay.shifted(byX: 0, y: delta)
+            return overlay.shifted(byX: dx, y: dy)
         }
 
         // The copy carries no presentations of its own: they are the header's,
@@ -135,7 +200,7 @@ extension FrameBuffer {
         var drawn = content
         drawn.overlays = []
         // Covers the glyphs, runs and fades it lands on, and brings its own.
-        composite(with: drawn, at: (x: layer.offsetX, y: row))
+        composite(with: drawn, at: (x: placement.column, y: placement.row))
     }
 
     /// Whether `region` lies entirely inside `columns` × `rows`.
@@ -197,7 +262,7 @@ struct PinnedChromeCover {
             switch placement.layer.scrollPin?.edge {
             case .top: top = max(top, row + lines - viewport.topInset)
             case .bottom: bottom = max(bottom, viewport.height - viewport.bottomInset - row)
-            case nil: break
+            case .leading, .trailing, nil: break
             }
         }
     }
@@ -235,19 +300,29 @@ extension _ScrollViewCore {
 
     /// `content` as this frame's offset shows it, its pinned section headers
     /// and footers at the viewport's edges
-    /// (``FrameBuffer/resolvingScrollPins(in:)``).
+    /// (``FrameBuffer/resolvingScrollPins(in:horizontal:)``).
     ///
-    /// The vertical axis only: a horizontal scroll view has no top edge to
-    /// pin to, and passes the layers on to one that does.
+    /// Along the axes this view scrolls: a column's sections pin to a
+    /// vertical scroll view's top and bottom, a row's to a horizontal one's
+    /// leading and trailing edges, and a pin along an axis this view does not
+    /// scroll is passed on to one that does.
     func pinningSectionChrome(
         in content: FrameBuffer, handler: ScrollViewHandler, sliceOriginY: Int,
-        chrome: ScrollChrome, context: RenderContext
+        chrome: ScrollChrome, contentWidth: Int, context: RenderContext
     ) -> FrameBuffer {
-        guard axes.contains(.vertical), !context.isMeasuring else { return content }
-        return content.resolvingScrollPins(
-            in: pinnedChromeViewport(
+        guard !context.isMeasuring else { return content }
+        let vertical =
+            axes.contains(.vertical)
+            ? pinnedChromeViewport(
                 handler: handler, sliceOriginY: sliceOriginY,
-                overwritesEdgeLines: chrome.overwritesEdgeLines))
+                overwritesEdgeLines: chrome.overwritesEdgeLines)
+            : nil
+        let horizontal =
+            axes.contains(.horizontal)
+            ? PinnedChromeHorizontalViewport(left: handler.horizontal.scrollOffset, width: contentWidth)
+            : nil
+        guard vertical != nil || horizontal != nil else { return content }
+        return content.resolvingScrollPins(in: vertical, horizontal: horizontal)
     }
 
     /// What `content`'s pinned chrome means to a reveal at this frame's

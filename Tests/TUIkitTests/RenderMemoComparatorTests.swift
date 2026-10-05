@@ -96,6 +96,9 @@ struct RenderMemoComparatorTests {
                 ("alignment", LazyHStack(alignment: .top) { Text("a") }),
                 ("spacing", LazyHStack(spacing: 3) { Text("a") }),
                 ("content", LazyHStack { Text("b") }),
+                // As LazyVStack's: a pinned header copied to the scroll view's
+                // leading edge.
+                ("pinnedViews", LazyHStack(pinnedViews: .sectionHeaders) { Text("a") }),
             ])
         expectDistinguishes(
             "Group", Group { Text("a") }, identical: Group { Text("a") },
