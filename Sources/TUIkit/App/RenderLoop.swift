@@ -170,6 +170,10 @@ internal final class RenderLoop<A: App> {
     /// where it is set.
     private var lastStatusBarStartRow: Int?
 
+    /// The terminal's size at the previous frame, `nil` before the first: a
+    /// frame drawn at another size stamps `RenderCache.terminalResizedAtNanos`.
+    private var lastFrameSize: (width: Int, height: Int)?
+
     /// What the last render reported, so the run loop can decide whether an
     /// animation tick can be replayed without rendering again.
     private(set) var lastActivity = RenderActivity(
@@ -481,6 +485,12 @@ extension RenderLoop {
         let terminalSize = terminal.getSize()
         let terminalWidth = terminalSize.width
         let terminalHeight = terminalSize.height
+        // The instant of a resize, for `onInteractiveResizeChange`: see
+        // `RenderCache.terminalResizedAtNanos`.
+        if let last = lastFrameSize, last != terminalSize {
+            tuiContext.renderCache.terminalResizedAtNanos = frameNowNanos
+        }
+        lastFrameSize = terminalSize
         // Before the tree renders, because `AppHeaderModifier` reads it while
         // laying the header content out and it is drawn across the whole
         // terminal rather than at whatever width the tree offers it.

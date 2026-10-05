@@ -291,7 +291,6 @@
   "View.multilineTextAlignment(strategy:)",
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",
-  "View.onInteractiveResizeChange(_:)",
   "View.onScrollTargetVisibilityChange(idType:threshold:_:)",
   "View.onScrollVisibilityChange(threshold:_:)",
   "View.overlay(_:ignoresSafeAreaEdges:)",

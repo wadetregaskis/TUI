@@ -565,6 +565,20 @@ public final class RenderCache: @unchecked Sendable {
     /// context), and a timeline then reads the clock as it always did.
     package var frameDate: Date?
 
+    /// The monotonic instant (on `frameNowNanos`' scale) of the last frame drawn
+    /// at a terminal size different from the frame before it: the latest resize
+    /// of the burst `onInteractiveResizeChange` reports. `nil` until the
+    /// terminal has been resized, and where nothing stamps frames.
+    ///
+    /// Stamped by `RenderLoop` from the size it reads for every frame anyway,
+    /// so an app pays one comparison a frame and nothing else unless a view
+    /// asks. A size change is the test rather than the signal: a `SIGWINCH`
+    /// that leaves the grid as it was — tmux's client-change hooks raise one,
+    /// and so does a drag that has not yet crossed a cell — draws nothing
+    /// differently and is not a resize. Here for `frameDate`'s reason: the
+    /// environment's `AnimationFrame` has no room left in its inline buffer.
+    package var terminalResizedAtNanos: Int64?
+
     /// Reports `@State` written mid-walk, when `TUIKIT_DIAGNOSE_BODY_MUTATION=1`
     /// asked for it. `nil` otherwise, which is the whole of its cost.
     public var bodyMutationDiagnostic: BodyMutationDiagnostic? =

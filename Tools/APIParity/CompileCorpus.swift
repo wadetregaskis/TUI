@@ -2212,3 +2212,17 @@ private struct ScrollClipDisabledShapes: View {
         }
     }
 }
+// MARK: - Interactive resize (D6M A5)
+
+/// SwiftUI's own example: throttle a renderer while the window is resized.
+@MainActor
+private struct InteractiveResizeShapes: View {
+    @State private var isResizing = false
+
+    var body: some View {
+        Text(isResizing ? "resize.coarse" : "resize.full")
+            .onInteractiveResizeChange { isResizing in
+                self.isResizing = isResizing
+            }
+    }
+}
