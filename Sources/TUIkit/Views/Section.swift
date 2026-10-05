@@ -62,7 +62,8 @@
 /// A lazy stack that pins its sections' headers or footers (`pinnedViews:`)
 /// keeps its own sections whole, to pin them, and lays each one's parts out as
 /// it lays out its children.
-public struct Section<Parent: View, Content: View, Footer: View>: View {
+@MainActor
+public struct Section<Parent, Content, Footer> {
     /// The header view displayed above the section content.
     let header: Parent
 
@@ -75,7 +76,14 @@ public struct Section<Parent: View, Content: View, Footer: View>: View {
     /// Whether the section's content is shown, for a collapsible section
     /// (`Section(isExpanded:…)`), or `nil` for one that always shows it.
     let isExpanded: Binding<Bool>?
+}
 
+// MARK: - A section of views
+
+/// A section of views is a view. Its parts are unconstrained for the same
+/// reason `Group`'s content is: so that a section can hold what is not a
+/// view — a table's rows.
+extension Section: View where Parent: View, Content: View, Footer: View {
     public var body: some View {
         _SectionCore(header: header, content: content, footer: footer, isExpanded: isExpanded)
     }
@@ -87,7 +95,7 @@ public struct Section<Parent: View, Content: View, Footer: View>: View {
 
 // MARK: - Full Initializer (header + content + footer)
 
-extension Section {
+extension Section where Parent: View, Content: View, Footer: View {
     /// Creates a section with content, header, and footer.
     ///
     /// This is the most flexible initializer, matching SwiftUI's signature.
@@ -110,7 +118,7 @@ extension Section {
 
 // MARK: - Header + Content (no footer)
 
-extension Section where Footer == EmptyView {
+extension Section where Parent: View, Content: View, Footer: View, Footer == EmptyView {
     /// Creates a section with content and header, without a footer.
     ///
     /// - Parameters:
@@ -129,7 +137,7 @@ extension Section where Footer == EmptyView {
 
 // MARK: - Content + Footer (no header)
 
-extension Section where Parent == EmptyView {
+extension Section where Parent: View, Content: View, Footer: View, Parent == EmptyView {
     /// Creates a section with content and footer, without a header.
     ///
     /// - Parameters:
@@ -148,7 +156,7 @@ extension Section where Parent == EmptyView {
 
 // MARK: - Content Only (no header, no footer)
 
-extension Section where Parent == EmptyView, Footer == EmptyView {
+extension Section where Parent: View, Content: View, Footer: View, Parent == EmptyView, Footer == EmptyView {
     /// Creates a section with content only, without header or footer.
     ///
     /// - Parameter content: A ViewBuilder that defines the section's main content.
@@ -164,7 +172,7 @@ extension Section where Parent == EmptyView, Footer == EmptyView {
 
 // MARK: - String Title Convenience
 
-extension Section where Parent == Text, Footer == EmptyView {
+extension Section where Parent: View, Content: View, Footer: View, Parent == Text, Footer == EmptyView {
     /// Creates a section with a string title as the header.
     ///
     /// This convenience initializer matches SwiftUI's `Section(_ title:content:)`.
@@ -203,7 +211,7 @@ extension Section where Parent == Text, Footer == EmptyView {
 
 // MARK: - Collapsible (isExpanded:)
 
-extension Section where Parent == Text, Footer == EmptyView {
+extension Section where Parent: View, Content: View, Footer: View, Parent == Text, Footer == EmptyView {
     /// Creates a section with a localized title as its header, and a binding
     /// to whether its content is shown.
     ///
@@ -243,7 +251,7 @@ extension Section where Parent == Text, Footer == EmptyView {
     }
 }
 
-extension Section where Footer == EmptyView {
+extension Section where Parent: View, Content: View, Footer: View, Footer == EmptyView {
     /// Creates a section with a header and a binding to whether its content is
     /// shown.
     ///
@@ -285,7 +293,7 @@ struct _SectionHeader<Header: View>: View {
     }
 }
 
-extension Section {
+extension Section where Parent: View, Content: View, Footer: View {
     /// The header as it is drawn: ``_SectionHeader``, or nothing for a section
     /// with no header.
     fileprivate var hasHeader: Bool { !(header is EmptyView) }
@@ -436,7 +444,7 @@ struct SectionInfo {
     let contentBuffer: FrameBuffer
 }
 
-extension Section: SectionRowExtractor {
+extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
     func extractSectionContentRows<RowID: Hashable>(
         context: RenderContext
     ) -> SectionContentRows<RowID> {
@@ -470,7 +478,7 @@ extension Section: SectionRowExtractor {
 
 // MARK: - Section as ChildInfoProvider
 
-extension Section: ChildInfoProvider {
+extension Section: ChildInfoProvider where Parent: View, Content: View, Footer: View {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         // For stack layouts, render Section as a single unit
         let buffer = TUIkit.renderToBuffer(self, context: context)
@@ -480,7 +488,7 @@ extension Section: ChildInfoProvider {
 
 // MARK: - Section as ListRowExtractor
 
-extension Section: ListRowExtractor {
+extension Section: ListRowExtractor where Parent: View, Content: View, Footer: View {
     /// Extracts list rows from the section's content.
     ///
     /// Delegates to the content's `ListRowExtractor` implementation if available

@@ -187,7 +187,7 @@ extension OutlineGroup: KeyedRowProvider where Leaf: View {
 /// A section is its parts' children to a walk that takes it apart, so its
 /// parts' loops are runs of the container's; kept whole, it is one positional
 /// child and makes none. A collapsed section's content makes none either.
-extension Section: KeyedRowProvider {
+extension Section: KeyedRowProvider where Parent: View, Content: View, Footer: View {
     func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         guard !sectionsWhole else { return }
         TUIkit.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)

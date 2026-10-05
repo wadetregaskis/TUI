@@ -230,7 +230,7 @@ protocol SectionPartsProviding {
     var sectionParts: SectionParts { get }
 }
 
-extension Section: SectionPartsProviding {
+extension Section: SectionPartsProviding where Parent: View, Content: View, Footer: View {
     var sectionParts: SectionParts {
         SectionParts(header: header, content: content, footer: footer)
     }

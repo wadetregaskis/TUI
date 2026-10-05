@@ -136,7 +136,7 @@ extension LabeledContent: FormContentExtractor {
 /// triangle, one control the keyboard and a click toggle — and its rows and
 /// footer are drawn only while it is expanded, as SwiftUI collapses a form's
 /// section in either style (measured on macOS 15.8, `D1S/probe2/form`).
-extension Section: FormContentExtractor {
+extension Section: FormContentExtractor where Parent: View, Content: View, Footer: View {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         let header: AnyView? =
             Parent.self == EmptyView.self

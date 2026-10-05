@@ -157,7 +157,7 @@ extension Group: ChildKindsKnowing where Content: View {
 /// for the keyed rows it can hand over; kept whole, it hands over none — the
 /// walk that finds the rows skips it too (`appendKeyedRowRuns`). (It is a
 /// section itself: the walk answers that before asking.)
-extension Section: ChildKindsKnowing {
+extension Section: ChildKindsKnowing where Parent: View, Content: View, Footer: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         if kind == .keyedRow(sectionsWhole: true) { return false }
         return TUIkit.mayHandOver(kind, Parent.self, visited: &visited)
