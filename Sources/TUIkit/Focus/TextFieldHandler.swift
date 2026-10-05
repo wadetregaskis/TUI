@@ -946,8 +946,15 @@ extension TextFieldHandler {
     }
 
     /// Forgets the history, and the steps registered for it, if the app has
-    /// replaced the text since the field last wrote it.
-    private func forgetHistoryIfReplaced() {
+    /// replaced the text since the field last wrote it — and takes out of the
+    /// app's undo manager any step its history has already let go of.
+    ///
+    /// The field's render calls this every frame, so a replacement (a field
+    /// cleared on submit) takes the field's steps out of the manager before
+    /// the status bar is built and before the next key: the manager does not
+    /// go on offering undos that do nothing. Every edit, undo and redo of the
+    /// field's own calls it too, for the replacement made since that frame.
+    func forgetHistoryIfReplaced() {
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
         forgetDroppedSteps()
     }
@@ -999,8 +1006,11 @@ extension TextFieldHandler {
 extension TextFieldHandler: AppUndoableText {
     func undoOwnStep(mark: TextUndoMark?) -> Bool {
         // No forgetting of registered steps here: this runs inside the undo
-        // manager's own undo. A replaced text simply has nothing to undo, and
-        // the steps it drops leave the manager with the next edit.
+        // manager's own undo, and `NSUndoManager` left an emptied step
+        // behind for good when a handler took others out (measured on macOS
+        // 15). A replacement is normally seen at the render before this runs;
+        // one made in the same burst of input is seen here, has nothing to
+        // undo, and the steps it drops leave the manager at the next frame.
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
         guard let previous = undoHistory.undo(from: (text.wrappedValue, cursorPosition), mark: mark) else {
             return false

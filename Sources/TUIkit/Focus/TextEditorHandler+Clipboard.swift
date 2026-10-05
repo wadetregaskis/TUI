@@ -73,7 +73,13 @@ extension TextEditorHandler {
     }
 
     /// Forgets the history, and the steps registered for it, if the app has
-    /// replaced the text since the editor last wrote it.
+    /// replaced the text since the editor last wrote it — and takes out of
+    /// the app's undo manager any step its history has already let go of.
+    ///
+    /// The editor's render calls this every frame, as a field's does (see
+    /// `TextFieldHandler.forgetHistoryIfReplaced()`), so a replacement (a
+    /// document loaded into the same editor) takes the editor's steps out of
+    /// the manager before the next key.
     func forgetHistoryIfReplaced() {
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
         forgetDroppedSteps()
@@ -101,8 +107,9 @@ extension TextEditorHandler {
 extension TextEditorHandler: AppUndoableText {
     func undoOwnStep(mark: TextUndoMark?) -> Bool {
         // Runs inside the undo manager's own undo, so a replaced text forgets
-        // the history here without touching the manager; the steps it drops
-        // leave the manager with the next edit.
+        // the history here without touching the manager (see
+        // `TextFieldHandler.undoOwnStep`); the steps it drops leave the
+        // manager at the next frame.
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
         guard let previous = undoHistory.undo(from: (text.wrappedValue, cursor), mark: mark) else { return false }
         restore(previous)

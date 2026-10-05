@@ -296,8 +296,10 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
-        // The app's undo manager, which the editor's edits are registered with.
+        // The app's undo manager, which the editor's edits are registered with,
+        // and the steps of text the app has replaced since, taken out of it.
         handler.undoManager = context.environment.undoManager
+        if !context.isMeasuring { handler.forgetHistoryIfReplaced() }
         handler.viewportHeight = height
         // Synced each render so the handler's vertical motion preserves the
         // same *visual* column the renderer draws the caret at.

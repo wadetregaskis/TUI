@@ -900,6 +900,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // `SecureField` resolves its own handler and leaves this nil: a secure
         // field's typing is not something to undo from elsewhere.
         handler.undoManager = context.environment.undoManager
+        // Text the app replaced since the field wrote it (cleared on submit):
+        // its steps leave the manager now, not at the field's next key, so the
+        // bar and the undo keys do not go on offering undos that do nothing.
+        if !context.isMeasuring { handler.forgetHistoryIfReplaced() }
         handler.selectionAffinity = context.environment.textSelectionAffinity
         // One line until a vertical field's render says otherwise, so a field
         // that changes axis between frames does not keep the old one's keys.

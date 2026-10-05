@@ -138,8 +138,18 @@ event) — one key while keys arrive one per pass of the run loop, several
 when they arrive together, a fast typist or a burst over ssh. A control's
 steps stay in the app's history until the control leaves the screen, or
 its own history lets them go (past its 50, or when the app replaces the
-text), and then leave it, so the manager never offers an undo that does
-nothing. A field's stay after it loses the focus: the lane first removed
+text), and then leave it, so the manager does not offer an undo that does
+nothing. A replacement — a field cleared on submit, another document loaded
+into the editor — is seen where the control renders, in the frame that
+draws the new text, before the status bar is built and before the next key
+(until the second review it was seen only at the control's next key, and
+`onSubmit { draft = "" }` left five dead undos ahead of the app's older
+steps, with "undo" on the bar). The one exception is an undo read in the
+same burst of input as the replacement, before any frame: it finds the text
+replaced and does nothing, and the control's other steps leave at the
+frame. Taking them out from inside that undo is the one thing not done:
+`NSUndoManager` keeps an emptied step for good when a handler removes others
+(measured on macOS 15). A field's stay after it loses the focus: the lane first removed
 them there, believing a macOS field editor drops its actions on resigning,
 but nothing measured or documented says so, and the field's own Ctrl-Z
 history had always outlived a change of focus. A `SecureField` registers

@@ -18,9 +18,10 @@ import Foundation
 /// document into the same editor, or clears a field on submit. The records
 /// then describe text that is no longer there, and undoing onto the new text
 /// would bring back text the control never produced from it. So the control
-/// tells the history what it writes (``noteWritten(_:)``), and before the
-/// history is used again (``forgetIfReplaced(current:)``) a text that is not
-/// the one last written means a replacement, and the history is forgotten.
+/// tells the history what it writes (``noteWritten(_:)``), and at every render
+/// and before the history is used again (``forgetIfReplaced(current:)``) a
+/// text that is not the one last written means a replacement, and the history
+/// is forgotten.
 ///
 /// One step per edit, and a key is one edit: typing a word takes as many
 /// undos as it has letters. The macOS text system groups a run of typing into
@@ -60,12 +61,14 @@ struct TextUndoHistory<Caret> {
         self.limit = limit
     }
 
-    /// Forgets the history if `current`, the bound text before the control
-    /// records or undoes an edit, is not the text the control last wrote.
+    /// Forgets the history if `current`, the bound text, is not the text the
+    /// control last wrote.
     ///
-    /// Call it before the control writes anything for the key (or click) it
-    /// is handling. Comparing strings is cheap when nothing replaced the text:
-    /// the binding hands back the storage the control wrote.
+    /// Call it at every render, so a replacement is seen as soon as it is
+    /// drawn, and before the control writes anything for the key (or click)
+    /// it is handling, for one made since. Comparing strings is cheap when
+    /// nothing replaced the text: the binding hands back the storage the
+    /// control wrote.
     ///
     /// - Returns: Whether it forgot.
     @discardableResult
@@ -213,8 +216,15 @@ protocol AppUndoableText: AnyObject {
 /// lets go of — past its limit, forgotten when the app replaced the text, a
 /// redo a new edit discarded — takes its step out with it
 /// (``forget(_:on:)``), and so does every state of a control that goes away.
-/// A step holds its control weakly, so it can neither keep one alive nor
-/// reach one that is gone.
+/// A replacement is seen where the control renders, which it does in the
+/// frame that draws the new text, ahead of the status bar and the next key.
+/// The one undo that can find nothing is one in the same burst of input as
+/// the replacement, before any frame: the control sees the replacement then,
+/// inside the manager's undo, which is spent, and the rest of its steps leave
+/// at the frame (taken out from inside the undo, they would leave
+/// `NSUndoManager` an emptied step it never drops — measured on macOS 15). A
+/// step holds its control weakly, so it can neither keep one alive nor reach
+/// one that is gone.
 ///
 /// The undo manager is isolated to the main actor and the controls are not,
 /// though they only ever run there.

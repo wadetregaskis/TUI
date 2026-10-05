@@ -168,6 +168,74 @@ struct TextUndoManagerTests {
         #expect(!manager.canUndo)
     }
 
+    /// Registers an app step of its own on `manager`, which clears `flag`
+    /// when undone.
+    private func registerAppStep(_ flag: Flag, on manager: UndoManager) {
+        manager.beginUndoGrouping()
+        manager.registerUndo(withTarget: flag) { $0.on = false }
+        manager.endUndoGrouping()
+    }
+
+    @Test("Text the app replaced takes the control's steps out at the next frame, before any key", arguments: [false, true])
+    func replacementSeenAtRender(editor: Bool) {
+        let manager = makeManager()
+        let box = TextBox()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = {
+            VStack {
+                if editor {
+                    TextEditor(text: Binding(get: { box.value }, set: { box.value = $0 }))
+                } else {
+                    self.field(box)
+                }
+            }
+        }
+        harness.play(typed("hello"), page)
+        #expect(box.value == "hello")
+        box.value = ""
+        harness.frame(page())
+        // No key yet: what the status bar, built after the page, would offer.
+        #expect(!manager.canUndo, "five undos that would each do nothing")
+    }
+
+    @Test("A field cleared on submit offers no undo for the cleared typing")
+    func clearedOnSubmit() {
+        let manager = makeManager()
+        let box = TextBox()
+        let older = Flag()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = {
+            TextField("Msg", text: Binding(get: { box.value }, set: { box.value = $0 })).onSubmit { box.value = "" }
+        }
+        registerAppStep(older, on: manager)
+        harness.play(typed("hello") + [KeyEvent(key: .enter)], page)
+        #expect(box.value.isEmpty)
+        harness.play([Self.undoKey], page)
+        #expect(!older.on)
+        #expect(!manager.canUndo)
+    }
+
+    @Test("An undo in the same burst of input as the replacement is the only one spent on it")
+    func replacementAndUndoInOneBurst() {
+        let manager = makeManager()
+        let box = TextBox()
+        let older = Flag()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = {
+            TextField("Msg", text: Binding(get: { box.value }, set: { box.value = $0 })).onSubmit { box.value = "" }
+        }
+        registerAppStep(older, on: manager)
+        harness.play(typed("hello"), page)
+        // Return and Ctrl-minus read together: no frame between them.
+        harness.press(KeyEvent(key: .enter))
+        harness.press(Self.undoKey)
+        #expect(older.on, "the field's newest step was undone, and found the text replaced")
+        harness.frame(page())
+        harness.play([Self.undoKey], page)
+        #expect(!older.on, "the field's other four left at the frame")
+        #expect(!manager.canUndo)
+    }
+
     @Test("Without an app, a field's Ctrl-Z and Ctrl-Shift-Z work on its own history")
     func fieldWithoutAnApp() {
         let box = TextBox()
