@@ -4,7 +4,8 @@
 //  SwiftUI's TapGesture and SpatialTapGesture attached with
 //  `gesture(_:including:)`: recognized on the release, with the thresholds
 //  measured on macOS 15.8 — the release on the view, within the slop, held
-//  no longer than 0.75 s, the next click of a multi-tap within 0.35 s.
+//  no longer than 0.75 s, the next click of a multi-tap released within
+//  0.35 s of the last.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -92,6 +93,39 @@ struct TapGestureTests {
         harness.frame(view())
         harness.click(2, 1, view)
         #expect(log.entries == ["double"], "0.4 s between them is too slow")
+    }
+
+    /// Measured on macOS 15.8: a second press 0.12 s after the first release,
+    /// held 0.15 s, double-taps; held 0.25 s — released 0.37 s after the
+    /// first — it does not, and the double tap has already given up at 0.35 s
+    /// with the button still down. The interval runs release to release; the
+    /// press in time is not enough.
+    @Test("count: 2 wants its second click released within 0.35 s of the first, not merely pressed")
+    func doubleTapReleaseToRelease() {
+        // (second press, its release, whether to draw the frame at the
+        // release's instant before the release arrives)
+        let cases: [(press: Int64, release: Int64, frameFirst: Bool, taps: [String])] = [
+            (150, 300, true, ["double"]),
+            (150, 400, true, []),
+            (150, 400, false, []),
+            (300, 450, true, []),
+        ]
+        for (press, release, frameFirst, taps) in cases {
+            let log = GestureRecord()
+            let harness = makeHarness()
+            let view = { box(TapGesture(count: 2).onEnded { log("double") }) }
+            harness.frame(view())
+            harness.click(2, 1, view)
+            harness.now = press * gestureMillisecond
+            harness.frame(view())
+            harness.pointer([(.pressed, 2, 1)], view)
+            harness.now = release * gestureMillisecond
+            // Drawn first, the frame's tick gives the tap up before the
+            // release; not, the release finds itself late by the event clock.
+            if frameFirst { harness.frame(view()) }
+            harness.pointer([(.released, 2, 1)], view)
+            #expect(log.entries == taps, "pressed at \(press) ms, released at \(release) ms, frame first \(frameFirst)")
+        }
     }
 
     @Test("SpatialTapGesture reports the release's cell, local or global, and only on its end")

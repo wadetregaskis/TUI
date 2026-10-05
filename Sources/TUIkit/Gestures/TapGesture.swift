@@ -37,8 +37,9 @@ import TUIkitCore
 ///   more than five columns or two rows from the press — about the 40 points
 ///   macOS allows;
 /// - the button may be held for at most 0.75 seconds;
-/// - for a `count` above one, each next press has to come within 0.35 seconds
-///   of the release before it.
+/// - for a `count` above one, each next click has to be released within 0.35
+///   seconds of the release before it — a press that comes in time but is
+///   held past that gives the tap up then, with the button still down.
 ///
 /// A tap that waits for a second click holds up whatever gesture it takes
 /// precedence over until it fails: `.onTapGesture(count: 2)` inside
@@ -86,9 +87,12 @@ public struct TapGesture: Gesture {
     /// did not).
     static let maximumHold: Double = 0.75
 
-    /// How soon after a release the next press must come to continue a
-    /// multi-tap: 0.35 s, measured on macOS 15.8 — shorter than the system's
-    /// 0.5 s double-click interval, which SwiftUI's taps do not use.
+    /// How soon after a release the next click must be released to continue
+    /// a multi-tap: 0.35 s, measured on macOS 15.8 — shorter than the system's
+    /// 0.5 s double-click interval, which SwiftUI's taps do not use. Release to
+    /// release: a second press 0.12 s after the first release and held 0.15 s
+    /// double-taps, held 0.25 s does not, and the tap gives up 0.35 s after the
+    /// first release while that press is still down (also measured there).
     static let multiTapInterval: Double = 0.35
 }
 
@@ -189,10 +193,10 @@ final class TapGestureNode<Value>: GestureNode<Value> {
     /// When the last click of the sequence was released, on the event clock.
     private var releaseTime: Int64 = 0
 
-    /// The running timer, on the frame clock: a press that may not be held
-    /// past it, or a release whose next press may not come after it. Armed by
-    /// the event, set by the first tick after it — so the event clock and the
-    /// frame clock are never compared.
+    /// The running timer, on the frame clock: a first press that may not be
+    /// held past it, or a release whose next click may not end after it.
+    /// Armed by the event, set by the first tick after it — so the event clock
+    /// and the frame clock are never compared.
     private var timer = GestureTimer()
 
     override func receive(_ input: GestureInput, deliver: Bool) {
@@ -213,11 +217,15 @@ final class TapGestureNode<Value>: GestureNode<Value> {
                 clicks = 0
                 phase = .possible
                 report(nil)
+                // A sequence's first press may be held for the hold limit. A
+                // later one runs on the wait its release started, which the
+                // press does not stop: macOS gives a double tap up 0.35 s
+                // after the first release with the second press still down.
+                timer.arm(seconds: TapGesture.maximumHold)
             }
             pressing = true
             pressLocation = pointer.globalLocation
             pressTime = pointer.timeNanos
-            timer.arm(seconds: TapGesture.maximumHold)
         case .moved:
             guard phase == .possible, pressing else { return }
             if strayed(to: pointer.globalLocation) { fail() }
@@ -227,8 +235,12 @@ final class TapGestureNode<Value>: GestureNode<Value> {
                 return
             }
             pressing = false
+            // The event-clock half of the timer: a release that arrives after
+            // its deadline, before the frame that would have failed it.
             guard pointer.isInside, !strayed(to: pointer.globalLocation),
-                pointer.timeNanos - pressTime <= GestureTimer.nanos(TapGesture.maximumHold)
+                pointer.timeNanos - pressTime <= GestureTimer.nanos(TapGesture.maximumHold),
+                clicks == 0
+                    || pointer.timeNanos - releaseTime <= GestureTimer.nanos(TapGesture.multiTapInterval)
             else {
                 fail()
                 return
