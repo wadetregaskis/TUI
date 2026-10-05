@@ -4772,6 +4772,16 @@ content). Adopted from Ghostty's VT reference
   (`FatalSignalTerminalRestore`). A write that gives up partway through a held
   frame is followed by the end marker on its own. Only those paths can leave
   a hold open, since each frame carries its own end marker.
+- **A non-blocking terminal.** The terminal's file description is shared
+  with the shell, and a crashed program (a Node CLI is the known case) can
+  leave it `O_NONBLOCK`. A frame larger than the pty's buffer then met
+  `EAGAIN` partway, and so did the end marker's retry straight after: the
+  display stayed held until the next multi-row frame, and a caret's blink is
+  not one. Every write now waits for room on `EAGAIN` (`poll` for `POLLOUT`),
+  as a blocking write would, so only a hard error gives up partway
+  (`Terminal.writeAll`, pinned by `SynchronizedOutputTests` and over a real
+  non-blocking pipe by `TerminalOutputTests`). TUIkit never sets the flag
+  itself; a dispatch read source on stdin does not either (checked, macOS 15).
 - **Sent to every host, nothing asked.** `CSI ? Pm h` has a `?` and no
   intermediate byte, the shape measured clean on Apple Terminal, iTerm2,
   Ghostty and Warp ("Asking the terminal — Device Attributes"), and `?2031h`,
@@ -4794,7 +4804,14 @@ rendered frame included.
 
 Ghostty's facts are read from its source on 2026-10-04, not measured. A
 process killed mid-frame (SIGKILL, which no handler sees) freezes Ghostty's
-display for a second at most; elsewhere for as long as the host holds.
+display for a second at most; elsewhere for as long as the host holds. So does
+one stopped mid-frame by `SIGSTOP` (`kill -STOP`, a debugger), which no
+handler sees either: the shell's "Stopped" line is held with it, until the
+process is continued or the host's timeout ends the hold. Nothing TUIkit can
+do about that is specific to the hold: a stopped process also leaves raw mode,
+the alternate screen and mouse tracking on. The window is one frame's write.
+`Ctrl-Z` is `SIGTSTP`, which TUIkit handles: its suspend sends the end marker
+first.
 
 ### To measure — `Tools/TerminalProbes/sync_probe.py`
 

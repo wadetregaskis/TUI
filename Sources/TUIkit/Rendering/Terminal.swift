@@ -1087,20 +1087,39 @@ extension Terminal {
     /// half-restored mid-teardown. `errno` is read immediately after the failed
     /// `write`, before any other call, since it is thread-local and transient.
     ///
-    /// - Parameter write: `write(2)` on standard output, unless a test hands
-    ///   in another that fails on cue.
+    /// **And on `EAGAIN`, once there is room.** The terminal's file description
+    /// is shared with the shell and whatever ran before, and a program that
+    /// set it non-blocking and crashed (a Node CLI is the known case) leaves it
+    /// so. TUIkit never sets it (a dispatch read source does not either,
+    /// checked on macOS 15), but on such a descriptor a frame larger than the
+    /// pty's buffer used to stop at the first `EAGAIN`: torn, and, for a frame
+    /// that holds the display (``writeFrame(_:omitting:holdsDisplay:through:waitingForRoom:)``),
+    /// with its end marker's retry failing the same way, so the terminal went
+    /// on holding until the next multi-row frame. Now it waits for room as a
+    /// blocking write would, for as long as one would.
+    ///
+    /// - Parameters:
+    ///   - write: `write(2)` on standard output, unless a test hands in
+    ///     another that fails on cue.
+    ///   - waitForRoom: Waits until the descriptor can take more, after an
+    ///     `EAGAIN`: ``waitForRoom(on:until:)`` on standard output, unless a
+    ///     test hands in another. `false` gives up on the rest.
     /// - Returns: Whether every byte was written: `false` when a hard error,
     ///   or a write that took nothing, gave up on the rest.
     @discardableResult
     static func writeAll(
         _ base: UnsafePointer<UInt8>, _ count: Int,
-        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput
+        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput,
+        waitingForRoom waitForRoom: () -> Bool = { Terminal.waitForRoom() }
     ) -> Bool {
         var written = 0
         while written < count {
             let result = write(base + written, count - written)
             if result < 0 {
-                if errno == EINTR { continue }  // interrupted by a signal — retry the rest
+                let error = errno
+                if error == EINTR { continue }  // interrupted by a signal — retry the rest
+                // A non-blocking descriptor that is full — wait, then retry the rest.
+                if error == EAGAIN || error == EWOULDBLOCK, waitForRoom() { continue }
                 return false                     // real write error — give up on the remainder
             }
             if result == 0 { return false }      // wrote nothing — avoid an infinite spin
@@ -1109,10 +1128,41 @@ extension Terminal {
         return true
     }
 
-    /// `write(2)` to standard output: what ``writeAll(_:_:through:)`` writes
-    /// through unless a test hands it another.
+    /// `write(2)` to standard output: what ``writeAll(_:_:through:waitingForRoom:)``
+    /// writes through unless a test hands it another.
     nonisolated static func writeToStandardOutput(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
         Foundation.write(STDOUT_FILENO, base, count)
+    }
+
+    /// Waits until `descriptor` can take more bytes, or `deadline` passes:
+    /// what a blocking `write` does inside the kernel, for a descriptor left
+    /// non-blocking (see ``writeAll(_:_:through:waitingForRoom:)``).
+    ///
+    /// An `EINTR` resumes the wait against the same deadline, as
+    /// ``waitForInput(on:until:)``'s does, for its reasons.
+    ///
+    /// - Parameters:
+    ///   - descriptor: Standard output, unless a test drives a pipe.
+    ///   - deadline: When to give up; `nil`, the frame writer's, waits as long
+    ///     as a blocking write would.
+    /// - Returns: `true` once the descriptor reports room; `false` on the
+    ///   deadline, on any error that is not `EINTR`, or when the descriptor
+    ///   reports a hang-up or an error instead of room.
+    nonisolated static func waitForRoom(on descriptor: Int32 = STDOUT_FILENO, until deadline: Date? = nil) -> Bool {
+        while true {
+            var timeout: Int32 = -1
+            if let deadline {
+                let remaining = deadline.timeIntervalSinceNow
+                guard remaining > 0 else { return false }
+                timeout = Int32(remaining * 1000)
+            }
+            var target = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
+            let ready = poll(&target, 1, timeout)
+            if ready > 0 { return target.revents & Int16(POLLOUT) != 0 }
+            // `errno` is thread-local and transient, so it is read here, before
+            // anything else can overwrite it.
+            guard ready < 0, errno == EINTR else { return false }
+        }
     }
 
     /// Writes a finished frame: all of it, or the parts either side of an
@@ -1121,9 +1171,10 @@ extension Terminal {
     /// A frame that holds the display carries its end marker as its last
     /// bytes, so a write that gives up partway would leave the terminal
     /// holding: Ghostty for a second, other hosts unmeasured. So then the end
-    /// marker is tried again on its own. A write that failed hard will likely
-    /// fail again, and that costs nothing; a terminal still reading is let go
-    /// at once.
+    /// marker is tried again on its own. Only a hard error gives up now — a
+    /// full non-blocking descriptor is waited on (``writeAll(_:_:through:waitingForRoom:)``)
+    /// — and one will likely fail again, which costs nothing; a terminal
+    /// still reading is let go at once.
     ///
     /// - Parameters:
     ///   - frame: The frame's bytes.
@@ -1132,22 +1183,28 @@ extension Terminal {
     ///     kept.
     ///   - write: `write(2)` on standard output, unless a test hands in
     ///     another.
+    ///   - waitForRoom: How a full non-blocking descriptor is waited on:
+    ///     ``waitForRoom(on:until:)`` on standard output, unless a test hands
+    ///     in another.
     static func writeFrame(
         _ frame: UnsafeBufferPointer<UInt8>, omitting omitted: Range<Int>?, holdsDisplay: Bool,
-        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput
+        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput,
+        waitingForRoom waitForRoom: () -> Bool = { Terminal.waitForRoom() }
     ) {
         guard let base = frame.baseAddress else { return }
         let complete =
             if let omitted {
-                writeAll(base, omitted.lowerBound, through: write)
-                    && writeAll(base + omitted.upperBound, frame.count - omitted.upperBound, through: write)
+                writeAll(base, omitted.lowerBound, through: write, waitingForRoom: waitForRoom)
+                    && writeAll(
+                        base + omitted.upperBound, frame.count - omitted.upperBound,
+                        through: write, waitingForRoom: waitForRoom)
             } else {
-                writeAll(base, frame.count, through: write)
+                writeAll(base, frame.count, through: write, waitingForRoom: waitForRoom)
             }
         guard !complete, holdsDisplay else { return }
         Self.synchronizedUpdateEndBytes.withUnsafeBufferPointer { end in
             guard let endBase = end.baseAddress else { return }
-            writeAll(endBase, end.count, through: write)
+            writeAll(endBase, end.count, through: write, waitingForRoom: waitForRoom)
         }
     }
 
@@ -1155,7 +1212,7 @@ extension Terminal {
     private static let synchronizedUpdateEndBytes = Array(synchronizedUpdateEnd.utf8)
 
     /// Writes all buffered bytes to `STDOUT_FILENO`, or to the scripted
-    /// terminal a test installed: through ``writeFrame(_:omitting:holdsDisplay:through:)``,
+    /// terminal a test installed: through ``writeFrame(_:omitting:holdsDisplay:through:waitingForRoom:)``,
     /// whose two parameters these are.
     fileprivate func flushBuffer(omitting omitted: Range<Int>? = nil, holdingDisplay: Bool = false) {
         guard !frameBuffer.isEmpty else { return }

@@ -105,28 +105,65 @@ struct SynchronizedOutputTests {
     }
     #endif
 
-    /// `write` that takes `firstWrite` bytes, then fails with `EIO`, then
-    /// takes everything, recording what it took.
+    /// `write` that takes `firstWrite` bytes, then fails with `error` (`EIO`
+    /// unless a test says otherwise) `times` times, then takes everything,
+    /// recording what it took.
     private final class FlakyOutput {
         let firstWrite: Int
+        let error: Int32
+        let times: Int
         var taken: [UInt8] = []
         var calls = 0
 
-        init(firstWrite: Int) { self.firstWrite = firstWrite }
+        init(firstWrite: Int, failingWith error: Int32 = EIO, times: Int = 1) {
+            self.firstWrite = firstWrite
+            self.error = error
+            self.times = times
+        }
 
         func write(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
             calls += 1
             let length: Int
             switch calls {
             case 1: length = min(count, firstWrite)
-            case 2:
-                errno = EIO
+            case 2...(1 + times):
+                errno = error
                 return -1
             default: length = count
             }
             taken.append(contentsOf: UnsafeBufferPointer(start: base, count: length))
             return length
         }
+    }
+
+    /// A descriptor a crashed program left non-blocking reports `EAGAIN` when
+    /// full, and the end marker's retry right after met the same. The hold
+    /// then lasted until the next multi-row frame: a caret's blink or a
+    /// breath writes one row and no end marker.
+    @Test("A held frame on a full non-blocking descriptor waits for room and goes out whole, end marker and all")
+    func fullNonBlockingDescriptorWaits() {
+        let frame = Array((Self.begin + "\u{1B}[1;1Hx\u{1B}[2;1Hx" + Self.end).utf8)
+        let output = FlakyOutput(firstWrite: 12, failingWith: EAGAIN, times: 2)
+        var waits = 0
+        frame.withUnsafeBufferPointer { buffer in
+            Terminal.writeFrame(
+                buffer, omitting: nil, holdsDisplay: true, through: output.write,
+                waitingForRoom: {
+                    waits += 1
+                    return true
+                })
+        }
+        #expect(output.taken == frame, "every byte once, in order")
+        #expect(waits == 2, "once per EAGAIN")
+
+        let stuck = FlakyOutput(firstWrite: 12, failingWith: EAGAIN, times: 1)
+        frame.withUnsafeBufferPointer { buffer in
+            Terminal.writeFrame(
+                buffer, omitting: nil, holdsDisplay: true, through: stuck.write, waitingForRoom: { false })
+        }
+        #expect(
+            stuck.taken == Array(frame.prefix(12)) + Array(Self.end.utf8),
+            "a wait that gives up is a failed write: the end marker follows on its own")
     }
 
     @Test("A write that gives up partway through a held frame is followed by the end marker on its own")
