@@ -50,7 +50,9 @@ struct GestureRole {
 /// are held back. When a gesture recognizes, the ones after it are cancelled;
 /// when it fails, the next is released — fed the event that released it, then
 /// given what it held back, which is its end alone if it had already ended (as
-/// macOS reports a drag that a button held up until its release). A control
+/// macOS reports a drag that a button held up until its release). One that
+/// ended while held back keeps that end, and hears nothing more until it is
+/// released: then the end comes first and the event after it. A control
 /// cannot wait like that: it is given the press once everything ahead of it
 /// has failed, and the rest of the gesture through the dispatcher's ordinary
 /// capture.
@@ -243,15 +245,30 @@ final class GestureArena {
 
     /// One ranked gesture's turn: fed and allowed to report if everything
     /// ahead of it has given up, fed and held back otherwise.
+    ///
+    /// A gesture held back that has already ended keeps that end until it is
+    /// released, and hears nothing more while it waits — not even a press that
+    /// would start it again. So a single tap behind a double tap runs for the
+    /// first click when the second click gives the double tap up (held too
+    /// long, or strayed), and does not run again for that second click: what
+    /// macOS 15.8 does. Fed the second press, it started over, and the click
+    /// it had recognized was lost.
     private func advance(_ contender: Contender, at index: Int, by input: Input?, released: Bool) -> Step {
         guard !contender.isOut, let root = contender.participant.root else { return .passed }
-        if released {
+        let holdsEnd = contender.isHeldBack && root.phase == .ended
+        if released, holdsEnd {
+            // The end came before this input, so it is reported first; the
+            // input then goes to it as to any gesture under way.
+            contender.isHeldBack = false
+            root.flush()
+            if let input { feed(contender, input, deliver: true) }
+        } else if released {
             if let input { feed(contender, input, deliver: !contender.isHeldBack) }
             if contender.isHeldBack {
                 contender.isHeldBack = false
                 root.flush()
             }
-        } else if let input {
+        } else if let input, !holdsEnd {
             feed(contender, input, deliver: false)
             contender.isHeldBack = true
         }

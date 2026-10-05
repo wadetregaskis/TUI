@@ -228,6 +228,51 @@ struct GestureArbitrationTests {
         #expect(play(form, clicks: [0, 150, 1_000], end: 2_000) == ["double", "single"])
     }
 
+    /// Measured on macOS 15.8 in all three spellings: a click, then a second
+    /// click that gives the double tap up — its press held past the
+    /// double-tap interval, or strayed past the slop — runs the single tap
+    /// once, for the FIRST click, the moment the double tap gives up. The
+    /// second click runs nothing, even one short enough to be a tap: the
+    /// single tap is waiting with the first click recognized, and does not
+    /// start over at the second press. A third click is a click of its own.
+    @Test("When the second click gives the double tap up, the single tap runs once, for the first", arguments: DoubleThenSingle.allCases)
+    func secondClickFailsTheDouble(_ form: DoubleThenSingle) {
+        let held = GestureRecord()
+        var harness = makeHarness()
+        var view = { form.view(held) }
+        harness.frame(view())
+        harness.click(2, 1, view)
+        harness.now = 150 * gestureMillisecond
+        harness.frame(view())
+        harness.pointer([(.pressed, 2, 1)], view)
+        harness.now = 360 * gestureMillisecond
+        harness.frame(view())
+        #expect(held.entries == ["single"], "held: when the double tap gives up, the button still down")
+        harness.now = 400 * gestureMillisecond
+        harness.frame(view())
+        harness.pointer([(.released, 2, 1)], view)  // 250 ms: short enough to tap
+        harness.now = 1_500 * gestureMillisecond
+        harness.frame(view())
+        #expect(held.entries == ["single"], "held: the second click is no tap of its own")
+
+        let strayed = GestureRecord()
+        harness = makeHarness()
+        view = { form.view(strayed) }
+        harness.frame(view())
+        harness.click(2, 1, view)
+        harness.now = 150 * gestureMillisecond
+        harness.frame(view())
+        harness.pointer([(.pressed, 2, 1), (.dragged, 9, 1)], view)
+        #expect(strayed.entries == ["single"], "strayed: when the move gives the double tap up")
+        harness.pointer([(.released, 9, 1)], view)
+        harness.now = 300 * gestureMillisecond
+        harness.frame(view())
+        harness.click(2, 1, view)
+        harness.now = 1_500 * gestureMillisecond
+        harness.frame(view())
+        #expect(strayed.entries == ["single", "single"], "strayed: the third click taps on its own")
+    }
+
     @Test("A long press inside a tap: held, the press wins; clicked, the tap")
     func longPressBeforeTap() {
         for (hold, expected) in [(Int64(600), ["long"]), (Int64(20), ["tap"])] {

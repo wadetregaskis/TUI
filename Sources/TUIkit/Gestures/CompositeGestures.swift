@@ -327,12 +327,27 @@ final class ExclusiveGestureNode<First: Gesture, Second: Gesture>: GestureNode<E
     private var secondReleased = false
 
     override func receive(_ input: GestureInput, deliver: Bool) {
+        var begins = false
         if case .pointer(let pointer) = input, pointer.kind == .down, isSettled(phase) {
+            begins = true
             secondReleased = false
         }
+        // An end the second part reached while held back is kept until the
+        // first fails, and the second hears nothing more meanwhile — not even
+        // a press that would start it again. The arena's rule for a gesture
+        // held back behind another (`GestureArena`), between the two parts.
+        let secondHoldsEnd = !begins && !secondReleased && second.phase == .ended
         first.receive(input, deliver: deliver)
         if first.phase.hasRecognized {
             if !isSettled(second.phase) { second.cancel() }
+        } else if first.phase == .failed, secondHoldsEnd {
+            // The end came before this input: reported first, and the input
+            // then goes to it as to any gesture under way.
+            if deliver {
+                secondReleased = true
+                second.flush()
+                second.receive(input, deliver: true)
+            }
         } else if first.phase == .failed {
             // Fed first, then told: what it held back is what it has now, as
             // macOS reports a gesture that won only when the one ahead of it
@@ -342,7 +357,7 @@ final class ExclusiveGestureNode<First: Gesture, Second: Gesture>: GestureNode<E
                 secondReleased = true
                 second.flush()
             }
-        } else {
+        } else if !secondHoldsEnd {
             second.receive(input, deliver: false)
         }
         recompute()

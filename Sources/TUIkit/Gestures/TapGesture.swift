@@ -44,7 +44,10 @@ import TUIkitCore
 /// A tap that waits for a second click holds up whatever gesture it takes
 /// precedence over until it fails: `.onTapGesture(count: 2)` inside
 /// `.onTapGesture` delays the single tap by the double-tap interval, so that a
-/// double-click runs only the double tap — as on macOS.
+/// double-click runs only the double tap — as on macOS. When it is the second
+/// click that gives the double tap up, held too long or strayed, the single
+/// tap runs once, for the first click, and not again for the second — as on
+/// macOS too.
 public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int
