@@ -4367,7 +4367,10 @@ the keypad.
   last reported, delivered at the first read after the resume. After the
   re-push, the first key report that differs from that state reports the
   state again: a modifier held through `fg`, or Caps Lock changed in the
-  shell. Until the 2026-10-05 review the app kept the state it had: a Ctrl
+  shell. That needs the lock bit in the report, so where negotiation drops
+  flag 8 (typed text then arrives as plain bytes), a Caps Lock turned off in
+  the shell reads as on until the first key that is not text, as after a
+  focus loss. Until the 2026-10-05 review the app kept the state it had: a Ctrl
   held for the Ctrl-Z that suspended it and released in the shell matched
   the fresh memory's "nothing held", so no report came, and a
   `modifierKeyAlternate(.control)` stayed drawn after `fg` until Ctrl was
