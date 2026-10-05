@@ -93,7 +93,7 @@ extension Text {
     /// Such a text in a one-line table cell is drawn as the string it holds,
     /// exactly as a `String` key path's value is.
     var drawsAsPlainString: Bool {
-        isUnstyled && !content.utf8.contains(UInt8(ascii: "\n"))
+        isUnstyled && !content.containsLineFeed
     }
 
     /// Whether this text draws nothing but its characters: no style or styled
@@ -101,6 +101,22 @@ extension Text {
     /// as the string it holds, as `Text` lays itself out.
     var isUnstyled: Bool {
         runs == nil && style == TextStyle()
+    }
+}
+
+extension String {
+    /// Whether this string holds a line feed.
+    ///
+    /// `memchr` over the string's UTF-8 rather than `utf8.contains(_:)`, which
+    /// steps the view one index at a time: a table asks this of every plain
+    /// `Text` cell on every pass, and its cells are often whole sentences.
+    /// A string with no contiguous UTF-8 (a lazily bridged `NSString`) takes
+    /// the element scan.
+    var containsLineFeed: Bool {
+        utf8.withContiguousStorageIfAvailable { bytes in
+            guard let base = bytes.baseAddress else { return false }
+            return memchr(base, Int32(UInt8(ascii: "\n")), bytes.count) != nil
+        } ?? utf8.contains(UInt8(ascii: "\n"))
     }
 }
 

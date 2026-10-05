@@ -4036,7 +4036,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// A cell's width in cells: its widest line when it arrived laid out.
     private static func widestLine(of value: String, laidOut: Bool) -> Int {
-        guard laidOut, value.utf8.contains(UInt8(ascii: "\n")) else { return value.strippedLength }
+        guard laidOut, value.containsLineFeed else { return value.strippedLength }
         return value.split(separator: "\n", omittingEmptySubsequences: false)
             .map { String($0).strippedLength }.max() ?? 0
     }

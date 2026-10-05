@@ -61,6 +61,15 @@ struct TableColumnContentTests {
         if case .text = view { Issue.record("a padded Text took the text path") }
     }
 
+    @Test("A plain Text's line feed is found wherever it sits, and only a line feed")
+    func lineFeedScan() {
+        #expect(!"".containsLineFeed && !"plain".containsLineFeed)
+        #expect("a\nb".containsLineFeed && "\n".containsLineFeed)
+        #expect((String(repeating: "x", count: 100) + "\n").containsLineFeed)
+        #expect(!("\r" + String(repeating: "é", count: 40)).containsLineFeed)
+        #expect((NSString(string: "bridged\nvalue") as String).containsLineFeed)
+    }
+
     @Test("Any other view is rendered into its cell")
     func viewCell() {
         let buffer = render(
