@@ -32,9 +32,11 @@ import TUIkitView
 /// ```
 ///
 /// SwiftUI also lets you write `@Entry var pinRotation: Double = 0` inside the
-/// extension, which generates those same declarations. `@Entry` is a macro,
-/// and TUIkit ships no macros — a macro target would put swift-syntax into
-/// every app's build — so the key is written out by hand, as an
+/// extension, which generates those same declarations. `@Entry` is a macro.
+/// TUIkit's macros live in the opt-in `TUIkitMacros` product, which an app
+/// imports beside TUIkit so that only an app that asks for them builds
+/// swift-syntax, and `@Entry` is not one of them yet — it holds `@Animatable`
+/// and `@AnimatableIgnored` — so the key is written out by hand, as an
 /// `EnvironmentKey` is.
 public protocol ContainerValueKey {
     /// The type of value produced by the container value.
