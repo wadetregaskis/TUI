@@ -190,15 +190,7 @@ public struct RowShortcuts: Hashable, Sendable {
     public func shortcuts(
         for action: RowAction, commandKey: CommandKeyBinding = .control
     ) -> [KeyboardShortcut] {
-        // The table a key is dispatched through, not a second copy of its rule:
-        // which chord goes to which action is decided in one place. Built
-        // without a report, so a help section is not a second place a debug
-        // build stops for a mistake the list itself reports.
-        let dispatch = lookup(commandKey: commandKey, onClash: { _ in })
-        let written = (overrides[action] ?? .default).resolved(defaults: action.defaultShortcuts)
-        // A Set, because two spellings (⌘E, Ctrl-E) resolve to one chord.
-        let resolved = Set(written.compactMap { $0.resolved(commandKey: commandKey) })
-        return resolved.filter { dispatch.action(for: $0.trigger) == action }.sorted()
+        boundShortcuts(for: action, commandKey: commandKey)
     }
 
     /// The chord to *show* for `action` when there is only room for one — the
@@ -210,9 +202,7 @@ public struct RowShortcuts: Hashable, Sendable {
     public func hint(
         for action: RowAction, commandKey: CommandKeyBinding = .control
     ) -> String? {
-        let bound = shortcuts(for: action, commandKey: commandKey)
-        let stock = action.defaultShortcuts.compactMap { $0.resolved(commandKey: commandKey) }
-        return (bound.first { stock.contains($0) } ?? bound.first)?.displayString
+        hint(for: action, among: shortcuts(for: action, commandKey: commandKey), commandKey: commandKey)
     }
 
     /// The chord → action map the key handler dispatches through, built once
@@ -226,41 +216,16 @@ public struct RowShortcuts: Hashable, Sendable {
     func lookup(
         commandKey: CommandKeyBinding, onClash report: (String) -> Void = { SoftTrap.report($0) }
     ) -> RowShortcutLookup {
-        var byTrigger: [KeyboardShortcut.Trigger: RowAction] = [:]
-        // The chords an override has claimed, keyed by the chord each one
-        // RESOLVES to rather than by how it was written: ⌘E and Ctrl-E are one
-        // key where ⌘ stands for Control, and comparing the written shortcuts
-        // let the later of two such overrides take the chord in silence.
-        var claimedByOverride: [KeyboardShortcut.Trigger: RowAction] = [:]
-        // Defaults first, then the overrides on top: an app that binds Ctrl-A to
-        // something else means it, and the default that used to hold that chord
-        // yields rather than fighting over it.
-        for pass in [false, true] {
-            for action in RowAction.allCases {
-                let set = overrides[action] ?? .default
-                let shortcuts = pass ? set.explicit : (set.includesDefaults ? action.defaultShortcuts : [])
-                for shortcut in shortcuts {
-                    guard let resolved = shortcut.resolved(commandKey: commandKey) else { continue }
-                    // Two OVERRIDES on one chord is a mistake only the app can
-                    // fix, so say so — and still resolve it the same way every
-                    // run (RowAction's declaration order), never by whichever
-                    // way the dictionary happened to hash.
-                    let clash = pass ? claimedByOverride[resolved.trigger] : nil
-                    if let existing = clash, existing != action {
-                        report(
-                            "rowShortcuts binds \(resolved.displayString ?? "?") to both "
-                                + "\(existing) and \(action); \(existing), which RowAction "
-                                + "declares first, keeps it")
-                        continue
-                    }
-                    byTrigger[resolved.trigger] = action
-                    if pass { claimedByOverride[resolved.trigger] = action }
-                }
-            }
-        }
-        return RowShortcutLookup(byTrigger: byTrigger)
+        RowShortcutLookup(byTrigger: triggerTable(commandKey: commandKey, onClash: report))
     }
 }
+
+/// The table's rules are ``ShortcutTable``'s, kept there for every table of its kind.
+extension RowShortcuts: ShortcutTable {
+    static var modifierName: String { "rowShortcuts" }
+}
+
+extension RowAction: ShortcutTableAction {}
 
 /// The resolved chord → action map, captured by the key handler at render time
 /// (the environment is out of reach when the key actually arrives).
