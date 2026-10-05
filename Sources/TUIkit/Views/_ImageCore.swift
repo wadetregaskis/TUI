@@ -64,6 +64,26 @@ struct _ImageCore: View, Renderable, Layoutable {
         // 1/512 zoom shrinks gracefully to a single cell instead of vanishing.
         let zoom = environment.imageZoom
 
+        // Reading the phase box is a pure lookup (no mutation that matters
+        // during a measure pass).
+        let loaded: RGBAImage? = environment.stateStorage.flatMap { stateStorage in
+            let phaseKey = StateStorage.StateKey(
+                identity: context.identity, propertyIndex: StateIndex.phase)
+            let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
+                for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
+            guard case .success(let rawImage) = phaseBox.value, rawImage.width > 0, rawImage.height > 0 else {
+                return nil
+            }
+            return rawImage
+        }
+
+        // Its own size, whatever it is offered, where it has one — and before
+        // the box below, whose viewport read would keep a memo above from
+        // storing a size that does not depend on it.
+        if let loaded, let natural = naturalBox(of: loaded, in: environment) {
+            return .fixed(Self.zoomed(natural.width, zoom), Self.zoomed(natural.height, zoom))
+        }
+
         // The box the image scales to fit: the visible viewport (when requested and
         // available) or the size the layout proposes. `.viewport` is what lets an
         // image fill the visible area at zoom 1 and overflow (scroll) only once
@@ -89,23 +109,15 @@ struct _ImageCore: View, Renderable, Layoutable {
 
         // Once the image has loaded, report the SAME aspect-fitted size the renderer
         // produces (height follows from width × aspect ratio), then apply zoom.
-        // Reading the phase box is a pure lookup (no mutation that matters during a
-        // measure pass).
-        if let stateStorage = environment.stateStorage {
-            let phaseKey = StateStorage.StateKey(
-                identity: context.identity, propertyIndex: StateIndex.phase)
-            let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
-                for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
-            if case .success(let rawImage) = phaseBox.value, rawImage.width > 0, rawImage.height > 0 {
-                let fitted = Self.cellBox(
-                    imageWidth: rawImage.width, imageHeight: rawImage.height,
-                    maxWidth: fitWidth, maxHeight: fitHeight,
-                    stretches: effectiveResizing(in: environment) != nil,
-                    contentMode: environment.imageContentMode,
-                    aspectRatio: environment.imageAspectRatio,
-                    cellAspect: environment.imageCellAspect)
-                return .fixed(Self.zoomed(fitted.width, zoom), Self.zoomed(fitted.height, zoom))
-            }
+        if let rawImage = loaded {
+            let fitted = Self.cellBox(
+                imageWidth: rawImage.width, imageHeight: rawImage.height,
+                maxWidth: fitWidth, maxHeight: fitHeight,
+                stretches: effectiveResizing(in: environment) != nil,
+                contentMode: environment.imageContentMode,
+                aspectRatio: environment.imageAspectRatio,
+                cellAspect: environment.imageCellAspect)
+            return .fixed(Self.zoomed(fitted.width, zoom), Self.zoomed(fitted.height, zoom))
         }
 
         // Before it loads, the aspect ratio is unknown — reserve a bounded
@@ -151,7 +163,7 @@ struct _ImageCore: View, Renderable, Layoutable {
     }
 
     /// Multiplies a cell dimension by the zoom factor (rounded, floored at 1).
-    private static func zoomed(_ value: Int, _ factor: Double) -> Int {
+    static func zoomed(_ value: Int, _ factor: Double) -> Int {
         factor == 1 ? value : max(1, Int((Double(value) * factor).rounded()))
     }
 
@@ -260,7 +272,11 @@ struct _ImageCore: View, Renderable, Layoutable {
                 context: context
             )
 
-        case .success(let rawImage):
+        case .success(let loadedImage):
+            // What is drawn into which box: at its natural size, the image's
+            // own box; otherwise the box it was handed, to fit or fill.
+            let (rawImage, drawWidth, drawHeight, resizing) = drawing(
+                loadedImage, in: (renderWidth, renderHeight), zoom: zoom, environment: context.environment)
             // Real pixels first, where the terminal will take them. Falls
             // through to the glyph renderer for every terminal that did not
             // answer the startup handshake, every subtree that asked for
@@ -270,16 +286,15 @@ struct _ImageCore: View, Renderable, Layoutable {
             // A template is drawn as cells: its pixels are recoloured, and a
             // picture of them would be one more thing to keep current.
             // So is an image in slices: its pixels are made for the box.
-            let resizing = effectiveResizing(in: context.environment)
             if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
-                rawImage, width: renderWidth, height: renderHeight, context: context)
+                rawImage, width: drawWidth, height: drawHeight, stretches: resizing != nil, context: context)
             {
                 return drawn
             }
             return renderImage(
                 rawImage,
-                width: renderWidth,
-                height: renderHeight,
+                width: drawWidth,
+                height: drawHeight,
                 characterSet: characterSet,
                 shapeAware: shapeAware,
                 colorMode: colorMode,
@@ -895,7 +910,7 @@ extension _ImageCore {
     ///   placeholders can address (297 cells; there is no combining mark for
     ///   the 298th column).
     fileprivate func renderWithTerminalGraphics(
-        _ rawImage: RGBAImage, width: Int, height: Int, context: RenderContext
+        _ rawImage: RGBAImage, width: Int, height: Int, stretches: Bool, context: RenderContext
     ) -> FrameBuffer? {
         guard KittyGraphics.isSupported,
             context.environment.terminalGraphics,
@@ -909,7 +924,7 @@ extension _ImageCore {
         let target = Self.cellBox(
             imageWidth: rawImage.width, imageHeight: rawImage.height,
             maxWidth: width, maxHeight: height,
-            stretches: effectiveResizing(in: context.environment) != nil,
+            stretches: stretches,
             contentMode: context.environment.imageContentMode,
             aspectRatio: context.environment.imageAspectRatio,
             cellAspect: context.environment.imageCellAspect)

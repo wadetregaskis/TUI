@@ -78,12 +78,77 @@ struct _ImageResizing: Equatable, Sendable {
     }
 }
 
+extension _ImageResizing {
+    /// A plain stretch to the box — what an image at its natural size draws
+    /// with, its box being its own shape.
+    static let filling = Self(capInsets: EdgeInsets(), mode: .stretch)
+}
+
 extension _ImageCore {
     /// The resizing this image draws with here: its own, unless a content mode
     /// set around it keeps its aspect instead.
     func effectiveResizing(in environment: EnvironmentValues) -> _ImageResizing? {
         environment.imageExplicitContentMode == nil ? resizing : nil
     }
+
+    /// The cells a loaded image takes at its natural size, before any zoom —
+    /// its size in points over the cell's — or `nil` where it takes none and
+    /// fits what it is offered instead.
+    ///
+    /// SwiftUI draws an image that is not resizable at its size in points:
+    /// its pixels over its scale (``_DecodedImage/pointSize(of:)``). A cell's
+    /// size in points is what turns that into cells, and it is known only
+    /// where the host's report has been measured
+    /// (``EnvironmentValues/imageCellPoints``). So: an image that is not
+    /// resizable, under the default ``ImageFitTarget/naturalSize``, where the
+    /// cell's size is known. Rounded to whole cells, at least one each way,
+    /// and at most `maximumNaturalCells`.
+    func naturalBox(of rawImage: RGBAImage, in environment: EnvironmentValues) -> (width: Int, height: Int)? {
+        guard resizing == nil, environment.imageFitTarget == .naturalSize,
+            let cell = environment.imageCellPoints, rawImage.width > 0, rawImage.height > 0
+        else { return nil }
+        let size = decoded?.pointSize(of: rawImage) ?? (width: Double(rawImage.width), height: Double(rawImage.height))
+        func cells(_ points: Double, _ cell: Double) -> Int {
+            let count = (points / cell).rounded()
+            guard count.isFinite else { return 1 }
+            return Int(Swift.min(Swift.max(1, count), Double(Self.maximumNaturalCells)))
+        }
+        return (cells(size.width, cell.width), cells(size.height, cell.height))
+    }
+
+    /// What a loaded image draws, into which box, and how it fills it.
+    ///
+    /// At its natural size the image draws its own box, whatever it was
+    /// handed — as the measure said, and as SwiftUI draws a picture that is not
+    /// resizable. The box IS the image's shape, so it is filled rather than
+    /// fitted, which could lose a cell to rounding.
+    ///
+    /// Larger than the space it was given, it is cut to that space from its
+    /// top-leading corner, as every view's buffer is cut to its space — but its
+    /// PIXELS are cut first, so the part nobody will see is never converted. A
+    /// picture tens of thousands of pixels across, at its natural size in an
+    /// 80-column terminal, converts 80 columns.
+    ///
+    /// Otherwise it is the image whole, in `space`, with its own resizing.
+    func drawing(
+        _ image: RGBAImage, in space: (width: Int, height: Int), zoom: Double, environment: EnvironmentValues
+    ) -> (image: RGBAImage, width: Int, height: Int, resizing: _ImageResizing?) {
+        guard let natural = naturalBox(of: image, in: environment) else {
+            return (image, space.width, space.height, effectiveResizing(in: environment))
+        }
+        let full = (width: Self.zoomed(natural.width, zoom), height: Self.zoomed(natural.height, zoom))
+        let width = Swift.min(full.width, space.width)
+        let height = Swift.min(full.height, space.height)
+        guard width < full.width || height < full.height else { return (image, width, height, .filling) }
+        let cut = image.croppedToLeading(
+            fraction: (Double(width) / Double(full.width), Double(height) / Double(full.height)))
+        return (cut, width, height, .filling)
+    }
+
+    /// The most cells an image takes on either axis at its natural size: more
+    /// than any terminal shows, and the bound that keeps the arithmetic, and the
+    /// conversion, finite for a picture tens of thousands of pixels across.
+    static let maximumNaturalCells = 4_096
 
     /// The cells a loaded image draws in, given at most `maxWidth` ×
     /// `maxHeight`.
@@ -117,6 +182,21 @@ extension _ImageCore {
 // MARK: - Slices
 
 extension RGBAImage {
+    /// The image's top-leading part: `fraction` of its width and of its
+    /// height, rounded up to whole pixels, at least one each way.
+    func croppedToLeading(fraction: (width: Double, height: Double)) -> RGBAImage {
+        guard width > 0, height > 0 else { return self }
+        let columns = Swift.min(width, Swift.max(1, Int((Double(width) * fraction.width).rounded(.up))))
+        let rows = Swift.min(height, Swift.max(1, Int((Double(height) * fraction.height).rounded(.up))))
+        guard columns < width || rows < height else { return self }
+        var out: [RGBA] = []
+        out.reserveCapacity(columns * rows)
+        for row in 0..<rows {
+            out.append(contentsOf: pixels[(row * width)..<(row * width + columns)])
+        }
+        return RGBAImage(width: columns, height: rows, pixels: out)
+    }
+
     /// The image in nine slices, made to fill `columns` × `rows` cells: its
     /// caps at the scale the whole image fits those cells at, and the edges
     /// and centre between them stretched or tiled.

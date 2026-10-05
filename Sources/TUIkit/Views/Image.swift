@@ -60,13 +60,27 @@ enum ImageLoadingPhase: Sendable {
 ///
 /// ## Sizing
 ///
-/// A raster image has no natural size in cells — how many pixels make a cell
-/// depends on the font — so where SwiftUI draws an image that is not
-/// resizable at its pixel size, TUIkit fits it to the space it is offered,
-/// keeping its aspect. ``resizable(capInsets:resizingMode:)`` makes it fill
-/// its frame instead, as SwiftUI's does, unless a content mode
-/// (``View/scaledToFit()``, ``View/aspectRatio(_:contentMode:)``) says to keep
-/// the aspect.
+/// An image that is not resizable takes its **natural size**, as SwiftUI's
+/// does: its size in points — its pixels over its scale, so a pixel a point
+/// for a file — in cells of the terminal's size in points, whatever it is
+/// offered. A 140 × 70-pixel picture is 20 × 5 cells in a terminal whose cell
+/// is 7 × 14 points, and a frame around it does not change it; a frame
+/// smaller than that draws it larger than the frame, as SwiftUI does.
+///
+/// The cell's size in points is known where TUIkit has measured what the
+/// terminal reports: Apple Terminal, iTerm2 and Warp, and Ghostty when the app
+/// runs on the Mac it is on (see ``EnvironmentValues/imageCellPoints``).
+/// Elsewhere — under tmux, which does not pass the cell's size on, over ssh to
+/// Ghostty, on a terminal nobody has measured — an image that is not
+/// resizable **fits the space it is offered** instead, keeping its aspect,
+/// which is what every image here did before images had a natural size. So
+/// does one under ``View/imageFitTarget(_:)`` `.proposedSize` or `.viewport`.
+///
+/// ``resizable(capInsets:resizingMode:)`` makes it fill its frame instead, as
+/// SwiftUI's does, unless a content mode (``View/scaledToFit()``,
+/// ``View/aspectRatio(_:contentMode:)``) says to keep the aspect. The common
+/// `.resizable().scaledToFit()` is how an image is fitted to a space on every
+/// terminal alike.
 ///
 /// ## Placeholder
 ///
@@ -305,7 +319,14 @@ private struct ImageURLTimeoutKey: EnvironmentKey {
 /// `.fit`/`.fill` (``ContentMode``) decides *how* an image scales relative to a box;
 /// this decides *which box*. The two are orthogonal.
 public enum ImageFitTarget: Sendable, Hashable, CaseIterable {
-    /// Fit the size the layout proposes — the default. Inside a vertical
+    /// The image's natural size, as SwiftUI draws an image that is not
+    /// resizable — the default. Its size in points, in cells of the
+    /// terminal's size in points (``EnvironmentValues/imageCellPoints``),
+    /// whatever it is offered. Where the cell's size in points is not known,
+    /// and for an image that is resizable, ``proposedSize``.
+    case naturalSize
+
+    /// Fit the size the layout proposes. Inside a vertical
     /// `ScrollView` the proposed height is unbounded, so the image is driven by
     /// its width and can be scrolled at full size. Inside one that scrolls
     /// horizontally — alone or both ways — nothing bounds it at all, and a
@@ -323,7 +344,7 @@ public enum ImageFitTarget: Sendable, Hashable, CaseIterable {
 
 /// Environment key for the image fit target.
 private struct ImageFitTargetKey: EnvironmentKey {
-    static let defaultValue: ImageFitTarget = .proposedSize
+    static let defaultValue: ImageFitTarget = .naturalSize
 }
 
 /// Environment key for the image zoom multiplier.
@@ -454,7 +475,8 @@ extension EnvironmentValues {
         set { self[ImageURLTimeoutKey.self] = newValue }
     }
 
-    /// The reference box images scale to fit — proposed size vs visible viewport.
+    /// The reference box images scale to fit — their natural size, the
+    /// proposed size, or the visible viewport.
     var imageFitTarget: ImageFitTarget {
         get { self[ImageFitTargetKey.self] }
         set { self[ImageFitTargetKey.self] = newValue }
@@ -791,11 +813,14 @@ extension View {
     /// Sets the reference box this image scales to fit.
     ///
     /// `.fit`/`.fill` (via ``aspectRatio(_:contentMode:)``) decides *how* an image
-    /// scales; this decides *which box* it scales to. By default an image fits the
+    /// scales; this decides *which box* it scales to. By default an image that is
+    /// not resizable takes its natural size where the terminal's cell size in
+    /// points is known (``ImageFitTarget/naturalSize``), and otherwise fits the
     /// size the layout proposes (``ImageFitTarget/proposedSize``) — which inside a
     /// `ScrollView` is unbounded on the scroll axis, so the image renders at full
     /// size and scrolls (inside one that scrolls horizontally, where nothing
-    /// bounds it, it fits the viewport). Pass ``ImageFitTarget/viewport`` to fit the enclosing
+    /// bounds it, it fits the viewport). Pass ``ImageFitTarget/proposedSize`` to
+    /// fit what is proposed on every terminal. Pass ``ImageFitTarget/viewport`` to fit the enclosing
     /// `ScrollView`'s *visible* area instead: the image fills the viewport at
     /// ``imageZoom(_:)`` `1` and overflows (showing scrollbars) only when zoomed in,
     /// so one fixed view tree goes from "fits exactly" to "scroll around" purely by

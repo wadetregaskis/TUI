@@ -1305,7 +1305,9 @@ extension RenderLoop {
     /// terminals that don't report their pixel size keep the 2.0 default (or a
     /// `.imageCellAspect(_:)` override deeper in the tree). The undivided pixel
     /// size is what an image transmitted to the terminal's own graphics
-    /// protocol is resampled to. A capability, not part of the protocol every
+    /// protocol is resampled to, and in points — where the host's pixels are
+    /// measured (``CellPointsCalibration``) — what an image's natural size is
+    /// counted in. A capability, not part of the protocol every
     /// host must implement: see `CellGeometryReporting`.
     ///
     /// BEFORE ``invalidateCacheIfEnvironmentChanged(environment:)``, which is
@@ -1323,7 +1325,7 @@ extension RenderLoop {
             environment.imageCellAspect = cellAspect
         }
         if let cellPixels = geometry?.cellPixelSize() {
-            environment.imageCellPixels = cellPixels
+            environment.publishCell(pixels: cellPixels, calibration: TerminalClient.cellPointsCalibration)
         }
     }
 

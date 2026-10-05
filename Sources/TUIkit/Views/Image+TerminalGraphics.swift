@@ -30,6 +30,32 @@ public struct TerminalCellPixels: Equatable, Sendable {
     }
 }
 
+/// A terminal cell's size in points — the unit SwiftUI sizes an image in.
+///
+/// What lets an ``Image`` that is not resizable take its natural size, as
+/// SwiftUI's does: its pixels over its scale are its size in points, and this
+/// says how many cells that is. Unlike ``TerminalCellPixels`` it has no
+/// default: a terminal that does not say, or whose pixels are of a kind not
+/// measured, leaves it unknown, and an image there fits what it is offered.
+/// See ``EnvironmentValues/imageCellPoints``.
+public struct TerminalCellPoints: Equatable, Sendable {
+    /// A cell's width in points.
+    public var width: Double
+    /// A cell's height in points.
+    public var height: Double
+
+    /// Creates a cell size, in points. A size that is not finite and positive
+    /// is a quarter of a point, so that nothing divides by it.
+    public init(width: Double, height: Double) {
+        self.width = width.isFinite && width > 0 ? width : 0.25
+        self.height = height.isFinite && height > 0 ? height : 0.25
+    }
+}
+
+private struct TerminalCellPointsKey: EnvironmentKey {
+    static let defaultValue: TerminalCellPoints? = nil
+}
+
 private struct TerminalCellPixelsKey: EnvironmentKey {
     /// A plausible cell on an unscaled display, used where the terminal
     /// reports no pixel size. Transmitting at the wrong resolution is a
@@ -60,6 +86,21 @@ extension EnvironmentValues {
     public var imageCellPixels: TerminalCellPixels {
         get { self[TerminalCellPixelsKey.self] }
         set { self[TerminalCellPixelsKey.self] = newValue }
+    }
+
+    /// The terminal cell's size in points, or `nil` where it is not known —
+    /// published by the render loop every frame, on the hosts whose reports
+    /// have been measured. An ``Image`` that is not resizable takes its
+    /// natural size from it: its size in points, over this, in cells.
+    ///
+    /// Known on Apple Terminal, iTerm2 and Warp, and on Ghostty when the app
+    /// runs on the Mac the terminal is on; unknown under tmux, which does not
+    /// forward the cell's size, over ssh to Ghostty, and on every host not
+    /// measured. Set it with ``View/imageCellPoints(_:)`` for a terminal
+    /// TUIkit cannot ask.
+    public var imageCellPoints: TerminalCellPoints? {
+        get { self[TerminalCellPointsKey.self] }
+        set { self[TerminalCellPointsKey.self] = newValue }
     }
 
     /// Whether ``Image`` draws with the terminal's own graphics protocol where
@@ -135,5 +176,19 @@ extension View {
     /// - Returns: A modified view.
     public func imageCellPixels(_ pixels: TerminalCellPixels) -> some View {
         environment(\.imageCellPixels, pixels)
+    }
+
+    /// Sets the terminal cell's size in points for the subtree — what an
+    /// ``Image`` that is not resizable divides its natural size by.
+    ///
+    /// Published automatically on the hosts whose reports have been measured
+    /// (see ``EnvironmentValues/imageCellPoints``). Set it for a terminal
+    /// TUIkit cannot ask, to give its images their natural size; set `nil` to
+    /// have them fit what they are offered instead.
+    ///
+    /// - Parameter points: The cell's size, in points, or `nil` for unknown.
+    /// - Returns: A modified view.
+    public func imageCellPoints(_ points: TerminalCellPoints?) -> some View {
+        environment(\.imageCellPoints, points)
     }
 }

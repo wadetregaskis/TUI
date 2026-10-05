@@ -1973,6 +1973,47 @@ never touch a real session or the user's preferences.
 
 ---
 
+## A cell's size in points — what the hosts report, and in which unit
+
+An `Image` that is not resizable takes its natural size, as SwiftUI's does
+(decisions B42): its size in points, in cells of the terminal's size in
+points. So TUIkit needs a cell's size in **points**, and the hosts report
+pixels — in two different units. Every number here is already measured
+elsewhere in this document (the cell-aspect probe of 2026-07-14, the
+placement records of 2026-09-02 in `Tools/TerminalProbes/data/*-placement.json`,
+all on one Retina Mac); this section is what they say about units:
+
+| Host | `TIOCGWINSZ` per cell | `CSI 14 t` per cell | the unit | points |
+|---|---|---|---|---|
+| Apple Terminal 455.1 | 7 × 14 | 7.05 × 14.13 | points | 7 × 14 |
+| Warp v0.2026.08.26 | 8 × 16 | (aspect 2.000) | points | 8 × 16 |
+| iTerm2 3.6.11 | 14 × 34 | 7.125 × 18.32 | ioctl retina-scaled; `14 t` in points | 7.125 × 18.32 |
+| Ghostty 1.3.1 | 16 × 34 | (aspect 2.125) | device pixels | 8 × 17 at scale 2 |
+
+**What TUIkit does with it** (`CellPointsCalibration`, chosen once at startup,
+applied to every frame's `TIOCGWINSZ` reading, so a font change moves the
+points with the pixels):
+
+- **Apple Terminal, Warp:** the reported pixels are points.
+- **iTerm2:** asked `CSI 14 t` once at startup (fenced with DSR, as every
+  startup question is); the area over the grid is the cell in points, and the
+  ratio to the ioctl's cell is kept. The area rather than `CSI 16 t`'s cell,
+  because iTerm2's cell is not a whole number of points and `16 t` answers
+  whole numbers.
+- **Ghostty:** device pixels, so divided by the display's scale — known only
+  when the app runs on the Mac the terminal is on (`TERM_PROGRAM` set, no
+  `SSH_CONNECTION`/`SSH_TTY`), from CoreGraphics' main display. A window on a
+  display of another scale is sized by the main display's: an image there is
+  half or twice its natural size. Over ssh, unknown.
+- **tmux:** unknown. tmux does not forward the client's pixel fields (see
+  "tmux" above), and two attached clients would not agree on a cell anyway.
+- **Every other host:** unknown — its pixels are of a kind nobody has
+  measured. An image there that is not resizable fits what it is offered, as
+  every image did before images had a natural size.
+
+`\.imageCellPoints` carries the answer (`nil` for unknown), and an app can
+state it for a terminal TUIkit cannot ask with `.imageCellPoints(_:)`.
+
 ## What an ANSI colour actually paints
 
 **Status: palettes MEASURED for Apple Terminal.app 455.1 (default "Basic"

@@ -104,10 +104,13 @@ struct ImageCoreGraphicsTests {
             #expect(numbers(decorative) == "01 23 45")
         }
 
-        @Test("Images of one CGImage are equal; of two, or turned differently, are not")
+        @Test("Images of one CGImage are equal; of two, turned differently, or at two scales, are not")
         func cgImageEquality() {
             let picture = solid(RGBA(r: 255, g: 0, b: 0))
-            #expect(Image(decorative: picture, scale: 1) == Image(decorative: picture, scale: 2))
+            let first = Image(decorative: picture, scale: 2)
+            let second = Image(decorative: picture, scale: 2)
+            #expect(first == second)
+            #expect(Image(decorative: picture, scale: 1) != Image(decorative: picture, scale: 2), "their sizes differ")
             #expect(Image(decorative: picture, scale: 1) != Image(decorative: picture, scale: 1, orientation: .down))
             #expect(Image(decorative: picture, scale: 1) != Image(decorative: solid(RGBA(r: 255, g: 0, b: 0)), scale: 1))
         }

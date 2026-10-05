@@ -135,7 +135,7 @@ struct RenderGlobalsCacheTests {
     /// ASCII picture and a centred ramp are drawn for, and the cell's pixels a
     /// transmitted picture is resampled to. Compared as `Bool`s so a failure
     /// does not print two whole palettes.
-    @Test("The snapshot carries the terminal's cell geometry", arguments: ["aspect", "pixels"])
+    @Test("The snapshot carries the terminal's cell geometry", arguments: ["aspect", "pixels", "points"])
     func cellGeometryIsInTheSnapshot(_ field: String) {
         var environment = EnvironmentValues()
         let before = EnvironmentSnapshot(from: environment)
@@ -143,6 +143,7 @@ struct RenderGlobalsCacheTests {
         #expect(unchanged, "an unchanged geometry keeps the cache")
         switch field {
         case "aspect": environment.imageCellAspect = 2.125
+        case "points": environment.imageCellPoints = TerminalCellPoints(width: 7, height: 14)
         default: environment.imageCellPixels = TerminalCellPixels(width: 8, height: 17)
         }
         let moved = before != EnvironmentSnapshot(from: environment)

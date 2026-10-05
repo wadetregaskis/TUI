@@ -94,45 +94,74 @@ extension RGBAImage {
         /// Creates a labeled image based on a Core Graphics image instance —
         /// mirrors SwiftUI's `init(_:scale:orientation:label:)`.
         ///
-        /// The pixels are drawn out of the image the first time it is drawn,
-        /// and drawn as any raster image is: fitted to its frame, or filling
-        /// it when ``resizable(capInsets:resizingMode:)``. `scale` is accepted
-        /// and changes nothing — an image here is sized by its frame, never by
-        /// its pixel count — and `label` is accepted for the accessibility a
-        /// terminal does not have.
+        /// Its natural size is its pixels over `scale`, in points, as SwiftUI's
+        /// is: a 200 × 100-pixel image made at scale 2 is 100 × 50 points, so
+        /// in a 7 × 14-point cell 14 × 4 cells (see the ``Image`` type's
+        /// *Sizing*). Made resizable, or where the terminal's cell size in
+        /// points is not known, it is drawn as any raster image is — filling
+        /// or fitted to its frame — and the scale does not enter into it.
+        /// `label` is accepted for the accessibility a terminal does not have.
+        ///
+        /// > Important: **The image is named by its object's address, and its
+        /// > pixels are drawn out of it once.** The first time it is drawn, its
+        /// > pixels are read and kept, under a name made from the `CGImage`'s
+        /// > address (with the orientation and scale), and every later frame
+        /// > draws what was read. A `CGImage` is immutable, so for one this is
+        /// > only a statement of the mechanism; but a new `CGImage` that happens
+        /// > to reuse a freed one's address is a new name only because the view
+        /// > holds the image it drew for as long as it draws it. Comparing the
+        /// > pixels instead would mean hashing them on every frame. See
+        /// > `Documentation/SwiftUI-compatibility.md` (decisions B43).
         ///
         /// - Parameters:
         ///   - cgImage: The base graphical image.
-        ///   - scale: The scale factor the image was made for.
+        ///   - scale: The scale factor the image was made for: pixels per point.
         ///   - orientation: The orientation of the image. Up by default.
         ///   - label: The label associated with the image.
         public init(_ cgImage: CGImage, scale: CGFloat, orientation: Orientation = .up, label: Text) {
-            self.init(drawingOutOf: cgImage, orientation: orientation)
+            self.init(drawingOutOf: cgImage, scale: Double(scale), orientation: orientation)
         }
 
         /// Creates an unlabeled, decorative image based on a Core Graphics
         /// image instance — mirrors SwiftUI's
         /// `init(decorative:scale:orientation:)`.
         ///
+        /// Sized and drawn as ``init(_:scale:orientation:label:)`` is — its
+        /// pixels over `scale` are its natural size, and its pixels are drawn
+        /// out of it once, named by its address.
+        ///
         /// - Parameters:
         ///   - cgImage: The base graphical image.
-        ///   - scale: The scale factor the image was made for. Accepted; see
-        ///     ``init(_:scale:orientation:label:)``.
+        ///   - scale: The scale factor the image was made for: pixels per point.
         ///   - orientation: The orientation of the image. Up by default.
         public init(decorative cgImage: CGImage, scale: CGFloat, orientation: Orientation = .up) {
-            self.init(drawingOutOf: cgImage, orientation: orientation)
+            self.init(drawingOutOf: cgImage, scale: Double(scale), orientation: orientation)
         }
 
         /// Creates a SwiftUI image from an AppKit image instance — mirrors
         /// SwiftUI's `init(nsImage:)`.
         ///
-        /// The image is drawn out once, the first time it is drawn: an
-        /// `NSImage` drawn into after that is not drawn again.
+        /// Its natural size is the `NSImage`'s `size`, in points, as SwiftUI's
+        /// is (see the ``Image`` type's *Sizing*).
+        ///
+        /// > Important: **An `NSImage` drawn into after it was first drawn
+        /// > keeps its first pixels.** The image is named by the `NSImage`'s
+        /// > address, and its pixels are drawn out of it once, the first time
+        /// > it is drawn; every later frame draws what was read then. An app
+        /// > that draws into an `NSImage` in place (`lockFocus`, adding a
+        /// > representation) and shows it again sees the old picture, where
+        /// > SwiftUI shows the new one. Make a new `NSImage` for a new picture.
+        /// > Noticing an edit in place would mean hashing the pixels on every
+        /// > frame, at a cost in proportion to the picture's size. See
+        /// > `Documentation/SwiftUI-compatibility.md` (decisions B43).
         ///
         /// - Parameter nsImage: The AppKit image to wrap.
         public init(nsImage: NSImage) {
             self.init(.url("tuikit-nsimage:\(Self.address(of: nsImage))"))
-            self.decoded = _DecodedImage(owner: nsImage) {
+            let size = nsImage.size
+            self.decoded = _DecodedImage(
+                owner: nsImage, pointSizing: .points(width: Double(size.width), height: Double(size.height))
+            ) {
                 var rect = CGRect(origin: .zero, size: nsImage.size)
                 guard let cgImage = nsImage.cgImage(forProposedRect: &rect, context: nil, hints: nil) else {
                     return RGBAImage(width: 0, height: 0, pixels: [])
@@ -141,9 +170,16 @@ extension RGBAImage {
             }
         }
 
-        private init(drawingOutOf cgImage: CGImage, orientation: Orientation) {
-            self.init(.url("tuikit-cgimage:\(Self.address(of: cgImage))/\(orientation.rawValue)"))
-            self.decoded = _DecodedImage(owner: cgImage) { Self.pixels(of: cgImage).oriented(orientation) }
+        /// The scale is in the name as well as in the pixels' sizing, so an
+        /// image shown at another scale is another image to a memo that
+        /// compares images — their sizes differ.
+        private init(drawingOutOf cgImage: CGImage, scale: Double, orientation: Orientation) {
+            let scale = _DecodedImage.sanitized(scale)
+            let name = "tuikit-cgimage:\(Self.address(of: cgImage))/\(orientation.rawValue)"
+            self.init(.url(scale == 1 ? name : "\(name)@\(scale)x"))
+            self.decoded = _DecodedImage(owner: cgImage, pointSizing: .scale(scale)) {
+                Self.pixels(of: cgImage).oriented(orientation)
+            }
         }
 
         /// The address that names an image the app handed over — unique for as

@@ -68,6 +68,11 @@ internal struct EnvironmentSnapshot: Equatable {
     /// terminal is resampled to it.
     let imageCellPixels: TerminalCellPixels
 
+    /// The terminal cell's size in points, published beside the pixels, and
+    /// for the same reason: an image that is not resizable takes its natural
+    /// size from it.
+    let imageCellPoints: TerminalCellPoints?
+
     /// The terminal's size in cells, which the render loop reads every frame
     /// and publishes at the root, as `\.terminalWidth` and `\.terminalHeight`.
     /// A view in a frame of its own size — a card, a status line — is offered
@@ -86,6 +91,7 @@ internal struct EnvironmentSnapshot: Equatable {
         self.scenePhase = environment.scenePhase
         self.imageCellAspect = environment.imageCellAspect
         self.imageCellPixels = environment.imageCellPixels
+        self.imageCellPoints = environment.imageCellPoints
         self.terminalWidth = environment.terminalWidth
         self.terminalHeight = environment.terminalHeight
     }

@@ -314,8 +314,9 @@ and the phased `transaction:content:` with `AsyncImagePhase`). It loads through
 the same loader and per-session cache as `Image(.url(_:))`. The success phase's
 `Image` carries the decoded pixels, so it draws at once rather than loading
 again; a nil URL stays `.empty`; a failure carries the loader's error; and the
-phase changes under the given transaction. `scale` is accepted and changes
-nothing, since an image here is sized by its frame, never by its pixel count.
+phase changes under the given transaction. `scale` is honoured: the loaded
+image's natural size is its pixels over `scale`, in points (see "An image takes
+its natural size" below).
 
 **`Image.interpolation(_:)` and `antialiased(_:)` ship** as how many samples
 each cell's sub-pixels take: `.none` (or `antialiased(false)`) picks the
@@ -333,21 +334,36 @@ a content mode around it (`scaledToFit()`, `scaledToFill()`,
 `aspectRatio(_:contentMode:)`) keeps it, which is the usual
 `.resizable().scaledToFit()` and draws as an `Image` always has. Where SwiftUI's
 resizable image takes its natural pixel size on an axis it is offered nothing,
-TUIkit's takes the extent its aspect gives it (see below: there is no size in
-cells to take). Cap insets are in the image's pixels; the caps keep the scale the
-whole image fits its frame at, and the edges and centre stretch, or with `.tile`
-repeat at that scale, between them. An image in slices draws as cells, never as
-a terminal picture. **Deviation:** an image that is NOT resizable fits what it is
-offered rather than drawing at its pixel size — the paragraph below says why.
+TUIkit's takes the extent its aspect gives it. Cap insets are in the image's
+pixels; the caps keep the scale the whole image fits its frame at, and the edges
+and centre stretch, or with `.tile` repeat at that scale, between them — where
+SwiftUI's caps are in points and its tiles repeat at the natural size (lane
+D3M's decisions, B-D3M-3). An image in slices draws as cells, never as a
+terminal picture. An image that is NOT resizable takes its natural size, below.
 
 **`Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`
 and `Image(nsImage:)` ship where AppKit exists** (behind `canImport(AppKit)`),
 and `Image.Orientation` everywhere, with SwiftUI's raw values. The pixels are
 drawn out the first time the image is drawn, turned as SwiftUI turns them
-(measured on macOS 15), and drawn as any raster is. `scale` and `label` are
-accepted and change nothing: an image here is sized by its frame, and a
-terminal has no accessibility labels. An `NSImage` drawn into after it was
-first drawn is not drawn again.
+(measured on macOS 15), and drawn as any raster is. `scale` is honoured — pixels
+per point, so a `CGImage` of 200 × 100 pixels at scale 2 is 100 × 50 points at
+its natural size — and an `NSImage`'s natural size is its `size`, in points, as
+SwiftUI's is. `label` is accepted for the accessibility a terminal does not have.
+
+> **Deviation — an image made from a `CGImage` or an `NSImage` is named by the
+> object's address, and its pixels are read once (decisions B43).** The first
+> time such an image is drawn its pixels are read out of the object and kept,
+> under a name made from the object's address (with, for a `CGImage`, its
+> orientation and scale); every later frame draws what was read then, and an
+> image of the same object compares equal to it. The view holds the object for
+> as long as it draws it, so a freed address cannot come back as another
+> picture under the same name. **What this means for an app:** an `NSImage`
+> drawn into in place after it was first shown — `lockFocus`/`unlockFocus`, a
+> representation added or replaced — **keeps showing its first pixels**, where
+> SwiftUI shows the new ones. Make a new `NSImage` (or `CGImage`, which is
+> immutable anyway) for a new picture, and it draws at once. Noticing an edit in
+> place would mean reading and hashing the pixels on every frame, at a cost in
+> proportion to the picture's size, for every such image on screen.
 
 **`Image(_:bundle:)`, `(_:bundle:label:)` and `(decorative:bundle:)` find a
 plain image file** among the bundle's resources (the main bundle for `nil`):
@@ -372,22 +388,36 @@ the default before one answers, so an unmeasured terminal draws glyphs. TUI-spec
 photograph, which an app built around a ramp genuinely wants — see
 `Documentation/Terminal graphics protocols.md`.
 
-**An image fills what it is offered, and fits the viewport when it is offered
-nothing.** SwiftUI's resizable image, offered no size, takes its natural pixel
-size. A terminal has no size in cells to give it: pixels are not cells, and how
-many make one depends on the font — assume a cell size and a photograph is drawn
-tiny, count two pixels a cell and it is drawn enormous. So a TUIkit `Image`
-aspect-fits the size its layout proposes, which in practice sizes it to fit the
-TUI around it. Inside a vertical scroll view the width bounds it, so the image
-is width driven and scrolls at full size. Inside one that scrolls horizontally —
-alone or both ways — NOTHING bounds it: the content is asked how big it would be
-if nothing stopped it. There the image fits the visible viewport, as
-`.imageFitTarget(.viewport)` fits it explicitly — on every axis a `.frame`
-inside the scroll view leaves open: `.frame(width: 300)` is 300 wide, and its
-height is the viewport's unless the frame states one too. (Before that it fitted the
-scroll view's probe budget, thousands of cells, and was drawn the size of a
-wall.) Code ported from SwiftUI that relies on a natural size should give the
-image an explicit `.frame`.
+**An image takes its natural size, where the terminal's cell size in points is
+known (decisions B42).** As in SwiftUI, an image that is not resizable is its
+size in points — its pixels over its scale, so a pixel a point for a file, a URL
+or a bundle resource — whatever it is offered: a 140 × 70-pixel picture in a
+terminal whose cell is 7 × 14 points takes 20 × 5 cells, and a frame around it
+does not change that. Larger than the space it is given, it is cut to that space
+from its top-leading corner (every view's buffer is), where SwiftUI's overflows
+its frame and the window cuts it. The cell's size in points is
+`\.imageCellPoints`, which the render loop publishes from what the host reports
+(`Terminal-compatibility.md`, "A cell's size in points"): Apple Terminal and Warp
+report points, iTerm2 answers `CSI 14 t` in points, and Ghostty reports device
+pixels, divided by the main display's scale when the app runs on the Mac the
+terminal is on. **Elsewhere — under tmux, which does not forward the cell's
+size, over ssh to Ghostty, and on any terminal not measured — it is unknown, and
+an image that is not resizable fits what it is offered instead**, which is what
+every image did before: aspect-fitted to the size its layout proposes. An app
+can state the cell's size for a terminal TUIkit cannot ask with the TUI-specific
+`.imageCellPoints(_:)`, and `.imageFitTarget(.proposedSize)` fits an image to
+what it is offered on every terminal. `.resizable().scaledToFit()` fits it
+everywhere, as in SwiftUI.
+
+Where the image fits (unknown cell, `.proposedSize`, a resizable image): inside
+a vertical scroll view the width bounds it, so the image is width driven and
+scrolls at full size. Inside one that scrolls horizontally — alone or both ways
+— NOTHING bounds it: the content is asked how big it would be if nothing stopped
+it. There the image fits the visible viewport, as `.imageFitTarget(.viewport)`
+fits it explicitly — on every axis a `.frame` inside the scroll view leaves
+open: `.frame(width: 300)` is 300 wide, and its height is the viewport's unless
+the frame states one too. (Before that it fitted the scroll view's probe budget,
+thousands of cells, and was drawn the size of a wall.)
 
 **`.mono` is the two-tone version of a template image.** `renderingMode(.template)`
 (above) draws each pixel in the foreground style at its own alpha;

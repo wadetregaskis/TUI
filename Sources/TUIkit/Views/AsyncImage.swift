@@ -59,17 +59,63 @@ final class _DecodedImage: @unchecked Sendable {
     private var drawn: RGBAImage?
     private let draw: () -> RGBAImage
 
-    /// Pixels already decoded.
-    init(_ pixels: RGBAImage) {
+    /// How the pixels become the image's size in points: SwiftUI's natural
+    /// size for an image that is not resizable.
+    enum PointSizing: Equatable, Sendable {
+        /// Pixels per point — a `CGImage`'s `scale:`, an `AsyncImage`'s.
+        case scale(Double)
+
+        /// The size in points, whatever the pixels — an `NSImage`'s `size`.
+        case points(width: Double, height: Double)
+    }
+
+    /// How the pixels become points. A scale of 1 — a pixel a point — unless
+    /// the image was made with another.
+    let pointSizing: PointSizing
+
+    /// Pixels already decoded, at `scale` pixels per point.
+    init(_ pixels: RGBAImage, scale: Double = 1) {
         self.owner = nil
         self.drawn = pixels
         self.draw = { pixels }
+        self.pointSizing = .scale(Self.sanitized(scale))
     }
 
-    /// Pixels drawn out of `owner` by `draw`, the first time they are wanted.
-    init(owner: AnyObject, draw: @escaping () -> RGBAImage) {
+    /// Pixels drawn out of `owner` by `draw`, the first time they are wanted,
+    /// sized in points as `pointSizing` says.
+    init(owner: AnyObject, pointSizing: PointSizing = .scale(1), draw: @escaping () -> RGBAImage) {
         self.owner = owner
         self.draw = draw
+        switch pointSizing {
+        case .scale(let scale): self.pointSizing = .scale(Self.sanitized(scale))
+        case .points: self.pointSizing = pointSizing
+        }
+    }
+
+    /// The image's size in points, given its pixels.
+    func pointSize(of pixels: RGBAImage) -> (width: Double, height: Double) {
+        switch pointSizing {
+        case .scale(let scale):
+            return (Double(pixels.width) / scale, Double(pixels.height) / scale)
+        case .points(let width, let height):
+            guard width.isFinite, height.isFinite, width > 0, height > 0 else {
+                return (Double(pixels.width), Double(pixels.height))
+            }
+            return (width, height)
+        }
+    }
+
+    /// These pixels at `scale` pixels per point: the same pixels, shared, and
+    /// this image itself where the scale is the one it has.
+    func scaled(_ scale: Double) -> _DecodedImage {
+        guard pointSizing != .scale(Self.sanitized(scale)) else { return self }
+        return _DecodedImage(pixels, scale: scale)
+    }
+
+    /// A scale that is finite and positive, or 1. SwiftUI's own is a
+    /// `CGFloat` the app passes; nothing stops it being zero.
+    static func sanitized(_ scale: Double) -> Double {
+        scale.isFinite && scale > 0 ? scale : 1
     }
 
     /// The pixels.
@@ -101,12 +147,13 @@ struct AsyncImageLoadError: Error, CustomStringConvertible {
 /// ```
 ///
 /// The image loads through the same loader and per-session cache as
-/// `Image(.url(_:))`, and draws the same way: as cells, fitted to its frame.
-/// `scale` is accepted and changes nothing — a TUIkit image is sized by its
-/// frame, never by its pixel count, so there is no natural size for a scale to
-/// divide.
+/// `Image(.url(_:))`, and draws the same way. Its natural size is its pixels
+/// over `scale`, in points, as SwiftUI's is — so an image made for a Retina
+/// display, loaded at `scale: 2`, is half its pixel count in points (see the
+/// ``Image`` type's *Sizing*).
 public struct AsyncImage<Content: View>: View {
     let url: URL?
+    let scale: Double
     let transaction: Transaction
     let content: (AsyncImagePhase) -> Content
 
@@ -115,10 +162,10 @@ public struct AsyncImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - url: The URL of the image to display, or `nil` for none.
-    ///   - scale: The scale the image was made for. Accepted; see the type's
-    ///     notes.
+    ///   - scale: The scale the image was made for: pixels per point.
     public init(url: URL?, scale: CGFloat = 1) where Content == _AsyncImageDefaultContent {
         self.url = url
+        self.scale = Double(scale)
         self.transaction = Transaction()
         self.content = { _AsyncImageDefaultContent(phase: $0) }
     }
@@ -128,8 +175,7 @@ public struct AsyncImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - url: The URL of the image to display, or `nil` for none.
-    ///   - scale: The scale the image was made for. Accepted; see the type's
-    ///     notes.
+    ///   - scale: The scale the image was made for: pixels per point.
     ///   - content: A closure that takes the loaded image and returns the view
     ///     to show.
     ///   - placeholder: A closure that returns the view to show until the load
@@ -139,6 +185,7 @@ public struct AsyncImage<Content: View>: View {
         @ViewBuilder placeholder: @escaping () -> P
     ) where Content == ConditionalView<I, P> {
         self.url = url
+        self.scale = Double(scale)
         self.transaction = Transaction()
         self.content = { phase in
             if let image = phase.image { return .trueContent(content(image)) }
@@ -150,8 +197,7 @@ public struct AsyncImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - url: The URL of the image to display, or `nil` for none.
-    ///   - scale: The scale the image was made for. Accepted; see the type's
-    ///     notes.
+    ///   - scale: The scale the image was made for: pixels per point.
     ///   - transaction: The transaction to use when the phase changes.
     ///   - content: A closure that takes the load phase and returns the view to
     ///     show for it.
@@ -160,12 +206,13 @@ public struct AsyncImage<Content: View>: View {
         @ViewBuilder content: @escaping (AsyncImagePhase) -> Content
     ) {
         self.url = url
+        self.scale = Double(scale)
         self.transaction = transaction
         self.content = content
     }
 
     public var body: some View {
-        _AsyncImageCore(url: url, transaction: transaction, content: content)
+        _AsyncImageCore(url: url, scale: scale, transaction: transaction, content: content)
     }
 }
 
@@ -195,6 +242,7 @@ private enum AsyncImageStateIndex {
 /// for the current phase drawn as its child.
 private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
     let url: URL?
+    let scale: Double
     let transaction: Transaction
     let content: (AsyncImagePhase) -> Content
 
@@ -215,8 +263,11 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
         case .empty:
             return .empty
         case .loaded(let pixels, let address):
-            var image = Image(.url(address))
-            image.decoded = pixels
+            // The scale in the name as well as in the sizing, so the image at
+            // another scale is another image to a memo that compares them.
+            let scale = _DecodedImage.sanitized(scale)
+            var image = Image(.url(scale == 1 ? address : "\(address)#@\(scale)x"))
+            image.decoded = pixels.scaled(scale)
             return .success(image)
         case .failed(let message):
             return .failure(AsyncImageLoadError(description: message))
@@ -278,6 +329,7 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
         let timeout = context.environment.imageURLTimeout
         let maxPixels = context.environment.imageMaxPixelCount
         let transaction = self.transaction
+        let scale = self.scale
         lifecycle.startTask(token: token, priority: .userInitiated) {
             guard let loaded = await _ImageCore.loadPhase(
                 source: .url(address), maxPixelCount: maxPixels, urlTimeout: timeout)
@@ -288,7 +340,7 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
                 guard !Task.isCancelled else { return }
                 let next: Stored
                 switch loaded {
-                case .success(let pixels): next = .loaded(_DecodedImage(pixels), address)
+                case .success(let pixels): next = .loaded(_DecodedImage(pixels, scale: scale), address)
                 case .failure(let message): next = .failed(message)
                 case .loading: return
                 }

@@ -301,6 +301,11 @@ extension AppRunner {
         // to ask. Costs one terminal round trip at startup, and only when
         // nothing has already answered.
         TerminalClient.detectGraphics(using: terminal)
+        // And how many of the pixels it reports make a point — the unit an
+        // image's natural size is in. After identification, which names the
+        // host; it asks iTerm2 one question (`CSI 14 t`) and nothing else
+        // anything. See ``CellPointsCalibration``.
+        TerminalClient.detectCellPoints(using: terminal)
         // And what colours it paints: its default foreground and background
         // (OSC 10/11) and, outside tmux, its sixteen ANSI slots (OSC 4),
         // published to `TerminalColors.current` so the first frame is drawn
