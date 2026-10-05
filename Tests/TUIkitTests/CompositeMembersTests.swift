@@ -70,6 +70,17 @@ private struct ItemsSection: View {
     }
 }
 
+/// A row whose body holds its own type in both arms of an `if`/`else` —
+/// never drawn here, only counted: a count that descended both arms at every
+/// level made 2³² calls before its depth bound stopped it.
+private struct SelfNested: View {
+    let flag: Bool
+    var body: some View {
+        Text("x")
+        if flag { Self(flag: false) } else { Self(flag: true) }
+    }
+}
+
 /// What a layout was handed.
 @MainActor
 private final class Count {
@@ -181,5 +192,13 @@ struct CompositeMembersTests {
         #expect(ids == [nil, "x", nil, "alpha", "beta"], "\(ids)")
         #expect(fixture.pressDelete(onRow: 4, named: "beta"))
         #expect(deleted == [IndexSet(integer: 1)])
+    }
+
+    @Test("Counting a row whose body holds its own type in both arms of an if/else descends each type once")
+    func selfNestedCountIsBounded() {
+        CompositeBodyDescent.bodiesCounted = 0
+        #expect(staticRowMemberCount(SelfNested.self) == nil)
+        #expect(ForEach(0..<2, id: \.self) { SelfNested(flag: $0 == 0) }.rowShape(sectionWholeness: .apart) == .varying)
+        #expect(CompositeBodyDescent.bodiesCounted < 16, "descended \(CompositeBodyDescent.bodiesCounted) bodies")
     }
 }

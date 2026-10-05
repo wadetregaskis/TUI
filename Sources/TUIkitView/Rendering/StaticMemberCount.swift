@@ -56,7 +56,7 @@ package func staticMemberCount<V: View>(_ type: V.Type) -> Int? {
         // A view of the app's own whose body hands over children is what its
         // body is (`compositeMembers(of:context:)`).
         if isCompositeHandingOverChildren(type) {
-            return CompositeBodyDescent.counting { staticMemberCount(V.Body.self) }
+            return CompositeBodyDescent.counting(type) { staticMemberCount(V.Body.self) }
         }
         return wrapsOnlyEmptyView(type) ? 0 : 1
     }
@@ -82,30 +82,38 @@ package func staticRowMemberCount<V: View>(_ type: V.Type) -> Int? {
         return wrappedRowMemberCount(wrapper)
     }
     if isCompositeHandingOverChildren(type) {
-        return CompositeBodyDescent.counting { staticRowMemberCount(V.Body.self) }
+        return CompositeBodyDescent.counting(type) { staticRowMemberCount(V.Body.self) }
     }
     return staticMemberCount(type)
 }
 
-/// How far the counts have descended through bodies of views of the app's own,
-/// so a view whose body holds itself — a tree drawn by `if`/`else` around a
-/// view of its own type — is answered `nil` ("build and count") rather than
-/// descended for ever. The count's own types say nothing that would stop it:
-/// an `if`/`else` counts both arms.
+/// The bodies of views of the app's own the counts are descending through, so
+/// a view whose body holds its own type — a tree drawn by `if`/`else` around a
+/// view of its own type; `TextField`'s formatted form does — is answered `nil`
+/// ("build and count") where it meets itself, rather than descended again. The
+/// count's own types say nothing that would stop it, and an `if`/`else` counts
+/// both arms: bounded by depth alone, a row type with itself in both arms of an
+/// `if`/`else` was descended twice at every level, 2³² times before the bound.
+/// Met again, a type is counted once per arm and stops there.
 @MainActor
-private enum CompositeBodyDescent {
-    /// The bodies being counted through now.
-    static var depth = 0
+package enum CompositeBodyDescent {
+    /// The view types whose bodies are being counted through now.
+    private static var descending: Set<ObjectIdentifier> = []
 
     /// Deeper than any written view nests its own types' bodies: past it a
     /// count is unknown.
-    static let limit = 32
+    private static let limit = 32
 
-    /// `count`, one body deeper — or `nil` past ``limit``.
-    static func counting(_ count: () -> Int?) -> Int? {
-        guard depth < limit else { return nil }
-        depth += 1
-        defer { depth -= 1 }
+    /// How many bodies have been counted through, ever — for a test to read.
+    package static var bodiesCounted = 0
+
+    /// `count` of `type`'s body — or `nil` when `type`'s body is already being
+    /// counted further out, or past ``limit``.
+    static func counting<V: View>(_ type: V.Type, _ count: () -> Int?) -> Int? {
+        let id = ObjectIdentifier(type)
+        guard descending.count < limit, descending.insert(id).inserted else { return nil }
+        bodiesCounted += 1
+        defer { descending.remove(id) }
         return count()
     }
 }
