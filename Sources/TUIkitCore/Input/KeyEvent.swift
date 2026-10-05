@@ -511,7 +511,9 @@ extension KeyEvent {
     /// since 2026-10-05, for exactly this collision
     /// (`Documentation/Terminal-compatibility.md`, "Asking the terminal —
     /// Device Attributes"). Anything that sends `CSI 6 n` again has to take
-    /// F3 out of here first, or its report arrives as a keystroke.
+    /// F3 out of here first, or its report arrives as a keystroke;
+    /// `CursorReportRequestScanTests` fails if any code under `Sources/`
+    /// spells the request.
     private static func parseModifiedFunctionKey(
         _ params: [UInt8], modifiers: (shift: Bool, alt: Bool, ctrl: Bool)
     ) -> KeyEvent? {

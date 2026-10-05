@@ -4338,9 +4338,11 @@ modifier code from 1 to 16, and nothing else ending in those letters.
 `CSI 1;m R` is also a cursor-position report for row 1, column m. That is safe
 to read as F3 only because TUIkit asks for no cursor report: since the startup
 exchanges moved to the `CSI 5 n` fence (same day, "Asking the terminal —
-Device Attributes"), nothing in TUIkit sends `CSI 6 n`. Anything that brings
-a cursor-report request back must stop decoding `R` first, or its report
-arrives as Shift-F3 and the like. Under the kitty keyboard protocol F3 is
+Device Attributes"), nothing in TUIkit sends `CSI 6 n`, and
+`CursorReportRequestScanTests` fails if any code under `Sources/` spells one.
+Anything that brings a cursor-report request back must stop decoding `R`
+first, or its report arrives as Shift-F3 and the like. (An app that writes
+`CSI 6 n` to the terminal itself is outside what the scan can see.) Under the kitty keyboard protocol F3 is
 `CSI 13 ~`, precisely to avoid this collision; P, Q and S keep their letters
 there and are decoded by `KittyKeyDecoder`.
 
