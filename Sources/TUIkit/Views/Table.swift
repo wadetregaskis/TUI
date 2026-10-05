@@ -1074,6 +1074,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if needsResolution { return resolvingRows(context).renderToBuffer(context: context) }
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
+        // The enabled selection scopes filed before the cells are drawn: any
+        // filed after are the cells' own (see `fileSelectableRows`).
+        let scopesBefore = context.environment.mouseEventDispatcher?.enabledSelectionScopeCount ?? 0
 
         // Rows beyond the viewport are skipped, not gone: retain their state
         // (see StateStorage.retainSubtree). Render path only, per the
@@ -1199,7 +1202,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var buffer = TUIkit.renderToBuffer(container, context: context)
 
         if let state = renderState {
-            attachMouseHandlers(to: &buffer, context: context, state: state)
+            attachMouseHandlers(to: &buffer, context: context, state: state, scopesBefore: scopesBefore)
         }
         return buffer
     }
@@ -3205,27 +3208,38 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// Inside an enabled `textSelection(_:)`, a press on a row's text is the
-    /// text's (`PressRole.rows`), as in `_ListCore`. Filed only there, so a
-    /// table nothing makes selectable pays nothing for it.
+    /// text's (`PressRole.rows`), as in `_ListCore`. Filed only where one is in
+    /// force: around the table, or inside its cells — `Text(name).textSelection(.enabled)`
+    /// in a column — which `scopesBefore`, the dispatcher's count of enabled
+    /// scopes before the table drew them, tells. A table in an app with no
+    /// enabled scope pays one read.
+    ///
+    /// A cell's scope makes the whole row's text selectable, kept to the row,
+    /// as an enabled scope around the table does (B-D4X-7): the table draws
+    /// its cells as text, so it knows no cell's rectangle to keep it to.
     @MainActor
     private func fileSelectableRows(
         for id: HitTestRegion.HandlerID, state: PopulatedRenderState, dispatcher: MouseEventDispatcher,
-        interiorTopY: Int, contentColumns: Range<Int>, context: RenderContext
+        interiorTopY: Int, contentColumns: Range<Int>, scopesBefore: Int, context: RenderContext
     ) {
-        guard context.environment.textSelectionAllowed == true else { return }
+        let cellsSelectText = dispatcher.enabledSelectionScopeCount > scopesBefore
+        guard context.environment.textSelectionAllowed == true || cellsSelectText else { return }
         dispatcher.filePressRole(
-            .rows { [handler = state.handler] localY in
-                handler.contentRowLines(atContentY: localY - interiorTopY).map {
-                    (contentColumns, ($0.lowerBound + interiorTopY)..<($0.upperBound + interiorTopY))
-                }
-            },
+            .rows(
+                rowArea: { [handler = state.handler] localY in
+                    handler.contentRowLines(atContentY: localY - interiorTopY).map {
+                        (contentColumns, ($0.lowerBound + interiorTopY)..<($0.upperBound + interiorTopY))
+                    }
+                },
+                cellsSelectText: cellsSelectText),
             for: id, in: context)
     }
 
     private func attachMouseHandlers(
         to buffer: inout FrameBuffer,
         context: RenderContext,
-        state: PopulatedRenderState
+        state: PopulatedRenderState,
+        scopesBefore: Int
     ) {
         guard !isDisabled(in: context), !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
@@ -3307,7 +3321,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         )
         fileSelectableRows(
             for: mouseHandlerID, state: state, dispatcher: mouseDispatcher, interiorTopY: interiorTopY,
-            contentColumns: contentColumns, context: context)
+            contentColumns: contentColumns, scopesBefore: scopesBefore, context: context)
         // Insert at the back so interactive children inside a
         // row still win the dispatcher's reverse-iteration
         // match. See the parallel comment in _ListCore.

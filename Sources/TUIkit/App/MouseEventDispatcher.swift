@@ -262,7 +262,26 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// The ``View/textSelection(_:)`` scopes on screen, by the handler id of the
     /// region each filed: `true` enabled, `false` disabled. Cleared with the
     /// handler table.
-    var selectionScopes: [HitTestRegion.HandlerID: Bool] = [:]
+    private(set) var selectionScopes: [HitTestRegion.HandlerID: Bool] = [:]
+
+    /// Whether an enabled ``View/textSelection(_:)`` scope has been filed this
+    /// walk: what a `List` or a `Table` asks, after drawing its rows, to learn
+    /// whether a row's own text is selectable (`Text(name).textSelection(.enabled)`
+    /// in a row) — the rows' environment never reaches the list. One flag,
+    /// so a list in an app with no enabled scope pays one read.
+    var hasEnabledSelectionScope: Bool { enabledSelectionScopeCount > 0 }
+
+    /// How many enabled ``View/textSelection(_:)`` scopes have been filed this
+    /// walk — read before and after a `Table` draws its cells, to learn whether
+    /// they filed any.
+    private(set) var enabledSelectionScopeCount = 0
+
+    /// Files a scope's answer for the region whose handler `id` names: the
+    /// registration's, and its replay's from a memo's journal.
+    func fileSelectionScope(_ allowsSelection: Bool, for id: HitTestRegion.HandlerID) {
+        selectionScopes[id] = allowsSelection
+        if allowsSelection { enabledSelectionScopeCount += 1 }
+    }
 
     /// The gestures contending for the left button: built at a press that
     /// lands on a gesture, kept until every one of them has decided — which
@@ -302,6 +321,7 @@ extension MouseEventDispatcher {
         gestureRoles.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
         selectionScopes.removeAll(keepingCapacity: true)
+        enabledSelectionScopeCount = 0
         regions.removeAll(keepingCapacity: true)
         // The interned ids survive this: only the per-identity slot counters
         // restart, because this runs once per WALK of the scene.

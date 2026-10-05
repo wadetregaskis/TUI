@@ -2448,15 +2448,23 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             )
         )
         // Inside an enabled `textSelection(_:)`, a press on a row's text is the
-        // text's (`PressRole.rows`). Filed only there, so a list nothing makes
-        // selectable pays nothing for it.
-        if context.environment.textSelectionAllowed == true {
+        // text's (`PressRole.rows`). Filed only where one is in force: around
+        // the list, or inside its rows — `Text(name).textSelection(.enabled)`,
+        // whose scope its row filed while the rows were drawn above, and
+        // whose environment never reaches the list. Which scope a press is
+        // under is the dispatcher's to decide; a list in an app with no
+        // enabled scope pays one read.
+        if context.environment.textSelectionAllowed == true || mouseDispatcher.hasEnabledSelectionScope {
             mouseDispatcher.filePressRole(
-                .rows { [handler = state.handler] localY in
-                    handler.contentRowLines(atContentY: localY - topInset).map {
-                        (contentColumns, ($0.lowerBound + topInset)..<($0.upperBound + topInset))
-                    }
-                },
+                .rows(
+                    rowArea: { [handler = state.handler] localY in
+                        handler.contentRowLines(atContentY: localY - topInset).map {
+                            (contentColumns, ($0.lowerBound + topInset)..<($0.upperBound + topInset))
+                        }
+                    },
+                    // A row's own scope keeps its region, and is found under
+                    // the press.
+                    cellsSelectText: false),
                 for: mouseHandlerID, in: context)
         }
         // The rows are a landing place for drags from elsewhere. It borrows the

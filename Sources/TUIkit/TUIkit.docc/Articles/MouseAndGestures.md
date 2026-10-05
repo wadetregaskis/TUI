@@ -276,8 +276,9 @@ it is on — on a single `Text`, that `Text` — and widens it to the rows of a
 ``List`` or a ``Table`` inside it, as macOS does: a press on a row's text belongs
 to the text, so a drag selects it (kept to the row), a double-click selects a
 word, and a click selects nothing, while a press on the row's blank cells
-selects, drags or activates the row as before. `.disabled` turns the selection
-off; the innermost modifier wins.
+selects, drags or activates the row as before. On a row's own `Text` it does
+the same for that text, kept to it; on a `Table` cell's `Text`, for the row's.
+`.disabled` turns the selection off; the innermost modifier wins.
 
 ```swift
 List(invite.recipients) { recipient in

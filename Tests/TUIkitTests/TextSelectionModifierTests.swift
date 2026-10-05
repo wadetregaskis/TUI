@@ -167,6 +167,61 @@ struct TextSelectionModifierTests {
         #expect(page.selection.value == 2)
     }
 
+    // MARK: - On the rows' own text
+
+    struct RowTextPage: View {
+        let selection: Box<Int?>
+        var body: some View {
+            List(selection: Binding(get: { selection.value }, set: { selection.value = $0 })) {
+                ForEach(0..<4, id: \.self) { index in
+                    Text("row \(index) words").textSelection(.enabled)
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+
+    /// SwiftUI's own example shape: the modifier on the row's `Text`, which
+    /// the list's environment never sees. It was a silent no-op: the press
+    /// went to the list, and a drag selected rows rather than text.
+    @Test("On a row's Text, a drag over it selects the text, kept to that Text, and a click selects no row")
+    func rowTextModifier() throws {
+        let page = RowTextPage(selection: Box(nil))
+        let harness = harness(page)
+        let row1 = try find("row 1", in: harness, page)
+        drag(harness, page, from: (row1.x + 4, row1.y), to: (row1.x + 6, row1.y + 2))
+        #expect(harness.tui.screenSelection.current?.text == "1 words")
+        #expect(page.selection.value == nil)
+        let row2 = try find("row 2", in: harness, page)
+        click(harness, page, (row2.x + 1, row2.y))
+        #expect(page.selection.value == nil)
+        click(harness, page, (row2.x + 20, row2.y))
+        #expect(page.selection.value == 2)
+    }
+
+    struct CellTextPage: View {
+        let selection: Box<Int?>
+        var body: some View {
+            Table(
+                (0..<4).map { Item(id: $0, name: "item \($0) name") },
+                selection: Binding(get: { selection.value }, set: { selection.value = $0 })
+            ) {
+                TableColumn("Name") { item in Text(item.name).textSelection(.enabled) }
+            }
+            .frame(height: 9)
+        }
+    }
+
+    @Test("On a Table cell's Text, a drag over it selects the text and leaves the rows alone")
+    func cellTextModifier() throws {
+        let page = CellTextPage(selection: Box(nil))
+        let harness = harness(page)
+        let row1 = try find("item 1", in: harness, page)
+        drag(harness, page, from: (row1.x + 5, row1.y), to: (row1.x + 7, row1.y + 2))
+        #expect(harness.tui.screenSelection.current?.text == "1 name")
+        #expect(page.selection.value == nil)
+    }
+
     // MARK: - Seen through by containers
 
     struct LoopPage: View {

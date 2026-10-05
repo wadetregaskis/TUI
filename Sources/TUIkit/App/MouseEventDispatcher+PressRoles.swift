@@ -44,7 +44,15 @@ enum PressRole {
     /// `rowArea` answers, for a line in the region's own coordinates, the
     /// row drawn there: its columns and its lines, in the same coordinates —
     /// or `nil` where no row is (a section header, the border).
-    case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?)
+    ///
+    /// `cellsSelectText` says the rows' own content asked for it: a `Table`
+    /// whose cells filed an enabled scope while it drew them
+    /// (`Text(name).textSelection(.enabled)` in a column). A table draws its
+    /// cells as text and keeps none of their regions, so no scope is under
+    /// the press to say so; with this, a press under no scope at all is
+    /// treated as under an enabled one. A `List`'s rows keep their regions,
+    /// so a row's own scope is found under the press, and it passes `false`.
+    case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?, cellsSelectText: Bool)
 }
 
 extension MouseEventDispatcher {
@@ -78,12 +86,12 @@ extension MouseEventDispatcher {
     func registerSelectionScope(_ allowsSelection: Bool, in context: RenderContext) -> HitTestRegion.HandlerID {
         let id = registerHoverObserver(in: context) { _ in false }
         guard !context.isMeasuring else { return id }
-        selectionScopes[id] = allowsSelection
+        fileSelectionScope(allowsSelection, for: id)
         guard let journal = context.recordingEffectJournal else { return id }
         let token = context.environment.keyChannelToken
         journal.append(
             EffectJournal.Entry(kind: Self.selectionScopeKind, channelToken: token) { replay in
-                replay.environment.mouseEventDispatcher?.selectionScopes[id] = allowsSelection
+                replay.environment.mouseEventDispatcher?.fileSelectionScope(allowsSelection, for: id)
             })
         return id
     }
@@ -124,10 +132,11 @@ extension MouseEventDispatcher {
                     hold(event, for: (handler, region.localOriginX, region.localOriginY),
                         pane: within(Self.rect(of: region)))
                     return true
-                case .rows(let rowArea):
+                case .rows(let rowArea, let cellsSelectText):
                     // A press on a row's text, under an enabled scope: the
                     // text's, kept to the row, and no click for the row.
-                    if tier == true, screenSelection?.isText(at: point) == true,
+                    if tier == true || (tier == nil && cellsSelectText),
+                        screenSelection?.isText(at: point) == true,
                         let area = rowArea(event.y - region.localOriginY)
                     {
                         let row = ScreenSelection.Rect(
