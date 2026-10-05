@@ -67,8 +67,8 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
         }
     }
 
@@ -77,9 +77,9 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
         }
     }
 
@@ -88,10 +88,10 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
         }
     }
 
@@ -102,11 +102,11 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
-            appendToolbarItems(c4, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
+            items.step(4, c4)
         }
     }
 
@@ -118,12 +118,12 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
-            appendToolbarItems(c4, to: &items)
-            appendToolbarItems(c5, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
+            items.step(4, c4)
+            items.step(5, c5)
         }
     }
 
@@ -135,13 +135,13 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
-            appendToolbarItems(c4, to: &items)
-            appendToolbarItems(c5, to: &items)
-            appendToolbarItems(c6, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
+            items.step(4, c4)
+            items.step(5, c5)
+            items.step(6, c6)
         }
     }
 
@@ -153,14 +153,14 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
-            appendToolbarItems(c4, to: &items)
-            appendToolbarItems(c5, to: &items)
-            appendToolbarItems(c6, to: &items)
-            appendToolbarItems(c7, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
+            items.step(4, c4)
+            items.step(5, c5)
+            items.step(6, c6)
+            items.step(7, c7)
         }
     }
 
@@ -172,15 +172,15 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
-            appendToolbarItems(c4, to: &items)
-            appendToolbarItems(c5, to: &items)
-            appendToolbarItems(c6, to: &items)
-            appendToolbarItems(c7, to: &items)
-            appendToolbarItems(c8, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
+            items.step(4, c4)
+            items.step(5, c5)
+            items.step(6, c6)
+            items.step(7, c7)
+            items.step(8, c8)
         }
     }
 
@@ -192,16 +192,16 @@ extension ToolbarContentBuilder {
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8, _ c9: C9
     ) -> some ToolbarContent {
         _TupleToolbarContent { items in
-            appendToolbarItems(c0, to: &items)
-            appendToolbarItems(c1, to: &items)
-            appendToolbarItems(c2, to: &items)
-            appendToolbarItems(c3, to: &items)
-            appendToolbarItems(c4, to: &items)
-            appendToolbarItems(c5, to: &items)
-            appendToolbarItems(c6, to: &items)
-            appendToolbarItems(c7, to: &items)
-            appendToolbarItems(c8, to: &items)
-            appendToolbarItems(c9, to: &items)
+            items.step(0, c0)
+            items.step(1, c1)
+            items.step(2, c2)
+            items.step(3, c3)
+            items.step(4, c4)
+            items.step(5, c5)
+            items.step(6, c6)
+            items.step(7, c7)
+            items.step(8, c8)
+            items.step(9, c9)
         }
     }
 }

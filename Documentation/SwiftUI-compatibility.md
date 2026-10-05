@@ -579,7 +579,9 @@ held is a `.navigationTitle` and `.toolbar` items.
 A root `.navigationTitle` (and `.navigationSubtitle`) is shown in the top bar's
 title slot when there is a top bar; a title alone draws no bar. An item is drawn
 in the environment of the view that declared it (a `.disabled` above
-`.toolbar` disables it), keeps its `@State` from frame to frame, and its
+`.toolbar` disables it), keeps its `@State` from frame to frame — at its place
+in the declaration, as a view in a `ViewBuilder` does, so an `if` before it
+moves nothing, and two `.toolbar`s on one view keep their items apart — and its
 controls are in the Tab ring after the page's, in a section of their own that
 never takes the first focus; their keyboard shortcuts are live. While a modal
 holds the input both bars are inert — no focus, keys or clicks — except the

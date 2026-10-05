@@ -75,8 +75,8 @@ extension ToolbarItem where ID == String {
 extension ToolbarItem: @MainActor Identifiable where ID: Hashable {}
 
 extension ToolbarItem: _ToolbarContentPrimitive {
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
-        items.append(_ToolbarItemSpec(placement: placement, view: AnyView(content), id: id as? String))
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+        items.append(placement: placement, view: AnyView(content), id: id as? String)
     }
 }
 
@@ -110,9 +110,8 @@ public struct ToolbarItemGroup<Content: View>: ToolbarContent {
 }
 
 extension ToolbarItemGroup: _ToolbarContentPrimitive {
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
-        items.append(
-            _ToolbarItemSpec(placement: placement, view: AnyView(HStack(spacing: 1) { content }), id: nil))
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+        items.append(placement: placement, view: AnyView(HStack(spacing: 1) { content }))
     }
 }
 
@@ -158,10 +157,10 @@ public struct ToolbarSpacer: ToolbarContent {
 }
 
 extension ToolbarSpacer: _ToolbarContentPrimitive {
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         let view =
             sizing.isFlexible
             ? AnyView(Spacer(minLength: 0)) : AnyView(Text(" "))
-        items.append(_ToolbarItemSpec(placement: placement, view: view, id: nil))
+        items.append(placement: placement, view: view)
     }
 }

@@ -58,7 +58,10 @@ extension View {
 /// Declares `items` into the window's chrome as `content` renders.
 ///
 /// Each item is recorded with the environment it was declared in and an
-/// identity under this view's, so the bar draws it as if it were drawn here.
+/// identity under this view's — keyed by its place in the declaration (or its
+/// `id:`), and by how many `.toolbar`s at this identity enclose this one — so
+/// the bar draws it as if it were drawn here.
+///
 /// Declared on the drawn walk only — a measurement declares nothing — except
 /// the first frame's seeding walk, which is a measurement whose whole purpose
 /// is to find the chrome (``EnvironmentValues/seedsWindowChrome``).
@@ -74,20 +77,24 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
         {
             // Declared afresh by every walk, so a memoised ancestor serving its
             // buffer would leave the window with no items: the same refusal
-            // `.statusBarItems` and `.appHeader` make.
+            // `.statusBarItems` makes.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
-            for (index, item) in toolbarItems(of: items).enumerated() {
-                let itemContext =
-                    if let id = item.id {
-                        context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: id)
-                    } else {
-                        context.withChildIdentity(type: _ToolbarItemSlot.self, index: index)
-                    }
+            // How many `.toolbar`s at this same identity are declaring around
+            // this one: a modifier renders its content at its own identity, so
+            // `Text("p").toolbar { A }.toolbar { B }` — or the same with a
+            // `.padding()` between — is two declarations at ONE identity, and
+            // their first items took the same slot. The window deduplicates by
+            // slot (a walk may render a view twice), so A was never drawn.
+            let depth = chrome.beginDeclaring(at: context.identity)
+            defer { chrome.endDeclaring(at: context.identity) }
+            for item in toolbarItems(of: items) {
+                let key = depth == 0 ? item.slotKey : "\(depth)/\(item.slotKey)"
                 chrome.declare(
                     WindowChromeState.ToolbarEntry(
                         placement: item.placement, view: item.view, environment: context.environment,
-                        identity: itemContext.identity))
+                        identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity))
             }
+            return TUIkit.renderToBuffer(content, context: context)
         }
         return TUIkit.renderToBuffer(content, context: context)
     }

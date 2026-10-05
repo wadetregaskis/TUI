@@ -41,7 +41,8 @@ extension Never: ToolbarContent {}
 
 // MARK: - The Items a Declaration Holds
 
-/// One item a toolbar declaration holds: where it goes, and the view it draws.
+/// One item a toolbar declaration holds: where it goes, the view it draws, and
+/// where it sits in the declaration.
 struct _ToolbarItemSpec {
     /// Where the item goes.
     let placement: ToolbarItemPlacement
@@ -50,8 +51,55 @@ struct _ToolbarItemSpec {
     let view: AnyView
 
     /// The item's identifier, when it was given one (`ToolbarItem(id:)`) — its
-    /// identity in the bar, so its `@State` follows it rather than its index.
+    /// identity in the bar, so its `@State` follows it rather than its place.
     let id: String?
+
+    /// Where the item sits in the content that declared it: the member of each
+    /// block it is in, and the branch of each `if`/`else` — its structural
+    /// identity, as a view's in a `ViewBuilder` is.
+    ///
+    /// Not its index in the flattened list, which is what it was: an item
+    /// inside an `if` moved every item after it along by one when the `if`
+    /// turned, and each of them took the next one's `@State`.
+    var path: [Int]
+
+    /// The key the item's identity step takes under the declaring view: its
+    /// identifier if it has one, else its ``path``.
+    var slotKey: String {
+        if let id { "#" + id } else { path.map(String.init).joined(separator: ".") }
+    }
+}
+
+/// Collects the items of a toolbar declaration, each at its place in the
+/// declaration's structure.
+struct _ToolbarItemCollector {
+    /// The items collected, in order.
+    private(set) var items: [_ToolbarItemSpec] = []
+
+    /// The place being collected: one step per block member and `if` branch.
+    private var path: [Int] = []
+
+    /// Adds an item at the current place.
+    mutating func append(placement: ToolbarItemPlacement, view: AnyView, id: String? = nil) {
+        items.append(_ToolbarItemSpec(placement: placement, view: view, id: id, path: path))
+    }
+
+    /// Adds items collected elsewhere, at their places under the current one.
+    mutating func append(contentsOf others: [_ToolbarItemSpec]) {
+        for var other in others {
+            other.path = path + other.path
+            items.append(other)
+        }
+    }
+
+    /// Collects `content`'s items one step further in, at `index`: a block's
+    /// member, an `if`/`else`'s branch.
+    @MainActor
+    mutating func step<Content: ToolbarContent>(_ index: Int, _ content: Content) {
+        path.append(index)
+        TUIkit.appendToolbarItems(content, to: &self)
+        path.removeLast()
+    }
 }
 
 /// Toolbar content that hands its items over itself, rather than through
@@ -60,21 +108,21 @@ struct _ToolbarItemSpec {
 @MainActor
 protocol _ToolbarContentPrimitive {
     /// Appends this content's items, in order.
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec])
+    func appendToolbarItems(to items: inout _ToolbarItemCollector)
 }
 
 /// The items `content` declares, in order.
 @MainActor
 func toolbarItems<Content: ToolbarContent>(of content: Content) -> [_ToolbarItemSpec] {
-    var items: [_ToolbarItemSpec] = []
-    appendToolbarItems(content, to: &items)
-    return items
+    var collector = _ToolbarItemCollector()
+    appendToolbarItems(content, to: &collector)
+    return collector.items
 }
 
 /// Appends `content`'s items: a primitive's own, anything else's through its
 /// body.
 @MainActor
-func appendToolbarItems<Content: ToolbarContent>(_ content: Content, to items: inout [_ToolbarItemSpec]) {
+func appendToolbarItems<Content: ToolbarContent>(_ content: Content, to items: inout _ToolbarItemCollector) {
     if let primitive = content as? any _ToolbarContentPrimitive {
         primitive.appendToolbarItems(to: &items)
         return
@@ -105,7 +153,7 @@ struct _HiddenToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarC
 
     var body: Never { fatalError("_HiddenToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard !isHidden else { return }
         TUIkit.appendToolbarItems(content, to: &items)
     }
@@ -119,7 +167,7 @@ extension Optional: ToolbarContent where Wrapped: ToolbarContent {
 }
 
 extension Optional: _ToolbarContentPrimitive where Wrapped: ToolbarContent {
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard let self else { return }
         TUIkit.appendToolbarItems(self, to: &items)
     }
@@ -134,10 +182,10 @@ extension _ConditionalContent: ToolbarContent where TrueContent: ToolbarContent,
 
 extension _ConditionalContent: _ToolbarContentPrimitive
 where TrueContent: ToolbarContent, FalseContent: ToolbarContent {
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         switch self {
-        case .trueContent(let content): TUIkit.appendToolbarItems(content, to: &items)
-        case .falseContent(let content): TUIkit.appendToolbarItems(content, to: &items)
+        case .trueContent(let content): items.step(0, content)
+        case .falseContent(let content): items.step(1, content)
         }
     }
 }
@@ -148,11 +196,11 @@ where TrueContent: ToolbarContent, FalseContent: ToolbarContent {
 /// they hand their items over in order.
 struct _TupleToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
     /// Appends every member's items, captured where their types were known.
-    let appendMembers: @MainActor (inout [_ToolbarItemSpec]) -> Void
+    let appendMembers: @MainActor (inout _ToolbarItemCollector) -> Void
 
     var body: Never { fatalError("_TupleToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         appendMembers(&items)
     }
 }
@@ -170,7 +218,7 @@ struct _AnyToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
 
     var body: Never { fatalError("_AnyToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout [_ToolbarItemSpec]) {
-        items += self.items
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+        items.append(contentsOf: self.items)
     }
 }
