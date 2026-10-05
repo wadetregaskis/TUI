@@ -103,9 +103,13 @@ extension ScrollbarRenderer {
     /// passed and then every interval, on the lattice it keeps the loop rendering
     /// on. The hold's mouse handler sets the repeat on press and clears it on
     /// release.
+    ///
+    /// The token is an autoclosure: a bar's owner builds it from its identity
+    /// path, which is a string rendered on every call, and it is needed only
+    /// while a bar is held.
     @MainActor
     static func driveAutoRepeat(
-        state: ScrollableOffsetState, token: String, context: RenderContext
+        state: ScrollableOffsetState, token: @autoclosure () -> String, context: RenderContext
     ) {
         guard !context.isMeasuring, var repeating = state.scrollbarRepeat else { return }
         // Scrolling turned off mid-hold: drop the hold rather than let it keep
@@ -116,7 +120,7 @@ extension ScrollbarRenderer {
         }
         // Keep the loop rendering while held so the deadline below is checked, at
         // the instants the repeats are due on.
-        context.requestAnimation(token: token, frameTicks: autoRepeatIntervalTicks)
+        context.requestAnimation(token: token(), frameTicks: autoRepeatIntervalTicks)
         let now = context.environment.frameNowNanos
         if repeating.nextFireNanos == 0 {
             repeating.nextFireNanos = now + autoRepeatInitialDelayNanos
