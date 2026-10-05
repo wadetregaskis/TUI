@@ -75,8 +75,8 @@ struct TextUndoManagerTests {
         #expect(box.value.isEmpty)
     }
 
-    @Test("A field's undo leaves the app's history when it loses the focus")
-    func fieldForgetsOnFocusLoss() {
+    @Test("A field's undo stays in the app's history when it loses the focus, as its own history always did")
+    func fieldKeepsUndoOnFocusLoss() {
         let manager = makeManager()
         let box = TextBox()
         let harness = InputChainHarness(undoManager: manager)
@@ -86,9 +86,55 @@ struct TextUndoManagerTests {
                 Button("Other") {}
             }
         }
-        harness.play(typed("ab") + [KeyEvent(key: .tab)], page)
+        harness.play(typed("ab") + [KeyEvent(key: .tab), Self.undoKey], page)
+        #expect(box.value == "a")
+        harness.play([KeyEvent(key: .tab, shift: true), Self.controlZ], page)
+        #expect(box.value.isEmpty, "and the field's own Ctrl-Z after it")
+    }
+
+    private final class Flag {
+        var on = true
+    }
+
+    @Test("A control that leaves the screen takes its steps out of the app's history", arguments: [false, true])
+    func removedControlForgetsItsSteps(editor: Bool) {
+        let manager = makeManager()
+        let box = TextBox()
+        let shown = Flag()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = {
+            VStack {
+                if shown.on {
+                    if editor {
+                        TextEditor(text: Binding(get: { box.value }, set: { box.value = $0 }))
+                    } else {
+                        self.field(box)
+                    }
+                }
+                Button("Other") {}
+            }
+        }
+        harness.play(typed("abc") + [Self.undoKey], page)
         #expect(box.value == "ab")
-        #expect(!manager.canUndo, "a field's edits do not outlive its editing")
+        #expect(manager.canUndo && manager.canRedo)
+        shown.on = false
+        harness.frame(page())
+        harness.frame(page())
+        #expect(!manager.canUndo && !manager.canRedo, "no step left whose control is gone")
+        harness.play([Self.undoKey, Self.redoKey], page)
+        #expect(box.value == "ab")
+    }
+
+    @Test("A step the control's own history let go of past its limit leaves the app's history with it")
+    func droppedPastTheLimit() {
+        let manager = makeManager()
+        let box = TextBox()
+        let harness = InputChainHarness(undoManager: manager)
+        harness.play(typed(String(repeating: "x", count: 53))) { field(box) }
+        harness.play(Array(repeating: Self.undoKey, count: 50)) { field(box) }
+        #expect(box.value == "xxx", "the fifty newest steps undone")
+        #expect(!manager.canUndo, "the three oldest, whose states the field let go of, are not offered")
+        #expect(manager.canRedo)
     }
 
     @Test("An editor's edits are the app's to undo, across a change of focus")

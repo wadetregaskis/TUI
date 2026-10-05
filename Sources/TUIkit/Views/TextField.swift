@@ -55,10 +55,13 @@
 /// "undo" take it back too, and Ctrl+Z is the app's undo, as ⌘Z is a window's
 /// on macOS: it undoes the newest step in the app, which is the field's last
 /// change unless the app registered something since. The app's undo manager
-/// makes each event's changes one step, which for a field is one key; outside a
-/// running app, Ctrl+Z takes back one key's change at a time from the field's
-/// own history. Either way the last 50 are kept. As a text field's undo does on
-/// macOS, the field's steps leave the app's history when it loses the focus.
+/// makes each event's changes one step — one key while keys arrive one at a
+/// time, several when they arrive together (a fast typist, a burst over ssh);
+/// outside a running app, Ctrl+Z takes back one key's change at a time from
+/// the field's own history. Either way the last 50 are kept, and a change
+/// older than that leaves the app's history too. The field's steps stay in
+/// the app's history after it loses the focus, as its own history always
+/// stayed, and leave it when the field leaves the screen.
 /// It never brings back text the field did not produce: when the app replaces
 /// the bound text, clearing the field in `onSubmit` or loading other text into
 /// it, the field forgets its history. A ``SecureField`` keeps its own history

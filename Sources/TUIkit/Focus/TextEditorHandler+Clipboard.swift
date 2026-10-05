@@ -58,7 +58,7 @@ extension TextEditorHandler {
         if let undoManager {
             _ = UndoKey.undo.perform(on: undoManager)
         } else {
-            _ = undoOwnStep()
+            _ = undoOwnStep(mark: nil)
         }
     }
 
@@ -68,16 +68,22 @@ extension TextEditorHandler {
         if let undoManager {
             _ = UndoKey.redo.perform(on: undoManager)
         } else {
-            _ = redoOwnStep()
+            _ = redoOwnStep(mark: nil)
         }
     }
 
     /// Forgets the history, and the steps registered for it, if the app has
     /// replaced the text since the editor last wrote it.
     func forgetHistoryIfReplaced() {
-        if undoHistory.forgetIfReplaced(current: text.wrappedValue), let undoManager {
-            TextUndoBridge.forgetEdits(of: self, on: undoManager)
-        }
+        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        forgetDroppedSteps()
+    }
+
+    /// Takes the steps of the states the history let go of out of the app's
+    /// undo manager, so it never offers an undo that does nothing.
+    func forgetDroppedSteps() {
+        let dropped = undoHistory.takeDroppedMarks()
+        if let undoManager { TextUndoBridge.forget(dropped, on: undoManager) }
     }
 
     /// Restores `state`, as an undo or a redo does.
@@ -93,18 +99,19 @@ extension TextEditorHandler {
 // MARK: - AppUndoableText
 
 extension TextEditorHandler: AppUndoableText {
-    func undoOwnStep() -> Bool {
+    func undoOwnStep(mark: TextUndoMark?) -> Bool {
         // Runs inside the undo manager's own undo, so a replaced text forgets
-        // the history here without touching the manager.
+        // the history here without touching the manager; the steps it drops
+        // leave the manager with the next edit.
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursor)) else { return false }
+        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursor), mark: mark) else { return false }
         restore(previous)
         return true
     }
 
-    func redoOwnStep() -> Bool {
+    func redoOwnStep(mark: TextUndoMark?) -> Bool {
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let next = undoHistory.redo(from: (text.wrappedValue, cursor)) else { return false }
+        guard let next = undoHistory.redo(from: (text.wrappedValue, cursor), mark: mark) else { return false }
         restore(next)
         return true
     }

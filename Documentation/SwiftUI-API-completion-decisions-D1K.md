@@ -125,19 +125,25 @@ day; nothing in the SwiftUI surface needs them.
 If swift-corelibs-foundation ever ships an `UndoManager`, the two would clash
 on Linux; the declaration's `#if` would then need a version condition.
 
-### B-D1K-6. A text control's undo steps are per event, a field's end with its editing, and a secure field has none
+### B-D1K-6. A text control's undo steps are per event, they last as long as the control, and a secure field has none
 
 *`TextField`, `TextEditor`, `SecureField`, `EnvironmentValues.undoManager`*
 
 **Shipped:** `TextField` and `TextEditor` register every edit with the app's
 undo manager; each event's edits are one step (the manager's grouping by
-event), which for typing is one key. A field's steps leave the app's history
-when it loses the focus, as a text field's field editor removes its actions
-on resigning on macOS; the editor's stay, as `NSTextView`'s do. A
-`SecureField` registers nothing and keeps the private Ctrl-Z it had: a
-password's keystrokes in the app's history would be undoable from anywhere,
-which is not a thing a secure field should offer (AppKit's secure text field
-is believed to keep its typing out of the window's undo too; not measured).
+event) — one key while keys arrive one per pass of the run loop, several
+when they arrive together, a fast typist or a burst over ssh. A control's
+steps stay in the app's history until the control leaves the screen, or
+its own history lets them go (past its 50, or when the app replaces the
+text), and then leave it, so the manager never offers an undo that does
+nothing. A field's stay after it loses the focus: the lane first removed
+them there, believing a macOS field editor drops its actions on resigning,
+but nothing measured or documented says so, and the field's own Ctrl-Z
+history had always outlived a change of focus. A `SecureField` registers
+nothing and keeps the private Ctrl-Z it had: a password's keystrokes in the
+app's history would be undoable from anywhere, which is not a thing a
+secure field should offer (AppKit's secure text field is believed to keep
+its typing out of the window's undo too; not measured).
 
 **The fuller version** coalesces a typing run into one step, as the macOS text
 system does: consecutive insertions with no caret move or pause between them

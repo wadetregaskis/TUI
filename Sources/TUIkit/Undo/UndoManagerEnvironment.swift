@@ -34,9 +34,9 @@ extension EnvironmentValues {
     /// ```
     ///
     /// ``TextField`` and ``TextEditor`` register their own edits with it, so
-    /// undo means something in an app that registers nothing itself; a field's
-    /// leave it when the field loses the focus, as on macOS. A ``SecureField``'s
-    /// do not.
+    /// undo means something in an app that registers nothing itself; a
+    /// control's leave it when the control leaves the screen. A
+    /// ``SecureField``'s do not.
     ///
     /// ## Undoing in a terminal
     ///

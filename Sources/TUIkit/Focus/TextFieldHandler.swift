@@ -261,6 +261,13 @@ final class TextFieldHandler: PersistedFocusable {
         self.cursorPosition = cursorPosition ?? text.wrappedValue.count
         self.selectionAnchor = nil
     }
+
+    /// A field that leaves the screen takes its steps out of the app's undo
+    /// manager, which would otherwise offer undos that change nothing anyone
+    /// can see.
+    deinit {
+        if let undoManager { TextUndoBridge.forget(undoHistory.allMarks, on: undoManager) }
+    }
 }
 
 // MARK: - Selection
@@ -932,17 +939,24 @@ extension TextFieldHandler {
     /// too (``TextUndoBridge``), so Ctrl-minus and the status bar undo it.
     func pushUndoState() {
         forgetHistoryIfReplaced()
-        if undoHistory.record(text: text.wrappedValue, caret: cursorPosition), let undoManager {
-            TextUndoBridge.registerEdit(of: self, on: undoManager)
+        if let mark = undoHistory.record(text: text.wrappedValue, caret: cursorPosition), let undoManager {
+            TextUndoBridge.registerEdit(of: self, mark: mark, on: undoManager)
         }
+        forgetDroppedSteps()
     }
 
     /// Forgets the history, and the steps registered for it, if the app has
     /// replaced the text since the field last wrote it.
     private func forgetHistoryIfReplaced() {
-        if undoHistory.forgetIfReplaced(current: text.wrappedValue), let undoManager {
-            TextUndoBridge.forgetEdits(of: self, on: undoManager)
-        }
+        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        forgetDroppedSteps()
+    }
+
+    /// Takes the steps of the states the history let go of out of the app's
+    /// undo manager, so it never offers an undo that does nothing.
+    private func forgetDroppedSteps() {
+        let dropped = undoHistory.takeDroppedMarks()
+        if let undoManager { TextUndoBridge.forget(dropped, on: undoManager) }
     }
 
     /// Ctrl-Z, the stand-in for ⌘Z: undoes the app's newest step where there
@@ -956,7 +970,7 @@ extension TextFieldHandler {
         if let undoManager {
             _ = UndoKey.undo.perform(on: undoManager)
         } else {
-            _ = undoOwnStep()
+            _ = undoOwnStep(mark: nil)
         }
     }
 
@@ -967,7 +981,7 @@ extension TextFieldHandler {
         if let undoManager {
             _ = UndoKey.redo.perform(on: undoManager)
         } else {
-            _ = redoOwnStep()
+            _ = redoOwnStep(mark: nil)
         }
     }
 
@@ -983,18 +997,23 @@ extension TextFieldHandler {
 // MARK: - AppUndoableText
 
 extension TextFieldHandler: AppUndoableText {
-    func undoOwnStep() -> Bool {
+    func undoOwnStep(mark: TextUndoMark?) -> Bool {
         // No forgetting of registered steps here: this runs inside the undo
-        // manager's own undo. A replaced text simply has nothing to undo.
+        // manager's own undo. A replaced text simply has nothing to undo, and
+        // the steps it drops leave the manager with the next edit.
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursorPosition)) else { return false }
+        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursorPosition), mark: mark) else {
+            return false
+        }
         restore(previous)
         return true
     }
 
-    func redoOwnStep() -> Bool {
+    func redoOwnStep(mark: TextUndoMark?) -> Bool {
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let next = undoHistory.redo(from: (text.wrappedValue, cursorPosition)) else { return false }
+        guard let next = undoHistory.redo(from: (text.wrappedValue, cursorPosition), mark: mark) else {
+            return false
+        }
         restore(next)
         return true
     }
@@ -1014,14 +1033,6 @@ extension TextFieldHandler {
         // starts with the keyboard at the caret and the menu closed.
         suggestionsOpen = false
         resetSuggestionNavigation()
-        // Editing has ended, and with it the field's undo in the app's
-        // history, as a text field's field editor removes its actions when it
-        // resigns on macOS: an undo from elsewhere must not change a field
-        // nobody is in.
-        if let undoManager {
-            TextUndoBridge.forgetEdits(of: self, on: undoManager)
-            undoHistory.forget()
-        }
         // Editing has ended: the commit point for values that apply live —
         // a combo box records its recents here, not just on Enter.
         onEditingChanged?(false)

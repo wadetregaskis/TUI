@@ -95,6 +95,13 @@ final class TextEditorHandler: PersistedFocusable {
         self.canBeFocused = canBeFocused
     }
 
+    /// An editor that leaves the screen takes its steps out of the app's undo
+    /// manager, which would otherwise offer undos that change nothing anyone
+    /// can see.
+    deinit {
+        if let undoManager { TextUndoBridge.forget(undoHistory.allMarks, on: undoManager) }
+    }
+
     // MARK: - Line access
 
     /// The bound text as per-line character arrays (always at least one line).
@@ -191,10 +198,11 @@ final class TextEditorHandler: PersistedFocusable {
             handled = handleEditingKey(event)
         }
         if text.wrappedValue != textBefore,
-            undoHistory.record(text: textBefore, caret: caretBefore), let undoManager
+            let mark = undoHistory.record(text: textBefore, caret: caretBefore), let undoManager
         {
-            TextUndoBridge.registerEdit(of: self, on: undoManager)
+            TextUndoBridge.registerEdit(of: self, mark: mark, on: undoManager)
         }
+        forgetDroppedSteps()
         return handled
     }
 
