@@ -1995,8 +1995,9 @@ applied to every frame's `TIOCGWINSZ` reading, so a font change moves the
 points with the pixels):
 
 - **Apple Terminal, Warp:** the reported pixels are points.
-- **iTerm2:** asked `CSI 14 t` once at startup (fenced with DSR, as every
-  startup question is); the area over the grid is the cell in points, and the
+- **iTerm2:** asked `CSI 14 t` once at startup (fenced with the status report
+  `CSI 5 n`, as every startup question is, so a Shift-F3 pressed during it
+  neither ends the read nor is lost); the area over the grid is the cell in points, and the
   ratio to the ioctl's cell is kept. The area rather than `CSI 16 t`'s cell,
   because iTerm2's cell is not a whole number of points and `16 t` answers
   whole numbers.

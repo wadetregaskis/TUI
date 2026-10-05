@@ -87,15 +87,17 @@ struct TerminalExchangeTests {
         (0..<pumps).compactMap { _ in terminal.readEvent() }
     }
 
-    /// The two exchanges that used to discard what they read, each with a
-    /// reply it credits.
+    /// The exchanges that hand back what they read — the two that used to
+    /// discard it, and iTerm2's text-area question — each with a reply it
+    /// credits.
     enum Exchange: String, CaseIterable, Sendable {
-        case mode, graphics
+        case mode, graphics, textArea
 
         var reply: String {
             switch self {
             case .mode: "\u{1B}[?2027;2$y"
             case .graphics: "\u{1B}_Gi=\(TerminalGraphicsQuery.probeID);OK\u{1B}\\"
+            case .textArea: "\u{1B}[4;668;1083t"
             }
         }
 
@@ -105,6 +107,7 @@ struct TerminalExchangeTests {
             switch self {
             case .mode: terminal.askMode(2027, timeout: 5) == .reset
             case .graphics: terminal.askGraphicsSupport(timeout: 5).placement
+            case .textArea: terminal.askTextAreaSize(timeout: 5).map { [$0.width, $0.height] } == [1083, 668]
             }
         }
     }
@@ -251,7 +254,9 @@ struct TerminalExchangeTests {
 
     @Test("Each exchange's request ends with the status fence, and asks for no cursor report")
     func requestsAreFencedByStatus() {
-        for request in [TerminalModeQuery.request(mode: 2027), TerminalGraphicsQuery.request] {
+        for request in [
+            TerminalModeQuery.request(mode: 2027), TerminalGraphicsQuery.request, TerminalTextAreaQuery.request,
+        ] {
             #expect(request.hasSuffix(TerminalQueryReplies.statusFence))
             #expect(!request.contains("\u{1B}[6n"))
         }

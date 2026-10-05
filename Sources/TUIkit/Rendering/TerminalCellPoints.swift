@@ -67,11 +67,14 @@ extension EnvironmentValues {
 /// whole number of points (7.125 × 18.32 at its default font), and `16 t`
 /// answers whole numbers: divided by the grid, the area keeps the fraction.
 ///
-/// Fenced with DSR, as every startup question is, so a terminal that ignores
-/// it answers the fence alone.
+/// Fenced with the status report, as every startup question is, so a terminal
+/// that ignores it answers the fence alone. Not the cursor report: its reply,
+/// `CSI row ; column R`, is a modified F3's shape (Shift-F3 is `CSI 1;2 R`),
+/// and one pressed during the exchange would end it before the answer and be
+/// lost as the fence (see ``TerminalIdentityQuery``).
 enum TerminalTextAreaQuery {
     /// The question and its fence.
-    static let request = "\u{1B}[14t\u{1B}[6n"
+    static let request = "\u{1B}[14t" + TerminalQueryReplies.statusFence
 
     /// The text area's size, from the reply `CSI 4 ; height ; width t`, or
     /// `nil` where `bytes` carries none.
@@ -111,33 +114,6 @@ enum TerminalTextAreaQuery {
         sequence.count >= 3 && sequence.first == 0x1B
             && sequence[sequence.startIndex + 1] == 0x5B && sequence.last == 0x74  // 't'
     }
-
-    /// Whether `bytes` contains a cursor-position report — the fence, which
-    /// every terminal answers whether or not it understood the question.
-    static func sawFence(_ bytes: [UInt8]) -> Bool {
-        var index = 0
-        while index + 1 < bytes.count {
-            guard bytes[index] == 0x1B, bytes[index + 1] == 0x5B else {
-                index += 1
-                continue
-            }
-            var cursor = index + 2
-            while cursor < bytes.count, !(0x40...0x7E).contains(bytes[cursor]) {
-                cursor += 1
-            }
-            if cursor < bytes.count, bytes[cursor] == 0x52 { return true }  // 'R'
-            index = cursor + 1
-        }
-        return false
-    }
-
-    /// Whether one complete escape sequence is a cursor-position report: the
-    /// fence. ``sawFence(_:)`` asks it of a whole buffer; this asks it of one
-    /// sequence the hand-back walk has already delimited.
-    static func isFence(_ sequence: ArraySlice<UInt8>) -> Bool {
-        sequence.count >= 3 && sequence.first == 0x1B
-            && sequence[sequence.startIndex + 1] == 0x5B && sequence.last == 0x52  // 'R'
-    }
 }
 
 extension Terminal {
@@ -146,10 +122,18 @@ extension Terminal {
     /// handing back what else arrived, as every startup question does.
     func queryTextAreaSize(timeout: Double = 0.5) -> (width: Int, height: Int)? {
         guard isatty(STDIN_FILENO) == 1, isRawMode else { return nil }
+        return askTextAreaSize(timeout: timeout)
+    }
+
+    /// The exchange behind ``queryTextAreaSize(timeout:)``, without its guard.
+    ///
+    /// Apart so a test can run the exchange through ``readSource`` and
+    /// ``exchangeTransport``, as ``askMode(_:timeout:)`` is.
+    func askTextAreaSize(timeout: Double) -> (width: Int, height: Int)? {
         let collected = fencedExchange(
-            request: TerminalTextAreaQuery.request, timeout: timeout, sawFence: TerminalTextAreaQuery.sawFence)
+            request: TerminalTextAreaQuery.request, timeout: timeout, sawFence: TerminalQueryReplies.sawStatusFence)
         handBackUnconsumed(
-            from: collected, isReply: TerminalTextAreaQuery.isReply, isFence: TerminalTextAreaQuery.isFence)
+            from: collected, isReply: TerminalTextAreaQuery.isReply, isFence: TerminalQueryReplies.isStatusFence)
         return TerminalTextAreaQuery.parse(collected)
     }
 }
