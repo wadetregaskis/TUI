@@ -123,6 +123,22 @@ public protocol View {
     /// subview with none costs a constant rather than a walk of casts.
     static var _providesContainerValues: Bool { get }
 
+    /// Static witness: whether a container resolving this view may find other
+    /// than ONE child in it — because it is a provider of children (a tuple, a
+    /// `Group`, a loop, an `if`…), or a view of the app's own whose `body` is
+    /// one (decisions D1S, B-D1S-6). `false` for a primitive, whose `body` is
+    /// `Never`.
+    ///
+    /// A composite answers what its body answers — the default below — so the
+    /// question follows the chain of `body` types to the first primitive or
+    /// provider, a few witness calls with no cast. That is what lets a
+    /// container take apart `struct Pair: View { var body: some View { a; b }
+    /// }` as SwiftUI does, while a view whose body is a stack or a `Text` —
+    /// almost every view — is answered `false` and kept the one child it
+    /// always was, without its body being evaluated to find out
+    /// (`compositeMembers(of:context:)`).
+    static var _handsOverChildren: Bool { get }
+
     /// Static witness: whether this view type nominates something continuous
     /// about itself — that is, whether it conforms to ``Animatable``. `false`
     /// for every view but those, which get `true` from the constrained default
@@ -202,6 +218,12 @@ public extension View {
     /// Default: a view writes no container value. `.tag(_:)` and
     /// `.containerValue(_:_:)` override this.
     static var _providesContainerValues: Bool { false }
+
+    /// Default: what this view's `body` answers — to a container a view of the
+    /// app's own is what its body is. A tuple, an `if`, a loop, a `Group` of
+    /// those and a `Section` answer `true`; `Never` — a primitive's body —
+    /// `false`.
+    static var _handsOverChildren: Bool { Body._handsOverChildren }
 
     /// A view says nothing continuous about itself unless it is ``Animatable``.
     @inlinable

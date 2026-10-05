@@ -137,13 +137,15 @@ extension View {
     /// (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
     ///
     /// - Important: It stops at any other modifier written after it
-    ///   (`.border()`, a `.frame`, `.offset`), and at a view type of your own:
-    ///   a guide inside a `struct Row: View`'s `body` does not travel out of
-    ///   `Row`. Put the guide on the view the container places, or on the
-    ///   outside of your view. A guide is a closure evaluated against the
-    ///   dimensions the view laid out at, and a wrapper that does not
-    ///   translate it would report a position from the wrong coordinate space;
-    ///   a view of your own states nothing about what its body holds.
+    ///   (`.border()`, a `.frame`, `.offset`), and at a view type of your own
+    ///   whose `body` is one view: a guide inside such a `struct Row: View`'s
+    ///   `body` does not travel out of `Row`. Put the guide on the view the
+    ///   container places, or on the outside of your view. A guide is a
+    ///   closure evaluated against the dimensions the view laid out at, and a
+    ///   wrapper that does not translate it would report a position from the
+    ///   wrong coordinate space; a view of your own states nothing about what
+    ///   its body holds. (A body of several views is taken apart, so each of
+    ///   its views is the container's own child, guide and all.)
     ///
     /// - Parameters:
     ///   - g: The guide to set.

@@ -164,7 +164,17 @@ extension TupleView: ChildViewProvider {
     ) {
         defer { slot += 1 }
         guard let provider = child as? ChildViewProvider else {
-            // The STATIC position, not the flattened one — see below.
+            // A view of the app's own whose body is several views is those
+            // views (`compositeMembers(of:context:)`), resolved at the identity
+            // it would have drawn at; any other view is one child, at the
+            // STATIC position, not the flattened one — see below.
+            if C._handsOverChildren,
+                let members = compositeMembers(
+                    of: child, context: context.withChildIdentity(erasedType: C.self, index: slot))
+            {
+                views.append(contentsOf: members)
+                return
+            }
             views.append(ChildView(child, childIndex: slot))
             return
         }

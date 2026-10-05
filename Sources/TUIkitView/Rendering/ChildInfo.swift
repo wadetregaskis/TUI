@@ -932,6 +932,12 @@ public func resolveChildInfos<V: View>(from content: V, context: RenderContext) 
 @MainActor
 public func resolveChildViews<V: View>(from content: V, context: RenderContext) -> [ChildView] {
     guard let provider = content as? ChildViewProvider, !provider.staysWhole(in: context) else {
+        // A view of the app's own whose body is several views is those views,
+        // at the identity it would have drawn at — the container's own, as a
+        // container's whole content (`compositeMembers(of:context:)`).
+        if V._handsOverChildren, let members = compositeMembers(of: content, context: context) {
+            return members
+        }
         return [ChildView(content)]
     }
     return resolveChildViews(from: content, as: provider, context: context)

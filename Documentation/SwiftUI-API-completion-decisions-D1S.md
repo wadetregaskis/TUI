@@ -110,23 +110,42 @@ kept across frames while the data is unchanged (the loop's `listRowsSignature`
 already says when it is), so a lazy stack over varying rows is O(window) after
 the first frame. A day, with an A/B on `megalist` shaped with such rows.
 
-### B-D1S-6. A view of the app's own whose body is several views is one child
+### B-D1S-6. A modified view of the app's own, or one whose body is an `if`/`else`, is one child
 
-*`View`, `Group(subviews:transform:)`, `HStack`, `Layout`*
+*`View`, `Group(subviews:transform:)`, `HStack`, `Layout`, `List`*
 
-Noticed, not changed: `struct Pair: View { var body: some View { Text("a");
-Text("b") } }` placed in an `HStack` draws as a column here — one child, its
-body stacked on its own — where SwiftUI lays the two texts along the row and
-counts two subviews (probe `b17`'s `Content`, measured). A `List` already looks
-through such a body for its rows (`listRowsBody(of:context:)`); stacks,
-layouts and the subview APIs do not. The same family as B15.
+A view of the app's own whose `body` is several views is now, to the container
+resolving it, those views, as SwiftUI's is (measured, `D1S/probe2/composite`):
+a tuple, a loop, an `if` (none while false), a `Group` of those or a `Section`
+as a body is taken apart in a stack, a `Layout`, the subview APIs and a `List`
+— one inside another, and a loop of them, too — with the view's `@State` bound
+at its own identity and every view of its body at the identity it had drawn
+whole (`compositeMembers(of:context:)`, gated by the static witness
+`View._handsOverChildren`, a few witness calls down the chain of `body` types).
+Three shapes are still one child:
 
-**The fuller version.** A composite view whose body is a provider is resolved
-as its body's children, its `@State` bound at its identity as a render binds
-it — what `listRowsBody` does for lists, for every container. It moves the
-identity of every child of such a view, and it is on the hottest path there
-is (every composite child of every stack), so its gate must be a static
-witness. Two days with the measurement.
+- **A modifier on such a view** (`Rows().padding(3)`): SwiftUI applies it to
+  each of the body's views (measured: two subviews, each padded). The modified
+  view is no provider here, as a modifier reaches members only through a
+  provider it wraps.
+- **A body that is an `if`/`else`, or an `AnyView`**: they answer the default
+  witness (their own body is `Never`), so an `if`/`else` whose arms are
+  several views is one child. Most of the framework's own controls have an
+  `if`/`else` body (`TextField`'s does) and hand over one view either way;
+  answering `true` for it would evaluate their bodies on every walk to find
+  that out.
+- **In a `List` beside other rows**, the rows of a loop in such a view are
+  drawn as rows but selected and edited by the hand-written rule (their tag,
+  else their place): a list's row placement cannot see into a body without
+  evaluating it (`KeyedRowRun.opaque`). A section of the app's own there is a
+  section, its loop's rows selected by element and deletable.
+
+**The fuller version.** `ModifiedView` (and the wrappers that hand a provider's
+members their modifier) answering for content that is such a view — a
+provider conformance that holds for a content TYPE only a witness can name, so
+a forwarding conformance on every wrapper; and the placement told a view's
+body when the walk evaluates it. A day or two. A/B owed for what landed:
+`fanout`, `deep`, `kitchensink`, `megalist`, `anyview`.
 
 ### B-D1S-7. A stack around a loop over subviews asks it for guides it may not have
 

@@ -141,6 +141,9 @@ extension ForEach: View where Content: View {
     /// The rows' answer: they are laid out as the enclosing container's own
     /// children, so a guide in any of them can be one that container reports.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+
+    /// A loop is its rows (``View/_handsOverChildren``).
+    public static var _handsOverChildren: Bool { true }
 }
 
 // MARK: - Reading the Data

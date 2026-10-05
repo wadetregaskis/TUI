@@ -53,9 +53,12 @@ extension ForEach where Content: View {
     ///   section rows whole (`RenderContext.keepsLoopedSectionsWhole`): a row
     ///   that is a section is then one child, as it always was in a `List`.
     func rowShape(keepingSectionsWhole: Bool) -> ForEachRowShape {
-        guard Content.self is any ChildViewProvider.Type || Content.self == EmptyView.self else {
-            return .single
-        }
+        // A row of the app's own type is taken apart only when its body hands
+        // over children (decisions D1S, B-D1S-6) — the static witness, a few
+        // calls down its body types, and no cast for a body of one view.
+        guard Content.self is any ChildViewProvider.Type || Content.self == EmptyView.self
+            || (Content._handsOverChildren && isCompositeHandingOverChildren(Content.self))
+        else { return .single }
         if keepingSectionsWhole, Content.self is any SectionPartsProviding.Type { return .single }
         switch staticRowMemberCount(Content.self) {
         case 1: return .single

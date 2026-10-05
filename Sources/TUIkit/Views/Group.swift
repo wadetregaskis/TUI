@@ -57,6 +57,9 @@ extension Group: View where Content: View {
     /// container's own children, so a guide in any of them can be one that
     /// container reports.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+
+    /// Its content's answer: a `Group` of several views is those views.
+    public static var _handsOverChildren: Bool { Content._handsOverChildren }
 }
 
 // MARK: - Equatable Conformance

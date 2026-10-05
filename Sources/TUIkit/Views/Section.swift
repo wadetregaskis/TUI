@@ -79,6 +79,10 @@ public struct Section<Parent: View, Content: View, Footer: View>: View {
     public var body: some View {
         _SectionCore(header: header, content: content, footer: footer, isExpanded: isExpanded)
     }
+
+    /// A section is its parts to most containers (``View/_handsOverChildren``),
+    /// so a view whose body is one is taken apart as the section would be.
+    public static var _handsOverChildren: Bool { true }
 }
 
 // MARK: - Full Initializer (header + content + footer)
@@ -553,7 +557,10 @@ extension Section: ListRowExtractor {
         // among them): one row per child, each carrying the badge of its
         // `.badge(_:)` wrapper, if any — matching the flat List's child
         // extraction.
-        if content is ChildViewProvider {
+        if content is ChildViewProvider || isCompositeHandingOverChildren(V.self) {
+            // A view of the app's own whose body is several views is taken
+            // apart into them by the walk below (decisions D1S, B-D1S-6).
+            //
             // Through `resolveChildViews`, not the provider's `childViews`
             // directly: an `if`/`else` among the children gets its branch step
             // there, in the tuple splice, and without it both branches' rows

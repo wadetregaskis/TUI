@@ -17,6 +17,10 @@ extension Never: View {
     public var body: Never {
         fatalError("Never.body should never be called")
     }
+
+    /// A primitive's body: one child, the primitive. Stated, as the default
+    /// would ask `Never`'s own body — itself — for ever.
+    public static var _handsOverChildren: Bool { false }
 }
 
 // MARK: - Optional View Conformance

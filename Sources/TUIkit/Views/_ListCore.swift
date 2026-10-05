@@ -3345,8 +3345,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // ChildViewProvider (TupleView with multiple children). The *view*
         // provider, not the buffer-only ChildInfoProvider: each row's original
         // view is needed to peel off its `.badge(_:)`, and a `ForEach` spliced
-        // between static rows only flattens on this path.
-        if content is ChildViewProvider {
+        // between static rows only flattens on this path. So is a view of the
+        // app's own whose body is several views, which the walk takes apart
+        // into them (`compositeMembers(of:context:)`), each a row as SwiftUI's
+        // are (decisions D1S, B-D1S-6).
+        if content is ChildViewProvider || isCompositeHandingOverChildren(V.self) {
             let extracted = extractFromChildren(of: content, context: context)
             return .eager(extracted.rows, editOwners: extracted.editOwners)
         }

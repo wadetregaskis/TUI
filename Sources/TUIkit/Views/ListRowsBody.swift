@@ -85,11 +85,11 @@ func listRowsBody<V: View>(of view: V, context: RenderContext) -> ListRowsBody? 
 /// when the body is evaluated, and an arm that is not rows then draws as one
 /// row, as it did before.
 ///
-/// A body that is several views, or a modifier on a loop (`ForEach(…)
-/// .padding()`), is not looked through, though SwiftUI would draw those as
-/// rows too: the list reads them by flattening them into its child walk, whose
-/// rows no `ForEach` owns, and a view of the app's own around them keeps
-/// drawing as one row until that walk can see into one.
+/// A body that is several views is not looked through here: the list reads it
+/// through its child walk, which takes such a view apart into its body's views
+/// (`compositeMembers(of:context:)`), each a row whose ids no `ForEach` here
+/// owns. A modifier on a loop (`ForEach(…).padding()`) is one row, though
+/// SwiftUI would draw its rows.
 ///
 /// A view whose body contains itself, the way a recursive tree view's does,
 /// is answered once and then `false` on the way back round, so the walk ends.

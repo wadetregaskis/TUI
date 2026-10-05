@@ -221,6 +221,7 @@ identifier_name:
     - _providesZIndex
     - _providesAlignmentGuide
     - _providesContainerValues
+    - _handsOverChildren
     - _translatesAlignmentGuides
     - _definesExplicitAlignment
     - _isAnimatable

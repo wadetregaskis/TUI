@@ -553,7 +553,13 @@ func appendKeyedRowRuns(of view: some View, to runs: inout [KeyedRowRun], sectio
         provider.appendKeyedRowRuns(to: &runs, sectionsWhole: sectionsWhole)
         return
     }
-    guard view is ChildViewProvider else { return }
+    guard view is ChildViewProvider else {
+        // A view of the app's own taken apart into its body's views
+        // (`compositeMembers(of:context:)`) may hand over a loop's keyed rows,
+        // which only its body, evaluated, can say: a run that cannot be counted.
+        if isCompositeHandingOverChildren(type(of: view)) { runs.append(.opaque) }
+        return
+    }
     if let wrapper = view as? any SingleContentWrapper {
         appendKeyedRowRuns(of: wrapper.wrappedContent, to: &runs, sectionsWhole: sectionsWhole)
     } else {

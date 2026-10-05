@@ -52,7 +52,14 @@ extension StaticMemberCounting {
 package func staticMemberCount<V: View>(_ type: V.Type) -> Int? {
     if let counting = type as? any StaticMemberCounting.Type { return counting.staticMemberCount }
     if type == EmptyView.self { return 0 }
-    guard type is any ChildViewProvider.Type else { return wrapsOnlyEmptyView(type) ? 0 : 1 }
+    guard type is any ChildViewProvider.Type else {
+        // A view of the app's own whose body hands over children is what its
+        // body is (`compositeMembers(of:context:)`).
+        if isCompositeHandingOverChildren(type) {
+            return CompositeBodyDescent.counting { staticMemberCount(V.Body.self) }
+        }
+        return wrapsOnlyEmptyView(type) ? 0 : 1
+    }
     // A wrapper that is a provider because its content is hands over its
     // content's children, one for one.
     if let wrapper = type as? any ContentRewrapping.Type { return wrappedMemberCount(wrapper) }
@@ -74,7 +81,42 @@ package func staticRowMemberCount<V: View>(_ type: V.Type) -> Int? {
     if type is any ChildViewProvider.Type, let wrapper = type as? any ContentRewrapping.Type {
         return wrappedRowMemberCount(wrapper)
     }
+    if isCompositeHandingOverChildren(type) {
+        return CompositeBodyDescent.counting { staticRowMemberCount(V.Body.self) }
+    }
     return staticMemberCount(type)
+}
+
+/// How far the counts have descended through bodies of views of the app's own,
+/// so a view whose body holds itself — a tree drawn by `if`/`else` around a
+/// view of its own type — is answered `nil` ("build and count") rather than
+/// descended for ever. The count's own types say nothing that would stop it:
+/// an `if`/`else` counts both arms.
+@MainActor
+private enum CompositeBodyDescent {
+    /// The bodies being counted through now.
+    static var depth = 0
+
+    /// Deeper than any written view nests its own types' bodies: past it a
+    /// count is unknown.
+    static let limit = 32
+
+    /// `count`, one body deeper — or `nil` past ``limit``.
+    static func counting(_ count: () -> Int?) -> Int? {
+        guard depth < limit else { return nil }
+        depth += 1
+        defer { depth -= 1 }
+        return count()
+    }
+}
+
+/// Whether `type` is a view of the app's own whose body hands over children
+/// (``View/_handsOverChildren``), which a container takes apart into its body's
+/// views (`compositeMembers(of:context:)`) — the same test, from the type.
+@MainActor
+package func isCompositeHandingOverChildren<V: View>(_ type: V.Type) -> Bool {
+    V._handsOverChildren && V.Body.self != Never.self && !(type is any ChildViewProvider.Type)
+        && !(type is any Renderable.Type)
 }
 
 /// ``staticRowMemberCount(_:)`` of a wrapper's content, the existential opened.

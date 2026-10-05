@@ -313,6 +313,14 @@ extension Optional: ChildViewProvider where Wrapped: View {
         switch self {
         case .some(let wrapped):
             guard let provider = wrapped as? ChildViewProvider, !provider.staysWhole(in: context) else {
+                // A view of the app's own whose body is several views is those
+                // views, at the identity it would have drawn at.
+                if Wrapped._handsOverChildren,
+                    let members = compositeMembers(
+                        of: wrapped, context: context.withChildIdentity(erasedType: Wrapped.self, index: 0))
+                {
+                    return members
+                }
                 return [ChildView(wrapped, childIndex: 0)]
             }
             let children = resolveChildViews(from: wrapped, as: provider, context: context)
