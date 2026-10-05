@@ -4694,6 +4694,88 @@ until that run records it, with the host's version.
 | Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | tmux inside each, `focus-events` on and off | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 
+## Synchronized output (mode 2026) — sent since 2026-10-05, NOT yet measured
+
+A terminal that implements DEC mode 2026 holds its display between
+`CSI ? 2026 h` and `CSI ? 2026 l`, so a frame that reaches it in several reads
+is shown whole. Ghostty's help names the defect it prevents: an app that
+redraws a large area tears or flickers, worst where it erases a row and
+redraws it, which is what TUIkit's whole-line row is (`ESC[2K`, then its
+content). Adopted from Ghostty's VT reference
+(`Documentation/Ghostty-VT-adoption.md`, O1).
+
+### What TUIkit does
+
+- **A frame that moves the cursor to more than one row is held**: the begin
+  marker after the frame's image transmissions and before its first cell, the
+  end marker as its last bytes, all in the one write that sends the frame. 16
+  bytes more per such frame. The transmissions stay outside because they draw
+  nothing and can be megabytes, which inside a hold could outlast Ghostty's
+  limit on one (below). An animation tick's frame is held by the same rule.
+- **Any other frame is not**: one row (a focus breath, a caret's blink, a
+  spinner) cannot tear, and a frame that writes nothing sends nothing. The
+  begin marker is reserved in the frame buffer and skipped when unused, so
+  nothing is copied.
+- **Teardown.** The end marker is the first thing `disableRawMode` sends (quit,
+  suspend, `SIGINT`, `SIGTERM`) and heads the debt a fatal signal pays
+  (`FatalSignalTerminalRestore`). A write that gives up partway through a held
+  frame is followed by the end marker on its own. Only those paths can leave
+  a hold open, since each frame carries its own end marker.
+- **Sent to every host, nothing asked.** `CSI ? Pm h` has a `?` and no
+  intermediate byte, the shape measured clean on Apple Terminal, iTerm2,
+  Ghostty and Warp ("Asking the terminal — Device Attributes"), and `?2031h`,
+  the same shape, printed nothing on five hosts. Its DECRQM query
+  (`CSI ? 2026 $ p`) is the shape Apple Terminal prints, and setting the mode
+  needs no answer, so TUIkit never sends it.
+- **`TUIKIT_SYNCHRONIZED_OUTPUT=0`** turns it off: no markers, and none owed.
+
+`SynchronizedOutputTests` pins all of the above, the marker's place in a
+rendered frame included.
+
+### What each host is documented to do
+
+| Host | Implements 2026 | A hold nobody ends |
+|---|---|---|
+| Ghostty 1.3.1 | yes: its help page, and `synchronized_output = 2026` in `src/terminal/modes.zig` | ended after 1000 ms (`sync_reset_ms`, `src/termio/Thread.zig`) |
+| iTerm2, kitty, Warp | hypothesis: yes | unknown |
+| Apple Terminal 455.1 | hypothesis: no, ignored | — |
+| tmux 3.7c | unknown, and unknown whether a pane's hold reaches the client | unknown |
+
+Ghostty's facts are read from its source on 2026-10-04, not measured. A
+process killed mid-frame (SIGKILL, which no handler sees) freezes Ghostty's
+display for a second at most; elsewhere for as long as the host holds.
+
+### To measure — `Tools/TerminalProbes/sync_probe.py`
+
+Run it inside each host, and inside a tmux 3.7c pane in Ghostty and in
+iTerm2, on the alternate screen (`PROBE_ALT=1`):
+
+1. `python3 sync_probe.py` checks that the pair prints nothing (cursor column
+   before and after), and asks DECRQM `?2026` of a host that identifies itself
+   (`TERM_PROGRAM`, or an XTVERSION answer, which Apple Terminal never gives).
+2. `python3 sync_probe.py --hold-timeout` opens a hold, never ends it, and
+   runs a millisecond counter for 8 seconds; the first value seen is the
+   host's timeout. Watch it, or record the screen.
+3. By eye, on Ghostty: drag Example's split divider (the gesture
+   `Tools/Profiling/drive.py --scenario splitdrag` scripts), with
+   `TUIKIT_SYNCHRONIZED_OUTPUT=0` and without.
+
+Bytes, captured 2026-10-05 with `drive.py --scenario tour --dump` (160×50,
+debug build): 146 and 149 frames held in two runs, 2.3 KB of markers in
+about 289 KB (0.8%). Without the markers the two runs held 286.8 KB and
+289.2 KB, against 286.1 KB and 286.4 KB in two runs with
+`TUIKIT_SYNCHRONIZED_OUTPUT=0`: the tour's timing moves a few frames from run
+to run, a spread as large as the markers.
+
+| Host | Pair prints nothing | DECRQM `?2026` | Hold timeout | Tearing on `splitdrag`, off → on |
+|---|---|---|---|---|
+| Apple Terminal | UNMEASURED | not asked | UNMEASURED | UNMEASURED |
+| iTerm2 | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED (the pane's) | UNMEASURED | UNMEASURED |
+
 ## Where the adaptations live
 
 - `TerminalHost` — `TERM_PROGRAM` detection (`Apple_Terminal`,

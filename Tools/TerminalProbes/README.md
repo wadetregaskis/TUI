@@ -109,6 +109,15 @@ when unset), the visual/aspect probes print to the terminal.
   the flags are popped on the way out. Which keys to press is listed in
   Terminal-compatibility.md, "The kitty keyboard protocol" → "To measure, per
   host". NOT YET RUN on any host (2026-10-04).
+- `sync_probe.py` — synchronized output (DEC mode 2026), which TUIkit wraps
+  every multi-row frame in. Checks that `CSI ? 2026 h` `CSI ? 2026 l` prints
+  nothing (the cursor column before and after), asks DECRQM `?2026$p` of a
+  host that identifies itself (never of Apple Terminal, which prints that
+  query's `p`), and records tmux. `--hold-timeout` then opens a hold and never
+  ends it while a counter runs for 8 seconds: the first value seen is the
+  host's timeout, read by eye or from a recording. JSON to `$PROBE_OUT`;
+  `PROBE_ALT=1` for the alternate screen. NOT YET RUN on any host
+  (2026-10-05).
 - `identity_probe.py` — asks the terminal WHO it is over escape queries
   (DA1/DA2/DA3, XTVERSION, XTGETTCAP), DSR-fenced so a silent terminal
   cannot stall it. This is the measurement behind identifying a host over

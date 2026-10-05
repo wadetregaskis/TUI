@@ -28,8 +28,11 @@ final class ScriptedTerminalOutput {
     /// A terminal that writes here instead of stdout, reads nothing, and
     /// leaves the process's termios and signal handlers alone (see
     /// `Terminal.exchangeTransport`).
-    static func terminal() -> (Terminal, ScriptedTerminalOutput) {
-        let terminal = Terminal()
+    ///
+    /// - Parameter environment: What the terminal reads its `TUIKIT_*`
+    ///   switches from: none set, unless a test sets one.
+    static func terminal(environment: [String: String] = [:]) -> (Terminal, ScriptedTerminalOutput) {
+        let terminal = Terminal(environment: environment)
         let output = ScriptedTerminalOutput()
         terminal.readSource = { _ in 0 }
         terminal.exchangeTransport = .init(

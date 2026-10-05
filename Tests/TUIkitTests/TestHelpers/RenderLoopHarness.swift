@@ -66,6 +66,14 @@ final class RenderLoopHarness {
     /// `reducesMotion` is what the app runner reads from `TUIKIT_REDUCE_MOTION`;
     /// a test states it, and by default the loop draws as if it were unset.
     func loop<A: App>(_ app: A, isTmux: Bool = false, reducesMotion: Bool = false) -> RenderLoop<A> {
+        loop(app, on: terminal, isTmux: isTmux, reducesMotion: reducesMotion)
+    }
+
+    /// A loop over another terminal: a real `Terminal` writing to a script
+    /// (`ScriptedTerminalOutput`), for a test of the bytes a frame is sent as.
+    func loop<A: App>(
+        _ app: A, on terminal: any TerminalProtocol, isTmux: Bool = false, reducesMotion: Bool = false
+    ) -> RenderLoop<A> {
         RenderLoop(
             app: app,
             terminal: terminal,

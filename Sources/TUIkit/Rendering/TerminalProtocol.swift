@@ -114,3 +114,22 @@ protocol CellGeometryReporting: AnyObject {
 }
 
 extension Terminal: CellGeometryReporting {}
+
+// MARK: - Synchronized Output
+
+/// A terminal that can hold its display while a frame is drawn: DEC mode
+/// 2026, synchronized output.
+///
+/// A capability of its own, as ``CellGeometryReporting`` is, rather than a
+/// requirement of the public ``TerminalProtocol``: it is how the real terminal
+/// writes a frame, not something every host must implement. The render loop
+/// looks for it once, when it is made.
+@MainActor
+protocol SynchronizedUpdating: AnyObject {
+    /// Begins the frame being buffered's synchronized update here: after
+    /// whatever draws nothing (image transmissions), before the first cell.
+    /// See `Terminal.beginSynchronizedUpdate()`.
+    func beginSynchronizedUpdate()
+}
+
+extension Terminal: SynchronizedUpdating {}

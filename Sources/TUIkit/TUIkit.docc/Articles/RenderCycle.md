@@ -123,6 +123,8 @@ The ``FrameBuffer`` is converted into terminal-ready output lines by `FrameDiffW
 
 `Terminal.beginFrame()` activates output buffering. From this point, all `Terminal.write()` calls append to an internal `[UInt8]` buffer instead of issuing syscalls.
 
+Images owed to the terminal are written first. Then the frame's synchronized update begins (DEC mode 2026, `Terminal.beginSynchronizedUpdate()`): a terminal that implements it holds its display until the frame's end, so a frame that arrives in several reads is shown whole. The hold is kept only if the frame goes on to write more than one row.
+
 ### Step 9: Render App Header and Diff Content
 
 If the app header has content (set by the `.appHeader()` modifier), it is rendered at the top of the terminal. Then `FrameDiffWriter.writeContentDiff()` compares the main content output lines with the previous frame and writes **only changed lines** to the terminal buffer. For mostly-static UIs, this reduces writes by ~94%.
@@ -133,7 +135,7 @@ The status bar renders in a separate pass but writes into the **same frame buffe
 
 ### Step 11: Flush Frame
 
-`Terminal.endFrame()` writes the entire collected buffer to `STDOUT_FILENO` in a **single `write()` syscall**, then resets the buffer. This reduces per-frame syscalls from ~40+ to exactly 1.
+`Terminal.endFrame()` writes the entire collected buffer to `STDOUT_FILENO` in a **single `write()` syscall**, then resets the buffer. This reduces per-frame syscalls from ~40+ to exactly 1. A frame that kept its hold ends with the hold's end marker; one that did not is written without the begin marker, which takes a second syscall only when images were written before it.
 
 ### Step 12: End Lifecycle and State Tracking
 

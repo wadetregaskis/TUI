@@ -187,6 +187,11 @@ internal final class RenderLoop<A: App> {
     /// invisible to every unit test on either side of it.
     let terminal: any TerminalProtocol
 
+    /// ``terminal``, where it can hold its display while a frame is drawn;
+    /// `nil` where it cannot (a test's terminal, a headless one). Looked up
+    /// once rather than cast on every frame.
+    let synchronizedUpdates: (any SynchronizedUpdating)?
+
     /// The status bar state (height, items, appearance).
     let statusBar: StatusBarState
 
@@ -379,6 +384,7 @@ internal final class RenderLoop<A: App> {
         self.reducesMotion = reducesMotion
         self.app = app
         self.terminal = terminal
+        self.synchronizedUpdates = terminal as? any SynchronizedUpdating
         self.statusBar = statusBar
         self.appHeader = appHeader
         self.focusManager = focusManager
@@ -1106,6 +1112,12 @@ extension RenderLoop {
         // joins this frame's single write rather than issuing one of its own.
         let graphics = tuiContext.terminalImageStore.takePending()
         if !graphics.isEmpty { terminal.write(graphics) }
+
+        // The terminal holds its display from here to the frame's end, if the
+        // frame writes more than one row. After the transmissions, which draw
+        // nothing and can be large enough to outlast a hold; before the first
+        // cell. See `Terminal.beginSynchronizedUpdate()`.
+        synchronizedUpdates?.beginSynchronizedUpdate()
 
         if let appHeaderBuffer {
             writeAppHeaderBuffer(

@@ -324,6 +324,9 @@ extension RenderLoop {
         guard touched else { return true }
 
         terminal.beginFrame()
+        // Held like a rendered frame when it patches more than one row: two
+        // spinners' ticks land together. No transmissions come first.
+        synchronizedUpdates?.beginSynchronizedUpdate()
         diffWriter.writeContentDiff(
             newLines: lines,
             terminal: terminal,

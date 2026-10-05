@@ -25,7 +25,10 @@ import Musl
 /// The debt is every input mode `Terminal.enableRawMode` and the startup
 /// negotiation turned on: the kitty keyboard protocol's pushed flags, mouse
 /// tracking, focus and palette reports, bracketed paste, modifyCursorKeys and
-/// a pinned grapheme-clustering mode; and the cursor, shown again. The kitty
+/// a pinned grapheme-clustering mode; the output modes the frames change
+/// (`Terminal.outputModesOff`): the end of a synchronized update, should the
+/// signal land in the middle of a frame that holds the display; and the
+/// cursor, shown again (`Terminal.signalDebt` spells it). The kitty
 /// flags are the urgent part. Their "report all keys as escape codes"
 /// enhancement sends every key as an escape code, Return and the letters
 /// included, so a shell left with them pushed cannot even be typed `reset`
@@ -92,8 +95,10 @@ enum FatalSignalTerminalRestore {
     /// Both lists, in the order ``previous`` and ``taken`` are indexed.
     private static let signals = crashSignals + terminatingSignals
 
-    /// The most bytes a debt can be.
-    private static let capacity = 256
+    /// The most bytes a debt can be. Not private so a test can check that the
+    /// longest debt `Terminal.signalDebt` spells fits: ``arm(owing:restoring:)``
+    /// would cut off the rest.
+    static let capacity = 256
 
     /// The owed bytes, and how many of them are owed: zero when nothing is.
     /// Written only on the main actor, read only by the handler.

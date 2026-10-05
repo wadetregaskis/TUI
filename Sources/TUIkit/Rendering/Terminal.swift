@@ -273,14 +273,38 @@ final class Terminal: TerminalProtocol {
     /// Initial capacity of 16 KB covers typical frames without reallocation.
     private var frameBuffer: [UInt8] = []
 
-    /// A copy of the last fully-assembled frame, saved just before it is
-    /// flushed to the terminal.  Used by ``dumpLastFrame(to:)`` so that a
-    /// debugging snapshot can be written without re-rendering.
+    /// A copy of the last fully-assembled frame, as it was sent, saved just
+    /// before it is flushed to the terminal. Used by
+    /// ``dumpLastFrame(inDirectory:)`` so that a debugging snapshot can be
+    /// written without re-rendering.
     private(set) var lastFrameData: [UInt8] = []
 
+    /// Whether a frame that writes more than one row holds the terminal's
+    /// display while it is drawn (DEC mode 2026, synchronized output): yes,
+    /// unless `TUIKIT_SYNCHRONIZED_OUTPUT=0`. See
+    /// ``beginSynchronizedUpdate()``.
+    let synchronizesOutput: Bool
+
+    /// Where this frame's begin marker sits in ``frameBuffer``, or `nil` when
+    /// the frame has none: before ``beginSynchronizedUpdate()``, with
+    /// ``synchronizesOutput`` off, and outside a frame.
+    private var synchronizedUpdateStart: Int?
+
+    /// How many rows the cursor has been moved to since the begin marker,
+    /// counted only as far as the two that decide whether the frame is held.
+    private var synchronizedRows = 0
+
+    /// The row the cursor was last moved to since the begin marker, or 0
+    /// before the first move (rows count from 1).
+    private var synchronizedLastRow = 0
+
     /// Creates a new terminal instance.
-    init() {
+    ///
+    /// - Parameter environment: Where `TUIKIT_SYNCHRONIZED_OUTPUT` is read
+    ///   from: the process's own, unless a test poses another.
+    init(environment: [String: String] = ProcessInfo.processInfo.environment) {
         frameBuffer.reserveCapacity(16_384)
+        synchronizesOutput = Self.synchronizedOutputAllowed(environment: environment)
     }
 
     /// Destructor ensures raw mode is disabled.
@@ -501,6 +525,10 @@ extension Terminal {
     func disableRawMode() {
         guard isRawMode else { return }
 
+        // A frame's hold on the display let go, should a failed write have
+        // left one open; then what the shell is handed is shown at once.
+        writeImmediate(outputModesOff)
+
         // The kitty keyboard protocol's flags off first, while the alternate
         // screen whose stack they were pushed on is still up, so the keys the
         // shell reads next are the legacy bytes it expects.
@@ -553,23 +581,45 @@ extension Terminal {
     /// (``pinnedGraphemeClustering``).
     static let graphemeClusteringOff = "\u{1B}[?\(TerminalModeQuery.graphemeClustering)l"
 
-    /// Owes the terminal, should the process die of a signal now, everything
-    /// it has been changed by — the kitty flags if pushed, the input modes, a
-    /// pinned grapheme-clustering mode, the hidden cursor — and the shell's
-    /// termios; see ``FatalSignalTerminalRestore``. Called whenever the debt
-    /// changes while raw mode is on: raw mode itself, a push or pop of the
-    /// kitty flags, a pin.
+    /// Puts back every output mode the frames may have changed, in one write —
+    /// the orderly teardown's, and the head of the debt a signal pays:
+    ///
+    /// - the end of a synchronized update (``synchronizedUpdateEnd``), where
+    ///   frames are held at all. A frame sends its own end marker in the
+    ///   write that sends its begin marker, so this matters only where that
+    ///   write failed partway, or a signal landed in the middle of it. Then
+    ///   the terminal goes on holding its display: Ghostty for a second (its
+    ///   `sync_reset_ms`), other hosts for as long as they do, unmeasured.
+    ///   Harmless where nothing is held.
+    var outputModesOff: String {
+        synchronizesOutput ? Self.synchronizedUpdateEnd : ""
+    }
+
+    /// What the terminal is owed, should the process die of a signal now:
+    /// everything it has been changed by — the output modes, the kitty flags
+    /// if pushed, the input modes, a pinned grapheme-clustering mode, the
+    /// hidden cursor. ``armSignalRestore()`` hands it to
+    /// ``FatalSignalTerminalRestore`` with the shell's termios.
+    var signalDebt: String {
+        var owed = outputModesOff
+        if keyboardFlagsPushed { owed += KeyboardProtocolQuery.pop }
+        owed += Self.inputModesOff
+        if pinnedGraphemeClustering { owed += Self.graphemeClusteringOff }
+        owed += ANSIRenderer.showCursor
+        return owed
+    }
+
+    /// Owes the terminal ``signalDebt``, and the shell's termios, should the
+    /// process die of a signal now; see ``FatalSignalTerminalRestore``. Called
+    /// whenever the debt changes while raw mode is on: raw mode itself, a push
+    /// or pop of the kitty flags, a pin.
     ///
     /// A scripted terminal is a test's, and the process's signal handlers are
     /// not its to install.
     func armSignalRestore() {
         #if !canImport(WASILibc)
             guard isRawMode, exchangeTransport == nil else { return }
-            var owed = keyboardFlagsPushed ? KeyboardProtocolQuery.pop : ""
-            owed += Self.inputModesOff
-            if pinnedGraphemeClustering { owed += Self.graphemeClusteringOff }
-            owed += ANSIRenderer.showCursor
-            FatalSignalTerminalRestore.arm(owing: owed, restoring: originalTermios)
+            FatalSignalTerminalRestore.arm(owing: signalDebt, restoring: originalTermios)
         #endif
     }
 
@@ -641,14 +691,86 @@ extension Terminal {
         guard !isBuffering else { return }
         isBuffering = true
         frameBuffer.removeAll(keepingCapacity: true)
+        synchronizedUpdateStart = nil
     }
 
-    /// Ends a buffered frame and flushes all collected output.
+    /// Ends a buffered frame and flushes all collected output: held, if it
+    /// began a synchronized update and went on to write more than one row,
+    /// and without its begin marker if it began one and did not (see
+    /// ``beginSynchronizedUpdate()``).
     func endFrame() {
         guard isBuffering else { return }
         isBuffering = false
-        lastFrameData = frameBuffer          // snapshot before flush
-        flushBuffer()
+        guard let start = synchronizedUpdateStart else {
+            lastFrameData = frameBuffer          // snapshot before flush
+            flushBuffer()
+            return
+        }
+        synchronizedUpdateStart = nil
+        if synchronizedRows > 1 {
+            frameBuffer.append(contentsOf: Self.synchronizedUpdateEnd.utf8)
+            lastFrameData = frameBuffer
+            flushBuffer(holdingDisplay: true)
+        } else {
+            let marker = start..<(start + Self.synchronizedUpdateBegin.utf8.count)
+            lastFrameData = frameBuffer
+            lastFrameData.removeSubrange(marker)
+            flushBuffer(omitting: marker)
+        }
+    }
+
+    /// `CSI ? 2026 h`: the terminal holds its display until the end marker.
+    static let synchronizedUpdateBegin = "\u{1B}[?2026h"
+
+    /// `CSI ? 2026 l`: the terminal shows what the hold kept back.
+    static let synchronizedUpdateEnd = "\u{1B}[?2026l"
+
+    /// Begins this frame's synchronized update (DEC mode 2026, synchronized
+    /// output) here: after the image transmissions, before the first cell.
+    ///
+    /// The terminal holds its display between `CSI ? 2026 h` and
+    /// `CSI ? 2026 l`, so a frame that reaches it in several reads is shown
+    /// whole rather than torn. Ghostty's help names the defect: an app that
+    /// redraws a large area tears or flickers, worst where it erases a row and
+    /// then redraws it — which is what a whole-line row is, `ESC[2K` and its
+    /// content. The begin marker goes into the frame buffer here, and
+    /// ``endFrame()`` decides whether to keep it:
+    ///
+    /// - A frame that moved the cursor to more than one row keeps it, and gets
+    ///   the end marker after its last byte: one write, 16 bytes more.
+    /// - Any other frame — a single row (a breath, a caret's blink), or none —
+    ///   cannot tear, and goes out without it, as the parts either side of
+    ///   the marker. Nothing is copied: with nothing before the marker, which
+    ///   is every frame with no image to transmit, that is one write starting
+    ///   8 bytes in.
+    ///
+    /// Image transmissions stay outside the hold: they draw nothing, and they
+    /// can be megabytes, which inside it could outlast Ghostty's one-second
+    /// limit on a hold (`sync_reset_ms`) and show the frame half drawn anyway.
+    ///
+    /// Sent to every host, as the startup's mode requests are. A terminal
+    /// without the mode ignores it: `CSI ? Pm h` has a `?` and no intermediate
+    /// byte, the shape measured clean on Apple Terminal, iTerm2, Ghostty and
+    /// Warp (`Documentation/Terminal-compatibility.md`, "Asking the terminal —
+    /// Device Attributes"). Nothing is asked first: its DECRQM query is the
+    /// one shape Apple Terminal prints, and setting the mode needs no answer.
+    /// `TUIKIT_SYNCHRONIZED_OUTPUT=0` turns it off, should a terminal take it
+    /// badly; see "Synchronized output (mode 2026)" there.
+    ///
+    /// Does nothing outside a frame, a second time in one, or when turned off.
+    func beginSynchronizedUpdate() {
+        guard synchronizesOutput, isBuffering, synchronizedUpdateStart == nil else { return }
+        synchronizedUpdateStart = frameBuffer.count
+        synchronizedRows = 0
+        synchronizedLastRow = 0
+        frameBuffer.append(contentsOf: Self.synchronizedUpdateBegin.utf8)
+    }
+
+    /// Whether the environment lets frames be held at all: yes, unless
+    /// `TUIKIT_SYNCHRONIZED_OUTPUT` is `0` — the user's way out, in the shape
+    /// of `TUIKIT_KEYBOARD_PROTOCOL=0`.
+    nonisolated static func synchronizedOutputAllowed(environment: [String: String]) -> Bool {
+        environment["TUIKIT_SYNCHRONIZED_OUTPUT"] != "0"
     }
 
     /// Writes a string to the terminal.
@@ -673,6 +795,13 @@ extension Terminal {
     ///   - row: The row (1-based).
     ///   - column: The column (1-based).
     func moveCursor(toRow row: Int, column: Int) {
+        // A row of its own counts toward holding the frame; see
+        // ``beginSynchronizedUpdate()``. Every row a frame draws starts with a
+        // move to it.
+        if synchronizedUpdateStart != nil, synchronizedRows < 2, row != synchronizedLastRow {
+            synchronizedRows += 1
+            synchronizedLastRow = row
+        }
         write(ANSIRenderer.moveCursor(toRow: row, column: column))
     }
 
@@ -861,30 +990,91 @@ extension Terminal {
     /// dropped the frame tail (a corrupted/truncated frame) or left the terminal
     /// half-restored mid-teardown. `errno` is read immediately after the failed
     /// `write`, before any other call, since it is thread-local and transient.
-    fileprivate static func writeAll(_ base: UnsafePointer<UInt8>, _ count: Int) {
+    ///
+    /// - Parameter write: `write(2)` on standard output, unless a test hands
+    ///   in another that fails on cue.
+    /// - Returns: Whether every byte was written: `false` when a hard error,
+    ///   or a write that took nothing, gave up on the rest.
+    @discardableResult
+    static func writeAll(
+        _ base: UnsafePointer<UInt8>, _ count: Int,
+        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput
+    ) -> Bool {
         var written = 0
         while written < count {
-            let result = Foundation.write(STDOUT_FILENO, base + written, count - written)
+            let result = write(base + written, count - written)
             if result < 0 {
                 if errno == EINTR { continue }  // interrupted by a signal — retry the rest
-                break                            // real write error — give up on the remainder
+                return false                     // real write error — give up on the remainder
             }
-            if result == 0 { break }             // wrote nothing — avoid an infinite spin
+            if result == 0 { return false }      // wrote nothing — avoid an infinite spin
             written += result
+        }
+        return true
+    }
+
+    /// `write(2)` to standard output: what ``writeAll(_:_:through:)`` writes
+    /// through unless a test hands it another.
+    nonisolated static func writeToStandardOutput(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
+        Foundation.write(STDOUT_FILENO, base, count)
+    }
+
+    /// Writes a finished frame: all of it, or the parts either side of an
+    /// `omitted` begin marker that it turned out not to need.
+    ///
+    /// A frame that holds the display carries its end marker as its last
+    /// bytes, so a write that gives up partway would leave the terminal
+    /// holding: Ghostty for a second, other hosts unmeasured. So then the end
+    /// marker is tried again on its own. A write that failed hard will likely
+    /// fail again, and that costs nothing; a terminal still reading is let go
+    /// at once.
+    ///
+    /// - Parameters:
+    ///   - frame: The frame's bytes.
+    ///   - omitted: An unused begin marker's bytes, or `nil`.
+    ///   - holdsDisplay: Whether the frame began a synchronized update it
+    ///     kept.
+    ///   - write: `write(2)` on standard output, unless a test hands in
+    ///     another.
+    static func writeFrame(
+        _ frame: UnsafeBufferPointer<UInt8>, omitting omitted: Range<Int>?, holdsDisplay: Bool,
+        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput
+    ) {
+        guard let base = frame.baseAddress else { return }
+        let complete =
+            if let omitted {
+                writeAll(base, omitted.lowerBound, through: write)
+                    && writeAll(base + omitted.upperBound, frame.count - omitted.upperBound, through: write)
+            } else {
+                writeAll(base, frame.count, through: write)
+            }
+        guard !complete, holdsDisplay else { return }
+        Self.synchronizedUpdateEndBytes.withUnsafeBufferPointer { end in
+            guard let endBase = end.baseAddress else { return }
+            writeAll(endBase, end.count, through: write)
         }
     }
 
+    /// ``synchronizedUpdateEnd``'s bytes, for the write that retries it.
+    private static let synchronizedUpdateEndBytes = Array(synchronizedUpdateEnd.utf8)
+
     /// Writes all buffered bytes to `STDOUT_FILENO`, or to the scripted
-    /// terminal a test installed.
-    fileprivate func flushBuffer() {
+    /// terminal a test installed: through ``writeFrame(_:omitting:holdsDisplay:through:)``,
+    /// whose two parameters these are.
+    fileprivate func flushBuffer(omitting omitted: Range<Int>? = nil, holdingDisplay: Bool = false) {
         guard !frameBuffer.isEmpty else { return }
         if let exchangeTransport {
-            // Never `nil`: a frame is assembled from strings, so it is UTF-8.
-            exchangeTransport.send(String(bytes: frameBuffer, encoding: .utf8) ?? "")
+            // One send per part, as one write per part. Never `nil`: a frame
+            // is assembled from strings, and a marker is ASCII, so each part
+            // is UTF-8.
+            let parts = omitted.map { [0..<$0.lowerBound, $0.upperBound..<frameBuffer.count] }
+                ?? [0..<frameBuffer.count]
+            for part in parts where !part.isEmpty {
+                exchangeTransport.send(String(bytes: frameBuffer[part], encoding: .utf8) ?? "")
+            }
         } else {
             frameBuffer.withUnsafeBufferPointer { buffer in
-                guard let baseAddress = buffer.baseAddress else { return }
-                Self.writeAll(baseAddress, buffer.count)
+                Self.writeFrame(buffer, omitting: omitted, holdsDisplay: holdingDisplay)
             }
         }
         frameBuffer.removeAll(keepingCapacity: true)
@@ -906,7 +1096,7 @@ extension Terminal {
             let count = buffer.count - 1
             guard count >= 1, let baseAddress = buffer.baseAddress else { return }
             baseAddress.withMemoryRebound(to: UInt8.self, capacity: count) { pointer in
-                Self.writeAll(pointer, count)
+                _ = Self.writeAll(pointer, count)
             }
         }
     }
