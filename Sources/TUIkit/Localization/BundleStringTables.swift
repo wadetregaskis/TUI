@@ -16,15 +16,17 @@ import Foundation
 /// `Localizable` in the main bundle unless `Text(_:tableName:bundle:comment:)`
 /// names others — and an app ported from it arrives with those tables. TUIkit's
 /// own strings, and anything an app registers with
-/// ``LocalizationService/register(translations:)``, stay in its dictionaries,
-/// which are asked first; a table is read only for a key they do not hold.
+/// ``LocalizationService/register(translations:)``, stay in its dictionaries;
+/// ``LocalizationService`` interleaves the two by language (see
+/// `LocalizationService.string(for:tableName:bundle:)`), so the app's table
+/// in its language is read before any English.
 ///
-/// The language is TUIkit's, not the process's: the table is read from the
-/// `.lproj` that best matches ``LocalizationService/currentLanguage`` (`zh`
-/// finds `zh-Hans.lproj`), then from the English one, as the dictionaries fall
-/// back, and last as Foundation picks for the bundle on its own (its
-/// development region, or a table outside any `.lproj`). Switching the
-/// language at run time therefore switches these strings too.
+/// The language is TUIkit's, not the process's: ``string(for:tableName:bundle:language:)``
+/// reads the `.lproj` that best matches the language it is asked for (`zh`
+/// finds `zh-Hans.lproj`), and ``fallbackString(for:tableName:bundle:)`` reads
+/// as Foundation picks for the bundle on its own (its development region, or
+/// a table outside any `.lproj`), the last place a key is looked for.
+/// Switching the language at run time therefore switches these strings too.
 ///
 /// Only `.strings` tables are read, which swift-corelibs-foundation reads off
 /// Darwin as well. A String Catalog (`.xcstrings`) is compiled into them by
@@ -45,8 +47,11 @@ final class BundleStringTables {
         /// The `.lproj` sub-bundle each language reads, `.some(nil)` where the
         /// bundle has none for it.
         var localizations: [LocalizationService.Language: Bundle?] = [:]
-        /// What each key resolved to, `.some(nil)` for a key the table lacks.
+        /// What each key resolved to in each language's `.lproj`, `.some(nil)`
+        /// for a key the table lacks.
         var answers: [LocalizationService.Language: [String: String?]] = [:]
+        /// What each key resolved to as Foundation chooses for the bundle.
+        var fallbackAnswers: [String: String?] = [:]
 
         init(bundle: Bundle, name: String) {
             self.bundle = bundle
@@ -84,47 +89,53 @@ final class BundleStringTables {
     }
 
     /// The text of `key` in the table named `tableName` (`Localizable` for
-    /// `nil`) of `bundle` (the default bundle for `nil`), in `language`, or
-    /// `nil` where the table does not hold it.
+    /// `nil`) of `bundle` (the default bundle for `nil`), read from the
+    /// `.lproj` that matches `language`, or `nil` where that has none or does
+    /// not hold the key.
     func string(
         for key: String, tableName: String?, bundle: Bundle?, language: LocalizationService.Language
     ) -> String? {
-        let table: Table
-        if tableName == nil, bundle == nil || bundle === defaultBundle {
-            if let defaultTable {
-                table = defaultTable
-            } else {
-                table = Table(bundle: defaultBundle, name: "Localizable")
-                defaultTable = table
-            }
-        } else {
-            let bundle = bundle ?? defaultBundle
-            let name = tableName ?? "Localizable"
-            let tableKey = Key(bundle: ObjectIdentifier(bundle), table: name)
-            if let found = tables[tableKey] {
-                table = found
-            } else {
-                table = Table(bundle: bundle, name: name)
-                tables[tableKey] = table
-            }
-        }
+        let table = self.table(named: tableName, in: bundle)
         guard table.exists else { return nil }
         if let answer = table.answers[language]?[key] { return answer }
-        let answer = read(key, in: table, language: language)
+        var answer: String?
+        if let source = localization(of: table, for: language) {
+            let value = source.localizedString(forKey: key, value: Self.missing, table: table.name)
+            if value != Self.missing { answer = value }
+        }
         table.answers[language, default: [:]][key] = answer
         return answer
     }
 
-    /// Reads `key` from `table`: the language's `.lproj`, then English's, then
-    /// as Foundation chooses for the bundle itself.
-    private func read(_ key: String, in table: Table, language: LocalizationService.Language) -> String? {
-        for candidate in language == .english ? [language] : [language, .english] {
-            guard let source = localization(of: table, for: candidate) else { continue }
-            let value = source.localizedString(forKey: key, value: Self.missing, table: table.name)
-            if value != Self.missing { return value }
-        }
+    /// The text of `key` in the same table as Foundation chooses for the
+    /// bundle itself, with no language asked for: its development region, or
+    /// a table outside any `.lproj`. The last place a key is looked for.
+    func fallbackString(for key: String, tableName: String?, bundle: Bundle?) -> String? {
+        let table = self.table(named: tableName, in: bundle)
+        guard table.exists else { return nil }
+        if let answer = table.fallbackAnswers[key] { return answer }
         let value = table.bundle.localizedString(forKey: key, value: Self.missing, table: table.name)
-        return value == Self.missing ? nil : value
+        let answer = value == Self.missing ? nil : value
+        table.fallbackAnswers[key] = answer
+        return answer
+    }
+
+    /// The table named `tableName` of `bundle`, `nil` meaning `Localizable`
+    /// and the default bundle: made once and kept.
+    private func table(named tableName: String?, in bundle: Bundle?) -> Table {
+        if tableName == nil, bundle == nil || bundle === defaultBundle {
+            if let defaultTable { return defaultTable }
+            let table = Table(bundle: defaultBundle, name: "Localizable")
+            defaultTable = table
+            return table
+        }
+        let bundle = bundle ?? defaultBundle
+        let name = tableName ?? "Localizable"
+        let tableKey = Key(bundle: ObjectIdentifier(bundle), table: name)
+        if let found = tables[tableKey] { return found }
+        let table = Table(bundle: bundle, name: name)
+        tables[tableKey] = table
+        return table
     }
 
     /// The `.lproj` sub-bundle of `table`'s bundle that best matches

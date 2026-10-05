@@ -231,10 +231,11 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// Resolves a localized string using a dot-notation key.
     ///
-    /// Falls back to English if the key is missing in the current language.
-    /// A key neither holds is looked up in the main bundle's `Localizable`
-    /// string table, as SwiftUI looks a key up (see `BundleStringTables`),
-    /// and is its own text if that has none either.
+    /// Looked up in the current language, then in English: in each, the
+    /// strings the app registered, then the main bundle's `Localizable`
+    /// string table in that language's `.lproj`, as SwiftUI looks a key up
+    /// (see `BundleStringTables`), then TUIkit's own strings. Last, the table
+    /// as Foundation picks it for the bundle, and then the key itself.
     ///
     /// - Parameter key: Dot-notation path (e.g., "button.ok", "error.invalid_input")
     /// - Returns: The localized string, or the key if not found.
@@ -242,29 +243,42 @@ public final class LocalizationService: @unchecked Sendable {
         string(for: key, tableName: nil, bundle: nil)
     }
 
-    /// Resolves `key` as ``string(for:)`` does, except that a key the
-    /// dictionaries miss is looked up in the table named `tableName` of
-    /// `bundle` — `Localizable` and the main bundle where `nil`, as SwiftUI's
-    /// `Text(_:tableName:bundle:comment:)` reads them.
+    /// Resolves `key` as ``string(for:)`` does, in the table named
+    /// `tableName` of `bundle` — `Localizable` and the main bundle where
+    /// `nil`, as SwiftUI's `Text(_:tableName:bundle:comment:)` reads them.
+    ///
+    /// The app's own strings come before TUIkit's, and the current language
+    /// before English, whichever kind holds them: a key an app registered in
+    /// English and translated in `de.lproj` reads the German. A table named
+    /// explicitly (either argument given) is asked before the registered
+    /// strings too, since the call says where the key is.
     func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
         lock.lock()
         defer { lock.unlock() }
 
-        // Try current language
-        if let value = _translationValue(key, in: currentLanguage) {
-            return value
+        let namesTable = tableName != nil || bundle != nil
+        var language = currentLanguage
+        while true {
+            if namesTable,
+                let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: language)
+            {
+                return value
+            }
+            if let value = appTranslations[language.rawValue]?[key] {
+                return value
+            }
+            // The app's table costs a stored Bool for an app that ships none.
+            if !namesTable, let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: language) {
+                return value
+            }
+            if let value = _translations(for: language)[key] {
+                return value
+            }
+            guard language != .english else { break }
+            language = .english
         }
 
-        // Fall back to English
-        if currentLanguage != .english,
-            let value = _translationValue(key, in: .english)
-        {
-            return value
-        }
-
-        // Then the app's own string table, which costs a stored Bool for an
-        // app that ships none.
-        if let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: currentLanguage) {
+        if let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
             return value
         }
 

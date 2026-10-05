@@ -1,9 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  BundleStringTableTests.swift
 //
-//  A key TUIkit's dictionaries miss is read from the app's own string table
-//  through Foundation — `Localizable` in the main bundle unless
-//  `Text(_:tableName:bundle:comment:)` names another — in the app's language.
+//  A key is read from the app's own string table through Foundation —
+//  `Localizable` in the main bundle unless `Text(_:tableName:bundle:comment:)`
+//  names another — beside TUIkit's dictionaries, in the app's language first.
 //  The bundles are written to a temporary directory, as `.lproj` folders of
 //  `.strings` files, which Foundation reads on Linux as on macOS.
 //
@@ -89,14 +89,38 @@ final class BundleStringTableTests {
         #expect(service.string(for: "nowhere") == "nowhere")
     }
 
-    @Test("The dictionaries are asked first: TUIkit's own strings and an app's registered ones win")
-    func theDictionariesWin() throws {
+    @Test("Within a language the app's strings come first: what it registered, then its table, then TUIkit's own")
+    func theAppsStringsComeFirst() throws {
         let files = try TableBundle(["en": ["Localizable": ["button.ok": "Table OK", "greeting": "Hello"]]])
         let service = LocalizationService(configDirectoryPath: configDir, defaultBundle: files.bundle)
         service.pinLanguageForTesting(.english)
-        #expect(service.string(for: "button.ok") == "OK")
+        #expect(service.string(for: "button.ok") == "Table OK", "TUIkit's own string beat the app's table")
+        #expect(service.string(for: "button.cancel") == "Cancel", "TUIkit's own strings are still read")
         service.register(translations: ["en": ["greeting": "Registered hello"]])
         #expect(service.string(for: "greeting") == "Registered hello")
+    }
+
+    /// The review's case: English everywhere first meant a key registered in
+    /// English never reached the app's own German table.
+    @Test("The app's language comes before English, whichever kind of string holds each")
+    func theLanguageComesFirst() throws {
+        let files = try tables()
+        let service = LocalizationService(configDirectoryPath: configDir, defaultBundle: files.bundle)
+        service.register(translations: ["en": ["greeting": "Registered hello"]])
+        service.pinLanguageForTesting(.german)
+        #expect(service.string(for: "greeting") == "Hallo", "the English dictionary beat the German table")
+        service.pinLanguageForTesting(.english)
+        #expect(service.string(for: "greeting") == "Registered hello")
+    }
+
+    @Test("A table the call names is asked before the dictionaries")
+    func aNamedTableComesFirst() throws {
+        let files = try tables()
+        let service = LocalizationService(configDirectoryPath: configDir, defaultBundle: files.bundle)
+        service.pinLanguageForTesting(.english)
+        service.register(translations: ["en": ["welcome": "Registered welcome"]])
+        #expect(service.string(for: "welcome", tableName: "Onboarding", bundle: files.bundle) == "Welcome aboard")
+        #expect(service.string(for: "welcome") == "Registered welcome", "the registered string is lost elsewhere")
     }
 
     @Test("A table and a bundle named by Text are read for its key")
