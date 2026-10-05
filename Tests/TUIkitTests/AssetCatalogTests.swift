@@ -114,20 +114,41 @@ struct AssetCatalogTests {
         #expect(AssetCatalog.color(from: ["platform": "osx", "reference": "unknownColor"]) == nil)
     }
 
-    @Test("A name is found at its path in a namespace folder, and by its last component in a plain group")
+    /// The names `actool` gives (measured, Xcode 26, `assetutil --info`):
+    /// `Spaced/Inner`, `Spaced/Deep` and `Spaced/Ns2/Deeper` under folders
+    /// that provide a namespace, plain `Leaf` and `Lone` under ones that do
+    /// not (with a `Contents.json` and without), and the first of two `Leaf`s.
+    @Test("A set is named as actool names it: under the folders that provide a namespace, and no others")
     func namesInFolders() throws {
         let made = try TemporaryBundle()
-        let set = """
-            {"colors": [{"idiom": "universal", "color": {"color-space": "srgb",
-              "components": {"red": "0", "green": "255", "blue": "0", "alpha": "1.000"}}}]}
+        func set(_ green: String) -> String {
             """
-        try made.write(set, to: "Assets.xcassets/Brand/Accent.colorset/Contents.json")
-        try made.write(set, to: "Assets.xcassets/Group/Leaf.colorset/Contents.json")
+            {"colors": [{"idiom": "universal", "color": {"color-space": "srgb",
+              "components": {"red": "0.000", "green": "\(green)", "blue": "0.000", "alpha": "1.000"}}}]}
+            """
+        }
+        let namespace = #"{"info": {"author": "xcode", "version": 1}, "properties": {"provides-namespace": true}}"#
+        let plain = #"{"info": {"author": "xcode", "version": 1}}"#
+        try made.write(namespace, to: "Assets.xcassets/Spaced/Contents.json")
+        try made.write(set("1.000"), to: "Assets.xcassets/Spaced/Inner.colorset/Contents.json")
+        try made.write(set("1.000"), to: "Assets.xcassets/Spaced/Plain2/Deep.colorset/Contents.json")
+        try made.write(namespace, to: "Assets.xcassets/Spaced/Ns2/Contents.json")
+        try made.write(set("1.000"), to: "Assets.xcassets/Spaced/Ns2/Deeper.colorset/Contents.json")
+        try made.write(plain, to: "Assets.xcassets/Plain/Contents.json")
+        try made.write(set("0.500"), to: "Assets.xcassets/Plain/Leaf.colorset/Contents.json")
+        try made.write(set("0.250"), to: "Assets.xcassets/Other/Leaf.colorset/Contents.json")
+        try made.write(set("1.000"), to: "Assets.xcassets/Bare/Lone.colorset/Contents.json")
         let bundle = try #require(Bundle(path: made.path))
-        #expect(AssetCatalog.colorSet(named: "Brand/Accent", in: bundle)?.any == Color(.sRGB, red: 0, green: 1, blue: 0))
-        #expect(AssetCatalog.colorSet(named: "Leaf", in: bundle) != nil)
-        #expect(AssetCatalog.colorSet(named: "Accent", in: bundle) != nil)
-        #expect(AssetCatalog.colorSet(named: "Missing", in: bundle) == nil)
+
+        for name in ["Spaced/Inner", "Spaced/Deep", "Spaced/Ns2/Deeper", "Lone"] {
+            #expect(AssetCatalog.colorSet(named: name, in: bundle)?.any == Color(.sRGB, red: 0, green: 1, blue: 0), "\(name)")
+        }
+        for name in ["Inner", "Deep", "Deeper", "Ns2/Deeper", "Spaced/Plain2/Deep", "Plain/Leaf", "Bare/Lone", "Missing"] {
+            #expect(AssetCatalog.colorSet(named: name, in: bundle) == nil, "\(name) is not a name actool gives")
+        }
+        #expect(
+            AssetCatalog.colorSet(named: "Leaf", in: bundle)?.any == Color(.sRGB, red: 0, green: 0.25, blue: 0),
+            "not the first Leaf in name order")
     }
 
     @Test("An image set draws its largest picture at the scale it was made for")

@@ -376,7 +376,9 @@ asset catalogue**, as SwiftUI's do, in the bundle given (the main bundle for
 its resource bundle as it is (measured: only Xcode compiles one into
 `Assets.car`), and TUIkit reads that on every platform: `Name.imageset`'s
 largest picture it can decode, drawn at the scale it was made for, so a `@2x`
-file has its `1x` sibling's natural size. On macOS, a file that imports
+file has its `1x` sibling's natural size. A set (an image's or a colour's) has
+the name `actool` gives it, measured: `Colors/Brand` inside a folder that
+provides a namespace, plain `Brand` inside any other. On macOS, a file that imports
 `TUIkitAppKit` also reads a compiled `Assets.car` through AppKit, for a name the
 uncompiled catalogue lacks. Failing both, a plain image file among the bundle's
 resources: the name as given if it has an extension, else the name with the

@@ -20,9 +20,12 @@ import Foundation
 /// catalogue is read on macOS by `TUIkitAppKit`, through AppKit.
 ///
 /// A catalogue is any `*.xcassets` folder at the top of the bundle's
-/// resources. A name is found at its path inside one (`Brand`, or
-/// `Colors/Brand` under a folder that provides a namespace) or, failing that,
-/// as the last component of any set of that name deeper in.
+/// resources. A set has the name `actool` gives it (measured, Xcode 26): its
+/// own, under the names of the folders above it that provide a namespace
+/// (`"provides-namespace": true` in the folder's `Contents.json`, which
+/// Xcode's Provides Namespace checkbox writes), so `Colors/Brand` inside such
+/// a folder and plain `Brand` inside any other. Where two sets share a name
+/// the first in name order is found.
 ///
 /// What is read is kept, by catalogue and name, for the process: a body that
 /// names a colour reads it on every frame.
@@ -106,25 +109,50 @@ enum AssetCatalog {
         return entry == .missing ? nil : entry
     }
 
-    /// The `.colorset` / `.imageset` folder for `name`, first at its path in a
-    /// catalogue, then by its last component anywhere in one.
+    /// The `.colorset` / `.imageset` folder `actool` would name `name`.
     private static func folder(of kind: Kind, named name: String, in bundle: Bundle) -> String? {
-        let manager = FileManager.default
-        let setName = "\(name).\(kind.rawValue)"
-        let lastComponent = "\((name as NSString).lastPathComponent).\(kind.rawValue)"
+        let bundlePath = bundle.bundlePath
+        if let index = lock.withLock({ names[bundlePath] }) {
+            return index[NameKey(kind: kind.rawValue, name: name)]
+        }
+        var index: [NameKey: String] = [:]
         for catalog in catalogs(in: bundle) {
-            let direct = (catalog as NSString).appendingPathComponent(setName)
-            if manager.fileExists(atPath: (direct as NSString).appendingPathComponent("Contents.json")) {
-                return direct
-            }
-            guard let walk = manager.enumerator(atPath: catalog) else { continue }
-            while let relative = walk.nextObject() as? String {
-                if (relative as NSString).lastPathComponent == lastComponent {
-                    return (catalog as NSString).appendingPathComponent(relative)
-                }
+            indexSets(in: catalog, namespace: "", into: &index)
+        }
+        lock.withLock { names[bundlePath] = index }
+        return index[NameKey(kind: kind.rawValue, name: name)]
+    }
+
+    /// A set's kind and the name `actool` gives it.
+    private struct NameKey: Hashable {
+        let kind: String
+        let name: String
+    }
+
+    /// Each bundle's sets by name, read once, by bundle path.
+    nonisolated(unsafe) private static var names: [String: [NameKey: String]] = [:]
+
+    /// Names every colour and image set under `folder`, in name order, each
+    /// under `namespace` (the namespaces of the folders above it, each with a
+    /// trailing `/`): a folder that provides a namespace adds its own name for
+    /// what is inside it, any other adds nothing. The first set of a name is
+    /// kept.
+    private static func indexSets(in folder: String, namespace: String, into index: inout [NameKey: String]) {
+        let manager = FileManager.default
+        for item in ((try? manager.contentsOfDirectory(atPath: folder)) ?? []).sorted() {
+            let path = (folder as NSString).appendingPathComponent(item)
+            var isDirectory: ObjCBool = false
+            guard manager.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else { continue }
+            let kind = (item as NSString).pathExtension
+            if kind == Kind.color.rawValue || kind == Kind.image.rawValue {
+                let key = NameKey(kind: kind, name: namespace + (item as NSString).deletingPathExtension)
+                if index[key] == nil { index[key] = path }
+            } else {
+                let properties = contents(of: path)?["properties"] as? [String: Any]
+                let providesNamespace = properties?["provides-namespace"] as? Bool ?? false
+                indexSets(in: path, namespace: providesNamespace ? namespace + item + "/" : namespace, into: &index)
             }
         }
-        return nil
     }
 
     /// Every `*.xcassets` folder at the top of `bundle`'s resources, sorted
