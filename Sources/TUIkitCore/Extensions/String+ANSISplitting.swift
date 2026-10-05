@@ -461,8 +461,30 @@ extension String {
     /// The Terminal.app clip with no fast path — the walk itself, kept
     /// reachable as the oracle its fast path is pinned against. See
     /// ``exactAnsiAwarePrefixWithWidth(visibleCount:)``.
+    ///
+    /// Clusters the walk rewrites (separated skin tones, decomposed ZWJ
+    /// sequences) peak at their claim, monotonically — the raw internal
+    /// advance (👨‍👩‍👧‍👦: 11) never happens, so budgeting it would replace
+    /// clusters that actually fit. Everything else peaks at Terminal.app's
+    /// internal advance.
     func exactAnsiAwarePrefixForTerminalAppWithWidth(
         visibleCount: Int
+    ) -> (prefix: String, visibleWidth: Int) {
+        exactAnsiAwarePrefixGuardingPeaks(visibleCount: visibleCount) { character in
+            character.terminalAppWalkRewritesToClaim
+                ? character.terminalWidth : character.terminalAppCursorAdvance
+        }
+    }
+
+    /// The clip that guards over-advancers' peaks: every cluster whose claim
+    /// fits is kept, unless `peak` says its emission reaches past the right
+    /// edge on the way, when it is replaced with plain spaces of its claimed
+    /// width.
+    ///
+    /// - Parameter peak: How far past its first column the cursor reaches
+    ///   while the host draws a cluster as its walk emits it.
+    private func exactAnsiAwarePrefixGuardingPeaks(
+        visibleCount: Int, peak: (Character) -> Int
     ) -> (prefix: String, visibleWidth: Int) {
         guard visibleCount > 0 else { return ("", 0) }
 
@@ -501,17 +523,11 @@ extension String {
                 // netted 16, letting a tag flag through whose peak wrapped
                 // the row — and a kept tag flag inflated the tally by its
                 // pre-CUB surplus, substituting later clusters that fit.)
-                //
-                // Clusters the walk rewrites (separated skin tones, decomposed
-                // ZWJ sequences) peak at their claim, monotonically — the raw
-                // internal advance (👨‍👩‍👧‍👦: 11) never happens, so
-                // budgeting it would replace clusters that actually fit.
-                let advance = character.terminalAppWalkRewritesToClaim
-                    ? charWidth : character.terminalAppCursorAdvance
+                let advance = peak(character)
                 if advance > charWidth && visible + advance > visibleCount {
-                    // Over-advancer whose peak would push Terminal.app's
-                    // cursor past the right edge.  Replace with `charWidth`
-                    // plain spaces to preserve the layout but avoid the
+                    // Over-advancer whose peak would push the host's cursor
+                    // past the right edge.  Replace with `charWidth` plain
+                    // spaces to preserve the layout but avoid the
                     // wrap-to-next-row bug.  Skin tone is sacrificed in this
                     // narrow case.
                     if charWidth > 0 {
