@@ -186,9 +186,22 @@ public func renderToBuffer<V: View>(_ view: V, context: RenderContext) -> FrameB
     // frame on `table`, `deep` and `kitchensink`, paid by every app whether or
     // not it animates anything. The static witness makes the branch a constant
     // the specialiser can fold, and the common path never binds a new value.
-    if V._isAnimatable,
-        let animated = resolvingAnimation(view, context: context, isMeasuring: context.isMeasuring)
-    {
+    if V._isAnimatable { return renderAnimating(view, context: context) }
+    return renderResolved(view, context: context)
+}
+
+/// ``renderToBuffer(_:context:)`` for an `Animatable` view: at where its
+/// picture has got to, if it is on its way somewhere.
+///
+/// Out of line, and that is the point. The substitute is a `V?`, and in the
+/// unspecialised generic — which is how most views are rendered — an
+/// `Optional<V>` is a runtime metadata lookup that the compiler hoisted to the
+/// caller's entry, ahead of the `_isAnimatable` test: every view rendered paid
+/// it, animatable or not.
+@MainActor
+@inline(never)
+private func renderAnimating<V: View>(_ view: V, context: RenderContext) -> FrameBuffer {
+    if let animated = resolvingAnimation(view, context: context, isMeasuring: context.isMeasuring) {
         return renderResolved(animated, context: context)
     }
     return renderResolved(view, context: context)

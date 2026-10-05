@@ -656,8 +656,20 @@ private func measureChildUncached<V: View>(
     // Branched, not folded, for the reason `renderToBuffer` gives: rebinding
     // `view` unconditionally copies the struct on every measured child, and
     // deep nesting measures the tail once per enclosing level.
-    if V._isAnimatable, let animated = resolvingAnimation(view, context: context, isMeasuring: true)
-    {
+    if V._isAnimatable { return measureAnimating(view, proposal: proposal, context: context) }
+    return measureResolved(view, proposal: proposal, context: context)
+}
+
+/// ``measureChildUncached(_:proposal:context:)`` for an `Animatable` view, out
+/// of line for the reason `renderAnimating` is: its `V?` was an `Optional<V>`
+/// metadata lookup at the unspecialised caller's entry, paid by every measured
+/// view.
+@MainActor
+@inline(never)
+private func measureAnimating<V: View>(
+    _ view: V, proposal: ProposedSize, context: RenderContext
+) -> ViewSize {
+    if let animated = resolvingAnimation(view, context: context, isMeasuring: true) {
         return measureResolved(animated, proposal: proposal, context: context)
     }
     return measureResolved(view, proposal: proposal, context: context)
