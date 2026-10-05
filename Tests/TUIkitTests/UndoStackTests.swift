@@ -210,6 +210,68 @@ struct UndoStackTests {
         #expect(model.value == 0)
     }
 
+    @Test("An undo handler's removeAllActions forgets every other step and lets the undo finish, where NSUndoManager raises")
+    func removeAllInHandler() {
+        let (stack, endEvent) = makeStack()
+        let model = Model()
+        set(model, to: 1, on: stack)
+        endEvent()
+        stack.registerUndo(withTarget: model) { model in
+            stack.removeAllActions()
+            model.value = 0
+        }
+        model.value = 2
+        endEvent()
+        stack.undo()
+        #expect(model.value == 0)
+        #expect(!stack.canUndo && !stack.canRedo, "the older step is forgotten too")
+        #expect(stack.groupingLevel == 0)
+        set(model, to: 3, on: stack)
+        endEvent()
+        #expect(stack.undoCount == 1, "the stack goes on")
+        stack.undo()
+        #expect(model.value == 0)
+    }
+
+    @Test("What an undo or redo's handler registers after removeAllActions is the step that takes it back")
+    func registerAfterRemoveAllInHandler() {
+        let (stack, endEvent) = makeStack()
+        let model = Model()
+        stack.registerUndo(withTarget: model) { [self] model in
+            stack.removeAllActions()
+            self.set(model, to: 1, on: stack)
+        }
+        model.value = 2
+        endEvent()
+        stack.undo()
+        #expect(model.value == 1)
+        #expect(!stack.canUndo && stack.canRedo)
+        stack.redo()
+        #expect(model.value == 2)
+        #expect(stack.canUndo && !stack.canRedo)
+    }
+
+    @Test("A redo handler's removeAllActions lets the redo finish too")
+    func removeAllInRedoHandler() {
+        let (stack, endEvent) = makeStack()
+        let model = Model()
+        stack.registerUndo(withTarget: model) { model in
+            model.value = 0
+            stack.registerUndo(withTarget: model) { model in
+                stack.removeAllActions()
+                model.value = 5
+            }
+        }
+        model.value = 1
+        endEvent()
+        stack.undo()
+        #expect(model.value == 0 && stack.canRedo)
+        stack.redo()
+        #expect(model.value == 5)
+        #expect(!stack.canUndo && !stack.canRedo)
+        #expect(stack.groupingLevel == 0)
+    }
+
     @Test("An undo handler's unbalanced beginUndoGrouping is closed with the undo, into its redo")
     func unbalancedBeginInHandler() {
         let (stack, endEvent) = makeStack()

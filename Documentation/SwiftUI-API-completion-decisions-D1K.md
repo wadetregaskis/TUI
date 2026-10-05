@@ -111,7 +111,10 @@ nothing, or gives the action a step of its own: a TUI that raised would die
 holding the terminal in raw mode. Inside an undo or redo's own handler too: an
 unbalanced end does nothing, and a group the handler opened and left open is
 closed with the undo, into its redo (until the review it trapped, and wedged
-the stack, respectively). Absent, so failing to compile rather than
+the stack, respectively); and `removeAllActions()` forgets every step but the
+undo or redo that is running, which finishes, with what the handler registers
+after it as its inverse (`NSUndoManager` raises there, measured on macOS 15;
+until the second review this trapped). Absent, so failing to compile rather than
 doing nothing: `registerUndo(withTarget:selector:object:)` and
 `prepare(withInvocationTarget:)` (Objective-C only), `runLoopModes`, and the
 `NSUndoManager…` notifications.

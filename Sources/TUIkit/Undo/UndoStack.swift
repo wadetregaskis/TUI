@@ -35,7 +35,8 @@
 /// and a group of its own for the one action. A terminal app that raised there
 /// would die holding the terminal in raw mode. Inside an undo or redo's
 /// handler, an unbalanced end does nothing, and an unbalanced begin is closed
-/// when the undo or redo ends (see ``run(_:as:)``).
+/// when the undo or redo ends (see ``run(_:as:)``); `removeAllActions()`
+/// forgets everything but the run itself, where `NSUndoManager` raises too.
 @MainActor
 final class UndoStack {
     /// One registered action: what to run, and the object it was registered
@@ -185,10 +186,26 @@ final class UndoStack {
     }
 
     /// Forgets everything: both stacks, every open group, and any disabling.
+    ///
+    /// Inside an undo or redo's handler, everything but the run itself: the
+    /// group collecting its inverse stays open, emptied of what the handler
+    /// registered before, for the run to close. So the undo or redo finishes,
+    /// and what the handler registers after this is the step that takes it
+    /// back. `NSUndoManager` raises there (measured on macOS 15: "endUndoGrouping
+    /// called with no matching begin" as the undo ends, grouping by event on
+    /// or off), and this used to trap emptying the open groups out from under
+    /// the run.
     func removeAllActions() {
         undoGroups.removeAll()
         redoGroups.removeAll()
-        open.removeAll()
+        if runFloor > 0 {
+            // A run is only entered with nothing open, so its group is the
+            // first.
+            open = [Group(name: open[0].name, isDiscardable: open[0].isDiscardable)]
+            runFloor = 1
+        } else {
+            open.removeAll()
+        }
         eventGroupIsOpen = false
         registrationDisabledCount = 0
     }
