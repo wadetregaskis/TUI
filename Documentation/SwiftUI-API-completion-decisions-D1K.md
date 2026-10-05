@@ -89,3 +89,94 @@ the same way out the hyperlink and graphics switches give:
 **The fuller version** is a programmatic override for an app, as
 `TerminalClient.hyperlinkSupport` is for links. Not built: nothing yet says an
 app needs one. A quarter of a day.
+
+### B-D1K-5. `UndoManager` on Linux is TUIkit's own, without notifications or selectors
+
+*`UndoManager` (where Foundation has none), `EnvironmentValues.undoManager`*
+
+Decision A1 asked to check swift-corelibs-foundation's `UndoManager` on Linux.
+It has none: against Swift 6.3.3's static Linux SDK `UndoManager()` is "cannot
+find 'UndoManager' in scope", and `libFoundation.a` holds no undo symbols. So
+`\.undoManager: UndoManager?` could not even be typed there.
+
+**Shipped:** where Objective-C is absent, TUIkit declares `@MainActor open
+class UndoManager` with Foundation's Swift surface — grouping (by event, by
+default), registration with a target and a handler, undo, redo, nested undo,
+enabling and disabling, levels of undo, removing actions (all, or a target's),
+action names, menu titles in the app's language, discardability — backed by
+`UndoStack`, which is tested on macOS against what `NSUndoManager` was
+measured to do. Where `NSUndoManager` raises (an unbalanced end, undo inside an
+explicit group, a top-level registration with grouping by event off), it does
+nothing, or gives the action a step of its own: a TUI that raised would die
+holding the terminal in raw mode. Absent, so failing to compile rather than
+doing nothing: `registerUndo(withTarget:selector:object:)` and
+`prepare(withInvocationTarget:)` (Objective-C only), `runLoopModes`, and the
+`NSUndoManager…` notifications.
+
+**The fuller version** posts the eight notifications through
+`NotificationCenter` under Foundation's names, for an app that observes them
+(`checkpoint`, `didOpenUndoGroup`, `willCloseUndoGroup`, `didCloseUndoGroup`,
+`willUndoChange`, `didUndoChange`, `willRedoChange`, `didRedoChange`). Half a
+day; nothing in the SwiftUI surface needs them.
+
+If swift-corelibs-foundation ever ships an `UndoManager`, the two would clash
+on Linux; the declaration's `#if` would then need a version condition.
+
+### B-D1K-6. A text control's undo steps are per event, a field's end with its editing, and a secure field has none
+
+*`TextField`, `TextEditor`, `SecureField`, `EnvironmentValues.undoManager`*
+
+**Shipped:** `TextField` and `TextEditor` register every edit with the app's
+undo manager; each event's edits are one step (the manager's grouping by
+event), which for typing is one key. A field's steps leave the app's history
+when it loses the focus, as a text field's field editor removes its actions
+on resigning on macOS; the editor's stay, as `NSTextView`'s do. A
+`SecureField` registers nothing and keeps the private Ctrl-Z it had: a
+password's keystrokes in the app's history would be undoable from anywhere,
+which is not a thing a secure field should offer (AppKit's secure text field
+is believed to keep its typing out of the window's undo too; not measured).
+
+**The fuller version** coalesces a typing run into one step, as the macOS text
+system does: consecutive insertions with no caret move or pause between them
+undo together. About half a day, with a timer or a "next non-typing key"
+boundary to choose; the per-key step is what the controls already did on
+their own.
+
+### B-D1K-7. Redo's keys reach the app only on some terminals; the status bar is the route everywhere
+
+*`EnvironmentValues.undoManager`, `StatusBarState.showUndoItems`*
+
+Decision A1 named the keys. In a legacy encoding Ctrl-_ is the same byte as
+Ctrl-minus (undo) and Ctrl-Shift-Z the same as Ctrl-Z (suspend), so redo is on
+the keyboard only where Option is sent as Meta (`ESC _`, delivered after the
+parser's dead-sequence wait, about 200 ms, because `ESC _` also starts an APC
+reply) or where the kitty protocol is spoken.
+
+**Shipped:** the status bar's "undo" and "redo" appear while each has a step
+and perform it on a click — on every terminal — naming `^_` for redo where the
+protocol tells Ctrl-_ apart and `M-_` elsewhere. `showUndoItems` turns them
+off. Shown only while there is a step, so an app that never registers one
+never sees them.
+
+**The alternative** is to show them always (greyed when empty): steadier, but
+two more permanent entries in every app's bar. Free either way.
+
+### B-D1K-8. All five kitty flags are pushed, and a killed app leaves a shell that cannot read Return
+
+*`EnvironmentValues.keyboardReporting`*
+
+Chosen as the brief asked — "releases need 2, modifiers-alone need 8 … the
+spec's 'report associated text' (16) and 'alternate keys' (4) exist for
+exactly that" — so flag 8 is on, and with it every key, Return included, is an
+escape code. Quit, Ctrl-C, `kill`, Ctrl-Z and every fatal signal TUIkit can
+catch pop the flags (the PTY smoke covers quit, suspend and abort). `SIGKILL`
+cannot be caught: the terminal is then left on the alternate screen with the
+flags pushed, and the shell cannot read Return; closing the tab, or a terminal
+reset, recovers it.
+
+**The alternative** is flags 1, 2 and 4 only: Return, Tab and Backspace stay
+legacy (the specification keeps them so for exactly this reason), and
+releases, repeats and the Ctrl chords still work, but modifier keys alone,
+Caps Lock on text keys and the keypad's digits are lost —
+`onModifierKeysChanged` and `modifierKeyAlternate` would never fire. Free to
+switch; `KittyKeyboardFlags.requested` is the one place.
