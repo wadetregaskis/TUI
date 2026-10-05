@@ -261,7 +261,10 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
         // The registrar goes OUTSIDE the dialog's presenter, which draws the
         // content beneath an open dialog as an inert backdrop: registered from
         // in there, the quit key would lose its question while the question is
-        // on screen.
+        // on screen. That is seen only where the app lets the quit key work
+        // under a dialog, `.dialogPreventsAppTermination(false)`: by the
+        // automatic rule (decisions B36) the question — its Cancel and at
+        // least one other answer — holds the quit key while it is up.
         return _DismissalConfirmationRegistrar(
             content: dialog(
                 content.environment(\.dismiss, DismissAction(box: contentDismissal)),

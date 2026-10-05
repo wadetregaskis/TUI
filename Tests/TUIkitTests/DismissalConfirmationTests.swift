@@ -119,6 +119,32 @@ struct DismissalConfirmationTests {
         #expect(model.saved == 1 && harness.quits == 1, "Save ran, then the app quit")
     }
 
+    /// Decisions B36 meets the question: it has Cancel and another answer, so
+    /// by the automatic rule it holds the quit key while it is up; an app
+    /// that lets the quit key work under dialogs gets the question asked
+    /// again, never a quit past it.
+    @Test("While the question is up the quit key is held, or with dialogs told not to hold it, asks again")
+    func quitWhileAsking() {
+        for letsQuitWork in [false, true] {
+            let harness = InputChainHarness(width: 60, height: 20)
+            let model = Model()
+            let page = {
+                letsQuitWork ? AnyView(editor(model).dialogPreventsAppTermination(false)) : AnyView(editor(model))
+            }
+            harness.frame(page())
+            harness.frame(page())
+            harness.press(KeyEvent(character: "q"))
+            harness.frame(page())
+            harness.frame(page())
+            harness.press(KeyEvent(character: "q"))
+            let after = harness.frame(page())
+            harness.frame(page())
+            #expect(harness.quits == 0, "the quit key quit past the question (letsQuitWork: \(letsQuitWork))")
+            #expect(shows(after, "Save this draft?"))
+            #expect(model.saved == 0 && model.discarded == 0)
+        }
+    }
+
     private func doneSheet(_ model: Model) -> some View {
         Text("page").sheet(isPresented: model.binding) {
             DoneForm()
