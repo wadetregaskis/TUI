@@ -139,7 +139,6 @@
   "Scene.dialogSuppressionToggle(isSuppressed:)",
   "SceneBuilder.buildLimitedAvailability(_:)",
   "SceneBuilder.buildOptional(_:)",
-  "ScrollAnchorRole.alignment",
   "ScrollDismissesKeyboardMode",
   "ScrollDismissesKeyboardMode.automatic",
   "ScrollDismissesKeyboardMode.immediately",

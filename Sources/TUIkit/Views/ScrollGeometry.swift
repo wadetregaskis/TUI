@@ -228,16 +228,24 @@ extension _ScrollViewCore {
 
     /// This view's geometry as the frame left it, from the content width and
     /// viewport height the render settled on.
+    ///
+    /// Content shorter than the viewport and drawn lower down it by the
+    /// alignment anchor (``alignmentShift(handler:viewportHeight:context:)``)
+    /// reports the room above it as a top inset, with the offset above it, as
+    /// SwiftUI's does (measured: three 20-point rows at the bottom of a 300-point
+    /// view report an offset of -240 and a top inset of 240).
     func scrollGeometry(
         handler: ScrollViewHandler, contentWidth: Int, viewportHeight: Int, context: RenderContext
     ) -> ScrollGeometry {
-        let insets = resolvedContentMargins(context.environment)
+        var insets = resolvedContentMargins(context.environment)
+        let aligned = alignmentShift(handler: handler, viewportHeight: viewportHeight, context: context)
         let across = insets.leading + insets.trailing
         let along = insets.top + insets.bottom
         // A view that does not scroll horizontally lays its content out at the
         // width it shows it, and that is its width.
         let contentWidthTotal = axes.contains(.horizontal) ? handler.horizontal.extent : contentWidth
         let horizontalOffset = axes.contains(.horizontal) ? handler.horizontal.scrollOffset : 0
+        insets.top += aligned
         return ScrollGeometry(
             contentOffset: CellPoint(
                 x: horizontalOffset - insets.leading,

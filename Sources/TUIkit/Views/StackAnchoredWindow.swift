@@ -649,9 +649,9 @@ extension _VStackCore {
             children: children, spacing: spacing, state: state,
             proposal: ProposedSize(width: width, height: nil), context: childContext)
 
+        let declaredMode = context.environment.declaredAnchorModes.standing
         let anchorMode = ScrollAnchorMode.effective(
-            boundAnchor: context.environment.anchorPosition?.wrappedValue,
-            defaultScrollAnchor: context.environment.defaultScrollAnchor)
+            boundAnchor: context.environment.anchorPosition?.wrappedValue, declared: declaredMode)
         let designatedKey = applyDesignatedAnchor(
             frame: frame, state: state, window: window, context: context, mode: anchorMode)
 
@@ -662,8 +662,7 @@ extension _VStackCore {
         // where with no designation they move down.
         frame.rebindAnchor(
             mode: anchorMode == .row && designatedKey == nil
-                ? ScrollAnchorMode.effective(
-                    boundAnchor: nil, defaultScrollAnchor: context.environment.defaultScrollAnchor)
+                ? declaredMode
                 : anchorMode)
 
         var window = window

@@ -604,7 +604,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             horizontalOffset: handler.horizontal.scrollOffset
         )
 
-        visibleBuffer = applyOverscroll(to: visibleBuffer, handler: handler, width: contentWidth)
+        visibleBuffer = applyOverscroll(
+            to: visibleBuffer, handler: handler, width: contentWidth, context: context)
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bars and
         // the "N more" lines breathe as the scroll view's focus indication, so
@@ -660,10 +661,18 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// same shift, so a control pushed down the screen is still clickable where
     /// it is drawn — and the clip after it is what makes one pushed off the
     /// viewport stop being clickable at all (see there).
+    ///
+    /// Content shorter than the viewport is drawn lower down it by the same
+    /// slide, as its alignment anchor says
+    /// (``alignmentShift(handler:viewportHeight:context:)``), and an excursion
+    /// moves it from there. The buffer is the windowed viewport, as tall as the
+    /// content window.
     private func applyOverscroll(
-        to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int
+        to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int, context: RenderContext
     ) -> FrameBuffer {
-        let excursion = handler.overscrollState.excursion
+        let excursion =
+            handler.overscrollState.excursion
+            - alignmentShift(handler: handler, viewportHeight: buffer.lines.count, context: context)
         guard excursion != 0, !buffer.lines.isEmpty else { return buffer }
         let blank = String(repeating: " ", count: max(0, width))
         let gap = min(abs(excursion), buffer.lines.count)

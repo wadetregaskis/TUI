@@ -18,6 +18,12 @@ import TUIkitCore
 
 @testable import TUIkit
 
+/// Where a role's anchor is written beside the unlabelled one — see
+/// `ScrollAnchorRoleTests.swiftUIPrecedence`.
+enum AnchorPrecedence: Sendable {
+    case topOpeningOutside, nilOpeningInside, topStandingOutside, nilStandingInside
+}
+
 @MainActor
 @Suite("ScrollAnchorRole")
 struct ScrollAnchorRoleTests {
@@ -127,11 +133,9 @@ struct ScrollAnchorRoleTests {
 
     // MARK: - Composition
 
-    /// Both roles, stated separately, must compose — and in EITHER order. The
-    /// environment resolves inside-out, so a `.sizeChanges` call that ASSIGNED
-    /// "no opening anchor" would swallow an `.initialOffset` call further out
-    /// in one of the two orders. It transforms instead, stating none only where
-    /// none was stated, which is why both orders agree here.
+    /// Both roles, stated separately, must compose — and in EITHER order. Each
+    /// role has an anchor of its own, so a call for one says nothing about the
+    /// other, whichever is written nearer the view.
     @Test("The two roles compose in either order", arguments: [false, true])
     func rolesComposeEitherOrder(initialFirst: Bool) {
         let result = openThenAppend { view in
@@ -147,15 +151,45 @@ struct ScrollAnchorRoleTests {
         #expect((result.afterAppend ?? 0) < 100, "and the standing one is still none")
     }
 
+    /// A role's anchor wins over the unlabelled one wherever either is written,
+    /// and a `nil` one states nothing — SwiftUI's precedence, measured on
+    /// macOS 15 with a 30-row view appended to. The unlabelled modifier used to
+    /// write every role's anchor itself, so the call nearer the view won.
+    @Test(
+        "A role's anchor wins over the unlabelled one; a nil role defers to it",
+        arguments: [
+            // A: opens at the top, and so does not follow.
+            (AnchorPrecedence.topOpeningOutside, false, false),
+            // B: the nil opening anchor defers to the unlabelled .bottom.
+            (.nilOpeningInside, true, true),
+            // C: opens at the tail, and the .top standing anchor stops the follow.
+            (.topStandingOutside, true, false),
+            // D: the nil standing anchor defers, and the view follows.
+            (.nilStandingInside, true, true),
+        ])
+    func swiftUIPrecedence(_ precedence: AnchorPrecedence, opensAtTail: Bool, follows: Bool) {
+        let result = openThenAppend { view in
+            switch precedence {
+            case .topOpeningOutside:
+                AnyView(view.defaultScrollAnchor(.bottom).defaultScrollAnchor(.top, for: .initialOffset))
+            case .nilOpeningInside:
+                AnyView(view.defaultScrollAnchor(nil, for: .initialOffset).defaultScrollAnchor(.bottom))
+            case .topStandingOutside:
+                AnyView(view.defaultScrollAnchor(.bottom).defaultScrollAnchor(.top, for: .sizeChanges))
+            case .nilStandingInside:
+                AnyView(view.defaultScrollAnchor(nil, for: .sizeChanges).defaultScrollAnchor(.bottom))
+            }
+        }
+        #expect((result.opened == 39) == opensAtTail, "\(precedence): \(result)")
+        #expect((result.afterAppend == 104) == follows, "\(precedence): \(result)")
+    }
+
     // MARK: - The split is inert for everything that predates it
 
     /// The public `\.defaultScrollAnchor` environment key predates the roles,
     /// and writing it directly — which the rest of the suite does, and an app
-    /// may — must keep meaning what it always did: both roles.
-    ///
-    /// That is what the doubly-optional opening key buys. Were it a plain
-    /// `UnitPoint?`, an unstated opening role would read as "no anchor" and
-    /// every direct writer would silently stop opening at its edge.
+    /// may — must keep meaning what it always did: every role, as the
+    /// unlabelled modifier it is the key of.
     @Test("Writing the environment key directly still opens at the edge")
     func directEnvironmentWriteIsUnchanged() {
         let result = openThenAppend { view in

@@ -101,12 +101,47 @@ offset it is given, so a frame rendered at 0 and re-glued afterwards opened on
 blank lines. Tests that render a view directly run no such walk, which is why
 none saw either; `HeadlessApp` drives the real loop.
 
-Both the environment key and the handlers' captured mode carry a third state
-("nobody stated an opening role") which defers to the standing one — that is
-what keeps a direct write of `\.defaultScrollAnchor`, and every test that sets
-`declaredAnchorMode` by hand, behaving exactly as before. `ScrollAnchorRole.alignment`
-is **not** offered: see `SwiftUI-compatibility.md` §4a. Row mode and the bound
-`.anchorPosition` remain TUI-specific, for the reasons recorded there.
+The handlers' captured opening mode carries a third state ("nobody stated an
+opening role") which defers to the standing one — that is what keeps every test
+that sets `declaredAnchorMode` by hand behaving exactly as before. The
+environment needs none since 2026-10-05: it keeps the unlabelled anchor and the
+role anchors apart, and a role's anchor, where one is stated, wins over the
+unlabelled one wherever either is written — SwiftUI's precedence, measured. A
+`nil` role anchor states nothing and defers to the unlabelled one, again as
+SwiftUI's does. (Before, the unlabelled modifier wrote every role's anchor
+itself, so the call nearer the view won.) Row mode and the bound
+`.anchorPosition` remain TUI-specific, for the reasons recorded in
+`SwiftUI-compatibility.md`.
+
+### 1.7 The alignment role, and the two growing-content idioms (2026-10-05)
+
+SwiftUI's third role, **`.alignment`**, says where content SHORTER than the
+viewport sits, and its unlabelled `.defaultScrollAnchor(.bottom)` states it too:
+three rows of a chat sit at the bottom of the view (measured). TUIkit's
+`ScrollView` now does the same (decisions A8), at the anchor's `y` of the room
+left over, rounded down to a line. It is a placement, not a policy, so it is not
+quantised to the edges as the other two roles are, and it changes nothing about
+§1.1: content that fits has an offset of 0 and a maximum of 0 whatever the
+alignment, the drawn viewport is slid down by the room (`alignmentShift`,
+through the overscroll slide), and the slide carries the hit regions with the
+lines. `List` and `Table` ignore the role, as macOS's do.
+
+That gives the two growing-content idioms one spelling each, and both are
+tested (`ScrollAnchorAlignmentTests`):
+
+| Want | Spelling | Short | Once it fills the view |
+|---|---|---|---|
+| A chat: starts at the bottom, grows upwards | `.defaultScrollAnchor(.bottom)` | at the bottom | follows the tail |
+| A log: starts at the top, grows downwards | `.defaultScrollAnchor(.bottom, for: .initialOffset)` `.defaultScrollAnchor(.bottom, for: .sizeChanges)` | at the top | follows the tail |
+
+The second is what the unlabelled `.bottom` did before 2026-10-05. Both follow
+by the same positional rule: content that fits is at its own tail (offset 0 is
+its maximum), so the frame that first overflows is glued and lands at the new
+tail. (`.bottom, for: .sizeChanges` alone does the same for content that starts
+short; the `.initialOffset` half is what opens a log that is already long at
+its end.) One SwiftUI quirk is not copied: bottom-aligned content that outgrows
+its room by more than one step at once lands SwiftUI's view at the top
+(measured); here it stays at the tail, as SwiftUI's does a row at a time.
 
 ---
 

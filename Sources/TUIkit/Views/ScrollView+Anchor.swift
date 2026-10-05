@@ -11,6 +11,9 @@
 //  and scrolling back re-engages. The one thing that must be remembered across
 //  frames is a *newly written* bound edge — see `adoptWrittenAnchor`.
 //
+//  And the third role, `ScrollAnchorRole.alignment`: where content shorter
+//  than the viewport is drawn in it — see `alignmentShift`.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -100,5 +103,36 @@ extension _ScrollViewCore {
         case .bottom: handler.seekingTail = true
         default: break
         }
+    }
+
+    /// How many lines down the viewport this frame draws content SHORTER than
+    /// it: the ``ScrollAnchorRole/alignment`` anchor's `y` of the room left
+    /// over, rounded down to a line — `0` for content that fills the viewport,
+    /// for a view with no alignment anchor, and for one that does not scroll
+    /// vertically.
+    ///
+    /// SwiftUI places short content this way, and its unlabelled
+    /// `.defaultScrollAnchor(.bottom)` states this role too (measured): three
+    /// rows of a chat sit at the bottom of its view. Not quantised to the edges
+    /// as the other two roles are — those choose a policy, and this a place.
+    ///
+    /// The shift is a slide of the drawn viewport (`applyOverscroll`), not an
+    /// offset: content that fits has a scroll offset of 0 and a maximum of 0,
+    /// and both stay so. That keeps every piece of arithmetic that maps the
+    /// offset to a row — a seek, the reveal, the follow, the reported position
+    /// — exactly as it is, and the slide carries the hit regions, the layers
+    /// and the animated runs down with the lines, so what is clicked is what
+    /// is drawn there. The geometry reports it as SwiftUI does, as a top inset
+    /// with the offset above it (`scrollGeometry`).
+    func alignmentShift(
+        handler: ScrollViewHandler, viewportHeight: Int, context: RenderContext
+    ) -> Int {
+        // The room first: content that overflows — most of what a scroll view
+        // holds — pays no environment read.
+        let room = viewportHeight - handler.contentHeight
+        guard room > 0, axes.contains(.vertical),
+            let anchor = context.environment.scrollAnchor(for: .alignment), anchor.y > 0
+        else { return 0 }
+        return min(room, Int((anchor.y * Double(room)).rounded(.down)))
     }
 }

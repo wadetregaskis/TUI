@@ -2077,3 +2077,27 @@ private struct D2CPresentationSizing: View {
             }
     }
 }
+// MARK: - Scroll anchor roles (lane D2S)
+
+/// SwiftUI's own example for the roles — the unlabelled anchor for every case,
+/// one opted back out of it — and the three roles one at a time.
+@MainActor
+private struct ScrollAnchorRoleShapes: View {
+    let items = Array(0..<20)
+
+    var body: some View {
+        VStack {
+            ScrollView {
+                LazyVStack {
+                    ForEach(items, id: \.self) { Text("\($0)") }
+                }
+            }
+            .defaultScrollAnchor(.bottom)
+            .defaultScrollAnchor(.topLeading, for: .alignment)
+            ScrollView { Text("short") }
+                .defaultScrollAnchor(.center, for: .alignment)
+                .defaultScrollAnchor(.bottom, for: .initialOffset)
+                .defaultScrollAnchor(.bottom, for: .sizeChanges)
+        }
+    }
+}

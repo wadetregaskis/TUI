@@ -112,7 +112,7 @@ extension StackWindowState {
 func designatedRowKey(context: RenderContext) -> String? {
     let mode = ScrollAnchorMode.effective(
         boundAnchor: context.environment.anchorPosition?.wrappedValue,
-        defaultScrollAnchor: context.environment.defaultScrollAnchor)
+        declared: context.environment.declaredAnchorModes.standing)
     guard mode == .row else { return nil }
     return context.environment.anchorPosition?.wrappedValue?.rowKey
 }

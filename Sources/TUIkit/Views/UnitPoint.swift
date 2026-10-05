@@ -80,20 +80,15 @@ extension Alignment {
 /// Which of a scroll view's anchoring questions an anchor answers — SwiftUI's
 /// `ScrollAnchorRole`, taken by ``TUIkit/View/defaultScrollAnchor(_:for:)``.
 ///
-/// "Anchor" names more than one thing, and the unlabelled
-/// ``TUIkit/View/defaultScrollAnchor(_:)`` answers two of them at once:
-/// **where the view opens**, and **what it holds onto as its content changes**.
-/// The role picks one.
+/// "Anchor" names three things, and the unlabelled
+/// ``TUIkit/View/defaultScrollAnchor(_:)`` answers all of them at once:
+/// **where the view opens**, **what it holds onto as its content changes**,
+/// and **where content shorter than the view sits**. The role picks one.
 ///
-/// > Note: SwiftUI's third role, `alignment` — where content sits when it is
-/// > *smaller* than the viewport — is **not offered yet**, and deliberately not
-/// > as an inert case: a spelling that compiles and does nothing is worse than
-/// > one that does not compile. It is deferred rather than refused, because a
-/// > cell grid can perfectly well align short content; what it needs is a
-/// > content-placement offset in the render path plus every consumer that maps
-/// > a screen row back to a data row — hit testing, click-to-select, drop
-/// > slots, focus reveal — taught about that offset. That is a scroll-anchoring
-/// > feature in its own right, not a spelling.
+/// A role's anchor wins over the unlabelled one wherever either is written,
+/// as SwiftUI's does (measured): the role-specific call states an exception
+/// to the unlabelled rule, so it holds whether it is written nearer the view
+/// or further out.
 public struct ScrollAnchorRole: Hashable, Sendable {
     private let rawValue: String
 
@@ -113,66 +108,110 @@ public struct ScrollAnchorRole: Hashable, Sendable {
     /// `.bottom` here is follow-the-log: while the view sits at the tail,
     /// arriving rows keep it there.
     public static let sizeChanges = Self("sizeChanges")
+
+    /// Where content SHORTER than the scroll view sits in it.
+    ///
+    /// `.bottom` here is a chat: the first lines appear at the bottom of the
+    /// view, and each new one pushes the ones before it up. Content that fills
+    /// the view is unaffected — there is no room to place it in.
+    ///
+    /// Read by ``ScrollView`` on its vertical axis, at the anchor's `y` as a
+    /// fraction of the room left over (a `y` of 0.5 centres the content),
+    /// rounded down to a whole line. Like SwiftUI's on macOS, ``List`` and
+    /// ``Table`` ignore it: their rows always start at the top.
+    ///
+    /// > Note: The anchor's `x` is ignored, as it is for the other two roles:
+    /// > a horizontal scroll view places narrow content at its leading edge
+    /// > whatever the anchor says. See ``TUIkit/View/defaultScrollAnchor(_:)``.
+    public static let alignment = Self("alignment")
+}
+
+/// The anchors ``TUIkit/View/defaultScrollAnchor(_:for:)`` stated, one per
+/// role — `nil` where none was, which defers to the unlabelled anchor
+/// (``EnvironmentValues/defaultScrollAnchor``).
+///
+/// `nil` is "unstated", not "no anchor", because that is what SwiftUI's is
+/// (measured): `.defaultScrollAnchor(nil, for: .initialOffset)` beside an
+/// unlabelled `.bottom` still opens at the tail. A role is opted out of the
+/// unlabelled anchor by stating another — `.top` — not by stating none.
+struct ScrollAnchorRoleAnchors: Equatable, Sendable {
+    var initialOffset: UnitPoint?
+    var sizeChanges: UnitPoint?
+    var alignment: UnitPoint?
+
+    subscript(role: ScrollAnchorRole) -> UnitPoint? {
+        get {
+            switch role {
+            case .initialOffset: initialOffset
+            case .sizeChanges: sizeChanges
+            default: alignment
+            }
+        }
+        set {
+            switch role {
+            case .initialOffset: initialOffset = newValue
+            case .sizeChanges: sizeChanges = newValue
+            default: alignment = newValue
+            }
+        }
+    }
 }
 
 private struct DefaultScrollAnchorKey: EnvironmentKey {
     static let defaultValue: UnitPoint? = nil
 }
 
-private struct InitialScrollAnchorKey: EnvironmentKey {
-    static let defaultValue: UnitPoint?? = nil
+private struct ScrollAnchorRolesKey: EnvironmentKey {
+    static let defaultValue = ScrollAnchorRoleAnchors()
 }
 
 extension EnvironmentValues {
-    /// The anchor a scrollable holds as its content changes size — the
-    /// ``ScrollAnchorRole/sizeChanges`` role. See
-    /// ``TUIkit/View/defaultScrollAnchor(_:)``.
+    /// The anchor the unlabelled ``TUIkit/View/defaultScrollAnchor(_:)``
+    /// states: every role's, except where
+    /// ``TUIkit/View/defaultScrollAnchor(_:for:)`` states one of its own.
+    ///
+    /// Writing it directly is writing the unlabelled modifier.
     public var defaultScrollAnchor: UnitPoint? {
         get { self[DefaultScrollAnchorKey.self] }
         set { self[DefaultScrollAnchorKey.self] = newValue }
     }
 
-    /// The anchor a scrollable opens at — the
-    /// ``ScrollAnchorRole/initialOffset`` role — **if one was stated**.
+    /// The anchors stated for one role each — see ``ScrollAnchorRoleAnchors``.
     ///
-    /// Doubly optional, for the same reason `Text`'s stated font is: `nil` is a
-    /// legal value of this key ("open unanchored"), so "nobody said" needs to
-    /// be a distinguishable third state. It buys two things. An unstated
-    /// opening role defers to the standing anchor, which is what keeps a direct
-    /// write of the public ``defaultScrollAnchor`` — the spelling that predates
-    /// the roles — meaning exactly what it always did. And it lets the role
-    /// modifiers COMPOSE in either order, because
-    /// ``TUIkit/View/defaultScrollAnchor(_:for:)`` transforms this key rather
-    /// than assigning it: a `.sizeChanges` call states "no opening anchor" only
-    /// where none was stated already, so an `.initialOffset` call anywhere else
-    /// in the chain survives it.
-    ///
-    /// Internal: SwiftUI exposes no `EnvironmentValues` member for either role,
-    /// and ``defaultScrollAnchor`` is public only because it predates the split
-    /// and the scrollables read it from outside this file.
-    var initialScrollAnchor: UnitPoint?? {
-        get { self[InitialScrollAnchorKey.self] }
-        set { self[InitialScrollAnchorKey.self] = newValue }
+    /// Internal: SwiftUI exposes no `EnvironmentValues` member for a role, and
+    /// ``defaultScrollAnchor`` is public only because it predates the roles.
+    var scrollAnchorRoles: ScrollAnchorRoleAnchors {
+        get { self[ScrollAnchorRolesKey.self] }
+        set { self[ScrollAnchorRolesKey.self] = newValue }
     }
 
-    /// Both declared anchor modes, resolved — what a scrollable captures each
-    /// render. One value because the two are only ever meaningful together:
-    /// `opening` is `nil` when no opening role was stated, and reading it
-    /// without `standing` to defer to would lose that.
+    /// The anchor in force for `role`: the one stated for it, or else the
+    /// unlabelled one.
+    func scrollAnchor(for role: ScrollAnchorRole) -> UnitPoint? {
+        scrollAnchorRoles[role] ?? defaultScrollAnchor
+    }
+
+    /// Both declared anchor MODES, resolved — what a scrollable captures each
+    /// render: the one it holds as its content changes (``ScrollAnchorRole/sizeChanges``)
+    /// and the one it opens at (``ScrollAnchorRole/initialOffset``).
+    ///
+    /// `opening` is always stated here. It is optional because the handlers
+    /// that capture it keep the third state "nobody said", which defers to the
+    /// standing mode, for a caller that sets only the standing one.
     var declaredAnchorModes: (standing: ScrollAnchorMode, opening: ScrollAnchorMode?) {
         (
-            ScrollAnchorMode.resolved(defaultScrollAnchor: defaultScrollAnchor),
-            initialScrollAnchor.map(ScrollAnchorMode.resolved(defaultScrollAnchor:))
+            ScrollAnchorMode.resolved(defaultScrollAnchor: scrollAnchor(for: .sizeChanges)),
+            ScrollAnchorMode.resolved(defaultScrollAnchor: scrollAnchor(for: .initialOffset))
         )
     }
 }
 
 extension View {
     /// Associates an anchor with scroll views within this view, controlling
-    /// where their content is initially positioned **and** what they hold onto
-    /// as the content changes. Matches SwiftUI's modifier of the same name,
-    /// which likewise sets both roles at once — see
-    /// ``defaultScrollAnchor(_:for:)`` to set one.
+    /// where their content is initially positioned, what they hold onto as
+    /// the content changes, **and** where content shorter than the view sits.
+    /// Matches SwiftUI's modifier of the same name, which likewise sets every
+    /// role at once — see ``defaultScrollAnchor(_:for:)`` to set one.
     ///
     /// `.bottom` (a `y` of 0.75 or more) is the terminal's log-viewer idiom:
     /// the view opens at the tail, and while it is *at* the bottom, growing
@@ -183,32 +222,50 @@ extension View {
     /// step, and the opening placement is that rule's own first frame rather
     /// than a second mechanism.
     ///
+    /// In a ``ScrollView``, `.bottom` also places content shorter than the view
+    /// at its BOTTOM (the ``ScrollAnchorRole/alignment`` role), as SwiftUI's
+    /// does: the first lines of a chat appear at the bottom and push upwards.
+    /// For a log that starts at the top and only follows its tail once it
+    /// fills the view, state the other two roles and leave alignment alone:
+    ///
+    /// ```swift
+    /// // Starts at the bottom, grows upwards, then follows the tail.
+    /// ScrollView { messages }.defaultScrollAnchor(.bottom)
+    ///
+    /// // Starts at the top, grows downwards, then follows the tail.
+    /// ScrollView { logLines }
+    ///     .defaultScrollAnchor(.bottom, for: .initialOffset)
+    ///     .defaultScrollAnchor(.bottom, for: .sizeChanges)
+    /// ```
+    ///
+    /// ``List`` and ``Table`` ignore the alignment role, as macOS's do, so
+    /// there the two spellings behave alike.
+    ///
     /// Two deviations from SwiftUI, both a consequence of scrolling in whole
     /// rows rather than points:
-    /// - The anchor **quantises to three edges**: `y ≥ 0.75` is the bottom,
-    ///   `y ≤ 0.25` the top, and anything mid-content anchors *nothing* (the
-    ///   position simply stays where it is in line coordinates). SwiftUI's
-    ///   `.center` keeps the centre fixed; here it means "no anchor".
-    /// - `x` is ignored. Horizontal scrolling exists, but the anchor modes are
-    ///   defined over rows.
+    /// - For where the view opens and what it holds, the anchor **quantises to
+    ///   three edges**: `y ≥ 0.75` is the bottom, `y ≤ 0.25` the top, and
+    ///   anything mid-content anchors *nothing* (the position simply stays
+    ///   where it is in line coordinates). SwiftUI's `.center` keeps the
+    ///   centre fixed; here it means "no anchor". The alignment role is not
+    ///   quantised: it places short content at its `y` to the line.
+    /// - `x` is ignored, for every role. Horizontal scrolling exists, but the
+    ///   anchor modes are defined over rows.
     ///
     /// - Parameter anchor: The unit point to anchor content to, or `nil`
     ///   for the default (no anchor — the top).
     public func defaultScrollAnchor(_ anchor: UnitPoint?) -> some View {
-        // Both roles, stated — SwiftUI's unlabelled form does the same, and
-        // stating the opening one is what lets a plain call nearer the view
-        // override a role-specific one further out.
         environment(\.defaultScrollAnchor, anchor)
-            .environment(\.initialScrollAnchor, .some(anchor))
     }
 
     /// Associates an anchor with scroll views within this view for **one** of
     /// the questions an anchor answers. Matches SwiftUI's modifier of the same
     /// name.
     ///
-    /// The unlabelled ``defaultScrollAnchor(_:)`` sets both roles together,
-    /// which is what a log viewer wants: open at the tail *and* follow it. The
-    /// roles come apart when you want one without the other:
+    /// The unlabelled ``defaultScrollAnchor(_:)`` sets every role together,
+    /// which is what a chat wants: open at the tail, follow it, and sit at the
+    /// bottom while it is short. The roles come apart when you want one
+    /// without the others:
     ///
     /// ```swift
     /// // Join the log at the end, then read backwards undisturbed.
@@ -216,36 +273,29 @@ extension View {
     ///
     /// // Start at the beginning, but follow the tail once you reach it.
     /// List(entries) { … }.defaultScrollAnchor(.bottom, for: .sizeChanges)
+    ///
+    /// // The chat's anchoring, with short content at the top.
+    /// ScrollView { … }
+    ///     .defaultScrollAnchor(.bottom)
+    ///     .defaultScrollAnchor(.top, for: .alignment)
     /// ```
     ///
-    /// Writing one role leaves the other unanchored. Writing both separately is
-    /// the same as writing the unlabelled form.
+    /// A role's anchor wins over the unlabelled one wherever the two are
+    /// written, as in SwiftUI. A `nil` anchor states nothing: the role goes
+    /// back to the unlabelled anchor, or to none if there is none. Writing all
+    /// three roles separately is the same as writing the unlabelled form.
     ///
-    /// The same two deviations apply as for ``defaultScrollAnchor(_:)`` — the
-    /// three-edge quantisation, and `x` being ignored.
+    /// The same deviations apply as for ``defaultScrollAnchor(_:)`` — the
+    /// three-edge quantisation of the opening and standing anchors, and `x`
+    /// being ignored.
     ///
     /// - Parameters:
-    ///   - anchor: The unit point to anchor content to, or `nil` for none.
+    ///   - anchor: The unit point to anchor content to, or `nil` to defer to
+    ///     the unlabelled anchor.
     ///   - role: Which question this anchor answers.
     public func defaultScrollAnchor(
         _ anchor: UnitPoint?, for role: ScrollAnchorRole
     ) -> some View {
-        // `.sizeChanges` has to say something about the OPENING role too, and
-        // this is why it transforms rather than assigns. An unstated opening
-        // role defers to the standing one, so a bare `.bottom, for: .sizeChanges`
-        // would still open at the tail — the deferral is exactly what this call
-        // opts out of. But it must not stamp on an `.initialOffset` stated
-        // elsewhere in the chain, and the environment resolves inside-out, so
-        // "state none only if none was stated" is the one rule that composes in
-        // either order.
-        transformEnvironment(\.initialScrollAnchor) { stated in
-            switch role {
-            case .initialOffset: stated = .some(anchor)
-            default: stated = stated ?? .some(nil)
-            }
-        }
-        .transformEnvironment(\.defaultScrollAnchor) { standing in
-            if role == .sizeChanges { standing = anchor }
-        }
+        transformEnvironment(\.scrollAnchorRoles) { $0[role] = anchor }
     }
 }
