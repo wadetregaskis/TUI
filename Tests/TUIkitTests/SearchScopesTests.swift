@@ -47,9 +47,11 @@ struct SearchScopesTests {
         harness.frame(page(model))
         #expect(showsScopes(harness.frame(page(model))), "the field took the focus: search is presented")
 
-        harness.press(tab)  // field → the first scope
+        harness.press(tab)  // field → the scope bar, on the selected scope
         #expect(showsScopes(harness.frame(page(model))), "Tab from the field reaches the scopes")
-        harness.press(tab)  // → the second scope
+        // The bar is a segmented picker, one focus stop: Right moves its
+        // cursor to the second scope, and Return picks it.
+        harness.press(KeyEvent(key: .right))
         harness.frame(page(model))
         harness.press(KeyEvent(key: .enter))
         harness.frame(page(model))
