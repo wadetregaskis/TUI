@@ -135,6 +135,18 @@ struct TextLinkTests {
         #expect(drawn == plain, "still drawn as a link, in the accent and underlined")
     }
 
+    /// A run's link is `URL.absoluteString` too, already encoded, so its
+    /// escapes reach the host as Foundation wrote them: `Read%20me.txt`, not
+    /// `Read%2520me.txt`, which names a file that is not there.
+    @Test("A run's link to a file with a space in its name is encoded once")
+    func runFileLinkIsEncodedOnce() {
+        var file = AttributedString("notes")
+        file.link = URL(fileURLWithPath: "/Users/x/Read me.txt")
+        let drawn = TerminalHyperlink.withSupport(true) { lines(Text(file)) }.joined()
+        #expect(drawn.contains("/Users/x/Read%20me.txt\u{1B}\\"), "\(drawn.debugDescription)")
+        #expect(!drawn.contains("%25"))
+    }
+
     @Test("A link that wraps is balanced on every line and keeps one identity")
     func wrappedLink() {
         var link = AttributedString("alpha beta gamma delta")

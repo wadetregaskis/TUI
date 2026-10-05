@@ -188,6 +188,24 @@ public struct TerminalHyperlink: Sendable, Equatable {
     /// place. Nothing else printable is touched — `#`, `?`, `&` and `=` are
     /// URI syntax and encoding them would change where the link points.
     ///
+    /// **A `%` that begins an escape is left as it is** in the URI, because a
+    /// URI that already carries one was encoded once, and encoding it again
+    /// names a different resource. That is every URI the framework itself
+    /// passes: `Link` and a text run give `URL.absoluteString`, so
+    /// `URL(fileURLWithPath: "/tmp/Read me.txt")` arrives as
+    /// `file:///tmp/Read%20me.txt`. Re-encoding its `%` sent `Read%2520me.txt`,
+    /// which a terminal decodes once, to a file called `Read%20me.txt` that is
+    /// not there — the same for every non-ASCII path and every `https` URL with
+    /// an escape in it. A `%` NOT followed by two hex digits cannot be an
+    /// escape, so it is encoded (`%25`): left bare, it would make the URI
+    /// malformed. Raw bytes are encoded as ever, so a destination given
+    /// unencoded and one given encoded both arrive encoded once.
+    ///
+    /// In an `id`, every `%` is encoded. An id is not a URI but opaque data a
+    /// host compares as written, and its `;` `:` `=` become `%3B` `%3A` `%3D`,
+    /// so an id that already said `%3B` must not arrive as the same bytes as
+    /// one that said `;`.
+    ///
     /// `;` is deliberately not encoded in the URI either: the URI is the LAST
     /// field, so a semicolon in a path or a query cannot be mistaken for a
     /// field separator. In a parameter value — an `id` — it is, and so are `:`
@@ -198,16 +216,19 @@ public struct TerminalHyperlink: Sendable, Equatable {
     /// beginning with the id's tail.
     static func encoded(_ value: String, in field: Field = .uri) -> String {
         var result = ""
-        result.reserveCapacity(value.utf8.count)
-        for byte in value.utf8 {
+        let bytes = value.utf8
+        result.reserveCapacity(bytes.count)
+        var index = bytes.startIndex
+        while index != bytes.endIndex {
+            let byte = bytes[index]
+            bytes.formIndex(after: &index)
             let isFieldSyntax = field == .parameterValue && (byte == 0x3B || byte == 0x3A || byte == 0x3D)
-            if byte > 0x20, byte < 0x7F, byte != 0x25, !isFieldSyntax {  // printable ASCII, not ' ' or '%'
+            // A '%' passes only in the URI, and only where it begins an
+            // escape: `index` is already past it, at the two digits.
+            let isEscape = byte == 0x25 && field == .uri && Self.hexPairBegins(at: index, in: bytes)
+            if byte > 0x20, byte < 0x7F, byte != 0x25 || isEscape, !isFieldSyntax {  // printable ASCII, not ' '
                 result.unicodeScalars.append(Unicode.Scalar(byte))
             } else {
-                // '%' itself is encoded so the encoding round-trips: a
-                // destination that already contained "%41" must reach the host
-                // as "%41" and not as "A".
-                //
                 // Hand-rolled rather than `String(format:)`: this runs for
                 // every byte of every link emitted, and a format call parses
                 // its format and allocates a String each time. (NOT because
@@ -222,6 +243,24 @@ public struct TerminalHyperlink: Sendable, Equatable {
     }
 
     private static let hexDigits: [Unicode.Scalar] = Array("0123456789ABCDEF".unicodeScalars)
+
+    /// Whether `bytes` holds two hex digits from `index` on — what makes the
+    /// `%` before them an escape rather than a bare percent sign. Either case:
+    /// RFC 3986 makes `%c3` and `%C3` the same byte.
+    private static func hexPairBegins(at index: String.UTF8View.Index, in bytes: String.UTF8View) -> Bool {
+        var cursor = index
+        for _ in 0..<2 {
+            guard cursor != bytes.endIndex else { return false }
+            switch bytes[cursor] {
+            case UInt8(ascii: "0")...UInt8(ascii: "9"), UInt8(ascii: "a")...UInt8(ascii: "f"),
+                UInt8(ascii: "A")...UInt8(ascii: "F"):
+                bytes.formIndex(after: &cursor)
+            default:
+                return false
+            }
+        }
+        return true
+    }
 
     /// Which field of the sequence a value is bound for — what ``encoded(_:in:)``
     /// must escape beyond the bytes OSC 8 requires depends on it.

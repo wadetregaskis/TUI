@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkitCore
@@ -49,15 +50,54 @@ struct TerminalHyperlinkSequenceTests {
         #expect(line.stripped == "Docs")
     }
 
-    /// Everything outside printable ASCII is percent-encoded, `%` included so
-    /// the encoding round-trips: a destination that already said `%41` must
-    /// reach the host as `%41` and not as `A`.
-    @Test("Encoding is total, and round-trips its own escape character")
-    func encodingRoundTrips() {
+    /// Everything outside printable ASCII is percent-encoded, and so is a `%`
+    /// that cannot begin an escape — but not one that does. A URI carrying
+    /// `%20` was encoded once already (`URL.absoluteString` always is), and
+    /// encoding it again sent `%2520`, which a terminal decodes once, to a
+    /// name with `%20` in it.
+    @Test("Encoding is total, and keeps the escapes a URI already has")
+    func encodingKeepsExistingEscapes() {
         #expect(TerminalHyperlink.encoded("a b") == "a%20b")
-        #expect(TerminalHyperlink.encoded("%41") == "%2541")
         #expect(TerminalHyperlink.encoded("café") == "caf%C3%A9", "UTF-8 bytes, not scalars")
         #expect(TerminalHyperlink.encoded("a;b[c]m") == "a;b[c]m", "printable ASCII is left alone")
+        // An escape is kept, in either case, and anywhere in the value.
+        #expect(TerminalHyperlink.encoded("%41") == "%41")
+        #expect(TerminalHyperlink.encoded("Read%20me") == "Read%20me")
+        #expect(TerminalHyperlink.encoded("caf%c3%a9") == "caf%c3%a9")
+        // Encoding is idempotent now: a second pass changes nothing.
+        let once = TerminalHyperlink.encoded("/tmp/Read me café 100%")
+        #expect(once == "/tmp/Read%20me%20caf%C3%A9%20100%25")
+        #expect(TerminalHyperlink.encoded(once) == once)
+        // A `%` without two hex digits after it is no escape, and is encoded.
+        #expect(TerminalHyperlink.encoded("100%") == "100%25")
+        #expect(TerminalHyperlink.encoded("%4") == "%254")
+        #expect(TerminalHyperlink.encoded("%4g") == "%254g")
+        #expect(TerminalHyperlink.encoded("%%41") == "%25%41")
+        // In an id, which is not a URI, every `%` is: `%3B` must stay
+        // distinct from the `;` it would otherwise be read as.
+        #expect(TerminalHyperlink.encoded("%41", in: .parameterValue) == "%2541")
+        #expect(
+            TerminalHyperlink.encoded("a%3Bb", in: .parameterValue)
+                != TerminalHyperlink.encoded("a;b", in: .parameterValue))
+    }
+
+    /// The URIs the framework itself passes are Foundation's, already encoded:
+    /// a local file with a space or a non-ASCII letter in its name, and an
+    /// `https` URL with escapes in its path and query. Each reaches the host
+    /// with its escapes as Foundation wrote them.
+    @Test("A URL Foundation encoded is sent as Foundation encoded it")
+    func foundationURLsAreNotEncodedTwice() throws {
+        let spaced = URL(fileURLWithPath: "/Users/x/Read me.txt").absoluteString
+        #expect(spaced == "file:///Users/x/Read%20me.txt")
+        #expect(TerminalHyperlink(destination: spaced).opening == "\u{1B}]8;;file:///Users/x/Read%20me.txt\u{1B}\\")
+
+        let accented = URL(fileURLWithPath: "/Users/x/café.txt").absoluteString
+        let opening = try #require(TerminalHyperlink(destination: accented).opening)
+        #expect(opening == "\u{1B}]8;;\(accented)\u{1B}\\")
+        #expect(!opening.contains("%25"), "\(opening.debugDescription)")
+
+        let web = "https://example.com/a%20b/caf%C3%A9?q=%26x#frag%2F"
+        #expect(TerminalHyperlink(destination: web).opening == "\u{1B}]8;;\(web)\u{1B}\\")
     }
 
     /// An id is a parameter VALUE: `;` ends the parameter list, `:` separates
@@ -109,8 +149,10 @@ struct TerminalHyperlinkFileAndCapTests {
         #expect(Self.uri("FILE:///tmp/x") == "FILE://box/tmp/x", "the scheme is case-blind, and kept")
         // The host goes in before encoding, and the path is encoded as ever.
         #expect(Self.uri("file:///tmp/a b") == "file://box/tmp/a%20b")
+        // An escape the path already has is kept: Foundation's spelling of
+        // `/Users/robot/Read me.txt` reaches the host as it is.
         let fromFoundation = "file:///Users/robot/Read%20me.txt"
-        #expect(Self.uri(fromFoundation) == "file://box/Users/robot/Read%2520me.txt")
+        #expect(Self.uri(fromFoundation) == "file://box/Users/robot/Read%20me.txt")
     }
 
     @Test("A file URI that names a host keeps it, localhost included")

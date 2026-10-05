@@ -3079,6 +3079,18 @@ every byte that is not a printable non-blank ASCII character rather than
 assuming the caller did. Same reasoning as `String.sanitizedForTerminal`:
 the gate belongs where the escape is written.
 
+**An escape the URI already has is kept (2026-10-05).** `Link` and a text
+run pass `URL.absoluteString`, which Foundation has already encoded, so
+`URL(fileURLWithPath: "/Users/x/Read me.txt")` arrives as
+`…/Read%20me.txt`. The encoder used to encode every `%` as well, sending
+`Read%2520me.txt`; a terminal decodes a URI once, so that named a file called
+`Read%20me.txt` that is not there — every local path with a space or a
+non-ASCII letter, and every `https` URL with an escape in it. Now a `%`
+followed by two hex digits passes as it is, and only a `%` that cannot begin
+an escape becomes `%25`. Encoding is idempotent as a result: a URI given
+raw and the same URI given encoded both reach the host encoded once. An `id`
+is opaque data rather than a URI, so there every `%` is still encoded.
+
 ### A `file:` link names its host, and an over-long URI is not wrapped — 2026-10-04
 
 Two rules from the OSC 8 specification (egmontkob's gist) and Ghostty's VT

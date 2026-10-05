@@ -66,6 +66,37 @@ struct LinkHyperlinkTests {
         #expect(!drawn.contains("file:///"))
     }
 
+    /// `Link` sends `URL.absoluteString`, which Foundation has already
+    /// percent-encoded. Encoding its `%` again sent `Read%2520me.txt`, which a
+    /// terminal decodes once, to a file called `Read%20me.txt` that is not
+    /// there. The path's part of the URI does not depend on the host name, so
+    /// these hold whatever this machine is called.
+    @Test("A link to a file with a space or an accent in its name is encoded once")
+    func fileLinkIsEncodedOnce() {
+        func drawn(_ destination: URL) -> String {
+            TerminalHyperlink.withSupport(true) {
+                render(Link("file", destination: destination)).lines.joined()
+            }
+        }
+        let spaced = drawn(URL(fileURLWithPath: "/Users/x/Read me.txt"))
+        #expect(spaced.contains("/Users/x/Read%20me.txt\u{1B}\\"), "\(spaced.debugDescription)")
+        #expect(!spaced.contains("%25"))
+
+        let accentedURL = URL(fileURLWithPath: "/Users/x/café.txt")
+        let accented = drawn(accentedURL)
+        // Foundation's own escapes, however it spelled the é (Darwin's
+        // decomposes it, `e%CC%81`): its URI less the `file://` the host name
+        // goes after.
+        let accentedPath = String(accentedURL.absoluteString.dropFirst("file://".count))
+        #expect(accentedPath.hasPrefix("/Users/x/caf") && accentedPath.contains("%"), "an escaped é")
+        #expect(accented.contains(accentedPath + "\u{1B}\\"), "\(accented.debugDescription)")
+        #expect(!accented.contains("%25"))
+
+        // A web URL that already carries escapes reaches the host unchanged.
+        let web = URL(string: "https://example.com/a%20b/caf%C3%A9?q=%26x")!
+        #expect(drawn(web).contains("\u{1B}]8;;https://example.com/a%20b/caf%C3%A9?q=%26x\u{1B}\\"))
+    }
+
     /// VTE and iTerm2 drop a link over 2083 bytes, so it is not sent: the
     /// label draws as it is, which is what a host that dropped it would show.
     @Test("A link too long for a terminal to keep draws its label without one")
