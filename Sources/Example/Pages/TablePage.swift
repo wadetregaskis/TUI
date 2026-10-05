@@ -220,9 +220,9 @@ struct TablePage: View {
         VStack(alignment: .leading, spacing: 1) {
 
             // A real file browser: single-click (or Space) selects; double-click
-            // OR Return/Enter on the focused row activates it (via
-            // `.onRowActivate`) — opening a folder in place; the ".." row (↰)
-            // navigates up. Reads the live filesystem starting at $HOME.
+            // OR Return/Enter on the focused row activates it (the
+            // `primaryAction` of `.contextMenu(forSelectionType:)`) — opening a
+            // folder in place; the ".." row (↰) navigates up. Reads the live filesystem starting at $HOME.
             Text("page.table.fileBrowserCaption")
                 .foregroundStyle(.palette.foregroundSecondary)
             Text(browserURL.path).dim()
@@ -242,10 +242,12 @@ struct TablePage: View {
                     .width(12)
                 TableColumn("page.table.column.type", value: \BrowserEntry.typeLabel)
             }
-            // `.onRowActivate` is a `Table` modifier, so it chains before the
-            // generic view modifiers below.
-            .onRowActivate { id in
-                if let entry = FileBrowser.entries(at: browserURL).first(where: { $0.id == id }),
+            // Double-click or Return opens a folder: the primary action of a
+            // selection menu that has no items, so a right-click opens nothing.
+            .contextMenu(forSelectionType: String.self) { _ in
+            } primaryAction: { ids in
+                if let id = ids.first,
+                    let entry = FileBrowser.entries(at: browserURL).first(where: { $0.id == id }),
                     entry.isDirectory
                 {
                     browserURL = entry.url

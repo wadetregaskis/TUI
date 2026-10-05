@@ -161,7 +161,7 @@ struct KeyboardShortcutTests {
             List(selection: .constant(String?.none)) {
                 ForEach(["a", "b"], id: \.self) { Text($0) }
             }
-            .onRowActivate { box.opened.append($0) }
+            .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { box.opened.append(contentsOf: $0.sorted()) }
             .frame(height: 5)
             Button("OK") { box.fired += 1 }.keyboardShortcut(.defaultAction)
         }

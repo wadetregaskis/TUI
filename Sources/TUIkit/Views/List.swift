@@ -140,11 +140,6 @@ public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: V
     /// Whether to show separator before footer.
     var showFooterSeparator: Bool
 
-    /// Row activation ("open") — Enter on the focused row, or double-click.
-    /// Set via ``onRowActivate(_:)``; `nil` keeps Enter's default select
-    /// behaviour.
-    var primaryAction: ((SelectionValue) -> Void)?
-
     public var body: some View {
         // `.disabled(isDisabled)` as well as the stored flag — see the same
         // pairing in `ScrollView.body`. The flag governs this list's own focus;
@@ -161,25 +156,10 @@ public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: V
             focusID: focusID,
             isDisabled: isDisabled,
             emptyPlaceholder: emptyPlaceholder,
-            showFooterSeparator: showFooterSeparator,
-            primaryAction: primaryAction
+            showFooterSeparator: showFooterSeparator
         )
         .disabled(isDisabled)
         .paintingScrollContentBackground()
-    }
-
-    /// Sets an action run when a row is ACTIVATED — double-clicked, or
-    /// Return/Enter pressed with the row focused (the row's id is passed).
-    ///
-    /// With an activation action set, Enter "opens" the focused row while
-    /// Space still toggles selection — the file-browser convention (AppKit's
-    /// action/doubleAction split). Without one, Enter keeps its default
-    /// select behaviour. TUI-specific: SwiftUI's closest analogue is the
-    /// `primaryAction` of `contextMenu(forSelectionType:menu:primaryAction:)`.
-    public func onRowActivate(_ action: @escaping (SelectionValue) -> Void) -> Self {
-        var copy = self
-        copy.primaryAction = action
-        return copy
     }
 }
 
@@ -751,7 +731,7 @@ extension List where Footer == EmptyView {
 // list's, to select. That division is the reason ``OutlineGroup`` narrows its
 // toggle target where ``DisclosureGroup`` does not, and it is the same division
 // from the keyboard: Space selects the focused row, Return activates it (which
-// for a branch is to disclose it, unless `.onRowActivate` claims Return), and
+// for a branch is to disclose it, unless a `primaryAction` claims Return), and
 // Right / Left open and close it regardless — held with Option, the whole
 // subtree at once.
 

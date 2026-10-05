@@ -17,6 +17,13 @@ extension ItemListHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         guard itemCount > 0 else { return false }
 
+        // The row menu, on the cursor row — the binding `.contextMenu` uses
+        // for a focused view, and the keyboard's only way to a menu a
+        // right-click opens.
+        if event.key == .f10, event.shift, !event.ctrl, !event.alt, let openContextMenu {
+            return openContextMenu()
+        }
+
         // Everything reordering claims — picking a row up, the keys a held row
         // answers, and the navigators during a mouse drag — ahead of the
         // selection keys and of the plain movement below, both of which would

@@ -87,7 +87,7 @@ struct ActivationLabelTests {
             ForEach(["a", "b"], id: \.self) { Text($0) }
         }
         #expect(verb(for: plain) == "select")
-        #expect(verb(for: plain.onRowActivate { _ in }) == "open")
+        #expect(verb(for: plain.contextMenu(forSelectionType: String.self) { _ in } primaryAction: { _ in }) == "open")
     }
 
     @Test("An unfocused control says nothing")

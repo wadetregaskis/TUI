@@ -61,7 +61,8 @@ import TUIkitView
 ///
 /// - **Space** selects the focused row, as it does in any list.
 /// - **Return** activates it, which for a branch means disclosing it — unless
-///   the app claims Return with ``List/onRowActivate(_:)``, which wins.
+///   the app claims Return with the `primaryAction` of
+///   ``View/contextMenu(forSelectionType:menu:primaryAction:)``, which wins.
 /// - **Right** opens the focused branch and **Left** closes it, so a tree stays
 ///   reachable when the app has taken Return. Both fall through on a leaf, on a
 ///   branch already in that state, and on a list that is not a tree at all.

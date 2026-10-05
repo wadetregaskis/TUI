@@ -506,7 +506,7 @@ struct OutlineGroupTests {
     }
 
     /// The tree's own keys, which is what keeps disclosure reachable when an
-    /// app claims Return with its own `.onRowActivate`.
+    /// app claims Return with its own `primaryAction`.
     @Test("Right expands and Left collapses the focused branch")
     func arrowsDiscloseTheBranch() throws {
         let (tui, context) = harness(width: 40, height: 20)
@@ -714,7 +714,7 @@ struct OutlineGroupTests {
 
     /// An app that gives its rows an action gets it — Return is theirs, and the
     /// arrows are what keep the tree reachable.
-    @Test("onRowActivate wins Return; the arrows still disclose")
+    @Test("A primaryAction wins Return; the arrows still disclose")
     func appActivationWinsReturn() throws {
         let (tui, context) = harness(width: 40, height: 20)
         var activated: [String] = []
@@ -724,7 +724,7 @@ struct OutlineGroupTests {
         let view = List(tree, children: \.children, selection: selection.binding) { node in
             Text(verbatim: node.id)
         }
-        .onRowActivate { activated.append($0) }
+        .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { activated.append(contentsOf: $0.sorted()) }
         frame(view, tui: tui, context: context)
         let focus = try #require(context.environment.focusManager)
 

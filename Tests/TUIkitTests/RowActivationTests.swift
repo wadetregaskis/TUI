@@ -1,10 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  RowActivationTests.swift
 //
-//  `.onRowActivate(_:)` on List and Table: Return/Enter on the focused row
-//  (or a double-click) fires the activation action — the file-browser "open"
-//  convention — while Space keeps toggling selection. Without an activation
-//  action, Enter retains its original select behaviour.
+//  The `primaryAction` of `contextMenu(forSelectionType:menu:primaryAction:)`
+//  on List and Table: Return/Enter on the focused row (or a double-click)
+//  fires it — the file-browser "open" convention — while Space keeps toggling
+//  selection. Without one, Enter retains its original select behaviour.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -70,7 +70,7 @@ struct RowActivationTests {
 
     // MARK: - List integration
 
-    @Test("List.onRowActivate: Enter opens the focused row; double-click opens a clicked row")
+    @Test("List primaryAction: Enter opens the focused row; double-click opens a clicked row")
     func listActivation() {
         var opened: [String] = []
         var now: UInt64 = 0
@@ -78,7 +78,7 @@ struct RowActivationTests {
         let view = List(selection: .constant(String?.none)) {
             ForEach(items, id: \.self) { Text($0) }
         }
-        .onRowActivate { opened.append($0) }
+        .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { opened.append(contentsOf: $0.sorted()) }
         .frame(height: 8)
 
         let tui = TUIContext()
@@ -196,7 +196,7 @@ struct RowActivationTests {
                     List(selection: .constant(String?.none)) {
                         ForEach(items, id: \.self) { Text($0) }
                     }
-                    .onRowActivate(open)
+                    .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { $0.forEach(open) }
                     .frame(height: 8)
                 },
                 rowY: { buffer in
@@ -220,7 +220,7 @@ struct RowActivationTests {
         let view = List(selection: .constant(String?.none)) {
             ForEach(["Folder-A", "Folder-B"], id: \.self) { Text($0) }
         }
-        .onRowActivate { opened.append($0) }
+        .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { opened.append(contentsOf: $0.sorted()) }
         .frame(height: 8)
 
         let buffer = renderToBuffer(view, context: context)
@@ -260,7 +260,7 @@ struct RowActivationTests {
                     Table(rows, selection: .constant(String?.none)) {
                         TableColumn("Name", value: \Row.name)
                     }
-                    .onRowActivate(open)
+                    .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { $0.forEach(open) }
                     .frame(height: 8)
                 },
                 rowY: { buffer in
@@ -272,7 +272,7 @@ struct RowActivationTests {
 
     // MARK: - Table integration
 
-    @Test("Table.onRowActivate: Enter opens the focused row")
+    @Test("Table primaryAction: Enter opens the focused row")
     func tableEnterActivation() {
         struct Row: Identifiable, Sendable {
             let id: String
@@ -283,7 +283,7 @@ struct RowActivationTests {
         let view = Table(rows, selection: .constant(String?.none)) {
             TableColumn("Name", value: \Row.name)
         }
-        .onRowActivate { opened.append($0) }
+        .contextMenu(forSelectionType: String.self) { _ in } primaryAction: { opened.append(contentsOf: $0.sorted()) }
         .frame(height: 6)
 
         let context = makeRenderContext(width: 30, height: 8)

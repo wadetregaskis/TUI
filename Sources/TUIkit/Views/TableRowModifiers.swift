@@ -32,9 +32,14 @@ struct _TableRowTraits {
     /// `.dropDestination(for:action:)` around it, nearest first.
     var dropActions: [_TableRowDrop] = []
 
+    /// The row's own menu, built when it opens, from a
+    /// `.contextMenu(menuItems:)`; the one nearest the row wins.
+    var contextMenu: (() -> AnyView)?
+
     /// Whether no modifier said anything.
     var isEmpty: Bool {
         selectionDisabled == nil && hoverActions.isEmpty && dragPayload == nil && dropActions.isEmpty
+            && contextMenu == nil
     }
 }
 

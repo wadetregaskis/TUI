@@ -66,7 +66,12 @@ extension ContextMenuModifier: Renderable {
         // with this modifier's state slot (mirrors AlertPresentationModifier).
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
-        guard let stateStorage = context.stateStorage else {
+        // In a row of a list or table with a selection menu, that menu answers
+        // every secondary click — as on macOS — so this one adds nothing: no
+        // trigger, no focus stop, no Shift+F10 of its own.
+        guard let stateStorage = context.stateStorage,
+            !context.environment.rowsYieldSecondaryClick
+        else {
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
         let stateBox: StateBox<ContextMenuState> = stateStorage.storage(

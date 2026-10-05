@@ -164,8 +164,8 @@ struct ListPage: View {
             HStack(alignment: .bottom, spacing: 2) {
                 // A real file browser: single-click (or Space) selects a row;
                 // double-click OR Return/Enter on the focused row activates it
-                // (`.onRowActivate`) — opening a folder in place; the ".." row
-                // (↰) navigates up.
+                // (the `primaryAction` of `.contextMenu(forSelectionType:)`) —
+                // opening a folder in place; the ".." row (↰) navigates up.
                 VStack(alignment: .leading, spacing: 0) {
                     Text(browserURL.path).dim()
                     List("page.list.singleSelection", selection: $singleSelection) {
@@ -176,9 +176,12 @@ struct ListPage: View {
                             }
                         }
                     }
-                    .onRowActivate { id in
-                        if let entry = FileBrowser.entries(at: browserURL)
-                            .first(where: { $0.id == id }), entry.isDirectory
+                    // A primary action and no menu: an empty menu never opens.
+                    .contextMenu(forSelectionType: String.self) { _ in
+                    } primaryAction: { ids in
+                        if let id = ids.first,
+                            let entry = FileBrowser.entries(at: browserURL)
+                                .first(where: { $0.id == id }), entry.isDirectory
                         {
                             browserURL = entry.url
                         }

@@ -187,11 +187,6 @@ public struct Table<Value: Identifiable>: View {
     /// ``tableColumnSpacing(_:)``.
     var columnSpacing: Int = 2
 
-    /// An action run when a row is ACTIVATED — double-clicked, or
-    /// Return/Enter with the row focused (its `Value.ID` is passed). Set via
-    /// ``onRowActivate(_:)`` — how a row gets an "open" action.
-    var primaryAction: ((Value.ID) -> Void)?
-
     /// The action that reorders the data, set via ``onMove(_:)``. Present means
     /// the rows can be dragged into a new order.
     var moveAction: ((IndexSet, Int) -> Void)?
@@ -233,7 +228,6 @@ public struct Table<Value: Identifiable>: View {
             isDisabled: isDisabled,
             emptyPlaceholder: emptyPlaceholder,
             columnSpacing: columnSpacing,
-            primaryAction: primaryAction,
             moveAction: moveAction,
             dropInsertion: dropInsertion,
             rowTree: rowTree,
@@ -250,23 +244,6 @@ public struct Table<Value: Identifiable>: View {
 }
 
 extension Table {
-    /// Runs `action` when a row is double-clicked, passing that row's `id`.
-    ///
-    /// A row is not a view a gesture could be attached to — a click on it
-    /// selects — so this modifier is how a row gets a double-click "open"
-    /// action (e.g. a file browser opening a folder). Single clicks still
-    /// select via the selection binding.
-    ///
-    /// This is a TUI-specific modifier — SwiftUI's `Table` has no direct
-    /// equivalent.
-    ///
-    /// - Parameter action: Called with the double-clicked row's `id`.
-    public func onRowActivate(_ action: @escaping (Value.ID) -> Void) -> Table {
-        var copy = self
-        copy.primaryAction = action
-        return copy
-    }
-
     /// Lets the rows be dragged into a new order, calling `action` to perform the
     /// move — the same signature as SwiftUI's `DynamicViewContent.onMove(perform:)`
     /// and satisfied the same way, with `move(fromOffsets:toOffset:)`:
@@ -587,6 +564,9 @@ private enum StateIndex {
     /// A hierarchical table's open branches — those no `DisclosureTableRow`
     /// binding owns — by row id.
     static let outlineExpansion = 2
+    /// The row menu — a selection menu's or a row's own — and what it was
+    /// opened on (``RowMenuState``).
+    static let rowMenu = 3
 }
 
 /// Internal core view that handles table rendering inside a ContainerView.
@@ -622,7 +602,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     let isDisabled: Bool
     let emptyPlaceholder: String
     let columnSpacing: Int
-    var primaryAction: ((Value.ID) -> Void)?
     var moveAction: ((IndexSet, Int) -> Void)?
     var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
 
@@ -641,6 +620,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// The rows a `.selectionDisabled()` reached, by their index in ``data``.
     /// Filled in by ``resolvingRows(_:)``.
     var selectionDisabledRows: Set<Int> = []
+
+    /// Whether any row has a menu of its own (`TableRow.contextMenu`). Filled
+    /// in by ``resolvingRows(_:)``, so a frame asks the traits once.
+    var hasRowMenus = false
 
     /// Whether ``resolvingRows(_:)`` has run for this copy.
     var rowsAreResolved = false
@@ -684,6 +667,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if let traits = resolved.rowTraits {
             resolved.selectionDisabledRows = Set(
                 traits.indices.lazy.filter { traits[$0].selectionDisabled == true })
+            resolved.hasRowMenus = traits.contains { $0.contextMenu != nil }
         }
         return resolved
     }
@@ -1218,6 +1202,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             buffer.hitTestRegions.removeAll()
             attachMouseHandlers(to: &buffer, context: context, state: state, scopesBefore: scopesBefore)
             buffer.hitTestRegions += cellRegions
+            presentRowMenu(over: &buffer, state: state, context: context)
         }
         return buffer
     }
@@ -1598,7 +1583,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // which passes `contentHeight` for the same reason.
         handler.contentHeight = contentHeight
         handler.canBeFocused = !isDisabled(in: context)
-        syncRowActions(handler)
+        syncRowActions(handler, context: context)
         // BEFORE the rows are composed — see the List's twin call site.
         handler.carryReorderTargetThroughAutoScroll()
         // As on the single-line path, in one shared call — see
@@ -2290,12 +2275,125 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// Hands the handler this frame's row actions: one call for both layout
     /// paths, so what a row can do cannot differ between them.
-    private func syncRowActions(_ handler: ItemListHandler<Value.ID>) {
-        handler.primaryAction = primaryAction
+    private func syncRowActions(_ handler: ItemListHandler<Value.ID>, context: RenderContext) {
+        handler.primaryAction = rowActivation(handler, context: context)
+        handler.openContextMenu = keyboardMenuOpener(handler, context: context)
         handler.outlineActivation = outline
         handler.selectionDisabledRows = selectionDisabledRows
         handler.onMove = moveAction
         handler.onSort = sortKeyAction
+    }
+
+    // MARK: - Row menus
+
+    /// The selection menu around this table, when it is this table's.
+    private func selectionMenu(_ environment: EnvironmentValues) -> SelectionContextMenu? {
+        RowContextMenuHost.selectionMenu(in: environment, rowsIdentifiedBy: Value.ID.self)
+    }
+
+    /// The row menu's state, at this table's identity.
+    private func rowMenuBox(_ context: RenderContext) -> StateBox<RowMenuState>? {
+        RowContextMenuHost.stateBox(context, propertyIndex: StateIndex.rowMenu)
+    }
+
+    /// What a secondary click on row `index` — or Shift+F10 with the cursor
+    /// on it — opens: the selection menu, by its rule, when there is one;
+    /// else the row's own menu; else nothing, `nil`.
+    private func rowMenuTarget(
+        ofRow index: Int?, handler: ItemListHandler<Value.ID>, selection: SelectionContextMenu?
+    ) -> RowMenuTarget? {
+        if selection != nil {
+            return .selection(RowContextMenuHost.targets(ofRow: index, in: handler))
+        }
+        guard let index, let traits = rowTraits, traits.indices.contains(index),
+            traits[index].contextMenu != nil, let id = handler.id(at: index)
+        else { return nil }
+        return .row(AnyHashable(id))
+    }
+
+    /// The menu `target` opens to, built now — `nil` for a row that has gone.
+    private func rowMenuItems(_ target: RowMenuTarget, selection: SelectionContextMenu?) -> AnyView? {
+        switch target {
+        case .selection(let ids):
+            return selection?.menu(for: ids)
+        case .row(let id):
+            guard let traits = rowTraits,
+                let index = data.firstIndex(where: { AnyHashable($0.id) == id }),
+                traits.indices.contains(index)
+            else { return nil }
+            return traits[index].contextMenu?()
+        }
+    }
+
+    /// What Return and a double-click do to a row — see
+    /// ``RowContextMenuHost/activation(for:selection:)``.
+    private func rowActivation(
+        _ handler: ItemListHandler<Value.ID>, context: RenderContext
+    ) -> ((Value.ID) -> Void)? {
+        RowContextMenuHost.activation(for: handler, selection: selectionMenu(context.environment))
+    }
+
+    /// Shift+F10's half: opens the row menu on the cursor row. `nil` for a
+    /// table with no menu, so the chord falls through.
+    private func keyboardMenuOpener(
+        _ handler: ItemListHandler<Value.ID>, context: RenderContext
+    ) -> (() -> Bool)? {
+        let selection = selectionMenu(context.environment)
+        guard selection != nil || hasRowMenus, let box = rowMenuBox(context) else { return nil }
+        let onOpen = context.environment.menuOpenAction
+        return { [weak handler] in
+            guard let handler,
+                let target = rowMenuTarget(
+                    ofRow: handler.focusedIndex, handler: handler, selection: selection)
+            else { return false }
+            RowContextMenuHost.openByKeyboard(box, target: target, onOpen: onOpen)
+            return true
+        }
+    }
+
+    /// The pointer's half: opens the row menu on a row (or on none) at a
+    /// press. `nil` for a table with no menu.
+    private func pointerMenu(
+        handler: ItemListHandler<Value.ID>, context: RenderContext,
+        dispatcher: MouseEventDispatcher, contentColumns: Range<Int>,
+        opened: @escaping @MainActor () -> Void
+    ) -> RowContextMenuHost.PointerMenu? {
+        let selection = selectionMenu(context.environment)
+        guard selection != nil || hasRowMenus, let box = rowMenuBox(context) else { return nil }
+        let onOpen = context.environment.menuOpenAction
+        return RowContextMenuHost.PointerMenu(
+            open: { index, x, y in
+                guard let target = rowMenuTarget(ofRow: index, handler: handler, selection: selection)
+                else { return false }
+                RowContextMenuHost.openByPointer(
+                    box, target: target, x: x, y: y, dispatcher: dispatcher, onOpen: onOpen)
+                return true
+            },
+            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns, opened: opened)
+    }
+
+    /// Draws the open row menu over the table — anchored at the press, or
+    /// under the cursor row when the keyboard opened it — or tears down the
+    /// section a closed one left.
+    private func presentRowMenu(
+        over buffer: inout FrameBuffer, state: PopulatedRenderState, context: RenderContext
+    ) {
+        let selection = selectionMenu(context.environment)
+        guard !context.isMeasuring, selection != nil || hasRowMenus, let box = rowMenuBox(context)
+        else { return }
+        let cursor = state.handler.focusedIndex
+        let interiorTopY = borderWidth(context.environment) + headerLines(context.environment)
+        let rowLeft =
+            borderWidth(context.environment) + Self.containerPadding.leading
+            + selectionGutter(context.environment)
+        let anchor = state.drawnBands.first {
+            if case .row(let index) = $0.entry { return index == cursor }
+            return false
+        }.map { (x: rowLeft, y: interiorTopY + $0.yStart, height: max(1, $0.height)) }
+        RowContextMenuHost.present(
+            items: rowMenuItems(box.value.target, selection: selection), over: &buffer,
+            stateBox: box, sectionID: "tablemenu-\(context.identity.path)", keyboardAnchor: anchor,
+            context: context)
     }
 
     /// Fetches (or creates) the persistent ``ItemListHandler``
@@ -2377,7 +2475,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // and this value outlives the pass that wrote it.
         if !context.isMeasuring { handler.viewportHeight = provisionalViewport }
         handler.canBeFocused = !isDisabled(in: context)
-        syncRowActions(handler)
+        syncRowActions(handler, context: context)
         // BEFORE the rows are composed — see the List's twin call site.
         handler.carryReorderTargetThroughAutoScroll()
         // Everything the handler's EVENTS will read out of the environment, in
@@ -3543,7 +3641,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // render pass, and materialising every row's id each time cost O(rows)
         // per frame for a lookup that is made once per click.
         let rows = data
-        let capturedPrimaryAction = primaryAction
+        // The row menu, when there is one to open — `nil` leaves a secondary
+        // click to whatever is around the table. A press that opens it takes
+        // the focus for the table, so the keyboard reaches the menu's rows.
+        let menu = pointerMenu(
+            handler: captureHandler, context: context, dispatcher: dispatcher,
+            contentColumns: contentColumns, opened: { focusManager?.focus(id: captureFocusID) })
         let triangleHit = outlineTriangleHit(
             columnWidths: state.columnWidths,
             firstColumnLeft: rowContentLeft + selectionGutter(context.environment),
@@ -3553,37 +3656,41 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // drag keeps under the pointer. Held in the closure because the closure
         // IS the gesture (see RowReorderGrabPoint).
         let grab = RowReorderGrabPoint()
+        /// The clicked line's data row, from the press frame's bands.
+        ///
+        /// One lookup for both layouts. It used to walk `visibleRange`
+        /// (single-line) or a per-row height array (multi-line) from a
+        /// `firstRowY` recomputed on every event, undoing the overscroll
+        /// slide by hand on the way. Every one of those terms is already
+        /// in the band, and re-deriving them is how the click map came
+        /// to disagree with the drawing: its "is an indicator drawn?"
+        /// test was `hasContentAbove`, while the multi-line path draws
+        /// by `showAbove`, which is also true for a line-granularity
+        /// clip inside row 0. Scrolled one line into the first row, the
+        /// indicator was on screen and every click landed a row low.
+        func rowAt(y: Int) -> Int? {
+            let contentY = y - interiorTopY
+            for band in drawnBands
+            where contentY >= band.yStart && contentY < band.yStart + band.height {
+                if case .row(let rowIndex) = band.entry { return rowIndex }
+                return nil
+            }
+            return nil
+        }
         return { event in
-            // Wheel scrolls the viewport, never the selection.
-            // See the matching comment in _ListCore for the
-            // model. Routed through the shared
-            // ScrollableOffsetState helper so the math lives
-            // in one place.
-            if captureHandler.handleWheelEvent(event) { return true }
+            // Wheel scrolls the viewport, never the selection — see the
+            // matching comment in _ListCore for the model, routed through the
+            // shared ScrollableOffsetState helper so the math lives in one
+            // place. A secondary click opens the row menu: on the row under
+            // it, or on none for the table's empty space (the border is
+            // neither); a right press with nothing to open goes on to a menu
+            // around the table, and a Ctrl-click with nothing to open is still
+            // a click.
+            let spent = RowContextMenuHost.preflight(
+                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, row: { rowAt(y: event.y) })
+            if let spent { return spent }
 
             if event.button == .left {
-                /// The clicked line's data row, from the press frame's bands.
-                ///
-                /// One lookup for both layouts. It used to walk `visibleRange`
-                /// (single-line) or a per-row height array (multi-line) from a
-                /// `firstRowY` recomputed on every event, undoing the overscroll
-                /// slide by hand on the way. Every one of those terms is already
-                /// in the band, and re-deriving them is how the click map came
-                /// to disagree with the drawing: its "is an indicator drawn?"
-                /// test was `hasContentAbove`, while the multi-line path draws
-                /// by `showAbove`, which is also true for a line-granularity
-                /// clip inside row 0. Scrolled one line into the first row, the
-                /// indicator was on screen and every click landed a row low.
-                func rowAt(y: Int) -> Int? {
-                    let contentY = y - interiorTopY
-                    for band in drawnBands
-                    where contentY >= band.yStart && contentY < band.yStart + band.height {
-                        if case .row(let rowIndex) = band.entry { return rowIndex }
-                        return nil
-                    }
-                    return nil
-                }
-
                 /// The drag's position in the handler's band space — lines from
                 /// the interior's first CONTENT line, the same origin
                 /// ``ItemListHandler/DrawnBand/yStart`` counts from — or `nil`
@@ -3691,7 +3798,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     // sole selection, shift = range, ctrl/option = toggle) —
                     // see ItemListHandler.handleClickSelection.
                     if captureHandler.completesMultiClick(on: index, clickCount: event.clickCount),
-                        let action = capturedPrimaryAction,
+                        let action = captureHandler.primaryAction,
                         index >= 0, index < rows.count
                     {
                         captureHandler.focusedIndex = index
@@ -3916,6 +4023,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellContext.environment.lineLimit = .lines(column.lineLimit)
         cellContext.environment.truncationMode = column.truncationMode
         if cellContext.carriesGeometryOrigin { cellContext.geometryOrigin = nil }
+        RowContextMenuHost.yieldSecondaryClicks(in: &cellContext.environment)
         return cellContext
     }
 

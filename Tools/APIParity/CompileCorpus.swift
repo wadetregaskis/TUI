@@ -1000,6 +1000,67 @@ private struct TableRowShapes: View {
     }
 }
 
+/// Context menus as SwiftUI's documentation writes them: a row's own, with and
+/// without a preview, and one menu for the selection of a table and of a list,
+/// with and without a primary action, its closure varying by the set.
+@MainActor
+private struct TableContextMenuShapes: View {
+    struct Person: Identifiable {
+        let id: Int
+        var givenName: String
+        var familyName: String
+    }
+
+    @State private var people: [Person] = []
+    @State private var selection = Set<Person.ID>()
+
+    var body: some View {
+        VStack {
+            Table(of: Person.self) {
+                TableColumn("Given Name", value: \.givenName)
+                TableColumn("Family Name", value: \.familyName)
+            } rows: {
+                ForEach(people) { person in
+                    TableRow(person)
+                        .contextMenu {
+                            Button("Send Email...") {}
+                        }
+                }
+                ForEach(people) { person in
+                    TableRow(person)
+                        .contextMenu {
+                            Button("Send Email...") {}
+                        } preview: {
+                            Text(person.givenName)
+                        }
+                }
+            }
+            Table(people, selection: $selection) {
+                TableColumn("Given Name", value: \.givenName)
+            }
+            .contextMenu(forSelectionType: Person.ID.self) { items in
+                if items.isEmpty {
+                    Button("New Item") {}
+                } else if items.count == 1 {
+                    Button("Copy") {}
+                    Button("Delete", role: .destructive) {}
+                } else {
+                    Button("Copy") {}
+                    Button("Delete Selected", role: .destructive) {}
+                }
+            } primaryAction: { items in
+                for item in items { print(item) }
+            }
+            List(people, selection: $selection) { person in
+                Text(person.givenName)
+            }
+            .contextMenu(forSelectionType: Person.ID.self) { _ in
+                Button("Copy") {}
+            }
+        }
+    }
+}
+
 // MARK: - Hierarchical tables
 
 private struct TableOutlineShapes: View {

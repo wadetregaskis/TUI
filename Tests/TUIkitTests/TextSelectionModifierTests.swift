@@ -124,7 +124,7 @@ struct TextSelectionModifierTests {
                     Text("row \(index) words")
                 }
             }
-            .onRowActivate { activated.value.append($0) }
+            .contextMenu(forSelectionType: Int.self) { _ in } primaryAction: { activated.value.append(contentsOf: $0.sorted()) }
             .frame(height: 8)
             if selectable {
                 list.textSelection(.enabled)

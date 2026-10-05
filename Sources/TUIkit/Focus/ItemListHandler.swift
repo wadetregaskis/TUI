@@ -393,13 +393,20 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
         return (top, max(0, budget(forTop: top) - used), straddling)
     }
 
-    /// The row-activation action (``List``/``Table`` `.onRowActivate(_:)`):
-    /// invoked with the focused row's id on Return/Enter, and by the owning
-    /// view on double-click. When set, Enter ACTIVATES instead of toggling
-    /// selection — Space still toggles — matching the file-browser convention
-    /// (and AppKit's action/doubleAction split). `nil` keeps the original
-    /// behaviour: Enter and Space both toggle selection.
+    /// The row-activation action — the `primaryAction` of an enclosing
+    /// `contextMenu(forSelectionType:menu:primaryAction:)`, or an outline's
+    /// disclosure — invoked with the activated row's id on Return/Enter (the
+    /// cursor row), and by the owning view on double-click (the clicked row,
+    /// with the cursor moved there first). When set, Enter ACTIVATES instead
+    /// of toggling selection — Space still toggles — matching the
+    /// file-browser convention (and AppKit's action/doubleAction split). `nil`
+    /// keeps the original behaviour: Enter and Space both toggle selection.
     var primaryAction: ((SelectionValue) -> Void)?
+
+    /// Opens the container's row menu on the cursor row — Shift+F10 — and
+    /// answers whether one opened. `nil` where the container has no menu, so
+    /// the chord falls through.
+    var openContextMenu: (() -> Bool)?
 
     /// The tree inside this list, when there is one — see
     /// ``OutlineRowActivating``. Left and Right collapse and expand through it.

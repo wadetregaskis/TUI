@@ -411,6 +411,9 @@ private enum StateIndex {
     /// The focus id, persisted so it survives a frame where the declaration is
     /// momentarily absent (see `FocusRegistration.persistFocusID`).
     static let focusID = -81
+    /// The row menu — the selection menu's — and what it was opened on
+    /// (``RowMenuState``).
+    static let rowMenu = -82
 }
 
 /// Internal core view that handles list rendering inside a
@@ -451,14 +454,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     let isDisabled: Bool
     let emptyPlaceholder: String
     let showFooterSeparator: Bool
-    /// Row activation ("open") — Enter on the focused row (via the handler)
-    /// or a double-click (via the container mouse handler). See
-    /// ``List/onRowActivate(_:)``.
-    let primaryAction: ((SelectionValue) -> Void)?
 
     var body: Never {
         fatalError("_ListCore renders via Renderable")
     }
+
+    /// The row menu's slot in this list's state storage, for the extension
+    /// that keeps the menu (`_ListCore+RowMenu.swift`).
+    static var rowMenuStateIndex: Int { StateIndex.rowMenu }
 
     /// The List is greedy on both axes: it fills the width it is offered and pads
     /// to fill the height. So its size is simply the offered space — and crucially
@@ -777,6 +780,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if rowContext.environment.isSidebarListRow != isSidebar {
             rowContext.environment.isSidebarListRow = isSidebar
         }
+        RowContextMenuHost.yieldSecondaryClicks(in: &rowContext.environment)
         // The rows' `containerRelativeFrame` container: the width a row gets,
         // and the height inside the border.
         rowContext = rowContext.publishingContainerSize(
@@ -887,11 +891,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // could not be clicked at all.
             let contentTop = (style.showsBorder ? 1 : 0) + titleOverhead + style.rowPadding.top
             let registered = attachMouseHandlers(
-                to: &buffer,
-                context: context,
-                state: state,
-                topInset: contentTop
-            )
+                to: &buffer, context: context, state: state, topInset: contentTop)
             // One walk for all three row payloads. Compositing is not click
             // handling, so the overlays and the opacity regions go up even when
             // the list is disabled or has no mouse dispatcher — which is what
@@ -908,8 +908,22 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             context.measureScrollVisibility(
                 in: buffer,
                 viewport: CellRect(x: 0, y: contentTop, width: buffer.width, height: targetContentHeight))
+            presentRowMenu(
+                over: &buffer, cursorRow: cursorRowLines(state, contentTop: contentTop),
+                context: context)
         }
         return buffer
+    }
+
+    /// The cursor row's lines in the list's buffer — its top line and height —
+    /// for a menu the keyboard opened to hang under: read off the rows as
+    /// drawn, as the cursor marker is. `nil` when the row is not drawn.
+    private func cursorRowLines(
+        _ state: PopulatedRenderState, contentTop: Int
+    ) -> (y: Int, height: Int)? {
+        zip(state.visibleRowYRanges, state.visibleRows)
+            .first { $0.1.index == state.handler.focusedIndex }
+            .map { position, _ in (y: contentTop + position.yStart, height: position.height) }
     }
 
     /// Settles the ramp a `.gradientExtent(.subtree)` gradient runs down this
@@ -1520,17 +1534,18 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let outline = source.rowsContent as? any OutlineRowActivating
         handler.outlineActivation = outline
         // Return ACTIVATES the focused row, and for a branch with no other
-        // action the activation is to disclose it. An app's own
-        // `.onRowActivate` still wins — Left / Right keep the tree reachable
-        // when it does.
+        // action the activation is to disclose it. An app's own primary action
+        // (`contextMenu(forSelectionType:menu:primaryAction:)`) still wins —
+        // Left / Right keep the tree reachable when it does.
         handler.primaryAction =
-            primaryAction
+            RowContextMenuHost.activation(for: handler, selection: selectionMenu(context.environment))
             ?? outline.map { activating in
                 { id in
                     activating.setRowExpanded(
                         AnyHashable(id), to: nil, includingDescendants: false)
                 }
             }
+        handler.openContextMenu = keyboardMenuOpener(handler, context: context)
         wireRowEditing(handler: handler, source: source)
         // A prefix typed since the last frame moves the cursor to the row it
         // names — once the rows' landing set is known, and before the window is
@@ -2439,8 +2454,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             in: context, reportingChangesTo: { [handler = state.handler] in handler.drawnPosition },
             containerMouseHandler(
                 state: state,
+                context: context,
                 focusManager: focusManager,
-                dragSession: context.environment.dragAndDropSession,
                 dispatcher: mouseDispatcher,
                 topInset: topInset,
                 // Where a row's own content starts: past the border, the style's
@@ -2995,7 +3010,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ///   - id: That row's selection id.
     ///   - event: The release event, for its click count and modifiers.
     ///   - dispatcher: The mouse dispatcher, to spend a completed multi-click.
-    ///   - primaryAction: The app's `.onRowActivate`, if it has one.
+    ///   - primaryAction: The app's primary action, if it has one — not the
+    ///     outline's disclosure, which a double-click does not perform.
     ///   - clickDiscloses: Whether this list has no selection binding, so a plain
     ///     click has nothing to select and an outline row can disclose instead.
     private static func resolveRowClick(
@@ -3036,14 +3052,44 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         handler.handleClickSelection(at: rowIndex, event: event)
     }
 
+    /// The row at a cell (content columns only), from the press-frame bands.
+    ///
+    /// Those are exact for the CLICK path — a press and its release describe
+    /// one unchanging layout — and it is the only path that needs a row's type,
+    /// and so its selection id. The reorder path deliberately reads the
+    /// handler's freshly published bands instead: `.live` feedback moves the
+    /// rows out from under this captured copy as the drag goes.
+    private static func rowLookup(
+        _ rowRanges: [VisibleRowRange], topInset: Int, contentColumns: Range<Int>
+    ) -> (_ x: Int, _ y: Int) -> (rowIndex: Int, type: ListRowType<SelectionValue>)? {
+        { x, y in
+            let yInLines = y - topInset
+            guard contentColumns.contains(x),
+                let hit = rowRanges.first(where: {
+                    yInLines >= $0.yStart && yInLines < $0.yStart + $0.height
+                })
+            else { return nil }
+            return (hit.rowIndex, hit.type)
+        }
+    }
+
+    /// The CONTENT row of a hit, for the selection menu: a section header or
+    /// footer is the list's empty space.
+    private static func contentRow(
+        _ hit: (rowIndex: Int, type: ListRowType<SelectionValue>)?
+    ) -> Int? {
+        guard let hit, case .content = hit.type else { return nil }
+        return hit.rowIndex
+    }
+
     /// Builds the closure that the container-wide hit-test
     /// region invokes. Routes wheel to the handler's scroll
     /// position (never the selection), left-release to row hit-
     /// testing + focus, and rejects everything else.
     private func containerMouseHandler(
         state: PopulatedRenderState,
+        context: RenderContext,
         focusManager: FocusManager?,
-        dragSession: DragAndDropSession?,
         dispatcher: MouseEventDispatcher,
         topInset: Int,
         rowContentLeft: Int,
@@ -3052,7 +3098,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let captureHandler = state.handler
         let captureFocusID = state.focusID
         let rowRanges = state.visibleRowYRanges
-        let capturedPrimaryAction = primaryAction
+        let dragSession = context.environment.dragAndDropSession
+        // The app's primary action alone: a double-click does not disclose an
+        // outline row the way Return does.
+        let capturedPrimaryAction = RowContextMenuHost.activation(
+            for: captureHandler, selection: selectionMenu(context.environment))
+        // The selection menu, when there is one — `nil` leaves a secondary
+        // click to the rows and to whatever is around the list. A press that
+        // opens it takes the focus for the list.
+        let menu = pointerMenu(
+            handler: captureHandler, context: context, dispatcher: dispatcher,
+            contentColumns: contentColumns, opened: { focusManager?.focus(id: captureFocusID) })
         // A list with no selection binding has nothing for a row click to do, and
         // an outline row is the one case where there IS something: disclose it.
         // Captured rather than asked of the handler inside the closure, because
@@ -3065,32 +3121,21 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // IS the gesture: the dispatcher captures it at press and routes the
         // whole drag back here, however many renders intervene.
         let grab = RowReorderGrabPoint()
+        let rowAt = Self.rowLookup(rowRanges, topInset: topInset, contentColumns: contentColumns)
         return { event in
-            // Wheel scrolling moves the viewport, NEVER the
-            // selection — same model as Finder / Explorer /
-            // VS Code; arrow keys handle selection. Routed
-            // through the shared ScrollableOffsetState
-            // helper so the math lives in one place.
-            if captureHandler.handleWheelEvent(event) { return true }
+            // Wheel scrolling moves the viewport, NEVER the selection — same
+            // model as Finder / Explorer / VS Code; arrow keys handle
+            // selection — through the shared ScrollableOffsetState helper so
+            // the math lives in one place. A secondary click opens the
+            // selection menu: on the content row under it, or on none for the
+            // list's empty space and its section headers (the border is
+            // neither). The rest of the gesture is the menu's.
+            let spent = RowContextMenuHost.preflight(
+                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu,
+                row: { Self.contentRow(rowAt(event.x, event.y)) })
+            if let spent { return spent }
 
             if event.button == .left {
-                // Row at the cursor (content columns only), from the press-frame
-                // bands. Those are exact for the CLICK path — a press and its
-                // release describe one unchanging layout — and it is the only
-                // path that needs a row's type, and so its selection id. The
-                // reorder path deliberately reads the handler's freshly
-                // published bands instead: `.live` feedback moves the rows out
-                // from under this captured copy as the drag goes.
-                func rowAt(y: Int) -> (rowIndex: Int, type: ListRowType<SelectionValue>)? {
-                    let yInLines = y - topInset
-                    guard contentColumns.contains(event.x),
-                        let hit = rowRanges.first(where: {
-                            yInLines >= $0.yStart && yInLines < $0.yStart + $0.height
-                        })
-                    else { return nil }
-                    return (hit.rowIndex, hit.type)
-                }
-
                 /// The drag's position in the handler's content-line space, or
                 /// `nil` once the cursor leaves the rows, in either axis. The
                 /// session path asks the same two questions of the same shared
@@ -3106,7 +3151,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     // Pick up the row for a possible reorder (only when the
                     // ForEach is reorderable). Claim the press either way so the
                     // matching drag / release routes back here.
-                    if captureHandler.onMove != nil, let hit = rowAt(y: event.y),
+                    if captureHandler.onMove != nil, let hit = rowAt(event.x, event.y),
                         case .content = hit.type
                     {
                         captureHandler.beginReorder(grabbing: hit.rowIndex)
@@ -3239,7 +3284,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     // focus the list; clicks on chrome — the border columns,
                     // empty area — just focus (the border shares a y with some
                     // row, but nobody clicking a frame means "select that row").
-                    if let hit = rowAt(y: event.y), case .content(let id) = hit.type {
+                    if let hit = rowAt(event.x, event.y), case .content(let id) = hit.type {
                         Self.resolveRowClick(
                             handler: captureHandler, rowIndex: hit.rowIndex, id: id,
                             event: event, dispatcher: dispatcher,
