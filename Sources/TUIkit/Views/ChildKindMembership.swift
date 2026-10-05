@@ -16,14 +16,19 @@ import TUIkitView
 
 /// A kind of child a container treats specially, asked about a view's type
 /// before any of its children is resolved (``mayHandOver(_:_:)``).
-enum ChildKind {
+enum ChildKind: Equatable {
     /// A `Section`: a lazy grid draws them section by section, a lazy stack
     /// keeps them whole, a menu styles them.
     case section
     /// A row a loop or an outline makes, keyed by its element: a container
     /// that places its looped rows to give them their selection values
     /// (`FlattenedRowIDs`) must know which of its views can make one.
-    case keyedRow
+    ///
+    /// `sectionsWhole` says whether the walk that made the container's
+    /// children kept each `Section` whole (`RenderContext.keepsSectionsWhole`,
+    /// a `List`'s walk): a section kept whole is one positional child, and
+    /// none of its loop's rows is the container's.
+    case keyedRow(sectionsWhole: Bool)
 }
 
 /// A provider that knows from its TYPE whether a kind of child can be among
@@ -149,11 +154,13 @@ extension Group: ChildKindsKnowing where Content: View {
 }
 
 /// A section's parts are its children where it is taken apart, so they answer
-/// for the keyed rows it can hand over. (It is a section itself: the walk
-/// answers that before asking.)
+/// for the keyed rows it can hand over; kept whole, it hands over none — the
+/// walk that finds the rows skips it too (`appendKeyedRowRuns`). (It is a
+/// section itself: the walk answers that before asking.)
 extension Section: ChildKindsKnowing {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        TUIkit.mayHandOver(kind, Parent.self, visited: &visited)
+        if kind == .keyedRow(sectionsWhole: true) { return false }
+        return TUIkit.mayHandOver(kind, Parent.self, visited: &visited)
             || TUIkit.mayHandOver(kind, Content.self, visited: &visited)
             || TUIkit.mayHandOver(kind, Footer.self, visited: &visited)
     }

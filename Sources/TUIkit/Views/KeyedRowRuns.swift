@@ -112,9 +112,13 @@ func appendKeyedRowRuns<V: View>(of view: V, to runs: inout KeyedRowRuns, sectio
         // (`compositeMembers(of:context:)`) may hand over a loop's keyed rows,
         // which only its body, evaluated, can say: a run that cannot be counted.
         // Unless its body's type holds no loop — a heading, a pair of rows —
-        // when it hands over none, and is no run at all: counted as one, two
-        // of them around a loop in one slot left the loop unplaced.
-        if isCompositeHandingOverChildren(V.self), mayHandOver(.keyedRow, V.self) { runs.append(.opaque) }
+        // or none the container is handed, its loop in a section the walk
+        // keeps whole (a body that is a `Section` of a loop, in a `List`): it
+        // hands over none, and is no run at all. Counted as one, two of them
+        // around a loop in one slot left the loop unplaced.
+        if isCompositeHandingOverChildren(V.self), mayHandOver(.keyedRow(sectionsWhole: sectionsWhole), V.self) {
+            runs.append(.opaque)
+        }
         return
     }
     if let wrapper = view as? any SingleContentWrapper {

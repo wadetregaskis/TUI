@@ -31,6 +31,14 @@ private struct Extras: View {
     var body: some View { ForEach(names, id: \.self) { Text($0) } }
 }
 
+/// A section of the app's own holding a loop: to a `List`, one section, which
+/// hands the list no keyed row of the list's own.
+private struct FruitSection: View {
+    var body: some View {
+        Section("F") { ForEach(["apple", "banana"], id: \.self) { Text($0) } }
+    }
+}
+
 /// What a layout was handed: each subview's implicit `String` tag.
 @MainActor
 private final class Seen {
@@ -153,5 +161,20 @@ struct CompositeMembersRowIDsTests {
         // B-D1S-6): no tag, so no `String` value. The loop between them is
         // placed.
         #expect(drawn == [nil, nil, "apple", "banana", nil], "\(drawn)")
+    }
+
+    @Test("In one slot with the loop, two sections of the app's own around it leave it its values")
+    func sectionsOfTheAppsOwnInOneSlot() {
+        let drawn = ids(String.self) {
+            Text("All").tag("all")
+            Group {
+                FruitSection()
+                ForEach(["x", "y"], id: \.self) { Text($0) }
+                FruitSection()
+            }
+        }
+        // Each section's header, then its rows by their own ids; the loop
+        // between them by its elements.
+        #expect(drawn == ["all", nil, "apple", "banana", "x", "y", nil, "apple", "banana"], "\(drawn)")
     }
 }
