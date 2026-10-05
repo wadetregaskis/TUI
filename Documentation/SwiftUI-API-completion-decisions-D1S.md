@@ -86,23 +86,6 @@ whose children are all erased: every child walk opens the existential and asks
 it for a provider conformance. Half a day, and an A/B on `anyview`, `deep` and
 `modifiers` before it lands.
 
-### B-D1S-4. A list offers no reordering over rows of several views
-
-*`ForEach.onMove(perform:)`, `List`*
-
-A `ForEach` row of several views is now several list rows (B15), each selected
-by its element. A delete on any of an element's rows removes that element, as
-SwiftUI's does (measured, `D1S/probe2/listdel`): the list's editing owner says
-which element each row draws (`ListRowElements`). A reorder moves rows, and an
-element's rows must move together and land between elements, so for such a
-loop the list does not offer `.onMove` yet: none of its rows can be dragged or
-picked up to reorder.
-
-**The fuller version.** A move picks up all of an element's rows (the
-handler's held rows grown to whole elements) and lands only between elements
-(every landing slot snapped to an element boundary), and the owner turns the
-rows and the slot into the elements' offsets.
-
 ### B-D1S-5. A loop whose rows vary is built to be counted
 
 *`ForEach`, `LazyVStack`, `LazyHStack`*

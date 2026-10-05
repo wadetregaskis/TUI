@@ -642,6 +642,14 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// See ``movableSpan(of:)``.
     var movableRowSpan: ((Int) -> Range<Int>?)?
 
+    /// The rows that move together with a given row: the rows of the element
+    /// it draws, for a `ForEach` whose rows are several views each (decisions
+    /// B15) — a reorder picks all of them up and lands them only between
+    /// elements. Installed by `_ListCore` every frame; `nil` means every row
+    /// moves alone, which is a `Table`'s shape and every other list's. See
+    /// ``reorderGroup(of:)``.
+    var reorderGroupSpan: ((Int) -> Range<Int>)?
+
     /// A `Table`'s keyboard sort gestures, if it has a `sortOrder` binding:
     /// invoked with ``RowAction/sortNextColumn`` or
     /// ``RowAction/reverseSortOrder``, and it applies the same `toggleSort` a

@@ -1608,13 +1608,21 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 delete(owner.elementOffsets(ofRows: rows))
             } : nil
         handler.movableRowSpan = { row in
-            // Not yet for a loop whose rows are several views each: a reorder
-            // moves rows, and such an element's rows must move together.
             guard let owner = editOwners.first(where: { $0.rows.contains(row) }),
-                owner.actions.moveAction != nil, owner.isOneRowPerElement
+                owner.actions.moveAction != nil
             else { return nil }
             return owner.rows
         }
+        // An element of several rows moves as one: the handler picks all of
+        // them up and lands them only between elements.
+        handler.reorderGroupSpan =
+            editOwners.contains(where: { !$0.isOneRowPerElement })
+            ? { row in
+                guard let owner = editOwners.first(where: { $0.rows.contains(row) }) else {
+                    return row..<(row + 1)
+                }
+                return owner.rowsOfElement(drawnAt: row)
+            } : nil
         handler.onMove =
             editOwners.contains(where: { $0.actions.moveAction != nil })
             ? { rows, destination in
@@ -1625,15 +1633,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     let owner = editOwners.first(where: { $0.rows.contains(first) }),
                     let move = owner.actions.moveAction
                 else { return }
-                let base = owner.rows.lowerBound
                 // `toOffset` is measured against the collection BEFORE the
                 // move, so one past the last element is the legal "append"
                 // answer and anything beyond it is not: `reorderInsertionOffset`
                 // answers with the list's row count when a slot runs off the
                 // end, which for a section is well past its own last element.
-                move(
-                    IndexSet(rows.filter { owner.rows.contains($0) }.map { $0 - base }),
-                    min(max(0, destination - base), owner.rows.count))
+                // By element: the rows in hand are whole elements, and the slot
+                // is between two (`ItemListHandler.reorderGroupSpan`).
+                move(owner.elementOffsets(ofRows: rows), owner.elementInsertionOffset(beforeRow: destination))
             } : nil
     }
 

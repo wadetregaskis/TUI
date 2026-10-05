@@ -67,7 +67,7 @@ struct ListRowEditOwner {
         switch elements {
         case .onePerRow: return place
         case .perElement(let count): return place / max(1, count)
-        case .listed(let offsets): return offsets[place]
+        case .listed(let offsets, _): return offsets[place]
         }
     }
 
@@ -79,10 +79,49 @@ struct ListRowEditOwner {
     }
 
     /// Whether every element draws exactly one row, so a row's place IS its
-    /// element's offset — what a reorder, which moves rows, needs.
+    /// element's offset, and a row moves alone.
     var isOneRowPerElement: Bool {
         if case .onePerRow = elements { return true }
         return false
+    }
+
+    /// The list rows the element drawn at `row` draws — the rows a reorder
+    /// moves together.
+    func rowsOfElement(drawnAt row: Int) -> Range<Int> {
+        let place = row - rows.lowerBound
+        switch elements {
+        case .onePerRow:
+            return row..<(row + 1)
+        case .perElement(let count):
+            let first = rows.lowerBound + place / max(1, count) * max(1, count)
+            return first..<min(rows.upperBound, first + max(1, count))
+        case .listed(let offsets, _):
+            let element = offsets[place]
+            var first = place
+            while first > 0, offsets[first - 1] == element { first -= 1 }
+            var end = place + 1
+            while end < offsets.count, offsets[end] == element { end += 1 }
+            return (rows.lowerBound + first)..<(rows.lowerBound + end)
+        }
+    }
+
+    /// The offset `.onMove` lands its elements at for a reorder slot before
+    /// list row `row` — the element drawn there, or one past the last element
+    /// for a slot past the owner's last row. Measured, as `.onMove`'s
+    /// destination is, against the collection before the move.
+    func elementInsertionOffset(beforeRow row: Int) -> Int {
+        guard row < rows.upperBound else { return elementCount }
+        return elementOffset(ofRow: max(rows.lowerBound, row))
+    }
+
+    /// How many elements the owning loop iterates — those that draw no row
+    /// too, for a loop whose rows vary.
+    var elementCount: Int {
+        switch elements {
+        case .onePerRow: return rows.count
+        case .perElement(let count): return rows.count / max(1, count)
+        case .listed(_, let count): return count
+        }
     }
 }
 
@@ -95,8 +134,9 @@ enum ListRowElements {
     /// of two views.
     case perElement(Int)
     /// Each row's element offset, by its place — a loop whose rows make a
-    /// number of views only each row knows (an `if` among them, a loop).
-    case listed([Int])
+    /// number of views only each row knows (an `if` among them, a loop) —
+    /// and how many elements the loop iterates, those drawing no row too.
+    case listed([Int], elementCount: Int)
 
     /// The elements a loop's rows draw, from the rows' keys: each element in
     /// turn owns the run of rows carrying its key (``ChildView/keyedAsMember``
@@ -114,7 +154,7 @@ enum ListRowElements {
                 place += 1
             }
         }
-        return place == rowKeys.count ? .listed(offsets) : nil
+        return place == rowKeys.count ? .listed(offsets, elementCount: loop.keyedElementCount) : nil
     }
 }
 

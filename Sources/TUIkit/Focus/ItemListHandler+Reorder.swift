@@ -63,6 +63,45 @@ extension ItemListHandler {
         min(max(span.lowerBound, slot), max(span.lowerBound, span.upperBound - 1))
     }
 
+    // MARK: - Rows that move together
+
+    /// The rows that move with the row at `index` — the rows of the element it
+    /// draws, for a `ForEach` whose rows are several views each
+    /// (``reorderGroupSpan``) — or that row alone.
+    func reorderGroup(of index: Int) -> Range<Int> {
+        reorderGroupSpan?(index) ?? index..<(index + 1)
+    }
+
+    /// `rows` grown to the whole groups they are in (``reorderGroup(of:)``):
+    /// a reorder never takes part of an element.
+    func wholeReorderGroups(of rows: IndexSet) -> IndexSet {
+        guard reorderGroupSpan != nil else { return rows }
+        var whole = IndexSet()
+        for row in rows { whole.insert(integersIn: reorderGroup(of: row)) }
+        return whole
+    }
+
+    /// `slot` — a closed-up position, with `held` taken out — moved to the
+    /// nearest one between two groups of rows, never inside one: up (`toward`
+    /// positive), down (negative) or to whichever is nearer (zero). Unchanged
+    /// where every row moves alone.
+    ///
+    /// `held` is whole groups (``wholeReorderGroups(of:)``), so the group a
+    /// slot falls inside holds no row in hand, and all of its rows sit together
+    /// in the closed-up order.
+    func groupBoundarySlot(_ slot: Int, held: IndexSet, toward direction: Int = 0) -> Int {
+        guard reorderGroupSpan != nil else { return slot }
+        let row = reorderInsertionOffset(forSlot: slot, removed: held)
+        guard row < itemCount else { return slot }
+        let group = reorderGroup(of: row)
+        guard row != group.lowerBound else { return slot }
+        let before = slot - (row - group.lowerBound)
+        let after = before + group.count
+        if direction > 0 { return after }
+        if direction < 0 { return before }
+        return slot - before <= after - slot ? before : after
+    }
+
     // MARK: - Geometry
 
     /// The data offset of the **content** row covering `contentY`, or `nil` for
@@ -280,10 +319,11 @@ extension ItemListHandler {
         return true
     }
 
-    /// Moves the landing slot by `delta` rows, clamped to the list.
+    /// Moves the landing slot by `delta` rows, clamped to the list — past
+    /// whole elements, where an element draws several rows.
     func moveHeldRow(by delta: Int) {
         guard let reorder else { return }
-        moveHeldRow(to: (reorder.targetOffset ?? reorder.currentOffset) + delta)
+        moveHeldRow(to: (reorder.targetOffset ?? reorder.currentOffset) + delta, toward: delta)
     }
 
     /// Moves the landing slot to `slot`, clamped to the list.
@@ -292,13 +332,15 @@ extension ItemListHandler {
     /// moves now, one `onMove` per step, exactly as a live drag does. The slot
     /// modes leave the data alone and move the gap, so the list keeps its length
     /// and one `onMove` fires at the drop.
-    func moveHeldRow(to slot: Int) {
+    func moveHeldRow(to slot: Int, toward direction: Int = 0) {
         guard var reorder, reorder.active else { return }
         // Clamped to the rows in hand may land among — the whole list for a
         // flat one, and this section's rows inside a Section. That is what
         // makes Home / End / a page step mean "this section's end" rather than
-        // an offset in a collection the row never belonged to.
-        let target = clampedSlot(slot, in: reorderSpan)
+        // an offset in a collection the row never belonged to. And between two
+        // elements, never inside one, where an element draws several rows.
+        let target = groupBoundarySlot(
+            clampedSlot(slot, in: reorderSpan), held: reorder.held, toward: direction)
         if effectiveReorderFeedback == .live {
             let landed = move(from: reorder.currentOffset, to: target)
             reorder.currentOffset = landed
@@ -474,6 +516,9 @@ extension ItemListHandler {
             !moveDisabledRows.contains(clampedRowIndex(focusedIndex))
         else { return false }
         let from = clampedRowIndex(focusedIndex)
+        guard reorderGroupSpan == nil else {
+            return moveFocusedGroup(from: from, toSlot: clampedSlot(destination, in: span), toward: 0)
+        }
         let target = clampedSlot(destination, in: span)
         guard target != from else { return false }
         focusedIndex = move(from: from, to: target)
@@ -488,9 +533,32 @@ extension ItemListHandler {
             let span = movableSpan(of: clampedRowIndex(focusedIndex)),
             !moveDisabledRows.contains(clampedRowIndex(focusedIndex))
         else { return false }
+        guard reorderGroupSpan == nil else {
+            let group = reorderGroup(of: clampedRowIndex(focusedIndex))
+            moveFocusedGroup(
+                from: clampedRowIndex(focusedIndex),
+                toSlot: clampedSlot(group.lowerBound + delta, in: span), toward: delta)
+            return true
+        }
         let target = clampedSlot(focusedIndex + delta, in: span)
         guard target != focusedIndex else { return true }
         focusedIndex = clampedRowIndex(move(from: focusedIndex, to: target))
+        ensureFocusedItemVisible()
+        return true
+    }
+
+    /// Moves the rows that move with the focused row at `from`
+    /// (``reorderGroup(of:)``) to closed-up position `slot`, snapped to the
+    /// nearest element boundary `toward` the direction of travel, keeping the
+    /// cursor on the same row of the element. Reports whether anything moved.
+    @discardableResult
+    private func moveFocusedGroup(from: Int, toSlot slot: Int, toward direction: Int) -> Bool {
+        let group = reorderGroup(of: from)
+        let held = IndexSet(integersIn: group)
+        let target = groupBoundarySlot(slot, held: held, toward: direction)
+        // Where the element already starts, closed up, is no move.
+        guard target != group.lowerBound else { return false }
+        focusedIndex = clampedRowIndex(move(held, to: target) + (from - group.lowerBound))
         ensureFocusedItemVisible()
         return true
     }
@@ -806,7 +874,8 @@ extension ItemListHandler {
         // Within the span the drag may land in — the whole list for a flat one,
         // so this is the old `max(0, min(itemCount, …))` wherever it always was.
         let span = reorderSpan
-        reorder.targetOffset = max(span.lowerBound, min(span.upperBound, target + delta))
+        reorder.targetOffset = groupBoundarySlot(
+            max(span.lowerBound, min(span.upperBound, target + delta)), held: reorder.held)
         self.reorder = reorder
         visibleRowBandsOffset = scrollOffset
     }
@@ -1099,7 +1168,7 @@ extension ItemListHandler {
     /// selection without clearing the selection first.
     private func heldRows(grabbing offset: Int) -> IndexSet {
         guard selectionMode == .multi, isSelected(at: offset) else {
-            return IndexSet(integer: offset)
+            return wholeReorderGroups(of: IndexSet(integer: offset))
         }
         // Minus the rows the app said do not travel: the restriction was
         // enforced for the grabbed row alone, and a selection containing a
@@ -1114,7 +1183,9 @@ extension ItemListHandler {
             (movableSpan(of: offset) ?? 0..<itemCount).filter { isSelected(at: $0) }
         )
         .subtracting(IndexSet(moveDisabledRows))
-        return selected.contains(offset) ? selected : IndexSet(integer: offset)
+        // Whole elements, where an element draws several rows: its rows travel
+        // together, as one `onMove` of the element.
+        return wholeReorderGroups(of: selected.contains(offset) ? selected : IndexSet(integer: offset))
     }
 
     /// How many rows the drag has hold of. One outside a multi-row gesture.
@@ -1194,13 +1265,20 @@ extension ItemListHandler {
         // row already in hand is not a crossing.
         if effectiveReorderFeedback == .live, !reorder.held.contains(target) {
             let landed = move(reorder.held, to: liveSlot(forTarget: target, held: reorder.held))
+            // (`liveSlot` lands the block between two elements of several rows.)
             // The block is contiguous from here on, wherever it started: after
             // the first move the disjoint set no longer exists, and every later
             // step has to name the rows where they NOW are.
             reorder.held = IndexSet(integersIn: landed..<(landed + reorder.held.count))
             reorder.currentOffset = landed + reorder.primaryRank
+            reorder.targetOffset = target
+        } else {
+            // The slot the drop lands at — between two elements of several
+            // rows, the nearer, never inside one.
+            reorder.targetOffset =
+                effectiveReorderFeedback == .live
+                ? target : groupBoundarySlot(target, held: reorder.held)
         }
-        reorder.targetOffset = target
         self.reorder = reorder
         // The keyboard cursor follows the row the pointer is actually OVER, by
         // data offset. Over the gap there is no such row, so it stays put —
@@ -1218,7 +1296,7 @@ extension ItemListHandler {
     private func liveSlot(forTarget target: Int, held: IndexSet) -> Int {
         let closedUp = reorderClosedUpIndex(target, removed: held)
         let downward = held.min().map { target > $0 } ?? false
-        return closedUp + (downward ? 1 : 0)
+        return groupBoundarySlot(closedUp + (downward ? 1 : 0), held: held, toward: downward ? 1 : -1)
     }
 
     /// Commits a drop at `contentY`, and reports whether this gesture was a
