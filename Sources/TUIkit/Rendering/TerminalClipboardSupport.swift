@@ -109,10 +109,18 @@ extension TerminalClient {
     /// Asks tmux for its `set-clipboard` option when running in a tmux pane,
     /// which is a bounded subprocess: read it when a copy is made, not per
     /// frame.
+    ///
+    /// Reads the DETECTED program, never ``simulated``, unlike
+    /// ``hyperlinksSupported``. Simulating a terminal changes how the app is
+    /// drawn, which is the diagnostic's point; a copy is the user's text, and
+    /// it has to go where the terminal actually in front of them takes it.
+    /// Read through the simulation, rendering as Ghostty inside Apple Terminal
+    /// sent every copy by OSC 52 to a terminal that drops it, and called it
+    /// copied.
     @MainActor public static var clipboardWrites: ClipboardWriteSupport {
         let environment = ProcessInfo.processInfo.environment
         if let override = clipboardWriteSupport { return override ? .honoured : .unsupported }
-        let program = effective.program
+        let program = current.program
         return clipboardWrites(
             environment: environment, program: program,
             primaryDeviceAttributes: TerminalHost.startupIdentity?.primaryAttributes,

@@ -4939,7 +4939,9 @@ from 3.3).
 
 `TUIKIT_OSC52=1` makes every copy an OSC 52 to a terminal taken to honour it,
 for a host TUIkit does not know; `0` never sends one. An app can do the same
-with `TerminalClient.clipboardWriteSupport`.
+with `TerminalClient.clipboardWriteSupport`. `TerminalClient.simulated`, the
+diagnostic that draws as another terminal, does not change where a copy
+goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 
 ### What each host is documented to do
 
