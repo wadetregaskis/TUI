@@ -851,7 +851,9 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
 /// Internal handler class for radio button group focus and selection management.
 ///
 /// Persisted across renders via StateStorage to maintain focusedIndex and enable
-/// Tab navigation between radio button groups.
+/// Tab navigation between radio button groups. A segmented or palette
+/// `Picker` (`_PickerSegmentsCore`) keys through one too: a horizontal group
+/// whose cursor wraps.
 final class RadioButtonGroupHandler: PersistedFocusable {
     var focusID: String
     var selection: Binding<AnyHashable>

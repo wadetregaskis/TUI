@@ -171,6 +171,8 @@ enum _PickerEntry<SelectionValue: Hashable> {
 ///   the picker to a single line that opens a drop-down list of options.
 /// - ``InlinePickerStyle`` and ``RadioGroupPickerStyle`` present the options
 ///   inline as a radio-button group.
+/// - ``SegmentedPickerStyle`` and ``PalettePickerStyle`` draw the options as
+///   the segments of one control, `▐ S │ M │ L ▌`.
 ///
 /// ## Keyboard
 ///
@@ -179,7 +181,9 @@ enum _PickerEntry<SelectionValue: Hashable> {
 /// SwiftUI, rather than opening it); once open, the arrow keys move the
 /// highlight, Enter or Space commits the highlighted option, and Escape closes
 /// without changing the selection. For an inline picker, the arrow keys move
-/// between options and Enter or Space selects.
+/// between options and Enter or Space selects. A segmented or palette picker is
+/// one stop too: Left and Right move a cursor among the segments, wrapping at
+/// the ends, and Enter or Space chooses the segment under it.
 public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View {
     /// A binding to the selected value.
     let selection: Binding<SelectionValue>
@@ -271,10 +275,9 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         } else if pickerStyle.resolvesToSegments {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: isDisabled)
-                _PickerSegments(
+                _PickerSegmentsCore(
                     entries: entries, selection: selection, isPalette: pickerStyle is PalettePickerStyle,
-                    isMixed: isMixed)
-                    .disabled(isDisabled)
+                    focusID: focusID, isDisabled: isDisabled, isMixed: isMixed)
             }
         } else if pickerStyle.resolvesToMenu {
             HStack(alignment: .top, spacing: 0) {

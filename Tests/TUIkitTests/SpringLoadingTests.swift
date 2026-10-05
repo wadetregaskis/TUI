@@ -221,4 +221,35 @@ struct SpringLoadingTests {
         #expect(count.value == 1, "Tab reached the button and Return pressed it")
         #expect(harness.tui.dragAndDropSession.active != nil, "the drag is still in the hand")
     }
+
+    /// A segmented picker on row 3.
+    private func segmentedPage(_ choice: Count, enabled: Bool) -> some View {
+        let selection = Binding(get: { choice.value }, set: { choice.value = $0 })
+        return VStack(alignment: .leading, spacing: 0) {
+            Text("CHIP").draggable("apple")
+            Text("").frame(height: 2)
+            Picker("", selection: selection) {
+                Text("A").tag(0)
+                Text("B").tag(1)
+                Text("C").tag(2)
+            }
+            .pickerStyle(.segmented)
+        }
+        .springLoadingBehavior(enabled ? .enabled : .automatic)
+    }
+
+    @Test("A pause over a segmented picker's segment chooses it, under .enabled only, as on macOS")
+    func segmentIsChosenByAPause() {
+        for enabled in [true, false] {
+            let choice = Count()
+            let harness = InputChainHarness(width: 30, height: 8)
+            let build = { segmentedPage(choice, enabled: enabled) }
+            let row = harness.frame(build()).lines[3].stripped
+            let column = row.firstIndex(of: "C").map { row.distance(from: row.startIndex, to: $0) } ?? 0
+            carry(harness, to: column, build)
+            drive(harness, at: 0, build)
+            drive(harness, at: Self.delay, build)
+            #expect(choice.value == (enabled ? 2 : 0), "under .enabled: \(enabled), on \(row)")
+        }
+    }
 }
