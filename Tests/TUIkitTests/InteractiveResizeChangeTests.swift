@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 @testable import TUIkit
@@ -73,6 +74,44 @@ private struct Watcher: View, Equatable {
     var body: some View {
         log.bodies += 1
         return Text("watching").onInteractiveResizeChange { [log] in log.calls.append($0) }
+    }
+}
+
+/// Whether the observed line is on screen, toggled between frames.
+@Observable
+@MainActor
+private final class Presence {
+    var shown = true
+}
+
+private struct ComingAndGoingApp: App {
+    let log: ResizeLog
+    let presence: Presence
+
+    init() { self.init(log: ResizeLog(), presence: Presence()) }
+
+    init(log: ResizeLog, presence: Presence) {
+        self.log = log
+        self.presence = presence
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ComingAndGoingPage(log: log, presence: presence)
+        }
+    }
+}
+
+private struct ComingAndGoingPage: View {
+    let log: ResizeLog
+    let presence: Presence
+
+    var body: some View {
+        if presence.shown {
+            Watcher(log: log)
+        } else {
+            Text("gone")
+        }
     }
 }
 
@@ -157,5 +196,32 @@ struct InteractiveResizeChangeTests {
         app.frame(atNanos: endsAt + Self.frame)
         #expect(log.bodies == bodies, "listening for resizes turned the memo above off")
         #expect(log.calls == [true, false])
+    }
+
+    /// The documented edge of "the calls alternate": they do for as long as
+    /// the view is on screen, and one that leaves mid-burst hears no `false`.
+    @Test("A view that leaves during a burst hears no false, and back inside it hears true again")
+    func aViewLeavingMidBurst() {
+        let log = ResizeLog()
+        let presence = Presence()
+        let app = HeadlessApp(ComingAndGoingApp(log: log, presence: presence), width: 40, height: 10)
+        app.frame(atNanos: 0)
+        app.resize(width: 50, height: 10)
+        app.frame(atNanos: Self.frame)
+        #expect(log.calls == [true])
+
+        presence.shown = false
+        app.frame(atNanos: 2 * Self.frame)
+        let endsAt = Self.frame + 200_000_000
+        app.frame(atNanos: endsAt)
+        #expect(log.calls == [true], "a view no longer on screen heard the burst end")
+
+        // Back during the next burst: it starts again from `false`.
+        presence.shown = true
+        app.resize(width: 60, height: 10)
+        app.frame(atNanos: endsAt + Self.frame)
+        #expect(log.calls == [true, true])
+        app.frame(atNanos: endsAt + Self.frame + 200_000_000)
+        #expect(log.calls == [true, true, false])
     }
 }

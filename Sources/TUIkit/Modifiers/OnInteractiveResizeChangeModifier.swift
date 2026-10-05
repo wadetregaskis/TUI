@@ -37,9 +37,11 @@ extension View {
     /// a new size counts as one too, usually a short one; a report that leaves
     /// the grid as it was does not.
     ///
-    /// The two calls always come in pairs, `true` then `false`: a view that
-    /// first draws during a burst hears it begin then. Nothing runs when the
-    /// view first appears outside one.
+    /// The calls alternate, `true` then `false`, for as long as the view is on
+    /// screen: a view that first draws during a burst hears it begin then, and
+    /// nothing runs when it first appears outside one. A view that leaves
+    /// during a burst hears no `false`, as its other actions stop when it
+    /// goes; undo what `true` did in `.onDisappear` if it must be undone.
     ///
     /// - Parameter action: A closure to run when the state of the window's
     ///   interactive resize changes.
@@ -123,7 +125,8 @@ extension OnInteractiveResizeChangeModifier: Renderable {
 
         // The last answer the action was given, positionally per walk as
         // `.onChange` claims its slot. A view appearing starts from `false`,
-        // so the calls pair even when it first draws mid-burst.
+        // so the calls alternate even when it first draws mid-burst; one
+        // leaving has its slot pruned with it, and hears no `false`.
         let index = storage.nextOnChangeIndex(for: context.identity)
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: index)
         let reported: Bool = storage.trackedValue(for: key) ?? false
