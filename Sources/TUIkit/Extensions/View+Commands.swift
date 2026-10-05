@@ -86,7 +86,7 @@ extension View {
     /// - Returns: A view that handles the exit command while it holds the focus.
     public func onExitCommand(perform action: (() -> Void)?) -> some View {
         command { press in
-            guard press.key == .escape, press.modifiers.isSubset(of: .shift) else { return false }
+            guard press.key == .escape, press.modifiers.chordModifiers.isSubset(of: .shift) else { return false }
             action?()
             return true
         }
@@ -106,7 +106,7 @@ extension View {
     public func onDeleteCommand(perform action: (() -> Void)?) -> some View {
         command { press in
             guard press.key == .delete || press.key == .deleteForward,
-                press.modifiers.isSubset(of: .shift)
+                press.modifiers.chordModifiers.isSubset(of: .shift)
             else { return false }
             action?()
             return true

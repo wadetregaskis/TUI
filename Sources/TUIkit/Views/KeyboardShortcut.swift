@@ -82,6 +82,8 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
 ///
 /// TUI-specific reality: a terminal reports Control, Option/Alt and Shift, and
 /// does **not** report Command — see `Documentation/Terminal-compatibility.md`.
+/// Caps Lock and the numeric pad are reported only where the terminal speaks
+/// the kitty keyboard protocol (``EnvironmentValues/keyboardReporting``).
 /// A shortcut declared with ``command`` therefore can never fire here. That is
 /// left deliberately literal rather than quietly rewritten to a bare key: an
 /// app that says ⌘Q should not fire on a lone "q".
@@ -92,28 +94,55 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
 
-    /// Accepted for source compatibility with SwiftUI; a terminal does not
-    /// report the Caps Lock state, so it never matches. A letter typed under
-    /// Caps Lock arrives as the uppercase character, which is to say as Shift
-    /// and that letter.
+    /// The Caps Lock key.
+    ///
+    /// In a ``KeyPress``'s modifiers while Caps Lock is on, where the terminal
+    /// speaks the kitty keyboard protocol
+    /// (``KeyboardReporting/reportsLockStates``); and seen by
+    /// ``View/onModifierKeysChanged(mask:initial:_:)`` when it is toggled
+    /// there. In a terminal's legacy encodings it is never reported: a letter
+    /// typed under Caps Lock arrives as the uppercase character, which is to
+    /// say as Shift and that letter. A keyboard shortcut ignores it, as
+    /// AppKit's key equivalents do, and one that requires it can never fire.
     public static let capsLock = Self(rawValue: 1 << 0)
     public static let shift = Self(rawValue: 1 << 1)
     public static let control = Self(rawValue: 1 << 2)
     public static let option = Self(rawValue: 1 << 3)
-    /// Never reported by a terminal — see the type documentation.
+    /// Never reported with a key — see the type documentation. Where the
+    /// terminal speaks the kitty keyboard protocol, ⌘ held on its own is
+    /// reported as a modifier key, so
+    /// ``View/onModifierKeysChanged(mask:initial:_:)`` can see it.
     public static let command = Self(rawValue: 1 << 4)
-    /// Accepted for source compatibility with SwiftUI; a terminal cannot
-    /// distinguish the numeric pad, so it never matches.
+    /// Any key on the numeric keypad.
+    ///
+    /// In a ``KeyPress``'s modifiers for a keypad key, where the terminal
+    /// speaks the kitty keyboard protocol
+    /// (``KeyboardReporting/reportsNumericPad``). Not set on the arrow keys,
+    /// which macOS also counts as the numeric pad. In a terminal's legacy
+    /// encodings a keypad digit arrives as the digit, so it is never
+    /// reported. A keyboard shortcut ignores it, and one that requires it can
+    /// never fire.
     public static let numericPad = Self(rawValue: 1 << 5)
     public static let all: Self = [.capsLock, .shift, .control, .option, .command, .numericPad]
 
-    /// The modifiers a terminal actually reports on `event`.
+    /// The modifiers a terminal actually reports on `event`: Control, Option
+    /// and Shift, and Caps Lock and the numeric pad where it speaks the kitty
+    /// keyboard protocol.
     init(_ event: KeyEvent) {
         var result: Self = []
         if event.ctrl { result.insert(.control) }
         if event.alt { result.insert(.option) }
         if event.shift { result.insert(.shift) }
+        if event.capsLock { result.insert(.capsLock) }
+        if event.numericPad { result.insert(.numericPad) }
         self = result
+    }
+
+    /// The modifiers held on a key that are chords rather than states: a
+    /// keyboard shortcut matches on these alone, as AppKit's key equivalents
+    /// ignore Caps Lock and the keypad.
+    var chordModifiers: Self {
+        subtracting([.capsLock, .numericPad])
     }
 }
 
@@ -243,17 +272,22 @@ public struct KeyboardShortcut: Hashable, Sendable {
         return resolved
     }
 
-    /// Whether a terminal can actually deliver this shortcut.
+    /// Whether every terminal can deliver this shortcut.
     ///
-    /// `false` for a shortcut that needs a modifier no terminal reports —
-    /// ``EventModifiers/command`` (until `resolved(commandKey:)` replaces it),
-    /// ``EventModifiers/capsLock`` or ``EventModifiers/numericPad``.
+    /// `false` for a shortcut that needs a modifier a shortcut can never match
+    /// on — ``EventModifiers/command`` (until `resolved(commandKey:)` replaces
+    /// it), which no terminal reports with a key, and
+    /// ``EventModifiers/capsLock`` and ``EventModifiers/numericPad``, which
+    /// shortcuts ignore wherever they are reported.
     ///
     /// `false` too for the Control combinations the C0 range spends on other keys:
     /// Ctrl-H is Backspace, Ctrl-I is Tab, Ctrl-J and Ctrl-M are newline and
     /// Return, Ctrl-[ is Escape — `KeyEvent.parse` matches those *before* the
-    /// Ctrl-letter range, so they never arrive as a modified letter and never
-    /// can. Consult it
+    /// Ctrl-letter range, so in a terminal's legacy encodings they never arrive
+    /// as a modified letter. Where the terminal speaks the kitty keyboard
+    /// protocol they do arrive, and such a shortcut fires
+    /// (``KeyboardReporting/disambiguatesKeys``); this answers for every
+    /// terminal, so it stays `false`. Consult it
     /// after `resolved(commandKey:)` — that is where a ⌘ shortcut becomes a
     /// Control one and can collide.
     ///
@@ -269,8 +303,8 @@ public struct KeyboardShortcut: Hashable, Sendable {
         return !"hijm[".contains(key.character)
     }
 
-    /// The modifiers no terminal reports on a key event, so a shortcut that
-    /// needs one can never fire.
+    /// The modifiers a shortcut that needs one can never fire on: ⌘, which no
+    /// terminal reports with a key, and the two states shortcuts ignore.
     private static let unreportedModifiers: EventModifiers = [.command, .capsLock, .numericPad]
 
     /// The trigger `event` would fire, or `nil` for a key no shortcut can name.
@@ -281,7 +315,7 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// the shifted character with no modifier bits, so trusting the flag would
     /// make `("a", [.shift])` permanently dead and let `("a", [])` fire for "A".
     static func trigger(for event: KeyEvent) -> Trigger? {
-        let modifiers = EventModifiers(event)
+        let modifiers = EventModifiers(event).chordModifiers
         switch event.key {
         // A BARE Return or Escape is the semantic role — the default button,
         // the cancel button. Held with a modifier it is an ordinary key

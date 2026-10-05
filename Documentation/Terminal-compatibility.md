@@ -3883,7 +3883,7 @@ Releasing a key sends nothing. So `KeyPress.phase` is always `.down`, a
 kitty keyboard protocol's "report event types" enhancement reports all three
 explicitly; TUIkit negotiates it where the terminal answers (2026-10-04).
 
-### Caps Lock and the numeric pad are never reported
+### Caps Lock and the numeric pad are never reported — in the legacy encodings
 
 Recorded 2026-10-03, adding SwiftUI's `EventModifiers.capsLock`. From the
 encodings' definitions rather than a per-terminal capture: neither the C0 /
@@ -3896,10 +3896,14 @@ not. The kitty keyboard protocol does carry both (`caps_lock`, `num_lock`,
 and distinct keypad key codes) once an app negotiates it, and TUIkit does
 where the terminal answers (2026-10-04, "The kitty keyboard protocol").
 
-So `EventModifiers.capsLock` and `.numericPad` exist for source
-compatibility and never match, and
-`KeyboardShortcut.isDeliverableInTerminal` answers `false` for a chord that
-needs either, as it does for an unresolved `.command`.
+So in the legacy encodings `EventModifiers.capsLock` and `.numericPad` never
+appear in a key press's modifiers. Where the protocol is on (2026-10-04) they
+do, as SwiftUI reports them — Caps Lock on every key while it is on, the
+numeric pad on a keypad key (not on the arrows, which macOS also flags). A
+keyboard shortcut ignores both either way, as AppKit's key equivalents do, so
+Ctrl-S with Caps Lock on is still Ctrl-S; `KeyboardShortcut.isDeliverableInTerminal`
+therefore answers `false` for a chord that requires either, as it does for an
+unresolved `.command`. The exit and delete commands ignore them too.
 
 ### Shift on a printable key is the character, not a bit
 

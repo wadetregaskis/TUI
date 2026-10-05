@@ -524,16 +524,61 @@ struct CommandKeySubstitutionTests {
             registry.register(shortcut) { fired += 1 }
             // Caps Lock arrives as the uppercase letter, so neither spelling of
             // the key may reach a Caps Lock chord.
+            // Nor may a terminal that does report them: shortcuts ignore both.
             let events = [
                 KeyEvent(key: .character("x")),
                 KeyEvent(character: "X"),
                 KeyEvent(key: .character("x"), ctrl: true),
+                KeyEvent(key: .character("X"), capsLock: true),
+                KeyEvent(key: .character("x"), ctrl: true, capsLock: true),
+                KeyEvent(key: .character("x"), numericPad: true),
             ]
             for event in events {
                 #expect(!registry.trigger(for: event), "\(modifiers) \(event)")
             }
             #expect(fired == 0, "\(modifiers)")
         }
+    }
+}
+
+/// Caps Lock and the keypad, where the kitty keyboard protocol reports them,
+/// are states a key is pressed in, not chords: a shortcut matches through
+/// them, as AppKit's key equivalents do.
+@MainActor
+@Suite("Keyboard shortcuts under reported lock and keypad states")
+struct KeyboardShortcutLockStateTests {
+    @Test("Ctrl-S with Caps Lock on fires Ctrl-S, and a keypad 5 fires 5")
+    func lockAndKeypadDoNotBlockAShortcut() {
+        let registry = KeyboardShortcutRegistry()
+        var fired: [String] = []
+        registry.register(KeyboardShortcut("s", modifiers: .control)) { fired.append("^s") }
+        registry.register(KeyboardShortcut("5", modifiers: [])) { fired.append("5") }
+        registry.register(KeyboardShortcut("A", modifiers: [])) { fired.append("A") }
+        #expect(registry.trigger(for: KeyEvent(key: .character("s"), ctrl: true, capsLock: true)))
+        #expect(registry.trigger(for: KeyEvent(key: .character("5"), numericPad: true)))
+        // Caps Lock typing a capital reads as that capital, as a legacy
+        // terminal's uppercase byte does.
+        #expect(registry.trigger(for: KeyEvent(key: .character("A"), capsLock: true)))
+        #expect(fired == ["^s", "5", "A"])
+    }
+
+    @Test("Escape with Caps Lock on is still the exit command")
+    func exitCommandThroughCapsLock() {
+        let harness = InputChainHarness()
+        var exits = 0
+        harness.play([KeyEvent(key: .escape, capsLock: true)]) {
+            Text("leaf").focusable().onExitCommand { exits += 1 }
+        }
+        #expect(exits == 1)
+    }
+
+    @Test("A press's modifiers include Caps Lock and the keypad where they are reported")
+    func keyPressModifiersCarryTheStates() {
+        #expect(KeyPress(KeyEvent(key: .character("A"), capsLock: true))?.modifiers == .capsLock)
+        #expect(KeyPress(KeyEvent(key: .character("5"), numericPad: true))?.modifiers == .numericPad)
+        #expect(
+            KeyPress(KeyEvent(key: .character("s"), ctrl: true, capsLock: true))?.modifiers
+                == [.control, .capsLock])
     }
 }
 
