@@ -847,6 +847,10 @@ extension AppRunner {
         tuiContext.terminalImageStore.releaseAll()
         let farewell = tuiContext.terminalImageStore.takePending()
         if !farewell.isEmpty { terminal.write(farewell) }
+        // And a copy made in the last moments — a Ctrl-C and then `q` before a
+        // frame drew — which is still owed to the terminal's clipboard.
+        let copies = tuiContext.clipboardWriter.takePendingSequences()
+        if !copies.isEmpty { terminal.write(copies) }
 
         // See the twin in `suspendUntilContinued`.
         renderer.restoreTerminalStyling()

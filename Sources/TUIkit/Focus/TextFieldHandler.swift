@@ -134,10 +134,12 @@ final class TextFieldHandler: PersistedFocusable {
     /// break. Synced by the field's render pass.
     var isSecure: Bool = false
 
-    /// The clipboard this field reads and writes. Injectable so a test can
-    /// see what would have been copied without a real pasteboard — see
-    /// ``ClipboardAccess`` for why that is not a convenience.
-    var clipboard: ClipboardAccess = .system
+    /// The clipboard this field reads and writes: the one in the environment
+    /// the field was created in — the running app's ``ClipboardWriter`` — and
+    /// kept from then on. Injectable so a test can see what would have been
+    /// copied without a real pasteboard — see ``ClipboardAccess`` for why that
+    /// is not a convenience.
+    var clipboard: ClipboardAccess
 
     /// The cursor position (character index where next input will be inserted).
     var cursorPosition: Int
@@ -257,11 +259,13 @@ final class TextFieldHandler: PersistedFocusable {
         focusID: String,
         text: Binding<String>,
         canBeFocused: Bool = true,
-        cursorPosition: Int? = nil
+        cursorPosition: Int? = nil,
+        clipboard: ClipboardAccess = .system
     ) {
         self.focusID = focusID
         self.text = text
         self.canBeFocused = canBeFocused
+        self.clipboard = clipboard
         self.cursorPosition = cursorPosition ?? text.wrappedValue.count
         self.selectionAnchor = nil
     }

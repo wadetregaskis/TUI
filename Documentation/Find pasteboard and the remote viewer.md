@@ -129,6 +129,16 @@ None of these is exotic. The honest summary is that the environment gives a
 **dependable "definitely remote"** and an **unreliable "probably local"**, which
 is the wrong way round for a feature whose dangerous half is the write.
 
+**Since 2026-10-05, for the general clipboard,** TUIkit asks the second
+mechanism too (`ClipboardLocality`): besides the three variables, this
+process's parents must reach the root without passing `sshd` or `mosh-server`
+(which catches mosh), and inside tmux every attached client's parents must
+pass the same test (which catches the re-attached session). Anything it
+cannot read counts as remote. A copy then goes to this machine's clipboard
+only on that positive evidence; otherwise by OSC 52 to a terminal known to
+write it, or nowhere, said so in the status bar. See
+`Terminal-compatibility.md`, "OSC 52 clipboard writes".
+
 ### OSC 52 is the terminal-native answer, and it does not have a find selection
 
 The correct instinct for a terminal app is to stop asking where it is running

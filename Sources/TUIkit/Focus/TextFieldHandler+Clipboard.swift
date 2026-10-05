@@ -107,9 +107,14 @@ extension TextFieldHandler {
 
 /// The clipboard a text field reads and writes.
 ///
-/// Two closures rather than a direct ``SystemClipboard`` call, held per
-/// handler, so a test can observe what a field *would* have put on the
-/// pasteboard without touching the real one. `SecureField` is why: its
+/// In a running app it is the app's ``ClipboardWriter``, which sends each copy
+/// where the user will find it — the terminal by OSC 52, or this machine's
+/// clipboard when the terminal is on this machine — and says in the status
+/// bar when it could not.
+///
+/// Two closures rather than a direct call, held per handler, so a test can
+/// observe what a field *would* have put on the pasteboard without touching
+/// the real one. `SecureField` is why: its
 /// contract is that nothing is copied at all, and asserting that against the
 /// live pasteboard means racing every other test in the process over one
 /// shared global — a race that fails in the direction which looks like
@@ -117,8 +122,9 @@ extension TextFieldHandler {
 /// failing. It also keeps the suite from writing to the developer's
 /// pasteboard as a side effect of running.
 struct ClipboardAccess: Sendable {
-    /// Puts `text` on the clipboard.
-    var write: @Sendable (String) -> Void
+    /// Puts `text` on the clipboard, and answers what became of it; the flag
+    /// is ``write(_:announcingSuccess:)``'s.
+    var put: @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult
 
     /// Reads the clipboard, or `nil` when there is nothing to read.
     var read: @Sendable () -> String?
@@ -128,14 +134,51 @@ struct ClipboardAccess: Sendable {
     /// the environment; `nil` copies and pastes text alone.
     var typed: TypedClipboard?
 
-    /// The real thing. `SystemClipboard` owns the child I/O and its hardening
-    /// (non-blocking, deadline-bounded pipes) — see its doc comment for the
-    /// failure modes that motivated it.
+    /// Puts `text` on the clipboard, and answers what became of it.
+    ///
+    /// - Parameter announcingSuccess: Whether a plain success earns a line in
+    ///   the status bar (see ``ClipboardWriter/write(_:announcingSuccess:)``):
+    ///   not for a text control's copy, whose success is what was expected.
+    @discardableResult
+    func write(_ text: String, announcingSuccess: Bool = false) -> ClipboardWriteResult {
+        put(text, announcingSuccess)
+    }
+
+    /// The access a running app hands its controls: `writer`'s routes.
+    ///
+    /// Copies run in event handlers, on the main actor, which is where the
+    /// writer's terminal and locality questions are answered.
+    init(writer: ClipboardWriter) {
+        put = { text, announcing in
+            MainActor.assumeIsolated { writer.write(text, announcingSuccess: announcing) }
+        }
+        read = { MainActor.assumeIsolated { writer.read() } }
+        typed = nil
+    }
+
+    init(
+        put: @escaping @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult,
+        read: @escaping @Sendable () -> String?, typed: TypedClipboard? = nil
+    ) {
+        self.put = put
+        self.read = read
+        self.typed = typed
+    }
+
+    /// The clipboard outside a running app — a control rendered by a test or
+    /// a snapshot: this machine's clipboard when the user is at this machine,
+    /// and never OSC 52, because there is no terminal to send it to. Not the
+    /// main actor's, as the writer is, so it answers from any thread.
     static let system = Self(
-        write: { SystemClipboard.copy($0) },
-        read: { SystemClipboard.paste() },
-        typed: nil
-    )
+        put: { text, _ in
+            guard !text.isEmpty else { return .nothingToCopy }
+            let route = ClipboardRoute.choose(
+                terminal: .unsupported, hasSystemHelper: SystemClipboard.hasHelper,
+                isLocal: ClipboardLocality.isLocal)
+            guard route == .system else { return .unavailable }
+            return SystemClipboard.copy(text) ? .copied : .failed
+        },
+        read: { SystemClipboard.paste() })
 }
 
 private struct ClipboardAccessKey: EnvironmentKey {
@@ -144,8 +187,10 @@ private struct ClipboardAccessKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// The clipboard the copy, cut and paste commands read and write — the
-    /// system's, unless a test hands its subtree another, for the reason
-    /// ``ClipboardAccess`` gives. A text field keeps its own.
+    /// running app's ``ClipboardWriter``, unless a test hands its subtree
+    /// another, for the reason ``ClipboardAccess`` gives. A text field or
+    /// editor takes the one in its environment when it is created, and keeps
+    /// it.
     var clipboardAccess: ClipboardAccess {
         get { self[ClipboardAccessKey.self] }
         set { self[ClipboardAccessKey.self] = newValue }

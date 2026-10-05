@@ -24,12 +24,14 @@ final class FakeClipboard: @unchecked Sendable {
         self.contents = contents
     }
 
-    /// The access to hand a control, as its `clipboard`.
+    /// The access to hand a control, as its `clipboard`. Every write is a
+    /// plain success.
     var access: ClipboardAccess {
         ClipboardAccess(
-            write: { [self] in
-                writes.append($0)
-                contents = $0
+            put: { [self] text, _ in
+                writes.append(text)
+                contents = text
+                return .copied
             },
             read: { [self] in contents }
         )

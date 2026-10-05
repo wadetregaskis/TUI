@@ -524,7 +524,8 @@ extension RenderLoop {
         // triggers all land between frames (a mouse event, a key press, the
         // scheduled wake for the hover delay), so the candidate is already known
         // and the bar can be sized for it in this pass rather than the next.
-        resolveStatusBarTooltip(terminalWidth: terminalWidth, nowNanos: frameNowNanos)
+        resolveStatusBarTooltip(
+            terminalWidth: terminalWidth, nowNanos: frameNowNanos, scheduler: animationScheduler)
         let statusBarHeight = statusBar.height
         publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
         invalidateCacheIfEnvironmentChanged(environment: environment)
@@ -1097,6 +1098,12 @@ extension RenderLoop {
         // joins this frame's single write rather than issuing one of its own.
         let graphics = tuiContext.terminalImageStore.takePending()
         if !graphics.isEmpty { terminal.write(graphics) }
+
+        // Copies owed to the terminal's clipboard (OSC 52), made between frames
+        // by a key or a release. They draw nothing and move no cursor, so they
+        // go with the other out-of-band writes, ahead of every cell.
+        let copies = tuiContext.clipboardWriter.takePendingSequences()
+        if !copies.isEmpty { terminal.write(copies) }
 
         // The terminal holds its display from here to the frame's end, if the
         // frame writes more than one row. After the transmissions, which draw

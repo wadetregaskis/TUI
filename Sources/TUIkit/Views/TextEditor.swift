@@ -293,7 +293,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let handlerBox: StateBox<TextEditorHandler> = stateStorage.storage(
             for: handlerKey,
             default: TextEditorHandler(
-                focusID: persistedFocusID, text: text, canBeFocused: !isDisabled))
+                focusID: persistedFocusID, text: text, canBeFocused: !isDisabled,
+                clipboard: context.environment.clipboardAccess))
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled

@@ -14,9 +14,15 @@ import Foundation
     import Musl
 #endif
 
-/// The system clipboard, reached through the platform's helper binaries
-/// (`pbcopy`/`pbpaste` on macOS, `xclip`/`xsel` on Linux) with hardened child
-/// I/O.
+/// This machine's clipboard, reached through the platform's helper binaries
+/// (`pbcopy`/`pbpaste` on macOS; `wl-copy`/`wl-paste` under Wayland and
+/// `xclip`/`xsel` under X11 on Linux) with hardened child I/O.
+///
+/// **This machine's, which is not always the user's.** Over ssh it is the
+/// server's clipboard. Nothing calls this directly to copy: ``ClipboardWriter``
+/// decides, and writes here only when the terminal is on this machine (see
+/// ``ClipboardLocality``); otherwise it sends the copy to the terminal as
+/// OSC 52, or says it could not copy.
 ///
 /// Every exchange with a helper is **bounded and non-blocking**, because the
 /// helpers fail in ways that would otherwise take the whole app with them —
@@ -53,8 +59,12 @@ import Foundation
 /// A host that wants the real thing has an escape hatch that needs no clipboard
 /// at all — OSC 52, which the terminal itself acts on.
 enum SystemClipboard {
+    /// Never: there is no helper to run.
+    static let hasHelper = false
+
     /// Discards the text: there is nowhere to put it.
-    static func copy(_ text: String) {}
+    @discardableResult
+    static func copy(_ text: String) -> Bool { false }
 
     /// Always `nil`: there is nowhere to read from.
     static func paste() -> String? { nil }
@@ -82,45 +92,90 @@ enum SystemClipboard {
 
     // MARK: - Public surface
 
-    /// Copies `text` to the system clipboard. Silently does nothing when no
-    /// helper is available or the helper misbehaves — clipboard trouble must
-    /// never take the app down with it.
-    static func copy(_ text: String) {
+    /// A helper: the program and arguments that copy with it, and those that
+    /// paste.
+    struct Helper: Equatable {
+        let copyTool: String
+        let copyArguments: [String]
+        let pasteTool: String
+        let pasteArguments: [String]
+    }
+
+    /// The helpers that can reach a clipboard here, in the order they are
+    /// tried — posed on the environment and the files that exist, so a test
+    /// can ask without either.
+    ///
+    /// On Linux a helper is only worth running with a display to talk to:
+    /// `wl-copy` needs `WAYLAND_DISPLAY`, and `xclip` and `xsel` need
+    /// `DISPLAY`. Without one there is no clipboard to reach — a text
+    /// console, a container — and ``hasHelper`` says so up front instead of
+    /// letting `xclip` fail with "Can't open display" on every copy.
+    static func helpers(
+        environment: [String: String], exists: (String) -> Bool = FileManager.default.fileExists(atPath:)
+    ) -> [Helper] {
         #if os(macOS)
-            _ = run(
-                tool: "/usr/bin/pbcopy", arguments: [],
-                writing: Data(text.utf8), readsOutput: false
-            )
-        #elseif os(Linux)
-            for (tool, arguments) in [
-                ("/usr/bin/xclip", ["-selection", "clipboard"]),
-                ("/usr/bin/xsel", ["--clipboard", "--input"]),
-            ] where FileManager.default.fileExists(atPath: tool) {
-                if run(tool: tool, arguments: arguments, writing: Data(text.utf8), readsOutput: false) != nil {
-                    return
+            guard exists("/usr/bin/pbcopy") else { return [] }
+            return [
+                Helper(
+                    copyTool: "/usr/bin/pbcopy", copyArguments: [], pasteTool: "/usr/bin/pbpaste",
+                    pasteArguments: [])
+            ]
+        #else
+            var found: [Helper] = []
+            if environment["WAYLAND_DISPLAY"]?.isEmpty == false,
+                let directory = ["/usr/bin", "/usr/local/bin"].first(where: { exists("\($0)/wl-copy") })
+            {
+                found.append(
+                    Helper(
+                        copyTool: "\(directory)/wl-copy", copyArguments: [],
+                        pasteTool: "\(directory)/wl-paste", pasteArguments: ["--no-newline"]))
+            }
+            if environment["DISPLAY"]?.isEmpty == false {
+                if exists("/usr/bin/xclip") {
+                    found.append(
+                        Helper(
+                            copyTool: "/usr/bin/xclip", copyArguments: ["-selection", "clipboard"],
+                            pasteTool: "/usr/bin/xclip", pasteArguments: ["-selection", "clipboard", "-o"]))
+                }
+                if exists("/usr/bin/xsel") {
+                    found.append(
+                        Helper(
+                            copyTool: "/usr/bin/xsel", copyArguments: ["--clipboard", "--input"],
+                            pasteTool: "/usr/bin/xsel", pasteArguments: ["--clipboard", "--output"]))
                 }
             }
+            return found
         #endif
+    }
+
+    /// This process's helpers, found once.
+    private static let processHelpers = helpers(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether this machine has a clipboard helper to run.
+    static var hasHelper: Bool { !processHelpers.isEmpty }
+
+    /// Copies `text` to this machine's clipboard, and answers whether a
+    /// helper took it. Fails quietly when no helper is available or the
+    /// helper misbehaves — clipboard trouble must never take the app down
+    /// with it.
+    @discardableResult
+    static func copy(_ text: String) -> Bool {
+        processHelpers.contains { helper in
+            run(
+                tool: helper.copyTool, arguments: helper.copyArguments, writing: Data(text.utf8),
+                readsOutput: false) != nil
+        }
     }
 
     /// Returns the system clipboard's text, or `nil` when no helper is
     /// available, the helper misbehaves, or the content isn't UTF-8.
     static func paste() -> String? {
-        #if os(macOS)
-            return textFromHelper(tool: "/usr/bin/pbpaste", arguments: [])
-        #elseif os(Linux)
-            for (tool, arguments) in [
-                ("/usr/bin/xclip", ["-selection", "clipboard", "-o"]),
-                ("/usr/bin/xsel", ["--clipboard", "--output"]),
-            ] where FileManager.default.fileExists(atPath: tool) {
-                if let text = textFromHelper(tool: tool, arguments: arguments) {
-                    return text
-                }
+        for helper in processHelpers {
+            if let text = textFromHelper(tool: helper.pasteTool, arguments: helper.pasteArguments) {
+                return text
             }
-            return nil
-        #else
-            return nil
-        #endif
+        }
+        return nil
     }
 
     private static func textFromHelper(tool: String, arguments: [String]) -> String? {
@@ -162,7 +217,9 @@ enum SystemClipboard {
         let stdinPipe = input != nil ? Pipe() : nil
         if let stdinPipe { process.standardInput = stdinPipe }
         let stdoutPipe = readsOutput ? Pipe() : nil
-        if let stdoutPipe { process.standardOutput = stdoutPipe }
+        // Never the app's own stdout, which is the terminal: `wl-copy` leaves a
+        // child behind to serve the clipboard, and it would hold the tty.
+        process.standardOutput = stdoutPipe ?? FileHandle.nullDevice
 
         do {
             try process.run()

@@ -880,7 +880,8 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             default: TextFieldHandler(
                 focusID: persistedFocusID,
                 text: text,
-                canBeFocused: !isDisabled
+                canBeFocused: !isDisabled,
+                clipboard: context.environment.clipboardAccess
             )
         )
         let handler = handlerBox.value

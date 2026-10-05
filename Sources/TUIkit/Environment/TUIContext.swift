@@ -302,6 +302,21 @@ final class TUIContext: @unchecked Sendable {
     /// values back. Stored as ``tooltipState`` is, and for the same reasons.
     let typedClipboard = TypedClipboard()
 
+    /// Where this app's copies go — the terminal by OSC 52, this machine's
+    /// clipboard when the user is at this machine, or nowhere, said so in the
+    /// status bar — and the OSC 52 writes owed to the terminal. See
+    /// ``ClipboardWriter``.
+    ///
+    /// Settable, unlike its neighbours, so a test can hand a context a writer
+    /// with its own answers to where the terminal is.
+    var clipboardWriter = ClipboardWriter.live() {
+        didSet { clipboardAccess = ClipboardAccess(writer: clipboardWriter) }
+    }
+
+    /// ``clipboardWriter`` as the environment hands it to controls, built once
+    /// per writer rather than once per frame.
+    private(set) lazy var clipboardAccess = ClipboardAccess(writer: clipboardWriter)
+
     /// App-wide drag-and-drop state (active drag + per-frame drop targets).
     let dragAndDropSession: DragAndDropSession
 

@@ -12,7 +12,9 @@
 /// the bargain `RenderLoop+Scene.swift` makes too; it is why
 /// `resolveStatusBarTooltip` is not private.
 extension RenderLoop {
-    /// Resolves this frame's tooltip into the status bar's rows, or clears them.
+    /// Resolves this frame's tooltip into the status bar's rows — or, with no
+    /// tooltip to show there, the line about the latest copy
+    /// (``ClipboardWriter/statusNote(atNanos:)``) — or clears them.
     ///
     /// The rows are wrapped HERE rather than by the bar, because the height the
     /// content area is given is `statusBar.height` and that has to already know
@@ -24,16 +26,20 @@ extension RenderLoop {
     /// from the CANDIDATE, not from the root environment — `tooltipStyle` is a
     /// subtree setting, so a panel asking for a popover inside an app that uses
     /// the bar is answered by the panel.
-    func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64) {
-        let tooltips = tuiContext.tooltipState
-        guard
-            let showing = tooltips.resolved(nowNanos: nowNanos),
-            showing.style == .statusBar
-        else {
-            statusBar.tooltipLines = []
+    func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64, scheduler: AnimationScheduler?) {
+        let width = statusBar.style.barContentWidth(terminalWidth)
+        if let showing = tuiContext.tooltipState.resolved(nowNanos: nowNanos), showing.style == .statusBar {
+            statusBar.tooltipLines = TextWrapping.wrap(showing.text, width: width)
             return
         }
-        statusBar.tooltipLines = TextWrapping.wrap(
-            showing.text, width: statusBar.style.barContentWidth(terminalWidth))
+        // The copy's line yields to a tooltip, which the user asked for, and
+        // comes back if it is still fresh when the tooltip goes. It asks for
+        // the frame that takes it away: nothing else would draw one.
+        if let note = tuiContext.clipboardWriter.statusNote(atNanos: UInt64(bitPattern: nowNanos)) {
+            statusBar.tooltipLines = TextWrapping.wrap(note.text, width: width)
+            scheduler?.requestWake("clipboard-note", at: Int64(bitPattern: note.expiresAtNanos))
+            return
+        }
+        statusBar.tooltipLines = []
     }
 }

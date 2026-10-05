@@ -226,6 +226,19 @@ public enum LocalizationKey {
         case clearSelection = "statusbar.clearSelection"
         case stopExtendingSelection = "statusbar.stopExtendingSelection"
 
+        // MARK: What became of a copy (`ClipboardWriter`)
+
+        /// On the clipboard: written here while the user is here, or sent to a
+        /// terminal that writes OSC 52 by default.
+        case copied = "statusbar.copied"
+        /// Sent by OSC 52 to a terminal that may not write it — a setting
+        /// decides, or tmux passes it on. No terminal acknowledges one.
+        case sentToTerminalClipboard = "statusbar.sentToTerminalClipboard"
+        /// No route reaches the user's clipboard.
+        case notCopiedNoClipboard = "statusbar.notCopiedNoClipboard"
+        /// This machine's clipboard helper ran and failed.
+        case notCopiedHelperFailed = "statusbar.notCopiedHelperFailed"
+
         // MARK: The menu pair
 
         // A verb and a noun rather than four whole phrases, because the pair is

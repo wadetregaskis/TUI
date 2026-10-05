@@ -248,6 +248,7 @@ extension EnvironmentValues {
         mouseEventDispatcher = context.mouseEventDispatcher
         dragAndDropSession = context.dragAndDropSession
         typedClipboard = context.typedClipboard
+        clipboardAccess = context.clipboardAccess
         tooltipState = context.tooltipState
         terminalImageStore = context.terminalImageStore
         renderCache = context.renderCache

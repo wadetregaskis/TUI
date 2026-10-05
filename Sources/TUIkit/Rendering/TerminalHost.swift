@@ -571,6 +571,16 @@ enum TerminalHost {
         return parseTmuxClients(output)
     }
 
+    /// The value of one of tmux's server options (`show-options -sv`), or
+    /// `nil` when not under tmux or tmux cannot be asked.
+    ///
+    /// A bounded subprocess, like ``probeTmuxClients()``: asked when something
+    /// happens that needs it — a copy needs `set-clipboard` — never per frame.
+    static func tmuxOption(_ name: String) -> String? {
+        guard isTmux, let output = runTmux(["show-options", "-sv", name]) else { return nil }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Runs one tmux command with a bounded wait, returning its stdout, or `nil`
     /// on any failure (tmux missing, non-zero exit, or the deadline passing).
     ///

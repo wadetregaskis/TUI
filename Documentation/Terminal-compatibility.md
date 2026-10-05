@@ -3,9 +3,9 @@
 The canonical record of how each terminal emulator behaves on every axis
 TUIkit cares about — input encodings (keys, mouse, trackpad) and output
 behaviour (cursor advance vs painted width, emoji handling, glyph cell
-coverage, colour depth, OSC 8 hyperlinks, graphics protocols) — plus the
-environment variables each one defines and the exact versions the observations
-were made against.
+coverage, colour depth, OSC 8 hyperlinks, OSC 52 clipboard writes, graphics
+protocols) — plus the environment variables each one defines and the exact
+versions the observations were made against.
 
 **Maintenance contract:** whenever anything new is observed or learned
 about any terminal's behaviour — a new quirk, a version that changes one,
@@ -4861,6 +4861,121 @@ off wrote 211 KB, the drag's frame count moving with its timing.
 | kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED (the pane's) | UNMEASURED | UNMEASURED |
 
+## OSC 52 clipboard writes — sent since 2026-10-05; tmux measured, the hosts NOT yet
+
+OSC 52 (`ESC ] 52 ; c ; <base64> ESC \`) asks the terminal to set the
+clipboard. The terminal acting on it runs on the user's machine, so it is the
+one route to the user's clipboard that crosses ssh. No terminal acknowledges a
+write, so whether one happened is known only from what a host is documented or
+measured to do.
+
+### What TUIkit does
+
+Every copy TUIkit makes — a text field's or editor's Ctrl-C and Ctrl-X, a
+`copyable` view's ⌘C — goes through one writer (`ClipboardWriter`), which
+takes ONE route per copy, in this order:
+
+1. **OSC 52, where the terminal writes it by default** (the table below,
+   `TerminalClient.clipboardWrites`). Over ssh too: that is the point.
+2. **This machine's clipboard helper, only on positive evidence that the user
+   is at this machine** (`ClipboardLocality`): no `SSH_CONNECTION`,
+   `SSH_CLIENT` or `SSH_TTY`; this process's parents reach the root without
+   passing `sshd` (or `sshd-session`), `mosh-server`, `dropbear`, `telnetd`,
+   `etserver`, `ttyd` or `gotty`; and inside tmux, at least one client is
+   attached and every client's parents pass the same test (the pane's own
+   chain ends at the tmux server, which says nothing of who is watching). A
+   chain that cannot be read to the root is not evidence. The helper is
+   `pbcopy` on macOS; on Linux `wl-copy` with `WAYLAND_DISPLAY`, then `xclip`
+   or `xsel` with `DISPLAY`, and none without a display.
+3. **OSC 52, where the terminal MAY write it**: iTerm2 (a setting decides),
+   tmux with `set-clipboard on`, and a terminal whose DA1 lists `52`.
+4. **Nothing**, said so.
+
+The status bar says what became of a copy for three seconds, in the row a
+status-bar tooltip uses: "Sent to the terminal's clipboard" for rung 3 — a
+hope, not a fact — "Not copied: no clipboard reachable from here" for rung 4,
+"Not copied: the clipboard helper failed" when the helper ran and failed. A
+text control's plain success says nothing, as a Mac's does not.
+
+**Never both routes.** The text-editing design study proposed writing both
+when both apply (§4.4). The owner's rule (2026-10-04) is that this machine's
+clipboard is written only when it is the user's; when it is, it is also the
+surer route, so a second write adds nothing.
+
+**The spelling** follows Ghostty's OSC 52 page, which is stricter than
+xterm's (`Documentation/Ghostty-VT-adoption.md`, C1):
+
+- the selector `c`, spelled out — an empty one means `c` to Ghostty and `s0`
+  to xterm;
+- one selector per sequence, which is all Ghostty takes;
+- unwrapped base64 (Foundation's default), and **never an empty or malformed
+  payload**: Ghostty clears the clipboard on a payload that is neither valid
+  base64 nor `?`. An empty copy sends nothing;
+- ST, as TUIkit's other OSCs;
+- never `?`: a read prompts the user on Ghostty by default and its reply
+  arrives in the input stream. Paste stays the terminal's own, through the
+  bracketed paste TUIkit already turns on.
+
+**Delivery.** A copy is made between frames, by a key; its OSC 52 is queued
+and written at the start of the next frame, with the image transmissions and
+outside the synchronized-output hold, and the writer asks for that frame. A
+copy still queued when the app quits is written on the way out. tmux gets the
+plain sequence, not DCS passthrough (`allow-passthrough` is off by default
+from 3.3).
+
+`TUIKIT_OSC52=1` makes every copy an OSC 52 to a terminal taken to honour it,
+for a host TUIkit does not know; `0` never sends one. An app can do the same
+with `TerminalClient.clipboardWriteSupport`.
+
+### What each host is documented to do
+
+| Host | Writes OSC 52 | Source | TUIkit's rung |
+|---|---|---|---|
+| Ghostty 1.3.1 | yes, by default (`clipboard-write = allow`) | its OSC 52 page and config reference | 1 |
+| kitty | yes, by default (`clipboard_control` allows writes) | its documentation | 1 (`TERM=xterm-kitty`, `KITTY_WINDOW_ID`) |
+| WezTerm | yes, by default | its documentation | 1 (`TERM_PROGRAM=WezTerm`, `TERM=wezterm`) |
+| foot | yes, by default | its documentation | 1 (`TERM=foot`, `foot-extra`) |
+| iTerm2 3.6 | only with Settings > General > Selection > "Applications in terminal may access clipboard", off by default | its documentation; its DA1 lists `52` | 3 |
+| tmux 3.7c | `external` (the default) ignores an application's write; `on` keeps it as a paste buffer and passes it on to clients whose features include `clipboard` | measured, below; the manual | 3 with `on`, else none |
+| Apple Terminal 455.1 | hypothesis: no | no OSC 52 anywhere in the app | none |
+| Warp | unknown | — | none |
+| unidentified | — | — | none, unless its DA1 lists `52` (rung 3) |
+
+DA1 can only ADD a host: Ghostty writes by default and its `ESC[?62;22c`
+lists no `52`. Whether iTerm2's `52` follows its setting is the one question
+that would make that setting detectable, and the probe asks it.
+
+Where TUIkit stands on locality inside tmux depends on tmux: the clients are
+asked for (`list-clients`) and `set-clipboard` read (`show-options -sv`) when
+a copy is made, two bounded subprocesses per copy and none per frame.
+
+### Measured: tmux 3.7c, 2026-10-05
+
+`clipboard_probe.py` in a private, detached server (`tmux -L`, no client
+attached, so nothing could reach an outer terminal): with `set-clipboard
+external` the write left no buffer; with `on` tmux kept it as its newest
+buffer (`show-buffer` returned the nonce). Whether tmux then passes the
+write to an attached client is the next row to measure.
+
+### To measure — `Tools/TerminalProbes/clipboard_probe.py`
+
+Run it inside each host, on the machine the host runs on, so the probe reads
+the clipboard back itself (`pbpaste`, `wl-paste`, `xclip`, `xsel`); over ssh,
+`--manual` asks for a paste instead. `--destructive` adds the empty and the
+malformed payloads. Run iTerm2 twice, with its setting on and off, and note
+whether DA1's `52` changes.
+
+| Host | Prints nothing | DA1 lists 52 | Write arrives | Largest copy | Empty payload | Malformed payload |
+|---|---|---|---|---|---|---|
+| Apple Terminal | UNMEASURED | UNMEASURED | UNMEASURED | — | — | — |
+| iTerm2, setting off | UNMEASURED | UNMEASURED | UNMEASURED | — | — | — |
+| iTerm2, setting on | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | documented: cleared |
+| Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| tmux 3.7c, `external` | yes | no (`ESC[?1;2;4c`, tmux's own) | no buffer | — | — | — |
+| tmux 3.7c, `on` | yes | no | buffer kept; the client UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+
 ## Inherited state: the defaults raw mode asserts — since 2026-10-05
 
 Modes outlive the program that set them. A killed `vim`, `less` or `htop`, or
@@ -5041,6 +5156,10 @@ K3).
   `TerminalInput.focusChanged`; `AppRunner.terminalFocusChanged` moves
   `ScenePhase` between `.active` and `.inactive`. See "Focus reporting
   (mode 1004)".
+- `ClipboardWriter` + `TerminalClient.clipboardWrites` + `ClipboardLocality` —
+  where a copy goes: OSC 52 to a host that writes it, this machine's
+  clipboard helper only when the user is at this machine, and the status
+  bar's line when neither reaches them. See "OSC 52 clipboard writes".
 - `KeyEvent.normalizingLegacyShiftedFunctionKeys()` +
   `Terminal.finalize` — Apple Terminal's shifted-function-key re-coding
   (F13…F20 read back as Shift+F5…F12), gated on `TerminalHost.isAppleTerminal`.

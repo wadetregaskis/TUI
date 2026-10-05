@@ -78,9 +78,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// (Ctrl-Y) — a single-slot kill ring, matching the macOS text system.
     private var killRing = ""
 
-    /// The clipboard Ctrl-C and Ctrl-X write. Injectable, as a field's is, so
-    /// a test never touches the real pasteboard; see ``ClipboardAccess``.
-    var clipboard: ClipboardAccess = .system
+    /// The clipboard Ctrl-C and Ctrl-X write: the one in the environment the
+    /// editor was created in, and kept, as a field's is. Injectable, so a test
+    /// never touches the real pasteboard; see ``ClipboardAccess``.
+    var clipboard: ClipboardAccess
 
     /// The text and caret before each key that changed the text, for Ctrl-Z.
     var undoHistory = TextUndoHistory<TextEditorPosition>()
@@ -93,10 +94,13 @@ final class TextEditorHandler: PersistedFocusable {
     /// to take out of ``undoManager`` — set each frame with it.
     var departedUndoSteps: DepartedUndoSteps?
 
-    init(focusID: String, text: Binding<String>, canBeFocused: Bool = true) {
+    init(
+        focusID: String, text: Binding<String>, canBeFocused: Bool = true, clipboard: ClipboardAccess = .system
+    ) {
         self.focusID = focusID
         self.text = text
         self.canBeFocused = canBeFocused
+        self.clipboard = clipboard
     }
 
     /// An editor that leaves the screen takes its steps out of the app's undo
