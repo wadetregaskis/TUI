@@ -161,7 +161,7 @@ struct CompositeMembersTests {
     @Test("A loop of rows whose body is several views is lazy over them in a lazy stack")
     func loopOfComposites() {
         let loop = ForEach(0..<100_000, id: \.self) { Pair(tag: "\($0)") }
-        #expect(loop.rowShape(keepingSectionsWhole: false) == .fixed(2))
+        #expect(loop.rowShape(sectionWholeness: .apart) == .fixed(2))
         let drawn = lines(
             ScrollView { LazyVStack(alignment: .leading, spacing: 0) { loop } }.frame(height: 4), height: 4)
         #expect(Array(drawn.prefix(3)).map { String($0.prefix(2)) } == ["0a", "0b", "1a"], "\(drawn)")

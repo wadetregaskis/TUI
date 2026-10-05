@@ -28,8 +28,9 @@ as its own children. A lazy stack is the exception, in two ways:
   draw a header that has scrolled out of the band while its rows are still on
   screen.
 - **Unpinned**, it keeps the sections a `ForEach` makes as its rows whole —
-  `ForEach(groups) { Section … }`, Apple's own shape — and takes any other
-  apart (`SectionWholeness.loopRows`). Taken apart, such a loop's rows make a
+  `ForEach(groups) { Section … }`, Apple's own shape, and `ForEach(groups) {
+  GroupView(group: $0) }` where `GroupView`'s body is the section — and takes
+  any other apart (`SectionWholeness.loopRows`). Taken apart, such a loop's rows make a
   number of children only each row knows (B15), so every row of every section
   was built on every walk that asked the stack for its children; kept whole,
   the stack windows over the sections and builds only those it draws, as it did

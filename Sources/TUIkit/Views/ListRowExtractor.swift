@@ -172,9 +172,10 @@ protocol WindowedListRowExtractor {
     ///
     /// Answered from the row TYPE, never by building a row, so a 50,000-row
     /// flat `List` pays one `is` check and keeps its windowed path — the same
-    /// trick `viewTypeCarriesBadge(_:)` plays for `.badge(_:)`. A `Section`
-    /// reached only through a `Group`, an `if`/`else` or a view of the app's
-    /// own is therefore not seen, exactly as a badge under one is not.
+    /// trick `viewTypeCarriesBadge(_:)` plays for `.badge(_:)`. A view of the
+    /// app's own whose body is a `Section` is seen, from its types
+    /// (`isSectionRowType(_:)`); a `Section` reached only through a `Group`
+    /// or an `if`/`else` is not, exactly as a badge under one is not.
     var listRowsAreSections: Bool { get }
 
     /// How many list rows each element makes — one for a row of one view, the
@@ -330,7 +331,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     /// The row type's shape in a walk that keeps sections whole, as a list's
     /// does: a section row is one (and read as a section), a row of several
     /// views is that many, and a row whose count only it knows is `nil`.
-    var listRowsPerElement: Int? { rowShape(keepingSectionsWhole: true).childrenPerElement }
+    var listRowsPerElement: Int? { rowShape(sectionWholeness: .all).childrenPerElement }
 
     // `RowID`, not `ID` — `ForEach`'s own `ID` generic parameter is in scope here.
     // Resolves one row's id lazily (the windowed `List` asks only for the visible
@@ -347,8 +348,12 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
         (data as? any Equatable).map { AnyEquatableBox($0) }
     }
 
-    // A static property of the row type — no element is built to answer it.
-    var listRowsAreSections: Bool { Content.self is any SectionRowExtractor.Type }
+    // A static property of the row type — no element is built to answer it —
+    // and a row of the app's own whose body is a section is one too
+    // (`isSectionRowType(_:)`), handed over as that section by the walk.
+    var listRowsAreSections: Bool {
+        Content.self is any SectionRowExtractor.Type || isSectionRowType(Content.self)
+    }
 
     func makeListRowContent(at index: Int, rowsPerElement: Int, context: RenderContext) -> LazyListRowContent {
         // One of a row of several views: a list row of its own, as SwiftUI's
@@ -586,7 +591,7 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// B15), or as many as each element's row makes — placed by their keys,
     /// which every one of them carries — in order; see ``FlattenedRowIDs``.
     func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
-        let shape = rowShape(keepingSectionsWhole: sectionsWhole)
+        let shape = rowShape(sectionWholeness: sectionsWhole ? .all : .apart)
         guard shape != .none else { return }
         runs.append(.loop(self, rowsPerElement: shape.childrenPerElement))
     }

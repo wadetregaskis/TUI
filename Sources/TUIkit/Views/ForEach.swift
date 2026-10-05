@@ -228,7 +228,7 @@ extension ForEach: ChildViewProvider where Content: View {
     /// nearly every row — is one child, built as it always was.
     public func childViews(context: RenderContext) -> [ChildView] {
         let data = data(in: context)
-        switch rowShape(keepingSectionsWhole: context.keepsLoopedSectionsWhole) {
+        switch rowShape(sectionWholeness: context.sectionWholeness) {
         case .single: return data.map(makeChild(for:))
         case .none: return []
         case .fixed, .varying: return data.flatMap { rowMembers(of: $0, context: context) }
@@ -348,7 +348,7 @@ extension ForEach: LazyChildViewProvider where Content: View {
     public func childViewCollection(context: RenderContext) -> ChildViewCollection {
         let data = self.data(in: context)
         let loop = self
-        switch rowShape(keepingSectionsWhole: context.keepsLoopedSectionsWhole) {
+        switch rowShape(sectionWholeness: context.sectionWholeness) {
         case .single: break
         case .none: return ChildViewCollection(eager: [])
         case .fixed(let perElement):

@@ -45,21 +45,32 @@ extension ForEach where Content: View {
     /// The shape of this loop's rows, from the row type alone.
     ///
     /// A row type that is no provider of children — a `Text`, a stack, a view
-    /// of the app's own — is answered by one cached conformance test, and its
-    /// rows take the path they always took: the loop's hot path is untouched
-    /// for everything but rows of several views.
+    /// of the app's own whose body is one view — is answered by one cached
+    /// conformance test, and its rows take the path they always took: the
+    /// loop's hot path is untouched for everything but rows of several views.
     ///
-    /// - Parameter keepingSectionsWhole: Whether the walk keeps a loop's
-    ///   section rows whole (`RenderContext.keepsLoopedSectionsWhole`): a row
-    ///   that is a section is then one child, as it always was in a `List`.
-    func rowShape(keepingSectionsWhole: Bool) -> ForEachRowShape {
+    /// - Parameter sectionWholeness: Which sections the walk keeps whole
+    ///   (`RenderContext.sectionWholeness`). One that keeps a loop's section
+    ///   rows whole has a row that is a section be one child, as it always
+    ///   was in a `List` — and so is a row of the app's own whose body is one
+    ///   (``isSectionRowType(_:)``): drawn whole where the walk keeps only a
+    ///   loop's sections whole (an unpinned lazy stack, whose section finds
+    ///   it is the stack's own by where it draws), and handed over as the
+    ///   section its body is where the walk keeps every section whole (a
+    ///   `List`, the section APIs, a pinned lazy stack, which look for the
+    ///   section among their children) — one child an element either way, so
+    ///   a lazy stack builds only the sections it draws.
+    func rowShape(sectionWholeness: SectionWholeness) -> ForEachRowShape {
         // A row of the app's own type is taken apart only when its body hands
         // over children (decisions D1S, B-D1S-6) — the static witness, a few
         // calls down its body types, and no cast for a body of one view.
         guard Content.self is any ChildViewProvider.Type || Content.self == EmptyView.self
             || (Content._handsOverChildren && isCompositeHandingOverChildren(Content.self))
         else { return .single }
-        if keepingSectionsWhole, Content.self is any SectionPartsProviding.Type { return .single }
+        if sectionWholeness != .apart {
+            if Content.self is any SectionPartsProviding.Type { return .single }
+            if isSectionRowType(Content.self) { return sectionWholeness == .all ? .fixed(1) : .single }
+        }
         switch staticRowMemberCount(Content.self) {
         case 1: return .single
         case 0: return .none
@@ -119,4 +130,28 @@ extension ForEach where Content: View {
         return ChildView(EmptyView(), childIndex: index)
             .pinningIdentity(to: rowScope.identity).keyedAsMember(ofRowKeyed: key)
     }
+}
+
+// MARK: - A Section of the App's Own
+
+/// Whether `type` is a view of the app's own whose body is a section — through
+/// any number of such views, and under modifiers that reach the section's
+/// parts — so that a loop of them is a loop of sections
+/// (``ForEach/rowShape(sectionWholeness:)``).
+///
+/// From the types alone: no body is evaluated to answer.
+@MainActor
+func isSectionRowType<V: View>(_ type: V.Type) -> Bool {
+    var depth = 0
+    return isSectionRowType(type, depth: &depth)
+}
+
+/// ``isSectionRowType(_:)``, a body deeper each step, and `false` past a depth
+/// no written view nests its bodies to.
+@MainActor
+private func isSectionRowType<V: View>(_ type: V.Type, depth: inout Int) -> Bool {
+    guard isCompositeHandingOverChildren(type), depth < 32 else { return false }
+    if V.Body.self is any SectionPartsProviding.Type { return true }
+    depth += 1
+    return isSectionRowType(V.Body.self, depth: &depth)
 }

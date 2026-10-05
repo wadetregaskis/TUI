@@ -113,7 +113,7 @@ struct AnyViewMembersTests {
     @Test("As a ForEach's row an AnyView stays one child, keeping the loop's row memo and laziness")
     func loopRowsStayWhole() {
         let loop = ForEach(0..<3, id: \.self) { _ in AnyView(Group { Text("a"); Text("b") }) }
-        #expect(loop.rowShape(keepingSectionsWhole: false) == .single)
+        #expect(loop.rowShape(sectionWholeness: .apart) == .single)
         #expect(resolveChildViews(from: loop, context: makeRenderContext(width: 10, height: 4)).count == 3)
     }
 }
