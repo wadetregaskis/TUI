@@ -282,11 +282,14 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let width = context.fillingWidth(proposal: proposal)
         // A wrapping editor is as tall as its rows at the width it is given.
+        // Given no width — the ideal-width ask, whose answer is 0 as SwiftUI's
+        // editor's is — it is as tall as its lines: wrapping at one cell would
+        // lay out a row per character to answer a question about nothing.
         let layout = layout(context: context)
         let contentHeight = max(
             1,
-            context.environment.textEditorWrapsLines
-                ? layout.wrapped(width: max(1, width), tabWidth: context.environment.tabWidth).rowCount
+            context.environment.textEditorWrapsLines && width > 0
+                ? layout.wrapped(width: width, tabWidth: context.environment.tabWidth).rowCount
                 : layout.lines.count)
         let height = proposal.height ?? min(contentHeight, max(1, context.availableHeight))
         return ViewSize(width: width, height: height, isWidthFlexible: true, isHeightFlexible: true)

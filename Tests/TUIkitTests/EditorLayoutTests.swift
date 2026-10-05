@@ -137,6 +137,23 @@ struct EditorLayoutTests {
         #expect(layout.wrapsMade == 2)
     }
 
+    /// Asked its ideal width, a filling view answers 0, as SwiftUI's editor's
+    /// does; wrapping at one cell to answer it laid out a row per character
+    /// and pushed a drawn width out of the cache.
+    @Test("Asked its ideal width, a wrapping editor wraps nothing")
+    func idealWidthAskWrapsNothing() throws {
+        let frames = Frames(width: 20, height: 6)
+        let editor = TextEditor(text: .constant(Self.longDocument))
+        _ = frames.pass { renderToBuffer(editor, context: frames.context) }
+        let layout = try #require(frames.handler).layout()
+        let made = layout.wrapsMade
+        let size = frames.pass {
+            measureChild(editor, proposal: .unspecified, context: frames.context.askingIdealWidth())
+        }
+        #expect(size.width == 0)
+        #expect(layout.wrapsMade == made)
+    }
+
     @Test("An edit hands its lines over with its text")
     func editKeepsItsLines() {
         let box = Box("ab\ncd")
