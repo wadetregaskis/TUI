@@ -65,12 +65,23 @@ struct MenuScrollingRowWidthTests {
     /// Which column `hint` was drawn in on the row carrying `label`, or nil if
     /// that row does not carry it at all.
     ///
-    /// Searched from the END, because the hint lives at the row's trailing edge
-    /// and the same letter may well appear in the label — in upper case, as a
-    /// bare letter key is drawn (`KeySymbols`), so "Rename"'s own R does.
+    /// Searched only AFTER the label, because the hint lives at the row's
+    /// trailing edge and the same letter is in the label — in upper case, as a
+    /// bare letter key is drawn (`KeySymbols`), every one of these labels
+    /// starts with its own hint ("Rename"'s R). Searched from the label's
+    /// start, a row whose hint was clipped still answered with the label's
+    /// letter, and "the row kept its hint" passed with every hint gone.
     private func hintColumn(_ hint: Character, on label: String, in lines: [String]) -> Int? {
         guard let row = lines.first(where: { $0.contains(label) }) else { return nil }
-        return Array(row).lastIndex(of: hint)
+        let cells = Array(row)
+        let labelCells = Array(label)
+        guard
+            let labelStart = cells.indices.first(where: {
+                cells[$0...].starts(with: labelCells)
+            })
+        else { return nil }
+        let afterLabel = labelStart + labelCells.count
+        return cells[afterLabel...].lastIndex(of: hint)
     }
 
     /// The hugging control: all six rows fit, and each hint is drawn in the
@@ -144,9 +155,12 @@ struct MenuScrollingRowWidthTests {
         #expect(
             texted.contains { $0.contains("lines below") },
             "the text indicator is what this menu scrolls with: \(texted)")
+        // Required, not compared as optionals: two menus that both lost the
+        // hint would agree on `nil`.
+        let textedColumn = try #require(
+            hintColumn("R", on: "Rename", in: texted), "the hint is drawn at all: \(texted)")
         #expect(
-            hintColumn("R", on: "Rename", in: texted)
-                == hintColumn("R", on: "Rename", in: hugging),
+            textedColumn == hintColumn("R", on: "Rename", in: hugging),
             "the hint stays where the hugging arm puts it: \(texted)")
     }
 }
