@@ -54,6 +54,10 @@ private struct _TabSidebarList: View {
     /// own follows.
     @Environment(\.springLoadingBehavior) private var springLoading
 
+    /// Where the rows file their tabs' context menus for the sidebar's
+    /// Shift+F10.
+    @State private var menuOpeners = _TabMenuOpeners()
+
     /// Consecutive tabs of one section — or of none — with its header.
     private struct Run: Identifiable {
         /// The run's place among the runs.
@@ -98,6 +102,19 @@ private struct _TabSidebarList: View {
     }
 
     var body: some View {
+        let openers = menuOpeners
+        let selection = self.selection
+        // Shift+F10 opens the selected tab's context menu while the list has
+        // the focus — once the list has let the key go, as a command is heard.
+        return FocusPathModifier(content: list, stage: .command) { _ in
+            { event in
+                guard event.key == .f10, event.shift else { return false }
+                return openers.open(selection.wrappedValue)
+            }
+        }
+    }
+
+    private var list: some View {
         List(selection: rowSelection) {
             ForEach(runs) { run in
                 Section {
@@ -123,16 +140,30 @@ private struct _TabSidebarList: View {
     ///
     /// A drag held still over the row selects its tab, as a pause over a
     /// strip's chip does.
+    ///
+    /// Its context menu, popovers, drag and drops hang from the row — the
+    /// label, as the list draws it (`_TabInteractionsHost`).
     private func row(_ index: Int) -> some View {
         let tab = tabs[index]
         let badge: String? = tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText
         let selection = self.selection
         return _SpringLoadedRegion(
-            content: label(of: tab), isEnabled: tab.springLoads(inheriting: springLoading),
+            content: interactive(label(of: tab), tab), isEnabled: tab.springLoads(inheriting: springLoading),
             activate: { selection.wrappedValue = tab.value }
         )
         .selectionDisabled(tab.isDisabled)
         .badge(badge)
+    }
+
+    /// `label` with the tab's interactions, where it has any.
+    @ViewBuilder
+    private func interactive(_ label: some View, _ tab: _RawTab) -> some View {
+        if tab.interactions.isEmpty {
+            label
+        } else {
+            _TabInteractionsHost(
+                content: label, traits: tab.interactions, value: tab.value, title: tab.title, openers: menuOpeners)
+        }
     }
 
     /// A tab's label in the sidebar: the app's own label view, or the title.

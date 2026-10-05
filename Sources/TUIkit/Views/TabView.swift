@@ -136,7 +136,7 @@ extension TabView where SelectionValue == Never {
 
 // MARK: - Core
 
-private enum TabViewStateIndex {
+enum TabViewStateIndex {
     static let focusID = 0
     static let handler = 1
     /// Per-tab measured content sizes (``TabSizeCache``), so the panel can size
@@ -719,6 +719,9 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             // above does.
             registerSpringLoading(forTab: region.index, handlerID: handlerID, context: context)
         }
+        // Each chip's own context menu, popovers, drag and drops, in front of
+        // the click regions above.
+        attachTabInteractions(to: &buffer, regions: regions, context: context)
     }
 
     /// Renders the `.bordered` style: folder tabs sitting on a line-drawn content
@@ -1125,7 +1128,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     }
 
     /// The persistent "which tab is the pointer over" box.
-    private func hoveredTabBox(context: RenderContext) -> StateBox<Int?> {
+    func hoveredTabBox(context: RenderContext) -> StateBox<Int?> {
         context.stateStorage!.storage(
             for: StateStorage.StateKey(
                 identity: context.identity, propertyIndex: StateIndex.hoveredTab),

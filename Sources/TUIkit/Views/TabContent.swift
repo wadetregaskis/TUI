@@ -112,6 +112,10 @@ struct _RawTab {
     /// The identifier a ``TabViewCustomization`` knows the tab by, or `nil`.
     var customizationID: String?
 
+    /// What the tab does besides being selected: its context menu, popovers,
+    /// drag and drops (`TabContentInteractions.swift`).
+    var interactions = _TabInteractionTraits()
+
     /// Whether a drag paused over the tab selects it: the tab's own behavior
     /// if it has one, else `inherited`, the tab view's environment's — a tab
     /// spring-loads by default, as SwiftUI's tab views do — and never a

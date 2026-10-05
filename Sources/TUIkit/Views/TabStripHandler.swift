@@ -23,6 +23,10 @@ final class TabStripHandler: PersistedFocusable {
     var rows: [[Int]] = []
     var centers: [Int: Int] = [:]
 
+    /// Where Shift+F10 finds the selected tab's context menu: each chip with
+    /// one files it here as it draws.
+    let menuOpeners = _TabMenuOpeners()
+
     init(focusID: String, selection: Binding<AnyHashable>, values: [AnyHashable], canBeFocused: Bool = true) {
         self.focusID = focusID
         self.selection = selection
@@ -70,6 +74,15 @@ final class TabStripHandler: PersistedFocusable {
         case .right: move(by: 1); return true
         case .up: return moveVertically(-1)
         case .down: return moveVertically(1)
+        case .f10 where event.shift:
+            // The selected tab's context menu, under its chip — the keyboard's
+            // way to one, as Shift+F10 is to every `.contextMenu`.
+            // `AnyHashable` is not `Sendable`, but this never leaves the thread
+            // it arrived on: `assumeIsolated` runs the closure here,
+            // synchronously, as `TableOutline` does.
+            nonisolated(unsafe) let value = selection.wrappedValue
+            let openers = menuOpeners
+            return MainActor.assumeIsolated { openers.open(value) }
         default: return false
         }
     }
