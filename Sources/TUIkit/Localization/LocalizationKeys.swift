@@ -145,6 +145,10 @@ public enum LocalizationKey {
         case open = "menu.open"
         case save = "menu.save"
         case exit = "menu.exit"
+        /// The Undo command, before the action's name.
+        case undo = "menu.undo"
+        /// The Redo command, before the action's name.
+        case redo = "menu.redo"
     }
 
     /// Dialog titles and messages
@@ -185,6 +189,10 @@ public enum LocalizationKey {
         case quit = "statusbar.quit"
         case appearance = "statusbar.appearance"
         case theme = "statusbar.theme"
+        /// The app's undo manager's undo, while it has a step to undo.
+        case undo = "statusbar.undo"
+        /// The app's undo manager's redo, while it has a step to redo.
+        case redo = "statusbar.redo"
 
         // MARK: What Return does to the focused control
 
