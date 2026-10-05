@@ -78,6 +78,24 @@ struct KeyboardProtocolNegotiationTests {
         #expect(terminal.keyboardEnhancement == [.disambiguateEscapeCodes, .reportEventTypes, .reportAlternateKeys])
     }
 
+    @Test("A second answer that misses the window is taken as the push, so keys still decode", arguments: [
+        ["\u{1B}[?0u\u{1B}[?62;22c"],
+        ["\u{1B}[?0u\u{1B}[?62;22c", "\u{1B}[?15u\u{1B}[?62;22c"],
+    ])
+    func lateSecondAnswer(answered: [String]) {
+        let (terminal, script) = makeTerminal(reads: answered)
+        terminal.negotiateKeyboardEnhancement(timeout: 0.05)
+        let pushed = terminal.negotiatedKeyboardFlags?.pushed
+        #expect(pushed != nil && terminal.keyboardFlagsPushed)
+        #expect(terminal.keyboardEnhancement == pushed, "read in the grammar of what is on the terminal's stack")
+        // The late answer turns up as input, and then a key in the protocol's
+        // encoding: Return, which a legacy reading drops.
+        script.reads.append(Array("\u{1B}[?31u\u{1B}[?62;22c\u{1B}[13u".utf8))
+        var events: [TerminalInput] = []
+        while let event = terminal.readEvent() { events.append(event) }
+        #expect(events == [.key(KeyEvent(key: .enter))])
+    }
+
     @Test("A pop is owed once, and a resume pushes the same flags without asking")
     func popAndRepush() {
         let (terminal, script) = makeTerminal(reads: ["\u{1B}[?0u" + Self.fence, "\u{1B}[?31u" + Self.fence])

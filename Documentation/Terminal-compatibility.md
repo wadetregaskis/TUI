@@ -4235,7 +4235,14 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
 - **Pushes** `CSI > 31 u` where it answered, and asks again: a terminal may
   take only some flags, and the second answer is what TUIkit reads keys by. If
   it took flag 8 without flag 16, the push is replaced by one without 8 (see
-  the flags below). Two round trips in all.
+  the flags below). Two round trips in all. **A second answer that misses the
+  window** (0.5 s; a slow ssh link) is taken as the push granted, since the
+  terminal that answered the first question now encodes keys by the push:
+  read as legacy bytes, Return, `q` and Ctrl-C would all be dropped and the app
+  could not be typed at or quit (found in review, 2026-10-04). The protocol's
+  grammar decodes a key whichever flags were taken, so the only cost of the
+  guess is `\.keyboardReporting` claiming what was asked for; the late answer
+  is dropped as input, as any reply is.
 - **Pops** with `CSI < u` on quit, on Ctrl-Z, and on a fatal signal (a trap, a
   bad access, `abort`, `SIGQUIT`), always before leaving the alternate screen;
   **pushes again** on resume without asking. The specification keeps a separate

@@ -151,15 +151,30 @@ extension Terminal {
     /// The negotiation behind ``negotiateKeyboardProtocol(timeout:)``, without
     /// its guards, so a test can run it through ``readSource`` and
     /// ``exchangeTransport``.
+    ///
+    /// ## An answer after the push that does not come
+    ///
+    /// The terminal answered the first question, so it speaks the protocol,
+    /// and the push has been sent: from here on the terminal encodes keys by
+    /// whatever it took of it. An answer to the question after the push that
+    /// misses the window (a hiccup over ssh) says nothing about what it took,
+    /// and reading keys as legacy bytes then would be the one wrong guess that
+    /// costs everything — Return, `q` and Ctrl-C all arrive as `CSI … u`, which
+    /// the legacy parser drops, and the app can be neither typed at nor quit.
+    /// So a missing answer is taken as the push: keys are read in the
+    /// protocol's grammar, which decodes a key whichever enhancements the
+    /// terminal took, and `\.keyboardReporting` claims what was asked for.
+    /// The late answer arrives as input afterwards, and the parser drops it as
+    /// it drops any reply.
     func negotiateKeyboardEnhancement(timeout: Double) {
         guard askKeyboardFlags(timeout: timeout) != nil else { return }
         var pushed = KittyKeyboardFlags.requested
         sendToTerminal(KeyboardProtocolQuery.push(pushed))
-        var granted = askKeyboardFlags(timeout: timeout) ?? []
+        var granted = askKeyboardFlags(timeout: timeout) ?? pushed
         if granted.contains(.reportAllKeysAsEscapeCodes), !granted.contains(.reportAssociatedText) {
             pushed = granted.subtracting(.reportAllKeysAsEscapeCodes)
             sendToTerminal(KeyboardProtocolQuery.pop + KeyboardProtocolQuery.push(pushed))
-            granted = askKeyboardFlags(timeout: timeout) ?? []
+            granted = askKeyboardFlags(timeout: timeout) ?? pushed
         }
         negotiatedKeyboardFlags = (pushed: pushed, granted: granted.intersection(pushed))
         noteKeyboardFlagsPushed()
