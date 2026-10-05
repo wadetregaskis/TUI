@@ -194,11 +194,14 @@ public struct _SymbolIcon: View {
 
     @Environment(\.symbolVariants) private var variants
 
-    /// The pulse or breathe a `symbolEffect` above asks of this glyph
-    /// (decisions A35); `nil` almost everywhere.
-    @Environment(\.symbolGlyphEffect) private var effect
+    #if canImport(Symbols)
+        /// The pulse or breathe a `symbolEffect` above asks of this glyph
+        /// (decisions A35); `nil` almost everywhere. Only where the Symbols
+        /// framework is, as the effects are: elsewhere nothing can set it, and
+        /// an icon reads nothing more than it did before them.
+        @Environment(\.symbolGlyphEffect) private var effect
+    #endif
 
-    @ViewBuilder
     public var body: some View {
         // Nothing at all where the symbol would not really draw. ``Label`` never
         // reaches this — it drops the icon *and* its gap up front — but
@@ -207,11 +210,15 @@ public struct _SymbolIcon: View {
         // base name, as ``Label`` asks it: the variant chooses the cut, not
         // whether there is a symbol.
         let glyph = SFSymbol.canRender(named: name) ? Self.glyph(for: name, variants: variants) : ""
-        if let effect, !glyph.isEmpty {
-            _SymbolEffectGlyph(glyph: glyph, effect: effect)
-        } else {
-            Text(verbatim: glyph)
-        }
+        #if canImport(Symbols)
+            // One view whether or not an effect is set, not an `if`: a
+            // conditional records its branch and allocates a branch identity
+            // on every render, for every icon, to serve the rare one with an
+            // effect. The glyph view draws a plain `Text` when there is none.
+            return _SymbolEffectGlyph(glyph: glyph, effect: glyph.isEmpty ? nil : effect)
+        #else
+            return Text(verbatim: glyph)
+        #endif
     }
 
     /// The glyph for `name` under `variants`, falling back to the base symbol.
@@ -234,6 +241,8 @@ public struct _SymbolIcon: View {
 extension _SymbolIcon: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _variants.resolveEnvironment(environment)
-        _effect.resolveEnvironment(environment)
+        #if canImport(Symbols)
+            _effect.resolveEnvironment(environment)
+        #endif
     }
 }

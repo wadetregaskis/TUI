@@ -109,6 +109,19 @@ struct SymbolVariantsTests {
         #expect(_SymbolIcon.glyph(for: "definitely.not.a.symbol", variants: .fill).isEmpty)
     }
 
+    /// Decisions A35's cost, kept out of the icons that have no effect: a
+    /// conditional body records its branch and allocates a branch identity on
+    /// every render of every icon. One view on macOS, where the symbol effects
+    /// are, and the plain `Text` it always was elsewhere.
+    @Test("An SF Symbol icon's body is one view, not a conditional")
+    func anIconIsOneView() {
+        #if canImport(Symbols)
+            #expect(_SymbolIcon.Body.self == _SymbolEffectGlyph.self)
+        #else
+            #expect(_SymbolIcon.Body.self == Text.self)
+        #endif
+    }
+
     // MARK: - Cascade
 
     /// The reason it is an environment value: one modifier on a container
