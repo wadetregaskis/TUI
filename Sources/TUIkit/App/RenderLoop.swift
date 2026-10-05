@@ -803,6 +803,13 @@ extension RenderLoop {
         diffWriter.restoreDefaultStyling(on: terminal)
     }
 
+    /// Forgets what styling the terminal is in, because something other than
+    /// the diff writer has drawn on it: the frame dump's notice. The next
+    /// frame then states its styling rather than carrying it over.
+    func forgetTerminalStyling() {
+        diffWriter.forgetTerminalStyling()
+    }
+
     func invalidateDiffCache() {
         diffWriter.invalidate()
         // A SIGWINCH is also our signal that the tmux CLIENT may have changed —

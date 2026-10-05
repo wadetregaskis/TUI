@@ -782,6 +782,8 @@ extension AppRunner {
                     renderer.invalidateDiffCache()
                     renderOutsidePacer(renderer: renderer, cursorTimer: cursorTimer)
                     terminal.dumpLastFrame()
+                    // The notice went out behind the diff writer's back.
+                    renderer.forgetTerminalStyling()
                 }
                 if inputHandler.handle(keyEvent) {
                     appState.setNeedsRender()

@@ -651,31 +651,6 @@ extension Terminal {
         flushBuffer()
     }
 
-    /// Writes the raw ANSI bytes of the last completed frame to a
-    /// date-stamped `tuikit-frame (…).ansi` in the working directory.
-    ///
-    /// Triggered by the backtick key — only when the app was launched with
-    /// `TUIKIT_DEBUG_FRAME_DUMP=1` (see the run loop's key handling). The file
-    /// can be opened in a hex viewer or piped through `cat` in another
-    /// terminal to inspect the exact sequences sent for a given frame.
-    func dumpLastFrame() {
-        guard !lastFrameData.isEmpty else {
-            writeImmediate("\u{1B}[s\u{1B}[1;1H\u{1B}[7m[TUIkit] No frame data to dump\u{1B}[0m\u{1B}[u")
-            return
-        }
-
-        let url = URL(fileURLWithPath: Self.frameDumpFilename(for: Date()))
-
-        do {
-            try Data(lastFrameData).write(to: url)
-            writeImmediate("\u{1B}[s\u{1B}[1;1H\u{1B}[7mFrame dumped → \(url.path)\u{1B}[0m\u{1B}[u")
-        } catch {
-            // Show the error on-screen rather than crashing (a crash would leave
-            // the terminal in raw-mode / alternate-screen).
-            writeImmediate("\u{1B}[s\u{1B}[1;1H\u{1B}[7m[TUIkit] Dump failed: \(error)\u{1B}[0m\u{1B}[u")
-        }
-    }
-
     /// Writes a string to the terminal.
     ///
     /// When frame buffering is active (between ``beginFrame()`` and

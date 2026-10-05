@@ -3246,6 +3246,15 @@ changes nothing seen today. The card that would show it is the graphics probe
 re-run on Ghostty and Apple Terminal, expecting nothing printed
 (`Documentation/Ghostty-VT-adoption.md`, K6).
 
+The frame dump (`TUIKIT_DEBUG_FRAME_DUMP=1`, the backtick key) made the same
+swap later the same day for the notice it draws over the frame's top-left
+corner. That one mattered more than cosmetically: the diff writer carries its
+styling from one frame to the next, so a restore that left SGR reset by the
+notice's own `ESC[0m` drew the next frame's carried styling wrong. DECRC
+restores it, and the run loop also tells the writer to forget what styling
+the terminal is in, so the next frame states it afresh whatever the host's
+DECRC does. `TerminalOutputTests` pins the notice's bytes.
+
 ### What each host advertises
 
 | Host | version | Sixel in DA1 | Kitty `a=q` | Kitty Unicode placeholder |

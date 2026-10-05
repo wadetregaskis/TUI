@@ -823,8 +823,9 @@ extension FrameDiffWriter {
     /// Forgets what the terminal is wearing, because something that is not this
     /// writer has written to it.
     ///
-    /// The one caller is ``ViewRenderer``, which flushes styled lines straight
-    /// to the terminal for a one-off render outside the run loop.
+    /// ``ViewRenderer`` calls it after flushing styled lines straight to the
+    /// terminal for a one-off render outside the run loop, and the run loop
+    /// after the frame dump draws its notice over the frame.
     func forgetTerminalStyling() {
         terminalStyle = nil
     }
