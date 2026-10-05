@@ -2,7 +2,7 @@
 //  ForEachRowShapeAskTests.swift
 //
 //  How a `ForEach`'s rows map onto a list's rows is a property of the row
-//  TYPE (`ForEach.rowShape(keepingSectionsWhole:)`, decisions B15), so a list
+//  TYPE (`ForEach.rowShape(sectionWholeness:)`, decisions B15), so a list
 //  asks it once for all the rows it reads — not once per row, which cost a
 //  conformance test (and, for a provider row, its static count) on every row
 //  of every section's loop, every frame.
@@ -57,5 +57,21 @@ struct ForEachRowShapeAskTests {
             List { ForEach(0..<50, id: \.self) { CountedRow(label: "row \($0)") } }.frame(height: 20),
             context: makeRenderContext(width: 30, height: 20))
         #expect(ShapeAsks.count < 10, "asked \(ShapeAsks.count) times")
+    }
+
+    @Test("A Section's loop of EmptyView rows makes no rows, as the loop's row count says")
+    func emptyRows() {
+        let loop = ForEach(0..<4, id: \.self) { _ in EmptyView() }
+        #expect(loop.listRowCount == 0)
+        let section = Section { loop }
+        let extracted: SectionContentRows<Int> = section.extractSectionContentRows(
+            context: makeRenderContext(width: 30, height: 8))
+        #expect(extracted.rows.isEmpty, "\(extracted.rows.count) rows")
+        let fixture = ListSectionEditingFixture()
+        fixture.render(
+            List(selection: .constant(String?.none)) { Section("S") { ForEach(["a", "b"], id: \.self) { _ in EmptyView() } } }
+                .frame(height: 8))
+        // The header alone: no invisible row for the cursor to stop on.
+        #expect(fixture.handler?.itemCount == 1)
     }
 }

@@ -303,8 +303,12 @@ extension ConditionalView: ListRowsPassThrough {
 extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
     func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         // The row type's shape, once for every row: asked of each, it was a
-        // conformance test per row of every section's loop, every frame.
-        let perElement = max(1, listRowsPerElement ?? 1)
+        // conformance test per row of every section's loop, every frame. A
+        // loop of `EmptyView` rows makes none (`.none`), as `listRowCount`
+        // counts it: an empty row here was an invisible one the cursor
+        // stopped on, and Space selected.
+        let perElement = listRowsPerElement ?? 1
+        guard perElement > 0 else { return [] }
         return (0..<data.count * perElement).map { index -> ListRow<RowID> in
             // Resolve the row's selection ID up front — it's cheap (a key-path
             // read or the index) and the scroll / selection handler needs it for
