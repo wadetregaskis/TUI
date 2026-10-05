@@ -159,3 +159,38 @@ it — what `listRowsBody` does for lists, for every container. It moves the
 identity of every child of such a view, and it is on the hottest path there
 is (every composite child of every stack), so its gate must be a static
 witness. Two days with the measurement.
+
+### B-D1S-7. A stack around a loop over subviews asks it for guides it may not have
+
+*`ForEach(subviews:content:)`, `Group(subviews:transform:)`, `Subview`,
+`HStack`, `VStack`, `ZStack`, `Layout`*
+
+A proxy lays out as its member (B17), and a member may carry an alignment
+guide; `Subview` is one type for every member, so its static witness
+(`_providesAlignmentGuide`) says it MAY, and every container type holding a
+proxy says so too, up the tree. A `ChildView` built for a proxy asks the
+instance and is exact, so the container placing the proxies pays nothing; the
+containers AROUND it cannot ask without resolving it. So an aligning stack
+with such a container among its children — `HStack { VStack {
+ForEach(subviews: content) { $0 } }; Text("x") }` — asks it for its guide on
+each of its passes (its measure and its render, and each enclosing stack asks
+its own child the same way, up the chain). What that costs, when no member
+carries a guide:
+
+- **A stack** (`VStack`, `HStack`, `ZStack`) resolves its children to answer
+  and stops there: the loop's members — the content they come from resolved
+  again, a proxy built for each — then `nil`. A walk over the members per
+  question, not a layout.
+- **A built-in `Layout`** (`HStackLayout`, `VStackLayout`, `ZStackLayout`,
+  the lazy grids, `GridLayout`) did a whole layout pass per question; it now
+  resolves its subviews and answers `nil` when none carries a guide, as a
+  stack does.
+- **A `Layout` of the app's own** does the pass whatever its subviews hold,
+  as it always has: whether its `explicitAlignment` is the default cannot be
+  told from its type (`_definesExplicitAlignment` is `true` for it).
+
+**The fuller version.** The answer cached per pass where the members are
+resolved — "no member of this loop carries a guide", kept by the loop's
+identity in the render cache's per-pass store — and consulted by a container's
+guide question before it resolves anything, so the question costs a lookup.
+Half a day, with an A/B on `deep` and `kitchensink` shaped with such loops.

@@ -453,7 +453,12 @@ extension _LayoutCore: AlignmentGuideQuerying {
     /// drawn when the default merges their guides.
     ///
     /// Nothing is laid out for a layout that defines no guide of its own and
-    /// whose content can hold none: `AnyLayout` asks what it erased.
+    /// whose content can hold none: `AnyLayout` asks what it erased. Nor for
+    /// one whose content's type says a subview MAY carry a guide and whose
+    /// subviews, resolved, carry none — a loop over subviews, `ForEach(subviews:
+    /// content) { $0 }`, whose proxy's type cannot know (`Subview`'s witness is
+    /// `true` for every member): the default merges only the subviews' own
+    /// guides, so the answer is `nil` without the pass.
     func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
@@ -463,6 +468,7 @@ extension _LayoutCore: AlignmentGuideQuerying {
         guard defines || Content._providesAlignmentGuide else { return nil }
         let context = publishingChildAxis(context)
         let (subviews, _) = resolve(context: context)
+        guard defines || anyAlignmentGuide(in: subviews.children) else { return nil }
         var cache = freshCache(subviews)
         let proposal = ProposedSize(
             width: max(0, dimensions.width), height: max(0, dimensions.height))

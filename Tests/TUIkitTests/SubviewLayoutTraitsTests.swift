@@ -177,6 +177,30 @@ struct SubviewLayoutTraitsTests {
         #expect(captured.top == [1])
     }
 
+    @Test("A built-in Layout of proxies that carry no guide is not laid out to answer an enclosing stack's guide question")
+    func layoutOfGuideFreeProxiesAnswersWithoutAPass() {
+        // `Subview`'s type says it MAY carry a guide, so the column asks the
+        // layout for one on each of its passes; the layout's subviews,
+        // resolved, carry none, so it answers without laying them out —
+        // measuring them no more often than the same views placed directly.
+        let measures = PassCount()
+        _ = render(
+            VStack(alignment: .leading, spacing: 0) {
+                HStackLayout {
+                    ForEach(subviews: Group { MeasureCounted(measures: measures); Text("b") }) { $0 }
+                }
+                Text("x")
+            })
+        let throughProxies = measures.count
+        measures.count = 0
+        _ = render(
+            VStack(alignment: .leading, spacing: 0) {
+                HStackLayout { Group { MeasureCounted(measures: measures); Text("b") } }
+                Text("x")
+            })
+        #expect(throughProxies == measures.count, "\(throughProxies) measures through proxies, \(measures.count) direct")
+    }
+
     @Test("A proxy for an ordinary view is no spacer and carries nothing")
     func ordinaryMember() {
         var proxies: [Subview] = []
@@ -210,5 +234,27 @@ private struct GuideReader: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews { subview.place(in: bounds, anchor: .topLeading, proposal: proposal) }
+    }
+}
+
+/// How many times something was measured.
+@MainActor
+private final class PassCount {
+    var count = 0
+}
+
+/// A view that counts how often it is measured.
+private struct MeasureCounted: View, Renderable, Layoutable {
+    let measures: PassCount
+
+    var body: Never { fatalError("MeasureCounted renders via Renderable") }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measures.count += 1
+        return ViewSize.fixed(1, 1)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        FrameBuffer(text: "m")
     }
 }
