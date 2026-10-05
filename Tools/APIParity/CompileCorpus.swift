@@ -236,6 +236,63 @@ private struct KeyPressShapes: View {
     }
 }
 
+/// Key-press phases, modifier keys and undo (decisions A4, B7, A1): `.up`, a
+/// release handler, the two modifier-key modifiers as SwiftUI's documentation
+/// writes them, the lock and keypad modifiers, and `\.undoManager` registering
+/// an inverse with a trailing closure.
+@MainActor
+private struct KeyboardStateShapes: View {
+    @State private var peeking = false
+    @State private var showsDetails = false
+    @Environment(\.undoManager) private var undoManager
+
+    private final class Store {
+        var items: [String] = []
+    }
+
+    private let store = Store()
+
+    var body: some View {
+        VStack {
+            Text("peek")
+                .focusable()
+                .onKeyPress(.space, phases: .up) { _ in
+                    peeking = false
+                    return .handled
+                }
+                .onKeyPress(keys: [.space], phases: [.down, .up]) { press in
+                    peeking = press.phase == .down
+                    return .handled
+                }
+                .onKeyPress { press in
+                    press.modifiers.contains(.capsLock) || press.modifiers.contains(.numericPad)
+                        ? .handled : .ignored
+                }
+            Button("Go Forward") {}
+                .keyboardShortcut(.rightArrow)
+                .modifierKeyAlternate(.option) {
+                    Button("Go to Page…") {}
+                }
+                .modifierKeyAlternate([.option, .shift]) {
+                    Button("Go to Start") {}
+                }
+            Text("details")
+                .onModifierKeysChanged(mask: .option) { old, new in
+                    showsDetails = new.contains(.option) && !old.contains(.option)
+                }
+                .onModifierKeysChanged { _, new in
+                    print(new)
+                }
+            Button("Add") {
+                store.items.append("item")
+                undoManager?.registerUndo(withTarget: store) { $0.items.removeLast() }
+                undoManager?.setActionName("Add")
+            }
+            .buttonRepeatBehavior(.disabled)
+        }
+    }
+}
+
 /// The commands take an OPTIONAL closure, so the trailing-closure form has to
 /// bind through the optional, and `nil` has to be spellable.
 @MainActor
