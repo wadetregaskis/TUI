@@ -206,6 +206,26 @@ struct TextSuggestions: Equatable {
         Self(entries: entries, isPresent: true, tokenSink: tokenSink)
     }
 
+    /// Whether a field has anything here to choose: an option, or a token its
+    /// sink takes. Exactly when `TextFieldSuggestions.prepare` builds a menu
+    /// for an enabled field, so it is what decides the `▾` — in a vertical
+    /// field's measure, which does not prepare the menu, as in its render.
+    ///
+    /// Not `!entries.isEmpty`: a token entry the field cannot take (it has no
+    /// sink, or the sink's tokens are of another type) is no suggestion, so a
+    /// list of them alone offers nothing, and a measure that counted them
+    /// narrowed the text for a `▾` the render never drew.
+    @MainActor
+    var offersChoice: Bool {
+        entries.contains { entry in
+            switch entry {
+            case .option: true
+            case .token(let token, _): tokenSink?.choice(token) != nil
+            case .divider: false
+            }
+        }
+    }
+
     /// Equal when both are present or both are not, and both are empty or
     /// both are not — never by what the entries say.
     ///
@@ -421,7 +441,7 @@ enum TextFieldSuggestions {
             handler.suggestionHighlight = nil
             return nil
         }
-        guard !entries.isEmpty else { return offerNothing() }
+        guard suggestions.offersChoice else { return offerNothing() }
         // Labels render at the SCREEN width, not the field's: the pop-up is
         // an overlay that may grow wider than its control, so a narrow field
         // must not wrap/truncate its option labels.
@@ -465,9 +485,8 @@ enum TextFieldSuggestions {
                 choices.append(.token(choose: choice.choose))
             }
         }
-        // Token entries the field could not take may leave nothing to choose,
-        // or a divider stranded.
-        guard !choices.isEmpty else { return offerNothing() }
+        // Token entries the field could not take may leave a divider stranded.
+        // (Never nothing to choose: `offersChoice` above is this loop's filter.)
         menuEntries = DropdownMenu.normalizedEntries(menuEntries) { entry in
             if case .divider = entry { return true }
             return false

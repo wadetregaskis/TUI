@@ -24,10 +24,11 @@ extension _TextFieldCore {
     }
 
     /// Whether the field draws the combo box's `▾`: exactly when its suggestion
-    /// menu is prepared — enabled, with suggestions — so the measure, which may
-    /// not prepare it, narrows the text just as the render does.
+    /// menu is prepared — enabled, with a suggestion it can take — so the
+    /// measure, which may not prepare it, narrows the text just as the render
+    /// does.
     private func drawsDisclosure(isDisabled: Bool, context: RenderContext) -> Bool {
-        !isDisabled && !context.environment.textInputSuggestions.entries.isEmpty
+        !isDisabled && context.environment.textInputSuggestions.offersChoice
     }
 
     /// The characters a vertical field lays out: its text, or — while the text

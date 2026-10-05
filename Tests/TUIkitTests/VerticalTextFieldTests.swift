@@ -271,6 +271,23 @@ struct VerticalTextFieldTests {
         harness.play([KeyEvent(key: .down)], view)
         #expect(!harness.frame(view()).overlays.isEmpty, "Down on the last row opened the suggestions")
     }
+
+    @Test("A token suggestion it cannot take draws no ▾, and the measure makes no room for one")
+    func untakeableTokenSuggestionMeasuresAsDrawn() {
+        // A token outside any searchable: no field here can take it, so the
+        // menu is never prepared and no `▾` is drawn. Eleven cells of text in
+        // a field twelve wide is one row without the `▾` and two with it.
+        struct Crop: Identifiable { let id: String }
+        let model = Model("aaaaaaaaaaa")
+        let view = VStack {
+            field(model).textInputSuggestions { Text("Apple").searchCompletion(Crop(id: "Apple")) }
+        }
+        let context = makeRenderContext(width: 12, height: 20)
+        let size = measureChild(view, proposal: ProposedSize(width: 12, height: nil), context: context)
+        let drawn = renderToBuffer(view, context: context)
+        #expect(rows(drawn).map { $0.trimmingTrailingSpaces } == ["aaaaaaaaaaa"], "no ▾, one row")
+        #expect(size.height == drawn.height, "measured \(size.height) rows, drew \(drawn.height)")
+    }
 }
 
 extension String {
