@@ -40,6 +40,19 @@ private struct StatusBarItemsProbeApp: App {
     }
 }
 
+/// A page that declares a status bar item and nothing else puts one there.
+private struct DeclaredItemProbeApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("content").statusBarItems {
+                StatusBarItem(shortcut: "s", label: "save")
+            }
+        }
+    }
+}
+
 @MainActor
 @Suite("The status bar reaches the terminal")
 struct StatusBarFrameDiffTests {
@@ -141,6 +154,31 @@ struct StatusBarFrameDiffTests {
         }
         let tooltipRow = drawn[23] ?? ""
         #expect(tooltipRow.contains("Copy to clipboard"), "\(drawn)")
+    }
+
+    /// A bar whose only items are declared by the page is drawn on the screen.
+    ///
+    /// Its height is read BEFORE the walk, when the page's declarations have been
+    /// cleared and not yet made again. With the system items hidden nothing else
+    /// counts, so the page was laid out with no bar, and the bar the walk then
+    /// declared was written one row past the bottom of the screen, where no
+    /// terminal shows it. The circularity an opt-in bottom bar exposes (the A28
+    /// design study, §2.3); pinned here as a known issue until chrome presence is
+    /// adopted from the walk that declared it.
+    @Test("A bar of page-declared items alone is drawn on the screen")
+    func declaredItemsAloneAreDrawn() {
+        let harness = RenderLoopHarness()
+        harness.statusBar.showSystemItems = false
+        let loop = harness.loop(DeclaredItemProbeApp())
+        _ = loop.render()
+        let drawn = paints(harness.terminal)
+        withKnownIssue("the bar's height is read before the walk that declares its items") {
+            // A bordered bar round one item row: rows 22...24 of 24.
+            for row in 22...24 {
+                #expect(isInked(drawn[row]), "row \(row) of the bar: \(drawn[row].debugDescription)")
+            }
+            #expect((drawn[23] ?? "").contains("save"), "\(drawn)")
+        }
     }
 
     /// An app that sets its status bar's highlight to cyan gets cyan.
