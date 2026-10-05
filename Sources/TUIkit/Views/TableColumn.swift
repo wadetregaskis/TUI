@@ -51,7 +51,9 @@ import Foundation
 /// column's ``lineLimit(_:)`` allows more: a `Text` cell then wraps, and any
 /// other view is given that many lines. A plain `Text` — no styling of its own
 /// — is drawn exactly as the `String` key-path column draws its value. Any
-/// other content is rendered as a view at the column's width.
+/// other content is rendered as a view at the column's width. Under
+/// ``View/tableRowHeights(_:)`` a content-closure column that states no limit
+/// grows its rows to its cells instead, as SwiftUI's table does.
 ///
 /// ## Widths
 ///
@@ -98,6 +100,11 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     var lineLimit: Int = 1 {
         didSet { lineLimit = max(1, lineLimit) }
     }
+
+    /// Whether ``lineLimit(_:)`` stated the limit — which keeps it under
+    /// ``TableRowHeights/automatic``, where an unstated one gives way to the
+    /// cell's natural height.
+    var lineLimitIsStated = false
 
     /// What the column draws in each row's cell.
     let cell: _TableCellSource<RowValue>
@@ -163,7 +170,7 @@ extension TableColumn {
     var spec: _TableColumnSpec<RowValue> {
         _TableColumnSpec(
             title: title, alignment: .leading, width: width,
-            truncationMode: truncationMode, lineLimit: lineLimit,
+            truncationMode: truncationMode, lineLimit: lineLimit, lineLimitIsStated: lineLimitIsStated,
             cell: cell, namesAProperty: namesAProperty,
             sortComparator: sortComparator)
     }
@@ -193,7 +200,22 @@ extension _TableCellSource {
             {
                 return FrameBuffer(lines: [stated])
             }
-            return TUIkit.renderToBuffer(view, context: context)
+            // A cell that grows to its content (``TableRowHeights/automatic``)
+            // is offered more lines than any row should have: it is measured at
+            // the column's width and no height, and drawn at the height it
+            // measured, so a view that fills what it is offered keeps to its
+            // own. An integer compare, so a cell of an ordinary table pays
+            // nothing for it.
+            guard context.availableHeight >= _TableCellSizing.naturalLines else {
+                return TUIkit.renderToBuffer(view, context: context)
+            }
+            var measuring = context
+            measuring.isMeasuring = true
+            let natural = measureChild(
+                view, proposal: ProposedSize(width: context.availableWidth, height: nil),
+                context: measuring)
+            return TUIkit.renderToBuffer(
+                view, context: context.withAvailableHeight(max(1, min(natural.height, context.availableHeight))))
         }
     }
 }
@@ -581,6 +603,7 @@ extension TableColumn {
     public func lineLimit(_ limit: Int) -> TableColumn {
         var copy = self
         copy.lineLimit = limit  // clamped by the property's own didSet
+        copy.lineLimitIsStated = true
         return copy
     }
 

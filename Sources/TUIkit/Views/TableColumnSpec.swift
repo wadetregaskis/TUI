@@ -88,6 +88,10 @@ struct _TableColumnSpec<Value> {
     /// below 1.
     var lineLimit: Int
 
+    /// Whether the column stated its line limit (`lineLimit(_:)`), which
+    /// ``TableRowHeights/automatic`` keeps.
+    var lineLimitIsStated = false
+
     /// What the column draws in each row's cell.
     var cell: _TableCellSource<Value>
 

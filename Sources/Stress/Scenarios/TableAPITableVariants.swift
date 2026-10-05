@@ -49,6 +49,38 @@ extension TableAPIMatrix {
                 }
             },
 
+            // Row heights that follow the cells (`.tableRowHeights`), for the
+            // A/B decisions B44 asks for: what growing rows to their content
+            // would cost as the default. One table three ways — today's one
+            // line a row, SwiftUI's automatic heights, and the middle road that
+            // grows only the cells that are not a `Text` — then the `closure`
+            // variant's six `Text` columns under automatic heights, where every
+            // row is measured to learn it is one line.
+            variant("heights-default", axis: "layout", "a two-line view column and a Text column, one line a row") { config in
+                table("heights-default", config) { rows in rowHeightsTable(rows) }
+            },
+            variant("heights-automatic", axis: "layout", "the same, rows grown to their cells (.automatic)") { config in
+                table("heights-automatic", config) { rows in rowHeightsTable(rows).tableRowHeights(.automatic) }
+            },
+            variant("heights-except-text", axis: "layout", "the same, only the view column grows (.automaticExceptText)") { config in
+                table("heights-except-text", config) { rows in
+                    rowHeightsTable(rows).tableRowHeights(.automaticExceptText)
+                }
+            },
+            variant("heights-closure", axis: "layout", "the closure variant's Text columns under .automatic") { config in
+                table("heights-closure", config) { rows in
+                    Table(rows, selection: Binding<Int?>.constant(nil)) {
+                        TableColumn("ID") { (row: APIRow) in Text(verbatim: row.index) }.width(7)
+                        TableColumn("Name") { (row: APIRow) in Text(verbatim: row.name) }
+                        TableColumn("Slug") { (row: APIRow) in Text(verbatim: row.slug) }
+                        TableColumn("Status") { (row: APIRow) in Text(verbatim: row.status) }
+                        TableColumn("Summary") { (row: APIRow) in Text(verbatim: row.summary) }
+                        TableColumn("Load") { (row: APIRow) in Text(verbatim: row.bar) }.width(10)
+                    }
+                    .tableRowHeights(.automatic)
+                }
+            },
+
             variant("align-trailing", axis: "layout", "every column trailing-aligned — the pad goes in front") { config in
                 table("align-trailing", config) { rows in
                     Table(rows, selection: Binding<Int?>.constant(nil)) {
@@ -100,6 +132,24 @@ extension TableAPIMatrix {
                 }
             },
         ]
+    }
+
+    /// The `heights-*` variants' table: a view column of two lines, a styled
+    /// `Text` column, and two key-path columns — so the three row-height
+    /// choices differ in which of them is measured.
+    @MainActor
+    static func rowHeightsTable(_ rows: [APIRow]) -> some View {
+        Table(rows, selection: Binding<Int?>.constant(nil)) {
+            TableColumn("ID", value: \APIRow.index).width(7)
+            TableColumn("Name") { (row: APIRow) in
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(verbatim: row.name)
+                    Text(verbatim: row.slug)
+                }
+            }
+            TableColumn("Status") { (row: APIRow) in Text(verbatim: row.status) }.width(12)
+            TableColumn("Summary", value: \APIRow.summary)
+        }
     }
 }
 

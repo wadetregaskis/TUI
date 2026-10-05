@@ -658,6 +658,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Whether ``resolvingRows(_:)`` has run for this copy.
     var rowsAreResolved = false
 
+    /// Whether ``sizingRows(_:)`` has run for this copy.
+    var rowHeightsAreSized = false
+
     var body: Never {
         fatalError("_TableCore renders via Renderable")
     }
@@ -703,6 +706,37 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             resolved.sections = _TableSectionLayout(sectionHeaders, rowCount: resolved.data.count)
         }
         return resolved
+    }
+
+    /// This table as a pass lays it out, when that is not this copy: its row
+    /// heights sized (``sizingRows(_:)``), then its rows resolved
+    /// (``resolvingRows(_:)``). `nil` for the copy that already is.
+    private func prepared(_ context: RenderContext) -> Self? {
+        if let sized = sizingRows(context.environment) { return sized }
+        return needsResolution ? resolvingRows(context) : nil
+    }
+
+    /// This table with its columns' line limits as ``EnvironmentValues/tableRowHeights``
+    /// says — `nil` when it says what they already are, which is the default.
+    ///
+    /// A column that grows to its content is given ``_TableCellSizing/naturalLines``
+    /// as its limit, which puts the table on the multi-line layout and tells
+    /// its view cells to be measured before they are drawn.
+    private func sizingRows(_ environment: EnvironmentValues) -> Self? {
+        guard !rowHeightsAreSized else { return nil }
+        let heights = environment.tableRowHeights
+        guard heights != .lineLimited else { return nil }
+        var sized = self
+        sized.rowHeightsAreSized = true
+        for index in sized.columns.indices where !sized.columns[index].lineLimitIsStated {
+            switch sized.columns[index].cell {
+            case .view: break
+            case .text where heights == .automatic: break
+            case .text, .string: continue
+            }
+            sized.columns[index].lineLimit = _TableCellSizing.naturalLines
+        }
+        return sized
     }
 
     /// Whether this table lays its rows out as rows of their own heights —
@@ -789,8 +823,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 configuration: TableStyleConfiguration(table: AnyView(self)), proposal: proposal,
                 context: context)
         }
-        if needsResolution {
-            return resolvingRows(context).sizeThatFits(proposal: proposal, context: context)
+        if let prepared = prepared(context) {
+            return prepared.sizeThatFits(proposal: proposal, context: context)
         }
         var measureContext = context
         measureContext.isMeasuring = true
@@ -1096,7 +1130,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return style.makeBuffer(
                 configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
         }
-        if needsResolution { return resolvingRows(context).renderToBuffer(context: context) }
+        if let prepared = prepared(context) { return prepared.renderToBuffer(context: context) }
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
         // The enabled selection scopes filed before the cells are drawn: any
