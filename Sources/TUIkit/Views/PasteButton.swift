@@ -20,7 +20,10 @@
 /// clipboard (reading it runs a program), so this one is always enabled, and a
 /// press finds out — a clipboard that cannot be had as the payload type pastes
 /// nothing. What it can be had as is ``View/pasteDestination(for:action:validator:)``'s
-/// rule: values this app copied, else the clipboard's text.
+/// rule: values this app copied, else the clipboard's text. Where this
+/// machine's clipboard is not the user's — over ssh — the press finds the
+/// app's own latest copy instead (see `Documentation/Terminal-compatibility.md`,
+/// "OSC 52 clipboard writes").
 public struct PasteButton: View {
     private let paste: @MainActor (ClipboardAccess) -> Void
 

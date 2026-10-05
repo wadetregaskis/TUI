@@ -113,6 +113,7 @@
   "statusbar.sentToTerminalClipboard": "An die Zwischenablage des Terminals gesendet",
   "statusbar.notCopiedNoClipboard": "Nicht kopiert: keine Zwischenablage von hier erreichbar",
   "statusbar.notCopiedHelperFailed": "Nicht kopiert: das Zwischenablage-Hilfsprogramm ist fehlgeschlagen",
+  "statusbar.pasteWithTerminal": "Nichts zum Einfügen: Einfügen des Terminals verwenden",
   "statusbar.menu.open": "%@ öffnen",
   "statusbar.menu.close": "%@ schließen",
   "statusbar.menu.dropDown": "Aufklappmenü",

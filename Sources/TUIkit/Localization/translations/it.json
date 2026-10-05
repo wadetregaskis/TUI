@@ -113,6 +113,7 @@
   "statusbar.sentToTerminalClipboard": "Inviato agli appunti del terminale",
   "statusbar.notCopiedNoClipboard": "Non copiato: nessun appunti raggiungibile da qui",
   "statusbar.notCopiedHelperFailed": "Non copiato: lo strumento degli appunti non è riuscito",
+  "statusbar.pasteWithTerminal": "Niente da incollare qui: usa l'incolla del terminale",
   "statusbar.menu.open": "apri %@",
   "statusbar.menu.close": "chiudi %@",
   "statusbar.menu.dropDown": "menu a discesa",

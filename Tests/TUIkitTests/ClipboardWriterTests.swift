@@ -420,6 +420,40 @@ struct ClipboardWriterTests {
             ClipboardWriter.stated(terminal: .unsupported, isLocal: true, hasHelper: false, log: log).read() == nil)
     }
 
+    /// Over ssh the server's clipboard is not read, but what the app copied
+    /// itself is the app's to give back, as the server's pasteboard used to.
+    @Test("Away from this machine a paste chord finds the app's own latest copy, whatever became of it")
+    func readsTheAppsOwnCopyAway() {
+        let log = SystemClipboardLog()
+        log.writes = ["someone else's"]
+        for terminal in [TerminalClient.ClipboardWriteSupport.honoured, .unconfirmed, .unsupported] {
+            let writer = ClipboardWriter.stated(terminal: terminal, isLocal: false, log: log)
+            writer.write("first", announcingSuccess: false)
+            writer.write("mine", announcingSuccess: false)
+            writer.write("", announcingSuccess: false)
+            #expect(writer.read() == "mine")
+        }
+        #expect(log.writes == ["someone else's"])
+        // Here, this machine's clipboard is the truth, whatever the app copied.
+        let here = ClipboardWriter.stated(terminal: .honoured, isLocal: true, log: log)
+        here.write("mine", announcingSuccess: false)
+        #expect(here.read() == "someone else's")
+    }
+
+    @Test("A paste chord that finds nothing says to use the terminal's paste")
+    func emptyPasteSaysSo() {
+        let writer = ClipboardWriter.stated(terminal: .unsupported, isLocal: false)
+        #expect(writer.statusNote(atNanos: 0) == nil)
+        #expect(writer.read() == nil)
+        #expect(
+            writer.statusNote(atNanos: 0)?.text
+                == LocalizationService.shared.string(for: LocalizationKey.StatusBar.pasteWithTerminal))
+        // One that finds something says nothing.
+        let found = ClipboardWriter.stated(terminal: .unsupported, isLocal: true)
+        _ = found.read()
+        #expect(found.statusNote(atNanos: 0) == nil)
+    }
+
     @Test("A writer asks for the frame that sends its copy")
     func requestsAFrame() {
         let frames = SystemClipboardLog()
@@ -496,7 +530,8 @@ struct ClipboardWriterAppTests {
     }
 
     /// Over ssh this machine's clipboard is the server's: a paste chord must
-    /// not bring its contents — someone else's — into the field.
+    /// not bring its contents — someone else's — into the field. (Nor
+    /// anything else here: the app has copied nothing.)
     @Test("A field's Ctrl-V reads this machine's clipboard only at this machine", arguments: [true, false])
     func fieldPastesOnlyHere(isLocal: Bool) {
         let log = SystemClipboardLog()
@@ -510,6 +545,77 @@ struct ClipboardWriterAppTests {
         harness.press(KeyEvent(key: .character("v"), ctrl: true))
         harness.frame(page)
         #expect(text.value == (isLocal ? "server" : ""))
+    }
+
+    struct TwoFields: View {
+        let first: Box
+        let second: Box
+        var body: some View {
+            VStack {
+                TextField("First", text: Binding(get: { first.value }, set: { first.value = $0 }))
+                TextField("Second", text: Binding(get: { second.value }, set: { second.value = $0 }))
+            }
+        }
+    }
+
+    /// The round trip the server's pasteboard used to carry over ssh, before
+    /// the clipboard stopped writing it.
+    @Test("Over ssh a field's Ctrl-C pastes into another field with Ctrl-V")
+    func fieldRoundTripAway() {
+        let log = SystemClipboardLog()
+        log.writes = ["server"]
+        let writer = ClipboardWriter.stated(terminal: .unsupported, isLocal: false, log: log)
+        let harness = InputChainHarness { $0.clipboardAccess = ClipboardAccess(writer: writer) }
+        let page = TwoFields(first: Box("abcd"), second: Box(""))
+        harness.frame(page)
+        harness.frame(page)
+        for _ in 0..<2 {
+            harness.press(KeyEvent(key: .left, shift: true))
+            harness.frame(page)
+        }
+        harness.press(KeyEvent(key: .character("c"), ctrl: true))
+        harness.frame(page)
+        harness.press(KeyEvent(key: .tab))
+        harness.frame(page)
+        harness.press(KeyEvent(key: .character("v"), ctrl: true))
+        harness.frame(page)
+        #expect(page.second.value == "cd")
+        #expect(log.writes == ["server"], "and the server's clipboard was neither written nor read")
+    }
+
+    struct Token: CustomStringConvertible, Equatable {
+        let name: String
+        var description: String { name }
+    }
+
+    final class Tokens: @unchecked Sendable {
+        var pasted: [Token] = []
+        var buttoned: [Token] = []
+    }
+
+    @Test("Over ssh a value the app copied pastes back as itself, by the chord and by a PasteButton")
+    func valueRoundTripAway() {
+        let writer = ClipboardWriter.stated(terminal: .unsupported, isLocal: false)
+        let typed = TypedClipboard()
+        func harness() -> InputChainHarness {
+            InputChainHarness {
+                $0.clipboardAccess = ClipboardAccess(writer: writer)
+                $0.typedClipboard = typed
+            }
+        }
+        let tokens = Tokens()
+        let chords = [KeyEvent(key: .character("c"), ctrl: true), KeyEvent(key: .character("v"), ctrl: true)]
+        let consumed = harness().play(chords) {
+            Text("token").focusable()
+                .copyable([Token(name: "ace")])
+                .pasteDestination(for: Token.self) { tokens.pasted += $0 }
+        }
+        #expect(consumed == [true, true])
+        #expect(tokens.pasted == [Token(name: "ace")])
+        _ = harness().play([KeyEvent(key: .enter)]) {
+            PasteButton(payloadType: Token.self) { tokens.buttoned += $0 }
+        }
+        #expect(tokens.buttoned == [Token(name: "ace")])
     }
 
     struct Page: App {

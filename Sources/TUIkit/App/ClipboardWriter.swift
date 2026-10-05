@@ -33,15 +33,18 @@ enum ClipboardWriteResult: Equatable, Sendable {
 
     /// The status bar's line for it, or `nil` for none.
     var statusLine: String? {
-        let key: LocalizationKey.StatusBar
+        statusKey.map { LocalizationService.shared.string(for: $0) }
+    }
+
+    /// The key of the status bar's line for it, or `nil` for none.
+    var statusKey: LocalizationKey.StatusBar? {
         switch self {
-        case .copied: key = .copied
-        case .sentToTerminal: key = .sentToTerminalClipboard
-        case .unavailable: key = .notCopiedNoClipboard
-        case .failed: key = .notCopiedHelperFailed
-        case .nothingToCopy: return nil
+        case .copied: .copied
+        case .sentToTerminal: .sentToTerminalClipboard
+        case .unavailable: .notCopiedNoClipboard
+        case .failed: .notCopiedHelperFailed
+        case .nothingToCopy: nil
         }
-        return LocalizationService.shared.string(for: key)
     }
 }
 
@@ -153,7 +156,12 @@ final class ClipboardWriter: @unchecked Sendable {
     // read by the run loop on the same actor; `@unchecked` because the
     // environment that carries the writer is `Sendable`.
     private var pending: [String] = []
-    private var note: (result: ClipboardWriteResult, postedAtNanos: UInt64)?
+    private var note: (line: LocalizationKey.StatusBar, postedAtNanos: UInt64)?
+
+    /// The text of the latest copy this app made, whatever became of it: what
+    /// a paste chord finds where this machine's clipboard is not the user's
+    /// (``read()``).
+    private var lastCopy: String?
 
     init(
         terminalSupport: @escaping @MainActor () -> TerminalClient.ClipboardWriteSupport,
@@ -210,23 +218,34 @@ final class ClipboardWriter: @unchecked Sendable {
                 result = .unavailable
             }
         }
-        if result != .nothingToCopy, result != .copied || announcingSuccess {
-            note = (result, nowNanos())
+        if result != .nothingToCopy { lastCopy = text }
+        if let key = result.statusKey, result != .copied || announcingSuccess {
+            note = (key, nowNanos())
         }
         if !pending.isEmpty || note != nil { requestFrame() }
         return result
     }
 
-    /// This machine's clipboard, when it is the user's: what a paste chord —
-    /// a field's Ctrl-V, a `PasteButton` — reads.
+    /// What a paste chord — a field's Ctrl-V, a `PasteButton`, a
+    /// `pasteDestination` — reads: this machine's clipboard when it is the
+    /// user's, and otherwise the latest copy this app made.
     ///
     /// Over ssh this machine's clipboard is the server's, which holds nothing
-    /// the user put there (and something someone else may have), so a paste
-    /// chord finds nothing, and the terminal's own paste — bracketed, from
-    /// the user's machine — is the way in. Never OSC 52's `?`: a read prompts
-    /// the user on Ghostty, and its reply would arrive in the input stream.
+    /// the user put there (and something someone else may have), so it is not
+    /// read. The app's own copy stands in for it, so a value copied in the app
+    /// pastes back into it — a field's Ctrl-C then another's Ctrl-V, a
+    /// `copyable` view and a `PasteButton` — as the server's pasteboard used
+    /// to carry it, and as tmux's buffer or vim's register does. Text copied
+    /// on the user's machine comes in through the terminal's own paste,
+    /// bracketed, which works everywhere; with no copy of the app's to give,
+    /// the status bar says to use it. Never OSC 52's `?`: a read prompts the
+    /// user on Ghostty, and its reply would arrive in the input stream.
     @MainActor func read() -> String? {
-        hasSystemHelper && isLocal() ? systemRead() : nil
+        if hasSystemHelper, isLocal() { return systemRead() }
+        if let lastCopy { return lastCopy }
+        note = (.pasteWithTerminal, nowNanos())
+        requestFrame()
+        return nil
     }
 
     /// The OSC 52 writes owed to the terminal, oldest first, and forgets them.
@@ -241,10 +260,10 @@ final class ClipboardWriter: @unchecked Sendable {
     func statusNote(atNanos now: UInt64) -> (text: String, expiresAtNanos: UInt64)? {
         guard let note else { return nil }
         let expiry = note.postedAtNanos &+ Self.noteDuration
-        guard now < expiry, let text = note.result.statusLine else {
+        guard now < expiry else {
             self.note = nil
             return nil
         }
-        return (text, expiry)
+        return (LocalizationService.shared.string(for: note.line), expiry)
     }
 }

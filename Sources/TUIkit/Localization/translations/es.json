@@ -113,6 +113,7 @@
   "statusbar.sentToTerminalClipboard": "Enviado al portapapeles del terminal",
   "statusbar.notCopiedNoClipboard": "No copiado: no hay portapapeles accesible desde aquí",
   "statusbar.notCopiedHelperFailed": "No copiado: falló el asistente del portapapeles",
+  "statusbar.pasteWithTerminal": "Nada que pegar aquí: usa el pegado del terminal",
   "statusbar.menu.open": "abrir %@",
   "statusbar.menu.close": "cerrar %@",
   "statusbar.menu.dropDown": "menú desplegable",

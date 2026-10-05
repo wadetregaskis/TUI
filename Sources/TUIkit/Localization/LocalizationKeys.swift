@@ -240,6 +240,10 @@ public enum LocalizationKey {
         case notCopiedNoClipboard = "statusbar.notCopiedNoClipboard"
         /// This machine's clipboard helper ran and failed.
         case notCopiedHelperFailed = "statusbar.notCopiedHelperFailed"
+        /// A paste chord found neither this machine's clipboard (it is not the
+        /// user's) nor a copy of the app's own: the terminal's paste is the
+        /// way in.
+        case pasteWithTerminal = "statusbar.pasteWithTerminal"
 
         // MARK: The menu pair
 

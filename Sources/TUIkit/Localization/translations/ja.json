@@ -113,6 +113,7 @@
   "statusbar.sentToTerminalClipboard": "ターミナルのクリップボードに送信しました",
   "statusbar.notCopiedNoClipboard": "コピーできません: ここから届くクリップボードがありません",
   "statusbar.notCopiedHelperFailed": "コピーできません: クリップボードのヘルパーが失敗しました",
+  "statusbar.pasteWithTerminal": "ここに貼り付けるものはありません: ターミナルの貼り付けを使ってください",
   "statusbar.menu.open": "%@を開く",
   "statusbar.menu.close": "%@を閉じる",
   "statusbar.menu.dropDown": "ドロップダウンメニュー",

@@ -113,6 +113,7 @@
   "statusbar.sentToTerminalClipboard": "Sent to the terminal's clipboard",
   "statusbar.notCopiedNoClipboard": "Not copied: no clipboard reachable from here",
   "statusbar.notCopiedHelperFailed": "Not copied: the clipboard helper failed",
+  "statusbar.pasteWithTerminal": "Nothing to paste here: use the terminal's paste",
   "statusbar.menu.open": "open %@",
   "statusbar.menu.close": "close %@",
   "statusbar.menu.dropDown": "drop-down menu",

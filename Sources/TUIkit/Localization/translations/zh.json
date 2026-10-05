@@ -113,6 +113,7 @@
   "statusbar.sentToTerminalClipboard": "已发送到终端的剪贴板",
   "statusbar.notCopiedNoClipboard": "未复制：此处无法访问剪贴板",
   "statusbar.notCopiedHelperFailed": "未复制：剪贴板辅助程序失败",
+  "statusbar.pasteWithTerminal": "此处无可粘贴内容：请使用终端的粘贴",
   "statusbar.menu.open": "打开%@",
   "statusbar.menu.close": "关闭%@",
   "statusbar.menu.dropDown": "下拉菜单",
