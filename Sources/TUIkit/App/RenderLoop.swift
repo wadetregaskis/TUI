@@ -349,6 +349,17 @@ internal final class RenderLoop<A: App> {
     /// renders in the process, and outlives the test that assigned it.
     private let publishTerminalColors: (TerminalColors) -> Void
 
+    /// Whether the user asked for less motion with `TUIKIT_REDUCE_MOTION=1`,
+    /// as the app runner read it from the process: written at the root of
+    /// every frame as ``EnvironmentValues/accessibilityReduceMotion``.
+    ///
+    /// `false` unless the runner says otherwise. A headless app, the test
+    /// harness and every other loop leave it out, so what they draw does not
+    /// depend on the environment their process was started in — a user's
+    /// exported setting would otherwise turn every transition in a test run
+    /// into a fade.
+    private let reducesMotion: Bool
+
     init(
         app: A,
         terminal: any TerminalProtocol,
@@ -360,10 +371,12 @@ internal final class RenderLoop<A: App> {
         tuiContext: TUIContext,
         isTmux: Bool = TerminalHost.isTmux,
         publishTerminalColors: @escaping (TerminalColors) -> Void =
-            TerminalColorRefresher.publishProcessWide
+            TerminalColorRefresher.publishProcessWide,
+        reducesMotion: Bool = false
     ) {
         self.isTmux = isTmux
         self.publishTerminalColors = publishTerminalColors
+        self.reducesMotion = reducesMotion
         self.app = app
         self.terminal = terminal
         self.statusBar = statusBar
@@ -847,9 +860,10 @@ extension RenderLoop {
             environment.appearance = appearance
         }
         environment.notificationService = NotificationService.current
-        // The user's `TUIKIT_REDUCE_MOTION`, at the root; a scene's own
-        // `.reduceMotion(_:)` is applied over it with the scene's other writes.
-        environment.accessibilityReduceMotion = TerminalClient.reduceMotionRequested
+        // The user's `TUIKIT_REDUCE_MOTION`, at the root, where the app runner
+        // passed it (see `reducesMotion`); a scene's own `.reduceMotion(_:)` is
+        // applied over it with the scene's other writes.
+        environment.accessibilityReduceMotion = reducesMotion
 
         // Terminal-adaptive defaults belong to the app run loop, where a real
         // terminal exists — the bare EnvironmentValues defaults stay

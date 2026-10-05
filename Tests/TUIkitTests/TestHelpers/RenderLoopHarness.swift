@@ -62,7 +62,10 @@ final class RenderLoopHarness {
     ///
     /// What the loop publishes about the terminal's colours goes to
     /// ``publishedColors``.
-    func loop<A: App>(_ app: A, isTmux: Bool = false) -> RenderLoop<A> {
+    ///
+    /// `reducesMotion` is what the app runner reads from `TUIKIT_REDUCE_MOTION`;
+    /// a test states it, and by default the loop draws as if it were unset.
+    func loop<A: App>(_ app: A, isTmux: Bool = false, reducesMotion: Bool = false) -> RenderLoop<A> {
         RenderLoop(
             app: app,
             terminal: terminal,
@@ -73,6 +76,7 @@ final class RenderLoopHarness {
             appearanceManager: appearanceManager,
             tuiContext: tuiContext,
             isTmux: isTmux,
-            publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) })
+            publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) },
+            reducesMotion: reducesMotion)
     }
 }

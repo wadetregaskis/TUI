@@ -123,6 +123,35 @@ struct ReduceMotionTests {
         #expect(!TerminalClient.reduceMotionRequested(environment: [:]))
     }
 
+    /// The review's failing input: with `TUIKIT_REDUCE_MOTION=1` exported in
+    /// the shell that ran the tests, every `HeadlessApp` played its moves as
+    /// fades, because the loop read the process's environment itself. Only
+    /// the app runner reads it now, and hands it to its loop.
+    @Test("A headless app and a test's loop draw as if TUIKIT_REDUCE_MOTION were unset, wherever they run")
+    func headlessLoopsIgnoreTheProcess() {
+        let headlessProbe = ReduceMotionProbe()
+        let headless = HeadlessApp(ReduceMotionProbeApp(probe: headlessProbe), width: 20, height: 4)
+        headless.frame(atNanos: 0)
+        #expect(headlessProbe.seen == false)
+
+        let loopProbe = ReduceMotionProbe()
+        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: loopProbe)).render()
+        #expect(loopProbe.seen == false)
+    }
+
+    @Test("The user's TUIKIT_REDUCE_MOTION=1, as the app runner reads it, reaches the root, and the scene cannot turn it off")
+    func userSettingReachesTheRoot() {
+        let asked = TerminalClient.reduceMotionRequested(environment: ["TUIKIT_REDUCE_MOTION": "1"])
+        let probe = ReduceMotionProbe()
+        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe), reducesMotion: asked).render()
+        #expect(probe.seen == true)
+
+        let declining = ReduceMotionProbe()
+        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: declining, appReduces: false), reducesMotion: asked)
+            .render()
+        #expect(declining.seen == true, "the user's ask stands over the scene's false")
+    }
+
     @Test("The app's scene turns it on, and never off")
     func sceneSetting() {
         func root(_ scene: some Scene, userAsked: Bool) -> Bool {
@@ -135,5 +164,40 @@ struct ReduceMotionTests {
         #expect(!root(WindowGroup { Text("app") }.reduceMotion(false), userAsked: false))
         #expect(root(WindowGroup { Text("app") }.reduceMotion(false), userAsked: true), "the user's ask stands")
         #expect(!root(WindowGroup { Text("app") }, userAsked: false))
+    }
+}
+
+/// What the last frame's root environment said about reduce motion.
+@MainActor
+private final class ReduceMotionProbe {
+    var seen: Bool?
+}
+
+/// An app whose one view records whether it was drawn reducing motion, its
+/// scene saying `.reduceMotion(appReduces)` where that is given.
+private struct ReduceMotionProbeApp: App {
+    let probe: ReduceMotionProbe
+    let appReduces: Bool?
+
+    init() { self.init(probe: ReduceMotionProbe()) }
+
+    init(probe: ReduceMotionProbe, appReduces: Bool? = nil) {
+        self.probe = probe
+        self.appReduces = appReduces
+    }
+
+    var body: some Scene {
+        WindowGroup { ReduceMotionReader(probe: probe) }
+            .reduceMotion(appReduces ?? false)
+    }
+}
+
+private struct ReduceMotionReader: View {
+    let probe: ReduceMotionProbe
+    @Environment(\.accessibilityReduceMotion) private var reduces
+
+    var body: some View {
+        probe.seen = reduces
+        return Text(verbatim: "probe")
     }
 }
