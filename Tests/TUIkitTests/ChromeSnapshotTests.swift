@@ -41,7 +41,7 @@ private struct ChromeProbeApp: App {
         WindowGroup {
             page
         }
-        .chromeStyle(style)
+        .windowToolbarStyle(WindowToolbarStyleCase.drawing(style).style)
     }
 
     @ViewBuilder private var page: some View {

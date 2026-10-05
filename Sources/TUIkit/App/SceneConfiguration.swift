@@ -14,7 +14,7 @@ import TUIkitView
 /// Everything the modifiers written on a scene state for the frame: the values
 /// the run loop reads before it renders anything, because they decide either
 /// the frame's root environment (`.environment`, `.palette`, `.appearance`) or
-/// something outside the view tree (`.mouseSupport`, `.chromeStyle`).
+/// the window's chrome (`.mouseSupport`, `.windowToolbarStyle`).
 ///
 /// Gathered by one walk down the scene's modifier chain,
 /// ``Scene/sceneConfiguration``, from the outermost modifier in. Each modifier
@@ -45,11 +45,13 @@ struct SceneConfiguration {
     /// which the run loop reads as ``MouseSupport/standard``.
     var mouseSupport: MouseSupport?
 
-    /// The top bar's style, if a `.chromeStyle` named it.
-    var topBarStyle: ChromeStyle?
+    /// The frame every bar of the window draws, if a `.windowToolbarStyle`
+    /// named one.
+    var toolbarStyle: ChromeStyle?
 
-    /// The bottom bar's style, if a `.chromeStyle` named it.
-    var bottomBarStyle: ChromeStyle?
+    /// Whether the top bar's title slot shows the window's title, if a
+    /// `.windowToolbarStyle` said.
+    var showsTitle: Bool?
 
     /// Runs the scene's environment writes over `environment`, in order.
     func applyEnvironmentWrites(to environment: inout EnvironmentValues) {

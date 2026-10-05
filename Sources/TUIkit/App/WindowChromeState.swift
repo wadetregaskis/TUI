@@ -117,16 +117,17 @@ final class WindowChromeState: @unchecked Sendable {
     /// The bottom toolbar's reservation.
     private(set) var bottom = Bar()
 
-    /// How the top bar frames itself: the scene's chrome style, adopted each
-    /// frame before anything is laid out. A box by default.
-    var topStyle: ChromeStyle = .bordered
+    /// How every bar frames itself: the scene's `.windowToolbarStyle(_:)`,
+    /// adopted each frame before anything is laid out. A box by default.
+    var style: ChromeStyle = .bordered
 
-    /// How the bottom bar frames itself. A box by default.
-    var bottomStyle: ChromeStyle = .bordered
+    /// Whether the top bar's title slot shows ``title``: the scene's
+    /// `.windowToolbarStyle(_:)` again, its `showsTitle:`.
+    var showsTitle = true
 
-    /// The style the bar at `edge` frames itself in.
+    /// The style the bar at `edge` frames itself in: the window's one style.
     func style(_ edge: Edge) -> ChromeStyle {
-        edge == .top ? topStyle : bottomStyle
+        style
     }
 
     /// The toolbar items this walk has declared, in the order it declared them.

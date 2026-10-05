@@ -86,12 +86,26 @@ struct ExampleStyling: Equatable {
     /// the appearance manager's built-in border for the whole app; nil falls back
     /// to the built-in appearance (F2/F3/the appearance picker).
     var customBorder: BorderStyle?
-    /// How the app header and the status bar frame themselves, edited on the
-    /// Theme page. Two properties rather than one so the page can demonstrate
-    /// both spellings of `Scene.chromeStyle(...)`: the picker drives them
-    /// together, and unticking "match" lets them differ.
-    var appHeaderStyle: ChromeStyle = .bordered
-    var statusBarStyle: ChromeStyle = .bordered
+    /// How the window's bars frame themselves, edited on the Theme page and
+    /// applied with `Scene.windowToolbarStyle(_:)`: `.expanded` boxes them (the
+    /// default), `.unified` rules them, `.unifiedCompact` draws neither.
+    var toolbarStyle: ExampleToolbarStyle = .expanded
+}
+
+/// The window toolbar styles the Theme page offers.
+enum ExampleToolbarStyle: CaseIterable {
+    case unified, expanded, unifiedCompact
+
+    /// The style itself, erased: a scene's modifiers cannot be chosen with an
+    /// `if`, so the scene takes the choice through
+    /// `windowToolbarStyle(_: any WindowToolbarStyle)`.
+    var style: any WindowToolbarStyle {
+        switch self {
+        case .unified: .unified
+        case .expanded: .expanded
+        case .unifiedCompact: .unifiedCompact
+        }
+    }
 }
 
 // MARK: - Content View (Page Router)
@@ -163,8 +177,8 @@ struct ContentView: View {
             .toggleCharacterSet(styling.toggleCharacterSet)
             // The app-wide border now flows from the scene: `main.swift` applies
             // `.appearance(...)` for the user-built custom border (or defers to
-            // the appearance manager / F2 / F3 / picker), reaching the app header
-            // and status bar as well as this content. A local `.appearance(_:)`
+            // the appearance manager / F2 / F3 / picker), reaching the window's
+            // bars as well as this content. A local `.appearance(_:)`
             // still overrides per view.
             .onKeyEvent { event in
                 switch event.key {

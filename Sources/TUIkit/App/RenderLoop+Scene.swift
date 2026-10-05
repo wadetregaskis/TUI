@@ -44,13 +44,13 @@ extension RenderLoop {
             commandKey: environment.commandKey, copiesOnRelease: environment.textSelectionCopiesOnRelease)
     }
 
-    /// Adopts a scene-level `.chromeStyle(...)` for this frame.
+    /// Adopts a scene-level `.windowToolbarStyle(_:)` for this frame.
     ///
     /// Must run BEFORE anything asks either bar's rows: the style decides how
     /// many they take, and the page's height is whatever is left — and before
     /// the tooltip is wrapped, to the bottom bar's content width.
     private func applyChromeStyle(from configuration: SceneConfiguration) {
-        windowChrome.topStyle = configuration.topBarStyle ?? .bordered
-        windowChrome.bottomStyle = configuration.bottomBarStyle ?? .bordered
+        windowChrome.style = configuration.toolbarStyle ?? .bordered
+        windowChrome.showsTitle = configuration.showsTitle ?? true
     }
 }

@@ -8,13 +8,14 @@ import TUIkitStyling
 
 // MARK: - Chrome style
 
-/// How the app's framing bars — the app header and the status bar — separate
+/// How the window's bars — the top bar and the bottom bar — separate
 /// themselves from the page between them.
 ///
-/// One type for both, because the two are read together: a boxed footer under a
-/// ruled header looks like a mistake even though each is defensible alone. Set
-/// them at once with ``Scene/chromeStyle(_:)``, or independently with
-/// ``Scene/chromeStyle(appHeader:statusBar:)`` when the mismatch is the point.
+/// One style for both, because the two are read together: a boxed footer under
+/// a ruled header looks like a mistake even though each is defensible alone. An
+/// app chooses it with SwiftUI's `windowToolbarStyle(_:)` on the scene — see
+/// ``WindowToolbarStyle`` for which style draws which frame — and a
+/// ``StatusBar`` drawn as a view of its own takes one directly.
 ///
 /// Every style draws with the current ``Appearance``'s border glyphs and the
 /// palette's `border` colour, so a custom border restyles the chrome in step

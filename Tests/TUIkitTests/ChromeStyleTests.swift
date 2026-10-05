@@ -36,7 +36,7 @@ private struct StyledBarsApp: App {
                     ToolbarItem(placement: .bottomBar) { StatusBar() }
                 }
         }
-        .chromeStyle(style)
+        .windowToolbarStyle(WindowToolbarStyleCase.drawing(style).style)
     }
 }
 
@@ -126,8 +126,8 @@ struct ChromeStyleTests {
         // separate fields — so it is exactly the kind of thing that drifts apart
         // unnoticed (a boxed header over a ruled footer looks like a bug).
         let chrome = WindowChromeState()
-        #expect(chrome.topStyle == .bordered)
-        #expect(chrome.bottomStyle == .bordered)
+        #expect(chrome.style(.top) == .bordered)
+        #expect(chrome.style(.bottom) == .bordered)
         #expect(StatusBar(items: []).style == .bordered)
     }
 
@@ -188,36 +188,62 @@ struct ChromeStyleTests {
         #expect(ruledBelow.hitTestRegions.first?.offsetY == 1, "a rule above pushes the content down")
     }
 
-    // MARK: - The scene modifiers
+    // MARK: - The scene modifier
 
-    @Test("One call sets both bars")
-    func oneCallSetsBoth() {
-        let scene = WindowGroup { Text("x") }.chromeStyle(.bordered)
-        let resolved = scene.sceneConfiguration
-        #expect(resolved.topBarStyle == .bordered)
-        #expect(resolved.bottomBarStyle == .bordered)
+    @Test("Each window toolbar style draws its frame round every bar", arguments: [
+        (WindowToolbarStyleCase.automatic, ChromeStyle.bordered),
+        (.expanded, .bordered),
+        (.unified, .rule),
+        (.unifiedCompact, .compact),
+    ])
+    func windowToolbarStyles(style: WindowToolbarStyleCase, chrome: ChromeStyle) {
+        let resolved = WindowGroup { Text("x") }.windowToolbarStyle(style.style).sceneConfiguration
+        #expect(resolved.toolbarStyle == chrome)
+        #expect(resolved.showsTitle == true)
     }
 
-    @Test("The two-argument spelling sets them apart")
-    func twoArgumentsDiffer() {
-        let scene = WindowGroup { Text("x") }
-            .chromeStyle(appHeader: .compact, statusBar: .bordered)
-        let resolved = scene.sceneConfiguration
-        #expect(resolved.topBarStyle == .compact)
-        #expect(resolved.bottomBarStyle == .bordered)
+    @Test("The showsTitle: forms say whether the title slot shows the title")
+    func showsTitle() {
+        let hidden = WindowGroup { Text("x") }.windowToolbarStyle(.unified(showsTitle: false)).sceneConfiguration
+        #expect(hidden.toolbarStyle == .rule)
+        #expect(hidden.showsTitle == false)
+        let compact = WindowGroup { Text("x") }.windowToolbarStyle(.unifiedCompact(showsTitle: false))
+            .sceneConfiguration
+        #expect(compact.toolbarStyle == .compact)
+        #expect(compact.showsTitle == false)
     }
 
-    @Test("Innermost wins, per bar")
-    func innermostWinsPerBar() {
-        // An inner call that only names one bar must not shadow an outer call
-        // for the other — the two are resolved independently, which is what
-        // lets `.chromeStyle(.rule)` act as a base with one bar overridden.
+    @Test("A title the style hides is not drawn, though the bar still is")
+    func hiddenTitleIsNotDrawn() {
+        struct TitledApp: App {
+            init() {}
+            var body: some Scene {
+                WindowGroup {
+                    Text("page")
+                        .navigationTitle("TITLE")
+                        .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+                }
+                .windowToolbarStyle(.unified(showsTitle: false))
+            }
+        }
+        let rows = screen(TitledApp())
+        #expect(rows[0].contains("ITEM"), "\(rows)")
+        #expect(!rows.contains { $0.contains("TITLE") }, "\(rows)")
+    }
+
+    @Test("Innermost wins")
+    func innermostWins() {
         let scene = WindowGroup { Text("x") }
-            .chromeStyle(appHeader: .compact, statusBar: .compact)
-            .chromeStyle(.bordered)
-        let resolved = scene.sceneConfiguration
-        #expect(resolved.topBarStyle == .compact, "the inner call is closer to the content")
-        #expect(resolved.bottomBarStyle == .compact)
+            .windowToolbarStyle(.unifiedCompact)
+            .windowToolbarStyle(.expanded)
+        #expect(scene.sceneConfiguration.toolbarStyle == .compact, "the inner call is closer to the content")
+    }
+
+    @Test("A style of the app's own is read as the default")
+    func unknownStyleIsAutomatic() {
+        struct Mine: WindowToolbarStyle {}
+        let resolved = WindowGroup { Text("x") }.windowToolbarStyle(Mine()).sceneConfiguration
+        #expect(resolved.toolbarStyle == .bordered)
     }
 
     @Test("It composes with palette, appearance and mouse support in either order")
@@ -229,15 +255,15 @@ struct ChromeStyleTests {
             .palette(palette)
             .appearance(appearance)
             .mouseSupport(.standard)
-            .chromeStyle(.bordered)
+            .windowToolbarStyle(.unified)
         let chromeInnermost = WindowGroup { Text("x") }
-            .chromeStyle(.bordered)
+            .windowToolbarStyle(.unified)
             .palette(palette)
             .appearance(appearance)
             .mouseSupport(.standard)
 
         for scene in [AnySceneProbe(chromeOutermost), AnySceneProbe(chromeInnermost)] {
-            #expect(scene.chrome.appHeader == .bordered)
+            #expect(scene.chrome == .rule)
             #expect(scene.palette?.id == palette.id)
             #expect(scene.appearance?.id == appearance.id)
             #expect(scene.mouse != nil)
@@ -245,18 +271,44 @@ struct ChromeStyleTests {
     }
 }
 
+/// The window toolbar styles, as test arguments: each erased for
+/// `windowToolbarStyle(_:)`'s run-time form.
+enum WindowToolbarStyleCase: Sendable, CustomTestStringConvertible {
+    case automatic, expanded, unified, unifiedCompact
+
+    var style: any WindowToolbarStyle {
+        switch self {
+        case .automatic: .automatic
+        case .expanded: .expanded
+        case .unified: .unified
+        case .unifiedCompact: .unifiedCompact
+        }
+    }
+
+    /// The style that draws `chrome`.
+    static func drawing(_ chrome: ChromeStyle) -> Self {
+        switch chrome {
+        case .bordered: .expanded
+        case .rule: .unified
+        case .compact: .unifiedCompact
+        }
+    }
+
+    var testDescription: String { "\(self)" }
+}
+
 /// Reads every root-level scene override off one scene, so the composition test
 /// asserts on all of them without repeating four casts per case.
 @MainActor
 private struct AnySceneProbe {
-    let chrome: (appHeader: ChromeStyle?, statusBar: ChromeStyle?)
+    let chrome: ChromeStyle?
     let palette: (any Palette)?
     let appearance: Appearance?
     let mouse: MouseSupport?
 
     init(_ scene: some Scene) {
         let configuration = scene.sceneConfiguration
-        chrome = (configuration.topBarStyle, configuration.bottomBarStyle)
+        chrome = configuration.toolbarStyle
         palette = configuration.palette
         appearance = configuration.appearance
         mouse = configuration.mouseSupport

@@ -34,8 +34,8 @@ private struct ShiftProbeApp: App {
                     ToolbarItem(placement: .bottomBar) { StatusBar() }
                 }
         }
-        // A compact bottom bar: one row, its items at local y = 0.
-        .chromeStyle(appHeader: .bordered, statusBar: .compact)
+        // Compact bars: the bottom one is one row, its items at local y = 0.
+        .windowToolbarStyle(.unifiedCompact)
     }
 }
 

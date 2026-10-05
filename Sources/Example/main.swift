@@ -17,7 +17,7 @@ struct ExampleApp: App {
     /// The whole app's colour palette, held as editable `@State` and applied to
     /// the scene with `.palette(...)`. The Theme page edits it — presets load a
     /// `SystemPalette`'s colours, the colour pickers tweak individual ones — so a
-    /// change re-themes every page, the app header, and the status bar live.
+    /// change re-themes every page and the window's bars live.
     /// (App-level `@State` is re-evaluated each frame, so the scene's `.palette`
     /// override stays in sync.)
     @State private var palette = CustomizablePalette(from: SystemPalette(.green))
@@ -40,17 +40,15 @@ struct ExampleApp: App {
         }
         .theme(Theme(palette: palette, tint: styling.tint))
         // Apply the user-built custom border (Theme page) at the *scene* level so
-        // it reaches the app header and status bar too — not just the page
-        // content. `nil` (no custom border) defers to the appearance manager, so
+        // it reaches the window's bars too — not just the page content. `nil` (no custom border) defers to the appearance manager, so
         // F2 / F3 / the appearance picker keep driving the built-in border.
         .appearance(styling.customBorder.map {
             Appearance(id: Appearance.ID(rawValue: "custom"), borderStyle: $0)
         })
-        // Likewise scene-level: how the two framing bars separate themselves
-        // from the page is a property of the app's chrome, not of any page.
-        // The Theme page's picker drives both at once by default; the
-        // two-argument spelling is what lets it set them apart.
-        .chromeStyle(appHeader: styling.appHeaderStyle, statusBar: styling.statusBarStyle)
+        // Likewise scene-level: how the window's bars separate themselves from
+        // the page is a property of the app's chrome, not of any page — one
+        // style for every bar, chosen on the Theme page.
+        .windowToolbarStyle(styling.toolbarStyle.style)
     }
 }
 

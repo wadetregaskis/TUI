@@ -176,8 +176,8 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
     /// takes a bar of its own while it shows.
     private func reservedRows(_ chrome: WindowChromeState, tooltipRows: Int) -> Rows {
         Rows(
-            top: Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.topStyle),
-            bottom: Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.bottomStyle))
+            top: Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style),
+            bottom: Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.style))
     }
 
     /// Asks for the frame a settlement owes: the next one, through the

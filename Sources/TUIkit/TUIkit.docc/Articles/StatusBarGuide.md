@@ -17,7 +17,7 @@ Every bar is opt-in: an app that places no `StatusBar()` shows no line of hints,
 
 The line updates every frame. It takes no row while it has nothing to show: no active user items and no visible system items.
 
-Its bar is framed in the scene's chrome style — see ``ChromeStyle`` and ``Scene/chromeStyle(_:)`` — which the top bar shares. It defaults to ``ChromeStyle/bordered``: the line boxed like a container view.
+Its bar is framed in the scene's window toolbar style — see ``WindowToolbarStyle`` — which the top bar shares. It defaults to a box: the line boxed like a container view.
 
 ## Architecture
 
@@ -167,13 +167,16 @@ When there are no active items left, `StatusBar()` takes no row, and a bottom ba
 
 ## Bar Styles
 
-The bottom bar is framed in the scene's chrome style, which the top bar shares:
+The bottom bar is framed in the scene's window toolbar style, which the top bar shares — SwiftUI's `windowToolbarStyle(_:)` on the scene:
 
-- **``ChromeStyle/bordered``**: Items inside a bordered container (the default)
-- **``ChromeStyle/rule``**: Items in a single line under a full-width rule, which the top bar mirrors below its content
-- **``ChromeStyle/compact``**: Items alone, no rule and no border
+- **`.automatic`, `.expanded`**: Items inside a bordered container (the default)
+- **`.unified`**: Items in a single line under a full-width rule, which the top bar mirrors below its content
+- **`.unifiedCompact`**: Items alone, no rule and no border
 
-Set it on the scene with ``Scene/chromeStyle(_:)``.
+```swift
+WindowGroup { ContentView() }
+    .windowToolbarStyle(.unifiedCompact)
+```
 
 ## Event Dispatch Priority
 

@@ -27,7 +27,7 @@ extension RenderLoop {
     /// subtree setting, so a panel asking for a popover inside an app that uses
     /// the bar is answered by the panel.
     func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64, scheduler: AnimationScheduler?) {
-        let width = windowChrome.bottomStyle.barContentWidth(terminalWidth)
+        let width = windowChrome.style.barContentWidth(terminalWidth)
         statusBar.showsNoteInPlaceOfItems = false
         // Whether last frame's line of key hints drew a row of items for the
         // copy's line to stand in for; this frame's line records it afresh.

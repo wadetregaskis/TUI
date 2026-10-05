@@ -71,28 +71,15 @@ struct ThemePage: View {
     /// characters are cells).
     private static let colorLabelWidth = themeColors.map { $0.name.count }.max() ?? 18
 
-    /// The chrome styles offered by the picker, with their display names.
-    private static var chromeNames: [(name: String, style: ChromeStyle)] {
+    /// The window toolbar styles offered by the picker, with their display
+    /// names: `.unified` rules the bars, `.expanded` boxes them,
+    /// `.unifiedCompact` draws neither.
+    private static var chromeNames: [(name: String, style: ExampleToolbarStyle)] {
         [
-            (L("page.theme.chrome.rule"), .rule),
-            (L("page.theme.chrome.bordered"), .bordered),
-            (L("page.theme.chrome.compact"), .compact),
+            (L("page.theme.chrome.rule"), .unified),
+            (L("page.theme.chrome.bordered"), .expanded),
+            (L("page.theme.chrome.compact"), .unifiedCompact),
         ]
-    }
-
-    /// A picker binding for ONE bar's style — the
-    /// `chromeStyle(appHeader:statusBar:)` half of the API.
-    private func chromeBinding(
-        _ keyPath: WritableKeyPath<ExampleStyling, ChromeStyle>
-    ) -> Binding<String> {
-        Binding(
-            get: { Self.chromeNames.first { $0.style == styling[keyPath: keyPath] }?.name ?? "" },
-            set: { name in
-                if let style = Self.chromeNames.first(where: { $0.name == name })?.style {
-                    styling[keyPath: keyPath] = style
-                }
-            }
-        )
     }
 
     /// The same text as the literal above, but reaching `Text` as a *value*, so
@@ -133,20 +120,12 @@ struct ThemePage: View {
             }
         )
         let chromeNames = Self.chromeNames
-        // A binding that moves BOTH bars, mirroring `Scene.chromeStyle(_:)`;
-        // `chromeBinding(_:)` below is the per-bar counterpart. Reads back as ""
-        // (nothing selected) while the two differ, which is honest: no single
-        // style is in force.
+        // The one style every bar takes: `Scene.windowToolbarStyle(_:)`.
         let bothChromeSelection = Binding(
-            get: {
-                styling.appHeaderStyle == styling.statusBarStyle
-                    ? chromeNames.first { $0.style == styling.appHeaderStyle }?.name ?? ""
-                    : ""
-            },
+            get: { chromeNames.first { $0.style == styling.toolbarStyle }?.name ?? "" },
             set: { name in
                 if let style = chromeNames.first(where: { $0.name == name })?.style {
-                    styling.appHeaderStyle = style
-                    styling.statusBarStyle = style
+                    styling.toolbarStyle = style
                 }
             }
         )
@@ -247,27 +226,6 @@ struct ThemePage: View {
                             }
                         }
                         .pickerStyle(.radioGroup)
-
-                        Text("page.theme.chrome.separately")
-                            .foregroundStyle(.palette.foregroundSecondary)
-                        HStack(spacing: 3) {
-                            Picker(
-                                "page.theme.chrome.headerLabel",
-                                selection: chromeBinding(\.appHeaderStyle)
-                            ) {
-                                ForEach(chromeNames, id: \.name) { entry in
-                                    Text(entry.name).tag(entry.name)
-                                }
-                            }
-                            Picker(
-                                "page.theme.chrome.footerLabel",
-                                selection: chromeBinding(\.statusBarStyle)
-                            ) {
-                                ForEach(chromeNames, id: \.name) { entry in
-                                    Text(entry.name).tag(entry.name)
-                                }
-                            }
-                        }
                     }
                 }
 

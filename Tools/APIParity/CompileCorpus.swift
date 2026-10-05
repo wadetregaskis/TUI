@@ -2410,3 +2410,17 @@ private struct ToolbarShapes: View {
         }
     }
 }
+
+/// The window toolbar styles, set on a scene as SwiftUI's documentation sets
+/// them.
+@MainActor
+private struct ToolbarStyleScenes: Scene {
+    var body: some Scene {
+        WindowGroup { Text("notes") }
+            .windowToolbarStyle(.unifiedCompact(showsTitle: false))
+            .windowToolbarStyle(.unified)
+            .windowToolbarStyle(UnifiedWindowToolbarStyle(showsTitle: true))
+            .windowToolbarStyle(.expanded)
+            .windowToolbarStyle(.automatic)
+    }
+}

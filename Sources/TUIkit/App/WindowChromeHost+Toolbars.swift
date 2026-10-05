@@ -35,9 +35,10 @@ extension _WindowChromeHost {
     }
 
     /// What the title slot of the bar at `edge` shows: the window's title and
-    /// subtitle in the top bar, nothing in the bottom one.
+    /// subtitle in the top bar — unless the window toolbar style says not to —
+    /// and nothing in the bottom one.
     private func titleSlot(_ edge: WindowChromeState.Edge, chrome: WindowChromeState) -> (String, String) {
-        edge == .top ? (chrome.title, chrome.subtitle) : ("", "")
+        edge == .top && chrome.showsTitle ? (chrome.title, chrome.subtitle) : ("", "")
     }
 
     /// The toolbar at `edge`, framed and on its own background, in the
