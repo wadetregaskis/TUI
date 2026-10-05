@@ -18,26 +18,55 @@
 /// inside its opaque content).
 @MainActor
 protocol FormContentExtractor {
-    func extractFormElements() -> [_FormElement]
+    /// This view's elements, read where the form's walk is (`walk` — see
+    /// ``formElements(from:in:)``).
+    func extractFormElements(in walk: RenderContext) -> [_FormElement]
 }
+
+/// The identity step under a form at which its content walk starts: where a
+/// view of the app's own the walk reads through binds its `@State`, apart from
+/// the identities the form's rows draw at.
+enum _FormContentWalk {}
 
 /// Extracts the form elements of `view`: its own contribution if it is a
 /// ``FormContentExtractor``; otherwise a control row (checkbox/radio), a button
-/// row, or a plain full-width row depending on its kind.
+/// row, the elements of the body of a view of the app's own whose body is
+/// several views or a section, or a plain full-width row depending on its kind.
+///
+/// `walk` is the form's context with an identity for the place the walk has
+/// reached: a step for each tuple slot, loop element, `if`/`else` arm and
+/// section content it has passed through, below a step of its own under the
+/// form (``_FormContentWalk``). It is where a view of the app's own read
+/// through has its body evaluated, so its `@State` is bound at an address of
+/// its own, the same every frame.
 @MainActor
-func formElements(from view: some View) -> [_FormElement] {
+func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElement] {
     if let aligned = view as? FormRowAligning {
         let alignment = aligned.formRowAlignmentValue
-        return aligned.formRowInnerElements().map { stamped($0, alignment: alignment) }
+        return aligned.formRowInnerElements(in: walk).map { stamped($0, alignment: alignment) }
     }
     if let extractor = view as? FormContentExtractor {
-        return extractor.extractFormElements()
+        return extractor.extractFormElements(in: walk)
     }
     if view is FormControlRow {
         return [.row(_FormRow(.control(AnyView(view))))]
     }
     if view is FormButtonRow {
         return [.row(_FormRow(.button(AnyView(view))))]
+    }
+    // A view of the app's own whose body is several views, a loop, an `if` or
+    // a section — what a stack takes apart (`compositeMembers(of:context:)`,
+    // decisions D1S, B-D1S-6) — is read through its body, as SwiftUI's form
+    // reads it (measured, `D1S/probe2/formcomposite`: such a section and such
+    // rows lay out as written bare, in both styles): `struct General: View { var
+    // body: some View { Section("General") { … } } }` is a section of the
+    // form, its `Toggle` in the control column. It was a plain row, drawn as
+    // the section's parts since a section outside a `List` became its parts
+    // (B16). The body is evaluated as a render evaluates it — `@State` bound
+    // here, `@Environment` resolved, observed — and read one step in.
+    if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil {
+        let body = evaluateCompositeBody(of: view, context: walk)
+        return formElements(from: body, in: walk.withChildIdentity(type: V.Body.self))
     }
     return [.row(_FormRow(.plain(AnyView(view))))]
 }
@@ -86,7 +115,7 @@ private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
 }
 
 extension LabeledContent: FormContentExtractor {
-    func extractFormElements() -> [_FormElement] {
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         [.row(_FormRow(.field(label: AnyView(label), content: AnyView(content))))]
     }
 }
@@ -96,7 +125,7 @@ extension LabeledContent: FormContentExtractor {
 /// footer are drawn only while it is expanded, as SwiftUI collapses a form's
 /// section in either style (measured on macOS 15.8, `D1S/probe2/form`).
 extension Section: FormContentExtractor {
-    func extractFormElements() -> [_FormElement] {
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         let header: AnyView? =
             Parent.self == EmptyView.self
             ? nil
@@ -106,17 +135,22 @@ extension Section: FormContentExtractor {
                 _FormSection(
                     header: header,
                     footer: (footer is EmptyView || !showsContent) ? nil : AnyView(footer),
-                    rows: showsContent ? sectionRows(of: formElements(from: content)) : [],
+                    rows: showsContent
+                        ? sectionRows(
+                            of: formElements(from: content, in: walk.withChildIdentity(type: Content.self, index: 1)))
+                        : [],
                     isOpen: showsContent))
         ]
     }
 }
 
 extension TupleView: FormContentExtractor {
-    func extractFormElements() -> [_FormElement] {
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         var elements: [_FormElement] = []
+        var slot = 0
         func collect<T: View>(_ view: T) {
-            elements.append(contentsOf: formElements(from: view))
+            elements.append(contentsOf: formElements(from: view, in: walk.withChildIdentity(erasedType: T.self, index: slot)))
+            slot += 1
         }
         repeat collect(each children)
         return elements
@@ -124,21 +158,25 @@ extension TupleView: FormContentExtractor {
 }
 
 extension ForEach: FormContentExtractor where Content: View {
-    func extractFormElements() -> [_FormElement] {
-        data.flatMap { element in formElements(from: content(element)) }
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
+        data.flatMap { element in
+            formElements(
+                from: content(element),
+                in: walk.withChildIdentity(erasedType: Content.self, key: identityKey(elementID(of: element))))
+        }
     }
 }
 
 /// A form reads its rows through an erasure, as through a `Group` — which is
 /// what lets ``Form/init(_:)`` lay out a configuration's type-erased content.
 extension AnyView: FormContentExtractor {
-    func extractFormElements() -> [_FormElement] {
-        formElements(from: erasedView)
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
+        formElements(from: erasedView, in: walk)
     }
 }
 
 extension EmptyView: FormContentExtractor {
-    func extractFormElements() -> [_FormElement] { [] }
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] { [] }
 }
 
 /// A form reads its rows through a `Group`, as SwiftUI's does: a section in
@@ -147,8 +185,8 @@ extension EmptyView: FormContentExtractor {
 /// `Section` in one had no form styling, a `Toggle` no place in the control
 /// column.
 extension Group: FormContentExtractor where Content: View {
-    func extractFormElements() -> [_FormElement] {
-        formElements(from: content)
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
+        formElements(from: content, in: walk)
     }
 }
 
@@ -156,18 +194,20 @@ extension Group: FormContentExtractor where Content: View {
 /// (``_FormElement/group(_:branch:)``), as SwiftUI lays a section out in one
 /// as it does written bare (measured). Nothing while the condition is false.
 extension Optional: FormContentExtractor where Wrapped: View {
-    func extractFormElements() -> [_FormElement] {
-        [.group(map { formElements(from: $0) } ?? [], branch: nil)]
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
+        [.group(map { formElements(from: $0, in: walk) } ?? [], branch: nil)]
     }
 }
 
 /// An `if`/`else`'s live arm's elements, kept in one place among the form's
 /// and drawn under the arm's branch, so the arms keep their state apart.
 extension ConditionalView: FormContentExtractor {
-    func extractFormElements() -> [_FormElement] {
+    func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         switch self {
-        case .trueContent(let content): [.group(formElements(from: content), branch: "true")]
-        case .falseContent(let content): [.group(formElements(from: content), branch: "false")]
+        case .trueContent(let content):
+            [.group(formElements(from: content, in: walk.withBranchIdentity("true")), branch: "true")]
+        case .falseContent(let content):
+            [.group(formElements(from: content, in: walk.withBranchIdentity("false")), branch: "false")]
         }
     }
 }

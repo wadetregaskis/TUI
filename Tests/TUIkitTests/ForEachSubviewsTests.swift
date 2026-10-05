@@ -157,7 +157,7 @@ struct ForEachSubviewsTests {
         let loop = ForEach(subviews: Group { Text("a"); Text("b") }) { $0 }
         #expect(loop.pickerOptions().isEmpty)
         #expect(loop.textSuggestions().isEmpty)
-        #expect(loop.extractFormElements().isEmpty)
+        #expect(loop.extractFormElements(in: makeRenderContext(width: 10, height: 4)).isEmpty)
         #expect(loop.listRowCount == 0)
         #expect(loop.keyedElementCount == 0)
     }

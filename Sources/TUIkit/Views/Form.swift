@@ -178,12 +178,14 @@ struct _FormRowAlignmentModifier<Content: View>: View {
 @MainActor
 protocol FormRowAligning {
     var formRowAlignmentValue: HorizontalAlignment { get }
-    func formRowInnerElements() -> [_FormElement]
+    /// The elements of the view this override is on, read where the form's
+    /// walk is (`walk` — see ``formElements(from:in:)``).
+    func formRowInnerElements(in walk: RenderContext) -> [_FormElement]
 }
 
 extension _FormRowAlignmentModifier: FormRowAligning {
     var formRowAlignmentValue: HorizontalAlignment { alignment }
-    func formRowInnerElements() -> [_FormElement] { formElements(from: content) }
+    func formRowInnerElements(in walk: RenderContext) -> [_FormElement] { formElements(from: content, in: walk) }
 }
 
 // MARK: - Row view builder
@@ -447,7 +449,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
             return nil
         }
 
-        let elements = formElements(from: content)
+        let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
         let pillar = pillarWidth(of: elements, context: context)
         // The widest non-button row drives both layouts now: in columns it's the
         // edge buttons right-align to; in grouped it's the shared box width.

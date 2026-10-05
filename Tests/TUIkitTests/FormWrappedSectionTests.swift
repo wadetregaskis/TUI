@@ -8,7 +8,10 @@
 //  outside a `List` became its parts (decisions B16), a section in an `if`
 //  lost its form header styling, and a `Toggle` in one never had its place in
 //  the control column. An `if` keeps one place among the form's elements, so
-//  the rows after it keep their identities as it comes and goes.
+//  the rows after it keep their identities as it comes and goes. So does a
+//  view of the app's own whose body is a section or several rows — the
+//  usual way a form is factored (`D1S/probe2/formcomposite`) — its `@State`
+//  kept.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -30,6 +33,27 @@ private struct PathProbe: View, Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         capture.path = context.identity.path
         return FrameBuffer(text: "probe")
+    }
+}
+
+/// A form's section as a view of the app's own, the usual way a form is
+/// factored.
+private struct General: View {
+    var body: some View {
+        Section("Advanced") {
+            Toggle("Verbose", isOn: .constant(true))
+            LabeledContent("Level") { Text("3") }
+        }
+    }
+}
+
+/// A view of the app's own whose body is two of the form's rows, with
+/// `@State` of its own behind one of them.
+private struct Pair: View {
+    @State private var on = false
+    var body: some View {
+        LabeledContent("Name") { Text("x") }
+        Toggle("Wi-Fi", isOn: $on)
     }
 }
 
@@ -142,5 +166,47 @@ struct FormWrappedSectionTests {
         #expect(expansion.isExpanded, "Return opened the section")
         let open = renderToBuffer(view, context: context).lines.map(\.stripped)
         #expect(open.contains { $0.contains("Inside") }, "\(open)")
+    }
+
+    // MARK: - A view of the app's own
+
+    @Test("A section in a view of the app's own draws as the same section bare, in both styles")
+    func sectionInAViewOfTheAppsOwn() {
+        for grouped in [false, true] {
+            func styled(_ form: some View) -> [String] {
+                grouped ? drawn(form.formStyle(.grouped)) : drawn(form.formStyle(.columns))
+            }
+            let bare = styled(Form { LabeledContent("Name") { Text("x") }; advanced() })
+            let own = styled(Form { LabeledContent("Name") { Text("x") }; General() })
+            #expect(own == bare, "grouped \(grouped): \(own.map(\.stripped))")
+        }
+    }
+
+    @Test("A view of the app's own whose body is rows gives the form those rows, and keeps its @State")
+    func rowsOfAViewOfTheAppsOwn() throws {
+        let bare = drawn(
+            Form {
+                LabeledContent("Name") { Text("x") }
+                Toggle("Wi-Fi", isOn: .constant(false))
+            }.formStyle(.columns))
+        let own = drawn(Form { Pair() }.formStyle(.columns))
+        #expect(own == bare, "\(own.map(\.stripped))")
+
+        let view = Form { Pair() }
+        let context = makeRenderContext(width: 40, height: 10)
+        _ = renderToBuffer(view, context: context)
+        let manager = try #require(context.environment.focusManager)
+        let toggle = try #require(manager.registeredFocusIDsInActiveSection().first)
+        manager.focus(id: toggle)
+        _ = renderToBuffer(view, context: context)
+        #expect(manager.dispatchKeyEvent(KeyEvent(key: .space)))
+        let after = renderToBuffer(view, context: context).lines.map(\.stripped)
+        let on = drawn(
+            Form {
+                LabeledContent("Name") { Text("x") }
+                Toggle("Wi-Fi", isOn: .constant(true))
+            }.formStyle(.columns)
+        ).map(\.stripped)
+        #expect(after.filter { $0.contains("Wi-Fi") } == on.filter { $0.contains("Wi-Fi") }, "\(after)")
     }
 }
