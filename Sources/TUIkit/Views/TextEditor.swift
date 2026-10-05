@@ -494,7 +494,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         wraps: Bool, follows: Bool
     ) -> Window {
         guard wraps else {
-            handler.wrapWidth = nil
+            if follows { handler.wrapWidth = nil }
             let overflows = lines.count > height
             let contentWidth = overflows ? max(1, width - 1) : width
             // In DISPLAY columns, the space the scroll window and the caret cell
@@ -516,8 +516,13 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let overflows = rows.rowCount > height
         let contentWidth = overflows ? max(1, width - 1) : width
         if overflows { rows = layout.wrapped(width: contentWidth, tabWidth: tabWidth) }
-        handler.wrapWidth = contentWidth
-        if follows { handler.followCaretRow(in: rows, height: height) }
+        // The width the keys move by: the one drawn, never a measure's probe,
+        // which would leave the keys between frames moving by rows at a width
+        // nobody sees.
+        if follows {
+            handler.wrapWidth = contentWidth
+            handler.followCaretRow(in: rows, height: height)
+        }
         return Window(
             contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: rows.rowCount,
             offset: handler.topRow(in: rows), caretColumn: handler.caretColumnInRow(in: rows), rows: rows)

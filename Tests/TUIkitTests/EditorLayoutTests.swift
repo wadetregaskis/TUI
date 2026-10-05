@@ -154,6 +154,21 @@ struct EditorLayoutTests {
         #expect(layout.wrapsMade == made)
     }
 
+    /// The keys between frames move by rows at the width the editor drew, so a
+    /// measure that renders — at a probe's width — must not change it.
+    @Test("A measuring render leaves the width the keys move by alone")
+    func measureLeavesTheWrapWidth() throws {
+        let frames = Frames(width: 20, height: 6)
+        let editor = TextEditor(text: .constant(Self.longDocument))
+        _ = frames.pass { renderToBuffer(editor, context: frames.context) }
+        let handler = try #require(frames.handler)
+        let drawn = handler.wrapWidth
+        var probe = frames.context.withAvailableSize(width: 9, height: 6)
+        probe.isMeasuring = true
+        _ = frames.pass { renderToBuffer(editor, context: probe) }
+        #expect(handler.wrapWidth == drawn)
+    }
+
     @Test("An edit hands its lines over with its text")
     func editKeepsItsLines() {
         let box = Box("ab\ncd")
