@@ -116,15 +116,32 @@ import Testing
             }
         }
 
-        @Test("The largest of several images is turned by its own EXIF orientation, and its size is what the limit sees")
-        func largestOfSeveralIsTurnedAndLimited() throws {
+        @Test("The largest of several images is turned by its own EXIF orientation")
+        func largestOfSeveralIsTurned() throws {
             let small = try solid(width: 16, height: 16, red: 255, blue: 0)
             let large = try solid(width: 64, height: 32, red: 0, blue: 255)
             let data = try file(.tiff, [(small, orientation: 1), (large, orientation: 6)])
             let decoded = try PlatformImageLoader().loadImage(from: data)
             #expect(decoded.width == 32 && decoded.height == 64, "\(decoded.width) × \(decoded.height)")
-            #expect(throws: ImageLoadError.self) {
-                try PlatformImageLoader().loadImage(from: data, maxPixelCount: 16 * 16)
+        }
+
+        /// The limit bounds memory; a file whose largest image is over it but
+        /// holds a smaller one within it still draws, as decoding the first
+        /// image did before the largest was chosen.
+        @Test("Under a pixel limit, the largest image within it is decoded, and a file with none within it is refused")
+        func largestWithinTheLimit() throws {
+            let small = try solid(width: 16, height: 16, red: 255, blue: 0)
+            let middle = try solid(width: 32, height: 16, red: 0, blue: 255)
+            let large = try solid(width: 64, height: 32, red: 0, blue: 255)
+            for order in [[large, small, middle], [small, middle, large]] {
+                let data = try file(.tiff, order.map { ($0, orientation: 1) })
+                let decoded = try PlatformImageLoader().loadImage(from: data, maxPixelCount: 32 * 16)
+                #expect(decoded.width == 32 && decoded.height == 16, "\(decoded.width) × \(decoded.height)")
+                let smallest = try PlatformImageLoader().loadImage(from: data, maxPixelCount: 16 * 16)
+                #expect(smallest.width == 16 && smallest.height == 16, "exactly at the limit")
+                #expect(throws: ImageLoadError.self) {
+                    try PlatformImageLoader().loadImage(from: data, maxPixelCount: 16 * 16 - 1)
+                }
             }
         }
 

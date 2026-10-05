@@ -283,7 +283,7 @@ extension PlatformImageLoader {
         private func decodeWithImageIO(
             _ source: CGImageSource?, describing what: String, maxPixelCount: Int?
         ) throws -> RGBAImage {
-            guard let source, let chosen = Self.largestImage(in: source) else {
+            guard let source, let chosen = Self.largestImage(in: source, fitting: maxPixelCount) else {
                 throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
             }
             let (index, properties) = chosen
@@ -315,7 +315,7 @@ extension PlatformImageLoader {
         }
 
         /// The image of `source` with the most pixels, by its declared size,
-        /// and its properties — `nil` if it holds none.
+        /// that `limit` allows, and its properties — `nil` if it holds none.
         ///
         /// A file can hold several images: an icon's sizes, a multi-resolution
         /// TIFF's, an animation's frames. ImageIO's first is whatever comes
@@ -327,7 +327,14 @@ extension PlatformImageLoader {
         /// a display to ask, and the most detail to scale down from. A tie
         /// keeps the primary image, else the earliest, so an animation shows
         /// its first frame and a HEIF its primary image.
-        private static func largestImage(in source: CGImageSource) -> (Int, [CFString: Any]?)? {
+        ///
+        /// Under a pixel limit, an image within it beats any that is not, so an
+        /// icon whose largest size is over the limit still draws its largest
+        /// that fits, as decoding the first image did. Only when none fits is
+        /// the largest chosen, for the caller to refuse.
+        private static func largestImage(
+            in source: CGImageSource, fitting limit: Int?
+        ) -> (Int, [CFString: Any]?)? {
             let count = CGImageSourceGetCount(source)
             guard count > 0 else { return nil }
             let primary = min(CGImageSourceGetPrimaryImageIndex(source), count - 1)
@@ -343,10 +350,13 @@ extension PlatformImageLoader {
             var best = (primary, properties(primary))
             guard count > 1 else { return best }
             var bestArea = area(best.1)
+            func fits(_ area: Int) -> Bool { limit.map { area <= $0 } ?? true }
             for index in 0..<count where index != primary {
                 let candidate = properties(index)
                 let candidateArea = area(candidate)
-                if candidateArea > bestArea {
+                let isBetter = fits(candidateArea) == fits(bestArea)
+                    ? candidateArea > bestArea : fits(candidateArea)
+                if isBetter {
                     best = (index, candidate)
                     bestArea = candidateArea
                 }
