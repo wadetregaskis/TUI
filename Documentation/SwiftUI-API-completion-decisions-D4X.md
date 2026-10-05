@@ -7,7 +7,9 @@ from [`SwiftUI-API-completion-design-text-editing.md`](SwiftUI-API-completion-de
 and `Ghostty-VT-adoption.md` C1. 2026-10-05.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Eleven, each with its fuller version and price.
+- **B. Shipped the safe option.** Seventeen, each with its fuller version and
+  price. B-D4X-13 to 17 came out of the lane's review (round 1), which also
+  found defects that are fixed rather than recorded here.
 - **C. Declined without asking.** None.
 
 Not built, as instructed: the mouse hand-off key (D0, you are choosing the
@@ -59,8 +61,10 @@ measured.
 ### B-D4X-4. The line about a copy stands in for the status bar's items
 
 **Shipped:** for three seconds the line replaces the items' labels (their keys
-still work), so the page keeps its height. A bar with no items gains a row,
-as for a tooltip.
+still work), cut to one row so a narrow bar keeps its height too. A bar with
+no items gains a row, as for a tooltip. A status-bar tooltip still adds a row
+above the items and moves a centred page while it shows; a selection's
+highlight goes for that time and comes back with the page (B-D4X-15).
 
 **The alternative:** a row above the items, as a tooltip takes. That moves a
 centred page half a row, and with it a selection's highlight. A notification
@@ -70,7 +74,8 @@ toast would need `.notificationHost()`, which an app may not have.
 
 **Shipped:** `ClipboardLocality` asks tmux for its clients (`list-clients`)
 and `set-clipboard` when a copy is made: two bounded forks per copy, none per
-frame.
+frame. A paste chord (Ctrl-V, a `PasteButton`) asks for the clients too: one
+fork per press.
 
 **The fuller version:** keep both in `ClientCapabilityRefresher`, which the
 client-change hooks already refresh. Half a day; worth it only if a copy's
@@ -156,3 +161,75 @@ by default.
 
 **The fuller version:** a toggle beside the editor, with its label in the
 Example's seven languages. Half a day.
+
+### B-D4X-13. A session under screen, zellij, dtach, abduco or shpool is never "at this machine"
+
+*The clipboard rule's locality (`ClipboardLocality`)*
+
+**Shipped:** a session keeper other than tmux, in the process's chain or by
+its variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
+`SHPOOL_SESSION_NAME`), answers "not local" even at the desk: its server is
+detached from the terminal that started it, so a session begun at the desk
+can be attached over ssh with nothing in the process to say so, and none of
+them can be asked for its clients as tmux is. Such a session copies by OSC 52
+where the terminal takes it, and otherwise says it could not.
+
+**The fuller version:** ask each keeper for its clients where it can be asked
+— zellij's and screen's session sockets, as `list-clients` is asked of tmux —
+and walk each client's chain as tmux's are. Half a day per keeper, and only
+where the keeper answers at all (dtach and abduco keep no client list).
+
+### B-D4X-14. Away from this machine, a paste chord pastes the app's own latest copy
+
+**Shipped:** where this machine's clipboard is not the user's, Ctrl-V, a
+`PasteButton` and a `pasteDestination` find the text of the latest copy the
+app made, whatever became of it, so the in-app round trip the server's
+pasteboard used to carry over ssh still works (a field's Ctrl-C into another
+field; a `copyable` value into a `PasteButton`, as itself). With no such copy
+the status bar says "Nothing to paste here: use the terminal's paste".
+
+**The alternative:** paste nothing away from the machine, with the same line
+— the user's own clipboard is never stale then, but nothing the app copied
+can be pasted back into it without the terminal's paste. Free either way;
+this follows tmux's buffer and vim's register.
+
+### B-D4X-15. A screen selection whose highlight has gone stands aside, and comes back with its text
+
+**Shipped:** the highlight is drawn while the cells under it read the
+selected text. While it is not — a log scrolled on, a page moved by a
+status-bar tooltip's row — the selection takes no keys (Ctrl-C and Escape are
+the app's), and when the cells read the text again the highlight, its keys
+and its Copy menu come back.
+
+**The alternatives:** keep the invisible selection's keys, so Ctrl-C copies a
+log line that has scrolled away (the design study's reading; it took the
+focused view's Ctrl-C and an `onExitCommand`'s Escape); or clear the
+selection the moment its highlight goes (a tooltip would then lose it for
+good). Free either way.
+
+### B-D4X-16. Upstream, a caret moved onto a wrapped row lands after its first character
+
+**Shipped:** under `.textSelectionAffinity(.upstream)` the start of a wrapped
+row is drawn at the end of the row before it, so Up, Down and a click put a
+caret on a wrapped row at its first upstream position, after its first
+character, in a vertical `TextField` and a wrapping `TextEditor` alike. The
+affinity is the view's, one for every caret.
+
+**The fuller version:** an affinity per caret, as the macOS text system keeps
+— a caret an arrow key moved to a row's start leans downstream and is drawn
+there, one typed or clicked to the end of a row leans upstream — with the
+view's affinity as the default. Half a day in `SoftWrapLayout` and the two
+handlers.
+
+### B-D4X-17. `.textSelection(.enabled)` on a Table cell's Text makes the row's text selectable
+
+**Shipped:** on a `List` row's own `Text` the modifier makes that text
+selectable, kept to it, as SwiftUI's example does. A `Table` draws its cells
+as text and keeps none of their regions, so on a cell's `Text` it makes the
+whole row's text selectable, kept to the row — as the modifier around the
+table does (B-D4X-7).
+
+**The fuller version:** the table remembers which columns' cells filed an
+enabled scope and files the columns' geometry with its rows, so only those
+cells' text selects and a selection keeps to the cell. About half a day;
+it is B-D4X-7's fuller version with one more input.
