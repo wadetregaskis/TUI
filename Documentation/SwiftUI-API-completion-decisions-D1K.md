@@ -58,6 +58,24 @@ a registration-only walk), reading the modified view's resolved shortcut out
 of its environment, and registering the union. Half a day, and a small cost on
 every frame that has an alternate.
 
+**Known, and left as they are** (found reading the code in the lane's second
+review; not reproduced). While an alternate shows, the modified view keeps
+its `@State` and gets its focus back when the keys are released, but:
+
+1. The focus comes back by a `focus(id:)` asked during the render, before the
+   control registers; the neighbour the focus recovered to has already drawn
+   as focused, so for one frame two controls show the focus. The next frame
+   is right.
+2. An alternate shown for a single frame gives the focus back
+   unconditionally: Option, Tab and Option's release read in one burst of
+   input undo the Tab.
+3. The modified view's lifecycle ends while the alternate shows: its
+   `onDisappear` runs and its `.task` restarts at every tap of the key, as
+   for any view that leaves the screen.
+
+Each wants the alternate to stand in for the modified view without the view
+leaving the tree, which is the fuller version's registration-only walk again.
+
 ### B-D1K-3. Ctrl-H, I, J, M and [ fall back to their legacy keys when nothing binds them
 
 *`KeyboardShortcut.isDeliverableInTerminal`, `KeyboardReporting.disambiguatesKeys`*
