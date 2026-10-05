@@ -56,7 +56,7 @@ import Foundation
 /// A key TUIkit's dictionaries do not hold is looked up in the main bundle's
 /// `Localizable.strings`, as SwiftUI looks it up, and
 /// ``Text/init(_:tableName:bundle:comment:)`` names another table or bundle.
-/// See ``LocalizationService/string(for:)``.
+/// See ``LocalizationService/string(for:)-(String)``.
 public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// The lookup key: the literal, with `%@` where each interpolation was.
     let key: String
