@@ -54,11 +54,15 @@ extension View {
     /// the status bar stops offering it; a signal still ends the app. See
     /// ``View/presentationPreventsAppTermination(_:)``.
     ///
-    /// `nil` asks for the automatic behaviour, which here is not to prevent
-    /// it, the quit key being the escape hatch a dialog's status bar offers.
-    /// SwiftUI's automatic rule — prevent unless the dialog has one
-    /// non-destructive button, is not critical and has no text field — is not
-    /// applied.
+    /// `nil` asks for the automatic behaviour, which is macOS's rule: the
+    /// dialog prevents quitting unless it has a single button whose role is
+    /// not ``ButtonRole/destructive``, its ``View/dialogSeverity(_:)`` is not
+    /// critical, and it holds no text field. Counted over the actions passed,
+    /// as SwiftUI counts them; no actions at all is the one standard OK button
+    /// a dialog then shows. (A TUIkit dialog draws only buttons, so the text
+    /// field clause never applies.) So a one-button notice leaves the quit key
+    /// working, and a question — OK and Cancel, a destructive action, an
+    /// error — holds it until it is answered.
     ///
     /// - Parameter prevents: Whether the dialogs prevent quitting, or `nil`
     ///   for the automatic behaviour.
@@ -123,6 +127,21 @@ extension _AppTerminationView: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _AppTerminationView: DrawsContentUnchanged {}
+
+// MARK: - The dialogs' rule
+
+extension AlertPresentationModifier {
+    /// Whether a dialog with `buttons` stops the quit key: as stated, or by
+    /// macOS's automatic rule where `stated` is `nil` (decisions B36) — unless
+    /// it has a single button that is not destructive, is not critical, and
+    /// holds no text field (a TUIkit dialog holds none). No buttons is the one
+    /// standard OK button SwiftUI shows then.
+    static func preventsTermination(stated: Bool?, buttons: [Button], isCritical: Bool) -> Bool {
+        if let stated { return stated }
+        let isOneHarmlessButton = buttons.count <= 1 && buttons.first?.role != .destructive
+        return !isOneHarmlessButton || isCritical
+    }
+}
 
 // MARK: - The dialogs' environment value
 

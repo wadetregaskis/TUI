@@ -141,10 +141,17 @@ extension AlertPresentationModifier: Renderable {
             // alert run. Isolation already covers the page BENEATH; this also
             // covers a sibling elsewhere in the tree.
             context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
-            // `.dialogPreventsAppTermination(true)` outside this modifier stops
-            // the quit key while the dialog is drawn.
-            if context.environment.dialogPreventsAppTermination == true {
-                context.environment.statusBar?.preventQuit()
+            // Whether the quit key works while the dialog is drawn: as
+            // `.dialogPreventsAppTermination(_:)` outside this modifier says,
+            // and by macOS's automatic rule where it says nothing.
+            let environment = context.environment
+            if Self.preventsTermination(
+                stated: environment.dialogPreventsAppTermination,
+                buttons: alertActionButtons(from: actions),
+                isCritical: environment.dialogSeverity == .critical
+                    || (environment.dialogSeverity == .automatic && presentsError))
+            {
+                environment.statusBar?.preventQuit()
             }
 
             // Escape ANSWERS the alert with its cancel button, rather than

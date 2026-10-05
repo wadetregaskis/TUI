@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkit
@@ -92,5 +93,63 @@ struct PresentationTerminationTests {
         harness.frame(page())
         harness.press(quitKey)
         #expect(harness.quits == 1, "dismissed, the dialog prevents nothing")
+    }
+
+    /// Whether the quit key quits behind an alert with `actions`, under
+    /// `severity` and `statement`.
+    private func quitsBehind(
+        severity: DialogSeverity = .automatic, statement: Bool? = nil,
+        @ViewBuilder actions: @escaping () -> some View
+    ) -> Bool {
+        let harness = InputChainHarness()
+        harness.frame(
+            Text("page")
+                .alert("Question", isPresented: .constant(true), actions: actions)
+                .dialogSeverity(severity)
+                .dialogPreventsAppTermination(statement))
+        harness.press(quitKey)
+        return harness.quits == 1
+    }
+
+    /// macOS's automatic rule (decisions B36): a dialog prevents quitting
+    /// unless it has one non-destructive button and is not critical.
+    @Test("Automatically, a one-button notice leaves the quit key working and a question holds it")
+    func dialogsAutomaticRule() {
+        #expect(quitsBehind { Button("OK") {} }, "a single plain button prevented quitting")
+        #expect(quitsBehind { EmptyView() }, "no actions is SwiftUI's one OK button")
+        #expect(quitsBehind { Button("Got it", role: .cancel) {} })
+        #expect(!quitsBehind { Button("Delete", role: .destructive) {} }, "a lone destructive button")
+        #expect(!quitsBehind {
+            Button("Save") {}
+            Button("Cancel", role: .cancel) {}
+        }, "two buttons")
+        #expect(!quitsBehind(severity: .critical) { Button("OK") {} }, "a critical dialog")
+        // A statement wins over the rule either way.
+        #expect(quitsBehind(statement: false) { Button("Delete", role: .destructive) {} })
+        #expect(!quitsBehind(statement: true) { Button("OK") {} })
+    }
+
+    @Test("A dialog presenting an error is critical, so automatically holds the quit key")
+    func errorDialogIsCritical() {
+        struct Failure: LocalizedError { var errorDescription: String? { "It failed" } }
+        let harness = InputChainHarness()
+        harness.frame(
+            Text("page").alert(isPresented: .constant(true), error: Failure?.some(Failure())) { _ in
+                Button("OK") {}
+            } message: { _ in
+                Text("Try again")
+            })
+        harness.press(quitKey)
+        #expect(harness.quits == 0)
+    }
+
+    @Test("A sheet keeps the automatic \"never\": it has no toolbar to read")
+    func sheetsStayNever() {
+        let harness = InputChainHarness()
+        harness.frame(Text("page").sheet(isPresented: .constant(true)) {
+            Text("form").presentationPreventsAppTermination(nil)
+        })
+        harness.press(quitKey)
+        #expect(harness.quits == 1)
     }
 }
