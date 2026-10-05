@@ -15,14 +15,17 @@ import TUIkitCore
 /// A key press, as ``View/onKeyPress(phases:action:)`` and its siblings hand it
 /// to their action — SwiftUI's `KeyPress`.
 ///
-/// Read from what the terminal sends, which is less than a window server
+/// Read from what the terminal sends, which can be less than a window server
 /// knows, in three ways:
 ///
-/// - **Every press is ``Phases/down``.** A terminal sends a held
-///   key's auto-repeats as further presses, identical to the first, and sends
-///   nothing at all when a key is released. So a handler for
-///   ``Phases/repeat`` is handed every press too, labelled
-///   `.down`, and there is no `.up` to ask for.
+/// - **The phases depend on the terminal.** In the legacy key encodings every
+///   terminal speaks, every press is ``Phases/down``: a held key's
+///   auto-repeats arrive as further presses, identical to the first, and a
+///   release sends nothing. So there a ``Phases/repeat`` handler is handed
+///   every press, labelled `.down`, and a ``Phases/up`` handler never runs.
+///   Where the terminal speaks the kitty keyboard protocol, which TUIkit turns
+///   on wherever it can, all three phases are reported as SwiftUI reports
+///   them. ``EnvironmentValues/keyboardReporting`` says which is the case.
 /// - **``modifiers`` holds what the terminal reports**: Control, Option and
 ///   Shift. Never Command, Caps Lock or the numeric pad (see
 ///   ``EventModifiers``), and not the numeric-pad flag macOS sets on an arrow
@@ -32,8 +35,11 @@ import TUIkitCore
 ///   and Option; and Control-Shift-A arrives as Control-A, because the control
 ///   byte has no case.
 public struct KeyPress: Sendable, CustomDebugStringConvertible {
-    /// The phase of this press: always ``Phases/down`` in a
-    /// terminal — see the type's documentation.
+    /// The phase of the key-press event (`.down`, `.repeat`, or `.up`).
+    ///
+    /// Always ``Phases/down`` from a terminal in its legacy encodings, where
+    /// repeats arrive as presses and releases never arrive; see the type's
+    /// documentation and ``EnvironmentValues/keyboardReporting``.
     public let phase: Phases
 
     /// The key that was pressed — `"A"` for Shift-A, ``KeyEquivalent/upArrow``
@@ -115,28 +121,33 @@ extension KeyPress {
     /// The phases of a key press a handler asks for — SwiftUI's
     /// `KeyPress.Phases`.
     ///
-    /// There is no `.up`: a terminal never says that a key was released, so a
-    /// handler for the release could never run, and asking for it does not
-    /// compile. ``repeat`` is accepted, but a terminal cannot tell an
-    /// auto-repeat from a press, so it hears every press (see ``KeyPress``).
+    /// All three are reported where the terminal speaks the kitty keyboard
+    /// protocol (``KeyboardReporting/reportsRepeats``,
+    /// ``KeyboardReporting/reportsReleases``). In the legacy encodings a
+    /// terminal cannot tell an auto-repeat from a press, so a handler for
+    /// ``down`` or ``repeat`` hears every press, and it never reports a
+    /// release, so an ``up`` handler never runs: offer a fallback there, by
+    /// reading ``EnvironmentValues/keyboardReporting``.
     public struct Phases: OptionSet, Sendable, CustomDebugStringConvertible {
         public let rawValue: Int
         public init(rawValue: Int) { self.rawValue = rawValue }
 
-        /// The user pressed a key — and, in a terminal, each auto-repeat of a
-        /// held key, which arrives as another press.
+        /// The user pressed down on a key. In a terminal's legacy encodings,
+        /// also each auto-repeat of a held key, which arrives as another
+        /// press.
         public static let down = Self(rawValue: 1 << 0)
 
-        /// The user held a key down to repeat it. A terminal sends each repeat
-        /// as another press, indistinguishable from the first, so a handler for
-        /// this phase hears every press.
+        /// The user held a key down to repeat it. In a terminal's legacy
+        /// encodings each repeat arrives as another press, indistinguishable
+        /// from the first, so a handler for this phase hears every press.
         public static let `repeat` = Self(rawValue: 1 << 1)
 
-        /// SwiftUI's release bit, kept so that ``all`` and a raw value read
-        /// back as SwiftUI's do. Not public: nothing a terminal sends has it.
-        static let up = Self(rawValue: 1 << 2)
+        /// The user released a key. Reported only where the terminal speaks
+        /// the kitty keyboard protocol (``KeyboardReporting/reportsReleases``);
+        /// elsewhere a handler for it never runs.
+        public static let up = Self(rawValue: 1 << 2)
 
-        /// Every phase: every press, in a terminal.
+        /// A value that matches all key press phases.
         public static let all = Self(rawValue: .max)
 
         /// `.down`, `[.down, .repeat]`, `.all` — SwiftUI's spelling.

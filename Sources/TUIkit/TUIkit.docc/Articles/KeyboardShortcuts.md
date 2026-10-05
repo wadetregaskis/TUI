@@ -113,11 +113,16 @@ List(selection: $selection) { … }
     }
 ```
 
-What a terminal cannot say, ``KeyPress`` does not pretend to: a terminal sends
-a held key's repeats as more presses and never sends a release, so every press
-is ``KeyPress/Phases/down`` (a `.repeat` handler hears them all) and there is
-no `.up`. Its ``KeyPress/modifiers`` are the three a terminal reports —
-Control, Option and Shift.
+What a terminal cannot say, ``KeyPress`` does not pretend to. Where the
+terminal speaks the kitty keyboard protocol, which TUIkit turns on wherever
+the terminal answers its query, the three phases are SwiftUI's: a press is
+``KeyPress/Phases/down``, each auto-repeat ``KeyPress/Phases/repeat``, and the
+release ``KeyPress/Phases/up``. In the legacy encodings a terminal sends a held
+key's repeats as more presses and never sends a release, so every press is
+`.down` (a `.down` or `.repeat` handler hears them all) and an `.up` handler
+never runs. ``EnvironmentValues/keyboardReporting`` says which, for an app that
+wants to offer a fallback. Its ``KeyPress/modifiers`` are the three a terminal
+reports — Control, Option and Shift.
 
 An open drop-down takes every key before the focus path does, as an open menu
 does on macOS, and so does a drag in flight (Layer 0.5).

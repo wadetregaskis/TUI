@@ -214,6 +214,39 @@ struct OnKeyPressTests {
         #expect(log.entries.isEmpty)
     }
 
+    @Test("Where the terminal reports phases, each handler hears its own phase and no other")
+    func reportedPhases() {
+        let log = PressLog()
+        let harness = InputChainHarness { $0.keyboardReporting = KeyboardReporting(flags: .requested) }
+        harness.play([
+            key("x"), KeyEvent(key: .character("x"), phase: .repeat),
+            KeyEvent(key: .character("x"), phase: .release),
+        ]) {
+            Text("leaf").focusable()
+                .onKeyPress(phases: .down) { press in log.entries.append("down \(press.phase)"); return .ignored }
+                .onKeyPress(phases: .repeat) { press in log.entries.append("repeat \(press.phase)"); return .ignored }
+                .onKeyPress(phases: .up) { press in log.entries.append("up \(press.phase)"); return .ignored }
+                .onKeyPress { press in log.entries.append("default \(press.phase)"); return .ignored }
+        }
+        #expect(
+            log.entries == [
+                // Outermost first: the default handler is the last modifier.
+                "default .down", "down .down", "default .repeat", "repeat .repeat", "up .up",
+            ])
+    }
+
+    @Test("In a legacy encoding a press may be a repeat, so a repeat handler still hears it")
+    func legacyPressMayBeARepeat() {
+        let log = PressLog()
+        let harness = InputChainHarness()
+        harness.play([key("x")]) {
+            Text("leaf").focusable()
+                .onKeyPress(phases: .repeat) { press in log.entries.append("repeat \(press.phase)"); return .ignored }
+                .onKeyPress(phases: .up) { press in log.entries.append("up \(press.phase)"); return .ignored }
+        }
+        #expect(log.entries == ["repeat .down"])
+    }
+
     @Test("Every press is a down, and a handler for any phase a press could be hears it")
     func phases() {
         let log = PressLog()
@@ -223,7 +256,7 @@ struct OnKeyPressTests {
                 .onKeyPress(phases: .down) { press in log.entries.append("down \(press.phase)"); return .ignored }
                 .onKeyPress(phases: .repeat) { press in log.entries.append("repeat \(press.phase)"); return .ignored }
                 .onKeyPress(phases: .all) { press in log.entries.append("all \(press.phase)"); return .ignored }
-                .onKeyPress(keys: ["x"], phases: KeyPress.Phases(rawValue: 1 << 2)) { _ in
+                .onKeyPress(keys: ["x"], phases: .up) { _ in
                     log.entries.append("release")
                     return .ignored
                 }
@@ -269,6 +302,8 @@ struct OnKeyPressTests {
     func phaseValues() {
         #expect(KeyPress.Phases.down.rawValue == 1)
         #expect(KeyPress.Phases.repeat.rawValue == 2)
+        #expect(KeyPress.Phases.up.rawValue == 4)
+        #expect(KeyPress.Phases.up.debugDescription == ".up")
         #expect(KeyPress.Phases.all.rawValue == .max)
         #expect(KeyPress.Phases.down.debugDescription == ".down")
         #expect(KeyPress.Phases.all.debugDescription == ".all")

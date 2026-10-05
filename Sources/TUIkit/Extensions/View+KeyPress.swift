@@ -24,7 +24,8 @@ import Foundation
 ///   control sees the key — a `TextField` included, so a `.handled` letter is
 ///   never typed, and a `.handled` Tab does not move the focus — and before
 ///   the app's keyboard shortcuts.
-/// - **Phases.** A terminal reports presses only; see ``KeyPress``.
+/// - **Phases.** All three where the terminal speaks the kitty keyboard
+///   protocol; presses only in its legacy encodings. See ``KeyPress``.
 extension View {
     /// Performs an action when the given key is pressed while this view has
     /// the focus, or contains it.
@@ -57,8 +58,9 @@ extension View {
     ///
     /// - Parameters:
     ///   - key: The key to match.
-    ///   - phases: The phases to match. A terminal reports every press as
-    ///     ``KeyPress/Phases/down``; see ``KeyPress``.
+    ///   - phases: The phases to match. A terminal in its legacy encodings
+    ///     reports every press as ``KeyPress/Phases/down`` and no release;
+    ///     see ``KeyPress``.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles the key while it holds the focus.
     public func onKeyPress(
@@ -134,15 +136,22 @@ extension View {
 
     /// The focus-path modifier every `onKeyPress` is: a handler on the
     /// key-press stage that hears a press `matches` accepts, in `phases`.
+    ///
+    /// Whether a press may be a repeat is the terminal's to say
+    /// (``KeyboardReporting/reportsRepeats``), read where the handler is made:
+    /// the environment is out of reach by the time a key arrives.
     private func onKeyPress(
         phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> FocusPathModifier<Self> {
-        let handler: (KeyEvent) -> Bool = { event in
-            guard phases.hears(event.phase, repeatsReported: false), let press = KeyPress(event), matches(press)
-            else { return false }
-            return action(press) == .handled
+        FocusPathModifier(content: self, stage: .keyPress) { context in
+            let repeatsReported = context.environment.keyboardReporting.reportsRepeats
+            return { event in
+                guard phases.hears(event.phase, repeatsReported: repeatsReported),
+                    let press = KeyPress(event), matches(press)
+                else { return false }
+                return action(press) == .handled
+            }
         }
-        return FocusPathModifier(content: self, stage: .keyPress) { _ in handler }
     }
 }

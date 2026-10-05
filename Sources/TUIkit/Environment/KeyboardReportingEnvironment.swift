@@ -34,7 +34,7 @@ import TUIkitCore
 /// ```
 ///
 /// Everything it describes compiles everywhere. SwiftUI's
-/// `KeyPress.Phases.up`, `onModifierKeysChanged(mask:initial:_:)`,
+/// ``KeyPress/Phases/up``, `onModifierKeysChanged(mask:initial:_:)`,
 /// `modifierKeyAlternate(_:_:)`, ``EventModifiers/capsLock`` and
 /// ``EventModifiers/numericPad`` work where the matching property is `true`,
 /// and never fire, or never match, where it is `false`.
@@ -74,7 +74,7 @@ public struct KeyboardReporting: Hashable, Sendable {
     /// them all.
     public let reportsRepeats: Bool
 
-    /// Whether a key's release is reported, so a `KeyPress.Phases.up`
+    /// Whether a key's release is reported, so a ``KeyPress/Phases/up``
     /// handler runs.
     public let reportsReleases: Bool
 
