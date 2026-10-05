@@ -468,6 +468,10 @@ extension Terminal {
         // negotiation pushes once it has its answer.
         repushKeyboardFlags()
 
+        // Should the process die of a signal from here on, the modes just
+        // turned on and the shell's termios are owed back.
+        armSignalRestore()
+
         // Mouse tracking is now managed dynamically by
         // ``applyMouseSupport(_:)`` — see ``MouseSupport`` for the
         // selection of tracking modes. We always end up enabling SGR
@@ -488,35 +492,14 @@ extension Terminal {
         // shell reads next are the legacy bytes it expects.
         popKeyboardFlags()
 
-        // Reset modifyCursorKeys back to the terminal's default before
-        // restoring terminal state.
-        writeImmediate("\u{1B}[>1;0m")
-
-        // Turn off all mouse tracking modes we might have enabled.
-        // Sending all of them is safe: terminals ignore disables for
-        // modes that aren't currently active.
-        writeImmediate("\u{1B}[?1006l")
-        writeImmediate("\u{1B}[?1003l")
-        writeImmediate("\u{1B}[?1002l")
-        writeImmediate("\u{1B}[?1000l")
+        writeImmediate(Self.inputModesOff)
         appliedMouseMode = .none
-
-        // Focus reports off, so the shell (or whatever runs after a suspend or
-        // quit) is not sent `ESC [ I` / `ESC [ O` it never asked for.
-        writeImmediate("\u{1B}[?1004l")
-
-        // Palette-change reports off, for the same reason: mode 2031 outlives
-        // this process, and the shell never asked to be told about themes.
-        writeImmediate("\u{1B}[?2031l")
-
-        // Disable bracketed paste mode before restoring terminal state.
-        writeImmediate("\u{1B}[?2004l")
 
         // Put grapheme clustering back only if we turned it on: the mode
         // outlives the process, so leaving it changed would hand the next
         // program a terminal we reconfigured.
         if pinnedGraphemeClustering {
-            writeImmediate("\u{1B}[?\(TerminalModeQuery.graphemeClustering)l")
+            writeImmediate(Self.graphemeClusteringOff)
             pinnedGraphemeClustering = false
         }
 
@@ -524,6 +507,52 @@ extension Terminal {
             tcsetattr(STDIN_FILENO, TCSAFLUSH, &original)
         #endif
         isRawMode = false
+        // Torn down in order: a signal from here on owes the terminal nothing.
+        if exchangeTransport == nil { FatalSignalTerminalRestore.disarm() }
+    }
+
+    /// Turns off every input mode ``enableRawMode()`` turned on, in one write
+    /// — the orderly teardown's, and the debt a signal pays
+    /// (``armSignalRestore()``):
+    ///
+    /// - modifyCursorKeys back to the terminal's default;
+    /// - every mouse tracking mode this process might have enabled, and SGR
+    ///   coordinates (a terminal ignores a disable for a mode that is not on);
+    /// - focus reports, so the shell (or whatever runs after a suspend or
+    ///   quit) is not sent `ESC [ I` / `ESC [ O` it never asked for;
+    /// - palette-change reports (mode 2031), for the same reason: the mode
+    ///   outlives this process, and the shell never asked to be told about
+    ///   themes;
+    /// - bracketed paste.
+    static let inputModesOff =
+        "\u{1B}[>1;0m"
+        + "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l"
+        + "\u{1B}[?1004l"
+        + "\u{1B}[?2031l"
+        + "\u{1B}[?2004l"
+
+    /// Puts back the grapheme-clustering mode this process pinned on
+    /// (``pinnedGraphemeClustering``).
+    static let graphemeClusteringOff = "\u{1B}[?\(TerminalModeQuery.graphemeClustering)l"
+
+    /// Owes the terminal, should the process die of a signal now, everything
+    /// it has been changed by — the kitty flags if pushed, the input modes, a
+    /// pinned grapheme-clustering mode, the hidden cursor — and the shell's
+    /// termios; see ``FatalSignalTerminalRestore``. Called whenever the debt
+    /// changes while raw mode is on: raw mode itself, a push or pop of the
+    /// kitty flags, a pin.
+    ///
+    /// A scripted terminal is a test's, and the process's signal handlers are
+    /// not its to install.
+    func armSignalRestore() {
+        #if !canImport(WASILibc)
+            guard isRawMode, exchangeTransport == nil else { return }
+            var owed = keyboardFlagsPushed ? KeyboardProtocolQuery.pop : ""
+            owed += Self.inputModesOff
+            if pinnedGraphemeClustering { owed += Self.graphemeClusteringOff }
+            owed += ANSIRenderer.showCursor
+            FatalSignalTerminalRestore.arm(owing: owed, restoring: originalTermios)
+        #endif
     }
 
     /// Updates the terminal's mouse-tracking mode to match the

@@ -105,10 +105,11 @@ echo "── mode 2027: pinned when needed, and only then ──"
 "$VENV/bin/python" "$HERE/mode_pin_smoke.py" "$REPO/$BUILD_DIR/Example"
 
 # The kitty keyboard protocol: pushed only where the terminal answers its
-# query, and popped on every way out — a quit, a suspend, and an abort, which
-# runs none of the teardown. Its flags make every key an escape code, Return
-# included, so a pop missed on any of those leaves a shell that cannot be typed
-# at. Four short runs, about twenty seconds.
+# query, and popped on every way out — a quit, a suspend, SIGTERM, and an
+# abort, SIGHUP or SIGUSR1, which run none of the teardown (a signal handler
+# pays it, with the shell's termios). Its flags make every key an escape code,
+# Return included, so a pop missed on any of those leaves a shell that cannot
+# be typed at. Nine short runs, about forty-five seconds.
 echo "── kitty keyboard protocol: pushed where spoken, popped on every exit ──"
 "$VENV/bin/python" "$HERE/keyboard_protocol_smoke.py" "$REPO/$BUILD_DIR/Example"
 

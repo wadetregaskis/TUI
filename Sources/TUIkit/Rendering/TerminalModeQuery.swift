@@ -177,5 +177,6 @@ extension Terminal {
         else { return }
         writeImmediate("\u{1B}[?\(TerminalModeQuery.graphemeClustering)h")
         pinnedGraphemeClustering = true
+        armSignalRestore()
     }
 }

@@ -4243,9 +4243,19 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   grammar decodes a key whichever flags were taken, so the only cost of the
   guess is `\.keyboardReporting` claiming what was asked for; the late answer
   is dropped as input, as any reply is.
-- **Pops** with `CSI < u` on quit, on Ctrl-Z, and on a fatal signal (a trap, a
-  bad access, `abort`, `SIGQUIT`), always before leaving the alternate screen;
-  **pushes again** on resume without asking. The specification keeps a separate
+- **Pops** with `CSI < u` on quit, on Ctrl-Z, on `SIGINT` and `SIGTERM` (an
+  orderly shutdown), and on any signal that would end the process with
+  nothing run on the way out — a trap, a bad access, `abort`, `SIGQUIT`,
+  `SIGSYS`, and the quiet terminations nothing in TUIkit handles (`SIGHUP`,
+  `SIGUSR1`, `SIGUSR2`, `SIGALRM`, `SIGVTALRM`, `SIGPROF`, `SIGXCPU`,
+  `SIGXFSZ`, each taken only while the app has not installed a handler or an
+  ignore of its own) — always before leaving the alternate screen; **pushes
+  again** on resume without asking. On those signals the handler also turns
+  off every other input mode the app turned on and puts the shell's termios
+  back, so the shell echoes and reads lines again; it leaves the alternate
+  screen up, with a crash's report on it (`FatalSignalTerminalRestore`).
+  Until 2026-10-04's review only the crash signals were taken, and a
+  `kill -HUP` left the flags pushed and the line discipline raw. The specification keeps a separate
   flag stack per screen and TUIkit pushes on the alternate one, so the shell's
   own screen is never changed.
 - **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
@@ -4281,10 +4291,10 @@ the character, not a bit").
 
 **What 8 costs:** with it on, Return is `CSI 13 u`. A process that dies with
 the flags pushed and the alternate screen still up leaves a shell that cannot
-read Return, so `reset` cannot even be typed. Hence the pop on every fatal
-signal TUIkit can catch. `SIGKILL` (and an out-of-memory kill) cannot be
-caught: the terminal is then left on the alternate screen with the flags
-pushed. Closing the tab recovers it, and so does any terminal action that
+read Return, so `reset` cannot even be typed. Hence the pop on every signal
+that ends the process and that TUIkit can catch (above). `SIGKILL` (and an
+out-of-memory kill) cannot be caught: the terminal is then left on the
+alternate screen with the flags pushed. Closing the tab recovers it, and so does any terminal action that
 resets the terminal (kitty's "reset terminal", for one); typing `tput rmcup`
 blind does not, Return being an escape code. Flags 1 and 2 alone would not have
 this problem — the specification keeps Return, Tab and Backspace legacy under

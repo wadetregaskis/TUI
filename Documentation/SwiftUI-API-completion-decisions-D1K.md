@@ -168,11 +168,16 @@ two more permanent entries in every app's bar. Free either way.
 Chosen as the brief asked — "releases need 2, modifiers-alone need 8 … the
 spec's 'report associated text' (16) and 'alternate keys' (4) exist for
 exactly that" — so flag 8 is on, and with it every key, Return included, is an
-escape code. Quit, Ctrl-C, `kill`, Ctrl-Z and every fatal signal TUIkit can
-catch pop the flags (the PTY smoke covers quit, suspend and abort). `SIGKILL`
-cannot be caught: the terminal is then left on the alternate screen with the
-flags pushed, and the shell cannot read Return; closing the tab, or a terminal
-reset, recovers it.
+escape code. Quit, Ctrl-C, Ctrl-Z, `SIGINT` and `SIGTERM` pop the flags in an
+orderly teardown; the crash signals (a trap, a bad access, `abort`,
+`SIGQUIT`, `SIGSYS`) and the quiet terminations nothing else handles
+(`SIGHUP`, `SIGUSR1`/`2`, `SIGALRM`, `SIGVTALRM`, `SIGPROF`, `SIGXCPU`,
+`SIGXFSZ`, where the app has no handler of its own) pop them from a signal
+handler, which also turns off the other input modes and puts the shell's
+termios back (the PTY smoke covers quit, suspend, abort, `SIGHUP`, `SIGUSR1`
+and `SIGTERM`). `SIGKILL` cannot be caught: the terminal is then left on the
+alternate screen with the flags pushed, and the shell cannot read Return;
+closing the tab, or a terminal reset, recovers it.
 
 **The alternative** is flags 1, 2 and 4 only: Return, Tab and Backspace stay
 legacy (the specification keeps them so for exactly this reason), and

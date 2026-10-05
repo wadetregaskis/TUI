@@ -208,17 +208,15 @@ extension Terminal {
         sendToTerminal(KeyboardProtocolQuery.pop)
         keyboardFlagsPushed = false
         keyboardEnhancement = []
-        if exchangeTransport == nil { FatalSignalTerminalRestore.disarm() }
+        armSignalRestore()
     }
 
     /// The bookkeeping of a push: the parser reads the terminal's keys in the
-    /// protocol's grammar, a pop is owed, and a crash pays it.
+    /// protocol's grammar, a pop is owed, and a signal pays it.
     private func noteKeyboardFlagsPushed() {
         keyboardFlagsPushed = true
         keyboardEnhancement = negotiatedKeyboardFlags?.granted ?? []
-        // A scripted terminal is a test's: the process's signal handlers are
-        // not its to install.
-        if exchangeTransport == nil { FatalSignalTerminalRestore.arm(owing: KeyboardProtocolQuery.pop) }
+        armSignalRestore()
     }
 
     /// Writes a mode change to the terminal, or to the scripted transport a
