@@ -33,7 +33,9 @@
 /// inside an explicit group, a registration at the top level with grouping by
 /// event off), this does the least surprising thing instead: nothing, nothing,
 /// and a group of its own for the one action. A terminal app that raised there
-/// would die holding the terminal in raw mode.
+/// would die holding the terminal in raw mode. Inside an undo or redo's
+/// handler, an unbalanced end does nothing, and an unbalanced begin is closed
+/// when the undo or redo ends (see ``run(_:as:)``).
 @MainActor
 final class UndoStack {
     /// One registered action: what to run, and the object it was registered
@@ -61,6 +63,11 @@ final class UndoStack {
 
     private enum Mode { case normal, undoing, redoing }
     private var mode = Mode.normal
+
+    /// How many of ``open``'s groups an undo or redo that is running opened
+    /// itself, and an ``endUndoGrouping()`` in one of its handlers may not
+    /// close: the group collecting its inverse. Zero outside one.
+    private var runFloor = 0
 
     private var registrationDisabledCount = 0
 
@@ -96,9 +103,11 @@ final class UndoStack {
     }
 
     /// Closes the innermost open group. Does nothing with none open, where
-    /// `NSUndoManager` raises.
+    /// `NSUndoManager` raises — inside an undo or redo's handler too, where
+    /// the only group open that the handler did not open is the one
+    /// collecting the inverse.
     func endUndoGrouping() {
-        guard let group = open.popLast() else { return }
+        guard open.count > runFloor, let group = open.popLast() else { return }
         if open.isEmpty { eventGroupIsOpen = false }
         close(group)
     }
@@ -246,10 +255,21 @@ final class UndoStack {
 
     /// Runs a step's actions newest first, collecting what they register into
     /// a step of the opposite kind under the same name.
+    ///
+    /// A handler's unbalanced grouping does not escape the run, where
+    /// `NSUndoManager` raises: an `endUndoGrouping()` with nothing of its own
+    /// open does nothing (``runFloor``), and a group it opened and left open
+    /// is closed when the run ends, into the inverse. Before, the first popped
+    /// the inverse's group and the run trapped taking it back, and the second
+    /// left the inverse open for good, so `undo()` never ran again and every
+    /// later registration gathered in it.
     private func run(_ group: Group, as running: Mode) {
         mode = running
         open.append(Group(name: group.name, isDiscardable: group.isDiscardable))
+        runFloor = open.count
         for action in group.actions.reversed() { action.perform() }
+        runFloor = 0
+        while open.count > 1 { endUndoGrouping() }
         let inverse = open.removeLast()
         mode = .normal
         guard !inverse.actions.isEmpty else { return }

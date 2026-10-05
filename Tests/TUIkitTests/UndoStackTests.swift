@@ -187,4 +187,52 @@ struct UndoStackTests {
         stack.undo()
         #expect(stack.groupingLevel == 3, "the event's group and two explicit ones stay open")
     }
+
+    // MARK: - Unbalanced grouping inside an undo
+
+    @Test("An undo handler's unbalanced endUndoGrouping does nothing: no trap, and the stack goes on")
+    func unbalancedEndInHandler() {
+        let (stack, endEvent) = makeStack()
+        let model = Model()
+        model.value = 1
+        stack.registerUndo(withTarget: model) { model in
+            stack.endUndoGrouping()
+            model.value = 0
+        }
+        endEvent()
+        stack.undo()
+        #expect(model.value == 0)
+        #expect(stack.groupingLevel == 0)
+        set(model, to: 2, on: stack)
+        endEvent()
+        #expect(stack.undoCount == 1)
+        stack.undo()
+        #expect(model.value == 0)
+    }
+
+    @Test("An undo handler's unbalanced beginUndoGrouping is closed with the undo, into its redo")
+    func unbalancedBeginInHandler() {
+        let (stack, endEvent) = makeStack()
+        let model = Model()
+        set(model, to: 1, on: stack)
+        endEvent()
+        stack.registerUndo(withTarget: model) { [self] model in
+            stack.beginUndoGrouping()
+            self.set(model, to: 1, on: stack)
+        }
+        model.value = 2
+        endEvent()
+        stack.undo()
+        #expect(model.value == 1)
+        #expect(stack.groupingLevel == 0, "nothing left open")
+        #expect(stack.canRedo)
+        stack.redo()
+        #expect(model.value == 2, "the redo the handler registered inside its group")
+        stack.undo()
+        stack.undo()
+        #expect(model.value == 0, "undo still reaches the first step")
+        set(model, to: 3, on: stack)
+        endEvent()
+        #expect(stack.undoCount == 1, "a new change is a step of its own, not caught in an open group")
+    }
 }
