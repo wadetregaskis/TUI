@@ -48,6 +48,34 @@ struct GestureAdaptorTests {
         #expect(log.entries == ["ended 3"])
     }
 
+    /// Pinned at the recognizer, where holding back is explicit: input fed
+    /// with delivery off is held, and `flush()` reports the state it left. A
+    /// gesture that ended while held, then a new one whose first value equals
+    /// the last one's, was flushed as no change. The arena reaches this only
+    /// through a recognizer kept waiting across presses — a sequence behind a
+    /// double tap whose next press lands before the frame that would have
+    /// failed it — so a scripted view would pin the arena's timing, not this.
+    @Test("onChanged reports a held-back gesture's first value even when it equals the last gesture's last")
+    func changedAfterHeldBackEnd() {
+        let log = GestureRecord()
+        let press = LongPressGestureNode()
+        press.minimumDuration = 1
+        let node = ChangedGestureNode<Bool>()
+        node.child = press
+        node.action = { log("changed \($0)") }
+        func pointer(_ kind: GesturePointer.Kind) -> GestureInput {
+            .pointer(
+                GesturePointer(
+                    kind: kind, location: .zero, globalLocation: .zero, modifiers: [], timeNanos: 0, isInside: true))
+        }
+        node.receive(pointer(.down), deliver: true)
+        #expect(log.entries == ["changed true"])
+        node.receive(pointer(.up), deliver: false)  // released early: the press fails, held back
+        node.receive(pointer(.down), deliver: false)  // the next press: `true` again, held back
+        node.flush()
+        #expect(log.entries == ["changed true", "changed true"])
+    }
+
     @Test("map(_:) transforms the gesture's value")
     func map() {
         let log = GestureRecord()

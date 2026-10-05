@@ -214,20 +214,26 @@ final class EndedGestureNode<Value>: PassThroughGestureNode<Value> {
 /// Runs `action` with each new value while the gesture is under way.
 final class ChangedGestureNode<Value: Equatable>: PassThroughGestureNode<Value> {
     var action: (Value) -> Void = { _ in }
+
+    /// The value `action` last ran with, in the gesture under way.
     private var lastDelivered: Value?
 
+    /// Forgets the last value once the gesture is over (or never began), on
+    /// every input, delivered or not: its next one reports its first value
+    /// even if it equals this one's last, as a second press of a long press
+    /// reports `true` again. Forgotten only in ``deliverOwn()``, a gesture
+    /// that ended while held back — fed with delivery off — kept its last
+    /// value, and the next one's equal first value, released by ``flush()``,
+    /// was dropped as no change.
+    override func mirror() {
+        super.mirror()
+        if phase != .possible, phase != .active { lastDelivered = nil }
+    }
+
     override func deliverOwn() {
-        switch phase {
-        case .possible, .active:
-            guard let value, value != lastDelivered else { return }
-            lastDelivered = value
-            action(value)
-        default:
-            // The gesture is over (or never began): its next one reports its
-            // first value even if it equals this one's last, as a second press
-            // of a long press reports `true` again.
-            lastDelivered = nil
-        }
+        guard phase == .possible || phase == .active, let value, value != lastDelivered else { return }
+        lastDelivered = value
+        action(value)
     }
 }
 
