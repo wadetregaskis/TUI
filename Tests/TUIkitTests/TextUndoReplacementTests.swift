@@ -105,7 +105,7 @@ struct TextUndoReplacementTests {
     @Test("A suggestion accepted with the mouse is still undone")
     func acceptedSuggestionIsUndone() {
         let (field, box) = makeField("")
-        field.suggestionCompletions = ["alpha", "beta"]
+        field.suggestionChoices = [.completion("alpha"), .completion("beta")]
         _ = field.handleKeyEvent(typed("b"))
         field.acceptSuggestion(at: 1)
         #expect(box.text == "beta", "precondition: the suggestion was accepted")

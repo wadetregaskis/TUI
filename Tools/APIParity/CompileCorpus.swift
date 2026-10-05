@@ -1821,3 +1821,44 @@ private struct MeshGradientShapes: View {
         }
     }
 }
+
+// MARK: - Search tokens in the suggestions menu
+
+private enum FruitToken: Hashable, Identifiable, CaseIterable {
+    case apple
+    case pear
+    case banana
+
+    var id: Self { self }
+}
+
+/// SwiftUI's own `searchCompletion(_:)` example for a token, and the
+/// suggested-tokens form beside it.
+@MainActor
+private struct SearchTokenSuggestions: View {
+    @State private var text = ""
+    @State private var tokens: [FruitToken] = []
+    @State private var suggested: [FruitToken] = FruitToken.allCases
+
+    var body: some View {
+        VStack {
+            Text("search.placeholder")
+                .searchable(text: $text, tokens: $tokens) { token in
+                    switch token {
+                    case .apple: Text("Apple")
+                    case .pear: Text("Pear")
+                    case .banana: Text("Banana")
+                    }
+                }
+                .searchSuggestions {
+                    Text("🍎").searchCompletion(FruitToken.apple)
+                    Text("🍐").searchCompletion(FruitToken.pear)
+                    Text("🍌").searchCompletion(FruitToken.banana)
+                }
+            Text("search.suggested")
+                .searchable(text: $text, tokens: $tokens, suggestedTokens: $suggested) { token in
+                    Text(String(describing: token))
+                }
+        }
+    }
+}

@@ -23,6 +23,7 @@ struct TextSuggestionExtractionTests {
         entries.map { entry in
             switch entry {
             case .option: "option"
+            case .token: "token"
             case .divider: "divider"
             }
         }
@@ -96,7 +97,7 @@ struct TextSuggestionKeyboardTests {
 
     private func makeHandler(_ box: TextBox, completions: [String]) -> TextFieldHandler {
         let handler = TextFieldHandler(focusID: "combo", text: box.binding)
-        handler.suggestionCompletions = completions
+        handler.suggestionChoices = completions.map { .completion($0) }
         handler.onSubmit = { box.submitted += 1 }
         return handler
     }

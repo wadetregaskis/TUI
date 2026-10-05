@@ -204,10 +204,10 @@ final class TextFieldHandler: PersistedFocusable {
 
     // MARK: Input suggestions (``View/textInputSuggestions(_:)``)
 
-    /// The completions of the field's current suggestions, in menu order
-    /// (options only — dividers are not navigable). Synced by the field's
-    /// render pass; empty when the field has no suggestions.
-    var suggestionCompletions: [String] = []
+    /// What each of the field's current suggestions does when chosen, in menu
+    /// order (options only — dividers are not navigable). Synced by the
+    /// field's render pass; empty when the field has no suggestions.
+    var suggestionChoices: [TextSuggestionChoice] = []
 
     /// The highlighted suggestion, and every gesture that moves it — shared
     /// with the `Picker` drop-down and the pop-up `Menu`, so all three answer
@@ -215,7 +215,7 @@ final class TextFieldHandler: PersistedFocusable {
     /// for why this one clamps and is entered by arrows alone.
     let suggestionHighlighting = MenuHighlight.suggestions()
 
-    /// The highlighted suggestion (an index into ``suggestionCompletions``),
+    /// The highlighted suggestion (an index into ``suggestionChoices``),
     /// or `nil` while the keyboard is editing the field text.
     var suggestionHighlight: Int? {
         get { suggestionHighlighting.ordinal }
@@ -615,14 +615,14 @@ extension TextFieldHandler {
     /// pop-up. Only consulted while focused — that's the only time key
     /// events arrive.
     var suggestionsActive: Bool {
-        !suggestionCompletions.isEmpty && suggestionsOpen
+        !suggestionChoices.isEmpty && suggestionsOpen
     }
 
     /// Opens or closes the suggestions menu — the disclosure-click gesture.
     /// Opening highlights the row matching the field's current text (the ✓
     /// row), so the menu comes up "at" the field's value like NSComboBox.
     func toggleSuggestionsOpen() {
-        guard !suggestionCompletions.isEmpty else { return }
+        guard !suggestionChoices.isEmpty else { return }
         if suggestionsOpen {
             suggestionsOpen = false
             suggestionHighlight = nil
@@ -637,9 +637,10 @@ extension TextFieldHandler {
     /// at the caret for the mouse to take over.
     private func openSuggestions(preferFirstRow: Bool) {
         suggestionsOpen = true
-        suggestionHighlighting.adopt(count: suggestionCompletions.count)
+        suggestionHighlighting.adopt(count: suggestionChoices.count)
+        let current = text.wrappedValue
         suggestionHighlighting.move(
-            to: suggestionCompletions.firstIndex(of: text.wrappedValue)
+            to: suggestionChoices.firstIndex { $0.completion == current }
                 ?? (preferFirstRow ? 0 : nil))
     }
 
@@ -647,7 +648,7 @@ extension TextFieldHandler {
     /// the event is not menu interaction, so normal field handling proceeds
     /// — typing always keeps editing the field.
     private func handleSuggestionKeyEvent(_ event: KeyEvent) -> Bool? {
-        guard !suggestionCompletions.isEmpty, !event.alt, !event.ctrl else { return nil }
+        guard !suggestionChoices.isEmpty, !event.alt, !event.ctrl else { return nil }
         guard suggestionsOpen else {
             // Closed: Down is the open gesture (the NSComboBox convention);
             // every other key is ordinary field editing. In a vertical field
@@ -671,7 +672,7 @@ extension TextFieldHandler {
         // turned one way), and from the caret only a plain arrow enters it, so
         // Home/End still move the caret and Shift+arrow still extends the
         // selection while nothing is highlighted.
-        suggestionHighlighting.adopt(count: suggestionCompletions.count)
+        suggestionHighlighting.adopt(count: suggestionChoices.count)
         if suggestionHighlighting.handle(
             event, multiplier: shiftStepMultiplier,
             pageSize: max(1, suggestionScroll.viewportHeight))
@@ -706,10 +707,21 @@ extension TextFieldHandler {
     /// combo-box (NSComboBox) convention. (SwiftUI's `textInputSuggestions`
     /// doesn't document its submit behaviour; the terminal combo-box reads
     /// better when a pick acts immediately.)
+    ///
+    /// A token suggestion empties the field and adds its token: SwiftUI's
+    /// `searchCompletion(_:)` given a token replaces "the partial text being
+    /// currently edited" with it, and a suggested token is the same choice
+    /// offered by the searchable itself.
     func acceptSuggestion(at index: Int) {
-        guard suggestionCompletions.indices.contains(index) else { return }
+        guard suggestionChoices.indices.contains(index) else { return }
         pushUndoState()
-        write(suggestionCompletions[index])
+        switch suggestionChoices[index] {
+        case .completion(let completion):
+            write(completion)
+        case .token(let choose):
+            write("")
+            choose()
+        }
         cursorPosition = text.wrappedValue.count
         clearSelection()
         suggestionHighlight = nil

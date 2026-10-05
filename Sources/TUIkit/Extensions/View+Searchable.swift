@@ -173,6 +173,31 @@ extension View {
     public func searchCompletion(_ completion: String) -> some View {
         textInputCompletion(completion)
     }
+
+    /// Associates a search token with this view when it is used as a search
+    /// suggestion — SwiftUI's `searchCompletion(_:)` for a token.
+    ///
+    /// Choosing the suggestion empties the field and adds the token to the
+    /// enclosing searchable's tokens, as SwiftUI replaces the partial text
+    /// with it. It is drawn in brackets, as the field draws a token, with a ✓
+    /// once the token is among the tokens; choosing it then adds nothing.
+    ///
+    /// ```swift
+    /// List(matches) { Text($0.name) }
+    ///     .searchable(text: $query, tokens: $tokens) { Text($0.name) }
+    ///     .searchSuggestions {
+    ///         Text("Apple").searchCompletion(FruitToken.apple)
+    ///     }
+    /// ```
+    ///
+    /// The suggestion is left out where the searchable takes no tokens, or
+    /// tokens of another type.
+    ///
+    /// - Parameter token: The token added when this suggestion is chosen.
+    /// - Returns: A view carrying the token for the suggestions menu.
+    public func searchCompletion<T: Identifiable>(_ token: T) -> some View {
+        _SearchTokenCompletionView(token: token, content: self)
+    }
 }
 
 /// Environment key carrying suggestions down to the enclosed search field.
@@ -183,7 +208,7 @@ extension View {
 /// key would make `.searchSuggestions` silently arm any text field the caller
 /// happens to have in their content.
 private struct SearchSuggestionsKey: EnvironmentKey {
-    static let defaultValue = TextSuggestions.none
+    static var defaultValue: TextSuggestions { .none }
 }
 
 extension EnvironmentValues {

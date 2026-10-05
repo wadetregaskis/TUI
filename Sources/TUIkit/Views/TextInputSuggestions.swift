@@ -13,6 +13,14 @@ enum _TextSuggestionEntry {
     /// text at render time (the common `Text("…")` case).
     case option(completion: String?, label: AnyView)
 
+    /// A suggestion that adds a search token instead of completing the text:
+    /// one of a searchable's suggested tokens, or a view given a token by
+    /// `searchCompletion(_:)`. `token` is the token itself, erased; the
+    /// searchable that owns the token collection takes it, through the
+    /// ``SearchTokenSink`` it offers beside the entries. A field with no sink,
+    /// or one whose tokens are of another type, leaves the entry out.
+    case token(Any, label: AnyView)
+
     /// A rule separating suggestion groups (a ``Divider`` in the builder).
     case divider
 }
@@ -120,6 +128,29 @@ extension _TextCompletionView: TextSuggestionProvider {
     }
 }
 
+/// A view that associates a search token with its content, for use inside
+/// ``View/searchSuggestions(_:)``.
+///
+/// - Important: Framework infrastructure. Created by `searchCompletion(_:)`
+///   given a token; do not instantiate directly.
+public struct _SearchTokenCompletionView<Content: View, Token: Identifiable>: View {
+    /// The token added to the search field when this suggestion is chosen.
+    let token: Token
+
+    /// The suggestion's label view.
+    let content: Content
+
+    public var body: some View {
+        content
+    }
+}
+
+extension _SearchTokenCompletionView: TextSuggestionProvider {
+    func textSuggestions() -> [_TextSuggestionEntry] {
+        [.token(token, label: AnyView(content))]
+    }
+}
+
 extension View {
     /// Associates a fully formed completion string with this view when it is
     /// used as a text input suggestion.
@@ -158,12 +189,21 @@ struct TextSuggestions: Equatable {
     /// default.
     let isPresent: Bool
 
+    /// Where a token entry's token goes when it is chosen — the token
+    /// collection of the searchable whose field this is — or `nil` outside a
+    /// searchable with tokens, where such an entry is left out of the menu.
+    var tokenSink: SearchTokenSink?
+
     /// No suggestions modifier in force.
-    static let none = Self(entries: [], isPresent: false)
+    ///
+    /// Computed rather than stored, as are the keys' defaults built from it: a
+    /// token entry holds its token as `Any`, so this type is not `Sendable`
+    /// and cannot be a stored static.
+    static var none: Self { Self(entries: [], isPresent: false) }
 
     /// What a suggestions modifier offers.
-    static func offering(_ entries: [_TextSuggestionEntry]) -> Self {
-        Self(entries: entries, isPresent: true)
+    static func offering(_ entries: [_TextSuggestionEntry], tokenSink: SearchTokenSink? = nil) -> Self {
+        Self(entries: entries, isPresent: true, tokenSink: tokenSink)
     }
 
     /// Equal when both are present or both are not, and both are empty or
@@ -184,15 +224,43 @@ struct TextSuggestions: Equatable {
     /// entries. The emptiness term is a margin on top: the `▾` a field draws
     /// depends on it, and should a reader ever skip the declaration, a change
     /// of emptiness still clears.
+    ///
+    /// The token sink is left out for the same reason: closures over the
+    /// searchable's binding, read only by that same field.
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.isPresent == rhs.isPresent && lhs.entries.isEmpty == rhs.entries.isEmpty
     }
 }
 
+/// What choosing one of a text field's suggestions does — see
+/// ``TextFieldHandler/acceptSuggestion(at:)``.
+enum TextSuggestionChoice {
+    /// Fills the field with this text.
+    case completion(String)
+
+    /// Empties the field and adds a search token, by calling `choose`.
+    case token(choose: () -> Void)
+
+    /// The text a completion fills the field with; `nil` for a token.
+    var completion: String? {
+        if case .completion(let text) = self { return text }
+        return nil
+    }
+}
+
+/// A searchable's token collection, type-erased for the suggestions menu: what
+/// choosing a token entry does.
+struct SearchTokenSink {
+    /// For a token of the collection's element type, whether it is already
+    /// among the tokens, and how to add it; `nil` for a token of any other
+    /// type, which this searchable cannot take.
+    let choice: @MainActor (Any) -> (isChosen: Bool, choose: () -> Void)?
+}
+
 /// Environment key carrying the extracted suggestion entries down to the
 /// text fields in the modified subtree.
 private struct TextInputSuggestionsKey: EnvironmentKey {
-    static let defaultValue = TextSuggestions.none
+    static var defaultValue: TextSuggestions { .none }
 }
 
 extension EnvironmentValues {
@@ -346,13 +414,14 @@ enum TextFieldSuggestions {
         // A disabled field leaves its handler alone, as it always has.
         guard !isDisabled else { return nil }
         let entries = suggestions.entries
-        guard !entries.isEmpty else {
-            // No suggestions this frame — make sure stale completions don't
-            // leave the handler intercepting Down/Enter.
-            handler.suggestionCompletions = []
+        // No suggestions this frame — make sure stale completions don't leave
+        // the handler intercepting Down/Enter.
+        func offerNothing() -> Menu? {
+            handler.suggestionChoices = []
             handler.suggestionHighlight = nil
             return nil
         }
+        guard !entries.isEmpty else { return offerNothing() }
         // Labels render at the SCREEN width, not the field's: the pop-up is
         // an overlay that may grow wider than its control, so a narrow field
         // must not wrap/truncate its option labels.
@@ -369,7 +438,7 @@ enum TextFieldSuggestions {
         // marker column, the width and the pointer handling are one
         // implementation rather than two that drift.
         var menuEntries: [DropdownMenu.Entry] = []
-        var completions: [String] = []
+        var choices: [TextSuggestionChoice] = []
         for entry in entries {
             switch entry {
             case .divider:
@@ -381,20 +450,39 @@ enum TextFieldSuggestions {
                 // the "selected" one: the field's value IS the selection.
                 menuEntries.append(
                     .option(label: rendered, isSelected: completion == currentText))
-                completions.append(completion)
+                choices.append(.completion(completion))
+            case .token(let token, let label):
+                // A token this field's searchable cannot take — it has none, or
+                // they are of another type — is no suggestion here at all.
+                guard let choice = suggestions.tokenSink?.choice(token) else { continue }
+                // In brackets, as the field draws a chosen token, so a row that
+                // adds a token reads differently from one that completes the
+                // text. Not in the accent, as the field's tokens are: the
+                // highlight fills with the accent, and the label would sink
+                // into its own row. A token already chosen earns the ✓.
+                let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
+                menuEntries.append(.option(label: "[" + rendered + "]", isSelected: choice.isChosen))
+                choices.append(.token(choose: choice.choose))
             }
         }
+        // Token entries the field could not take may leave nothing to choose,
+        // or a divider stranded.
+        guard !choices.isEmpty else { return offerNothing() }
+        menuEntries = DropdownMenu.normalizedEntries(menuEntries) { entry in
+            if case .divider = entry { return true }
+            return false
+        }
 
-        handler.suggestionCompletions = completions
+        handler.suggestionChoices = choices
         // The suggestions are rebuilt every frame (that is how filtering them
         // against the field's text works), so the highlight has to be told what
         // survived.
-        handler.suggestionHighlighting.adopt(count: completions.count)
+        handler.suggestionHighlighting.adopt(count: choices.count)
         // Captured at render so a Shift-accelerated Up/Down in the open pop-up
         // can jump at event time, when the environment is out of reach.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
 
-        let isOpen = isFocused && handler.suggestionsOpen && !completions.isEmpty
+        let isOpen = isFocused && handler.suggestionsOpen && !choices.isEmpty
         if isOpen, !context.isMeasuring {
             // The menu's Escape (close) takes precedence over any page-level
             // ESC handler while open — surface that in the status bar, as the

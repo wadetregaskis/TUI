@@ -110,28 +110,17 @@ struct SearchableModifier<Content: View>: View {
         }
     }
 
-    /// The rows under the field — the scopes and the suggested tokens — that
-    /// show now, or `nil` when none does.
+    /// The row under the field — the scopes — when it shows now, or `nil`.
     ///
-    /// Each stays while the focus is in the rows, or Tab from the field would
-    /// hide what it was heading for.
+    /// It stays while the focus is in it, or Tab from the field would hide
+    /// what it was heading for.
     private var accessories: AnyView? {
         let hasQuery = !text.wrappedValue.isEmpty
         let focusInRows = dismissal.focusIsInAccessories
-        let scopes = scopeBar.flatMap { bar in
+        return scopeBar.flatMap { bar in
             bar.activation.showsScopes(
                 isSearching: isSearching, hasQuery: hasQuery, focusInScopes: focusInRows) ? bar.picker : nil
         }
-        // Suggested tokens are for an empty field, as SwiftUI offers them.
-        let suggestions = tokens?.suggestions.flatMap { row in
-            (isSearching && !hasQuery) || focusInRows ? row : nil
-        }
-        guard scopes != nil || suggestions != nil else { return nil }
-        return AnyView(
-            VStack(alignment: .leading, spacing: 0) {
-                if let scopes { scopes }
-                if let suggestions { suggestions }
-            })
     }
 
     /// The field above the content.
@@ -182,7 +171,13 @@ struct SearchableModifier<Content: View>: View {
         }
     }
 
-    /// The query field, carrying whatever `.searchSuggestions` offered.
+    /// The query field, carrying whatever `.searchSuggestions` offered, after
+    /// the suggested tokens.
+    ///
+    /// The suggested tokens come first, as their own group, and only while
+    /// nothing is typed: SwiftUI offers them for an empty field. Both kinds
+    /// share the one menu, so its keys, its pointer handling and its
+    /// Return-to-submit rule are the text suggestions' own.
     ///
     /// The hand-off is what scopes the suggestions: they arrive on an
     /// environment key of their own and are turned into the general
@@ -204,7 +199,12 @@ struct SearchableModifier<Content: View>: View {
         // already happened — see `ContentUnavailableView.search`.
         let defaultPrompt = Text(
             verbatim: LocalizationService.shared.string(for: LocalizationKey.Label.search))
-        let offered = suggestions
+        let tokenSink = tokens?.sink
+        var offered = text.wrappedValue.isEmpty ? tokens?.suggestions ?? [] : []
+        if !offered.isEmpty, !suggestions.entries.isEmpty {
+            offered.append(.divider)
+        }
+        offered += suggestions.entries
         let isPresented = isPresented
         let field = TextField("", text: text, prompt: prompt ?? defaultPrompt)
             .onEditingChanged { began in
@@ -216,7 +216,7 @@ struct SearchableModifier<Content: View>: View {
                 }
             }
             .transformEnvironment(\.textInputSuggestions) { inherited in
-                if !offered.entries.isEmpty { inherited = offered }
+                if !offered.isEmpty { inherited = .offering(offered, tokenSink: tokenSink) }
             }
         // Records where the field rendered, so presenting can focus it, and
         // binds a `searchFocused` focus state to it.

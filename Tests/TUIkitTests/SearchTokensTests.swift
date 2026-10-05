@@ -3,8 +3,8 @@
 //
 //  The `searchable` forms with tokens, through the real input chain: tokens
 //  draw before the text, Backspace in an empty field removes the last,
-//  suggested tokens are chosen from a row under the field, and an editable
-//  token's view changes its token.
+//  suggested tokens and token completions are chosen from the field's
+//  suggestions menu, and an editable token's view changes its token.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -45,6 +45,23 @@ struct SearchTokensTests {
         buffer.lines.map(\.stripped).first { $0.contains(text) }
     }
 
+    /// The frame's lines with the pop-up overlays composited in — a
+    /// suggestions menu is an overlay, so it is not in `buffer.lines` until
+    /// that happens.
+    private func screen(_ buffer: FrameBuffer) -> [String] {
+        buffer.compositingOverlays(maxWidth: 50, maxHeight: 12, palette: EnvironmentValues().palette)
+            .lines.map(\.stripped)
+    }
+
+    /// A page with suggested tokens, and the given search suggestions.
+    private func suggestingPage(_ model: Model, @ViewBuilder suggestions: () -> some View) -> some View {
+        VStack { Button("Result") {} }
+            .searchable(text: model.text, tokens: model.tokenBinding, suggestedTokens: model.suggestedBinding) {
+                Text($0.id)
+            }
+            .searchSuggestions(suggestions)
+    }
+
     @Test("Tokens draw in the field before the text")
     func tokensDraw() throws {
         let harness = InputChainHarness(width: 50, height: 10)
@@ -73,28 +90,99 @@ struct SearchTokensTests {
         #expect(model.tokens.map(\.id) == ["Apple"], "the next takes the last token")
     }
 
-    @Test("Suggested tokens are offered under an empty field, and choosing one adds it")
+    @Test("Suggested tokens are offered in the suggestions menu, and choosing one adds it")
     func suggestedTokens() {
-        let harness = InputChainHarness(width: 50, height: 10)
+        let harness = InputChainHarness(width: 50, height: 12)
         let model = Model()
         model.tokens = []
+        let page = { self.suggestingPage(model) { EmptyView() } }
+        harness.frame(page())
+        let closed = screen(harness.frame(page()))
+        #expect(!closed.contains { $0.contains("Fig") }, "nothing is offered until the menu opens: \(closed)")
+        harness.press(KeyEvent(key: .down))  // opens the menu at its first row, Apple
+        let open = screen(harness.frame(page()))
+        #expect(open.contains { $0.contains("[Apple]") } && open.contains { $0.contains("[Fig]") }, "\(open)")
+        harness.press(KeyEvent(key: .enter))
+        harness.frame(page())
+        #expect(model.tokens.map(\.id) == ["Apple"])
+        harness.press(KeyEvent(key: .down))
+        let again = screen(harness.frame(page()))
+        #expect(again.contains { $0.contains("[Fig]") }, "\(again)")
+        // Once: the chip in the field, and no row of the menu.
+        #expect(
+            again.joined().components(separatedBy: "[Apple]").count == 2,
+            "a chosen token is not offered again: \(again)")
+    }
+
+    @Test("Suggested tokens come above the search suggestions, and only while nothing is typed")
+    func suggestedTokensComeFirst() throws {
+        let harness = InputChainHarness(width: 50, height: 12)
+        let model = Model()
+        model.tokens = []
+        let page = { self.suggestingPage(model) { Text("apricot") } }
+        harness.frame(page())
+        harness.frame(page())
+        harness.press(KeyEvent(key: .down))
+        let open = screen(harness.frame(page()))
+        let fig = try #require(open.firstIndex { $0.contains("[Fig]") }, "\(open)")
+        let apricot = try #require(open.firstIndex { $0.contains("apricot") }, "\(open)")
+        #expect(fig < apricot, "the tokens are the first group: \(open)")
+
+        harness.press(KeyEvent(key: .escape))
+        harness.frame(page())
+        harness.press(KeyEvent(key: .character("a")))
+        harness.frame(page())
+        harness.press(KeyEvent(key: .down))
+        let typed = screen(harness.frame(page()))
+        #expect(typed.contains { $0.contains("apricot") }, "\(typed)")
+        #expect(!typed.contains { $0.contains("[Fig]") }, "a typed query hides the suggested tokens: \(typed)")
+    }
+
+    @Test("A token completion empties the field and adds its token; a chosen one is ticked")
+    func tokenCompletion() {
+        let harness = InputChainHarness(width: 50, height: 12)
+        let model = Model()
+        model.tokens = [Fruit(id: "Apple")]
+        model.suggested = []
+        let page = {
+            self.suggestingPage(model) {
+                Text("Apple").searchCompletion(Fruit(id: "Apple"))
+                Text("Fig").searchCompletion(Fruit(id: "Fig"))
+            }
+        }
+        harness.frame(page())
+        harness.frame(page())
+        harness.press(KeyEvent(key: .character("f")))
+        harness.frame(page())
+        harness.press(KeyEvent(key: .down))
+        let open = screen(harness.frame(page()))
+        #expect(open.contains { $0.contains("✓") && $0.contains("[Apple]") }, "a chosen token is ticked: \(open)")
+        harness.press(KeyEvent(key: .down))  // Apple → Fig
+        harness.frame(page())
+        harness.press(KeyEvent(key: .enter))
+        harness.frame(page())
+        #expect(model.tokens.map(\.id) == ["Apple", "Fig"])
+        #expect(model.query.isEmpty, "the token replaces the partial text")
+    }
+
+    @Test("A token completion is left out where the searchable takes no tokens")
+    func tokenCompletionWithoutTokens() {
+        let harness = InputChainHarness(width: 50, height: 12)
+        let model = Model()
         let page = {
             VStack { Button("Result") {} }
-                .searchable(text: model.text, tokens: model.tokenBinding, suggestedTokens: model.suggestedBinding) {
-                    Text($0.id)
+                .searchable(text: model.text)
+                .searchSuggestions {
+                    Text("Fig").searchCompletion(Fruit(id: "Fig"))
+                    Text("figs")
                 }
         }
         harness.frame(page())
-        let offered = harness.frame(page())
-        #expect(line(offered, containing: "Fig") != nil, "the field holds the focus, empty: suggestions show")
-        harness.press(KeyEvent(key: .tab))  // field → the first suggestion, Apple
         harness.frame(page())
-        harness.press(KeyEvent(key: .enter))
-        let after = harness.frame(page())
-        #expect(model.tokens.map(\.id) == ["Apple"])
-        #expect(
-            !(after.lines.map(\.stripped).contains { $0.contains("Apple") && $0.contains("Fig") }),
-            "a chosen suggestion is not offered again")
+        harness.press(KeyEvent(key: .down))
+        let open = screen(harness.frame(page()))
+        #expect(open.contains { $0.contains("figs") }, "\(open)")
+        #expect(!open.contains { $0.contains("[Fig]") }, "\(open)")
     }
 
     @Test("An editable token's view changes its token")

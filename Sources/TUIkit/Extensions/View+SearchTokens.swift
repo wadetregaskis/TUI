@@ -114,10 +114,13 @@ extension View {
     /// Mirrors SwiftUI's
     /// `searchable(text:tokens:suggestedTokens:placement:prompt:token:)`.
     ///
-    /// The suggestions are a row of buttons under the field, shown while the
-    /// field holds the focus with nothing typed, and while the focus is in the
-    /// row; choosing one adds it to `tokens`. A suggestion already among the
-    /// tokens is not offered again.
+    /// The suggested tokens are offered in the field's suggestions menu while
+    /// nothing is typed, above any ``View/searchSuggestions(_:)``, each in
+    /// brackets as the field draws a token. The menu opens as it does for
+    /// text suggestions — Down at the caret, or a click on the `▾` — and
+    /// choosing one (Return on the highlighted row, or a click) adds it to
+    /// `tokens` and submits, as choosing a text suggestion does. A suggestion
+    /// already among the tokens is not offered again.
     ///
     /// - Parameters:
     ///   - text: The text to display and edit in the search field.
@@ -311,8 +314,8 @@ extension View {
 // MARK: - What the field draws
 
 /// A searchable's tokens, type-erased for ``SearchableModifier``: the chips
-/// before the field, Backspace's way of removing one, and the suggestions
-/// under it.
+/// before the field, Backspace's way of removing one, and what the field's
+/// suggestions menu offers and adds.
 struct SearchTokenRow {
     /// The tokens, drawn in the field before the text.
     let chips: AnyView
@@ -320,9 +323,13 @@ struct SearchTokenRow {
     /// Removes the last token, if there is one; whether it did.
     let removeLast: () -> Bool
 
-    /// The suggested tokens not yet chosen, as buttons, or `nil` when there
-    /// are none to offer.
-    let suggestions: AnyView?
+    /// The suggested tokens not yet chosen, as entries for the field's
+    /// suggestions menu.
+    let suggestions: [_TextSuggestionEntry]
+
+    /// Takes a token the suggestions menu offered — a suggested token, or one
+    /// a `searchCompletion(_:)` in the ``View/searchSuggestions(_:)`` named.
+    let sink: SearchTokenSink
 
     /// The row for read-only tokens, and their suggestions if any.
     @MainActor
@@ -339,16 +346,8 @@ struct SearchTokenRow {
                     ForEach(current) { element in SearchTokenChip(label: token(element)) }
                 }),
             removeLast: removingLast(tokens),
-            suggestions: offered.isEmpty
-                ? nil
-                : AnyView(
-                    HStack(spacing: 1) {
-                        ForEach(offered) { element in
-                            Button(
-                                action: { tokens.wrappedValue.append(element) },
-                                label: { token(element) })
-                        }
-                    }))
+            suggestions: offered.map { element in .token(element, label: AnyView(token(element))) },
+            sink: sink(for: tokens))
     }
 
     /// The row for tokens whose views edit them.
@@ -366,7 +365,28 @@ struct SearchTokenRow {
                     }
                 }),
             removeLast: removingLast(tokens),
-            suggestions: nil)
+            suggestions: [],
+            sink: sink(for: tokens))
+    }
+
+    /// Takes the suggestions menu's tokens of `C.Element`'s type into
+    /// `tokens` — never one whose id is there already, as a token's id is its
+    /// identity among the chips.
+    @MainActor
+    private static func sink<C>(for tokens: Binding<C>) -> SearchTokenSink
+    where C: RandomAccessCollection, C: RangeReplaceableCollection, C.Element: Identifiable {
+        SearchTokenSink { value in
+            guard let element = value as? C.Element else { return nil }
+            let id = element.id
+            let isChosen = tokens.wrappedValue.contains { $0.id == id }
+            return (
+                isChosen,
+                {
+                    guard !tokens.wrappedValue.contains(where: { $0.id == id }) else { return }
+                    tokens.wrappedValue.append(element)
+                }
+            )
+        }
     }
 
     /// Removes the last of `tokens`, and says whether there was one.
