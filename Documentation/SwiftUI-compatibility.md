@@ -749,7 +749,13 @@ it (`OverlayLayer.isScrollOverflow`, `FrameBuffer.coverScrollOverflow`), at the
 cost of one test of a buffer's layers per operation. No other layer is cut, so
 a view's own `.offset` drawing keeps the stacking it has always had: over the
 views after it as well. `List` and `Table` keep clipping (decisions-D2S
-B-D2S-4), where SwiftUI's `List` on macOS honours the modifier (measured).
+B-D2S-4), where SwiftUI's `List` on macOS honours the modifier (measured). So
+do the scrollers the framework puts around a tall menu, a sheet's or a framed
+container's content: their content belongs inside the surface they scroll in,
+and a 60-item inline menu inside a `.scrollClipDisabled()` page drew its items
+over its own border and the page; the scroll views in that content still
+answer the modifier. A clipping scroll view pays one environment read a frame
+for it.
 
 **A presentation is not content and is never clipped.** A menu, a drop-down, a
 dialog or a toast is a window over the page — the layer flag is `isOpaque` —

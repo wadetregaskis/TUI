@@ -58,7 +58,13 @@ extension View {
     /// it. What is drawn there can be clicked there. Blank cells at the end of
     /// a line draw nothing, so a short line does not erase what is beside it.
     ///
-    /// ``List`` and ``Table`` keep clipping (decisions-D2S B-D2S-4).
+    /// ``List`` and ``Table`` keep clipping (decisions-D2S B-D2S-4), and so do
+    /// the scrollers the framework puts around a tall menu, a sheet's or a
+    /// framed container's content, whose content belongs inside their surface;
+    /// the scroll views in that content still answer the modifier.
+    ///
+    /// A scroll view clipping, as nearly all do, pays one environment read a
+    /// frame for it.
     ///
     /// - Parameter disabled: Whether to stop clipping.
     /// - Returns: A view whose scroll views clip, or do not clip, their content.
@@ -71,8 +77,9 @@ extension View {
 
 extension _ScrollViewCore {
     /// The content past the viewport, as layers floating around the scroll
-    /// view — or none, when the scroll view clips (the default, which pays one
-    /// environment read for it).
+    /// view: asked only when the scroll view does not clip
+    /// (`drawnViewport`, which reads that once a frame), and only drawn on a
+    /// render pass.
     ///
     /// The content the frame drew (`full`, a band for a lazy stack) is placed
     /// where the viewport's window puts it — the offset, the horizontal offset,
@@ -89,7 +96,7 @@ extension _ScrollViewCore {
         of full: FrameBuffer, sliceOriginY: Int, handler: ScrollViewHandler, chrome: ScrollChrome,
         width: Int, height: Int, horizontal: Bool, context: RenderContext
     ) -> [OverlayLayer] {
-        guard context.environment.scrollClipDisabled, !context.isMeasuring else { return [] }
+        guard !context.isMeasuring else { return [] }
         var content = full
         content.overlays = []
         let slide =

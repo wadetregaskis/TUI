@@ -181,6 +181,24 @@ struct ScrollClipDisabledTests {
         #expect(lines(clipDisabled: true).firstIndex(of: "moved") == 3, "\(lines(clipDisabled: true))")
     }
 
+    @Test("The framework's own scroller — a tall inline menu's — keeps its rows inside its box")
+    func chromeScrollerClips() {
+        let frames = Frames(width: 30, height: 14)
+        frames.render(
+            VStack {
+                Menu("Pick") {
+                    ForEach(0..<60, id: \.self) { index in Button("item \(index)") {} }
+                }
+                .menuStyle(.inline)
+            }
+            .scrollClipDisabled())
+        let lines = frames.last.lines.map(\.stripped)
+        let withItems = lines.indices.filter { lines[$0].contains("item") }
+        #expect(!withItems.isEmpty)
+        #expect(withItems.allSatisfy { lines[$0].hasPrefix("│") }, "an item drawn outside the box: \(lines)")
+        #expect(lines.first?.hasPrefix("╭") == true && lines.last?.hasPrefix("╰") == true, "\(lines)")
+    }
+
     @MainActor
     private final class Box<T> {
         var value: T

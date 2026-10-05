@@ -192,7 +192,9 @@ extension ScrollView {
     /// - ``TUIkit/View/scrollContentBackground(_:)`` — the surface around it
     ///   paints its own background;
     /// - ``TUIkit/View/scrollTargetBehavior(_:)`` — it scrolls a line a step,
-    ///   as a menu's rows always have.
+    ///   as a menu's rows always have;
+    /// - ``TUIkit/View/scrollClipDisabled(_:)`` — it clips: its content
+    ///   belongs inside the surface it scrolls in, not over the page.
     ///
     /// The content inside it still reads them, for its own scrollables.
     func asChrome() -> ScrollView<Content> {
@@ -640,7 +642,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// The viewport as the frame draws it: the window of the content at the
     /// offset the frame settled on, after every move above — its pinned section
     /// chrome drawn in — slid by the overscroll excursion and the alignment
-    /// anchor (``applyOverscroll(to:handler:width:context:)``).
+    /// anchor (``applyOverscroll(to:handler:width:clips:context:)``).
     ///
     /// With a sliced reply the buffer's own coordinates start at the slice
     /// origin, so the clip offset rebases into slice space (clamped: a snap can
@@ -650,10 +652,14 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// Under `scrollClipDisabled` the content's floating layers are not cut at
     /// the viewport, and the content past it floats around the view
     /// (``overflowLayers(of:sliceOriginY:handler:chrome:width:height:horizontal:context:)``).
+    /// That is read from the environment here, once a frame, and handed to
+    /// everything below; the framework's own scrollers do not read it, and
+    /// always clip (``ScrollView/asChrome()``).
     private func drawnViewport(
         full fullBuffer: FrameBuffer, sliceOriginY: Int, handler: ScrollViewHandler, chrome: ScrollChrome,
         width: Int, height: Int, horizontal: Bool, context: RenderContext
     ) -> FrameBuffer {
+        let clips = isChrome || !context.environment.scrollClipDisabled
         let window = windowedBuffer(
             full: pinningSectionChrome(
                 in: fullBuffer, handler: handler, sliceOriginY: sliceOriginY, chrome: chrome,
@@ -663,12 +669,14 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             viewportWidth: width,
             horizontalEnabled: horizontal,
             horizontalOffset: handler.horizontal.scrollOffset,
-            clipsLayers: !context.environment.scrollClipDisabled
+            clipsLayers: clips
         )
-        var drawn = applyOverscroll(to: window, handler: handler, width: width, context: context)
-        drawn.overlays += overflowLayers(
-            of: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
-            width: width, height: height, horizontal: horizontal, context: context)
+        var drawn = applyOverscroll(to: window, handler: handler, width: width, clips: clips, context: context)
+        if !clips {
+            drawn.overlays += overflowLayers(
+                of: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
+                width: width, height: height, horizontal: horizontal, context: context)
+        }
         return drawn
     }
 
@@ -713,9 +721,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// slide, as its alignment anchor says
     /// (``alignmentShift(handler:viewportHeight:context:)``), and an excursion
     /// moves it from there. The buffer is the windowed viewport, as tall as the
-    /// content window.
+    /// content window. `clips` is whether the view clips its content's layers
+    /// at the viewport — not under `scrollClipDisabled`.
     private func applyOverscroll(
-        to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int, context: RenderContext
+        to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int, clips: Bool, context: RenderContext
     ) -> FrameBuffer {
         let excursion =
             handler.overscrollState.excursion
@@ -758,7 +767,6 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         slid.opacityRegions = slid.opacityRegions.compactMap {
             $0.clipped(toColumns: viewportColumns, rows: viewportRows)
         }
-        let clips = !context.environment.scrollClipDisabled
         slid.overlays = slid.overlays.compactMap {
             viewportOverlay($0, shiftedByX: 0, y: 0, width: max(0, width), height: lines.count, clips: clips)
         }
