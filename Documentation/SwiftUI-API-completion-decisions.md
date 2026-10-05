@@ -341,7 +341,6 @@ size change and a tmux pane resize, as one or a few.
 documented as "a burst of resizes", because a font-size change counts as
 one.
 
-
 *Wave 10's entries (A6–A12, B23–B31, C6–C7): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
 
 ### A6. Scroll target behaviours: SwiftUI's protocol, or keep `ScrollGranularity`?
@@ -1876,48 +1875,6 @@ It touches the hottest walk in the framework.
 Cost: about half a day, plus a measurement. I would only do it if real code
 turns up that needs it.
 
-### B5. Button styles: SwiftUI's names, and what `.plain` now means
-
-SwiftUI's built-in button styles now exist under SwiftUI's names, as
-`PrimitiveButtonStyle`s, and TUIkit's own `.default` and `.primary` are gone.
-The SwiftUI names were already documented as equivalents, but
-`.buttonStyle(.bordered)` did not compile. The mapping is mine:
-
-| Style | Draws | Note |
-|---|---|---|
-| `.automatic`, `.bordered` | the bracketed button | as on macOS, where automatic resolves to bordered |
-| `.borderedProminent` | the bracketed button, bold, in the accent colour | was `.primary` |
-| `.borderless` | no caps, accent label | **was TUIkit's `.plain`** |
-| `.plain` | no caps, ordinary text colour | SwiftUI: "doesn't style or decorate its content" |
-| `.link` | accent, underlined, focus in the words | like `Link` |
-| `.accessoryBar` / `.accessoryBarAction` | plain / bordered | TUIkit draws no accessory bars of its own |
-
-**What you might want to revisit: `.plain` changed meaning.**
-- TUIkit's old `.plain` tinted its label with the accent colour. SwiftUI's
-  doesn't, and SwiftUI's `.borderless` is the tinted one.
-- Every framework call site that used `.plain` now uses `.borderless`, so
-  nothing TUIkit draws changed: disclosure and outline headers, the colour
-  pickers, client pickers, the Stress menu bar, and the Example demo of
-  "links".
-- An app that wrote `.plain` sees its labels in the ordinary text colour.
-- If you'd rather keep `.plain` tinted, the cost is a known divergence from
-  SwiftUI. That is a one-line change.
-
-**Custom primitive styles follow SwiftUI exactly.**
-- The style's body *is* the button. TUIkit registers no focus stop, keys or
-  click for it, because the body decides how the button is operated.
-- A body that builds `Button(configuration)` gets one ordinary button, drawn
-  in the style the custom one was applied over.
-- A body that draws only the label makes a control that nothing can operate.
-  That is SwiftUI's semantics; it is also the one place a TUIkit style can
-  produce a control the keyboard cannot reach.
-- The alternative is for TUIkit to keep the focus and keys itself and let the
-  body draw. That costs a second code path, and two focus stops whenever the
-  body also builds a `Button`. I don't recommend it.
-
-**Declined (C):** `.glass`, `.glassProminent` and `.glass(_:)` join the
-existing `Glass*` family rule.
-
 ### B6. `safeAreaInset` puts the bar beside the view; there is no safe area
 
 *`View.safeAreaInset(edge:alignment:spacing:content:)` (both edge types),
@@ -2091,30 +2048,6 @@ operation (`+` for copy, as Finder draws), and a source-side callback when a
 drop completes with `.move` or `.delete`. SwiftUI's is `onDragSessionUpdated`,
 which the `DragSession*` family rule declines. About half a day for the
 badge; the callback belongs with that family's re-examination in Wave 17.
-
-### B11. `Menu(primaryAction:)` draws as two adjoining buttons
-
-*`Menu.init(content:label:primaryAction:)`, `Menu.init(_:content:primaryAction:)`
-(key and string), `Menu.init(_:systemImage:content:primaryAction:)`*
-
-SwiftUI's contract is one line: "the action to perform on primary
-interaction with the menu". macOS draws it as a pull-down button whose body
-runs the action and whose chevron opens the menu. TUIkit's earlier refusal
-named that rendering, not the contract, and both of its stated blockers turned
-out to exist in the package (a 2026-08 audit, finding 102).
-
-**Shipped:** the label performs the action — Return, Space or a click — and
-the menu opens from the caret beside it by a click, or from the label by the
-Down arrow. The caret takes clicks and no focus, so the control is one Tab
-stop. Under `.menuIndicator(.hidden)` the caret goes and the arrow remains.
-Drawn as the label's button and the caret's, side by side:
-`▐ Export ▌▐ ▾ ▌`, against the plain menu's `▐ Export ▾ ▌`.
-
-**The fuller version** is one control face split by a rule —
-`▐ Export │ ▾ ▌` — which needs the button style's caps to frame two hit
-regions in one body; and a press-and-hold on the label to open the menu, as
-macOS does, now that Wave 7's long press exists. Half a day together. The
-status bar's hint for the label says "press" today; it could add "↓ menu".
 
 ### B12. `buttonRepeatBehavior(.disabled)` cannot stop a held key repeating
 
@@ -2399,7 +2332,6 @@ the palette's secondary tier, which is SwiftUI's behaviour.
   own faded tiers for an arbitrary foreground). That is a palette-protocol
   change, so I left it for you.
 
-
 ### B23. `ScrollPosition`: the request and the row are read separately, and `viewID` answers sooner than SwiftUI's
 
 *`ScrollPosition.init(idType:edge:)`, `.init(idType:point:)`, `.init(idType:x:)`,
@@ -2670,28 +2602,6 @@ horizontal value is recorded and decides nothing yet.
 under `.always`/`.automatic`, sprung back once the scroll phase returns to
 idle (B27 gives the moment). Half a day, and it changes the default feel
 of every scrollable, so it is yours to want.
-
-### B32. `buttonSizing(.flexible)` widens a button's face; a plain button keeps its width
-
-*`ButtonSizing` (`.automatic`, `.fitted`, `.flexible`), `View.buttonSizing(_:)`,
-`EnvironmentValues.buttonSizing`*
-
-A macOS 26 API, so SwiftUI's behaviour could not be measured on this
-machine's macOS 15. What shipped follows its documentation: a flexible button
-fills its primary axis. A button with a face (the bordered and prominent
-styles and the other built-ins with caps) widens the face to the width it is
-offered and centres its label; measured, it reports the offered width, flexible.
-`.fitted` and `.automatic` fit the label, which is what every button did before.
-
-**The open question** is plain, borderless and link buttons. They have no face,
-so widening one changes only its hit area, invisibly. I left them at their
-own width. SwiftUI's documentation says only that "certain styles" adapt. If a
-macOS 26 measurement shows `.plain` widening, the change is the same
-centring in `renderPlainStringLabel`, about an hour.
-
-`Picker`, `ControlGroup` and `Toggle`'s button style, which the documentation
-also names, do not read it yet. Each is a frame of its own, an hour apiece
-once wanted.
 
 ### B33. Slider ticks, neutral value, enabled bounds and thumb visibility, read from the documentation
 
