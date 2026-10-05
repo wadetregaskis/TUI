@@ -638,12 +638,22 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
 
     // MARK: - Helpers
 
-    /// The document's layout, from the editor's handler where it has one — a
-    /// measure before the first render has not made it yet.
+    /// The layout of the text THIS view's binding holds, kept by the editor's
+    /// handler where it has one — a measure before the first render has not
+    /// made it yet.
+    ///
+    /// Never the handler's own binding: that is the one the LAST render handed
+    /// it (`handler.text = text`), and a measure runs before this frame's
+    /// render. A binding that is not a live reference — `$notes[selected]`,
+    /// whose index was captured when it was made, a `.constant`, a
+    /// `Binding(get:)` over a loop's element — measured last frame's document:
+    /// switching `selected` from a one-line note to a six-line one sized the
+    /// editor one row and drew six lines into it.
     private func layout(context: RenderContext) -> EditorLayout {
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
         let box: StateBox<TextEditorHandler>? = context.stateStorage?.existingStorage(for: key)
-        return box?.value.layout() ?? EditorLayout(text: text.wrappedValue)
+        let current = text.wrappedValue
+        return box?.value.layout(of: current) ?? EditorLayout(text: current)
     }
 
     /// Advances the handler's scroll offsets so the cursor stays visible.

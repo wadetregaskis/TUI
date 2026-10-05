@@ -36,6 +36,38 @@ struct EditorLayoutTests {
         #expect(handler.readLines() == [["t", "h", "r", "e", "e"]])
     }
 
+    /// The measure runs before the render hands the handler this frame's
+    /// binding, so a measure that read the handler's binding sized the editor
+    /// for the PREVIOUS document. A binding that is not a live reference — a
+    /// `.constant`, `$notes[selected]` — holds what its frame was built with.
+    @Test("The editor is measured for the text its binding holds now, not the text it last drew")
+    func measuresTheCurrentText() {
+        for wraps in [true, false] {
+            let tui = TUIContext()
+            var environment = EnvironmentValues()
+            environment.focusManager = FocusManager()
+            environment.applyRuntimeServices(from: tui)
+            let context = RenderContext(
+                availableWidth: 30, availableHeight: 12, environment: environment, tuiContext: tui)
+            func pass<T>(_ body: () -> T) -> T {
+                tui.stateStorage.beginRenderPass()
+                tui.renderCache.beginRenderPass()
+                defer { tui.stateStorage.endRenderPass() }
+                return body()
+            }
+            func editor(_ text: String) -> some View {
+                TextEditor(text: .constant(text)).textEditorWrapsLines(wraps)
+            }
+            // The first frame makes the handler, holding the one-line text.
+            _ = pass { renderToBuffer(editor("a"), context: context) }
+            let size = pass {
+                measureChild(
+                    editor("1\n2\n3\n4\n5\n6"), proposal: ProposedSize(width: 30, height: nil), context: context)
+            }
+            #expect(size.height == 6, "wrapping: \(wraps)")
+        }
+    }
+
     @Test("An edit hands its lines over with its text")
     func editKeepsItsLines() {
         let box = Box("ab\ncd")

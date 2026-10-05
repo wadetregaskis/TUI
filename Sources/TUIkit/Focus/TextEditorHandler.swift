@@ -132,7 +132,13 @@ final class TextEditorHandler: PersistedFocusable {
     /// The layout of the text the binding holds now: the one kept, while the
     /// text is the one it was made from, and a new one otherwise.
     func layout() -> EditorLayout {
-        let current = text.wrappedValue
+        layout(of: text.wrappedValue)
+    }
+
+    /// The layout of `current`, kept as the handler's: what a measure asks
+    /// with the text of the view being measured, which its render will hand
+    /// the handler next.
+    func layout(of current: String) -> EditorLayout {
         if let cachedLayout, cachedLayout.text == current { return cachedLayout }
         let fresh = EditorLayout(text: current)
         cachedLayout = fresh
