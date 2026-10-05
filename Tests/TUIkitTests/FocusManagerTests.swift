@@ -444,6 +444,35 @@ struct EndOfRenderPassFocusNotificationTests {
             "the page already drew itself unfocused — without a repaint it stays that way")
     }
 
+    /// What the frame drew from the ACTIVE SECTION — the line of key hints, the
+    /// section's status-bar items, whether the window's bars are inert behind a
+    /// modal — is drawn during the walk, before this pass validates the section.
+    /// A section that vanished (a presenter its stack left undrawn) hands the
+    /// keyboard to another one here, and with nothing focused before or after,
+    /// the focus check alone stayed silent: the hints of the dead section stood
+    /// until some key happened to ask for a frame.
+    @Test("A pass that ends on a different active section asks to repaint, though nothing is focused")
+    func activeSectionChangeNotifies() {
+        let manager = FocusManager()
+        manager.beginRenderPass()
+        manager.registerSection(id: "page")
+        manager.registerSection(id: "dialog")
+        manager.activateSection(id: "dialog")
+        manager.endRenderPass()
+        #expect(manager.activeSectionIdentifier == "dialog", "sanity: the dialog holds the keyboard")
+        #expect(manager.currentFocusedID == nil, "sanity: with nothing to focus")
+
+        var repaints = 0
+        manager.onFocusChange = { repaints += 1 }
+        manager.beginRenderPass()
+        manager.registerSection(id: "page")
+        manager.endRenderPass()
+
+        #expect(manager.activeSectionIdentifier == "page", "the dialog's section is gone")
+        #expect(manager.currentFocusedID == nil)
+        #expect(repaints == 1, "the frame drew the dead section's hints; the next must not")
+    }
+
     @Test("A pass that changes nothing requests no repaint")
     func steadyStateIsQuiet() {
         let manager = FocusManager()

@@ -1387,6 +1387,7 @@ extension FocusManager {
     /// keypress then moves focus off the element the user never saw it on.
     func endRenderPass() {
         let focusOnEntry = focusedID
+        let sectionOnEntry = activeSectionID
         // Validate active section. If the active section vanished (e.g. a modal
         // overlay that activated its own section was dismissed), remember its
         // focus, fall back to the first section, and restore THAT section's
@@ -1507,7 +1508,15 @@ extension FocusManager {
         // frame would request another one forever and the loop would never idle.
         // (The helpers above announce their own moves; this catches the paths
         // that only DROP focus, which is just as invisible.)
-        if focusedID != focusOnEntry { onFocusChange?() }
+        //
+        // A change of SECTION is one too, with or without a change of focus.
+        // The window's chrome is drawn in the walk, before this: the line of
+        // key hints shows the active section's items, and the bars go inert
+        // while the active section is a modal's. A section that vanished hands
+        // the keyboard on here, and when nothing was focused on either side of
+        // the hand-over the focus test above saw no change, so the frame on
+        // screen went on showing the dead section's hints.
+        if focusedID != focusOnEntry || activeSectionID != sectionOnEntry { onFocusChange?() }
 
         // Last, once the focus is settled: a reader handed a value this frame
         // went on to change asks for the frame that shows the change.
