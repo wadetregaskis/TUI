@@ -512,7 +512,7 @@ enum TerminalHost {
             {
                 return path
             }
-            current = parentProcess(ofProcess: pid)
+            current = ProcessAncestry.parent(of: pid)
         }
         return nil
         #else
@@ -521,20 +521,6 @@ enum TerminalHost {
     }
 
     #if canImport(Darwin)
-    /// The parent of a process, or `nil` if it has exited or is unreadable.
-    private static func parentProcess(ofProcess pid: pid_t) -> pid_t? {
-        var info = kinfo_proc()
-        var size = MemoryLayout<kinfo_proc>.stride
-        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
-        let ok = mib.withUnsafeMutableBufferPointer {
-            sysctl($0.baseAddress, u_int($0.count), &info, &size, nil, 0) == 0
-        }
-        // A dead pid succeeds with size 0 rather than failing — hence both checks.
-        guard ok, size > 0 else { return nil }
-        let parent = info.kp_eproc.e_ppid
-        return parent > 0 ? parent : nil
-    }
-
     /// The full executable path of a process, or `nil` if it has exited or is
     /// unreadable (another user's process, in particular).
     private static func executablePath(ofProcess pid: pid_t) -> String? {
