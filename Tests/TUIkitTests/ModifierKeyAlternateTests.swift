@@ -128,6 +128,19 @@ struct ModifierKeyAlternateTests {
         #expect(harness.focusManager.currentFocusedID == "forward")
     }
 
+    @Test("The focus comes back after a frame the run loop walked twice", arguments: [1, 3])
+    func focusReturnsAfterACorrectedFrame(framesHeld: Int) {
+        let harness = InputChainHarness(keyboard: .requested)
+        harness.frame(focusPage())
+        harness.frame(focusPage())
+        hold(harness, ModifierKeyState(option: true))
+        for _ in 0..<framesHeld { harness.frame(focusPage(), walks: 2) }
+        #expect(harness.focusManager.currentFocusedID == "other")
+        hold(harness, ModifierKeyState())
+        harness.frame(focusPage(), walks: 2)
+        #expect(harness.focusManager.currentFocusedID == "forward")
+    }
+
     @Test("A focus the user moved while the alternate showed stays where they put it")
     func movedFocusStays() {
         let harness = InputChainHarness(keyboard: .requested)

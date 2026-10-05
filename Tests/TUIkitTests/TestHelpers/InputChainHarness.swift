@@ -83,8 +83,14 @@ final class InputChainHarness {
     }
 
     /// Renders one frame of `view`, clearing every per-frame registry first.
+    ///
+    /// - Parameter walks: How many times the frame walks the tree, the last
+    ///   walk's buffer being the frame's: more than one is a corrected frame,
+    ///   as the run loop's app-header height correction makes, with the
+    ///   per-walk registries cleared between walks as
+    ///   `RenderLoop.beginSceneRender()` clears them.
     @discardableResult
-    func frame(_ view: some View) -> FrameBuffer {
+    func frame(_ view: some View, walks: Int = 1) -> FrameBuffer {
         // As the run loop does: the gestures' clocks run to the frame's
         // instant before anything is cleared or rendered.
         tui.mouseEventDispatcher.advanceGestures(nowNanos: now)
@@ -103,7 +109,17 @@ final class InputChainHarness {
         var frameContext = context
         frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
         frameContext.environment.frameNowNanos = now
-        let buffer = renderToBuffer(view, context: frameContext)
+        var buffer = renderToBuffer(view, context: frameContext)
+        for _ in 1..<max(1, walks) {
+            tui.keyEventDispatcher.clearHandlers()
+            tui.mouseEventDispatcher.beginRenderPass()
+            tui.keyboardShortcuts.beginRenderPass()
+            tui.preferences.beginRenderPass()
+            tui.stateStorage.beginSceneRender()
+            focusManager.beginSceneRender()
+            statusBar.beginSceneRender()
+            buffer = renderToBuffer(view, context: frameContext)
+        }
         tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
         focusManager.endRenderPass()
         tui.stateStorage.endRenderPass()

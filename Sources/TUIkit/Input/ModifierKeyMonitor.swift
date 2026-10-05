@@ -49,7 +49,8 @@ final class ModifierKeyMonitor: @unchecked Sendable {
     /// keyed by the modified view's identity — see ``alternateShown(at:focusManager:)``.
     private var heldFocus: [ViewIdentity: HeldFocus] = [:]
 
-    /// Counts walks of the scene, so a held focus knows which walk made it.
+    /// Counts walks of the scene, so a held focus knows whether the last walk
+    /// drew its alternate.
     private var walk = 0
 
     /// The focus a modified view held when an alternate replaced it.
@@ -57,10 +58,8 @@ final class ModifierKeyMonitor: @unchecked Sendable {
         /// The control in the modified view that held the focus, or `nil` when
         /// the focus was elsewhere.
         let focusID: String?
-        /// The walk that drew the alternate first.
-        let since: Int
-        /// Where the focus recovery sent it once the control left the ring,
-        /// read on the first walk after ``since``: `nil` until then.
+        /// Where the focus recovery sent it once the control left the ring:
+        /// the first focus seen that is not ``focusID``, `nil` until then.
         var landedID: String?
         /// The last walk an alternate in this chain was drawn.
         var touched: Int
@@ -89,12 +88,14 @@ final class ModifierKeyMonitor: @unchecked Sendable {
     /// focus: that control is not drawn now, so the focus system recovers the
     /// focus to a neighbour at the end of the pass — the alternate's own
     /// control, where it has one in the same place, or the next control on the
-    /// page. On the walk after, remembers where it landed, so the return can
-    /// tell the recovery's move from one the user made.
+    /// page. On a later walk, remembers where it landed — the first focus seen
+    /// that is not the control's, which nothing but that recovery moves it to
+    /// within the frame, however many times the frame walks the tree — so the
+    /// return can tell the recovery's move from one the user made.
     func alternateShown(at identity: ViewIdentity, focusManager: FocusManager?) {
         if var held = heldFocus[identity] {
-            if held.landedID == nil, held.since < walk {
-                held.landedID = focusManager?.currentFocusedID
+            if held.landedID == nil, let current = focusManager?.currentFocusedID, current != held.focusID {
+                held.landedID = current
             }
             held.touched = walk
             heldFocus[identity] = held
@@ -102,14 +103,14 @@ final class ModifierKeyMonitor: @unchecked Sendable {
         }
         heldFocus[identity] = HeldFocus(
             focusID: focusManager.flatMap { Self.focusedID(in: identity, of: $0) },
-            since: walk, landedID: nil, touched: walk)
+            landedID: nil, touched: walk)
     }
 
     /// Notes that the view at `identity` is drawn this walk, and if an
     /// alternate replaced it while it held the focus, gives the focus back.
     ///
     /// Back only if nothing moved it on purpose meanwhile: the focus is where
-    /// the recovery put it (or the alternate showed for a single walk, too
+    /// the recovery put it (or the alternate showed for a single frame, too
     /// short to tell), or on a control of the alternate, or nowhere. The
     /// control is not registered yet — it renders after this — so the focus is
     /// asked for by id, which the focus system holds until it registers in
