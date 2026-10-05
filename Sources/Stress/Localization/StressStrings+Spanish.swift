@@ -19,8 +19,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "activado",
         "stress.shell.autopilot.off": "desactivado",
         "stress.shell.autopilot.frame": "fotograma",
-        "stress.shell.menu.help": "↑/↓ seleccionar · intro abrir · +/− escala · a piloto automático · esc salir",
-        "stress.shell.footer.hint": "esc volver · +/− escala · a piloto automático",
+        "stress.shell.menu.help": "↑/↓ seleccionar · ↩ abrir · +/− escala · a piloto automático · ⎋ salir",
+        "stress.shell.footer.hint": "⎋ volver · +/− escala · a piloto automático",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "Mega lista",
@@ -180,7 +180,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "Barra de menús — {0} menús de {1} filas",
         "stress.scenario.keyrows.title": "Filas con teclas",
         "stress.scenario.keyrows.blurb": "Filas memoizadas que registran cada una un manejador de teclas y elementos de la barra de estado, junto a un panel actualizable.",
-        "stress.scenario.keyrows.stresses": "registros por fila bajo el memo de fila · registros de teclas y barra de estado vaciados en cada fotograma · Ctrl-R actualizable",
+        "stress.scenario.keyrows.stresses": "registros por fila bajo el memo de fila · registros de teclas y barra de estado vaciados en cada fotograma · ⌃R actualizable",
         "stress.scenario.keyrows.heading": "Filas con teclas — {0} filas, cada una con un manejador de teclas y un elemento de la barra de estado",
         "stress.scenario.controls.title": "Filas de controles",
         "stress.scenario.controls.blurb": "Filas de un control común cada una: texto pulsable, etiquetas, campos, texto interpolado y Markdown, barras de progreso.",

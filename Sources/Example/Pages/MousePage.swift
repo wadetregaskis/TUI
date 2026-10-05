@@ -643,14 +643,16 @@ struct MousePage: View {
         }
     }
 
+    /// The modifiers held with a click, as TUIkit writes modifiers: macOS's
+    /// symbols, in its order ⌃ ⌥ ⇧ (`EventModifiers.displayString`).
     private func modifierString(_ event: MouseEvent) -> String {
-        var parts: [String] = []
-        if event.shift { parts.append("Shift") }
-        if event.ctrl { parts.append("Ctrl") }
-        if event.meta { parts.append("Alt") }
-        if parts.isEmpty {
+        var modifiers: EventModifiers = []
+        if event.ctrl { modifiers.insert(.control) }
+        if event.meta { modifiers.insert(.option) }
+        if event.shift { modifiers.insert(.shift) }
+        if modifiers.isEmpty {
             return event.button == .right ? L("page.mouse.plainRightClick") : L("page.mouse.plainLeftClick")
         }
-        return parts.joined(separator: "+")
+        return modifiers.displayString
     }
 }

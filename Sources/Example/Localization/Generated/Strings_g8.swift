@@ -49,7 +49,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "An action sheet: vertically-stacked buttons, the cancel role sorted last, Escape to dismiss.",
+            "page.overlays.confirm.explain": "An action sheet: vertically-stacked buttons, the cancel role sorted last, ⎋ to dismiss.",
             "page.overlays.confirm.trigger": "Delete item…",
             "page.overlays.confirm.result": "Choice",
             "page.overlays.confirm.title": "Delete this item?",
@@ -95,7 +95,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "Ein Aktionsblatt: vertikal gestapelte Schaltflächen, die Abbrechen-Rolle zuletzt einsortiert, Escape zum Schließen.",
+            "page.overlays.confirm.explain": "Ein Aktionsblatt: vertikal gestapelte Schaltflächen, die Abbrechen-Rolle zuletzt einsortiert, ⎋ zum Schließen.",
             "page.overlays.confirm.trigger": "Element löschen…",
             "page.overlays.confirm.result": "Auswahl",
             "page.overlays.confirm.title": "Dieses Element löschen?",
@@ -141,7 +141,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "Une feuille d'actions : boutons empilés verticalement, le rôle d'annulation trié en dernier, Échap pour fermer.",
+            "page.overlays.confirm.explain": "Une feuille d'actions : boutons empilés verticalement, le rôle d'annulation trié en dernier, ⎋ pour fermer.",
             "page.overlays.confirm.trigger": "Supprimer l'élément…",
             "page.overlays.confirm.result": "Choix",
             "page.overlays.confirm.title": "Supprimer cet élément ?",
@@ -187,7 +187,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "Un foglio d'azione: pulsanti impilati verticalmente, il ruolo di annullamento ordinato per ultimo, Esc per chiudere.",
+            "page.overlays.confirm.explain": "Un foglio d'azione: pulsanti impilati verticalmente, il ruolo di annullamento ordinato per ultimo, ⎋ per chiudere.",
             "page.overlays.confirm.trigger": "Elimina elemento…",
             "page.overlays.confirm.result": "Scelta",
             "page.overlays.confirm.title": "Eliminare questo elemento?",
@@ -233,7 +233,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "Una hoja de acciones: botones apilados verticalmente, el rol de cancelar ordenado al final, Escape para cerrar.",
+            "page.overlays.confirm.explain": "Una hoja de acciones: botones apilados verticalmente, el rol de cancelar ordenado al final, ⎋ para cerrar.",
             "page.overlays.confirm.trigger": "Eliminar elemento…",
             "page.overlays.confirm.result": "Elección",
             "page.overlays.confirm.title": "¿Eliminar este elemento?",
@@ -279,7 +279,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "操作表：按钮纵向排列，取消角色排在最后，按 Esc 关闭。",
+            "page.overlays.confirm.explain": "操作表：按钮纵向排列，取消角色排在最后，按 ⎋ 关闭。",
             "page.overlays.confirm.trigger": "删除项目…",
             "page.overlays.confirm.result": "选择",
             "page.overlays.confirm.title": "要删除此项吗？",
@@ -325,7 +325,7 @@ extension ExampleStrings {
 
             // confirmationDialog (Overlays page)
             "page.overlays.confirm.section": "confirmationDialog",
-            "page.overlays.confirm.explain": "アクションシート: ボタンを縦に並べ、キャンセルの役割を最後に置き、Escape で閉じます。",
+            "page.overlays.confirm.explain": "アクションシート: ボタンを縦に並べ、キャンセルの役割を最後に置き、⎋ で閉じます。",
             "page.overlays.confirm.trigger": "項目を削除…",
             "page.overlays.confirm.result": "選択",
             "page.overlays.confirm.title": "この項目を削除しますか？",

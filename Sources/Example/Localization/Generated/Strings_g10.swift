@@ -14,7 +14,7 @@ extension ExampleStrings {
     static let g10: [String: [String: String]] = [
         "en": [
             "page.overlays.variants.section": "Popover · Full-screen cover · Detented sheet",
-            "page.overlays.variants.explain": "Three presentations that are not a plain sheet. A popover anchors to the control that opened it and leaves the page undimmed; a cover replaces the page outright; detents give a sheet a chosen height. Escape closes all three, and a click outside closes the popover.",
+            "page.overlays.variants.explain": "Three presentations that are not a plain sheet. A popover anchors to the control that opened it and leaves the page undimmed; a cover replaces the page outright; detents give a sheet a chosen height. ⎋ closes all three, and a click outside closes the popover.",
             "page.overlays.variants.popover": "Popover",
             "page.overlays.variants.popoverTitle": "Anchored here",
             "page.overlays.variants.popoverBody": "Below the button, not centred on the screen.",
@@ -31,7 +31,7 @@ extension ExampleStrings {
         ],
         "de": [
             "page.overlays.variants.section": "Popover · Vollbild-Cover · Sheet mit Rastung",
-            "page.overlays.variants.explain": "Drei Präsentationen, die kein gewöhnliches Sheet sind. Ein Popover verankert sich an dem Steuerelement, das es geöffnet hat, und lässt die Seite ungedimmt; ein Cover ersetzt die Seite vollständig; Rastungen geben einem Sheet eine gewählte Höhe. Escape schließt alle drei, ein Klick daneben schließt das Popover.",
+            "page.overlays.variants.explain": "Drei Präsentationen, die kein gewöhnliches Sheet sind. Ein Popover verankert sich an dem Steuerelement, das es geöffnet hat, und lässt die Seite ungedimmt; ein Cover ersetzt die Seite vollständig; Rastungen geben einem Sheet eine gewählte Höhe. ⎋ schließt alle drei, ein Klick daneben schließt das Popover.",
             "page.overlays.variants.popover": "Popover",
             "page.overlays.variants.popoverTitle": "Hier verankert",
             "page.overlays.variants.popoverBody": "Unter der Schaltfläche, nicht mittig auf dem Bildschirm.",
@@ -48,7 +48,7 @@ extension ExampleStrings {
         ],
         "fr": [
             "page.overlays.variants.section": "Popover · Couverture plein écran · Feuille à crans",
-            "page.overlays.variants.explain": "Trois présentations qui ne sont pas une simple feuille. Un popover s'ancre au contrôle qui l'a ouvert et laisse la page non assombrie ; une couverture remplace la page ; les crans donnent à une feuille une hauteur choisie. Échap ferme les trois, un clic à côté ferme le popover.",
+            "page.overlays.variants.explain": "Trois présentations qui ne sont pas une simple feuille. Un popover s'ancre au contrôle qui l'a ouvert et laisse la page non assombrie ; une couverture remplace la page ; les crans donnent à une feuille une hauteur choisie. ⎋ ferme les trois, un clic à côté ferme le popover.",
             "page.overlays.variants.popover": "Popover",
             "page.overlays.variants.popoverTitle": "Ancré ici",
             "page.overlays.variants.popoverBody": "Sous le bouton, pas au centre de l'écran.",
@@ -65,7 +65,7 @@ extension ExampleStrings {
         ],
         "it": [
             "page.overlays.variants.section": "Popover · Copertura a schermo intero · Foglio con fermi",
-            "page.overlays.variants.explain": "Tre presentazioni che non sono un semplice foglio. Un popover si ancora al controllo che lo ha aperto e lascia la pagina non oscurata; una copertura sostituisce la pagina; i fermi danno al foglio un'altezza scelta. Esc chiude tutte e tre, un clic fuori chiude il popover.",
+            "page.overlays.variants.explain": "Tre presentazioni che non sono un semplice foglio. Un popover si ancora al controllo che lo ha aperto e lascia la pagina non oscurata; una copertura sostituisce la pagina; i fermi danno al foglio un'altezza scelta. ⎋ chiude tutte e tre, un clic fuori chiude il popover.",
             "page.overlays.variants.popover": "Popover",
             "page.overlays.variants.popoverTitle": "Ancorato qui",
             "page.overlays.variants.popoverBody": "Sotto il pulsante, non al centro dello schermo.",
@@ -82,7 +82,7 @@ extension ExampleStrings {
         ],
         "es": [
             "page.overlays.variants.section": "Popover · Cubierta a pantalla completa · Hoja con topes",
-            "page.overlays.variants.explain": "Tres presentaciones que no son una hoja normal. Un popover se ancla al control que lo abrió y deja la página sin atenuar; una cubierta sustituye la página; los topes dan a la hoja una altura elegida. Esc cierra las tres, y un clic fuera cierra el popover.",
+            "page.overlays.variants.explain": "Tres presentaciones que no son una hoja normal. Un popover se ancla al control que lo abrió y deja la página sin atenuar; una cubierta sustituye la página; los topes dan a la hoja una altura elegida. ⎋ cierra las tres, y un clic fuera cierra el popover.",
             "page.overlays.variants.popover": "Popover",
             "page.overlays.variants.popoverTitle": "Anclado aquí",
             "page.overlays.variants.popoverBody": "Debajo del botón, no centrado en la pantalla.",
@@ -99,7 +99,7 @@ extension ExampleStrings {
         ],
         "zh": [
             "page.overlays.variants.section": "浮层 · 全屏覆盖 · 定高工作表",
-            "page.overlays.variants.explain": "三种不同于普通工作表的呈现方式。浮层锚定在打开它的控件上，且不会使页面变暗；覆盖层直接取代页面；定高让工作表使用指定高度。Escape 可关闭三者，点击外部可关闭浮层。",
+            "page.overlays.variants.explain": "三种不同于普通工作表的呈现方式。浮层锚定在打开它的控件上，且不会使页面变暗；覆盖层直接取代页面；定高让工作表使用指定高度。⎋ 可关闭三者，点击外部可关闭浮层。",
             "page.overlays.variants.popover": "浮层",
             "page.overlays.variants.popoverTitle": "锚定于此",
             "page.overlays.variants.popoverBody": "位于按钮下方，而非屏幕中央。",
@@ -116,7 +116,7 @@ extension ExampleStrings {
         ],
         "ja": [
             "page.overlays.variants.section": "ポップオーバー · フルスクリーンカバー · ディテント付きシート",
-            "page.overlays.variants.explain": "ふつうのシートではない 3 つの表示方法です。ポップオーバーは開いたコントロールに固定され、ページを暗くしません。カバーはページそのものを置き換えます。ディテントはシートの高さを決めます。3 つとも Escape で閉じ、ポップオーバーは外側のクリックでも閉じます。",
+            "page.overlays.variants.explain": "ふつうのシートではない 3 つの表示方法です。ポップオーバーは開いたコントロールに固定され、ページを暗くしません。カバーはページそのものを置き換えます。ディテントはシートの高さを決めます。3 つとも ⎋ で閉じ、ポップオーバーは外側のクリックでも閉じます。",
             "page.overlays.variants.popover": "ポップオーバー",
             "page.overlays.variants.popoverTitle": "ここに固定",
             "page.overlays.variants.popoverBody": "画面中央ではなく、ボタンの下に表示されます。",

@@ -17,8 +17,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "开",
         "stress.shell.autopilot.off": "关",
         "stress.shell.autopilot.frame": "帧",
-        "stress.shell.menu.help": "↑/↓ 选择 · 回车 打开 · +/− 规模 · a 自动驾驶 · esc 退出",
-        "stress.shell.footer.hint": "esc 返回 · +/− 规模 · a 自动驾驶",
+        "stress.shell.menu.help": "↑/↓ 选择 · ↩ 打开 · +/− 规模 · a 自动驾驶 · ⎋ 退出",
+        "stress.shell.footer.hint": "⎋ 返回 · +/− 规模 · a 自动驾驶",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "超级列表",
@@ -178,7 +178,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "菜单栏 — {0} 个菜单，每个 {1} 行",
         "stress.scenario.keyrows.title": "按键行",
         "stress.scenario.keyrows.blurb": "每行各注册一个按键处理器和状态栏项的记忆化行，旁边是一个可刷新面板。",
-        "stress.scenario.keyrows.stresses": "行记忆下的逐行注册 · 每帧清空的按键与状态栏注册表 · 可刷新的 Ctrl-R",
+        "stress.scenario.keyrows.stresses": "行记忆下的逐行注册 · 每帧清空的按键与状态栏注册表 · 可刷新的 ⌃R",
         "stress.scenario.keyrows.heading": "按键行 — {0} 行，每行一个按键处理器和一个状态栏项",
         "stress.scenario.controls.title": "控件行",
         "stress.scenario.controls.blurb": "每行一个常用控件——可点按文本、标签、输入框、插值文本和 Markdown 文本、进度条。",

@@ -30,8 +30,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "on",
         "stress.shell.autopilot.off": "off",
         "stress.shell.autopilot.frame": "frame",
-        "stress.shell.menu.help": "↑/↓ select · enter open · +/− scale · a autopilot · esc quit",
-        "stress.shell.footer.hint": "esc back · +/− scale · a autopilot",
+        "stress.shell.menu.help": "↑/↓ select · ↩ open · +/− scale · a autopilot · ⎋ quit",
+        "stress.shell.footer.hint": "⎋ back · +/− scale · a autopilot",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "Mega List",
@@ -191,7 +191,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "Menu bar — {0} menus of {1} rows",
         "stress.scenario.keyrows.title": "Key Rows",
         "stress.scenario.keyrows.blurb": "Memoized rows that each register a key handler and status-bar items, beside a refreshable panel.",
-        "stress.scenario.keyrows.stresses": "per-row registrations under the row memo · per-frame key and status-bar registries · refreshable Ctrl-R",
+        "stress.scenario.keyrows.stresses": "per-row registrations under the row memo · per-frame key and status-bar registries · refreshable ⌃R",
         "stress.scenario.keyrows.heading": "Key rows — {0} rows, each with a key handler and a status-bar item",
         "stress.scenario.controls.title": "Control Rows",
         "stress.scenario.controls.blurb": "Rows of one common control each — tappable text, labels, fields, interpolated and Markdown text, progress bars.",

@@ -19,8 +19,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "an",
         "stress.shell.autopilot.off": "aus",
         "stress.shell.autopilot.frame": "Frame",
-        "stress.shell.menu.help": "↑/↓ auswählen · Enter öffnen · +/− Skalierung · a Autopilot · Esc beenden",
-        "stress.shell.footer.hint": "Esc zurück · +/− Skalierung · a Autopilot",
+        "stress.shell.menu.help": "↑/↓ auswählen · ↩ öffnen · +/− Skalierung · a Autopilot · ⎋ beenden",
+        "stress.shell.footer.hint": "⎋ zurück · +/− Skalierung · a Autopilot",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "Mega-Liste",
@@ -180,7 +180,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "Menüleiste — {0} Menüs mit je {1} Zeilen",
         "stress.scenario.keyrows.title": "Tastenzeilen",
         "stress.scenario.keyrows.blurb": "Memoisierte Zeilen mit je einem Tasten-Handler und Statusleisten-Einträgen, daneben ein aktualisierbares Panel.",
-        "stress.scenario.keyrows.stresses": "Registrierungen je Zeile unter dem Zeilen-Memo · pro Frame geleerte Tasten- und Statusleisten-Register · aktualisierbares Strg-R",
+        "stress.scenario.keyrows.stresses": "Registrierungen je Zeile unter dem Zeilen-Memo · pro Frame geleerte Tasten- und Statusleisten-Register · aktualisierbares ⌃R",
         "stress.scenario.keyrows.heading": "Tastenzeilen — {0} Zeilen mit je einem Tasten-Handler und einem Statusleisten-Eintrag",
         "stress.scenario.controls.title": "Steuerelement-Zeilen",
         "stress.scenario.controls.blurb": "Zeilen mit je einem gängigen Steuerelement — antippbarer Text, Labels, Felder, interpolierter und Markdown-Text, Fortschrittsbalken.",

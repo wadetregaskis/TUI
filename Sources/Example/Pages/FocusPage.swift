@@ -95,59 +95,10 @@ struct FocusPage: View {
 
     // MARK: - Helpers
 
-    /// A readable description of a key event for the logger.
+    /// A key event as the logger shows it: named as TUIkit names every key,
+    /// macOS's way — the modifiers in the order ⌃ ⌥ ⇧ ⌘, then the key (`⌃⇧Z`,
+    /// `⇧⇥`, `⎋`, `F5`) — or "(paste)" for pasted text, which is not a key.
     private func describeKey(_ event: KeyEvent) -> String {
-        var parts: [String] = []
-        if event.ctrl { parts.append("Ctrl") }
-        if event.alt { parts.append("Alt") }
-        if event.shift { parts.append("Shift") }
-        parts.append(keyName(event.key))
-        return parts.joined(separator: "+")
+        event.displayString ?? "(paste)"
     }
-
-    // The complexity is the one-line-per-key switch itself; splitting it
-    // into helpers would fragment the table without simplifying it. Block
-    // form keeps the suppression adjacent to the function.
-    // swiftlint:disable cyclomatic_complexity
-    private func keyName(_ key: Key) -> String {
-        switch key {
-        case .escape: return "Esc"
-        case .enter: return "Enter"
-        case .tab: return "Tab"
-        case .backspace: return "Backspace"
-        case .delete: return "Delete"
-        case .space: return "Space"
-        case .up: return "Up"
-        case .down: return "Down"
-        case .left: return "Left"
-        case .right: return "Right"
-        case .home: return "Home"
-        case .end: return "End"
-        case .pageUp: return "PageUp"
-        case .pageDown: return "PageDown"
-        case .f1: return "F1"
-        case .f2: return "F2"
-        case .f3: return "F3"
-        case .f4: return "F4"
-        case .f5: return "F5"
-        case .f6: return "F6"
-        case .f7: return "F7"
-        case .f8: return "F8"
-        case .f9: return "F9"
-        case .f10: return "F10"
-        case .f11: return "F11"
-        case .f12: return "F12"
-        case .f13: return "F13"
-        case .f14: return "F14"
-        case .f15: return "F15"
-        case .f16: return "F16"
-        case .f17: return "F17"
-        case .f18: return "F18"
-        case .f19: return "F19"
-        case .f20: return "F20"
-        case .character(let ch): return "'\(ch)'"
-        case .paste: return "(paste)"
-        }
-    }
-    // swiftlint:enable cyclomatic_complexity
 }

@@ -17,8 +17,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "オン",
         "stress.shell.autopilot.off": "オフ",
         "stress.shell.autopilot.frame": "フレーム",
-        "stress.shell.menu.help": "↑/↓ 選択 · Enter 開く · +/− スケール · a オートパイロット · Esc 終了",
-        "stress.shell.footer.hint": "Esc 戻る · +/− スケール · a オートパイロット",
+        "stress.shell.menu.help": "↑/↓ 選択 · ↩ 開く · +/− スケール · a オートパイロット · ⎋ 終了",
+        "stress.shell.footer.hint": "⎋ 戻る · +/− スケール · a オートパイロット",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "メガリスト",
@@ -178,7 +178,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "メニューバー — {0} 個のメニュー × {1} 行",
         "stress.scenario.keyrows.title": "キー行",
         "stress.scenario.keyrows.blurb": "それぞれキーハンドラーとステータスバー項目を登録するメモ化された行と、その横のリフレッシュ可能なパネル。",
-        "stress.scenario.keyrows.stresses": "行メモ下での行ごとの登録 · フレームごとに空になるキーとステータスバーのレジストリ · リフレッシュ可能な Ctrl-R",
+        "stress.scenario.keyrows.stresses": "行メモ下での行ごとの登録 · フレームごとに空になるキーとステータスバーのレジストリ · リフレッシュ可能な ⌃R",
         "stress.scenario.keyrows.heading": "キー行 — {0} 行、各行にキーハンドラーとステータスバー項目",
         "stress.scenario.controls.title": "コントロール行",
         "stress.scenario.controls.blurb": "各行に一般的なコントロールを一つずつ — タップできるテキスト、ラベル、フィールド、補間テキストと Markdown テキスト、プログレスバー。",

@@ -52,7 +52,7 @@ table and hands it to every cache it makes, as an app's `TUIContext` keeps one
 for its own — a cold frame misses every memo, and is not also the first sight
 of every type, which an app pays once.
 
-Interactive keys: `↑/↓` select · `enter` open · `esc` back/quit · `+/−` change
+Interactive keys: `↑/↓` select · `↩` open · `⎋` back/quit · `+/−` change
 scale live · `a` toggle autopilot.
 
 ## Scenarios

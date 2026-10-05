@@ -41,8 +41,8 @@ extension ExampleStrings {
             "page.layering.forever.hint": "Repeating forever would cost a render pass twenty times a second. This one costs none: every point of the cycle is composited against the field once, and the run loop replays them.",
             "page.layering.forever.toggle": "Breathe",
             "page.layering.forever.text": " Still here, still breathing ",
-            "page.layering.help.tab": "[Tab] Move to the next control",
-            "page.layering.help.arrows": "[<-] [->] Move a slider",
+            "page.layering.help.tab": "[⇥] Move to the next control",
+            "page.layering.help.arrows": "[←] [→] Move a slider",
             "page.layering.help.activate": "[Space] Flip the toggle",
         ],
         // MARK: - German
@@ -73,8 +73,8 @@ extension ExampleStrings {
             "page.layering.forever.hint": "Eine endlose Wiederholung würde zwanzigmal pro Sekunde einen Renderdurchlauf kosten. Diese kostet keinen: Jeder Punkt des Zyklus wird einmal gegen die Fläche komponiert, und die Ereignisschleife spielt sie ab.",
             "page.layering.forever.toggle": "Atmen",
             "page.layering.forever.text": " Immer noch da, immer noch am Atmen ",
-            "page.layering.help.tab": "[Tab] Zum nächsten Bedienelement",
-            "page.layering.help.arrows": "[<-] [->] Einen Regler verschieben",
+            "page.layering.help.tab": "[⇥] Zum nächsten Bedienelement",
+            "page.layering.help.arrows": "[←] [→] Einen Regler verschieben",
             "page.layering.help.activate": "[Leertaste] Den Schalter umlegen",
         ],
         // MARK: - French
@@ -105,8 +105,8 @@ extension ExampleStrings {
             "page.layering.forever.hint": "Une répétition sans fin coûterait un rendu vingt fois par seconde. Celle-ci n'en coûte aucun : chaque point du cycle est composé une fois sur l'aplat, et la boucle les rejoue.",
             "page.layering.forever.toggle": "Respirer",
             "page.layering.forever.text": " Toujours là, toujours en train de respirer ",
-            "page.layering.help.tab": "[Tab] Passer au contrôle suivant",
-            "page.layering.help.arrows": "[<-] [->] Déplacer un curseur",
+            "page.layering.help.tab": "[⇥] Passer au contrôle suivant",
+            "page.layering.help.arrows": "[←] [→] Déplacer un curseur",
             "page.layering.help.activate": "[Espace] Basculer l'interrupteur",
         ],
         // MARK: - Italian
@@ -137,9 +137,9 @@ extension ExampleStrings {
             "page.layering.forever.hint": "Ripetere all'infinito costerebbe un passaggio di rendering venti volte al secondo. Questa non ne costa nessuno: ogni punto del ciclo è composto una volta sul campo e il ciclo di esecuzione li riproduce.",
             "page.layering.forever.toggle": "Respira",
             "page.layering.forever.text": " Ancora qui, ancora a respirare ",
-            "page.layering.help.tab": "[Tab] Passa al comando successivo",
-            "page.layering.help.arrows": "[<-] [->] Muovere un cursore",
-            "page.layering.help.activate": "[Spazio] Commutare l'interruttore",
+            "page.layering.help.tab": "[⇥] Passa al comando successivo",
+            "page.layering.help.arrows": "[←] [→] Muovere un cursore",
+            "page.layering.help.activate": "[Barra spaziatrice] Commutare l'interruttore",
         ],
         // MARK: - Spanish
         "es": [
@@ -169,8 +169,8 @@ extension ExampleStrings {
             "page.layering.forever.hint": "Repetir para siempre costaría una pasada de render veinte veces por segundo. Esta no cuesta ninguna: cada punto del ciclo se compone una vez sobre el campo y el bucle los reproduce.",
             "page.layering.forever.toggle": "Respirar",
             "page.layering.forever.text": " Sigue aquí, sigue respirando ",
-            "page.layering.help.tab": "[Tab] Ir al siguiente control",
-            "page.layering.help.arrows": "[<-] [->] Mover un deslizador",
+            "page.layering.help.tab": "[⇥] Ir al siguiente control",
+            "page.layering.help.arrows": "[←] [→] Mover un deslizador",
             "page.layering.help.activate": "[Espacio] Conmutar el interruptor",
         ],
         // MARK: - Chinese (Simplified)
@@ -201,9 +201,9 @@ extension ExampleStrings {
             "page.layering.forever.hint": "无限重复本会每秒付出二十次渲染。这个一次都不用：循环的每个相位都只对色块合成一次，之后由运行循环回放。",
             "page.layering.forever.toggle": "呼吸",
             "page.layering.forever.text": " 还在这里，还在呼吸 ",
-            "page.layering.help.tab": "[Tab] 移到下一个控件",
-            "page.layering.help.arrows": "[<-] [->] 移动滑块",
-            "page.layering.help.activate": "[空格] 切换开关",
+            "page.layering.help.tab": "[⇥] 移到下一个控件",
+            "page.layering.help.arrows": "[←] [→] 移动滑块",
+            "page.layering.help.activate": "[空格键] 切换开关",
         ],
         // MARK: - Japanese
         "ja": [
@@ -233,8 +233,8 @@ extension ExampleStrings {
             "page.layering.forever.hint": "無限に繰り返すと毎秒 20 回のレンダリングが必要になります。これは 1 回も要りません — サイクルの各段階を色面に対して一度だけ合成し、あとはランループが再生します。",
             "page.layering.forever.toggle": "呼吸させる",
             "page.layering.forever.text": " まだここにいて、まだ呼吸しています ",
-            "page.layering.help.tab": "[Tab] 次のコントロールへ",
-            "page.layering.help.arrows": "[<-] [->] スライダーを動かす",
+            "page.layering.help.tab": "[⇥] 次のコントロールへ",
+            "page.layering.help.arrows": "[←] [→] スライダーを動かす",
             "page.layering.help.activate": "[Space] トグルを切り替える",
         ],
     ]

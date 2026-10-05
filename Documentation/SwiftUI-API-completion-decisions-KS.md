@@ -90,3 +90,25 @@ such interpolation, so it would be TUI-specific.
 user who set `TUIKIT_KEY_SYMBOLS=0`, the user being the one who knows what
 their font can draw. This is `Scene.reduceMotion(_:)`'s rule. No host defaults
 to the names, none having been measured unable to draw the symbols.
+
+### B-KS-5. The Example names a key with its symbol, except where "Tab" is a verb
+
+*The Example's and Stress's text, in all seven languages*
+
+Every key the Example's text names as a key — its help lines (`[⇥] Move focus`,
+`[⌃K] Kill to end of line`, `[↖] [↘] Jump to start/end`), and its prose
+(`press ↩ to confirm`, `⌃R`, `⇧F10`, `⎋ closes all three`, `⌥↖/↘`) — is now
+its symbol, in the language's sentence: `[Leertaste]`, `[Barra spaziatrice]`
+and `[空格键]` for the space bar, as macOS names it in those languages. A
+modifier held with the pointer is a symbol too (`⇧-click`, `hold ⌃ at the
+drop`), as the text already wrote `⌘-click` and `⌥-click`. What stays a word:
+"Tab" used as a verb or in "Tab stop" ("Tab to the list"), the space bar in
+running prose ("Select a row (Space or click)"), and an on-screen key that is
+not this keyboard's (SwiftUI's `.submitLabel` "labels an on-screen Return
+key").
+
+Apple's own guides spell keys out in running prose ("press Return") and draw
+the symbols in menus; the owner's "wherever possible" is read as the symbols
+throughout, the verb aside. **The fuller version** is the other reading: words
+in running prose, symbols only in the key legends: a scripted change of the
+prose strings, about an hour.

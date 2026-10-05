@@ -19,8 +19,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "activé",
         "stress.shell.autopilot.off": "désactivé",
         "stress.shell.autopilot.frame": "image",
-        "stress.shell.menu.help": "↑/↓ sélectionner · entrée ouvrir · +/− échelle · a pilote auto · échap quitter",
-        "stress.shell.footer.hint": "échap retour · +/− échelle · a pilote auto",
+        "stress.shell.menu.help": "↑/↓ sélectionner · ↩ ouvrir · +/− échelle · a pilote auto · ⎋ quitter",
+        "stress.shell.footer.hint": "⎋ retour · +/− échelle · a pilote auto",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "Méga-liste",
@@ -180,7 +180,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "Barre de menus — {0} menus de {1} lignes",
         "stress.scenario.keyrows.title": "Lignes à touches",
         "stress.scenario.keyrows.blurb": "Lignes mémoïsées qui enregistrent chacune un gestionnaire de touche et des éléments de barre d'état, à côté d'un panneau actualisable.",
-        "stress.scenario.keyrows.stresses": "enregistrements par ligne sous le mémo de ligne · registres de touches et de barre d'état vidés à chaque image · Ctrl-R actualisable",
+        "stress.scenario.keyrows.stresses": "enregistrements par ligne sous le mémo de ligne · registres de touches et de barre d'état vidés à chaque image · ⌃R actualisable",
         "stress.scenario.keyrows.heading": "Lignes à touches — {0} lignes, chacune avec un gestionnaire de touche et un élément de barre d'état",
         "stress.scenario.controls.title": "Lignes de contrôles",
         "stress.scenario.controls.blurb": "Des lignes d'un contrôle courant chacune — texte touchable, étiquettes, champs, texte interpolé et Markdown, barres de progression.",

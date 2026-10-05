@@ -136,11 +136,11 @@ struct StepperPage: View {
             }
 
             KeyboardHelpSection(shortcuts: [
-                "[<-] [->] \(L("page.stepper.helpStep"))",
+                "[\(Shortcut.arrowLeft)] [\(Shortcut.arrowRight)] \(L("page.stepper.helpStep"))",
                 "[-] [+] \(L("page.stepper.helpStep"))",
-                "[Home] \(L("page.stepper.helpHome"))",
-                "[End] \(L("page.stepper.helpEnd"))",
-                "[Tab] \(L("page.stepper.helpTab"))",
+                "[\(Shortcut.home)] \(L("page.stepper.helpHome"))",
+                "[\(Shortcut.end)] \(L("page.stepper.helpEnd"))",
+                "[\(Shortcut.tab)] \(L("page.stepper.helpTab"))",
             ])
 
             Spacer()

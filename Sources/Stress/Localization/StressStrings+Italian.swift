@@ -19,8 +19,8 @@ extension StressStrings {
         "stress.shell.autopilot.on": "attivo",
         "stress.shell.autopilot.off": "disattivo",
         "stress.shell.autopilot.frame": "frame",
-        "stress.shell.menu.help": "↑/↓ seleziona · invio apri · +/− scala · a pilota automatico · esc esci",
-        "stress.shell.footer.hint": "esc indietro · +/− scala · a pilota automatico",
+        "stress.shell.menu.help": "↑/↓ seleziona · ↩ apri · +/− scala · a pilota automatico · ⎋ esci",
+        "stress.shell.footer.hint": "⎋ indietro · +/− scala · a pilota automatico",
 
         // MARK: megalist
         "stress.scenario.megalist.title": "Mega elenco",
@@ -180,7 +180,7 @@ extension StressStrings {
         "stress.scenario.menus.heading": "Barra dei menu — {0} menu da {1} righe",
         "stress.scenario.keyrows.title": "Righe con tasti",
         "stress.scenario.keyrows.blurb": "Righe memoizzate che registrano ciascuna un gestore di tasti ed elementi della barra di stato, accanto a un pannello aggiornabile.",
-        "stress.scenario.keyrows.stresses": "registrazioni per riga sotto il memo di riga · registri di tasti e barra di stato svuotati a ogni frame · Ctrl-R aggiornabile",
+        "stress.scenario.keyrows.stresses": "registrazioni per riga sotto il memo di riga · registri di tasti e barra di stato svuotati a ogni frame · ⌃R aggiornabile",
         "stress.scenario.keyrows.heading": "Righe con tasti — {0} righe, ciascuna con un gestore di tasti e un elemento della barra di stato",
         "stress.scenario.controls.title": "Righe di controlli",
         "stress.scenario.controls.blurb": "Righe con un controllo comune ciascuna — testo toccabile, etichette, campi, testo interpolato e Markdown, barre di avanzamento.",
