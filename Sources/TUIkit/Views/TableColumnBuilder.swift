@@ -185,10 +185,8 @@ struct _AnyTableColumnContent<RowValue: Identifiable, Sort: SortComparator>:
     var tableColumnBody: Never { fatalError("_AnyTableColumnContent renders its columns directly") }
 }
 
-extension _AnyTableColumnContent: _TableColumnPrimitive {
-    typealias ColumnRow = RowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<RowValue>]) {
-        columns += self.columns
+extension _AnyTableColumnContent {
+    static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
+        columns.specs += content.columns
     }
 }

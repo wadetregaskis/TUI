@@ -33,14 +33,12 @@ struct _ModifiedTableColumnContent<Base: TableColumnContent>: TableColumnContent
     var tableColumnBody: Never { fatalError("_ModifiedTableColumnContent renders its columns directly") }
 }
 
-extension _ModifiedTableColumnContent: _TableColumnPrimitive {
-    typealias ColumnRow = Base.TableRowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<Base.TableRowValue>]) {
-        let start = columns.endIndex
-        appendTableColumns(base, to: &columns)
-        for index in start..<columns.endIndex {
-            modify(&columns[index])
+extension _ModifiedTableColumnContent {
+    static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<Base.TableRowValue>) {
+        let start = columns.specs.endIndex
+        appendTableColumns(content.base, to: &columns)
+        for index in start..<columns.specs.endIndex {
+            content.modify(&columns.specs[index])
         }
     }
 }

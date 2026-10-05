@@ -107,12 +107,11 @@ where RowValue == Content.TableRowValue, Sort == Content.TableColumnSortComparat
     public var tableColumnBody: Never { fatalError("TableColumnForEach renders its columns directly") }
 }
 
-extension TableColumnForEach: _TableColumnPrimitive {
-    typealias ColumnRow = RowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<RowValue>]) {
-        for element in data {
-            appendTableColumns(content(element), to: &columns)
+extension TableColumnForEach {
+    /// Appends the columns built for each element, in order.
+    public static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
+        for element in content.data {
+            appendTableColumns(content.content(element), to: &columns)
         }
     }
 }

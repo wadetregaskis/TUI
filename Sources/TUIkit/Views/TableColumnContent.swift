@@ -55,6 +55,21 @@ public protocol TableColumnContent<TableRowValue, TableColumnSortComparator>: _T
 
     /// The composition of content that comprise the table column content.
     var tableColumnBody: TableColumnBody { get }
+
+    /// Appends `content`'s columns to `columns`, in order.
+    ///
+    /// Not to be implemented by hand. Every column type the framework defines
+    /// implements it, and the default — for content an app writes — finds the
+    /// columns of ``tableColumnBody``.
+    ///
+    /// A static requirement rather than a cast to an internal protocol, for
+    /// the reason ``View/_renderSelf(_:context:)`` is one. That cast was to a
+    /// protocol constrained by the row type, `any P<Content.TableRowValue>`,
+    /// whose metadata the runtime looked up by mangled name on every call —
+    /// a demangle per column per body evaluation, about 1.8% of a frame of the
+    /// `truncate` scenario for its six columns. SwiftUI's own protocol has a
+    /// hidden requirement in the same place.
+    static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<TableRowValue>)
 }
 
 // MARK: - The row type, declared once
@@ -75,22 +90,32 @@ public protocol _TableRowValued {
 
 // MARK: - Flattening
 
-/// Column content that hands the renderer its columns itself, rather than
-/// through ``TableColumnContent/tableColumnBody``.
+/// The columns of some ``TableColumnContent``, in order, as a table reads them.
 ///
-/// Every column type this framework defines is one. A `TableColumnContent` an
-/// app writes is not: its columns are found by walking its body, which bottoms
-/// out in these. The same shape as `_TabContentPrimitive`, and the reason this
-/// is not a public requirement on ``TableColumnContent``: nothing outside the
-/// framework needs to — or should — implement it.
-@MainActor
-protocol _TableColumnPrimitive<ColumnRow> {
-    /// The row type of the columns this content appends; always its
-    /// ``TableColumnContent/TableRowValue``.
-    associatedtype ColumnRow
+/// You don't use this type directly: it is what
+/// ``TableColumnContent/_appendColumns(_:to:)`` appends to.
+public struct _TableColumnList<RowValue> {
+    /// The columns, in order.
+    var specs: [_TableColumnSpec<RowValue>] = []
+}
 
-    /// Appends this content's columns, in order.
-    func appendColumns(to columns: inout [_TableColumnSpec<ColumnRow>])
+extension TableColumnContent {
+    /// Appends the columns of `content`'s body: what content an app writes
+    /// declares. Every column type the framework defines appends its own.
+    ///
+    /// The body's row type is the content's in every case that compiles
+    /// against ``TableColumnBuilder``, but the protocol cannot say so, so it is
+    /// checked rather than assumed: content whose body names another row type
+    /// contributes nothing (and trips an assertion in a debug build).
+    public static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<TableRowValue>) {
+        let body = tableColumns(of: content.tableColumnBody)
+        guard let typed = body as? [_TableColumnSpec<TableRowValue>] else {
+            assertionFailure(
+                "\(Self.self)'s tableColumnBody has rows of another type than its TableRowValue")
+            return
+        }
+        columns.specs += typed
+    }
 }
 
 /// The columns `content` declares, in order, flattened for the renderer.
@@ -98,33 +123,17 @@ protocol _TableColumnPrimitive<ColumnRow> {
 func tableColumns<Content: TableColumnContent>(
     of content: Content
 ) -> [_TableColumnSpec<Content.TableRowValue>] {
-    var columns: [_TableColumnSpec<Content.TableRowValue>] = []
-    appendTableColumns(content, to: &columns)
-    return columns
+    var columns = _TableColumnList<Content.TableRowValue>()
+    Content._appendColumns(content, to: &columns)
+    return columns.specs
 }
 
 /// Appends `content`'s columns to `columns`.
-///
-/// A primitive appends its own; anything else is walked through its body. The
-/// body's row type is the content's in every case that compiles against
-/// ``TableColumnBuilder``, but the protocol cannot say so, so it is checked
-/// rather than assumed: content whose body names another row type contributes
-/// nothing (and trips an assertion in a debug build).
 @MainActor
 func appendTableColumns<Content: TableColumnContent>(
-    _ content: Content, to columns: inout [_TableColumnSpec<Content.TableRowValue>]
+    _ content: Content, to columns: inout _TableColumnList<Content.TableRowValue>
 ) {
-    if let primitive = content as? any _TableColumnPrimitive<Content.TableRowValue> {
-        primitive.appendColumns(to: &columns)
-        return
-    }
-    let body = tableColumns(of: content.tableColumnBody)
-    guard let typed = body as? [_TableColumnSpec<Content.TableRowValue>] else {
-        assertionFailure(
-            "\(Content.self)'s tableColumnBody has rows of another type than its TableRowValue")
-        return
-    }
-    columns += typed
+    Content._appendColumns(content, to: &columns)
 }
 
 // MARK: - Never
@@ -155,12 +164,14 @@ extension Optional: TableColumnContent where Wrapped: TableColumnContent {
     public var tableColumnBody: Never { fatalError("Optional renders its columns directly") }
 }
 
-extension Optional: _TableColumnPrimitive where Wrapped: TableColumnContent {
-    typealias ColumnRow = Wrapped.TableRowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<Wrapped.TableRowValue>]) {
-        guard let self else { return }
-        appendTableColumns(self, to: &columns)
+extension Optional where Wrapped: TableColumnContent {
+    /// Appends the wrapped content's columns, or none.
+    @MainActor
+    public static func _appendColumns(
+        _ content: Self, to columns: inout _TableColumnList<Wrapped.TableRowValue>
+    ) {
+        guard let content else { return }
+        appendTableColumns(content, to: &columns)
     }
 }
 
@@ -189,11 +200,13 @@ extension Group: TableColumnContent where Content: TableColumnContent {
     }
 }
 
-extension Group: _TableColumnPrimitive where Content: TableColumnContent {
-    typealias ColumnRow = Content.TableRowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<Content.TableRowValue>]) {
-        appendTableColumns(content, to: &columns)
+extension Group where Content: TableColumnContent {
+    /// Appends the group's columns.
+    @MainActor
+    public static func _appendColumns(
+        _ content: Self, to columns: inout _TableColumnList<Content.TableRowValue>
+    ) {
+        appendTableColumns(content.content, to: &columns)
     }
 }
 
@@ -220,16 +233,18 @@ where
     public var tableColumnBody: Never { fatalError("_ConditionalContent renders its columns directly") }
 }
 
-extension _ConditionalContent: _TableColumnPrimitive
+extension _ConditionalContent
 where
     TrueContent: TableColumnContent, FalseContent: TableColumnContent,
     TrueContent.TableRowValue == FalseContent.TableRowValue,
     TrueContent.TableColumnSortComparator == FalseContent.TableColumnSortComparator
 {
-    typealias ColumnRow = TrueContent.TableRowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<TrueContent.TableRowValue>]) {
-        switch self {
+    /// Appends the columns of the branch taken.
+    @MainActor
+    public static func _appendColumns(
+        _ content: Self, to columns: inout _TableColumnList<TrueContent.TableRowValue>
+    ) {
+        switch content {
         case .trueContent(let content): appendTableColumns(content, to: &columns)
         case .falseContent(let content): appendTableColumns(content, to: &columns)
         }
@@ -255,9 +270,9 @@ public struct TupleTableColumnContent<RowValue: Identifiable, Sort: SortComparat
 
     /// Appends the tuple's columns in order. Built where the elements' types
     /// are still known, so the tuple need not be taken apart again.
-    let appendElements: (inout [_TableColumnSpec<RowValue>]) -> Void
+    let appendElements: (inout _TableColumnList<RowValue>) -> Void
 
-    init(_ value: T, appendColumns: @escaping (inout [_TableColumnSpec<RowValue>]) -> Void) {
+    init(_ value: T, appendColumns: @escaping (inout _TableColumnList<RowValue>) -> Void) {
         self.value = value
         self.appendElements = appendColumns
     }
@@ -266,10 +281,9 @@ public struct TupleTableColumnContent<RowValue: Identifiable, Sort: SortComparat
     public var tableColumnBody: Never { fatalError("TupleTableColumnContent renders its columns directly") }
 }
 
-extension TupleTableColumnContent: _TableColumnPrimitive {
-    typealias ColumnRow = RowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<RowValue>]) {
-        appendElements(&columns)
+extension TupleTableColumnContent {
+    /// Appends the tuple's columns, in order.
+    public static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
+        content.appendElements(&columns)
     }
 }

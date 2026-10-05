@@ -152,8 +152,7 @@ struct _TableRowNode<Value: Identifiable> {
 /// ``TableRowContent/tableRowBody``.
 ///
 /// Every row type this framework defines is one; a `TableRowContent` an app
-/// writes is not, and is walked through its body. The row twin of
-/// ``_TableColumnPrimitive``.
+/// writes is not, and is walked through its body.
 @MainActor
 protocol _TableRowPrimitive<PrimitiveRowValue> {
     /// The value of the rows this content appends; always its

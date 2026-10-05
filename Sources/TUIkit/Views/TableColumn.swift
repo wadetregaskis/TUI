@@ -143,11 +143,10 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     public var tableColumnBody: Never { fatalError("TableColumn is primitive table column content") }
 }
 
-extension TableColumn: _TableColumnPrimitive {
-    typealias ColumnRow = RowValue
-
-    func appendColumns(to columns: inout [_TableColumnSpec<RowValue>]) {
-        columns.append(spec)
+extension TableColumn {
+    /// Appends this column: a column hands itself to the table directly.
+    public static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
+        columns.specs.append(content.spec)
     }
 
     /// The characters this column's cell holds for `item`: a `String` key
