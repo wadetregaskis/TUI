@@ -398,3 +398,69 @@ struct QuirkPermutationTests {
         }
     }
 }
+
+// MARK: - The right-edge clip
+
+/// A hand-built quirk set with an over-advancer (`.pullBack` tones, tag flags)
+/// gets the peak guard Terminal.app's clip has: a cluster whose claim fits the
+/// row but whose emission reaches past the edge is replaced with spaces of its
+/// claim. K3 in `Documentation/Ghostty-VT-adoption.md`, which turned autowrap
+/// off: such a peak pins the cursor at the last column, and the pull-back after
+/// it then lands short.
+@Suite("The right-edge clip under hand-built quirks")
+struct QuirksRightEdgeClipTests {
+
+    @Test("An over-advancer whose peak passes the edge is replaced with spaces of its claim")
+    func overAdvancerAtTheEdge() {
+        let quirks = TerminalQuirks(skinTones: .pullBack)
+        TerminalWidthTraits.withTraits(quirks.widthTraits) {
+            // Claimed 2 at column 7 of 9; advanced 4 on the way, so it peaks at 11.
+            let line = "abcdefg👍🏽"
+            let clipped = line.ansiAwarePrefixWithWidth(visibleCount: 9, guardingPeaksOf: quirks)
+            #expect(clipped.prefix == "abcdefg  ")
+            #expect(clipped.visibleWidth == 9)
+            #expect(line.ansiAwarePrefixWithWidth(visibleCount: 9).prefix == line, "the plain clip keeps it")
+            let roomy = line.ansiAwarePrefixWithWidth(visibleCount: 11, guardingPeaksOf: quirks)
+            #expect(roomy.prefix == line, "with room for its peak it stays")
+        }
+    }
+
+    @Test("A tag flag's peak counts its tags")
+    func tagFlag() {
+        let quirks = TerminalQuirks(tagFlags: true)
+        let flag = "🏴\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}"
+        #expect(quirks.peakAdvance(of: Character(flag)) == 8)
+        let clipped = ("ab" + flag).ansiAwarePrefixWithWidth(visibleCount: 4, guardingPeaksOf: quirks)
+        #expect(clipped.prefix == "ab  ")
+    }
+
+    @Test("A set with no over-advancer clips as the plain clip does", arguments: TerminalWidthCorpus.all)
+    func noOverAdvancerIsThePlainClip(entry: TerminalWidthCorpus.Entry) {
+        let ghostty = QuirkPermutationTests.sets.first { $0.0 == "ghostty" }!.1
+        TerminalWidthTraits.withTraits(ghostty.widthTraits) {
+            let line = "ab" + entry.text + "c"
+            for width in 1...(line.strippedLength + 2) {
+                let guarded = line.ansiAwarePrefixWithWidth(visibleCount: width, guardingPeaksOf: ghostty)
+                let plain = line.ansiAwarePrefixWithWidth(visibleCount: width)
+                #expect(guarded.prefix == plain.prefix && guarded.visibleWidth == plain.visibleWidth, "\(entry) at \(width)")
+            }
+        }
+    }
+
+    /// The mirror pin, for the clip: dialled in as Apple Terminal, the quirks
+    /// explorer cuts every row exactly where the real host's clip does.
+    @Test("The Apple-shaped set clips as Terminal.app's clip does", arguments: TerminalWidthCorpus.all)
+    func appleShapeClipsAsTerminalApp(entry: TerminalWidthCorpus.Entry) {
+        let apple = QuirkPermutationTests.sets.first { $0.0 == "apple" }!.1
+        TerminalWidthTraits.withTraits(apple.widthTraits) {
+            let line = "ab" + entry.text + "c"
+            for width in 1...(line.strippedLength + 2) {
+                let guarded = line.ansiAwarePrefixWithWidth(visibleCount: width, guardingPeaksOf: apple)
+                let terminalApp = line.ansiAwarePrefixForTerminalAppWithWidth(visibleCount: width)
+                #expect(
+                    guarded.prefix == terminalApp.prefix && guarded.visibleWidth == terminalApp.visibleWidth,
+                    "\(entry) at \(width)")
+            }
+        }
+    }
+}

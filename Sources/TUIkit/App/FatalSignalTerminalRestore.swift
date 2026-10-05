@@ -25,10 +25,10 @@ import Musl
 /// The debt is every input mode `Terminal.enableRawMode` and the startup
 /// negotiation turned on: the kitty keyboard protocol's pushed flags, mouse
 /// tracking, focus and palette reports, bracketed paste, modifyCursorKeys and
-/// a pinned grapheme-clustering mode; the output modes the frames change
+/// a pinned grapheme-clustering mode; the output modes TUIkit changes
 /// (`Terminal.outputModesOff`): the end of a synchronized update, should the
-/// signal land in the middle of a frame that holds the display; and the
-/// cursor, shown again (`Terminal.signalDebt` spells it). The kitty
+/// signal land in the middle of a frame that holds the display, and autowrap
+/// back on; and the cursor, shown again (`Terminal.signalDebt` spells it). The kitty
 /// flags are the urgent part. Their "report all keys as escape codes"
 /// enhancement sends every key as an escape code, Return and the letters
 /// included, so a shell left with them pushed cannot even be typed `reset`

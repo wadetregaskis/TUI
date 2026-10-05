@@ -335,6 +335,49 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         return width
     }
 
+    /// How far past its first column the cursor reaches while a terminal with
+    /// these quirks draws `cluster` as ``String/withCursorCompensation(for:)``
+    /// emits it — before the `CUB` that pulls an over-advancer back runs.
+    ///
+    /// The number the right-edge clip guards with: a cluster whose claim fits
+    /// the row but whose peak passes the edge makes the terminal wrap (with
+    /// autowrap on) or pin the cursor at the last column (with it off, as
+    /// TUIkit runs), and either way the repair then lands in the wrong place.
+    /// Mirrors the walk's rewrites, as the Apple guard mirrors Apple's: a
+    /// separated skin tone peaks at its claim, and a decomposed ZWJ sequence at
+    /// the furthest any of its segments reaches.
+    package func peakAdvance(of cluster: Character) -> Int {
+        guard zwjSequences, let segments = cluster.emojiZWJSegments else {
+            return segmentPeakAdvance(of: cluster)
+        }
+        var column = 0
+        var peak = 0
+        for segment in segments {
+            peak = max(peak, column + segmentPeakAdvance(of: segment))
+            column += emittedForm(of: segment).terminalWidth
+        }
+        return peak
+    }
+
+    /// ``peakAdvance(of:)`` for one cluster the walk emits whole.
+    private func segmentPeakAdvance(of cluster: Character) -> Int {
+        let emitted = emittedForm(of: cluster)
+        return max(emitted.terminalWidth, cursorAdvance(of: emitted))
+    }
+
+    /// `cluster` as the walk emits it: a redundant VS-16 stripped where these
+    /// quirks strip it, and a skin tone separated where they separate one.
+    private func emittedForm(of cluster: Character) -> Character {
+        var character = cluster
+        if skinTones.stripsRedundantToneVS16 {
+            character = character.withoutRedundantToneVS16 ?? character
+        }
+        if skinTones == .separate, let separated = character.separatedSkinToneEmission {
+            character = Character(separated)
+        }
+        return character
+    }
+
     /// The composed-cluster rules — joiner decomposition, tag flags, and skin
     /// tones — split from ``cursorAdvance(of:)`` because each is a small rule
     /// and together they were most of that function's branching.

@@ -90,7 +90,7 @@ struct SynchronizedOutputTests {
         #expect(terminal.signalDebt.hasPrefix(Self.end))
         output.clear()
         terminal.disableRawMode()
-        #expect(output.writes.first == Self.end)
+        #expect(output.writes.first?.hasPrefix(Self.end) == true)
     }
 
     #if !canImport(WASILibc)

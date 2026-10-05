@@ -458,6 +458,31 @@ extension String {
         return exactAnsiAwarePrefixForTerminalAppWithWidth(visibleCount: visibleCount)
     }
 
+    /// ``ansiAwarePrefixForTerminalAppWithWidth(visibleCount:)`` for a
+    /// terminal described by a hand-built set of quirks rather than a measured
+    /// one: an over-advancer whose peak would pass the right edge
+    /// (``TerminalQuirks/peakAdvance(of:)``) is replaced with plain spaces of
+    /// its claimed width, as Terminal.app's are.
+    ///
+    /// The quirks explorer's clip. Without it, a set with an over-advancing
+    /// switch (`.pullBack` tones, tag flags) drew a cluster that fits its
+    /// claim but not its peak, at the edge, and the terminal wrapped it, or —
+    /// with autowrap off, as TUIkit runs — pinned the cursor at the last
+    /// column, so the pull-back after it moved the cursor too far.
+    package func ansiAwarePrefixWithWidth(
+        visibleCount: Int, guardingPeaksOf quirks: TerminalQuirks
+    ) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+        // The Terminal.app clip's two short-cuts, and sound here for its
+        // reasons: no cluster any switch acts on, so no peak past a claim.
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
+        if !utf8MayNeedCompensation {
+            let width = strippedLength
+            if width <= visibleCount { return (self, width) }
+        }
+        return exactAnsiAwarePrefixGuardingPeaks(visibleCount: visibleCount) { quirks.peakAdvance(of: $0) }
+    }
+
     /// The Terminal.app clip with no fast path — the walk itself, kept
     /// reachable as the oracle its fast path is pinned against. See
     /// ``exactAnsiAwarePrefixWithWidth(visibleCount:)``.

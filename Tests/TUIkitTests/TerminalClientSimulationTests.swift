@@ -108,6 +108,25 @@ struct TerminalClientSimulationTests {
         }
     }
 
+    /// The call site of the quirks' peak guard: a row is clipped by the model
+    /// in force, and hand-built quirks outrank the detected host for the clip
+    /// as they do for the compensation. K3 in
+    /// `Documentation/Ghostty-VT-adoption.md`.
+    @Test("Hand-built quirks guard an over-advancer's peak at the right edge")
+    func quirksGuardThePeak() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let writer = Self.unidentified
+                #expect(Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)), "the fixture: it fits its claim")
+                ProcessWideState.simulatedQuirks = TerminalQuirks(skinTones: .pullBack)
+                #expect(
+                    !Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)),
+                    "claimed to column 10 of 10, it advances to 12 on the way")
+                #expect(Self.keepsTheTone(Self.row("abcdef👍🏽", on: writer)), "with room for its peak it stays")
+            }
+        }
+    }
+
     @Test("A detected host is unaffected when nothing is simulated")
     func detectionStillWins() {
         #expect(TerminalClient.simulated == nil)

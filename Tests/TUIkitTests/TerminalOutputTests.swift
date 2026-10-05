@@ -51,12 +51,34 @@ extension TerminalOutputTests {
     /// origin mode left by a killed program offsets or clamps every absolute
     /// cursor move a frame makes, and application cursor keys or keypad
     /// change what the keys send.
-    @Test("Raw mode asserts the inherited defaults, then turns on the input modes, and nothing else")
+    @Test("Raw mode asserts the inherited defaults, turns autowrap off and the input modes on, and nothing else")
     func enableRawModeBytes() {
         let (terminal, output) = ScriptedTerminalOutput.terminal()
         terminal.enableRawMode()
-        #expect(output.bytes == "\u{1B}[r\u{1B}[?6l\u{1B}[?1l\u{1B}>"
+        #expect(output.bytes == "\u{1B}[r\u{1B}[?6l\u{1B}[?1l\u{1B}>" + "\u{1B}[?7l"
             + "\u{1B}[?2004h" + "\u{1B}[?1004h" + "\u{1B}[?2031h" + "\u{1B}[>1;2m")
+    }
+
+    /// K3 in `Documentation/Ghostty-VT-adoption.md`: a host that advances a
+    /// cluster further than TUIkit counted wrapped the row into the next one,
+    /// and on the bottom row scrolled the screen. Off while the app runs; on
+    /// again for whatever the terminal is handed to.
+    @Test("Autowrap is put back on by the teardown, on a suspend, and in the debt a fatal signal pays")
+    func autowrapIsRestoredOnEveryWayOut() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        #expect(terminal.signalDebt.contains("\u{1B}[?7h"))
+        output.clear()
+        terminal.disableRawMode()
+        #expect(output.writes.first == "\u{1B}[?2026l\u{1B}[?7h", "before anything else")
+
+        // A resume turns it off again, as a startup does.
+        output.clear()
+        terminal.enableRawMode()
+        #expect(output.bytes.contains("\u{1B}[?7l"))
+
+        let (quiet, _) = ScriptedTerminalOutput.terminal(environment: ["TUIKIT_SYNCHRONIZED_OUTPUT": "0"])
+        #expect(quiet.outputModesOff == "\u{1B}[?7h", "owed whether or not frames are held")
     }
 
     /// Raw mode is entered before the terminal is identified, so what it

@@ -484,16 +484,14 @@ extension FrameDiffWriter {
         // a narrower terminal) cannot wrap past the right edge.  Cursor
         // compensation is applied AFTER clipping so any CUF sequences are scoped
         // to characters that actually survive the clip.
-        // Terminal.app needs the cursor-aware clip + CUF / skin-tone compensation
-        // for its emoji bugs; every other terminal advances correctly, so use the
-        // plain clip and leave the line untouched (the compensation would corrupt
-        // it there — see isAppleTerminal).
+        // Terminal.app (and a hand-built quirk set with an over-advancer) needs
+        // the cursor-aware clip + CUF / skin-tone compensation for its emoji
+        // bugs; every other terminal advances no cluster past its claim, so use
+        // the plain clip (see `clippedToRightEdge`).
         // The clip returns its visible width (counted while clipping), so the
         // padding below needs no separate `strippedLength` re-scan of `clipped`
         // — which, for a styled line, would take the allocating ANSI-runs path.
-        let (clipped, clippedWidth) = isAppleTerminal
-            ? sanitized.ansiAwarePrefixForTerminalAppWithWidth(visibleCount: terminalWidth)
-            : sanitized.ansiAwarePrefixWithWidth(visibleCount: terminalWidth)
+        let (clipped, clippedWidth) = clippedToRightEdge(sanitized, width: terminalWidth)
         // iTerm2 draws a Fitzpatrick skin-tone modifier as a SEPARATE swatch
         // beside the base — 4 painted cells against the 2 the layout
         // allocated — so its path strips the modifiers (generic-yellow
@@ -537,6 +535,30 @@ extension FrameDiffWriter {
         // cells, 19,974 of the frame's 32,394 bytes. See
         // ``String/collapsingAdjacentSGR()``.
         return line.collapsingAdjacentSGR()
+    }
+
+    /// `line` cut to `width` cells, and its visible width, guarding the peaks
+    /// of the over-advancers in the model in force: a cluster whose claim fits
+    /// but whose emission would reach past the right edge is replaced with
+    /// spaces of its claimed width.
+    ///
+    /// Terminal.app's measured model has such clusters, and so may a set of
+    /// hand-built quirks (`.pullBack` tones, tag flags), which outranks it as
+    /// it does in ``compensatingCursorAdvance(_:)``. Every other host advances
+    /// no cluster past its claim, so its rows take the plain clip. The guard
+    /// matters with autowrap on or off: such a peak wraps the row into the next
+    /// one, or, as TUIkit runs (`Terminal.outputModesOn`), pins the cursor at
+    /// the last column, and the pull-back after it then lands short.
+    private func clippedToRightEdge(_ line: String, width: Int) -> (String, Int) {
+        // `TerminalClient.simulatedQuirks` rather than ``model``: they outrank
+        // everything else in it, and one static read is all a row that is not
+        // being explored should pay.
+        if let quirks = TerminalClient.simulatedQuirks {
+            return line.ansiAwarePrefixWithWidth(visibleCount: width, guardingPeaksOf: quirks)
+        }
+        return isAppleTerminal
+            ? line.ansiAwarePrefixForTerminalAppWithWidth(visibleCount: width)
+            : line.ansiAwarePrefixWithWidth(visibleCount: width)
     }
 
     /// `text` with this host's cursor-advance divergences compensated for.

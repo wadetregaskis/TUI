@@ -460,8 +460,9 @@ extension Terminal {
 
         // The defaults every frame relies on, asserted rather than assumed:
         // a program killed before it put them back leaves them for the next
-        // one. See ``inheritedDefaults``.
-        writeImmediate(Self.inheritedDefaults)
+        // one (``inheritedDefaults``). Then the output modes TUIkit runs in,
+        // which ``disableRawMode()`` puts back (``outputModesOn``).
+        writeImmediate(Self.inheritedDefaults + Self.outputModesOn)
 
         // Enable bracketed paste mode so that terminal paste operations
         // are wrapped in ESC[200~ ... ESC[201~ markers. This allows the
@@ -530,8 +531,9 @@ extension Terminal {
     func disableRawMode() {
         guard isRawMode else { return }
 
-        // A frame's hold on the display let go, should a failed write have
-        // left one open; then what the shell is handed is shown at once.
+        // The output modes back first (``outputModesOff``): a frame's hold on
+        // the display let go, should a failed write have left one open, so
+        // what the shell is handed is shown at once; and autowrap on.
         writeImmediate(outputModesOff)
 
         // The kitty keyboard protocol's flags off first, while the alternate
@@ -615,6 +617,22 @@ extension Terminal {
     /// (``pinnedGraphemeClustering``).
     static let graphemeClusteringOff = "\u{1B}[?\(TerminalModeQuery.graphemeClustering)l"
 
+    /// The output modes TUIkit runs in, set by ``enableRawMode()`` at startup
+    /// and on every resume, and put back by ``outputModesOff``:
+    ///
+    /// - Autowrap off (DECAWM, `CSI ? 7 l`). Every row TUIkit writes is as wide
+    ///   as the screen by its own count, and nothing it draws relies on
+    ///   wrapping. Where a host advances a cluster further than TUIkit counted
+    ///   — a host it has not measured, or iTerm2 and Terminal.app with
+    ///   "ambiguous characters are wide" — the row wrapped into the next one,
+    ///   and on the bottom row scrolled the whole screen up a line, leaving the
+    ///   diff writer's picture of the screen wrong until something invalidated
+    ///   it. With autowrap off the row loses its own last cells instead. Costs
+    ///   nothing per frame. `?`, no intermediate byte: the shape Apple Terminal
+    ///   consumes. Found by reading Ghostty's VT reference
+    ///   (`Documentation/Ghostty-VT-adoption.md`, K3).
+    static let outputModesOn = "\u{1B}[?7l"
+
     /// Puts back every output mode the frames may have changed, in one write —
     /// the orderly teardown's, and the head of the debt a signal pays:
     ///
@@ -625,8 +643,11 @@ extension Terminal {
     ///   the terminal goes on holding its display: Ghostty for a second (its
     ///   `sync_reset_ms`), other hosts for as long as they do, unmeasured.
     ///   Harmless where nothing is held.
+    /// - autowrap back on (`CSI ? 7 h`), the default a shell expects:
+    ///   ``outputModesOn`` turned it off. Not per screen, so leaving the
+    ///   alternate screen does not put it back.
     var outputModesOff: String {
-        synchronizesOutput ? Self.synchronizedUpdateEnd : ""
+        (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + "\u{1B}[?7h"
     }
 
     /// What the terminal is owed, should the process die of a signal now:
