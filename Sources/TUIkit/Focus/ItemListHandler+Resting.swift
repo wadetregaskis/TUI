@@ -78,11 +78,11 @@ extension ItemListHandler {
             !isAutoScrolling, !isReordering, externalDropSlot == nil
         else { return }
         // Ask the rule that DRAWS, rather than restate it. Not a tidy-up: this
-        // was `scrollGranularity == .line && (scrollTopClipLines > 0 ||
+        // was `scrollStepUnit == .line && (scrollTopClipLines > 0 ||
         // firstRowHeight() > 1)`, whose parenthesised half is already exactly
         // `absorbing`'s "more than one line is hidden here" — behind a
         // granularity gate that has nothing to do with the question. Under
-        // `.scrollGranularity(.row)` the gate made the snap unconditional, so a
+        // whole-row steps (`.viewAligned`) the gate made the snap unconditional, so a
         // list of multi-line rows could not rest at offset 1 and its last row
         // was unreachable: six 2-line rows in an 11-line content area draw a…e
         // and one line of f at offset 0, `maxOffset` is 1, and every step onto
@@ -106,11 +106,11 @@ extension ItemListHandler {
     /// reads as the view having scrolled one line too far: the step that arrived
     /// there revealed nothing and opened a gap above the bottom border.
     ///
-    /// Under ``ScrollGranularity/line`` the fix is the position the granularity
-    /// already allows: back up one row and clip its head, so its tail fills the
-    /// line. Under ``ScrollGranularity/row`` there is nothing to do — a partial
-    /// top row is exactly what that granularity forbids — and the blank line is
-    /// the cost of whole rows.
+    /// Under line steps (``ScrollStepUnit/line``) the fix is the position they
+    /// already allow: back up one row and clip its head, so its tail fills the
+    /// line. Under whole-row steps (``ScrollStepUnit/row``) there is nothing to
+    /// do — a partial top row is exactly what they forbid — and the blank line
+    /// is the cost of whole rows.
     ///
     /// In the settle rather than in each mover because every route into the
     /// bottom has the same shortfall: `End` through
@@ -130,7 +130,7 @@ extension ItemListHandler {
     /// at least one line and the budget is at most `contentHeight`, so
     /// `walk.top` is never below it either.
     func fillBottomShortfall() {
-        guard scrollGranularity == .line, overscrollState.excursion == 0,
+        guard scrollStepUnit == .line, overscrollState.excursion == 0,
             let contentHeight, scrollOffset >= max(0, extent - contentHeight),
             let walk = bottomWalk(), walk.top > 0, walk.shortfall > 0,
             walk.straddlingHeight > walk.shortfall,

@@ -24,7 +24,7 @@ struct BottomShortfallTests {
     /// A handler with uniform three-line rows and a seventeen-line content area:
     /// the budget is sixteen and the suffixes are 15, 18, 21 — never 16.
     private func handler(
-        granularity: ScrollGranularity = .line, rows: Int = 300, rowLines: Int = 3,
+        granularity: ScrollStepUnit = .line, rows: Int = 300, rowLines: Int = 3,
         contentHeight: Int = 17
     ) -> ItemListHandler<Int> {
         let handler = ItemListHandler<Int>(
@@ -32,7 +32,7 @@ struct BottomShortfallTests {
             selectionMode: .single, canBeFocused: true)
         handler.contentHeight = contentHeight
         handler.rowHeight = { _ in rowLines }
-        handler.scrollGranularity = granularity
+        handler.scrollStepUnit = granularity
         // The "N more" lines are this view's indicator, and it overflows.
         handler.drawsScrollIndicators = true
         handler.showsScrollbar = false
@@ -190,9 +190,9 @@ struct TableBottomBlankLineTests {
     private final class Harness {
         let tui = TUIContext()
         let focus = FocusManager()
-        let granularity: ScrollGranularity
+        let granularity: ScrollStepUnit
 
-        init(granularity: ScrollGranularity) { self.granularity = granularity }
+        init(granularity: ScrollStepUnit) { self.granularity = granularity }
 
         func frame() -> [String] {
             let rows = (1...300).map(Note.init(id:))
@@ -203,7 +203,7 @@ struct TableBottomBlankLineTests {
 
             var environment = EnvironmentValues()
             environment.focusManager = focus
-            environment.scrollGranularity = granularity
+            environment.scrollTargetBehavior = granularity.behavior
             environment.scrollIndicatorStyle = .text
             environment.verticalScrollIndicatorVisibility = .automatic
             environment.applyRuntimeServices(from: tui)

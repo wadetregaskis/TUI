@@ -808,23 +808,31 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     }
 
     /// How many LINES of the top visible row (``scrollOffset``) are scrolled
-    /// off the top edge — the sub-row position that makes
-    /// ``ScrollGranularity/line`` scrolling line-precise while
+    /// off the top edge — the sub-row position that makes line-step
+    /// scrolling (``ScrollStepUnit/line``) line-precise while
     /// ``scrollOffset`` / ``maxOffset`` / ``extent`` stay row-based (O(1) for
     /// any list size). Always `0` for single-line rows and at the very bottom
     /// (``maxOffset`` is the last row-aligned top). Clamped each render by
     /// ``clampTopClip()``.
     ///
-    /// Under ``ScrollGranularity/row`` a scroll STEP always leaves this at `0`
+    /// Under whole-row steps (``ScrollStepUnit/row``) a scroll STEP always leaves this at `0`
     /// (``scrollFine(by:)``), but a reveal or a centred anchor may still set
     /// it: those position the viewport on a row the user chose, and forcing
     /// them onto a row boundary moves the row off the position they computed.
     var scrollTopClipLines: Int = 0
 
-    /// The scroll granularity, synced from `environment.scrollGranularity`
-    /// during render (default ``ScrollGranularity/line``); read at event time
-    /// by ``scrollFine(by:)``, when the environment is no longer reachable.
-    var scrollGranularity: ScrollGranularity = .line
+    /// How the scroll target behaviour in force applies to this list — synced
+    /// from `environment.scrollTargetBehavior` during render (line steps, with
+    /// no behaviour); read at event time by ``scrollFine(by:)`` and
+    /// ``userScrollStep(_:)``, when the environment is no longer reachable.
+    var scrollTargeting = ListScrollTargeting.free
+
+    /// What one scroll step moves through: ``ScrollStepUnit/line`` (the
+    /// default) or whole rows (``ScrollStepUnit/row``, under `.viewAligned`).
+    var scrollStepUnit: ScrollStepUnit {
+        get { scrollTargeting.unit }
+        set { scrollTargeting.unit = newValue }
+    }
 
     /// Grab point within the thumb during a scrollbar drag (``ScrollableOffsetState``).
     var scrollbarDragGrab: Int?

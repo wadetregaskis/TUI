@@ -27,6 +27,7 @@ struct ScrollContentWindow: Sendable, Hashable {
             && lhs.contentIdentity == rhs.contentIdentity && lhs.edgeInset == rhs.edgeInset
             && lhs.reportsIDAt == rhs.reportsIDAt && lhs.seek == rhs.seek
             && lhs.linesAbove == rhs.linesAbove && lhs.linesBelow == rhs.linesBelow
+            && lhs.reportsTargetLayout == rhs.reportsTargetLayout
     }
 
     func hash(into hasher: inout Hasher) {
@@ -38,6 +39,7 @@ struct ScrollContentWindow: Sendable, Hashable {
         hasher.combine(seek)
         hasher.combine(linesAbove)
         hasher.combine(linesBelow)
+        hasher.combine(reportsTargetLayout)
     }
 
     /// The scroll offset in the coordinates of the stack that consumes this
@@ -156,6 +158,15 @@ struct ScrollContentWindow: Sendable, Hashable {
     var linesAbove = 0
     var linesBelow = 0
 
+    /// Whether the stack that consumes this window reports its rows' or
+    /// columns' extents (``ScrollContentReply/targetLayoutRows``,
+    /// ``ScrollContentReply/targetLayoutColumns``) — when it is marked
+    /// with `scrollTargetLayout()`. Asked only by a scroll view with a scroll
+    /// target behaviour, which is what settles on them
+    /// (``ViewAlignedScrollTargetBehavior``); every other scroll view pays
+    /// nothing for it.
+    var reportsTargetLayout = false
+
     /// Whether any of the scroll content lies below the viewport, for a stack
     /// whose own content ends at `stackBottom` (in its coordinates): its rows,
     /// or what is drawn below it (``linesBelow``).
@@ -250,6 +261,19 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
     /// Open-ended past the last row (`Int.max`): below it there is nothing to
     /// draw, so a line there is drawn correctly by being blank.
     var drawnLines: Range<Int>?
+
+    /// The extents of the rows of a stack marked with `scrollTargetLayout()`,
+    /// in the content's coordinates, when the window asked
+    /// (``ScrollContentWindow/reportsTargetLayout``): every row where the
+    /// stack knows every row's place — a uniform stack's arithmetic, the full
+    /// walk's slots, an eager stack's layout — and the band's rows on the
+    /// anchored path, which knows no more.
+    var targetLayoutRows: TargetLayoutSpans?
+
+    /// The extents of the columns of a horizontal stack marked with
+    /// `scrollTargetLayout()` — eager or lazy, which both lay every column out
+    /// — in the content's coordinates, when the window asked.
+    var targetLayoutColumns: TargetLayoutSpans?
 
     /// Whether this render refuted what the content's measure answered with
     /// before it: the uniform window's hypothesis that every row is as tall as

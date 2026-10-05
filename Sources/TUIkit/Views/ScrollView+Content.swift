@@ -49,6 +49,11 @@ extension _ScrollViewCore {
         if !contentContext.environment.scrollObservers.isEmpty {
             contentContext.environment.scrollObservers = ScrollObservers()
         }
+        // And a scroll target layout mark: one stated around this scroll view's
+        // own content is not one on a scroll view nested in it.
+        if contentContext.environment.isScrollTargetLayout {
+            contentContext.environment.isScrollTargetLayout = false
+        }
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1
@@ -303,7 +308,9 @@ extension _ScrollViewCore {
             // exactly the row structure a seek needs. It stays refused on a
             // purely horizontal view, where `scrollTo` would be asking about
             // columns and this window has nothing to say about them.
-            seek: axes.contains(.vertical) ? seek : nil)
+            seek: axes.contains(.vertical) ? seek : nil,
+            // The rows of a marked stack, for a behaviour to settle on.
+            reportsTargetLayout: handler?.scrollTargeting != nil)
         measureContext.availableWidth = extents.width
         measureContext.availableHeight = extents.height
         let buffer = TUIkit.renderToBuffer(content, context: measureContext)
@@ -327,6 +334,10 @@ extension _ScrollViewCore {
         }
         if let id = reply?.anchorID, let handler, !context.isMeasuring {
             reportVisibleID(id, handler: handler, context: context)
+        }
+        if let handler, !context.isMeasuring, handler.scrollTargeting != nil {
+            handler.scrollTargeting?.rows = contentReply.targetLayoutRows ?? .none
+            handler.scrollTargeting?.columns = contentReply.targetLayoutColumns ?? .none
         }
         // After the row is reported: a user scroll since the last frame turns a
         // bound position's request into the user's position. Once a frame — the

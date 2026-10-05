@@ -103,6 +103,7 @@ extension _ScrollViewCore {
         // The first sighting is not a change: nothing was on screen to keep.
         let viewportJustChanged = lastViewportBox.value.value.map { $0 != viewport } ?? false
         lastViewportBox.value.value = viewport
+        if viewportJustChanged { settleTargetAfterResize(handler) }
 
         let focusJustChanged = currentFocusedID != lastFocusedBox.value.value
         let interactionJustFired = currentInteractionGen != lastInteractionBox.value.value
@@ -338,6 +339,17 @@ extension _ScrollViewCore {
     /// its one row of margin — the bottom re-glue on a terminal that shrank, or
     /// on several rows arriving at once — landed on placeholders just as a
     /// slice's gap does. Eager content reports neither, and is all drawn.
+    /// SwiftUI consults a scroll target behaviour when the view changes size
+    /// too: a paging view resized between two pages is put back on one. Not at
+    /// an edge, which every behaviour rests at — and which a bottom anchor's
+    /// follow holds, and must keep holding.
+    private func settleTargetAfterResize(_ handler: ScrollViewHandler) {
+        guard handler.scrollTargeting != nil, handler.scrollOffset > 0,
+            handler.scrollOffset < handler.maxOffset
+        else { return }
+        handler.settleUserScroll()
+    }
+
     func coverSnappedViewport(
         handler: ScrollViewHandler,
         fullBuffer: inout FrameBuffer,

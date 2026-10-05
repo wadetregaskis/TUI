@@ -562,10 +562,6 @@
       "tuikit": "ProposedSize",
       "why": "Sources/TUIkitCore/Rendering/LayoutTypes.swift:16 — `public struct ProposedSize` with `width: Int?` / `height: Int?` and `.unspecified` / `.fixed(_:_:)`. Same role and same nil-means-ideal semantics as `ProposedViewSize`, in cells rather than CGFloat per §2.2. It is what `Layout."
     },
-    "ScrollTargetBehavior": {
-      "tuikit": "ScrollGranularity",
-      "why": "Sources/TUIkit/Views/ScrollGranularity.swift:22-27. TUIkit answers \"where may the viewport rest\" with a closed two-case enum (.line / .row) rather than an open protocol an app conforms to; `.row` is the view-aligned rule."
-    },
     "ToolbarContent": {
       "tuikit": "StatusBarItemProtocol",
       "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/StatusBar/StatusBarItem.swift:118-130 — the protocol a bar item conforms to (shortcut, label, triggerKey, order, matches(_:)). It is the item-content abstraction the status bar consumes, the role ToolbarContent plays for a toolbar."
@@ -573,10 +569,6 @@
     "ToolbarItem": {
       "tuikit": "StatusBarItem",
       "why": "`StatusBarItem(shortcut:label:key:order:displayInStatusBar:action:)`. An item is a shortcut and a label rather than arbitrary `@ViewBuilder` content, because the bar is one line of shortcut hints; toolbars are decisions A28."
-    },
-    "ViewAlignedScrollTargetBehavior": {
-      "tuikit": "ScrollGranularity.row",
-      "why": "`ScrollGranularity.row`, applied with `.scrollGranularity(.row)`: the viewport moves a whole row at a time and the top row is always fully visible. The same behaviour, without a `scrollTargetLayout()` marker, because List and Table enumerate their rows; decisions A6 asks whether to adopt SwiftUI's protocol."
     }
   },
   "notImplemented": {

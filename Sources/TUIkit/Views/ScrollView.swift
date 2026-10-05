@@ -357,6 +357,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // Both axes: `.scrollDisabled` pins the view, not one direction of it.
         handler.isScrollEnabled = context.environment.isScrollEnabled
         handler.horizontal.isScrollEnabled = context.environment.isScrollEnabled
+        captureScrollTargeting(handler: handler, context: context)
         return handler
     }
 

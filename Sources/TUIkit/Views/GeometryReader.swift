@@ -100,7 +100,7 @@ public struct CellSize: Hashable, Sendable {
 }
 
 /// A rectangle in whole terminal cells — the counterpart of `CGRect`.
-public struct CellRect: Equatable, Sendable {
+public struct CellRect: Hashable, Sendable {
     /// The leading edge, in cells from the coordinate space's origin.
     ///
     /// A `var`, like ``CellSize/width``, so an animation can substitute it.

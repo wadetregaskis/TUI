@@ -296,6 +296,10 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// tail totals are exact — then clears it.
     var seekingTail = false
 
+    /// The scroll target behaviour in force, as the render captured it, or
+    /// `nil` when there is none — see ``ScrollViewTargeting``.
+    var scrollTargeting: ScrollViewTargeting?
+
     /// How many lines/columns a Shift-accelerated arrow press scrolls. Set from
     /// `environment.shiftStepMultiplier` during render (default 5); a plain arrow
     /// always scrolls one. See ``View/shiftStepMultiplier(_:)``.
@@ -313,6 +317,9 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
         // wheel drive it directly), so its user scrolls are passed up here,
         // where both axes' are recorded as one.
         horizontal.onUserScroll = { [weak self] in self?.noteUserScroll() }
+        // And the scroll target behaviour is held here for both axes.
+        horizontal.stepTargeting = { [weak self] delta in self?.horizontalUserScrollStep(delta) ?? delta }
+        horizontal.settleTargeting = { [weak self] in self?.settleUserScroll() }
     }
 
     /// Records that the user scrolled this view (``ScrollableOffsetState``).
@@ -437,12 +444,12 @@ extension ScrollViewHandler {
             // edge — so the key still bubbles to whatever else might handle
             // Left/Right.
             let before = horizontal.scrollOffset
-            horizontal.scroll(by: -step)
+            horizontal.scroll(by: horizontal.userScrollStep(-step))
             if horizontal.scrollOffset != before { noteUserScroll() }
             return horizontal.scrollOffset != before
         case .right:
             let before = horizontal.scrollOffset
-            horizontal.scroll(by: step)
+            horizontal.scroll(by: horizontal.userScrollStep(step))
             if horizontal.scrollOffset != before { noteUserScroll() }
             return horizontal.scrollOffset != before
         default:

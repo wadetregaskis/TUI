@@ -320,7 +320,7 @@ struct TablePage: View {
                     notesTable
                     .frame(height: 20)
                     .scrollIndicatorStyle(fixedHeightScrollbar ? .scrollbar : .text)
-                    .scrollGranularity(fixedHeightByLine ? .line : .row)
+                    .scrollsByLine(fixedHeightByLine)
                     .scrollFollowMargin(
                         FollowMarginChoice(rawValue: fixedHeightFollowMargin)?.margin ?? .none)
                 }

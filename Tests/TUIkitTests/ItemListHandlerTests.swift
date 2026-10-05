@@ -715,8 +715,8 @@ struct ItemListHandlerScrollTests {
     /// revealed — the reported "it also shows the first line of the next row").
     @Test(
         "Revealing a row lands it flush at the bottom, not mid-viewport",
-        arguments: [ScrollGranularity.line, .row])
-    func revealLandsFocusedRowAtTheBottom(granularity: ScrollGranularity) {
+        arguments: [ScrollStepUnit.line, .row])
+    func revealLandsFocusedRowAtTheBottom(granularity: ScrollStepUnit) {
         // Heights chosen so the running sums never align by luck.
         let heights = [1, 1, 3, 3, 1, 1, 1, 3, 1, 3, 1, 1, 3, 1, 1]
         let handler = ItemListHandler<String>(
@@ -725,7 +725,7 @@ struct ItemListHandlerScrollTests {
         handler.contentHeight = 17  // 15 for rows once both indicators show
         handler.rowHeight = { heights[$0] }
         handler.drawsScrollIndicators = true
-        handler.scrollGranularity = granularity
+        handler.scrollStepUnit = granularity
 
         handler.focusedIndex = 9
         handler.ensureFocusedItemVisible()

@@ -2125,3 +2125,66 @@ private struct ScrollContentBackgroundShapes: View {
         }
     }
 }
+
+// MARK: - Scroll target behaviours (lane D2S)
+
+/// A behaviour of the app's own, as SwiftUI's documentation writes one (in
+/// cells: `ScrollTarget.rect` is a `CellRect`), reading every member of the
+/// contexts it is handed.
+private struct SnapToTenths: ScrollTargetBehavior {
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        let step = max(1, context.containerSize.width / 10)
+        target.rect.x = target.rect.x / step * step
+        if context.velocity.dy == 0, context.axes.contains(.vertical), context.contentSize.height > 0 {
+            target.anchor = context.originalTarget.anchor
+        }
+        _ = context.isEnabled
+    }
+
+    func properties(context: PropertiesContext) -> Properties {
+        _ = (context.axes, context.environment.isEnabled)
+        return Properties()
+    }
+}
+
+/// SwiftUI's own examples for paging and view-aligned scrolling, and every
+/// spelling of the built-in behaviours.
+@MainActor
+private struct ScrollTargetBehaviorShapes: View {
+    let items = Array(0..<20)
+
+    var body: some View {
+        VStack {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(items, id: \.self) { Text("\($0)") }
+                }
+            }
+            .scrollTargetBehavior(.paging)
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 10) {
+                    ForEach(items, id: \.self) { Text("\($0)") }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .safeAreaPadding(.horizontal, 20)
+            List(items, id: \.self) { Text("\($0)") }
+                .scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByOne))
+            ScrollView { Text("x") }
+                .scrollTargetBehavior(.viewAligned(anchor: .center))
+                .scrollTargetBehavior(.viewAligned(limitBehavior: .always, anchor: nil))
+                .scrollTargetBehavior(AnyScrollTargetBehavior(SnapToTenths()))
+                .scrollTargetBehavior(ViewAlignedScrollTargetBehavior(limitBehavior: .never))
+                .scrollTargetBehavior(PagingScrollTargetBehavior())
+                .scrollTargetLayout(isEnabled: false)
+        }
+    }
+}
+
+private func erasedBehaviour() -> Bool {
+    let erased = AnyScrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByFew))
+    let limits: [ViewAlignedScrollTargetBehavior.LimitBehavior] = [.automatic, .always, .alwaysByFew, .alwaysByOne, .never]
+    return erased.base is ViewAlignedScrollTargetBehavior && limits.count == 5
+        && ScrollTargetBehaviorProperties() == ScrollTargetBehaviorProperties()
+}

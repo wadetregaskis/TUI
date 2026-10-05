@@ -410,7 +410,7 @@ extension ItemListHandler {
             if drawnOffset + rowsFitting(in: budget) < itemCount { budget -= 1 }
         }
         budget = max(1, budget)
-        return scrollGranularity == .line ? budget : max(1, rowsFitting(in: budget))
+        return scrollStepUnit == .line ? budget : max(1, rowsFitting(in: budget))
     }
 
     /// How many whole rows fit in `lines`, starting at ``drawnOffset``.
@@ -489,7 +489,7 @@ extension ItemListHandler {
     }
 
     /// The wheel/arrow step (``ScrollableOffsetState`` requirement). Under
-    /// ``ScrollGranularity/line`` with multi-line rows, each step moves one
+    /// line steps (``ScrollStepUnit/line``) with multi-line rows, each step moves one
     /// terminal LINE: the top clip advances within the top row and rolls into
     /// ``scrollOffset`` at row boundaries, so a five-line row scrolls in five
     /// smooth steps instead of one jump. Row granularity — or uniform
@@ -498,7 +498,7 @@ extension ItemListHandler {
     /// the cost is O(delta), independent of list size.
     @discardableResult
     func scrollFine(by delta: Int) -> Bool {
-        guard scrollGranularity == .line, let rowHeight else {
+        guard scrollStepUnit == .line, let rowHeight else {
             let before = (scrollOffset, scrollTopClipLines)
             // Row granularity is a promise about this gesture: a step lands on
             // a row boundary. It is the ONLY place that promise is kept — a
@@ -547,6 +547,32 @@ extension ItemListHandler {
         return moved
     }
 
+    /// The step a user scroll of `delta` takes under the scroll target
+    /// behaviour (``ScrollableOffsetState`` requirement): a page under
+    /// `.paging`, measured from what is drawn as Page Down's is; under
+    /// `.viewAligned`, as many rows as its limit allows — a step is already
+    /// rows there (``scrollFine(by:)``); and `delta` otherwise, a behaviour of
+    /// the app's own included (``ListScrollTargeting``).
+    func userScrollStep(_ delta: Int) -> Int {
+        guard delta != 0 else { return 0 }
+        if scrollTargeting.pages {
+            return pageDelta(delta > 0 ? pageDistance : -pageDistance)
+        }
+        guard scrollTargeting.unit == .row else { return delta }
+        var limit = scrollTargeting.rowLimit
+        if scrollTargeting.limitsToScreenful { limit = min(limit ?? .max, pageDistance) }
+        guard let limit else { return delta }
+        return delta.signum() * min(abs(delta), max(1, limit))
+    }
+
+    /// Settles a released scrollbar thumb or page track
+    /// (``ScrollableOffsetState`` requirement): under whole-row steps the top
+    /// row is shown whole, as a step would leave it.
+    func settleUserScroll() {
+        guard scrollTargeting.unit == .row, scrollTopClipLines > 0 else { return }
+        scrollTopClipLines = 0
+    }
+
     /// An absolute jump lands row-aligned (``ScrollableOffsetState``
     /// requirement — its doc promises a sub-row-unit conformer discards the
     /// clip too). Without this override a generic caller's Home — the focus
@@ -563,7 +589,7 @@ extension ItemListHandler {
     /// height. Called alongside ``ScrollableOffsetState/clampScrollOffset()``
     /// on the render pass.
     ///
-    /// Deliberately NOT conditioned on ``scrollGranularity``. Granularity is
+    /// Deliberately NOT conditioned on ``scrollStepUnit``. The step unit is
     /// how far one scroll STEP moves — see ``scrollFine(by:)``, which is where
     /// row granularity re-aligns to a row boundary. It is not a constraint on
     /// where the viewport may sit, and zeroing the clip here made it one:
@@ -745,7 +771,7 @@ extension ItemListHandler {
     /// Line-precise under BOTH granularities. Arrow keys move the selection, so
     /// the anchor runs identically either way, and the row they land on is the
     /// same row — quantising the resulting viewport to a row boundary under
-    /// ``ScrollGranularity/row`` only moved the row off the centre it had just
+    /// whole-row steps (``ScrollStepUnit/row``) only moved the row off the centre it had just
     /// been given, by a different amount for each neighbourhood of row heights.
     /// Granularity is the size of a scroll STEP; see ``scrollFine(by:)``.
     private func anchorFocusedRow(anchor: ScrollFollowMargin.RowAnchor) {
@@ -817,7 +843,7 @@ extension ItemListHandler {
     /// ``followMargin``.
     ///
     /// A `.steps` margin is expressed in whatever this scrollable moves by, so
-    /// under ``ScrollGranularity/row`` a step IS a row and counts directly.
+    /// under whole-row steps (``ScrollStepUnit/row``) a step IS a row and counts directly.
     /// Under line granularity — and for `.fraction` / `.centered`, which are
     /// line-space by definition — it resolves to terminal lines and converts by
     /// walking real row heights outward from `index` (1:1 when rows are
@@ -826,7 +852,7 @@ extension ItemListHandler {
     private func followMarginRows(from index: Int, step: Int) -> Int {
         guard let contentHeight, contentHeight > 1 else { return 0 }
         switch followMargin.value {
-        case .steps(let count) where scrollGranularity == .row:
+        case .steps(let count) where scrollStepUnit == .row:
             return min(max(0, count), max(0, (contentHeight - 1) / 2))
         case .steps, .fraction, .centered:
             let lines = followMargin.resolvedLines(viewportLines: contentHeight)

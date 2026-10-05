@@ -574,6 +574,8 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             result.appendHorizontally(aligned, spacing: spacingToApply)
         }
 
+        reportTargetLayout(buffers: buffers, spacerWidths: finalWidths, context: context)
+
         // Final guard: the assembled row never exceeds the space we were given,
         // even when inter-child spacing alone would overflow a tiny terminal.
         return result.clamped(toWidth: context.availableWidth, height: context.availableHeight)
@@ -708,6 +710,8 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                 currentWidth += renderedGap + buffer.width
             }
         }
+
+        reportTargetLayout(collected: collected, context: context)
 
         // === PASS 2: Apply vertical alignment and build result ===
         // Explicit guides resolve over the columns actually placed — a lazy row

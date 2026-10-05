@@ -125,15 +125,15 @@ struct SettleScrollPositionTests {
     /// A step onto offset 1 over two-line rows hides two lines and spends one on
     /// the indicator, so it is a gain rather than the pure loss the rule undoes.
     /// The escape that said so was `.line`-only, so under
-    /// `.scrollGranularity(.row)` the snap ran unconditionally and put every step
+    /// `.scrollTargetBehavior(.viewAligned)` the snap ran unconditionally and put every step
     /// back on the same render pass — and where `maxOffset` is 1 that is the whole
     /// scrollable range, so the last row could not be reached at all. This is the
     /// half `663d98cc` left open, in its own words.
     @Test("Offset 1 stands at either granularity when the first row is two lines")
     func multiLineFirstRowRestsAtOne() {
-        for granularity in [ScrollGranularity.line, .row] {
+        for granularity in [ScrollStepUnit.line, .row] {
             let handler = strandedHandler(itemCount: 10, viewportHeight: 9, offset: 1)
-            handler.scrollGranularity = granularity
+            handler.scrollStepUnit = granularity
             handler.settleScrollPosition(
                 measuring: false, overflowing: true, drawsTextIndicators: true,
                 firstRowHeight: 2)
@@ -149,9 +149,9 @@ struct SettleScrollPositionTests {
     /// granularity. Without this the fix above passes with the snap deleted.
     @Test("A single-line first row is still snapped off, at either granularity")
     func singleLineFirstRowStillSnaps() {
-        for granularity in [ScrollGranularity.line, .row] {
+        for granularity in [ScrollStepUnit.line, .row] {
             let handler = strandedHandler(itemCount: 10, viewportHeight: 9, offset: 1)
-            handler.scrollGranularity = granularity
+            handler.scrollStepUnit = granularity
             handler.settleScrollPosition(
                 measuring: false, overflowing: true, drawsTextIndicators: true,
                 firstRowHeight: 1)

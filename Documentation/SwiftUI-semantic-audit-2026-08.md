@@ -1281,6 +1281,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `.scrollTargetBehavior(.paging)` and `.scrollTargetBehavior(.viewAligned)` fail to compile, even though both have unambiguous terminal meanings — paging is the Page Up/Down step the ScrollView already implements as a key binding, and view-aligned settling is exactly what .scrollGranularity(.row) does.
 - *Verifier's correction:* scrollTargetBehavior(_:) and the ScrollTargetBehavior protocol are absent and appear in neither §4a nor §4b of SwiftUI-compatibility.md, so a reader cannot distinguish a considered refusal from an oversight. The defect is the ledger gap; whether either built-in behaviour has a faithful terminal meaning is open, and ScrollTargetBehavior's own protocol requirement is stated in CGFloat geometry — a §4b-shaped reason. Do not present ScrollGranularity as the ready-made .viewAligned mapping: it never reaches ScrollView.
 - *Recommendation:* Consider mapping .viewAligned onto the existing ScrollGranularity.row machinery and .paging onto the existing page step so portable source compiles; at minimum record the decision in §4a/§4b. The project's rule 'TUI-specific APIs: OK to add, but keep separate from SwiftUI equivalents' presumes there is no SwiftUI equivalent, and here there is one.
+- *Status:* **FIXED** (2026-10-05, decisions A6): the protocol and its types, custom behaviours, `.paging` on `ScrollView`, `List` and `Table`, and `.viewAligned` on a `ScrollView`'s marked stack and on `List` and `Table`; `ScrollGranularity.row` is gone, `.viewAligned` in its place.
 
 **124. `View.scrollTargetLayout(isEnabled:)`**
 
@@ -1288,6 +1289,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The modifier does not exist: `grep -rn "scrollTargetLayout" Sources/` returns nothing, and it appears in neither §4a ('SwiftUI has it · TUIkit should add it') nor §4b ('SwiftUI has it · TUIkit won't') of Documentation/SwiftUI-compatibility.md. The equivalent concept is hard-coded instead — the target layout is whatever is a direct descent from the ScrollView's content identity: `contentIdentity: measureContext.identity` (ScrollView+Content.swift:118), consumed via ViewIdentity.isDirectDescent(from:) per ScrollContentWindow.swift:39-47. — `Sources/TUIkit/Views/ScrollView+Content.swift:118`
 - *Divergence:* The .scrollPosition(id:) example every SwiftUI developer copies fails to compile at the `.scrollTargetLayout()` line. After deleting it, whether the rest works depends on the reach limits in the other findings.
 - *Recommendation:* Add it with real meaning rather than as an inert marker: it is exactly the spelling for NAMING the target layout instead of inferring it, and honouring it would also address the documented gap at SwiftUI-compatibility.md:492 ('a LazyVStack nested below other scroll content isn't at the content origin so it can't map the offset yet'). If it will not be added, it belongs in §4a with a reason.
+- *Status:* **FIXED** (2026-10-05, decisions A6): the modifier is the mark `.viewAligned` settles on (it had shipped as returning the view, decisions B29).
 
 ### Layout stacks, spacing and grouping
 

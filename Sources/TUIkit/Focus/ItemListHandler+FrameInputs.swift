@@ -95,9 +95,9 @@ extension ItemListHandler {
         // being captured here a single-line Table was the one scroller in that
         // list that kept the 500 ms default whatever the app asked for.
         wheelEdgeHold.delayNanos = environment.scrollChainingDelay.clampedNanoseconds
-        // Wheel events arrive when the environment is out of reach; line
-        // granularity is what steps by lines through tall rows.
-        scrollGranularity = environment.scrollGranularity
+        // Wheel events arrive when the environment is out of reach; the scroll
+        // target behaviour decides whether a step is lines, rows or a page.
+        scrollTargeting = ListScrollTargeting(environment.scrollTargetBehavior, environment: environment)
         // The reveal runs on key events, for the same reason.
         followMargin = environment.scrollFollowMargin
         // §1.1: a USER wheel scroll releases a bound anchor to `.window` at

@@ -41,3 +41,59 @@ changes the drawing of every horizontal view under an unlabelled `.bottom` or
 `.center` (they would centre). SwiftUI's two-axis view adds the room to an
 already centred position (an item drawn past the view's bounds, measured), which
 looks like a SwiftUI bug and would not be copied.
+
+### B-D2S-2. `List` and `Table` honour the built-in behaviours, and no behaviour of the app's own
+
+*`View.scrollTargetBehavior(_:)`, `ScrollTargetBehavior` (A6)*
+
+The owner's A6 decision puts `.paging` and `.viewAligned` on `List` and
+`Table`. What ships there: `.paging` moves every step a page from where the
+view is, as Page Down does, and `.viewAligned` is whole-row steps (what
+`ScrollGranularity.row` was) with its limits. A behaviour of the app's own is
+not consulted — the list steps by lines, as with none.
+
+That is also what SwiftUI's `List` does on macOS: a custom behaviour's
+`updateTarget(_:context:)` is never called while a `List` scrolls, by the wheel
+or by a resize (measured on macOS 15, 2026-10-05, with a behaviour that logs
+every call; the same behaviour on a `ScrollView` is called).
+
+**The fuller version:** hand a custom behaviour a list's geometry in lines. A
+`List`'s offset is a row and a clip, and a target rect in lines needs every
+row's height above the viewport — a walk the list exists not to make, at
+`rowHeight` calls that build the rows. About a day, with a prefix-sum cache,
+for something SwiftUI's own `List` does not do.
+
+### B-D2S-3. In a `List` or `Table`, `.viewAligned` aligns rows at the top, whatever its anchor
+
+*`ViewAlignedScrollTargetBehavior.init(anchor:)`, `.viewAligned(anchor:)` (A6)*
+
+In a `ScrollView`, the anchor is honoured: `.viewAligned(anchor: .center)`
+settles with a row's centre at the view's. In a `List` or `Table`, whole-row
+steps keep the top row whole, as `ScrollGranularity.row` did, and the anchor is
+not consulted; the limits are.
+
+**The fuller version:** after each row step, move the list's top row and clip
+so the row nearest the anchor meets the view's anchor point — a walk of the
+heights of the rows on screen, which the list already makes for its reveal.
+About half a day, with tests over rows of mixed heights.
+
+### Notes on A6 that are not decisions
+
+- `ScrollGranularity.row` did nothing `.viewAligned` cannot: on `List` and
+  `Table` the two are the same mechanism, and `.row` never reached a
+  `ScrollView`. It is removed, and its users (the Example's List and Table
+  pages, the tests) use `.viewAligned`. `ScrollGranularity` keeps `.line`, and
+  `.scrollGranularity(.line)` now takes a subtree back to line steps from a
+  behaviour stated further out — which SwiftUI cannot say. The public
+  `EnvironmentValues.scrollGranularity` is gone (SwiftUI has none).
+- `ScrollTarget.rect` is a `CellRect`, the context's sizes `CellSize` and its
+  `velocity` a `CellVector`: cells, as the rest of TUIkit's geometry. The
+  velocity is the step in cells — a terminal's steps have no duration to
+  measure points per second from.
+- `.viewAligned` finds the rows (or columns) of the stack that is the scroll
+  view's content, under a `Section`'s header, or inside the content margins —
+  the reach of the scroll window. A marked stack further in (below a header
+  in a `VStack`) is not found, and the view scrolls freely, as an unmarked one
+  does. The anchored path (a lazy stack over 256 rows of varying height) knows
+  only the rows of its band, so a step past them settles on the furthest it
+  knows.

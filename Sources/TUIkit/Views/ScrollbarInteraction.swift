@@ -313,9 +313,9 @@ extension ScrollbarRenderer {
                     // Step in the clicked arrow's own direction (with `.double`
                     // arrows the bottom end has an up-arrow too), then auto-repeat
                     // while held (see driveAutoRepeat). The FINE step honours
-                    // ``ScrollGranularity/line``: with line granularity a tall
-                    // row scrolls in per-line steps, exactly like the wheel;
-                    // under row granularity it falls back to a row step.
+                    // the step unit: with line steps a tall row scrolls in
+                    // per-line steps, exactly like the wheel; under
+                    // `.viewAligned` it falls back to a row step.
                     state.userScrollFine(by: delta)
                     state.scrollbarRepeat = ScrollbarRepeat(delta: delta)
                 case .trackBefore, .trackAfter:
@@ -363,13 +363,22 @@ extension ScrollbarRenderer {
                 }
                 return false
             case .released:
-                state.scrollbarDragGrab = nil
-                state.scrollbarRepeat = nil
+                endHold(state)
                 return true
             default:
                 return false
             }
         }
+    }
+
+    /// Lets go of whatever the bar held. A dragged thumb or a held page track
+    /// ends a gesture where it is, and the scroll target behaviour settles it
+    /// there; an arrow hold's steps were each landed already.
+    private static func endHold(_ state: ScrollableOffsetState) {
+        let settles = state.scrollbarDragGrab != nil || state.scrollbarRepeat?.stopAtOffset != nil
+        state.scrollbarDragGrab = nil
+        state.scrollbarRepeat = nil
+        if settles { state.settleUserScroll() }
     }
 
     /// Vertical convenience wrapper over ``mouseHandler(for:length:vertical:arrows:proportional:behavior:)``

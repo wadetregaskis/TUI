@@ -195,6 +195,14 @@ struct MyApp: App {
 - ``ScrollAnchor``
 - ``ScrollFollowMargin``
 - ``ScrollGranularity``
+- ``ScrollTargetBehavior``
+- ``PagingScrollTargetBehavior``
+- ``ViewAlignedScrollTargetBehavior``
+- ``AnyScrollTargetBehavior``
+- ``ScrollTarget``
+- ``ScrollTargetBehaviorContext``
+- ``ScrollTargetBehaviorProperties``
+- ``ScrollTargetBehaviorPropertiesContext``
 - ``ScrollOverscroll``
 - ``ScrollIndicatorVisibility``
 - ``ScrollIndicatorStyle``

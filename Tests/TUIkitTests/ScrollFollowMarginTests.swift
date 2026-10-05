@@ -145,7 +145,7 @@ struct CenteredAnchorTests {
     /// `viewport`-line content area, centred on `anchor`.
     private func handler(
         heights: [Int], viewport: Int, anchor: ScrollFollowMargin.RowAnchor = .center,
-        granularity: ScrollGranularity = .line
+        granularity: ScrollStepUnit = .line
     ) -> ItemListHandler<Int> {
         let handler = ItemListHandler<Int>(
             focusID: "list", itemCount: heights.count,
@@ -153,7 +153,7 @@ struct CenteredAnchorTests {
         handler.contentHeight = viewport
         handler.rowHeight = { heights[$0] }
         handler.followMargin = .centered(anchor: anchor)
-        handler.scrollGranularity = granularity
+        handler.scrollStepUnit = granularity
         // This harness models the ROW area directly — no "N more" indicator
         // lines are drawn inside `viewport`, so none must be deducted from it.
         handler.drawsScrollIndicators = false
@@ -259,7 +259,7 @@ struct CenteredAnchorTests {
     func rowGranularityStepRealigns() {
         let heights = Array(repeating: 3, count: 20)
         let handler = handler(heights: heights, viewport: 11)
-        handler.scrollGranularity = .row
+        handler.scrollStepUnit = .row
         handler.focusedIndex = 10
         handler.ensureFocusedItemVisible()
         #expect(
@@ -317,7 +317,7 @@ struct CenteredAnchorTests {
 @Suite("A step is a line or a row, per the scroll granularity")
 struct StepGranularityTests {
 
-    private func handler(granularity: ScrollGranularity, steps: Int) -> ItemListHandler<Int> {
+    private func handler(granularity: ScrollStepUnit, steps: Int) -> ItemListHandler<Int> {
         let heights = Array(repeating: 3, count: 20)
         let handler = ItemListHandler<Int>(
             focusID: "list", itemCount: heights.count,
@@ -325,7 +325,7 @@ struct StepGranularityTests {
         handler.contentHeight = 12
         handler.rowHeight = { heights[$0] }
         handler.followMargin = .steps(steps)
-        handler.scrollGranularity = granularity
+        handler.scrollStepUnit = granularity
         return handler
     }
 
@@ -356,13 +356,13 @@ struct StepGranularityTests {
 
     @Test("with single-line rows the two granularities agree")
     func singleLineRowsCoincide() {
-        func flat(_ granularity: ScrollGranularity) -> ItemListHandler<Int> {
+        func flat(_ granularity: ScrollStepUnit) -> ItemListHandler<Int> {
             let handler = ItemListHandler<Int>(
                 focusID: "list", itemCount: 20, viewportHeight: 8, selectionMode: .single)
             handler.contentHeight = 8
             handler.rowHeight = { _ in 1 }
             handler.followMargin = .steps(2)
-            handler.scrollGranularity = granularity
+            handler.scrollStepUnit = granularity
             return handler
         }
         #expect(topAfterWalking(flat(.row), to: 10) == topAfterWalking(flat(.line), to: 10))
@@ -381,7 +381,7 @@ struct StepGranularityTests {
         handler.drawsScrollIndicators = true
         handler.rowHeight = { heights[$0] }
         handler.followMargin = .centered(anchor: .center)
-        handler.scrollGranularity = .line
+        handler.scrollStepUnit = .line
 
         handler.focusedIndex = 20
         handler.ensureFocusedItemVisible()
@@ -408,7 +408,7 @@ struct FollowMarginRevealTests {
     /// tile the viewport never produces any and proves nothing.
     private let heights = (0..<60).map { 1 + ($0 * 7) % 3 }
 
-    private func handler(granularity: ScrollGranularity) -> ItemListHandler<Int> {
+    private func handler(granularity: ScrollStepUnit) -> ItemListHandler<Int> {
         let handler = ItemListHandler<Int>(
             focusID: "list", itemCount: heights.count,
             viewportHeight: 15, selectionMode: .single)
@@ -416,7 +416,7 @@ struct FollowMarginRevealTests {
         handler.drawsScrollIndicators = false  // the harness models the row area
         handler.rowHeight = { self.heights[$0] }
         handler.followMargin = .steps(1)
-        handler.scrollGranularity = granularity
+        handler.scrollStepUnit = granularity
         return handler
     }
 
@@ -432,8 +432,8 @@ struct FollowMarginRevealTests {
 
     @Test(
         "A one-step margin reveals exactly one row past the cursor",
-        arguments: [ScrollGranularity.line, .row])
-    func revealsOnlyTheMargin(granularity: ScrollGranularity) {
+        arguments: [ScrollStepUnit.line, .row])
+    func revealsOnlyTheMargin(granularity: ScrollStepUnit) {
         let handler = handler(granularity: granularity)
         var scrolled = 0
         for focus in 1..<40 {

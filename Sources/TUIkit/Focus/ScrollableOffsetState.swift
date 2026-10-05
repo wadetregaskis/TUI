@@ -51,8 +51,8 @@ public protocol ScrollableOffsetState: AnyObject {
     /// Two traps live here, which is why this is a member rather than arithmetic
     /// at the call sites:
     ///
-    /// - **Unit.** ``scrollFine(by:)`` steps ROWS under `.row` granularity and
-    ///   LINES under `.line`. A page expressed in rows and handed to the line
+    /// - **Unit.** ``scrollFine(by:)`` steps ROWS under `.viewAligned` (whole-row
+    ///   steps) and LINES otherwise. A page expressed in rows and handed to the line
     ///   stepper moves a fraction of a screen over multi-line rows. Conformers
     ///   answer in their own unit.
     /// - **Staleness.** `viewportHeight` is written during render, and the app
@@ -200,7 +200,7 @@ public protocol ScrollableOffsetState: AnyObject {
     ///
     /// A requirement (defaulted to ``scroll(by:)``, one row/line per step) so
     /// a conformer with a finer unit than its offset can interpose:
-    /// `ItemListHandler` under ``ScrollGranularity/line`` steps by terminal
+    /// `ItemListHandler` under ``ScrollGranularity/line`` (the default) steps by terminal
     /// LINES through multi-line rows — its row-based ``scrollOffset`` plus a
     /// top clip — while offset, extent and ``maxOffset`` stay row-based (an
     /// O(1) model even for 50k-row lists). The wheel path dispatches through
@@ -240,6 +240,26 @@ public protocol ScrollableOffsetState: AnyObject {
     /// A requirement so it dispatches to that conformer; the default does
     /// nothing.
     func noteUserScroll()
+
+    /// The step a user scroll of `delta` fine steps takes under this
+    /// scrollable's scroll target behaviour (``TUIkit/View/scrollTargetBehavior(_:)``)
+    /// — `delta` itself where there is none, which is every scrollable but one
+    /// given a behaviour.
+    ///
+    /// Asked by ``userScrollFine(by:)``, the path every user step takes — the
+    /// wheel, the arrow and page keys, the scrollbar's arrows, the "N more"
+    /// lines — and by the horizontal wheel. A terminal's scroll gestures end
+    /// at every step, so each is a gesture of its own: where it would land is
+    /// the behaviour's proposed target, and where the behaviour puts it is
+    /// where it lands. A requirement so it dispatches to the conformer that has
+    /// a behaviour to ask.
+    func userScrollStep(_ delta: Int) -> Int
+
+    /// Settles a user scroll that ended where it is — a dragged scrollbar
+    /// thumb released, a held page track let go — under this scrollable's
+    /// scroll target behaviour, as a gesture with no velocity. The default
+    /// does nothing.
+    func settleUserScroll()
 }
 
 // MARK: - Generic single-axis scroll state
@@ -283,6 +303,20 @@ public final class ScrollAxis: ScrollableOffsetState {
 
     /// Passes a user scroll of this axis on to the owning handler.
     public func noteUserScroll() { onUserScroll?() }
+
+    /// Asks the owning handler, which holds the scroll target behaviour for
+    /// both of its axes, where a step of this axis lands. Weakly held by the
+    /// closure the handler installs, like ``onUserScroll``.
+    var stepTargeting: ((Int) -> Int)?
+
+    /// Asks the owning handler to settle both axes — see ``stepTargeting``.
+    var settleTargeting: (() -> Void)?
+
+    /// The step a user scroll of this axis takes (``ScrollableOffsetState``).
+    public func userScrollStep(_ delta: Int) -> Int { stepTargeting?(delta) ?? delta }
+
+    /// Settles a user scroll of this axis (``ScrollableOffsetState``).
+    public func settleUserScroll() { settleTargeting?() }
 
     /// A fresh axis: parked at offset 0, with no measurements yet.
     ///
@@ -341,6 +375,12 @@ extension ScrollableOffsetState {
 
     /// No one to tell: see the requirement.
     public func noteUserScroll() {}
+
+    /// No behaviour: a step lands where it would. See the requirement.
+    public func userScrollStep(_ delta: Int) -> Int { delta }
+
+    /// No behaviour: nothing to settle. See the requirement.
+    public func settleUserScroll() {}
 
     /// ``maxOffset``, resolved exactly — the bottom, whatever it costs to find.
     ///
@@ -478,7 +518,7 @@ extension ScrollableOffsetState {
     /// renderer clips its tail), so a list whose window covers every row reads
     /// `extent == viewportHeight` while ``maxOffset``, walked from real row
     /// heights, still names an offset at which that row is whole. Under
-    /// ``ScrollGranularity/row`` — whose every step comes through here — the wheel,
+    /// `.viewAligned`'s whole-row steps — whose every step comes through here — the wheel,
     /// the scrollbar's arrows and its page-track were all dead at offset 0, and the
     /// clipped row's tail unreachable by pointer.
     ///
@@ -580,11 +620,18 @@ extension ScrollableOffsetState {
             return true
         }
 
-        // 2. Ordinary movement.
-        if scrollFine(by: delta) {
+        // 2. Ordinary movement, landed where the scroll target behaviour puts
+        //    it.
+        let step = userScrollStep(delta)
+        if step != 0, scrollFine(by: step) {
             releaseAnchorOnUserScroll()
             return true
         }
+        // A behaviour that held the view, short of the edge the step was moving
+        // toward, moved nothing and pushed nothing: there is no edge to engage
+        // or overscroll there. With no behaviour the step is `delta`, and
+        // this is not asked.
+        if step != delta, delta < 0 ? scrollOffset > 0 : canScrollForward { return false }
 
         // 3. Blocked: a deliberate push. Stick to that edge — but only if there
         //    IS one to speak of. A view whose content fits sits at its top and
@@ -757,12 +804,12 @@ extension ScrollableOffsetState {
         switch event.button {
         case .scrollLeft:
             let before = scrollOffset
-            scroll(by: -columnsPerTick)
+            scroll(by: userScrollStep(-columnsPerTick))
             if scrollOffset != before { noteUserScroll() }
             return resolveWheelOutcome(moved: scrollOffset != before)
         case .scrollRight:
             let before = scrollOffset
-            scroll(by: columnsPerTick)
+            scroll(by: userScrollStep(columnsPerTick))
             if scrollOffset != before { noteUserScroll() }
             return resolveWheelOutcome(moved: scrollOffset != before)
         default:

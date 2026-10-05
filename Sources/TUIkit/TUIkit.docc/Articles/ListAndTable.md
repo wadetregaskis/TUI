@@ -379,22 +379,26 @@ TableColumn("Path", value: \.path)
     .truncationMode(.head)   // Keep the end, drop the start
 ```
 
-### Scroll Granularity
+### Scrolling by line, by row, or by page
 
-When rows span multiple lines, ``ScrollGranularity`` controls how finely the
-content scrolls. The default is `.line`: tall rows scroll into view gradually
-and may rest partially clipped at the top edge. Opt into `.row` for the classic
-TUI behaviour, where a scroll step lands with the top row fully visible:
+When rows span multiple lines, the scroll target behaviour decides how far a
+scroll step goes. With none — or under `.scrollGranularity(.line)`, which takes
+a subtree back to it — a step moves terminal lines: tall rows scroll into view
+gradually and may rest partially clipped at the top edge. SwiftUI's
+`.viewAligned` gives the classic TUI behaviour, where a scroll step lands with
+the top row fully visible, and `.paging` makes every step a page:
 
 ```swift
 List("Notes", selection: $selected) { ... }
-    .scrollGranularity(.row)
+    .scrollTargetBehavior(.viewAligned)
 ```
 
-Granularity sizes a *step*; it is not a promise about the bottom edge. Under
-both modes the row that straddles it is drawn as far as it fits, so the
-viewport is always exactly filled and a fixed-height list never looks as though
-it truncated its own visible area.
+`.viewAligned(limitBehavior: .alwaysByOne)` moves one row a step. A step is
+sized by the behaviour; it is not a promise about the bottom edge. Either way
+the row that straddles it is drawn as far as it fits, so the viewport is always
+exactly filled and a fixed-height list never looks as though it truncated its
+own visible area. See ``ScrollTargetBehavior`` for what a `List` or `Table`
+honours.
 
 Multi-line rows also have a *height*, and a scrollbar metered in lines needs
 the total. Measuring every row to find it means wrapping the text of rows

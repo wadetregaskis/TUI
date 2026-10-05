@@ -314,6 +314,14 @@ struct _ScrollContentMargins<Content: View>: View, Renderable, Layoutable {
             ?? ScrollWindowRelay.Placement()
         let top = placement.drawsAbove ? insets.top : 0
         let bottom = placement.drawsBelow ? insets.bottom : 0
+        // A marked row's columns, moved across by the leading margin: the relay
+        // moves the content only down, and without one (no top or bottom
+        // margin) the content answered the scroll view's reply itself.
+        if sides.leading > 0, let reply = context.environment.scrollContentWindow?.reply,
+            let columns = reply.targetLayoutColumns
+        {
+            reply.targetLayoutColumns = columns.shifted(by: sides.leading)
+        }
 
         let width = buffer.width + sides.leading + sides.trailing
         let blank = String(asciiSpaces(width))

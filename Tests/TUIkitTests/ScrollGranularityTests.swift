@@ -1,10 +1,11 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ScrollGranularityTests.swift
 //
-//  `.scrollGranularity(_:)` — line-centric scrolling (the default) steps the
-//  viewport one terminal LINE at a time through multi-line rows, clipping the
-//  top row partially; row granularity (opt-in) keeps the classic
-//  whole-row-jump behaviour. Selection and focus stay row-based in both.
+//  Line steps and row steps — line-centric scrolling (the default, and
+//  `.scrollGranularity(.line)`) steps the viewport one terminal LINE at a time
+//  through multi-line rows, clipping the top row partially; whole-row steps
+//  (opt-in, as SwiftUI's `.scrollTargetBehavior(.viewAligned)`) keep the
+//  classic whole-row-jump behaviour. Selection and focus stay row-based in both.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -23,7 +24,7 @@ struct ScrollGranularityTests {
     /// A handler over `count` rows of `height` lines each, in a viewport
     /// sized for `visibleRows` whole rows.
     private func makeHandler(
-        count: Int, rowHeight: Int, contentHeight: Int, granularity: ScrollGranularity
+        count: Int, rowHeight: Int, contentHeight: Int, granularity: ScrollStepUnit
     ) -> ItemListHandler<Int> {
         let handler = ItemListHandler<Int>(
             focusID: "test", itemCount: count,
@@ -31,7 +32,7 @@ struct ScrollGranularityTests {
             selectionMode: .single)
         handler.contentHeight = contentHeight
         handler.rowHeight = { _ in rowHeight }
-        handler.scrollGranularity = granularity
+        handler.scrollStepUnit = granularity
         handler.itemIDs = Array(0..<count)
         return handler
     }
@@ -206,7 +207,7 @@ struct ScrollGranularityTests {
     func clampTopClipRules() {
         let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .line)
         handler.scrollTopClipLines = 2
-        handler.scrollGranularity = .row
+        handler.scrollStepUnit = .row
         handler.clampTopClip()
         #expect(
             handler.scrollTopClipLines == 2,
@@ -216,7 +217,7 @@ struct ScrollGranularityTests {
             leave it mid-row, and `scrollFine` is what re-aligns.
             """)
 
-        handler.scrollGranularity = .line
+        handler.scrollStepUnit = .line
         // maxOffset short-circuits to a cheap floor until the offset nears
         // the tail (documented ItemListHandler behaviour) — walk there with
         // fine steps the way real scrolling does, then verify the bottom
@@ -283,7 +284,7 @@ struct ScrollGranularityTests {
     }
 
     private func renderListFrames(
-        granularity: ScrollGranularity = .line,
+        granularity: ScrollStepUnit = .line,
         linesPerRow: Int = 3,
         wheelTicks: Int = 0
     ) -> [FrameBuffer] {
@@ -291,7 +292,7 @@ struct ScrollGranularityTests {
         var env = EnvironmentValues()
         env.focusManager = FocusManager()
         env.applyRuntimeServices(from: tui)
-        env.scrollGranularity = granularity
+        env.scrollTargetBehavior = granularity.behavior
         let dispatcher = tui.mouseEventDispatcher
         dispatcher.setActiveSupport(.standard)
 
@@ -331,7 +332,7 @@ struct ScrollGranularityTests {
     }
 
     private func renderList(
-        granularity: ScrollGranularity = .line,
+        granularity: ScrollStepUnit = .line,
         linesPerRow: Int = 3,
         wheelTicks: Int = 0,
         frameHeight: Int = 11,
@@ -341,7 +342,7 @@ struct ScrollGranularityTests {
         var env = EnvironmentValues()
         env.focusManager = FocusManager()
         env.applyRuntimeServices(from: tui)
-        env.scrollGranularity = granularity
+        env.scrollTargetBehavior = granularity.behavior
         let dispatcher = tui.mouseEventDispatcher
         dispatcher.setActiveSupport(.standard)
 
@@ -420,7 +421,7 @@ struct ScrollGranularityTests {
         var env = EnvironmentValues()
         env.focusManager = focusManager
         env.applyRuntimeServices(from: tui)
-        env.scrollGranularity = .line
+        env.scrollTargetBehavior = ScrollStepUnit.line.behavior
 
         let view = List(selection: .constant(String?.none)) {
             ForEach(["a", "b", "c", "d", "e", "f"], id: \.self) { name in
@@ -484,7 +485,7 @@ struct ScrollGranularityTests {
         // Granularity sizes a STEP and decides where the top may rest, so at
         // the SAME resting offset the two modes have nothing left to disagree
         // about. This is where they used to: `.row` left that ninth line blank.
-        func body(_ granularity: ScrollGranularity) -> String {
+        func body(_ granularity: ScrollStepUnit) -> String {
             renderList(
                 granularity: granularity, linesPerRow: 4, frameHeight: 11, showsScrollbar: true)
         }
@@ -547,7 +548,7 @@ struct ScrollGranularityTests {
     }
 
     private func renderTableFrames(
-        granularity: ScrollGranularity = .line,
+        granularity: ScrollStepUnit = .line,
         wheelTicks: Int = 0
     ) -> [FrameBuffer] {
         let tui = TUIContext()
@@ -555,9 +556,9 @@ struct ScrollGranularityTests {
         env.focusManager = FocusManager()
         env.applyRuntimeServices(from: tui)
         // The page-level default deliberately DIFFERS from the demo's own
-        // .scrollGranularity modifier (applied on the table below), which
+        // .scrollTargetBehavior modifier (applied on the table below), which
         // must win for its subtree.
-        env.scrollGranularity = granularity == .line ? .row : .line
+        env.scrollTargetBehavior = (granularity == .line ? ScrollStepUnit.row : .line).behavior
         let dispatcher = tui.mouseEventDispatcher
         dispatcher.setActiveSupport(.standard)
 
@@ -584,7 +585,7 @@ struct ScrollGranularityTests {
                 .frame(height: 12)
                 .scrollIndicators(.visible)
                 .scrollIndicatorStyle(.scrollbar)
-                .scrollGranularity(granularity)
+                .scrollTargetBehavior(AnyScrollTargetBehavior(granularity.behavior))
             }
         }
 

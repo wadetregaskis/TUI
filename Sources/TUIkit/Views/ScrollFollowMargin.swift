@@ -17,8 +17,9 @@
 ///   the classic terminal behaviour, and the default everywhere.
 /// - ``steps(_:)``: scrolling starts once fewer than that many scroll STEPS
 ///   remain visible beyond the selection, a step being whatever this scrollable
-///   moves by — a terminal line under ``ScrollGranularity/line``, a whole row
-///   (a multi-line row counting once) under ``ScrollGranularity/row``. With
+///   moves by — a terminal line under ``ScrollGranularity/line`` (the default),
+///   a whole row (a multi-line row counting once) under
+///   `.scrollTargetBehavior(.viewAligned)`. With
 ///   single-line rows the two are identical.
 /// - ``fraction(_:)``: the margin is that fraction of the viewport height,
 ///   so it scales with the window.
@@ -89,7 +90,8 @@ public struct ScrollFollowMargin: Sendable, Hashable {
 
     /// Keep `count` scroll STEPS visible beyond the selection, where a step is
     /// whatever the scrollable moves by: a terminal line under
-    /// ``ScrollGranularity/line``, a whole row under ``ScrollGranularity/row``.
+    /// ``ScrollGranularity/line``, a whole row under
+    /// `.scrollTargetBehavior(.viewAligned)`.
     ///
     /// One knob rather than separate line and row spellings, because the two
     /// only ever differ by the granularity already in force — and a margin

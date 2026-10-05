@@ -74,7 +74,7 @@ struct ScrollableEnvironmentWiringTests {
         func wrapped(_ view: some View) -> some View {
             view
                 .shiftStepMultiplier(9)
-                .scrollGranularity(.row)
+                .scrollTargetBehavior(.viewAligned)
                 .scrollFollowMargin(.steps(2))
                 .rowReorderFeedback(.dimmed)
         }
@@ -179,7 +179,7 @@ struct ScrollableEnvironmentWiringTests {
             return
         }
         #expect(handler.shiftStepMultiplier == 9, "\(name): shiftStepMultiplier")
-        #expect(handler.scrollGranularity == .row, "\(name): scrollGranularity")
+        #expect(handler.scrollStepUnit == .row, "\(name): scrollStepUnit")
         #expect(handler.followMargin == .steps(2), "\(name): followMargin")
         #expect(handler.canFloatDraggedRow, "\(name): canFloatDraggedRow")
         #expect(handler.isScrollEnabled, "\(name): isScrollEnabled")

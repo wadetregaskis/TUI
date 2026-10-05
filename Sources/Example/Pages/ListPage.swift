@@ -348,7 +348,7 @@ struct ListPage: View {
     }
 
     /// The multi-line cells list — extracted so the granularity toggle can
-    /// re-apply `.scrollGranularity` to it without deepening the section body.
+    /// re-apply `.scrollsByLine` to it without deepening the section body.
     @ViewBuilder private var multiLineList: some View {
         multiLineListBody
             // Five rows of content: 5 × 2 lines, plus the border's two. Four
@@ -358,7 +358,7 @@ struct ListPage: View {
             // settings.
             .frame(height: 12)
             .scrollIndicators(.visible)
-            .scrollGranularity(multiLineByLine ? .line : .row)
+            .scrollsByLine(multiLineByLine)
             .scrollFollowMargin(
                 FollowMarginChoice(rawValue: multiLineFollowMargin)?.margin ?? .none)
     }

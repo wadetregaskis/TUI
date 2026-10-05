@@ -443,6 +443,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             available: context.availableHeight,
             spacing: spacing
         )
+        reportEagerTargetLayout(heights: finalHeights, children: children, context: context)
 
         // === PASS 2: Render each child into its allocated height ===
         //
@@ -578,7 +579,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
                         context.renderCache?.forgetPassMeasures()
                     }
                 }
-                if let fast = renderUniformSeekWindow(collection, window: window, context: context) {
+                if let fast = renderUniformWindowReporting(collection, window: window, context: context) {
                     return fast
                 }
                 if collection.count > Self.anchoredWindowThreshold,
@@ -925,6 +926,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // it moves its offset after this returns (the bottom re-glue, a focus
         // snap), and a move past this band lands on placeholders.
         window.reply?.drawnLines = Self.drawnLines(of: slots, renders: rendersRow)
+        reportTargetLayout(slots: slots, window: window, context: context)
         if let focusManager = context.environment.focusManager {
             for target in [focusManager.currentFocusedID, focusManager.pendingFocusID] {
                 guard let index = rowIndex(addressedBy: target, slots: slots, context: childContext)

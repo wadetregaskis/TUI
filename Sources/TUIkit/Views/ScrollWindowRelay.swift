@@ -107,6 +107,10 @@ struct ScrollWindowRelay {
             reply.seekResolvedOffset = offset + linesAbove
         }
         if contentReply.measureWentStale { reply.measureWentStale = true }
+        if let rows = contentReply.targetLayoutRows {
+            reply.targetLayoutRows = rows.shifted(by: linesAbove)
+        }
+        if let columns = contentReply.targetLayoutColumns { reply.targetLayoutColumns = columns }
         guard let origin = contentReply.sliceOriginY, let total = contentReply.sliceTotalHeight
         else {
             // A full-height buffer: the view's lines surround it whole.

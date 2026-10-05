@@ -64,7 +64,7 @@ struct ScrollbarInteractionTests {
         handler.itemIDs = Array(0..<10)
         handler.contentHeight = 6
         handler.rowHeight = { _ in 3 }
-        handler.scrollGranularity = .line
+        handler.scrollStepUnit = .line
 
         let barHandler = Bar.verticalMouseHandler(
             for: handler, length: 10, arrows: .single,
@@ -75,7 +75,7 @@ struct ScrollbarInteractionTests {
         _ = barHandler(event(0, 9, .released))
 
         // Row granularity keeps the classic whole-row step.
-        handler.scrollGranularity = .row
+        handler.scrollStepUnit = .row
         handler.scrollTopClipLines = 0
         #expect(barHandler(event(0, 9)))
         #expect(handler.scrollOffset == 1, "row granularity steps a whole row")

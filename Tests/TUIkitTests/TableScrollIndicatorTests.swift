@@ -38,7 +38,7 @@ struct TableScrollIndicatorTests {
         tui: TUIContext, fm: FocusManager,
         twoLineRows: Bool = false,
         singleLinePath: Bool = false,
-        granularity: ScrollGranularity = .row,
+        granularity: ScrollStepUnit = .row,
         scrollbar: ScrollIndicatorVisibility = .hidden,
         height: Int = Self.height,
         count: Int = 20
@@ -53,7 +53,7 @@ struct TableScrollIndicatorTests {
         tui: TUIContext, fm: FocusManager,
         twoLineRows: Bool = false,
         singleLinePath: Bool = false,
-        granularity: ScrollGranularity = .row,
+        granularity: ScrollStepUnit = .row,
         scrollbar: ScrollIndicatorVisibility = .hidden,
         height: Int = Self.height,
         /// How many rows. The default is plenty; a `count` chosen so the
@@ -75,7 +75,7 @@ struct TableScrollIndicatorTests {
 
         var env = EnvironmentValues()
         env.focusManager = fm
-        env.scrollGranularity = granularity
+        env.scrollTargetBehavior = granularity.behavior
         // The suite predates the visibility/style split (#555): `scrollbar` here
         // has always meant "bar or 'N more' lines", which is now a STYLE. Both
         // are visible on demand; the knob picks which one is drawn.

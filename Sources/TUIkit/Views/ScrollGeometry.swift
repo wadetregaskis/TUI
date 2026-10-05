@@ -214,6 +214,7 @@ extension _ScrollViewCore {
     ) {
         guard !context.isMeasuring else { return }
         handler.tailAsLastDrawn = handler.maxOffset
+        recordTargetingGeometry(handler: handler, contentWidth: contentWidth)
         reportScrollGeometry(
             handler: handler, contentWidth: contentWidth, viewportHeight: viewportHeight,
             context: context)
