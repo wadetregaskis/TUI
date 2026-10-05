@@ -64,27 +64,27 @@ away from the band have estimated positions. Unpinned, it needs B-D1S-5's
 fuller version too — a loop of sections counted without building every row —
 or taking them apart costs every row again.
 
-### B-D1S-3. `AnyView` around several views is one subview
+### B-D1S-3. An `AnyView` that is a loop's row is one child
 
-*`AnyView`, `Group(subviews:transform:)`, `ForEach(subviews:content:)`,
-`LayoutSubviews`*
+*`AnyView`, `ForEach`, `Group(subviews:transform:)`, `LayoutSubviews`*
 
-B15's entry and this lane's brief say SwiftUI keeps `AnyView(Group { a; b })`
-as one subview. Measured, it does not: SwiftUI takes an `AnyView` apart like a
-`Group` — `ForEach(0..<2) { _ in AnyView(Group { a; b }) }` is four subviews,
-and an `HStack` of it lays out four views in a row (probe `b15`; the Wave 5
-probe `s` measured one `AnyView(Group { a; b })` as two subviews, and the
-compatibility document's Subviews row already lists the difference). TUIkit
-keeps an `AnyView` as one child everywhere, as before this lane, as the brief
-asked.
+Measured, SwiftUI takes an `AnyView` apart like a `Group` —
+`ForEach(0..<2) { _ in AnyView(Group { a; b }) }` is four subviews, and an
+`HStack` of it lays out four views in a row (probe `b15`; the Wave 5 probe `s`
+measured one `AnyView(Group { a; b })` as two subviews). An `AnyView` is now a
+provider of what it erases wherever a container resolves it — a stack's, a
+`Layout`'s, the subview APIs', a `List`'s child walk — and one child, at the
+identity it always had, when it erases one view. As a `ForEach`'s ROW it stays
+one child (`AnyView.staticRowMemberCount`), so the probe's loop is two children
+here: the row type cannot say how many views it erases, and counting them
+means building every row on every walk — the `anyview` scenario's loop would
+lose its row memo, and a lazy stack of erased rows its window.
 
-**The fuller version.** `AnyView` becomes a provider of its content's
-children, re-wrapping each in an `AnyView` as a `ContentRewrapping` wrapper
-does, so the erasure still separates identities as it does now
-(`AnyView.contentContext(noting:)`). The cost is on the `anyview` scenario,
-whose children are all erased: every child walk opens the existential and asks
-it for a provider conformance. Half a day, and an A/B on `anyview`, `deep` and
-`modifiers` before it lands.
+**The fuller version.** B-D1S-5's: a loop whose rows vary counted without
+building every row on every walk (an element-to-first-child index kept across
+frames while the data is unchanged), after which an erased row can be taken
+apart as a `.varying` one. A/B owed for the provider conformance as landed:
+`anyview`, `deep`, `modifiers`.
 
 ### B-D1S-5. A loop whose rows vary is built to be counted
 

@@ -61,15 +61,26 @@ package func staticMemberCount<V: View>(_ type: V.Type) -> Int? {
 
 /// How many children a view of type `type` contributes as a `ForEach`'s whole
 /// row: ``staticMemberCount(_:)``, except that an `if` without `else` around
-/// ONE view is one. A loop places such a row whole — one child, drawing
-/// nothing while its condition is false — as it always has here, where
-/// SwiftUI counts none (decisions D1S, B-D1S-5): counting it as it is spliced
-/// would build every row of a loop that filters its elements with an `if`, a
-/// common shape, to learn which are there.
+/// ONE view is one, and so is an `AnyView` — through the wrappers that hand
+/// over their content's children, too. A loop places such a row whole — one
+/// child, drawing nothing while an `if`'s condition is false — as it always
+/// has here, where SwiftUI counts none for the `if` and what it erases for the
+/// `AnyView` (decisions D1S, B-D1S-3, B-D1S-5): counting it as it is spliced
+/// would build every row of a loop that filters its elements with an `if`, or
+/// erases its rows, to learn how many views each is.
 @MainActor
 package func staticRowMemberCount<V: View>(_ type: V.Type) -> Int? {
     if let counting = type as? any StaticMemberCounting.Type { return counting.staticRowMemberCount }
+    if type is any ChildViewProvider.Type, let wrapper = type as? any ContentRewrapping.Type {
+        return wrappedRowMemberCount(wrapper)
+    }
     return staticMemberCount(type)
+}
+
+/// ``staticRowMemberCount(_:)`` of a wrapper's content, the existential opened.
+@MainActor
+private func wrappedRowMemberCount<W: ContentRewrapping>(_: W.Type) -> Int? {
+    staticRowMemberCount(W.WrappedContent.self)
 }
 
 /// ``staticMemberCount(_:)`` of a wrapper's content, the existential opened.
@@ -139,4 +150,7 @@ extension Optional: StaticMemberCounting where Wrapped: View {
 extension ModifiedView: StaticMemberCounting where Content: ChildViewProvider {
     /// The content's: a modifier on several views reaches each of them.
     package static var staticMemberCount: Int? { TUIkitView.staticMemberCount(Content.self) }
+
+    /// The content's, as a loop's whole row.
+    package static var staticRowMemberCount: Int? { TUIkitView.staticRowMemberCount(Content.self) }
 }

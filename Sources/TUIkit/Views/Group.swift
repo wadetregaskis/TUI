@@ -84,6 +84,9 @@ extension Group: ChildViewProvider where Content: View {
 /// (`ForEach.rowShape(keepingSectionsWhole:)`, decisions B15).
 extension Group: StaticMemberCounting where Content: View {
     package static var staticMemberCount: Int? { TUIkitView.staticMemberCount(Content.self) }
+
+    /// Its content's, as a loop's whole row.
+    package static var staticRowMemberCount: Int? { TUIkitView.staticRowMemberCount(Content.self) }
 }
 
 extension Group: ChildInfoProvider where Content: View {

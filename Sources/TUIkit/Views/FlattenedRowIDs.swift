@@ -586,6 +586,14 @@ extension ConditionalView: KeyedRowProvider {
     }
 }
 
+/// An `AnyView` hands its container what it erases, taken apart where that is
+/// several views, so the loops in it are runs of the container's.
+extension AnyView: KeyedRowProvider {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+        TUIkit.appendKeyedRowRuns(of: erasedView, to: &runs, sectionsWhole: sectionsWhole)
+    }
+}
+
 extension Optional: KeyedRowProvider where Wrapped: View {
     func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
         // A `nil` still leaving keeps a slot in its container (see
