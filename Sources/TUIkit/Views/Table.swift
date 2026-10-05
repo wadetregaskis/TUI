@@ -245,6 +245,7 @@ public struct Table<Value: Identifiable>: View {
         // still two different statements, and the three containers agreeing is
         // what stops the next interactive cell from reintroducing the gap.
         .disabled(isDisabled)
+        .paintingScrollContentBackground()
     }
 }
 

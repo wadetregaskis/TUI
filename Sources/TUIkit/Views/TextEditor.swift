@@ -191,6 +191,7 @@ public struct TextEditor: View {
                 setFindPresented(true)
                 return .handled
             }
+            .paintingScrollContentBackground()
         } else {
             style.makeAnyBody(configuration: TextEditorStyleConfiguration())
         }

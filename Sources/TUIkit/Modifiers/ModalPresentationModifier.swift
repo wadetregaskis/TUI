@@ -412,7 +412,7 @@ func renderPresentedDialog<V: View>(
         context: context
     ).height
     if capHeight > 0, naturalHeight > capHeight {
-        let scrolled = ScrollView(.vertical) { content }.frame(height: capHeight)
+        let scrolled = ScrollView(.vertical) { content }.asChrome().frame(height: capHeight)
         return TUIkit.renderToBuffer(scrolled, context: context)
     }
     return TUIkit.renderToBuffer(content, context: context)

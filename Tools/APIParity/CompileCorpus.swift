@@ -2101,3 +2101,27 @@ private struct ScrollAnchorRoleShapes: View {
         }
     }
 }
+
+// MARK: - Scroll content background (lane D2S)
+
+/// SwiftUI's own example, its commonest idiom, and `.visible`.
+@MainActor
+private struct ScrollContentBackgroundShapes: View {
+    @State private var notes = ""
+
+    var body: some View {
+        VStack {
+            List {
+                Text("One")
+                Text("Two")
+                Text("Three")
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.blue)
+            ScrollView { Text("seamless") }
+                .scrollContentBackground(.visible)
+            TextEditor(text: $notes)
+                .scrollContentBackground(.automatic)
+        }
+    }
+}

@@ -472,7 +472,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // `isHeightFlexible` and that is where the ladder stops.
         var probe = context
         probe.availableHeight = naturalExtentStartingBudget(forVisible: availableHeight)
-        let probeView = ScrollView(.vertical) { content.padding(padding) }
+        let probeView = ScrollView(.vertical) { content.padding(padding) }.asChrome()
         func measure(at width: Int) -> ViewSize {
             var sized = probe
             sized.availableWidth = max(1, width)
@@ -563,7 +563,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // stop, and the container's own `clamped(toWidth:)` still does the
         // horizontal ellipsis.
         let overflows = natural.height > availableHeight && availableHeight > 0
-        let scrolled = ScrollView(.vertical) { content.padding(padding) }
+        let scrolled = ScrollView(.vertical) { content.padding(padding) }.asChrome()
             .frame(
                 width: naturalWidth,
                 height: overflows ? height : max(natural.height, 0))

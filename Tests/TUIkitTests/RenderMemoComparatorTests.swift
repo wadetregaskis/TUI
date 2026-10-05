@@ -118,6 +118,7 @@ struct RenderMemoComparatorTests {
                 ("explicitFocusID", base.focusID("elsewhere")),
                 ("isDisabled", base.disabled()),
                 ("isFocusStop", base.withoutFocusStop()),
+                ("isChrome", base.asChrome()),
             ])
         expectDistinguishes(
             "ViewThatFits", ViewThatFits { Text("a") }, identical: ViewThatFits { Text("a") },

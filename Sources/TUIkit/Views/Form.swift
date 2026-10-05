@@ -51,6 +51,7 @@ public struct Form<Content: View>: View {
 
     public var body: some View {
         _FormLayout(content: content)
+            .paintingScrollContentBackground()
     }
 }
 

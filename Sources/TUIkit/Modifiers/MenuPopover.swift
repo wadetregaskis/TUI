@@ -50,6 +50,7 @@ func renderMenuColumn(
     // (`ScrollViewReveal`). Its rows are the focus stops, never the scroller.
     let scrolled = ScrollView(.vertical) { menuColumnBody(items) }
         .withoutFocusStop()
+        .asChrome()
         .frame(height: max(1, capHeight - 2))
         .bordered(style: nil, colour: borderColor.map(AnimatedColor.init), width: 1)
     return renderToBuffer(scrolled, context: plan.sized.withAvailableHeight(capHeight))

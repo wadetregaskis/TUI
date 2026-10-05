@@ -91,6 +91,9 @@ public struct ScrollView<Content: View>: View {
     /// see ``withoutFocusStop()``.
     var isFocusStop = true
 
+    /// Whether this scroll view is framework chrome — see ``asChrome()``.
+    var isChrome = false
+
     /// Creates a scroll view.
     ///
     /// - Parameters:
@@ -133,6 +136,7 @@ public struct ScrollView<Content: View>: View {
             isFocusStop: isFocusStop
         )
         .disabled(isDisabled)
+        .paintingScrollContentBackground(reads: !isChrome)
     }
 }
 
@@ -178,6 +182,18 @@ extension ScrollView {
         copy.isFocusStop = false
         return copy
     }
+
+    /// This scroll view as framework chrome: the scroller a menu, a sheet or
+    /// a framed container puts around content too tall for it, rather than a
+    /// scrollable the app wrote. It does not answer
+    /// ``TUIkit/View/scrollContentBackground(_:)`` — the surface around it
+    /// paints its own background, and the content inside it still reads the
+    /// setting for its own scrollables.
+    func asChrome() -> ScrollView<Content> {
+        var copy = self
+        copy.isChrome = true
+        return copy
+    }
 }
 
 // MARK: - Equatable
@@ -189,6 +205,7 @@ extension ScrollView: @preconcurrency Equatable where Content: Equatable {
             && lhs.explicitFocusID == rhs.explicitFocusID
             && lhs.isDisabled == rhs.isDisabled
             && lhs.isFocusStop == rhs.isFocusStop
+            && lhs.isChrome == rhs.isChrome
     }
 }
 

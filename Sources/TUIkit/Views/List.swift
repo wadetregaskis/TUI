@@ -165,6 +165,7 @@ public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: V
             primaryAction: primaryAction
         )
         .disabled(isDisabled)
+        .paintingScrollContentBackground()
     }
 
     /// Sets an action run when a row is ACTIVATED — double-clicked, or
