@@ -393,17 +393,16 @@ struct FloatingLayerOpacityTests {
         session.lastAbsoluteEvent = MouseEvent(button: .left, phase: .dragged, x: 12, y: 7)
         session.begin(payload: "row", preview: FrameBuffer(lines: ["ROW", "ROW"]), grabX: 0, grabY: 0)
 
+        // The window's chrome host composites the preview over the page itself,
+        // so the frame it returns is the screen; the preview sits at the frame
+        // the session lifted it to.
         let scene = WindowGroup { page(Text("page")) }
-        let buffer = scene.renderScene(context: context)
-        let layer = try #require(buffer.overlays.first, "no preview layer was emitted")
-        #expect(layer.isOpaque, "a carried row is a card")
-        let composited = buffer.compositingOverlays(
-            maxWidth: context.availableWidth, maxHeight: context.availableHeight,
-            palette: context.environment.palette)
-        let placed = layer.placed(maxWidth: context.availableWidth, maxHeight: context.availableHeight)
-        let leaks = showThrough(
-            composited, rows: placed.y..<(placed.y + placed.content.height),
-            columns: placed.x..<(placed.x + placed.content.width))
+        let composited = scene.renderScene(context: context)
+        let frame = try #require(session.liftedPreviewFrame(), "no preview is lifted")
+        #expect(
+            composited.lines[frame.y].stripped.contains("ROW"),
+            "the preview is drawn: \(composited.lines.map(\.stripped))")
+        let leaks = showThrough(composited, rows: frame.y..<(frame.y + 2), columns: frame.x..<(frame.x + 3))
         #expect(leaks.isEmpty, "the page shows through the preview at \(leaks)")
         _ = tui
     }

@@ -67,15 +67,15 @@ struct TerminalClientSimulationTests {
                 // served from cache still carrying the previous model's
                 // compensation — the half-repainted screen a simulation would be
                 // useless for.
-                let before = writer.buildOutputLines(
+                let before = writer.buildReusingOutputLines(
                     buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 10, terminalHeight: 1,
-                    bgCode: "", reset: "", reusingFor: .content)[0]
+                    bgCode: "", reset: "")[0]
                 #expect(!before.contains("\u{1B}[1C"))
 
                 ProcessWideState.simulated = .appleTerminal
-                let after = writer.buildOutputLines(
+                let after = writer.buildReusingOutputLines(
                     buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 10, terminalHeight: 1,
-                    bgCode: "", reset: "", reusingFor: .content)[0]
+                    bgCode: "", reset: "")[0]
                 #expect(after.contains("\u{1B}[1C"), "the cached row survived a change of terminal model")
             }
         }

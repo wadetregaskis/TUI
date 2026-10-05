@@ -41,13 +41,15 @@ final class ScreenSelection: @unchecked Sendable {
     // Touched from the main actor only: the dispatcher's events, the input
     // chain's keys and the run loop's frame all run there.
 
-    /// A cell, in content-area coordinates.
+    /// A cell. The pointer's and the hit regions' are the screen's; a
+    /// selection keeps its own in the content area's, the page's, so it stays
+    /// on the text it selected when the bar above the page changes height.
     struct Point: Equatable {
         var x: Int
         var y: Int
     }
 
-    /// A rectangle of cells, in content-area coordinates.
+    /// A rectangle of cells, in the coordinates its ``Point``s are in.
     struct Rect: Equatable {
         var x: Int
         var y: Int
@@ -118,6 +120,11 @@ final class ScreenSelection: @unchecked Sendable {
     /// The last frame's content width.
     private(set) var frameWidth = 0
 
+    /// The screen row the last frame's content area starts at: the rows the
+    /// window's top bar takes above it. What turns the screen's coordinates,
+    /// which the pointer reports, into the page's.
+    private(set) var frameTop = 0
+
     /// Whether a drag's release copies the selection — the scene's
     /// ``Scene/textSelectionCopiesOnRelease(_:)``.
     var copiesOnRelease = false
@@ -147,29 +154,35 @@ final class ScreenSelection: @unchecked Sendable {
     /// Whether anything is selected.
     var hasSelection: Bool { current != nil }
 
-    /// The content area of the last frame.
-    var contentArea: Rect { Rect(x: 0, y: 0, width: frameWidth, height: frameLines.count) }
+    /// The content area of the last frame, in the screen's coordinates.
+    var contentArea: Rect { Rect(x: 0, y: frameTop, width: frameWidth, height: frameLines.count) }
+
+    /// `point`, a cell of the screen, as a cell of the page.
+    private func onPage(_ point: Point) -> Point { Point(x: point.x, y: point.y - frameTop) }
 }
 
 // MARK: - Making a selection
 
 extension ScreenSelection {
-    /// Starts a selection at `point`, clipped to `clip`.
+    /// Starts a selection at `point`, clipped to `clip` — both the screen's.
     func begin(at point: Point, clip: Rect, shape: Shape, unit: Unit) {
-        guard let clip = clip.intersection(contentArea), clip.contains(point) else { return }
+        guard var clip = clip.intersection(contentArea), clip.contains(point) else { return }
+        let point = onPage(point)
+        clip.y -= frameTop
         current = Selection(
             anchor: point, head: point, clip: clip, shape: shape, unit: unit, text: "")
         refreshText()
     }
 
-    /// Moves the head of the selection being made to `point`, clamped to its
-    /// clip.
+    /// Moves the head of the selection being made to `point`, a cell of the
+    /// screen, clamped to its clip.
     ///
     /// A stream dragged past the clip's bottom runs to the end of its last row,
     /// and past its top to the start of its first, as a terminal's selection
     /// does at the edge of the screen and a Mac's does past the end of a text.
     func extend(to point: Point) {
         guard var selection = current, selection.isMaking else { return }
+        let point = onPage(point)
         let clip = selection.clip
         if selection.shape == .stream, point.y >= clip.y + clip.height {
             selection.head = Point(x: clip.x + clip.width - 1, y: clip.y + clip.height - 1)
@@ -197,8 +210,10 @@ extension ScreenSelection {
         menuAnchor = nil
     }
 
-    /// Whether `point` is one of the cells the highlight is drawn on.
+    /// Whether `point`, a cell of the screen, is one of the cells the highlight
+    /// is drawn on.
     func highlights(_ point: Point) -> Bool {
+        let point = onPage(point)
         guard let selection = current, selection.isHighlighted, !selection.isMaking,
             point.y >= 0, point.y < frameLines.count
         else { return false }
@@ -216,7 +231,7 @@ extension ScreenSelection {
     /// Elsewhere the press is someone else's — an app's own `.contextMenu`.
     func openMenu(at point: Point) -> Bool {
         guard highlights(point) else { return false }
-        menuAnchor = point
+        menuAnchor = onPage(point)
         return true
     }
 
@@ -267,13 +282,18 @@ extension ScreenSelection {
     ///   clears it too: what is under a modal's backdrop is not the user's to
     ///   copy, and its keys are the presentation's. The selection's own menu
     ///   is the exception.
+    ///
+    /// `top` is the screen row the page is drawn from, below the window's top
+    /// bar.
     @MainActor
     func takeFrame(
-        _ buffer: FrameBuffer, width: Int, palette: any Palette, underPresentation: Bool = false
+        _ buffer: FrameBuffer, width: Int, palette: any Palette, top: Int = 0,
+        underPresentation: Bool = false
     ) -> FrameBuffer {
         let resized = width != frameWidth
         frameLines = buffer.lines
         frameWidth = width
+        frameTop = top
         guard var selection = current else { return buffer }
         if resized || (underPresentation && menuAnchor == nil) {
             clear()
@@ -311,10 +331,12 @@ extension ScreenSelection {
         return cells
     }
 
-    /// Whether the cell at `point` of the last frame shows text: a character
-    /// that is not a blank, and not one of the box-drawing characters a border
-    /// or a rule is drawn with. A press there on a list row is the text's.
+    /// Whether the cell at `point`, a cell of the screen, of the last frame
+    /// shows text: a character that is not a blank, and not one of the
+    /// box-drawing characters a border or a rule is drawn with. A press there
+    /// on a list row is the text's.
     func isText(at point: Point) -> Bool {
+        let point = onPage(point)
         guard point.y >= 0, point.y < frameLines.count, point.x >= 0 else { return false }
         let cells = Self.cells(of: frameLines[point.y])
         guard point.x < cells.count else { return false }

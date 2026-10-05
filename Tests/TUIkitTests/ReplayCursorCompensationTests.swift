@@ -62,9 +62,9 @@ struct ReplayCursorCompensationTests {
     /// into — the two halves of what a tick puts on screen.
     private func breathingRow(width: Int) throws -> (run: AnimatedCellRun, built: String) {
         let (buffer, writer) = breathingList(width: width)
-        let built = writer.buildOutputLines(
+        let built = writer.buildReusingOutputLines(
             buffer: buffer, terminalWidth: width, terminalHeight: 8,
-            bgCode: "\u{1B}[49m", reset: ANSIRenderer.reset, reusingFor: .content)
+            bgCode: "\u{1B}[49m", reset: ANSIRenderer.reset)
         let run = try #require(
             buffer.animatedCells.first { $0.frame(atIndex: 0).unicodeScalars.contains("\u{2699}") },
             "the focused row left no animated run carrying the emoji")

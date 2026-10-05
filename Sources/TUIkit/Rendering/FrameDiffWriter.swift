@@ -127,27 +127,15 @@ final class FrameDiffWriter {
     /// demonstrate away.
     private var appliedModel: RenderingModel?
 
-    /// The previous frame's content lines (terminal-ready strings with ANSI codes).
+    /// The previous frame's lines (terminal-ready strings with ANSI codes) —
+    /// the whole screen, chrome included, since the scene draws its chrome into
+    /// the frame.
     private var previousContentLines: [String] = []
 
-    /// The previous frame's status bar lines.
-    private var previousStatusBarLines: [String] = []
-
-    /// The previous frame's app header lines.
-    private var previousAppHeaderLines: [String] = []
-
-    /// The frame last built for the terminal — header, content and status bar
-    /// lines, in screen order. What a headless harness compares two runs by
-    /// (see `HeadlessApp.screen`).
+    /// The frame last built for the terminal, in screen order. What a headless
+    /// harness compares two runs by (see `HeadlessApp.screen`).
     package var shownLines: [String] {
-        previousAppHeaderLines + previousContentLines + previousStatusBarLines
-    }
-
-    /// The three independently-diffed terminal regions. Each keeps its own
-    /// previous built lines (above) and its own background colour, so the
-    /// incremental builder's reuse state is tracked per region.
-    enum OutputRegion {
-        case content, statusBar, appHeader
+        previousContentLines
     }
 
     /// The parameters that feed every built line. If any differ from the
@@ -158,8 +146,8 @@ final class FrameDiffWriter {
         let reset: String
     }
 
-    /// Snapshot of one region's raw buffer input + build parameters from the
-    /// previous frame, used by `buildOutputLines(…reusingFor:)` to decide which
+    /// Snapshot of the frame's raw buffer input + build parameters from the
+    /// previous frame, used by `buildReusingOutputLines(…)` to decide which
     /// rows can reuse their previously-built line. `rawLines` is the buffer's
     /// own array (an O(1) copy-on-write reference, not a per-element copy).
     private struct LineReuseCache {
@@ -182,10 +170,8 @@ final class FrameDiffWriter {
     }
 
     private var contentReuse = LineReuseCache()
-    private var statusBarReuse = LineReuseCache()
-    private var appHeaderReuse = LineReuseCache()
 
-    /// One region's previous frame taken apart into cells, so a row is
+    /// The previous frame taken apart into cells, so a row is
     /// decomposed ONCE: the row this frame diffs as "new" is the row the next
     /// frame diffs as "previous", and doing both sides every frame doubles the
     /// work for no new information.
@@ -243,11 +229,9 @@ final class FrameDiffWriter {
     private var terminalStyle: SGRState?
 
     private var contentCells = CellCache()
-    private var statusBarCells = CellCache()
-    private var appHeaderCells = CellCache()
 
     /// Number of rows actually (re)built by the most recent
-    /// `buildOutputLines(…reusingFor:)` call; the remainder were reused from the
+    /// `buildReusingOutputLines(…)` call; the remainder were reused from the
     /// previous frame. Exposed for tests and profiling.
     private(set) var rowsBuiltInLastBuild = 0
 
@@ -298,8 +282,8 @@ extension FrameDiffWriter {
     /// became switchable at runtime in 0745a47b (2026-08-26), so the first
     /// thing here is to ask whether it moved since the last frame
     /// (`invalidateIfProgramChanged()`) and, when it did, call `invalidate()`
-    /// — dropping the previous frames, all three reuse caches, all three cell
-    /// caches and the belief about what the terminal is wearing. Nothing else
+    /// — dropping the previous frame, the reuse cache, the cell cache and the
+    /// belief about what the terminal is wearing. Nothing else
     /// here writes.
     ///
     /// - Parameters:
@@ -348,31 +332,29 @@ extension FrameDiffWriter {
     /// When the rest match the previous frame the
     /// previously-built line IS exactly what the builder would produce: output
     /// is byte-identical to ``buildOutputLines(buffer:terminalWidth:terminalHeight:bgCode:reset:)``.
-    /// The downstream `writeXxxDiff` still compares the built lines to decide
+    /// The downstream `writeContentDiff` still compares the built lines to decide
     /// what to write, so write behaviour is unchanged; this only skips the
     /// per-line clip / compensation / pad work for rows that did not change —
     /// the win for partial-update frames (a cursor blink, a spinner tick, or a
     /// one-row selection move re-renders the whole screen but changes one row).
     ///
-    /// Reuse state is keyed by `region` (each region has its own previous built
-    /// lines and background colour) and is self-contained: the cache holds the
-    /// lines this builder produced, NOT the lines the diff last wrote. The two
+    /// Reuse state is self-contained: the cache holds the lines this builder
+    /// produced, NOT the lines the diff last wrote. The two
     /// are the same after an ordinary frame and differ after an animation
     /// replay, which patches a run's current frame into what is on screen.
-    func buildOutputLines(
+    func buildReusingOutputLines(
         buffer: FrameBuffer,
         terminalWidth: Int,
         terminalHeight: Int,
         bgCode: String,
-        reset: String,
-        reusingFor region: OutputRegion
+        reset: String
     ) -> [String] {
         invalidateIfProgramChanged()
         let eraseLine = "\u{1B}[2K"
         let emptyLine = bgCode + eraseLine + reset
         let params = LineParams(width: terminalWidth, bgCode: bgCode, reset: reset)
 
-        let cache = reuseCache(for: region)
+        let cache = contentReuse
         let previousBuilt = cache.builtLines
         // A row is reusable only when every parameter feeding `buildLine` is
         // unchanged; otherwise the cached built line is stale.
@@ -411,16 +393,13 @@ extension FrameDiffWriter {
             }
         }
 
-        setReuseCache(
-            LineReuseCache(
-                rawLines: buffer.lines, rawHeight: buffer.height, params: params,
-                builtLines: lines),
-            for: region
-        )
+        contentReuse = LineReuseCache(
+            rawLines: buffer.lines, rawHeight: buffer.height, params: params,
+            builtLines: lines)
         rowsBuiltInLastBuild = builtCount
         if Self.debugEnabled {
             FileHandle.standardError.write(
-                Data("[FrameDiffWriter] built \(builtCount) of \(terminalHeight) rows (\(region))\n".utf8))
+                Data("[FrameDiffWriter] built \(builtCount) of \(terminalHeight) rows\n".utf8))
         }
         return lines
     }
@@ -711,38 +690,6 @@ extension FrameDiffWriter {
             fields: fields, compensating: compensatingCursorAdvance)
     }
 
-    private func reuseCache(for region: OutputRegion) -> LineReuseCache {
-        switch region {
-        case .content: return contentReuse
-        case .statusBar: return statusBarReuse
-        case .appHeader: return appHeaderReuse
-        }
-    }
-
-    private func cellCache(for region: OutputRegion) -> CellCache {
-        switch region {
-        case .content: return contentCells
-        case .statusBar: return statusBarCells
-        case .appHeader: return appHeaderCells
-        }
-    }
-
-    private func setCellCache(_ cache: CellCache, for region: OutputRegion) {
-        switch region {
-        case .content: contentCells = cache
-        case .statusBar: statusBarCells = cache
-        case .appHeader: appHeaderCells = cache
-        }
-    }
-
-    private func setReuseCache(_ cache: LineReuseCache, for region: OutputRegion) {
-        switch region {
-        case .content: contentReuse = cache
-        case .statusBar: statusBarReuse = cache
-        case .appHeader: appHeaderReuse = cache
-        }
-    }
-
     /// Compares new content lines with the previous frame and writes only changed lines.
     func writeContentDiff(
         newLines: [String],
@@ -754,7 +701,7 @@ extension FrameDiffWriter {
     ) {
         let changedRows = writeDiff(
             newLines: newLines, previousLines: previousContentLines, terminal: terminal,
-            startRow: startRow, terminalWidth: terminalWidth, region: .content)
+            startRow: startRow, terminalWidth: terminalWidth)
         repaintRightEdge(
             changedRows: changedRows,
             in: newLines,
@@ -767,65 +714,11 @@ extension FrameDiffWriter {
         previousContentLines = newLines
     }
 
-    /// Compares new status bar lines with the previous frame and writes only changed lines.
-    func writeStatusBarDiff(
-        newLines: [String],
-        terminal: any TerminalProtocol,
-        startRow: Int,
-        terminalWidth: Int,
-        bgCode: String,
-        reset: String
-    ) {
-        let changedRows = writeDiff(
-            newLines: newLines, previousLines: previousStatusBarLines, terminal: terminal,
-            startRow: startRow, terminalWidth: terminalWidth, region: .statusBar)
-        repaintRightEdge(
-            changedRows: changedRows,
-            in: newLines,
-            terminal: terminal,
-            startRow: startRow,
-            terminalWidth: terminalWidth,
-            bgCode: bgCode,
-            reset: reset
-        )
-        previousStatusBarLines = newLines
-    }
-
-    /// Compares new app header lines with the previous frame and writes only changed lines.
-    func writeAppHeaderDiff(
-        newLines: [String],
-        terminal: any TerminalProtocol,
-        startRow: Int,
-        terminalWidth: Int,
-        bgCode: String,
-        reset: String
-    ) {
-        let changedRows = writeDiff(
-            newLines: newLines, previousLines: previousAppHeaderLines, terminal: terminal,
-            startRow: startRow, terminalWidth: terminalWidth, region: .appHeader)
-        repaintRightEdge(
-            changedRows: changedRows,
-            in: newLines,
-            terminal: terminal,
-            startRow: startRow,
-            terminalWidth: terminalWidth,
-            bgCode: bgCode,
-            reset: reset
-        )
-        previousAppHeaderLines = newLines
-    }
-
     /// Invalidates all cached previous frames, forcing a full repaint on the next render.
     func invalidate() {
         previousContentLines = []
-        previousStatusBarLines = []
-        previousAppHeaderLines = []
         contentReuse = LineReuseCache()
-        statusBarReuse = LineReuseCache()
-        appHeaderReuse = LineReuseCache()
         contentCells = CellCache()
-        statusBarCells = CellCache()
-        appHeaderCells = CellCache()
         // The cached frames are gone, so the next pass writes whole lines.
         // A built row states its BACKGROUND, not a reset, so the belief is
         // dropped rather than reset: `nil` makes the whole-line arm close the
@@ -883,12 +776,12 @@ extension FrameDiffWriter {
     @discardableResult
     fileprivate func writeDiff(
         newLines: [String], previousLines: [String], terminal: any TerminalProtocol,
-        startRow: Int, terminalWidth: Int, region: OutputRegion
+        startRow: Int, terminalWidth: Int
     ) -> [Int] {
         let changedRows = Self.computeChangedRows(newLines: newLines, previousLines: previousLines)
-        var cache = cellCache(for: region)
+        var cache = contentCells
         cache.fit(to: newLines.count)
-        defer { setCellCache(cache, for: region) }
+        defer { contentCells = cache }
 
         // The styling this pass has left the terminal in, carried from row to
         // row. Rows are written in ascending order with nothing between them but

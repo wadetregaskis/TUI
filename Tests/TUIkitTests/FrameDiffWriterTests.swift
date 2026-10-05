@@ -525,9 +525,9 @@ struct FrameDiffWriterIncrementalReuseTests {
         _ writer: FrameDiffWriter, _ rows: [String],
         width: Int, height: Int, terminal: MockTerminal
     ) -> [String] {
-        let lines = writer.buildOutputLines(
+        let lines = writer.buildReusingOutputLines(
             buffer: makeBuffer(rows), terminalWidth: width, terminalHeight: height,
-            bgCode: bg, reset: reset, reusingFor: .content
+            bgCode: bg, reset: reset
         )
         writer.writeContentDiff(
             newLines: lines, terminal: terminal, startRow: 1,
@@ -613,9 +613,9 @@ struct FrameDiffWriterIncrementalReuseTests {
 
         // The next frame renders the same raw content (the row looks the same
         // unfocused as focused) …
-        let again = writer.buildOutputLines(
+        let again = writer.buildReusingOutputLines(
             buffer: makeBuffer(rows), terminalWidth: width, terminalHeight: height,
-            bgCode: bg, reset: reset, reusingFor: .content
+            bgCode: bg, reset: reset
         )
         #expect(again == built, "the build handed back the patch: \(again[0].debugDescription)")
 
@@ -640,9 +640,9 @@ struct FrameDiffWriterIncrementalReuseTests {
 
         buildAndCommit(writer, rows, width: 20, height: height, terminal: terminal)
         // Same content, wider terminal → no row can be reused (padding differs).
-        let lines = writer.buildOutputLines(
+        let lines = writer.buildReusingOutputLines(
             buffer: makeBuffer(rows), terminalWidth: 30, terminalHeight: height,
-            bgCode: bg, reset: reset, reusingFor: .content
+            bgCode: bg, reset: reset
         )
         #expect(writer.rowsBuiltInLastBuild == height)
         // And it still matches the pure build at the new width.
@@ -666,31 +666,5 @@ struct FrameDiffWriterIncrementalReuseTests {
         writer.invalidate()
         buildAndCommit(writer, ["a", "b"], width: width, height: height, terminal: terminal)
         #expect(writer.rowsBuiltInLastBuild == height)   // cache cleared → all rebuilt
-    }
-
-    @Test("Regions reuse independently")
-    func regionsAreIndependent() {
-        let writer = FrameDiffWriter(isAppleTerminal: false)
-        let height = 3
-        let contentBuffer = makeBuffer(["content"])
-        let statusBuffer = makeBuffer(["status"])
-
-        // Prime both regions.
-        _ = writer.buildOutputLines(buffer: contentBuffer, terminalWidth: 20, terminalHeight: height,
-                                    bgCode: bg, reset: reset, reusingFor: .content)
-        _ = writer.buildOutputLines(buffer: statusBuffer, terminalWidth: 20, terminalHeight: height,
-                                    bgCode: bg, reset: reset, reusingFor: .statusBar)
-
-        // Content changing rebuilds content …
-        _ = writer.buildOutputLines(buffer: makeBuffer(["CHANGED"]), terminalWidth: 20,
-                                    terminalHeight: height,
-                                    bgCode: bg, reset: reset, reusingFor: .content)
-        #expect(writer.rowsBuiltInLastBuild == 1)
-
-        // … and leaves the status bar's own cache untouched: it still reuses
-        // every row, which it could not do if the two shared one cache.
-        _ = writer.buildOutputLines(buffer: statusBuffer, terminalWidth: 20, terminalHeight: height,
-                                    bgCode: bg, reset: reset, reusingFor: .statusBar)
-        #expect(writer.rowsBuiltInLastBuild == 0)
     }
 }

@@ -265,8 +265,8 @@ extension View {
 extension View {
     /// Declares the app header content for this view.
     ///
-    /// The header is rendered at the top of the terminal, outside the view tree,
-    /// similar to the status bar at the bottom. When no `.appHeader` modifier is
+    /// The header is drawn at the top of the terminal by the window's chrome
+    /// host, above the content, as the status bar is drawn at the bottom. When no `.appHeader` modifier is
     /// present, the header is hidden and no vertical space is reserved.
     ///
     /// ## Example

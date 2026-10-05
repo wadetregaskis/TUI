@@ -12,8 +12,9 @@
 /// A status bar that displays at the bottom of the terminal.
 ///
 /// The status bar shows keyboard shortcuts and their descriptions.
-/// It's rendered separately from the main view tree and is never
-/// affected by overlays or dimming.
+/// The window's chrome host draws it below the content, outside the area
+/// overlays are composited in, so it is never affected by overlays or
+/// dimming.
 ///
 /// # Layout
 ///

@@ -9,8 +9,8 @@
 /// Manages the app header state for the running application.
 ///
 /// `AppHeaderState` stores the rendered content buffer that views
-/// provide via the `.appHeader { ... }` modifier. The `RenderLoop`
-/// reads this buffer each frame and renders it at the top of the terminal.
+/// provide via the `.appHeader { ... }` modifier. The window's chrome host
+/// reads this buffer each frame and draws it at the top of the terminal.
 ///
 /// When no content is set, the header is hidden and no vertical space
 /// is reserved.
@@ -85,6 +85,15 @@ final class AppHeaderState: @unchecked Sendable {
     var estimatedHeight: Int {
         previousHeight
     }
+
+    /// The rows the window's chrome host reserves above the content in the
+    /// walk about to run: set by `RenderLoop` before each walk of the scene —
+    /// nothing for the first frame's measuring walk, ``estimatedHeight`` for
+    /// the drawn one, and the header's real height for a correction.
+    ///
+    /// Not ``height``: the host lays the content out BEFORE the content draws
+    /// the header, so the height the walk will produce is not known yet.
+    var reservedHeight = 0
 }
 
 // MARK: - Render Pass
@@ -116,7 +125,7 @@ extension EnvironmentValues {
     /// The app header state.
     ///
     /// Used internally by ``AppHeaderModifier`` to store the header content
-    /// and by `RenderLoop` to render it at the top of the terminal.
+    /// and by the window's chrome host to draw it at the top of the terminal.
     ///
     /// `nil` outside a running application. These are the app's own objects,
     /// created by `AppRunner` and published by `RenderLoop.buildEnvironment()`
@@ -130,23 +139,5 @@ extension EnvironmentValues {
     var appHeader: AppHeaderState? {
         get { self[AppHeaderKey.self] }
         set { self[AppHeaderKey.self] = newValue }
-    }
-}
-
-// MARK: - Pointer Coordinates
-
-extension MouseEvent {
-    /// This event as the content sees it: its row counted from the top of the
-    /// content, `headerHeight` lines below the top of the terminal.
-    ///
-    /// A terminal reports the pointer on the screen, header included, while
-    /// every hit-test region is laid out in the content's own coordinates. Each
-    /// place an event enters an app takes the header off here: the run loop's
-    /// event funnel, and `HeadlessApp`, whose scripts aim at what the screen
-    /// draws.
-    func inContent(belowHeaderOf headerHeight: Int) -> MouseEvent {
-        MouseEvent(
-            button: button, phase: phase, x: x, y: y - headerHeight,
-            shift: shift, ctrl: ctrl, meta: meta, clickCount: clickCount)
     }
 }

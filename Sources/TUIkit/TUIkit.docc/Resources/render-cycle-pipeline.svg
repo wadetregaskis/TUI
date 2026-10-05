@@ -75,7 +75,7 @@
 <g id="node6" class="node">
 <title>s6</title>
 <path fill="#1f9b76" stroke="black" stroke-width="0" d="M155.41,-468C155.41,-468 58.87,-468 58.87,-468 52.88,-468 46.88,-462 46.88,-456 46.88,-456 46.88,-444 46.88,-444 46.88,-438 52.88,-432 58.88,-432 58.88,-432 155.41,-432 155.41,-432 161.41,-432 167.41,-438 167.41,-444 167.41,-444 167.41,-456 167.41,-456 167.41,-462 161.41,-468 155.41,-468"/>
-<text xml:space="preserve" text-anchor="middle" x="107.14" y="-445.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">6 · Render view tree</text>
+<text xml:space="preserve" text-anchor="middle" x="107.14" y="-445.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">6 · Render scene + chrome</text>
 </g>
 <!-- s5&#45;&gt;s6 -->
 <g id="edge5" class="edge">
@@ -111,7 +111,7 @@
 <g id="node9" class="node">
 <title>s9</title>
 <path fill="#1f9b76" stroke="black" stroke-width="0" d="M174.54,-252C174.54,-252 39.75,-252 39.75,-252 33.75,-252 27.75,-246 27.75,-240 27.75,-240 27.75,-228 27.75,-228 27.75,-222 33.75,-216 39.75,-216 39.75,-216 174.54,-216 174.54,-216 180.54,-216 186.54,-222 186.54,-228 186.54,-228 186.54,-240 186.54,-240 186.54,-246 180.54,-252 174.54,-252"/>
-<text xml:space="preserve" text-anchor="middle" x="107.14" y="-229.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">9 · App header + diff content</text>
+<text xml:space="preserve" text-anchor="middle" x="107.14" y="-229.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">9 · Diff the frame</text>
 </g>
 <!-- s8&#45;&gt;s9 -->
 <g id="edge8" class="edge">
@@ -123,7 +123,7 @@
 <g id="node10" class="node">
 <title>s10</title>
 <path fill="#1f9b76" stroke="black" stroke-width="0" d="M160.29,-180C160.29,-180 54,-180 54,-180 48,-180 42,-174 42,-168 42,-168 42,-156 42,-156 42,-150 48,-144 54,-144 54,-144 160.29,-144 160.29,-144 166.29,-144 172.29,-150 172.29,-156 172.29,-156 172.29,-168 172.29,-168 172.29,-174 166.29,-180 160.29,-180"/>
-<text xml:space="preserve" text-anchor="middle" x="107.14" y="-157.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">10 · Render status bar</text>
+<text xml:space="preserve" text-anchor="middle" x="107.14" y="-157.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">10 · Keep the replay frame</text>
 </g>
 <!-- s9&#45;&gt;s10 -->
 <g id="edge9" class="edge">

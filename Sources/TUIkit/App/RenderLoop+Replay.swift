@@ -17,21 +17,9 @@
 /// beside the replay it gates rather than beside the struct's properties, which
 /// also keeps `RenderLoop.swift` inside its file-length limit.
 extension RenderActivity {
-    /// The clocks among ``animatedClocks`` that the CHROME — the app header, the
-    /// status bar — left runs for.
-    ///
-    /// Those keep the clock live but can never be replayed: the replay patches the
-    /// content's lines at the content's start row, and the chrome is written by its
-    /// own passes at its own rows, so only a render advances a run up there. With
-    /// nothing to tell the two halves apart, a `Spinner` in the header froze the
-    /// moment the page ALSO left a run — any run, on any clock: a second spinner, a
-    /// focused control's breath, a caret — because the tick was replayed on the
-    /// strength of the page's run alone, reported served, and so never rendered.
-    var chromeClocks: Set<AnimationClock> { Set(chromeRuns.lazy.map(\.clock)) }
-
     /// Whether `clock` can be advanced without walking the view tree.
     func canReplay(_ clock: AnimationClock) -> Bool {
-        animatedClocks.contains(clock) && !chromeClocks.contains(clock) && !usesPulse && !usesCursor
+        animatedClocks.contains(clock) && !usesPulse && !usesCursor
     }
 
     /// Which of the clocks that just ticked can be advanced by replaying the
@@ -50,16 +38,11 @@ extension RenderActivity {
     /// unchanged: `canReplay` refuses every clock while `usesPulse` or
     /// `usesCursor` is set, so this comes back empty and the caller renders.
     ///
-    /// So is a ticked clock the chrome animates on — and that one empties the
-    /// whole answer, not just its own entry. The chrome is advanced only by a
-    /// render, and a render serves every clock, so replaying the page's clocks
-    /// first would patch a frame about to be redrawn; worse, it would report the
-    /// tick served, which is exactly how the header's half went undrawn. See
-    /// ``chromeClocks``.
+    /// The chrome's runs are the frame's like the page's: the bars are rows of
+    /// the frame the replay patches, so a `Spinner` in the app header advances
+    /// by replay too.
     func replayableClocks(among ticked: some Sequence<AnimationClock>) -> Set<AnimationClock> {
-        let clocks = Set(ticked)
-        guard clocks.isDisjoint(with: chromeClocks) else { return [] }
-        return clocks.filter(canReplay)
+        Set(ticked).filter(canReplay)
     }
 }
 
@@ -190,10 +173,6 @@ extension RenderLoop {
     /// on the page steps on. The page's runs do not join the plan while a reader is
     /// present: every wake then renders, and a render serves them.
     ///
-    /// A run in the chrome is advanced only by a render, so its next change joins
-    /// the plan whether or not there is a reader. It used to keep the clock's
-    /// interval instead, because the chrome's runs were not kept to ask.
-    ///
     /// The plan is the soonest of those. With none of them — nothing animating —
     /// it is the clock's interval.
     ///
@@ -215,7 +194,7 @@ extension RenderLoop {
             return soonest
         }
         let readerBoundary = reads ? Self.timeToNextStep(ofCursorClockAt: elapsed(.cursor)) : nil
-        let plan = [readerBoundary, soonestChange(lastActivity.chromeRuns), reads ? nil : soonestChange(replayable?.runs ?? [])]
+        let plan = [readerBoundary, reads ? nil : soonestChange(replayable?.runs ?? [])]
         return plan.compactMap { $0 }.min() ?? AnimationClock.seconds(forTicks: AnimationClock.standardFrameTicks)
     }
 

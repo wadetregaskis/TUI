@@ -87,20 +87,53 @@ struct StatusBarFrameDiffTests {
         return Int(fields[0])
     }
 
+    /// The screen every write since the terminal was last reset leaves, row by
+    /// row (1-based, as the cursor moves count them), escapes stripped: each
+    /// cursor move places the text after it, and `ESC[2K` erases the row.
+    ///
+    /// The stronger oracle, for a frame that changes some rows of the bar and
+    /// leaves others alone: a row an earlier frame drew and this one did not
+    /// rewrite still shows, as it does on a terminal.
+    private func screen(_ terminal: MockTerminal, width: Int = 80, height: Int = 24) -> [Int: String] {
+        var grid = Array(repeating: Array(repeating: Character(" "), count: width), count: height + 1)
+        var row = 1
+        var column = 1
+        for chunk in terminal.writtenOutput {
+            if let moved = cursorRow(chunk) {
+                row = moved
+                let fields = chunk.dropFirst(2).dropLast().split(separator: ";")
+                column = Int(fields[1]) ?? 1
+                continue
+            }
+            if chunk.contains("\u{1B}[2K"), row <= height {
+                grid[row] = Array(repeating: " ", count: width)
+            }
+            for character in chunk.stripped where row <= height && column <= width {
+                grid[row][column - 1] = character
+                column += 1
+            }
+        }
+        var rows: [Int: String] = [:]
+        for index in 1...height { rows[index] = String(grid[index]) }
+        return rows
+    }
+
     /// Whether a row's paint draws anything but spaces.
     private func isInked(_ paint: String?) -> Bool {
         paint?.contains(where: { $0 != " " }) ?? false
     }
 
-    /// A tooltip in the bar moves the bar's top edge, and every row of the bar has
-    /// to be written at its new place — on the way up and on the way down.
+    /// A tooltip in the bar moves the bar's top edge, and the screen shows every
+    /// row of the bar at its new place — on the way up and on the way down.
     ///
-    /// The frame diff compares the bar's rows by index from wherever the bar is
-    /// written, and only the bar appearing or disappearing invalidated it. A
-    /// tooltip grows the bar upwards by a row, and the top border — the same bytes
-    /// either side of the move — compared equal and was skipped. Showing the
-    /// tooltip left blank the row the content pass had just erased; hiding it never
-    /// revisited the row the border returned to, so the tooltip's text stayed there.
+    /// When the bar was a diff region of its own, the diff compared its rows by
+    /// index from wherever the bar was written, and only the bar appearing or
+    /// disappearing invalidated it. A tooltip grows the bar upwards by a row, and
+    /// the top border — the same bytes either side of the move — compared equal
+    /// and was skipped. Showing the tooltip left blank the row the content pass had
+    /// just erased; hiding it never revisited the row the border returned to, so
+    /// the tooltip's text stayed there. The bar is rows of the frame now, diffed by
+    /// their place on the screen; this holds it to what the screen shows.
     @Test("A tooltip that moves the bar's top edge repaints every row of the bar, both ways")
     func tooltipMovingTheBarRepaintsIt() {
         let harness = RenderLoopHarness()
@@ -111,22 +144,23 @@ struct StatusBarFrameDiffTests {
 
         // 80x24, `MockTerminal`'s size: the grown bar is rows 21...24.
         tooltips.hovering("Rebuild the index", handlerID: nil, nowNanos: 0)
-        harness.terminal.reset()
         _ = loop.render()
         #expect(harness.statusBar.height == 4, "pre-condition: the tooltip must add a row, or nothing moved")
-        let shown = paints(harness.terminal)
+        let shown = screen(harness.terminal)
         for row in 21...24 {
             #expect(isInked(shown[row]), "row \(row) of the grown bar: \(shown[row].debugDescription)")
         }
+        #expect((shown[22] ?? "").contains("Rebuild the index"), "\(shown)")
 
         tooltips.leaving("Rebuild the index")
-        harness.terminal.reset()
         _ = loop.render()
         #expect(harness.statusBar.height == 3, "pre-condition: the tooltip must be gone")
-        let hidden = paints(harness.terminal)
+        let hidden = screen(harness.terminal)
+        #expect(!isInked(hidden[21]), "the row the bar's top edge left: \(hidden[21].debugDescription)")
         for row in 22...24 {
             #expect(isInked(hidden[row]), "row \(row) of the shrunk bar: \(hidden[row].debugDescription)")
         }
+        #expect(!(hidden[22] ?? "").contains("Rebuild"), "the tooltip's text is gone: \(hidden)")
     }
 
     /// A bar with no items still draws a tooltip in the rows it made room for.

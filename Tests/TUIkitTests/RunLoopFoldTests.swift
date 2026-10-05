@@ -206,31 +206,34 @@ struct RunLoopFoldTests {
         #expect(runner.serveAnimationTicks(renderer: loop, cursorTimer: timer))
     }
 
-    // MARK: - The chrome is served by a render
+    // MARK: - The chrome is replayed with the page
 
-    /// The page's run is no licence to skip the header's render.
+    /// A run in the app header is advanced by the replay, as the page's are.
     ///
-    /// A run in the app header can only be advanced by a render: the replay patches
-    /// the content's lines at the content's start row. On a page with no run of its
-    /// own the replay found nothing and the loop rendered — but give the page any
-    /// run (this spinner, a focused control's breath, a caret) and the tick was
-    /// replayed on the strength of THAT run and reported served, so the header's
-    /// spinner held the glyph the last render drew until a key press forced a frame.
-    @Test("A tick the app header animates on is rendered, even when the page's own run could be replayed")
-    func chromeRunTickFallsBack() {
+    /// When the bars were written by passes of their own at rows of their own,
+    /// the replay — which patches one set of lines at one start row — could not
+    /// reach a header run, so such a tick had to fall back to a render, and the
+    /// plan had to count the header's runs apart from the page's (a page run
+    /// once licensed a replay that left the header's spinner frozen). The chrome
+    /// host draws the bars into the frame now: the header's run is one of the
+    /// frame's replayable runs, the plan counts it, and the tick is served by
+    /// replay.
+    @Test("A tick the app header animates on is replayed with the page's")
+    func chromeRunTickIsReplayed() {
         let runner = freshRunner(HeaderSpinningProbeApp())
         let harness = Harness()
         let loop = harness.loop(HeaderSpinningProbeApp())
         let timer = CursorTimer(renderNotifier: appState)
         _ = loop.render(cursorTimer: timer)
         let headerRuns = harness.appHeader.contentBuffer?.animatedCells ?? []
-        let pageRuns = loop.replayable?.runs ?? []
+        let replayable = loop.replayable?.runs ?? []
         #expect(!headerRuns.isEmpty, "pre-condition: the header's spinner must leave a run")
-        #expect(!pageRuns.isEmpty, "pre-condition: the page's spinner must leave a replayable run")
+        // The header sits in the frame's first rows: bordered, so its content row
+        // is row 1 of the frame, and its spinner's run is replayable there.
+        #expect(
+            replayable.contains { $0.offsetY == 1 },
+            "the header's spinner is among the frame's replayable runs: \(replayable.map(\.offsetY))")
 
-        // Sleeping to the page's runs alone would step the header at the page's rate,
-        // which is right only while the two happen to agree. The plan counts the
-        // header's runs too, so it never sleeps past the header's own next change.
         let headerChange = headerRuns.map { $0.timeUntilChange(afterElapsed: timer.elapsed(for: $0.clock)) }.min()
         #expect(
             loop.timeUntilNextChange(elapsed: timer.elapsed) <= headerChange ?? 0,
@@ -239,8 +242,8 @@ struct RunLoopFoldTests {
         appState.setNeedsAnimationTick(.content)
         appState.setNeedsAnimationTick(.cursor)
         #expect(
-            !runner.serveAnimationTicks(renderer: loop, cursorTimer: timer),
-            "the header's spinner is owed a render; a replay of the page's cannot draw it")
+            runner.serveAnimationTicks(renderer: loop, cursorTimer: timer),
+            "the header's spinner is advanced by the replay, with the page's")
     }
 
     // MARK: - A served replay re-bases the sleep

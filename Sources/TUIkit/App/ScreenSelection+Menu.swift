@@ -19,7 +19,7 @@ extension ScreenSelection {
     /// first frame after it closes.
     ///
     /// Called by the window with the page it drew, whose coordinates are the
-    /// content area's: the ones the right-click was reported in.
+    /// content area's: the ones the selection keeps the right-clicked cell in.
     @MainActor
     func presentMenu(over buffer: inout FrameBuffer, context: RenderContext) {
         guard !context.isMeasuring else { return }

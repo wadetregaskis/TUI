@@ -6,11 +6,11 @@
 
 // MARK: - App Header View
 
-/// A header bar rendered at the top of the terminal, outside the view tree.
+/// A header bar rendered at the top of the terminal, above the content.
 ///
-/// `AppHeader` is an internal view used by `RenderLoop` to render the
-/// app header content. It renders the content buffer from `AppHeaderState`
-/// and appends a thin divider line below.
+/// `AppHeader` is an internal view the window's chrome host
+/// (`_WindowChromeHost`) draws the app header with. It renders the content
+/// buffer from `AppHeaderState` and frames it in the chrome style.
 ///
 /// ## Layout
 ///
@@ -127,10 +127,9 @@ extension FrameBuffer {
     /// A `Menu`, `.popover`, `.sheet` or `.alert` declared inside
     /// `.appHeader { … }` emits a layer like any other, and `AppHeader`
     /// carries it through the rebuild above. That was a prerequisite and not
-    /// the fix: the header buffer is written straight to the terminal and
-    /// never goes through `compositingOverlays`, so the layer reached the
-    /// screen and was thrown away there. A drop-down opened from a header
-    /// button took the focus and drew nothing at all.
+    /// the fix: the chrome host composites layers inside the content area, and
+    /// a layer left on the header buffer would never be composited at all. A
+    /// drop-down opened from a header button took the focus and drew nothing.
     ///
     /// Moved to the page rather than composited into the header, because a
     /// drop-down anchored on the bottom row of a three-row header is taller

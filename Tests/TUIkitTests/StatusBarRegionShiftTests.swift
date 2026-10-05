@@ -38,10 +38,10 @@ private struct ShiftProbeApp: App {
 @Suite("Status-bar hit regions follow the drawn header height", .serialized)
 struct StatusBarRegionShiftTests {
 
-    /// A one-row bar whose item regions sit at local y = 0, so the content y a
-    /// click on the bar translates to is exactly the content height — no bar
-    /// chrome to add. System items off so the only clickable thing in the bar
-    /// is the probe item.
+    /// A one-row bar whose item regions sit at local y = 0, so the screen row a
+    /// click on the bar arrives on is exactly the bar's row — no bar chrome to
+    /// add. System items off so the only clickable thing in the bar is the probe
+    /// item.
     private func makeHarness(itemFired: @escaping () -> Void) -> RenderLoopHarness {
         let harness = RenderLoopHarness()
         harness.statusBar.style = .compact
@@ -52,14 +52,11 @@ struct StatusBarRegionShiftTests {
         return harness
     }
 
-    /// The content y that a click on the bar's row arrives as, translated
-    /// exactly as `App.drainTerminalEvents` translates it: terminal y minus the
-    /// DRAWN header height.
-    private func barContentRow(_ harness: RenderLoopHarness) -> Int {
-        contentAreaHeight(
-            terminalHeight: harness.terminal.size.height,
-            statusBarHeight: harness.statusBar.height,
-            headerHeight: harness.appHeader.height)
+    /// The screen row (0-based, as the pointer reports it) the bar is drawn on:
+    /// the last `statusBar.height` rows of the screen, whatever the header's
+    /// height, since a click arrives in the frame's coordinates untranslated.
+    private func barRow(_ harness: RenderLoopHarness) -> Int {
+        harness.terminal.size.height - harness.statusBar.height
     }
 
     /// Presses and releases at every column of one content row — a click is a
@@ -85,9 +82,9 @@ struct StatusBarRegionShiftTests {
         _ = loop.render()  // frame 2: estimate == actual
 
         // Sanity, so the test fails loudly rather than passing vacuously if the
-        // bar ever stops emitting regions at all: 24 - 1 - 3 = 20.
-        #expect(barContentRow(harness) == 20)
-        clickRow(harness, y: barContentRow(harness))
+        // bar ever stops emitting regions at all.
+        #expect(barRow(harness) == 23)
+        clickRow(harness, y: barRow(harness))
         #expect(fired >= 1, "pre-condition: the bar is clickable on a steady frame")
 
         // Grow the header by one line. The frame lays out against the previous
@@ -98,10 +95,10 @@ struct StatusBarRegionShiftTests {
         #expect(
             harness.appHeader.height == headerBefore + 1,
             "pre-condition: the header must change height, or nothing is under test")
-        #expect(barContentRow(harness) == 19)
+        #expect(barRow(harness) == 23)
 
         fired = 0
-        clickRow(harness, y: barContentRow(harness))
+        clickRow(harness, y: barRow(harness))
         #expect(fired >= 1, "a click on the bar's row must reach the item after the header grew")
     }
 
@@ -114,7 +111,7 @@ struct StatusBarRegionShiftTests {
 
         _ = loop.render()
         _ = loop.render()
-        #expect(barContentRow(harness) == 18)  // 24 - 1 - 5
+        #expect(barRow(harness) == 23)
 
         HeaderLines.shared.count = 1
         let headerBefore = harness.appHeader.height
@@ -123,18 +120,18 @@ struct StatusBarRegionShiftTests {
             harness.appHeader.height == headerBefore - 2,
             "pre-condition: the header must shrink by two rows")
 
-        let barRow = barContentRow(harness)
-        #expect(barRow == 20)  // 24 - 1 - 3
+        let row = barRow(harness)
+        #expect(row == 23)
 
-        // The stale estimate put the regions at 18 — a real page row, two above
-        // the bar. `matchingRegions` searches reversed and the status-bar
+        // A stale estimate once put the regions two rows up — a real page row
+        // above the bar. `matchingRegions` searches reversed and the status-bar
         // regions are appended last, so they would beat the page's own control.
         fired = 0
-        clickRow(harness, y: barRow - 2)
+        clickRow(harness, y: row - 2)
         #expect(fired == 0, "a click on a page row must not reach a status-bar item")
 
         fired = 0
-        clickRow(harness, y: barRow)
+        clickRow(harness, y: row)
         #expect(fired >= 1, "a click on the bar's own row must reach the item")
     }
 }

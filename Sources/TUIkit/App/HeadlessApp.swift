@@ -60,7 +60,6 @@ package final class HeadlessApp<A: App> {
     private let inputHandler: InputHandler
     private let tuiContext: TUIContext
     private let focusManager: FocusManager
-    private let appHeader: AppHeaderState
     private let animationScheduler = AnimationScheduler()
     /// The instant of the last frame, which the mouse dispatcher reads as the
     /// time an event arrives. See the type's discussion.
@@ -86,7 +85,6 @@ package final class HeadlessApp<A: App> {
         self.terminal = terminal
         self.tuiContext = tuiContext
         self.focusManager = focusManager
-        self.appHeader = appHeader
         self.renderer = RenderLoop(
             app: app, terminal: terminal, statusBar: statusBar, appHeader: appHeader,
             focusManager: focusManager, paletteManager: paletteManager,
@@ -136,13 +134,13 @@ package final class HeadlessApp<A: App> {
     /// Delivers a mouse event to the handlers the last frame registered, as
     /// the app's event funnel delivers one: noted as the pointer's, which is
     /// what a menu it opens asks (the pointer highlights nothing, the keyboard
-    /// the first item), and with its row taken from the screen — where a script
-    /// aims, at what it sees — to the content, below the app header.
+    /// the first item), and in the screen's coordinates — where a script aims,
+    /// at what it sees — which are the frame's, chrome and all.
     /// - Returns: Whether a handler consumed it.
     @discardableResult
     package func send(_ event: MouseEvent) -> Bool {
         focusManager.noteInputSource(.pointer)
-        return tuiContext.mouseEventDispatcher.dispatch(event.inContent(belowHeaderOf: appHeader.height))
+        return tuiContext.mouseEventDispatcher.dispatch(event)
     }
 
     /// Changes the terminal's size, as `SIGWINCH` reports it: the next frame

@@ -176,7 +176,7 @@ extension MouseEventDispatcher {
 /// A left press held until it shows whether it is a click or a drag that
 /// selects.
 ///
-/// It receives the rest of the gesture in content-area coordinates, as the
+/// It receives the rest of the gesture in the screen's coordinates, as the
 /// dispatcher's capture for it is anchored at the origin.
 ///
 /// - A **click** — a release on the cell pressed, with no motion — is the

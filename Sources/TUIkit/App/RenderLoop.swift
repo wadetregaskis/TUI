@@ -71,10 +71,10 @@ internal struct RenderBackgroundCodes: Equatable {
 ///   6. Call SceneRenderable.renderScene() → FrameBuffer
 ///   7. Convert FrameBuffer to terminal-ready output lines
 ///   8. Begin buffered frame (terminal.beginFrame())
+///      (the scene's chrome host draws the app header and status bar into it)
 ///   9. Diff against previous frame, write only changed lines to buffer
-///  10. Render status bar into same buffer (with its own diff tracking)
-///  11. Flush entire frame in one write() syscall (terminal.endFrame())
-///  12. End lifecycle tracking (fires onDisappear for removed views)
+///  10. Flush entire frame in one write() syscall (terminal.endFrame())
+///  11. End lifecycle tracking (fires onDisappear for removed views)
 /// ```
 ///
 /// ## Diff-Based Rendering
@@ -85,7 +85,7 @@ internal struct RenderBackgroundCodes: Equatable {
 ///
 /// ## Output Buffering
 ///
-/// All diff writes (content + status bar) are collected in `Terminal`'s
+/// All diff writes are collected in `Terminal`'s
 /// frame buffer and flushed as a single `write()` syscall via
 /// `Terminal.beginFrame()` / `Terminal.endFrame()`. This reduces
 /// per-frame syscalls from ~40+ to exactly 1.
@@ -96,8 +96,8 @@ internal struct RenderBackgroundCodes: Equatable {
 /// ## Responsibilities
 ///
 /// - Assembling ``EnvironmentValues`` from all subsystems
-/// - Rendering the main scene content via `SceneRenderable`
-/// - Rendering the status bar separately (never dimmed)
+/// - Rendering the scene via `SceneRenderable` — the content and, framing it,
+///   the chrome (never dimmed), as one frame
 /// - Coordinating lifecycle tracking (appear/disappear)
 /// - Diff-based terminal output via `FrameDiffWriter`
 /// - Buffered frame output via `Terminal`
@@ -124,17 +124,6 @@ struct RenderActivity {
     /// mid-migration has both — and when they disagree the reader wins, because
     /// a frozen indicator is worse than a wasted frame.
     let animatedClocks: Set<AnimationClock>
-
-    /// The animating runs the CHROME — the app header, the status bar — left.
-    ///
-    /// Kept whole rather than as their clocks, because the loop has to know WHEN
-    /// they change, not only that they animate: nothing but a render advances them,
-    /// so the planner wakes at their next change. See ``chromeClocks`` for why they
-    /// are kept apart from the content's runs at all.
-    ///
-    /// A `var` only so the memberwise initialiser defaults it: a frame whose chrome
-    /// animates nothing need not say so.
-    var chromeRuns: [AnimatedCellRun] = []
 }
 
 /// The height of the content area: whatever the terminal has left after the
@@ -164,11 +153,6 @@ internal final class RenderLoop<A: App> {
     /// `fileprivate` rather than `private` only so the replay half, which lives
     /// in `RenderLoop+Replay.swift`, can reach it.
     var replayable: ReplayableFrame?
-
-    /// The row the previous frame drew the status bar from, or `nil` when it drew
-    /// none — so a bar appearing, disappearing or MOVING invalidates the diff. See
-    /// where it is set.
-    private var lastStatusBarStartRow: Int?
 
     /// The terminal's size at the previous frame, `nil` before the first: a
     /// frame drawn at another size stamps `RenderCache.terminalResizedAtNanos`.
@@ -498,135 +482,33 @@ extension RenderLoop {
         // and the bar can be sized for it in this pass rather than the next.
         resolveStatusBarTooltip(
             terminalWidth: terminalWidth, nowNanos: frameNowNanos, scheduler: animationScheduler)
-        let statusBarHeight = statusBar.height
         publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
         invalidateCacheIfEnvironmentChanged(environment: environment)
 
-        // Render the scene into the content area — resolving the app-header
-        // height first (a first-frame measure pass), then re-rendering once if
-        // the header turned out a different height than estimated. See
-        // `renderContent`.
-        var buffer = renderContent(
+        // Render the scene: its chrome host lays the app header, the content
+        // and the status bar out as one frame the size of the terminal —
+        // resolving the app-header height first (a first-frame measure pass),
+        // then re-rendering once if the header turned out a different height
+        // than the rows reserved for it. See `renderContent`.
+        let buffer = renderContent(
             scene: scene,
             environment: environment,
             terminalWidth: terminalWidth,
-            terminalHeight: terminalHeight,
-            statusBarHeight: statusBarHeight)
+            terminalHeight: terminalHeight)
 
         focusManager.endRenderPass()
 
-        // The content area this frame was ACTUALLY laid out and drawn
-        // against. Derived from `appHeader.height` — the height the DRAWN walk
-        // produced — never from the estimate `renderContent` started with,
-        // because three things have to agree on this one figure: `writeFrame`
-        // puts the content at row `1 + appHeader.height`, the App input loop
-        // subtracts `appHeader.height` from every mouse event's y, and the
-        // status-bar regions below are shifted down by it. On a frame where the
-        // header changed height the estimate is wrong by exactly that change,
-        // which parked the bar's hit regions on the wrong row — and a static
-        // screen renders nothing further to correct them.
-        let contentHeight = contentAreaHeight(
-            terminalHeight: terminalHeight, statusBarHeight: statusBarHeight,
-            headerHeight: appHeader.height)
-
-        // Build the app-header and status-bar buffers up front
-        // so we can merge their hit-test regions into the
-        // dispatcher's region set before writing.
-        //
-        // Coordinate translation:
-        //   - The App input loop subtracts appHeader.height
-        //     from incoming events' y, so content-area
-        //     coordinates start at y = 0 and run to
-        //     y = contentHeight - 1.
-        //   - The app header sits ABOVE the content area in
-        //     terminal-space, so its events arrive with
-        //     negative y after translation. Regions emitted
-        //     inside the header therefore need offsetY
-        //     shifted by -appHeader.height.
-        //   - The status bar sits BELOW the content area in
-        //     terminal-space, so its events arrive with
-        //     y >= contentHeight. Status-bar regions need
-        //     offsetY shifted by +contentHeight.
-        //   - A layer anchored in the header — a Menu's drop-down, a popover —
-        //     belongs over the PAGE, not clipped to the header's one to three
-        //     rows, so the build moves it onto the content buffer. Which is
-        //     why the header is built here, before the composite below rather
-        //     than after it.
-        let appHeaderBuffer = buildAppHeaderBuffer(
-            terminalWidth: terminalWidth, environment: environment,
-            liftingOverlaysOnto: &buffer)
-
-        // `hasContent`, not `hasItems`: the question `statusBar.height` answered
-        // when it took the rows, so a tooltip on a bar with no items is built into
-        // the rows it reserved rather than leaving them blank.
-        let statusBarBuffer: FrameBuffer? =
-            statusBar.hasContent
-            ? buildStatusBarBuffer(terminalWidth: terminalWidth, environment: environment) : nil
-        // The row `writeFrame` puts the bar at. The diff has to hear about that
-        // changing, not only about the bar coming and going — see
-        // `noteStatusBarPlacement(startRow:)`.
-        noteStatusBarPlacement(
-            startRow: statusBarBuffer == nil ? nil : terminalHeight - statusBarHeight + 1)
-
-        // The screen selection reads the page and draws its highlight on it,
-        // before the layers over the page — so a menu opened over it draws
-        // over the highlight rather than through it. Nothing but a reference
-        // to the lines while nothing is selected (`ScreenSelection`).
-        buffer = tuiContext.screenSelection.takeFrame(
-            buffer, width: terminalWidth, palette: environment.palette,
-            underPresentation: focusManager.activeSectionIsModal)
-        // Composite any free-floating overlay layers (Picker drop-downs,
-        // popovers, …) emitted during rendering onto the content buffer.
-        if !buffer.overlays.isEmpty {
-            buffer = compositeOverlays(
-                buffer, maxWidth: terminalWidth, maxHeight: contentHeight,
-                palette: environment.palette)
-        }
-
-        var mergedRegions = buffer.hitTestRegions
-        // The app header is drawn OUTSIDE the composited content area, so
-        // nothing a presentation does can reach it: the modifier isolates what
-        // it wraps, and the compositor dims what it composites. A modal's
-        // guarantee is that the page beneath is inert, and a header button is
-        // part of that page — it was still firing on a click with a dialog up,
-        // the last of the channels a presentation has to close.
-        //
-        // Its regions only, not its appearance. The header stays legible
-        // because it is chrome the app draws around every screen, like the
-        // status bar, which likewise keeps `q quit` live behind a modal by
-        // design. What it must not do is answer a click that the same page's
-        // body would refuse.
-        if let appHeaderBuffer, !focusManager.activeSectionIsModal {
-            for region in appHeaderBuffer.hitTestRegions {
-                var shifted = region
-                shifted.offsetY -= appHeader.height
-                mergedRegions.append(shifted)
-            }
-        }
-        if let statusBarBuffer {
-            for region in statusBarBuffer.hitTestRegions {
-                var shifted = region
-                shifted.offsetY += contentHeight
-                mergedRegions.append(shifted)
-            }
-        }
-
-        // Publish the now-composited hit-test regions so the dispatcher
-        // can route mouse events arriving between this frame and the
-        // next. Regions are kept in absolute content-area coordinates;
-        // the App input loop translates terminal coords to content
-        // coords before dispatching.
-        tuiContext.mouseEventDispatcher.setRegions(mergedRegions)
+        // Publish the frame's hit-test regions so the dispatcher can route
+        // mouse events arriving between this frame and the next. They are in
+        // the screen's coordinates, which are the pointer's: the chrome is
+        // drawn into the frame with the page, so nothing is translated.
+        tuiContext.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
 
         writeFrame(
             buffer: buffer,
-            appHeaderBuffer: appHeaderBuffer,
-            statusBarBuffer: statusBarBuffer,
             environment: environment,
             terminalWidth: terminalWidth,
-            terminalHeight: terminalHeight,
-            statusBarHeight: statusBarHeight,
-            headerHeight: appHeader.height
+            terminalHeight: terminalHeight
         )
 
         endRenderPass()
@@ -648,9 +530,7 @@ extension RenderLoop {
 
         return recordActivity(
             usesPulse: (environment.volatileReadTracker?.reads ?? 0) > 0,
-            usesCursor: cursorTimer?.didReadThisFrame ?? false,
-            chromeRuns: (appHeaderBuffer?.animatedCells ?? [])
-                + (statusBarBuffer?.animatedCells ?? []))
+            usesCursor: cursorTimer?.didReadThisFrame ?? false)
     }
 
     /// Runs the timed input to this frame's instant, before
@@ -726,111 +606,65 @@ extension RenderLoop {
         }
     }
 
-    /// Renders the scene into the content area and returns the buffer.
+    /// Renders the scene — the content framed by its chrome — and returns the
+    /// frame.
     ///
-    /// On the first frame this runs a throwaway measure pass to discover the
-    /// app header's real height before producing any visible output, which
-    /// prevents the content from jumping. Every frame it then renders at the
-    /// resolved content height and, if the header turned out a different height
-    /// than estimated, re-renders once at the corrected height so centering
-    /// stays accurate. It deliberately reports no height: the one figure the
-    /// caller needs is the content area the DRAWN walk produced, which it reads
-    /// back off `appHeader.height` — returning the height this walk started
-    /// with handed it the estimate instead.
+    /// The chrome host reserves ``AppHeaderState/reservedHeight`` rows for the
+    /// app header before the content draws, and the content is what draws the
+    /// header. So on the first frame this runs a throwaway measure pass to
+    /// discover the header's real height before producing any visible output,
+    /// which prevents the content from jumping; every frame it then renders
+    /// against last frame's height and, if the header turned out a different
+    /// height, re-renders once against the real one so centering stays
+    /// accurate.
     private func renderContent(
         scene: A.Body,
         environment: EnvironmentValues,
         terminalWidth: Int,
-        terminalHeight: Int,
-        statusBarHeight: Int
+        terminalHeight: Int
     ) -> FrameBuffer {
-        // The overlay content height is published below, once it is known.
-        var environment = environment
-        // Determine header height. On the first frame, we perform a measurement
-        // pass to discover the actual header height before outputting anything.
-        // This prevents visible content jumping.
         // The render tree is rooted at `rootIdentity` — the SAME identity
         // `evaluateAppBody` hydrates `@State` under (see that property's note).
-        let appHeaderHeight: Int
+        var context = RenderContext(
+            availableWidth: terminalWidth,
+            availableHeight: terminalHeight,
+            environment: environment,
+            identity: rootIdentity
+        )
         if isFirstFrame {
-            var measureContext = RenderContext(
-                availableWidth: terminalWidth,
-                // Clamped: a terminal shorter than its own chrome makes this
-                // subtraction negative, and a negative available height is not a
-                // size any view can be asked for — it reaches `centerBuffer` as
-                // `0..<negative` and traps. See `contentHeight` below.
-                availableHeight: contentAreaHeight(
-                    terminalHeight: terminalHeight, statusBarHeight: statusBarHeight),
-                environment: environment,
-                identity: rootIdentity
-            )
+            var measureContext = context
             // This walk's buffer is thrown away — only `appHeader.height`
             // survives it — so it is a measurement, and every guard written as
             // `!context.isMeasuring` must apply: `onAppear`, `.task`, focus and
             // mouse registration, `onChange`. Without this the discarded walk
             // was indistinguishable from a real render, so a view present here
             // and NOT in the drawn walk (the two see different heights, since
-            // this one has not subtracted the header yet) would appear, mount a
-            // task, and then be told it disappeared, having never been drawn.
+            // this one reserves no header rows) would appear, mount a task, and
+            // then be told it disappeared, having never been drawn.
             //
             // `AppHeaderModifier` is deliberately NOT guarded that way, which is
             // what lets this walk still do its one job. Anything that guards
             // itself on the measure phase must not be load-bearing for the
             // header's height.
             measureContext.isMeasuring = true
+            appHeader.reservedHeight = 0
             _ = renderScene(scene, context: measureContext.withChildIdentity(type: type(of: scene)))
-            appHeaderHeight = appHeader.height
+            appHeader.reservedHeight = appHeader.height
             isFirstFrame = false
         } else {
-            appHeaderHeight = appHeader.estimatedHeight
+            appHeader.reservedHeight = appHeader.estimatedHeight
         }
 
-        // Clamped at zero: the status bar and app header are laid out first and
-        // keep their full height, so a terminal shorter than the two of them
-        // together leaves the content area with LESS than nothing. Unclamped,
-        // that negative height propagated into every view's `availableHeight`
-        // and trapped in `WindowGroup.centerBuffer` ("Range requires lowerBound
-        // <= upperBound") before the first frame was drawn — the app died on
-        // launch in a short terminal. Zero means "no room"; the content renders
-        // empty and the chrome still shows.
-        let contentHeight = contentAreaHeight(
-            terminalHeight: terminalHeight, statusBarHeight: statusBarHeight,
-            headerHeight: appHeaderHeight)
-        // Publish the content-area height so anchored overlays (a Picker
-        // drop-down) size to the area the compositor will clamp them to — above
-        // the status bar — rather than to the full `terminalHeight` (which would
-        // leave their bottom rows shaved off against the status bar).
-        environment.overlayContentHeight = contentHeight
-
-        var context = RenderContext(
-            availableWidth: terminalWidth,
-            availableHeight: contentHeight,
-            environment: environment,
-            identity: rootIdentity
-        )
         context.hasExplicitWidth = true
         context.hasExplicitHeight = true
-
         var buffer = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
 
-        // If the header height changed after rendering, re-render with the
+        // If the header height changed after rendering, re-render against the
         // correct height so centering is accurate.
-        let actualHeaderHeight = appHeader.height
-        if actualHeaderHeight != appHeaderHeight {
+        if appHeader.height != appHeader.reservedHeight {
             diffWriter.invalidate()
-            let actualContentHeight = contentAreaHeight(
-                terminalHeight: terminalHeight, statusBarHeight: statusBarHeight,
-                headerHeight: actualHeaderHeight)
-            environment.overlayContentHeight = actualContentHeight
-            var correctedContext = RenderContext(
-                availableWidth: terminalWidth,
-                availableHeight: actualContentHeight,
-                environment: environment,
-                identity: rootIdentity
-            )
-            correctedContext.hasExplicitWidth = true
-            correctedContext.hasExplicitHeight = true
-            buffer = renderScene(scene, context: correctedContext.withChildIdentity(type: type(of: scene)))
+            appHeader.reservedHeight = appHeader.height
+            buffer = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
         }
 
         return buffer
@@ -1078,47 +912,33 @@ extension RenderLoop {
 
     /// Writes the assembled frame to the terminal using diff-based output.
     ///
-    /// Builds terminal-ready output lines, then writes app header, content,
-    /// and status bar inside a single buffered frame (one `write()` syscall).
+    /// Builds terminal-ready output lines, then writes them inside a single
+    /// buffered frame (one `write()` syscall). The frame is the whole screen —
+    /// the chrome host stacked the header and the status bar into it.
     fileprivate func writeFrame(
         buffer: FrameBuffer,
-        appHeaderBuffer: FrameBuffer?,
-        statusBarBuffer: FrameBuffer?,
         environment: EnvironmentValues,
         terminalWidth: Int,
-        terminalHeight: Int,
-        statusBarHeight: Int,
-        headerHeight: Int
+        terminalHeight: Int
     ) {
         let backgroundCodes = RenderBackgroundCodes(palette: environment.palette)
         let reset = ANSIRenderer.reset
-        let contentHeight = contentAreaHeight(
-            terminalHeight: terminalHeight, statusBarHeight: statusBarHeight,
-            headerHeight: headerHeight)
 
-        // A region that reaches a root was never composited over anything, so
-        // what is behind it is the surface — and there are three surfaces, not
-        // one. `RenderBackgroundCodes` keeps them apart for exactly this
-        // reason: a faded item in the status bar fades toward the STATUS BAR's
-        // background, not the page's, and resolving all three against
-        // `palette.background` would be right only where the theme happens to
-        // paint them alike. That case is live now rather than hypothetical:
-        // `StatusBarState.highlightColor` and `.labelColor` are public, and their
-        // runs claim, so a faded shortcut key resolves here — against the bar.
+        // A region that reaches the root was never composited over anything,
+        // so what is behind it is the page's surface. The bars are surfaces of
+        // their own — a faded item in the status bar fades toward the STATUS
+        // BAR's background, not the page's — and the chrome host resolved
+        // theirs against them as it stacked them, so none of their claims is
+        // left for this one.
         let palette = environment.palette
         let buffer = buffer.resolvingOpacity(surface: palette.background, palette: palette)
-        let appHeaderBuffer = appHeaderBuffer?.resolvingOpacity(
-            surface: palette.appHeaderBackground, palette: palette)
-        let statusBarBuffer = statusBarBuffer?.resolvingOpacity(
-            surface: palette.statusBarBackground, palette: palette)
 
-        let outputLines = diffWriter.buildOutputLines(
+        let outputLines = diffWriter.buildReusingOutputLines(
             buffer: buffer,
             terminalWidth: terminalWidth,
-            terminalHeight: contentHeight,
+            terminalHeight: terminalHeight,
             bgCode: backgroundCodes.content,
-            reset: reset,
-            reusingFor: .content
+            reset: reset
         )
 
         terminal.beginFrame()
@@ -1143,20 +963,10 @@ extension RenderLoop {
         // cell. See `Terminal.beginSynchronizedUpdate()`.
         synchronizedUpdates?.beginSynchronizedUpdate()
 
-        if let appHeaderBuffer {
-            writeAppHeaderBuffer(
-                appHeaderBuffer,
-                atRow: 1,
-                terminalWidth: terminalWidth,
-                bgCode: backgroundCodes.appHeader,
-                reset: reset
-            )
-        }
-
         diffWriter.writeContentDiff(
             newLines: outputLines,
             terminal: terminal,
-            startRow: 1 + headerHeight,
+            startRow: 1,
             terminalWidth: terminalWidth,
             bgCode: backgroundCodes.content,
             reset: reset
@@ -1181,77 +991,23 @@ extension RenderLoop {
                 return run.clipped(toCanvasColumns: terminalWidth, rows: outputLines.count)
             },
             terminalWidth: terminalWidth,
-            startRow: 1 + headerHeight,
+            startRow: 1,
             backgroundCode: backgroundCodes.content)
 
-        if let statusBarBuffer {
-            writeStatusBarBuffer(
-                statusBarBuffer,
-                atRow: terminalHeight - statusBarHeight + 1,
-                terminalWidth: terminalWidth,
-                bgCode: backgroundCodes.statusBar,
-                reset: reset
-            )
-        }
-
         terminal.endFrame()
-    }
-
-    /// Invalidates the diff when the status bar appears, disappears, or moves.
-    ///
-    /// A bar that went away and came back is not "unchanged". While it is
-    /// hidden the content area grows into its row and paints over it, but the
-    /// diff's record of that region still describes the old bar — so a bar
-    /// restored with byte-identical items compared equal and was never written,
-    /// leaving the bottom row blank with the shortcuts gone. The app header
-    /// self-heals the same way when its height turns out different from the
-    /// estimate.
-    ///
-    /// Nor is a bar that MOVED, which is why this compares the start row rather
-    /// than a presence flag. The diff compares a region's rows by INDEX from
-    /// wherever the region is written, and the bar grows upwards: a status-bar
-    /// tooltip is a row above the items, so the bar's top edge moves up a row with
-    /// every tooltip that appears and back down with every one that goes. Its row
-    /// 0 — a border or a rule, the same bytes either side of the move — compared
-    /// equal and was skipped. Growing, that left blank the row the content pass
-    /// had just erased, so the bar stood open at the top; shrinking, the row the
-    /// top edge returned to kept the tooltip's text. A runtime chrome-style change
-    /// moves it the same way. The start row and not the height, because the start
-    /// row is exactly what an index-wise diff assumes has not changed.
-    private func noteStatusBarPlacement(startRow: Int?) {
-        guard startRow != lastStatusBarStartRow else { return }
-        lastStatusBarStartRow = startRow
-        diffWriter.invalidate()
     }
 
     /// Stores and returns what this frame reported, so the run loop can decide
     /// whether the next animation tick needs a render at all.
     ///
-    /// The chrome's runs count towards LIVENESS even though they are not
-    /// replayable. Only the content's runs can be patched — the replay knows one
-    /// set of lines at one start row, and the header and the status bar are
-    /// written by their own passes at their own rows — so a run up there needs a
-    /// whole render to advance. Left out of this set entirely, it got neither: a
-    /// `Spinner` in `.appHeader { … }` over a still page reported no live clock,
-    /// so the loop stopped waking and the spinner was frozen at frame 0 while
-    /// looking, for all the world, like a spinner that simply was not spinning.
-    ///
-    /// Counted towards liveness ALONE, though, they were indistinguishable from
-    /// the content's, and the same spinner froze again the moment the page left a
-    /// run of its own: the tick replayed the page's run and was reported served.
-    /// So they are recorded twice — in the union, for liveness, and apart, so the
-    /// replay can refuse them and the planner can wake for them. See
-    /// `RenderActivity.chromeClocks` and `RenderActivity.chromeRuns`.
-    private func recordActivity(
-        usesPulse: Bool, usesCursor: Bool, chromeRuns: [AnimatedCellRun] = []
-    ) -> RenderActivity {
-        let content = (replayable?.runs ?? []).lazy.map(\.clock)
-        let chrome = chromeRuns.filter(\.isAnimating)
+    /// Every run on screen is the frame's, the chrome's included — the bars are
+    /// rows of the frame like any other, so the replay patches a `Spinner` in
+    /// `.appHeader { … }` as it patches one on the page.
+    private func recordActivity(usesPulse: Bool, usesCursor: Bool) -> RenderActivity {
         lastActivity = RenderActivity(
             usesPulse: usesPulse,
             usesCursor: usesCursor,
-            animatedClocks: Set(chrome.map(\.clock)).union(content),
-            chromeRuns: chrome)
+            animatedClocks: Set((replayable?.runs ?? []).lazy.map(\.clock)))
         return lastActivity
     }
 
@@ -1299,146 +1055,5 @@ extension RenderLoop {
         diagnostic?.beginTraversal()
         defer { diagnostic?.endTraversal() }
         return scene.renderSceneTree(context: context)
-    }
-
-    /// Composites every free-floating overlay layer onto the content buffer.
-    ///
-    /// Layers are drawn in ascending order of ``OverlayLevel`` and then
-    /// ``OverlayLayer/zIndex`` (ties keep emission order). Compositing a layer
-    /// lifts any layers nested inside *its* content back onto the result, so
-    /// the loop repeats until none remain — nesting therefore works for free.
-    ///
-    /// - Parameters:
-    ///   - base: The rendered content buffer, carrying overlay layers.
-    ///   - maxWidth: The width of the content area in columns.
-    ///   - maxHeight: The height of the content area in rows.
-    /// - Returns: The content buffer with all overlay layers composited in.
-    fileprivate func compositeOverlays(
-        _ base: FrameBuffer, maxWidth: Int, maxHeight: Int, palette: any Palette
-    ) -> FrameBuffer {
-        base.compositingOverlays(maxWidth: maxWidth, maxHeight: maxHeight, palette: palette)
-    }
-
-    /// Builds the app-header buffer (with its hit-test regions
-    /// carried through from the user's `.appHeader { ... }`
-    /// content) and returns it. The caller is responsible for
-    /// merging the regions into the dispatcher's set — same
-    /// split as the status-bar build / write pair below, for
-    /// the same reason (regions emitted at render time would
-    /// otherwise be discarded before reaching the dispatcher).
-    ///
-    /// Its overlay layers are not returned with it: they go onto `buffer`, the
-    /// page, which is where a header-anchored drop-down belongs and where the
-    /// compositor will find them. See
-    /// `FrameBuffer.liftingOverlays(shiftingBy:onto:)`.
-    fileprivate func buildAppHeaderBuffer(
-        terminalWidth: Int,
-        environment: EnvironmentValues,
-        liftingOverlaysOnto buffer: inout FrameBuffer
-    ) -> FrameBuffer? {
-        guard appHeader.hasContent, let contentBuffer = appHeader.contentBuffer else { return nil }
-
-        let headerView = AppHeader(contentBuffer: contentBuffer, style: appHeader.style)
-
-        let context = RenderContext(
-            availableWidth: terminalWidth,
-            availableHeight: appHeader.height,
-            environment: environment
-        )
-
-        return renderToBuffer(headerView, context: context)
-            .liftingOverlays(shiftingBy: -appHeader.height, onto: &buffer)
-    }
-
-    /// Writes a previously-built app-header buffer to the
-    /// terminal at the specified row. Companion to
-    /// ``buildAppHeaderBuffer(terminalWidth:environment:liftingOverlaysOnto:)``.
-    fileprivate func writeAppHeaderBuffer(
-        _ buffer: FrameBuffer,
-        atRow row: Int,
-        terminalWidth: Int,
-        bgCode: String,
-        reset: String
-    ) {
-        let outputLines = diffWriter.buildOutputLines(
-            buffer: buffer,
-            terminalWidth: terminalWidth,
-            terminalHeight: buffer.height,
-            bgCode: bgCode,
-            reset: reset,
-            reusingFor: .appHeader
-        )
-        diffWriter.writeAppHeaderDiff(
-            newLines: outputLines,
-            terminal: terminal,
-            startRow: row,
-            terminalWidth: terminalWidth,
-            bgCode: bgCode,
-            reset: reset
-        )
-    }
-
-    /// Renders the status bar into a `FrameBuffer` and returns
-    /// it. The buffer carries the per-item hit-test regions that
-    /// ``StatusBar/applyHitTestRegions`` emitted at status-bar
-    /// local coordinates — the caller is responsible for
-    /// shifting those into content-area coordinates and merging
-    /// them into the dispatcher's region set before
-    /// ``writeStatusBarBuffer(_:atRow:terminalWidth:bgCode:reset:)``
-    /// writes the diff out.
-    fileprivate func buildStatusBarBuffer(
-        terminalWidth: Int,
-        environment: EnvironmentValues
-    ) -> FrameBuffer {
-        // The two colours go through as the app set them. An unset one is the
-        // palette's accent or foreground, and every colour is resolved against
-        // `environment.palette`, inside `StatusBar` itself.
-        let drawsItems = statusBar.drawsItems
-        let statusBarView = StatusBar(
-            userItems: drawsItems ? statusBar.currentUserItems : [],
-            systemItems: drawsItems ? statusBar.currentSystemItems : [],
-            style: statusBar.style,
-            alignment: statusBar.alignment,
-            highlightColor: statusBar.highlightColor,
-            labelColor: statusBar.labelColor,
-            tooltipLines: statusBar.tooltipLines
-        )
-
-        let context = RenderContext(
-            availableWidth: terminalWidth,
-            availableHeight: statusBarView.height,
-            environment: environment
-        )
-
-        return renderToBuffer(statusBarView, context: context)
-    }
-
-    /// Writes a previously-built status-bar buffer to the
-    /// terminal at the specified row. The build and write
-    /// phases are split so the caller can intercept the
-    /// buffer's hit-test regions between them.
-    fileprivate func writeStatusBarBuffer(
-        _ buffer: FrameBuffer,
-        atRow row: Int,
-        terminalWidth: Int,
-        bgCode: String,
-        reset: String
-    ) {
-        let outputLines = diffWriter.buildOutputLines(
-            buffer: buffer,
-            terminalWidth: terminalWidth,
-            terminalHeight: buffer.height,
-            bgCode: bgCode,
-            reset: reset,
-            reusingFor: .statusBar
-        )
-        diffWriter.writeStatusBarDiff(
-            newLines: outputLines,
-            terminal: terminal,
-            startRow: row,
-            terminalWidth: terminalWidth,
-            bgCode: bgCode,
-            reset: reset
-        )
     }
 }

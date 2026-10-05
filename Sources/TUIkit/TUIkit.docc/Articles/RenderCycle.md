@@ -36,7 +36,7 @@ The rest converge on boolean flags that the main loop checks each iteration. The
 
 Each call to `RenderLoop.render()` executes these steps in order:
 
-@Image(source: "render-cycle-pipeline.svg", alt: "Diagram showing the 12-step render pipeline: Step 1 clear per-frame state (key handlers, preferences, focus, status bar, app header), Step 2 begin lifecycle/state/cache tracking, Step 3 build environment with all subsystem values and services, Step 4 create render context, Step 5 evaluate scene, Step 6 render view tree, Step 7 build output lines, Step 8 begin buffered frame, Step 9 render app header and diff content, Step 10 render status bar, Step 11 flush frame, Step 12 end tracking (lifecycle onDisappear, state GC, cache cleanup).")
+@Image(source: "render-cycle-pipeline.svg", alt: "Diagram showing the 12-step render pipeline: Step 1 clear per-frame state (key handlers, preferences, focus, status bar, app header), Step 2 begin lifecycle/state/cache tracking, Step 3 build environment with all subsystem values and services, Step 4 create render context, Step 5 evaluate scene, Step 6 render the scene and its chrome, Step 7 build output lines, Step 8 begin buffered frame, Step 9 diff the frame, Step 10 keep the replay frame, Step 11 flush frame, Step 12 end tracking (lifecycle onDisappear, state GC, cache cleanup).")
 
 ### Step 1: Clear Per-Frame State
 
@@ -89,7 +89,7 @@ A ``RenderContext`` bundles everything a view needs to render:
 | Property | What |
 |----------|------|
 | `availableWidth` | Terminal width (mutable: containers reduce this for children) |
-| `availableHeight` | Terminal height minus status bar and app header (mutable) |
+| `availableHeight` | Terminal height; the window's chrome host gives its content what the app header and status bar leave (mutable) |
 | `environment` | The ``EnvironmentValues`` from step 3 |
 | `tuiContext` | The `TUIContext` (lifecycle, key dispatch, preferences, state storage) |
 | `identity` | The current view's structural identity (`ViewIdentity`) |
@@ -104,9 +104,11 @@ The context is passed down the view tree. Each view can create a modified copy f
 
 > Note: `app.body` builds new view values on every frame. `@State` values survive because `State.init` only records the default: as each view renders, `bindStateProperties(of:identity:storage:)` binds its `@State` properties to the boxes `StateStorage` keeps under the view's structural identity and each property's declaration index.
 
-### Step 6: Render View Tree
+### Step 6: Render the Scene and Its Chrome
 
-This is where the dual rendering system kicks in. ``WindowGroup`` calls the free function `renderToBuffer()` on its content, which recursively traverses the entire view tree and produces a ``FrameBuffer``.
+This is where the dual rendering system kicks in. ``WindowGroup`` renders the window's chrome host, which reserves the rows the app header and the status bar take, calls the free function `renderToBuffer()` on the content in what is left — recursively traversing the entire view tree — and then draws the two bars as views above and below it, producing one ``FrameBuffer`` the size of the terminal.
+
+The content's overlay layers (a drop-down, a sheet) are composited inside the content area, so a modal's dimming stops at the chrome. Each bar is drawn on its own background, and resolves its own opacity against it. Because the bars are rows of the frame, the frame is one coordinate space: a pointer event's row is the screen's, untranslated, and a hit region in a bar is where the bar is drawn.
 
 > See <doc:RenderCycle#The-Dual-Rendering-System> below for details on how views are dispatched.
 
@@ -125,13 +127,13 @@ The ``FrameBuffer`` is converted into terminal-ready output lines by `FrameDiffW
 
 Images owed to the terminal are written first. Then the frame's synchronized update begins (DEC mode 2026, `Terminal.beginSynchronizedUpdate()`): a terminal that implements it holds its display until the frame's end, so a frame that arrives in several reads is shown whole. The hold is kept only if the frame goes on to write more than one row.
 
-### Step 9: Render App Header and Diff Content
+### Step 9: Diff the Frame
 
-If the app header has content (set by the `.appHeader()` modifier), it is rendered at the top of the terminal. Then `FrameDiffWriter.writeContentDiff()` compares the main content output lines with the previous frame and writes **only changed lines** to the terminal buffer. For mostly-static UIs, this reduces writes by ~94%.
+`FrameDiffWriter.writeContentDiff()` compares the frame's output lines with the previous frame's, row by row on the screen, and writes **only changed lines** (and, within a line, only the changed spans) to the terminal buffer. For mostly-static UIs, this reduces writes by ~94%. The chrome is part of the frame, so a bar that grows or moves is diffed like any other rows.
 
-### Step 10: Render Status Bar
+### Step 10: Keep the Replay Frame
 
-The status bar renders in a separate pass but writes into the **same frame buffer**, so app header, content, and status bar are flushed together.
+The lines just written, and the animated runs in them — the chrome's included — are kept, so an animation tick can patch the frame on screen forward without walking the view tree again.
 
 ### Step 11: Flush Frame
 
@@ -147,17 +149,16 @@ Three managers finalize the frame:
 
 All state changes inside the lifecycle manager are `NSLock`-protected. Callbacks execute **outside** the lock to prevent deadlocks.
 
-### Status Bar Rendering (Step 10)
+### Chrome Rendering (Step 6)
 
-The status bar renders in a separate pass but within the same buffered frame:
+The window's chrome host draws the bars after the content, as views, into the same frame:
 
-1. A ``StatusBar`` view is created with the app's highlight and label colors as set; the view resolves them against the palette, with an unset color standing for the palette's accent or foreground
-2. A dedicated ``RenderContext`` is created with `availableHeight` set to the status bar's height
-3. `renderToBuffer()` runs on the status bar view: same dispatch as the main content
-4. `FrameDiffWriter.writeStatusBarDiff()` diffs the status bar independently from the main content
-5. Changed lines are written into the same frame buffer as the content
+1. Before the content draws, it reserves the app header's rows (last frame's height) and the status bar's (its height before the page declares its items)
+2. The content renders in the rows left, and its overlay layers are composited inside them; a layer anchored in the header (a `Menu`'s drop-down) joins them
+3. A ``StatusBar`` view is created with the app's highlight and label colors as set; the view resolves them against the palette, with an unset color standing for the palette's accent or foreground
+4. Each bar's buffer has its opacity resolved against its own background and is painted on it, then the header, the content and the status bar are stacked
 
-The status bar is **never affected** by view dimming or overlays. It always renders at the bottom of the terminal.
+The bars are **never affected** by view dimming or overlays: the compositor works inside the content area only.
 
 ## The Dual Rendering System
 

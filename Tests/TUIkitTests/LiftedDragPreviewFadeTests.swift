@@ -33,21 +33,20 @@ struct LiftedDragPreviewFadeTests {
         HStack(spacing: 0) { Text("ab").opacity(0.3); Text("cd") }
     }
 
-    /// The preview layer `WindowGroup.renderScene` floats for `session`, composited as
-    /// the run loop composites it, and the cells of its first row, in truecolor.
+    /// The preview `WindowGroup.renderScene` floats for `session` — composited over
+    /// the page by the window's chrome host — and the cells of its first row, in
+    /// truecolor.
     private func liftedRow(
         context: RenderContext, tui: TUIContext
     ) throws -> [PaintedCell] {
         try ColorDepth.withCurrent(.truecolor) {
             let scene = WindowGroup { Self.hashes }
-            let buffer = scene.renderScene(context: context)
-            let layer = try #require(buffer.overlays.first, "no preview layer was emitted")
-            let composited = buffer.compositingOverlays(
-                maxWidth: context.availableWidth, maxHeight: context.availableHeight,
-                palette: context.environment.palette)
-            let placed = layer.placed(maxWidth: context.availableWidth, maxHeight: context.availableHeight)
-            let row = paintedCells(composited.lines[placed.y])
-            return Array(row[placed.x..<min(row.count, placed.x + placed.content.width)])
+            let composited = scene.renderScene(context: context)
+            let session = tui.dragAndDropSession
+            let frame = try #require(session.liftedPreviewFrame(), "no preview is lifted")
+            let preview = try #require(session.liftedPreviewContent(), "no preview is lifted")
+            let row = paintedCells(composited.lines[frame.y])
+            return Array(row[frame.x..<min(row.count, frame.x + preview.width)])
         }
     }
 
