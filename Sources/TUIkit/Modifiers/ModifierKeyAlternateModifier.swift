@@ -162,8 +162,17 @@ extension ModifierKeyAlternateModifier: Renderable {
 
 extension ModifierKeyAlternateModifier: Layoutable {
     /// Measures whichever of the two it would draw.
+    ///
+    /// The choice is the same volatile read as the render's, and recorded as
+    /// one: a size a memoised ancestor kept across frames (`EquatableView`, a
+    /// `ForEach` row) would otherwise be the modified view's while the
+    /// alternate draws, and a wider alternate would be cut to fit it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        if let monitor = context.environment.modifierKeyMonitor, showsAlternate(held: monitor.current) {
+        guard let monitor = context.environment.modifierKeyMonitor else {
+            return measureChild(content, proposal: proposal, context: context)
+        }
+        context.environment.volatileReadTracker?.recordVolatileRead()
+        if showsAlternate(held: monitor.current) {
             return measureChild(alternate, proposal: proposal, context: alternateContext(context))
         }
         return measureChild(content, proposal: proposal, context: context)

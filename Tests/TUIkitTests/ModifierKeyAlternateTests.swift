@@ -144,6 +144,24 @@ struct ModifierKeyAlternateTests {
         #expect(harness.focusManager.currentFocusedID == "third")
     }
 
+    /// A row a value memo can keep, whose alternate is wider than itself.
+    private struct Row: View, Equatable {
+        let name: String
+        var body: some View {
+            Text(name).modifierKeyAlternate(.option) { Text(name + " (all)") }
+        }
+    }
+
+    @Test("A memoised ancestor measures the alternate, not the size it kept for the modified view")
+    func memoisedSizeFollowsTheKeys() {
+        let harness = InputChainHarness(keyboard: .requested)
+        let view = { HStack(spacing: 0) { Row(name: "ab").equatable(); Text("|") } }
+        #expect(text(harness.frame(view())) == "ab|")
+        #expect(text(harness.frame(view())) == "ab|")
+        hold(harness, ModifierKeyState(option: true))
+        #expect(text(harness.frame(view())) == "ab (all)|")
+    }
+
     @Test("Where modifier keys are not reported, the view is always drawn")
     func legacyTerminal() {
         let harness = InputChainHarness()
