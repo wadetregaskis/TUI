@@ -164,13 +164,23 @@
     }
 
     extension _DiscreteSymbolEffectModifier: Renderable, Layoutable {
+        /// The content's context: one environment application deeper, as below
+        /// any modifier that notes what it applies, so a `symbolEffectsRemoved`
+        /// drawn at this identity notes under a slot of its own.
+        private func contentContext(_ context: RenderContext) -> RenderContext {
+            var content = context
+            content.environmentApplicationDepth += 1
+            return content
+        }
+
         func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-            measureChild(content, proposal: proposal, context: context)
+            // The effect never changes a glyph's size, so the measure applies none.
+            measureChild(content, proposal: proposal, context: contentContext(context))
         }
 
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
             guard let breath, !context.isMeasuring, let storage = context.stateStorage else {
-                return TUIkitView.renderToBuffer(content, context: context)
+                return TUIkitView.renderToBuffer(content, context: contentContext(context))
             }
             // A per-frame comparison, which a served buffer would skip: declared,
             // as `.onChange` declares its own.
@@ -184,7 +194,7 @@
             storage.setTrackedValue(Seen(value: value, startNanos: start), for: key)
             storage.markActive(context.identity)
 
-            var playing = context
+            var playing = contentContext(context)
             if let start {
                 let end = start &+ SymbolGlyphEffect.playLength(frameTicks: frameTicks, cycles: cycles)
                 if now < end {
@@ -192,6 +202,19 @@
                         breath, frameTicks: frameTicks, startNanos: start, cycles: cycles)
                     context.requestWake(token: "symbol-play-\(context.identity.path)", atNanos: end)
                 }
+            }
+            // Noted as an environment modifier notes its value, because a memo
+            // below keys on its own view value and cannot see the play begin or
+            // end: written straight into the context, an `.equatable()` glyph
+            // whose value did not change served the frame drawn before the play
+            // (the setting-bypasses-cache class). The play's start is in the
+            // value, so the clear comes once at each end of a play.
+            if let cache = context.renderCache,
+                case .changed = cache.noteAppliedEnvironment(
+                    playing.environment.symbolGlyphEffect as Any, identity: context.identity,
+                    keyPath: \EnvironmentValues.symbolGlyphEffect, depth: context.environmentApplicationDepth)
+            {
+                cache.clearAffected(by: context.identity)
             }
             return TUIkitView.renderToBuffer(content, context: playing)
         }

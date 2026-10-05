@@ -34,6 +34,16 @@
         }
     }
 
+    /// The reader behind a memo: equal to every other, so `.equatable()`
+    /// serves it whenever nothing tells the memo its environment moved.
+    private struct MemoizedReader: View, Equatable {
+        let log: EffectLog
+
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool { true }
+
+        var body: some View { EffectReader(log: log) }
+    }
+
     /// The value a discrete effect watches, changed between frames.
     @MainActor
     private final class Counter {
@@ -54,6 +64,27 @@
         var body: some Scene {
             WindowGroup {
                 EffectReader(log: log).symbolEffect(.pulse, options: .repeat(2), value: counter.value)
+            }
+        }
+    }
+
+    /// The review's shape: the glyph behind `.equatable()`, the watched value
+    /// moving with nothing above it written (a plain class, as a timeline's
+    /// date is).
+    private struct MemoizedDiscreteApp: App {
+        let log: EffectLog
+        let counter: Counter
+
+        init() { self.init(log: EffectLog(), counter: Counter()) }
+
+        init(log: EffectLog, counter: Counter) {
+            self.log = log
+            self.counter = counter
+        }
+
+        var body: some Scene {
+            WindowGroup {
+                MemoizedReader(log: log).equatable().symbolEffect(.pulse, options: .default, value: counter.value)
             }
         }
     }
@@ -156,6 +187,24 @@
             #expect(log.seen.last == .some(nil), "the play did not end")
             app.frame(atNanos: end + 1_000_000_000)
             #expect(log.seen.last == .some(nil))
+        }
+
+        @Test("Behind an equatable memo a discrete play is seen as it begins and as it ends")
+        func theDiscreteModifierBehindAMemo() {
+            let log = EffectLog()
+            let counter = Counter()
+            let app = HeadlessApp(MemoizedDiscreteApp(log: log, counter: counter), width: 20, height: 3)
+            app.frame(atNanos: 0)
+            app.frame(atNanos: 16_666_667)
+            #expect(log.seen.last == .some(nil))
+
+            let start: Int64 = 100_000_000
+            counter.value = 1
+            app.frame(atNanos: start)
+            #expect(log.seen.last == .playing(.pulse, frameTicks: 3, startNanos: start, cycles: 1), "the memo served the frame before the play")
+            let end = start + SymbolGlyphEffect.playLength(frameTicks: 3, cycles: 1)
+            app.frame(atNanos: end)
+            #expect(log.seen.last == .some(nil), "the memo served the play after it ended")
         }
 
         @Test("The symbol transitions are fades")
