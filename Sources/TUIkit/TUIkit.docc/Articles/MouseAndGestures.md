@@ -268,6 +268,22 @@ TUIkit selects by itself, as a terminal would:
   empty, selection. **Escape** clears the selection, and so does any click and
   any key a focused text field takes.
 
+`textSelection(_:)` says where the selection applies. With no modifier it is
+on wherever a drag does nothing else. `.enabled` keeps a selection to the view
+it is on — on a single `Text`, that `Text` — and widens it to the rows of a
+``List`` or a ``Table`` inside it, as macOS does: a press on a row's text belongs
+to the text, so a drag selects it (kept to the row), a double-click selects a
+word, and a click selects nothing, while a press on the row's blank cells
+selects, drags or activates the row as before. `.disabled` turns the selection
+off; the innermost modifier wins.
+
+```swift
+List(invite.recipients) { recipient in
+    Text(recipient.email)
+}
+.textSelection(.enabled)
+```
+
 A selection reads characters, not views: a wide character once, each row's
 trailing blanks dropped, rows joined with line breaks. Its text is fixed when
 the drag ends, so a log that scrolls on under it still copies what was
@@ -326,6 +342,9 @@ it sits in the view.
 ### Mouse Types
 
 - ``MouseSupport``
+- ``TextSelectability``
+- ``EnabledTextSelectability``
+- ``DisabledTextSelectability``
 - ``ScrollDirection``
 
 ### Drag and Drop

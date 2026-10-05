@@ -33,6 +33,18 @@ import TUIkitView
 enum PressRole {
     /// A pane's background: a scroll view's viewport, a split view's column.
     case background
+
+    /// The rows of a `List` or a `Table` inside a
+    /// ``View/textSelection(_:)``-enabled scope, filed only there. A press on
+    /// a row's TEXT belongs to the text, as on macOS: it is held for a
+    /// selection kept to the row, and its click goes to no one — a click on
+    /// row text selects nothing. A press on a blank cell is the rows', as
+    /// everywhere else.
+    ///
+    /// `rowArea` answers, for a line in the region's own coordinates, the
+    /// row drawn there: its columns and its lines, in the same coordinates —
+    /// or `nil` where no row is (a section header, the border).
+    case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?)
 }
 
 extension MouseEventDispatcher {
@@ -56,6 +68,29 @@ extension MouseEventDispatcher {
     /// The journal kind of a press role's filing.
     static let pressRoleKind = EffectJournal.Kind("pressRole")
 
+    /// Registers the region a ``View/textSelection(_:)`` files over its
+    /// content, and returns its id.
+    ///
+    /// A hover observer whose handler declines everything — geometry for the
+    /// selection, taking nothing from the controls inside — with the scope's
+    /// answer filed beside it, both recorded for a memo's replay.
+    @MainActor
+    func registerSelectionScope(_ allowsSelection: Bool, in context: RenderContext) -> HitTestRegion.HandlerID {
+        let id = registerHoverObserver(in: context) { _ in false }
+        guard !context.isMeasuring else { return id }
+        selectionScopes[id] = allowsSelection
+        guard let journal = context.recordingEffectJournal else { return id }
+        let token = context.environment.keyChannelToken
+        journal.append(
+            EffectJournal.Entry(kind: Self.selectionScopeKind, channelToken: token) { replay in
+                replay.environment.mouseEventDispatcher?.selectionScopes[id] = allowsSelection
+            })
+        return id
+    }
+
+    /// The journal kind of a selection scope's filing.
+    static let selectionScopeKind = EffectJournal.Kind("selectionScope")
+
     /// Dispatches a left press, holding it for the first region with a role
     /// it reaches — or for the screen selection, where it reaches none.
     ///
@@ -66,21 +101,56 @@ extension MouseEventDispatcher {
     /// selection. A press no region takes lands on the page's background,
     /// where it can only select.
     func dispatchLeftPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
+        // The innermost `textSelection(_:)` under the press: `false` turns the
+        // selection off here — every region hears its press at once, as before
+        // there was one — and `true` keeps it to that scope.
+        let scope = selectionScopes.isEmpty ? nil : matching.first { selectionScopes[$0.handlerID] != nil }
+        let tier = scope.flatMap { selectionScopes[$0.handlerID] }
+        if tier == false {
+            for region in matching where offer(event, to: region) != .declined { return true }
+            return false
+        }
+        let point = ScreenSelection.Point(x: event.x, y: event.y)
+        // The pane a selection keeps to, inside an enabled scope's rectangle.
+        func within(_ pane: ScreenSelection.Rect) -> ScreenSelection.Rect {
+            guard let scope else { return pane }
+            return pane.intersection(Self.rect(of: scope)) ?? pane
+        }
         for region in matching {
-            if pressRoles[region.handlerID] != nil, let handler = handler(for: region.handlerID) {
-                // The selection keeps to the pane the press is in.
-                let pane = ScreenSelection.Rect(
-                    x: region.offsetX, y: region.offsetY, width: region.width, height: region.height)
-                hold(event, for: (handler, region.localOriginX, region.localOriginY), pane: pane)
-                return true
+            if let role = pressRoles[region.handlerID], let handler = handler(for: region.handlerID) {
+                switch role {
+                case .background:
+                    // The selection keeps to the pane the press is in.
+                    hold(event, for: (handler, region.localOriginX, region.localOriginY),
+                        pane: within(Self.rect(of: region)))
+                    return true
+                case .rows(let rowArea):
+                    // A press on a row's text, under an enabled scope: the
+                    // text's, kept to the row, and no click for the row.
+                    if tier == true, screenSelection?.isText(at: point) == true,
+                        let area = rowArea(event.y - region.localOriginY)
+                    {
+                        let row = ScreenSelection.Rect(
+                            x: region.localOriginX + area.columns.lowerBound,
+                            y: region.localOriginY + area.lines.lowerBound,
+                            width: area.columns.count, height: area.lines.count)
+                        if let pane = row.intersection(Self.rect(of: region)), pane.contains(point) {
+                            hold(event, for: nil, pane: within(pane))
+                            return true
+                        }
+                    }
+                }
             }
             if offer(event, to: region) != .declined { return true }
         }
-        guard let selection = screenSelection,
-            selection.contentArea.contains(ScreenSelection.Point(x: event.x, y: event.y))
-        else { return false }
-        hold(event, for: nil, pane: selection.contentArea)
+        guard let selection = screenSelection, selection.contentArea.contains(point) else { return false }
+        hold(event, for: nil, pane: within(selection.contentArea))
         return true
+    }
+
+    /// The cells a region covers on screen.
+    private static func rect(of region: HitTestRegion) -> ScreenSelection.Rect {
+        ScreenSelection.Rect(x: region.offsetX, y: region.offsetY, width: region.width, height: region.height)
     }
 
     /// Captures the left button for a held press whose click, if it is one,

@@ -259,6 +259,11 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// (and every memo replay) that registers them.
     var pressRoles: [HitTestRegion.HandlerID: PressRole] = [:]
 
+    /// The ``View/textSelection(_:)`` scopes on screen, by the handler id of the
+    /// region each filed: `true` enabled, `false` disabled. Cleared with the
+    /// handler table.
+    var selectionScopes: [HitTestRegion.HandlerID: Bool] = [:]
+
     /// The gestures contending for the left button: built at a press that
     /// lands on a gesture, kept until every one of them has decided — which
     /// can be after the release, for a tap waiting on its next click.
@@ -296,6 +301,7 @@ extension MouseEventDispatcher {
         hoverObserverIDs.removeAll(keepingCapacity: true)
         gestureRoles.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
+        selectionScopes.removeAll(keepingCapacity: true)
         regions.removeAll(keepingCapacity: true)
         // The interned ids survive this: only the per-identity slot counters
         // restart, because this runs once per WALK of the scene.

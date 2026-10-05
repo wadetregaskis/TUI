@@ -2318,3 +2318,47 @@ private struct SizeDependentShapes: View {
         }
     }
 #endif
+// MARK: - Text selection
+
+/// SwiftUI's `textSelection(_:)` example, as its documentation writes it: on
+/// one `Text`, and on a `List` to make every row's text selectable — and a
+/// selectability passed through a generic, as a helper view would.
+@MainActor
+private struct TextSelectabilityShapes: View {
+    struct Recipient: Identifiable {
+        let id: Int
+        let name: String
+        let email: String
+    }
+
+    let recipients: [Recipient] = []
+    let date = Date()
+
+    func selectable<S: TextSelectability>(_ selectability: S) -> some View {
+        Text("serial").textSelection(selectability)
+    }
+
+    var body: some View {
+        VStack {
+            Text("Event Invite")
+                .font(.title)
+            Text(date.formatted(date: .long, time: .shortened))
+                .textSelection(.enabled)
+
+            List(recipients) { recipient in
+                VStack(alignment: .leading) {
+                    Text(recipient.name)
+                    Text(recipient.email)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .textSelection(.enabled)
+            Button("button.ok") {}.textSelection(.disabled)
+            selectable(.disabled)
+            if EnabledTextSelectability.allowsSelection, !DisabledTextSelectability.allowsSelection {
+                Text("both")
+            }
+        }
+        .navigationTitle("New Invitation")
+    }
+}

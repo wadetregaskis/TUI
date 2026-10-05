@@ -130,6 +130,14 @@ extension ItemListHandler {
         band(atContentY: contentY)?.dropIndex
     }
 
+    /// The lines of the CONTENT row covering `contentY`, in the same space, or
+    /// `nil` for a section header, the reorder slot or a line no row occupies:
+    /// the row a selection of its text keeps to.
+    func contentRowLines(atContentY contentY: Int) -> Range<Int>? {
+        guard let band = band(atContentY: contentY), band.isContent else { return nil }
+        return band.yStart..<(band.yStart + band.height)
+    }
+
     /// The published band covering `contentY`.
     private func band(atContentY contentY: Int) -> RowBand? {
         visibleRowBands.first { contentY >= $0.yStart && contentY < $0.yStart + $0.height }

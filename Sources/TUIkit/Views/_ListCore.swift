@@ -2447,6 +2447,18 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 contentColumns: contentColumns
             )
         )
+        // Inside an enabled `textSelection(_:)`, a press on a row's text is the
+        // text's (`PressRole.rows`). Filed only there, so a list nothing makes
+        // selectable pays nothing for it.
+        if context.environment.textSelectionAllowed == true {
+            mouseDispatcher.filePressRole(
+                .rows { [handler = state.handler] localY in
+                    handler.contentRowLines(atContentY: localY - topInset).map {
+                        (contentColumns, ($0.lowerBound + topInset)..<($0.upperBound + topInset))
+                    }
+                },
+                for: mouseHandlerID, in: context)
+        }
         // The rows are a landing place for drags from elsewhere. It borrows the
         // container's region: same rectangle, and the drop target only needs
         // the geometry — clicks still go to the container's own closure.

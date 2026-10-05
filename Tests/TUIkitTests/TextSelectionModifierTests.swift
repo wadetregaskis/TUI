@@ -1,0 +1,218 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  TextSelectionModifierTests.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+@MainActor
+@Suite("textSelection(_:)")
+struct TextSelectionModifierTests {
+    final class Box<Value>: @unchecked Sendable {
+        var value: Value
+        init(_ value: Value) { self.value = value }
+    }
+
+    @Test("The selectabilities say what they allow, through the protocol too")
+    func selectabilities() {
+        func allows<S: TextSelectability>(_: S) -> Bool { S.allowsSelection }
+        #expect(EnabledTextSelectability.allowsSelection)
+        #expect(!DisabledTextSelectability.allowsSelection)
+        #expect(allows(.enabled))
+        #expect(!allows(.disabled))
+    }
+
+    // MARK: - Harness
+
+    func harness(_ page: some View) -> InputChainHarness {
+        let harness = InputChainHarness(width: 40, height: 10)
+        harness.frame(page)
+        harness.frame(page)
+        return harness
+    }
+
+    func find(_ needle: String, in harness: InputChainHarness, _ page: some View) throws -> (x: Int, y: Int) {
+        let lines = harness.frame(page).lines.map(\.stripped)
+        let row = try #require(lines.firstIndex { $0.contains(needle) })
+        let prefix = try #require(lines[row].range(of: needle)).lowerBound
+        return (lines[row][..<prefix].count, row)
+    }
+
+    func left(_ harness: InputChainHarness, _ phase: MousePhase, _ x: Int, _ y: Int) {
+        harness.mouse(MouseEvent(button: .left, phase: phase, x: x, y: y))
+    }
+
+    func drag(_ harness: InputChainHarness, _ page: some View, from: (x: Int, y: Int), to: (x: Int, y: Int)) {
+        left(harness, .pressed, from.x, from.y)
+        harness.frame(page)
+        left(harness, .dragged, to.x, to.y)
+        harness.frame(page)
+        left(harness, .released, to.x, to.y)
+        harness.frame(page)
+    }
+
+    func click(_ harness: InputChainHarness, _ page: some View, _ at: (x: Int, y: Int)) {
+        left(harness, .pressed, at.x, at.y)
+        left(harness, .released, at.x, at.y)
+        harness.frame(page)
+    }
+
+    // MARK: - Disabled
+
+    struct Words: View {
+        var body: some View {
+            VStack(alignment: .leading) {
+                Text("alpha beta gamma")
+                Text("other words here")
+            }
+        }
+    }
+
+    @Test(".disabled selects nothing")
+    func disabled() throws {
+        let page = Words().textSelection(.disabled)
+        let harness = harness(page)
+        let alpha = try find("alpha", in: harness, page)
+        drag(harness, page, from: alpha, to: (alpha.x + 6, alpha.y + 1))
+        #expect(!harness.tui.screenSelection.hasSelection)
+    }
+
+    @Test("The innermost scope wins")
+    func innermostWins() throws {
+        let page = VStack(alignment: .leading) {
+            Text("alpha beta gamma").textSelection(.enabled)
+            Text("other words here")
+        }
+        .textSelection(.disabled)
+        let harness = harness(page)
+        let alpha = try find("alpha", in: harness, page)
+        drag(harness, page, from: alpha, to: (alpha.x + 4, alpha.y))
+        #expect(harness.tui.screenSelection.current?.text == "alpha")
+        let other = try find("other", in: harness, page)
+        drag(harness, page, from: other, to: (other.x + 4, other.y))
+        #expect(!harness.tui.screenSelection.hasSelection)
+    }
+
+    // MARK: - Enabled on one Text
+
+    @Test(".enabled on one Text keeps the selection to it")
+    func oneText() throws {
+        let page = VStack(alignment: .leading) {
+            Text("alpha beta gamma").textSelection(.enabled)
+            Text("other words here")
+        }
+        let harness = harness(page)
+        let alpha = try find("alpha", in: harness, page)
+        drag(harness, page, from: alpha, to: (alpha.x + 8, alpha.y + 1))
+        #expect(harness.tui.screenSelection.current?.text == "alpha beta gamma")
+    }
+
+    // MARK: - Lists
+
+    struct RowsPage: View {
+        let selection: Box<Int?>
+        let activated: Box<[Int]>
+        let selectable: Bool
+
+        var body: some View {
+            let list = List(selection: Binding(get: { selection.value }, set: { selection.value = $0 })) {
+                ForEach(0..<4, id: \.self) { index in
+                    Text("row \(index) words")
+                }
+            }
+            .onRowActivate { activated.value.append($0) }
+            .frame(height: 8)
+            if selectable {
+                list.textSelection(.enabled)
+            } else {
+                list
+            }
+        }
+    }
+
+    @Test("Without the modifier a click on a row's text selects the row, as before")
+    func rowsWithoutModifier() throws {
+        let page = RowsPage(selection: Box(nil), activated: Box([]), selectable: false)
+        let harness = harness(page)
+        let row = try find("row 2", in: harness, page)
+        click(harness, page, (row.x + 1, row.y))
+        #expect(page.selection.value == 2)
+        // And a drag over it selects no text.
+        drag(harness, page, from: (row.x, row.y), to: (row.x + 4, row.y))
+        #expect(!harness.tui.screenSelection.hasSelection)
+    }
+
+    @Test("Under .enabled a drag over a row's text selects it, kept to the row, and leaves the rows alone")
+    func rowsDragSelectsText() throws {
+        let page = RowsPage(selection: Box(nil), activated: Box([]), selectable: true)
+        let harness = harness(page)
+        let row1 = try find("row 1", in: harness, page)
+        drag(harness, page, from: (row1.x + 4, row1.y), to: (row1.x + 6, row1.y + 2))
+        #expect(harness.tui.screenSelection.current?.text == "1 words")
+        #expect(page.selection.value == nil)
+    }
+
+    @Test("Under .enabled a click on a row's text selects nothing, and on its blank cells the row")
+    func rowsClick() throws {
+        let page = RowsPage(selection: Box(nil), activated: Box([]), selectable: true)
+        let harness = harness(page)
+        let row = try find("row 2", in: harness, page)
+        click(harness, page, (row.x + 1, row.y))
+        #expect(page.selection.value == nil)
+        click(harness, page, (row.x + 20, row.y))
+        #expect(page.selection.value == 2)
+    }
+
+    // MARK: - Tables, the sibling
+
+    struct Item: Identifiable {
+        let id: Int
+        let name: String
+    }
+
+    struct TablePage: View {
+        let selection: Box<Int?>
+        var body: some View {
+            Table(
+                (0..<4).map { Item(id: $0, name: "item \($0) name") },
+                selection: Binding(get: { selection.value }, set: { selection.value = $0 })
+            ) {
+                TableColumn("Name", value: \.name)
+            }
+            .frame(height: 9)
+            .textSelection(.enabled)
+        }
+    }
+
+    @Test("Under .enabled a Table's row text is selected as a List's is, and a click on it selects no row")
+    func tableRows() throws {
+        let page = TablePage(selection: Box(nil))
+        let harness = harness(page)
+        let row1 = try find("item 1", in: harness, page)
+        drag(harness, page, from: (row1.x + 5, row1.y), to: (row1.x + 7, row1.y + 2))
+        #expect(harness.tui.screenSelection.current?.text.hasPrefix("1 name") == true)
+        #expect(page.selection.value == nil)
+        let row2 = try find("item 2", in: harness, page)
+        click(harness, page, (row2.x + 1, row2.y))
+        #expect(page.selection.value == nil)
+    }
+
+    @Test("Under .enabled a double-click on a row's word selects the word and activates nothing")
+    func rowsDoubleClick() throws {
+        let page = RowsPage(selection: Box(nil), activated: Box([]), selectable: true)
+        let harness = harness(page)
+        let words = try find("words", in: harness, page)
+        for _ in 0..<2 {
+            left(harness, .pressed, words.x + 1, words.y)
+            left(harness, .released, words.x + 1, words.y)
+        }
+        harness.frame(page)
+        #expect(harness.tui.screenSelection.current?.text == "words")
+        #expect(page.activated.value.isEmpty)
+        #expect(page.selection.value == nil)
+    }
+}

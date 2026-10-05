@@ -3204,6 +3204,24 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
+    /// Inside an enabled `textSelection(_:)`, a press on a row's text is the
+    /// text's (`PressRole.rows`), as in `_ListCore`. Filed only there, so a
+    /// table nothing makes selectable pays nothing for it.
+    @MainActor
+    private func fileSelectableRows(
+        for id: HitTestRegion.HandlerID, state: PopulatedRenderState, dispatcher: MouseEventDispatcher,
+        interiorTopY: Int, contentColumns: Range<Int>, context: RenderContext
+    ) {
+        guard context.environment.textSelectionAllowed == true else { return }
+        dispatcher.filePressRole(
+            .rows { [handler = state.handler] localY in
+                handler.contentRowLines(atContentY: localY - interiorTopY).map {
+                    (contentColumns, ($0.lowerBound + interiorTopY)..<($0.upperBound + interiorTopY))
+                }
+            },
+            for: id, in: context)
+    }
+
     private func attachMouseHandlers(
         to buffer: inout FrameBuffer,
         context: RenderContext,
@@ -3287,6 +3305,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 previewLine: previewLine
             )
         )
+        fileSelectableRows(
+            for: mouseHandlerID, state: state, dispatcher: mouseDispatcher, interiorTopY: interiorTopY,
+            contentColumns: contentColumns, context: context)
         // Insert at the back so interactive children inside a
         // row still win the dispatcher's reverse-iteration
         // match. See the parallel comment in _ListCore.

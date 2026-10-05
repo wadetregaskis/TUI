@@ -255,6 +255,21 @@ extension ScreenSelection {
         return cells
     }
 
+    /// Whether the cell at `point` of the last frame shows text: a character
+    /// that is not a blank, and not one of the box-drawing characters a border
+    /// or a rule is drawn with. A press there on a list row is the text's.
+    func isText(at point: Point) -> Bool {
+        guard point.y >= 0, point.y < frameLines.count, point.x >= 0 else { return false }
+        let cells = Self.cells(of: frameLines[point.y])
+        guard point.x < cells.count else { return false }
+        var column = point.x
+        // A wide character's second cell is the character's.
+        while column > 0, cells[column] == nil { column -= 1 }
+        guard let character = cells[column], !character.isWhitespace else { return false }
+        let scalar = character.unicodeScalars.first?.value ?? 0
+        return !(0x2500...0x259F).contains(scalar)
+    }
+
     /// The columns `selection` covers on row `row`, snapped outwards to whole
     /// wide characters, or `nil` for a row it does not reach.
     static func columns(of selection: Selection, onRow row: Int, cells: [Character?]) -> Range<Int>? {
