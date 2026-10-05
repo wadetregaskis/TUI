@@ -66,10 +66,16 @@ extension ScreenSelection {
     /// What a key does while something is selected: the copy key copies, and
     /// keeps the selection, as a Mac does; a bare Escape clears it. `nil` for
     /// any other key, which goes on through the chain.
+    ///
+    /// Only while the highlight is drawn. A selection whose cells have
+    /// changed under it — a log scrolled on, a list that moved — is not on
+    /// the screen, and the keys it would take ahead of every layer are the
+    /// app's again: a Ctrl-C meant for the focused list copied the invisible
+    /// text, and an Escape meant for an `onExitCommand` cleared it instead.
     func handleKey(_ event: KeyEvent) -> Bool? {
         // While its menu is open the keys are the menu's: Escape closes it,
         // Return chooses.
-        guard hasSelection, menuAnchor == nil else { return nil }
+        guard current?.isHighlighted == true, menuAnchor == nil else { return nil }
         if let copyTrigger, KeyboardShortcut.trigger(for: event) == copyTrigger {
             return copySelection()
         }

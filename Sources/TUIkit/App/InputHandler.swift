@@ -108,7 +108,7 @@ internal struct InputHandler {
     var undoKeys = AppUndoKeys()
 
     /// TUIkit's selection of what is on the screen, whose copy and clear keys
-    /// come before every layer while something is selected. Optional and
+    /// come before every layer while a selection is drawn. Optional and
     /// defaulted, as ``tooltipState`` is.
     var screenSelection: ScreenSelection?
 }
@@ -139,7 +139,7 @@ extension InputHandler {
         // which it also reports, is a press to every layer, as the legacy
         // encodings' identical copies always were.
         guard event.phase != .release else { return handleRelease(event) }
-        // Layer -1, while something on the screen is selected: the app's ⌘C
+        // Layer -1, while a selection of the screen is drawn: the app's ⌘C
         // (Ctrl-C by default) copies it, and Escape clears it. Ahead of
         // everything, the focused text input included: the selection is the
         // newest thing the user did — any left press clears it, and so does any

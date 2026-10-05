@@ -24,12 +24,12 @@ import TUIkitCore
 ///
 /// What is selected is CHARACTERS, read from the page as drawn, not views:
 /// wide characters once, trailing blanks dropped, rows joined with line
-/// breaks. The text is fixed when the drag ends, so a log that moves under the
-/// highlight still copies what was selected; the highlight itself goes as soon
-/// as the cells under it no longer read that text.
+/// breaks. The text is fixed when the drag ends; the highlight goes as soon as
+/// the cells under it no longer read that text, and with it the selection's
+/// keys.
 ///
 /// **Copying** is Ctrl-C — the app's ⌘C, resolved through `commandKey` — while
-/// a selection exists, through the app's ``ClipboardWriter``, whose status-bar
+/// a selection is drawn, through the app's ``ClipboardWriter``, whose status-bar
 /// line says what became of it. ⌘C itself never reaches an app: the terminal
 /// takes it for its own (here empty) selection. A scene can opt into copying
 /// on release (``Scene/textSelectionCopiesOnRelease(_:)``). Escape, any click

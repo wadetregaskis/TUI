@@ -221,7 +221,10 @@ struct ScreenSelectionGestureTests {
         #expect(!harness.tui.screenSelection.hasSelection)
     }
 
-    @Test("When the cells change, the highlight goes and the copy keeps what was selected")
+    /// An invisible selection must not take the keys ahead of every layer: a
+    /// Ctrl-C meant for the focused view copied the text no longer drawn, and
+    /// the first Escape was eaten.
+    @Test("When the cells change, the highlight goes, and with it the selection's keys")
     func highlightDropsOnChange() throws {
         let log = SystemClipboardLog()
         let first = Box("alpha beta gamma")
@@ -232,8 +235,47 @@ struct ScreenSelectionGestureTests {
         first.value = "omega beta gamma"
         harness.frame(page)
         #expect(harness.tui.screenSelection.current?.isHighlighted == false)
+        #expect(harness.tui.screenSelection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) == nil)
+        #expect(harness.tui.screenSelection.handleKey(KeyEvent(key: .escape)) == nil)
         harness.press(KeyEvent(key: .character("c"), ctrl: true))
-        #expect(log.writes == ["alpha"])
+        #expect(log.writes.isEmpty)
+    }
+
+    struct CopyablePage: View {
+        let first: Box
+        var body: some View {
+            VStack(alignment: .leading) {
+                Text(first.value)
+                Button("Rows") {}
+                    .copyable(["the rows"])
+            }
+        }
+    }
+
+    @Test("Once the highlight is gone, Ctrl-C copies what holds the focus")
+    func hiddenSelectionLetsTheFocusCopy() throws {
+        let log = SystemClipboardLog()
+        let first = Box("alpha beta gamma")
+        let page = CopyablePage(first: first)
+        let writer = ClipboardWriter.stated(terminal: .unsupported, isLocal: true, log: log)
+        let harness = InputChainHarness(width: 40, height: 8) { $0.clipboardAccess = ClipboardAccess(writer: writer) }
+        harness.tui.clipboardWriter = writer
+        harness.frame(page)
+        harness.frame(page)
+        let lines = harness.frame(page).lines.map(\.stripped)
+        let row = try #require(lines.firstIndex { $0.contains("alpha") })
+        let x = lines[row][..<(try #require(lines[row].range(of: "alpha")).lowerBound)].count
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: x + 4, y: row))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x + 4, y: row))
+        harness.frame(page)
+        #expect(harness.tui.screenSelection.current?.text == "alpha")
+        first.value = "omega beta gamma"
+        harness.frame(page)
+        #expect(harness.press(KeyEvent(key: .character("c"), ctrl: true)))
+        #expect(log.writes == ["the rows"])
     }
 
     @Test("With copy-on-release, the release copies")
