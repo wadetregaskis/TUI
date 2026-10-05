@@ -193,6 +193,23 @@ struct ScrollTargetBehaviorTests {
         #expect(frames.scrollView?.horizontal.scrollOffset == 20, "an arrow is a page across too")
     }
 
+    @Test("A horizontal pager keeps no \"N more\" lines: they count rows it does not scroll")
+    func horizontalPagerReservesNoLines() {
+        let frames = Frames(width: 10, height: 4)
+        let view = ScrollView(.horizontal) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<4, id: \.self) { Text("row\($0) " + String(repeating: "abcdefghij", count: 5)) }
+            }
+        }
+        .scrollIndicators(.automatic)
+        .scrollIndicatorStyle(.text)
+        .scrollTargetBehavior(.paging)
+        frames.render(view)
+        let lines = frames.last.lines.map(\.stripped)
+        #expect(lines.allSatisfy { !$0.contains("more") }, "\(lines)")
+        #expect(lines.first?.hasPrefix("row0") == true, "\(lines)")
+    }
+
     @Test("A horizontal pager resized between pages is put back on one of the new width")
     func horizontalPagingResettlesOnResize() {
         let frames = Frames(width: 20, height: 3)

@@ -458,8 +458,13 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// wherever it showed — so `.paging` either left those lines unread at
     /// every stop or, stepping the lines between them, stopped off every page a
     /// `containerRelativeFrame` sized against the viewport.
+    ///
+    /// Only for a view that scrolls down: the pair counts rows, and a
+    /// horizontal pager reserved two lines that had nothing to count.
     func textIndicatorLines(_ environment: EnvironmentValues) -> TextIndicatorLines {
-        TextIndicatorLines(environment) { scrollTargetBehaviorInForce(environment) != nil }
+        TextIndicatorLines(environment) {
+            axes.contains(.vertical) && scrollTargetBehaviorInForce(environment) != nil
+        }
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
