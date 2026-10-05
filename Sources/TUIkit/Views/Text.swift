@@ -174,7 +174,7 @@ public struct Text: View, Equatable {
     /// - Parameter content: The text to display.
     ///
     /// - Note: `@_disfavoredOverload` is what makes a *literal* choose
-    ///   ``init(_:)-(LocalizedStringKey)`` instead of this one. Without it Swift
+    ///   ``init(_:tableName:bundle:comment:)`` instead of this one. Without it Swift
     ///   picks `String` — the default type for a string literal — and no literal
     ///   would ever be looked up. SwiftUI marks its own `StringProtocol`
     ///   initializer the same way, for the same reason.

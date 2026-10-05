@@ -54,7 +54,7 @@ extension Text {
     /// - Note: `@_disfavoredOverload`, as SwiftUI declares it: an
     ///   `AttributedString` is expressible by a string literal too, so without
     ///   it `Text("")` would be ambiguous between this and
-    ///   ``init(_:)-(LocalizedStringKey)`` — and a literal must stay a key.
+    ///   ``init(_:tableName:bundle:comment:)`` — and a literal must stay a key.
     @_disfavoredOverload
     public init(_ attributedContent: AttributedString) {
         self.init(verbatim: String(attributedContent.characters))

@@ -223,7 +223,7 @@ extension DisclosureGroup where Label == Text {
     /// Creates a disclosure group with a localized title.
     ///
     /// A string *literal* binds here and is looked up, exactly as it is in
-    /// ``Text/init(_:)-(LocalizedStringKey)``.
+    /// ``Text/init(_:tableName:bundle:comment:)``.
     ///
     /// - Parameters:
     ///   - titleKey: The key for the group's title.

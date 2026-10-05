@@ -99,7 +99,7 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// The localized text, resolved through the shared service.
     ///
     /// Every control that takes a title resolves **eagerly**, at construction,
-    /// exactly as ``Text/init(_:)-(LocalizedStringKey)`` does — which is what
+    /// exactly as ``Text/init(_:tableName:bundle:comment:)`` does — which is what
     /// lets a control keep storing a plain `String` and changes nothing about
     /// how it measures or renders. Nothing is lost by resolving early: the view
     /// tree is rebuilt every frame, so a language switched at runtime is picked

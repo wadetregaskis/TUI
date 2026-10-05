@@ -233,7 +233,7 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// Falls back to English if the key is missing in the current language.
     /// A key neither holds is looked up in the main bundle's `Localizable`
-    /// string table, as SwiftUI looks a key up (see ``BundleStringTables``),
+    /// string table, as SwiftUI looks a key up (see `BundleStringTables`),
     /// and is its own text if that has none either.
     ///
     /// - Parameter key: Dot-notation path (e.g., "button.ok", "error.invalid_input")
