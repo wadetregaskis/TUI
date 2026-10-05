@@ -44,33 +44,74 @@ import TUIkitCore
 ///     }
 /// }
 /// ```
-public struct DismissAction: Sendable {
+///
+/// ## Equality
+///
+/// Two actions are equal when they are the same action: the same ``Box``,
+/// compared by identity, as `dismissSearch`'s is. A closure has no equality,
+/// and an environment value with none turns every memo below it off — so a
+/// view that writes an action for its content keeps one box for its life
+/// (`@State`) and refreshes what the box does each time it renders. The
+/// action written is then equal from frame to frame, the memos below stay
+/// on, and an action read on an earlier frame does what dismissing means now.
+public struct DismissAction: Sendable, Equatable {
     /// What dismissing does here, or `nil` for the top-level meaning (exit).
     ///
     /// A stored closure rather than a subclass or a flag, because the set of
     /// things that can present a view is open-ended: whatever presents one
-    /// supplies the action that undoes it.
-    private let action: (@MainActor @Sendable () -> Void)?
+    /// supplies the action that undoes it — boxed, so the action has an
+    /// identity to compare.
+    private let box: Box?
+
+    /// What a dismiss action runs, by reference: the identity two actions are
+    /// compared by, and a place to keep one action across renders while what
+    /// it does is brought up to date.
+    ///
+    /// `@unchecked Sendable`: `action` is written and read on the main actor
+    /// only — by a view's render, and by ``DismissAction/callAsFunction()``,
+    /// which is main-actor isolated — and never shared mutably elsewhere.
+    final class Box: @unchecked Sendable {
+        var action: @MainActor @Sendable () -> Void
+
+        init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
+            self.action = action
+        }
+    }
 
     /// Creates a dismiss action that exits the application's run loop.
     public init() {
-        self.action = nil
+        self.box = nil
     }
 
     /// Creates a dismiss action that runs `action` — for a presenting view to
     /// put into the environment of what it presents.
+    ///
+    /// Each call is a new action, unequal to every other; a view that writes
+    /// one on every render and wants the memos below it kept writes one box's
+    /// instead (`init(box:)`).
     public init(_ action: @escaping @MainActor @Sendable () -> Void) {
-        self.action = action
+        self.box = Box(action)
+    }
+
+    /// The action `box` runs, equal to every other made from it.
+    init(box: Box) {
+        self.box = box
     }
 
     /// Triggers the action. Equivalent to writing `dismiss()`.
     @MainActor
     public func callAsFunction() {
-        if let action {
-            action()
+        if let box {
+            box.action()
         } else {
             AppState.shared.requestExit()
         }
+    }
+
+    /// Whether the two are the same action: the same box, or both the
+    /// top-level one.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.box === rhs.box
     }
 }
 
