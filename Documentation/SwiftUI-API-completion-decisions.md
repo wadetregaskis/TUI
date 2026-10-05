@@ -38,8 +38,8 @@ entry has the options and their prices.
   on macOS ship inert, settles A11, A21 and A51. O9, multi-scene apps, settles
   A22 and A26.
 - **A18 — Apple-only API behind `#if canImport`.** Allow it where the feature
-  is honoured (what the batch has done). A35 and the `UserDefaults` storage
-  spellings wait on it.
+  is honoured (what the batch has done). The `UserDefaults` storage
+  spellings wait on it (A35 shipped on it, 2026-10-05).
 - **A2 — anchors and named coordinate spaces.** Markers stamped where a reader
   or anchor sits (G1). A7, scroll visibility, builds on the same markers.
 - **A13 — text selection.** TUIkit draws its own, after the batch. A25 waits
@@ -60,10 +60,8 @@ entry has the options and their prices.
 **Features, priced.**
 
 - A3 — `layoutDirectionBehavior`: wait for right-to-left support.
-- A5 — a live resize from `SIGWINCH`: synthesise it.
-- A14 — string tables: look keys up through Foundation's bundle tables.
-- A15 — asset catalogues: plain image files (shipped), no named colours.
-- A16 — colour providers and HDR: decline the provider, ship `ResolvedHDR`.
+- A16 — colour providers: benchmark the provider first (the HDR half shipped
+  2026-10-05: `headroom(_:)`, the rest declined).
 - A19, A21 — sheet detents by hand, compact adaptation: leave out for now;
   decide with B3 and O8.
 - A27 — pixel effects: decline the transforms, a cell-coverage `mask`,
@@ -72,14 +70,11 @@ entry has the options and their prices.
   reversing the compatibility doc's §2.6.
 - A30, A31 — table context menus and section rows: both menus, with
   `primaryAction` replacing `onRowActivate`; header rows.
-- A32 — size-dependent text variants: build the ladders, after the batch.
 - A33 — a colour's spoken name: decline.
-- A34, A35 — the blur transition and symbol effects: a scale and a fade;
-  TUIkit's own Symbols vocabulary once A18 allows it.
+- A34 — the blur transition: a scale and a fade.
 - A47, A48, A50 — list separators, swipe actions, tab search: underline a
   row's last line; a menu from a chord and a horizontal scroll; defer until
   macOS 26 can be measured.
-- A52 — the `@Animatable` macros: decline rather than take on swift-syntax.
 - A53 — the drag-session behaviour (callbacks, configurations, containers,
   formations): callbacks and configurations on today's single-item drags.
 
@@ -209,33 +204,6 @@ except on a right-to-left paragraph. There, `.writingDirectionBased` and
 here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
 
-### A5. `onInteractiveResizeChange`: synthesise a live resize from `SIGWINCH`?
-
-*`View.onInteractiveResizeChange(_:)`*
-
-macOS calls the action with `true` when the user starts dragging a window edge
-and `false` when they let go. Its documented use is to throttle expensive
-drawing during the drag.
-
-A terminal sends `SIGWINCH` once per size change and says nothing about a
-drag. Dragging a terminal window's edge sends a burst of them. So do a font
-size change and a tmux pane resize, as one or a few.
-
-**Options.**
-
-1. **Decline.** A terminal has no notion of a live resize, so nothing can say
-   when one begins or ends.
-2. **Synthesise it.** `true` at the first `SIGWINCH` after a quiet period;
-   `false` once none has arrived for about 200 ms. That is the same kind of
-   inference the dispatcher already makes for double-clicks, which a terminal
-   does not report either. Roughly half a day: the signal path already wakes
-   the run loop, and the quiet-period timer needs a wake of its own.
-
-**Recommendation:** 2. A TUI re-lays out the whole screen on every
-`SIGWINCH`, which is exactly the cost the API exists to manage. It would be
-documented as "a burst of resizes", because a font-size change counts as
-one.
-
 *Wave 10's entries (A6–A12, B23–B31, C6–C7): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
 
 ### A7. Scroll visibility needs a way to find a view inside the scroll content
@@ -334,58 +302,11 @@ modifier.
 **Recommendation:** 1, after the rest of the batch. It is the only option
 under which SwiftUI source means what it says.
 
-### A14. String tables and bundles for localized text
-
-*`Text.init(_:tableName:bundle:comment:)`, and the same parameters wherever
-SwiftUI takes a `LocalizedStringKey`*
-
-TUIkit's localization is a registered dictionary per language, and
-`LocalizedStringKey`'s note says the parameters are absent because there
-are no tables or bundles for them to name. That holds for TUIkit's own
-strings. An app ported from SwiftUI arrives with `Localizable.strings` /
-`.xcstrings` in its bundle, though.
-
-**Options.**
-
-1. **Look the key up in `bundle`'s `tableName` table through Foundation**
-   (`Bundle.localizedString(forKey:value:table:)`, which swift-corelibs
-   implements for `.lproj/*.strings`), after the registered dictionary
-   misses. `.xcstrings` is compiled to `.strings` only by Xcode, so a SwiftPM
-   app would ship `.strings` or register a dictionary. Half a day plus tests
-   on Linux.
-2. **Keep the parameters absent.**
-
-**Recommendation:** 1. It makes the common ported call compile and work, and
-it costs nothing for apps that never pass a table.
-
-### A15. Asset catalogues: named colours and images
-
-*`Color.init(_:bundle:)`, `Image.init(_:bundle:)`, `Image.init(_:bundle:label:)`,
-`Image.init(decorative:bundle:)`*
-
-Both load from an asset catalogue, which only Xcode compiles. A SwiftPM
-executable, which every terminal app is, has none (the `image:` overloads are
-declined on exactly this ground, in the map's `ImageResource` family).
-
-**Options.**
-
-1. **Read the uncompiled catalogue** if the app copies an `.xcassets`
-   folder as a resource: `Name.colorset/Contents.json` for a colour (with
-   its light and dark variants chosen by `\.colorScheme`), and
-   `Name.imageset`'s largest file for an image. About a day.
-2. **Look for a plain file** (`Name.png`, `Name.jpg`) among the bundle's
-   resources, for images only. An hour.
-3. **Decline** both with the same reason as the `image:` overloads.
-
-**Recommendation:** 2 for images, 3 for colours: a named colour without its
-catalogue has nothing to read, and a theme's palette is the terminal app's
-way of naming colours.
-
-**Shipped since, as the basic:** option 2 for the three `Image` initialisers
-(`Image+Bundle.swift`). The open question is whether to add option 1 on top,
-and what to do with `Color.init(_:bundle:)`.
-
 ### A16. Colours that resolve themselves, and HDR
+
+**2026-10-05: the HDR half shipped** (`Color.headroom(_:)`; `ResolvedHDR`,
+`resolveHDR(in:)` and `exposureAdjust(_:)` declined in the parity map). What is
+left is the custom colour provider, which waits on its benchmark.
 
 *`Color.init(_:)` for a `ShapeStyle & Hashable` whose `Resolved` is
 `Color.Resolved` or `Color.ResolvedHDR`; `Color.ResolvedHDR` and its
@@ -817,57 +738,6 @@ the mouse bands — counts rows by their index into the data. Nothing shipped:
 
 *Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in the session notes, `w11a/probe`. A pass on macOS 26 is owed.*
 
-### A32. `.textVariant(.sizeDependent)`: the narrower spellings of every live text
-
-*`SizeDependentTextVariant`, `TextVariantPreference.sizeDependent`*
-
-**Shipped:** `TextVariantPreference`, `FixedTextVariant`, `.fixed` and
-`Text.textVariant(_:)`. Fixed is SwiftUI's default — always the widest
-variant — and what every TUIkit text does, so `textVariant(.fixed)` returns
-the text as it is. `.sizeDependent` is absent, so asking for it does not
-compile.
-
-It is not a no-op in SwiftUI. Measured on macOS 15 (one line, the width
-falling in 6 pt steps), a size-dependent text chooses the widest of a ladder of
-spellings that fits:
-
-| Text | Ladder, widest first |
-|---|---|
-| `.offset(to:)` | `1 hour, 2 minutes` → `1 hr, 2 min` → `1h 2m` |
-| `.reference(to:)`, relative | `2 minutes ago` → `2 min. ago` → `2m ago`; `in 1 hour` → `in 1 hr.` → `in 1h`; `yesterday` has none |
-| `.reference(to:)`, absolute | `Friday, May 8` → `Fri, May 8` → `5/8`; `June 2025` → `Jun 2025` → `6/25`; with three fields `Friday, May 8 at 11 PM` → `Fri, May 8 at 11 PM` → `5/8, 11` |
-| `.timer`, in units | `1 hour, 2 minutes` → `1 hr 2 min` → `1:02` |
-| `.stopwatch` | `01:02:05.50` → `1:02:05` → `1:02` → `1h` |
-| `Text(_:style: .relative)` | `1 hr, 2 min` → `1h 2m` |
-| `Text(_:style: .offset)` | `+1 hour` → `+1 hr` → `+1h` |
-| `Text(_:style: .date)` | `May 8, 2026` → `May 2026` → `2026` |
-| `Text(_:style: .time)` | `11:13 PM` → `11 PM` |
-| `Text(_:style: .timer)`, the timer on its face | none |
-
-Without a line limit the widest always fits by wrapping, and nothing changes
-(measured the same way).
-
-**Options:**
-
-1. **Build it.** Each live source offers its ladder (Foundation spells most
-   rungs: `Duration.UnitsFormatStyle` and `Date.ComponentsFormatStyle` have
-   abbreviated and narrow widths, `Date.FormatStyle` has abbreviated and
-   numeric months, and the anchored relative style abbreviated units); a
-   `.sizeDependent` text measures its rungs against the proposal and its line
-   limit and draws the first that fits, the measure and the render choosing
-   alike. About a day, most of it the per-rung measurements (German among
-   them) and the tests. Only a text that asks pays: a measure per rung tried.
-2. **Build the unit spellings only** (offset, relative, the timer's units):
-   the abbreviated and narrow widths, half a day. The reference's absolute
-   form and the date and time styles stay fixed — a quiet difference from
-   SwiftUI for those, which the parity rules argue against.
-3. **Leave it absent** (as now): ported code that asks for it does not
-   compile.
-
-**Recommendation:** 1, later — after the waves, since it touches every live
-source and nothing else depends on it. 2 is the kind of partial honour the
-parity rules warn about.
-
 ### A33. `\(accessibilityName: color)`: a colour's spoken name
 
 *`LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)`*
@@ -927,41 +797,6 @@ the Wave 17 review, P14), and Wave 16 owns blur as a whole.
 
 **Recommendation:** 2, if Wave 16 does not give blur a cell reading of its
 own; 1 until then. Nothing ships.
-
-### A35. Symbol effects: declare TUIkit's own `SymbolEffect` types?
-
-*`View.symbolEffect(_:options:isActive:)`, `View.symbolEffect(_:options:value:)`,
-`View.symbolEffectsRemoved(_:)`, `Transition.symbolEffect`,
-`Transition.symbolEffect(_:options:)`, `ContentTransition.symbolEffect`,
-`ContentTransition.symbolEffect(_:options:)`, `WiggleSymbolEffect.custom(angle:)`*
-
-Every one of these takes a value from Apple's **Symbols** framework
-(`SymbolEffect`, `IndefiniteSymbolEffect`, `DiscreteSymbolEffect`,
-`TransitionSymbolEffect`, `SymbolEffectOptions`, `PulseSymbolEffect`, …), not
-from SwiftUI. Symbols does not exist on Linux or Windows. The Wave 17 review
-(P4) found the effects a single glyph can show — appear, disappear, replace
-(cross-fade through the opacity compositor), pulse and breathe (an
-`AnimatedCellRun` on the glyph's cell) — and the ones it cannot, which need
-glyph geometry or layers: bounce, scale, wiggle, rotate, variable colour.
-
-**Options.**
-
-1. **Decline the family.** The modifiers fail to compile; an SF Symbol stays a
-   still glyph.
-2. **Declare TUIkit's own Symbols vocabulary** under Apple's names, for the
-   five effects a glyph can show: the protocols, `SymbolEffectOptions`
-   (`.repeating`, `.nonRepeating`, `.repeat(_:)`, `.speed(_:)`), and the
-   effect structs with their builder members. Bounce, scale, wiggle, rotate
-   and variable colour are left out, so asking for one fails to compile —
-   which is also why `WiggleSymbolEffect.custom(angle:)` stays absent under
-   either option. Two to three days with tests. It is the same policy question
-   as A18 (declaring API that belongs to another Apple framework): a file that
-   imports both TUIkit and Symbols would see two `PulseSymbolEffect`s.
-3. **Option 2 with only the transition half** (`Transition.symbolEffect`,
-   appear/disappear/replace), which is the part an ordinary port most often
-   carries. About a day.
-
-**Recommendation:** 2, after A18 is answered; until then 1.
 
 ### A36. `matchedGeometryEffect` waits on O4
 
@@ -1293,26 +1128,6 @@ A-to-Z strip down an iOS list's edge. macOS has no section index:
 `listSectionIndexVisibility(_:)` is not in the macOS SDK, so on macOS the
 label is inert. Exactly O8's question (APIs inert on macOS too); it ships or
 is declined with O8's answer. Shipping it inert is ten minutes.
-
-### A52. The `@Animatable` macros need a macro plugin
-
-*`Animatable()` (`@Animatable`), `AnimatableIgnored()` (`@AnimatableIgnored`)*
-
-macOS 26's macros synthesise a type's `animatableData` from its stored
-properties, as an `AnimatableValues` (which has shipped) of them, skipping the
-ones marked `@AnimatableIgnored`. A macro is a compiler plugin built against
-swift-syntax: TUIkit would gain a package dependency and a macro target.
-
-**Options.**
-
-1. **Add the plugin.** A swift-syntax dependency (pinned to the toolchain's
-   release), a `TUIkitMacros` target and the two macros, about a day. Every
-   client then builds swift-syntax once, a minute or two of a clean build.
-2. **Decline**, with the type's own `animatableData` as the spelling, which is
-   what the macro writes.
-
-**Recommendation:** 2 for now. The dependency's cost lands on every client for
-a convenience; revisit if TUIkit takes on macros for another reason.
 
 *Lane 17d's entries (A53, B82–B83, C12), spring-loading and the drag-session family (refusal review P11, P18): measured on macOS 15.8 (SDK 26.2) by driving SwiftUI's spring-loading entry points; the session family is macOS 26's and is from its doc comments. Probes in the session notes, `w17d/probe`.*
 
@@ -2208,62 +2023,6 @@ make a scope-less preference inert. Neither has an obvious use. Not probed on
 a SwiftUI build: focus needs a key window, which an offscreen hosting view does
 not have.
 
-### B36. Preventing termination stops the quit key, and "automatic" prevents nothing
-
-*`View.presentationPreventsAppTermination(_:)`,
-`View.dialogPreventsAppTermination(_:)`*
-
-**Shipped:** `true` stops the quit key (`q` by default, or the app's
-`quitShortcut`) and takes it off the status bar while the presentation is
-drawn; `false` and `nil` leave it working. Several statements combine as
-SwiftUI documents for the sheet form: a non-`nil` one overrides `nil`, and
-`true` takes precedence over `false`. Signals are not stopped — Ctrl-C and
-`kill` still end the app, which is what a force quit is on macOS and the only
-way out of a terminal app that has stopped listening.
-
-**What differs:** SwiftUI's `nil` is an automatic rule that usually prevents.
-A sheet prevents unless its toolbar holds a single confirmation or
-cancellation item; a dialog prevents unless it has one non-destructive button,
-is not critical and holds no text field. TUIkit's `nil` keeps what it did
-before this wave: the quit key works behind every presentation, as the
-escape hatch its status bar offers.
-
-**The fuller version** adopts macOS's automatic rule. The dialog half is a
-few lines — the button roles are known (`alertActionButtons`), severity has
-shipped, and alerts take no text fields yet. The sheet half has nothing to
-read: a terminal sheet has no toolbar, so the rule would collapse to "a sheet
-always prevents", which would take the quit key away behind every sheet in
-every app. That is the decision: I would adopt the dialog rule and leave
-sheets at "never".
-
-### B37. A dismissal confirmation asks before the reader's ways out, not before `dismiss()`
-
-*`View.dismissalConfirmationDialog(_:shouldPresent:actions:)`,
-`View.dismissalConfirmationDialog(_:shouldPresent:actions:message:)`*
-
-SwiftUI's doc says the dialog is presented "when a dismiss action has been
-triggered", and on macOS "when attempting to dismiss the window for this
-view".
-
-**Shipped:** on a presentation's content, the presentation's own ways out ask
-first — Escape, an outside click (a popover), the status-bar item; on an
-app's top-level content, the quit key does, the terminal's nearest thing to
-closing the window. Cancel keeps what was about to go; every other action runs
-and then lets it go.
-
-**What is not intercepted:** an app's own `@Environment(\.dismiss)` call. It
-is a decision the app made in code, and its usual shape — a Save button that
-saves and dismisses — would otherwise ask about the changes it has just saved
-whenever `shouldPresent` lags a frame. Nor is a pushed `NavigationStack`
-screen's Escape (back), or a signal.
-
-**The fuller version** wraps `\.dismiss` for the content too. The catch is
-cost, not code: `DismissAction` is not `Equatable`, so writing one into the
-environment turns the memos off below it, and on a top-level content that is
-the whole app. It wants `DismissAction` made comparable first (an
-identity-compared box, as `searchable`'s dismissal is), which every presenter
-writing one would gain from — half a day with the memo tests.
-
 ### B38. Search scopes show while the search is under way, by a terminal's reading of "presented" and "cancelled"
 
 *`View.searchScopes(_:scopes:)`, `View.searchScopes(_:activation:_:)`,
@@ -2842,7 +2601,8 @@ not exempt its part, and the view takes its new size at once (a shrinking
 drawing loses its edges immediately). `contentTransitionAddsDrawingGroup` is
 a rendering hint with no visible contract (a drawing group changes how
 SwiftUI composites, not what it shows) and is kept for whoever reads it. The
-symbol-effect content transitions wait on A35.
+symbol-effect content transitions shipped with A35 on 2026-10-05 (on macOS:
+a fade of the whole view).
 
 **The fuller version** is A40's second option: the dissolve inside `Text`
 and `Image`, reading the environment, which also gives the leaf-level
