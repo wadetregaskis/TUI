@@ -27,6 +27,12 @@
 /// - A row may also break before or after a wide character, as ``TextWrapping``
 ///   allows, so a line of CJK with no spaces wraps rather than breaking
 ///   wherever it overflows.
+/// - A tab is a break opportunity, as a space is, and hangs the same way.
+///   Where a character's width depends on the column it starts at — a tab
+///   reaching the next tab stop — the stops are measured from the start of its
+///   row: an `NSTextView`'s stops sit on its text container's left edge, which
+///   every row starts at (measured on macOS 15.8, a SwiftUI `TextEditor` whose
+///   tab after a wrap reached the row's first stop).
 ///
 /// **The last cell of the width is a margin.** Text wraps one cell short of the
 /// width, so the caret after the last character of a full row — at a newline,
@@ -42,9 +48,9 @@
 /// there by typing or a click it draws upstream (both measured on macOS 15.8),
 /// a lean per caret this layout does not keep.
 ///
-/// Shared rather than the vertical field's own because it is the half of soft
-/// wrapping that ``TextEditor`` would need too; see
-/// `Documentation/SwiftUI-API-completion-decisions-W06b.md`.
+/// Shared by the vertical field and ``TextEditor`` (decisions B62 and A43): the
+/// field gives each character one width, the editor a width that depends on its
+/// column, for its tabs.
 struct SoftWrapLayout: Equatable {
     /// One row: the characters it draws, and how it ends.
     struct Row: Equatable {
@@ -80,16 +86,35 @@ struct SoftWrapLayout: Equatable {
     ///   - cellWidth: A character's width in cells. Called for every character
     ///     that is not a newline.
     init(_ characters: [Character], width: Int, cellWidth: (Character) -> Int) {
+        self.init(characters, width: width) { character, column in column + cellWidth(character) }
+    }
+
+    /// Lays out `characters` in rows `width` cells wide, each character's
+    /// width depending on the column it starts at, counted from its row's
+    /// start.
+    ///
+    /// - Parameters:
+    ///   - characters: The text, as characters.
+    ///   - width: The cells a row may draw on, the margin included.
+    ///   - advance: The column after a character that starts at `column` —
+    ///     ``TabLayout/advance(from:over:tabWidth:)``'s shape. Called for every
+    ///     character that is not a newline, perhaps twice: once as the row
+    ///     before it looks for where to break, and once on its own row.
+    init(_ characters: [Character], width: Int, advance: (_ character: Character, _ column: Int) -> Int) {
         let width = max(1, width)
-        let widths = characters.map { $0.isNewline ? 0 : cellWidth($0) }
         let budget = max(1, width - 1)
+        var widths = [Int](repeating: 0, count: characters.count)
         var rows: [Row] = []
         var start = 0
         for (offset, character) in characters.enumerated() where character.isNewline {
-            Self.wrap(characters, from: start, to: offset, budget: budget, widths: widths, into: &rows)
+            Self.wrap(
+                characters, from: start, to: offset, budget: budget, advance: advance, widths: &widths,
+                into: &rows)
             start = offset + 1
         }
-        Self.wrap(characters, from: start, to: characters.count, budget: budget, widths: widths, into: &rows)
+        Self.wrap(
+            characters, from: start, to: characters.count, budget: budget, advance: advance, widths: &widths,
+            into: &rows)
         (self.rows, cellWidths, self.width) = (rows, widths, width)
     }
 
@@ -99,14 +124,19 @@ struct SoftWrapLayout: Equatable {
     }
 
     /// Lays one paragraph, `start..<end`, into rows of `budget` cells, the last
-    /// of which ends the paragraph.
+    /// of which ends the paragraph, writing each character's width on its own
+    /// row into `widths`.
     private static func wrap(
-        _ characters: [Character], from start: Int, to end: Int, budget: Int, widths: [Int],
-        into rows: inout [Row]
+        _ characters: [Character], from start: Int, to end: Int, budget: Int,
+        advance: (Character, Int) -> Int, widths: inout [Int], into rows: inout [Row]
     ) {
         var rowStart = start
         while true {
-            let rowEnd = rowBreak(characters, from: rowStart, to: end, budget: budget, widths: widths)
+            // Each row walks from its own start, so a character the row before
+            // measured while looking for its break is measured again here, at
+            // the column it really starts at.
+            let rowEnd = rowBreak(
+                characters, from: rowStart, to: end, budget: budget, advance: advance, widths: &widths)
             guard rowEnd < end else {
                 rows.append(Row(start: rowStart, end: end, endsParagraph: true))
                 return
@@ -119,14 +149,17 @@ struct SoftWrapLayout: Equatable {
     /// Where the row starting at `start` ends: `end` when the rest of the
     /// paragraph fits, else the last place it may break.
     private static func rowBreak(
-        _ characters: [Character], from start: Int, to end: Int, budget: Int, widths: [Int]
+        _ characters: [Character], from start: Int, to end: Int, budget: Int,
+        advance: (Character, Int) -> Int, widths: inout [Int]
     ) -> Int {
         var cells = 0  // the row's cells, not counting a run of spaces at its end
         var hanging = 0  // that run's cells
         var lastBreak: Int?  // the latest offset the row may end at
         var offset = start
         while offset < end {
-            let width = widths[offset]
+            let column = cells + hanging
+            let width = max(0, advance(characters[offset], column) - column)
+            widths[offset] = width
             if hangs(characters[offset]) {
                 hanging += width
                 offset += 1

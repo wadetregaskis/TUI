@@ -102,4 +102,43 @@ struct SoftWrapLayoutTests {
         let wide = layout("中文", width: 6)
         #expect(wide.offset(inRow: 0, atColumn: 3, affinity: .automatic) == 1)
     }
+
+    // MARK: - Widths that depend on the column
+
+    /// Tabs to stops every four cells, as the editor lays them out.
+    private func tabbed(_ text: String, width: Int) -> SoftWrapLayout {
+        SoftWrapLayout(Array(text), width: width) { character, column in
+            TabLayout.advance(from: column, over: character, tabWidth: .periodic(4))
+        }
+    }
+
+    @Test("A tab reaches the next stop from where it starts: at a row's start and in its middle")
+    func tabsReachTheirStops() {
+        #expect(tabbed("\tab", width: 10).cellWidths == [4, 1, 1])
+        #expect(tabbed("ab\tc", width: 10).cellWidths == [1, 1, 2, 1])
+        #expect(tabbed("ab\tc", width: 10).column(of: 3, inRow: 0) == 4)
+    }
+
+    /// An `NSTextView`'s stops sit on its container's left edge, where every
+    /// row starts (measured, macOS 15.8): a tab after a wrap is measured from
+    /// its row, not from its paragraph.
+    @Test("A tab on a wrapped row reaches its stop from the row's start")
+    func tabStopsPerRow() {
+        let layout = tabbed("aaaa bbbb cc\td", width: 10)
+        #expect(layout.rows.map(\.start) == [0, 10])
+        // From the paragraph's start the tab would begin at column 12 and take
+        // four cells; from its row's, at column 2, and take two.
+        #expect(layout.cellWidths[12] == 2)
+        #expect(layout.column(of: 13, inRow: 1) == 4)
+    }
+
+    @Test("A tab is a place to break, and hangs past the margin as a space does")
+    func tabsHang() {
+        let layout = tabbed("aaaaaaaa\tb", width: 10)
+        #expect(layout.rows == [
+            .init(start: 0, end: 9, endsParagraph: false),
+            .init(start: 9, end: 10, endsParagraph: true),
+        ])
+        #expect(layout.cellWidths[8] == 4)
+    }
 }
