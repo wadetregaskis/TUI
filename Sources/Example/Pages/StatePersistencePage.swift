@@ -112,9 +112,7 @@ struct StatePersistencePage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.statePersistence")
-        }
+        .navigationTitle("menu.item.statePersistence")
     }
 
     /// Where `@AppStorage` persists, resolved the same way the framework's default

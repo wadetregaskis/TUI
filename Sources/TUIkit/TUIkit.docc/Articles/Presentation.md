@@ -42,8 +42,8 @@ at a unit point within it.
 ## Full-screen covers
 
 `fullScreenCover(isPresented:onDismiss:content:)` replaces the page rather than
-floating over it: the content fills the area between the app header and the
-status bar, nothing shows through, and — unlike a sheet — it cannot be dragged,
+floating over it: the content fills the area between the window's top and
+bottom bars, nothing shows through, and — unlike a sheet — it cannot be dragged,
 because there is nowhere for it to go.
 
 ## Sheet heights: detents

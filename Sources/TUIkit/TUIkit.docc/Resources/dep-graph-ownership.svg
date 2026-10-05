@@ -104,9 +104,9 @@
 </g>
 <!-- appHeader -->
 <g id="node11" class="node">
-<title>appHeader</title>
+<title>windowChrome</title>
 <path fill="#1f9b76" stroke="black" stroke-width="0" d="M293.95,-402C293.95,-402 213.91,-402 213.91,-402 207.91,-402 201.91,-396 201.91,-390 201.91,-390 201.91,-378 201.91,-378 201.91,-372 207.91,-366 213.91,-366 213.91,-366 293.95,-366 293.95,-366 299.95,-366 305.95,-372 305.95,-378 305.95,-378 305.95,-390 305.95,-390 305.95,-396 299.95,-402 293.95,-402"/>
-<text xml:space="preserve" text-anchor="middle" x="253.93" y="-379.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">AppHeaderState</text>
+<text xml:space="preserve" text-anchor="middle" x="253.93" y="-379.55" font-family="Helvetica,sans-Serif" font-size="9.35" fill="white">WindowChromeState</text>
 </g>
 <!-- runner&#45;&gt;appHeader -->
 <g id="edge5" class="edge">

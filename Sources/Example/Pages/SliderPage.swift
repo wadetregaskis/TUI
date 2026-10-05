@@ -23,9 +23,7 @@ struct SliderPage: View {
         ScrollView {
             content
         }
-        .appHeader {
-            DemoAppHeader("menu.item.sliders")
-        }
+        .navigationTitle("menu.item.sliders")
     }
 
     /// A slider's own label, in the page's quiet caption colour.

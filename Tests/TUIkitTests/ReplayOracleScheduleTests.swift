@@ -99,8 +99,11 @@ struct ReplayOracleScheduleTests {
         let found = ReplayOracle.compare(
             { FrozenRowApp(besideASpinner: besideASpinner, colourOnly: colourOnly) }, ticks: 24, size: (20, 4),
             reportOncePerRow: true)
+        // The page is centred in the four rows the app has (no bar of its own),
+        // so the frozen row is the screen's row 1 whether or not the spinner is
+        // beside it.
         #expect(
-            found.mismatches.contains { $0.contains("row 0") },
+            found.mismatches.contains { $0.contains("row 1") },
             "the frozen row was never compared: \(found.mismatches)")
     }
 

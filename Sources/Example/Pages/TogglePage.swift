@@ -103,9 +103,7 @@ struct TogglePage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.toggles")
-        }
+        .navigationTitle("menu.item.toggles")
     }
 
     /// One column of the checkbox-glyph comparison: the style's name (tagged

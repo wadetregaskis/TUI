@@ -88,9 +88,7 @@ struct FocusPage: View {
             return false
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.focus")
-        }
+        .navigationTitle("menu.item.focus")
     }
 
     // MARK: - Helpers

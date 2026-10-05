@@ -338,7 +338,7 @@ Available semantic tokens include:
 | `.palette.border` | Container borders |
 | `.palette.background` | App background |
 | `.palette.statusBarBackground` | Status bar background |
-| `.palette.appHeaderBackground` | App header background |
+| `.palette.appHeaderBackground` | The window's top bar background |
 | `.palette.overlayBackground` | Overlay / dimmed background |
 | `.palette.focusBackground` | Focused list/table row background |
 | `.palette.cursorColor` | Text cursor in text fields |

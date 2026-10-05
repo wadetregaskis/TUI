@@ -16,9 +16,9 @@ extension RenderLoop {
     /// tooltip to show there, the line about the latest copy
     /// (``ClipboardWriter/statusNote(atNanos:)``) — or clears them.
     ///
-    /// The rows are wrapped HERE rather than by the bar, because the height the
-    /// content area is given is `statusBar.height` and that has to already know
-    /// how many lines the text takes. Wrapped to `ChromeStyle.barContentWidth`,
+    /// The rows are wrapped HERE rather than by the bar, because the bottom
+    /// bar's rows are reserved before the content draws, and have to already
+    /// know how many lines the text takes. Wrapped to `ChromeStyle.barContentWidth`,
     /// the one function the bordered renderer also lays its items out at.
     ///
     /// A popover-styled tooltip clears the rows: it is drawn by the content pass
@@ -27,15 +27,20 @@ extension RenderLoop {
     /// subtree setting, so a panel asking for a popover inside an app that uses
     /// the bar is answered by the panel.
     func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64, scheduler: AnimationScheduler?) {
-        let width = statusBar.style.barContentWidth(terminalWidth)
+        let width = windowChrome.bottomStyle.barContentWidth(terminalWidth)
         statusBar.showsNoteInPlaceOfItems = false
+        // Whether last frame's line of key hints drew a row of items for the
+        // copy's line to stand in for; this frame's line records it afresh.
+        let lineShowedItems = statusBar.lineShowsItems
+        statusBar.lineShowsItems = false
         if let showing = tuiContext.tooltipState.resolved(nowNanos: nowNanos), showing.style == .statusBar {
             statusBar.tooltipLines = TextWrapping.wrap(showing.text, width: width)
             return
         }
         // The copy's line yields to a tooltip, which the user asked for, and
         // comes back if it is still fresh when the tooltip goes. It stands in
-        // for the items rather than above them, so the page keeps its height
+        // for the line of key hints' items rather than above them, where the
+        // line drew some, so the page keeps its height
         // (``StatusBarState/showsNoteInPlaceOfItems``) — which holds only if
         // it is ONE row, so it is cut to the bar's width rather than wrapped:
         // at forty columns "Not copied: no clipboard reachable from here"
@@ -43,7 +48,7 @@ extension RenderLoop {
         // asks for the frame that takes it away: nothing else would draw one.
         if let note = tuiContext.clipboardWriter.statusNote(atNanos: UInt64(bitPattern: nowNanos)) {
             statusBar.tooltipLines = [note.text.truncatedToWidth(width)]
-            statusBar.showsNoteInPlaceOfItems = true
+            statusBar.showsNoteInPlaceOfItems = lineShowedItems
             scheduler?.requestWake("clipboard-note", at: Int64(bitPattern: note.expiresAtNanos))
             return
         }

@@ -5033,9 +5033,11 @@ takes ONE route per copy, in this order:
    tmux with `set-clipboard on`, and a terminal whose DA1 lists `52`.
 4. **Nothing**, said so.
 
-The status bar says what became of a copy for three seconds, in place of its
-items and cut to one row, so the page keeps its height (a bar with no items
-gains a row for it): "Sent to the terminal's clipboard" for rung 3 — a
+The status bar says what became of a copy for three seconds, in place of the
+items of the line of key hints (`StatusBar()`, where the app places it) and
+cut to one row, so the page keeps its height (with no line of items drawn, it
+takes a row at the top of the bottom bar, as a tooltip does): "Sent to the
+terminal's clipboard" for rung 3 — a
 hope, not a fact — "Not copied: no clipboard reachable from here" for rung 4,
 "Not copied: the clipboard helper failed" when the helper ran and failed. A
 text control's plain success says nothing, as a Mac's does not.

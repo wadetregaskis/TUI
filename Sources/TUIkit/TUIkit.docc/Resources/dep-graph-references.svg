@@ -48,9 +48,9 @@
 </g>
 <!-- appHeader -->
 <g id="node5" class="node">
-<title>appHeader</title>
+<title>windowChrome</title>
 <path fill="#1f9b76" stroke="black" stroke-width="0" d="M284.95,-36C284.95,-36 204.92,-36 204.92,-36 198.92,-36 192.92,-30 192.92,-24 192.92,-24 192.92,-12 192.92,-12 192.92,-6 198.92,0 204.92,0 204.92,0 284.95,0 284.95,0 290.95,0 296.95,-6 296.95,-12 296.95,-12 296.95,-24 296.95,-24 296.95,-30 290.95,-36 284.95,-36"/>
-<text xml:space="preserve" text-anchor="middle" x="244.94" y="-13.55" font-family="Helvetica,sans-Serif" font-size="11.00" fill="white">AppHeaderState</text>
+<text xml:space="preserve" text-anchor="middle" x="244.94" y="-13.55" font-family="Helvetica,sans-Serif" font-size="9.35" fill="white">WindowChromeState</text>
 </g>
 <!-- render&#45;&gt;appHeader -->
 <g id="edge3" class="edge">

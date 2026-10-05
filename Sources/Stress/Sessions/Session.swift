@@ -129,6 +129,10 @@ extension StressSession {
 /// `App` requires `init()`, for `@main`. A host is never launched, only handed
 /// to a ``HeadlessApp`` with its page; the one `init()` builds is an app with
 /// nothing on it.
+///
+/// It places the line of key hints in a bottom bar, as every session's app
+/// had before the window's bars were opt-in: so a session's geometry — and its
+/// cost, which a session A/B compares across that change — stays as it was.
 struct SessionHost<Page: View>: App {
     let page: Page?
 
@@ -138,7 +142,11 @@ struct SessionHost<Page: View>: App {
 
     var body: some Scene {
         WindowGroup {
-            if let page { page }
+            if let page {
+                page.toolbar {
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
+                }
+            }
         }
     }
 }

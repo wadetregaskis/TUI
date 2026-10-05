@@ -432,9 +432,7 @@ struct TablePage: View {
         .task {
             await runLiveTicker()
         }
-        .appHeader {
-            DemoAppHeader("menu.item.tables")
-        }
+        .navigationTitle("menu.item.tables")
     }
 
     /// The animated-cells ticker. Cancelled automatically when the page goes

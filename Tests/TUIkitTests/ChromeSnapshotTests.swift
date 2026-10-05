@@ -1,15 +1,16 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ChromeSnapshotTests.swift
 //
-//  Golden snapshots of WHOLE frames with chrome on them — the app header, the
-//  status bar, both, at each `ChromeStyle`, and the interactions that cross
-//  between the chrome and the page: a header menu's drop-down, a sheet under a
-//  header, a drag preview below one. Taken from what the frame diff last built
-//  for the terminal, not from a view's buffer, because the chrome is assembled
-//  around the page by the run loop and a view's buffer has none of it.
+//  Golden snapshots of WHOLE frames with chrome on them — a top bar, a bottom
+//  bar holding the line of key hints, both, at each `ChromeStyle`, and the
+//  interactions that cross between the chrome and the page: a top-bar menu's
+//  drop-down, a sheet under a top bar, a drag preview below one. Taken from
+//  what the frame diff last built for the terminal, not from a view's buffer,
+//  because the chrome is assembled around the page by the scene's chrome host.
 //
-//  The oracle for moving the chrome into the scene (the A28 design study, §10
-//  step 2): that move must leave every one of these byte-identical.
+//  Recorded first as the oracle for moving the chrome into the scene (the A28
+//  design study, §10 step 2, which left every one byte-identical); re-recorded
+//  when the app header gave way to the top toolbar and the bars became opt-in.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -21,8 +22,8 @@ import Testing
 
 // MARK: - Probe apps
 
-/// A page with an optional header and an optional item of its own on the status
-/// bar, in one chrome style.
+/// A page with an optional top bar and an optional bottom bar of key hints with
+/// an item of its own, in one chrome style.
 private struct ChromeProbeApp: App {
     var style: ChromeStyle = .bordered
     var header = true
@@ -49,21 +50,19 @@ private struct ChromeProbeApp: App {
             Text("Second line")
         }
         .statusBarItems(statusItem ? [StatusBarItem(shortcut: "s", label: "save")] : [])
-        if header {
-            content.appHeader {
-                HStack {
-                    Text("Probe")
-                    Spacer()
-                    Text("v1")
-                }
+        content.toolbar {
+            if header {
+                ToolbarItem(placement: .navigation) { Text("Probe") }
+                ToolbarItem(placement: .primaryAction) { Text("v1") }
             }
-        } else {
-            content
+            if statusItem {
+                ToolbarItem(placement: .bottomBar) { StatusBar() }
+            }
         }
     }
 }
 
-/// A header holding a pull-down menu, over a page of text.
+/// A top bar holding a pull-down menu, over a page of text.
 private struct HeaderMenuApp: App {
     init() {}
 
@@ -74,22 +73,22 @@ private struct HeaderMenuApp: App {
                 Text("Page row two")
                 Text("Page row three")
             }
-            .appHeader {
-                HStack {
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
                     Menu("File") {
                         Button("Open") {}
                         Button("Close") {}
                     }
-                    Spacer()
-                    Text("v1")
                 }
+                ToolbarItem(placement: .primaryAction) { Text("v1") }
+                ToolbarItem(placement: .bottomBar) { StatusBar() }
             }
         }
         .mouseSupport(.full)
     }
 }
 
-/// A sheet presented over a page that has a header.
+/// A sheet presented over a page that has a top bar.
 private struct HeaderSheetApp: App {
     init() {}
 
@@ -99,12 +98,15 @@ private struct HeaderSheetApp: App {
                 .sheet(isPresented: .constant(true)) {
                     Text("Sheet body")
                 }
-                .appHeader { Text("Header") }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { Text("Header") }
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
+                }
         }
     }
 }
 
-/// A draggable chip below a header.
+/// A draggable chip below a top bar.
 private struct HeaderDragApp: App {
     init() {}
 
@@ -115,7 +117,10 @@ private struct HeaderDragApp: App {
                 Text("").frame(height: 2)
                 Text("Drop zone")
             }
-            .appHeader { Text("Header") }
+            .toolbar {
+                ToolbarItem(placement: .navigation) { Text("Header") }
+                ToolbarItem(placement: .bottomBar) { StatusBar() }
+            }
         }
         .mouseSupport(.full)
     }
@@ -144,21 +149,20 @@ struct ChromeSnapshotTests {
     }
 
     @Test(
-        "The header, the status bar and both, in each chrome style",
+        "The top bar, the bottom bar and both, in each chrome style",
         arguments: [ChromeStyle.bordered, .rule, .compact])
     func barsInEachStyle(style: ChromeStyle) {
         let name = "\(style)"
         for (header, statusBar, label) in [(true, false, "header"), (false, true, "statusbar"), (true, true, "both")] {
             let harness = RenderLoopHarness()
             harness.terminal.size = (40, 12)
-            harness.statusBar.showSystemItems = statusBar
             let loop = harness.loop(ChromeProbeApp(style: style, header: header, statusItem: statusBar))
             _ = loop.render()
             assertSnapshot("chrome-\(label)-\(name)", of: screen(loop.diffWriter.shownLines))
         }
     }
 
-    @Test("A header menu's drop-down hangs over the page")
+    @Test("A top-bar menu's drop-down hangs over the page")
     func headerMenuDropDown() throws {
         let app = HeadlessApp(HeaderMenuApp(), width: 40, height: 12)
         app.frame(atNanos: 0)
@@ -170,14 +174,14 @@ struct ChromeSnapshotTests {
         assertSnapshot("chrome-header-menu-open", of: screen(app.screen))
     }
 
-    @Test("A sheet over a page with a header")
+    @Test("A sheet over a page with a top bar")
     func sheetUnderHeader() {
         let app = HeadlessApp(HeaderSheetApp(), width: 40, height: 14)
         app.frame(atNanos: 0)
         assertSnapshot("chrome-header-sheet", of: screen(app.screen))
     }
 
-    @Test("A drag preview below a header sits under the pointer")
+    @Test("A drag preview below a top bar sits under the pointer")
     func dragPreviewBelowHeader() throws {
         let app = HeadlessApp(HeaderDragApp(), width: 30, height: 12)
         app.frame(atNanos: 0)

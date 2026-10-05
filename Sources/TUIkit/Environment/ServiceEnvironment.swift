@@ -336,7 +336,7 @@ extension EnvironmentValues {
         detached.preferenceStorage = nil
         // The render loop's managers and per-frame objects.
         detached.statusBar = nil
-        detached.appHeader = nil
+        detached.windowChrome = nil
         detached.focusManager = nil
         detached.paletteManager = nil
         detached.appearanceManager = nil

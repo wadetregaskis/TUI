@@ -246,8 +246,8 @@ extension AlertPresentationModifier: Renderable {
         // alert covers. See the same note on `ModalPresentationModifier`.
         baseBuffer.hitTestRegions = []
 
-        // Render the alert against the CONTENT AREA (screen minus app header and
-        // status bar), not the full terminal height, in the alert section. The
+        // Render the alert against the CONTENT AREA (screen minus the window's
+        // bars), not the full terminal height, in the alert section. The
         // compositor clamps overlays to that content area top-biased, so a tall
         // alert (a long message) built against the full height would lose its
         // bottom rows — the action buttons and bottom border — under the status

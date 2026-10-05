@@ -344,7 +344,7 @@ Layer 4 provides six built-in key bindings, but only quit, undo and redo, and he
 | ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
-| `a` / `A` | Cycle to next appearance | Active unless a modal surface has grabbed input (its status bar item is hidden by default) |
+| `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
 ### The help key, and the one place it cannot reach
 
@@ -604,10 +604,10 @@ ContentView()
 // Or directly on the state
 statusBar.showSystemItems = false       // Hide all system items
 statusBar.showThemeItem = true          // Show theme cycling (also enables the `t` binding)
-statusBar.showAppearanceItem = true     // Show appearance cycling
+statusBar.showAppearanceItem = true     // Show appearance cycling (also enables the `a` binding)
 ```
 
-When all system items are hidden and there are no active user items, the status bar is hidden completely — until a status-bar tooltip shows, which it still makes room for and draws.
+The line of hints is a view the app places, `StatusBar()` in the window's bottom bar (<doc:StatusBarGuide>); the keys above work whether or not it is shown. When all system items are hidden and there are no active user items, it takes no row — until a status-bar tooltip shows, which the bottom bar still makes room for and draws.
 
 ## Topics
 

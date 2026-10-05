@@ -638,6 +638,25 @@ struct ClipboardWriterAppTests {
         #expect(harness.terminal.allOutput.contains(line))
     }
 
+    /// The same page filling the window down to a last row, with the line of
+    /// key hints in the bottom bar: a row the bar gains moves the last row up.
+    struct HintedPage: App {
+        var body: some Scene {
+            WindowGroup {
+                VStack(spacing: 0) {
+                    Spacer()
+                    Text("LAST")
+                }
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+            }
+        }
+    }
+
+    /// The row the page's last line is drawn on.
+    private func lastRow<A: App>(_ loop: RenderLoop<A>) -> Int? {
+        loop.diffWriter.shownLines.lastIndex { $0.stripped.contains("LAST") }
+    }
+
     /// A row added to the bar is a row taken from the page, which moves a
     /// centred page — and with it whatever was just copied.
     @Test("The line about a copy takes the items' place, so the bar keeps its height")
@@ -645,17 +664,38 @@ struct ClipboardWriterAppTests {
         let tui = TUIContext()
         tui.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: false, now: { 0 })
         let harness = RenderLoopHarness(tuiContext: tui)
-        let loop = harness.loop(Page())
+        let loop = harness.loop(HintedPage())
         loop.render(frameNowNanos: 0)
-        let height = harness.statusBar.height
+        let last = lastRow(loop)
+        #expect(last != nil)
         tui.clipboardWriter.write("x", announcingSuccess: false)
         loop.render(frameNowNanos: 1)
-        #expect(harness.statusBar.height == height)
         #expect(harness.statusBar.showsNoteInPlaceOfItems)
+        #expect(lastRow(loop) == last)
+        let noted = loop.diffWriter.shownLines.map(\.stripped)
+        #expect(noted.contains { $0.contains(harness.statusBar.tooltipLines.first ?? "?") }, "\(noted)")
+        #expect(!noted.contains { $0.contains("quit") }, "in the items' place: \(noted)")
         // And the items come back when it goes.
         loop.render(frameNowNanos: Int64(ClipboardWriter.noteDuration) + 1)
         #expect(!harness.statusBar.showsNoteInPlaceOfItems)
-        #expect(harness.statusBar.height == height)
+        #expect(lastRow(loop) == last)
+        #expect(loop.diffWriter.shownLines.contains { $0.stripped.contains("quit") })
+    }
+
+    /// With no line of key hints there are no items for it to stand in for: it
+    /// takes a row of its own, as a tooltip does.
+    @Test("With no line of key hints the line about a copy takes a row of its own")
+    func noteWithoutTheLine() {
+        let tui = TUIContext()
+        tui.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: false, now: { 0 })
+        let harness = RenderLoopHarness(tuiContext: tui)
+        let loop = harness.loop(Page())
+        loop.render(frameNowNanos: 0)
+        tui.clipboardWriter.write("x", announcingSuccess: false)
+        loop.render(frameNowNanos: 1)
+        #expect(!harness.statusBar.showsNoteInPlaceOfItems)
+        let note = harness.statusBar.tooltipLines.first ?? "?"
+        #expect(loop.diffWriter.shownLines.contains { $0.stripped.contains(note) })
     }
 
     /// Where the line is wider than the bar, it is cut rather than wrapped: a
@@ -666,13 +706,13 @@ struct ClipboardWriterAppTests {
         tui.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: false, now: { 0 })
         let harness = RenderLoopHarness(tuiContext: tui)
         harness.terminal.size = (width, 24)
-        let loop = harness.loop(Page())
+        let loop = harness.loop(HintedPage())
         loop.render(frameNowNanos: 0)
-        let height = harness.statusBar.height
+        let last = lastRow(loop)
         tui.clipboardWriter.write("x", announcingSuccess: false)
         loop.render(frameNowNanos: 1)
         #expect(harness.statusBar.showsNoteInPlaceOfItems)
         #expect(harness.statusBar.tooltipLines.count == 1)
-        #expect(harness.statusBar.height == height)
+        #expect(lastRow(loop) == last)
     }
 }

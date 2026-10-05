@@ -1,13 +1,13 @@
 # 40x12
 ╭──────────────────────────────────────╮
-│▐ File ▴ ▌                          v1│
+│ ▐ File ▴ ▌                        v1 │
 ╰──────────────────────────────────────╯
- ╭───────╮
- │ Open  │   Page row one
- │ Close │   Page row two
- ╰───────╯   Page row three
+  ╭───────╮
+  │ Open  │  Page row one
+  │ Close │  Page row two
+  ╰───────╯  Page row three
 
 
 ╭──────────────────────────────────────╮
-│                q quit                │
+│   ⎋ close menu  ↩ open menu  q quit  │
 ╰──────────────────────────────────────╯

@@ -16,13 +16,15 @@ import Testing
 @testable import TUIkit
 @testable import TUIkitCore
 
-/// A page of one line of text, so the rows the tests read are the status bar's.
+/// A page of one line of text with the line of key hints in its bottom bar, so
+/// the rows the tests read are the bar's.
 private struct StatusBarProbeApp: App {
     init() {}
 
     var body: some Scene {
         WindowGroup {
             Text("content")
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
         }
     }
 }
@@ -33,9 +35,11 @@ private struct StatusBarItemsProbeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Text("content").statusBarItems {
-                StatusBarItem(shortcut: "q", label: "Quit")
-            }
+            Text("content")
+                .statusBarItems {
+                    StatusBarItem(shortcut: "q", label: "Quit")
+                }
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
         }
     }
 }
@@ -46,9 +50,11 @@ private struct DeclaredItemProbeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Text("content").statusBarItems {
-                StatusBarItem(shortcut: "s", label: "save")
-            }
+            Text("content")
+                .statusBarItems {
+                    StatusBarItem(shortcut: "s", label: "save")
+                }
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
         }
     }
 }
@@ -140,12 +146,12 @@ struct StatusBarFrameDiffTests {
         let loop = harness.loop(StatusBarProbeApp())
         let tooltips = harness.tuiContext.tooltipState
         _ = loop.render()
-        #expect(harness.statusBar.height == 3, "pre-condition: the default bordered bar, `q quit` only")
+        #expect(loop.windowChrome.rows(.bottom) == 1, "pre-condition: the default bordered bar, `q quit` only")
 
         // 80x24, `MockTerminal`'s size: the grown bar is rows 21...24.
         tooltips.hovering("Rebuild the index", handlerID: nil, nowNanos: 0)
         _ = loop.render()
-        #expect(harness.statusBar.height == 4, "pre-condition: the tooltip must add a row, or nothing moved")
+        #expect(harness.statusBar.tooltipLines.count == 1, "pre-condition: the tooltip must add a row, or nothing moved")
         let shown = screen(harness.terminal)
         for row in 21...24 {
             #expect(isInked(shown[row]), "row \(row) of the grown bar: \(shown[row].debugDescription)")
@@ -154,7 +160,7 @@ struct StatusBarFrameDiffTests {
 
         tooltips.leaving("Rebuild the index")
         _ = loop.render()
-        #expect(harness.statusBar.height == 3, "pre-condition: the tooltip must be gone")
+        #expect(harness.statusBar.tooltipLines.isEmpty, "pre-condition: the tooltip must be gone")
         let hidden = screen(harness.terminal)
         #expect(!isInked(hidden[21]), "the row the bar's top edge left: \(hidden[21].debugDescription)")
         for row in 22...24 {
@@ -163,25 +169,25 @@ struct StatusBarFrameDiffTests {
         #expect(!(hidden[22] ?? "").contains("Rebuild"), "the tooltip's text is gone: \(hidden)")
     }
 
-    /// A bar with no items still draws a tooltip in the rows it made room for.
+    /// A tooltip with no bar of items still draws in the rows it made room for.
     ///
-    /// `StatusBarState.height` counts a tooltip row on a bar with no items, so the
-    /// page was shortened for it — but the loop built the bar only when it had
+    /// The tooltip row counts with no items to show — the bar that holds it is
+    /// reserved before the walk, because its triggers land between frames — so
+    /// the page is shortened for it. The loop once built the bar only when it had
     /// items, so the content pass erased those rows and nothing was drawn in them.
-    /// No items and no system items is the documented way to hide the bar.
     @Test("A tooltip on a bar with no items is drawn in the rows it reserves")
     func tooltipOnAnItemlessBarIsDrawn() {
         let harness = RenderLoopHarness()
         harness.statusBar.showSystemItems = false
         let loop = harness.loop(StatusBarProbeApp())
         _ = loop.render()
-        #expect(harness.statusBar.height == 0, "pre-condition: no items, no bar")
+        #expect(loop.windowChrome.rows(.bottom) == 0, "pre-condition: no items, no bar")
 
         // A bordered bar round one tooltip row: rows 22...24 of 24.
         harness.tuiContext.tooltipState.hovering("Copy to clipboard", handlerID: nil, nowNanos: 0)
         harness.terminal.reset()
         _ = loop.render()
-        #expect(harness.statusBar.height == 3, "pre-condition: the tooltip must take its rows")
+        #expect(harness.statusBar.tooltipLines.count == 1, "pre-condition: the tooltip must take its rows")
         let drawn = paints(harness.terminal)
         for row in 22...24 {
             #expect(isInked(drawn[row]), "row \(row) of the tooltip's bar: \(drawn[row].debugDescription)")

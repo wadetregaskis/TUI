@@ -39,7 +39,7 @@ extension RenderActivity {
     /// `usesCursor` is set, so this comes back empty and the caller renders.
     ///
     /// The chrome's runs are the frame's like the page's: the bars are rows of
-    /// the frame the replay patches, so a `Spinner` in the app header advances
+    /// the frame the replay patches, so a `Spinner` in a toolbar advances
     /// by replay too.
     func replayableClocks(among ticked: some Sequence<AnimationClock>) -> Set<AnimationClock> {
         Set(ticked).filter(canReplay)

@@ -93,7 +93,9 @@ private struct MenuApp: App {
     var body: some Scene {
         WindowGroup {
             if headed {
-                MenuPage().appHeader { Text("A header over the page") }
+                MenuPage().toolbar {
+                    ToolbarItem(placement: .navigation) { Text("A header over the page") }
+                }
             } else {
                 MenuPage()
             }

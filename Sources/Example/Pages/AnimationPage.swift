@@ -125,9 +125,8 @@ struct AnimationPage: View {
             ])
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.animation", subtitle: "page.animation.subtitle")
-        }
+        .navigationTitle("menu.item.animation")
+        .navigationSubtitle("page.animation.subtitle")
     }
 
     // MARK: - Page-wide settings

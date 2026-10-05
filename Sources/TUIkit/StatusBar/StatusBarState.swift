@@ -106,16 +106,17 @@ public final class StatusBarState: @unchecked Sendable {
     /// Default is `true`.
     public var showSystemItems: Bool = true
 
-    /// Whether the appearance item (`a`) is shown.
+    /// Whether the appearance item (`a`) is shown, and the key live.
     ///
-    /// When `true`, pressing `a` cycles through available appearances (border styles).
-    /// Default is `false`.
+    /// When `true`, pressing `a` cycles through available appearances (border
+    /// styles). Default is `false`, and then `a` is an ordinary key: an app
+    /// opts into the built-in appearance cycling, as into theme cycling.
     public var showAppearanceItem: Bool = false
 
-    /// Whether the theme item (`t`) is shown.
+    /// Whether the theme item (`t`) is shown, and the key live.
     ///
     /// When `true`, pressing `t` cycles through available themes.
-    /// Default is `false`.
+    /// Default is `false`, and then `t` is an ordinary key.
     public var showThemeItem: Bool = false
 
     /// Whether the bar shows "undo" while the app's undo manager has a step to
@@ -208,13 +209,6 @@ public final class StatusBarState: @unchecked Sendable {
     public var quitShortcut: QuitShortcut = .q
 
     // MARK: - Appearance
-
-    /// The current status bar style.
-    ///
-    /// Defaults to ``ChromeStyle/bordered`` — a box, like a container view —
-    /// which the app header now matches. Set both at once with
-    /// ``Scene/chromeStyle(_:)``.
-    public var style: ChromeStyle = .bordered
 
     /// The horizontal alignment of items.
     public var alignment: StatusBarAlignment = .justified
@@ -434,61 +428,39 @@ public final class StatusBarState: @unchecked Sendable {
     /// Whether there are any user items (ignoring system items).
     public var hasUserItems: Bool { !currentUserItems.isEmpty }
 
-    /// Whether the bar has anything to draw this frame: an item, or a tooltip row.
+    /// This frame's tooltip, wrapped to the bottom bar's content width — empty
+    /// when no tooltip is showing or the showing one is a popover.
     ///
-    /// The one question `height` and the run loop's decision to build the bar
-    /// both ask, so it is asked in one place. It used to be spelled twice, and
-    /// only one spelling learned about the tooltip: an item-less bar showing one
-    /// took its rows from the page and was never built to draw in them, so they
-    /// were erased to the terminal's own background and the tooltip showed
-    /// nowhere.
-    var hasContent: Bool { hasItems || !tooltipLines.isEmpty }
-
-    /// The height of the status bar in lines, or 0 when it has nothing to show.
-    ///
-    /// A tooltip row counts, and counts even with no items: a bar that is
-    /// otherwise empty still has to make room for one, or the tooltip is
-    /// computed and then drawn nowhere.
-    public var height: Int {
-        height(itemRows: hasItems ? 1 : 0)
-    }
-
-    /// The height of the bar with `itemRows` rows of items and this frame's
-    /// tooltip, or 0 when that is nothing: what the window's chrome host
-    /// reserves, from last frame's items and this frame's tooltip. The items'
-    /// row is not counted while the line about a copy stands in for it
-    /// (``showsNoteInPlaceOfItems``).
-    func height(itemRows: Int) -> Int {
-        let rows = (showsNoteInPlaceOfItems ? 0 : itemRows) + tooltipLines.count
-        return rows > 0 ? style.barHeight(contentRows: rows) : 0
-    }
-
-    /// Whether the bar draws its row of items this frame: it has some, and the
-    /// line about a copy is not standing in for them (``showsNoteInPlaceOfItems``).
-    var drawsItems: Bool { hasItems && !showsNoteInPlaceOfItems }
+    /// Drawn by the window's chrome host at the top of the bottom bar, or as a
+    /// bar of its own while there is none. Resolved by the run loop BEFORE the
+    /// bar's rows are reserved, which is what makes the row cost one pass
+    /// rather than two. That works because the tooltip's triggers all land
+    /// between frames: a mouse event, a key press, and a scheduled wake for the
+    /// hover delay. What the render publishes is the `.onHover` REGISTRATION;
+    /// the invocation has already happened. (The one case that does lag a frame
+    /// is a help string that changes while the pointer is stationary, which is
+    /// not worth a second pass.)
+    public internal(set) var tooltipLines: [String] = []
 
     /// Whether this frame's ``tooltipLines`` are the line about a copy, shown
-    /// in place of the items for its few seconds rather than above them.
+    /// in place of the items of the app's line of key hints
+    /// (``StatusBar/init()``) for its few seconds rather than above them.
     ///
-    /// A row added to the bar is a row taken from the page, and a page laid out
-    /// one row shorter moves — a `WindowGroup` centres its content — which
-    /// would carry what was just copied out from under its highlight. In place
-    /// of the items the bar keeps its height. The items' keys still work while
-    /// it shows; only their labels are hidden. Set by the run loop with the
-    /// lines.
+    /// A row added to the bottom bar is a row taken from the page, and a page
+    /// laid out one row shorter moves — a `WindowGroup` centres its content —
+    /// which would carry what was just copied out from under its highlight. In
+    /// place of the items the bar keeps its height. The items' keys still work
+    /// while it shows; only their labels are hidden. Set by the run loop with
+    /// the lines, and only while the line drew a row of items the frame before
+    /// (``lineShowsItems``): with none to stand in for, the note takes a row of
+    /// its own, as a tooltip does.
     var showsNoteInPlaceOfItems = false
 
-    /// This frame's tooltip, wrapped to the bar's content width — empty when no
-    /// tooltip is showing or the showing one is a popover.
-    ///
-    /// Resolved by the run loop BEFORE ``height`` is read, which is what makes
-    /// the row cost one pass rather than two. That works because the tooltip's
-    /// triggers all land between frames: a mouse event, a key press, and a
-    /// scheduled wake for the hover delay. What the render publishes is the
-    /// `.onHover` REGISTRATION; the invocation has already happened. (The one
-    /// case that does lag a frame is a help string that changes while the
-    /// pointer is stationary, which is not worth a second pass.)
-    public internal(set) var tooltipLines: [String] = []
+    /// Whether the app's line of key hints (``StatusBar/init()``) drew a row of
+    /// items this frame — the row a line about a copy can stand in for in the
+    /// next. Recorded by the line as it draws; taken, and cleared, by the run
+    /// loop as it resolves the next frame's rows.
+    var lineShowsItems = false
 }
 
 // MARK: - Public API

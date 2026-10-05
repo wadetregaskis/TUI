@@ -61,9 +61,7 @@ struct SpinnersPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.spinners")
-        }
+        .navigationTitle("menu.item.spinners")
     }
 
     /// The full style catalogue — every `SpinnerStyle` in declaration order,

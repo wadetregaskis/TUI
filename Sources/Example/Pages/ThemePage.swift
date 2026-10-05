@@ -395,9 +395,7 @@ struct ThemePage: View {
                 )
             }
         }
-        .appHeader {
-            DemoAppHeader("menu.item.theme")
-        }
+        .navigationTitle("menu.item.theme")
     }
 
     /// A `Color` binding onto one stored colour of the app palette. Writing

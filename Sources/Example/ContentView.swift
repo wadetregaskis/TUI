@@ -200,6 +200,14 @@ struct ContentView: View {
                     return false
                 }
             }
+            // The window's bars, declared once for every page — so they never
+            // move as the pages change. The top bar's title slot shows the
+            // page's own `.navigationTitle` (and `.navigationSubtitle`), with
+            // the version beside it; the bottom bar is the line of key hints.
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) { DemoVersionInfo() }
+                ToolbarItem(placement: .bottomBar) { StatusBar() }
+            }
     }
 
     @ViewBuilder

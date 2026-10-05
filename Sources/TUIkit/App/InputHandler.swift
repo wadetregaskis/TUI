@@ -358,7 +358,7 @@ extension InputHandler {
         if let tooltipState, let helpKey = tooltipState.helpKey, event.key == helpKey { return true }
         switch character {
         case "t", "T": return statusBar.showThemeItem && !globalChromeGrabbed
-        case "a", "A": return !globalChromeGrabbed
+        case "a", "A": return statusBar.showAppearanceItem && !globalChromeGrabbed
         default: return false
         }
     }
@@ -434,10 +434,15 @@ extension InputHandler {
             }
             return false
 
+        // `a` is opt-in, as `t` is: a bare key restyling every app was a
+        // chrome default nobody asked for, and with no bar there is nothing to
+        // say what it does (A28, owner answer 6).
         case .character(let character) where character == "a" || character == "A":
-            if inputGrabbed { return false }
-            appearanceManager.cycleNext()
-            return true
+            if statusBar.showAppearanceItem && !inputGrabbed {
+                appearanceManager.cycleNext()
+                return true
+            }
+            return false
 
         default:
             return false

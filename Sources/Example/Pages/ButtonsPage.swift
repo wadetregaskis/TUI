@@ -83,9 +83,7 @@ struct ButtonsPage: View {
         // sentence, which is where the difference between the modes is
         // actually worth looking at.
         .linkDisplay(linkDisplay)
-        .appHeader {
-            DemoAppHeader("menu.item.buttons")
-        }
+        .navigationTitle("menu.item.buttons")
     }
 
     /// A tint that is visibly *not* this theme's own accent.

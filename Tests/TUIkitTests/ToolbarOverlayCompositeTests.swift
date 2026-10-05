@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  AppHeaderOverlayCompositeTests.swift
+//  ToolbarOverlayCompositeTests.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -30,29 +30,31 @@ private struct DropDownProbe: View, Renderable {
     }
 }
 
-/// The drop-down is declared in the header.
+/// The drop-down is declared in the top bar.
 private struct HeaderDropDownApp: App {
     init() {}
 
     var body: some Scene {
         WindowGroup {
             Text("page")
-                .appHeader { DropDownProbe() }
+                .toolbar { ToolbarItem(placement: .navigation) { DropDownProbe() } }
         }
     }
 }
 
 /// The public feature, rather than the mechanism: a real presentation,
-/// declared in the header, already open.
+/// declared in the top bar, already open.
 private struct HeaderPopoverApp: App {
     init() {}
 
     var body: some Scene {
         WindowGroup {
             Text("page")
-                .appHeader {
-                    Text("File")
-                        .popover(isPresented: .constant(true)) { Text("REVEALED") }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Text("File")
+                            .popover(isPresented: .constant(true)) { Text("REVEALED") }
+                    }
                 }
         }
     }
@@ -70,11 +72,11 @@ private struct PageDropDownApp: App {
 }
 
 @MainActor
-@Suite("A layer anchored in the app header reaches the screen", .serialized)
-struct AppHeaderOverlayCompositeTests {
+@Suite("A layer anchored in the top bar reaches the screen", .serialized)
+struct ToolbarOverlayCompositeTests {
 
-    /// The control, and the reason the test below is about the header rather
-    /// than about the probe: the identical layer, emitted from the page, draws.
+    /// The control, and the reason the test below is about the bar rather than
+    /// about the probe: the identical layer, emitted from the page, draws.
     @Test("The same layer on the page draws")
     func pageLayerDraws() {
         let harness = RenderLoopHarness()
@@ -84,24 +86,24 @@ struct AppHeaderOverlayCompositeTests {
     }
 
     /// `03d0a557` carried the header content's layers through the header's
-    /// rebuild; nothing then composited them. The header buffer is written
+    /// rebuild; nothing then composited them. The header buffer was written
     /// straight to the terminal, and only the CONTENT buffer went through
-    /// `compositingOverlays` — so a `Menu` in `.appHeader { … }` opened,
-    /// took the focus, and drew nothing at all.
-    @Test("A layer anchored in the header draws")
+    /// `compositingOverlays` — so a `Menu` in the app header opened, took the
+    /// focus, and drew nothing at all. The top bar inherits the route.
+    @Test("A layer anchored in the top bar draws")
     func headerLayerDraws() {
         let harness = RenderLoopHarness()
         _ = harness.loop(HeaderDropDownApp()).render()
 
         #expect(
             harness.terminal.allOutput.contains("POPUP"),
-            "a Menu in .appHeader { … } opens and draws nothing")
+            "a Menu in the top bar opens and draws nothing")
     }
 
-    /// Where it draws, not merely that it draws: a header-anchored drop-down
-    /// belongs OVER THE PAGE, not clipped to the header's rows. The probe
-    /// anchors its layer two rows below its own, which on the default bordered
-    /// header (a rule, the row, a rule) is the first row of the page.
+    /// Where it draws, not merely that it draws: a bar-anchored drop-down
+    /// belongs OVER THE PAGE, not clipped to the bar's rows. The probe anchors
+    /// its layer two rows below its own, which on the default bordered bar (a
+    /// rule, the row, a rule) is the first row of the page.
     @Test("It floats over the page rather than inside the header")
     func headerLayerLandsOnThePage() {
         let harness = RenderLoopHarness()
@@ -109,12 +111,12 @@ struct AppHeaderOverlayCompositeTests {
 
         #expect(
             terminalRow(containing: "POPUP", in: harness.terminal.allOutput) == 4,
-            "the header is three rows, so the page starts at row 4")
+            "the bar is three rows, so the page starts at row 4")
     }
 
     /// The mechanism above with a real presentation on top of it, so the
     /// feature is pinned and not only the route it takes.
-    @Test("A popover presented in the header is on the screen")
+    @Test("A popover presented in the top bar is on the screen")
     func headerPopoverDraws() {
         let harness = RenderLoopHarness()
         _ = harness.loop(HeaderPopoverApp()).render()

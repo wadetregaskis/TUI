@@ -248,9 +248,7 @@ struct ProgressViewPage: View {
                 gradient: gradientStopsBinding,
                 isPresented: $editingGradient)
         }
-        .appHeader {
-            DemoAppHeader("menu.item.progress")
-        }
+        .navigationTitle("menu.item.progress")
         // A page that declares status items declares the WHOLE bar — the app's
         // own "⎋ back" is replaced rather than merged with, which is why every
         // other page that has items of its own re-states it (Containers, Text

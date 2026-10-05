@@ -103,9 +103,8 @@ struct NavigationPage: View {
             Text("\(L("page.navigation.depth")) \(path.count)")
                 .foregroundStyle(.palette.foregroundSecondary)
         }
-        .appHeader {
-            DemoAppHeader("menu.item.navigation", subtitle: "page.navigation.subtitle")
-        }
+        .navigationTitle("menu.item.navigation")
+        .navigationSubtitle("page.navigation.subtitle")
     }
 
     // MARK: - Screens

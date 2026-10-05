@@ -142,13 +142,8 @@ struct MousePage: View {
             await runPoofTicker()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader(
-                "menu.item.mouse",
-                subtitle:
-                    "page.mouse.subtitle"
-            )
-        }
+        .navigationTitle("menu.item.mouse")
+        .navigationSubtitle("page.mouse.subtitle")
     }
 
     @ViewBuilder private var pageContent: some View {

@@ -99,7 +99,6 @@ extension App {
 internal final class AppRunner<A: App> {
     private let app: A
     private let appearanceManager: ThemeManager
-    private let appHeader: AppHeaderState
     private let appState: AppState
     private let focusManager: FocusManager
     private let paletteManager: ThemeManager
@@ -132,7 +131,6 @@ internal final class AppRunner<A: App> {
         self.app = app
         self.appState = appState
         self.appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: { [appState] in appState.setNeedsRender() })
-        self.appHeader = AppHeaderState()
         self.focusManager = FocusManager()
         self.paletteManager = ThemeManager(items: PaletteRegistry.all, renderTrigger: { [appState] in appState.setNeedsRender() })
         // No style assignment here: the bars' default lives on their own state
@@ -208,7 +206,6 @@ extension AppRunner {
             app: app,
             terminal: terminal,
             statusBar: statusBar,
-            appHeader: appHeader,
             focusManager: focusManager,
             paletteManager: paletteManager,
             appearanceManager: appearanceManager,

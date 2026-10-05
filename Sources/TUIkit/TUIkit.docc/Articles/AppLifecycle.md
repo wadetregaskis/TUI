@@ -33,9 +33,9 @@ The `@main` attribute tells Swift to call the static `main()` method provided by
 
 ## Subsystem Initialization
 
-`AppRunner.init()` creates and wires the core subsystems: Terminal, AppState, StatusBarState, AppHeaderState, FocusManager, TUIContext (containing LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache), and two ThemeManagers (palette and appearance). `run()` then creates the remaining runtime components: InputHandler, RenderLoop, and CursorTimer (50 ms) — the one animation timer, behind two clocks: the focus-relative one the cursor's blink and every focus indicator's breath read, and the monotonic one every spinner and indeterminate bar reads.
+`AppRunner.init()` creates and wires the core subsystems: Terminal, AppState, StatusBarState, FocusManager, TUIContext (containing LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache), and two ThemeManagers (palette and appearance). `run()` then creates the remaining runtime components: InputHandler, RenderLoop, and CursorTimer (50 ms) — the one animation timer, behind two clocks: the focus-relative one the cursor's blink and every focus indicator's breath read, and the monotonic one every spinner and indeterminate bar reads.
 
-@Image(source: "lifecycle-subsystem-init.svg", alt: "Diagram showing subsystem initialization: @main calls App.main(), which creates the app instance via Self(), then AppRunner.init() creates Terminal, AppState, StatusBarState, AppHeaderState, FocusManager, TUIContext with 5 children (LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, RenderCache), and two ThemeManagers.")
+@Image(source: "lifecycle-subsystem-init.svg", alt: "Diagram showing subsystem initialization: @main calls App.main(), which creates the app instance via Self(), then AppRunner.init() creates Terminal, AppState, StatusBarState, WindowChromeState, FocusManager, TUIContext with 5 children (LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, RenderCache), and two ThemeManagers.")
 
 @Image(source: "lifecycle-run-creates.svg", alt: "Diagram showing run() creating InputHandler, RenderLoop, and CursorTimer (50ms).")
 
@@ -182,16 +182,16 @@ Each frame follows 12 steps inside `RenderLoop.render()`:
 
 | Step | What |
 |------|------|
-| 1 | Clear per-frame state (key handlers, preferences, focus, status bar, app header) |
+| 1 | Clear per-frame state (key handlers, preferences, focus, status bar items, toolbar items) |
 | 2 | Begin lifecycle, state, and cache tracking |
 | 3 | Build ``EnvironmentValues`` from subsystem state |
 | 4 | Create ``RenderContext`` with layout constraints |
 | 5 | Evaluate `app.body` → ``WindowGroup`` |
-| 6 | Render view tree → ``FrameBuffer`` |
+| 6 | Render the scene — the view tree, framed by the window's bars — → ``FrameBuffer`` |
 | 7 | Build terminal-ready output lines |
 | 8 | Begin buffered frame (`Terminal.beginFrame()`) |
-| 9 | Render app header, diff and write only changed content lines |
-| 10 | Render status bar into same buffer |
+| 9 | Diff and write only the changed lines of the frame |
+| 10 | Keep the frame, so an animation tick can patch it without a render |
 | 11 | Flush entire frame in one `write()` syscall (`Terminal.endFrame()`) |
 | 12 | End lifecycle tracking (fires `onDisappear` for removed views) |
 
@@ -222,10 +222,10 @@ A process that dies of a signal with no orderly way out — a trap, a bad access
 
 AppRunner creates and owns every subsystem. TUIContext acts as a secondary container for lifecycle, key dispatch, and preference storage.
 
-@Image(source: "dep-graph-ownership.svg", alt: "Ownership diagram showing AppRunner owning all subsystems: SignalManager, Terminal, AppState, StatusBarState, AppHeaderState, FocusManager, both ThemeManagers, TUIContext, InputHandler, RenderLoop, and CursorTimer. TUIContext contains LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache. SignalManager sends SIGINT and SIGWINCH flags back to AppRunner.")
+@Image(source: "dep-graph-ownership.svg", alt: "Ownership diagram showing AppRunner owning all subsystems: SignalManager, Terminal, AppState, StatusBarState, WindowChromeState, FocusManager, both ThemeManagers, TUIContext, InputHandler, RenderLoop, and CursorTimer. TUIContext contains LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache. SignalManager sends SIGINT and SIGWINCH flags back to AppRunner.")
 
 ### Runtime References
 
 During each frame, RenderLoop and InputHandler reference shared subsystems to build the environment and dispatch key events.
 
-@Image(source: "dep-graph-references.svg", alt: "Runtime reference diagram showing RenderLoop writing output to Terminal, injecting environment values from StatusBarState, AppHeaderState, FocusManager, and both ThemeManagers, calling begin/end pass on LifecycleManager, StateStorage, and RenderCache, begin pass on PreferenceStorage, and clearing handlers on KeyEventDispatcher. InputHandler dispatches through Layer 0+3 FocusManager, Layer 1 StatusBarState, Layer 2 KeyEventDispatcher, and Layer 4 both ThemeManagers.")
+@Image(source: "dep-graph-references.svg", alt: "Runtime reference diagram showing RenderLoop writing output to Terminal, injecting environment values from StatusBarState, WindowChromeState, FocusManager, and both ThemeManagers, calling begin/end pass on LifecycleManager, StateStorage, and RenderCache, begin pass on PreferenceStorage, and clearing handlers on KeyEventDispatcher. InputHandler dispatches through Layer 0+3 FocusManager, Layer 1 StatusBarState, Layer 2 KeyEventDispatcher, and Layer 4 both ThemeManagers.")

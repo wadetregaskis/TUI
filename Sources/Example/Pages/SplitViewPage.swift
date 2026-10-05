@@ -142,9 +142,7 @@ struct SplitViewPage: View {
             controls
             styledSplitView
         }
-        .appHeader {
-            DemoAppHeader("menu.item.splitView")
-        }
+        .navigationTitle("menu.item.splitView")
     }
 
     /// The three knobs, ABOVE the split view and horizontal wherever they fit.

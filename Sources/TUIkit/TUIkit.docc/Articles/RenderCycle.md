@@ -36,7 +36,7 @@ The rest converge on boolean flags that the main loop checks each iteration. The
 
 Each call to `RenderLoop.render()` executes these steps in order:
 
-@Image(source: "render-cycle-pipeline.svg", alt: "Diagram showing the 12-step render pipeline: Step 1 clear per-frame state (key handlers, preferences, focus, status bar, app header), Step 2 begin lifecycle/state/cache tracking, Step 3 build environment with all subsystem values and services, Step 4 create render context, Step 5 evaluate scene, Step 6 render the scene and its chrome, Step 7 build output lines, Step 8 begin buffered frame, Step 9 diff the frame, Step 10 keep the replay frame, Step 11 flush frame, Step 12 end tracking (lifecycle onDisappear, state GC, cache cleanup).")
+@Image(source: "render-cycle-pipeline.svg", alt: "Diagram showing the 12-step render pipeline: Step 1 clear per-frame state (key handlers, preferences, focus, status bar items, toolbar items), Step 2 begin lifecycle/state/cache tracking, Step 3 build environment with all subsystem values and services, Step 4 create render context, Step 5 evaluate scene, Step 6 render the scene and its chrome, Step 7 build output lines, Step 8 begin buffered frame, Step 9 diff the frame, Step 10 keep the replay frame, Step 11 flush frame, Step 12 end tracking (lifecycle onDisappear, state GC, cache cleanup).")
 
 ### Step 1: Clear Per-Frame State
 
@@ -46,7 +46,7 @@ Five subsystems are reset at the start of every frame:
 - **`PreferenceStorage`**: All preference callbacks are cleared and the stack is reset to a single empty `PreferenceValues`.
 - **`FocusManager`**: All focus registrations are cleared. Focusable views re-register during rendering.
 - **`StatusBarState`**: Section items are cleared. Views re-register them via `.statusBarItems()` modifiers.
-- **`AppHeaderState`**: Header content is cleared. The `.appHeader()` modifier repopulates it during rendering.
+- **`WindowChromeState`**: The toolbar items the last walk declared are cleared. Each `.toolbar` declares its items again as it renders; the rows each bar holds are kept, as last frame's answer.
 
 Additionally, the `StatusBarState` receives a reference to the current `FocusManager` for section resolution.
 
@@ -64,7 +64,7 @@ A fresh ``EnvironmentValues`` instance is assembled from the current subsystem s
 // Simplified from RenderLoop.buildEnvironment()
 var env = EnvironmentValues()
 env.statusBar           = statusBar
-env.appHeader           = appHeader
+env.windowChrome        = windowChrome
 env.focusManager        = focusManager
 env.paletteManager      = paletteManager
 env.palette             = paletteManager.currentPalette
@@ -89,7 +89,7 @@ A ``RenderContext`` bundles everything a view needs to render:
 | Property | What |
 |----------|------|
 | `availableWidth` | Terminal width (mutable: containers reduce this for children) |
-| `availableHeight` | Terminal height; the window's chrome host gives its content what the app header and status bar leave (mutable) |
+| `availableHeight` | Terminal height; the window's chrome host gives its content what the window's bars leave (mutable) |
 | `environment` | The ``EnvironmentValues`` from step 3 |
 | `tuiContext` | The `TUIContext` (lifecycle, key dispatch, preferences, state storage) |
 | `identity` | The current view's structural identity (`ViewIdentity`) |
@@ -106,7 +106,7 @@ The context is passed down the view tree. Each view can create a modified copy f
 
 ### Step 6: Render the Scene and Its Chrome
 
-This is where the dual rendering system kicks in. ``WindowGroup`` renders the window's chrome host, which reserves the rows the app header and the status bar take, calls the free function `renderToBuffer()` on the content in what is left — recursively traversing the entire view tree — and then draws the two bars as views above and below it, producing one ``FrameBuffer`` the size of the terminal.
+This is where the dual rendering system kicks in. ``WindowGroup`` renders the window's chrome host, which reserves the rows the window's top and bottom bars take, calls the free function `renderToBuffer()` on the content in what is left — recursively traversing the entire view tree — and then draws the two bars as views above and below it, producing one ``FrameBuffer`` the size of the terminal. Every bar is opt-in: a bar exists while a `.toolbar` places something in it, and an app that places nothing draws on every row.
 
 The content's overlay layers (a drop-down, a sheet) are composited inside the content area, so a modal's dimming stops at the chrome. Each bar is drawn on its own background, and resolves its own opacity against it. Because the bars are rows of the frame, the frame is one coordinate space: a pointer event's row is the screen's, untranslated, and a hit region in a bar is where the bar is drawn.
 
@@ -153,10 +153,10 @@ All state changes inside the lifecycle manager are `NSLock`-protected. Callbacks
 
 The window's chrome host draws the bars after the content, as views, into the same frame:
 
-1. Before the content draws, it reserves each bar's rows: last frame's answer, kept by `WindowChromeState`, with this frame's tooltip row added to the status bar's. The content declares the bars as it draws, so a frame cannot know its own; a bar the content starts or stops declaring is adopted the frame after (and that frame is asked for), and the frame in between is drawn at the old reservation — a bar cut to its rows, or blank rows where one has gone. Every frame is one walk; the first frame alone takes an extra, measuring walk to seed the reservations
+1. Before the content draws, it reserves each bar's rows: last frame's answer, kept by `WindowChromeState`, with this frame's tooltip row added to the bottom bar's. The content declares the bars as it draws, so a frame cannot know its own; a bar the content starts or stops declaring is adopted the frame after (and that frame is asked for), and the frame in between is drawn at the old reservation — a bar cut to its rows, or blank rows where one has gone. Every frame is one walk; the first frame alone takes an extra, measuring walk to seed the reservations
 2. The content renders in the rows left, and its overlay layers are composited inside them; a layer anchored in the header (a `Menu`'s drop-down) joins them
 3. A ``StatusBar`` view is created with the app's highlight and label colors as set; the view resolves them against the palette, with an unset color standing for the palette's accent or foreground
-4. Each bar's buffer has its opacity resolved against its own background, is painted on it and fitted to its reserved rows, then the header, the content and the status bar are stacked
+4. Each bar's buffer has its opacity resolved against its own background, is painted on it and fitted to its reserved rows, then the top bar, the content and the bottom bar are stacked
 
 The bars are **never affected** by view dimming or overlays: the compositor works inside the content area only.
 
@@ -277,8 +277,8 @@ absolute on the content area. `RenderLoop` then composites the layers in
 ascending `(level, zIndex)` order, flipping a layer above its anchor when
 it would overflow the bottom edge. Overlays are clamped and centred
 against the `overlayContentHeight` environment value — the content-area
-height (terminal minus status bar and app header) — so a layer never
-extends behind the status bar. ``Picker``'s drop-down menu uses this
+height (terminal minus the window's bars) — so a layer never extends
+behind the bottom bar. ``Picker``'s drop-down menu uses this
 mechanism — its in-flow control stays a single line whether the menu is
 open or closed.
 

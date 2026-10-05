@@ -26,9 +26,7 @@ struct ImageFilePage: View {
                 .imageDemoSettings(settings)
         }
         .statusBarItems(statusBarItems)
-        .appHeader {
-            DemoAppHeader("menu.item.imageFile")
-        }
+        .navigationTitle("menu.item.imageFile")
     }
 
     @ViewBuilder private var imageContent: some View {

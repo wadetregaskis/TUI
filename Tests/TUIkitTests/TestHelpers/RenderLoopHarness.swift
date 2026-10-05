@@ -21,7 +21,6 @@ final class RenderLoopHarness {
     /// the signals the run loop consumes (`setNeedsAnimationTick`, and so on).
     let appState: AppState
     let statusBar: StatusBarState
-    let appHeader = AppHeaderState()
     let focusManager = FocusManager()
     let tuiContext: TUIContext
     let paletteManager: ThemeManager
@@ -82,7 +81,6 @@ final class RenderLoopHarness {
             app: app,
             terminal: terminal,
             statusBar: statusBar,
-            appHeader: appHeader,
             focusManager: focusManager,
             paletteManager: paletteManager,
             appearanceManager: appearanceManager,

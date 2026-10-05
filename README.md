@@ -46,12 +46,21 @@ struct ContentView: View {
                 count += 1
             }
         }
-        .statusBarItems {
-            StatusBarItem(shortcut: "q", label: "quit")
+        .navigationTitle("Counter")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Reset") { count = 0 }
+            }
+            // The line of key hints — quit, and whatever the page declares
+            // with `.statusBarItems` — opted into.
+            ToolbarItem(placement: .bottomBar) { StatusBar() }
         }
     }
 }
 ```
+
+Every bar is the app's to place: an app that declares no `.toolbar` draws on
+every row of the terminal, and `q` still quits.
 
 ## Features
 
@@ -85,7 +94,8 @@ struct ContentView: View {
   - **`ProgressView`** — determinate or indeterminate. Determinate look via `.progressViewStyle(_:)` (`TrackStyle`): `block` (default), `bar`, `blockFine`, `dot`, `shade`, `braille`, `shadeRamp(gradient:)`, `threeSegment(...)`, or `custom(TrackConfiguration)` — the named fill styles are presets of one configurable renderer (fill glyph, leading-edge ramp, patterned or solid background, gradient). Indeterminate animation via `.indeterminateStyle(_:)`: `sweep` (default), `barberPole`, `pulse`, `knightRider`, `gradient`. A gradient's ramp spans the whole bar by default, so a colour always marks the same value; `.trackGradientScaling(.region)` compresses it into the region it paints instead.
   - **`Gauge`** — a labelled value read-out with min/max bounds, styled via `.gaugeStyle(_:)`: `linearCapacity` (default), `accessoryLinear` (position marker), `accessoryLinearCapacity`, `accessoryCircular` / `accessoryCircularCapacity` (ring dials), or the compact `accessoryCircularTiny` pie glyph.
   - **`Spinner`** — animated, in sixteen built-in styles (`dots` (default), `line`, `dancingLine`, `bouncing` (a Knight-Rider scanner with a fading trail), `pie`, `beachball`, `box`, `curve`, `column`, `bar`, `shade`, `blockWedge`, `spinningTriangle`, `moon`, `earth`, `clock`) plus `.custom(_:)` frame sequences, with an optional label and colour.
-- **`StatusBar`**: context-sensitive keyboard shortcuts with `.compact` and `.bordered` styles
+- **Toolbars**: SwiftUI's `.toolbar` with `ToolbarItem`, `ToolbarItemGroup` and `ToolbarSpacer` — items join the window's top bar (title, navigation, principal, primary and secondary actions) or bottom bar by placement, framed in the scene's `.chromeStyle(_:)` (`.bordered`, `.rule`, `.compact`). Every bar is opt-in.
+- **`StatusBar`**: a line of context-sensitive keyboard shortcuts — `StatusBar()` in the bottom bar shows the page's `.statusBarItems`, the focus section's and the system items; the keys work whether or not it is shown
 
 ### Scrolling & scrollbars
 
@@ -307,8 +317,7 @@ Sources/
 │                         SwiftUICore (which AppKit imports) never reaches an app that
 │                         imports only TUIkit. Empty off Apple platforms.
 ├── TUIkit/               Umbrella module: App, Views, Modifiers, Focus, StatusBar, ...
-│   ├── App/              App, Scene, WindowGroup
-│   ├── AppHeader/        App header chrome
+│   ├── App/              App, Scene, WindowGroup, the window's chrome host
 │   ├── Environment/      Environment keys, service configuration
 │   ├── Extensions/       View modifiers and convenience APIs
 │   ├── Focus/            Focus system and keyboard navigation
@@ -320,6 +329,7 @@ Sources/
 │   ├── SFSymbols/        SF Symbols name → codepoint table and resolver
 │   ├── State/            @State / @AppStorage / binding storage
 │   ├── StatusBar/        Status bar model, shortcuts, system items
+│   ├── Toolbar/          .toolbar, ToolbarItem and its placements, the bars' frame
 │   ├── Styles/, Styling/ Control and visual styles
 │   ├── Utility/          Misc helpers
 │   ├── TUIkit.docc/      DocC documentation catalog

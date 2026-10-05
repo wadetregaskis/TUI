@@ -208,9 +208,11 @@ private struct KeyNotationProbeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Text("page").statusBarItems {
-                StatusBarItem(shortcut: Shortcut.escape, label: "back")
-            }
+            Text("page")
+                .statusBarItems {
+                    StatusBarItem(shortcut: Shortcut.escape, label: "back")
+                }
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
         }
         .keyNotation(notation ?? .symbols)
     }

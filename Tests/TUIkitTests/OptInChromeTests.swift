@@ -1,0 +1,92 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  OptInChromeTests.swift
+//
+//  Every bar is the app's to place (A28): a bare `WindowGroup` draws on every
+//  row of the terminal, the line of key hints appears only where the app puts
+//  `StatusBar()`, and the keys it names — `q` above all — work with no bar.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+/// A page that marks its first and last rows.
+private struct BareApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack(spacing: 0) {
+                Text("FIRST")
+                Spacer()
+                Text("LAST")
+            }
+        }
+    }
+}
+
+/// The same page with the line of key hints opted into.
+private struct HintsApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack(spacing: 0) {
+                Text("FIRST")
+                Spacer()
+                Text("LAST")
+            }
+            .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+        }
+    }
+}
+
+@MainActor
+@Suite("Chrome is opt-in")
+struct OptInChromeTests {
+
+    @Test("A bare WindowGroup draws on every row of the terminal")
+    func bareAppTakesEveryRow() {
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(BareApp())
+        _ = loop.render()
+        let rows = loop.diffWriter.shownLines.map(\.stripped)
+        #expect(rows.count == 24)
+        #expect(rows.first?.contains("FIRST") == true, "\(rows)")
+        #expect(rows.last?.contains("LAST") == true, "no bar takes the bottom rows: \(rows)")
+        #expect(!rows.contains { $0.contains("quit") }, "no line of key hints unless placed")
+    }
+
+    @Test("StatusBar() in the bottom bar is the line of key hints, quit and all")
+    func statusBarIsOptedInto() {
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(HintsApp())
+        _ = loop.render()
+        let rows = loop.diffWriter.shownLines.map(\.stripped)
+        #expect(rows[rows.count - 2].contains("q quit"), "\(rows)")
+        #expect(rows[rows.count - 4].contains("LAST"), "the page ends above the bar: \(rows)")
+    }
+
+    @Test("q quits with no bar on the screen")
+    func quitWorksWithNoBar() {
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(BareApp())
+        _ = loop.render()
+        var quits = 0
+        let handler = InputHandler(
+            statusBar: harness.statusBar,
+            keyEventDispatcher: harness.tuiContext.keyEventDispatcher,
+            focusManager: harness.focusManager,
+            paletteManager: harness.paletteManager,
+            appearanceManager: harness.appearanceManager,
+            keyboardShortcuts: harness.tuiContext.keyboardShortcuts,
+            dragAndDropSession: nil,
+            onQuit: { quits += 1 },
+            onSuspend: {})
+        _ = handler.handle(KeyEvent(key: .character("q")))
+        #expect(quits == 1)
+    }
+}

@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  AppHeaderPayloadTests.swift
+//  ChromeBarFramePayloadTests.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -9,19 +9,19 @@ import TUIkitCore
 
 @testable import TUIkit
 
-/// Everything the header's content emitted survives the header's rebuild.
+/// Everything a bar's content emitted survives the bar's frame.
 ///
-/// `AppHeader.renderToBuffer` re-lines its content (a border, or nothing) and so
-/// builds a fresh `FrameBuffer` — which starts with every side payload empty.
-/// Each one therefore has to be carried across by hand, and each one that was
-/// not is a feature that silently does nothing inside `.appHeader { … }`. Hit
-/// regions were the first to go missing (`e5382a77`: a Button in the header
-/// could not be clicked), opacity followed, and animated runs and overlays were
-/// still being dropped — a `Spinner` up there was frozen at frame 0, which does
-/// not look like a dropped animation. It looks like a still picture.
+/// `_ChromeBarFrame.renderToBuffer` re-lines its content (a border, or nothing)
+/// and so builds a fresh `FrameBuffer` — which starts with every side payload
+/// empty. Each one therefore has to be carried across by hand, and each one that
+/// was not is a feature that silently does nothing in a bar. Hit regions were
+/// the first to go missing (`e5382a77`: a Button in the app header could not be
+/// clicked), opacity followed, and animated runs and overlays were still being
+/// dropped — a `Spinner` up there was frozen at frame 0, which does not look
+/// like a dropped animation. It looks like a still picture.
 @MainActor
-@Suite("The app header carries its content's payloads", .serialized)
-struct AppHeaderPayloadTests {
+@Suite("A window bar carries its content's payloads", .serialized)
+struct ChromeBarFramePayloadTests {
 
     /// A content buffer with one of each payload, at a known place, so the shift
     /// a bordered header applies is checkable rather than assumed.
@@ -46,10 +46,10 @@ struct AppHeaderPayloadTests {
             availableWidth: 20, availableHeight: style == .bordered ? 3 : 1,
             tuiContext: TUIContext())
         return renderToBuffer(
-            AppHeader(contentBuffer: contentBuffer(), style: style), context: context)
+            _ChromeBarFrame(contentBuffer: contentBuffer(), style: style), context: context)
     }
 
-    @Test("A compact header carries all four, unmoved")
+    @Test("A compact bar carries all four, unmoved")
     func compactCarriesEverything() {
         let drawn = header(.compact)
         #expect(drawn.hitTestRegions.count == 1)
@@ -62,7 +62,7 @@ struct AppHeaderPayloadTests {
     /// A box moves its content right by its wall and down by its top rule, so
     /// every payload moves with it — a region or a run left at the old
     /// coordinates describes the border.
-    @Test("A bordered header carries all four, shifted by its chrome")
+    @Test("A bordered bar carries all four, shifted by its chrome")
     func borderedShiftsEverything() {
         let drawn = header(.bordered)
         #expect(drawn.hitTestRegions.first?.offsetX == 1)

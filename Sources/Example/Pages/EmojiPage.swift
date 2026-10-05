@@ -135,10 +135,8 @@ struct EmojiPage: View {
         // Not wrapped in a page ScrollView: the tables are the scrollable content,
         // each scrolling itself inside the rows the reader above hands it. Inside a
         // page ScrollView the reader would be offered the whole viewport again.
-        .appHeader {
-            DemoAppHeader("menu.item.emoji",
-                          subtitle: "page.emoji.subtitle")
-        }
+        .navigationTitle("menu.item.emoji")
+        .navigationSubtitle("page.emoji.subtitle")
     }
 
     // MARK: - Tables

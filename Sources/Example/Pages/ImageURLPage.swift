@@ -35,9 +35,7 @@ struct ImageURLPage: View {
         }
         .statusBarItems(
             ImageDemoStatusBar.items(settings: $settings, zoom: $zoom, back: "page.imageURL.back"))
-        .appHeader {
-            DemoAppHeader("menu.item.imageURL")
-        }
+        .navigationTitle("menu.item.imageURL")
     }
 
     @ViewBuilder private var picture: some View {

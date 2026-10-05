@@ -68,12 +68,14 @@ private struct HeaderRunOverPageRunApp: App {
                         offsetX: 0, offsetY: 0, width: 1, frames: ["p", "q"],
                         frameTicks: 6, clock: .content)
                 ])
-                .appHeader {
-                    Text("h").animatedCells([
-                        AnimatedCellRun(
-                            offsetX: 0, offsetY: 0, width: 1, frames: ["h", "i"],
-                            frameTicks: 5, clock: .content)
-                    ])
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Text("h").animatedCells([
+                            AnimatedCellRun(
+                                offsetX: 0, offsetY: 0, width: 1, frames: ["h", "i"],
+                                frameTicks: 5, clock: .content)
+                        ])
+                    }
                 }
         }
     }
@@ -273,15 +275,15 @@ struct RenderLoopReplayTests {
             "0.137 s on the cursor clock is 13 ms from its 0.150 s boundary: \(sleep)")
     }
 
-    /// A run in the app header is advanced only by a render, so the loop has to wake
-    /// when it changes, beside whatever the page's runs ask for.
-    @Test("A run in the app header plans at its own next change, and a sooner page run still wins")
+    /// A run in a bar plans its own next change, beside whatever the page's runs
+    /// ask for: the loop wakes for whichever is sooner.
+    @Test("A run in the top bar plans at its own next change, and a sooner page run still wins")
     func chromeRunPlansAtItsOwnChange() {
         let harness = RenderLoopHarness()
         let loop = harness.loop(HeaderRunOverPageRunApp())
         _ = loop.render(frameNowNanos: 1_030_000_000)
-        let headerRuns = harness.appHeader.contentBuffer?.animatedCells ?? []
-        let pageRuns = loop.replayable?.runs ?? []
+        let headerRuns = loop.replayable?.runs.filter { $0.offsetY == 1 } ?? []
+        let pageRuns = loop.replayable?.runs.filter { $0.offsetY != 1 } ?? []
         #expect(!headerRuns.isEmpty, "pre-condition: the header must leave a run")
         #expect(!pageRuns.isEmpty, "pre-condition: the page must leave a run")
 

@@ -59,7 +59,7 @@ private struct ProbeApp: App {
     var body: some Scene {
         WindowGroup {
             Text("content")
-                .appHeader { ProbeHeader() }
+                .toolbar { ToolbarItem(placement: .navigation) { ProbeHeader() } }
                 .onChange(of: 1, initial: true) { _, _ in
                     ProbeState.shared.onChangeFires += 1
                 }
@@ -87,7 +87,7 @@ private struct PhaseProbeApp: App {
                         ProbeState.shared.appearedDuringWalk = ProbeState.shared.walkPhases.count
                     }
             }
-            .appHeader { ProbeHeader() }
+            .toolbar { ToolbarItem(placement: .navigation) { ProbeHeader() } }
         }
     }
 }
@@ -151,7 +151,7 @@ struct RenderPassScopeTests {
         let loop = harness.loop(ProbeApp())
 
         _ = loop.render()
-        let heightAfterFirstFrame = harness.appHeader.height
+        let heightAfterFirstFrame = loop.windowChrome.rows(.top)
 
         // Grow the header. Frame 2 lays out against the previous height and
         // adopts the new one for frame 3.
@@ -161,7 +161,7 @@ struct RenderPassScopeTests {
         // Pre-condition, so this test fails loudly rather than silently ceasing to
         // discriminate if the correction branch stops being reached.
         #expect(
-            harness.appHeader.height != heightAfterFirstFrame,
+            loop.windowChrome.rows(.top) != heightAfterFirstFrame,
             "the header must actually change height, or nothing is under test")
 
         #expect(
@@ -235,14 +235,14 @@ struct RenderPassScopeTests {
         let loop = harness.loop(PhaseProbeApp())
 
         _ = loop.render()
-        let heightAfterFirstFrame = harness.appHeader.height
+        let heightAfterFirstFrame = loop.windowChrome.rows(.top)
 
         ProbeState.shared.headerLines = 3
         ProbeState.shared.walkPhases = []
         _ = loop.render()
 
         #expect(
-            harness.appHeader.height != heightAfterFirstFrame,
+            loop.windowChrome.rows(.top) != heightAfterFirstFrame,
             "the header must actually change height, or nothing is under test")
         let phases = ProbeState.shared.walkPhases
         #expect(phases.filter { !$0 }.count == 1, "one drawn walk. Saw \(phases)")

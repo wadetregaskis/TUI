@@ -83,8 +83,6 @@ struct PreferencesPage: View {
             lastMessage = message
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.preferences")
-        }
+        .navigationTitle("menu.item.preferences")
     }
 }

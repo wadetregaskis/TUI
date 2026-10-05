@@ -66,8 +66,8 @@ extension _ChromeStyleScene: ConfiguringScene {
     /// `.chromeStyle(_:)` cover the other. Innermost wins, as for every scene
     /// modifier: this writes over what the scenes outside it wrote.
     func configure(_ configuration: inout SceneConfiguration) {
-        if let appHeaderStyle { configuration.appHeaderStyle = appHeaderStyle }
-        if let statusBarStyle { configuration.statusBarStyle = statusBarStyle }
+        if let appHeaderStyle { configuration.topBarStyle = appHeaderStyle }
+        if let statusBarStyle { configuration.bottomBarStyle = statusBarStyle }
     }
 
     var configuredContent: (any Scene)? { content }

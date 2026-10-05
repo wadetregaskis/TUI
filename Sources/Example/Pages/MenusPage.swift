@@ -47,12 +47,7 @@ struct MenusPage: View {
         ScrollView {
             content
         }
-        // `.appHeader`, not `.navigationTitle`: this page is not inside a
-        // `NavigationStack`, so the title it set was drawn by nothing at all
-        // and the page was the only one in the app with no header.
-        .appHeader {
-            DemoAppHeader("menu.item.menus")
-        }
+        .navigationTitle("menu.item.menus")
     }
 
     /// One row of the sticky menu: a `Toggle`, which inside a pop-up menu draws

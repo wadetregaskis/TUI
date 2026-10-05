@@ -291,11 +291,11 @@ struct ContainerPayloadAudit {
         #expect(label.opacityRegions.count == 1)
         #expect(label.opacityRegions.first?.offsetX == BorderRenderer.focusIndicatorWidth)
 
-        // The header takes its content PRE-RENDERED, so it is handed the
+        // A window bar's frame takes its content PRE-RENDERED, so it is handed the
         // probe's buffer directly rather than reached through a page.
         let context = harness().1
         let content = renderToBuffer(faded(), context: context)
-        let header = AppHeader(contentBuffer: content, style: .bordered)
+        let header = _ChromeBarFrame(contentBuffer: content, style: .bordered)
             .renderToBuffer(context: context)
         #expect(header.opacityRegions.count == 1)
         // Inside the box's wall and below its top rule.

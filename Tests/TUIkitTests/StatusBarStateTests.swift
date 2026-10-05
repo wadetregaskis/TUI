@@ -320,45 +320,20 @@ struct StatusBarStateTests {
         #expect(handled == false)
     }
 
-    @Test("Height is zero when no items and system items disabled")
-    func heightZeroWhenEmpty() {
+    @Test("Nothing to show when there are no items and the system items are off")
+    func nothingWhenEmpty() {
+        // What decides whether `StatusBar()` takes a row in its bar: the bar's
+        // height and style are the window's (`ChromeStyleTests`), not the
+        // state's.
         let state = StatusBarState()
         state.showSystemItems = false
-        #expect(state.height == 0)
+        #expect(!state.hasItems)
     }
 
-    @Test("Height is 3 when only system items")
-    func heightWithSystemItems() {
-        // System items are on by default, and the default style is
-        // `.bordered`: one row of items inside a box, which the app header
-        // matches.
+    @Test("The system items alone are something to show")
+    func systemItemsAreSomething() {
         let state = StatusBarState()
-        #expect(state.style == .bordered)
-        #expect(state.height == 3)
-    }
-
-    @Test("Height is 2 for the rule style")
-    func heightRule() {
-        let state = StatusBarState()
-        state.style = .rule
-        state.setItems([StatusBarItem(shortcut: "x", label: "test")])
-        #expect(state.height == 2)
-    }
-
-    @Test("Height is 1 for compact style")
-    func heightCompact() {
-        let state = StatusBarState()
-        state.style = .compact
-        state.setItems([StatusBarItem(shortcut: "x", label: "test")])
-        #expect(state.height == 1)
-    }
-
-    @Test("Height is 3 for bordered style")
-    func heightBordered() {
-        let state = StatusBarState()
-        state.style = .bordered
-        state.setItems([StatusBarItem(shortcut: "x", label: "test")])
-        #expect(state.height == 3)
+        #expect(state.hasItems, "quit is on by default")
     }
 }
 

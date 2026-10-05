@@ -195,9 +195,7 @@ struct ContainersPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.containers")
-        }
+        .navigationTitle("menu.item.containers")
         .statusBarItems(statusBarItems)
     }
 

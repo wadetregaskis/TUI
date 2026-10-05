@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ChromeAndDimmedFocusTests.swift
 //
-//  Two things that LOOK inert and have to BE inert: a `.dimmed()` subtree, and
-//  the app header. Neither is a Tab stop; the header stays clickable, because a
-//  control drawn in the title bar is meant to be clicked.
+//  A thing that LOOKS inert has to BE inert: a `.dimmed()` subtree is not a Tab
+//  stop. (The app header was the other case, chrome that was clickable but not
+//  a Tab stop. Its successor, the window's top toolbar, is deliberately in the
+//  Tab ring, after the page — `ToolbarTests`.)
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -33,7 +34,6 @@ struct ChromeAndDimmedFocusTests {
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
         environment.applyRuntimeServices(from: tui)
-        environment.appHeader = AppHeaderState()
         environment.terminalWidth = 40
         environment.terminalHeight = 12
         let context = RenderContext(
@@ -88,39 +88,5 @@ struct ChromeAndDimmedFocusTests {
     private struct StatefulProbe: View {
         @State private var count = 0
         var body: some View { Text("count-\(count)").onAppear { count = 7 } }
-    }
-
-    @Test("An app-header control is chrome, not a Tab stop")
-    func headerIsNotFocusable() {
-        // Tab walked out of the content and into the title bar.
-        let withHeader = reachable(
-            VStack { Text("page") }.appHeader { Button("header") {} })
-        #expect(withHeader.isEmpty, "the header joined the focus ring: \(withHeader)")
-
-        // The page's own controls are unaffected — the isolation is the
-        // header's subtree, not the whole tree.
-        let both = reachable(
-            VStack { Button("page") {} }.appHeader { Button("header") {} })
-        #expect(both.count == 1, "expected only the page's button: \(both)")
-    }
-
-    @Test("…but it is still clickable")
-    func headerStaysClickable() {
-        // The point of a control in the header. Its buffer publishes regions;
-        // RenderLoop merges them (except behind a modal, which is
-        // ModalInputGrabTests' case).
-        let tui = TUIContext()
-        var environment = EnvironmentValues()
-        environment.focusManager = FocusManager()
-        environment.applyRuntimeServices(from: tui)
-        let header = AppHeaderState()
-        environment.appHeader = header
-        environment.terminalWidth = 40
-        let context = RenderContext(
-            availableWidth: 40, availableHeight: 12,
-            environment: environment, tuiContext: tui)
-        _ = renderToBuffer(
-            VStack { Text("page") }.appHeader { Button("header") {} }, context: context)
-        #expect(header.contentBuffer?.hitTestRegions.isEmpty == false)
     }
 }

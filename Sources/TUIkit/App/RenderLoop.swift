@@ -71,7 +71,7 @@ internal struct RenderBackgroundCodes: Equatable {
 ///   6. Call SceneRenderable.renderScene() → FrameBuffer
 ///   7. Convert FrameBuffer to terminal-ready output lines
 ///   8. Begin buffered frame (terminal.beginFrame())
-///      (the scene's chrome host draws the app header and status bar into it)
+///      (the scene's chrome host draws the window's bars into it)
 ///   9. Diff against previous frame, write only changed lines to buffer
 ///  10. Flush entire frame in one write() syscall (terminal.endFrame())
 ///  11. End lifecycle tracking (fires onDisappear for removed views)
@@ -127,7 +127,7 @@ struct RenderActivity {
 }
 
 /// The height of the content area: whatever the terminal has left after the
-/// chrome laid out around it (the status bar, and the app header if any).
+/// chrome laid out around it (the window's top and bottom bars, if any).
 ///
 /// **Never negative.** A terminal can be shorter than its own chrome — the
 /// status bar and header are laid out first and keep their full height — which
@@ -182,9 +182,6 @@ internal final class RenderLoop<A: App> {
 
     /// The status bar state (height, items, appearance).
     let statusBar: StatusBarState
-
-    /// The app header state (content buffer, visibility).
-    let appHeader: AppHeaderState
 
     /// The rows the window's bars hold from frame to frame, which the scene's
     /// chrome host reserves before the content draws and adopts a frame after
@@ -371,7 +368,6 @@ internal final class RenderLoop<A: App> {
         app: A,
         terminal: any TerminalProtocol,
         statusBar: StatusBarState,
-        appHeader: AppHeaderState,
         focusManager: FocusManager,
         paletteManager: ThemeManager,
         appearanceManager: ThemeManager,
@@ -390,7 +386,6 @@ internal final class RenderLoop<A: App> {
         self.terminal = terminal
         self.synchronizedUpdates = terminal as? any SynchronizedUpdating
         self.statusBar = statusBar
-        self.appHeader = appHeader
         self.focusManager = focusManager
         self.paletteManager = paletteManager
         self.appearanceManager = appearanceManager
@@ -452,10 +447,6 @@ extension RenderLoop {
             tuiContext.renderCache.terminalResizedAtNanos = frameNowNanos
         }
         lastFrameSize = terminalSize
-        // Before the tree renders, because `AppHeaderModifier` reads it while
-        // laying the header content out and it is drawn across the whole
-        // terminal rather than at whatever width the tree offers it.
-        appHeader.renderWidth = terminalWidth
 
         // Create render context with environment
         var environment = buildEnvironment()
@@ -490,8 +481,8 @@ extension RenderLoop {
         publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
         invalidateCacheIfEnvironmentChanged(environment: environment)
 
-        // Render the scene: its chrome host lays the app header, the content
-        // and the status bar out as one frame the size of the terminal, in one
+        // Render the scene: its chrome host lays the top bar, the content
+        // and the bottom bar out as one frame the size of the terminal, in one
         // walk (two on the first frame). See `renderContent`.
         let buffer = renderContent(
             scene: scene,
@@ -642,7 +633,7 @@ extension RenderLoop {
             // this one reserves no chrome) would appear, mount a task, and then
             // be told it disappeared, having never been drawn.
             //
-            // `AppHeaderModifier` and `.statusBarItems` are deliberately NOT
+            // `.toolbar` (under the seeding flag below) is deliberately NOT
             // guarded that way, which is what lets this walk still do its one
             // job. Anything that guards itself on the measure phase must not be
             // load-bearing for the chrome.
@@ -727,7 +718,6 @@ extension RenderLoop {
     func buildEnvironment() -> EnvironmentValues {
         var environment = EnvironmentValues()
         environment.statusBar = statusBar
-        environment.appHeader = appHeader
         environment.windowChrome = windowChrome
         environment.focusManager = focusManager
         environment.paletteManager = paletteManager
@@ -872,10 +862,9 @@ extension RenderLoop {
         tuiContext.preferences.beginRenderPass()
         tuiContext.stateStorage.beginSceneRender()
         focusManager.beginSceneRender()
-        // The bar's items and its per-frame escape and Return claims, and the
-        // header the page draws: what each walk declares is that walk's.
+        // The hint line's items and its per-frame escape and Return claims, and
+        // the toolbar items: what each walk declares is that walk's.
         statusBar.beginSceneRender()
-        appHeader.beginRenderPass()
         windowChrome.beginWalk()
         // And for a tooltip's FOCUS candidate, republished by the focused
         // control every render for the same reason. Its hover candidate is not
@@ -997,7 +986,7 @@ extension RenderLoop {
     ///
     /// Every run on screen is the frame's, the chrome's included — the bars are
     /// rows of the frame like any other, so the replay patches a `Spinner` in
-    /// `.appHeader { … }` as it patches one on the page.
+    /// a toolbar as it patches one on the page.
     private func recordActivity(usesPulse: Bool, usesCursor: Bool) -> RenderActivity {
         lastActivity = RenderActivity(
             usesPulse: usesPulse,

@@ -1,20 +1,29 @@
 # Status Bar
 
-Configure the shortcut bar at the bottom of the terminal.
+Show the keyboard shortcuts in force, in the window's bottom bar.
 
 ## Overview
 
-The status bar is a row at the bottom of the terminal that shows keyboard shortcuts and contextual information. It updates every frame while it has active items.
+The status bar is a line of key hints: the shortcuts in force and what each does. It is a view the app places — ``StatusBar``'s `init()` in the window's bottom bar:
 
-The status bar is hidden automatically when there are no active user items and no visible system items.
+```swift
+ContentView()
+    .toolbar {
+        ToolbarItem(placement: .bottomBar) { StatusBar() }
+    }
+```
 
-The status bar shares its style type with the app header — see ``ChromeStyle`` — so the two framing bars can be set together with ``Scene/chromeStyle(_:)``. It defaults to ``ChromeStyle/bordered``: its items boxed like a container view, which the app header matches.
+Every bar is opt-in: an app that places no `StatusBar()` shows no line of hints, and the content takes every row. The keys work either way — an item's action fires on its key with no bar on screen, and `q` quits.
+
+The line updates every frame. It takes no row while it has nothing to show: no active user items and no visible system items.
+
+Its bar is framed in the scene's chrome style — see ``ChromeStyle`` and ``Scene/chromeStyle(_:)`` — which the top bar shares. It defaults to ``ChromeStyle/bordered``: the line boxed like a container view.
 
 ## Architecture
 
 The status bar system has three parts:
 
-- **``StatusBarState``**: Manages the item stack, style, and event handling
+- **``StatusBarState``**: Manages the item stack and event handling
 - **``StatusBarItem``**: A single shortcut entry (key + label + action)
 - **``StatusBar``**: The view that renders items into a ``FrameBuffer``
 
@@ -154,17 +163,17 @@ ContentView()
 statusBar.showSystemItems = false
 ```
 
-When there are no active items left, the status bar height becomes zero and it is not rendered — except while a tooltip is showing in it, which is the default presentation of `.help(_:)`: the bar then takes the rows the tooltip needs and draws only the tooltip.
+When there are no active items left, `StatusBar()` takes no row, and a bottom bar holding nothing else is not drawn — except while a tooltip is showing, which is the default presentation of `.help(_:)`: the bottom bar then takes the rows the tooltip needs, above any items, and is drawn for the tooltip alone when there is nothing else in it.
 
-## Status Bar Styles
+## Bar Styles
 
-Two styles are available:
+The bottom bar is framed in the scene's chrome style, which the top bar shares:
 
-- **``ChromeStyle/bordered``**: Items inside a bordered container (the default; the app header boxes its own content the same way)
-- **``ChromeStyle/rule``**: Items in a single line under a full-width rule, which the app header mirrors below its content
+- **``ChromeStyle/bordered``**: Items inside a bordered container (the default)
+- **``ChromeStyle/rule``**: Items in a single line under a full-width rule, which the top bar mirrors below its content
 - **``ChromeStyle/compact``**: Items alone, no rule and no border
 
-Set the style during app configuration or at runtime via the status bar state.
+Set it on the scene with ``Scene/chromeStyle(_:)``.
 
 ## Event Dispatch Priority
 

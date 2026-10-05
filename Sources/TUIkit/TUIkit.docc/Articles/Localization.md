@@ -131,8 +131,8 @@ FieldRow(person.name)    // shown as given
 
 Resolving to a `String` — rather than storing the key and handing it to a
 `Text` — is what lets the row pad, truncate or align it, which a terminal
-control usually has to do. The Example app's `DemoSection`, `ValueDisplayRow`
-and `DemoAppHeader` are written exactly this way.
+control usually has to do. The Example app's `DemoSection` and `ValueDisplayRow`
+are written exactly this way.
 
 Interpolation builds one key for every value, with `%@` where each value went:
 

@@ -1,24 +1,39 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  StatusBar.swift
 //
-//  A status bar that displays keyboard shortcuts and context-sensitive actions.
-//  Always rendered at the bottom of the terminal, never dimmed by overlays.
+//  A line of key hints: the keyboard shortcuts in force and what they do.
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 // MARK: - StatusBar View
 
-/// A status bar that displays at the bottom of the terminal.
+/// A line of key hints: the keyboard shortcuts in force, and what each does.
 ///
-/// The status bar shows keyboard shortcuts and their descriptions.
-/// The window's chrome host draws it below the content, outside the area
-/// overlays are composited in, so it is never affected by overlays or
-/// dimming.
+/// `StatusBar()` is the app's own line — the items the page declares with
+/// `.statusBarItems { … }`, those of the focus section in force, and the
+/// system items (quit, the Escape and Return verbs, undo and redo) — read live
+/// as the frame is drawn. An app opts into it by placing it in the window's
+/// bottom bar:
+///
+/// ```swift
+/// ContentView()
+///     .toolbar {
+///         ToolbarItem(placement: .bottomBar) { StatusBar() }
+///     }
+/// ```
+///
+/// The keys work whether or not the line is shown: an item's action fires on
+/// its key with no bar at all, and `q` quits. The bar is drawn outside the
+/// area overlays are composited in, so it is never dimmed by a modal, and a
+/// click on an item does what its key does.
+///
+/// The other initializers draw a line of the items they are given, in a style
+/// of their own — a status bar as a view anywhere.
 ///
 /// # Layout
 ///
-/// The status bar consists of two containers:
+/// The line has two containers:
 /// - **User Container** (left): User-defined items, sorted by order
 /// - **System Container** (right): System items (quit, help, theme), fixed order
 ///
@@ -26,19 +41,6 @@
 /// ┌────────────────────────────────────────┬───────────────────────────────┐
 /// │ s save   x action   ↑↓ nav             │ q quit   ? help   t theme    │
 /// └────────────────────────────────────────┴───────────────────────────────┘
-/// ```
-///
-/// # Usage
-///
-/// To set status bar items, use the environment:
-///
-/// ```swift
-/// // In renderToBuffer(context:):
-/// let statusBar = context.environment.statusBar
-/// statusBar.setItems([
-///     StatusBarItem(shortcut: "s", label: "save"),
-///     StatusBarItem(shortcut: "↑↓", label: "nav"),
-/// ])
 /// ```
 public struct StatusBar: View {
     /// User items (left container).
@@ -61,10 +63,30 @@ public struct StatusBar: View {
 
     /// This frame's tooltip, already wrapped to the bar's content width.
     ///
-    /// Passed in rather than read from the environment so `height` — which the
-    /// run loop reads before it renders anything — and the render agree by
-    /// construction. See `StatusBarState.tooltipLines`.
+    /// Passed in rather than read from the environment so `height` and the
+    /// render agree by construction. See `StatusBarState.tooltipLines`.
     public var tooltipLines: [String] = []
+
+    /// Whether this is the app's own line, read from the app's status bar state
+    /// as the frame is drawn (``init()``).
+    private var readsAppState = false
+
+    /// Creates the app's line of key hints, for the window's bottom bar.
+    ///
+    /// It shows what the app's status bar state holds when the frame is drawn:
+    /// the page's items, the focus section's, and the system items. It draws
+    /// nothing round itself — the bar it is placed in frames it — and takes the
+    /// alignment and colours the state was given. Outside a running app there
+    /// is no state, and it draws nothing.
+    public init() {
+        self.userItems = []
+        self.systemItems = []
+        self.style = .compact
+        self.alignment = .justified
+        self.highlightColor = nil
+        self.labelColor = nil
+        self.readsAppState = true
+    }
 
     /// Creates a status bar with separate user and system items.
     ///
@@ -164,15 +186,53 @@ public struct StatusBar: View {
     }
 
     public var body: some View {
-        _StatusBarCore(
-            userItems: userItems,
-            systemItems: systemItems,
-            style: style,
-            alignment: alignment,
-            highlightColor: highlightColor,
-            labelColor: labelColor,
-            tooltipLines: tooltipLines
-        )
+        if readsAppState {
+            _AppStatusBarCore()
+        } else {
+            _StatusBarCore(
+                userItems: userItems,
+                systemItems: systemItems,
+                style: style,
+                alignment: alignment,
+                highlightColor: highlightColor,
+                labelColor: labelColor,
+                tooltipLines: tooltipLines
+            )
+        }
+    }
+}
+
+// MARK: - The App's Line
+
+/// The app's line of key hints, read from the app's status bar state as the
+/// frame is drawn: what ``StatusBar/init()`` draws.
+private struct _AppStatusBarCore: View, Renderable {
+    var body: Never {
+        fatalError("_AppStatusBarCore renders via Renderable")
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        guard let state = context.environment.statusBar else { return FrameBuffer() }
+        // Its items change with the focus and with what the page declares, all
+        // of it read here rather than from a value a memo could compare.
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        // The line about a copy stands in for the items while it shows, in
+        // their row, so the bar keeps its height and the page its place; their
+        // keys still work (`StatusBarState.showsNoteInPlaceOfItems`). Whether
+        // there are items for it to stand in for is what the next frame asks.
+        let note = state.showsNoteInPlaceOfItems && state.hasItems
+        if state.hasItems, !context.isMeasuring { state.lineShowsItems = true }
+        return TUIkit.renderToBuffer(
+            _StatusBarCore(
+                userItems: note ? [] : state.currentUserItems,
+                systemItems: note ? [] : state.currentSystemItems,
+                style: .compact,
+                alignment: state.alignment,
+                highlightColor: state.highlightColor,
+                labelColor: state.labelColor,
+                tooltipLines: note ? state.tooltipLines : []
+            ),
+            context: context)
     }
 }
 

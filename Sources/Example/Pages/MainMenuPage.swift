@@ -177,11 +177,7 @@ struct MainMenuPage: View {
 
             Spacer()
         }
-        .appHeader {
-            DemoAppHeader(
-                "app.title",
-                subtitle: "app.subtitle"
-            )
-        }
+        .navigationTitle("app.title")
+        .navigationSubtitle("app.subtitle")
     }
 }

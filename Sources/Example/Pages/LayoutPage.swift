@@ -626,9 +626,7 @@ struct LayoutPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.layout")
-        }
+        .navigationTitle("menu.item.layout")
     }
 
     /// Snapshots the mid-pass measure sink on a safe async cadence — the

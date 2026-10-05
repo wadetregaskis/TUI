@@ -31,7 +31,7 @@ private struct SwitchedHeaderApp: App {
             VStack(spacing: 0) {
                 DrawnWalkCounter()
                 if HeaderSwitch.shared.on {
-                    Text("page").appHeader { Text("HEADER") }
+                    Text("page").toolbar { ToolbarItem(placement: .navigation) { Text("HEADER") } }
                 } else {
                     Text("page")
                 }
@@ -62,7 +62,7 @@ private struct OscillatingHeaderApp: App {
     var body: some Scene {
         WindowGroup {
             ViewThatFits(in: .vertical) {
-                Text("tall").frame(height: 19).appHeader { Text("HEADER") }
+                Text("tall").frame(height: 22).toolbar { ToolbarItem(placement: .navigation) { Text("HEADER") } }
                 Text("short")
             }
         }
@@ -94,7 +94,7 @@ struct WindowChromeAdoptionTests {
         HeaderSwitch.shared.on = true
         _ = loop.render()
         #expect(!rows(loop).contains { $0.contains("HEADER") }, "the frame that declares it is laid out without it")
-        #expect(loop.windowChrome.rows(.header) == 1, "and adopts it for the next")
+        #expect(loop.windowChrome.rows(.top) == 1, "and adopts it for the next")
         _ = loop.render()
         #expect(rows(loop)[1].contains("HEADER"), "the next frame draws it: \(rows(loop).prefix(4))")
 
@@ -106,7 +106,7 @@ struct WindowChromeAdoptionTests {
             "the frame that drops it keeps its rows, blank: \(rows(loop).prefix(4))")
         #expect(pageRow(loop) == withHeader, "and lays the page out as before")
         _ = loop.render()
-        #expect(loop.windowChrome.rows(.header) == 0)
+        #expect(loop.windowChrome.rows(.top) == 0)
         #expect(pageRow(loop) != withHeader, "the frame after gives the rows back to the page")
     }
 
@@ -150,8 +150,8 @@ struct WindowChromeAdoptionTests {
             _ = loop.render()
             screens.append(rows(loop))
         }
-        #expect(loop.windowChrome.oscillationReports == [.header], "the flip is reported once")
-        #expect(loop.windowChrome.rows(.header) == 1, "and held at the larger")
+        #expect(loop.windowChrome.oscillationReports == [.top], "the flip is reported once")
+        #expect(loop.windowChrome.rows(.top) == 1, "and held at the larger")
         #expect(screens[6] == screens[7], "the screen is still")
     }
 }

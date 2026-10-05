@@ -263,15 +263,28 @@ struct InputHandlerTests {
         #expect(fixture.palette.current.id == "p2")
     }
 
-    @Test("Layer 4 'a' cycles the appearance")
+    @Test("Layer 4 'a' cycles the appearance, once the app opts into it")
     func appearanceKeyCyclesAppearance() {
         let fixture = makeFixture()
+        fixture.statusBar.showAppearanceItem = true
         let before = fixture.appearance.current.id
 
         fixture.handler.handle(KeyEvent(key: .character("a")))
 
         #expect(fixture.appearance.current.id != before)
         #expect(fixture.appearance.current.id == "a2")
+    }
+
+    /// A bare `a` restyling every app was a chrome default nobody asked for, and
+    /// with the bars opt-in there may be nothing on screen to say what it does
+    /// (A28, owner answer 6). It is opt-in now, as `t` already was.
+    @Test("Layer 4 'a' is an ordinary key unless the app opts into appearance cycling")
+    func appearanceKeyIsOptIn() {
+        let fixture = makeFixture()
+        let before = fixture.appearance.current.id
+
+        #expect(!fixture.handler.handle(KeyEvent(key: .character("a"))), "the key is left unconsumed")
+        #expect(fixture.appearance.current.id == before)
     }
 
     /// Layer 4's bindings mean the BARE key: `t` cycles the theme, `a` the
@@ -467,6 +480,7 @@ struct InputHandlerTests {
         // drop-down, it must NOT ground the global chrome shortcuts.
         fixture.statusBar.escapeLabelOverride = "clear selection"
         fixture.statusBar.escapeClaimGrabsInput = false
+        fixture.statusBar.showAppearanceItem = true
         let before = fixture.appearance.current.id
 
         #expect(fixture.handler.handle(KeyEvent(key: .character("a"))))

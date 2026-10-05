@@ -23,9 +23,7 @@ struct TextStylesPage: View {
         ScrollView {
             content
         }
-        .appHeader {
-            DemoAppHeader("menu.item.textStyles")
-        }
+        .navigationTitle("menu.item.textStyles")
     }
 
     /// A left-aligned label followed by a value view (a `Text(_:format:)`).

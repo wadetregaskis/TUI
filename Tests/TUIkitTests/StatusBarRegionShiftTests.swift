@@ -23,14 +23,19 @@ private struct ShiftProbeApp: App {
     var body: some Scene {
         WindowGroup {
             Text("content")
-                .appHeader {
-                    VStack(spacing: 0) {
-                        ForEach(0..<HeaderLines.shared.count, id: \.self) { i in
-                            Text("header \(i)")
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        VStack(spacing: 0) {
+                            ForEach(0..<HeaderLines.shared.count, id: \.self) { i in
+                                Text("header \(i)")
+                            }
                         }
                     }
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
                 }
         }
+        // A compact bottom bar: one row, its items at local y = 0.
+        .chromeStyle(appHeader: .bordered, statusBar: .compact)
     }
 }
 
@@ -44,7 +49,6 @@ struct StatusBarRegionShiftTests {
     /// item.
     private func makeHarness(itemFired: @escaping () -> Void) -> RenderLoopHarness {
         let harness = RenderLoopHarness()
-        harness.statusBar.style = .compact
         harness.statusBar.showSystemItems = false
         harness.statusBar.setItems([
             StatusBarItem(shortcut: "x", label: "run", action: itemFired)
@@ -53,10 +57,10 @@ struct StatusBarRegionShiftTests {
     }
 
     /// The screen row (0-based, as the pointer reports it) the bar is drawn on:
-    /// the last `statusBar.height` rows of the screen, whatever the header's
-    /// height, since a click arrives in the frame's coordinates untranslated.
+    /// the last row of the screen, whatever the header's height, since a click
+    /// arrives in the frame's coordinates untranslated.
     private func barRow(_ harness: RenderLoopHarness) -> Int {
-        harness.terminal.size.height - harness.statusBar.height
+        harness.terminal.size.height - 1
     }
 
     /// Presses and releases at every column of one content row — a click is a
@@ -90,10 +94,10 @@ struct StatusBarRegionShiftTests {
         // Grow the header by one line. The frame lays out against the previous
         // height (3) and re-renders at the real one (4).
         HeaderLines.shared.count = 2
-        let headerBefore = harness.appHeader.height
+        let headerBefore = loop.windowChrome.rows(.top)
         _ = loop.render()
         #expect(
-            harness.appHeader.height == headerBefore + 1,
+            loop.windowChrome.rows(.top) == headerBefore + 1,
             "pre-condition: the header must change height, or nothing is under test")
         #expect(barRow(harness) == 23)
 
@@ -114,10 +118,10 @@ struct StatusBarRegionShiftTests {
         #expect(barRow(harness) == 23)
 
         HeaderLines.shared.count = 1
-        let headerBefore = harness.appHeader.height
+        let headerBefore = loop.windowChrome.rows(.top)
         _ = loop.render()
         #expect(
-            harness.appHeader.height == headerBefore - 2,
+            loop.windowChrome.rows(.top) == headerBefore - 2,
             "pre-condition: the header must shrink by two rows")
 
         let row = barRow(harness)

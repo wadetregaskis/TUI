@@ -78,12 +78,15 @@ struct QuirksContentView: View {
             }
         }
         .padding(.horizontal, 1)
-        .appHeader {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Terminal Client Quirks").bold()
-                Text("what TUIkit thinks your terminal is, why, and what it does about it")
-                    .foregroundStyle(.palette.foregroundSecondary)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Terminal Client Quirks").bold()
+                    Text("what TUIkit thinks your terminal is, why, and what it does about it")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                }
             }
+            ToolbarItem(placement: .bottomBar) { StatusBar() }
         }
         .statusBarItems {
             StatusBarItem(shortcut: "q", label: "quit")

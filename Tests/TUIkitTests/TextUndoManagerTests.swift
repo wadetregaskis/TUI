@@ -294,7 +294,8 @@ struct TextUndoManagerTests {
         manager.endUndoGrouping()
         let loop = harness.loop(PageApp())
         loop.render()
-        let drawnBar = { loop.diffWriter.shownLines.suffix(harness.statusBar.height).joined() }
+        // A bordered bottom bar of one row of hints: the frame's last three rows.
+        let drawnBar = { loop.diffWriter.shownLines.suffix(3).joined() }
         #expect(drawnBar().contains("undo"))
         // The control holding it goes away.
         harness.tuiContext.departedUndoSteps.add([mark], from: manager)
@@ -327,6 +328,8 @@ struct TextUndoManagerTests {
 /// One page and nothing else, for a frame of the whole run loop.
 private struct PageApp: App {
     var body: some Scene {
-        WindowGroup { Text("page") }
+        WindowGroup {
+            Text("page").toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+        }
     }
 }

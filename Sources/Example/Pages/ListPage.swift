@@ -94,9 +94,7 @@ struct ListPage: View {
         ScrollView {
             content
         }
-        .appHeader {
-            DemoAppHeader("menu.item.lists")
-        }
+        .navigationTitle("menu.item.lists")
     }
 
     @ViewBuilder private var content: some View {

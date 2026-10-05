@@ -169,7 +169,7 @@ struct ToolbarTests {
         // Bordered by default: row 1 is the top bar's content, the last but one
         // the bottom bar's.
         let top = screen[1]
-        let bottom = screen[screen.count - 5]
+        let bottom = screen[screen.count - 2]
         let nav = try #require(top.range(of: "NAV"), "\(screen)")
         let title = try #require(top.range(of: "TITLE"), "\(screen)")
         let secondary = try #require(top.range(of: "SECONDARY"), "\(screen)")
@@ -180,6 +180,7 @@ struct ToolbarTests {
         #expect(top.hasSuffix("PRIMARY │"), "primary at the trailing end: \(top)")
         #expect(bottom.contains("BOTTOM") && bottom.contains("STATUS"), "the bottom bar: \(screen)")
         #expect(!top.contains("BOTTOM") && !top.contains("STATUS"))
+        #expect(!bottom.contains("TITLE"), "the title is the top bar's: \(bottom)")
     }
 
     @Test("A principal item takes the title's place, in the middle of the bar")

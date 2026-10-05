@@ -38,6 +38,11 @@ struct StressApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(config: config)
+                // The line of key hints, opted into: every bar is the app's to
+                // place.
+                .toolbar {
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
+                }
         }
     }
 }

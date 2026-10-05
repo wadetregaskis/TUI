@@ -16,8 +16,8 @@ public struct ContainerBackgroundPlacement: Hashable, Sendable {
     private let container: Int
 
     /// A background placement inside a `Window` or ``WindowGroup``: the whole
-    /// content area the scene lays its content out in. The app header and the
-    /// status bar keep their own surfaces.
+    /// content area the scene lays its content out in. The window's bars
+    /// keep their own surfaces.
     public static let window = Self(container: 0)
 }
 

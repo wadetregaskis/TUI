@@ -211,9 +211,7 @@ struct TabViewPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.tabViews")
-        }
+        .navigationTitle("menu.item.tabViews")
     }
 
     /// Tab views inside tab views.

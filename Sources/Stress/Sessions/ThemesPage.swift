@@ -123,7 +123,9 @@ struct ThemesPage: View {
             Spacer(minLength: 0)
             Text(verbatim: "[\(focus?.name ?? "none")] \(board.saves) saved").lineLimit(1)
         }
-        .appHeader { Text(verbatim: "Themes · \(palette.name)") }
+        .toolbar {
+            ToolbarItem(placement: .navigation) { Text(verbatim: "Themes · \(palette.name)") }
+        }
         .statusBarSystemItems(theme: true)
     }
 

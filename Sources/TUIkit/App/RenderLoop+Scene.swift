@@ -46,12 +46,11 @@ extension RenderLoop {
 
     /// Adopts a scene-level `.chromeStyle(...)` for this frame.
     ///
-    /// Must run BEFORE anything asks either bar's height: the style decides how
-    /// many rows they take, and the page's height is whatever is left. That is
-    /// why the status bar's height is read straight after this call rather than
-    /// alongside the terminal size, where it used to sit.
+    /// Must run BEFORE anything asks either bar's rows: the style decides how
+    /// many they take, and the page's height is whatever is left — and before
+    /// the tooltip is wrapped, to the bottom bar's content width.
     private func applyChromeStyle(from configuration: SceneConfiguration) {
-        if let style = configuration.appHeaderStyle { appHeader.style = style }
-        if let style = configuration.statusBarStyle { statusBar.style = style }
+        windowChrome.topStyle = configuration.topBarStyle ?? .bordered
+        windowChrome.bottomStyle = configuration.bottomBarStyle ?? .bordered
     }
 }

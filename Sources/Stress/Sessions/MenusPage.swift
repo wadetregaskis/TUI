@@ -127,7 +127,11 @@ struct MenusPage: View {
             bottomBar
             Text(verbatim: statusLine).lineLimit(1)
         }
-        .appHeader { Text(verbatim: "Documents · zoom \(MenuDesk.zooms[desk.zoom])%") }
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Text(verbatim: "Documents · zoom \(MenuDesk.zooms[desk.zoom])%")
+            }
+        }
     }
 
     /// Where the focus is, first — so a narrow terminal cuts the rest — then

@@ -1,44 +1,47 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  AppHeader.swift
+//  ChromeBarFrame.swift
+//
+//  The frame a window bar draws round its content: a box, a rule on the
+//  page's side, or nothing, in the scene's chrome style.
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-// MARK: - App Header View
+// MARK: - Bar Frame
 
-/// A header bar rendered at the top of the terminal, above the content.
+/// One of the window's bars, framed: its already-rendered content inside the
+/// chrome style's drawing.
 ///
-/// `AppHeader` is an internal view the window's chrome host
-/// (`_WindowChromeHost`) draws the app header with. It renders the content
-/// buffer from `AppHeaderState` and frames it in the chrome style.
+/// An internal view the window's chrome host (`_WindowChromeHost`) frames
+/// each toolbar with. It began as the app header's frame, which is why its
+/// payload rules (below) are written in the header's terms.
 ///
 /// ## Layout
 ///
 /// ```
 /// ┌──────────────────────────────────────────────────────────────────┐
 /// │ My App Title                                       TUIkit v0.1.0 │
-/// │──────────────────────────────────────────────────────────────────│
+/// └──────────────────────────────────────────────────────────────────┘
 /// ```
-struct AppHeader: View {
-    /// The pre-rendered content buffer from the modifier.
+struct _ChromeBarFrame: View {
+    /// The bar's content, already rendered.
     let contentBuffer: FrameBuffer
 
-    /// How the header frames itself against the page below it.
+    /// How the bar frames itself against the page.
     let style: ChromeStyle
 
     /// Whether a `.rule` style draws its rule above the content rather than
-    /// below it: the page's side of a bar drawn BELOW the page, which is how
-    /// the window's bottom toolbar is framed with this view.
+    /// below it: the page's side of a bar drawn BELOW the page.
     var ruleAbove = false
 
     var body: Never {
-        fatalError("AppHeader renders via Renderable")
+        fatalError("_ChromeBarFrame renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension AppHeader: Renderable {
+extension _ChromeBarFrame: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = context.availableWidth
         let palette = context.environment.palette
@@ -127,14 +130,14 @@ extension AppHeader: Renderable {
     }
 }
 
-// MARK: - Lifting the header's layers onto the page
+// MARK: - Lifting a bar's layers onto the page
 
 extension FrameBuffer {
     /// This buffer with its overlay layers moved onto `buffer` and shifted
     /// `rows` down, and nothing else changed.
     ///
     /// A `Menu`, `.popover`, `.sheet` or `.alert` declared inside
-    /// `.appHeader { … }` emits a layer like any other, and `AppHeader`
+    /// a toolbar item emits a layer like any other, and `_ChromeBarFrame`
     /// carries it through the rebuild above. That was a prerequisite and not
     /// the fix: the chrome host composites layers inside the content area, and
     /// a layer left on the header buffer would never be composited at all. A

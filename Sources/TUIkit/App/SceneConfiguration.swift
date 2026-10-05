@@ -45,11 +45,11 @@ struct SceneConfiguration {
     /// which the run loop reads as ``MouseSupport/standard``.
     var mouseSupport: MouseSupport?
 
-    /// The app header's style, if a `.chromeStyle` named it.
-    var appHeaderStyle: ChromeStyle?
+    /// The top bar's style, if a `.chromeStyle` named it.
+    var topBarStyle: ChromeStyle?
 
-    /// The status bar's style, if a `.chromeStyle` named it.
-    var statusBarStyle: ChromeStyle?
+    /// The bottom bar's style, if a `.chromeStyle` named it.
+    var bottomBarStyle: ChromeStyle?
 
     /// Runs the scene's environment writes over `environment`, in order.
     func applyEnvironmentWrites(to environment: inout EnvironmentValues) {

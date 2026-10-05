@@ -35,7 +35,7 @@ struct EnvironmentServiceIsolationTests {
     func absentWithoutAnApplication() {
         let environment = EnvironmentValues()
         #expect(environment.statusBar == nil)
-        #expect(environment.appHeader == nil)
+        #expect(environment.windowChrome == nil)
         #expect(environment.notificationService == nil)
         #expect(environment.paletteManager == nil)
         #expect(environment.appearanceManager == nil)

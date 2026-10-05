@@ -101,9 +101,8 @@ struct LayeringPage: View {
                 demoPane(travel: travel)
             }
         }
-        .appHeader {
-            DemoAppHeader("menu.item.layering", subtitle: "page.layering.subtitle")
-        }
+        .navigationTitle("menu.item.layering")
+        .navigationSubtitle("page.layering.subtitle")
     }
 
     /// Every knob on the page, in a pane of its own.

@@ -52,14 +52,10 @@ import TUIkitCore
 final class WindowChromeState: @unchecked Sendable {
     /// Which of the window's bars.
     enum Edge: CaseIterable {
-        /// The app header, at the very top.
-        case header
-        /// The top toolbar, under the header.
+        /// The top toolbar, above the page.
         case top
-        /// The bottom toolbar, above the status bar.
+        /// The bottom toolbar, below the page.
         case bottom
-        /// The status bar, at the very bottom.
-        case statusBar
     }
 
     /// A toolbar item a walk declared, as the bar draws it.
@@ -115,17 +111,23 @@ final class WindowChromeState: @unchecked Sendable {
     /// one second, sixty frames.
     static let pinNanos: Int64 = 1_000_000_000
 
-    /// The app header's reservation.
-    private(set) var header = Bar()
-
     /// The top toolbar's reservation.
     private(set) var top = Bar()
 
     /// The bottom toolbar's reservation.
     private(set) var bottom = Bar()
 
-    /// The status bar's reservation.
-    private(set) var statusBar = Bar()
+    /// How the top bar frames itself: the scene's chrome style, adopted each
+    /// frame before anything is laid out. A box by default.
+    var topStyle: ChromeStyle = .bordered
+
+    /// How the bottom bar frames itself. A box by default.
+    var bottomStyle: ChromeStyle = .bordered
+
+    /// The style the bar at `edge` frames itself in.
+    func style(_ edge: Edge) -> ChromeStyle {
+        edge == .top ? topStyle : bottomStyle
+    }
 
     /// The toolbar items this walk has declared, in the order it declared them.
     private(set) var toolbarEntries: [ToolbarEntry] = []
@@ -244,18 +246,14 @@ final class WindowChromeState: @unchecked Sendable {
     private subscript(edge: Edge) -> Bar {
         get {
             switch edge {
-            case .header: header
             case .top: top
             case .bottom: bottom
-            case .statusBar: statusBar
             }
         }
         set {
             switch edge {
-            case .header: header = newValue
             case .top: top = newValue
             case .bottom: bottom = newValue
-            case .statusBar: statusBar = newValue
             }
         }
     }

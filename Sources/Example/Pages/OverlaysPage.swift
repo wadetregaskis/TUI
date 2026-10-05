@@ -358,9 +358,7 @@ struct OverlaysPage: View {
             }
             .presentationDetents([.medium, .large, .height(8)], selection: $detent)
         }
-        .appHeader {
-            DemoAppHeader("menu.item.overlays")
-        }
+        .navigationTitle("menu.item.overlays")
     }
 
     // MARK: - Description Panel

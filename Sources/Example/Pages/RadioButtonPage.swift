@@ -178,8 +178,6 @@ struct RadioButtonPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.radioButtons")
-        }
+        .navigationTitle("menu.item.radioButtons")
     }
 }

@@ -189,8 +189,6 @@ struct PickerPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.picker")
-        }
+        .navigationTitle("menu.item.picker")
     }
 }

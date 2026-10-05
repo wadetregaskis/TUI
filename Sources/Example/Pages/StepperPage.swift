@@ -146,8 +146,6 @@ struct StepperPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.steppers")
-        }
+        .navigationTitle("menu.item.steppers")
     }
 }

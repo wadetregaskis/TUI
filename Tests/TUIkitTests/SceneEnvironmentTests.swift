@@ -44,7 +44,7 @@ private struct ObjectApp: App {
     let greeting = Greeting("hello")
     var body: some Scene {
         WindowGroup {
-            GreetingLabel().appHeader { GreetingLabel() }
+            GreetingLabel().toolbar { ToolbarItem(placement: .navigation) { GreetingLabel() } }
         }
         .palette(SystemPalette.green)
         .environment(greeting)
@@ -77,7 +77,7 @@ struct SceneEnvironmentTests {
         return headless.screen.map(\.stripped)
     }
 
-    @Test("An observable object reaches the content and the app header, through .palette")
+    @Test("An observable object reaches the content and a toolbar item, through .palette")
     func objectReachesContentAndHeader() {
         let lines = screen(ObjectApp())
         #expect(lines.filter { $0.contains("say hello") }.count == 2, "\(lines)")

@@ -114,13 +114,13 @@ struct RenderLoopAppearanceIntegrationTests {
         #expect(sceneMouseSupport(mouseThenAppearance) == .full)
     }
 
-    // MARK: - App-header divider honours the appearance
+    // MARK: - A bar's divider honours the appearance
 
-    /// Renders the internal `AppHeader` with the given appearance and returns the
+    /// Renders a window bar's frame (`_ChromeBarFrame`) with the given appearance and returns the
     /// divider line (the last line of the header buffer).
     private func headerDivider(appearance: Appearance) -> String {
         let content = FrameBuffer(lines: ["My App"])
-        let header = AppHeader(contentBuffer: content, style: .rule)
+        let header = _ChromeBarFrame(contentBuffer: content, style: .rule)
         var environment = EnvironmentValues()
         environment.appearance = appearance
         let context = RenderContext(
@@ -132,7 +132,7 @@ struct RenderLoopAppearanceIntegrationTests {
         return buffer.lines.last ?? ""
     }
 
-    @Test("app-header divider uses the appearance's horizontal glyph")
+    @Test("A bar's divider uses the appearance's horizontal glyph")
     func appHeaderDividerUsesAppearanceGlyph() {
         let starDivider = headerDivider(appearance: Self.starAppearance)
         // Strip SGR colouring; the divider is `*` repeated to the width.
@@ -140,7 +140,7 @@ struct RenderLoopAppearanceIntegrationTests {
         #expect(!starDivider.contains("─"))
     }
 
-    @Test("app-header divider uses ─ for a line appearance")
+    @Test("A bar's divider uses ─ for a line appearance")
     func appHeaderDividerLineAppearance() {
         let lineDivider = headerDivider(appearance: Appearance(id: .line, borderStyle: .line))
         #expect(lineDivider.contains("─"))

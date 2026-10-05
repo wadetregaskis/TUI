@@ -19,10 +19,10 @@ import Testing
 //     and emitted regions correctly.
 //   - `MouseEventDispatcher.dispatch` was unit-tested in isolation
 //     and routed events correctly.
-//   - `AppHeader.renderToBuffer` and `RenderLoop.renderAppHeader` /
-//     `RenderLoop.renderStatusBar` sat between them, and each silently
-//     discarded the hit-test regions before they could reach the
-//     dispatcher's `setRegions` call.
+//   - The bar renderers sat between them (then the run loop's own,
+//     now the scene's chrome host and `_ChromeBarFrame`), and each
+//     silently discarded the hit-test regions before they could reach
+//     the dispatcher's `setRegions` call.
 //
 // The shared pattern: a separately-rendered FrameBuffer's
 // `hitTestRegions` get dropped on the floor before they reach
@@ -51,16 +51,15 @@ struct RenderLoopRegionMergeTests {
         )
     }
 
-    // MARK: - AppHeader
+    // MARK: - A bar's frame
 
-    /// Regression for the `AppHeader.renderToBuffer` half of
-    /// commit 714d3577. Before the fix, the wrap-and-divider
-    /// step constructed `FrameBuffer(lines:)` from the
-    /// contentBuffer's lines, which leaves `hitTestRegions`
-    /// empty by default — silently dropping anything the
-    /// user's `.appHeader { ... }` content emitted.
-    @Test("AppHeader preserves its content buffer's hit-test regions")
-    func appHeaderPreservesContentBufferRegions() {
+    /// Regression for the header-frame half of commit 714d3577.
+    /// Before the fix, the wrap-and-divider step constructed
+    /// `FrameBuffer(lines:)` from the contentBuffer's lines, which
+    /// leaves `hitTestRegions` empty by default — silently dropping
+    /// anything the bar's content emitted.
+    @Test("A bar's frame preserves its content buffer's hit-test regions")
+    func barFramePreservesContentBufferRegions() {
         // Build a content buffer with a synthetic region so we
         // don't depend on any particular control's rendering
         // details — the test is about whether the wrap-and-
@@ -77,11 +76,11 @@ struct RenderLoopRegionMergeTests {
             )
         )
 
-        let header = AppHeader(contentBuffer: contentBuffer, style: .rule)
+        let header = _ChromeBarFrame(contentBuffer: contentBuffer, style: .rule)
         let rendered = renderToBuffer(header, context: makeContext(width: 40))
 
         #expect(rendered.hitTestRegions.contains(where: { $0.handlerID == marker }),
-                "AppHeader.renderToBuffer must carry contentBuffer's regions through")
+                "_ChromeBarFrame.renderToBuffer must carry contentBuffer's regions through")
     }
 
     // MARK: - StatusBar
@@ -125,141 +124,37 @@ struct RenderLoopRegionMergeTests {
         #expect(fired, "Item's action must be invocable")
     }
 
-    // MARK: - End-to-end merge
+    // MARK: - End-to-end
 
-    /// The actual regression test for the bug class — replicates
-    /// the merge logic ``RenderLoop/renderFrame()`` runs against
-    /// the content, app-header, and status-bar buffers. Each
-    /// buffer registers a unique handler; the test then
-    /// dispatches a synthetic click at each region's content-area
-    /// coordinates and asserts the right handler fired. Before
-    /// the e5382a77 / 714d3577 fixes, the header and status-bar
-    /// handlers would never have been reached.
-    @Test("Merged regions from content + app-header + status-bar route clicks to the right handler")
-    func mergedRegionsRouteClicksToRightHandler() {
-        let context = makeContext(width: 40, height: 24)
-        let dispatcher = context.environment.mouseEventDispatcher!
-        dispatcher.setActiveSupport(.standard)
-
-        let contentHeight = 20
-        let appHeaderHeight = 1
-        // statusBarHeight = 24 - 20 - 1 = 3 (not directly used —
-        // the status bar's local buffer height is what its
-        // regions are emitted against; the merge math only
-        // depends on contentHeight and appHeaderHeight).
-
-        var contentFired = false
-        var headerFired = false
-        var statusFired = false
-
-        // Each buffer registers a handler that flips a flag if
-        // it gets called. The handlers are registered on the
-        // shared dispatcher so we can observe which one fired.
-        let contentHandlerID = dispatcher.register { _ in
-            contentFired = true
-            return true
+    /// The regression test for the bug class, end to end: a page, a top bar
+    /// and a bottom bar of key hints, each holding something clickable, drawn
+    /// by the run loop into one frame; a click on each row of the SCREEN —
+    /// where a pointer reports it, untranslated — must reach that one's
+    /// handler and no other. Before the e5382a77 / 714d3577 fixes the header's
+    /// and the status bar's handlers were never reached; before the chrome
+    /// moved into the scene, their regions were shifted by hand to meet
+    /// translated pointer rows.
+    @Test("A click on the page, the top bar or the bottom bar reaches that one's control")
+    func clicksReachEachBar() throws {
+        RegionMergeProbe.shared.fired = []
+        let harness = RenderLoopHarness()
+        harness.terminal.size = (40, 12)
+        let loop = harness.loop(RegionMergeProbeApp())
+        _ = loop.render()
+        _ = loop.render()
+        let screen = loop.diffWriter.shownLines.map(\.stripped)
+        let dispatcher = harness.tuiContext.mouseEventDispatcher
+        func click(_ label: String) throws {
+            let row = try #require(screen.firstIndex { $0.contains(label) }, "\(label) on \(screen)")
+            let column = screen[row].distance(
+                from: screen[row].startIndex, to: try #require(screen[row].range(of: label)).lowerBound)
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: column, y: row))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: column, y: row))
         }
-        let headerHandlerID = dispatcher.register { _ in
-            headerFired = true
-            return true
-        }
-        let statusHandlerID = dispatcher.register { _ in
-            statusFired = true
-            return true
-        }
-
-        // Content buffer with a region at content-area y=5.
-        // Regions in the main content buffer are already in
-        // content-area coordinates (the App input loop has
-        // subtracted appHeader.height by the time the
-        // dispatcher sees the event).
-        var contentBuffer = FrameBuffer(lines: Array(repeating: String(repeating: " ", count: 40), count: contentHeight))
-        contentBuffer.hitTestRegions.append(
-            HitTestRegion(
-                offsetX: 0, offsetY: 5,
-                width: 40, height: 1,
-                handlerID: contentHandlerID
-            )
-        )
-
-        // App-header local buffer with a region at y=0
-        // (single-line header). Regions inside this buffer
-        // need to be shifted by -appHeaderHeight before merge
-        // so that an event at content-area y=-1 (= terminal
-        // y=0, which is the header's row) finds them.
-        var appHeaderBuffer = FrameBuffer(lines: ["header line"])
-        appHeaderBuffer.hitTestRegions.append(
-            HitTestRegion(
-                offsetX: 0, offsetY: 0,
-                width: 11, height: 1,
-                handlerID: headerHandlerID
-            )
-        )
-
-        // Status-bar local buffer with a region at y=0.
-        // Regions inside this buffer need to be shifted by
-        // +contentHeight before merge so that an event at
-        // content-area y=contentHeight (the row just below
-        // the content area) finds them.
-        var statusBarBuffer = FrameBuffer(lines: ["status row"])
-        statusBarBuffer.hitTestRegions.append(
-            HitTestRegion(
-                offsetX: 0, offsetY: 0,
-                width: 10, height: 1,
-                handlerID: statusHandlerID
-            )
-        )
-
-        // Replicate the merge that RenderLoop.renderFrame
-        // performs. If this merge ever changes, *this* line
-        // should change too — and that's the point: the test
-        // pins the expected behaviour at the line where the
-        // bug previously lived.
-        var merged = contentBuffer.hitTestRegions
-        for region in appHeaderBuffer.hitTestRegions {
-            var shifted = region
-            shifted.offsetY -= appHeaderHeight
-            merged.append(shifted)
-        }
-        for region in statusBarBuffer.hitTestRegions {
-            var shifted = region
-            shifted.offsetY += contentHeight
-            merged.append(shifted)
-        }
-
-        dispatcher.setRegions(merged)
-
-        // A click is a press AND a release: a release whose press nothing saw
-        // is deliberately not routed (see UnpairedReleaseTests), so clicking
-        // here means both halves, as a terminal sends them.
-        func click(x: Int, y: Int) {
-            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
-            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: x, y: y))
-        }
-
-        // Click in the content area — content handler should
-        // fire.
-        click(x: 0, y: 5)
-        #expect(contentFired, "Content-area click must fire the content handler")
-
-        contentFired = false
-        // Click in the app-header — header handler should fire.
-        // After translation in the real App input loop, a click
-        // on terminal y=0 (header row) arrives as content-area
-        // y=-1 (1 minus the 1-row header). The shifted region's
-        // offsetY is -appHeaderHeight = -1, so it matches.
-        click(x: 0, y: -appHeaderHeight)
-        #expect(headerFired, "App-header click must fire the header handler")
-        #expect(!contentFired, "App-header click must not leak to the content handler")
-
-        headerFired = false
-        // Click on the status bar — status handler should fire.
-        // The status bar sits at content-area y=contentHeight
-        // (= 20 in this test) after translation.
-        click(x: 0, y: contentHeight)
-        #expect(statusFired, "Status-bar click must fire the status handler")
-        #expect(!headerFired, "Status-bar click must not leak to the header handler")
-        #expect(!contentFired, "Status-bar click must not leak to the content handler")
+        try click("PAGE")
+        try click("TOP")
+        try click("run")
+        #expect(RegionMergeProbe.shared.fired == ["page", "top", "status"])
     }
 
     // MARK: - StatusBarItem identity stability
@@ -374,5 +269,32 @@ struct RenderLoopRegionMergeTests {
 
         #expect(synthesisedKey?.key == .escape,
                 "Click on the 'back' item must synthesise an ESC KeyEvent through the environment closure")
+    }
+}
+
+/// What the region-merge probe's controls did.
+private final class RegionMergeProbe: @unchecked Sendable {
+    static let shared = RegionMergeProbe()
+    var fired: [String] = []
+}
+
+/// A page button, a top-bar button, and a bottom bar of key hints with an
+/// item that names a key of its own.
+private struct RegionMergeProbeApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Button("PAGE") { RegionMergeProbe.shared.fired.append("page") }
+                .statusBarItems {
+                    StatusBarItem(shortcut: "x", label: "run") { RegionMergeProbe.shared.fired.append("status") }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Button("TOP") { RegionMergeProbe.shared.fired.append("top") }
+                    }
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
+                }
+        }
     }
 }

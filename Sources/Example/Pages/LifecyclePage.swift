@@ -120,9 +120,7 @@ struct LifecyclePage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.lifecycle")
-        }
+        .navigationTitle("menu.item.lifecycle")
     }
 
     // MARK: - Helpers

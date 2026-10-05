@@ -290,9 +290,7 @@ struct TextInputPage: View {
         .indicatorAnimationSpeed(currentSpeed, for: .textCursor)
         .statusBarItems(cursorStatusBarItems)
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.textInput")
-        }
+        .navigationTitle("menu.item.textInput")
     }
 
     /// Appends a submit-log entry, keeping only the most recent handful.

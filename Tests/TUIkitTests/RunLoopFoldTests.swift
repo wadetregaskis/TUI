@@ -53,7 +53,7 @@ private struct HeaderSpinningProbeApp: App {
     var body: some Scene {
         WindowGroup {
             Spinner()
-                .appHeader { Spinner() }
+                .toolbar { ToolbarItem(placement: .navigation) { Spinner() } }
         }
     }
 }
@@ -68,7 +68,6 @@ struct RunLoopFoldTests {
     private final class Harness {
         let terminal = MockTerminal()
         let statusBar: StatusBarState
-        let appHeader = AppHeaderState()
         let focusManager = FocusManager()
         let tuiContext = TUIContext()
         let paletteManager: ThemeManager
@@ -86,7 +85,6 @@ struct RunLoopFoldTests {
                 app: app,
                 terminal: terminal,
                 statusBar: statusBar,
-                appHeader: appHeader,
                 focusManager: focusManager,
                 paletteManager: paletteManager,
                 appearanceManager: appearanceManager,
@@ -225,14 +223,13 @@ struct RunLoopFoldTests {
         let loop = harness.loop(HeaderSpinningProbeApp())
         let timer = CursorTimer(renderNotifier: appState)
         _ = loop.render(cursorTimer: timer)
-        let headerRuns = harness.appHeader.contentBuffer?.animatedCells ?? []
         let replayable = loop.replayable?.runs ?? []
-        #expect(!headerRuns.isEmpty, "pre-condition: the header's spinner must leave a run")
-        // The header sits in the frame's first rows: bordered, so its content row
-        // is row 1 of the frame, and its spinner's run is replayable there.
+        // The top bar is the frame's first rows: bordered, so its content row is
+        // row 1 of the frame, and its spinner's run is replayable there.
+        let headerRuns = replayable.filter { $0.offsetY == 1 }
         #expect(
-            replayable.contains { $0.offsetY == 1 },
-            "the header's spinner is among the frame's replayable runs: \(replayable.map(\.offsetY))")
+            !headerRuns.isEmpty,
+            "the bar's spinner is among the frame's replayable runs: \(replayable.map(\.offsetY))")
 
         let headerChange = headerRuns.map { $0.timeUntilChange(afterElapsed: timer.elapsed(for: $0.clock)) }.min()
         #expect(

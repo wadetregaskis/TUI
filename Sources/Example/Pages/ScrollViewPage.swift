@@ -284,12 +284,8 @@ struct ScrollViewPage: View {
         // so this nests cleanly, and Tab-ing to a control below the fold now
         // scrolls the page to reveal it.
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader(
-                "menu.item.scrollView",
-                subtitle: "page.scrollView.subtitle"
-            )
-        }
+        .navigationTitle("menu.item.scrollView")
+        .navigationSubtitle("page.scrollView.subtitle")
     }
 
     /// A long enough body of text to overflow the demo viewports.

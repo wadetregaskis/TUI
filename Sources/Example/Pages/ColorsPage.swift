@@ -194,9 +194,7 @@ struct ColorsPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.colors")
-        }
+        .navigationTitle("menu.item.colors")
     }
 }
 

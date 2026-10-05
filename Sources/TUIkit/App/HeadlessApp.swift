@@ -13,7 +13,7 @@ import Foundation
 // MARK: - Headless App
 
 /// An app assembled the way `AppRunner` assembles one — `RenderLoop`, the
-/// five-layer ``InputHandler``, the focus manager, the status bar and header,
+/// five-layer ``InputHandler``, the focus manager, the status bar state,
 /// the theme managers — and driven one frame at a time, with no terminal, no
 /// signals and no stdin.
 ///
@@ -21,7 +21,7 @@ import Foundation
 /// app, frame after frame, the way a person uses one. A key goes through the
 /// chain a keypress goes through, so it reaches the focused control, moves the
 /// focus, scrolls the scroll view that owns the key; a frame is the loop's own
-/// frame, header and status bar and diff writer included, so what it costs is
+/// frame, chrome and diff writer included, so what it costs is
 /// what a frame costs. The existing `--bench` renders a view with
 /// `renderToBuffer`, which has none of that — no focus manager to type into,
 /// no chrome, no emission.
@@ -81,12 +81,11 @@ package final class HeadlessApp<A: App> {
         let tuiContext = TUIContext()
         let paletteManager = ThemeManager(items: PaletteRegistry.all, renderTrigger: {})
         let appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: {})
-        let appHeader = AppHeaderState()
         self.terminal = terminal
         self.tuiContext = tuiContext
         self.focusManager = focusManager
         self.renderer = RenderLoop(
-            app: app, terminal: terminal, statusBar: statusBar, appHeader: appHeader,
+            app: app, terminal: terminal, statusBar: statusBar,
             focusManager: focusManager, paletteManager: paletteManager,
             appearanceManager: appearanceManager, tuiContext: tuiContext, isTmux: false)
         self.inputHandler = InputHandler(
@@ -150,8 +149,8 @@ package final class HeadlessApp<A: App> {
         renderer.invalidateDiffCache()
     }
 
-    /// The frame on screen: the header's lines, the content's and the status
-    /// bar's, as the diff writer last built them for the terminal.
+    /// The frame on screen — the bars and the content, row by row — as the
+    /// diff writer last built it for the terminal.
     package var screen: [String] { renderer.diffWriter.shownLines }
 
     /// How many bytes every frame so far has written to the terminal.

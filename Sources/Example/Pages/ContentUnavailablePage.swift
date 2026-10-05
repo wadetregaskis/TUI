@@ -49,8 +49,6 @@ struct ContentUnavailablePage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .appHeader {
-            DemoAppHeader("menu.item.emptyState")
-        }
+        .navigationTitle("menu.item.emptyState")
     }
 }
