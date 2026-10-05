@@ -116,4 +116,51 @@ struct AnyViewMembersTests {
         #expect(loop.rowShape(sectionWholeness: .apart) == .single)
         #expect(resolveChildViews(from: loop, context: makeRenderContext(width: 10, height: 4)).count == 3)
     }
+
+    /// Renders `probe` — or `-` without one — from the environment, and is
+    /// equal to every other instance, so only the erased type's note can stop
+    /// its memo serving what it drew under a probe that has gone.
+    private struct ProbeEcho: View, Equatable {
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool { true }
+        @Environment(\.anyViewMembersProbe) private var probe
+        var body: some View { Text(probe) }
+    }
+
+    @Test("An AnyView taken apart whose content drops a modifier draws its views without it")
+    func takenApartContentChangingTypeIsNotServedStale() {
+        let tuiContext = TUIContext()
+        var environment = EnvironmentValues()
+        environment.applyRuntimeServices(from: tuiContext)
+        environment.renderCache = RenderCache()
+        let context = RenderContext(
+            availableWidth: 20, availableHeight: 4, environment: environment,
+            identity: ViewIdentity(path: "Root"))
+        func frame(_ flag: Bool) -> String {
+            let view = HStack(spacing: 1) {
+                flag
+                    ? AnyView(Group { ProbeEcho().equatable(); Text("t") }.environment(\.anyViewMembersProbe, "xxx"))
+                    : AnyView(Group { ProbeEcho().equatable(); Text("t") })
+            }
+            let cache = context.environment.renderCache!
+            cache.beginRenderPass()
+            let buffer = renderToBuffer(view, context: context)
+            cache.removeInactive()
+            return buffer.lines.first?.stripped ?? ""
+        }
+        #expect(frame(true).hasPrefix("xxx t"))
+        #expect(frame(true).hasPrefix("xxx t"))
+        let swapped = frame(false)
+        #expect(swapped.hasPrefix("- t"), "served under the modifier that was swapped out: \(swapped)")
+    }
+}
+
+private struct AnyViewMembersProbeKey: EnvironmentKey {
+    static let defaultValue = "-"
+}
+
+extension EnvironmentValues {
+    fileprivate var anyViewMembersProbe: String {
+        get { self[AnyViewMembersProbeKey.self] }
+        set { self[AnyViewMembersProbeKey.self] = newValue }
+    }
 }

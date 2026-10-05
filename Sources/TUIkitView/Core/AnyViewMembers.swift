@@ -19,9 +19,12 @@
 /// taken apart there, so an `AnyView` around one view is the child it always
 /// was, at the identity it always had: every walk that expands a provider asks
 /// first. Taken apart, its views resolve as its content's would, under the
-/// step the walk gives the `AnyView` — the erased type's own steps below that
-/// keep two erased contents of different types apart, as the erasure's type
-/// note does for content drawn whole (`AnyView.contentContext(noting:)`).
+/// step the walk gives the `AnyView`, after the erased type is noted there as
+/// it is for content drawn whole (`AnyView.contentContext(noting:)`): two
+/// contents that differ only by a modifier spread over their views — `flag ?
+/// AnyView(Group { a; b }.foregroundStyle(.red)) : AnyView(Group { a; b })`
+/// — resolve their views at the same identities, and only the note clears
+/// what was kept there when the erased type changes.
 ///
 /// As a `ForEach`'s row an `AnyView` stays one child (``StaticMemberCounting``):
 /// its type cannot say how many views it holds, and building every row to
@@ -34,7 +37,7 @@ extension AnyView: ChildViewProvider {
         guard let provider = erasedView as? ChildViewProvider, !provider.staysWhole(in: context) else {
             return [ChildView(self)]
         }
-        return erasedMembers(of: erasedView, as: provider, context: context)
+        return erasedMembers(of: erasedView, as: provider, context: contentContext(noting: context))
     }
 
     public func staysWhole(in context: RenderContext) -> Bool {
