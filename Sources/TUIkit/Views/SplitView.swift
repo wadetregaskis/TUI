@@ -26,6 +26,16 @@ import TUIkitCore
 /// that fill share the rest. Each divider is a focus stop: Left and Right move
 /// it a cell, five with Shift; a mouse drags it. A pane is never narrower than
 /// one cell, and the sizes the user chose are kept until the children change.
+///
+/// A pane's frame bounds it, as in SwiftUI: a pane written
+/// `.frame(minWidth: 20, idealWidth: 30, maxWidth: .fixed(50))` starts 30 cells wide,
+/// and the divider stops where it would take that pane — or the one on its
+/// other side — below its minimum or past its maximum. The frame must be the
+/// pane's own, outside anything that moves or resizes it (`.padding`, another
+/// `.frame`); environment, event and lifecycle modifiers outside it are seen
+/// through. A `.frame(width:)` pins the pane. When the split has too little
+/// room for every pane's minimum, or more than every pane's maximum, the
+/// panes give way from the last.
 public struct HSplitView<Content: View>: View {
     let content: Content
 
@@ -44,7 +54,8 @@ public struct HSplitView<Content: View>: View {
 /// A layout container that arranges its children in a vertical line and allows
 /// the user to resize them using dividers placed between them.
 ///
-/// The vertical twin of ``HSplitView``: Up and Down move a divider.
+/// The vertical twin of ``HSplitView``: Up and Down move a divider, and a
+/// pane's `.frame(minHeight:idealHeight:maxHeight:)` bounds it.
 public struct VSplitView<Content: View>: View {
     let content: Content
 
@@ -66,6 +77,71 @@ public struct VSplitView<Content: View>: View {
 /// divider handlers that change them.
 final class SplitPaneSizes {
     var sizes: [Int] = []
+
+    /// Each pane's bounds, as the last frame found them — read by the divider
+    /// handlers, which move at event time, outside any render.
+    var bounds: [SplitPaneBounds] = []
+}
+
+/// How far a pane may shrink and grow along its split's axis, and where it
+/// starts: what a frame on the pane states (``SplitPaneBoundsProviding``).
+struct SplitPaneBounds: Equatable {
+    /// The fewest cells the pane takes — never fewer than one.
+    var minimum = 1
+
+    /// Where the pane starts, when a frame named it.
+    var ideal: Int?
+
+    /// The most cells the pane takes; `Int.max` for no limit.
+    var maximum = Int.max
+
+    /// A pane with nothing stated: anything from one cell up.
+    static let free = Self()
+
+    /// `size` held inside the bounds.
+    func clamp(_ size: Int) -> Int {
+        Swift.min(Swift.max(size, minimum), maximum)
+    }
+}
+
+/// A view that states a split pane's bounds — a frame.
+@MainActor
+protocol SplitPaneBoundsProviding {
+    /// The bounds this view states along `axis`.
+    func splitPaneBounds(along axis: Axis) -> SplitPaneBounds
+}
+
+extension FlexibleFrameView: SplitPaneBoundsProviding {
+    /// The frame's minimum, ideal and maximum on the split's axis. A
+    /// `maxWidth: .infinity` states no maximum, and a maximum below the
+    /// minimum is the minimum, as a frame's own layout takes it.
+    func splitPaneBounds(along axis: Axis) -> SplitPaneBounds {
+        let (minimum, ideal, maximum) =
+            axis == .horizontal ? (minWidth, idealWidth, maxWidth) : (minHeight, idealHeight, maxHeight)
+        var bounds = SplitPaneBounds(ideal: ideal)
+        if let minimum { bounds.minimum = Swift.max(1, minimum) }
+        if case .fixed(let limit)? = maximum { bounds.maximum = Swift.max(bounds.minimum, limit) }
+        return bounds
+    }
+}
+
+extension SplitPaneBounds {
+    /// The bounds a split pane's view states: those of the frame that is the
+    /// pane's outermost geometry, found through the wrappers that draw their
+    /// content unchanged (environment, event, focus and lifecycle modifiers),
+    /// and stopping at anything else — a `.padding()` outside the frame makes
+    /// the pane wider than the frame says, so its numbers no longer bound it.
+    @MainActor
+    static func of(_ view: any View, along axis: Axis) -> Self {
+        var current = view
+        while true {
+            if let provider = current as? SplitPaneBoundsProviding {
+                return provider.splitPaneBounds(along: axis)
+            }
+            guard let wrapper = current as? any DrawsContentUnchanged else { return .free }
+            current = wrapper.wrappedContent
+        }
+    }
 }
 
 /// One divider: the focus stop and drag target between pane `index` and the
@@ -100,13 +176,19 @@ final class _SplitPaneDividerHandler: PersistedFocusable {
 
     /// Moves the divider `delta` cells from where it is — or from where it was
     /// when `base` was taken — between its two panes, each kept at least a
-    /// cell; the panes elsewhere do not change.
+    /// cell and inside its bounds; the panes elsewhere do not change. Where the
+    /// two panes' bounds leave the divider nowhere to go, it stays.
     func move(by delta: Int, from base: [Int]? = nil) {
         var sizes = base ?? panes.sizes
         guard index + 1 < sizes.count else { return }
         let pair = sizes[index] + sizes[index + 1]
         guard pair >= 2 else { return }
-        sizes[index] = min(max(1, sizes[index] + delta), pair - 1)
+        let bounds = panes.bounds.count == sizes.count ? panes.bounds : Array(repeating: .free, count: sizes.count)
+        let (this, next) = (bounds[index], bounds[index + 1])
+        let lowest = max(1, this.minimum, pair - next.maximum)
+        let highest = min(pair - 1, this.maximum, pair - next.minimum)
+        guard lowest <= highest else { return }
+        sizes[index] = min(max(lowest, sizes[index] + delta), highest)
         sizes[index + 1] = pair - sizes[index]
         panes.sizes = sizes
     }
@@ -161,7 +243,11 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.sizes),
             default: SplitPaneSizes())
         let panes = panesBox.value
-        panes.sizes = resolvedSizes(panes.sizes, children: children, total: total, across: across, context: context)
+        let axis = axis
+        let bounds = children.map { SplitPaneBounds.of($0.wrappedView, along: axis) }
+        panes.sizes = resolvedSizes(
+            panes.sizes, children: children, bounds: bounds, total: total, across: across, context: context)
+        panes.bounds = bounds
 
         let palette = context.environment.palette
         var result = FrameBuffer(emptyWithWidth: width, height: height)
@@ -189,35 +275,71 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
 
     /// The panes' sizes for `total` cells: the stored ones while there are as
     /// many panes as before, rescaled to the new total when the split itself
-    /// changed size; otherwise a fresh start — a child that sizes to its
-    /// content at its natural extent, the filling children sharing the rest,
-    /// or the last child taking it when none fills.
+    /// changed size; otherwise a fresh start — a pane whose frame names an
+    /// ideal extent at that, a child that sizes to its content at its natural
+    /// extent, the filling children sharing the rest, or the last child taking
+    /// it when none fills. Either way held inside the panes' bounds.
     private func resolvedSizes(
-        _ stored: [Int], children: [ChildView], total: Int, across: Int, context: RenderContext
+        _ stored: [Int], children: [ChildView], bounds: [SplitPaneBounds], total: Int, across: Int,
+        context: RenderContext
     ) -> [Int] {
         let count = children.count
         let available = max(count, total - (count - 1))
         if stored.count == count, stored.allSatisfy({ $0 >= 1 }) {
             let storedTotal = stored.reduce(0, +)
-            guard storedTotal != available else { return stored }
-            return Self.rescaled(stored, to: available)
+            let sizes = storedTotal == available ? stored : Self.rescaled(stored, to: available)
+            return Self.fitted(sizes, within: bounds, total: available, givingFirst: Array(sizes.indices.reversed()))
         }
         let proposal =
             axis == .horizontal
             ? ProposedSize(width: nil, height: across) : ProposedSize(width: across, height: nil)
         let natural = children.map { $0.measure(proposal: proposal, context: context) }
-        let fills = natural.map { axis == .horizontal ? $0.isWidthFlexible : $0.isHeightFlexible }
-        var sizes = zip(natural, fills).map { size, fills in fills ? 0 : max(1, extent(of: size)) }
+        // A pane that names where it starts is placed there, not shared out.
+        let fills = zip(natural, bounds).map { size, pane in
+            pane.ideal == nil && (axis == .horizontal ? size.isWidthFlexible : size.isHeightFlexible)
+        }
+        var sizes = zip(natural, bounds).enumerated().map { index, pane in
+            fills[index] ? 0 : max(1, pane.1.ideal ?? extent(of: pane.0))
+        }
         let fixed = sizes.reduce(0, +)
         let flexibleIndices = fills.indices.filter { fills[$0] }
+        // The panes that fill give and take first, then the rest; each from
+        // the last.
+        let order = flexibleIndices.reversed() + fills.indices.reversed().filter { !fills[$0] }
         if fixed > available || flexibleIndices.isEmpty {
             // Too little room for the natural sizes, or nothing to take the
             // rest: an even split, the remainder to the last pane.
-            return Self.evenly(available, among: count)
+            return Self.fitted(Self.evenly(available, among: count), within: bounds, total: available, givingFirst: order)
         }
         let shares = Self.evenly(available - fixed, among: flexibleIndices.count)
         for (share, index) in zip(shares, flexibleIndices) { sizes[index] = share }
-        return sizes.map { max(1, $0) }
+        return Self.fitted(sizes.map { max(1, $0) }, within: bounds, total: available, givingFirst: order)
+    }
+
+    /// `sizes` held inside their panes' `bounds`, still summing to `total`:
+    /// each clamped, then the difference taken up — or given back — by the
+    /// panes in `order` that have room. Where none has, the split still fills
+    /// what it was offered: the panes in `order` give way, past their bounds,
+    /// down to a cell each, and any room left over goes to the first of them.
+    private static func fitted(
+        _ sizes: [Int], within bounds: [SplitPaneBounds], total: Int, givingFirst order: [Int]
+    ) -> [Int] {
+        guard bounds.count == sizes.count, !bounds.allSatisfy({ $0 == .free }) else { return sizes }
+        var result = zip(sizes, bounds).map { size, pane in pane.clamp(size) }
+        var excess = total - result.reduce(0, +)
+        for index in order where excess != 0 {
+            let room = excess > 0 ? bounds[index].maximum - result[index] : bounds[index].minimum - result[index]
+            let step = excess > 0 ? min(excess, room) : max(excess, room)
+            result[index] += step
+            excess -= step
+        }
+        for index in order where excess < 0 {
+            let step = max(excess, 1 - result[index])
+            result[index] += step
+            excess -= step
+        }
+        if excess > 0, let first = order.first { result[first] += excess }
+        return result
     }
 
     /// `total` in `count` near-equal whole parts, dividing last so none is lost.

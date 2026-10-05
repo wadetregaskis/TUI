@@ -72,6 +72,21 @@ struct InspectorTests {
         #expect(try #require(column(of: "traits", in: harness.frame(flexible()))) == 40, "ideal decides")
     }
 
+    @Test("The divider stops at the column's minimum and maximum")
+    func boundsHold() throws {
+        let harness = InputChainHarness(width: 60, height: 6)
+        let page = {
+            Editor().inspector(isPresented: .constant(true)) {
+                Text("traits").inspectorColumnWidth(min: 18, ideal: 20, max: 24)
+            }
+        }
+        // The editor's button is the first stop, the divider the second.
+        harness.play([KeyEvent(key: .tab), KeyEvent(key: .left, shift: true)]) { page() }
+        #expect(try #require(column(of: "traits", in: harness.frame(page()))) == 36, "no wider than 24")
+        harness.play([KeyEvent(key: .right, shift: true), KeyEvent(key: .right, shift: true)]) { page() }
+        #expect(try #require(column(of: "traits", in: harness.frame(page()))) == 42, "no narrower than 18")
+    }
+
     @Test("Hidden, there is no column; and the view keeps its state across showing and hiding")
     func hidingKeepsState() {
         let harness = InputChainHarness(width: 60, height: 6)

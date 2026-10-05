@@ -1862,3 +1862,22 @@ private struct SearchTokenSuggestions: View {
         }
     }
 }
+
+// MARK: - Split panes bounded by their frames
+
+/// SwiftUI's way of bounding a split pane — a frame on it — and the inspector's
+/// width range, which is the same bound.
+@MainActor
+private struct BoundedSplitPanes: View {
+    @State private var showsInspector = true
+
+    var body: some View {
+        HSplitView {
+            Text("split.sidebar").frame(minWidth: 20, idealWidth: 30, maxWidth: .infinity)
+            Text("split.detail").frame(minWidth: 40)
+        }
+        .inspector(isPresented: $showsInspector) {
+            Text("split.inspector").inspectorColumnWidth(min: 20, ideal: 30, max: 50)
+        }
+    }
+}

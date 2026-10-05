@@ -29,8 +29,9 @@ extension View {
     /// that the reader can move — it is a focus stop (Left and Right move it a
     /// cell, five with Shift) and the pointer drags it, as an ``HSplitView``'s
     /// is. The column starts at the width ``View/inspectorColumnWidth(_:)``
-    /// names, or 30 columns. The view keeps its state while the inspector
-    /// comes and goes.
+    /// names, or 30 columns, and the divider stops at the minimum and maximum
+    /// ``View/inspectorColumnWidth(min:ideal:max:)`` names. The view keeps its
+    /// state while the inspector comes and goes.
     ///
     /// - Parameters:
     ///   - isPresented: Whether the inspector is shown.
@@ -55,18 +56,17 @@ extension View {
     /// Sets a flexible, preferred width for the inspector containing this
     /// view. Mirrors SwiftUI's `inspectorColumnWidth(min:ideal:max:)`.
     ///
-    /// The column starts at `ideal`. The divider is not held between `min` and
-    /// `max` — SwiftUI documents that a platform may use a different width than
-    /// asked — so they are accepted and the reader can move it anywhere the
-    /// split allows (decisions B40).
+    /// The column starts at `ideal`, and the divider stops where the column
+    /// would be narrower than `min` or wider than `max` — the bounds an
+    /// ``HSplitView`` pane's frame states, which is what the inspector's
+    /// column is. With too little room for `min`, the column gives way.
     ///
     /// - Parameters:
     ///   - min: The narrowest the column should be, in columns.
     ///   - ideal: The width the column starts at, in columns.
     ///   - max: The widest the column should be, in columns.
     public func inspectorColumnWidth(min: Int? = nil, ideal: Int, max: Int? = nil) -> some View {
-        _ = (min, max)
-        return _InspectorColumnWidthView(content: self, ideal: ideal)
+        _InspectorColumnWidthView(content: self, minimum: min, ideal: ideal, maximum: max)
     }
 }
 
@@ -87,15 +87,18 @@ struct _InspectorModifier<Content: View, Inspector: View>: View {
     static var defaultWidth: Int { 30 }
 
     var body: some View {
-        let width =
-            presentationTrait(InspectorColumnWidthProviding.self, of: inspector)?.idealWidth
-            ?? Self.defaultWidth
+        let width = presentationTrait(InspectorColumnWidthProviding.self, of: inspector)
+        let ideal = Swift.max(1, width?.idealWidth ?? Self.defaultWidth)
         return HSplitView {
             // The view takes what the column leaves: a split gives a pane that
             // fills the rest, and two that hug an even share each.
             content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             if isPresented.wrappedValue {
-                inspector.frame(width: Swift.max(1, width))
+                // The split reads the column's bounds off this frame: it starts
+                // at the ideal width, and the divider stops at the others.
+                inspector.frame(
+                    minWidth: width?.minimumWidth, idealWidth: ideal,
+                    maxWidth: width?.maximumWidth.map { .fixed($0) } ?? .infinity, alignment: .topLeading)
             }
         }
     }
@@ -104,16 +107,22 @@ struct _InspectorModifier<Content: View, Inspector: View>: View {
 /// Content that has named its inspector column's width.
 @MainActor
 protocol InspectorColumnWidthProviding {
+    var minimumWidth: Int? { get }
     var idealWidth: Int { get }
+    var maximumWidth: Int? { get }
 }
 
 /// The wrapper ``View/inspectorColumnWidth(_:)`` produces. Renders and
 /// measures as its content; carrying the width is its whole job.
 struct _InspectorColumnWidthView<Content: View>: View, InspectorColumnWidthProviding {
     let content: Content
+    var minimum: Int?
     let ideal: Int
+    var maximum: Int?
 
+    var minimumWidth: Int? { minimum }
     var idealWidth: Int { ideal }
+    var maximumWidth: Int? { maximum }
 
     var body: Never {
         fatalError("_InspectorColumnWidthView renders via Renderable")
