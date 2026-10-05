@@ -38,11 +38,12 @@ extension _ScrollViewCore {
         var contentContext = context.withChildIdentity(type: identityType)
         // The content margins are this view's, not its content's: a scroll view
         // nested in the content has none of its own (measured on SwiftUI).
-        // Written only when set, since almost no scroll view has any.
-        if !contentContext.environment.contentMargins.isEmpty {
+        // Written only when set, since almost no scroll view has any. A
+        // framework scroller takes none, and leaves them to its content's.
+        if !isChrome, !contentContext.environment.contentMargins.isEmpty {
             contentContext.environment.contentMargins = ContentMargins()
         }
-        if !contentContext.environment.safeAreaContentMargins.isZero {
+        if !isChrome, !contentContext.environment.safeAreaContentMargins.isZero {
             contentContext.environment.safeAreaContentMargins = EdgeInsets()
         }
         // So are the scroll observers: only the first scroll view reports.

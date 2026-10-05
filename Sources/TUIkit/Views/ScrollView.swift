@@ -194,7 +194,10 @@ extension ScrollView {
     /// - ``TUIkit/View/scrollTargetBehavior(_:)`` — it scrolls a line a step,
     ///   as a menu's rows always have;
     /// - ``TUIkit/View/scrollClipDisabled(_:)`` — it clips: its content
-    ///   belongs inside the surface it scrolls in, not over the page.
+    ///   belongs inside the surface it scrolls in, not over the page;
+    /// - `contentMargins` — it keeps no margins: it is
+    ///   there only while its content is too tall, and the content lays out as
+    ///   it would without it.
     ///
     /// The content inside it still reads them, for its own scrollables.
     func asChrome() -> ScrollView<Content> {

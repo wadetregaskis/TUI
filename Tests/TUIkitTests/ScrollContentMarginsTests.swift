@@ -338,4 +338,48 @@ struct ScrollContentMarginsTests {
             lines(List { Text("a"); Text("b") }.contentMargins(.leading, 4), width: 30)
                 == lines(List { Text("a"); Text("b") }, width: 30))
     }
+
+    // MARK: - The framework's own scrollers
+
+    @Test("A tall inline menu takes none of the page's margins: its rows draw as they do without them")
+    func chromeScrollerTakesNoMargins() {
+        func menu(margin: Int) -> [String] {
+            lines(
+                VStack {
+                    Menu("Pick") {
+                        ForEach(0..<60, id: \.self) { index in Button("item \(index)") {} }
+                    }
+                    .menuStyle(.inline)
+                }
+                .contentMargins(margin),
+                width: 30, height: 14)
+        }
+        let plain = menu(margin: 0)
+        #expect(plain.contains { $0.contains("item 9") }, "the menu scrolls inside its box: \(plain)")
+        // Inset inside a width planned without the margins, the labels wrapped.
+        #expect(menu(margin: 1) == plain, "\(menu(margin: 1))")
+    }
+
+    @Test("A dialog's scroller passes the page's margins on to the scroll view inside it")
+    func chromeScrollerPassesMarginsOn() {
+        func dialog(margin: Int) -> [String] {
+            lines(
+                Dialog(title: "T") {
+                    ScrollView { rows(30) }.frame(height: 5)
+                }
+                .contentMargins(.top, margin),
+                width: 30, height: 14)
+        }
+        func rowLines(_ drawn: [String]) -> Int { drawn.count { $0.contains("row ") } }
+        func boxHeight(_ drawn: [String]) -> Int {
+            drawn.count { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        }
+        let plain = dialog(margin: 0)
+        #expect(rowLines(plain) == 5, "\(plain)")
+        // The inner scroll view keeps the two lines inside its own five, as it
+        // would with no dialog around it; the dialog's scroller adds none.
+        let margined = dialog(margin: 2)
+        #expect(rowLines(margined) == 3, "\(margined)")
+        #expect(boxHeight(margined) == boxHeight(plain), "\(plain) vs \(margined)")
+    }
 }

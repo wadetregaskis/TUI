@@ -219,7 +219,9 @@ extension _ScrollViewCore {
     /// not a scroller, and do not move.
     ///
     /// A `safeAreaPadding` on the view adds to them, as it does to the content's.
+    /// A framework scroller has none (``resolvedContentMargins(_:)``).
     func indicatorMargins(_ context: RenderContext) -> EdgeInsets {
+        guard !isChrome else { return EdgeInsets() }
         let margins = context.environment.contentMargins
         let stated = margins.isEmpty ? EdgeInsets() : margins.indicators
         return stated.adding(context.environment.safeAreaContentMargins)
@@ -228,7 +230,16 @@ extension _ScrollViewCore {
     /// The margins this view draws its content inside: its content margins
     /// and, added to them, a `safeAreaPadding` on the view along its scrolling
     /// axes (measured additive on SwiftUI).
+    ///
+    /// None for a framework scroller (``ScrollView/asChrome()``): the page's
+    /// margins are for the page's scroll views, and the scroller around a menu
+    /// or a dialog is there only when its content is too tall, so taking them
+    /// inset an inline menu's rows only once it scrolled — and inside a width
+    /// planned without them, so its labels wrapped. It passes them on to its
+    /// content instead (``contentContext(_:)``), which lays out as it would
+    /// without the scroller.
     func resolvedContentMargins(_ environment: EnvironmentValues) -> EdgeInsets {
+        guard !isChrome else { return EdgeInsets() }
         let margins = environment.contentMargins
         let stated = margins.isEmpty ? EdgeInsets() : margins.content
         return stated.adding(environment.safeAreaContentMargins)
