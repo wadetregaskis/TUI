@@ -50,6 +50,10 @@ extension View {
     /// opaque. That is the macOS reading too, where `.visible` is what makes a
     /// `ScrollView` draw the background a `List` draws by default.
     ///
+    /// A `TextEditor` under a ``TextEditorStyle`` of the app's own is drawn by
+    /// that style's body, in the editor's place, and paints what that body
+    /// paints: the setting reaches the two built-in styles' editor.
+    ///
     /// - Parameter visibility: The visibility to use for the background.
     /// - Returns: A view whose scrollables paint, or do not paint, a
     ///   background.
