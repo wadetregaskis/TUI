@@ -20,6 +20,8 @@ $PROBE_OUT (default: ./identity_probe.json) and a summary to the screen.
 """
 import json, os, select, sys, termios, tty
 
+import probe_stamp
+
 # Each query, and what its reply looks like. The reply is whatever arrives
 # before the fence's DSR answer, so the terminator is documentation, not code.
 QUERIES = [
@@ -28,6 +30,12 @@ QUERIES = [
     ("DA3", b"\x1b[=c", "Tertiary Device Attributes — DCS!|…ST"),
     ("XTVERSION", b"\x1b[>0q", "Terminal name and version — DCS>|…ST"),
     ("XTGETTCAP_TN", b"\x1bP+q544e\x1b\\", "terminfo 'TN' (terminal name) — DCS…ST"),
+    # TUIkit's own exchanges end on DSR 5 (answered ESC[0n) since a4bd70fbe, not on
+    # the cursor report: a CPR can also come from a Shift-F3 typed during startup.
+    # These two record that the host answers it, and answers it AFTER the query
+    # before it, which is what lets it end an exchange.
+    ("DSR5", b"\x1b[5n", "Device status — ESC[0n; TUIkit's exchange fence"),
+    ("XTVERSION+DSR5", b"\x1b[>0q\x1b[5n", "XTVERSION's reply (if any), THEN ESC[0n"),
 ]
 
 FENCE = b"\x1b[6n"          # answered by every terminal: ESC[<row>;<col>R
@@ -87,11 +95,13 @@ def main():
         tty.setraw(fd)
         for name, query, _ in QUERIES:
             answers[name] = ask(fd, query)
+        stamp = probe_stamp.stamp(fd, "identity_probe", use_alt=False)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
     env = {k: os.environ.get(k) for k in ENV_KEYS if os.environ.get(k) is not None}
     record = {
+        "stamp": stamp,
         "environment": env,
         "answers": {
             name: {

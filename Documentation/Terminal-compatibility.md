@@ -624,8 +624,12 @@ Warp included (the colour exchange, which always used it, measured it; see
 "Asking the terminal for its colours"). Found by reading Ghostty's VT
 reference (`Documentation/Ghostty-VT-adoption.md`, K4). `identity_smoke.py`'s
 `apple-key` case answers DA1 with a Shift-F3 behind it, and still expects
-Apple Terminal identified. Re-running `identity_probe.py` on the four hosts,
-tmux and screen, to confirm the replies arrive in order, is still owed.
+Apple Terminal identified. **In order, measured 2026-10-05** with
+`identity_probe.py`, which now sends `CSI 5 n` alone and behind an XTVERSION:
+Apple Terminal 455.1, Warp v0.2026.09.16, tmux 3.7c and GNU screen 4.00.03
+each answer `CSI 0 n`, and where XTVERSION is answered (Warp, tmux) its reply
+comes first. iTerm2, Ghostty and kitty were not reached (their windows did
+not run the probe while the screen was locked); still owed.
 
 One cost of a shared fence: a reply that comes in after its own exchange gave
 up (a link slower than the half-second deadline) can end the NEXT exchange's
