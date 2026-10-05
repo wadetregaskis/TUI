@@ -54,11 +54,36 @@ struct TerminalGraphicsQueryTests {
     @Test("The request erases whatever a non-parsing terminal printed")
     func requestTidiesUpAfterItself() {
         let request = TerminalGraphicsQuery.request
-        #expect(request.hasPrefix("\u{1B}[s"), "the cursor is saved first")
-        #expect(request.contains("\u{1B}[u\u{1B}[J"), "…restored, and the screen wiped from there")
+        #expect(request.hasPrefix("\u{1B}7"), "the cursor is saved first, by DECSC")
+        #expect(request.contains("\u{1B}8\u{1B}[J"), "…restored by DECRC, and the screen wiped from there")
         // Small enough that what a printing host shows fits in a row or two:
         // one pixel, not one image.
         #expect(request.count < 300, "one pixel and twenty-six deflated bytes, and nothing that grows")
+    }
+
+    /// Every byte, so a change to any of it is a decision someone made here.
+    ///
+    /// The save and restore are DECSC and DECRC (`ESC 7`, `ESC 8`), never
+    /// SCOSC and SCORC (`CSI s`, `CSI u`): Ghostty's reference reads `CSI s`
+    /// as DECSLRM, set the left and right margins, whenever mode 69 is on,
+    /// and whether SCORC restores the SGR state is the terminal's choice.
+    @Test("The request, byte for byte")
+    func requestBytesArePinned() {
+        let placement = TerminalGraphicsQuery.probeID
+        let compression = TerminalGraphicsQuery.compressionProbeID
+        let expected =
+            "\u{1B}7"
+            + "\u{1B}_Ga=t,q=2,f=32,t=d,s=1,v=1,i=\(placement);AAAAAA==\u{1B}\\"
+            + "\u{1B}_Ga=p,U=1,q=0,i=\(placement),c=1,r=1\u{1B}\\"
+            + "\u{1B}_Ga=d,d=I,q=2,i=\(placement)\u{1B}\\"
+            + "\u{1B}_Ga=t,q=0,f=32,t=d,o=z,s=32,v=32,i=\(compression);"
+            + "eJztwQENAAAAwqD3T20PBxQAAADwbhAAAAE=\u{1B}\\"
+            + "\u{1B}_Ga=d,d=I,q=2,i=\(compression)\u{1B}\\"
+            + "\u{1B}8\u{1B}[J"
+            + "\u{1B}[5n"
+        #expect(TerminalGraphicsQuery.request == expected)
+        #expect(!TerminalGraphicsQuery.request.contains("\u{1B}[s"))
+        #expect(!TerminalGraphicsQuery.request.contains("\u{1B}[u"))
     }
 
     @Test("Only an acknowledged placement counts as support")

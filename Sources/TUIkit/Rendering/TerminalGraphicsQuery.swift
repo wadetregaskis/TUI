@@ -50,10 +50,11 @@ import WASILibc
 /// Two defences, because one is a table and tables go stale:
 ///
 /// 1. The exchange is skipped on a host identified as one that prints APC.
-/// 2. It is wrapped in save-cursor / restore-cursor / erase-to-end anyway, so
-///    an unmeasured terminal with the same parser gap has whatever it printed
-///    wiped before the first frame. The payload is kept deliberately tiny
-///    (one pixel, ~80 bytes) so that what such a host prints fits in a row.
+/// 2. It is wrapped in save-cursor, restore-cursor and erase-to-end anyway
+///    (`ESC 7` … `ESC 8 ESC [J`), so an unmeasured terminal with the same
+///    parser gap has whatever it printed wiped before the first frame. The
+///    payload is kept deliberately tiny (one pixel, ~80 bytes) so that what
+///    such a host prints fits in a row.
 enum TerminalGraphicsQuery {
 
     /// The id the handshake borrows. The top of the range, so it cannot
@@ -92,13 +93,22 @@ enum TerminalGraphicsQuery {
     /// Two commands speak, and they are told apart by id — see ``parse(_:)``.
     /// Everything else is `q=2`, so the reply holds exactly the two answers
     /// and not a chorus of acknowledgements in the same `ESC _ G i=…;` shape.
+    ///
+    /// The cursor is saved with DECSC (`ESC 7`) and restored with DECRC
+    /// (`ESC 8`), not SCOSC/SCORC (`CSI s`/`CSI u`). Ghostty's VT reference
+    /// reads `CSI s` as DECSLRM (set left and right margins) whenever mode 69
+    /// is on, and whether SCORC restores the SGR state is up to the terminal;
+    /// DECSC saves the position and the SGR state, and every VT100 descendant
+    /// reads it one way. Cosmetic here — no measured host leaves mode 69 on —
+    /// but the spelling with one meaning is the one to use
+    /// (`Documentation/Ghostty-VT-adoption.md`, K6).
     static var request: String {
-        "\u{1B}[s"  // save the cursor, in case the payload is printed
+        "\u{1B}7"  // DECSC: save the cursor, in case the payload is printed
             + KittyGraphics.transmit(pixels: onePixel, width: 1, height: 1, id: probeID)
             + "\u{1B}_Ga=p,U=1,q=0,i=\(probeID),c=1,r=1\u{1B}\\"
             + KittyGraphics.delete(id: probeID)
             + compressionRequest
-            + "\u{1B}[u\u{1B}[J"  // …and wipe it if it was
+            + "\u{1B}8\u{1B}[J"  // DECRC, and wipe whatever was printed
             + TerminalQueryReplies.statusFence
     }
 

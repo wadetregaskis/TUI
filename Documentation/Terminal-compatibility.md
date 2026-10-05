@@ -3142,6 +3142,18 @@ is decides.** The same parser weakness is already recorded here twice over:
 final byte, and this host is why. Anything DCS- or APC-shaped must be gated on
 positive evidence.
 
+The handshake therefore saves the cursor before its payload and restores it
+and erases to the end of the screen after, for an unmeasured host with the
+same gap. Since 2026-10-05 it saves with DECSC (`ESC 7`) and restores with
+DECRC (`ESC 8`), not SCOSC/SCORC (`CSI s`/`CSI u`). Ghostty's VT reference
+(read, not measured here) gives `CSI s` a second meaning: DECSLRM, set left
+and right margins, whenever DEC mode 69 is on. Its reference also leaves to
+the terminal whether SCORC restores the SGR state; DECSC saves position and
+SGR on every VT100 descendant. No measured host leaves mode 69 on, so this
+changes nothing seen today. The card that would show it is the graphics probe
+re-run on Ghostty and Apple Terminal, expecting nothing printed
+(`Documentation/Ghostty-VT-adoption.md`, K6).
+
 ### What each host advertises
 
 | Host | version | Sixel in DA1 | Kitty `a=q` | Kitty Unicode placeholder |

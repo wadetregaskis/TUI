@@ -1081,7 +1081,8 @@ Nearly all of it, which is the argument:
   the answers apart by id (`TerminalGraphicsQuery.parse`). A third — a classic
   placement — is one more command and one more id. It has to *draw*, unlike the
   virtual one, but the exchange already saves the cursor, wipes and restores
-  (`ESC[s` … `ESC[u ESC[J`) precisely because a payload might print.
+  (`ESC 7` … `ESC 8 ESC[J`, DECSC/DECRC since 2026-10-05) precisely because a
+  payload might print.
 
 ### 12.3 What it costs on the wire
 
