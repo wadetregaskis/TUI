@@ -176,17 +176,21 @@ struct _CompactDatePicker: View {
         let showsCalendar = $showsCalendar
         // Only a picker with a date to pick has a calendar to open.
         let opens = configuration.displayedComponents.contains(.date) && !isDisabled
-        _DatePickerField(
-            configuration: configuration, focusID: focusID, isDisabled: isDisabled,
-            onActivate: opens ? { showsCalendar.wrappedValue = true } : nil)
-            .popover(isPresented: showsCalendar) {
-                // The keys go straight to the calendar as it opens, and its
-                // Return closes it on the day it is on.
-                _DatePickerCalendarCore(
-                    selection: configuration.$selection, range: configuration.range, focusID: nil,
-                    isDisabled: isDisabled, onReturn: { showsCalendar.wrappedValue = false },
-                    takesFocusOnAppear: true)
-            }
+        // `View.popover`'s presenter, told the presentation is this view's own
+        // state, so a closed calendar costs a memo holding the picker nothing
+        // (`ownsPresentation`): every picker of this style carries one.
+        return PopoverPresentationModifier(
+            content: _DatePickerField(
+                configuration: configuration, focusID: focusID, isDisabled: isDisabled,
+                onActivate: opens ? { showsCalendar.wrappedValue = true } : nil),
+            isPresented: showsCalendar,
+            // The keys go straight to the calendar as it opens, and its
+            // Return closes it on the day it is on.
+            popover: _DatePickerCalendarCore(
+                selection: configuration.$selection, range: configuration.range, focusID: nil,
+                isDisabled: isDisabled, onReturn: { showsCalendar.wrappedValue = false },
+                takesFocusOnAppear: true),
+            attachmentAnchor: .rect(.bounds), arrowEdge: .bottom, ownsPresentation: true)
     }
 }
 

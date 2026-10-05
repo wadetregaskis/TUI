@@ -126,6 +126,20 @@ struct PopoverPresentationModifier<Content: View, Popover: View>: View {
     /// presenters key their presented content on exactly the same terms.
     var itemKey: String?
 
+    /// Whether `isPresented` is state the presenter owns: a `@State` of the
+    /// view whose body this popover is, so that every change to it reaches
+    /// every memo holding the popover — they are that view's ancestors.
+    ///
+    /// Then a closed frame declares a render side effect only when it has a
+    /// section to tear down — the first after the popover was up — as
+    /// `.contextMenu`'s does, and the closed popover costs a memo above it
+    /// nothing. `View.popover` leaves this off: an app's binding may be state
+    /// anywhere, and a row memo keyed by its element cannot see such state
+    /// change (a ForEach row capturing it), so a closed frame stored and
+    /// served there would never show the popover. Every closed frame of such
+    /// a popover declares, which keeps it out of every memo.
+    var ownsPresentation = false
+
     var body: Never {
         fatalError("PopoverPresentationModifier renders via Renderable")
     }
@@ -133,19 +147,13 @@ struct PopoverPresentationModifier<Content: View, Popover: View>: View {
 
 extension PopoverPresentationModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // Distinct per instance, like every other presented surface's section
-        // (`modal-`, `alert-`, `contextmenu-`), so two popovers in one frame
-        // cannot share a section and steal each other's focus.
-        let sectionID = "popover-\(context.identity.path)"
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
         guard isPresented.wrappedValue else {
-            if !context.isMeasuring {
-                context.environment.volatileReadTracker?.recordRenderSideEffect()
-                context.environment.focusManager?.deactivateSection(id: sectionID)
-            }
+            if !context.isMeasuring { tearDownIfPresented(context: context) }
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
+        let sectionID = Self.sectionID(context)
 
         var baseBuffer = TUIkit.renderToBuffer(content, context: contentContext)
         guard !context.isMeasuring, context.environment.mouseEventDispatcher != nil else {
@@ -171,6 +179,9 @@ extension PopoverPresentationModifier: Renderable {
         // so the end of the pass does not prune it and hand the content a new
         // gate — a new environment value — every frame.
         context.stateStorage?.markActive(context.identity)
+        if ownsPresentation, let storage = context.stateStorage {
+            storage.storage(for: Self.teardownKey(context), default: PopoverTeardown()).value.isPending = true
+        }
         let dismiss = {
             guard !dismissIsDisabled else { return }
             gate.dismiss { isPresented.wrappedValue = false }
@@ -247,6 +258,41 @@ extension PopoverPresentationModifier: Renderable {
         return baseBuffer
     }
 
+    /// The section a presented popover's content is in. Distinct per
+    /// instance, like every other presented surface's section (`modal-`,
+    /// `alert-`, `contextmenu-`), so two popovers in one frame cannot share a
+    /// section and steal each other's focus.
+    private static func sectionID(_ context: RenderContext) -> String {
+        "popover-\(context.identity.path)"
+    }
+
+    /// Where an ``ownsPresentation`` popover notes it has a section to tear
+    /// down.
+    private static func teardownKey(_ context: RenderContext) -> StateStorage.StateKey {
+        StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.teardown)
+    }
+
+    /// On a closed frame, tears down the section the popover left if it was
+    /// just up — reverting the focus to the page's section and restoring its
+    /// remembered focus — and declares that, a render side effect.
+    ///
+    /// A popover whose presentation is the app's binding cannot tell it was
+    /// just up, so it does both on every closed frame (the deactivation is a
+    /// no-op once the section is gone); one that owns its presentation knows,
+    /// and does them once (``ownsPresentation``).
+    private func tearDownIfPresented(context: RenderContext) {
+        if ownsPresentation {
+            guard
+                let teardown = (context.stateStorage?.existingStorage(for: Self.teardownKey(context))
+                    as StateBox<PopoverTeardown>?)?.value,
+                teardown.isPending
+            else { return }
+            teardown.isPending = false
+        }
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        context.environment.focusManager?.deactivateSection(id: Self.sectionID(context))
+    }
+
     /// The popover's content in its panel: a border and a cell of breathing
     /// room, over the app background so the page cannot show through the gaps
     /// between what the content draws — the same opaque fill the drop-down
@@ -321,4 +367,15 @@ extension PopoverPresentationModifier: Layoutable {
 /// enum because the modifier is generic.
 private enum StateIndex {
     static let dismissalGate = 0
+    /// Whether an ``PopoverPresentationModifier/ownsPresentation`` popover was
+    /// presented since it last drew closed.
+    static let teardown = 1
+}
+
+/// Whether a popover that owns its presentation has a section to tear down: a
+/// class, so the closed frame that tears it down changes it in place rather
+/// than writing state while it draws.
+@MainActor
+private final class PopoverTeardown {
+    var isPending = false
 }
