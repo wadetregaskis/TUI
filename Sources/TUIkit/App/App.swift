@@ -201,6 +201,20 @@ extension AppRunner {
         tuiContext.undoKeys.reporting = tuiContext.keyboardReporting
     }
 
+    /// The loop that renders this app's frames to its terminal.
+    private func makeRenderLoop() -> RenderLoop<A> {
+        RenderLoop(
+            app: app,
+            terminal: terminal,
+            statusBar: statusBar,
+            appHeader: appHeader,
+            focusManager: focusManager,
+            paletteManager: paletteManager,
+            appearanceManager: appearanceManager,
+            tuiContext: tuiContext
+        )
+    }
+
     /// Has the focus system ask for the frames its changes need.
     private func wireFocusRepaints(cursorTimer: CursorTimer) {
         // Restart the breath and re-render when the focus moves, so the newly
@@ -324,16 +338,7 @@ extension AppRunner {
         // first reads it.
         negotiateKeyboardProtocol()
 
-        let renderer = RenderLoop(
-            app: app,
-            terminal: terminal,
-            statusBar: statusBar,
-            appHeader: appHeader,
-            focusManager: focusManager,
-            paletteManager: paletteManager,
-            appearanceManager: appearanceManager,
-            tuiContext: tuiContext
-        )
+        let renderer = makeRenderLoop()
 
         // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
         // detaches, or changes session — the only events that can change which
