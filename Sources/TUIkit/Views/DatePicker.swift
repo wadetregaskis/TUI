@@ -576,7 +576,11 @@ struct _DatePickerCore: View, Renderable, Layoutable {
     /// active one if the pointer is on a separator) and is swallowed, so it
     /// never also scrolls an enclosing page.
     ///
-    /// A `.compact` field's click opens its calendar too (``onActivate``).
+    /// A `.compact` field's click opens its calendar too (``onActivate``) —
+    /// on the date, not on the time. macOS draws a compact picker of both as
+    /// two fields and only the date's opens the calendar; here they are one,
+    /// and a click on the hour that opened the calendar handed the keyboard
+    /// to it, away from the hour the click had just chosen.
     @MainActor
     private func registerMouse(
         context: RenderContext, buffer: inout FrameBuffer, width: Int, handler: DatePickerHandler,
@@ -591,6 +595,9 @@ struct _DatePickerCore: View, Renderable, Layoutable {
             for: StateStorage.StateKey(
                 identity: context.identity, propertyIndex: StateIndex.isHovered),
             default: false)
+        // Where the time begins, if the field shows one: the hour's first
+        // column. A click there or after it is on the time.
+        let timeStart = cells.first { $0.kind == .hour }?.columns.lowerBound
         // An editable field answers the pointer like every other control.
         mouseDispatcher.requestFeature(.motion, in: context)
         let handlerID = mouseDispatcher.register(in: context) { event in
@@ -639,7 +646,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
                 if let index = componentIndex(at: event.x, cells: cells) {
                     handler.activeIndex = index
                 }
-                handler.onActivate?()
+                if event.x < timeStart ?? Int.max { handler.onActivate?() }
                 return true
             default:
                 return false

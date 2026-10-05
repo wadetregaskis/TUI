@@ -146,11 +146,13 @@ public struct StepperFieldDatePickerStyle: BuiltInDatePickerStyle, Equatable {
 /// A date picker style that displays the components in a compact, textual
 /// format.
 ///
-/// The field, which Return or a click opens the graphical calendar from, in a
-/// popover under it — as macOS's compact picker opens its calendar overlay.
-/// The calendar picks the day, the field's own keys still edit every
-/// component, and Return or Escape closes the calendar again. A picker that
-/// shows only the time has no calendar to open.
+/// The field, which Return or a click on its date opens the graphical
+/// calendar from, in a popover under it — as macOS's compact picker opens its
+/// calendar overlay. The calendar picks the day, the field's own keys still
+/// edit every component, and Return or Escape closes the calendar again. A
+/// click on the time chooses that component and opens nothing, as macOS's
+/// separate time field does; a picker that shows only the time has no
+/// calendar to open.
 public struct CompactDatePickerStyle: BuiltInDatePickerStyle, Equatable {
     /// Creates a compact date picker style.
     public init() {}

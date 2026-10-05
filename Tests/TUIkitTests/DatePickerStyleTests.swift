@@ -292,6 +292,33 @@ struct StepperFieldAndCompactDatePickerTests {
         #expect(popoverText(harness.frame(build())).contains("October 2026"))
     }
 
+    /// macOS draws a compact picker of a date and a time as two fields, and
+    /// only the date's opens the calendar. Here they are one field, and a
+    /// click on the hour opened the calendar — which took the keyboard from
+    /// the hour the click had just chosen.
+    @Test("A click on a compact picker's time chooses that component and opens no calendar")
+    func compactClickOnTheTime() {
+        let selection = Selection(date(2026, 10, 3, 9))
+        let harness = InputChainHarness(width: 40, height: 14)
+        let build = { picker(selection, style: .compact, components: [.date, .hourAndMinute]) }
+        let drawn = harness.frame(build())
+        let row = drawn.lines.first?.stripped ?? ""
+        guard let hour = row.range(of: "09").map({ row.distance(from: row.startIndex, to: $0.lowerBound) }) else {
+            Issue.record("no hour in \(row)")
+            return
+        }
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: hour, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: hour, y: 0))
+        #expect(popoverText(harness.frame(build())).isEmpty, "a click on the hour opened the calendar")
+        harness.play([KeyEvent(key: .up)], build)
+        #expect(calendar.component(.hour, from: selection.date) == 10, "Up did not step the hour the click chose")
+
+        // The date's components still open it.
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 1, y: 0))
+        #expect(popoverText(harness.frame(build())).contains("October 2026"))
+    }
+
     @Test("A compact picker of the time alone, or a disabled one, has no calendar to open")
     func compactWithoutACalendar() {
         let selection = Selection(date(2026, 10, 3))
