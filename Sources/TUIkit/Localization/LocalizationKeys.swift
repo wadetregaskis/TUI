@@ -43,6 +43,8 @@ public enum LocalizationKey {
         case refresh = "button.refresh"
         case rename = "button.rename"
         case paste = "button.paste"
+        /// The screen selection's context-menu item.
+        case copy = "button.copy"
         case replace = "button.replace"
         case replaceAll = "button.replaceAll"
     }

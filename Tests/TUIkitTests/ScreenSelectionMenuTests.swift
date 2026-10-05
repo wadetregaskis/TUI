@@ -1,0 +1,161 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ScreenSelectionMenuTests.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+@MainActor
+@Suite("Screen selection: its context menu")
+struct ScreenSelectionMenuTests {
+    struct Page: App {
+        var body: some Scene {
+            WindowGroup {
+                VStack(alignment: .leading) {
+                    Text("alpha beta gamma")
+                    Text("second row text")
+                }
+            }
+        }
+    }
+
+    final class Clock {
+        var nanos: Int64 = 1_000_000_000
+    }
+
+    /// An app with `alpha` selected, its copies going to `log`.
+    func selected(log: SystemClipboardLog) throws -> (HeadlessApp<Page>, Clock, x: Int, y: Int) {
+        let app = HeadlessApp(Page(), width: 40, height: 10)
+        app.services.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: true, log: log)
+        let clock = Clock()
+        func frame() {
+            clock.nanos += 16_666_667
+            app.frame(atNanos: clock.nanos)
+        }
+        frame()
+        frame()
+        let lines = app.screen.map(\.stripped)
+        let y = try #require(lines.firstIndex { $0.contains("alpha") })
+        let x = lines[y][..<(try #require(lines[y].range(of: "alpha")).lowerBound)].count
+        app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        frame()
+        app.send(MouseEvent(button: .left, phase: .dragged, x: x + 4, y: y))
+        frame()
+        app.send(MouseEvent(button: .left, phase: .released, x: x + 4, y: y))
+        frame()
+        return (app, clock, x, y)
+    }
+
+    func frame(_ app: HeadlessApp<Page>, _ clock: Clock) {
+        clock.nanos += 16_666_667
+        app.frame(atNanos: clock.nanos)
+    }
+
+    var copyTitle: String { LocalizationService.shared.string(for: LocalizationKey.Button.copy) }
+
+    @Test("A right-click on the highlight offers Copy, and choosing it copies and closes the menu")
+    func rightClickOffersCopy() throws {
+        let log = SystemClipboardLog()
+        let (app, clock, x, y) = try selected(log: log)
+        #expect(app.services.screenSelection.current?.text == "alpha")
+        #expect(app.send(MouseEvent(button: .right, phase: .pressed, x: x + 1, y: y)))
+        app.send(MouseEvent(button: .right, phase: .released, x: x + 1, y: y))
+        frame(app, clock)
+        #expect(app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
+        // A menu the pointer opened highlights nothing until a key moves in.
+        app.send(KeyEvent(key: .down))
+        frame(app, clock)
+        app.send(KeyEvent(key: .enter))
+        frame(app, clock)
+        #expect(log.writes == ["alpha"])
+        #expect(app.services.screenSelection.menuAnchor == nil)
+        #expect(!app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
+        // The selection outlives its menu, as on a Mac.
+        #expect(app.services.screenSelection.hasSelection)
+    }
+
+    @Test("Escape closes the menu and keeps the selection")
+    func escapeClosesTheMenu() throws {
+        let log = SystemClipboardLog()
+        let (app, clock, x, y) = try selected(log: log)
+        app.send(MouseEvent(button: .right, phase: .pressed, x: x, y: y))
+        frame(app, clock)
+        app.send(KeyEvent(key: .escape))
+        frame(app, clock)
+        #expect(app.services.screenSelection.menuAnchor == nil)
+        #expect(app.services.screenSelection.hasSelection)
+        #expect(log.writes.isEmpty)
+    }
+
+    @Test("The highlight is still drawn when the menu over it closes, and opens it again")
+    func menuLeavesTheHighlight() throws {
+        let (app, clock, x, y) = try selected(log: SystemClipboardLog())
+        app.send(MouseEvent(button: .right, phase: .pressed, x: x, y: y))
+        frame(app, clock)
+        app.send(KeyEvent(key: .escape))
+        frame(app, clock)
+        #expect(app.services.screenSelection.current?.isHighlighted == true)
+        #expect(app.send(MouseEvent(button: .right, phase: .pressed, x: x, y: y)))
+        #expect(app.services.screenSelection.menuAnchor != nil)
+    }
+
+    struct AlertPage: App {
+        struct Content: View {
+            @State private var showing = false
+            var body: some View {
+                VStack(alignment: .leading) {
+                    Text("alpha beta gamma")
+                    Button("Show") { showing = true }
+                }
+                .alert("Shown", isPresented: $showing) {
+                    Button("OK") {}
+                }
+            }
+        }
+
+        var body: some Scene {
+            WindowGroup { Content() }
+        }
+    }
+
+    /// What is under a modal's backdrop is not the user's to copy, and the
+    /// keys are the presentation's.
+    @Test("A presentation clears the selection")
+    func presentationClears() throws {
+        let app = HeadlessApp(AlertPage(), width: 40, height: 12)
+        let clock = Clock()
+        func frame() {
+            clock.nanos += 16_666_667
+            app.frame(atNanos: clock.nanos)
+        }
+        frame()
+        frame()
+        let lines = app.screen.map(\.stripped)
+        let y = try #require(lines.firstIndex { $0.contains("alpha") })
+        let x = lines[y][..<(try #require(lines[y].range(of: "alpha")).lowerBound)].count
+        app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        app.send(MouseEvent(button: .left, phase: .dragged, x: x + 4, y: y))
+        app.send(MouseEvent(button: .left, phase: .released, x: x + 4, y: y))
+        frame()
+        #expect(app.services.screenSelection.hasSelection)
+        // The button holds the focus; Return shows the alert.
+        app.send(KeyEvent(key: .enter))
+        frame()
+        frame()
+        #expect(app.screen.map(\.stripped).contains { $0.contains("Shown") })
+        #expect(!app.services.screenSelection.hasSelection)
+    }
+
+    @Test("A right-click off the highlight is not the selection's")
+    func rightClickElsewhere() throws {
+        let (app, clock, x, y) = try selected(log: SystemClipboardLog())
+        app.send(MouseEvent(button: .right, phase: .pressed, x: x + 10, y: y))
+        frame(app, clock)
+        #expect(app.services.screenSelection.menuAnchor == nil)
+        #expect(!app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
+    }
+}

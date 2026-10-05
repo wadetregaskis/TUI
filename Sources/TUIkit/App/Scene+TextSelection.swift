@@ -67,7 +67,9 @@ extension ScreenSelection {
     /// keeps the selection, as a Mac does; a bare Escape clears it. `nil` for
     /// any other key, which goes on through the chain.
     func handleKey(_ event: KeyEvent) -> Bool? {
-        guard hasSelection else { return nil }
+        // While its menu is open the keys are the menu's: Escape closes it,
+        // Return chooses.
+        guard hasSelection, menuAnchor == nil else { return nil }
         if let copyTrigger, KeyboardShortcut.trigger(for: event) == copyTrigger {
             return copySelection()
         }

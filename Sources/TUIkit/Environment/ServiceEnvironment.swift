@@ -100,6 +100,10 @@ private struct TypedClipboardKey: EnvironmentKey {
     static let defaultValue: TypedClipboard? = nil
 }
 
+private struct ScreenSelectionKey: EnvironmentKey {
+    static let defaultValue: ScreenSelection? = nil
+}
+
 // MARK: - Terminal image store
 
 /// EnvironmentKey for the images this app has put in the terminal.
@@ -170,6 +174,13 @@ extension EnvironmentValues {
     var typedClipboard: TypedClipboard? {
         get { self[TypedClipboardKey.self] }
         set { self[TypedClipboardKey.self] = newValue }
+    }
+
+    /// TUIkit's selection of what is drawn, whose context menu the window
+    /// presents; `nil` outside a live app.
+    var screenSelection: ScreenSelection? {
+        get { self[ScreenSelectionKey.self] }
+        set { self[ScreenSelectionKey.self] = newValue }
     }
 
     /// The app-wide drag-and-drop session, or `nil` outside a live app.
@@ -249,6 +260,7 @@ extension EnvironmentValues {
         dragAndDropSession = context.dragAndDropSession
         typedClipboard = context.typedClipboard
         clipboardAccess = context.clipboardAccess
+        screenSelection = context.screenSelection
         tooltipState = context.tooltipState
         terminalImageStore = context.terminalImageStore
         renderCache = context.renderCache

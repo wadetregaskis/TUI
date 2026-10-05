@@ -777,8 +777,16 @@ extension MouseEventDispatcher {
         // until it shows whether it is a click — see ``PressRole`` — and one
         // that nothing takes may start a selection. Any left press ends the
         // selection there was, wherever it lands, as a click does on a Mac.
+        // A right press — or a Control-click, where a terminal swallows the
+        // right button — on the highlight opens the selection's own menu
+        // (Copy); anywhere else it is the app's, as always.
+        if event.phase == .pressed, event.button == .right || (event.button == .left && event.ctrl),
+            screenSelection?.openMenu(at: ScreenSelection.Point(x: event.x, y: event.y)) == true
+        {
+            return true
+        }
         if event.phase == .pressed, event.button == .left {
-            screenSelection?.clear()
+            screenSelection?.notePress()
             if !pressRoles.isEmpty || screenSelection != nil {
                 return dispatchLeftPress(event, matching: matching)
             }

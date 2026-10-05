@@ -22,6 +22,7 @@
   "button.refresh": "Refresh",
   "button.rename": "Rename",
   "button.paste": "Paste",
+  "button.copy": "Copy",
   "button.replace": "Replace",
   "button.replaceAll": "Replace All",
 

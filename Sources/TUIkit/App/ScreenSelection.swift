@@ -22,7 +22,7 @@ import TUIkitCore
 /// rectangle, as both terminals' own block selection does. The status bar and
 /// the app header are never selected.
 ///
-/// What is selected is CHARACTERS, read from the frame as drawn, not views:
+/// What is selected is CHARACTERS, read from the page as drawn, not views:
 /// wide characters once, trailing blanks dropped, rows joined with line
 /// breaks. The text is fixed when the drag ends, so a log that moves under the
 /// highlight still copies what was selected; the highlight itself goes as soon
@@ -130,8 +130,19 @@ final class ScreenSelection: @unchecked Sendable {
     /// The binding ``copyTrigger`` was resolved through.
     var adoptedCommandKey: CommandKeyBinding?
 
+    /// The open menu's highlight, kept across its frames; made when it first
+    /// opens (``presentMenu(over:context:)``).
+    var menuController: MenuPopupController?
+
+    /// Whether the menu presented since its section was last taken down.
+    var menuNeedsTeardown = false
+
     /// Copies text: the app's ``ClipboardWriter``, announcing the result.
     var copy: (String) -> Void = { _ in }
+
+    /// Where the selection's context menu was opened — the cell right-clicked
+    /// inside the selection — while it is open; `nil` when it is not.
+    private(set) var menuAnchor: Point?
 
     /// Whether anything is selected.
     var hasSelection: Bool { current != nil }
@@ -180,9 +191,45 @@ extension ScreenSelection {
         if copiesOnRelease, let text = current?.text, !text.isEmpty { copy(text) }
     }
 
-    /// Drops the selection.
+    /// Drops the selection, and its menu with it.
     func clear() {
         current = nil
+        menuAnchor = nil
+    }
+
+    /// Whether `point` is one of the cells the highlight is drawn on.
+    func highlights(_ point: Point) -> Bool {
+        guard let selection = current, selection.isHighlighted, !selection.isMaking,
+            point.y >= 0, point.y < frameLines.count
+        else { return false }
+        let cells = Self.cells(of: frameLines[point.y])
+        var resolved = selection
+        (resolved.anchor, resolved.head) = Self.ends(of: selection) { row in
+            row >= 0 && row < frameLines.count ? Self.cells(of: frameLines[row]) : []
+        }
+        resolved.unit = .character
+        return Self.columns(of: resolved, onRow: point.y, cells: cells)?.contains(point.x) ?? false
+    }
+
+    /// Opens the selection's context menu at `point`, if `point` is on the
+    /// highlight: a right-click there offers Copy, as a Mac's text does.
+    /// Elsewhere the press is someone else's — an app's own `.contextMenu`.
+    func openMenu(at point: Point) -> Bool {
+        guard highlights(point) else { return false }
+        menuAnchor = point
+        return true
+    }
+
+    /// What a left press does to the selection: ends it, as a click does on
+    /// a Mac — unless its menu is open, whose rows and dismiss backdrop take
+    /// the press, and which keeps the selection it is about.
+    func notePress() {
+        if menuAnchor == nil { clear() }
+    }
+
+    /// Closes the selection's context menu, keeping the selection.
+    func closeMenu() {
+        menuAnchor = nil
     }
 
     /// Copies the selection's text, as Ctrl-C does. `false` with nothing
@@ -204,8 +251,9 @@ extension ScreenSelection {
 // MARK: - The frame
 
 extension ScreenSelection {
-    /// Takes in a composited frame: keeps its lines for the next selection,
-    /// and, while there is one, follows it and draws its highlight.
+    /// Takes in the frame's page, before the layers over it are composited:
+    /// keeps its lines for the next selection, and, while there is one,
+    /// follows it and draws its highlight.
     ///
     /// - A resize clears the selection: the cells it named are gone. Only the
     ///   width says so; the content area's height also moves with the status
@@ -213,14 +261,20 @@ extension ScreenSelection {
     /// - A selection being made follows the screen, as a terminal's does.
     /// - A finished one keeps its text, and its highlight goes once the cells
     ///   under it no longer read that text — the selection a log scrolled away.
+    /// - A presentation over the page — a sheet, an alert, an open menu —
+    ///   clears it too: what is under a modal's backdrop is not the user's to
+    ///   copy, and its keys are the presentation's. The selection's own menu
+    ///   is the exception.
     @MainActor
-    func takeFrame(_ buffer: FrameBuffer, width: Int, palette: any Palette) -> FrameBuffer {
+    func takeFrame(
+        _ buffer: FrameBuffer, width: Int, palette: any Palette, underPresentation: Bool = false
+    ) -> FrameBuffer {
         let resized = width != frameWidth
         frameLines = buffer.lines
         frameWidth = width
         guard var selection = current else { return buffer }
-        if resized {
-            current = nil
+        if resized || (underPresentation && menuAnchor == nil) {
+            clear()
             return buffer
         }
         let drawn = Self.text(of: selection, in: frameLines)
@@ -374,7 +428,7 @@ extension ScreenSelection {
     /// text inputs (`TextFieldContentRenderer.selectionColors`), reverse video
     /// where the palette leaves the colours to the terminal.
     ///
-    /// Composited as a painted layer over the finished frame, so the cells
+    /// Composited as a painted layer over the page, so the cells
     /// under it give up what they claimed there: an opacity region stops
     /// fading them, and an animated run stops redrawing them, as under a menu.
     @MainActor

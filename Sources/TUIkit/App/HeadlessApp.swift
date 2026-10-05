@@ -163,6 +163,10 @@ package final class HeadlessApp<A: App> {
     /// many rows were served and how many drawn, what the memos hit.
     package var renderCache: RenderCache { tuiContext.renderCache }
 
+    /// The app's runtime services — for a test that hands it a clipboard
+    /// writer of its own, or reads its screen selection.
+    var services: TUIContext { tuiContext }
+
     /// How many views' parting pictures the app is holding — every view with a
     /// transition that is on screen, and every removal still playing. A removal
     /// that has played out is no longer counted.

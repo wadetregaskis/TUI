@@ -265,8 +265,10 @@ TUIkit selects by itself, as a terminal would:
 - **⌘C — Ctrl-C under the default `commandKey`** — copies the selection while
   there is one, ahead of everything else, the focused text field included.
   ⌘C itself never reaches the app: the terminal takes it for its own,
-  empty, selection. **Escape** clears the selection, and so does any click and
-  any key a focused text field takes.
+  empty, selection. **A right-click on the highlight** (or a Control-click)
+  offers **Copy** in a menu of its own. **Escape** clears the selection, and so
+  does any click, any key a focused text field takes, and a presentation — a
+  sheet, an alert or a menu — over the page.
 
 `textSelection(_:)` says where the selection applies. With no modifier it is
 on wherever a drag does nothing else. `.enabled` keeps a selection to the view
@@ -287,7 +289,8 @@ List(invite.recipients) { recipient in
 A selection reads characters, not views: a wide character once, each row's
 trailing blanks dropped, rows joined with line breaks. Its text is fixed when
 the drag ends, so a log that scrolls on under it still copies what was
-selected; the highlight goes as soon as the cells under it change.
+selected; the highlight goes as soon as the cells under it change. It reads
+the page, not the layers over it: a menu or a popover draws over the highlight.
 
 Nothing is copied until the user asks, as on a Mac. A scene can copy every
 selection at the release instead, as tmux and iTerm2 do:

@@ -942,6 +942,11 @@ extension WindowGroup: SceneRenderable {
                 centerBuffer(buffer, inWidth: context.availableWidth, height: context.availableHeight)
             }
 
+        // The screen selection's context menu, over the page it selected from:
+        // anchored at the right-clicked cell, which is in these same
+        // content-area coordinates once the content is centred.
+        context.environment.screenSelection?.presentMenu(over: &centered, context: context)
+
         // The floating drag preview rides above everything. Attached AFTER
         // centering so its offsets are in the same absolute content-area
         // space as the mouse events driving it; where it sits relative to
