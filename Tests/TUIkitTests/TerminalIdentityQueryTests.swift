@@ -19,7 +19,7 @@ import Testing
 @Suite("Terminal identity query")
 struct TerminalIdentityQueryTests {
 
-    private static let fence = "\u{1B}[24;1R"
+    private static let fence = "\u{1B}[0n"
 
     private static func parse(_ stream: String) -> TerminalIdentity {
         TerminalIdentityQuery.parse(Array(stream.utf8))
@@ -124,6 +124,30 @@ struct TerminalIdentityQueryTests {
         #expect(identity.unconsumed == Array("\u{1B}[O".utf8))
     }
 
+    /// xterm spells a modified F3 `CSI 1;m R` — Shift-F3 is `CSI 1;2 R` — the
+    /// shape of a cursor-position report. While the exchange was fenced by
+    /// `CSI 6 n`, a Shift-F3 pressed during it ended the read before DA2
+    /// arrived: Apple Terminal went unidentified, so uncompensated, and the
+    /// key was lost. The fence is `CSI 0 n` now, which no key sends.
+    @Test(
+        "A modified F3 during the exchange is a key, and the read goes on to the fence",
+        arguments: ["\u{1B}[1;2R", "\u{1B}[1;5R", "\u{1B}[24;1R"])
+    func modifiedF3IsNotTheFence(key: String) {
+        let beforeDA2 = Self.parse("\u{1B}[?1;2c" + key)
+        #expect(!beforeDA2.sawFence, "a cursor report's shape does not end the exchange")
+
+        let identity = Self.parse("\u{1B}[?1;2c" + key + "\u{1B}[>1;95;0c" + Self.fence)
+        #expect(identity.sawFence)
+        #expect(TerminalHost.nameFromDeviceAttributes(identity) == "Apple_Terminal")
+        #expect(identity.unconsumed == Array(key.utf8), "the key is handed back")
+    }
+
+    @Test("The request ends with the status fence, and asks for no cursor report")
+    func requestIsFencedByStatus() {
+        #expect(TerminalIdentityQuery.request.hasSuffix("\u{1B}[5n"))
+        #expect(!TerminalIdentityQuery.request.contains("\u{1B}[6n"))
+    }
+
     @Test("Everything after the fence belongs to the input parser")
     func bytesAfterTheFenceAreNotOurs() {
         let identity = Self.parse(Self.appleTerminal + "hello")
@@ -211,7 +235,7 @@ struct TerminalIdentityQueryTests {
         #expect(TerminalClient.current.primaryDeviceAttributes == "\u{1B}[?1;2c")
 
         // Asked and answered.
-        TerminalHost.startupIdentity = Self.parse("\u{1B}[?1;2c\u{1B}[1;1R")
+        TerminalHost.startupIdentity = Self.parse("\u{1B}[?1;2c" + Self.fence)
         #expect(TerminalClient.current.wasAsked)
         #expect(TerminalClient.current.answered)
     }
@@ -279,13 +303,13 @@ struct TerminalModeQueryTests {
         // that must read as "it did not say" rather than as any mode value —
         // the difference between leaving the terminal alone and reconfiguring
         // it on no evidence.
-        #expect(TerminalModeQuery.parse(Array("\u{1B}[1;1R".utf8), mode: 2027) == nil)
+        #expect(TerminalModeQuery.parse(Array("\u{1B}[0n".utf8), mode: 2027) == nil)
         #expect(TerminalModeQuery.parse([], mode: 2027) == nil)
     }
 
     @Test("A reply about a different mode is not mistaken for this one")
     func otherModesAreIgnored() {
-        let reply = Array("\u{1B}[?2026;1$y\u{1B}[1;1R".utf8)
+        let reply = Array("\u{1B}[?2026;1$y\u{1B}[0n".utf8)
         #expect(TerminalModeQuery.parse(reply, mode: 2027) == nil)
         #expect(TerminalModeQuery.parse(reply, mode: 2026) == .set)
     }
@@ -305,7 +329,7 @@ struct TerminalModeQueryTests {
     @Test("The query is fenced, and carries no shape Apple Terminal would print")
     func requestIsFencedAndShaped() {
         let request = TerminalModeQuery.request(mode: 2027)
-        #expect(request.hasSuffix("\u{1B}[6n"), "must be fenced by DSR")
+        #expect(request.hasSuffix("\u{1B}[5n"), "must be fenced by the DSR status request")
         #expect(request.hasPrefix("\u{1B}[?2027$p"))
         // It DOES carry the unsafe shape — private marker plus intermediate —
         // which is exactly why `pinGraphemeClusteringIfNeeded()` sends it only
@@ -315,11 +339,20 @@ struct TerminalModeQueryTests {
         #expect(request.contains("?"), "DECRQM's private marker")
     }
 
-    @Test("The fence is recognised, and only the fence")
+    /// The mode exchange's read ends on the status fence, and a modified F3 —
+    /// a cursor report's shape — is not it. That matters more here than at
+    /// startup: the query runs again on resume, with the user at the keys.
+    @Test("The fence is recognised, and a modified F3 is not one")
     func fenceDetection() {
-        #expect(TerminalModeQuery.sawFence(Array("\u{1B}[24;80R".utf8)))
-        #expect(!TerminalModeQuery.sawFence(Array("\u{1B}[?2027;1$y".utf8)))
-        #expect(TerminalModeQuery.sawFence(Array("\u{1B}[?2027;1$y\u{1B}[1;1R".utf8)))
-        #expect(!TerminalModeQuery.sawFence([]))
+        #expect(TerminalQueryReplies.sawStatusFence(Array("\u{1B}[0n".utf8)))
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}[?2027;1$y".utf8)))
+        #expect(TerminalQueryReplies.sawStatusFence(Array("\u{1B}[?2027;1$y\u{1B}[0n".utf8)))
+        #expect(!TerminalQueryReplies.sawStatusFence([]))
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}[?2027;1$y\u{1B}[1;2R".utf8)))
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}[24;80R".utf8)))
+        #expect(TerminalQueryReplies.sawStatusFence(Array("\u{1B}[1;2R\u{1B}[?2027;1$y\u{1B}[0n".utf8)))
+        // …and the reply is still read past the key.
+        let stream = Array("\u{1B}[1;2R\u{1B}[?2027;2$y\u{1B}[0n".utf8)
+        #expect(TerminalModeQuery.parse(stream, mode: 2027) == .reset)
     }
 }

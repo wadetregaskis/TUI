@@ -170,6 +170,7 @@ def run(binary, case, config_dir, seconds):
     scan = 0
     queued = []          # (when, bytes)
     answered_at = None   # len(out) when the colour exchange was answered
+    colour_asked = False  # a colour query has been sent, and its fence not yet
     exited = False
     deadline = time.time() + seconds
     while time.time() < deadline:
@@ -195,16 +196,25 @@ def run(binary, case, config_dir, seconds):
                 scan = match.end()
                 sequence = match.group(0)
                 if match.group(1) is not None:
+                    colour_asked = True
                     if answers:
                         reply = colour_reply(match.group(1))
                         if key is not None and match.group(1) == b"10":
                             reply += key
                         queued.append((now + delay, reply))
-                elif sequence == b"\x1b[5n":
+                elif sequence == b"\x1b[5n" and colour_asked:
+                    # The colour request's fence: the one this case is about.
+                    colour_asked = False
                     if fences:
                         queued.append((now + delay, b"\x1b[0n"))
+                elif sequence == b"\x1b[5n":
+                    # Every other startup exchange (identity, graphics) is
+                    # fenced the same way, and answered at once: they run
+                    # before the colour request, so holding or dropping their
+                    # fences would test their timeouts instead of this one.
+                    os.write(fd, b"\x1b[0n")
                 elif sequence == b"\x1b[6n":
-                    os.write(fd, b"\x1b[1;1R")   # the other exchanges' fence
+                    os.write(fd, b"\x1b[1;1R")   # a cursor report, should anything ask
         waited, _ = os.waitpid(pid, os.WNOHANG)
         if waited == pid:
             exited = True

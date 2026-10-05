@@ -28,7 +28,7 @@ struct TerminalExchangeTests {
         var readCount = 0
     }
 
-    private static let fence = "\u{1B}[24;1R"
+    private static let fence = "\u{1B}[0n"
 
     private func makeTerminal(reads: [String]) -> (Terminal, ScriptedTerminal) {
         let terminal = Terminal()
@@ -183,7 +183,7 @@ struct TerminalExchangeTests {
     private static func unconsumed(_ stream: String) -> String {
         let kept = TerminalQueryReplies.unconsumed(
             Array(stream.utf8), isReply: TerminalModeQuery.isReply,
-            isFence: TerminalModeQuery.isFence)
+            isFence: TerminalQueryReplies.isStatusFence)
         return String(bytes: kept, encoding: .utf8) ?? "<not UTF-8>"
     }
 
@@ -212,12 +212,12 @@ struct TerminalExchangeTests {
         #expect(Self.unconsumed("\u{1B}_Gi=1;O" + Self.fence + "z") == "\u{1B}_Gi=1;Oz")
     }
 
-    @Test("The mode exchange's replies are DECRPM, and its fence a cursor report")
+    @Test("The mode exchange's replies are DECRPM, and its fence the status report")
     func modeRepliesAndFence() {
         #expect(TerminalModeQuery.isReply(Array("\u{1B}[?2027;2$y".utf8)[...]))
         #expect(!TerminalModeQuery.isReply(Array(Self.focusIn.utf8)[...]))
-        #expect(TerminalModeQuery.isFence(Array(Self.fence.utf8)[...]))
-        #expect(!TerminalModeQuery.isFence(Array("\u{1B}[A".utf8)[...]))
+        #expect(TerminalQueryReplies.isStatusFence(Array(Self.fence.utf8)[...]))
+        #expect(!TerminalQueryReplies.isStatusFence(Array("\u{1B}[A".utf8)[...]))
     }
 
     @Test("The graphics exchange's replies are Kitty acknowledgements, and nothing else")
@@ -225,6 +225,35 @@ struct TerminalExchangeTests {
         #expect(TerminalGraphicsQuery.isReply(Array("\u{1B}_Gi=1;OK\u{1B}\\".utf8)[...]))
         #expect(!TerminalGraphicsQuery.isReply(Array("\u{1B}]11;rgb:0/0/0\u{07}".utf8)[...]))
         #expect(!TerminalGraphicsQuery.isReply(Array(Self.focusIn.utf8)[...]))
-        #expect(TerminalGraphicsQuery.isFence(Array(Self.fence.utf8)[...]))
+    }
+
+    // MARK: - A key shaped like a cursor report
+
+    /// xterm spells a modified F3 `CSI 1;m R` — Shift-F3 is `CSI 1;2 R` — which
+    /// is a cursor-position report's shape. While these exchanges were fenced
+    /// by `CSI 6 n`, the key ENDED the read: here the reply comes in the read
+    /// after it, so the exchange gave up before its answer (DECRQM unread, the
+    /// pictures off for the session), and the key went to nobody. Fenced by
+    /// `CSI 5 n`, whose `CSI 0 n` no key sends, the read passes over it.
+    @Test(
+        "A modified F3 during the exchange does not end it, and reaches the parser",
+        arguments: Exchange.allCases)
+    func modifiedF3IsNotTheFence(exchange: Exchange) {
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[1;2R", exchange.reply + Self.fence])
+        #expect(exchange.run(on: terminal), "the reply after the key is read")
+        #expect(script.readCount == 2, "the read went on past the key to the fence")
+        // Handed back for the parser to decide what it is: the input buffer
+        // holds it, not a reply or the fence. (What the parser makes of a
+        // modified F3 is the parser's business, and not this test's.)
+        #expect(terminal.hasPendingInput)
+        #expect(script.reads.isEmpty)
+    }
+
+    @Test("Each exchange's request ends with the status fence, and asks for no cursor report")
+    func requestsAreFencedByStatus() {
+        for request in [TerminalModeQuery.request(mode: 2027), TerminalGraphicsQuery.request] {
+            #expect(request.hasSuffix(TerminalQueryReplies.statusFence))
+            #expect(!request.contains("\u{1B}[6n"))
+        }
     }
 }

@@ -80,9 +80,16 @@ struct TerminalColorReport: Equatable, Sendable {
 ///
 /// Each request ends with `CSI 5 n`, a status report every measured host
 /// answered with `CSI 0 n`, including screen and Warp, which answer none of
-/// the colour queries. It is not `CSI 6 n`, the cursor report the other
-/// startup exchanges use, so the status fence is its own test
-/// (``TerminalQueryReplies/isStatusFence(_:)``).
+/// the colour queries (``TerminalQueryReplies/statusFence``). Every startup
+/// exchange ends the same way; ``TerminalIdentityQuery`` says why it is not
+/// the cursor report, `CSI 6 n`.
+///
+/// One consequence of sharing it: a fence that arrives after its own
+/// exchange gave up — a hop slower than the half-second deadline — can end
+/// the NEXT exchange's read early, as a late cursor report could between the
+/// three exchanges that used it. A link that slow loses its answers either
+/// way; what reaches the input parser is still only `CSI 0 n`, which no key
+/// sends.
 ///
 /// ## Why OSC and not DCS
 ///

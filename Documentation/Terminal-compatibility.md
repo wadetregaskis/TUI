@@ -607,6 +607,27 @@ Terminal and for nobody else — the wiring guard, since `TerminalHost`'s
 detectors are `static let` and freeze on first read, so the query must run
 before the render loop is built.
 
+**The fence is the status report, `CSI 5 n` (reply `CSI 0 n`), not the
+cursor report — since 2026-10-05, for every startup exchange.** The identity,
+mode (DECRQM) and graphics exchanges were fenced by `CSI 6 n` until then, and
+its reply, `CSI row;column R`, is the shape xterm gives a modified F3:
+Shift-F3 is `CSI 1;2 R`, Ctrl-F3 `CSI 1;5 R`. A modified F3 pressed during the
+≤0.5 s exchange therefore ended it early. For identity that left the terminal
+unidentified, and so uncompensated, and the key was lost. No key sends
+`CSI 0 n`, so a key now goes back to the input parser like any other keystroke
+typed during the exchange. Every measured host answers `CSI 5 n`, screen and
+Warp included (the colour exchange, which always used it, measured it; see
+"Asking the terminal for its colours"). Found by reading Ghostty's VT
+reference (`Documentation/Ghostty-VT-adoption.md`, K4). `identity_smoke.py`'s
+`apple-key` case answers DA1 with a Shift-F3 behind it, and still expects
+Apple Terminal identified. Re-running `identity_probe.py` on the four hosts,
+tmux and screen, to confirm the replies arrive in order, is still owed.
+
+One cost of a shared fence: a reply that comes in after its own exchange gave
+up (a link slower than the half-second deadline) can end the NEXT exchange's
+read early. A late cursor report could already do that between the three
+exchanges that used it. A link that slow loses its answers either way.
+
 ---
 
 ## Apple Terminal.app

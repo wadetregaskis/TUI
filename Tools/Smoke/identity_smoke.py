@@ -18,7 +18,7 @@ absent explicit evidence a terminal is assumed to render correctly, so a
 compensation applied to an unidentified host is a bug, not a safe default.
 
 Usage:
-  identity_smoke.py <binary> [--host apple|ghostty|silent|all] [--seconds 2.5]
+  identity_smoke.py <binary> [--host apple|apple-key|ghostty|silent|all] [--seconds 2.5]
 
 Exit 0 if every host behaves as expected, 1 otherwise.
 """
@@ -46,6 +46,16 @@ HOSTS = {
             b"\x1b[>0q": b"\x1bP>|ghostty 1.3.1\x1b\\",
         },
         False,
+    ),
+    # Apple Terminal with Shift-F3 pressed during the exchange. xterm spells
+    # a modified F3 `CSI 1;2 R`, the same shape as a cursor-position report,
+    # so while the exchange was fenced by `CSI 6n` this key ended the read
+    # before DA2 arrived: the terminal went unidentified and uncompensated,
+    # and the key was lost. Fenced by `CSI 5n` (answered `CSI 0 n`, which no
+    # key sends), the read passes over it.
+    "apple-key": (
+        {b"\x1b[c": b"\x1b[?1;2c\x1b[1;2R", b"\x1b[>c": b"\x1b[>1;95;0c"},
+        True,
     ),
     # Answers the DSR fence and nothing else: a terminal we cannot name, which
     # must be left alone.
@@ -113,8 +123,10 @@ def run(binary, replies, seconds, config_dir):
             pending = pending[match.end():]
             if sequence in replies:
                 os.write(fd, replies[sequence])
+            elif sequence == b"\x1b[5n":
+                os.write(fd, b"\x1b[0n")       # the fence every terminal answers
             elif sequence == b"\x1b[6n":
-                os.write(fd, b"\x1b[1;1R")     # the fence every terminal answers
+                os.write(fd, b"\x1b[1;1R")     # a cursor report, should anything ask
     os.write(fd, b"q")
     time.sleep(0.3)
     try:
@@ -140,14 +152,14 @@ def main():
         text = run(args.binary, replies, args.seconds, config_dir)
         at = text.find(GLYPH)
         if at < 0:
-            print(f"{host:<8} INCONCLUSIVE — the app never drew {GLYPH}")
+            print(f"{host:<9} INCONCLUSIVE — the app never drew {GLYPH}")
             failures += 1
             continue
         compensated = CUF in text[at:at + 12]
         ok = compensated == should_compensate
         failures += not ok
         print(
-            f"{host:<8} {'ok  ' if ok else 'FAIL'} "
+            f"{host:<9} {'ok  ' if ok else 'FAIL'} "
             f"compensation {'present' if compensated else 'absent'}, "
             f"expected {'present' if should_compensate else 'absent'}")
     return 1 if failures else 0

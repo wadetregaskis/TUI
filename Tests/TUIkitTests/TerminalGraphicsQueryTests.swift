@@ -25,21 +25,26 @@ struct TerminalGraphicsQueryTests {
         #expect(request.contains("a=t,q=2"), "the transmit is quiet")
         #expect(request.contains("a=d,d=I,q=2"), "and so is the delete")
         #expect(request.contains("a=p,U=1,q=0"), "the placement is the question")
-        #expect(request.hasSuffix("\u{1B}[6n"), "fenced, so silence is an answer")
+        #expect(request.hasSuffix("\u{1B}[5n"), "fenced, so silence is an answer")
     }
 
     /// The fence test used to look at the LAST byte only: a keystroke landing
     /// behind the reply held the read open for the whole timeout, and a bare
     /// `ESC R` typed before the reply ended it early with pictures off. One
-    /// scan now, shared with the mode query.
-    @Test("The fence is found wherever it lands, and a bare ESC R is not one")
+    /// scan now, the status fence every startup exchange shares — and since
+    /// that is `CSI 0 n`, a modified F3 (`CSI 1;2 R`, a cursor report's shape)
+    /// no longer ends the read either.
+    @Test("The fence is found wherever it lands, and neither ESC R nor a modified F3 is one")
     func fenceIsScanned() {
-        #expect(TerminalGraphicsQuery.sawFence(Array("\u{1B}[1;1R".utf8)))
-        #expect(TerminalGraphicsQuery.sawFence(Array("\u{1B}[1;1Rx".utf8)), "a byte behind the reply")
-        #expect(TerminalGraphicsQuery.sawFence(Array("\u{1B}_Gi=1;OK\u{1B}\\\u{1B}[24;80R".utf8)))
-        #expect(!TerminalGraphicsQuery.sawFence(Array("\u{1B}R".utf8)), "not a CSI")
-        #expect(!TerminalGraphicsQuery.sawFence(Array("\u{1B}_Gi=1;OK\u{1B}\\".utf8)), "no fence yet")
-        #expect(TerminalGraphicsQuery.sawFence(Array("\u{1B}[1;1Rx".utf8)) == TerminalModeQuery.sawFence(Array("\u{1B}[1;1Rx".utf8)))
+        #expect(TerminalQueryReplies.sawStatusFence(Array("\u{1B}[0n".utf8)))
+        #expect(TerminalQueryReplies.sawStatusFence(Array("\u{1B}[0nx".utf8)), "a byte behind the reply")
+        #expect(TerminalQueryReplies.sawStatusFence(Array("\u{1B}_Gi=1;OK\u{1B}\\\u{1B}[0n".utf8)))
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}R".utf8)), "not a CSI")
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}_Gi=1;OK\u{1B}\\".utf8)), "no fence yet")
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}_Gi=1;OK\u{1B}\\\u{1B}[1;2R".utf8)), "Shift-F3")
+        let keyThenAnswer = "\u{1B}[1;2R\u{1B}_Gi=\(TerminalGraphicsQuery.probeID);OK\u{1B}\\\u{1B}[0n"
+        #expect(TerminalQueryReplies.sawStatusFence(Array(keyThenAnswer.utf8)))
+        #expect(TerminalGraphicsQuery.parse(Array(keyThenAnswer.utf8)).placement)
     }
 
     /// Apple Terminal prints an APC payload instead of consuming it, and it is
@@ -72,7 +77,7 @@ struct TerminalGraphicsQueryTests {
                 "\u{1B}_Gi=16777215;InvalidKittyAction(InvalidControlData"
                     + "(UnicodePlaceholderUnsupported))\u{1B}\\"))
         #expect(!answered(""), "silence is a terminal with no protocol at all")
-        #expect(!answered("\u{1B}[24;1R"), "the fence alone is silence")
+        #expect(!answered("\u{1B}[0n"), "the fence alone is silence")
     }
 
     /// A reply that merely CONTAINS `OK` is not an acknowledgement — the body
@@ -92,10 +97,10 @@ struct TerminalGraphicsQueryTests {
     /// buffer is one.
     @Test("The answer is found among whatever else arrived")
     func answerIsFoundInASharedBuffer() {
-        let buffer = "q\u{1B}_Gi=16777215;OK\u{1B}\\\u{1B}[24;1R"
+        let buffer = "q\u{1B}_Gi=16777215;OK\u{1B}\\\u{1B}[0n"
         #expect(TerminalGraphicsQuery.parse(Array(buffer.utf8)).placement)
-        #expect(TerminalGraphicsQuery.sawFence(Array(buffer.utf8)))
-        #expect(!TerminalGraphicsQuery.sawFence(Array("\u{1B}_Gi=1;OK\u{1B}\\".utf8)))
+        #expect(TerminalQueryReplies.sawStatusFence(Array(buffer.utf8)))
+        #expect(!TerminalQueryReplies.sawStatusFence(Array("\u{1B}_Gi=1;OK\u{1B}\\".utf8)))
     }
 
     // MARK: - The second question

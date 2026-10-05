@@ -94,8 +94,10 @@ def run(binary, termtype, decrpm, config_dir, seconds):
                 pending = pending[match.end():]
                 if sequence == DECRQM:
                     os.write(fd, b"\x1b[?2027;%d$y" % decrpm)
+                elif sequence == b"\x1b[5n":
+                    os.write(fd, b"\x1b[0n")     # the fence every terminal answers
                 elif sequence == b"\x1b[6n":
-                    os.write(fd, b"\x1b[1;1R")   # the fence every terminal answers
+                    os.write(fd, b"\x1b[1;1R")   # a cursor report, should anything ask
 
     pump(time.time() + seconds)
     os.write(fd, b"q")

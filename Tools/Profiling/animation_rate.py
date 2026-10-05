@@ -109,7 +109,10 @@ try:
             break
         if not data:
             break
-        # Answer a cursor-position query, so startup does not wait on one.
+        # Answer the startup exchanges' status fence, and a cursor-position
+        # query should anything send one, so startup does not wait on either.
+        for _ in range(data.count(b"\x1b[5n")):
+            os.write(fd, b"\x1b[0n")
         if b"\x1b[6n" in data:
             os.write(fd, b"\x1b[1;1R")
         now = time.monotonic() - start

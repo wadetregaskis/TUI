@@ -66,11 +66,14 @@ enum TerminalModeQuery {
         var needsSetting: Bool { self == .reset }
     }
 
-    /// The query for `mode`, fenced with DSR so a terminal that ignores DECRQM
-    /// reports silence instead of hanging — the same fence the identity query
-    /// uses, and for the same reason.
+    /// The query for `mode`, fenced with the DSR status request so a terminal
+    /// that ignores DECRQM reports silence instead of hanging — the fence
+    /// every startup exchange uses, and for the same reason. Not the cursor
+    /// report: its reply is a modified F3's shape (see
+    /// ``TerminalIdentityQuery``), and this runs again on resume, when a key
+    /// is likelier still.
     static func request(mode: Int) -> String {
-        "\u{1B}[?\(mode)$p\u{1B}[6n"
+        "\u{1B}[?\(mode)$p" + TerminalQueryReplies.statusFence
     }
 
     /// The reply's `Pm`, or `nil` if `bytes` carries no DECRPM for `mode`.
@@ -108,39 +111,12 @@ enum TerminalModeQuery {
         return nil
     }
 
-    /// Whether `bytes` contains a cursor-position report — the fence, which
-    /// every terminal answers whether or not it understood the question.
-    static func sawFence(_ bytes: [UInt8]) -> Bool {
-        var index = 0
-        while index + 1 < bytes.count {
-            guard bytes[index] == 0x1B, bytes[index + 1] == 0x5B else {
-                index += 1
-                continue
-            }
-            var cursor = index + 2
-            while cursor < bytes.count, !(0x40...0x7E).contains(bytes[cursor]) {
-                cursor += 1
-            }
-            if cursor < bytes.count, bytes[cursor] == 0x52 { return true }  // 'R'
-            index = cursor + 1
-        }
-        return false
-    }
-
     /// Whether one complete escape sequence is a DECRPM reply,
     /// `CSI ? Ps ; Pm $ y`, about any mode. No key sends one.
     static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
         sequence.count >= 4 && sequence.first == 0x1B
             && sequence[sequence.startIndex + 1] == 0x5B
             && sequence[sequence.endIndex - 2] == 0x24 && sequence.last == 0x79  // '$' 'y'
-    }
-
-    /// Whether one complete escape sequence is a cursor-position report: the
-    /// fence. ``sawFence(_:)`` asks it of a whole buffer; this asks it of one
-    /// sequence the hand-back walk has already delimited.
-    static func isFence(_ sequence: ArraySlice<UInt8>) -> Bool {
-        sequence.count >= 3 && sequence.first == 0x1B
-            && sequence[sequence.startIndex + 1] == 0x5B && sequence.last == 0x52  // 'R'
     }
 }
 
@@ -172,10 +148,10 @@ extension Terminal {
     func askMode(_ mode: Int, timeout: Double) -> TerminalModeQuery.State? {
         let collected = fencedExchange(
             request: TerminalModeQuery.request(mode: mode), timeout: timeout,
-            sawFence: TerminalModeQuery.sawFence)
+            sawFence: TerminalQueryReplies.sawStatusFence)
         handBackUnconsumed(
             from: collected, isReply: TerminalModeQuery.isReply,
-            isFence: TerminalModeQuery.isFence)
+            isFence: TerminalQueryReplies.isStatusFence)
         return TerminalModeQuery.parse(collected, mode: mode)
     }
 

@@ -99,7 +99,7 @@ enum TerminalGraphicsQuery {
             + KittyGraphics.delete(id: probeID)
             + compressionRequest
             + "\u{1B}[u\u{1B}[J"  // …and wipe it if it was
-            + "\u{1B}[6n"
+            + TerminalQueryReplies.statusFence
     }
 
     /// The compression half: the deflated block, transmitted with `o=z` and
@@ -164,28 +164,12 @@ enum TerminalGraphicsQuery {
         return answers
     }
 
-    /// Whether the DSR fence has come back, which ends the read.
-    ///
-    /// `TerminalModeQuery`'s scan, not a second spelling: this one used to
-    /// test only the LAST byte, so a keystroke landing behind the reply held
-    /// the read open for the whole timeout, and a bare `ESC R` typed before
-    /// the reply ended it early with pictures off for the session.
-    static func sawFence(_ bytes: [UInt8]) -> Bool {
-        TerminalModeQuery.sawFence(bytes)
-    }
-
     /// Whether one complete escape sequence is a Kitty graphics reply,
     /// `ESC _ G … ST`, whichever id it names. No key sends one.
     static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
         sequence.count >= 3 && sequence.first == 0x1B
             && sequence[sequence.startIndex + 1] == 0x5F  // '_'
             && sequence[sequence.startIndex + 2] == 0x47  // 'G'
-    }
-
-    /// Whether one complete escape sequence is the fence: the mode query's
-    /// test, for the same DSR fence.
-    static func isFence(_ sequence: ArraySlice<UInt8>) -> Bool {
-        TerminalModeQuery.isFence(sequence)
     }
 }
 
@@ -260,10 +244,10 @@ extension Terminal {
     func askGraphicsSupport(timeout: Double) -> TerminalGraphicsQuery.Answers {
         let collected = fencedExchange(
             request: TerminalGraphicsQuery.request, timeout: timeout,
-            sawFence: TerminalGraphicsQuery.sawFence)
+            sawFence: TerminalQueryReplies.sawStatusFence)
         handBackUnconsumed(
             from: collected, isReply: TerminalGraphicsQuery.isReply,
-            isFence: TerminalGraphicsQuery.isFence)
+            isFence: TerminalQueryReplies.isStatusFence)
         return TerminalGraphicsQuery.parse(collected)
     }
 }

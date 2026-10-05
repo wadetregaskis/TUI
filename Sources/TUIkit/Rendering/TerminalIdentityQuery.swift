@@ -35,9 +35,10 @@ struct TerminalIdentity: Equatable {
     /// the fingerprint below is that Apple Terminal answers **nothing**.
     var answeredVersion: Bool = false
 
-    /// Whether the DSR fence's reply was seen. The exchange is complete once
-    /// it has been: every terminal answers DSR, and it is sent last, so its
-    /// arrival means every earlier query has either answered or declined to.
+    /// Whether the status fence's reply, `CSI 0 n`, was seen. The exchange is
+    /// complete once it has been: every terminal answers DSR, and it is sent
+    /// last, so its arrival means every earlier query has either answered or
+    /// declined to.
     var sawFence: Bool = false
 
     /// Bytes that arrived during the exchange and are not replies to it —
@@ -62,9 +63,19 @@ struct TerminalIdentity: Equatable {
 /// ## Shape of the exchange
 ///
 /// One write, one round trip. The queries are sent back to back and finished
-/// with a DSR cursor-position request, which every terminal answers; reading
-/// until that reply arrives means a query nobody implements costs nothing and
-/// hangs nothing.
+/// with a DSR status request, `CSI 5 n`, which every terminal answers with
+/// `CSI 0 n`; reading until that reply arrives means a query nobody implements
+/// costs nothing and hangs nothing.
+///
+/// ## Why the fence is not the cursor report
+///
+/// It was `CSI 6 n` until 2026-10-05, and that reply, `CSI row;column R`, is
+/// the shape xterm gives a modified F3: Shift-F3 is `CSI 1;2 R`. A Shift-F3 or
+/// Ctrl-F3 pressed during the exchange therefore ENDED it, before DA2 had
+/// arrived — the terminal went unidentified, so uncompensated, and the key was
+/// lost. No key sends `CSI 0 n`, so a key now is just a key: it is handed back
+/// with the other bytes that are not replies. (Ghostty's VT reference, by way
+/// of `Documentation/Ghostty-VT-adoption.md`, K4.)
 ///
 /// **CSI queries only.** A DCS query (XTGETTCAP, `ESC P + q … ESC \`) is not
 /// safe here: Apple Terminal does not parse DCS and *prints the payload* —
@@ -75,9 +86,9 @@ struct TerminalIdentity: Equatable {
 enum TerminalIdentityQuery {
 
     /// The queries, in the order their replies come back:
-    /// XTVERSION (`ESC[>0q`), DA1 (`ESC[c`), DA2 (`ESC[>c`), then the DSR
-    /// fence (`ESC[6n`) that ends the read.
-    static let request = "\u{1B}[>0q\u{1B}[c\u{1B}[>c\u{1B}[6n"
+    /// XTVERSION (`ESC[>0q`), DA1 (`ESC[c`), DA2 (`ESC[>c`), then the status
+    /// fence (`ESC[5n`) that ends the read.
+    static let request = "\u{1B}[>0q\u{1B}[c\u{1B}[>c" + TerminalQueryReplies.statusFence
 
     /// Sorts a raw reply buffer into ``TerminalIdentity``.
     ///
@@ -136,8 +147,9 @@ enum TerminalIdentityQuery {
         }
     }
 
-    /// The CSI branch: a DA1 reply, a DA2 reply, the DSR fence, or someone's
-    /// arrow key.
+    /// The CSI branch: a DA1 reply, a DA2 reply, the status fence, or someone's
+    /// key — an arrow, or a modified F3, whose `CSI 1;2 R` is a cursor report's
+    /// shape and is nobody's reply here.
     private static func consumeCSI(
         _ bytes: [UInt8], from index: Int, into identity: inout TerminalIdentity
     ) -> Int? {
@@ -148,13 +160,16 @@ enum TerminalIdentityQuery {
         // reply (`>`); `end > index + 2` guards a parameterless `ESC[c`, where
         // that byte IS the final one.
         let lead: UInt8? = end > index + 2 ? bytes[index + 2] : nil
+        if TerminalQueryReplies.isStatusFence(bytes[index...end]) {
+            // `CSI 0 n` — the status fence, which ends the exchange.
+            identity.sawFence = true
+            return end + 1
+        }
         switch (bytes[end], lead) {
         case (0x63, 0x3F):  // 'c' after '?' — Primary Device Attributes
             identity.primaryAttributes = ascii(bytes[index...end])
         case (0x63, 0x3E):  // 'c' after '>' — Secondary Device Attributes
             identity.secondaryAttributes = ascii(bytes[index...end])
-        case (0x52, _):  // 'R' — the DSR fence, which ends the exchange
-            identity.sawFence = true
         default:
             identity.unconsumed.append(contentsOf: bytes[index...end])
         }
