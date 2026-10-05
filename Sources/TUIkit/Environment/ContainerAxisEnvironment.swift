@@ -73,9 +73,14 @@ extension RenderContext {
     /// value is a property of the call site, not of any state: an `HStack` is
     /// horizontal on every frame it ever renders, so no memoized subtree can
     /// be holding a value that has since changed.
+    ///
+    /// A new container's walk takes its sections apart, whatever the walk that
+    /// drew it kept whole (`RenderContext.keepsSectionsWhole`): a stack in a
+    /// pinned stack's row lays out its own sections' parts.
     func publishingContainerAxis(_ axis: Axis) -> Self {
         var copy = self
         copy.environment.containerAxis = axis
+        copy.keepsSectionsWhole = false
         return copy
     }
 }

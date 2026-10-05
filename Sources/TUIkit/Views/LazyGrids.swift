@@ -237,11 +237,10 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
 /// }
 /// ```
 ///
-/// Two deviations: a sectioned grid fills the width it is offered, as a grid
+/// One deviation: a sectioned grid fills the width it is offered, as a grid
 /// of `.flexible` or `.adaptive` columns always does, so a section's header
-/// can sit across it; and, unless the grid pins, `spacing` falls between the
-/// sections and between rows but not between a header and its section's
-/// first row, where SwiftUI's falls there too (decisions B15).
+/// can sit across it. Its `spacing` falls between every two rows — a header
+/// and its section's first row too — as SwiftUI's does.
 ///
 /// - Note: Unlike SwiftUI's, this grid measures every subview — "lazy" here
 ///   describes the API shape, not deferred construction. A grid whose rows must
@@ -382,15 +381,8 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
 
     /// Whether a `Section` is among the grid's views — asked of a walk that
     /// keeps sections whole, to be found (`RenderContext.keepsSectionsWhole`).
-    ///
-    /// A horizontal grid draws its sections section by section only when it
-    /// pins them: unpinned, its sections are a `ForEach`'s rows in a row that
-    /// draws each as one column, header above its views (decisions B15), so
-    /// until such a row takes them apart it flows them as one cell each, as it
-    /// always did.
     private func hasSections(_ context: RenderContext) -> Bool {
-        guard layout.axis == .vertical || !pinnedViews.isEmpty else { return false }
-        return resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
+        resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
             sectionParts(of: $0) != nil
         }
     }
@@ -433,13 +425,12 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
 ///
 /// # Sections
 ///
-/// With `pinnedViews:`, a `Section` among the grid's views starts a new column
-/// with its header, which spans every row; its views flow down the rows from
-/// the column after it, and its footer spans the rows after them —
-/// ``LazyVGrid``'s sections on their side, as SwiftUI's are (measured on macOS
-/// 15.8) — and header and footer pin to the enclosing horizontal scroll view's
-/// leading and trailing edges exactly as a ``LazyHStack``'s do. Unpinned, a
-/// section is still one cell (decisions B15).
+/// A `Section` among the grid's views starts a new column with its header,
+/// which spans every row; its views flow down the rows from the column after
+/// it, and its footer spans the rows after them — ``LazyVGrid``'s sections on
+/// their side, as SwiftUI's are (measured on macOS 15.8). With `pinnedViews:`,
+/// they pin to the enclosing horizontal scroll view's leading and trailing
+/// edges exactly as a ``LazyHStack``'s do.
 ///
 /// ```swift
 /// ScrollView(.horizontal) {

@@ -512,10 +512,13 @@ extension Section: ListRowExtractor {
         // Only when the content IS the `ForEach`, seen through those wrappers:
         // `resolveChildViews` flattens a `ForEach` sitting among static rows,
         // so in that arrangement no row can be attributed to it and this is
-        // `nil` (see ``SectionContentRows/actions``).
+        // `nil` (see ``SectionContentRows/actions``). Nor when its rows are
+        // several list rows per element: an offset names one row.
+        let oneRowPerElement =
+            (content as? any WindowedListRowExtractor).map { $0.listRowsPerElement == 1 } ?? true
         return SectionContentRows(
             rows: unwrappedListRows(of: content, context: context),
-            actions: content as? any DynamicViewContentActions)
+            actions: oneRowPerElement ? content as? any DynamicViewContentActions : nil)
     }
 
     /// ``listRows(of:context:)``'s rows once the wrappers are off.
@@ -523,7 +526,10 @@ extension Section: ListRowExtractor {
         of content: V, context: RenderContext
     ) -> [ListRow<RowID>] {
         // Delegate to content if it's a ListRowExtractor (e.g., ForEach)
-        if let extractor = content as? ListRowExtractor {
+        // — unless its rows make a number of list rows only each row knows,
+        // which the child walk below reads (decisions B15).
+        let rowsVary = (content as? any WindowedListRowExtractor).map { $0.listRowsPerElement == nil } ?? false
+        if let extractor = content as? ListRowExtractor, !rowsVary {
             return extractor.extractListRows(context: context)
         }
 

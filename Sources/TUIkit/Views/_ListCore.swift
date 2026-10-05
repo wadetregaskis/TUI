@@ -3270,7 +3270,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // so a large flat `ForEach` pays one `is` check and nothing else.
         // `ForEach` is the only conformer and is also a `ChildViewProvider`, so
         // `extractFromChildren` sees the per-element children it needs.
-        if let windowed = content as? WindowedListRowExtractor, windowed.listRowsAreSections {
+        // So is one whose rows make a number of list rows only each row knows
+        // — a loop in a row, an `if` whose arms differ — which the windowed
+        // path, counting rows from the data, cannot describe either.
+        if let windowed = content as? WindowedListRowExtractor,
+            windowed.listRowsAreSections || windowed.listRowsPerElement == nil
+        {
             let extracted = extractFromChildren(of: content, context: context)
             return .eager(extracted.rows, editOwners: extracted.editOwners)
         }
@@ -3486,6 +3491,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// which is not editable at all — carries an empty array and every lookup
     /// against it answers immediately.
     private static func editOwner<V: View>(of content: V, rows: Range<Int>) -> ListRowEditOwner? {
+        // A loop whose rows are several views each draws several list rows per
+        // element, where an owner maps one row to one offset: its editing
+        // gestures are refused rather than handed the wrong element
+        // (decisions D1S).
+        if let windowed = content as? WindowedListRowExtractor, windowed.listRowsPerElement != 1 {
+            return nil
+        }
         guard let actions = content as? any DynamicViewContentActions,
             actions.deleteAction != nil || actions.moveAction != nil
         else { return nil }

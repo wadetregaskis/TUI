@@ -118,8 +118,39 @@ extension _VStackCore {
         state: StackWindowState, context: RenderContext
     ) -> Int? {
         guard let focusID else { return nil }
-        guard let key = Self.rowKey(inFocusID: focusID, belowStackPath: context.identity.path)
+        guard let key = Self.rowKey(inFocusID: focusID, belowStackPath: context.identity.path),
+            let ordinal = resolveOrdinal(forKey: key, children: children, state: state)
         else { return nil }
-        return resolveOrdinal(forKey: key, children: children, state: state)
+        return Self.memberOrdinal(near: ordinal, key: key, addressedBy: focusID, children: children)
+    }
+
+    /// The ordinal, among the children keyed `key` around `ordinal`, of the
+    /// one `focusID` addresses.
+    ///
+    /// A key names one child for a row of one view, and this is `ordinal`
+    /// after two key reads. The views of a `ForEach` row of several (decisions
+    /// B15) share their row's key, each at an identity of its own below the
+    /// row's, so the run of them is walked and the one whose identity the ID
+    /// names is taken: the key alone named the run's first, or whichever the
+    /// ordinal memo last saw, and the focused view itself went unrendered —
+    /// so it registered nothing, and the focus moved to a row in the band.
+    static func memberOrdinal(
+        near ordinal: Int, key: String, addressedBy focusID: String, children: ChildViewCollection
+    ) -> Int {
+        let sharesBefore = ordinal > 0 && children.key(at: ordinal - 1) == key
+        let sharesAfter = ordinal + 1 < children.count && children.key(at: ordinal + 1) == key
+        guard sharesBefore || sharesAfter else { return ordinal }
+        var start = ordinal
+        while start > 0, children.key(at: start - 1) == key { start -= 1 }
+        var member = start
+        while member < children.count, children.key(at: member) == key {
+            if let identity = children[member].pinnedIdentity,
+                FocusManager.focusID(focusID, addressesSubtreeAt: identity.path)
+            {
+                return member
+            }
+            member += 1
+        }
+        return ordinal
     }
 }

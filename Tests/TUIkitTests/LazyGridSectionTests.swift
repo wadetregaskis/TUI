@@ -79,8 +79,12 @@ struct LazyGridSectionTests {
         #expect(painted(grid) == ["0          1", "2          3", "4"])
     }
 
-    @Test("A grid's spacing falls between rows and between sections, as a stack's does")
+    @Test("A grid's spacing falls between every two of a section's rows, its header and footer too, as SwiftUI's does")
     func spacingBetweenRowsAndSections() {
+        // Measured on macOS 15.8 (`w10b/probe/p5`, `spacing: 10`): the gap
+        // falls between a header and its section's first row as between any
+        // two rows. The grid's sections are a loop's rows, each a section a
+        // stack takes apart (decisions B15).
         let grid = LazyVGrid(columns: columns, alignment: .leading, spacing: 1) {
             ForEach(0..<2, id: \.self) { section in
                 Section("Head \(section)") {
@@ -91,8 +95,8 @@ struct LazyGridSectionTests {
         let lines = renderToBuffer(grid, context: makeBareRenderContext(width: 20, height: 20))
             .lines.map { $0.stripped.replacingOccurrences(of: " +$", with: "", options: .regularExpression) }
         #expect(
-            Array(lines.prefix(8)) == [
-                "Head 0", "0.0        0.1", "", "0.2", "", "Head 1", "1.0        1.1", "",
+            Array(lines.prefix(9)) == [
+                "Head 0", "", "0.0        0.1", "", "0.2", "", "Head 1", "", "1.0        1.1",
             ])
     }
 }

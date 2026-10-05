@@ -15,9 +15,9 @@ import Foundation
 /// ## Rendering
 ///
 /// Inside a container, `ForEach` is transparent: `resolveChildViews` asks it
-/// for one ``ChildView`` per element, and the stack lays those out as its own
-/// siblings, so a `ForEach` in a `VStack` is indistinguishable from writing
-/// the rows out by hand.
+/// for one ``ChildView`` per element — each of the views of a row of several
+/// — and the stack lays those out as its own siblings, so a `ForEach` in a
+/// `VStack` is indistinguishable from writing the rows out by hand.
 ///
 /// Used as an entire `body` — which is how Apple's own `ForEach`
 /// documentation writes it — it stacks its elements vertically itself, via
@@ -219,8 +219,17 @@ extension ForEach: ChildViewProvider where Content: View {
     /// ``ViewIdentity/child(erasedType:key:)``), stable across passes AND
     /// across data mutations — reordering the data moves each row's state
     /// with its element.
+    ///
+    /// A row of several views hands over each of them, as SwiftUI's does
+    /// (``rowMembers(of:context:)``, decisions B15); a row of one view —
+    /// nearly every row — is one child, built as it always was.
     public func childViews(context: RenderContext) -> [ChildView] {
-        data(in: context).map(makeChild(for:))
+        let data = data(in: context)
+        switch rowShape(keepingSectionsWhole: context.keepsSectionsWhole) {
+        case .single: return data.map(makeChild(for:))
+        case .none: return []
+        case .fixed, .varying: return data.flatMap { rowMembers(of: $0, context: context) }
+        }
     }
 
     /// Worth remembering for the pass from sixteen rows: below that the
@@ -242,7 +251,7 @@ extension ForEach: ChildViewProvider where Content: View {
     /// the cache. `identityType: Content.self` keeps the per-child
     /// identity exactly what it is unwrapped — the memo is identity-
     /// transparent (the wrapper is Renderable, adds no identity).
-    private func makeChild(for element: Data.Element) -> ChildView {
+    func makeChild(for element: Data.Element) -> ChildView {
         let key = identityKey(elementID(of: element))
         // A row carrying an explicit `.alignmentGuide` is handed over bare. The
         // memo wrapper is `Renderable` and opaque, so a container reading its
@@ -328,9 +337,39 @@ extension ForEach: LazyChildViewProvider where Content: View {
     /// O(1) and per-touch respectively, with `content` never invoked — and
     /// a row view is built only when an ordinal is actually subscripted.
     /// `RandomAccessCollection` makes the per-ordinal element access O(1).
+    ///
+    /// A loop whose rows are each several views of a number its row type says
+    /// stays as lazy: its count is the elements' times that number, and a
+    /// child's element is its ordinal divided by it. One whose rows vary
+    /// builds every row to count them (decisions B15).
     public func childViewCollection(context: RenderContext) -> ChildViewCollection {
         let data = self.data(in: context)
         let loop = self
+        switch rowShape(keepingSectionsWhole: context.keepsSectionsWhole) {
+        case .single: break
+        case .none: return ChildViewCollection(eager: [])
+        case .fixed(let perElement):
+            func element(_ ordinal: Int) -> Data.Element {
+                data[data.index(data.startIndex, offsetBy: ordinal / perElement)]
+            }
+            return ChildViewCollection(
+                count: data.count * perElement,
+                key: { identityKey(loop.elementID(of: element($0))) },
+                anyID: { AnyHashable(loop.elementID(of: element($0))) },
+                dataSignature: listRowsSignature,
+                build: { loop.rowMember($0 % perElement, of: element($0), context: context) })
+        case .varying:
+            let (members, offsets) = allRowMembers(of: data, context: context)
+            func element(_ ordinal: Int) -> Data.Element {
+                data[data.index(data.startIndex, offsetBy: offsets[ordinal])]
+            }
+            return ChildViewCollection(
+                count: members.count,
+                key: { identityKey(loop.elementID(of: element($0))) },
+                anyID: { AnyHashable(loop.elementID(of: element($0))) },
+                dataSignature: listRowsSignature,
+                build: { members[$0] })
+        }
         return ChildViewCollection(
             count: data.count,
             // The same box `listRowsSignature` builds, taken once here rather

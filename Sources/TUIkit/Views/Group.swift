@@ -79,6 +79,13 @@ extension Group: ChildViewProvider where Content: View {
     }
 }
 
+/// Its content's count: a `ForEach` row that is `Group { a; b }` is two
+/// children from every element, which keeps a lazy stack over such rows lazy
+/// (`ForEach.rowShape(keepingSectionsWhole:)`, decisions B15).
+extension Group: StaticMemberCounting where Content: View {
+    package static var staticMemberCount: Int? { TUIkitView.staticMemberCount(Content.self) }
+}
+
 extension Group: ChildInfoProvider where Content: View {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         resolveChildInfos(from: content, context: context)

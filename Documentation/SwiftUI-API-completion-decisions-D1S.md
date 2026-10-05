@@ -64,3 +64,78 @@ grey title, which is styling, so the owner's B16 rule ("a header outside a
 does, `RenderContext.keepsSectionsWhole`) and the menu style draws a section's
 header as a disabled title in the menu's secondary colour, with a separator
 before every section but the first, as macOS does. Half a day.
+
+### B-D1S-3. `AnyView` around several views is one subview
+
+*`AnyView`, `Group(subviews:transform:)`, `ForEach(subviews:content:)`,
+`LayoutSubviews`*
+
+B15's entry and this lane's brief say SwiftUI keeps `AnyView(Group { a; b })`
+as one subview. Measured, it does not: SwiftUI takes an `AnyView` apart like a
+`Group` — `ForEach(0..<2) { _ in AnyView(Group { a; b }) }` is four subviews,
+and an `HStack` of it lays out four views in a row (probe `b15`; the Wave 5
+probe `s` measured one `AnyView(Group { a; b })` as two subviews, and the
+compatibility document's Subviews row already lists the difference). TUIkit
+keeps an `AnyView` as one child everywhere, as before this lane, as the brief
+asked.
+
+**The fuller version.** `AnyView` becomes a provider of its content's
+children, re-wrapping each in an `AnyView` as a `ContentRewrapping` wrapper
+does, so the erasure still separates identities as it does now
+(`AnyView.contentContext(noting:)`). The cost is on the `anyview` scenario,
+whose children are all erased: every child walk opens the existential and asks
+it for a provider conformance. Half a day, and an A/B on `anyview`, `deep` and
+`modifiers` before it lands.
+
+### B-D1S-4. A list offers no editing over rows of several views
+
+*`ForEach.onDelete(perform:)`, `ForEach.onMove(perform:)`, `List`*
+
+A `ForEach` row of several views is now several list rows (B15), each selected
+by its element. A list's editing owner maps one list row to one offset in the
+loop's collection, so for such a loop the list attaches no `.onDelete` /
+`.onMove` at all, rather than hand an action the offset of a row that is not
+an element: Delete on one of the rows does nothing, and none of them can be
+dragged to reorder. SwiftUI deletes the element (every one of its rows) and
+moves the element's rows together.
+
+**The fuller version.** The owner carries the rows per element: a delete on any
+of an element's rows removes that element, and a move picks up all of its rows
+and lands between elements, never inside one. Half a day with the tests.
+
+### B-D1S-5. A loop whose rows vary is built to be counted
+
+*`ForEach`, `LazyVStack`, `LazyHStack`*
+
+Where a row's type says how many views it is — a `Group { a; b }`, a tuple,
+`if`/`else` arms of one view each — the loop maps a child's ordinal to its
+element by arithmetic, and a lazy stack over a million such rows builds only
+the rows it draws. Where only the row knows — a loop in the row, an `if` whose
+arms differ, an `if` without `else` around several views, a section the walk
+takes apart — every row is built and resolved, though not drawn, on every walk
+that asks for the children. An `if` without `else` around ONE view stays one
+child, empty when false, as before, where SwiftUI counts none: no stack draws
+or spaces an empty child, and a `Layout` counts it.
+
+**The fuller version.** An index from element to first child, built once and
+kept across frames while the data is unchanged (the loop's `listRowsSignature`
+already says when it is), so a lazy stack over varying rows is O(window) after
+the first frame. A day, with an A/B on `megalist` shaped with such rows.
+
+### B-D1S-6. A view of the app's own whose body is several views is one child
+
+*`View`, `Group(subviews:transform:)`, `HStack`, `Layout`*
+
+Noticed, not changed: `struct Pair: View { var body: some View { Text("a");
+Text("b") } }` placed in an `HStack` draws as a column here — one child, its
+body stacked on its own — where SwiftUI lays the two texts along the row and
+counts two subviews (probe `b17`'s `Content`, measured). A `List` already looks
+through such a body for its rows (`listRowsBody(of:context:)`); stacks,
+layouts and the subview APIs do not. The same family as B15.
+
+**The fuller version.** A composite view whose body is a provider is resolved
+as its body's children, its `@State` bound at its identity as a render binds
+it — what `listRowsBody` does for lists, for every container. It moves the
+identity of every child of such a view, and it is on the hottest path there
+is (every composite child of every stack), so its gate must be a static
+witness. Two days with the measurement.

@@ -33,14 +33,13 @@ private func rowSection(_ section: Int, footer: Bool) -> some View {
 }
 
 /// Two sections of a two-cell header and four one-cell views, a column apart:
-/// cells 0–9 and 11–20. Written out rather than looped: a `ForEach` row of a
-/// section is still one section stacked on its own (decisions B15), where a
-/// section written in the stack is taken apart unpinned, as the oracle needs.
+/// cells 0–9 and 11–20. Unpinned, the row takes each looped section apart
+/// (decisions B15, B16); pinned, it keeps them whole to pin them, and each
+/// lays itself out as the row would.
 @MainActor
 private func rowSections(_ pinned: PinnedScrollableViews, footers: Bool = false) -> some View {
     LazyHStack(spacing: 1, pinnedViews: pinned) {
-        rowSection(0, footer: footers)
-        rowSection(1, footer: footers)
+        ForEach(0..<2, id: \.self) { rowSection($0, footer: footers) }
     }
 }
 
@@ -130,16 +129,16 @@ struct PinnedRowSectionTests {
         #expect(scrollFrame(page, tui: tui, focusManager: focus, height: 1) == ["c d F0"])
     }
 
-    @Test("A pinning LazyHGrid lays a section's header down its rows, its views after, its footer after them")
-    func gridSections() {
-        // Pinning, so its sections are drawn section by section; an unpinned
-        // horizontal grid still flows a section as one cell until a `ForEach`
-        // row of sections is taken apart (decisions B15). Outside a scroll
-        // view nothing pins, so only the layout shows.
+    @Test(
+        "A LazyHGrid lays a section's header down its rows, its views after, its footer after them",
+        arguments: [PinnedScrollableViews(), .sectionHeaders])
+    func gridSections(pinned: PinnedScrollableViews) {
+        // Outside a scroll view nothing pins, so only the layout shows, and it
+        // is the same pinned or not.
         let drawn = lines(
             LazyHGrid(
                 rows: [GridItem(.fixed(1), spacing: 0), GridItem(.fixed(1))], alignment: .top, spacing: 1,
-                pinnedViews: .sectionHeaders
+                pinnedViews: pinned
             ) {
                 Section {
                     Text("a")

@@ -141,13 +141,12 @@ extension EnvironmentValues {
 
 /// Whether a `Section` resolved in `context` is handed to its container whole
 /// (``ChildViewProvider/staysWhole(in:)``): in a walk that keeps sections whole
-/// — a `List`'s, the section APIs' — and as one of a pinned lazy stack's own
-/// sections, which pins its header and footer itself.
+/// (`RenderContext.keepsSectionsWhole`) — a `List`'s, the section APIs', and a
+/// pinned lazy stack's, whose own sections pin their headers and footers
+/// themselves.
 @MainActor
 func sectionStaysWhole(in context: RenderContext) -> Bool {
-    if context.keepsSectionsWhole { return true }
-    guard let scope = context.environment.pinnedSectionScope else { return false }
-    return scope.owns(sectionAt: context.identity)
+    context.keepsSectionsWhole
 }
 
 // MARK: - The Stack That Hands It Out
@@ -177,6 +176,11 @@ extension PinningStackCore {
     /// of it — `pinnedViews:` toggled — drops what was kept below this stack,
     /// as an `.environment(_:_:)` modifier's change does, through the same
     /// once-a-pass record.
+    ///
+    /// The stack's walks keep its sections whole while it pins
+    /// (`RenderContext.keepsSectionsWhole`), so its own sections — written in
+    /// it or made there by a `ForEach` — reach it as sections to pin; the next
+    /// stack down publishes its axis and takes its own apart again.
     func scopingPinnedSections(_ context: RenderContext) -> RenderContext {
         let scope = pinnedSectionScope(context)
         let layout = scope.map { _ in pinnedSectionLayout }
@@ -203,6 +207,7 @@ extension PinningStackCore {
         var scoped = context
         scoped.environment.pinnedSectionScope = scope
         scoped.environment.pinnedSectionLayout = layout
+        scoped.keepsSectionsWhole = true
         return scoped
     }
 
@@ -216,6 +221,7 @@ extension PinningStackCore {
         var scoped = context
         scoped.environment.pinnedSectionScope = scope
         scoped.environment.pinnedSectionLayout = pinnedSectionLayout
+        scoped.keepsSectionsWhole = true
         return scoped
     }
 

@@ -72,7 +72,7 @@ struct SubviewMembers {
     /// other child is one member — including a container, whose own children
     /// stay inside it.
     init(resolving base: some View, in scope: RenderContext) {
-        if let loop = base as? any SubviewsLoop, loop.rowsAreSingleMembers {
+        if let loop = base as? any SubviewsLoop, loop.membersResolveLazily {
             self.init(
                 storage: .lazy(
                     resolveChildViewCollection(from: base, context: scope), scope: scope.identity))
@@ -123,18 +123,19 @@ struct SubviewMembers {
 }
 
 /// A provider whose children can be handed out lazily as members — a
-/// `ForEach` whose rows are each one member, never a `Section` to flatten nor
-/// an `EmptyView` to drop.
+/// `ForEach`, whose lazy collection is its members already (one per row, or
+/// each of the views of a row of several, decisions B15), unless its rows are
+/// sections, which the walk below takes apart itself.
 @MainActor
 protocol SubviewsLoop {
-    /// Whether every row is exactly one member — a static property of the row
-    /// type, so no row is built to answer it.
-    var rowsAreSingleMembers: Bool { get }
+    /// Whether the loop's lazy children are its members — a static property
+    /// of the row type, so no row is built to answer it.
+    var membersResolveLazily: Bool { get }
 }
 
 extension ForEach: SubviewsLoop where Content: View {
-    var rowsAreSingleMembers: Bool {
-        !(Content.self is any SectionPartsProviding.Type) && Content.self != EmptyView.self
+    var membersResolveLazily: Bool {
+        !(Content.self is any SectionPartsProviding.Type)
     }
 }
 

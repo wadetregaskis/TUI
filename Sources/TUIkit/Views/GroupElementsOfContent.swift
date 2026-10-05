@@ -47,10 +47,11 @@ extension Group {
     ///
     /// The members are what `view` is made of once `Group`s, `ForEach`es,
     /// conditionals and `Section`s are taken apart: `Text("a"); ForEach(0..<3)
-    /// { … }` is four subviews, a `VStack` is one. Two places differ from
-    /// SwiftUI, both from how this framework resolves children everywhere: a
-    /// `ForEach` row of several views is one subview, not several, and so is
-    /// an `AnyView` around several.
+    /// { … }` is four subviews, a `VStack` is one, and a `ForEach` row of
+    /// several views is each of them. Two places differ from SwiftUI, both
+    /// from how this framework resolves children everywhere: an `AnyView`
+    /// around several views is one subview, not several, and so is a view of
+    /// the app's own whose `body` is several.
     ///
     /// Like any `Group`, the result is transparent: inside a stack, the views
     /// `transform` builds are the stack's children.

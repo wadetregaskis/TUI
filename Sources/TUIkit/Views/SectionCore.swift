@@ -83,11 +83,15 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     }
 
     /// `context` for what the section draws, which is no section of the
-    /// stack's: a section in its content is that section's, not the stack's.
+    /// stack's: a section in its content is that section's, not the stack's,
+    /// and is taken apart there.
     private func drawingContext(_ context: RenderContext) -> RenderContext {
-        guard context.environment.pinnedSectionScope != nil else { return context }
+        guard context.environment.pinnedSectionScope != nil || context.keepsSectionsWhole else {
+            return context
+        }
         var drawing = context
-        drawing.environment.pinnedSectionScope = nil
+        if drawing.environment.pinnedSectionScope != nil { drawing.environment.pinnedSectionScope = nil }
+        drawing.keepsSectionsWhole = false
         return drawing
     }
 

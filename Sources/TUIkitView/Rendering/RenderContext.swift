@@ -284,11 +284,13 @@ public struct RenderContext {
     ///
     /// A `Section` is its parts in every container, as SwiftUI's is, except
     /// those that read sections as sections: a `List`, and the section APIs
-    /// (`Group(sections:)`, `ForEach(sections:)`). They set this on the context
-    /// they RESOLVE their content with and on no other — the views they then
-    /// draw are drawn in their ordinary context — so it reaches every provider
-    /// in the walk (a `Group`, an `if`, a `ForEach` of sections) and no
-    /// container below a row.
+    /// (`Group(sections:)`, `ForEach(sections:)`), which set this on the
+    /// context they RESOLVE their content with and on no other — the views
+    /// they then draw are drawn in their ordinary context — and a lazy stack
+    /// that pins its sections, which sets it for its walks and its rows alike,
+    /// and which the next stack down clears as it publishes its axis. So it
+    /// reaches every provider in the walk (a `Group`, an `if`, a `ForEach` of
+    /// sections) and no stack below a row.
     ///
     /// A `Bool` among the flags, in padding that was already there, for the
     /// reason ``measureGeneration`` gives: this struct's stride is load-bearing.

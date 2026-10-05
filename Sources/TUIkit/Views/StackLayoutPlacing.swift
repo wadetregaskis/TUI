@@ -242,7 +242,22 @@ extension _VStackCore: LayoutPlacing {
         let children = resolveChildViewCollection(from: content, context: placementContext(context))
         if let key = step.key {
             // Keys come from the provider's data — no row views are built.
-            return children.firstOrdinal(forKey: key)
+            guard let first = children.firstOrdinal(forKey: key) else { return nil }
+            // Several children under one key are the views of one `ForEach`
+            // row of several (decisions B15), each at an identity of its own
+            // below the row's: the one holding the target is built to find it.
+            // A one-view row's next key differs, and nothing more is asked.
+            guard first + 1 < children.count, children.key(at: first + 1) == key else { return first }
+            var ordinal = first
+            while ordinal < children.count, children.key(at: ordinal) == key {
+                if let member = children[ordinal].pinnedIdentity,
+                    member == target || member.isAncestor(of: target)
+                {
+                    return ordinal
+                }
+                ordinal += 1
+            }
+            return first
         }
         if let index = step.index {
             // Keyed children never match a positional step; a uniformly keyed

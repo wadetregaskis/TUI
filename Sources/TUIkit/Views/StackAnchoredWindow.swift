@@ -728,9 +728,9 @@ extension _VStackCore {
             let estimate = state.estimatedPitch(spacing: spacing)
             let placedOrdinals = Set(placed.map(\.ordinal))
             for target in [focusManager.currentFocusedID, focusManager.pendingFocusID] {
-                guard let focusID = target,
-                    let key = Self.rowKey(inFocusID: focusID, belowStackPath: context.identity.path),
-                    let ordinal = resolveOrdinal(forKey: key, children: children, state: state),
+                guard
+                    let ordinal = targetOrdinal(
+                        for: target, children: children, state: state, context: context),
                     !placedOrdinals.contains(ordinal)
                 else { continue }
                 // Clamped, never dropped: an above-window target's estimate
@@ -1020,7 +1020,12 @@ extension _VStackCore {
         if let memoised = state.rowOrdinalMemo[key],
             memoised < children.count, children.key(at: memoised) == key
         {
-            return memoised
+            // The first of the views a `ForEach` row of several hands over
+            // under its key (decisions B15), as the scan below finds: the memo
+            // may hold any of them. One key read for a row of one view.
+            var first = memoised
+            while first > 0, children.key(at: first - 1) == key { first -= 1 }
+            return first
         }
         return children.firstOrdinal(forKey: key)
     }

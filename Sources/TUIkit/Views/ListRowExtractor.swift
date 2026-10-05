@@ -169,6 +169,12 @@ protocol WindowedListRowExtractor {
     /// reached only through a `Group`, an `if`/`else` or a view of the app's
     /// own is therefore not seen, exactly as a badge under one is not.
     var listRowsAreSections: Bool { get }
+
+    /// How many list rows each element makes — one for a row of one view, the
+    /// row's views for a row of several (`Group { a; b }`, decisions B15) — or
+    /// `nil` when that depends on each element, and the list reads the rows
+    /// from the child walk instead.
+    var listRowsPerElement: Int? { get }
 }
 
 // MARK: - Seeing Through a Group or an if/else
@@ -288,7 +294,7 @@ extension ConditionalView: ListRowsPassThrough {
 
 extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
     func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
-        (0..<data.count).map { index -> ListRow<RowID> in
+        (0..<listRowCount).map { index -> ListRow<RowID> in
             // Resolve the row's selection ID up front — it's cheap (a key-path
             // read or the index) and the scroll / selection handler needs it for
             // EVERY row, on- or off-screen. Building and rendering the row view,
@@ -304,7 +310,12 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
         }
     }
 
-    var listRowCount: Int { data.count }
+    var listRowCount: Int { data.count * (listRowsPerElement ?? 1) }
+
+    /// The row type's shape in a walk that keeps sections whole, as a list's
+    /// does: a section row is one (and read as a section), a row of several
+    /// views is that many, and a row whose count only it knows is `nil`.
+    var listRowsPerElement: Int? { rowShape(keepingSectionsWhole: true).childrenPerElement }
 
     // `RowID`, not `ID` — `ForEach`'s own `ID` generic parameter is in scope here.
     // Resolves one row's id lazily (the windowed `List` asks only for the visible
@@ -325,6 +336,11 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     var listRowsAreSections: Bool { Content.self is any SectionRowExtractor.Type }
 
     func makeListRowContent(at index: Int, context: RenderContext) -> LazyListRowContent {
+        // One of a row of several views: a list row of its own, as SwiftUI's
+        // (decisions B15).
+        if let perElement = listRowsPerElement, perElement > 1 {
+            return makeMemberListRowContent(at: index, perElement: perElement, context: context)
+        }
         let element = self.element(at: index)
         // Which row of the enclosing LIST this element draws — the element's
         // own offset plus wherever this `ForEach`'s first element sits. The two
@@ -493,7 +509,45 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     /// on every frame, so a row type that cannot carry one pays a cached `is`
     /// check and keeps its bare key-path read.
     private func rowID<RowID: Hashable>(at index: Int) -> RowID? {
-        selectionID(of: element(at: index)) ?? (index as? RowID)
+        // A row of several views is several list rows, each naming itself by
+        // its element, as SwiftUI tags each (decisions B15).
+        let elementIndex = index / max(1, listRowsPerElement ?? 1)
+        return selectionID(of: element(at: elementIndex)) ?? (elementIndex as? RowID)
+    }
+
+    /// The list row for view `index % perElement` of element
+    /// `index / perElement`'s row of several: drawn as a container draws that
+    /// view, at the identity it has there, with what a list asks of any row —
+    /// its size, its badge, where it sits in a ramp, its raised background
+    /// when focused and selected, its type-select text.
+    private func makeMemberListRowContent(
+        at index: Int, perElement: Int, context: RenderContext
+    ) -> LazyListRowContent {
+        let member = rowMember(index % perElement, of: element(at: index / perElement), context: context)
+        let listRowIndex = (context.environment.listRowEditRestrictions?.rowIndexBase ?? 0) + index
+        let box = LazyListRowContent(
+            identity: member.pinnedIdentity,
+            measure: {
+                let size = member.measure(
+                    proposal: ProposedSize(width: context.availableWidth, height: nil), context: context)
+                return (size, context.availableWidth)
+            },
+            render: { placement, prominence in
+                var rowContext = context
+                rowContext.gradientFrame = placement ?? rowContext.gradientFrame
+                if prominence != .standard { rowContext.environment.backgroundProminence = prominence }
+                context.environment.listRowEditRestrictions?.currentRowIndex = listRowIndex
+                let buffer = member.render(
+                    width: rowContext.availableWidth, height: rowContext.availableHeight, context: rowContext)
+                return (buffer, extractRowBadgeValue(from: member.wrappedView))
+            })
+        box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) ?? {
+            var probe = context
+            probe.isMeasuring = true
+            return member.render(width: context.availableWidth, height: context.availableHeight, context: probe)
+                .lines.first.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        }
+        return box
     }
 
     /// The selection value `element`'s row names itself by: its own
@@ -512,17 +566,32 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
 // MARK: - ForEach's rows among other rows
 
 extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
-    /// This loop's rows, as the flattening emits them: one per element, in
-    /// order — see ``FlattenedRowIDs``.
+    /// This loop's rows, as the flattening emits them: one child per element,
+    /// or the same number of each element's views (a row of several, decisions
+    /// B15), in order — see ``FlattenedRowIDs``. A loop whose rows make a
+    /// number of children only each row knows cannot be counted from here,
+    /// and is a run of its own that keeps the hand-written rule.
     func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
-        runs.append(.loop(self))
+        switch rowShape(keepingSectionsWhole: sectionsWhole) {
+        case .single, .fixed: runs.append(.loop(self))
+        case .none: break
+        case .varying: runs.append(.opaque)
+        }
     }
 
-    var keyedRowCount: Int { data.count }
+    /// The children each element makes, for a loop placed as one run: a
+    /// section is one only where it is kept whole, and a loop of them is
+    /// placed only there.
+    private var childrenPerElement: Int {
+        max(1, rowShape(keepingSectionsWhole: true).childrenPerElement ?? 1)
+    }
 
-    /// Keyed as `makeChild(for:)` keys the row's identity.
+    var keyedRowCount: Int { data.count * childrenPerElement }
+
+    /// Keyed as `makeChild(for:)` keys the row's identity — the element's key,
+    /// which each of a row's several views carries too.
     func keyedRowKey(at offset: Int) -> String {
-        identityKey(elementID(of: element(at: offset)))
+        identityKey(elementID(of: element(at: offset / childrenPerElement)))
     }
 
     /// Through `selectionID(of:)`, so without `rowID(at:)`'s index
@@ -531,10 +600,10 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// answered as such, so its container falls back to its own ordinal for it
     /// — the number it had before.
     func keyedRowSelectionID<RowID: Hashable>(at offset: Int) -> RowID? {
-        selectionID(of: element(at: offset))
+        selectionID(of: element(at: offset / childrenPerElement))
     }
 
     func keyedRowElementID(at offset: Int) -> AnyHashable {
-        AnyHashable(elementID(of: element(at: offset)))
+        AnyHashable(elementID(of: element(at: offset / childrenPerElement)))
     }
 }

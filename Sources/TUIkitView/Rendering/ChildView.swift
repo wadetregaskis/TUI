@@ -336,6 +336,24 @@ public struct ChildView {
     /// for this child, or `nil` when it still derives one from its context.
     package var pinnedIdentity: ViewIdentity? { resolvedIdentity }
 
+    /// This child — pinned already — as one of the views a `ForEach` row of
+    /// several hands its container: keyed by the row's element, so a seek for
+    /// the element and a container placing the loop's rows find it under that
+    /// key, at the identity it was pinned to.
+    ///
+    /// Marked as resolved (`ProviderSlot.resolvedInBranch`) for the reason a
+    /// branch's keyed row is: a tuple splice further out then keeps its
+    /// identity, rather than flattening it to a slot-prefixed key every member
+    /// of the row would share.
+    package func keyedAsMember(ofRowKeyed key: String) -> Self {
+        assert(resolvedIdentity != nil, "a row's member is pinned before it is keyed")
+        return Self(
+            view: view, identityType: identityType ?? type(of: view), childIndex: childIndex,
+            identityKey: key, providerSlot: ProviderSlot.resolvedInBranch, isSpacer: isSpacer,
+            spacerMinLength: spacerMinLength, zIndex: zIndex,
+            providesAlignmentGuide: providesAlignmentGuide, resolvedIdentity: resolvedIdentity)
+    }
+
     /// This child with `modifier` wrapped around it — what a provider hands
     /// back when the modifier was written on the PROVIDER rather than on each
     /// of the members it resolves to.

@@ -85,15 +85,28 @@ private struct PinnedSections: View {
         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: pinnedViews) { sections }
     }
 
-    private var sections: some View {
-        ForEach(0..<path.count, id: \.self) { section in
-            Section {
-                ForEach(0..<path.rows(in: section), id: \.self) { Text("row \(section).\($0)") }
-            } header: {
-                Text("Header \(section)")
-            } footer: {
-                Text("Footer \(section)")
+    @ViewBuilder private var sections: some View {
+        if pinnedViews.isEmpty, path != .grid {
+            // The twin's sections each in a column of their own: a pinned
+            // stack keeps its sections whole, as rows, where an unpinned one
+            // takes them apart (decisions B16), and a stack windows and
+            // estimates by its rows — so the twin keeps the same rows, drawn
+            // the same, for its screens to be the oracle's.
+            ForEach(0..<path.count, id: \.self) { section in
+                VStack(alignment: .leading, spacing: 0) { sectionView(section) }
             }
+        } else {
+            ForEach(0..<path.count, id: \.self) { sectionView($0) }
+        }
+    }
+
+    private func sectionView(_ section: Int) -> some View {
+        Section {
+            ForEach(0..<path.rows(in: section), id: \.self) { Text("row \(section).\($0)") }
+        } header: {
+            Text("Header \(section)")
+        } footer: {
+            Text("Footer \(section)")
         }
     }
 }
