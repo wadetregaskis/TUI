@@ -86,6 +86,22 @@ struct ContainerRelativeFrameTests {
         #expect(!line.contains("1"))
     }
 
+    @Test("A scroll view's \"N more\" lines, reserved, come out of the container: a full-height view fills the window between them")
+    func reservedIndicatorLinesLeaveTheContainer() {
+        let drawn = scene(
+            ScrollView {
+                Text("x").containerRelativeFrame(.vertical, alignment: .bottom)
+            }
+            .scrollIndicators(.visible)
+            .scrollIndicatorStyle(.text)
+            .frame(height: 6),
+            height: 6)
+        // The window is lines 1 to 4; sized against the viewport, the x was the
+        // sixth line of the content, below the window, and the view scrolled.
+        #expect(drawn.firstIndex { $0.contains("x") } == 4, "\(drawn)")
+        #expect(drawn.allSatisfy { !$0.contains("1 more") }, "nothing to scroll: \(drawn)")
+    }
+
     @Test("A list is the container for its rows")
     func listIsTheContainer() {
         // A plain list in the 20-wide window: rows get the width less the gutters.

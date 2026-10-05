@@ -109,6 +109,44 @@ struct ScrollTargetBehaviorTests {
         #expect(read == Set(0..<30), "never readable: \(Set(0..<30).subtracting(read).sorted())")
     }
 
+    /// SwiftUI's paging idiom: pages as tall as the scroll view's container.
+    /// Each page marks its first and last line.
+    private func containerPages(_ count: Int) -> some View {
+        LazyVStack(spacing: 0) {
+            ForEach(0..<count, id: \.self) { index in
+                VStack(spacing: 0) {
+                    Text("top \(index)")
+                    Spacer(minLength: 0)
+                    Text("end \(index)")
+                }
+                .containerRelativeFrame(.vertical)
+            }
+        }
+    }
+
+    @Test(
+        "Container-sized pages under the \"N more\" lines: every stop shows one page whole, between them",
+        arguments: [ScrollIndicatorVisibility.visible])
+    func containerPagesUnderTextIndicators(visibility: ScrollIndicatorVisibility) {
+        let frames = Frames()
+        let view = ScrollView { containerPages(5) }
+            .frame(height: 10)
+            .scrollIndicators(visibility)
+            .scrollIndicatorStyle(.text)
+            .scrollTargetBehavior(.paging)
+        frames.render(view)
+        for page in 0..<5 {
+            let lines = frames.last.lines.map(\.stripped)
+            // The window is lines 1 to 8: the "N more" lines are the first and
+            // the last, at every stop.
+            #expect(lines.first?.contains("more") == true && lines.last?.contains("more") == true, "\(lines)")
+            #expect(lines[1].contains("top \(page)") && lines[8].contains("end \(page)"), "page \(page): \(lines)")
+            #expect(lines.count { $0.contains("top") || $0.contains("end") } == 2, "one page: \(lines)")
+            frames.wheel(.scrollDown)
+            frames.render(view)
+        }
+    }
+
     @Test("View-aligned under the \"N more\" lines: the row a tick lands on is read whole, below \"▲\"")
     func viewAlignedUnderTextIndicators() {
         let frames = Frames()
