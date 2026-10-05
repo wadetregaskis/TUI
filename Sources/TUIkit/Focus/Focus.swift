@@ -187,6 +187,11 @@ public final class FocusManager: @unchecked Sendable {
     /// menu simply stops marking and the flag evaporates.
     private var optionalFocusSectionIDs: Set<String> = []
 
+    /// Sections that never take the keyboard by themselves: the window's
+    /// toolbars. See `FocusManagerPassiveSection.swift`, where they are
+    /// registered and handed back from.
+    var passiveSectionIDs: Set<String> = []
+
     /// Whether this manager may give focus to a control merely because it
     /// registered. Set on the throwaway manager the page-beneath-a-modal
     /// renders into (`RenderContext.isolatedForBackground()`): that render
@@ -462,8 +467,9 @@ extension FocusManager {
         guard let section = section(id: targetID) else { return }
         section.register(element)
 
-        // Auto-activate section and auto-focus first element if needed
-        if activeSectionID == nil {
+        // Auto-activate section and auto-focus first element if needed — and
+        // take the keyboard from a passive section holding none.
+        if activeSectionID == nil || (activeSectionIsIdlePassive && !passiveSectionIDs.contains(targetID)) {
             activeSectionID = targetID
         }
         // Hold off auto-focusing the section's first element while a
@@ -628,6 +634,7 @@ extension FocusManager {
         sectionRevertTarget.removeAll()
         modalSectionIDs.removeAll()
         optionalFocusSectionIDs.removeAll()
+        passiveSectionIDs.removeAll()
         focusBindings.removeAll()
         focusDefaultValues.removeAll()
         appliedDefaultFocus.removeAll()
@@ -1110,8 +1117,8 @@ extension FocusManager {
         let section = FocusSection(id: id)
         sections.append(section)
 
-        // Auto-activate first section
-        if activeSectionID == nil {
+        // Auto-activate first section — never a passive one.
+        if activeSectionID == nil, !passiveSectionIDs.contains(id) {
             activeSectionID = id
         }
     }
@@ -1398,7 +1405,8 @@ extension FocusManager {
             closeUndrawnPresentation(id: activeID)
             rememberFocusForActiveSection()
             notifyFocusLost()
-            activeSectionID = sections.first?.id
+            // The first section that takes the keyboard, if there is one.
+            activeSectionID = (sections.first { !passiveSectionIDs.contains($0.id) } ?? sections.first)?.id
             focusedID = nil
             restoreFocusForActiveSection()
         }
@@ -1453,6 +1461,11 @@ extension FocusManager {
         // Then a `.prefersDefaultFocus` whose scope appeared this pass, if
         // nothing holds the focus but what the manager chose for itself.
         resolveScopeDefaults()
+
+        // A passive section holding the keyboard with nothing focused hands it
+        // to the first section that has something to focus — a page whose
+        // controls arrived after the bar did.
+        if let section = idlePassiveHandBackSection() { activeSectionID = section }
 
         // Auto-focus if, after validation and any default, nothing holds focus: the
         // dropped control's handoff target or neighbour when it had one, the first

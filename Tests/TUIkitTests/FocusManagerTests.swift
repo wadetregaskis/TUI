@@ -473,6 +473,34 @@ struct EndOfRenderPassFocusNotificationTests {
         #expect(repaints == 1, "the frame drew the dead section's hints; the next must not")
     }
 
+    /// A window toolbar's section is passive: Tab reaches it, but it never
+    /// holds the keyboard with nothing focused while the page has something.
+    /// When the focused bar control goes, the keyboard goes back to the page.
+    @Test("A passive section whose focused control left hands the keyboard to the page")
+    func idlePassiveSectionHandsBack() {
+        let manager = FocusManager()
+        let page = MockFocusable(id: "page-control")
+        let bar = MockFocusable(id: "bar-control")
+        manager.beginRenderPass()
+        manager.registerSection(id: "page")
+        manager.register(page, inSection: "page")
+        manager.registerPassiveSection(id: "bar")
+        manager.register(bar, inSection: "bar")
+        manager.endRenderPass()
+        #expect(manager.currentFocusedID == "page-control", "the bar never takes the first focus")
+        manager.activateSection(id: "bar")
+        #expect(manager.currentFocusedID == "bar-control", "sanity: Tab put the focus in the bar")
+
+        manager.beginRenderPass()
+        manager.registerSection(id: "page")
+        manager.register(page, inSection: "page")
+        manager.registerPassiveSection(id: "bar")
+        manager.endRenderPass()
+
+        #expect(manager.activeSectionIdentifier == "page")
+        #expect(manager.currentFocusedID == "page-control")
+    }
+
     @Test("A pass that changes nothing requests no repaint")
     func steadyStateIsQuiet() {
         let manager = FocusManager()

@@ -90,6 +90,34 @@ private struct DimmedDeclarationApp: App {
     }
 }
 
+/// Whether the loading page has loaded: reachable from an `App`.
+private final class LoadSwitch: @unchecked Sendable {
+    static let shared = LoadSwitch()
+    var loaded = false
+}
+
+/// A page with nothing to focus until it loads, under a bottom bar.
+private struct LoadingPageApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                if LoadSwitch.shared.loaded {
+                    Button("FIRST") {}
+                    Button("SECOND") {}
+                } else {
+                    Text("LOADING")
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) { StatusBar() }
+                ToolbarItem(placement: .bottomBar) { Button("BAR") {} }
+            }
+        }
+    }
+}
+
 @MainActor
 @Suite("What reaches a toolbar item", .serialized)
 struct ToolbarReachTests {
@@ -170,5 +198,25 @@ struct ToolbarReachTests {
         app.frame(atNanos: 60_000_000)
         app.send(KeyEvent(key: .enter))
         #expect(ReachProbe.shared.deletes == 0, "nor by Tab and Return")
+    }
+
+    @Test("A bar never takes the keyboard: controls the page gains after the bar was drawn get the focus")
+    func barNeverTakesTheKeyboard() throws {
+        LoadSwitch.shared.loaded = false
+        defer { LoadSwitch.shared.loaded = false }
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(LoadingPageApp())
+        _ = loop.render()
+        _ = loop.render()
+        #expect(harness.focusManager.currentFocusedID == nil, "nothing to focus but the bar's, which it never takes")
+        LoadSwitch.shared.loaded = true
+        _ = loop.render()
+        _ = loop.render()
+        let ring = harness.focusManager.focusableIDs
+        #expect(ring.count == 3, "\(ring)")
+        #expect(harness.focusManager.currentFocusedID == ring.first, "the page's first control: \(ring)")
+        #expect(
+            harness.focusManager.activeSectionIdentifier != _WindowChromeHost<EmptyView>.toolbarSectionID(.bottom),
+            "the page's section holds the keyboard")
     }
 }

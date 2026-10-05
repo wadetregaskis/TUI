@@ -70,9 +70,8 @@ extension _WindowChromeHost {
             let sectionID = Self.toolbarSectionID(edge)
             if isModal {
                 barContext = barContext.isolatedForBackground()
-            } else if let focusManager = context.environment.focusManager {
-                focusManager.markSectionFocusOptional(id: sectionID)
-                focusManager.registerSection(id: sectionID)
+            } else {
+                context.environment.focusManager?.registerPassiveSection(id: sectionID)
             }
             barContext.environment.activeFocusSectionID = sectionID
             let (title, subtitle) = titleSlot(edge, chrome: chrome)
