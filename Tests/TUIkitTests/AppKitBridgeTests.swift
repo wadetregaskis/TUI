@@ -40,7 +40,13 @@ struct AppKitBridgeTests {
     /// built from imports AppKit. A module that did would load SwiftUICore
     /// into every app that imports TUIkit, `internal import` or not, and put
     /// SwiftUI's own `FormatStyle.offset(to:)` and the rest beside TUIkit's.
-    @Test("No module TUIkit is built from imports AppKit")
+    ///
+    /// Held as a list of what these modules may import, not of what they may
+    /// not: AppKit comes in through more frameworks than anyone would list —
+    /// PDFKit, WebKit, MapKit, AVKit, SpriteKit, SceneKit, GameplayKit,
+    /// StoreKit, MetalKit, QuickLookUI and Quartz each make `NSColor` visible
+    /// on macOS (checked 2026-10-05 with `import X; let c = NSColor.red`).
+    @Test("No module TUIkit is built from imports anything that could bring AppKit in")
     func noAppKitBelowTheBridges() throws {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -51,12 +57,17 @@ struct AppKitBridgeTests {
             let walker = try #require(FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil))
             for case let file as URL in walker where file.pathExtension == "swift" {
                 let text = try String(contentsOf: file, encoding: .utf8)
-                for imported in ImportScan.importedModules(in: text) where ImportScan.forbidden.contains(imported) {
+                for imported in ImportScan.importedModules(in: text) where !ImportScan.allowed.contains(imported) {
                     offenders.append("\(module)/\(file.lastPathComponent): \(imported)")
                 }
             }
         }
-        #expect(offenders.isEmpty, "\(offenders)")
+        #expect(
+            offenders.isEmpty,
+            """
+            \(offenders): a module not on ImportScan.allowed. Add it there once `import X; \
+            let c = NSColor.red` fails to type-check on macOS, i.e. it does not bring AppKit in.
+            """)
     }
 
     /// The scan is only as good as what it recognises as an import, so it is
@@ -90,12 +101,17 @@ struct AppKitBridgeTests {
             ("#if canImport(AppKit)\n    import AppKit\n#endif", "AppKit"),
             ("let text = \"\"\"\n  a line \\\n  continued /*\n  \"\"\"\nimport AppKit", "AppKit"),
             ("let path = \"\\\"/*\"\nimport AppKit", "AppKit"),
-            ("import AppKitShim", nil),
+            ("let s = \"\\(x.replacingOccurrences(of: \"/*\", with: \"\"))\"\nimport AppKit", "AppKit"),
+            ("let s = \"\\(\"/*\")\"\nimport AppKit", "AppKit"),
+            ("let s = \"\\(f(\"a\", g(\")\")))\" + \"/*\"\nimport AppKit", "AppKit"),
+            ("let s = #\"\\#(x[\"/*\"])\"#\nimport AppKit", "AppKit"),
+            ("import AppKitShim", "AppKitShim"),
+            ("import WebKit", "WebKit"),
             ("import Foundation // not AppKit", nil),
         ] as [(String, String?)])
-    func importScan(source: String, forbidden: String?) {
-        let found = ImportScan.importedModules(in: source).filter { ImportScan.forbidden.contains($0) }
-        #expect(found == (forbidden.map { [$0] } ?? []), "\(source.debugDescription) → \(found)")
+    func importScan(source: String, refused: String?) {
+        let found = ImportScan.importedModules(in: source).filter { !ImportScan.allowed.contains($0) }
+        #expect(found == (refused.map { [$0] } ?? []), "\(source.debugDescription) → \(found)")
     }
 }
 
@@ -103,10 +119,18 @@ struct AppKitBridgeTests {
 /// import declaration — for the guard above, which must not be fooled by a
 /// spelling it did not think of, nor by a comment.
 private enum ImportScan {
-    /// The modules that import SwiftUICore into a client: AppKit (from the
-    /// macOS 15 SDK), Cocoa (which imports AppKit), SwiftUI, and SwiftUICore
-    /// itself.
-    static let forbidden: Set<String> = ["AppKit", "Cocoa", "SwiftUI", "SwiftUICore"]
+    /// The modules TUIkit's own may import: each other, the standard
+    /// libraries of the platforms it builds on, and the Apple frameworks
+    /// checked not to bring AppKit (and with it SwiftUICore) in. Anything
+    /// else — AppKit, Cocoa, SwiftUI, SwiftUICore, or a framework that
+    /// re-exports one of them — fails the guard.
+    static let allowed: Set<String> = [
+        "TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage", "CSTBImage",
+        "Foundation", "FoundationEssentials", "FoundationNetworking", "Observation", "Dispatch",
+        "Synchronization", "DequeModule",
+        "Darwin", "Glibc", "Musl", "WASILibc", "ucrt", "WinSDK", "os",
+        "CoreGraphics", "CoreText", "ImageIO", "UniformTypeIdentifiers",
+    ]
 
     /// The kinds a scoped import names (`import struct AppKit.NSColor`).
     private static let kinds: Set<Substring> = [
@@ -202,6 +226,8 @@ private enum ImportScan {
         static let hash = UInt8(ascii: "#")
         static let backslash = UInt8(ascii: "\\")
         static let newline = UInt8(ascii: "\n")
+        static let openParen = UInt8(ascii: "(")
+        static let closeParen = UInt8(ascii: ")")
     }
 
     /// Whether the `#`s at `index` open a raw string (`#"`), rather than a
@@ -227,6 +253,13 @@ private enum ImportScan {
         let quotes = isMultiline ? 3 : 1
         cursor += quotes
         while cursor < bytes.count {
+            if let open = interpolationOpening(bytes, at: cursor, hashes: hashes) {
+                // `\(…)` (`\#(…)` in a raw string) is code, with strings of
+                // its own: one of them holding `"` or `/*` must not end this
+                // string, nor open a comment.
+                cursor = endOfInterpolation(bytes, from: open, keepingNewlinesIn: &kept)
+                continue
+            }
             if bytes[cursor] == Byte.backslash, hashes == 0 {
                 // An escape, or a multi-line string's line continuation,
                 // whose newline still ends a line.
@@ -239,6 +272,46 @@ private enum ImportScan {
                 kept.append(Byte.newline)
             }
             if closes(bytes, at: cursor, quotes: quotes, hashes: hashes) { return cursor + quotes + hashes }
+            cursor += 1
+        }
+        return cursor
+    }
+
+    /// The index just past the `(` of an interpolation that starts at
+    /// `index` — a backslash, the string's `hashes` hashes, then `(` — or
+    /// `nil` if none does.
+    private static func interpolationOpening(_ bytes: [UInt8], at index: Int, hashes: Int) -> Int? {
+        guard bytes[index] == Byte.backslash else { return nil }
+        let paren = index + 1 + hashes
+        guard paren < bytes.count, bytes[paren] == Byte.openParen,
+            (0..<hashes).allSatisfy({ bytes[index + 1 + $0] == Byte.hash })
+        else { return nil }
+        return paren + 1
+    }
+
+    /// The index just past the `)` that closes an interpolation whose code
+    /// starts at `index`, stepping over its own parentheses and strings.
+    private static func endOfInterpolation(_ bytes: [UInt8], from index: Int, keepingNewlinesIn kept: inout [UInt8]) -> Int {
+        var cursor = index
+        var depth = 1
+        while cursor < bytes.count {
+            switch bytes[cursor] {
+            case Byte.quote:
+                cursor = endOfString(bytes, from: cursor, keepingNewlinesIn: &kept)
+                continue
+            case Byte.hash where opensRawString(bytes, at: cursor):
+                cursor = endOfString(bytes, from: cursor, keepingNewlinesIn: &kept)
+                continue
+            case Byte.openParen:
+                depth += 1
+            case Byte.closeParen:
+                depth -= 1
+                if depth == 0 { return cursor + 1 }
+            case Byte.newline:
+                kept.append(Byte.newline)
+            default:
+                break
+            }
             cursor += 1
         }
         return cursor
