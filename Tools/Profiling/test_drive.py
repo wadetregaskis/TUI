@@ -253,6 +253,69 @@ class TestAnswerFence(unittest.TestCase):
         self.assertFalse(self.answered(), "off by default")
 
 
+# A stand-in for an app whose status request comes in a LATER exchange, as
+# the graphics and colour exchanges do: a first burst at once, the request
+# 0.3 s after it, and the same half-second deadline for the reply.
+_LATE_FENCE_STUB = """\
+import json, os, select, sys, time, tty
+tty.setraw(0)
+os.write(1, b"\\x1b[?1049h")
+time.sleep(0.3)
+os.write(1, b"\\x1b[5n")
+got = b""
+deadline = time.time() + 0.5
+while time.time() < deadline and b"\\x1b[0n" not in got:
+    ready, _, _ = select.select([0], [], [], max(0.0, deadline - time.time()))
+    if ready:
+        got += os.read(0, 64)
+with open(os.environ["DRIVE_TEST_REPORT"], "w") as report:
+    json.dump({"answered": b"\\x1b[0n" in got}, report)
+while b"q" not in got:
+    data = os.read(0, 4096)
+    if not data:
+        break
+    got += data
+"""
+
+
+class TestAnswerFenceWhileTracing(unittest.TestCase):
+    """`--answer-fence` answers through `--trace`'s warm-up too.
+
+    With `--trace` the driver gives xctrace two seconds to start sampling
+    before it drives. It slept through them, after a settle that ends at the
+    app's first burst, so a status request sent in that window, by the
+    exchanges after the first, went unread until the deadline had passed.
+    `xcrun` is a stand-in here that exits at once: what is under test is the
+    driver's reading, not Instruments.
+    """
+
+    def setUp(self):
+        self.scratch = tempfile.mkdtemp(prefix="test-drive-trace-")
+        self.addCleanup(shutil.rmtree, self.scratch, ignore_errors=True)
+        self.stub = os.path.join(self.scratch, "Example")
+        with open(self.stub, "w") as handle:
+            handle.write(f"#!{sys.executable}\n{_LATE_FENCE_STUB}")
+        os.chmod(self.stub, os.stat(self.stub).st_mode | stat.S_IXUSR)
+        self.bin = os.path.join(self.scratch, "bin")
+        os.makedirs(self.bin)
+        xcrun = os.path.join(self.bin, "xcrun")
+        with open(xcrun, "w") as handle:
+            handle.write("#!/bin/sh\nexit 0\n")
+        os.chmod(xcrun, os.stat(xcrun).st_mode | stat.S_IXUSR)
+
+    def test_a_request_during_the_warm_up_is_answered(self):
+        report = os.path.join(self.scratch, "fence.json")
+        env = dict(os.environ, TUIKIT_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report,
+                   PATH=self.bin + os.pathsep + os.environ.get("PATH", ""))
+        subprocess.run(
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "1",
+             "--trace", os.path.join(self.scratch, "unused.trace"), "--answer-fence", "--quiet"],
+            env=env, check=True, timeout=60)
+        with open(report) as handle:
+            self.assertTrue(json.load(handle)["answered"],
+                            "the request 0.3 s after the first burst went unread")
+
+
 _REPO = os.path.dirname(os.path.dirname(_HERE))
 _EXAMPLE = os.environ.get("DRIVE_TEST_BINARY", os.path.join(_REPO, ".build", "debug", "Example"))
 

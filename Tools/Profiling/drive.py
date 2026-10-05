@@ -329,7 +329,10 @@ def main():
     ap.add_argument("--loops", type=int, default=1)
     ap.add_argument("--rows", type=int, default=50)
     ap.add_argument("--cols", type=int, default=160)
-    ap.add_argument("--settle", type=float, default=0.6)
+    ap.add_argument("--settle", type=float, default=0.6,
+                    help="how long to wait for the app's first output before driving. "
+                         "A deadline, not a pause: the wait ends once a first burst has "
+                         "been read, as it always has, so byte counts stay comparable")
     ap.add_argument("--trace", default=None,
                     help="if set, attach Instruments Time Profiler and write this .trace")
     ap.add_argument("--time-limit", type=int, default=15000,
@@ -403,7 +406,11 @@ def main():
                 return -1
         return 0
 
-    drain(args.settle)  # startup + first frames
+    # The app's first output. NOT a settle of `--settle` seconds: `drain`
+    # returns once a burst has been read, and the startup exchanges are still
+    # running then. Kept as it is so that the moment the scenario starts, and
+    # with it every byte count, matches the numbers taken before.
+    drain(args.settle)
 
     xctrace = None
     if args.trace:
@@ -412,7 +419,12 @@ def main():
              "--attach", str(pid), "--time-limit", f"{args.time_limit}ms",
              "--output", args.trace],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        time.sleep(2.0)  # let xctrace begin sampling before we drive
+        # Let xctrace begin sampling before we drive — draining meanwhile, not
+        # sleeping. The settle above returns at the app's first burst, and
+        # the app is then still in its startup exchanges: a request it sends
+        # during these two seconds is answered only if it is read, which is
+        # what `--answer-fence` promises, and the output keeps flowing.
+        drain_for(2.0)
 
     # Where each step was sent, in dump offsets: see `write_steps`. Startup is
     # the first "step", at offset 0.
