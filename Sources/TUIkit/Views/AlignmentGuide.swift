@@ -144,8 +144,12 @@ extension View {
     ///   closure evaluated against the dimensions the view laid out at, and a
     ///   wrapper that does not translate it would report a position from the
     ///   wrong coordinate space; a view of your own states nothing about what
-    ///   its body holds. (A body of several views is taken apart, so each of
-    ///   its views is the container's own child, guide and all.)
+    ///   its body holds. A body of several views is taken apart, so each of
+    ///   its views is the child of the container that takes it apart, and
+    ///   that container honours its guide — but goes no further: a stack
+    ///   around that container is not told a guide is inside (the view's
+    ///   type answers `false` to `View/_providesAlignmentGuide`), where in
+    ///   SwiftUI the guide travels on up (decisions D1S, B-D1S-6).
     ///
     /// - Parameters:
     ///   - g: The guide to set.

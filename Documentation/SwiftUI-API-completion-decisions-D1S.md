@@ -113,39 +113,55 @@ the first frame. A day, with an A/B on `megalist` shaped with such rows.
 
 ### B-D1S-6. A modified view of the app's own, or one whose body is an `if`/`else`, is one child
 
-*`View`, `Group(subviews:transform:)`, `HStack`, `Layout`, `List`*
+*`View`, `Group(subviews:transform:)`, `HStack`, `Layout`, `List`, `Form`,
+`Picker`, `View.alignmentGuide(_:computeValue:)`*
 
 A view of the app's own whose `body` is several views is now, to the container
 resolving it, those views, as SwiftUI's is (measured, `D1S/probe2/composite`):
 a tuple, a loop, an `if` (none while false), a `Group` of those or a `Section`
-as a body is taken apart in a stack, a `Layout`, the subview APIs and a `List`
-— one inside another, and a loop of them, too — with the view's `@State` bound
-at its own identity and every view of its body at the identity it had drawn
-whole (`compositeMembers(of:context:)`, gated by the static witness
-`View._handsOverChildren`, a few witness calls down the chain of `body` types).
-Three shapes are still one child:
+as a body is taken apart — one inside another, and a loop of them, too — with
+the view's `@State` bound at its own identity and every view of its body at
+the identity it had drawn whole (`compositeMembers(of:context:)`, gated by the
+static witness `View._handsOverChildren`, a few witness calls down the chain of
+`body` types). Every container that resolves its content as views takes it
+apart: the stacks and lazy stacks, `ZStack`, a `Layout`, `Grid` and the lazy
+grids, `ViewThatFits`, the split views, a menu's items, a `List` and its
+sections, the subview and section APIs; and a `Form` reads through it
+(measured, `D1S/probe2/formcomposite`), evaluating its body in its walk. A
+`Picker`'s options and a text field's suggestions are read by walks of their
+own that see nothing in such a view, as in any view of the app's own. Four
+shapes are still one child:
 
 - **A modifier on such a view** (`Rows().padding(3)`): SwiftUI applies it to
   each of the body's views (measured: two subviews, each padded). The modified
   view is no provider here, as a modifier reaches members only through a
   provider it wraps.
-- **A body that is an `if`/`else`, or an `AnyView`**: they answer the default
-  witness (their own body is `Never`), so an `if`/`else` whose arms are
-  several views is one child. Most of the framework's own controls have an
-  `if`/`else` body (`TextField`'s does) and hand over one view either way;
-  answering `true` for it would evaluate their bodies on every walk to find
-  that out.
+- **A body that is an `if`/`else`, an `AnyView`, or a modifier on several
+  views** (`Group { a; b }.padding()`): they answer the default witness (their
+  own body is `Never`), so such a body is one child. Most of the framework's
+  own controls have an `if`/`else` body (`TextField`'s does) and hand over
+  one view either way; answering `true` for it would evaluate their bodies on
+  every walk to find that out.
 - **In a `List` beside other rows**, the rows of a loop in such a view are
   drawn as rows but selected and edited by the hand-written rule (their tag,
   else their place): a list's row placement cannot see into a body without
-  evaluating it (`KeyedRowRun.opaque`). A section of the app's own there is a
-  section, its loop's rows selected by element and deletable.
+  evaluating it (`KeyedRowRun.opaque`). It costs only its own rows that: the
+  loops beside it are placed slot by slot, and one whose body holds no loop
+  (a heading of two views) is no run at all. A section of the app's own there
+  is a section, its loop's rows selected by element and deletable.
+- **An alignment guide on one of its views** is honoured by the container
+  that takes it apart, but a stack around that container is not told a guide
+  is inside: the view's type answers `false` to `_providesAlignmentGuide`,
+  as any view of the app's own does. SwiftUI's guide travels on up.
 
 **The fuller version.** `ModifiedView` (and the wrappers that hand a provider's
 members their modifier) answering for content that is such a view — a
 provider conformance that holds for a content TYPE only a witness can name, so
-a forwarding conformance on every wrapper; and the placement told a view's
-body when the walk evaluates it. A day or two. A/B owed for what landed:
+a forwarding conformance on every wrapper; the placement told a view's body
+when the walk evaluates it; `_providesAlignmentGuide` forwarded from such a
+view's body, with the guide query following it there; and the `Picker` and
+suggestion walks given a context to evaluate bodies in, as the `Form`'s now
+has. Two or three days. A/B owed for what landed:
 `fanout`, `deep`, `kitchensink`, `megalist`, `anyview`.
 
 ### B-D1S-7. A stack around a loop over subviews asks it for guides it may not have
