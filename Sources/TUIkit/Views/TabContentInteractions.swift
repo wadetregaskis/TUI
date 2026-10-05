@@ -200,6 +200,23 @@ final class _TabMenuOpeners {
 
 // MARK: - The host
 
+/// The filing of a tab's menu opener, shared by the live render and by a memo
+/// replaying it — see `EffectJournal`.
+@MainActor
+private enum TabMenuOpenerRegistrar {
+    /// The journal kind of the filing.
+    static let kind = EffectJournal.Kind("tabMenu.opener")
+
+    /// Files, in `openers`, what opens the menu kept in `stateBox` from the
+    /// keyboard, under the tab's `value`.
+    static func file(
+        stateBox: StateBox<ContextMenuState>, onOpen: MenuOpenAction?, value: AnyHashable,
+        into openers: _TabMenuOpeners?
+    ) {
+        openers?.file({ ContextMenuPresentation.openFromKeyboard(stateBox, onOpen: onOpen) }, for: value)
+    }
+}
+
 /// `StateStorage` property indices for ``_TabInteractionsHost``. Lifted out of
 /// the generic struct because Swift does not allow static stored properties in
 /// generic types. From 0: the host renders its content at child identities.
@@ -253,9 +270,12 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
         guard !context.isMeasuring, context.environment.isEnabled, let storage = context.stateStorage else {
             return TUIkit.renderToBuffer(presented, context: contentContext)
         }
-        // The opener filed below, and a menu's section torn down, are effects
-        // a memo would not make again.
-        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        // Nothing declared here: what the host registers a memo makes again
+        // (the regions and drop target, its journals; the menu's opener, the
+        // entry `attachMenu` records), and the one thing it cannot — tearing
+        // down the section a closed menu left — declares itself on the one
+        // frame it happens, as `.contextMenu`'s does (740df15af). So a row
+        // carrying a tab's menu, drag or drops can be served from its memo.
         var buffer = TUIkit.renderToBuffer(presented, context: contentContext)
         // The drag handle first: it takes the regions already there as the
         // content's own, forwarding an unmoved click to them — and a click
@@ -275,26 +295,58 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     private func attachMenu(
         _ menu: AnyView, to buffer: inout FrameBuffer, storage: StateStorage, context: RenderContext
     ) {
-        let sectionID = "tabmenu-\(context.identity.path)"
         storage.markActive(context.identity)
         let stateBox: StateBox<ContextMenuState> = storage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.menu),
             default: ContextMenuState())
         let state = stateBox.value
-        let onOpen = context.environment.menuOpenAction
-        (openers ?? context.environment.tabMenuOpeners)?.file(
-            { ContextMenuPresentation.openFromKeyboard(stateBox, onOpen: onOpen) }, for: value)
+        fileOpener(for: stateBox, context: context)
 
         guard state.isOpen else {
+            // The one effect no memo makes again, so declared — on the one
+            // frame there is a section to tear down.
             if state.needsSectionTeardown {
-                context.environment.focusManager?.deactivateSection(id: sectionID)
+                context.environment.volatileReadTracker?.recordRenderSideEffect()
+                context.environment.focusManager?.deactivateSection(id: "tabmenu-\(context.identity.path)")
                 state.needsSectionTeardown = false
             }
             ContextMenuPresentation.attachTrigger(to: &buffer, stateBox: stateBox, focusID: nil, context: context)
             return
         }
         state.needsSectionTeardown = true
-        ContextMenuPresentation.present(menu, over: &buffer, stateBox: stateBox, sectionID: sectionID, context: context)
+        ContextMenuPresentation.present(
+            menu, over: &buffer, stateBox: stateBox, sectionID: "tabmenu-\(context.identity.path)",
+            context: context)
+    }
+
+    /// Files the menu's opener where the strip's or the sidebar's Shift+F10
+    /// finds it — and, while a memo records, the entry that files it again
+    /// when the memo is served. The openers are emptied on every render of
+    /// whoever owns them (``_TabMenuOpeners``), so a served row that did not
+    /// file its opener again would have a menu Shift+F10 could not open.
+    ///
+    /// Belt and braces as far as the tests reach, as `.contextMenu`'s replayed
+    /// Shift+F10 handler is: in `TabInteractionsMemoTests`, the selected tab's
+    /// row — the one the key opens — was drawn afresh while the list held the
+    /// focus, and the key opened its menu with the entry left out. The entry
+    /// keeps the key working wherever such a row is served.
+    private func fileOpener(for stateBox: StateBox<ContextMenuState>, context: RenderContext) {
+        let onOpen = context.environment.menuOpenAction
+        let value = self.value
+        TabMenuOpenerRegistrar.file(
+            stateBox: stateBox, onOpen: onOpen, value: value, into: openers ?? context.environment.tabMenuOpeners)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        // Looked up in the context the entry runs against, not captured: the
+        // sidebar's openers, for a row served inside its list. A memo above a
+        // tab view is served with the tab view, whose openers it did not
+        // empty, so finding none there leaves what they hold.
+        let token = context.environment.keyChannelToken
+        journal.append(
+            EffectJournal.Entry(kind: TabMenuOpenerRegistrar.kind, channelToken: token) { replay in
+                TabMenuOpenerRegistrar.file(
+                    stateBox: stateBox, onOpen: onOpen, value: value, into: replay.environment.tabMenuOpeners)
+            })
     }
 
     /// A drag handle over the content, carrying the tab's payload with its
