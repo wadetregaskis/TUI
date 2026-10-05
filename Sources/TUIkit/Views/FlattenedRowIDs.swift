@@ -37,10 +37,18 @@
 /// the content in that same order (``KeyedRowProvider``). Only a loop or an
 /// outline makes a KEYED child; every other child is positional. So the keyed
 /// children are dealt out to the providers that made them by count: a loop
-/// owns exactly as many as it has elements, an outline owns the run of outline
-/// rows in front of it. Each loop's first and last row are checked against the
-/// keys the loop gives them, which is what catches a walk that has lost step
-/// with the flattening.
+/// owns exactly as many as it has elements — or as many as its rows' views,
+/// for rows of the same number of views each — and an outline owns the run of
+/// outline rows in front of it. Each loop's first and last row are checked
+/// against the keys the loop gives them, which is what catches a walk that has
+/// lost step with the flattening.
+///
+/// A loop whose rows make a number of views only each row knows — `Text(name);
+/// if flagged { Text("!") }`, a loop in a row (decisions B15) — cannot be
+/// counted from its data, but every view of such a row carries its element's
+/// key (`ChildView.keyedAsMember`). So it is placed by its keys instead: each
+/// element in turn owns the run of keyed children carrying its key, which may
+/// be none.
 ///
 /// Matching by the key alone is what this replaced, and a key names a value
 /// only up to its spelling: two loops over overlapping ids — projects 1, 2, 3
@@ -136,8 +144,8 @@ final class FlattenedRowIDs<ID: Hashable> {
     private enum Placement {
         /// Not a looped row, or a looped row this walk could not place.
         case handWritten
-        /// A looped row: the `offset`-th row of `loops[loop]`.
-        case looped(loop: Int, offset: Int)
+        /// A looped row: one that `loops[loop]`'s `element`-th element made.
+        case looped(loop: Int, element: Int)
     }
 
     /// A child's own answer: not yet asked, or what it names itself — `nil`
@@ -184,10 +192,10 @@ final class FlattenedRowIDs<ID: Hashable> {
     /// loops over overlapping ids each answer with their own elements.
     func elementID(ofChildAt index: Int) -> AnyHashable? {
         let placements = placed()
-        guard !placements.isEmpty, case .looped(let loop, let offset) = placements[index] else {
+        guard !placements.isEmpty, case .looped(let loop, let element) = placements[index] else {
             return nil
         }
-        return loops[loop].keyedRowElementID(at: offset)
+        return loops[loop].keyedRowElementID(ofElement: element)
     }
 
     /// What the child at `index` names itself, before any ordinal: a placed
@@ -201,8 +209,8 @@ final class FlattenedRowIDs<ID: Hashable> {
         if case .answered(let answer) = ownAnswers[index] { return answer }
         let answer: ID?
         switch placements.isEmpty ? .handWritten : placements[index] {
-        case .looped(let loop, let offset):
-            answer = loops[loop].keyedRowSelectionID(at: offset)
+        case .looped(let loop, let element):
+            answer = loops[loop].keyedRowSelectionID(ofElement: element)
         case .handWritten:
             let child = children[index]
             // A keyed child here is a loop's row this walk could not place,
@@ -277,7 +285,7 @@ final class FlattenedRowIDs<ID: Hashable> {
         var runs: [KeyedRowRun] = []
         appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
         let loops = runs.compactMap { run -> (any KeyedLoop)? in
-            if case .loop(let loop) = run { return loop }
+            if case .loop(let loop, _) = run { return loop }
             return nil
         }
         guard !loops.isEmpty,
@@ -316,17 +324,18 @@ final class FlattenedRowIDs<ID: Hashable> {
             loopNumbers.append(loopCount)
             if run.isLoop { loopCount += 1 }
         }
+        let spans = KeyedSpans(keyed: keyed, children: children)
         var front = 0
         var first = 0
         frontwards: while first < runs.count {
             switch runs[first] {
-            case .loop(let loop):
+            case .loop(let loop, let rowsPerElement):
                 guard
-                    place(
-                        loop, number: loopNumbers[first], at: front, lowerBound: front,
-                        keyed: keyed, children: children, into: &placements)
+                    let end = spans.place(
+                        loop, rowsPerElement: rowsPerElement, number: loopNumbers[first],
+                        from: front, within: front..<keyed.count, into: &placements)
                 else { return nil }
-                front += loop.keyedRowCount
+                front = end
             case .outline:
                 while front < keyed.count, isOutlineRow(children[keyed[front]]) { front += 1 }
             case .opaque:
@@ -338,12 +347,11 @@ final class FlattenedRowIDs<ID: Hashable> {
         var last = runs.count
         backwards: while last > first {
             switch runs[last - 1] {
-            case .loop(let loop):
-                let start = back - loop.keyedRowCount
+            case .loop(let loop, let rowsPerElement):
                 guard
-                    place(
-                        loop, number: loopNumbers[last - 1], at: start, lowerBound: front,
-                        keyed: keyed, children: children, into: &placements)
+                    let start = spans.place(
+                        loop, rowsPerElement: rowsPerElement, number: loopNumbers[last - 1],
+                        endingAt: back, within: front..<back, into: &placements)
                 else { return nil }
                 back = start
             case .outline:
@@ -359,28 +367,88 @@ final class FlattenedRowIDs<ID: Hashable> {
         return placements
     }
 
-    /// Places `loop` — the `number`-th loop the walk met — on
-    /// `keyed[start..<start + count]`, having checked that the first and the
-    /// last of those rows carry the keys the loop gives them: `false` when they
-    /// do not, or when the span falls outside `lowerBound..<keyed.count`.
-    ///
-    /// Records WHICH row of which loop each one is, and resolves nothing: the
-    /// loop is asked for a row's answer only when that row's is asked for.
-    private static func place(
-        _ loop: any KeyedLoop, number: Int, at start: Int, lowerBound: Int, keyed: [Int],
-        children: [ChildView], into placements: inout [Placement]
-    ) -> Bool {
-        let count = loop.keyedRowCount
-        guard count > 0 else { return true }
-        let end = start + count
-        guard start >= lowerBound, end <= keyed.count,
-            children[keyed[start]].identityChildKey == loop.keyedRowKey(at: 0),
-            children[keyed[end - 1]].identityChildKey == loop.keyedRowKey(at: count - 1)
-        else { return false }
-        for offset in 0..<count {
-            placements[keyed[start + offset]] = .looped(loop: number, offset: offset)
+    /// The keyed children of a container, in order, for its loops to be
+    /// placed on — `keyed` indexing into `children`.
+    @MainActor
+    private struct KeyedSpans {
+        let keyed: [Int]
+        let children: [ChildView]
+
+        /// The key of the `position`-th keyed child.
+        private func key(at position: Int) -> String? {
+            children[keyed[position]].identityChildKey
         }
-        return true
+
+        /// Places `loop` — the `number`-th loop the walk met — on the keyed
+        /// children from `start` on, answering where its rows end: `nil` when
+        /// they are not there.
+        ///
+        /// Records WHICH element of which loop made each row, and resolves
+        /// nothing: the loop is asked for a row's answer only when that row's
+        /// is asked for.
+        func place(
+            _ loop: any KeyedLoop, rowsPerElement: Int?, number: Int, from start: Int,
+            within bounds: Range<Int>, into placements: inout [Placement]
+        ) -> Int? {
+            guard let perElement = rowsPerElement else {
+                // Rows only each element knows the number of: each element's
+                // run of its own key, in order, from the front.
+                var position = start
+                for element in 0..<loop.keyedElementCount {
+                    let elementKey = loop.keyedRowKey(ofElement: element)
+                    while position < bounds.upperBound, key(at: position) == elementKey {
+                        placements[keyed[position]] = .looped(loop: number, element: element)
+                        position += 1
+                    }
+                }
+                return position
+            }
+            let end = start + loop.keyedElementCount * perElement
+            return placeCounted(loop, perElement: perElement, number: number, start..<end, bounds, &placements)
+                ? end : nil
+        }
+
+        /// Places `loop` on the keyed children ending at `end`, answering where
+        /// its rows start: `nil` when they are not there.
+        func place(
+            _ loop: any KeyedLoop, rowsPerElement: Int?, number: Int, endingAt end: Int,
+            within bounds: Range<Int>, into placements: inout [Placement]
+        ) -> Int? {
+            guard let perElement = rowsPerElement else {
+                // The same runs as from the front, met last element first.
+                var position = end
+                for element in (0..<loop.keyedElementCount).reversed() {
+                    let elementKey = loop.keyedRowKey(ofElement: element)
+                    while position > bounds.lowerBound, key(at: position - 1) == elementKey {
+                        position -= 1
+                        placements[keyed[position]] = .looped(loop: number, element: element)
+                    }
+                }
+                return position
+            }
+            let start = end - loop.keyedElementCount * perElement
+            return placeCounted(loop, perElement: perElement, number: number, start..<end, bounds, &placements)
+                ? start : nil
+        }
+
+        /// Places a loop whose every element makes `perElement` rows on the
+        /// keyed children at `span`, having checked that the first and the
+        /// last of them carry the keys the loop gives them: `false` when they
+        /// do not, or when the span falls outside `bounds`.
+        private func placeCounted(
+            _ loop: any KeyedLoop, perElement: Int, number: Int, _ span: Range<Int>,
+            _ bounds: Range<Int>, _ placements: inout [Placement]
+        ) -> Bool {
+            guard !span.isEmpty else { return true }
+            guard span.lowerBound >= bounds.lowerBound, span.upperBound <= bounds.upperBound,
+                key(at: span.lowerBound) == loop.keyedRowKey(ofElement: 0),
+                key(at: span.upperBound - 1) == loop.keyedRowKey(ofElement: loop.keyedElementCount - 1)
+            else { return false }
+            for (offset, position) in span.enumerated() {
+                placements[keyed[position]] = .looped(loop: number, element: offset / perElement)
+            }
+            return true
+        }
     }
 
     /// Whether `child` is a row an `OutlineGroup` made, seen through the
@@ -416,8 +484,10 @@ struct AskedRowID<ID: Hashable> {
 /// order the splice emits them.
 @MainActor
 enum KeyedRowRun {
-    /// A `ForEach`'s rows: exactly one per element, each keyed by its element.
-    case loop(any KeyedLoop)
+    /// A `ForEach`'s rows, each keyed by its element: `rowsPerElement` of them
+    /// from every element — one, or a row's several views (decisions B15) —
+    /// or, `nil`, as many as each element's row makes, placed by their keys.
+    case loop(any KeyedLoop, rowsPerElement: Int?)
     /// An `OutlineGroup`'s rows: one per VISIBLE node, which only the outline's
     /// expansion state knows — so the run is recognised by its rows' type
     /// rather than counted. They keep the hand-written rule.
@@ -433,21 +503,22 @@ enum KeyedRowRun {
     }
 }
 
-/// A loop, asked about its rows by offset.
+/// A loop, asked about its rows by the element that made them.
 @MainActor
 protocol KeyedLoop {
-    /// How many rows the loop flattens into its container.
-    var keyedRowCount: Int { get }
+    /// How many elements the loop iterates.
+    var keyedElementCount: Int { get }
 
-    /// The key the row at `offset` carries — its `identityChildKey`.
-    func keyedRowKey(at offset: Int) -> String
+    /// The key every row the `element`-th element makes carries — its
+    /// `identityChildKey`.
+    func keyedRowKey(ofElement element: Int) -> String
 
-    /// What the row at `offset` names itself when the loop is its container's
-    /// whole content, without the index fallback.
-    func keyedRowSelectionID<RowID: Hashable>(at offset: Int) -> RowID?
+    /// What the `element`-th element's rows name themselves when the loop is
+    /// its container's whole content, without the index fallback.
+    func keyedRowSelectionID<RowID: Hashable>(ofElement element: Int) -> RowID?
 
-    /// The `id` of the element the row at `offset` draws.
-    func keyedRowElementID(at offset: Int) -> AnyHashable
+    /// The `id` of the `element`-th element.
+    func keyedRowElementID(ofElement element: Int) -> AnyHashable
 }
 
 /// A view that flattens keyed rows into its container, or passes another's

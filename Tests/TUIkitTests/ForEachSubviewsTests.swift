@@ -159,7 +159,7 @@ struct ForEachSubviewsTests {
         #expect(loop.textSuggestions().isEmpty)
         #expect(loop.extractFormElements().isEmpty)
         #expect(loop.listRowCount == 0)
-        #expect(loop.keyedRowCount == 0)
+        #expect(loop.keyedElementCount == 0)
     }
 
     /// Each either draws the loop's members, if it lays its content out as

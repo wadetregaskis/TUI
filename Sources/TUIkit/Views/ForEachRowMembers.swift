@@ -25,7 +25,8 @@ enum ForEachRowShape: Equatable {
     /// to its element by arithmetic.
     case fixed(Int)
     /// A number that depends on each row — a loop in the row, an `if` whose
-    /// arms differ, a section — so each row is built and counted.
+    /// arms differ, an `if` without `else` among several views, a section —
+    /// so each row is built and counted.
     case varying
 
     /// How many children each element makes, when every element makes as
@@ -56,7 +57,7 @@ extension ForEach where Content: View {
             return .single
         }
         if keepingSectionsWhole, Content.self is any SectionPartsProviding.Type { return .single }
-        switch staticMemberCount(Content.self) {
+        switch staticRowMemberCount(Content.self) {
         case 1: return .single
         case 0: return .none
         case let count?: return .fixed(count)
@@ -100,9 +101,13 @@ extension ForEach where Content: View {
         return (members, elementOffsets)
     }
 
-    /// The member at `index` of `element`'s row, or an empty one when the row
-    /// made fewer than its type said it would — an `if` with nothing to show
-    /// in a row of several, which makes none where its type counts one.
+    /// The member at `index` of `element`'s row — of a loop whose rows make
+    /// the same number of children each (``ForEachRowShape/fixed(_:)``).
+    ///
+    /// Only a type whose every instance makes that number is counted fixed
+    /// (``staticMemberCount(_:)``), so the row has the member; the empty one
+    /// below is a guard, never a row of the container — if a count and a
+    /// row ever disagree, a blank child is drawn rather than a trap hit.
     func rowMember(_ index: Int, of element: Data.Element, context: RenderContext) -> ChildView {
         let members = rowMembers(of: element, context: context)
         if index < members.count { return members[index] }

@@ -111,11 +111,16 @@ Where a row's type says how many views it is — a `Group { a; b }`, a tuple,
 `if`/`else` arms of one view each — the loop maps a child's ordinal to its
 element by arithmetic, and a lazy stack over a million such rows builds only
 the rows it draws. Where only the row knows — a loop in the row, an `if` whose
-arms differ, an `if` without `else` around several views, a section the walk
-takes apart — every row is built and resolved, though not drawn, on every walk
-that asks for the children. An `if` without `else` around ONE view stays one
-child, empty when false, as before, where SwiftUI counts none: no stack draws
-or spaces an empty child, and a `Layout` counts it.
+arms differ, an `if` without `else` anywhere among the row's views (none of
+them while false), a section the walk takes apart — every row is built and
+resolved, though not drawn, on every walk that asks for the children; its
+views are still selected and tagged by their element, placed by the key each
+carries (`FlattenedRowIDs`). An `if` without `else` around ONE view that is
+the row's only view stays one child, empty when false, as before, where
+SwiftUI counts none: no stack draws or spaces an empty child, and a `Layout`
+counts it. Counting it as it is spliced would build every row of a loop that
+filters its elements with an `if` — a common shape — to learn which are
+there.
 
 **The fuller version.** An index from element to first child, built once and
 kept across frames while the data is unchanged (the loop's `listRowsSignature`

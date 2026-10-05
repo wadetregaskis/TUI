@@ -310,6 +310,9 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
         }
     }
 
+    /// The rows of a loop whose rows have a count (``listRowsPerElement``):
+    /// one whose rows vary is read through the child walk, which builds them,
+    /// and never asks.
     var listRowCount: Int { data.count * (listRowsPerElement ?? 1) }
 
     /// The row type's shape in a walk that keeps sections whole, as a list's
@@ -567,43 +570,32 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
 
 extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// This loop's rows, as the flattening emits them: one child per element,
-    /// or the same number of each element's views (a row of several, decisions
-    /// B15), in order — see ``FlattenedRowIDs``. A loop whose rows make a
-    /// number of children only each row knows cannot be counted from here,
-    /// and is a run of its own that keeps the hand-written rule.
+    /// the same number of each element's views (a row of several, decisions
+    /// B15), or as many as each element's row makes — placed by their keys,
+    /// which every one of them carries — in order; see ``FlattenedRowIDs``.
     func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
-        switch rowShape(keepingSectionsWhole: sectionsWhole) {
-        case .single, .fixed: runs.append(.loop(self))
-        case .none: break
-        case .varying: runs.append(.opaque)
-        }
+        let shape = rowShape(keepingSectionsWhole: sectionsWhole)
+        guard shape != .none else { return }
+        runs.append(.loop(self, rowsPerElement: shape.childrenPerElement))
     }
 
-    /// The children each element makes, for a loop placed as one run: a
-    /// section is one only where it is kept whole, and a loop of them is
-    /// placed only there.
-    private var childrenPerElement: Int {
-        max(1, rowShape(keepingSectionsWhole: true).childrenPerElement ?? 1)
-    }
-
-    var keyedRowCount: Int { data.count * childrenPerElement }
+    var keyedElementCount: Int { data.count }
 
     /// Keyed as `makeChild(for:)` keys the row's identity — the element's key,
     /// which each of a row's several views carries too.
-    func keyedRowKey(at offset: Int) -> String {
-        identityKey(elementID(of: element(at: offset / childrenPerElement)))
+    func keyedRowKey(ofElement element: Int) -> String {
+        identityKey(elementID(of: self.element(at: element)))
     }
 
     /// Through `selectionID(of:)`, so without `rowID(at:)`'s index
-    /// fallback: an index is a position in THIS collection, which says nothing
-    /// once the rows are among others', and a row that cannot name itself is
+    /// fallback: a row whose element id is not the selection type is
     /// answered as such, so its container falls back to its own ordinal for it
     /// — the number it had before.
-    func keyedRowSelectionID<RowID: Hashable>(at offset: Int) -> RowID? {
-        selectionID(of: element(at: offset / childrenPerElement))
+    func keyedRowSelectionID<RowID: Hashable>(ofElement element: Int) -> RowID? {
+        selectionID(of: self.element(at: element))
     }
 
-    func keyedRowElementID(at offset: Int) -> AnyHashable {
-        AnyHashable(elementID(of: element(at: offset / childrenPerElement)))
+    func keyedRowElementID(ofElement element: Int) -> AnyHashable {
+        AnyHashable(elementID(of: self.element(at: element)))
     }
 }
