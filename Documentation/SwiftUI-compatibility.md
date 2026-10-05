@@ -598,8 +598,14 @@ title. (A TUIkit addition, `windowToolbarStyle(_: any WindowToolbarStyle)`,
 takes a style chosen at run time, since a scene's modifiers cannot be chosen
 with an `if`.)
 
-**Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the bar modifiers
-(`toolbarVisibility`, `toolbarBackground`, `toolbarRole`, …), a
+`.toolbarVisibility(_:for:)` takes a bar away (`.windowToolbar` or
+`.automatic` the top bar, `.bottomBar` the bottom one) — a frame later, like
+any change to the bars; the statement closest to the content wins, and a
+hidden line of key hints leaves its keys working.
+
+**Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
+modifiers (`toolbarBackground`, `toolbarRole`, `toolbarItemHidden`,
+`toolbarTitleMenu`, …), a
 `NavigationStack`'s bar hosting a pushed screen's items, the customisation
 family (`toolbar(id:)`), and `Commands`/the menu bar.
 

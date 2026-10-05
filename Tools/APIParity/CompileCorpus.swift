@@ -2407,6 +2407,9 @@ private struct ToolbarShapes: View {
                     Button("Refresh") {}
                     Button("Filter") {}
                 }
+                .toolbarVisibility(.hidden, for: .windowToolbar)
+                .toolbarVisibility(.visible, for: .windowToolbar, .bottomBar)
+                .toolbarVisibility(.hidden)
         }
     }
 }

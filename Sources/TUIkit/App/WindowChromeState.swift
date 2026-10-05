@@ -133,6 +133,10 @@ final class WindowChromeState: @unchecked Sendable {
     /// The toolbar items this walk has declared, in the order it declared them.
     private(set) var toolbarEntries: [ToolbarEntry] = []
 
+    /// The visibility each bar was last declared with this walk
+    /// (`.toolbarVisibility(_:for:)`); absent is ``Visibility/automatic``.
+    private var declaredVisibility: [Edge: Visibility] = [:]
+
     /// The identities of ``toolbarEntries``, so an item a walk renders twice —
     /// the first frame's measuring walk measures some views by rendering them —
     /// is declared once.
@@ -173,6 +177,21 @@ final class WindowChromeState: @unchecked Sendable {
     func beginWalk() {
         toolbarEntries.removeAll(keepingCapacity: true)
         declaredIdentities.removeAll(keepingCapacity: true)
+        declaredVisibility.removeAll(keepingCapacity: true)
+    }
+
+    /// Records a bar visibility the walk declared. The last declaration of a
+    /// bar wins — the one closest to the content it wraps, since a modifier
+    /// declares before its content renders — and ``Visibility/automatic``
+    /// states no preference.
+    func declare(_ visibility: Visibility, for edge: Edge) {
+        guard visibility != .automatic else { return }
+        declaredVisibility[edge] = visibility
+    }
+
+    /// Whether this walk hid the bar at `edge`.
+    func isHidden(_ edge: Edge) -> Bool {
+        declaredVisibility[edge] == .hidden
     }
 
     /// Records a toolbar item the walk declared — once per identity.
@@ -181,9 +200,11 @@ final class WindowChromeState: @unchecked Sendable {
         toolbarEntries.append(entry)
     }
 
-    /// The items this walk declared for the toolbar at `edge`.
+    /// The items this walk declared for the toolbar at `edge`: none while a
+    /// `.toolbarVisibility(.hidden, for:)` hides it.
     func toolbarEntries(for edge: Edge) -> [ToolbarEntry] {
-        toolbarEntries.filter { $0.placement.bar == edge }
+        guard !isHidden(edge) else { return [] }
+        return toolbarEntries.filter { $0.placement.bar == edge }
     }
 
     /// Takes `rows` as `edge`'s reservation outright: what the first frame's
