@@ -167,6 +167,58 @@ struct TextSelectionModifierTests {
         #expect(page.selection.value == 2)
     }
 
+    // MARK: - Seen through by containers
+
+    struct LoopPage: View {
+        let selection: Box<Int?>
+        var body: some View {
+            List(selection: Binding(get: { selection.value }, set: { selection.value = $0 })) {
+                ForEach(0..<4, id: \.self) { index in
+                    Text("row \(index) words")
+                }
+                .textSelection(.enabled)
+            }
+            .frame(height: 8)
+        }
+    }
+
+    /// An environment-like modifier on a list's loop: SwiftUI gives every
+    /// element its own row. Opaque, the wrapper made the loop ONE row.
+    @Test("On a List's ForEach it leaves one row per element")
+    func loopKeepsItsRows() throws {
+        let page = LoopPage(selection: Box(nil))
+        let harness = harness(page)
+        let row = try find("row 2", in: harness, page)
+        click(harness, page, (row.x + 20, row.y))
+        #expect(page.selection.value == 2)
+    }
+
+    @Test("On a stack's ForEach the stack still spaces its members")
+    func loopKeepsItsSpacing() throws {
+        let page = VStack(alignment: .leading, spacing: 1) {
+            ForEach(0..<3, id: \.self) { index in
+                Text("member \(index)")
+            }
+            .textSelection(.enabled)
+        }
+        let lines = harness(page).frame(page).lines.map(\.stripped)
+        let rows = (0..<3).compactMap { index in lines.firstIndex { $0.contains("member \(index)") } }
+        #expect(rows.count == 3)
+        #expect(zip(rows, rows.dropFirst()).allSatisfy { $1 - $0 == 2 })
+    }
+
+    /// SwiftUI keeps a z-index through a modifier that is not a container,
+    /// as `ZStack { Color.red.zIndex(1).padding(0); Color.green }` shows.
+    @Test("A z-index written inside it still orders the stack")
+    func zIndexSeenThrough() {
+        let page = ZStack(alignment: .leading) {
+            Text("AAAA").zIndex(1).textSelection(.enabled)
+            Text("BB")
+        }
+        let lines = harness(page).frame(page).lines.map(\.stripped)
+        #expect(lines.contains { $0.hasPrefix("AAAA") })
+    }
+
     // MARK: - Tables, the sibling
 
     struct Item: Identifiable {

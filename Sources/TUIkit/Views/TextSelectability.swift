@@ -117,6 +117,46 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
     }
 }
 
+// MARK: - Seeing Through the Wrapper
+
+/// Seen through, as an environment modifier is: `textSelection(_:)` is
+/// SwiftUI's environment-like modifier, so on multi-member content each member
+/// gets its own scope, and a container still sees the members. Opaque, it
+/// collapsed `List { ForEach(names) { Text($0) }.textSelection(.enabled) }`
+/// into one row, took a stack's spacing from between a `ForEach`'s members,
+/// and hid a `.zIndex`, a container value or a removal transition written
+/// inside it. (A `List` row's `.tag(_:)` is read off the row's outermost view
+/// only, under any modifier — see `TagCarrying`.)
+///
+/// - Note: Each member's scope files its own region, which is the member's
+///   rectangle: what a selection begun on it keeps to, as SwiftUI keeps a
+///   selection inside one `Text`. A scope is geometry, not an effect, so
+///   filing it per member multiplies nothing a user sees.
+extension _TextSelectionScope: ContentRewrapping {
+    var wrappedContent: Content { content }
+
+    func rewrapping<V: View>(_ view: V) -> any View {
+        _TextSelectionScope<V>(content: view, allowsSelection: allowsSelection)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``SingleContentWrapper``.
+extension _TextSelectionScope: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Body deliberately empty: ``GridRowProviding`` has the whole implementation
+/// for a ``SingleContentWrapper``.
+extension _TextSelectionScope: GridRowProviding where Content: GridRowProviding {}
+
+/// Body deliberately empty: ``SectionPartsProviding`` has the whole
+/// implementation for a ``SingleContentWrapper``.
+extension _TextSelectionScope: SectionPartsProviding where Content: SectionPartsProviding {}
+
+/// Draws its content unchanged, at its own identity — the region it files is
+/// geometry, nothing drawn — so a removal transition written inside it plays;
+/// see `DrawsContentUnchanged`.
+extension _TextSelectionScope: DrawsContentUnchanged {}
+
 // MARK: - Environment
 
 private struct TextSelectionAllowedKey: EnvironmentKey {
