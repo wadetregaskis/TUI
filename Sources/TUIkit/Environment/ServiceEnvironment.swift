@@ -268,6 +268,7 @@ extension EnvironmentValues {
         // else does, so the key's `nil` default stands everywhere else.
         if let undoManager = context.undoManager {
             self.undoManager = undoManager
+            departedUndoSteps = context.departedUndoSteps
         }
         // What the terminal reports about the keyboard. Written only where the
         // kitty keyboard protocol is on: the key's default is the legacy

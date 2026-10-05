@@ -297,8 +297,10 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         handler.text = text
         handler.canBeFocused = !isDisabled
         // The app's undo manager, which the editor's edits are registered with,
-        // and the steps of text the app has replaced since, taken out of it.
+        // and where the editor leaves them when it goes away; and the steps of
+        // text the app has replaced since, taken out of it.
         handler.undoManager = context.environment.undoManager
+        handler.departedUndoSteps = context.environment.departedUndoSteps
         if !context.isMeasuring { handler.forgetHistoryIfReplaced() }
         handler.viewportHeight = height
         // Synced each render so the handler's vertical motion preserves the

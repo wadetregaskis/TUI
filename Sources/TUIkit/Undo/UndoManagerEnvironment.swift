@@ -71,4 +71,16 @@ extension EnvironmentValues {
         get { self[UndoManagerKey.self] }
         set { self[UndoManagerKey.self] = newValue }
     }
+
+    /// Where a text control leaves its steps in ``undoManager`` when it goes
+    /// away, for the next frame to take out: published with the manager, and
+    /// `nil` where there is none.
+    var departedUndoSteps: DepartedUndoSteps? {
+        get { self[DepartedUndoStepsKey.self] }
+        set { self[DepartedUndoStepsKey.self] = newValue }
+    }
+}
+
+private struct DepartedUndoStepsKey: EnvironmentKey {
+    static let defaultValue: DepartedUndoSteps? = nil
 }

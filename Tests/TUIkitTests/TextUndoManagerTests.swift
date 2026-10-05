@@ -125,6 +125,50 @@ struct TextUndoManagerTests {
         #expect(box.value == "ab")
     }
 
+    /// Holds the only reference to a field's handler, for another thread to
+    /// let go of.
+    private final class HandlerHolder: @unchecked Sendable {
+        var handler: TextFieldHandler?
+    }
+
+    /// A field's handler, typed into, with the app's manager and the
+    /// harness's departed steps, as a field's render gives it them — held by
+    /// nothing but the holder.
+    private func typedHandler(
+        _ text: String, box: TextBox, manager: UndoManager, harness: InputChainHarness
+    ) -> HandlerHolder {
+        let handler = TextFieldHandler(focusID: "field", text: Binding(get: { box.value }, set: { box.value = $0 }))
+        handler.undoManager = manager
+        handler.departedUndoSteps = harness.tui.departedUndoSteps
+        for key in typed(text) { _ = handler.handleKeyEvent(key) }
+        let holder = HandlerHolder()
+        holder.handler = handler
+        return holder
+    }
+
+    @Test("A control freed on another thread leaves the manager alone, and the next frame takes its steps out")
+    func freedOffTheMainActor() {
+        let manager = makeManager()
+        let box = TextBox()
+        let harness = InputChainHarness(undoManager: manager)
+        let holder = typedHandler("ab", box: box, manager: manager, harness: harness)
+        #expect(box.value == "ab" && manager.canUndo)
+        // A deinitialiser promises no isolation: this one runs on a thread that
+        // is not the main actor's, as one could on Linux, where the main actor
+        // is not the main thread.
+        let freed = DispatchSemaphore(value: 0)
+        Thread {
+            holder.handler = nil
+            freed.signal()
+        }.start()
+        freed.wait()
+        #expect(manager.canUndo, "the manager is the main actor's; the control did not touch it")
+        harness.frame(Text("page"))
+        // Deferred to a task instead, as 872696f4c did off the main thread,
+        // the steps were still here: the frame ran first.
+        #expect(!manager.canUndo, "taken out as the frame began, before its status bar")
+    }
+
     @Test("A step the control's own history let go of past its limit leaves the app's history with it")
     func droppedPastTheLimit() {
         let manager = makeManager()
@@ -236,6 +280,29 @@ struct TextUndoManagerTests {
         #expect(!manager.canUndo)
     }
 
+    @Test("The run loop takes a freed control's steps out before it builds the status bar")
+    func departedStepsLeaveBeforeTheBar() {
+        let manager = makeManager()
+        let harness = RenderLoopHarness()
+        harness.tuiContext.undoManager = manager
+        harness.statusBar.undoManager = manager
+        // A step registered against a mark, as a text control registers its
+        // edits.
+        let mark = TextUndoMark()
+        manager.beginUndoGrouping()
+        manager.registerUndo(withTarget: mark) { _ in }
+        manager.endUndoGrouping()
+        let loop = harness.loop(PageApp())
+        loop.render()
+        let drawnBar = { loop.diffWriter.shownLines.suffix(harness.statusBar.height).joined() }
+        #expect(drawnBar().contains("undo"))
+        // The control holding it goes away.
+        harness.tuiContext.departedUndoSteps.add([mark], from: manager)
+        loop.render()
+        #expect(!manager.canUndo)
+        #expect(!drawnBar().contains("undo"), "the bar this frame built does not offer it")
+    }
+
     @Test("Without an app, a field's Ctrl-Z and Ctrl-Shift-Z work on its own history")
     func fieldWithoutAnApp() {
         let box = TextBox()
@@ -254,5 +321,12 @@ struct TextUndoManagerTests {
         }
         #expect(box.value == "pw")
         #expect(!manager.canUndo)
+    }
+}
+
+/// One page and nothing else, for a frame of the whole run loop.
+private struct PageApp: App {
+    var body: some Scene {
+        WindowGroup { Text("page") }
     }
 }

@@ -89,6 +89,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// set each frame from `\.undoManager`; `nil` outside a running app.
     var undoManager: UndoManager?
 
+    /// Where the editor leaves its steps when it goes away, for the next frame
+    /// to take out of ``undoManager`` — set each frame with it.
+    var departedUndoSteps: DepartedUndoSteps?
+
     init(focusID: String, text: Binding<String>, canBeFocused: Bool = true) {
         self.focusID = focusID
         self.text = text
@@ -97,9 +101,10 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// An editor that leaves the screen takes its steps out of the app's undo
     /// manager, which would otherwise offer undos that change nothing anyone
-    /// can see.
+    /// can see — at the start of the next frame, as a field's do
+    /// (``DepartedUndoSteps``).
     deinit {
-        if let undoManager { TextUndoBridge.forget(undoHistory.allMarks, on: undoManager) }
+        if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
     }
 
     // MARK: - Line access

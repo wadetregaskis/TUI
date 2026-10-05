@@ -896,10 +896,12 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             role: context.environment.submitTriggerRole)
         handler.onEditingChanged = onEditingChangedAction
         handler.textContentType = context.environment.textContentType
-        // The app's undo manager, which the field's edits are registered with.
-        // `SecureField` resolves its own handler and leaves this nil: a secure
-        // field's typing is not something to undo from elsewhere.
+        // The app's undo manager, which the field's edits are registered with,
+        // and where the field leaves them when it goes away. `SecureField`
+        // resolves its own handler and leaves both nil: a secure field's typing
+        // is not something to undo from elsewhere.
         handler.undoManager = context.environment.undoManager
+        handler.departedUndoSteps = context.environment.departedUndoSteps
         // Text the app replaced since the field wrote it (cleared on submit):
         // its steps leave the manager now, not at the field's next key, so the
         // bar and the undo keys do not go on offering undos that do nothing.

@@ -198,6 +198,10 @@ final class TextFieldHandler: PersistedFocusable {
     /// a ``SecureField``, where Ctrl-Z undoes the field's own history only.
     var undoManager: UndoManager?
 
+    /// Where the field leaves its steps when it goes away, for the next frame
+    /// to take out of ``undoManager`` — set each frame with it.
+    var departedUndoSteps: DepartedUndoSteps?
+
     // MARK: Input suggestions (``View/textInputSuggestions(_:)``)
 
     /// The completions of the field's current suggestions, in menu order
@@ -264,9 +268,11 @@ final class TextFieldHandler: PersistedFocusable {
 
     /// A field that leaves the screen takes its steps out of the app's undo
     /// manager, which would otherwise offer undos that change nothing anyone
-    /// can see.
+    /// can see — at the start of the next frame, because a deinitialiser
+    /// promises no isolation and the manager is the main actor's
+    /// (``DepartedUndoSteps``).
     deinit {
-        if let undoManager { TextUndoBridge.forget(undoHistory.allMarks, on: undoManager) }
+        if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
     }
 }
 

@@ -904,6 +904,11 @@ extension RenderLoop {
         tuiContext.lifecycle.beginRenderPass()
         tuiContext.stateStorage.beginRenderPass()
         tuiContext.renderCache.beginRenderPass()
+        // After the focus manager has let go of last frame's controls, which
+        // frees a text control that has left the screen, and before the status
+        // bar is sized: the control's undo steps leave the app's manager in
+        // this frame, and the bar does not offer them.
+        tuiContext.departedUndoSteps.takeOut()
         // Per-WALK, reset again before each scene render.
         beginSceneRender()
     }

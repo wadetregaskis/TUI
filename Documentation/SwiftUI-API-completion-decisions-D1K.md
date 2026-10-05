@@ -157,12 +157,22 @@ when they arrive together, a fast typist or a burst over ssh. A control's
 steps stay in the app's history until the control leaves the screen, or
 its own history lets them go (past its 50, or when the app replaces the
 text), and then leave it, so the manager does not offer an undo that does
-nothing. A replacement — a field cleared on submit, another document loaded
-into the editor — is seen where the control renders, in the frame that
-draws the new text, before the status bar is built and before the next key
-(until the second review it was seen only at the control's next key, and
-`onSubmit { draft = "" }` left five dead undos ahead of the app's older
-steps, with "undo" on the bar). The one exception is an undo read in the
+nothing. A control that leaves the screen is let go of as the next frame
+begins, and its steps leave then, before that frame sizes the status bar:
+its deinitialiser, which promises no isolation, leaves them on a list the
+frame empties on the main actor. Every other removal is made at once: its
+callers (a render, a key, a click) are on the main actor, which is asked of
+the isolation, not the thread. Until the third review it asked
+`Thread.isMainThread`, which on Linux is false on the main actor after its
+first suspension (measured in `StackGuard`), so there every removal went to
+a task that ran after the frame, the bar went on offering the steps, and
+the tests of all this would have failed. A replacement — a field cleared on
+submit, another document loaded into the editor — is seen where the control
+renders, in the frame that draws the new text, before the status bar is
+built and before the next key (until the second review it was seen only at
+the control's next key, and `onSubmit { draft = "" }` left five dead undos
+ahead of the app's older steps, with "undo" on the bar). The one exception
+is an undo read in the
 same burst of input as the replacement, before any frame: it finds the text
 replaced and does nothing, and the control's other steps leave at the
 frame. Taking them out from inside that undo is the one thing not done:

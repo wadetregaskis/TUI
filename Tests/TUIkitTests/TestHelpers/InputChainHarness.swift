@@ -103,6 +103,10 @@ final class InputChainHarness {
         tui.preferences.beginRenderPass()
         statusBar.beginRenderPass()
         focusManager.beginRenderPass()
+        // As `RenderLoop.beginRenderPass()` does, once the focus manager has
+        // let go of last frame's controls: a text control that went away takes
+        // its steps out of the undo manager here.
+        tui.departedUndoSteps.takeOut()
         // A fresh tracker per frame, as the run loop installs one: without it
         // the per-pass memos stay off, and a test of what a served frame
         // still registers would pass with nothing served.

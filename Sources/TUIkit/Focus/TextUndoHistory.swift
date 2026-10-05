@@ -215,7 +215,8 @@ protocol AppUndoableText: AnyObject {
 /// The manager never offers a step that does nothing. A state the history
 /// lets go of — past its limit, forgotten when the app replaced the text, a
 /// redo a new edit discarded — takes its step out with it
-/// (``forget(_:on:)``), and so does every state of a control that goes away.
+/// (``forget(_:on:)``), and so does every state of a control that goes away,
+/// at the start of the next frame (``DepartedUndoSteps``).
 /// A replacement is seen where the control renders, which it does in the
 /// frame that draws the new text, ahead of the status bar and the next key.
 /// The one undo that can find nothing is one in the same burst of input as
@@ -258,28 +259,70 @@ enum TextUndoBridge {
         if needsGroup { manager.endUndoGrouping() }
     }
 
-    /// Takes the steps registered against `marks` out of `manager`.
+    /// Takes the steps registered against `marks` out of `manager`, at once.
     ///
-    /// On the main actor at once; from anywhere else — a control's last
-    /// reference let go off the main thread — on the main actor next, the
-    /// marks kept alive until then by this call.
+    /// Every caller is on the main actor — a render, a key, a click — which
+    /// is asked of the isolation, not of the thread. On Linux the main actor
+    /// is drained by a pool thread after the first suspension (see
+    /// `StackGuard`), so `Thread.isMainThread`, which this asked until the
+    /// 2026-10-05 review, sent every removal there to a `Task` that ran after
+    /// the frame: the status bar went on offering the steps. A control going
+    /// away does not come here: its deinitialiser promises no isolation at
+    /// all, and leaves its steps to ``DepartedUndoSteps``.
     static func forget(_ marks: [TextUndoMark], on manager: UndoManager) {
         guard !marks.isEmpty else { return }
-        #if canImport(WASILibc)
-            // wasip1 has one thread, the main actor's, and its Foundation no
-            // `Thread` to ask.
-            MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
-        #else
-            if Thread.isMainThread {
-                MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
-            } else {
-                Task { @MainActor in removeActions(of: marks, from: manager) }
-            }
-        #endif
+        MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
     }
 
     @MainActor
-    private static func removeActions(of marks: [TextUndoMark], from manager: UndoManager) {
+    fileprivate static func removeActions(of marks: [TextUndoMark], from manager: UndoManager) {
         for mark in marks { manager.removeAllActions(withTarget: mark) }
+    }
+}
+
+/// The undo steps of text controls that have gone away, waiting to be taken
+/// out of the app's undo manager.
+///
+/// A control takes its steps out of the manager when it goes away, and it goes
+/// away wherever its last reference is let go of. That is the main actor in
+/// practice — the start of the frame after the one that stopped drawing it,
+/// when the focus manager lets go of the last frame's controls — but a
+/// deinitialiser promises no isolation, and the manager is isolated to the
+/// main actor. So the control does not touch the manager there: it leaves its
+/// marks here (``add(_:from:)``), and every frame takes them out
+/// (``takeOut()``) as it begins, after last frame's controls are let go of and
+/// before the status bar is sized, so that frame's bar does not offer them. A
+/// control let go of later in a frame has its steps taken out at the next.
+/// One per app, on its `TUIContext`.
+///
+/// Locked, because a deinitialiser can run on any thread; an empty list costs
+/// a frame one lock and a check.
+final class DepartedUndoSteps: @unchecked Sendable {
+    private let lock = NSLock()
+
+    /// The marks of each control that has gone away, with the manager its
+    /// steps are registered with. Under ``lock``.
+    private var pending: [(marks: [TextUndoMark], manager: UndoManager)] = []
+
+    /// Leaves `marks`, a control's that is going away, to be taken out of
+    /// `manager` at the start of the next frame. Callable from anywhere.
+    func add(_ marks: [TextUndoMark], from manager: UndoManager) {
+        guard !marks.isEmpty else { return }
+        lock.lock()
+        pending.append((marks, manager))
+        lock.unlock()
+    }
+
+    /// Takes every step left here out of its manager.
+    ///
+    /// Outside the lock, so that whatever letting go of a step frees can
+    /// leave steps here itself.
+    @MainActor
+    func takeOut() {
+        var taken: [(marks: [TextUndoMark], manager: UndoManager)] = []
+        lock.lock()
+        swap(&taken, &pending)
+        lock.unlock()
+        for (marks, manager) in taken { TextUndoBridge.removeActions(of: marks, from: manager) }
     }
 }

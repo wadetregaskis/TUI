@@ -333,6 +333,10 @@ final class TUIContext: @unchecked Sendable {
     /// support undo and redo operations".
     var undoManager: UndoManager?
 
+    /// The undo steps of text controls that have gone away, which every frame
+    /// takes out of ``undoManager`` as it begins (`RenderLoop.beginRenderPass()`).
+    let departedUndoSteps = DepartedUndoSteps()
+
     /// Persistent `@State` value storage indexed by `ViewIdentity`.
     let stateStorage: StateStorage
 
