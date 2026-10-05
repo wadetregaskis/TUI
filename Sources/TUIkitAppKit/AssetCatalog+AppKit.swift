@@ -36,15 +36,7 @@
         ///     If you don't indicate a bundle, the initializer looks in your
         ///     app's main bundle by default.
         public init(_ name: String, bundle: Bundle? = nil) {
-            if let color = Self.catalogColor(named: name, in: bundle) {
-                self = color
-            } else if let named = NSColor(named: name, bundle: bundle) {
-                var color = Self.clear
-                CompiledCatalog.appearance.performAsCurrentDrawingAppearance { color = Color(nsColor: named) }
-                self = color
-            } else {
-                self = .clear
-            }
+            self = Self.catalogColor(named: name, in: bundle) ?? CompiledCatalog.color(named: name, in: bundle ?? .main) ?? .clear
         }
     }
 
@@ -105,15 +97,18 @@
         }
     }
 
-    /// The pictures read out of compiled catalogues, kept for the process.
+    /// The colours and pictures read out of compiled catalogues, kept for the
+    /// process.
     ///
-    /// `Bundle.image(forResource:)` makes a new `NSImage` at every call
+    /// A body that names a catalogue colour or image runs every frame. A
+    /// colour is a lookup in the catalogue and a conversion under an
+    /// appearance, kept so a frame pays a dictionary read. A picture costs
+    /// more: `Bundle.image(forResource:)` makes a new `NSImage` at every call
     /// (measured), and an image the app hands over is named by its object's
-    /// address and drawn out once (decisions B43). A body that names a
-    /// catalogue image runs every frame, so without this every frame would be
-    /// a new picture, drawn out again. Each is rendered once, under the
-    /// appearance TUIkit chooses variants by, to a `CGImage` that is kept.
-    private enum CompiledCatalog {
+    /// address and drawn out once (decisions B43), so without this every frame
+    /// would be a new picture, drawn out again. Each is rendered once, under
+    /// the appearance TUIkit chooses variants by, to a `CGImage` that is kept.
+    enum CompiledCatalog {
         struct Picture {
             let image: CGImage
             let scale: CGFloat
@@ -127,6 +122,35 @@
 
         private static let lock = NSLock()
         nonisolated(unsafe) private static var pictures: [Key: Picture?] = [:]
+        nonisolated(unsafe) private static var colors: [Key: Color?] = [:]
+
+        /// How many times each colour was asked of AppKit — for the test that
+        /// a colour is read once, not every frame. One count per colour kept.
+        nonisolated(unsafe) private static var colorLookups: [Key: Int] = [:]
+
+        /// The colour `name` in `bundle`'s compiled catalogue, under the
+        /// appearance a catalogue's variants are chosen by, or `nil` where it
+        /// has none.
+        static func color(named name: String, in bundle: Bundle) -> Color? {
+            let key = Key(bundlePath: bundle.bundlePath, name: name, isDark: Color.catalogColorScheme == .dark)
+            if let known = lock.withLock({ colors[key] }) { return known }
+            var color: Color?
+            if let named = NSColor(named: name, bundle: bundle) {
+                appearance.performAsCurrentDrawingAppearance { color = Color(nsColor: named) }
+            }
+            lock.withLock {
+                colorLookups[key, default: 0] += 1
+                colors[key] = .some(color)
+            }
+            return color
+        }
+
+        /// How many times the colour `name` in `bundle` has been asked of
+        /// AppKit, in the current colour scheme.
+        static func colorLookupCount(named name: String, in bundle: Bundle) -> Int {
+            let key = Key(bundlePath: bundle.bundlePath, name: name, isDark: Color.catalogColorScheme == .dark)
+            return lock.withLock { colorLookups[key] ?? 0 }
+        }
 
         /// The appearance a catalogue's light and dark variants are chosen
         /// by — TUIkit's `Color.catalogColorScheme`, in AppKit's terms.

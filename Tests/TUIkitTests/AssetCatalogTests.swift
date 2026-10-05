@@ -17,7 +17,7 @@ import Testing
 @testable import TUIkit
 
 #if canImport(AppKit)
-    import TUIkitAppKit
+    @testable import TUIkitAppKit
 #endif
 
 /// A directory made for one test, removed with it.
@@ -211,6 +211,13 @@ struct AssetCatalogTests {
             let expected: [Float] = EnvironmentValues().colorScheme == .dark ? [16, 128, 255, 255] : [204, 102, 51, 255]
             #expect(components(Color("Brand", bundle: bundle)) == expected)
             #expect(Color("NoSuchColour", bundle: bundle) == .clear)
+            // A body names its colour every frame: AppKit is asked once.
+            for _ in 0..<3 {
+                _ = Color("Brand", bundle: bundle)
+                _ = Color("NoSuchColour", bundle: bundle)
+            }
+            #expect(CompiledCatalog.colorLookupCount(named: "Brand", in: bundle) == 1)
+            #expect(CompiledCatalog.colorLookupCount(named: "NoSuchColour", in: bundle) == 1, "a miss is asked again")
 
             let image = Image("Logo", bundle: bundle)
             let decoded = try #require(image.decoded, "the compiled image was not found")
