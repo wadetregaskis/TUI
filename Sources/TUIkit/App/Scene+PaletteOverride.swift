@@ -6,16 +6,6 @@
 
 // MARK: - Root Palette Discovery
 
-/// A scene that can provide a root-level palette override.
-///
-/// `RenderLoop` uses this to keep out-of-tree surfaces (status bar, app header)
-/// aligned with `.palette(...)` applied at the root view level.
-@MainActor
-internal protocol RootPaletteOverrideProvidingScene: Scene {
-    /// Returns the root palette override, if present.
-    func rootPaletteOverride() -> (any Palette)?
-}
-
 /// Type-erased access to `EnvironmentModifier` internals.
 ///
 /// This is intentionally limited to root modifier chain discovery.
@@ -33,9 +23,23 @@ extension EnvironmentModifier: AnyEnvironmentModifierNode {
     fileprivate var anyEnvironmentContent: Any { content }
 }
 
+/// The end of every scene's modifier chain.
+///
+/// A `.palette(...)` on the window group's root VIEW is honoured as if it had
+/// been written on the scene, so the out-of-tree surfaces (status bar, app
+/// header) are themed with the content. It is the statement closest to the
+/// content, so it wins over a scene-level one.
 @MainActor
-extension WindowGroup: RootPaletteOverrideProvidingScene {
-    func rootPaletteOverride() -> (any Palette)? {
+extension WindowGroup: ConfiguringScene {
+    func configure(_ configuration: inout SceneConfiguration) {
+        if let palette = rootViewPalette { configuration.palette = palette }
+    }
+
+    var configuredContent: (any Scene)? { nil }
+
+    /// The palette the outermost `.palette(...)` of the root view's modifier
+    /// chain states, if any.
+    private var rootViewPalette: (any Palette)? {
         var current: Any = content
 
         while let modifier = current as? any AnyEnvironmentModifierNode {
@@ -74,8 +78,8 @@ extension Scene {
     /// ```
     ///
     /// Applying `.palette(_:)` to the root *view* inside the `WindowGroup`
-    /// remains equivalent and is honoured identically (see
-    /// `RootPaletteOverrideProvidingScene`).
+    /// remains equivalent and is honoured identically (see `WindowGroup`'s
+    /// ``ConfiguringScene`` conformance).
     ///
     /// - Parameter palette: The palette to apply.
     /// - Returns: A scene that applies the palette.
@@ -87,8 +91,8 @@ extension Scene {
 // MARK: - Wrapper Scene
 
 /// Framework-internal scene wrapper that records a root ``Palette`` override on
-/// its content. `RenderLoop` reads it via ``RootPaletteOverrideProvidingScene``
-/// and installs it into the environment for the whole frame, so it reaches the
+/// its content. `RenderLoop` reads it from the ``SceneConfiguration`` and
+/// installs it into the environment for the whole frame, so it reaches the
 /// content view tree and the out-of-tree surfaces alike.
 internal struct _PaletteScene<Content: Scene>: Scene {
     let content: Content
@@ -98,80 +102,21 @@ internal struct _PaletteScene<Content: Scene>: Scene {
     var body: Never { fatalError("_PaletteScene renders via SceneRenderable") }
 }
 
-extension _PaletteScene: RootPaletteOverrideProvidingScene {
+extension _PaletteScene: ConfiguringScene {
     /// A palette closer to the content wins — one applied to an inner scene, or
     /// to the root view inside `WindowGroup` — mirroring how `.mouseSupport`
-    /// composes (innermost wins) and how SwiftUI environment modifiers resolve.
-    func rootPaletteOverride() -> (any Palette)? {
-        if let inner = content.primitiveScene as? any RootPaletteOverrideProvidingScene,
-            let innerPalette = inner.rootPaletteOverride()
-        {
-            return innerPalette
-        }
-        return palette
+    /// composes and how SwiftUI environment modifiers resolve.
+    func configure(_ configuration: inout SceneConfiguration) {
+        configuration.palette = palette
     }
-}
 
-extension _PaletteScene: RootAppearanceOverrideProvidingScene {
-    /// Pass-through: forward any wrapped scene's appearance override so
-    /// `.palette(...)` composes with `.appearance(...)` in either order.
-    func rootAppearanceOverride() -> Appearance? {
-        (content.primitiveScene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
-    }
+    var configuredContent: (any Scene)? { content }
 }
 
 extension _PaletteScene: SceneRenderable {
-    /// The palette is applied by `RenderLoop` through ``rootPaletteOverride()``;
-    /// rendering simply forwards to the wrapped scene.
+    /// The palette is applied by `RenderLoop`; rendering simply forwards to the
+    /// wrapped scene.
     func renderScene(context: RenderContext) -> FrameBuffer {
         content.renderSceneTree(context: context)
-    }
-}
-
-extension _PaletteScene: MouseSupportProvidingScene {
-    /// Pass-through: forward the wrapped scene's mouse support so `.palette(...)`
-    /// composes with `.mouseSupport(...)` in either order. Returns `nil` (no
-    /// opinion) when nothing inside specifies one — crucially, so wrapping a
-    /// `.mouseSupport(...)` scene in `.palette(...)` does not shadow it with a
-    /// default.
-    func resolvedMouseSupport() -> MouseSupport? {
-        (content.primitiveScene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
-    }
-}
-
-extension _PaletteScene: RootChromeStyleProvidingScene {
-    /// Pass-through: forward the wrapped scene's chrome styles so
-    /// `.chromeStyle(...)` composes with this modifier in either order.
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?) {
-        (content.primitiveScene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-            ?? (appHeader: nil, statusBar: nil)
-    }
-}
-
-// MARK: - Applying the Overrides
-
-extension Scene {
-    /// Installs this scene's own overrides into the frame's root environment,
-    /// for the WHOLE frame — content tree and the out-of-tree app header /
-    /// status bar alike. `RenderLoop` calls it once per frame.
-    func applyRootOverrides(to environment: inout EnvironmentValues) {
-        // Scene-level `.environment(…)` values first, so a scene palette still
-        // wins over an `.environment(\.palette, …)` written beside it: the
-        // palette modifier is the more specific statement.
-        applyingRootEnvironment(to: &environment)
-        if let paletteOverrideScene = primitiveScene as? any RootPaletteOverrideProvidingScene,
-            let paletteOverride = paletteOverrideScene.rootPaletteOverride()
-        {
-            environment.palette = paletteOverride
-        }
-        // A scene-level `.appearance(...)` override wins over the appearance
-        // manager's current selection. `nil` (no scene override) leaves the
-        // manager-derived appearance from `buildEnvironment()` intact, so
-        // F2/F3/the appearance picker keep working.
-        if let appearanceOverrideScene = primitiveScene as? any RootAppearanceOverrideProvidingScene,
-            let appearanceOverride = appearanceOverrideScene.rootAppearanceOverride()
-        {
-            environment.appearance = appearanceOverride
-        }
     }
 }

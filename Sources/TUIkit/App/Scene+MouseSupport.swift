@@ -37,7 +37,9 @@ extension Scene {
 // MARK: - Wrapper Scene
 
 /// Framework-internal scene wrapper that records a ``MouseSupport``
-/// configuration on its content.
+/// configuration on its content. `RenderLoop` reads it from the
+/// ``SceneConfiguration`` to decide which terminal tracking mode to apply each
+/// frame.
 internal struct _MouseSupportScene<Content: Scene>: Scene {
     let content: Content
     let support: MouseSupport
@@ -46,34 +48,16 @@ internal struct _MouseSupportScene<Content: Scene>: Scene {
     var body: Never { fatalError("_MouseSupportScene renders via SceneRenderable") }
 }
 
-/// A scene that can report its requested ``MouseSupport``
-/// configuration. `RenderLoop` queries this to decide which terminal
-/// tracking mode to apply each frame.
-@MainActor
-internal protocol MouseSupportProvidingScene: Scene {
-    /// The configuration this scene contributes, or `nil` if it has no opinion
-    /// (a pass-through wrapper such as `_PaletteScene` whose content specifies
-    /// no `.mouseSupport`). Returning `nil` rather than a default lets an
-    /// enclosing `.mouseSupport(...)` survive being wrapped — see
-    /// ``_PaletteScene``. `RenderLoop` substitutes `.standard` for a top-level
-    /// `nil`.
-    func resolvedMouseSupport() -> MouseSupport?
-}
-
-extension _MouseSupportScene: MouseSupportProvidingScene {
-    /// Inner `.mouseSupport` calls shadow outer ones — the closest
-    /// (innermost) modifier to the content wins, mirroring how
-    /// SwiftUI environment-style modifiers compose. A pass-through wrapper
-    /// inside (one that reports `nil`) does not shadow: this scene's own
-    /// `support` then applies.
-    func resolvedMouseSupport() -> MouseSupport? {
-        if let inner = content.primitiveScene as? any MouseSupportProvidingScene,
-            let innerSupport = inner.resolvedMouseSupport()
-        {
-            return innerSupport
-        }
-        return support
+extension _MouseSupportScene: ConfiguringScene {
+    /// Inner `.mouseSupport` calls shadow outer ones — the closest (innermost)
+    /// modifier to the content wins, mirroring how SwiftUI environment-style
+    /// modifiers compose. A wrapper that states nothing about the mouse (a
+    /// `.palette(...)`) shadows nothing.
+    func configure(_ configuration: inout SceneConfiguration) {
+        configuration.mouseSupport = support
     }
+
+    var configuredContent: (any Scene)? { content }
 }
 
 // MARK: - SceneRenderable forwarding
@@ -81,43 +65,8 @@ extension _MouseSupportScene: MouseSupportProvidingScene {
 extension _MouseSupportScene: SceneRenderable {
     func renderScene(context: RenderContext) -> FrameBuffer {
         // Forward rendering to the wrapped content. The mouse support
-        // configuration is metadata that's extracted by the AppRunner
-        // via ``resolvedMouseSupport()`` — it doesn't affect what
-        // gets drawn.
+        // configuration is metadata the run loop reads from the scene's
+        // configuration — it doesn't affect what gets drawn.
         content.renderSceneTree(context: context)
-    }
-}
-
-// MARK: - Palette Override Forwarding
-
-extension _MouseSupportScene: RootPaletteOverrideProvidingScene {
-    /// Forward the palette-override lookup to the wrapped scene so
-    /// `.mouseSupport(...)` can be composed with `.palette(...)` in
-    /// either order without losing either.
-    func rootPaletteOverride() -> (any Palette)? {
-        if let inner = content.primitiveScene as? any RootPaletteOverrideProvidingScene {
-            return inner.rootPaletteOverride()
-        }
-        return nil
-    }
-}
-
-// MARK: - Appearance Override Forwarding
-
-extension _MouseSupportScene: RootAppearanceOverrideProvidingScene {
-    /// Forward the appearance-override lookup to the wrapped scene so
-    /// `.mouseSupport(...)` can be composed with `.appearance(...)` in either
-    /// order without losing either.
-    func rootAppearanceOverride() -> Appearance? {
-        (content.primitiveScene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
-    }
-}
-
-extension _MouseSupportScene: RootChromeStyleProvidingScene {
-    /// Pass-through: forward the wrapped scene's chrome styles so
-    /// `.chromeStyle(...)` composes with this modifier in either order.
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?) {
-        (content.primitiveScene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-            ?? (appHeader: nil, statusBar: nil)
     }
 }

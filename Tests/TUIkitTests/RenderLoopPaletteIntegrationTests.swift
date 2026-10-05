@@ -46,7 +46,7 @@ struct RenderLoopPaletteIntegrationTests {
                 .palette(SystemPalette(.blue))
         }
 
-        #expect(scene.rootPaletteOverride()?.id == "blue")
+        #expect(scene.sceneConfiguration.palette?.id == "blue")
     }
 
     @Test("WindowGroup root palette override supports custom palettes")
@@ -57,8 +57,8 @@ struct RenderLoopPaletteIntegrationTests {
                 .palette(palette)
         }
 
-        #expect(scene.rootPaletteOverride()?.id == palette.id)
-        #expect(scene.rootPaletteOverride()?.statusBarBackground == palette.statusBarBackground)
+        #expect(scene.sceneConfiguration.palette?.id == palette.id)
+        #expect(scene.sceneConfiguration.palette?.statusBarBackground == palette.statusBarBackground)
     }
 
     @Test("WindowGroup root palette override prefers the outermost palette")
@@ -71,7 +71,7 @@ struct RenderLoopPaletteIntegrationTests {
             .palette(SystemPalette(.amber))
         }
 
-        #expect(scene.rootPaletteOverride()?.id == "amber")
+        #expect(scene.sceneConfiguration.palette?.id == "amber")
     }
 
     @Test("WindowGroup without root palette override returns nil")
@@ -83,7 +83,7 @@ struct RenderLoopPaletteIntegrationTests {
             }
         }
 
-        #expect(scene.rootPaletteOverride() == nil)
+        #expect(scene.sceneConfiguration.palette == nil)
     }
 
     // MARK: - Scene-level `.palette(_:)`
@@ -94,12 +94,12 @@ struct RenderLoopPaletteIntegrationTests {
 
     /// The palette override of a scene, as `RenderLoop` discovers it.
     private func sceneOverride(_ scene: some Scene) -> (any Palette)? {
-        (scene as? any RootPaletteOverrideProvidingScene)?.rootPaletteOverride()
+        scene.sceneConfiguration.palette
     }
 
     /// The mouse support of a scene, as `RenderLoop` discovers it.
     private func sceneMouseSupport(_ scene: some Scene) -> MouseSupport? {
-        (scene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
+        scene.sceneConfiguration.mouseSupport
     }
 
     @Test(".palette applies to a WindowGroup (scene level) and is discovered")

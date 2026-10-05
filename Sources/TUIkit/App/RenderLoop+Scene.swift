@@ -16,10 +16,11 @@
 /// ``baseMouseSupport`` is not private.
 extension RenderLoop {
 
-    /// Adopts this frame's scene configuration: called straight after the
-    /// scene's root environment is applied to `environment`, before anything
-    /// asks either bar's height.
-    func applySceneConfiguration(from scene: some Scene, environment: EnvironmentValues) {
+    /// Adopts this frame's scene configuration: its root overrides into
+    /// `environment` first, then what the run loop reads from it — before
+    /// anything asks either bar's height.
+    func applySceneConfiguration(_ configuration: SceneConfiguration, to environment: inout EnvironmentValues) {
+        configuration.applyRootOverrides(to: &environment)
         // The app's undo and redo keys, which the scene may have set
         // (`.undoShortcuts`), resolved through its `\.commandKey`, for the keys
         // that arrive before the next frame. Rebuilt only when they changed.
@@ -29,18 +30,15 @@ extension RenderLoop {
         // any features requested by view modifiers during render. The
         // AppRunner consults `effectiveMouseSupport` after the render
         // pass completes to update the terminal tracking mode.
-        if let mouseScene = scene.primitiveScene as? any MouseSupportProvidingScene {
-            // `nil` means no `.mouseSupport(...)` was applied (only pass-through
-            // scene wrappers like `.palette(...)`); fall back to `.standard`.
-            baseMouseSupport = mouseScene.resolvedMouseSupport() ?? .standard
-        } else {
-            baseMouseSupport = .standard
-        }
+        //
+        // `nil` means no `.mouseSupport(...)` was applied; fall back to
+        // `.standard`.
+        baseMouseSupport = configuration.mouseSupport ?? .standard
         // Make the active support available to handlers right now so
         // any events queued from the previous frame are filtered
         // against the right config.
         tuiContext.mouseEventDispatcher.setActiveSupport(baseMouseSupport)
-        applyChromeStyle(from: scene)
+        applyChromeStyle(from: configuration)
         // The screen selection's copy key and the scene's copy-on-release.
         tuiContext.screenSelection.adopt(
             commandKey: environment.commandKey, copiesOnRelease: environment.textSelectionCopiesOnRelease)
@@ -52,10 +50,8 @@ extension RenderLoop {
     /// many rows they take, and the page's height is whatever is left. That is
     /// why the status bar's height is read straight after this call rather than
     /// alongside the terminal size, where it used to sit.
-    private func applyChromeStyle(from scene: some Scene) {
-        guard let chromeScene = scene.primitiveScene as? any RootChromeStyleProvidingScene else { return }
-        let chrome = chromeScene.rootChromeStyle()
-        if let style = chrome.appHeader { appHeader.style = style }
-        if let style = chrome.statusBar { statusBar.style = style }
+    private func applyChromeStyle(from configuration: SceneConfiguration) {
+        if let style = configuration.appHeaderStyle { appHeader.style = style }
+        if let style = configuration.statusBarStyle { statusBar.style = style }
     }
 }

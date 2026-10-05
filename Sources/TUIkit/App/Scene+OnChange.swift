@@ -84,34 +84,11 @@ extension _OnChangeScene: SceneRenderable {
     }
 }
 
-/// Pass-through for the concerns this wrapper does not own, so it composes
-/// with the other scene modifiers in either order.
-extension _OnChangeScene: RootEnvironmentProvidingScene {
-    func applyRootEnvironment(to environment: inout EnvironmentValues) {
-        content.applyingRootEnvironment(to: &environment)
-    }
-}
+/// States nothing of its own: the watching happens as the content draws. It
+/// is a link in the chain all the same, so the modifiers on either side of it
+/// are found.
+extension _OnChangeScene: ConfiguringScene {
+    func configure(_ configuration: inout SceneConfiguration) {}
 
-extension _OnChangeScene: RootPaletteOverrideProvidingScene {
-    func rootPaletteOverride() -> (any Palette)? {
-        (content.primitiveScene as? any RootPaletteOverrideProvidingScene)?.rootPaletteOverride()
-    }
-}
-
-extension _OnChangeScene: RootAppearanceOverrideProvidingScene {
-    func rootAppearanceOverride() -> Appearance? {
-        (content.primitiveScene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
-    }
-}
-
-extension _OnChangeScene: MouseSupportProvidingScene {
-    func resolvedMouseSupport() -> MouseSupport? {
-        (content.primitiveScene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
-    }
-}
-
-extension _OnChangeScene: RootChromeStyleProvidingScene {
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?) {
-        (content.primitiveScene as? any RootChromeStyleProvidingScene)?.rootChromeStyle() ?? (nil, nil)
-    }
+    var configuredContent: (any Scene)? { content }
 }

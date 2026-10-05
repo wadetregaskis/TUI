@@ -196,18 +196,18 @@ struct ChromeStyleTests {
     @Test("One call sets both bars")
     func oneCallSetsBoth() {
         let scene = WindowGroup { Text("x") }.chromeStyle(.bordered)
-        let resolved = (scene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-        #expect(resolved?.appHeader == .bordered)
-        #expect(resolved?.statusBar == .bordered)
+        let resolved = scene.sceneConfiguration
+        #expect(resolved.appHeaderStyle == .bordered)
+        #expect(resolved.statusBarStyle == .bordered)
     }
 
     @Test("The two-argument spelling sets them apart")
     func twoArgumentsDiffer() {
         let scene = WindowGroup { Text("x") }
             .chromeStyle(appHeader: .compact, statusBar: .bordered)
-        let resolved = (scene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-        #expect(resolved?.appHeader == .compact)
-        #expect(resolved?.statusBar == .bordered)
+        let resolved = scene.sceneConfiguration
+        #expect(resolved.appHeaderStyle == .compact)
+        #expect(resolved.statusBarStyle == .bordered)
     }
 
     @Test("Innermost wins, per bar")
@@ -218,9 +218,9 @@ struct ChromeStyleTests {
         let scene = WindowGroup { Text("x") }
             .chromeStyle(appHeader: .compact, statusBar: .compact)
             .chromeStyle(.bordered)
-        let resolved = (scene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-        #expect(resolved?.appHeader == .compact, "the inner call is closer to the content")
-        #expect(resolved?.statusBar == .compact)
+        let resolved = scene.sceneConfiguration
+        #expect(resolved.appHeaderStyle == .compact, "the inner call is closer to the content")
+        #expect(resolved.statusBarStyle == .compact)
     }
 
     @Test("It composes with palette, appearance and mouse support in either order")
@@ -240,7 +240,7 @@ struct ChromeStyleTests {
             .mouseSupport(.standard)
 
         for scene in [AnySceneProbe(chromeOutermost), AnySceneProbe(chromeInnermost)] {
-            #expect(scene.chrome?.appHeader == .bordered)
+            #expect(scene.chrome.appHeader == .bordered)
             #expect(scene.palette?.id == palette.id)
             #expect(scene.appearance?.id == appearance.id)
             #expect(scene.mouse != nil)
@@ -252,15 +252,16 @@ struct ChromeStyleTests {
 /// asserts on all of them without repeating four casts per case.
 @MainActor
 private struct AnySceneProbe {
-    let chrome: (appHeader: ChromeStyle?, statusBar: ChromeStyle?)?
+    let chrome: (appHeader: ChromeStyle?, statusBar: ChromeStyle?)
     let palette: (any Palette)?
     let appearance: Appearance?
     let mouse: MouseSupport?
 
     init(_ scene: some Scene) {
-        chrome = (scene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-        palette = (scene as? any RootPaletteOverrideProvidingScene)?.rootPaletteOverride()
-        appearance = (scene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
-        mouse = (scene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
+        let configuration = scene.sceneConfiguration
+        chrome = (configuration.appHeaderStyle, configuration.statusBarStyle)
+        palette = configuration.palette
+        appearance = configuration.appearance
+        mouse = configuration.mouseSupport
     }
 }

@@ -4,27 +4,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-// MARK: - Root Chrome-Style Discovery
-
-/// A scene that can state how the app header and status bar frame themselves.
-///
-/// Both bars are rendered OUTSIDE the view tree by `RenderLoop`, and — unlike
-/// the appearance, which only has to reach the render — their style also
-/// decides how many rows the page has to give up. `RenderLoop` therefore reads
-/// this at the top of the frame, before it reserves anything.
-@MainActor
-internal protocol RootChromeStyleProvidingScene: Scene {
-    /// The header's and the status bar's styles, or `nil` for either to leave
-    /// that bar as it is.
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?)
-}
-
-@MainActor
-extension WindowGroup: RootChromeStyleProvidingScene {
-    /// A bare `WindowGroup` states nothing, so both bars keep their defaults.
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?) { (nil, nil) }
-}
-
 // MARK: - Public Modifiers
 
 extension Scene {
@@ -66,7 +45,12 @@ extension Scene {
 // MARK: - Wrapper Scene
 
 /// Framework-internal scene wrapper recording the chrome styles for the frame.
-/// `RenderLoop` reads it via ``RootChromeStyleProvidingScene``.
+///
+/// Both bars are rendered OUTSIDE the view tree by `RenderLoop`, and — unlike
+/// the appearance, which only has to reach the render — their style also
+/// decides how many rows the page has to give up. `RenderLoop` therefore reads
+/// it from the ``SceneConfiguration`` at the top of the frame, before it
+/// reserves anything.
 internal struct _ChromeStyleScene<Content: Scene>: Scene {
     let content: Content
     let appHeaderStyle: ChromeStyle?
@@ -76,41 +60,17 @@ internal struct _ChromeStyleScene<Content: Scene>: Scene {
     var body: Never { fatalError("_ChromeStyleScene renders via SceneRenderable") }
 }
 
-extension _ChromeStyleScene: RootChromeStyleProvidingScene {
-    /// A style closer to the content wins, per bar and independently — the same
-    /// innermost-wins rule `.palette(...)` and `.appearance(...)` follow. Per
-    /// bar, so an inner `.chromeStyle(appHeader:statusBar:)` overriding only one
-    /// of them still lets an outer blanket `.chromeStyle(_:)` cover the other.
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?) {
-        let inner: (appHeader: ChromeStyle?, statusBar: ChromeStyle?) =
-            (content.primitiveScene as? any RootChromeStyleProvidingScene)?.rootChromeStyle()
-            ?? (appHeader: nil, statusBar: nil)
-        return (inner.appHeader ?? appHeaderStyle, inner.statusBar ?? statusBarStyle)
+extension _ChromeStyleScene: ConfiguringScene {
+    /// Per bar and independently, so an inner `.chromeStyle(appHeader:statusBar:)`
+    /// overriding only one of them still lets an outer blanket
+    /// `.chromeStyle(_:)` cover the other. Innermost wins, as for every scene
+    /// modifier: this writes over what the scenes outside it wrote.
+    func configure(_ configuration: inout SceneConfiguration) {
+        if let appHeaderStyle { configuration.appHeaderStyle = appHeaderStyle }
+        if let statusBarStyle { configuration.statusBarStyle = statusBarStyle }
     }
-}
 
-extension _ChromeStyleScene: RootPaletteOverrideProvidingScene {
-    /// Pass-through, so `.chromeStyle(...)` composes with `.palette(...)` in
-    /// either order.
-    func rootPaletteOverride() -> (any Palette)? {
-        (content.primitiveScene as? any RootPaletteOverrideProvidingScene)?.rootPaletteOverride()
-    }
-}
-
-extension _ChromeStyleScene: RootAppearanceOverrideProvidingScene {
-    /// Pass-through, so `.chromeStyle(...)` composes with `.appearance(...)` in
-    /// either order — which matters here more than most, since both restyle the
-    /// same two bars.
-    func rootAppearanceOverride() -> Appearance? {
-        (content.primitiveScene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
-    }
-}
-
-extension _ChromeStyleScene: MouseSupportProvidingScene {
-    /// Pass-through, so `.chromeStyle(...)` composes with `.mouseSupport(...)`.
-    func resolvedMouseSupport() -> MouseSupport? {
-        (content.primitiveScene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
-    }
+    var configuredContent: (any Scene)? { content }
 }
 
 extension _ChromeStyleScene: SceneRenderable {

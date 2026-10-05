@@ -108,7 +108,7 @@ struct KeyNotationTests {
         func root(_ scene: some Scene, user: KeyNotation) -> KeyNotation {
             var environment = EnvironmentValues()
             environment.keyNotation = user
-            scene.applyingRootEnvironment(to: &environment)
+            scene.sceneConfiguration.applyEnvironmentWrites(to: &environment)
             return environment.keyNotation
         }
         #expect(root(WindowGroup { Text("app") }.keyNotation(.spelledOut), user: .symbols) == .spelledOut)

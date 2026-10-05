@@ -24,17 +24,17 @@ struct RenderLoopAppearanceIntegrationTests {
 
     /// The appearance override of a scene, as `RenderLoop` discovers it.
     private func sceneAppearance(_ scene: some Scene) -> Appearance? {
-        (scene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
+        scene.sceneConfiguration.appearance
     }
 
     /// The palette override of a scene, as `RenderLoop` discovers it.
     private func scenePalette(_ scene: some Scene) -> (any Palette)? {
-        (scene as? any RootPaletteOverrideProvidingScene)?.rootPaletteOverride()
+        scene.sceneConfiguration.palette
     }
 
     /// The mouse support of a scene, as `RenderLoop` discovers it.
     private func sceneMouseSupport(_ scene: some Scene) -> MouseSupport? {
-        (scene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
+        scene.sceneConfiguration.mouseSupport
     }
 
     // MARK: - Scene-level `.appearance(_:)` discovery

@@ -165,7 +165,7 @@ struct AppUndoTests {
         let scene = WindowGroup { Text("page") }.undoShortcuts(table)
         var environment = EnvironmentValues()
         #expect(environment.undoShortcuts == .default)
-        scene.applyingRootEnvironment(to: &environment)
+        scene.sceneConfiguration.applyEnvironmentWrites(to: &environment)
         #expect(environment.undoShortcuts == UndoShortcuts(table))
     }
 

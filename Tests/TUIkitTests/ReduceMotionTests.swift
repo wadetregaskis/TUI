@@ -157,7 +157,7 @@ struct ReduceMotionTests {
         func root(_ scene: some Scene, userAsked: Bool) -> Bool {
             var environment = EnvironmentValues()
             environment.accessibilityReduceMotion = userAsked
-            scene.applyingRootEnvironment(to: &environment)
+            scene.sceneConfiguration.applyEnvironmentWrites(to: &environment)
             return environment.accessibilityReduceMotion
         }
         #expect(root(WindowGroup { Text("app") }.reduceMotion(), userAsked: false))

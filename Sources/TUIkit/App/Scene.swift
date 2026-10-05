@@ -98,12 +98,12 @@ extension Scene {
     /// compiler rejects.
     ///
     /// **Every** runtime question asked of a scene goes through this, not just
-    /// the rendering one: `RenderLoop` reads the frame's palette, appearance,
-    /// mouse support and chrome style off a scene by casting it, and each of
-    /// the four scene-modifier wrappers forwards the three concerns it does not
-    /// own to its content the same way. A cast that skipped the hop would find
-    /// nothing on a custom scene and drop that configuration in silence — the
-    /// same defect as the blank screen, one level down.
+    /// the rendering one: the walk that gathers the frame's
+    /// ``SceneConfiguration`` — its palette, appearance, mouse support, chrome
+    /// style and environment writes — takes this hop at every link of the
+    /// modifier chain. A walk that skipped it would find nothing on a custom
+    /// scene and drop that configuration in silence — the same defect as the
+    /// blank screen, one level down.
     internal var primitiveScene: any Scene {
         if self is SceneRenderable { return self }
         guard Self.Body.self != Never.self else { return self }

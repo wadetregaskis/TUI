@@ -488,10 +488,10 @@ extension RenderLoop {
         cursorTimer?.beginFrameReadTracking()
 
         let scene = evaluateAppBody(environment: environment)
-        scene.applyRootOverrides(to: &environment)
-        // The scene's mouse support, chrome style and undo keys
+        // What the scene's modifiers state, gathered in one walk of its chain:
+        // its root environment, mouse support, chrome style and undo keys
         // (`RenderLoop+Scene.swift`).
-        applySceneConfiguration(from: scene, environment: environment)
+        applySceneConfiguration(scene.sceneConfiguration, to: &environment)
         // Before the height is read, which is the whole trick: a tooltip's
         // triggers all land between frames (a mouse event, a key press, the
         // scheduled wake for the hover delay), so the candidate is already known

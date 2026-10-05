@@ -12,29 +12,6 @@ import Observation
 import TUIkitCore
 import TUIkitView
 
-// MARK: - Root Environment Discovery
-
-/// A scene that writes into the frame's root environment.
-///
-/// `RenderLoop` applies it where it applies a scene's palette, so a value set
-/// on a scene reaches the content tree and the out-of-tree surfaces alike —
-/// a status bar item reading `@Environment(Model.self)` finds the model a
-/// `WindowGroup { … }.environment(model)` put there.
-@MainActor
-internal protocol RootEnvironmentProvidingScene: Scene {
-    /// Writes this scene's values, and those of the scenes inside it, into
-    /// `environment`. Inner scenes write last, so the one closest to the
-    /// content wins, as in a view's environment.
-    func applyRootEnvironment(to environment: inout EnvironmentValues)
-}
-
-extension Scene {
-    /// The root-environment writes of this scene's primitive, if it has any.
-    func applyingRootEnvironment(to environment: inout EnvironmentValues) {
-        (primitiveScene as? any RootEnvironmentProvidingScene)?.applyRootEnvironment(to: &environment)
-    }
-}
-
 // MARK: - Public Modifiers
 
 extension Scene {
@@ -82,8 +59,14 @@ extension Scene {
 
 // MARK: - Wrapper Scene
 
-/// Framework-internal scene wrapper that writes into the root environment.
-/// `RenderLoop` reads it through ``RootEnvironmentProvidingScene``.
+/// Framework-internal scene wrapper that writes into the frame's root
+/// environment.
+///
+/// `RenderLoop` applies the write where it applies a scene's palette (see
+/// ``SceneConfiguration/applyRootOverrides(to:)``), so a value set on a scene
+/// reaches the content tree and the out-of-tree surfaces alike — a status bar
+/// item reading `@Environment(Model.self)` finds the model a
+/// `WindowGroup { … }.environment(model)` put there.
 internal struct _EnvironmentScene<Content: Scene>: Scene {
     let content: Content
     let write: (inout EnvironmentValues) -> Void
@@ -92,11 +75,14 @@ internal struct _EnvironmentScene<Content: Scene>: Scene {
     var body: Never { fatalError("_EnvironmentScene renders via SceneRenderable") }
 }
 
-extension _EnvironmentScene: RootEnvironmentProvidingScene {
-    func applyRootEnvironment(to environment: inout EnvironmentValues) {
-        write(&environment)
-        content.applyingRootEnvironment(to: &environment)
+extension _EnvironmentScene: ConfiguringScene {
+    /// Queued after the writes of the scenes outside it, so the one closest to
+    /// the content lands last and wins, as in a view's environment.
+    func configure(_ configuration: inout SceneConfiguration) {
+        configuration.environmentWrites.append(write)
     }
+
+    var configuredContent: (any Scene)? { content }
 }
 
 extension _EnvironmentScene: SceneRenderable {
@@ -104,60 +90,5 @@ extension _EnvironmentScene: SceneRenderable {
     /// wrapped scene.
     func renderScene(context: RenderContext) -> FrameBuffer {
         content.renderSceneTree(context: context)
-    }
-}
-
-/// Pass-through for the four concerns this wrapper does not own, so it
-/// composes with `.palette`, `.appearance`, `.mouseSupport` and `.chromeStyle`
-/// in either order.
-extension _EnvironmentScene: RootPaletteOverrideProvidingScene {
-    func rootPaletteOverride() -> (any Palette)? {
-        (content.primitiveScene as? any RootPaletteOverrideProvidingScene)?.rootPaletteOverride()
-    }
-}
-
-extension _EnvironmentScene: RootAppearanceOverrideProvidingScene {
-    func rootAppearanceOverride() -> Appearance? {
-        (content.primitiveScene as? any RootAppearanceOverrideProvidingScene)?.rootAppearanceOverride()
-    }
-}
-
-extension _EnvironmentScene: MouseSupportProvidingScene {
-    func resolvedMouseSupport() -> MouseSupport? {
-        (content.primitiveScene as? any MouseSupportProvidingScene)?.resolvedMouseSupport()
-    }
-}
-
-extension _EnvironmentScene: RootChromeStyleProvidingScene {
-    func rootChromeStyle() -> (appHeader: ChromeStyle?, statusBar: ChromeStyle?) {
-        (content.primitiveScene as? any RootChromeStyleProvidingScene)?.rootChromeStyle() ?? (nil, nil)
-    }
-}
-
-// MARK: - Forwarding Through the Other Wrappers
-
-/// Each of the other scene wrappers passes the environment through, so
-/// `.environment(model)` composes with them in either order.
-extension _PaletteScene: RootEnvironmentProvidingScene {
-    func applyRootEnvironment(to environment: inout EnvironmentValues) {
-        content.applyingRootEnvironment(to: &environment)
-    }
-}
-
-extension _AppearanceScene: RootEnvironmentProvidingScene {
-    func applyRootEnvironment(to environment: inout EnvironmentValues) {
-        content.applyingRootEnvironment(to: &environment)
-    }
-}
-
-extension _MouseSupportScene: RootEnvironmentProvidingScene {
-    func applyRootEnvironment(to environment: inout EnvironmentValues) {
-        content.applyingRootEnvironment(to: &environment)
-    }
-}
-
-extension _ChromeStyleScene: RootEnvironmentProvidingScene {
-    func applyRootEnvironment(to environment: inout EnvironmentValues) {
-        content.applyingRootEnvironment(to: &environment)
     }
 }
