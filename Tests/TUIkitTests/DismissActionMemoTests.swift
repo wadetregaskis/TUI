@@ -121,4 +121,16 @@ struct DismissActionMemoTests {
         let count = BodyCount()
         #expect(laterBodies(of: ConfirmingApp(count: count), count: count) == 0)
     }
+
+    /// The modifier is made on every frame, and a `@State`'s initial value
+    /// with it: a box held in a `@State` of its own was allocated each frame
+    /// and dropped. It lives in the kept `PendingDismissal` instead.
+    @Test("A dismissal confirmation, made afresh every frame, makes no dismiss box of its own")
+    func theConfirmationMakesNoBoxPerFrame() {
+        let modifier = Text("draft").dismissalConfirmationDialog("Discard?", shouldPresent: true) {
+            Button("Discard", role: .destructive) {}
+        }
+        let held = Mirror(reflecting: modifier).children.map { type(of: $0.value) }
+        #expect(!held.contains { $0 == State<DismissAction.Box>.self }, "\(held)")
+    }
 }

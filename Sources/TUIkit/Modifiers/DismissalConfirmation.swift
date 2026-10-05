@@ -205,10 +205,19 @@ func presentationDismissalGate(context: RenderContext, propertyIndex: Int) -> Di
 
 // MARK: - The modifier
 
-/// The dismissal being held while the dialog asks about it.
+/// The dismissal being held while the dialog asks about it, and the content's
+/// `\.dismiss`.
 @MainActor
 final class PendingDismissal {
     var proceed: (() -> Void)?
+
+    /// The content's `\.dismiss`, kept for the modifier's life so the action
+    /// the content reads is equal from frame to frame (decisions B37) — what
+    /// it does is brought up to date on every render. Here rather than in a
+    /// `@State` of its own: a `@State`'s initial value is made every time the
+    /// modifier is, so that box was allocated on every frame and dropped;
+    /// this one is made once, by the instance the modifier keeps.
+    private(set) lazy var contentDismissal = DismissAction.Box()
 
     /// Lets the held dismissal go ahead.
     func run() {
@@ -232,11 +241,6 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
     /// the content is in, or quitting at the top level.
     @Environment(\.dismiss) private var outerDismiss
 
-    /// The content's `\.dismiss`, kept for the modifier's life so the action
-    /// the content reads is equal from frame to frame (decisions B37) — what
-    /// it does is brought up to date below, on every render.
-    @State private var contentDismissal = DismissAction.Box()
-
     var body: some View {
         let pending = pending
         let isConfirming = $isConfirming
@@ -250,6 +254,7 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
         // answer but Cancel; otherwise it dismisses as it would have.
         let outer = outerDismiss
         let shouldPresent = shouldPresent
+        let contentDismissal = pending.contentDismissal
         contentDismissal.action = {
             if shouldPresent {
                 ask { outer() }
