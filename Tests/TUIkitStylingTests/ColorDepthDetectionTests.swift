@@ -43,18 +43,25 @@ struct ColorDepthDetectionTests {
         arguments: [
             // Rung 3: the one terminal that gets no escape codes at all.
             ("dumb", ColorDepth.noColor),
-            // Rung 4: direct colour.
+            // Rung 4: a truecolour terminal named by TERM alone — what ssh
+            // forwards. Each fell to rung 8 before the rung existed.
+            ("xterm-ghostty", .truecolor),
+            ("xterm-kitty", .truecolor),
+            ("wezterm", .truecolor),
+            ("alacritty", .truecolor),
+            ("foot", .truecolor),
+            // Rung 5: direct colour.
             ("xterm-direct", .truecolor),
             ("iterm2-direct", .truecolor),
-            // Rung 5: the common case. These also contain "color", which is
-            // why this rung has to be tested before rung 6 is trusted.
+            // Rung 6: the common case. These also contain "color", which is
+            // why this rung has to be tested before rung 7 is trusted.
             ("xterm-256color", .palette256),
             ("screen-256color", .palette256),
             ("tmux-256color", .palette256),
-            // Rung 6: some colour, but not 256.
+            // Rung 7: some colour, but not 256.
             ("xterm-16color", .basic16),
             ("xterm-color", .basic16),
-            // Rung 7: set but unrecognised.
+            // Rung 8: set but unrecognised.
             ("vt100", .basic16),
             ("xterm", .basic16),
         ])
@@ -66,6 +73,29 @@ struct ColorDepthDetectionTests {
     func termIsLowercased() {
         #expect(ColorDepth.detect(environment: ["TERM": "XTERM-256COLOR"]) == .palette256)
         #expect(ColorDepth.detect(environment: ["TERM": "DUMB"]) == .noColor)
+        #expect(ColorDepth.detect(environment: ["TERM": "XTERM-GHOSTTY"]) == .truecolor)
+    }
+
+    /// Rung 4 is evidence about one program each, so a terminfo name that
+    /// merely contains one of them is not credited: it falls to the rungs
+    /// that read the name's own suffixes.
+    @Test("A truecolour terminal's name is matched whole")
+    func truecolorNamesAreWhole() {
+        #expect(ColorDepth.detect(environment: ["TERM": "footer"]) == .basic16)
+        #expect(ColorDepth.detect(environment: ["TERM": "xterm-kitty-like"]) == .basic16)
+        #expect(ColorDepth.detect(environment: ["TERM": "screen.xterm-ghostty"]) == .basic16)
+    }
+
+    /// The case the rung exists for, posed whole: what an OpenSSH hop hands
+    /// the far side. `COLORTERM` is absent rather than unhelpful, and a
+    /// `COLORTERM` that is present but claims nothing must not stop the name
+    /// from answering either.
+    @Test("Over ssh, Ghostty and kitty keep truecolour without COLORTERM")
+    func truecolorSurvivesAnSSHHop() {
+        for term in ["xterm-ghostty", "xterm-kitty"] {
+            #expect(ColorDepth.detect(environment: ["TERM": term, "SSH_TTY": "/dev/ttys001"]) == .truecolor)
+            #expect(ColorDepth.detect(environment: ["TERM": term, "COLORTERM": ""]) == .truecolor)
+        }
     }
 
     @Test("An unset TERM means truecolor, not no colour")

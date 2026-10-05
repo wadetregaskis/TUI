@@ -18,11 +18,15 @@ import Foundation
 /// 1. `COLORTERM` containing `truecolor` or `24bit` → ``truecolor``
 /// 2. `TERM` not set → ``truecolor`` (backward-compatible default)
 /// 3. `TERM` equal to `dumb` → ``noColor``
-/// 4. `TERM` containing `direct` → ``truecolor``
-/// 5. `TERM` containing `256color` → ``palette256`` (`xterm-256color`,
+/// 4. `TERM` naming a terminal that is truecolour by its own documentation —
+///    `xterm-ghostty`, `xterm-kitty`, `wezterm`, `alacritty`, `foot` →
+///    ``truecolor`` (what ssh forwards: it carries `TERM` and drops
+///    `COLORTERM`)
+/// 5. `TERM` containing `direct` → ``truecolor``
+/// 6. `TERM` containing `256color` → ``palette256`` (`xterm-256color`,
 ///    `screen-256color`, `tmux-256color` — the common case)
-/// 6. `TERM` containing `color` → ``basic16``
-/// 7. `TERM` set but unrecognized → ``basic16``
+/// 7. `TERM` containing `color` → ``basic16``
+/// 8. `TERM` set but unrecognized → ``basic16``
 ///
 /// > Note: `NO_COLOR` (https://no-color.org/) is not handled here because
 /// > it represents a user preference, not a terminal capability. It should
@@ -256,6 +260,15 @@ extension ColorDepth {
             return .noColor
         }
 
+        // A TERM that names a truecolour terminal. Locally Ghostty and kitty
+        // also set COLORTERM, so rung 1 has already answered; this rung is for
+        // the case where it is missing, and the common one is ssh, which
+        // forwards TERM and not COLORTERM. Without it, a Ghostty or kitty user
+        // who sshes to a box running a TUIkit app got the 16-colour rendering.
+        if Self.truecolorTerminalNames.contains(term) {
+            return .truecolor
+        }
+
         // "direct" suffix indicates direct-color (24-bit) support,
         // e.g. "xterm-direct", "iterm2-direct".
         if term.contains("direct") {
@@ -279,4 +292,26 @@ extension ColorDepth {
         // an unknown terminal type.
         return .basic16
     }
+
+    /// The `TERM` values that name a terminal which is truecolour by its own
+    /// documentation, matched whole and lowercased.
+    ///
+    /// Whole names, not substrings: the rung is evidence about one program, and
+    /// a substring match would credit any terminfo entry that happens to
+    /// contain the word. None of these contains `256color` or `direct`, which
+    /// is why, before this rung, the substring rungs sent all five to
+    /// ``basic16``.
+    ///
+    /// - `xterm-ghostty`: Ghostty's own terminfo entry.
+    /// - `xterm-kitty`: kitty's.
+    /// - `wezterm`, `alacritty`, `foot`: each terminal's own entry, which it
+    ///   sets when that entry is installed. Unmeasured here; their
+    ///   documentation is the evidence.
+    ///
+    /// A terminal that has rewritten `TERM` to `xterm-256color` before the hop
+    /// (Ghostty's opt-in ssh integration does) reaches rung 6 and gets
+    /// ``palette256``, which is still the honest answer for that `TERM`.
+    static let truecolorTerminalNames: Set<String> = [
+        "xterm-ghostty", "xterm-kitty", "wezterm", "alacritty", "foot",
+    ]
 }

@@ -1109,13 +1109,25 @@ non-default setup.
 
 | Variable | Value |
 |---|---|
-| `TERM` | `xterm-ghostty` (ships its own terminfo; often overridden to `xterm-256color` for remote hosts, so **do not detect on `TERM`**) |
+| `TERM` | `xterm-ghostty` (ships its own terminfo; often overridden to `xterm-256color` for remote hosts, so **do not detect the host on `TERM`**) |
 | `TERM_PROGRAM` | `ghostty` |
 | `TERM_PROGRAM_VERSION` | `1.3.1` |
 | `COLORTERM` | `truecolor` |
 | `TERMINFO` | app bundle terminfo |
 | `GHOSTTY_BIN_DIR` / `GHOSTTY_RESOURCES_DIR` / `GHOSTTY_SHELL_FEATURES` | set |
 | `__CFBundleIdentifier` | `com.mitchellh.ghostty` |
+
+**Colour depth is the one thing `TERM` does decide here** (2026-10-04).
+OpenSSH forwards `TERM` and drops `COLORTERM`, so on the far side of a hop
+Ghostty arrives as `TERM=xterm-ghostty` with no `COLORTERM`. That name contains
+neither `direct` nor `256color`, so `ColorDepth.detect` used to fall through to
+**16 colours**. It now treats `xterm-ghostty` as truecolour, and kitty's
+`xterm-kitty`, `wezterm`, `alacritty` and `foot` with it — whole names, from
+each terminal's own documentation (`ColorDepth.truecolorTerminalNames`). Where
+something rewrote `TERM` to `xterm-256color` before the hop (Ghostty's opt-in
+ssh integration does), the answer is 256 colours, which is what that `TERM`
+says. By reading, not yet checked over a real hop: the check is `ssh localhost`
+from Ghostty with `COLORTERM` unset, then Example's Theme page.
 
 ### Output behaviour
 
