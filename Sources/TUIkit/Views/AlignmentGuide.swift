@@ -63,10 +63,26 @@ public struct _AlignmentGuideView<Content: View>: View {
     public static var _providesAlignmentGuide: Bool { true }
 }
 
+/// The view that answers for `view`'s explicit guides: `view` itself, or —
+/// through a `Subview` placed in a container — the member it stands for
+/// (`LayoutTraitsForwarding`).
+///
+/// Asked by a `Layout`'s ``LayoutSubview/dimensions(in:)`` of the view it
+/// places, and by a guide wrapper of the view it wraps — so a guide written
+/// on a proxy (`$0.alignmentGuide(.leading) { … }`) adds to the member's own
+/// rather than hiding them, as the stacks' path already had it: they reach a
+/// member's guides through `AlignmentGuideQuerying`, which `Subview` forwards.
+@MainActor
+func alignmentGuideProvider(of view: any View) -> AlignmentGuideProviding? {
+    if let provider = view as? AlignmentGuideProviding { return provider }
+    guard let proxy = view as? LayoutTraitsForwarding else { return nil }
+    return alignmentGuideProvider(of: proxy.forwardedChild.wrappedView)
+}
+
 extension _AlignmentGuideView: AlignmentGuideProviding {
     public var explicitAlignmentGuideKeys: [AlignmentKey] {
         guard Content._providesAlignmentGuide,
-            let inner = (content as? AlignmentGuideProviding)?.explicitAlignmentGuideKeys
+            let inner = alignmentGuideProvider(of: content)?.explicitAlignmentGuideKeys
         else { return [key] }
         // This wrapper's own guide first: a repeated key resolves to the
         // outermost value, and building the dictionary in this order lets the
@@ -83,8 +99,7 @@ extension _AlignmentGuideView: AlignmentGuideProviding {
         // OUTERMOST wrapper wins for a repeated guide, matching the usual
         // modifier rule that the later application is the one in force.
         guard Content._providesAlignmentGuide else { return nil }
-        return (content as? AlignmentGuideProviding)?
-            .explicitAlignmentGuide(for: key, in: dimensions)
+        return alignmentGuideProvider(of: content)?.explicitAlignmentGuide(for: key, in: dimensions)
     }
 }
 

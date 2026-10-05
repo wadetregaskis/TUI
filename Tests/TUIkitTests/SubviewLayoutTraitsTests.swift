@@ -161,6 +161,22 @@ struct SubviewLayoutTraitsTests {
         #expect(captured.leading == [0, -2, 0])
     }
 
+    @Test("A Layout reads a member's guides through a proxy that carries a guide of its own")
+    func layoutKeepsMemberGuidesBesideTheProxys() {
+        // The stacks keep both (they ask through `AlignmentGuideQuerying`,
+        // which `Subview` forwards); a `Layout` asked the guide wrapper on the
+        // proxy, which knew only its own key and so dropped the member's.
+        let captured = GuideLog()
+        _ = render(
+            GuideReader(log: captured) {
+                ForEach(subviews: Group { Text("a").alignmentGuide(.top) { _ in 1 } }) {
+                    $0.alignmentGuide(.leading) { _ in 3 }
+                }
+            })
+        #expect(captured.leading == [3])
+        #expect(captured.top == [1])
+    }
+
     @Test("A proxy for an ordinary view is no spacer and carries nothing")
     func ordinaryMember() {
         var proxies: [Subview] = []
@@ -180,6 +196,7 @@ struct SubviewLayoutTraitsTests {
 @MainActor
 private final class GuideLog {
     var leading: [Double] = []
+    var top: [Double] = []
 }
 
 private struct GuideReader: Layout {
@@ -187,6 +204,7 @@ private struct GuideReader: Layout {
 
     func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         log.leading = subviews.map { $0.dimensions(in: .unspecified)[.leading] }
+        log.top = subviews.map { $0.dimensions(in: .unspecified)[.top] }
         return ViewSize(width: 1, height: 1)
     }
 

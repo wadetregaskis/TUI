@@ -88,7 +88,7 @@ public struct LayoutSubview: @MainActor Equatable {
     public func dimensions(in proposal: ProposedSize) -> ViewDimensions {
         let size = child.measure(proposal: proposal, context: context)
         let bare = ViewDimensions(width: size.width, height: size.height)
-        guard child.providesAlignmentGuide, let provider = guideProvider(of: child.wrappedView)
+        guard child.providesAlignmentGuide, let provider = alignmentGuideProvider(of: child.wrappedView)
         else { return bare }
         var explicit: [AlignmentKey: Double] = [:]
         for key in provider.explicitAlignmentGuideKeys {
@@ -246,14 +246,4 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     public var layoutDirection: LayoutDirection {
         context.environment.layoutDirection
     }
-}
-
-/// The view that answers for `view`'s explicit guides: `view` itself, or —
-/// through a `Subview` placed in the layout — the member it stands for
-/// (`LayoutTraitsForwarding`).
-@MainActor
-private func guideProvider(of view: any View) -> AlignmentGuideProviding? {
-    if let provider = view as? AlignmentGuideProviding { return provider }
-    guard let proxy = view as? LayoutTraitsForwarding else { return nil }
-    return guideProvider(of: proxy.forwardedChild.wrappedView)
 }
