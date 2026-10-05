@@ -45,11 +45,7 @@ extension Terminal {
     func fencedExchange(
         request: String, timeout: Double, sawFence: ([UInt8]) -> Bool
     ) -> [UInt8] {
-        if let exchangeTransport {
-            exchangeTransport.send(request)
-        } else {
-            writeImmediate(request)
-        }
+        writeImmediate(request)
 
         var collected: [UInt8] = []
         var chunk = [UInt8](repeating: 0, count: 512)
@@ -100,11 +96,11 @@ extension Terminal {
         if !unconsumed.isEmpty { enqueue(input: unconsumed) }
     }
 
-    /// A scripted terminal for ``fencedExchange(request:timeout:sawFence:)``:
-    /// see ``Terminal/exchangeTransport``. The replies themselves still come
-    /// through ``Terminal/readSource``.
+    /// A scripted terminal: see ``Terminal/exchangeTransport``. The replies
+    /// themselves still come through ``Terminal/readSource``.
     struct ExchangeTransport {
-        /// Receives the request instead of stdout.
+        /// Receives everything the terminal writes instead of stdout: one
+        /// call per write, a whole frame in one.
         var send: (String) -> Void
         /// Whether input is ready before the deadline, instead of `poll` on
         /// stdin. Answering `true` with nothing staged is safe: the read then

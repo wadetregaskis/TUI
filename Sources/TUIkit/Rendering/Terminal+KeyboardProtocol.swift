@@ -192,11 +192,11 @@ extension Terminal {
     func negotiateKeyboardEnhancement(firstAnswer: KittyKeyboardFlags?, timeout: Double) {
         guard firstAnswer != nil else { return }
         var pushed = KittyKeyboardFlags.requested
-        sendToTerminal(KeyboardProtocolQuery.push(pushed))
+        writeImmediate(KeyboardProtocolQuery.push(pushed))
         var granted = askKeyboardFlags(timeout: timeout) ?? pushed
         if granted.contains(.reportAllKeysAsEscapeCodes), !granted.contains(.reportAssociatedText) {
             pushed = granted.subtracting(.reportAllKeysAsEscapeCodes)
-            sendToTerminal(KeyboardProtocolQuery.pop + KeyboardProtocolQuery.push(pushed))
+            writeImmediate(KeyboardProtocolQuery.pop + KeyboardProtocolQuery.push(pushed))
             granted = askKeyboardFlags(timeout: timeout) ?? pushed
         }
         negotiatedKeyboardFlags = (pushed: pushed, granted: granted.intersection(pushed))
@@ -219,7 +219,7 @@ extension Terminal {
     /// Does nothing if they were never negotiated or are already pushed.
     func repushKeyboardFlags() {
         guard let negotiatedKeyboardFlags, !keyboardFlagsPushed else { return }
-        sendToTerminal(KeyboardProtocolQuery.push(negotiatedKeyboardFlags.pushed))
+        writeImmediate(KeyboardProtocolQuery.push(negotiatedKeyboardFlags.pushed))
         noteKeyboardFlagsPushed()
     }
 
@@ -235,7 +235,7 @@ extension Terminal {
     /// (``KittyKeyDecoder/protocolPopped(memory:)``).
     func popKeyboardFlags() {
         guard keyboardFlagsPushed else { return }
-        sendToTerminal(KeyboardProtocolQuery.pop)
+        writeImmediate(KeyboardProtocolQuery.pop)
         keyboardFlagsPushed = false
         keyboardEnhancement = []
         if let released = KittyKeyDecoder.protocolPopped(memory: &keyboardMemory) {
@@ -250,15 +250,5 @@ extension Terminal {
         keyboardFlagsPushed = true
         keyboardEnhancement = negotiatedKeyboardFlags?.granted ?? []
         armSignalRestore()
-    }
-
-    /// Writes a mode change to the terminal, or to the scripted transport a
-    /// test installed.
-    private func sendToTerminal(_ sequence: String) {
-        if let exchangeTransport {
-            exchangeTransport.send(sequence)
-        } else {
-            writeImmediate(sequence)
-        }
     }
 }

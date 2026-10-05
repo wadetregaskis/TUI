@@ -236,14 +236,17 @@ final class Terminal: TerminalProtocol {
         }
     }
 
-    /// Where a startup exchange sends its request and waits for the reply, or
-    /// `nil` for the real terminal: stdout, and `poll` on stdin.
+    /// Where everything this terminal writes goes, and how a startup exchange
+    /// waits for its reply, or `nil` for the real terminal: stdout, and `poll`
+    /// on stdin.
     ///
-    /// The other half of ``readSource`` for
-    /// ``fencedExchange(request:timeout:sawFence:)``, which reads through that
-    /// closure but writes and waits on the real descriptors. A test sets both,
-    /// so an exchange runs against scripted replies without a TTY, and without
-    /// printing a query to the console the tests run in.
+    /// The other half of ``readSource``, which ``fencedExchange(request:timeout:sawFence:)``
+    /// reads through. A test sets both, so an exchange runs against scripted
+    /// replies without a TTY, and every byte the terminal is sent — a query,
+    /// a mode ``enableRawMode()`` turns on, a frame — can be read back rather
+    /// than printed to the console the tests run in. While it is set the
+    /// process's termios is left alone and no signal handler is armed: the
+    /// scripted terminal is the test's, and the process's own is not.
     var exchangeTransport: ExchangeTransport?
 
     /// The original terminal settings, on a platform that has them.
@@ -405,25 +408,29 @@ extension Terminal {
     func enableRawMode() {
         guard !isRawMode else { return }
 
+        // A scripted terminal (``exchangeTransport``) has no line discipline,
+        // and the one on stdin then belongs to whatever runs the tests.
         #if !canImport(WASILibc)
-            var raw = termios()
-            tcgetattr(STDIN_FILENO, &raw)
-            originalTermios = raw
+            if exchangeTransport == nil {
+                var raw = termios()
+                tcgetattr(STDIN_FILENO, &raw)
+                originalTermios = raw
 
-            raw.c_lflag &= ~TermFlag(ECHO | ICANON | ISIG | IEXTEN)
-            raw.c_iflag &= ~TermFlag(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
-            raw.c_oflag &= ~TermFlag(OPOST)
-            raw.c_cflag |= TermFlag(CS8)
+                raw.c_lflag &= ~TermFlag(ECHO | ICANON | ISIG | IEXTEN)
+                raw.c_iflag &= ~TermFlag(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
+                raw.c_oflag &= ~TermFlag(OPOST)
+                raw.c_cflag |= TermFlag(CS8)
 
-            // Safe: termios.c_cc is a fixed-size array; rebinding to cc_t is valid.
-            withUnsafeMutablePointer(to: &raw.c_cc) { pointer in
-                pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
-                    buffer[Int(VMIN)] = 0
-                    buffer[Int(VTIME)] = 0
+                // Safe: termios.c_cc is a fixed-size array; rebinding to cc_t is valid.
+                withUnsafeMutablePointer(to: &raw.c_cc) { pointer in
+                    pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
+                        buffer[Int(VMIN)] = 0
+                        buffer[Int(VTIME)] = 0
+                    }
                 }
-            }
 
-            tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
+                tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
+            }
         #endif
         isRawMode = true
 
@@ -492,11 +499,7 @@ extension Terminal {
 
     /// Disables raw mode and restores normal terminal operation.
     func disableRawMode() {
-        #if canImport(WASILibc)
-            guard isRawMode else { return }
-        #else
-            guard isRawMode, var original = originalTermios else { return }
-        #endif
+        guard isRawMode else { return }
 
         // The kitty keyboard protocol's flags off first, while the alternate
         // screen whose stack they were pushed on is still up, so the keys the
@@ -514,8 +517,12 @@ extension Terminal {
             pinnedGraphemeClustering = false
         }
 
+        // Absent only where ``enableRawMode()`` left the termios alone: a
+        // scripted terminal's.
         #if !canImport(WASILibc)
-            tcsetattr(STDIN_FILENO, TCSAFLUSH, &original)
+            if var original = originalTermios {
+                tcsetattr(STDIN_FILENO, TCSAFLUSH, &original)
+            }
         #endif
         isRawMode = false
         // Torn down in order: a signal from here on owes the terminal nothing.
@@ -892,21 +899,33 @@ extension Terminal {
         }
     }
 
-    /// Writes all buffered bytes to `STDOUT_FILENO`.
+    /// Writes all buffered bytes to `STDOUT_FILENO`, or to the scripted
+    /// terminal a test installed.
     fileprivate func flushBuffer() {
         guard !frameBuffer.isEmpty else { return }
-        frameBuffer.withUnsafeBufferPointer { buffer in
-            guard let baseAddress = buffer.baseAddress else { return }
-            Self.writeAll(baseAddress, buffer.count)
+        if let exchangeTransport {
+            // Never `nil`: a frame is assembled from strings, so it is UTF-8.
+            exchangeTransport.send(String(bytes: frameBuffer, encoding: .utf8) ?? "")
+        } else {
+            frameBuffer.withUnsafeBufferPointer { buffer in
+                guard let baseAddress = buffer.baseAddress else { return }
+                Self.writeAll(baseAddress, buffer.count)
+            }
         }
         frameBuffer.removeAll(keepingCapacity: true)
     }
 
-    /// Writes a string directly to `STDOUT_FILENO` without buffering.
-    /// Internal rather than fileprivate only so ``pinGraphemeClusteringIfNeeded()``
-    /// can reach it from `TerminalModeQuery.swift`. Still nobody's business
-    /// outside this type: it bypasses the output buffer.
+    /// Writes a string directly to `STDOUT_FILENO` without buffering, or to
+    /// the scripted terminal a test installed (``exchangeTransport``).
+    /// Internal rather than fileprivate so the extensions in other files —
+    /// the startup exchanges, the kitty keyboard protocol's push and pop,
+    /// ``pinGraphemeClusteringIfNeeded()`` — can reach it. Still nobody's
+    /// business outside this type: it bypasses the output buffer.
     func writeImmediate(_ string: String) {
+        if let exchangeTransport {
+            if !string.isEmpty { exchangeTransport.send(string) }
+            return
+        }
         // Safe: UTF8 string is valid UInt8 sequence; rebinding preserves memory layout.
         string.utf8CString.withUnsafeBufferPointer { buffer in
             let count = buffer.count - 1
