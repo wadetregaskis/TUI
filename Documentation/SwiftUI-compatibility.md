@@ -356,8 +356,10 @@ SwiftUI's is. `label` is accepted for the accessibility a terminal does not have
 > object's address, and its pixels are read once (decisions B43).** The first
 > time such an image is drawn its pixels are read out of the object and kept,
 > under a name made from the object's address (with, for a `CGImage`, its
-> orientation and scale); every later frame draws what was read then, and an
-> image of the same object compares equal to it. The view holds the object for
+> orientation and scale, and for an `NSImage` its `size`); every later frame
+> draws what was read then, and an image of the same object at the same size
+> compares equal to it. An `NSImage` given a new `size` is a new image, drawn
+> out afresh at that size. The view holds the object for
 > as long as it draws it, so a freed address cannot come back as another
 > picture under the same name. **What this means for an app:** an `NSImage`
 > drawn into in place after it was first shown — `lockFocus`/`unlockFocus`, a

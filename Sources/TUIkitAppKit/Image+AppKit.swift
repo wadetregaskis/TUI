@@ -64,27 +64,33 @@
         /// SwiftUI's `init(nsImage:)`.
         ///
         /// Its natural size is the `NSImage`'s `size`, in points, as SwiftUI's
-        /// is (see the `Image` type's *Sizing*).
+        /// is (see the `Image` type's *Sizing*). The size is read when the
+        /// `Image` is made, and is part of its name, so an `NSImage` given a
+        /// new `size` and shown again is a new image: drawn out afresh, at
+        /// its new size, and unequal to the old one for a memo that compares
+        /// them.
         ///
         /// > Important: **An `NSImage` drawn into after it was first drawn
         /// > keeps its first pixels.** The image is named by the `NSImage`'s
-        /// > address, and its pixels are drawn out of it once, the first time
-        /// > it is drawn; every later frame draws what was read then. An app
-        /// > that draws into an `NSImage` in place (`lockFocus`, adding a
-        /// > representation) and shows it again sees the old picture, where
-        /// > SwiftUI shows the new one. Make a new `NSImage` for a new picture.
-        /// > Noticing an edit in place would mean hashing the pixels on every
-        /// > frame, at a cost in proportion to the picture's size. See
-        /// > `Documentation/SwiftUI-compatibility.md` (decisions B43).
+        /// > address and size, and its pixels are drawn out of it once, the
+        /// > first time it is drawn; every later frame draws what was read
+        /// > then. An app that draws into an `NSImage` in place (`lockFocus`,
+        /// > adding a representation) and shows it again at the same size sees
+        /// > the old picture, where SwiftUI shows the new one. Make a new
+        /// > `NSImage` for a new picture. Noticing an edit in place would mean
+        /// > hashing the pixels on every frame, at a cost in proportion to the
+        /// > picture's size. See `Documentation/SwiftUI-compatibility.md`
+        /// > (decisions B43).
         ///
         /// - Parameter nsImage: The AppKit image to wrap.
         public init(nsImage: NSImage) {
-            self.init(.url("tuikit-nsimage:\(Self.address(of: nsImage))"))
             let size = nsImage.size
+            self.init(
+                .url("tuikit-nsimage:\(Self.address(of: nsImage))/\(Double(size.width))x\(Double(size.height))"))
             self.decoded = _DecodedImage(
                 owner: nsImage, pointSizing: .points(width: Double(size.width), height: Double(size.height))
             ) {
-                var rect = CGRect(origin: .zero, size: nsImage.size)
+                var rect = CGRect(origin: .zero, size: size)  // the size named, not a later one
                 guard let cgImage = nsImage.cgImage(forProposedRect: &rect, context: nil, hints: nil) else {
                     return RGBAImage(width: 0, height: 0, pixels: [])
                 }

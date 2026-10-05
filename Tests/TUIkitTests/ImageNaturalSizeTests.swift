@@ -141,6 +141,20 @@ struct ImageNaturalSizeTests {
             let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 280, height: 140))
             #expect(box(Image(nsImage: nsImage)) == (40, 10), "the NSImage's size, not its pixels")
         }
+
+        /// The size is read when the `Image` is made, so a memo that compares
+        /// images by their names must see a resized `NSImage` as another image,
+        /// or it keeps drawing the old size.
+        @Test("An NSImage given a new size is another image, at its new size")
+        func resizedNSImageIsAnotherImage() {
+            let nsImage = NSImage(cgImage: solid(width: 140, height: 70), size: NSSize(width: 140, height: 70))
+            let before = Image(nsImage: nsImage)
+            #expect(Image(nsImage: nsImage) == before, "the same NSImage at the same size is the same image")
+            nsImage.size = NSSize(width: 280, height: 140)
+            let after = Image(nsImage: nsImage)
+            #expect(after != before)
+            #expect(box(after) == (40, 10))
+        }
     #endif
 
     // MARK: - A cell's size in points, host by host
