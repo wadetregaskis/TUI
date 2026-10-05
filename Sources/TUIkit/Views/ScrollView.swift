@@ -606,24 +606,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         FocusRegistration.register(context: context, handler: handler, focusID: persistedFocusID)
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
-        // Build the windowed buffer. With a sliced reply the buffer's own
-        // coordinates start at the slice origin, so the clip offset rebases
-        // into slice space (clamped: a snap can propose an offset a row
-        // above the slice; the next frame's slice covers it).
-        var visibleBuffer = windowedBuffer(
-            // Pinned at the offset the frame settled on, after every move above.
-            full: pinningSectionChrome(
-                in: fullBuffer, handler: handler, sliceOriginY: sliceOriginY, chrome: chrome,
-                contentWidth: contentWidth, context: context),
-            scrollOffset: max(0, handler.scrollOffset - sliceOriginY),
-            viewportHeight: contentViewportHeight,
-            viewportWidth: contentWidth,
-            horizontalEnabled: wantsHorizontal,
-            horizontalOffset: handler.horizontal.scrollOffset
-        )
-
-        visibleBuffer = applyOverscroll(
-            to: visibleBuffer, handler: handler, width: contentWidth, context: context)
+        var visibleBuffer = drawnViewport(
+            full: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
+            width: contentWidth, height: contentViewportHeight, horizontal: wantsHorizontal, context: context)
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bars and
         // the "N more" lines breathe as the scroll view's focus indication, so
@@ -641,6 +626,32 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
 
         finishFrame(handler, contentWidth: contentWidth, viewportHeight: contentViewportHeight, context: context)
         return visibleBuffer
+    }
+
+    /// The viewport as the frame draws it: the window of the content at the
+    /// offset the frame settled on, after every move above — its pinned section
+    /// chrome drawn in — slid by the overscroll excursion and the alignment
+    /// anchor (``applyOverscroll(to:handler:width:context:)``).
+    ///
+    /// With a sliced reply the buffer's own coordinates start at the slice
+    /// origin, so the clip offset rebases into slice space (clamped: a snap can
+    /// propose an offset a row above the slice; the next frame's slice covers
+    /// it).
+    private func drawnViewport(
+        full fullBuffer: FrameBuffer, sliceOriginY: Int, handler: ScrollViewHandler, chrome: ScrollChrome,
+        width: Int, height: Int, horizontal: Bool, context: RenderContext
+    ) -> FrameBuffer {
+        let window = windowedBuffer(
+            full: pinningSectionChrome(
+                in: fullBuffer, handler: handler, sliceOriginY: sliceOriginY, chrome: chrome,
+                contentWidth: width, context: context),
+            scrollOffset: max(0, handler.scrollOffset - sliceOriginY),
+            viewportHeight: height,
+            viewportWidth: width,
+            horizontalEnabled: horizontal,
+            horizontalOffset: handler.horizontal.scrollOffset
+        )
+        return applyOverscroll(to: window, handler: handler, width: width, context: context)
     }
 
     /// Makes this scroll view a Tab stop only when there is actually something
