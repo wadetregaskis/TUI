@@ -122,6 +122,13 @@ struct KeyboardProtocolNegotiationTests {
         #expect(!KeyboardProtocolQuery.sawFence(Array("\u{1B}[?31u".utf8)))
     }
 
+    @Test("TUIKIT_KEYBOARD_PROTOCOL=0 keeps TUIkit from asking; anything else lets it")
+    func environmentOptOut() {
+        #expect(!Terminal.keyboardProtocolAllowed(environment: ["TUIKIT_KEYBOARD_PROTOCOL": "0"]))
+        #expect(Terminal.keyboardProtocolAllowed(environment: ["TUIKIT_KEYBOARD_PROTOCOL": "1"]))
+        #expect(Terminal.keyboardProtocolAllowed(environment: [:]))
+    }
+
     // MARK: - What the app is told
 
     @Test("Which enhancements a terminal took decides what it reports")

@@ -39,7 +39,9 @@ import TUIkitCore
 /// ``EventModifiers/numericPad`` work where the matching property is `true`,
 /// and never fire, or never match, where it is `false`.
 ///
-/// Fixed for the run: the terminal is asked once, before the first frame.
+/// Fixed for the run: the terminal is asked once, before the first frame. A
+/// user can keep TUIkit from asking — leaving every terminal in its legacy
+/// encodings — with `TUIKIT_KEYBOARD_PROTOCOL=0`.
 /// See `Documentation/Terminal-compatibility.md`, "The kitty keyboard
 /// protocol", for which terminals say they speak it.
 public struct KeyboardReporting: Hashable, Sendable {

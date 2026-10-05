@@ -4225,6 +4225,9 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   own screen is never changed.
 - **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
   so an app can tell which of SwiftUI's keyboard features work here.
+- **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out
+  should a terminal claim the protocol and encode keys in a way TUIkit
+  misreads, as `TUIKIT_HYPERLINKS=0` is for links.
 
 `Tools/Smoke/keyboard_protocol_smoke.py` checks all of that against a PTY
 that plays a terminal by the specification (CI runs it). That checks TUIkit,

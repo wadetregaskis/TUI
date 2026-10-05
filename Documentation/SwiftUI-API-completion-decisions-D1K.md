@@ -74,3 +74,18 @@ in SwiftUI on macOS (the text system does bind ⌃H to delete backward, as the
 fallback does; ⌃[ and ⌃M are nothing there). That would be truer to SwiftUI
 and would break muscle memory on exactly the terminals that got better; I
 chose the fallback. Free either way.
+
+### B-D1K-4. `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUIkit from asking for the kitty protocol
+
+*`EnvironmentValues.keyboardReporting`*
+
+Not asked for, and nothing to decide on its own, but a new user-facing switch,
+so recorded. The protocol is negotiated with every terminal that answers the
+query. A terminal that answers and then encodes keys in a way TUIkit misreads
+would leave a user unable to type into any TUIkit app on it, so the user gets
+the same way out the hyperlink and graphics switches give:
+`TUIKIT_KEYBOARD_PROTOCOL=0`, and the terminal stays in its legacy encodings.
+
+**The fuller version** is a programmatic override for an app, as
+`TerminalClient.hyperlinkSupport` is for links. Not built: nothing yet says an
+app needs one. A quarter of a day.

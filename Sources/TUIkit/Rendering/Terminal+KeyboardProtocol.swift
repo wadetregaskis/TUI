@@ -130,11 +130,22 @@ extension Terminal {
     /// non-US layout, so then the push is replaced by one without the former.
     ///
     /// Costs one round trip on a terminal that does not speak the protocol and
-    /// two on one that does. Skipped where there is no TTY in raw mode, and on
-    /// Apple Terminal, which does not speak it.
+    /// two on one that does. Skipped where there is no TTY in raw mode, on
+    /// Apple Terminal, which does not speak it, and wherever
+    /// `TUIKIT_KEYBOARD_PROTOCOL=0` is set — the user's way out, should a
+    /// terminal claim the protocol and then encode keys in a way TUIkit
+    /// misreads.
     func negotiateKeyboardProtocol(timeout: Double = 0.5) {
-        guard isatty(STDIN_FILENO) == 1, isRawMode, !TerminalHost.isAppleTerminal else { return }
+        guard isatty(STDIN_FILENO) == 1, isRawMode, !TerminalHost.isAppleTerminal,
+            Self.keyboardProtocolAllowed(environment: ProcessInfo.processInfo.environment)
+        else { return }
         negotiateKeyboardEnhancement(timeout: timeout)
+    }
+
+    /// Whether the environment lets TUIkit ask for the protocol at all: yes,
+    /// unless `TUIKIT_KEYBOARD_PROTOCOL` is `0`.
+    nonisolated static func keyboardProtocolAllowed(environment: [String: String]) -> Bool {
+        environment["TUIKIT_KEYBOARD_PROTOCOL"] != "0"
     }
 
     /// The negotiation behind ``negotiateKeyboardProtocol(timeout:)``, without

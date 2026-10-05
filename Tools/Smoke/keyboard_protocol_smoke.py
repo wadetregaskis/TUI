@@ -150,6 +150,16 @@ term.pump(2.0)
 check(POP not in term.out, "legacy: nothing popped")
 term.finish()
 
+# 2b. A terminal that speaks it, with the user's opt-out set.
+os.environ["TUIKIT_KEYBOARD_PROTOCOL"] = "0"
+term = FakeTerminal(speaks_protocol=True)
+del os.environ["TUIKIT_KEYBOARD_PROTOCOL"]
+term.pump(3.0)
+check(QUERY not in term.out, "opted out: not even asked")
+term.send(b"q")
+term.pump(2.0)
+term.finish()
+
 # 3. Suspend and resume.
 term = FakeTerminal(speaks_protocol=True)
 term.pump(3.0)
