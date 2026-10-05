@@ -418,18 +418,15 @@ extension KeyEvent {
     ///
     /// A modifier rides between the `O` and the key's byte where a terminal
     /// sends one, as the CSI forms carry it: `ESC O 2 P` (xterm's older
-    /// spelling) or `ESC O 1 ; 2 P` is Shift-F1.
+    /// spelling) or `ESC O 1 ; 2 P` is Shift-F1. Only those two shapes
+    /// (``SS3Modifier``): anything else between them is not a key.
     private static func parseSS3Sequence(_ body: ArraySlice<UInt8>) -> KeyEvent? {
         guard let final = body.last else { return nil }
-        let parameters = body.dropLast()
-        // The modifier is the last parameter: `2` alone, or `1;2`.
-        let modifierBytes = parameters.split(separator: 0x3B, omittingEmptySubsequences: false).last ?? []
         let modifiers: (shift: Bool, alt: Bool, ctrl: Bool)
-        if modifierBytes.isEmpty {
-            modifiers = (false, false, false)
-        } else {
-            guard let code = ASCIIDecimal.value(of: modifierBytes), (1...16).contains(code) else { return nil }
-            modifiers = decodeModifierCode(code)
+        switch SS3Modifier(body.dropLast()) {
+        case .none: modifiers = (false, false, false)
+        case .code(let code): modifiers = decodeModifierCode(code)
+        case .partial, .invalid: return nil
         }
         // 'E', the keypad's Begin, and anything else: a key with no `Key`.
         guard let (key, numericPad) = ss3Keys[final] else { return nil }

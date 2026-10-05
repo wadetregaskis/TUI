@@ -259,17 +259,13 @@ extension Terminal {
         }
     }
 
-    /// The most parameter bytes an SS3 key carries before its own byte: a
-    /// modifier, `1;16` at the longest.
-    private static let maxSS3ParameterBytes = 8
-
     /// SS3 extractor — assumes `input` starts with `ESC O`. An SS3 key is
-    /// `ESC O`, any parameter bytes (digits and `;`: a modifier, where a
-    /// terminal sends one, as in `ESC O 2 P`), and then the key's own byte.
+    /// `ESC O`, a modifier where a terminal sends one (`2`, as in
+    /// `ESC O 2 P`, or `1;5`: ``SS3Modifier``), and then the key's own byte.
     /// Returns the whole sequence, or `nil` while the key's byte has not
     /// arrived. `KeyEvent.parse` says which key it is.
     ///
-    /// Two shapes are not SS3 keys, and both are a meta-sending terminal's
+    /// Three shapes are not SS3 keys, and all are a meta-sending terminal's
     /// Alt-Shift-O, which it spells `ESC O` too:
     ///
     /// - An `ESC` where the key's byte should be: Alt-Shift-O typed before
@@ -278,13 +274,27 @@ extension Terminal {
     ///   rest of that sequence as keystrokes. Behind parameters, they are
     ///   dropped with the `ESC O`, as the CSI extractor drops a sequence a new
     ///   `ESC` cut short.
-    /// - More digits than any modifier has: the chord, then those digits as
-    ///   typing.
+    /// - A parameter byte no modifier spells: a digit too many (`17`,
+    ///   `123`), a `;` anywhere but after a lone `1`, a second `;`, or a
+    ///   byte that is not a digit. The chord goes out at once, and those
+    ///   bytes after it as typing.
+    /// - A `1;` that the next byte ends: the same.
+    ///
+    /// What cannot be told apart is Alt-Shift-O followed, before the
+    /// dead-sequence wait runs out (``deadSequenceStaleFrames``), by bytes
+    /// that spell a key: `ESC O A` is Up, and `ESC O 5 x` Ctrl and the
+    /// keypad's 8. The parser is split-invariant by design, so the timing of
+    /// the bytes cannot decide. A modifier that the key's byte never follows
+    /// is dropped with its `ESC O` once that wait runs out, as an unfinished
+    /// CSI is.
     private func tryExtractSS3() -> [UInt8]? {
         var end = 2
+        // At most four bytes: no modifier is spelled longer than `1;16`.
+        var parameters: [UInt8] = []
         while end < input.count, (0x30...0x3F).contains(input[end]) {
+            parameters.append(input[end])
             end += 1
-            if end - 2 > Self.maxSS3ParameterBytes {
+            if SS3Modifier(parameters) == .invalid {
                 consume(2)
                 return [0x1B, 0x4F]
             }
@@ -293,6 +303,10 @@ extension Terminal {
         if input[end] == 0x1B {
             consume(end)
             return end == 2 ? [0x1B, 0x4F] : nil
+        }
+        if SS3Modifier(parameters) == .partial {
+            consume(2)
+            return [0x1B, 0x4F]
         }
         var bytes = [UInt8]()
         bytes.reserveCapacity(end + 1)

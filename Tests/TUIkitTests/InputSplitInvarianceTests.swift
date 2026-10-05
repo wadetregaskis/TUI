@@ -154,7 +154,17 @@ struct InputSplitInvarianceTests {
             ("alt-shift-o-then-arrow", esc + Array("O".utf8) + esc + Array("[A".utf8),
              [.key(KeyEvent(key: .character("O"), alt: true, shift: true)), .key(KeyEvent(key: .up))]),
             ("shift-f3-csi", esc + Array("[1;2R".utf8), [.key(KeyEvent(key: .f3, shift: true))]),
+            ("f1-highest-modifier", esc + Array("O16P".utf8),
+             [.key(KeyEvent(key: .f1, ctrl: true, alt: true, shift: true))]),
         ]
+        // Alt-Shift-O and then typing that no modifier spells: the chord, and
+        // then every byte typed, at once — not held, and not dropped.
+        let altShiftO = TerminalInput.key(KeyEvent(key: .character("O"), alt: true, shift: true))
+        for typed in ["123", "17x", "1;x", "2;5A", "0p", ";A"] {
+            cases.append((
+                "alt-shift-o-then-\(typed)", esc + Array("O\(typed)".utf8),
+                [altShiftO] + typed.map { .key(KeyEvent(character: $0)) }))
+        }
 
         var reports: [String] = []
         for (name, bytes, expected) in cases {

@@ -702,6 +702,29 @@ struct ApplicationModeKeyTests {
         #expect(parse("O1;5A") == KeyEvent(key: .up, ctrl: true))
         #expect(parse("O1;3p") == KeyEvent(key: .character("0"), alt: true, numericPad: true))
         #expect(parse("O1;17A") == nil, "past every modifier code")
+        #expect(parse("O16P") == KeyEvent(key: .f1, ctrl: true, alt: true, shift: true), "the highest code")
+    }
+
+    /// Alt-Shift-O on a meta-sending terminal is `ESC O` too, so the
+    /// parameters must spell a real modifier or the bytes are not a key: the
+    /// input parser gives up on the key at the first byte that cannot.
+    @Test(
+        "Only a modifier's two spellings are read between the O and the key",
+        arguments: ["O1;A", "O2;5A", "O1;5;A", "O05A", "O0A", "O123A", "O;5A", "O1:5A", "O?A"])
+    func otherParameters(tail: String) {
+        #expect(parse(tail) == nil)
+    }
+
+    @Test(
+        "What the bytes after ESC O spell, as far as they go",
+        arguments: [
+            ("", SS3Modifier.none), ("1", .code(1)), ("2", .code(2)), ("16", .code(16)),
+            ("1;", .partial), ("1;5", .code(5)), ("1;16", .code(16)),
+            ("17", .invalid), ("123", .invalid), ("0", .invalid), ("05", .invalid), ("2;", .invalid),
+            (";", .invalid), ("1;5;", .invalid), ("1;17", .invalid), ("1;0", .invalid), ("?", .invalid),
+        ])
+    func ss3ModifierShapes(parameters: String, shape: SS3Modifier) {
+        #expect(SS3Modifier(Array(parameters.utf8)) == shape)
     }
 
     @Test("The keypad's Begin, and a byte that is no key, decode to nothing")

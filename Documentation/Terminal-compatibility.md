@@ -3984,16 +3984,26 @@ for a terminal that sends them regardless (xterm's table, ctlseqs):
 | `E` | the keypad's Begin: consumed, no key |
 
 A modifier between the `O` and the key's byte (`ESC O 2 P`, xterm's older
-spelling, or `ESC O 1;5 A`) is read as the CSI forms' is. A keypad key decodes
+spelling, or `ESC O 1;5 A`) is read as the CSI forms' is; only those two
+shapes, with a code from 1 to 16 (`SS3Modifier`). A keypad key decodes
 to exactly the event the kitty protocol's report of it does, so a binding sees
 one key whichever encoding the terminal is in; `ApplicationModeKeyTests` pins
 both, `InputSplitInvarianceTests` every spelling split at every byte, and the
 CI PTY smoke walks Example's menu with `ESC O B` arrows
 (`tui_walk.py --application-keys`).
-`ESC O` is also how a meta-sending terminal spells Alt-Shift-O: followed by
-another escape sequence, or by more digits than a modifier has, it is read as
-that chord. Found by reading Ghostty's VT reference
-(`Documentation/Ghostty-VT-adoption.md`, K1). **To measure** on each host: run
+`ESC O` is also how a meta-sending terminal spells Alt-Shift-O. Followed by
+another escape sequence, it is read as that chord. Followed by a byte no
+modifier spells (`17`, `123`, a `;` not after a lone `1`, a second `;`, a
+non-digit), or by `1;` and then anything but a digit, it is the chord at once
+and the bytes after it typing: the parser gives up on the key at the first
+byte that cannot be one, rather than holding up to eight and then dropping the
+lot. What no parser can separate is the chord followed, within the
+dead-sequence wait (about 8 idle frames), by bytes that spell a key: `ESC O A`
+is Up, and `ESC O 5 x` Ctrl and keypad 8. The parser is split-invariant, so
+timing cannot decide. A modifier the key's byte never follows is dropped with
+its `ESC O` when that wait runs out, as an unfinished CSI is. Found by reading
+Ghostty's VT reference (`Documentation/Ghostty-VT-adoption.md`, K1).
+**To measure** on each host: run
 `printf '\e[?1h\e='`, then launch Example; the arrows must move the focus
 (UNMEASURED, 2026-10-05).
 
