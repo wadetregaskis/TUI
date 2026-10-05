@@ -35,18 +35,26 @@ public struct PagingScrollTargetBehavior: ScrollTargetBehavior, Equatable, Senda
     public func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
         if context.axes.contains(.vertical) {
             target.rect.y = Self.paged(
-                target.rect.y, from: context.originalTarget.rect.y, page: context.containerSize.height)
+                target.rect.y, from: context.originalTarget.rect.y, page: context.containerSize.height,
+                end: context.contentSize.height - context.containerSize.height)
         }
         if context.axes.contains(.horizontal) {
             target.rect.x = Self.paged(
-                target.rect.x, from: context.originalTarget.rect.x, page: context.containerSize.width)
+                target.rect.x, from: context.originalTarget.rect.x, page: context.containerSize.width,
+                end: context.contentSize.width - context.containerSize.width)
         }
     }
 
     /// Where a gesture from `original` that would end at `proposed` rests:
     /// at least the next page boundary in its direction, and the boundary at
     /// or past `proposed`; the nearest boundary for one with no direction.
-    static func paged(_ proposed: Int, from original: Int, page: Int) -> Int {
+    ///
+    /// `end` is where the last page begins — the content's end less a page —
+    /// and is a boundary too. A step reaches it anyway, since the scroll stops
+    /// there; a gesture with no direction has to be told, or a thumb released
+    /// at the end, a resize or a step along the other axis took a view at its
+    /// tail back to the multiple of the page before it.
+    static func paged(_ proposed: Int, from original: Int, page: Int, end: Int) -> Int {
         guard page > 0 else { return proposed }
         func boundary(atOrBelow offset: Int) -> Int {
             Int((Double(offset) / Double(page)).rounded(.down)) * page
@@ -60,7 +68,8 @@ public struct PagingScrollTargetBehavior: ScrollTargetBehavior, Equatable, Senda
         if proposed < original {
             return min(boundary(atOrAbove: original) - page, boundary(atOrBelow: proposed))
         }
-        return Int((Double(original) / Double(page)).rounded(.toNearestOrAwayFromZero)) * page
+        let nearest = Int((Double(original) / Double(page)).rounded(.toNearestOrAwayFromZero)) * page
+        return end > 0 && abs(end - original) < abs(nearest - original) ? end : nearest
     }
 }
 

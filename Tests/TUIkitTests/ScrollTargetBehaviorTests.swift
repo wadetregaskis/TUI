@@ -273,7 +273,6 @@ struct ScrollTargetBehaviorTests {
     @Test("Left or Right that moves only the vertical axis is consumed")
     func horizontalKeyMovingDownIsConsumed() {
         let frames = Frames(width: 20, height: 10)
-        // 93 rows over 10 lines: the end, 83, is not a page boundary.
         let view = ScrollView([.horizontal, .vertical]) { wide(93) }
             .scrollTargetBehavior(.paging)
         frames.render(view)
@@ -281,17 +280,40 @@ struct ScrollTargetBehaviorTests {
             Issue.record("no scroll view")
             return
         }
-        _ = handler.handleKeyEvent(KeyEvent(key: .end))
+        // Off every page, as a programmatic scroll can leave it.
+        handler.scrollToOffset(41)
         frames.render(view)
-        #expect(handler.scrollOffset == handler.maxOffset && handler.horizontal.scrollOffset == 0)
-        let end = handler.scrollOffset
         handler.userScrolledSinceRender = false
         let consumed = handler.handleKeyEvent(KeyEvent(key: .left))
         // Nothing to the left, but the gesture's target settles on a page down
         // the other axis too.
-        #expect(handler.scrollOffset == end / 10 * 10, "\(handler.scrollOffset)")
+        #expect(handler.scrollOffset == 40, "\(handler.scrollOffset)")
         #expect(consumed, "the view moved, so the key is spent")
         #expect(handler.userScrolledSinceRender)
+    }
+
+    @Test("Left at the tail of a two-axis pager leaves its rows at the end, and it goes on following them")
+    func horizontalKeyAtTheTailKeepsTheEnd() {
+        let frames = Frames(width: 20, height: 10)
+        // 93 rows over 10 lines: the end, 83, is not a multiple of the page.
+        func view(_ count: Int) -> some View {
+            ScrollView([.horizontal, .vertical]) { wide(count) }
+                .scrollTargetBehavior(.paging)
+                .defaultScrollAnchor(.bottom)
+        }
+        frames.render(view(93))
+        guard let handler = frames.scrollView else {
+            Issue.record("no scroll view")
+            return
+        }
+        #expect(handler.scrollOffset == 83, "opens at the tail")
+        let consumed = handler.handleKeyEvent(KeyEvent(key: .left))
+        // The end is the last page's boundary, so nothing moves: the rows used
+        // to settle to 80, off the tail, and stopped following it.
+        #expect(handler.scrollOffset == 83)
+        #expect(!consumed, "nothing moved, so the key is the parent's")
+        frames.render(view(95))
+        #expect(handler.scrollOffset == 85, "new rows are followed")
     }
 
     @Test("A behaviour that holds the view mid-content keeps the wheel: nothing chains to the parent")
@@ -365,6 +387,22 @@ struct ScrollTargetBehaviorTests {
         #expect(!dragged.isMultiple(of: 10), "the drag itself is free: \(dragged)")
         _ = bar(MouseEvent(button: .left, phase: .released, x: 0, y: 1))
         #expect(handler.scrollOffset == Int((Double(dragged) / 10).rounded()) * 10, "from \(dragged)")
+    }
+
+    @Test("A gesture with no direction near the end rests on the end, the last page's boundary")
+    func settleNearTheEndRestsOnIt() {
+        let handler = ScrollViewHandler(focusID: "t")
+        // 93 lines over 10: the end, 83, is not a multiple of the page.
+        handler.contentHeight = 93
+        handler.viewportHeight = 10
+        handler.scrollTargeting = ScrollViewTargeting(
+            behavior: PagingScrollTargetBehavior(), axes: .vertical, environment: EnvironmentValues(),
+            width: 10)
+        for (start, rest) in [(83, 83), (82, 83), (78, 80)] {
+            handler.scrollToOffset(start)
+            handler.settleUserScroll()
+            #expect(handler.scrollOffset == rest, "from \(start)")
+        }
     }
 
     // MARK: - A behaviour of the app's own
