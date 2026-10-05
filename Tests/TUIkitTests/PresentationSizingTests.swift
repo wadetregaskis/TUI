@@ -32,6 +32,12 @@ private final class Rows: @unchecked Sendable {
     var count = 6
 }
 
+/// An item a sheet is presented for, and how many rows its sheet draws.
+private struct SheetItem: Identifiable {
+    let id: Int
+    let rows: Int
+}
+
 @MainActor
 @Suite("Presentation sizing")
 struct PresentationSizingTests {
@@ -256,6 +262,33 @@ struct PresentationSizingTests {
         isPresented = true
         let height = harness.frame(view()).overlays.first?.content.height
         #expect(height == 4, "presented again at \(String(describing: height)) rows, not its content's 4")
+    }
+
+    /// `.sheet(item:)` switched to another item while it is up is never
+    /// closed — its binding stays non-`nil` — so the kept size went on to the
+    /// next item's sheet. The item's id is the sheet's identity: another item
+    /// is another sheet, as in SwiftUI, which dismisses one and presents the
+    /// other, so it starts from its own content.
+    @Test("A sticky sheet switched to another item starts from that item's content")
+    func stickyStartsOverForAnotherItem() {
+        var item: SheetItem? = SheetItem(id: 1, rows: 6)
+        let harness = InputChainHarness(width: 60, height: 30)
+        func view() -> some View {
+            Text("page").sheet(item: Binding(get: { item }, set: { item = $0 })) { item in
+                Panel("t") {
+                    VStack(spacing: 0) {
+                        ForEach(0..<item.rows, id: \.self) { Text("row \($0)") }
+                    }
+                }
+                .presentationSizing(AnyStickyChoice.sticky)
+            }
+        }
+        #expect(harness.frame(view()).overlays.first?.content.height == 8)
+        item = SheetItem(id: 1, rows: 2)
+        #expect(harness.frame(view()).overlays.first?.content.height == 8, "precondition: one item's sheet kept its size")
+        item = SheetItem(id: 2, rows: 2)
+        let height = harness.frame(view()).overlays.first?.content.height
+        #expect(height == 4, "another item's sheet at \(String(describing: height)) rows, not its content's 4")
     }
 
     @Test("A sticky axis grows with the content and does not shrink while presented")

@@ -350,7 +350,7 @@ extension ModalPresentationModifier: Renderable {
             if let sizing = presentationTrait(PresentationSizingProviding.self, of: modal)?.sizing,
                 let proposedHeight = applyPresentationSizing(
                     sizing, of: modal, to: &sheetContext, hasDetent: detentHeight != nil,
-                    kept: keptSheetSize(context: context))
+                    kept: keptSheetSize(context: context)?.presenting(itemKey))
             {
                 capHeight = proposedHeight
             }
@@ -425,7 +425,8 @@ private enum StateIndex {
     static let dismissalGate = 1
     /// The largest size a sticky ``PresentationSizing`` has given the sheet,
     /// for as long as it stays presented: emptied on the frames the sheet is
-    /// closed, so presenting it again starts over.
+    /// closed, so presenting it again starts over — and, for the `item:`
+    /// forms, when it is presented for another item (`KeptSheetSize`).
     static let keptSheetSize = 2
 }
 
