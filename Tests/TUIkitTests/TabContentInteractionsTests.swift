@@ -227,6 +227,48 @@ struct TabContentInteractionsTests {
         #expect(!overlayText(harness.frame(view())).contains("Pin"))
     }
 
+    /// The test above, with a third tab that keeps its menu throughout. There
+    /// the sidebar loses its only menu, so it has no Shift+F10 at all and
+    /// cannot take the key whatever its openers hold; here it keeps the key
+    /// for the third tab's menu, and only starting its openers afresh on
+    /// every render (`_TabSidebarMenuKeys`) stops the selected tab's stale
+    /// one opening a menu nothing draws.
+    @Test(
+        "Shift+F10 on a tab whose menu went away is not taken while another tab keeps its own",
+        arguments: [TabInteractionsLook.compact, .sidebar])
+    func shiftF10AfterTheMenuWentAwayBesideAnother(look: TabInteractionsLook) {
+        let log = Log()
+        log.selected = 2
+        var hasMenu = true
+        func view() -> some View {
+            let tabs = TabView(selection: log.selection) {
+                Tab("One", value: 1) { Text("first") }
+                if hasMenu {
+                    Tab("Two", value: 2) { Text("second") }
+                        .contextMenu { Button("Pin") { log.entries.append("pin") } }
+                } else {
+                    Tab("Two", value: 2) { Text("second") }
+                }
+                Tab("Three", value: 3) { Text("third") }
+                    .contextMenu { Button("Keep") { log.entries.append("keep") } }
+            }
+            return Group {
+                if look == .sidebar { tabs.tabViewStyle(.sidebarAdaptable) } else { tabs }
+            }
+        }
+        let harness = InputChainHarness(width: 50, height: 14)
+        harness.play([]) { view() }
+        hasMenu = false
+        let taken = harness.play([KeyEvent(key: .f10, shift: true)]) { view() }
+        #expect(taken == [false], "Shift+F10 was taken for a menu the tab no longer has")
+        let shown = overlayText(harness.frame(view()))
+        #expect(!shown.contains("Pin") && !shown.contains("Keep"), "\(shown)")
+        // The third tab's menu still opens from the keyboard.
+        log.selected = 3
+        harness.play([KeyEvent(key: .f10, shift: true)]) { view() }
+        #expect(overlayText(harness.frame(view())).contains("Keep"), "precondition: the key still opens a menu")
+    }
+
     /// The sidebar's Shift+F10 is a focus-path handler over its list, and a
     /// sidebar whose tabs carry no menu has nothing for it to open: it costs
     /// such a sidebar nothing, neither the handler nor the openers it asks.
