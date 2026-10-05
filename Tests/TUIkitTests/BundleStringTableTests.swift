@@ -134,6 +134,19 @@ final class BundleStringTableTests {
         #expect(Text(verbatim: "greeting").content == "greeting")
     }
 
+    @Test("The answers kept for keys made at run time are bounded")
+    func theAnswersAreBounded() throws {
+        let files = try tables()
+        let service = LocalizationService(configDirectoryPath: configDir, defaultBundle: files.bundle)
+        service.pinLanguageForTesting(.english)
+        for index in 0..<(BundleStringTables.answerLimit + 100) {
+            _ = service.string(for: "row.\(index)")
+        }
+        // English's answers and the fallback's, each at most the limit.
+        #expect(service.keptTableAnswerCount <= 2 * BundleStringTables.answerLimit)
+        #expect(service.string(for: "greeting") == "Hello", "a forgotten answer is not read again")
+    }
+
     @Test("An interpolated key is read from the table and filled in")
     func anInterpolatedKey() throws {
         let files = try TableBundle(["en": ["Localizable": ["Moved %@ rows": "Shifted %@ rows"]]])

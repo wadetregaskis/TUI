@@ -286,6 +286,14 @@ public final class LocalizationService: @unchecked Sendable {
         return key
     }
 
+    /// How many table answers the service keeps — for the tests of their
+    /// bound (`BundleStringTables.answerLimit`).
+    var keptTableAnswerCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return bundleTables.keptAnswerCount
+    }
+
     /// Resolves a key in `language`, whatever the current language is —
     /// falling back to English, then to the key, as ``string(for:)`` does.
     ///

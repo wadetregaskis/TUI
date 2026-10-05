@@ -48,9 +48,11 @@ final class BundleStringTables {
         /// bundle has none for it.
         var localizations: [LocalizationService.Language: Bundle?] = [:]
         /// What each key resolved to in each language's `.lproj`, `.some(nil)`
-        /// for a key the table lacks.
+        /// for a key the table lacks. At most ``BundleStringTables/answerLimit``
+        /// a language — see ``remember(_:for:in:)``.
         var answers: [LocalizationService.Language: [String: String?]] = [:]
-        /// What each key resolved to as Foundation chooses for the bundle.
+        /// What each key resolved to as Foundation chooses for the bundle,
+        /// at most ``BundleStringTables/answerLimit`` of them.
         var fallbackAnswers: [String: String?] = [:]
 
         init(bundle: Bundle, name: String) {
@@ -84,6 +86,17 @@ final class BundleStringTables {
     /// spells, so a translation that happens to equal its key still counts.
     private static let missing = "\u{FFFF}TUIkit.missing\u{FFFF}"
 
+    /// How many answers one table keeps per language (and for its fallback)
+    /// before it forgets them all and starts again.
+    ///
+    /// The answers only spare Foundation's lookup, which reads a table it has
+    /// already loaded, so forgetting costs a re-read and nothing else. Without
+    /// a bound, an app with tables that makes its keys at run time —
+    /// `LocalizedStringKey(someString)` over data — kept one entry per key it
+    /// ever asked for, for the life of the process. An app's literal keys are
+    /// far fewer than this, so they are never forgotten in practice.
+    static let answerLimit = 4_096
+
     init(defaultBundle: Bundle = .main) {
         self.defaultBundle = defaultBundle
     }
@@ -103,7 +116,7 @@ final class BundleStringTables {
             let value = source.localizedString(forKey: key, value: Self.missing, table: table.name)
             if value != Self.missing { answer = value }
         }
-        table.answers[language, default: [:]][key] = answer
+        remember(answer, for: key, in: &table.answers[language, default: [:]])
         return answer
     }
 
@@ -116,8 +129,23 @@ final class BundleStringTables {
         if let answer = table.fallbackAnswers[key] { return answer }
         let value = table.bundle.localizedString(forKey: key, value: Self.missing, table: table.name)
         let answer = value == Self.missing ? nil : value
-        table.fallbackAnswers[key] = answer
+        remember(answer, for: key, in: &table.fallbackAnswers)
         return answer
+    }
+
+    /// Keeps `answer` for `key`, forgetting every answer kept beside it first
+    /// if there are ``answerLimit`` of them already.
+    private func remember(_ answer: String?, for key: String, in answers: inout [String: String?]) {
+        if answers.count >= Self.answerLimit { answers.removeAll(keepingCapacity: true) }
+        answers[key] = .some(answer)
+    }
+
+    /// How many answers the tables keep, in all — for the tests of the bound.
+    var keptAnswerCount: Int {
+        let tables = Array(tables.values) + (defaultTable.map { [$0] } ?? [])
+        return tables.reduce(0) { total, table in
+            total + table.fallbackAnswers.count + table.answers.values.reduce(0) { $0 + $1.count }
+        }
     }
 
     /// The table named `tableName` of `bundle`, `nil` meaning `Localizable`
