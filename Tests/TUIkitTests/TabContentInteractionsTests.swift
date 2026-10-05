@@ -206,6 +206,29 @@ struct TabContentInteractionsTests {
         #expect(!overlayText(harness.frame(view())).contains("Pin"))
     }
 
+    /// The sidebar's Shift+F10 is a focus-path handler over its list, and a
+    /// sidebar whose tabs carry no menu has nothing for it to open: it costs
+    /// such a sidebar nothing, neither the handler nor the openers it asks.
+    @Test("A sidebar whose tabs carry no context menu registers no Shift+F10 handler")
+    func sidebarWithoutMenusHasNoMenuKey() {
+        func handlers(withMenu: Bool) -> Int {
+            let log = Log()
+            let harness = InputChainHarness(width: 50, height: 14)
+            harness.frame(
+                TabView(selection: log.selection) {
+                    Tab("One", value: 1) { Text("first") }
+                    if withMenu {
+                        Tab("Two", value: 2) { Text("second") }.contextMenu { Button("Pin") {} }
+                    } else {
+                        Tab("Two", value: 2) { Text("second") }
+                    }
+                }
+                .tabViewStyle(.sidebarAdaptable))
+            return harness.tui.keyEventDispatcher.focusPathHandlerCount
+        }
+        #expect(handlers(withMenu: false) == handlers(withMenu: true) - 1)
+    }
+
     @Test("A tab's popover hangs from its chip or row", arguments: TabInteractionsLook.allCases)
     func popoverHangsFromTheTab(look: TabInteractionsLook) {
         let log = Log()

@@ -448,9 +448,15 @@ private enum TabSidebarMenuKeysStateIndex {
 /// render-time keeper rather than the list's `@State`, because the rows are
 /// built before anything renders and a `@State` initial value is built on
 /// every evaluation of the body that makes the list.
+///
+/// A sidebar none of whose tabs carries a context menu has nothing for the key
+/// to open, and pays for none of it: no box, no environment write, no
+/// handler. The content renders at the same identity either way.
 struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let selection: Binding<AnyHashable>
+    /// Whether any of the sidebar's tabs carries a context menu.
+    let hasMenus: Bool
 
     private typealias StateIndex = TabSidebarMenuKeysStateIndex
 
@@ -462,7 +468,7 @@ struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)
-        guard !context.isMeasuring, let storage = context.stateStorage else {
+        guard hasMenus, !context.isMeasuring, let storage = context.stateStorage else {
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
         // A manual box, which nothing else hydrates: marked, or the end of

@@ -100,7 +100,8 @@ private struct _TabSidebarList: View {
     var body: some View {
         // Shift+F10 opens the selected tab's context menu while the list has
         // the focus.
-        _TabSidebarMenuKeys(content: list, selection: selection)
+        _TabSidebarMenuKeys(
+            content: list, selection: selection, hasMenus: tabs.contains { $0.interactions.contextMenu != nil })
     }
 
     private var list: some View {
