@@ -88,6 +88,8 @@ struct AppKitBridgeTests {
             ("let glob = #\"Sources/*\"#\nimport AppKit", "AppKit"),
             ("let text = \"\"\"\n  /* not a comment\n  \"\"\"\nimport AppKit", "AppKit"),
             ("#if canImport(AppKit)\n    import AppKit\n#endif", "AppKit"),
+            ("let text = \"\"\"\n  a line \\\n  continued /*\n  \"\"\"\nimport AppKit", "AppKit"),
+            ("let path = \"\\\"/*\"\nimport AppKit", "AppKit"),
             ("import AppKitShim", nil),
             ("import Foundation // not AppKit", nil),
         ] as [(String, String?)])
@@ -120,7 +122,13 @@ private enum ImportScan {
     /// declaration, the part before any `.` — outside comments.
     static func importedModules(in source: String) -> [String] {
         var modules: [String] = []
-        for line in withoutCommentsAndStrings(source).split(whereSeparator: \.isNewline) {
+        let keyword = Array("import".utf8)
+        for bytes in withoutCommentsAndStrings(source).split(separator: Byte.newline) {
+            // Only a line that says `import` is read as text: the guard reads
+            // some twelve megabytes of source, and almost none of it is.
+            guard bytes.firstRange(of: keyword) != nil, let line = String(bytes: bytes, encoding: .utf8) else {
+                continue
+            }
             for statement in line.split(separator: ";") {
                 if let module = importedModule(statement) { modules.append(module) }
             }
@@ -143,83 +151,104 @@ private enum ImportScan {
         return path.split(separator: ".").first.map(String.init)
     }
 
-    /// `source` with its comments and string literals blanked, newlines
-    /// kept: `//` to the end of the line, `/* … */` nested as Swift nests
+    /// `source`'s UTF-8 with its comments and string literals blanked,
+    /// newlines kept: `//` to the end of the line, `/* … */` nested as Swift nests
     /// them, and `"…"`, `"""…"""` and raw `#"…"#` strings — so neither a
     /// commented-out import nor a `/*` inside a string (which would open a
     /// comment that hides the imports after it) can fool the scan.
-    private static func withoutCommentsAndStrings(_ source: String) -> String {
-        let characters = Array(source)
-        var result = ""
+    ///
+    /// Walks UTF-8 bytes, not characters: every delimiter is ASCII, and the
+    /// guard reads some twelve megabytes of source.
+    private static func withoutCommentsAndStrings(_ source: String) -> [UInt8] {
+        let bytes = Array(source.utf8)
+        var kept: [UInt8] = []
+        kept.reserveCapacity(bytes.count)
         var index = 0
-        func at(_ offset: Int, _ text: String) -> Bool {
-            let start = index + offset
-            return start + text.count <= characters.count && String(characters[start..<(start + text.count)]) == text
+        func pair(_ first: UInt8, _ second: UInt8) -> Bool {
+            index + 1 < bytes.count && bytes[index] == first && bytes[index + 1] == second
         }
-        while index < characters.count {
-            if at(0, "//") {
-                while index < characters.count, !characters[index].isNewline { index += 1 }
-            } else if at(0, "/*") {
+        while index < bytes.count {
+            if pair(Byte.slash, Byte.slash) {
+                while index < bytes.count, bytes[index] != Byte.newline { index += 1 }
+            } else if pair(Byte.slash, Byte.star) {
                 var depth = 0
                 repeat {
-                    if at(0, "/*") {
+                    if pair(Byte.slash, Byte.star) {
                         depth += 1
                         index += 2
-                    } else if at(0, "*/") {
+                    } else if pair(Byte.star, Byte.slash) {
                         depth -= 1
                         index += 2
                     } else {
-                        if characters[index].isNewline { result.append(characters[index]) }
+                        if bytes[index] == Byte.newline { kept.append(Byte.newline) }
                         index += 1
                     }
-                } while depth > 0 && index < characters.count
-            } else if characters[index] == "\"" || (characters[index] == "#" && opensRawString(characters, at: index)) {
-                index = endOfString(characters, from: index, keepingNewlinesIn: &result)
+                } while depth > 0 && index < bytes.count
+            } else if bytes[index] == Byte.quote || (bytes[index] == Byte.hash && opensRawString(bytes, at: index)) {
+                index = endOfString(bytes, from: index, keepingNewlinesIn: &kept)
             } else {
-                result.append(characters[index])
+                kept.append(bytes[index])
                 index += 1
             }
         }
-        return result
+        return kept
+    }
+
+    /// The ASCII bytes the scan looks for.
+    private enum Byte {
+        static let slash = UInt8(ascii: "/")
+        static let star = UInt8(ascii: "*")
+        static let quote = UInt8(ascii: "\"")
+        static let hash = UInt8(ascii: "#")
+        static let backslash = UInt8(ascii: "\\")
+        static let newline = UInt8(ascii: "\n")
     }
 
     /// Whether the `#`s at `index` open a raw string (`#"`), rather than a
     /// directive (`#if`).
-    private static func opensRawString(_ characters: [Character], at index: Int) -> Bool {
+    private static func opensRawString(_ bytes: [UInt8], at index: Int) -> Bool {
         var cursor = index
-        while cursor < characters.count, characters[cursor] == "#" { cursor += 1 }
-        return cursor < characters.count && characters[cursor] == "\""
+        while cursor < bytes.count, bytes[cursor] == Byte.hash { cursor += 1 }
+        return cursor < bytes.count && bytes[cursor] == Byte.quote
     }
 
     /// The index just past the string literal that opens at `index`, with
-    /// the newlines a multi-line one spans appended to `result`. A string
-    /// on one line ends at the line's end at the latest.
-    private static func endOfString(_ characters: [Character], from index: Int, keepingNewlinesIn result: inout String) -> Int {
+    /// the newlines a multi-line one spans appended to `kept`. A string on
+    /// one line ends at the line's end at the latest.
+    private static func endOfString(_ bytes: [UInt8], from index: Int, keepingNewlinesIn kept: inout [UInt8]) -> Int {
         var cursor = index
         var hashes = 0
-        while characters[cursor] == "#" {
+        while bytes[cursor] == Byte.hash {
             hashes += 1
             cursor += 1
         }
-        let isMultiline = cursor + 2 < characters.count && characters[cursor + 1] == "\""
-            && characters[cursor + 2] == "\""
-        let quote = isMultiline ? "\"\"\"" : "\""
-        let closing = Array(quote + String(repeating: "#", count: hashes))
-        cursor += quote.count
-        while cursor < characters.count {
-            if characters[cursor] == "\\", hashes == 0 {
+        let isMultiline =
+            cursor + 2 < bytes.count && bytes[cursor + 1] == Byte.quote && bytes[cursor + 2] == Byte.quote
+        let quotes = isMultiline ? 3 : 1
+        cursor += quotes
+        while cursor < bytes.count {
+            if bytes[cursor] == Byte.backslash, hashes == 0 {
+                // An escape, or a multi-line string's line continuation,
+                // whose newline still ends a line.
+                if cursor + 1 < bytes.count, bytes[cursor + 1] == Byte.newline { kept.append(Byte.newline) }
                 cursor += 2
                 continue
             }
-            if characters[cursor].isNewline {
+            if bytes[cursor] == Byte.newline {
                 guard isMultiline else { return cursor }
-                result.append(characters[cursor])
+                kept.append(Byte.newline)
             }
-            if cursor + closing.count <= characters.count, Array(characters[cursor..<(cursor + closing.count)]) == closing {
-                return cursor + closing.count
-            }
+            if closes(bytes, at: cursor, quotes: quotes, hashes: hashes) { return cursor + quotes + hashes }
             cursor += 1
         }
         return cursor
+    }
+
+    /// Whether `quotes` quotes and then `hashes` hashes start at `index`: the
+    /// end of a string opened with them.
+    private static func closes(_ bytes: [UInt8], at index: Int, quotes: Int, hashes: Int) -> Bool {
+        guard index + quotes + hashes <= bytes.count else { return false }
+        return (0..<quotes).allSatisfy { bytes[index + $0] == Byte.quote }
+            && (0..<hashes).allSatisfy { bytes[index + quotes + $0] == Byte.hash }
     }
 }
