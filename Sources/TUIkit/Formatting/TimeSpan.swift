@@ -135,7 +135,8 @@ enum TimeSpan {
     /// localised, pluralised and list-joined on every platform. Years and
     /// months have no `Duration` unit; Apple's Foundation spells them with
     /// `Date.ComponentsFormatStyle`, and the open-source Foundation, which
-    /// declares that type without a way to build one, falls back to English.
+    /// declares that type without a way to build one, with the framework's
+    /// own tables (``tableUnitList(_:width:locale:)``).
     static func unitList(
         _ fields: [TimeSpanField], width: TimeSpanWidth, locale: Locale, calendar: Calendar
     ) -> String {
@@ -156,13 +157,30 @@ enum TimeSpan {
     }
 
     #if canImport(FoundationEssentials)
-        /// The open-source Foundation's `Date.ComponentsFormatStyle` has no
-        /// initialiser, so a span with years or months is spelt in English.
+        /// A span with years or months, from the framework's own tables —
+        /// because the open-source Foundation cannot spell one.
+        ///
+        /// **A gap in swift-corelibs-foundation, worth knowing before touching
+        /// this:** the open-source Foundation (swift-foundation, which
+        /// swift-corelibs-foundation re-exports on Linux, Windows and WASI)
+        /// DECLARES `Date.ComponentsFormatStyle` — its `Field` type exists, so
+        /// `Set<Date.ComponentsFormatStyle.Field>` compiles everywhere, and
+        /// `SystemFormatStyle.DateOffset` takes one — but declares it without
+        /// any initialiser and without `Date.formatted(_:)` support for it, so
+        /// there is no way to build one and spell a span with it. Nothing else
+        /// there spells years and months either: `Duration` has no such units,
+        /// their length depending on where they fall. So on every platform
+        /// whose Foundation is the open-source one, the year and month names
+        /// come from TUIkit's translation tables, in its seven languages, and
+        /// everything finer, and the joining, from `Duration.UnitsFormatStyle`,
+        /// which is localised there. Measured equal to Apple's
+        /// `Date.ComponentsFormatStyle` in all seven (`TimeSpanTableTests`).
+        /// Revisit if swift-foundation gains the initialiser: the `#else`
+        /// below is the whole implementation it would need.
         private static func calendarUnitList(
             _ fields: [TimeSpanField], width: TimeSpanWidth, locale: Locale, calendar: Calendar
         ) -> String {
-            fields.map { "\($0.value) \(englishName(of: $0.unit, count: $0.value, width: width))" }
-                .joined(separator: ", ")
+            tableUnitList(fields, width: width, locale: locale)
         }
     #else
         /// A span with years or months, through `Date.ComponentsFormatStyle`.
@@ -189,27 +207,6 @@ enum TimeSpan {
             return style.format(start..<end)
         }
     #endif
-
-    /// A unit's English name, for the one platform that cannot spell years and
-    /// months in its own words — the abbreviations are CLDR's.
-    static func englishName(of unit: TimeSpanUnit, count: Int, width: TimeSpanWidth) -> String {
-        let one = count == 1
-        switch (unit, width) {
-        case (.year, .wide): return one ? "year" : "years"
-        case (.year, .abbreviated): return one ? "yr" : "yrs"
-        case (.month, .wide): return one ? "month" : "months"
-        case (.month, .abbreviated): return one ? "mth" : "mths"
-        case (.week, .wide): return one ? "week" : "weeks"
-        case (.week, .abbreviated): return one ? "wk" : "wks"
-        case (.day, _): return one ? "day" : "days"
-        case (.hour, .wide): return one ? "hour" : "hours"
-        case (.hour, .abbreviated): return "hr"
-        case (.minute, .wide): return one ? "minute" : "minutes"
-        case (.minute, .abbreviated): return "min"
-        case (.second, .wide): return one ? "second" : "seconds"
-        case (.second, .abbreviated): return "sec"
-        }
-    }
 
     /// `fields` as date components, each multiplied by `sign`.
     static func components(_ fields: [TimeSpanField], sign: Int) -> DateComponents {

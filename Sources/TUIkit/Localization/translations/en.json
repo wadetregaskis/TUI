@@ -131,5 +131,14 @@
   "appearance.doubleLine": "Double line",
   "appearance.heavy": "Heavy",
   "appearance.block": "Block",
-  "appearance.blank": "Blank"
+  "appearance.blank": "Blank",
+
+  "timeSpan.year.wide.one": "%@ year",
+  "timeSpan.year.wide.other": "%@ years",
+  "timeSpan.year.abbreviated.one": "%@ yr",
+  "timeSpan.year.abbreviated.other": "%@ yrs",
+  "timeSpan.month.wide.one": "%@ month",
+  "timeSpan.month.wide.other": "%@ months",
+  "timeSpan.month.abbreviated.one": "%@ mth",
+  "timeSpan.month.abbreviated.other": "%@ mths"
 }

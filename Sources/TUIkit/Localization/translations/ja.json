@@ -131,5 +131,14 @@
   "appearance.doubleLine": "二重線",
   "appearance.heavy": "太線",
   "appearance.block": "ブロック",
-  "appearance.blank": "余白"
+  "appearance.blank": "余白",
+
+  "timeSpan.year.wide.one": "%@年",
+  "timeSpan.year.wide.other": "%@年",
+  "timeSpan.year.abbreviated.one": "%@年",
+  "timeSpan.year.abbreviated.other": "%@年",
+  "timeSpan.month.wide.one": "%@か月",
+  "timeSpan.month.wide.other": "%@か月",
+  "timeSpan.month.abbreviated.one": "%@か月",
+  "timeSpan.month.abbreviated.other": "%@か月"
 }

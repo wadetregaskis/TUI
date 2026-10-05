@@ -131,5 +131,14 @@
   "appearance.doubleLine": "Linea doppia",
   "appearance.heavy": "Spesso",
   "appearance.block": "Blocco",
-  "appearance.blank": "Vuoto"
+  "appearance.blank": "Vuoto",
+
+  "timeSpan.year.wide.one": "%@ anno",
+  "timeSpan.year.wide.other": "%@ anni",
+  "timeSpan.year.abbreviated.one": "%@ anno",
+  "timeSpan.year.abbreviated.other": "%@ anni",
+  "timeSpan.month.wide.one": "%@ mese",
+  "timeSpan.month.wide.other": "%@ mesi",
+  "timeSpan.month.abbreviated.one": "%@ mese",
+  "timeSpan.month.abbreviated.other": "%@ mesi"
 }

@@ -238,6 +238,22 @@ public enum LocalizationKey {
         case menuDropDown = "statusbar.menu.dropDown"
         case menuPopUp = "statusbar.menu.popUp"
     }
+
+    /// The names of years and months in a span, for the platforms whose
+    /// Foundation cannot spell them (`TimeSpan.tableUnitList`): a pattern per
+    /// unit, width and CLDR plural category, `%@` standing for the count.
+    /// Looked up by the locale's language, not the app's. Internal: they are
+    /// the framework's own words for Foundation's, not an app's to reuse.
+    enum TimeSpan: String, CaseIterable {
+        case yearWideOne = "timeSpan.year.wide.one"
+        case yearWideOther = "timeSpan.year.wide.other"
+        case yearAbbreviatedOne = "timeSpan.year.abbreviated.one"
+        case yearAbbreviatedOther = "timeSpan.year.abbreviated.other"
+        case monthWideOne = "timeSpan.month.wide.one"
+        case monthWideOther = "timeSpan.month.wide.other"
+        case monthAbbreviatedOne = "timeSpan.month.abbreviated.one"
+        case monthAbbreviatedOther = "timeSpan.month.abbreviated.other"
+    }
 }
 
 // MARK: - Convenient Localization Extensions

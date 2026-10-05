@@ -131,5 +131,14 @@
   "appearance.doubleLine": "Línea doble",
   "appearance.heavy": "Grueso",
   "appearance.block": "Bloque",
-  "appearance.blank": "Vacío"
+  "appearance.blank": "Vacío",
+
+  "timeSpan.year.wide.one": "%@ año",
+  "timeSpan.year.wide.other": "%@ años",
+  "timeSpan.year.abbreviated.one": "%@ a",
+  "timeSpan.year.abbreviated.other": "%@ a",
+  "timeSpan.month.wide.one": "%@ mes",
+  "timeSpan.month.wide.other": "%@ meses",
+  "timeSpan.month.abbreviated.one": "%@ m.",
+  "timeSpan.month.abbreviated.other": "%@ m."
 }

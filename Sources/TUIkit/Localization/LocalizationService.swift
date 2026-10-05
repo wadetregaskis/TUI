@@ -249,6 +249,24 @@ public final class LocalizationService: @unchecked Sendable {
         return key
     }
 
+    /// Resolves a key in `language`, whatever the current language is —
+    /// falling back to English, then to the key, as ``string(for:)`` does.
+    ///
+    /// For text whose language is the locale's rather than the app's: a span
+    /// spelt from the tables (`TimeSpan.tableUnitList`) follows the locale it
+    /// was formatted in, as Foundation's own spellings do.
+    func string(for key: String, in language: Language) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        if let value = _translationValue(key, in: language) {
+            return value
+        }
+        if language != .english, let value = _translationValue(key, in: .english) {
+            return value
+        }
+        return key
+    }
+
     // MARK: - Private Helpers (caller MUST hold lock)
 
     /// Gets translations dictionary for a language, loading from JSON if needed.
