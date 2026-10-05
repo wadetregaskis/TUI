@@ -25,6 +25,12 @@ private struct Heading: View {
     }
 }
 
+/// A view whose body is a loop of its own.
+private struct Extras: View {
+    let names: [String]
+    var body: some View { ForEach(names, id: \.self) { Text($0) } }
+}
+
 /// What a layout was handed: each subview's implicit `String` tag.
 @MainActor
 private final class Seen {
@@ -134,5 +140,18 @@ struct CompositeMembersRowIDsTests {
             }
         }
         #expect(drawn == ["all", nil, nil, "apple", "banana", nil, nil], "\(drawn)")
+    }
+
+    @Test("A loop between two views of the app's own that hold loops of their own keeps its values")
+    func besideViewsHoldingLoops() {
+        let drawn = ids(String.self) {
+            Extras(names: ["e1", "e2"])
+            ForEach(Self.fruits, id: \.self) { Text($0) }
+            Extras(names: ["e3"])
+        }
+        // The views' own loops keep the hand-written rule (decisions D1S,
+        // B-D1S-6): no tag, so no `String` value. The loop between them is
+        // placed.
+        #expect(drawn == [nil, nil, "apple", "banana", nil], "\(drawn)")
     }
 }

@@ -168,12 +168,19 @@ extension TupleView: ChildViewProvider {
             // views (`compositeMembers(of:context:)`), resolved at the identity
             // it would have drawn at; any other view is one child, at the
             // STATIC position, not the flattened one — see below.
-            if C._handsOverChildren,
-                let members = compositeMembers(
-                    of: child, context: context.withChildIdentity(erasedType: C.self, index: slot))
-            {
-                views.append(contentsOf: members)
-                return
+            if C._handsOverChildren {
+                let scope = context.withChildIdentity(erasedType: C.self, index: slot)
+                if let members = compositeMembers(of: child, context: scope) {
+                    // Spliced from this slot as a provider's children are, so
+                    // a keyed row among them says which slot it came from
+                    // (`ChildView.spliceSlot`) and is placed with that slot's
+                    // loops. Every member is pinned already, so its identity
+                    // stays where it was resolved.
+                    for member in members {
+                        views.append(member.spliced(fromSlot: slot, under: scope.identity, branched: false))
+                    }
+                    return
+                }
             }
             views.append(ChildView(child, childIndex: slot))
             return
