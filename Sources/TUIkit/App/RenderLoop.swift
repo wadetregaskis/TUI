@@ -318,8 +318,9 @@ internal final class RenderLoop<A: App> {
     /// The mouse-support configuration extracted from the scene this
     /// frame. The effective configuration (after view modifiers add
     /// per-frame requests) is `baseMouseSupport.union(with: requested)`.
-    /// AppRunner reads ``effectiveMouseSupport`` after each render.
-    private var baseMouseSupport: MouseSupport = .standard
+    /// AppRunner reads ``effectiveMouseSupport`` after each render. Not
+    /// private only because `RenderLoop+Scene.swift` sets it.
+    var baseMouseSupport: MouseSupport = .standard
 
     /// Whether the first frame has been rendered.
     ///
@@ -487,23 +488,8 @@ extension RenderLoop {
 
         let scene = evaluateAppBody(environment: environment)
         scene.applyRootOverrides(to: &environment)
-        // Capture the scene's base ``MouseSupport`` configuration; the
-        // effective per-frame configuration is the union of this and
-        // any features requested by view modifiers during render. The
-        // AppRunner consults `effectiveMouseSupport` after the render
-        // pass completes to update the terminal tracking mode.
-        if let mouseScene = scene.primitiveScene as? any MouseSupportProvidingScene {
-            // `nil` means no `.mouseSupport(...)` was applied (only pass-through
-            // scene wrappers like `.palette(...)`); fall back to `.standard`.
-            baseMouseSupport = mouseScene.resolvedMouseSupport() ?? .standard
-        } else {
-            baseMouseSupport = .standard
-        }
-        // Make the active support available to handlers right now so
-        // any events queued from the previous frame are filtered
-        // against the right config.
-        tuiContext.mouseEventDispatcher.setActiveSupport(baseMouseSupport)
-        applyChromeStyle(from: scene)
+        // The scene's mouse support and chrome style (`RenderLoop+Scene.swift`).
+        applySceneConfiguration(from: scene)
         // Before the height is read, which is the whole trick: a tooltip's
         // triggers all land between frames (a mouse event, a key press, the
         // scheduled wake for the hover delay), so the candidate is already known
@@ -1287,19 +1273,6 @@ extension RenderLoop {
             animatedClocks: Set(chrome.map(\.clock)).union(content),
             chromeRuns: chrome)
         return lastActivity
-    }
-
-    /// Adopts a scene-level `.chromeStyle(...)` for this frame.
-    ///
-    /// Must run BEFORE anything asks either bar's height: the style decides how
-    /// many rows they take, and the page's height is whatever is left. That is
-    /// why the status bar's height is read straight after this call rather than
-    /// alongside the terminal size, where it used to sit.
-    fileprivate func applyChromeStyle(from scene: some Scene) {
-        guard let chromeScene = scene.primitiveScene as? any RootChromeStyleProvidingScene else { return }
-        let chrome = chromeScene.rootChromeStyle()
-        if let style = chrome.appHeader { appHeader.style = style }
-        if let style = chrome.statusBar { statusBar.style = style }
     }
 
     /// Ends lifecycle, state, and cache tracking for this render pass.
