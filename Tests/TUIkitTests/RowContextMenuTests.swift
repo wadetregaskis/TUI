@@ -282,11 +282,16 @@ struct RowContextMenuTests {
         #expect(harness.shows("outer"), "\(harness.screen)")
         #expect(!harness.shows("row 3"))
         harness.escape()
-        // The focus came back to the table with its cursor on the selection's
-        // first row, item2, whose own menu Shift+F10 opens.
+        // A click puts the cursor on item1 (and the focus on the table), whose
+        // own menu Shift+F10 opens; a row without one opens nothing.
+        let first = try harness.position(of: "item1")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: first.x, y: first.y))
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: first.x, y: first.y))
+        harness.frame()
         harness.key(KeyEvent(key: .f10, shift: true))
-        #expect(harness.shows("row 2"), "Shift+F10 did not open the cursor row's menu:\n\(harness.screen)")
+        #expect(harness.shows("row 1"), "Shift+F10 did not open the cursor row's menu:\n\(harness.screen)")
         harness.escape()
+        harness.key(KeyEvent(key: .down))
         harness.key(KeyEvent(key: .down))
         harness.key(KeyEvent(key: .f10, shift: true))
         #expect(!harness.shows("row 3"), "\(harness.screen)")
