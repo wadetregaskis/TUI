@@ -187,6 +187,11 @@ final class Terminal: TerminalProtocol {
     /// Whether this process's push is on the terminal's stack: a pop is owed.
     var keyboardFlagsPushed = false
 
+    /// What the kitty key decoder remembers from one report to the next — the
+    /// keys that are down, so a release is the key its press was. Forgotten
+    /// with the protocol, at a pop.
+    var keyboardMemory = KittyKeyMemory()
+
     /// Events one sequence decoded to beyond the first, waiting their turn.
     ///
     /// A kitty key report carries the text its key typed, and an input method

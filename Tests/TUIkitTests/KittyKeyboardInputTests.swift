@@ -168,6 +168,20 @@ struct KittyKeyboardInputTests {
         #expect(value.value == 6)
     }
 
+    @Test("Under Caps Lock onKeyPress(\"A\", phases: .up) hears the key it heard go down")
+    func capsLockReleaseReachesUpHandler() {
+        let harness = InputChainHarness(keyboard: .requested)
+        let log = Log()
+        let typed = events(terminal("\u{1B}[97;65;65u\u{1B}[97;65:3u"))
+        harness.play(typed.compactMap(\.keyEvent)) {
+            Text("x").focusable().onKeyPress("A", phases: [.down, .up]) { press in
+                log.entries.append(press.phase.debugDescription)
+                return .handled
+            }
+        }
+        #expect(log.entries == [".down", ".up"])
+    }
+
     // MARK: - The chords the legacy bytes spent on other keys
 
     @Test("Ctrl-H nothing binds rubs out, as the legacy Backspace it was")

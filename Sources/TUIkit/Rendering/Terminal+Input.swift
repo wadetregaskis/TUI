@@ -732,7 +732,7 @@ extension Terminal {
         // does not claim — an SS3 key, a lone byte, a reply — goes on to the
         // legacy parser below as before.
         if !keyboardEnhancement.isEmpty, bytes.count >= 3, bytes[0] == 0x1B, bytes[1] == 0x5B,
-            let decoded = KittyKeyDecoder.decode(bytes)
+            let decoded = KittyKeyDecoder.decode(bytes, memory: &keyboardMemory)
         {
             guard let first = decoded.first else { return nil }
             queuedInputs.append(contentsOf: decoded.dropFirst())

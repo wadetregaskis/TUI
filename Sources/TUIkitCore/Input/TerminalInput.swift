@@ -36,3 +36,11 @@ public enum TerminalInput: Sendable, Equatable {
     /// typing, so nothing that hears keys hears these.
     case modifierKeys(ModifierKeyState)
 }
+
+extension TerminalInput {
+    /// The key event this input is, or `nil` for any other kind.
+    package var keyEvent: KeyEvent? {
+        if case .key(let event) = self { return event }
+        return nil
+    }
+}

@@ -231,6 +231,7 @@ extension Terminal {
         sendToTerminal(KeyboardProtocolQuery.pop)
         keyboardFlagsPushed = false
         keyboardEnhancement = []
+        keyboardMemory = KittyKeyMemory()
         armSignalRestore()
     }
 

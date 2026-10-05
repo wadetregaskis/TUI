@@ -118,7 +118,16 @@ package enum KittyKeyDecoder {
     /// no text is dropped, as the legacy encodings drop it. It still reports
     /// the modifier state, so ``ModifierKeyState/command`` stays true while ⌘
     /// is held.
-    package static func decode(_ bytes: [UInt8]) -> [TerminalInput]? {
+    ///
+    /// ## A release is the key its press was
+    ///
+    /// A release carries no text, only the key's code, so decoded on its own
+    /// it could disagree with the press: Caps Lock's `A` would come up as `a`,
+    /// a dead key's `é` as `e`. A key's press is remembered in `memory`, and
+    /// its release delivers the press's key events again, phase aside (see
+    /// ``KittyKeyMemory``). A release of a key not seen going down is decoded
+    /// from its code.
+    package static func decode(_ bytes: [UInt8], memory: inout KittyKeyMemory) -> [TerminalInput]? {
         guard bytes.count >= 3, bytes[0] == 0x1B, bytes[1] == 0x5B,
             let final = bytes.last
         else { return nil }
@@ -130,7 +139,7 @@ package enum KittyKeyDecoder {
 
         switch final {
         case 0x75:  // 'u'
-            return decodeCodePointReport(fields)
+            return decodeCodePointReport(fields, memory: &memory)
         case 0x7E:  // '~'
             guard let number = value(fields, 0, 0) else { return nil }
             guard let key = Self.tildeKey(number) else { return nil }
@@ -141,6 +150,13 @@ package enum KittyKeyDecoder {
             if let number = value(fields, 0, 0), number != 1 { return nil }
             return decodeFunctionalKey(key, fields: fields)
         }
+    }
+
+    /// ``decode(_:memory:)`` for one report on its own, with nothing
+    /// remembered before it or kept after.
+    package static func decode(_ bytes: [UInt8]) -> [TerminalInput]? {
+        var memory = KittyKeyMemory()
+        return decode(bytes, memory: &memory)
     }
 
     // MARK: Grammar
@@ -240,7 +256,7 @@ package enum KittyKeyDecoder {
     }
 
     /// A `CSI … u` report.
-    private static func decodeCodePointReport(_ fields: [[Int?]]) -> [TerminalInput]? {
+    private static func decodeCodePointReport(_ fields: [[Int?]], memory: inout KittyKeyMemory) -> [TerminalInput]? {
         guard let (bits, phase) = modifiers(fields) else { return nil }
         let code = value(fields, 0, 0) ?? 0
         let shifted = value(fields, 0, 1)
@@ -264,9 +280,16 @@ package enum KittyKeyDecoder {
             return [.modifierKeys(state)]
         }
 
+        // A release is the key its press was, whatever its own report says.
+        if phase == .release, let pressed = memory.release(code) {
+            return pressed.map { .key($0) }
+        }
+
         // Text the key typed: the keystroke is that text.
         if phase != .release, fields.count > 2, let text = Self.text(fields[2]), !text.isEmpty {
-            return textEvents(text, bits: bits, phase: phase, numericPad: isKeypad(code))
+            let events = textEvents(text, bits: bits, phase: phase, numericPad: isKeypad(code))
+            memory.press(code, delivered: events.compactMap(\.keyEvent))
+            return events
         }
 
         guard code != 0 else { return nil }  // key 0 is text-only, and there was none
@@ -278,7 +301,9 @@ package enum KittyKeyDecoder {
 
         let chord = chordKey(code: code, shifted: shifted, base: base, bits: bits)
         guard let key = Self.textKey(chord.code) else { return nil }
-        return [.key(event(key, bits: chord.bits, phase: phase))]
+        let chordEvent = event(key, bits: chord.bits, phase: phase)
+        if phase != .release { memory.press(code, delivered: [chordEvent]) }
+        return [.key(chordEvent)]
     }
 
     /// The key a report that typed no text stands for — a Control or Option

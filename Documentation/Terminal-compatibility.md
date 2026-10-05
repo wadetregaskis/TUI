@@ -4320,6 +4320,14 @@ the keypad.
   key's case; else, with Shift held on a letter and no shifted key reported,
   the capital; else the base-layout key for a Control/Option chord on a
   non-ASCII key, else the key itself.
+- **A release is the key its press was.** A release carries no text, only the
+  key's code, so decoded on its own it would disagree with the press: Caps
+  Lock's `A` came up as `a`, a dead key's `é` as `e`, and
+  `onKeyPress("A", phases: .up)` never heard the key it heard go down (found
+  in review, 2026-10-04). The parser remembers each key's press by its code
+  (`KittyKeyMemory`) and delivers its key events again on the release, with
+  the press's modifiers; a release of a key it did not see go down is decoded
+  from its code.
 - **Bit 8 means Super (⌘), not Meta.** In xterm's legacy modifier parameter the
   same bit is Meta, which terminals send for Option, and TUIkit's legacy parser
   reads it as Option ("Option arrives in two different spellings"). Under the

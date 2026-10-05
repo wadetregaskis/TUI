@@ -129,6 +129,42 @@ struct KittyKeyDecoderTests {
         #expect(decode("97:65;2:3u") == key(KeyEvent(key: .character("A"), shift: true, phase: .release)))
     }
 
+    /// Decodes each `CSI <body>` in turn, remembering between them as the
+    /// live parser does.
+    private func decodeInTurn(_ bodies: [String]) -> [[TerminalInput]?] {
+        var memory = KittyKeyMemory()
+        return bodies.map { KittyKeyDecoder.decode(Array("\u{1B}[\($0)".utf8), memory: &memory) }
+    }
+
+    @Test("A release is the key its press was: Caps Lock's A comes up as A, a dead key's é as é")
+    func releaseMatchesPress() {
+        #expect(
+            decodeInTurn(["97;65;65u", "97;65:3u"])
+                == [
+                    key(KeyEvent(key: .character("A"), shift: true, capsLock: true)),
+                    key(KeyEvent(key: .character("A"), shift: true, phase: .release, capsLock: true)),
+                ])
+        #expect(
+            decodeInTurn(["101;;233u", "101;1:3u"])
+                == [key(KeyEvent(key: .character("é"))), key(KeyEvent(key: .character("é"), phase: .release))])
+        // Shift let go before the key: still the key that went down.
+        #expect(
+            decodeInTurn(["97:65;2;65u", "97;1:3u"]).last
+                == key(KeyEvent(key: .character("A"), shift: true, phase: .release)))
+        // A chord's release is the chord's key too.
+        #expect(
+            decodeInTurn(["122:90;6u", "122;5:3u"]).last
+                == key(KeyEvent(key: .character("Z"), ctrl: true, shift: true, phase: .release)))
+    }
+
+    @Test("A release of a key not seen going down is decoded from its code, and a release is remembered once")
+    func releaseWithoutPress() {
+        #expect(decodeInTurn(["97;1:3u"]) == [key(KeyEvent(key: .character("a"), phase: .release))])
+        #expect(
+            decodeInTurn(["97;65;65u", "97;65:3u", "97;1:3u"]).last
+                == key(KeyEvent(key: .character("a"), phase: .release)))
+    }
+
     @Test("An unknown event type is dropped as malformed")
     func unknownEventType() {
         #expect(decode("97;1:4u") == nil)
