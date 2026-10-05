@@ -26,6 +26,11 @@ enum TabInteractionsLook: CaseIterable, Sendable {
     case compact, bordered, sidebar
 }
 
+/// What watches the pointer over a whole tab view, around it.
+enum TabHoverWatcher: CaseIterable, Sendable {
+    case none, help, onHover, onHoverOnAnAncestor
+}
+
 @MainActor
 @Suite("A tab's context menu, popovers, drag and drops")
 struct TabContentInteractionsTests {
@@ -122,18 +127,34 @@ struct TabContentInteractionsTests {
         #expect(log.selected == 2)
     }
 
+    /// `tabs(log, look)`, with `watcher` watching the pointer over all of it.
+    @ViewBuilder
+    private func tabs(_ log: Log, _ look: TabInteractionsLook, watchedBy watcher: TabHoverWatcher) -> some View {
+        switch watcher {
+        case .none: tabs(log, look)
+        case .help: tabs(log, look).help("Tabs")
+        case .onHover: tabs(log, look).onHover { _ in }
+        case .onHoverOnAnAncestor: VStack { tabs(log, look) }.onHover { _ in }
+        }
+    }
+
     /// A chip's interactions put regions in front of its own, and hover goes
     /// to the front-most region only: none of them — the menu's trigger, the
     /// drag handle, the drop zone — answers it, so a tab with any of them
     /// never lifted under the pointer while a plain tab beside it did. (A
     /// sidebar's rows do not lift under the pointer at all.)
+    ///
+    /// Nor may what watches the pointer over the whole tab view take that
+    /// lift away: one observer is heard per point, the outermost, so a chip
+    /// that lifted through a hover observer of its own did not lift under
+    /// `.help` or `.onHover` on the tab view or any view around it.
     @Test(
         "A strip's chip carrying interactions lifts under the pointer as a plain one does",
-        arguments: [TabInteractionsLook.compact, .bordered])
-    func hoverLiftsTheTab(look: TabInteractionsLook) {
+        arguments: [TabInteractionsLook.compact, .bordered], TabHoverWatcher.allCases)
+    func hoverLiftsTheTab(look: TabInteractionsLook, watcher: TabHoverWatcher) {
         let log = Log()
         let harness = InputChainHarness(width: 50, height: 14)
-        let drawn = harness.frame(tabs(log, look))
+        let drawn = harness.frame(tabs(log, look, watchedBy: watcher))
         guard let one = cell(of: "One", in: drawn), let two = cell(of: "Two", in: drawn) else {
             Issue.record("no tabs in \(drawn.lines.map(\.stripped))")
             return
@@ -141,7 +162,7 @@ struct TabContentInteractionsTests {
         /// Row `y` as drawn with the pointer resting at `point`.
         func row(_ y: Int, pointerAt point: (x: Int, y: Int)) -> String {
             harness.mouse(MouseEvent(button: .none, phase: .moved, x: point.x, y: point.y))
-            return harness.frame(tabs(log, look)).lines[y]
+            return harness.frame(tabs(log, look, watchedBy: watcher)).lines[y]
         }
         // A cell no tab is on.
         let away = (x: 49, y: 13)
@@ -149,11 +170,11 @@ struct TabContentInteractionsTests {
         log.selected = 2
         #expect(
             row(one.y, pointerAt: (one.x + 1, one.y)) != row(one.y, pointerAt: away),
-            "precondition: a plain tab lifts")
+            "precondition, \(watcher): a plain tab lifts")
         log.selected = 1
         #expect(
             row(two.y, pointerAt: (two.x + 1, two.y)) != row(two.y, pointerAt: away),
-            "the tab carrying a menu, a drag and a drop did not lift")
+            "\(watcher): the tab carrying a menu, a drag and a drop did not lift")
     }
 
     @Test("Shift+F10 opens the selected tab's menu, on its first item", arguments: TabInteractionsLook.allCases)

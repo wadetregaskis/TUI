@@ -374,10 +374,19 @@ extension _TabViewCore {
     /// its handler.
     ///
     /// The pointer's hover goes to the front-most region alone, and none of
-    /// the host's answers it, so in front of them all goes a hover observer
-    /// (``MouseEventDispatcher/registerHoverObserver(in:_:)``) that lifts the
-    /// chip as its own region does when nothing covers it. Without it a tab
-    /// with a menu, a drag or a drop never lifted under the pointer.
+    /// the host's answers it, so in front of them all goes a region of the
+    /// chip's own that answers hover and nothing else, lifting the chip as its
+    /// click region does when nothing covers it. Without it a tab with a menu,
+    /// a drag or a drop never lifted under the pointer. Every other event it
+    /// declines, and a declined event goes on to the regions behind it — the
+    /// host's, then the click region.
+    ///
+    /// An ordinary region, on the lane of the control under the pointer, as
+    /// the click region is — NOT a hover observer
+    /// (``MouseEventDispatcher/registerHoverObserver(in:_:)``): one observer
+    /// is heard per point, the outermost, so an observer here went unheard
+    /// wherever `.onHover` or `help(_:)` sat on the tab view or around it,
+    /// and the chip did not lift while a plain tab beside it did.
     @MainActor
     func attachTabInteractions(
         to buffer: inout FrameBuffer,
@@ -409,13 +418,13 @@ extension _TabViewCore {
             let hosted = TUIkit.renderToBuffer(host, context: hostContext)
             buffer.hitTestRegions += hosted.shiftedHitTestRegions(byX: region.x, y: region.y)
             buffer.overlays += hosted.shiftedOverlays(byX: region.x, y: region.y)
-            let observer = dispatcher.registerHoverObserver(in: hostContext) { event in
+            let lift = dispatcher.register(in: hostContext) { event in
                 Self.hover(event, overTab: index, hoverBox: hoverBox) ?? false
             }
             buffer.hitTestRegions.append(
                 HitTestRegion(
                     offsetX: region.x, offsetY: region.y, width: region.width, height: region.height,
-                    handlerID: observer, focusID: nil))
+                    handlerID: lift, focusID: nil))
         }
     }
 
@@ -424,8 +433,8 @@ extension _TabViewCore {
     /// motion, which is the caller's to handle.
     ///
     /// Shared by the chip's own region (`attachTabClicks`) and, for a chip
-    /// whose tab carries interactions, the hover observer in front of them
-    /// (``attachTabInteractions(to:regions:context:)``).
+    /// whose tab carries interactions, the region in front of them that
+    /// answers hover alone (``attachTabInteractions(to:regions:context:)``).
     static func hover(_ event: MouseEvent, overTab index: Int, hoverBox: StateBox<Int?>) -> Bool? {
         switch event.phase {
         case .entered, .moved:
