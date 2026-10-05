@@ -4776,6 +4776,48 @@ to run, a spread as large as the markers.
 | kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED (the pane's) | UNMEASURED | UNMEASURED |
 
+## Inherited state: the defaults raw mode asserts — since 2026-10-05
+
+Modes outlive the program that set them. A killed `vim`, `less` or `htop`, or
+a shell that sends terminfo's `smkx` without its `rmkx`, hands the next program
+a terminal out of its defaults, and every TUIkit frame assumes them. So
+`Terminal.enableRawMode` (at startup and on every resume) sends, before
+anything else, `Terminal.inheritedDefaults`:
+
+| Sequence | Puts back | What it cost when left changed |
+|---|---|---|
+| `CSI r` | the scrolling region (DECSTBM) to the whole screen | every absolute cursor move offset or clamped into the old region |
+| `CSI ? 6 l` | origin mode (DECOM) off | every row number taken relative to that region |
+| `CSI ? 1 l` | normal cursor keys (DECCKM) | arrows, Home and End sent as `ESC O A`… |
+| `ESC >` | the numeric keypad (DECKPNM) | the keypad sent as `ESC O p`… instead of its digits |
+
+None is restored on the way out: they are the defaults a shell expects. DECSTBM
+and DECOM also home the cursor, which no frame minds, since each positions
+every row it writes.
+
+**Shapes.** `CSI r` has neither a `?` nor an intermediate byte; `?6l` and
+`?1l` have a `?` and no intermediate; both shapes were measured clean on Apple
+Terminal 455.1, iTerm2, Ghostty and Warp ("Asking the terminal — Device
+Attributes"). `ESC >` is a two-byte VT100 escape, not measured here.
+`TerminalOutputTests` pins `enableRawMode`'s bytes and checks every sequence
+it and `disableRawMode` send against the shapes Apple Terminal prints.
+
+**To measure.** On each host and in tmux, run `printf '\e[5;10r\e[?6h\e[?1h\e='`
+and then launch Example: the frame must start at row 1 and fill the screen,
+and the arrows must move the focus.
+
+| Host | Frame at row 1 after a stale region | Nothing printed |
+|---|---|---|
+| Apple Terminal | UNMEASURED | UNMEASURED |
+| iTerm2 | UNMEASURED | UNMEASURED |
+| Ghostty | UNMEASURED | UNMEASURED |
+| Warp | UNMEASURED | UNMEASURED |
+| tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED |
+
+Found by reading Ghostty's VT reference (`Documentation/Ghostty-VT-adoption.md`,
+K2). It must land before any hardware scrolling (O2 there), which sets a
+region of its own and must not inherit one.
+
 ## Where the adaptations live
 
 - `TerminalHost` — `TERM_PROGRAM` detection (`Apple_Terminal`,

@@ -44,3 +44,19 @@ func csiSequencesAppleTerminalLeaks(in bytes: String) -> [String] {
     }
     return offending
 }
+
+/// The introducers of the string-terminated families Apple Terminal does not
+/// parse — DCS (`ESC P`) and APC (`ESC _`), measured to print their payload,
+/// and PM (`ESC ^`) and SOS (`ESC X`), which nothing TUIkit sends unasked has
+/// any business carrying either. OSC (`ESC ]`) it parses. See
+/// `Documentation/Terminal-compatibility.md`, "Apple Terminal parses OSC and
+/// does NOT parse DCS or APC".
+///
+/// - Returns: Each introducer found in `bytes`, as `ESC` and its byte.
+func stringIntroducersAppleTerminalPrints(in bytes: String) -> [String] {
+    let scalars = Array(bytes.unicodeScalars)
+    return zip(scalars, scalars.dropFirst()).compactMap { escape, introducer in
+        escape.value == 0x1B && "P_^X".unicodeScalars.contains(introducer)
+            ? "\u{1B}" + String(introducer) : nil
+    }
+}

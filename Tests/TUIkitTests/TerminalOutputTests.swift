@@ -43,6 +43,34 @@ struct TerminalOutputTests {
     }
 }
 
+// MARK: - Raw mode
+
+extension TerminalOutputTests {
+
+    /// K2 in `Documentation/Ghostty-VT-adoption.md`: a scrolling region or
+    /// origin mode left by a killed program offsets or clamps every absolute
+    /// cursor move a frame makes, and application cursor keys or keypad
+    /// change what the keys send.
+    @Test("Raw mode asserts the inherited defaults, then turns on the input modes, and nothing else")
+    func enableRawModeBytes() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        #expect(output.bytes == "\u{1B}[r\u{1B}[?6l\u{1B}[?1l\u{1B}>"
+            + "\u{1B}[?2004h" + "\u{1B}[?1004h" + "\u{1B}[?2031h" + "\u{1B}[>1;2m")
+    }
+
+    /// Raw mode is entered before the terminal is identified, so what it
+    /// sends reaches Apple Terminal whether or not it is known to be there.
+    @Test("Nothing raw mode sends is a shape Apple Terminal prints")
+    func enableRawModeIsAppleSafe() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        terminal.disableRawMode()
+        #expect(csiSequencesAppleTerminalLeaks(in: output.bytes).isEmpty)
+        #expect(stringIntroducersAppleTerminalPrints(in: output.bytes).isEmpty)
+    }
+}
+
 // MARK: - The frame dump
 
 extension TerminalOutputTests {

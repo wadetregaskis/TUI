@@ -458,6 +458,11 @@ extension Terminal {
         #endif
         isRawMode = true
 
+        // The defaults every frame relies on, asserted rather than assumed:
+        // a program killed before it put them back leaves them for the next
+        // one. See ``inheritedDefaults``.
+        writeImmediate(Self.inheritedDefaults)
+
         // Enable bracketed paste mode so that terminal paste operations
         // are wrapped in ESC[200~ ... ESC[201~ markers. This allows the
         // application to detect pasted text and insert it as a single
@@ -556,6 +561,33 @@ extension Terminal {
         // Torn down in order: a signal from here on owes the terminal nothing.
         if exchangeTransport == nil { FatalSignalTerminalRestore.disarm() }
     }
+
+    /// The terminal state a frame takes for granted, put back to the power-on
+    /// defaults by ``enableRawMode()``, at startup and on every resume.
+    ///
+    /// Each of these outlives the program that set it, so a killed `vim`,
+    /// `less` or `htop`, or a shell that sends terminfo's `smkx` without its
+    /// `rmkx`, hands the next program a terminal that is not in its defaults:
+    ///
+    /// - `CSI r` (DECSTBM, no parameters): the scrolling region back to the
+    ///   whole screen. Every cursor move TUIkit makes is absolute and assumes
+    ///   none, so a region left by a crashed program offset or clamped the
+    ///   whole frame.
+    /// - `CSI ? 6 l`: origin mode (DECOM) off, which would make every row
+    ///   number relative to that region.
+    /// - `CSI ? 1 l`: cursor keys back to normal mode (DECCKM), so arrows,
+    ///   Home and End arrive as `CSI A`… rather than their SS3 spellings.
+    /// - `ESC >`: the keypad back to numeric mode (DECKPNM), so its keys
+    ///   arrive as the characters on them.
+    ///
+    /// None is restored on the way out: these are the defaults a shell
+    /// expects. All four are shapes Apple Terminal consumes: `CSI r` has no
+    /// `?` and no intermediate byte, `?6l` and `?1l` a `?` and no
+    /// intermediate (`Documentation/Terminal-compatibility.md`, "Asking the
+    /// terminal — Device Attributes"), and `ESC >` is a two-byte VT100
+    /// escape. Found by reading Ghostty's VT reference
+    /// (`Documentation/Ghostty-VT-adoption.md`, K2).
+    static let inheritedDefaults = "\u{1B}[r" + "\u{1B}[?6l" + "\u{1B}[?1l" + "\u{1B}>"
 
     /// Turns off every input mode ``enableRawMode()`` turned on, in one write
     /// — the orderly teardown's, and the debt a signal pays
