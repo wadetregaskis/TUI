@@ -99,8 +99,9 @@ public enum ImageLoadError: Error, LocalizedError, CustomStringConvertible {
 ///
 /// Formats via the stb_image fallback: PNG, JPEG, GIF, BMP, TGA, HDR, PSD, PNM.
 /// The ImageIO path additionally decodes every raster format the host OS
-/// reads (HEIC, TIFF, WebP, …); vector formats (PDF, EPS) are not raster
-/// images and are not decoded.
+/// reads (HEIC, TIFF, WebP, …), and of a file holding several images (an
+/// icon's sizes, a multi-resolution TIFF) the largest; vector formats (PDF,
+/// EPS) are not raster images and are not decoded.
 public struct PlatformImageLoader: ImageLoader {
 
     public init() {}
@@ -268,10 +269,10 @@ extension PlatformImageLoader {
 #if canImport(ImageIO)
     extension PlatformImageLoader {
 
-        /// Decodes the first image of an ImageIO source into straight-alpha,
-        /// row-major RGBA (row 0 = top) via a CoreGraphics bitmap context,
-        /// matching the stb_image fallback's pixel contract so the two backends
-        /// are interchangeable.
+        /// Decodes the largest image of an ImageIO source (see
+        /// ``largestImage(in:)``) into straight-alpha, row-major RGBA (row 0 =
+        /// top) via a CoreGraphics bitmap context, matching the stb_image
+        /// fallback's pixel contract so the two backends are interchangeable.
         ///
         /// Turned by its EXIF orientation, as `NSImage` — this loader's backend
         /// until it had to stop importing AppKit — turns it: a plain
@@ -282,10 +283,10 @@ extension PlatformImageLoader {
         private func decodeWithImageIO(
             _ source: CGImageSource?, describing what: String, maxPixelCount: Int?
         ) throws -> RGBAImage {
-            guard let source, CGImageSourceGetCount(source) > 0 else {
+            guard let source, let chosen = Self.largestImage(in: source) else {
                 throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
             }
-            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+            let (index, properties) = chosen
             let width = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
             let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
             // Before anything is drawn: a size declared too large is refused
@@ -298,19 +299,59 @@ extension PlatformImageLoader {
             let image: CGImage?
             if orientation != 1, max(width, height) > 0 {
                 image = CGImageSourceCreateThumbnailAtIndex(
-                    source, 0,
+                    source, index,
                     [
                         kCGImageSourceCreateThumbnailFromImageAlways: true,
                         kCGImageSourceCreateThumbnailWithTransform: true,
                         kCGImageSourceThumbnailMaxPixelSize: max(width, height),
                     ] as CFDictionary)
             } else {
-                image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+                image = CGImageSourceCreateImageAtIndex(source, index, nil)
             }
             guard let image else {
                 throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
             }
             return try decode(image, maxPixelCount: maxPixelCount)
+        }
+
+        /// The image of `source` with the most pixels, by its declared size,
+        /// and its properties — `nil` if it holds none.
+        ///
+        /// A file can hold several images: an icon's sizes, a multi-resolution
+        /// TIFF's, an animation's frames. ImageIO's first is whatever comes
+        /// first in the file — often an icon's smallest — where `NSImage`, this
+        /// loader's backend until it stopped importing AppKit, drew the
+        /// representation that best matched the first's size at the display's
+        /// scale: measured on a Mac whose display is at 2×, a TIFF of a
+        /// 16 × 16 and a 64 × 32 image drew the 64 × 32 one. The largest is that choice made without
+        /// a display to ask, and the most detail to scale down from. A tie
+        /// keeps the primary image, else the earliest, so an animation shows
+        /// its first frame and a HEIF its primary image.
+        private static func largestImage(in source: CGImageSource) -> (Int, [CFString: Any]?)? {
+            let count = CGImageSourceGetCount(source)
+            guard count > 0 else { return nil }
+            let primary = min(CGImageSourceGetPrimaryImageIndex(source), count - 1)
+            func properties(_ index: Int) -> [CFString: Any]? {
+                CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any]
+            }
+            func area(_ properties: [CFString: Any]?) -> Int {
+                let width = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
+                let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
+                let (area, overflowed) = width.multipliedReportingOverflow(by: height)
+                return overflowed ? Int.max : area
+            }
+            var best = (primary, properties(primary))
+            guard count > 1 else { return best }
+            var bestArea = area(best.1)
+            for index in 0..<count where index != primary {
+                let candidate = properties(index)
+                let candidateArea = area(candidate)
+                if candidateArea > bestArea {
+                    best = (index, candidate)
+                    bestArea = candidateArea
+                }
+            }
+            return best
         }
 
         /// Decodes a `CGImage` into straight-alpha, row-major RGBA (row 0 =

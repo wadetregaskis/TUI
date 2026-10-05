@@ -136,8 +136,10 @@ imports only TUIkit sees nothing of SwiftUICore
   all — a test now guards that (`AppKitBridgeTests`).
 - **TUIkitImage decodes through ImageIO instead of `NSImage`**, its one reason
   to import AppKit. It turns a picture by its EXIF orientation as `NSImage`
-  did. Vector formats `NSImage` rasterised (PDF, EPS) are no longer read; no
-  app in the tree used one. Rasterising PDF through Core Graphics
+  did, and of a file holding several images (an icon's sizes, a
+  multi-resolution TIFF) it decodes the largest, where ImageIO's first is
+  often an icon's smallest. Vector formats `NSImage` rasterised (PDF, EPS)
+  are no longer read; no app in the tree used one. Rasterising PDF through Core Graphics
   (`CGPDFDocument`) would bring them back without AppKit: about an hour.
 - **The `CGColor` and `CGImage` bridges moved too**, though Core Graphics does
   not import SwiftUICore: one module for "Apple's graphics types" reads better

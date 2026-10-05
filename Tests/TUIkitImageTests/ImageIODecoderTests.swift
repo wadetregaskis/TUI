@@ -67,5 +67,74 @@ import Testing
                 try PlatformImageLoader().loadImage(from: picture(orientation: 1), maxPixelCount: 4)
             }
         }
+
+        // MARK: - Files of several images
+
+        /// A `width` × `height` image of one opaque colour.
+        private func solid(width: Int, height: Int, red: UInt8, blue: UInt8) throws -> CGImage {
+            var bytes = [UInt8](repeating: 255, count: width * height * 4)
+            for index in 0..<(width * height) {
+                bytes[index * 4] = red
+                bytes[index * 4 + 1] = 0
+                bytes[index * 4 + 2] = blue
+            }
+            let context = try #require(
+                CGContext(
+                    data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            return try #require(context.makeImage())
+        }
+
+        /// A file of `type` holding `images` in order, each with its EXIF
+        /// orientation.
+        private func file(_ type: UTType, _ images: [(CGImage, orientation: Int)]) throws -> Data {
+            let data = NSMutableData()
+            let destination = try #require(
+                CGImageDestinationCreateWithData(
+                    data as CFMutableData, type.identifier as CFString, images.count, nil))
+            for (image, orientation) in images {
+                CGImageDestinationAddImage(
+                    destination, image, [kCGImagePropertyOrientation: orientation] as CFDictionary)
+            }
+            #expect(CGImageDestinationFinalize(destination))
+            let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+            try #require(CGImageSourceGetCount(source) == images.count, "the file holds every image")
+            return data as Data
+        }
+
+        /// NSImage drew the 64 × 32 image of this file, measured on a Mac whose
+        /// display is at 2×; ImageIO's first image is the 16 × 16 one.
+        @Test("Of several images, the largest is decoded, wherever it is in the file")
+        func largestOfSeveral() throws {
+            let small = try solid(width: 16, height: 16, red: 255, blue: 0)
+            let large = try solid(width: 64, height: 32, red: 0, blue: 255)
+            for order in [[small, large], [large, small]] {
+                let data = try file(.tiff, order.map { ($0, orientation: 1) })
+                let decoded = try PlatformImageLoader().loadImage(from: data)
+                #expect(decoded.width == 64 && decoded.height == 32, "\(decoded.width) × \(decoded.height)")
+                #expect(decoded.pixels[0].b == 255 && decoded.pixels[0].r == 0, "the blue, large image")
+            }
+        }
+
+        @Test("The largest of several images is turned by its own EXIF orientation, and its size is what the limit sees")
+        func largestOfSeveralIsTurnedAndLimited() throws {
+            let small = try solid(width: 16, height: 16, red: 255, blue: 0)
+            let large = try solid(width: 64, height: 32, red: 0, blue: 255)
+            let data = try file(.tiff, [(small, orientation: 1), (large, orientation: 6)])
+            let decoded = try PlatformImageLoader().loadImage(from: data)
+            #expect(decoded.width == 32 && decoded.height == 64, "\(decoded.width) × \(decoded.height)")
+            #expect(throws: ImageLoadError.self) {
+                try PlatformImageLoader().loadImage(from: data, maxPixelCount: 16 * 16)
+            }
+        }
+
+        @Test("Of several images the same size, the first is decoded, as an animation's first frame")
+        func firstOfEqualImages() throws {
+            let red = try solid(width: 8, height: 8, red: 255, blue: 0)
+            let blue = try solid(width: 8, height: 8, red: 0, blue: 255)
+            let decoded = try PlatformImageLoader().loadImage(
+                from: file(.gif, [(red, orientation: 1), (blue, orientation: 1)]))
+            #expect(decoded.pixels[0].r == 255 && decoded.pixels[0].b == 0, "the first frame, red")
+        }
     }
 #endif
