@@ -451,8 +451,23 @@ public final class StatusBarState: @unchecked Sendable {
     /// computed and then drawn nowhere.
     public var height: Int {
         guard hasContent else { return 0 }
-        return style.barHeight(contentRows: (hasItems ? 1 : 0) + tooltipLines.count)
+        return style.barHeight(contentRows: (drawsItems ? 1 : 0) + tooltipLines.count)
     }
+
+    /// Whether the bar draws its row of items this frame: it has some, and the
+    /// line about a copy is not standing in for them (``showsNoteInPlaceOfItems``).
+    var drawsItems: Bool { hasItems && !showsNoteInPlaceOfItems }
+
+    /// Whether this frame's ``tooltipLines`` are the line about a copy, shown
+    /// in place of the items for its few seconds rather than above them.
+    ///
+    /// A row added to the bar is a row taken from the page, and a page laid out
+    /// one row shorter moves — a `WindowGroup` centres its content — which
+    /// would carry what was just copied out from under its highlight. In place
+    /// of the items the bar keeps its height. The items' keys still work while
+    /// it shows; only their labels are hidden. Set by the run loop with the
+    /// lines.
+    var showsNoteInPlaceOfItems = false
 
     /// This frame's tooltip, wrapped to the bar's content width — empty when no
     /// tooltip is showing or the showing one is a popover.

@@ -1398,9 +1398,10 @@ extension RenderLoop {
         // The two colours go through as the app set them. An unset one is the
         // palette's accent or foreground, and every colour is resolved against
         // `environment.palette`, inside `StatusBar` itself.
+        let drawsItems = statusBar.drawsItems
         let statusBarView = StatusBar(
-            userItems: statusBar.currentUserItems,
-            systemItems: statusBar.currentSystemItems,
+            userItems: drawsItems ? statusBar.currentUserItems : [],
+            systemItems: drawsItems ? statusBar.currentSystemItems : [],
             style: statusBar.style,
             alignment: statusBar.alignment,
             highlightColor: statusBar.highlightColor,

@@ -28,15 +28,19 @@ extension RenderLoop {
     /// the bar is answered by the panel.
     func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64, scheduler: AnimationScheduler?) {
         let width = statusBar.style.barContentWidth(terminalWidth)
+        statusBar.showsNoteInPlaceOfItems = false
         if let showing = tuiContext.tooltipState.resolved(nowNanos: nowNanos), showing.style == .statusBar {
             statusBar.tooltipLines = TextWrapping.wrap(showing.text, width: width)
             return
         }
         // The copy's line yields to a tooltip, which the user asked for, and
-        // comes back if it is still fresh when the tooltip goes. It asks for
-        // the frame that takes it away: nothing else would draw one.
+        // comes back if it is still fresh when the tooltip goes. It stands in
+        // for the items rather than above them, so the page keeps its height
+        // (``StatusBarState/showsNoteInPlaceOfItems``). It asks for the frame
+        // that takes it away: nothing else would draw one.
         if let note = tuiContext.clipboardWriter.statusNote(atNanos: UInt64(bitPattern: nowNanos)) {
             statusBar.tooltipLines = TextWrapping.wrap(note.text, width: width)
+            statusBar.showsNoteInPlaceOfItems = true
             scheduler?.requestWake("clipboard-note", at: Int64(bitPattern: note.expiresAtNanos))
             return
         }

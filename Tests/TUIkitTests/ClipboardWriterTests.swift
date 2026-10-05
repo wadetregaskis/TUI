@@ -474,4 +474,24 @@ struct ClipboardWriterAppTests {
         let line = ClipboardWriteResult.sentToTerminal.statusLine ?? "?"
         #expect(harness.terminal.allOutput.contains(line))
     }
+
+    /// A row added to the bar is a row taken from the page, which moves a
+    /// centred page — and with it whatever was just copied.
+    @Test("The line about a copy takes the items' place, so the bar keeps its height")
+    func noteKeepsTheBarsHeight() {
+        let tui = TUIContext()
+        tui.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: false, now: { 0 })
+        let harness = RenderLoopHarness(tuiContext: tui)
+        let loop = harness.loop(Page())
+        loop.render(frameNowNanos: 0)
+        let height = harness.statusBar.height
+        tui.clipboardWriter.write("x", announcingSuccess: false)
+        loop.render(frameNowNanos: 1)
+        #expect(harness.statusBar.height == height)
+        #expect(harness.statusBar.showsNoteInPlaceOfItems)
+        // And the items come back when it goes.
+        loop.render(frameNowNanos: Int64(ClipboardWriter.noteDuration) + 1)
+        #expect(!harness.statusBar.showsNoteInPlaceOfItems)
+        #expect(harness.statusBar.height == height)
+    }
 }
