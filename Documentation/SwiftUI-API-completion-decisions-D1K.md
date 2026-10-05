@@ -160,7 +160,12 @@ text), and then leave it, so the manager does not offer an undo that does
 nothing. A control that leaves the screen is let go of as the next frame
 begins, and its steps leave then, before that frame sizes the status bar:
 its deinitialiser, which promises no isolation, leaves them on a list the
-frame empties on the main actor. Every other removal is made at once: its
+frame empties on the main actor. That holds for a control the focus ring no
+longer lists, too (checked for a field disabled for two frames before it
+went, 2026-10-05): the focus manager still holds it until the next frame
+begins, so nothing is let go of at a frame's end for a second emptying
+there to catch. Until then a Ctrl-Z still reaches the field that has just
+gone — its binding changes, and the redo step leaves with the control. Every other removal is made at once: its
 callers (a render, a key, a click) are on the main actor, which is asked of
 the isolation, not the thread. Until the third review it asked
 `Thread.isMainThread`, which on Linux is false on the main actor after its
