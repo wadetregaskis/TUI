@@ -98,6 +98,17 @@ when unset), the visual/aspect probes print to the terminal.
   rows double-width (DECDWL) for the capture.
 - `mouse_probe.py` — raw-mode SGR mouse byte capture (1000/1002/1006);
   every input sequence is appended human-readably. `q` quits.
+- `keyboard_protocol_probe.py` — does the terminal speak the kitty keyboard
+  protocol, and which of the five flags TUIkit pushes (31) does it take? Asks
+  exactly as TUIkit does — `CSI ? u` fenced by DA1 — then pushes 31, asks
+  again, pops and asks a third time; JSON to `$PROBE_OUT`. `PROBE_ALT=1` does
+  it on the alternate screen, where TUIkit does it.
+- `keyboard_events_probe.py` — with those flags pushed, what each key sends:
+  every read logged raw and decoded by a decoder written from the
+  specification, independently of TUIkit's `KittyKeyDecoder`. Ctrl-C ends it;
+  the flags are popped on the way out. Which keys to press is listed in
+  Terminal-compatibility.md, "The kitty keyboard protocol" → "To measure, per
+  host". NOT YET RUN on any host (2026-10-04).
 - `identity_probe.py` — asks the terminal WHO it is over escape queries
   (DA1/DA2/DA3, XTVERSION, XTGETTCAP), DSR-fenced so a silent terminal
   cannot stall it. This is the measurement behind identifying a host over
