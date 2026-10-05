@@ -27,14 +27,21 @@ struct TextEditorApp: View {
     /// sideways (`textEditorWrapsLines(false)`): the pair prices the wrap.
     var wraps = true
 
+    /// Whether the editor sits beside a gutter in an `HStack`, which measures
+    /// it at the full width and at the width it gives it, and draws it there
+    /// and a cell narrower for its scroll bar: three widths a frame, where a
+    /// lone editor is laid out at two.
+    var beside = false
+
     /// The document, written once: synthesising it in the body would be
     /// measured as the editor's cost.
     let document: String
 
-    init(lines: Int, seed: UInt64, typing: Bool = false, wraps: Bool = true) {
+    init(lines: Int, seed: UInt64, typing: Bool = false, wraps: Bool = true, beside: Bool = false) {
         self.lines = lines
         self.typing = typing
         self.wraps = wraps
+        self.beside = beside
         self.document = Self.document(lines: lines, seed: seed)
     }
 
@@ -51,11 +58,23 @@ struct TextEditorApp: View {
             Text(
                 Lf(
                     "stress.scenario.app-shapes.heading",
-                    typing ? "text-editor-typing" : wraps ? "text-editor" : "text-editor-unwrapped", lines)
+                    typing ? "text-editor-typing" : beside ? "text-editor-beside"
+                        : wraps ? "text-editor" : "text-editor-unwrapped", lines)
             ).bold()
-            TextEditor(text: .constant(text))
-                .textEditorWrapsLines(wraps)
+            if beside {
+                HStack(alignment: .top, spacing: 1) {
+                    Text("¶\n¶\n¶")
+                    editor(text)
+                }
+            } else {
+                editor(text)
+            }
         }
+    }
+
+    private func editor(_ text: String) -> some View {
+        TextEditor(text: .constant(text))
+            .textEditorWrapsLines(wraps)
     }
 
     /// The document: `lines` lines of seeded prose, each `lineWidth` long.

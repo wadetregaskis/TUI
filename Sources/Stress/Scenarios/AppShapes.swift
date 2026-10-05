@@ -246,6 +246,9 @@ enum AppShapeMatrix {
         variant("text-editor-unwrapped", "the same editor scrolling sideways instead of wrapping — the pair that prices the wrap") {
             AnyView(TextEditorApp(lines: $0.sized(2_000), seed: $0.seed, wraps: false))
         },
+        variant("text-editor-beside", "the same editor beside a gutter in an HStack — laid out at three widths a frame") {
+            AnyView(TextEditorApp(lines: $0.sized(2_000), seed: $0.seed, beside: true))
+        },
         variant("chat", "bottom-anchored variable-height bubbles, alternating alignment, a live composer") {
             AnyView(ChatApp(count: $0.sized(1_500), seed: $0.seed))
         },
