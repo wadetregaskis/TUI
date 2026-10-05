@@ -60,8 +60,13 @@ filling content): `.form` proposes **470 by 400 points**, `.page` **520 by
 735**, and a sheet is never smaller than **100 by 80**.
 
 **Shipped:** `.form` proposes `min(25, height)` rows — the measured 400
-points at the same scale that turns 470 points into the approved 64
-columns.
+points over a typical terminal cell of 8 by 16 points, a cell twice as
+tall as it is wide. (A points-per-column scale alone does not give it:
+470 points into the approved 64 columns is about 7.3 points a column, and
+400 points at that scale would be some 54 rows. With the cell's 2:1
+aspect, the same 7.3 points a column makes 400 points about 27 rows;
+the 8-by-16 cell makes 470 points about 59 columns, which the owner's 64
+rounds up.)
 
 **The alternative:** `.form` proposes its width only and fits the height.
 A one-line change.
