@@ -134,8 +134,15 @@ public struct UndoShortcuts: Hashable, Sendable {
     public func hint(
         for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding = .control
     ) -> String? {
+        hintShortcut(for: command, on: reporting, commandKey: commandKey)?.displayString
+    }
+
+    /// The shortcut ``hint(for:on:commandKey:)`` names, before it is written.
+    func hintShortcut(
+        for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding
+    ) -> KeyboardShortcut? {
         let deliverable = shortcuts(for: command, commandKey: commandKey).filter { $0.isDeliverable(on: reporting) }
-        return hint(for: command, among: deliverable, commandKey: commandKey)
+        return hintShortcut(for: command, among: deliverable, commandKey: commandKey)
     }
 
     /// The chord → command map a key is dispatched through. Two overrides on

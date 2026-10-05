@@ -96,7 +96,15 @@ extension ShortcutTable {
     func hint(
         for action: Action, among candidates: [KeyboardShortcut], commandKey: CommandKeyBinding
     ) -> String? {
+        hintShortcut(for: action, among: candidates, commandKey: commandKey)?.displayString
+    }
+
+    /// The shortcut ``hint(for:among:commandKey:)`` names, before it is
+    /// written: for a caller that writes it some other way.
+    func hintShortcut(
+        for action: Action, among candidates: [KeyboardShortcut], commandKey: CommandKeyBinding
+    ) -> KeyboardShortcut? {
         let stock = action.defaultShortcuts.compactMap { $0.resolved(commandKey: commandKey) }
-        return (candidates.first { stock.contains($0) } ?? candidates.first)?.displayString
+        return candidates.first { stock.contains($0) } ?? candidates.first
     }
 }
