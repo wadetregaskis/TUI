@@ -120,19 +120,50 @@ public struct ChildView {
     /// runtime conformance cast on the common (non-spacer) path.
     ///
     /// The static witness ``View/_isSpacer`` answers the detection per type
-    /// (`false` for everything but `Spacer`); only the rare spacer is then cast
-    /// to `SpacerProtocol` to read its `spacerMinLength`.
+    /// (`false` for everything but `Spacer` and a `Subview`); only the rare
+    /// spacer is then cast to `SpacerProtocol` to read its `spacerMinLength`.
+    /// A `Subview` may stand for a spacer or for anything else, so it is asked
+    /// which (``LayoutTraitsForwarding``), after the cast a real spacer passes.
     static func spacerInfo<V: View>(of view: V) -> (isSpacer: Bool, minLength: Int?) {
         guard V._isSpacer else { return (false, nil) }
-        return (true, (view as? SpacerProtocol)?.spacerMinLength)
+        if let spacer = view as? SpacerProtocol { return (true, spacer.spacerMinLength) }
+        if let proxy = view as? LayoutTraitsForwarding {
+            let member = proxy.forwardedChild
+            return (member.isSpacer, member.spacerMinLength)
+        }
+        return (true, nil)
     }
 
     /// Resolves a child's z-index without a speculative runtime conformance
     /// cast on the common path — same shape as ``spacerInfo(of:)``, using the
     /// static witness ``View/_providesZIndex``.
+    ///
+    /// The walk is ``throughWrappers(_:as:)``'s, stopping also at a proxy for a
+    /// member resolved elsewhere (``LayoutTraitsForwarding``), whose z-index is
+    /// the member's — through a modifier written on the proxy, too, as SwiftUI
+    /// keeps it (measured: `$0.padding(0)` still draws on top).
     static func zIndexInfo<V: View>(of view: V) -> Double {
         guard V._providesZIndex else { return 0 }
-        return throughWrappers(view, as: (any ZIndexProviding).self)?.zIndexValue ?? 0
+        var current: any View = view
+        while true {
+            if let found = current as? ZIndexProviding { return found.zIndexValue }
+            if let proxy = current as? LayoutTraitsForwarding { return proxy.forwardedChild.zIndex }
+            guard let wrapper = current as? any SingleContentWrapper else { return 0 }
+            current = wrapper.wrappedContent
+        }
+    }
+
+    /// Whether a child carries an explicit alignment guide: the static witness
+    /// ``View/_providesAlignmentGuide``, except that a proxy for a member
+    /// resolved elsewhere (``LayoutTraitsForwarding``), whose witness can only
+    /// say it MAY, answers with the member's flag.
+    ///
+    /// The cast is reached only past the witness, so a child with no guide —
+    /// almost every child — pays nothing for it.
+    static func guideInfo<V: View>(of view: V) -> Bool {
+        guard V._providesAlignmentGuide else { return false }
+        guard let proxy = view as? LayoutTraitsForwarding else { return true }
+        return proxy.forwardedChild.providesAlignmentGuide
     }
 
     /// Wraps `view` as a child that descends under its parent's identity.
@@ -152,7 +183,7 @@ public struct ChildView {
     public init<V: View>(_ view: V) {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
-        self.providesAlignmentGuide = V._providesAlignmentGuide
+        self.providesAlignmentGuide = Self.guideInfo(of: view)
         self.view = view
         self.identityType = nil
         self.childIndex = 0
@@ -173,7 +204,7 @@ public struct ChildView {
     public init<V: View>(_ view: V, childIndex: Int) {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
-        self.providesAlignmentGuide = V._providesAlignmentGuide
+        self.providesAlignmentGuide = Self.guideInfo(of: view)
         self.view = view
         self.identityType = V.self
         self.childIndex = childIndex
@@ -526,7 +557,7 @@ public struct ChildView {
     ) {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
-        self.providesAlignmentGuide = V._providesAlignmentGuide
+        self.providesAlignmentGuide = Self.guideInfo(of: view)
         self.view = view
         self.identityType = identityType
         self.childIndex = childIndex
@@ -543,7 +574,7 @@ public struct ChildView {
     ) {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
-        self.providesAlignmentGuide = V._providesAlignmentGuide
+        self.providesAlignmentGuide = Self.guideInfo(of: view)
         self.view = view
         self.identityType = identityType
         self.childIndex = 0

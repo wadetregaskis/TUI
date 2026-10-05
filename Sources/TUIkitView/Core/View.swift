@@ -83,6 +83,10 @@ public protocol View {
     /// almost-always-failing runtime conformance cast on a hot path (`Spacer` is
     /// the sole conformer). When the witness is `true`, the rare spacer is cast
     /// to `SpacerProtocol` to read its `spacerMinLength`.
+    ///
+    /// `true` means MAY be, for a view that stands in for a child resolved
+    /// elsewhere — a `Subview`, whose one type stands for every member — and
+    /// which is asked when its `ChildView` is built (`LayoutTraitsForwarding`).
     static var _isSpacer: Bool { get }
 
     /// Static witness: whether this view type carries an explicit z-index (the
@@ -93,7 +97,7 @@ public protocol View {
     /// `as? ZIndexProviding` — an almost-always-failing runtime conformance cast
     /// (`_ZIndexView` is the sole conformer). When the witness is `true`, the
     /// rare z-index wrapper is cast to `ZIndexProviding` to read its
-    /// `zIndexValue`.
+    /// `zIndexValue`. A `Subview` answers `true` as `_isSpacer` explains.
     static var _providesZIndex: Bool { get }
 
     /// Static witness: whether this view type carries an explicit alignment
@@ -105,6 +109,7 @@ public protocol View {
     /// containers consult a stored `Bool` per child and only cast the rare
     /// wrapper. Without it every child of every stack would pay an
     /// almost-always-failing conformance cast on the hottest path there is.
+    /// A `Subview` answers `true` as `_isSpacer` explains.
     static var _providesAlignmentGuide: Bool { get }
 
     /// Static witness: whether this view type writes a container value — a

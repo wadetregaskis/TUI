@@ -348,11 +348,12 @@ public func makeChildInfo<V: View>(for view: V, context: RenderContext) -> Child
     // is cast to `ZIndexProviding`, only a spacer to `SpacerProtocol`. The common
     // child (neither) does no speculative cast at all.
     let zIndex = ChildView.zIndexInfo(of: view)
-    if V._isSpacer {
+    let spacer = ChildView.spacerInfo(of: view)
+    if spacer.isSpacer {
         return ChildInfo(
             buffer: nil,
             isSpacer: true,
-            spacerMinLength: (view as? SpacerProtocol)?.spacerMinLength,
+            spacerMinLength: spacer.minLength,
             size: nil,
             zIndex: zIndex
         )

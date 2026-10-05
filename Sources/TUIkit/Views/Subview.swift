@@ -23,10 +23,11 @@ import TUIkitView
 /// - Placed twice, it draws twice — one view, with one `@State`, in two
 ///   places, as in SwiftUI.
 ///
-/// A proxy reports its view's size but not that the view is a `Spacer`, nor
-/// any `.alignmentGuide` on it: a container that should see those reads the
-/// collection itself (`HStack { subviews }`), which hands it the members as
-/// its own children.
+/// To the container it is placed in, a proxy is its view: a `Spacer` placed
+/// through one is a spacer, with its minimum length; an `.alignmentGuide`, a
+/// `.zIndex` or a `.layoutValue` on the view is the proxy's, as SwiftUI's is
+/// (measured on macOS 15.8). A guide or a value written on the proxy itself
+/// wins over the view's, as any modifier outside does.
 public struct Subview: View, @MainActor Identifiable {
     /// The member, its identity pinned where it was resolved.
     let child: ChildView
@@ -70,6 +71,52 @@ public struct Subview: View, @MainActor Identifiable {
 
     public var body: some View {
         _SubviewCore(child: child)
+    }
+
+    /// MAY be a spacer: the member says, when the proxy's `ChildView` is built
+    /// (``LayoutTraitsForwarding``).
+    public static var _isSpacer: Bool { true }
+
+    /// MAY carry a z-index: the member's, read as ``_isSpacer`` is.
+    public static var _providesZIndex: Bool { true }
+
+    /// MAY carry an alignment guide: the member's, read as ``_isSpacer`` is.
+    public static var _providesAlignmentGuide: Bool { true }
+}
+
+// MARK: - The Member's Layout Traits
+
+/// The proxy lays out as its member: a container building its `ChildView`
+/// takes the member's spacer flag, z-index and guide flag from here.
+extension Subview: LayoutTraitsForwarding {
+    package var forwardedChild: ChildView { child }
+}
+
+/// The member's guides, worked out where the member is: its pinned identity,
+/// at the dimensions the proxy was laid out at — which are the member's, since
+/// the proxy measures and draws it unchanged.
+extension Subview: AlignmentGuideQuerying {
+    func explicitGuide(
+        _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+    ) -> Double? {
+        child.explicitGuide(query, at: dimensions, context: context)
+    }
+}
+
+/// The member's layout values, for the `Layout` the proxy is placed in.
+extension Subview: LayoutValueProviding {
+    func layoutValue(for key: ObjectIdentifier) -> Any? {
+        (child.wrappedView as? LayoutValueProviding)?.layoutValue(for: key)
+    }
+}
+
+/// The member's preferred spacing, when it is a `Layout`.
+extension Subview: SpacingPreferenceProviding {
+    func preferredSpacing(context: RenderContext) -> ViewSpacing {
+        guard let provider = child.wrappedView as? SpacingPreferenceProviding else {
+            return ViewSpacing()
+        }
+        return provider.preferredSpacing(context: child.renderContext(under: context))
     }
 }
 
