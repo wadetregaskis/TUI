@@ -854,7 +854,7 @@ extension _VStackCore {
                         childWidth: frame.measuredWidth(of: ordinal) ?? width,
                         extent: width, alignment: alignment),
                     y: slotY))
-            rendered = alignBuffer(rendered, toWidth: width, alignment: alignment)
+            rendered = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
             var slot = FrameBuffer()
             slot.appendVertically(rendered, spacing: 0)
             if slot.height < rowHeight {

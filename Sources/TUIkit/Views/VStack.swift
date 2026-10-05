@@ -532,8 +532,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             } else if let buffer = buffers[index] {
                 let alignedBuffer =
                     guideRun.map {
-                        placeBuffer(buffer, toWidth: $0.extent, offset: $0.offsets[index])
-                    } ?? alignBuffer(buffer, toWidth: alignmentWidth, alignment: alignment)
+                        buffer.placedHorizontally(inWidth: $0.extent, offset: $0.offsets[index])
+                    } ?? buffer.horizontallyAligned(toWidth: alignmentWidth, alignment: alignment)
                 result.appendVertically(alignedBuffer, spacing: spacingToApply)
             }
         }
@@ -784,8 +784,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             defer { placedIndex += 1 }
             let alignedBuffer =
                 guideRun.map {
-                    placeBuffer(buffer, toWidth: $0.extent, offset: $0.offsets[placedIndex])
-                } ?? alignBuffer(buffer, toWidth: maxWidth, alignment: alignment)
+                    buffer.placedHorizontally(inWidth: $0.extent, offset: $0.offsets[placedIndex])
+                } ?? buffer.horizontallyAligned(toWidth: maxWidth, alignment: alignment)
             result.appendVertically(alignedBuffer, spacing: spacingToApply)
         }
 
@@ -994,8 +994,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             }
             let placed =
                 guideRun.map {
-                    placeBuffer(rendered, toWidth: width, offset: $0.offsets[index])
-                } ?? alignBuffer(rendered, toWidth: width, alignment: alignment)
+                    rendered.placedHorizontally(inWidth: width, offset: $0.offsets[index])
+                } ?? rendered.horizontallyAligned(toWidth: width, alignment: alignment)
             slot.appendVertically(placed, spacing: 0)
             // Keep the slot exactly `slotHeight` tall so later rows stay at their
             // true `y` even if a row rendered a different height than it measured.
@@ -1050,71 +1050,6 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         return slots.firstIndex { slot in
             FocusManager.focusID(focusID, addressesSubtreeAt: slot.child.identity(under: context).path)
         }
-    }
-
-    /// Aligns a buffer horizontally within the given width.
-    func alignBuffer(_ buffer: FrameBuffer, toWidth width: Int, alignment: HorizontalAlignment) -> FrameBuffer {
-        guard buffer.width < width else { return buffer }
-        return placeBuffer(
-            buffer, toWidth: width,
-            offset: alignment.childOffset(childWidth: buffer.width, in: width))
-    }
-
-    /// Places a buffer at an explicit horizontal offset within the given width.
-    ///
-    /// The arithmetic ``alignBuffer(_:toWidth:alignment:)`` performs, split out
-    /// so a container that resolved the offset from an explicit
-    /// ``View/alignmentGuide(_:computeValue:)-(HorizontalAlignment,_)`` can reuse the same padding
-    /// (and the same overlay/hit-region carry) instead of a second copy of it.
-    func placeBuffer(_ buffer: FrameBuffer, toWidth width: Int, offset: Int) -> FrameBuffer {
-        guard offset > 0 || buffer.width < width else { return buffer }
-
-        var alignedLines: [String] = []
-
-        let bufferOffset = offset
-        // A guide can push a child past the nominal width; the buffer must
-        // still describe its own true extent, or `replacingLines`' uniform-width
-        // promise below would be a lie the whole pipeline then trusts.
-        let width = max(width, offset + buffer.width)
-
-        let leftCount = bufferOffset
-        let rightCount = max(0, width - bufferOffset - buffer.width)
-
-        // When the input is already uniform every line is exactly `buffer.width`,
-        // so the inner pad is empty — skip the per-line measure entirely. For a
-        // ragged input (e.g. a column of word-wrapped `Text`) reuse the carried
-        // per-line widths when present, falling back to `strippedLength` only when
-        // they are unknown. This is the hot path for a `VStack` of wrapped text.
-        //
-        // Each aligned line is built in place: reserve `width` cells then append
-        // the leading spaces, the line, the (ragged-only) inner pad, and the
-        // trailing spaces — all borrowed from the shared spaces run, with no
-        // `String(repeating:)` temporaries and no `+`-chain intermediates. The
-        // byte sequence is identical to `leftPadding + paddedLine + rightPadding`.
-        let inputIsUniform = buffer.linesAreUniformWidth
-        let carriedWidths = buffer.lineWidths
-        alignedLines.reserveCapacity(buffer.lines.count)
-        for (index, line) in buffer.lines.enumerated() {
-            let innerPad = inputIsUniform ? 0 : max(0, buffer.width - (carriedWidths?[index] ?? line.strippedLength))
-            var aligned = ""
-            aligned.reserveCapacity(line.utf8.count + leftCount + innerPad + rightCount)
-            aligned += asciiSpaces(leftCount)
-            aligned += line
-            if innerPad > 0 { aligned += asciiSpaces(innerPad) }
-            aligned += asciiSpaces(rightCount)
-            alignedLines.append(aligned)
-        }
-
-        // Each aligned line is exactly `width` wide (leftPad + buffer.width +
-        // rightPad), so hand that known width through — and flag it uniform — to
-        // skip re-measuring every line in `replacingLines`. That re-measure was
-        // ~32% of the AnyView-storm frame (a VStack aligning 500 rows), redundant
-        // with the widths just used above. The content shifted right by
-        // `bufferOffset`; carry overlay layers by the same amount so they stay
-        // anchored.
-        return buffer.replacingLines(
-            alignedLines, width: width, uniformWidth: true,
-            overlayShiftX: bufferOffset, overlayShiftY: 0)
     }
 }
 

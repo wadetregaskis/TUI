@@ -563,9 +563,8 @@ extension _VStackCore {
         // than the viewport otherwise loses its tail to the render clamp
         // while the slot pads the loss with blanks (see the twin comment in
         // `_VStackCore.renderViewportWindow`).
-        let rendered = alignBuffer(
-            child.render(width: width, height: extent, context: context),
-            toWidth: width, alignment: alignment)
+        let rendered = child.render(width: width, height: extent, context: context)
+            .horizontallyAligned(toWidth: width, alignment: alignment)
         var slot = FrameBuffer()
         slot.appendVertically(rendered, spacing: 0)
         if slot.height < extent {
@@ -820,7 +819,7 @@ extension _VStackCore {
         width: Int, viewportHeight: Int, context: RenderContext
     ) {
         let rendered = child.render(width: width, height: viewportHeight, context: context)
-        let aligned = alignBuffer(rendered, toWidth: width, alignment: alignment)
+        let aligned = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
         result.hitTestRegions.append(
             contentsOf: aligned.shiftedHitTestRegions(byX: 0, y: bandLocalY))
         result.overlays.append(contentsOf: aligned.shiftedOverlays(byX: 0, y: bandLocalY))
