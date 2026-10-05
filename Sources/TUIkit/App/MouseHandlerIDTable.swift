@@ -67,7 +67,17 @@ final class MouseHandlerIDTable {
     /// The next raw id to mint. Monotonic for the life of the dispatcher: an id
     /// is never handed out twice, so a stale one resolves to nothing rather
     /// than to someone else.
-    private var nextRaw: UInt64 = 0
+    private var nextRaw: UInt64
+
+    /// Creates a table whose mint starts at `firstRaw`.
+    ///
+    /// - Parameter firstRaw: The first raw id minted. The handler table starts
+    ///   at zero; the geometry-marker table starts at
+    ///   ``HitTestRegion/HandlerID/geometryMarkerBit``, so every id it mints
+    ///   carries that bit and none can name a handler.
+    init(firstRaw: UInt64 = 0) {
+        self.nextRaw = firstRaw
+    }
 
     /// Bumped by each prune, so a record can say whether this round asked for
     /// it without a second pass to clear flags.
@@ -143,9 +153,25 @@ extension MouseHandlerIDTable {
 // MARK: - Registering With an Interned ID
 
 extension MouseEventDispatcher: InternedIDTable {
-    /// The render cache's end-of-pass prune, forwarded to the table.
+    /// The render cache's end-of-pass prune, forwarded to both tables: a stored
+    /// buffer carries geometry markers in its regions as it carries handler ids.
     func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) {
         handlerIDs.pruneInternedIDs(retaining: isRetained)
+        geometryMarkerIDs.pruneInternedIDs(retaining: isRetained)
+    }
+}
+
+// MARK: - Geometry Marker IDs
+
+extension MouseEventDispatcher {
+    /// The id of the next geometry marker `context`'s view stamps
+    /// (`HitTestRegion.geometryMarker(_:)`), interned per `(identity, slot)` as
+    /// a handler's is, so the same view stamps the same id frame after frame
+    /// and a buffer served from a memo still names it.
+    ///
+    /// No handler is filed under it: a marker is never hit.
+    func geometryMarkerID(in context: RenderContext) -> HitTestRegion.HandlerID {
+        geometryMarkerIDs.id(registeredIn: context)
     }
 }
 

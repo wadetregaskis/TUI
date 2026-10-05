@@ -244,7 +244,8 @@ extension AlertPresentationModifier: Renderable {
         // screen and has to keep moving. `dimmedAsBackdrop` flattens their
         // frames with the rows, and `composited` punches out whatever the
         // alert covers. See the same note on `ModalPresentationModifier`.
-        baseBuffer.hitTestRegions = []
+        // The geometry markers stay, as they do there.
+        baseBuffer.removeHitTargets()
 
         // Render the alert against the CONTENT AREA (screen minus the window's
         // bars), not the full terminal height, in the alert section. The

@@ -147,6 +147,12 @@ private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
         // an `.offset` child — IS this view's drawing, displaced, and goes with
         // it.
         hidden.overlays = drawn.overlays.filter { $0.isScreenLevel }
+        // The geometry markers stay with the space, which stays: a hidden view
+        // is still laid out where it was, and SwiftUI still answers where that
+        // is (`HitTestRegion.geometryMarker(_:)`).
+        if !drawn.hitTestRegions.isEmpty {
+            hidden.hitTestRegions = drawn.hitTestRegions.filter(\.isGeometryMarker)
+        }
         return hidden
     }
 }
@@ -179,9 +185,12 @@ private struct _HitTestingView<Content: View>: View, Renderable, Layoutable {
         // buttons. Clearing its regions produced a dialog that drew perfectly
         // and whose every button was dead — and the modifier the author wrote
         // was about the page, not about the dialog it opens.
-        drawn.hitTestRegions = []
+        //
+        // Targets only: a geometry marker is not something to click, and a view
+        // that takes no clicks is still drawn where it is drawn.
+        drawn.removeHitTargets()
         for index in drawn.overlays.indices where !drawn.overlays[index].isScreenLevel {
-            drawn.overlays[index].content.hitTestRegions = []
+            drawn.overlays[index].content.removeHitTargets()
         }
         return drawn
     }

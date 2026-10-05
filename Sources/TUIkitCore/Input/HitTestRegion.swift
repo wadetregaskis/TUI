@@ -180,6 +180,13 @@ public struct HitTestRegion: Sendable, Equatable {
     /// - Returns: The trimmed region, `self` when it was already inside, or
     ///   `nil` when nothing of it survives.
     public func clipped(toColumns columns: Range<Int>, rows: Range<Int>) -> Self? {
+        // A geometry marker is a POINT, not an area: it says where a view
+        // begins, and a view scrolled half out of a viewport, or wholly out of
+        // it, still begins where it began. There is no area to trim and nothing
+        // to click, so it rides through every clip unchanged, its offsets
+        // carrying the UNCLIPPED origin — which is the one number an owner
+        // reading it wants (see ``isGeometryMarker``).
+        if handlerID.isGeometryMarker { return self }
         let left = Swift.max(offsetX, columns.lowerBound)
         let right = Swift.min(offsetX + width, columns.upperBound)
         let top = Swift.max(offsetY, rows.lowerBound)
@@ -219,5 +226,57 @@ extension HitTestRegion {
         public init(_ raw: UInt64) {
             self.raw = raw
         }
+
+        /// The bit that makes an id a geometry marker's rather than a
+        /// handler's: the top one, which the handler mint, counting up from
+        /// zero, never reaches.
+        public static let geometryMarkerBit: UInt64 = 1 << 63
+
+        /// Whether this id names a geometry marker rather than a handler — see
+        /// ``HitTestRegion/geometryMarker(_:)``.
+        @inlinable
+        public var isGeometryMarker: Bool { raw & Self.geometryMarkerBit != 0 }
     }
+}
+
+// MARK: - Geometry Markers
+
+extension HitTestRegion {
+    /// A geometry marker: a point at the top-left of the buffer it is put in,
+    /// carried up to the views that need to know where that buffer ended up.
+    ///
+    /// TUIkit renders bottom-up — a container renders a child into a buffer and
+    /// only then places it — so a view does not know where it sits while it is
+    /// being drawn. The views that need that answer (a `GeometryReader` asking
+    /// for a named coordinate space, an anchor, a view watching its scroll
+    /// visibility) stamp one of these into their buffer instead, and the view
+    /// that owns the question — the named space, the scroll view, the scene
+    /// root — reads it back out of what it drew, in its own coordinates.
+    ///
+    /// Carried as a hit-test region because regions already ride every
+    /// combining operation, every clip and every shift, by construction, and
+    /// keep the unclipped origin through a scroll view. What makes it a marker
+    /// rather than a target:
+    ///
+    /// - its id carries ``HandlerID/geometryMarkerBit``, from a mint of its own,
+    ///   so it never names a handler;
+    /// - it has no AREA. Zero cells wide and tall, it can never contain a
+    ///   point, so no click, hover or drop ever lands on it, and a click on its
+    ///   cell reaches whatever is drawn there;
+    /// - a clip keeps it whole (``clipped(toColumns:rows:)``): a point outside
+    ///   the box is still where the view begins.
+    ///
+    /// A buffer with no such view carries no marker, so nothing here costs a
+    /// tree that does not ask.
+    ///
+    /// - Parameter id: The marker's id, minted with the geometry bit.
+    /// - Returns: A zero-area region at the carrying buffer's origin.
+    public static func geometryMarker(_ id: HandlerID) -> Self {
+        Self(offsetX: 0, offsetY: 0, width: 0, height: 0, handlerID: id)
+    }
+
+    /// Whether this region is a geometry marker (``geometryMarker(_:)``)
+    /// rather than a hit-test target.
+    @inlinable
+    public var isGeometryMarker: Bool { handlerID.isGeometryMarker }
 }

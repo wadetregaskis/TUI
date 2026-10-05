@@ -250,7 +250,10 @@ extension ModalPresentationModifier: Renderable {
         // Dropped here instead, for both styles, so inertness follows from
         // presenting rather than from a rendering detail that only one style
         // performs.
-        baseBuffer.hitTestRegions = []
+        //
+        // The targets, not the geometry markers: the page is still laid out
+        // where it is, and a reader on it still asks where that is.
+        baseBuffer.removeHitTargets()
         // The RUNS are a different question, and they used to go with the
         // regions on the same line of reasoning — "the page cannot be seen".
         // That is true of a cover and false of a sheet, which shows the whole

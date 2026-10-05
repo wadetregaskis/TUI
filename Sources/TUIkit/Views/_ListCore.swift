@@ -2586,8 +2586,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // RowSource), so the handler ids are current. Appended after the
             // container's insert(at: 0) — higher indices, which the dispatcher's
             // reverse iteration matches first.
-            if mergesHitRegions {
-                for region in visible.row.buffer.hitTestRegions {
+            //
+            // A list that registered nothing still merges its rows' geometry
+            // markers: a marker names no handler, and a disabled row is still
+            // drawn where it is (`HitTestRegion.geometryMarker(_:)`).
+            if !visible.row.buffer.hitTestRegions.isEmpty {
+                for region in visible.row.buffer.hitTestRegions
+                where mergesHitRegions || region.isGeometryMarker {
                     // Rows can be partially visible — the top row clipped above
                     // (line granularity), the last row clipped below: intersect
                     // each region with the row-local window of lines actually

@@ -159,7 +159,9 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         var buffer = TUIkit.renderToBuffer(entry.view, context: entryContext(context))
         if isInert(in: context), !buffer.hitTestRegions.isEmpty {
             let live = context.environment.windowChrome?.appLineHandlerIDs ?? []
-            buffer.hitTestRegions.removeAll { !live.contains($0.handlerID) }
+            // The targets, not the geometry markers: an inert item is still
+            // drawn where it is (`HitTestRegion.geometryMarker(_:)`).
+            buffer.hitTestRegions.removeAll { !$0.isGeometryMarker && !live.contains($0.handlerID) }
         }
         return buffer
     }

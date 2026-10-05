@@ -114,6 +114,11 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// points a render walk uses.
     let handlerIDs = MouseHandlerIDTable()
 
+    /// Where geometry markers' ids come from: interned exactly as handler ids
+    /// are, from a mint that starts at the geometry bit so the two can never
+    /// meet. See ``geometryMarkerID(in:)``.
+    let geometryMarkerIDs = MouseHandlerIDTable(firstRaw: HitTestRegion.HandlerID.geometryMarkerBit)
+
     /// One lane of the hover state machine: the region the pointer was last
     /// resolved against, and the closure still owed its exit across a reshape.
     ///
@@ -336,6 +341,7 @@ extension MouseEventDispatcher {
         // The interned ids survive this: only the per-identity slot counters
         // restart, because this runs once per WALK of the scene.
         handlerIDs.beginWalk()
+        geometryMarkerIDs.beginWalk()
         requestedFeatures = .disabled
         configOverride = nil
     }
@@ -976,7 +982,10 @@ extension MouseEventDispatcher {
     /// innermost-first (last-registered first). Used by
     /// ``dispatch`` to implement wheel-event fall-through.
     func matchingRegions(at x: Int, y: Int) -> [HitTestRegion] {
-        regions.reversed().filter { $0.contains(x: x, y: y) }
+        // A geometry marker has no area, so `contains` already refuses it; the
+        // explicit test says so, and keeps a marker inert if one ever grows a
+        // size (`HitTestRegion.geometryMarker(_:)`).
+        regions.reversed().filter { !$0.isGeometryMarker && $0.contains(x: x, y: y) }
     }
 
     /// The two regions hover resolves against at a point, one per lane: the

@@ -313,6 +313,9 @@ public struct OverlayLayer: Sendable, Equatable {
         // row). Trim every region to the clip, dropping the fully clipped.
         if content.height > maxHeight || content.width > maxWidth {
             clamped.hitTestRegions = clamped.hitTestRegions.compactMap { region -> HitTestRegion? in
+                // A geometry marker has no area to trim; it is where its view
+                // begins, and stays so (`HitTestRegion.geometryMarker(_:)`).
+                if region.isGeometryMarker { return region }
                 let right = min(region.offsetX + region.width, maxWidth)
                 let bottom = min(region.offsetY + region.height, maxHeight)
                 guard right > region.offsetX, bottom > region.offsetY else { return nil }
