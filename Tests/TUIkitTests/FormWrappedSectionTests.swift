@@ -57,6 +57,23 @@ private struct Pair: View {
     }
 }
 
+/// The same linked list built at run time, with no view of the app's own in
+/// it: each node an `AnyView` of a `Group` of a row and an `if` around the
+/// next. Built from the innermost node out, so making it recurses nowhere.
+@MainActor
+private func erasedNestedRows(depth: Int) -> AnyView {
+    var chain = AnyView(Text("L\(depth)"))
+    for level in stride(from: depth - 1, through: 0, by: -1) {
+        let next: AnyView? = chain
+        chain = AnyView(
+            Group {
+                Text("L\(level)")
+                if let next { next }
+            })
+    }
+    return chain
+}
+
 /// A view of the app's own nested in itself through its body's rows, a level
 /// deeper each time, to `depth`: a linked list, each node a row and an `if`
 /// around the next.
@@ -232,11 +249,35 @@ struct FormWrappedSectionTests {
         let rows = formRows(of: formElements(from: NestedRows(level: 0, depth: 100_000), in: walk))
         #expect(rows.count > 100, "the levels the stack holds are read through: \(rows.count) rows")
         #expect(rows.count < 100_000, "the walk stopped short of the innermost level")
-        // The level it stopped at is one row, the view drawn whole.
-        guard case .plain(let rest)? = rows.last?.kind else {
+        // The level it stopped at is one row, drawn whole: the view there,
+        // whichever of a level's views the stack ran short at — the level
+        // itself, its body's rows, or the `if` around the next.
+        guard case .plain? = rows.last?.kind else {
             Issue.record("the last row is no plain row")
             return
         }
-        #expect(rest.erasedView is NestedRows)
+    }
+
+    /// The guard above sat on a view of the app's own read through, and the
+    /// walk descends as deep through an `AnyView`, a `Group` and an `if` —
+    /// each read through by an extractor of its own that asks the walk again.
+    /// A chain of them built at run time has no view of the app's own to stop
+    /// at, and overflowed the stack the same way.
+    @Test("A chain of erased views deeper than the stack holds is read as far as the stack allows")
+    func deeplyNestedErasedChainIsReadAsFarAsTheStackAllows() {
+        // Deep enough that the walk would need several times the stack,
+        // shallow enough that releasing the chain — one node inside the
+        // next — fits in it.
+        let depth = 10_000
+        let chain = erasedNestedRows(depth: depth)
+        let walk = makeRenderContext(width: 40, height: 10).withChildIdentity(type: _FormContentWalk.self)
+        let rows = formRows(of: formElements(from: chain, in: walk))
+        #expect(rows.count > 100, "the levels the stack holds are read through: \(rows.count) rows")
+        #expect(rows.count < depth, "the walk stopped short of the innermost level")
+        // The level it stopped at is one row, drawn whole.
+        guard case .plain? = rows.last?.kind else {
+            Issue.record("the last row is no plain row")
+            return
+        }
     }
 }

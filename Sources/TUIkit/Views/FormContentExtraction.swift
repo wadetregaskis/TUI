@@ -43,6 +43,16 @@ enum _FormContentWalk {}
 /// its own, the same every frame.
 @MainActor
 func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElement] {
+    // Every view the walk reads through — a `Group`, an `if`, an `AnyView`,
+    // a section, a view of the app's own — asks the walk again for what it
+    // holds, so a view nested in itself through any of them is read through
+    // at every level, each a descent of this walk. So it stops where the
+    // stack runs short, as `compositeMembers(of:context:)` stops: the view is
+    // then the plain row below, drawn whole, and its own descent truncates
+    // under the render's guard, which counts. Unguarded, a tree of a few
+    // thousand levels in a form overflowed the stack — through views of the
+    // app's own, or through a chain of `AnyView`s built at run time.
+    guard StackGuard.hasHeadroomUncounted() else { return [.row(_FormRow(.plain(AnyView(view))))] }
     if let aligned = view as? FormRowAligning {
         let alignment = aligned.formRowAlignmentValue
         return aligned.formRowInnerElements(in: walk).map { stamped($0, alignment: alignment) }
@@ -66,14 +76,7 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // the section's parts since a section outside a `List` became its parts
     // (B16). The body is evaluated as a render evaluates it — `@State` bound
     // here, `@Environment` resolved, observed — and read one step in.
-    //
-    // A view nested in itself through such bodies is read through at every
-    // level, each a descent of this walk, so the walk stops where the stack
-    // runs short, as `compositeMembers(of:context:)` stops: the view is then
-    // the plain row below, drawn whole, and its own descent truncates under
-    // the render's guard, which counts. Unguarded, a tree of a few thousand
-    // levels in a form overflowed the stack.
-    if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil, StackGuard.hasHeadroomUncounted() {
+    if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil {
         let body = evaluateCompositeBody(of: view, context: walk)
         return formElements(from: body, in: walk.withChildIdentity(type: V.Body.self))
     }
