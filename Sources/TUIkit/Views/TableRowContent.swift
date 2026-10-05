@@ -92,6 +92,17 @@ public struct _TableRowList<Value: Identifiable> {
     /// each with the rows it drew.
     private(set) var insertions: [_TableRowInsertion] = []
 
+    /// The section headers among these rows, each at the row it is drawn
+    /// above — the count of rows before it, so one after the last row is
+    /// drawn below them all.
+    private(set) var sectionHeaders: [_TableSectionHeader] = []
+
+    /// Appends a section's header row: a view across the table, drawn above
+    /// whatever row is appended next.
+    mutating func appendSectionHeader(_ view: AnyView) {
+        sectionHeaders.append(_TableSectionHeader(view: view, beforeRow: values.count))
+    }
+
     /// The rows' traits, in order, or `nil` when no row modifier reached them.
     var traits: [_TableRowTraits]? { hasTraits ? nodes.map { $0.traits } : nil }
 
@@ -126,6 +137,11 @@ public struct _TableRowList<Value: Identifiable> {
         insertions += other.insertions.map { insertion in
             var moved = insertion
             moved.rows = (insertion.rows.lowerBound + base)..<(insertion.rows.upperBound + base)
+            return moved
+        }
+        sectionHeaders += other.sectionHeaders.map { header in
+            var moved = header
+            moved.beforeRow += base
             return moved
         }
         if builtNodes != nil || other.builtNodes != nil {

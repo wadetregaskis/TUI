@@ -1,0 +1,217 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  TableSectionTests.swift
+//
+//  Sections among a table's rows (decisions A31): a header row — a view
+//  across the table — above each section's rows, which the cursor steps over
+//  and nothing selects, as SwiftUI's table does (measured on macOS 15.8); a
+//  collapsible section's rows leaving and coming back by its header's
+//  disclosure control, from the keyboard and the pointer.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Observation
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+@Observable
+@MainActor
+private final class Produce {
+    var selection: Set<Int> = []
+    var fruitsShown = true
+    var collapsible = false
+    var emptyMiddle = false
+    var rows = 4
+    var menuSets: [[Int]] = []
+}
+
+private struct Item: Identifiable, Equatable {
+    let id: Int
+    var name: String
+}
+
+private struct ProduceApp: App {
+    let produce: Produce?
+
+    init() { produce = nil }
+
+    init(_ produce: Produce) { self.produce = produce }
+
+    var body: some Scene {
+        WindowGroup {
+            if let produce { ProducePage(produce: produce) }
+        }
+    }
+}
+
+private struct ProducePage: View {
+    let produce: Produce
+
+    private var fruits: [Item] { (1...produce.rows).map { Item(id: $0, name: "fruit\($0)") } }
+    private let vegetables = [Item(id: 11, name: "veg11"), Item(id: 12, name: "veg12")]
+
+    var body: some View {
+        Table(of: Item.self, selection: Bindable(produce).selection) {
+            TableColumn("Name", value: \.name)
+            TableColumn("Code") { item in Text(verbatim: "#\(item.id)") }
+        } rows: {
+            if produce.collapsible {
+                Section("Fruits", isExpanded: Bindable(produce).fruitsShown) {
+                    ForEach(fruits) { TableRow($0) }
+                }
+            } else {
+                Section("Fruits") {
+                    ForEach(fruits) { TableRow($0) }
+                }
+            }
+            if produce.emptyMiddle {
+                Section("Nothing here") {
+                    ForEach([Item]()) { TableRow($0) }
+                }
+            }
+            Section {
+                ForEach(vegetables) { TableRow($0) }
+            } header: {
+                Text(verbatim: "Vegetables")
+            }
+            Section("Last") {
+                ForEach([Item]()) { TableRow($0) }
+            }
+        }
+        .contextMenu(forSelectionType: Int.self) { ids in
+            Button("menu \(ids.sorted())") {}
+        }
+        .frame(height: 14)
+    }
+}
+
+@MainActor
+private final class Harness {
+    let produce = Produce()
+    let app: HeadlessApp<ProduceApp>
+    private var now: Int64 = 0
+
+    init(configure: (Produce) -> Void = { _ in }) {
+        configure(produce)
+        app = HeadlessApp(ProduceApp(produce), width: 40, height: 18)
+        frame()
+        frame()
+    }
+
+    func frame() {
+        now += 16_666_667
+        app.frame(atNanos: now)
+    }
+
+    var lines: [String] { app.screen.map(\.stripped) }
+
+    func line(of text: String) -> Int? { lines.firstIndex { $0.contains(text) } }
+
+    func column(of text: String, on line: Int) -> Int? {
+        lines[line].range(of: text).map { lines[line].distance(from: lines[line].startIndex, to: $0.lowerBound) }
+    }
+
+    func click(x: Int, y: Int, button: MouseButton = .left) {
+        app.send(MouseEvent(button: button, phase: .pressed, x: x, y: y))
+        frame()
+        app.send(MouseEvent(button: button, phase: .released, x: x, y: y))
+        frame()
+    }
+
+    func key(_ event: KeyEvent) {
+        app.send(event)
+        frame()
+    }
+
+    var screen: String { lines.joined(separator: "\n") }
+}
+
+@MainActor
+@Suite("Sections among a table's rows")
+struct TableSectionTests {
+    @Test("Each section's header is drawn above its rows, in line with the first column")
+    func headersAboveRows() throws {
+        let harness = Harness()
+        let fruits = try #require(harness.line(of: "Fruits"), "\(harness.screen)")
+        let first = try #require(harness.line(of: "fruit1"))
+        let vegetables = try #require(harness.line(of: "Vegetables"))
+        let veg = try #require(harness.line(of: "veg11"))
+        #expect(first == fruits + 1)
+        #expect(vegetables == (harness.line(of: "fruit4") ?? -1) + 1)
+        #expect(veg == vegetables + 1)
+        // A section with no rows at the end still draws its header.
+        #expect(harness.line(of: "Last") == (harness.line(of: "veg12") ?? -1) + 1, "\(harness.screen)")
+        #expect(harness.column(of: "Fruits", on: fruits) == harness.column(of: "fruit1", on: first))
+        // A header row draws no cells.
+        #expect(!harness.lines[fruits].contains("#"))
+    }
+
+    @Test("The cursor steps over a header, and a click on one selects nothing")
+    func headersAreNotRows() throws {
+        let harness = Harness()
+        // To the last fruit, then one more: the first vegetable, past the header.
+        for _ in 0..<4 { harness.key(KeyEvent(key: .down)) }
+        harness.key(KeyEvent(key: .space))
+        #expect(harness.produce.selection == [11], "\(harness.produce.selection)")
+        let header = try #require(harness.line(of: "Fruits"))
+        harness.click(x: 6, y: header)
+        #expect(harness.produce.selection == [11], "a click on a header changed the selection")
+        let fruit = try #require(harness.line(of: "fruit2"))
+        harness.click(x: 6, y: fruit)
+        #expect(harness.produce.selection == [2])
+        // Select-all takes the rows and nothing else.
+        harness.key(KeyEvent(key: .character("a"), ctrl: true))
+        #expect(harness.produce.selection == [1, 2, 3, 4, 11, 12])
+    }
+
+    @Test("A right-click on a header is the table's empty space to its selection menu")
+    func headerIsEmptySpaceToTheMenu() throws {
+        let harness = Harness()
+        let header = try #require(harness.line(of: "Fruits"))
+        harness.app.send(MouseEvent(button: .right, phase: .pressed, x: 6, y: header))
+        harness.app.send(MouseEvent(button: .right, phase: .released, x: 6, y: header))
+        harness.frame()
+        #expect(harness.line(of: "menu []") != nil, "\(harness.screen)")
+    }
+
+    @Test("A section with no rows between two others still draws its header")
+    func emptySectionInTheMiddle() throws {
+        let harness = Harness { $0.emptyMiddle = true }
+        let empty = try #require(harness.line(of: "Nothing here"), "\(harness.screen)")
+        #expect(harness.line(of: "Vegetables") == empty + 1)
+        #expect(harness.line(of: "fruit4") == empty - 1)
+    }
+
+    @Test("A collapsible section's header toggles its rows, from the pointer and the keyboard")
+    func collapsibleSection() throws {
+        let harness = Harness { $0.collapsible = true }
+        let header = try #require(harness.line(of: "Fruits"), "\(harness.screen)")
+        #expect(harness.lines[header].contains("▼"), "\(harness.lines[header])")
+        // Tab from the table reaches the header's control; Return closes it.
+        harness.key(KeyEvent(key: .tab))
+        harness.key(KeyEvent(key: .enter))
+        #expect(!harness.produce.fruitsShown, "\(harness.screen)")
+        #expect(harness.line(of: "fruit1") == nil, "\(harness.screen)")
+        #expect(harness.lines[header].contains("▶"))
+        // A click on the triangle opens it again.
+        harness.click(x: harness.column(of: "▶", on: header) ?? 0, y: header)
+        #expect(harness.produce.fruitsShown, "\(harness.screen)")
+        #expect(harness.line(of: "fruit1") == header + 1)
+    }
+
+    @Test("Scrolled, the headers scroll with their rows and the clicks still land on the rows")
+    func scrolledSections() throws {
+        let harness = Harness { $0.rows = 12 }
+        for _ in 0..<13 { harness.key(KeyEvent(key: .down)) }
+        harness.frame()
+        let veg = try #require(harness.line(of: "veg12"), "\(harness.screen)")
+        #expect(harness.line(of: "Vegetables") != nil, "\(harness.screen)")
+        harness.click(x: 6, y: veg)
+        #expect(harness.produce.selection == [12], "\(harness.produce.selection)\n\(harness.screen)")
+        let header = try #require(harness.line(of: "Vegetables"))
+        harness.click(x: 6, y: header)
+        #expect(harness.produce.selection == [12])
+    }
+}

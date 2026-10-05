@@ -61,7 +61,9 @@ import Foundation
 ///
 /// The rows are a collection's elements, or — with the `rows:` initializers,
 /// `Table(of:columns:rows:)` and its siblings — whatever a ``TableRowBuilder``
-/// closure gives: ``TableRow``s, `ForEach` of rows, an `if`, a `Group`.
+/// closure gives: ``TableRow``s, `ForEach` of rows, an `if`, a `Group`, and
+/// ``Section``s, each drawn under a header row across the table that the
+/// cursor steps over and nothing selects.
 ///
 /// ## Sorting
 ///
@@ -211,6 +213,11 @@ public struct Table<Value: Identifiable>: View {
     /// nodes instead.
     var rowTraits: [_TableRowTraits]?
 
+    /// The section headers among the rows — a `Section` in a `rows:` closure —
+    /// each at the row it is drawn above. Empty for a table of plain rows and
+    /// for a tree, which draws its sections' rows without their headers.
+    var sectionHeaders: [_TableSectionHeader] = []
+
     public var body: some View {
         _TableCore(
             data: data,
@@ -231,7 +238,8 @@ public struct Table<Value: Identifiable>: View {
             moveAction: moveAction,
             dropInsertion: dropInsertion,
             rowTree: rowTree,
-            rowTraits: rowTraits
+            rowTraits: rowTraits,
+            sectionHeaders: sectionHeaders
         )
         // The same pairing as `ScrollView.body` and `List.body`. A table's rows
         // are its own focus stops, so its stored flag alone already suppressed
@@ -348,6 +356,7 @@ extension Table {
             // A loop's `.dropDestination(for:action:)` or `.onInsert(of:perform:)`
             // — flat rows only: in a tree the drawn rows are not the loop's.
             dropInsertion = rowList.insertionAction
+            sectionHeaders = rowList.sectionHeaders
         }
     }
 
@@ -617,6 +626,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// `nil` when none reached any row.
     var rowTraits: [_TableRowTraits]?
 
+    /// The section headers among the rows (``Table/sectionHeaders``).
+    var sectionHeaders: [_TableSectionHeader] = []
+
+    /// Where those headers fall among this frame's rows, when there are any.
+    /// Filled in by ``resolvingRows(_:)``.
+    var sections: _TableSectionLayout?
+
     /// The rows a `.selectionDisabled()` reached, by their index in ``data``.
     /// Filled in by ``resolvingRows(_:)``.
     var selectionDisabledRows: Set<Int> = []
@@ -636,7 +652,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// flatten, or rows a modifier reached — and have not been: true only at
     /// the two entry points, before they resolve them.
     private var needsResolution: Bool {
-        !rowsAreResolved && (rowTree != nil || rowTraits != nil)
+        !rowsAreResolved && (rowTree != nil || rowTraits != nil || !sectionHeaders.isEmpty)
     }
 
     /// This table with its rows as this frame draws them: a tree flattened
@@ -669,7 +685,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 traits.indices.lazy.filter { traits[$0].selectionDisabled == true })
             resolved.hasRowMenus = traits.contains { $0.contextMenu != nil }
         }
+        if !sectionHeaders.isEmpty {
+            resolved.sections = _TableSectionLayout(sectionHeaders, rowCount: resolved.data.count)
+        }
         return resolved
+    }
+
+    /// Whether this table lays its rows out as rows of their own heights —
+    /// any column of more than one line, or section headers among the rows,
+    /// which are lines a row carries above itself.
+    private var usesMultiLineLayout: Bool {
+        sections != nil || columns.contains { $0.lineLimit > 1 }
     }
 
     /// The lines the column header takes: one, or none under
@@ -788,7 +814,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         {
             let buffer = renderToBuffer(context: measureContext)
             size = (buffer.width, buffer.height)
-        } else if columns.contains(where: { $0.lineLimit > 1 }) {
+        } else if usesMultiLineLayout {
             size =
                 analyticMultiLineSize(context: measureContext)
                 ?? {
@@ -957,8 +983,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // Rows that fit draw no indicator and take no clip, so the block is
             // exactly their lines, each padded to the row content width.
             var totalLines = 0
-            for item in data {
-                totalLines += rowHeight(of: item, columnWidths: columnWidths, context: context)
+            let headers = sectionHeaderHeights(columnWidths: columnWidths, context: context)
+            for index in data.indices {
+                totalLines += entryHeight(index, columnWidths: columnWidths, context: context, headers: headers)
             }
             content = (contentWidth, totalLines)
         } else {
@@ -1079,7 +1106,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // (`.hidden` by default), which is what keeps the default path free of
         // it (see `multiLineOverflows`).
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
-        let isMultiLine = columns.contains { $0.lineLimit > 1 }
+        let isMultiLine = usesMultiLineLayout
         let wantsScrollbar =
             !data.isEmpty
             && context.environment.verticalScrollIndicators(
@@ -1225,7 +1252,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Multi-line cells (any column with a line limit above 1) take a separate,
         // height-aware layout path. Single-line tables keep the original
         // row-per-line path below completely untouched.
-        if columns.contains(where: { $0.lineLimit > 1 }) {
+        if usesMultiLineLayout {
             return buildMultiLineContent(
                 context: context, stateStorage: stateStorage, palette: palette,
                 columnWidths: columnWidths, showsScrollbar: showsScrollbar,
@@ -1529,6 +1556,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // cells for a screenful of rows nothing draws.
         var layoutCache: [Int: MultiLineRowLayout] = [:]
         var heightCache: [Int: Int] = [:]
+        /// The lines each section header takes, when there are any.
+        let headers = sectionHeaderHeights(columnWidths: columnWidths, context: context)
         /// The focused, selected row, laid out over a raised background once the
         /// focus is known (``raiseBackgroundProminence(handler:tableHasFocus:context:)``)
         /// — before the window walk, which is the first to lay a row out.
@@ -1537,7 +1566,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         func layoutOf(_ index: Int) -> MultiLineRowLayout {
             if let cached = layoutCache[index] { return cached }
             let rowContext = index == raisedRow ? Self.raised(context) : context
-            let layout = cellLayout(for: data[index], columnWidths: columnWidths, context: rowContext)
+            let layout = entryLayout(index, columnWidths: columnWidths, context: rowContext)
             layoutCache[index] = layout
             return layout
         }
@@ -1548,7 +1577,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         func heightOf(_ index: Int) -> Int {
             if let cached = layoutCache[index] { return cached.height }
             if let cached = heightCache[index] { return cached }
-            let height = rowHeight(of: data[index], columnWidths: columnWidths, context: context)
+            let height = entryHeight(index, columnWidths: columnWidths, context: context, headers: headers)
             heightCache[index] = height
             return height
         }
@@ -1603,10 +1632,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // key events, and answers heights lazily from this frame's data and
         // column widths.
         handler.syncFrameInputs(
-            environment: context.environment,
-            reorderFeedback: .live,
-            keyboardMoveIsLive: true,
-            rowHeight: { rowHeight(of: data[$0], columnWidths: columnWidths, context: context) })
+            environment: context.environment, reorderFeedback: .live, keyboardMoveIsLive: true,
+            rowHeight: { entryHeight($0, columnWidths: columnWidths, context: context, headers: headers) })
         handler.idAt = { data[$0].id }
         handler.itemIDs = []
         // `viewportHeight` is set once the window is cut, below. It used to be
@@ -1685,8 +1712,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // row 0 while the indicator is on screen.
         let indicatorLines = window.reservesAbove ? 1 : 0
         let bands = multiLineRowBands(
-            handler: handler, range: window.range,
-            heights: onScreenRowHeights(window.range, height: heightOf, topClip: topClip),
+            handler: handler,
+            parts: onScreenRowParts(window.range, layout: layoutOf, topClip: topClip),
             // The row block's DRAWN end, not the content area's. The heights are
             // whole rows below the top clip, and the row straddling the budget is
             // drawn short — `ScrollRowWindow.fill` admits it so the viewport fills
@@ -1752,6 +1779,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // cannot outlive the layout that produced it (see `extentProfileCache`).
         var hasher = Hasher()
         hasher.combine(data.count)
+        hasher.combine(sectionHeaders.count)
         hasher.combine(context.environment.scrollExtentPrecision)
         for (column, width) in zip(columns, columnWidths) {
             hasher.combine(width)
@@ -1836,6 +1864,102 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         return value.split(separator: "\n", omittingEmptySubsequences: false)
             .prefix(column.lineLimit).map(String.init)
+    }
+
+    // MARK: - Section headers
+
+    /// The lines each section header takes across `columnWidths`, measured —
+    /// empty for a table without sections, which is what keeps the row walks
+    /// below from asking anything of one.
+    private func sectionHeaderHeights(columnWidths: [Int], context: RenderContext) -> [Int] {
+        guard sections != nil, !sectionHeaders.isEmpty else { return [] }
+        let width = sectionHeaderWidth(columnWidths)
+        let probe = Self.probing(context)
+        return sectionHeaders.indices.map { index in
+            let size = measureChild(
+                sectionHeaders[index].view, proposal: ProposedSize(width: width, height: nil),
+                context: sectionHeaderContext(index, width: width, context: probe))
+            // An empty header (a `Text("")`) still holds its row's line, as
+            // macOS's group row does: the sections are told apart by it.
+            return max(1, size.height)
+        }
+    }
+
+    /// The width a section header is drawn across: the cells', from the first
+    /// column's leading edge to the last's trailing one.
+    private func sectionHeaderWidth(_ columnWidths: [Int]) -> Int {
+        max(1, columnWidths.reduce(0, +) + columnSpacing * max(0, columnWidths.count - 1))
+    }
+
+    /// The context section header `index` draws under: its own identity, so a
+    /// collapsible header's control keeps its state; the cells' span as its
+    /// width; and a `List`'s section-header styling.
+    private func sectionHeaderContext(_ index: Int, width: Int, context: RenderContext) -> RenderContext {
+        sectionChromeContext(
+            context
+                .withChildIdentity(erasedType: _TableSectionHeader.self, index: index)
+                .withAvailableSize(width: width, height: max(1, context.availableHeight)),
+            .sectionHeader)
+    }
+
+    /// The height of row `index` with the section headers drawn with it — its
+    /// cells' lines, and the lines of the headers above it (and, for the last
+    /// row, below it). `headers` is ``sectionHeaderHeights(columnWidths:context:)``.
+    private func entryHeight(
+        _ index: Int, columnWidths: [Int], context: RenderContext, headers: [Int]
+    ) -> Int {
+        let cells = rowHeight(of: data[index], columnWidths: columnWidths, context: context)
+        guard let sections, !headers.isEmpty else { return cells }
+        let above = sections.headers(above: index).reduce(0) { $0 + headers[$1] }
+        let below = sections.headers(below: index).reduce(0) { $0 + headers[$1] }
+        return above + cells + below
+    }
+
+    /// Row `index` laid out to be drawn, with the section headers drawn with
+    /// it rendered — under the live context, so a collapsible header's
+    /// disclosure control registers and its regions travel in the payload.
+    private func entryLayout(_ index: Int, columnWidths: [Int], context: RenderContext) -> MultiLineRowLayout {
+        var layout = cellLayout(for: data[index], columnWidths: columnWidths, context: context)
+        guard let sections else { return layout }
+        let aboveIndices = sections.headers(above: index)
+        let belowIndices = sections.headers(below: index)
+        guard !aboveIndices.isEmpty || !belowIndices.isEmpty else { return layout }
+        let above = renderedSectionHeaders(aboveIndices, columnWidths: columnWidths, context: context)
+        let below = renderedSectionHeaders(belowIndices, columnWidths: columnWidths, context: context)
+        let cellHeight = layout.height
+        var payload = above.payload
+        payload.append(layout.payload.shifted(byX: 0, y: above.lines.count))
+        payload.append(below.payload.shifted(byX: 0, y: above.lines.count + cellHeight))
+        layout.payload = payload
+        layout.above = above.lines
+        layout.below = below.lines
+        layout.height = above.lines.count + cellHeight + below.lines.count
+        return layout
+    }
+
+    /// Section headers drawn: each across the cells' span, past the selection
+    /// gutter — in line with the first column, as the row's cells are — under
+    /// a `List`'s section-header styling, with what their controls registered
+    /// placed on their lines.
+    private func renderedSectionHeaders(
+        _ indices: [Int], columnWidths: [Int], context: RenderContext
+    ) -> (lines: [String], payload: _TableRowPayload) {
+        let width = sectionHeaderWidth(columnWidths)
+        let gutter = selectionGutter(context.environment)
+        var lines: [String] = []
+        var payload = _TableRowPayload()
+        for index in indices {
+            let buffer = TUIkit.renderToBuffer(
+                sectionHeaders[index].view,
+                context: sectionHeaderContext(index, width: width, context: context))
+            var placed = _TableRowPayload()
+            placed.absorb(buffer, atColumn: gutter, width: width, lines: buffer.height, alignment: .leading)
+            payload.append(placed.shifted(byX: 0, y: lines.count))
+            let headerLines = buffer.lines.isEmpty ? [""] : buffer.lines
+            let indent = String(repeating: " ", count: gutter)
+            lines += headerLines.map { indent + $0.truncatedToWidth(width, mode: .tail) }
+        }
+        return (lines, payload)
     }
 
     /// The height in lines of one row — its tallest cell wrapped into its column.
@@ -1951,8 +2075,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             availableWidth: max(1, innerWidth), spacing: columnSpacing, gutter: gutter,
             context: context)
         var lines = 0
-        for item in data {
-            lines += rowHeight(of: item, columnWidths: widths, context: context)
+        let headers = sectionHeaderHeights(columnWidths: widths, context: context)
+        for index in data.indices {
+            lines += entryHeight(index, columnWidths: widths, context: context, headers: headers)
             if lines > rowArea { return true }
         }
         return false
@@ -2183,7 +2308,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var claims: [OpacityRegion] = []
 
         var lines: [String] = []
-        lines.reserveCapacity(layout.height)
+        lines.reserveCapacity(layout.cellHeight)
         // Only a breathing row needs its lines kept bare: everything else would
         // be an array built per row per frame and thrown away.
         let framePaints = visual.background.framePaints
@@ -2193,7 +2318,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// The same lines WITHOUT their background, kept so a pulse can be
         /// applied to each of them per step (see the single-line path).
         var bareLines: [String] = []
-        for lineIndex in 0..<layout.height {
+        for lineIndex in 0..<layout.cellHeight {
             // The indicator shows only on the first line; continuation lines keep
             // the same gutter so the columns line up beneath it. A table with
             // nothing to mark has no gutter at all, and both are empty.
@@ -2263,14 +2388,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         // Same recolour-the-finished-line trick the single-line path uses: one
         // recolouring per step, not one render of the row per step.
-        guard let framePaints else {
-            return RenderedRow(lines: lines, claims: claims, payload: layout.payload)
-        }
-        return RenderedRow(
+        let rendered = RenderedRow(
             lines: lines,
-            pulseFrames: bareLines.map { bare in framePaints.map { $0.painting(bare) } },
-            pulseTiming: visual.background.pulseTiming,
+            pulseFrames: framePaints.map { paints in bareLines.map { bare in paints.map { $0.painting(bare) } } },
+            pulseTiming: framePaints == nil ? nil : visual.background.pulseTiming,
             claims: claims, payload: layout.payload)
+        return rendered.within(above: layout.above, below: layout.below)
     }
 
     /// Hands the handler this frame's row actions: one call for both layout
@@ -3144,10 +3267,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             grabX: grabX, grabY: handler.reorderHeldRowsAboveGrab.count)
     }
 
-    /// The visible rows' heights with the TOP clip taken off — the first row's
-    /// is net of the line-granularity top clip, because the mouse row-mapping
-    /// walks these from the first visible line and a full-height first row
-    /// would put every row below it off its hit band.
+    /// The visible rows' bands, in order, with the TOP clip taken off — the
+    /// first row's lines are net of the line-granularity top clip, because the
+    /// mouse row-mapping walks these from the first visible line and a
+    /// full-height first row would put every row below it off its hit band.
+    ///
+    /// A row in a sectioned table is up to three bands: the section headers
+    /// drawn above it, as chrome — a click there selects nothing, and nothing
+    /// lands there — then its cells, as the row, then the headers below the
+    /// last row, as chrome. The clip eats them from the top.
     ///
     /// NOT net of the bottom clip. The last row keeps its whole height where
     /// `composeMultiLineRows` cut its tail at the line budget; that cut moves no
@@ -3155,14 +3283,31 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// end passed to `multiLineRowBands` as `lineCount`. Read as "as rendered"
     /// all the way down, which it is not there, the last band ran on over the
     /// "▼ N more rows below" line.
-    private func onScreenRowHeights(
-        _ range: Range<Int>, height: (Int) -> Int, topClip: Int
-    ) -> [Int] {
-        var heights = range.map(height)
-        if topClip > 0, !heights.isEmpty {
-            heights[0] = max(1, heights[0] - topClip)
+    private func onScreenRowParts(
+        _ range: Range<Int>, layout: (Int) -> MultiLineRowLayout, topClip: Int
+    ) -> [(entry: ItemListHandler<Value.ID>.DrawnBand.Content, height: Int)] {
+        var clip = topClip
+        /// What is left of `height` lines once the clip has taken its share.
+        func taking(_ height: Int) -> Int {
+            let taken = min(height, clip)
+            clip -= taken
+            return height - taken
         }
-        return heights
+        var parts: [(entry: ItemListHandler<Value.ID>.DrawnBand.Content, height: Int)] = []
+        parts.reserveCapacity(range.count)
+        for rowIndex in range {
+            let rowLayout = layout(rowIndex)
+            let above = taking(rowLayout.above.count)
+            var cells = taking(rowLayout.cellHeight)
+            let below = taking(rowLayout.below.count)
+            // A row the clip took entirely still answers on the line it is
+            // drawn from — the `max(1, …)` a row of one band has always had.
+            if above + cells + below == 0 { cells = 1 }
+            if above > 0 { parts.append((.chrome(rowIndex: rowIndex), above)) }
+            if cells > 0 { parts.append((.row(rowIndex), cells)) }
+            if below > 0 { parts.append((.chrome(rowIndex: rowIndex), below)) }
+        }
+        return parts
     }
 
     /// The window the multi-line path just DREW, handed to the persistent
@@ -3217,16 +3362,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// clip inside row 0, where `hasContentAbove` is false.
     private func multiLineRowBands(
         handler: ItemListHandler<Value.ID>,
-        range: Range<Int>,
-        heights: [Int],
+        parts: [(entry: ItemListHandler<Value.ID>.DrawnBand.Content, height: Int)],
         indicatorLines: Int,
         lineCount: Int
     ) -> [ItemListHandler<Value.ID>.DrawnBand] {
         typealias Handler = ItemListHandler<Value.ID>
         return Handler.drawnBands(
-            range.enumerated().map { offset, rowIndex in
-                (.row(rowIndex), offset < heights.count ? max(1, heights[offset]) : 1)
-            },
+            parts,
             // The terms this builder never had. It emitted from `yStart = 0`
             // with neither the indicator line the frame had just drawn nor the
             // overscroll excursion, so a scrolled or overscrolling multi-line
@@ -4880,6 +5022,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// ``lines`` like the claims', and clipped with them.
         var payload = _TableRowPayload()
 
+        /// This row between section headers' lines: `above` before its own lines
+        /// and `below` after them, everything indexed by line moved past the
+        /// lines above. A header line draws no background and never breathes.
+        func within(above: [String], below: [String]) -> Self {
+            guard !above.isEmpty || !below.isEmpty else { return self }
+            var row = self
+            row.lines = above + lines + below
+            row.pulseFrames = pulseFrames.map {
+                Array(repeating: [], count: above.count) + $0 + Array(repeating: [], count: below.count)
+            }
+            row.claims = claims.map { $0.shifted(byX: 0, y: above.count) }
+            return row
+        }
+
         /// This row with its first `count` lines taken off: what a top clip
         /// leaves of it. Everything indexed by line goes with them — the
         /// frames, so `pulseFrames[i]` stays the frames of `lines[i]`, and the
@@ -4916,8 +5072,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// (its tallest cell), and what its view cells registered.
     struct MultiLineRowLayout {
         let cells: [[String]]
-        let height: Int
+        /// The row's whole height: its section headers' lines and its cells'.
+        var height: Int
         var payload = _TableRowPayload()
+        /// The lines of the section headers drawn above the row.
+        var above: [String] = []
+        /// The lines of the section headers drawn below it — the last row's.
+        var below: [String] = []
+
+        /// The lines the row's cells take.
+        var cellHeight: Int { height - above.count - below.count }
     }
 
     /// How many frames a row's travel is cut into.

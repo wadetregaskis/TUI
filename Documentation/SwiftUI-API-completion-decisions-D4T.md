@@ -89,3 +89,53 @@ container), and `.onMenuOpen(_:)` hears an opening for a menu nobody saw.
 container's last render context kept for the purpose, and decline the press
 when it is empty. Half a day, and a context held across frames, which the
 framework otherwise avoids.
+
+### B-D4T-5. A section header is lines of the row below it, not a row of its own
+
+*`Section` as `TableRowContent`, `TableHeaderRowContent` (decisions A31)*
+
+**Measured on macOS 15.8** (a SwiftUI `Table` with sections, in an
+`NSHostingView`): each section with a header adds a row of its own, 28 points
+high where a row is 24, drawn in the group-row style across the table's full
+width, not pinned; Down from a section's last row lands on the next section's
+first row, Up from the first row stops there, and select-all leaves the
+headers out; a section with no header adds no row; a collapsed section keeps
+its header and drops its rows; the header shows no disclosure control of its
+own while the pointer is elsewhere.
+
+A31's option 1 described the header as "an entry of its own among the drawn
+bands … with the index arithmetic taught that some entries are not rows".
+
+**Shipped:** the drawing and the behaviour measured, by another route. A
+header is carried as lines of the row below it (or, after the last row, of
+that row) — so every path that counts rows by their index into the data (the
+window, the cursor, the selection, select-all, type select, the "N more rows"
+indicators, the primary action and the context menus) keeps counting rows,
+and a header is stepped over because it is not a row. Its lines are chrome
+bands: a click there selects nothing, a right-click is the table's empty
+space to a selection menu, and nothing lands there. A sectioned table takes
+the multi-line layout, which already lays rows out at their own heights. A
+collapsible section's header is the `List`'s: its disclosure triangle is a
+control, so the keyboard reaches it with Tab.
+
+Three edges follow. A table whose sections all have no rows draws its
+placeholder, not their headers (there is no row to carry them). A
+hierarchical table draws its sections' rows without their headers. Stripes
+(`alternatingRowBackgrounds`) count rows, headers aside.
+
+**The fuller version:** headers as entries of their own in the table's
+numbering, with every path taught to skip them — what A31 sketched. It would
+draw a table of empty sections, and put a header on screen when only it fits
+in the viewport (today the row below it comes too, or neither). Two days: the
+cursor, selection, select-all, reorder and drop offsets all translate
+between the two numberings.
+
+### B-D4T-6. A table section takes no section actions
+
+*`SectionConfiguration.actions` (decisions B18)*
+
+B18 recorded that `SectionConfiguration.actions` was always empty; B78 since
+shipped `sectionActions(content:)`, which `actions` reads, so B18 is resolved
+for sections of views. A section among a table's rows has none:
+`sectionActions(content:)` is a `View` modifier and a row section is not a
+view, in SwiftUI as here. Nothing shipped for it; noted so B18 can close.

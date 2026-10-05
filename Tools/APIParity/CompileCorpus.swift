@@ -1061,6 +1061,59 @@ private struct TableContextMenuShapes: View {
     }
 }
 
+/// Sections among a table's rows, in every form SwiftUI's documentation
+/// writes for rows: a title, a title and an expansion binding, a header view
+/// with and without one, and none — and a section from a loop.
+@MainActor
+private struct TableSectionShapes: View {
+    struct Person: Identifiable {
+        let id: Int
+        var name: String
+    }
+
+    struct Team: Identifiable {
+        let id: Int
+        var name: String
+        var members: [Person]
+    }
+
+    @State private var team: [Person] = []
+    @State private var teams: [Team] = []
+    @State private var showsGuests = true
+    @State private var selection = Set<Person.ID>()
+
+    var body: some View {
+        Table(of: Person.self, selection: $selection) {
+            TableColumn("Name", value: \.name)
+        } rows: {
+            Section("Team") {
+                ForEach(team) { TableRow($0) }
+            }
+            Section("Guests", isExpanded: $showsGuests) {
+                TableRow(Person(id: -1, name: "Visitor"))
+            }
+            Section {
+                ForEach(team) { TableRow($0) }
+            } header: {
+                Text("Alumni").bold()
+            }
+            Section(isExpanded: $showsGuests) {
+                ForEach(team) { TableRow($0) }
+            } header: {
+                Text("More")
+            }
+            Section {
+                TableRow(Person(id: -2, name: "Loose"))
+            }
+            ForEach(teams) { group in
+                Section(group.name) {
+                    ForEach(group.members) { TableRow($0) }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Hierarchical tables
 
 private struct TableOutlineShapes: View {
