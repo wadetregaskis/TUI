@@ -906,6 +906,18 @@ final class RadioButtonGroupHandler: PersistedFocusable {
 // MARK: - Focus Lifecycle
 
 extension RadioButtonGroupHandler {
+    /// The cursor starts on the selection, wherever that is now: it may have
+    /// been chosen elsewhere while the group did not hold the focus — a second
+    /// control over the same binding — and a Space on a cursor left where the
+    /// selection used to be chose the old value back. A click focuses first and
+    /// then moves the cursor to the option it landed on, so this does not undo
+    /// it.
+    func onFocusReceived() {
+        if let selectedIndex = itemValues.firstIndex(of: selection.wrappedValue) {
+            focusedIndex = selectedIndex
+        }
+    }
+
     func onFocusLost() {
         // Reset focusedIndex to the selected item when the group loses focus
         if let selectedIndex = itemValues.firstIndex(of: selection.wrappedValue) {

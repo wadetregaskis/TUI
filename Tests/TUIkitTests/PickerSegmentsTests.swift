@@ -109,6 +109,41 @@ struct PickerSegmentsTests {
         #expect(fromMiddle.value == 3, "the cursor did not start on the selection")
     }
 
+    /// The Example's Picker page draws a radio group and a segmented picker
+    /// over one selection. Choosing in the group and Tabbing on left the
+    /// segmented picker's cursor where the selection had been — the handler
+    /// read the selection only when it was made and when it lost the focus —
+    /// so the Space that followed chose the old value back.
+    @Test(
+        "A selection changed elsewhere is where the cursor starts when the focus arrives",
+        arguments: [false, true])
+    func cursorFollowsAnOutsideChange(radioGroup: Bool) {
+        let choice = Choice(2)
+        let presses = Presses()
+        let harness = InputChainHarness(width: 40, height: 6)
+        func view() -> some View {
+            let picker = Picker("Size", selection: choice.binding) {
+                Text("S").tag(1)
+                Text("M").tag(2)
+                Text("L").tag(3)
+            }
+            return VStack {
+                Button("Go") { presses.count += 1 }
+                if radioGroup {
+                    picker.pickerStyle(.radioGroup)
+                } else {
+                    picker.pickerStyle(.segmented)
+                }
+            }
+        }
+        harness.play([]) { view() }
+        // Chosen elsewhere while the button holds the focus.
+        choice.value = 3
+        harness.play([KeyEvent(key: .tab), KeyEvent(key: .space)]) { view() }
+        #expect(presses.count < 1, "precondition: Tab left the button")
+        #expect(choice.value == 3, "Space chose \(choice.value): the cursor started on the old selection")
+    }
+
     @Test("A click chooses the segment under it, the end caps included; a rule chooses nothing")
     func clicking() {
         let choice = Choice(2)
