@@ -239,6 +239,65 @@ struct AppUndoTests {
         #expect(labels(statusBar).contains("^Z") && labels(statusBar).contains(""))
     }
 
+    @Test("The bar's items name their keys and bind none: each key goes where it would without them")
+    func statusBarItemsBindNoKey() throws {
+        let manager = makeManager()
+        let model = Model()
+        let harness = InputChainHarness(undoManager: manager)
+        // Undo on Option-←, whose name has an arrow in it; redo on a bare u,
+        // vim's way, a one-character name. (Option-← itself never reaches the
+        // undo keys outside a text control: the focus system, ahead of them,
+        // takes every arrow.)
+        harness.tui.undoKeys.publish(
+            UndoShortcuts([
+                .undo: .only(KeyboardShortcut(.leftArrow, modifiers: .option)),
+                .redo: .only(KeyboardShortcut("u", modifiers: [])),
+            ]),
+            commandKey: .control)
+        set(model, to: 1, on: manager)
+        set(model, to: 2, on: manager)
+        var heard: [Key] = []
+        let page = {
+            Text("page").onKeyEvent { event in
+                guard event.key == .character("u") else { return false }
+                heard.append(event.key)
+                return true
+            }
+        }
+        let undo = try #require(harness.statusBar.currentSystemItems.first { $0.order == .undo })
+        #expect(undo.shortcut == "M-←")
+        harness.play([KeyEvent(key: .left)], page)
+        #expect(model.value == 2, "a plain ← is not Option-←, whatever the bar prints beside undo")
+        manager.undo()
+        let redo = try #require(harness.statusBar.currentSystemItems.first { $0.order == .redo })
+        #expect(redo.shortcut == "u")
+        harness.play([KeyEvent(character: "u")], page)
+        #expect(heard == [.character("u")], "the view's handler hears u, as it does with nothing to redo")
+        #expect(model.value == 1)
+    }
+
+    @Test("Undo and redo with no key to name are still two items")
+    func statusBarItemIdentities() {
+        let manager = makeManager()
+        let model = Model()
+        let statusBar = StatusBarState()
+        statusBar.undoManager = manager
+        // Neither key reaches the app from a legacy terminal, so the bar names
+        // none for either.
+        statusBar.undoKeys.publish(
+            UndoShortcuts([
+                .undo: .only(KeyboardShortcut("/", modifiers: .control)),
+                .redo: .only(KeyboardShortcut("z", modifiers: [.control, .shift])),
+            ]),
+            commandKey: .control)
+        set(model, to: 1, on: manager)
+        set(model, to: 2, on: manager)
+        manager.undo()
+        let items = statusBar.currentSystemItems.filter { $0.order == .undo || $0.order == .redo }
+        #expect(items.map(\.shortcut) == ["", ""])
+        #expect(Set(items.map(\.id)).count == 2, "each its own hover")
+    }
+
     @Test("What a terminal can deliver as itself")
     func deliverability() {
         let legacy = KeyboardReporting.legacy

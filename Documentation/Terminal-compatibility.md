@@ -4451,7 +4451,12 @@ shifted character only with flag 4; an Option chord always, since whether
 Option is Meta cannot be asked. With the defaults that is `^-` for undo
 everywhere, and `^_` for redo under the protocol, `M-_` elsewhere. A command
 with no key the terminal can deliver is shown with none, its click still
-working.
+working. **The bar names the key; it does not bind it** — the undo keys above
+are matched only at the bottom of the input chain. Until the 2026-10-05 review
+the items took the name as their own shortcut, which the bar reads as a bare
+key at layer 1, ahead of every view: an app's Option-← undo (`M-←`) made a
+plain ← undo, and a vim-style bare `u` undid ahead of a list's type select
+while there was a step and reached it while there was not.
 
 **Why not Ctrl-Y for redo:** it is the text controls' yank (the Emacs and Cocoa
 binding), and on BSD-derived ttys "delayed suspend" — raw mode clears that, but

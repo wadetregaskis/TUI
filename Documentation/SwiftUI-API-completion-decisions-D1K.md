@@ -177,8 +177,11 @@ shortcut on a chord still wins, and a focused text control's Ctrl-Z stays its
 undo. The status bar's "undo" and "redo" appear while each has a step and
 perform it on a click — on every terminal — each naming the first of its keys
 the terminal can deliver as itself: `^-` for undo, `^_` for redo where the
-protocol tells Ctrl-_ apart and `M-_` elsewhere, with the defaults.
-`showUndoItems` turns them off. Shown only while there is a step — but
+protocol tells Ctrl-_ apart and `M-_` elsewhere, with the defaults. They name
+the key and do not bind it: no key fires them, so a key an app binds is
+matched only by the undo keys, at the bottom of the chain, step or no step
+(the lane first let the bar read the name as a bare key, so an Option-←
+undo made a plain ← undo). `showUndoItems` turns them off. Shown only while there is a step — but
 `TextField` and `TextEditor` register their edits (B-D1K-6), so every app with
 one shows "undo" once the user has typed in it; only an app with neither,
 registering nothing of its own, never sees them. That is the point (the owner
@@ -189,7 +192,12 @@ wants undo), and an app with its own undo affordance turns them off.
 need to know when a step might have changed, which is not only on a key —
 an app registers from a task or a timer too — so it would need the manager
 to say so, and `NSUndoManager`'s checkpoint notifications have no
-counterpart in the `UndoManager` TUIkit provides on Linux (B-D1K-5).
+counterpart in the `UndoManager` TUIkit provides on Linux (B-D1K-5). While
+there is a step, the bar also names its key: the table's chords for the
+command, sorted and filtered by what the terminal can deliver, rebuilt in
+every build of the bar and on every key that reaches layer 1. A handful of
+chords, unmeasured and not cached; a cache would key on the table and the
+terminal's reporting, both of which change only between frames.
 
 **The alternative** is to show them always (greyed when empty): steadier, but
 two more permanent entries in every app's bar. Free either way.

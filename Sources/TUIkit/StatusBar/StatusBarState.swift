@@ -369,10 +369,17 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// "undo" and "redo", each while the undo manager has a step for it, each
     /// performing it when clicked, and each naming the first of its keys the
-    /// terminal can deliver (none where it can deliver none). They carry their
-    /// action rather than a trigger key, so the keys stay the input chain's
-    /// default bindings (``UndoShortcuts``), behind an app's own shortcuts,
-    /// and never match here.
+    /// terminal can deliver (none where it can deliver none). They name the
+    /// key and do not bind it (`StatusBarItem(id:naming:…)`): the keys stay
+    /// the input chain's default bindings (``UndoShortcuts``), behind the
+    /// focused control and an app's own shortcuts, and never match here. Read
+    /// as a shortcut, the name bound a bare key at layer 1 — an Option-← undo
+    /// key made a plain ← undo, and a bare `u` undid ahead of every view
+    /// while there was a step and reached them while there was not — until
+    /// the 2026-10-05 review.
+    ///
+    /// Each has an identity of its own, not its key's name: two commands
+    /// with no deliverable key both name none, and shared the hover.
     ///
     /// The bar is not isolated to the main actor, though it only ever runs
     /// there; `UndoManager` is.
@@ -383,21 +390,26 @@ public final class StatusBarState: @unchecked Sendable {
         if canUndo {
             items.append(
                 StatusBarItem(
-                    shortcut: undoKeys.hint(for: .undo) ?? "",
-                    label: localization.string(for: LocalizationKey.StatusBar.undo),
-                    order: .undo
+                    id: Self.undoItemID, naming: undoKeys.hint(for: .undo) ?? "",
+                    label: localization.string(for: LocalizationKey.StatusBar.undo), order: .undo
                 ) { _ = UndoCommand.undo.perform(on: undoManager) })
         }
         if canRedo {
             items.append(
                 StatusBarItem(
-                    shortcut: undoKeys.hint(for: .redo) ?? "",
-                    label: localization.string(for: LocalizationKey.StatusBar.redo),
-                    order: .redo
+                    id: Self.redoItemID, naming: undoKeys.hint(for: .redo) ?? "",
+                    label: localization.string(for: LocalizationKey.StatusBar.redo), order: .redo
                 ) { _ = UndoCommand.redo.perform(on: undoManager) })
         }
         return items
     }
+
+    /// The identities of the "undo" and "redo" items: no key's name, so they
+    /// collide with no item that takes its identity from one.
+    static let undoItemID = "statusbar.undo"
+
+    /// See ``undoItemID``.
+    static let redoItemID = "statusbar.redo"
 
     /// The current user items resolved from focus sections, context stack, or global items.
     public var currentUserItems: [any StatusBarItemProtocol] {

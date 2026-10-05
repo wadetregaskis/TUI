@@ -219,6 +219,12 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
     /// The action to perform when the shortcut is triggered.
     private let action: (() -> Void)?
 
+    /// Whether a key can fire the item: `false` for one that only names a
+    /// key bound elsewhere in the input chain (see
+    /// ``init(id:naming:label:order:action:)``), and `true` for every item
+    /// made through the public initializers.
+    let matchesKeys: Bool
+
     /// Creates a status bar item with a localized label and an action.
     ///
     /// A string **literal** binds here, so it is a lookup key — see
@@ -299,6 +305,7 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
         self.order = order
         self.displayInStatusBar = displayInStatusBar
         self.action = action
+        self.matchesKeys = true
 
         // Derive trigger key from shortcut if not explicitly provided
         if let explicitKey = key {
@@ -350,6 +357,38 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
             displayInStatusBar: true, action: nil)
     }
 
+    /// An item that names a key without binding it: it shows `shortcut`,
+    /// performs `action` when clicked, and no key fires it.
+    ///
+    /// For a key the input chain matches somewhere else, by rules the bar's
+    /// vocabulary cannot spell — the app's undo and redo
+    /// (``StatusBarState/showUndoItems``), whose keys are chords of any kind
+    /// an app chooses. Read as a shortcut, the name would bind a bare key: a
+    /// name with an arrow in it matches the plain arrow, and a one-character
+    /// name that character, at layer 1, ahead of every view.
+    ///
+    /// - Parameters:
+    ///   - id: The item's identity, for the hover state: given rather than
+    ///     taken from `shortcut`, which can be empty, or the same for two
+    ///     items.
+    ///   - shortcut: The key's name, shown and never matched.
+    ///   - label: A short description, as written.
+    ///   - order: The display order.
+    ///   - action: What a click performs.
+    init(
+        id: String, naming shortcut: String, label: String, order: StatusBarItemOrder,
+        action: @escaping () -> Void
+    ) {
+        self.id = id
+        self.shortcut = shortcut
+        self.label = label
+        self.order = order
+        self.displayInStatusBar = true
+        self.action = action
+        self.triggerKey = nil
+        self.matchesKeys = false
+    }
+
     /// Whether this item has an action to execute.
     public var hasAction: Bool {
         action != nil
@@ -376,8 +415,11 @@ extension StatusBarItem {
     /// letter — so character triggers keep matching by case, and every other
     /// trigger requires the modifier-free chord (Shift+↑ is extend-selection,
     /// Shift+Tab is backtab; neither is the bare item).
+    ///
+    /// An item that only names a key bound elsewhere — the app's undo and
+    /// redo — matches none.
     public func matches(_ event: KeyEvent) -> Bool {
-        guard !event.ctrl, !event.alt else { return false }
+        guard matchesKeys, !event.ctrl, !event.alt else { return false }
 
         // Handle arrow key combinations like "↑↓"
         if !event.shift {
