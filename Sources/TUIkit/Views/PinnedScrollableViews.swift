@@ -180,7 +180,9 @@ extension PinningStackCore {
     /// The stack's walks keep its sections whole while it pins
     /// (`RenderContext.keepsSectionsWhole`), so its own sections — written in
     /// it or made there by a `ForEach` — reach it as sections to pin; the next
-    /// stack down publishes its axis and takes its own apart again.
+    /// container down takes its own apart again (a stack as it publishes its
+    /// axis, a `ZStack` or an axis-less `Layout` through
+    /// `RenderContext.takingSectionsApart()`).
     func scopingPinnedSections(_ context: RenderContext) -> RenderContext {
         let scope = pinnedSectionScope(context)
         let layout = scope.map { _ in pinnedSectionLayout }

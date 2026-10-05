@@ -79,6 +79,11 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // used here before only expanded `ChildInfoProvider`s, which `ForEach`
         // is not, so `ZStack { ForEach }` rendered nothing at all (the ZStack
         // face of issue #8).
+        //
+        // A container of its own, it takes its sections apart, whatever the
+        // walk that drew it kept whole (`RenderContext.takingSectionsApart()`):
+        // it publishes no axis, which is how every stack clears that.
+        let context = context.takingSectionsApart()
         let children = resolveChildViews(from: content, context: context)
 
         // Draw children in ascending z-index. Ties keep their tree order, so
@@ -178,6 +183,7 @@ extension _ZStackCore: Layoutable {
     /// so the stack does too. Alignment and z-index affect placement/draw order,
     /// not size.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        let context = context.takingSectionsApart()
         let children = resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
 
@@ -265,6 +271,7 @@ extension _ZStackCore: AlignmentGuideQuerying {
     func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
+        let context = context.takingSectionsApart()
         let children = resolveChildViews(from: content, context: context)
         guard anyAlignmentGuide(in: children) else { return nil }
         let drawn = children.filter { !$0.isSpacer }

@@ -288,9 +288,11 @@ public struct RenderContext {
     /// context they RESOLVE their content with and on no other — the views
     /// they then draw are drawn in their ordinary context — and a lazy stack
     /// that pins its sections, which sets it for its walks and its rows alike,
-    /// and which the next stack down clears as it publishes its axis. So it
-    /// reaches every provider in the walk (a `Group`, an `if`, a `ForEach` of
-    /// sections) and no stack below a row.
+    /// and which the next container down clears — a stack as it publishes its
+    /// axis, a `ZStack` or a `Layout` with no axis as it resolves its own
+    /// children (``takingSectionsApart()``). So it reaches every provider in
+    /// the walk (a `Group`, an `if`, a `ForEach` of sections) and no container
+    /// below a row.
     ///
     /// A `Bool` among the flags, in padding that was already there, for the
     /// reason ``measureGeneration`` gives: this struct's stride is load-bearing.
@@ -303,6 +305,18 @@ public struct RenderContext {
     package func keepingSectionsWhole() -> Self {
         var copy = self
         copy.keepsSectionsWhole = true
+        return copy
+    }
+
+    /// This context for a container's own walk, which takes its sections
+    /// apart whatever the walk that drew it kept whole — ``keepsSectionsWhole``
+    /// is a property of ONE walk, and a container in one of that walk's rows
+    /// starts its own. `self` when it already takes them apart, which is
+    /// nearly always.
+    package func takingSectionsApart() -> Self {
+        guard keepsSectionsWhole else { return self }
+        var copy = self
+        copy.keepsSectionsWhole = false
         return copy
     }
 

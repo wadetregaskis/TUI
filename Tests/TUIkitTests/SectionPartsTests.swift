@@ -228,4 +228,28 @@ struct SectionPartsTests {
         #expect(whole.count == 1)
         #expect(whole.first?.wrappedView is Section<Text, Text, EmptyView>)
     }
+
+    @Test("A ZStack or a Layout in a pinned stack's row takes its own sections apart")
+    func containersInAPinnedRow() {
+        // The pinned stack keeps ITS sections whole; a container in one of its
+        // rows that publishes no axis — a `ZStack`, a `Layout` with no stack
+        // orientation — is a new container, whose sections are its parts, as
+        // a `VStack` there already took its own apart.
+        let counted = SubviewCount()
+        let drawn = lines(
+            ScrollView {
+                LazyVStack(alignment: .leading, pinnedViews: .sectionHeaders) {
+                    ZStack(alignment: .topLeading) {
+                        Section { Text("row") } header: { Text("H") }
+                    }
+                    CountingLayout(counted: counted) {
+                        Section { Text("a") } header: { Text("h") }
+                    }
+                }
+            }
+            .frame(height: 6),
+            height: 6)
+        #expect(drawn.first?.hasPrefix("row") == true, "the ZStack overlays the header and the row: \(drawn)")
+        #expect(counted.count == 2, "the Layout sees the header and the row")
+    }
 }

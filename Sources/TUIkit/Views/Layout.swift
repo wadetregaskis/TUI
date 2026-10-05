@@ -349,12 +349,17 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// leaves the divider its default unchanged. ``AnyLayout``'s static
     /// properties cannot know what it erased, so it forwards through
     /// `AxisPublishingLayout` instead.
+    ///
+    /// Either way the layout is a container of its own, and takes its sections
+    /// apart (`RenderContext.takingSectionsApart()`): in a row of a lazy stack
+    /// that keeps its own sections whole, a layout with no axis kept them
+    /// whole too, one subview each.
     private func publishingChildAxis(_ context: RenderContext) -> RenderContext {
         guard
             let axis = L.layoutProperties.stackOrientation
                 ?? (layout as? any AxisPublishingLayout)?.containerAxis
         else {
-            return context
+            return context.takingSectionsApart()
         }
         return context.publishingContainerAxis(axis)
     }
