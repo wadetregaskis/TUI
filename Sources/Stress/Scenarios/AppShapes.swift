@@ -237,6 +237,12 @@ enum AppShapeMatrix {
         variant("code-editor-tailing", "the same editor with a GROWING document — the shape that makes every data-keyed memo miss") {
             AnyView(CodeEditorApp(lines: $0.sized(2_000), seed: $0.seed, tailing: true))
         },
+        variant("text-editor", "one TextEditor over 2,000 lines, each a tenth wider than the screen") {
+            AnyView(TextEditorApp(lines: $0.sized(2_000), seed: $0.seed))
+        },
+        variant("text-editor-typing", "the same editor with its middle line edited every tick — the frame that lays the document out again") {
+            AnyView(TextEditorApp(lines: $0.sized(2_000), seed: $0.seed, typing: true))
+        },
         variant("chat", "bottom-anchored variable-height bubbles, alternating alignment, a live composer") {
             AnyView(ChatApp(count: $0.sized(1_500), seed: $0.seed))
         },

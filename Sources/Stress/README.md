@@ -130,6 +130,11 @@ second of each pair exists because every memo keyed on the rows' data — the ro
 memo, a `Table`'s `.fit` column, a windowed stack's width over all rows — serves
 100% on the settled shape and 0% on the growing one, and a matrix that only ever
 measured the settled shape would report the memo's best day as its only day.
+`text-editor`/`text-editor-typing` is the `TextEditor`'s pair: one editor over
+two thousand lines a tenth wider than the screen, settled and with its middle
+line edited every tick — the idle frame and the edit frame of a long note, and
+the pair a change to how the editor lays its document out is priced on (the
+`code-editor` shape is `Text` rows, not an editor).
 `sidebar`/`sidebar-untagged` is a pair along a third axis: one hand-written
 "All projects" row above 300 looped ones, which makes the `List` walk its
 flattened children eagerly and recover each looped row's selection value from
