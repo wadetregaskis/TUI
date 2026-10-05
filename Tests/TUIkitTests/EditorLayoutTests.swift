@@ -68,6 +68,75 @@ struct EditorLayoutTests {
         }
     }
 
+    /// A self-built frame loop, for the tests that measure between frames.
+    struct Frames {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let context: RenderContext
+
+        init(width: Int, height: Int) {
+            var environment = EnvironmentValues()
+            environment.focusManager = focus
+            environment.applyRuntimeServices(from: tui)
+            context = RenderContext(
+                availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
+        }
+
+        func pass<T>(_ body: () -> T) -> T {
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            focus.beginRenderPass()
+            defer {
+                focus.endRenderPass()
+                tui.stateStorage.endRenderPass()
+            }
+            return body()
+        }
+
+        var handler: TextEditorHandler? { focus.currentFocused as? TextEditorHandler }
+    }
+
+    static let longDocument = Array(repeating: "aaaa bbbb cccc dddd eeee ffff gggg", count: 30)
+        .joined(separator: "\n")
+
+    struct Beside: View {
+        let text: Box
+        var body: some View {
+            HStack(spacing: 1) {
+                Text("1\n2\n3")
+                TextEditor(text: Binding(get: { text.value }, set: { text.value = $0 }))
+            }
+        }
+    }
+
+    /// An HStack measures its editor at the full width, then at the width it
+    /// gives it, and the editor draws at that width and a cell narrower for
+    /// its scroll bar: three widths a frame, and two kept meant the whole
+    /// document wrapped three times on every idle frame.
+    @Test("An editor laid out at several widths a frame wraps its document once for each, not every frame")
+    func idleFramesWrapNothing() throws {
+        let frames = Frames(width: 30, height: 6)
+        let page = Beside(text: Box(Self.longDocument))
+        for _ in 0..<2 { _ = frames.pass { renderToBuffer(page, context: frames.context) } }
+        let layout = try #require(frames.handler).layout()
+        let made = layout.wrapsMade
+        for _ in 0..<3 { _ = frames.pass { renderToBuffer(page, context: frames.context) } }
+        #expect(layout.wrapsMade == made)
+        #expect(layout.wrappings.count >= 3, "the widths a frame asks for are all kept")
+    }
+
+    @Test("A width no frame asks for any more is forgotten")
+    func staleWidthsGo() throws {
+        let layout = EditorLayout(text: Self.longDocument)
+        _ = layout.wrapped(width: 10, tabWidth: .periodic(4))
+        _ = layout.wrapped(width: 12, tabWidth: .periodic(4))
+        layout.endFrame()
+        _ = layout.wrapped(width: 12, tabWidth: .periodic(4))
+        layout.endFrame()
+        #expect(layout.wrappings.map(\.rows.width) == [12])
+        #expect(layout.wrapsMade == 2)
+    }
+
     @Test("An edit hands its lines over with its text")
     func editKeepsItsLines() {
         let box = Box("ab\ncd")

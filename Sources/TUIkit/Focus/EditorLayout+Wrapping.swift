@@ -65,18 +65,46 @@ struct WrappedRows {
 }
 
 extension EditorLayout {
+    /// The most wrappings kept at once: a bound on memory, not the rule. Each
+    /// is the whole document laid out.
+    static let wrappingLimit = 8
+
     /// The document wrapped at `width`, kept for the text this layout is of.
     ///
-    /// Two widths are kept, not one: an editor whose text overflows lays its
-    /// text out once at its whole width and again a cell narrower, for the
-    /// scroll bar's column, and both are asked for again every frame.
+    /// Every width a frame asks for is kept until a frame asks for none of it
+    /// (``endFrame()``), not a fixed number of the latest: an editor is laid
+    /// out at as many widths a frame as its container measures it at. One
+    /// whose text overflows wraps at its whole width and again a cell
+    /// narrower, for the scroll bar's column; in an `HStack` it is measured
+    /// first at the full width, then at the width it is given, so that is
+    /// three widths a frame, and two kept meant the whole document wrapped
+    /// three times on every idle frame.
     func wrapped(width: Int, tabWidth: TabWidth) -> WrappedRows {
-        if let kept = wrappings.first(where: { $0.rows.width == max(1, width) && $0.tabWidth == tabWidth }) {
-            return kept.rows
+        let width = max(1, width)
+        if let index = wrappings.firstIndex(where: { $0.rows.width == width && $0.tabWidth == tabWidth }) {
+            wrappings[index].frame = frame
+            return wrappings[index].rows
         }
         let rows = WrappedRows(lines: lines, width: width, tabWidth: tabWidth)
-        if wrappings.count >= 2 { wrappings.removeFirst() }
-        wrappings.append((rows, tabWidth))
+        wrapsMade += 1
+        if wrappings.count >= Self.wrappingLimit {
+            // The one asked for longest ago.
+            if let stalest = wrappings.indices.min(by: { wrappings[$0].frame < wrappings[$1].frame }) {
+                wrappings.remove(at: stalest)
+            }
+        }
+        wrappings.append((rows, tabWidth, frame))
         return rows
+    }
+
+    /// Ends a drawn frame: forgets the widths it did not ask for, and stamps
+    /// what the next frame asks for as the next frame's.
+    ///
+    /// Called by the editor at the end of its render — after this frame's
+    /// measures and its own wraps, which are what the next frame will ask for
+    /// again.
+    func endFrame() {
+        wrappings.removeAll { $0.frame != frame }
+        frame &+= 1
     }
 }

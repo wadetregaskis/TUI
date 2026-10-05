@@ -338,6 +338,9 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
             wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring)
         let contentWidth = window.contentWidth
+        // The widths this frame asked for are the ones to keep (see
+        // `EditorLayout.endFrame()`); a measure is not the end of a frame.
+        if !context.isMeasuring { handler.layout().endFrame() }
 
         // A subtle field background so the editor reads as a text field (like
         // TextField's chrome) rather than plain text — no full box. Opt into the

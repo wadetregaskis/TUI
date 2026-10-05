@@ -22,8 +22,16 @@ final class EditorLayout {
     /// empty: an empty text is one empty line.
     let lines: [[Character]]
 
-    /// The lines wrapped at the widths last asked for (``wrapped(width:tabWidth:)``).
-    var wrappings: [(rows: WrappedRows, tabWidth: TabWidth)] = []
+    /// The lines wrapped at the widths asked for this frame and the last
+    /// (``wrapped(width:tabWidth:)``), each with the frame that last asked.
+    var wrappings: [(rows: WrappedRows, tabWidth: TabWidth, frame: UInt)] = []
+
+    /// The frame the wrappings are stamped with, moved on by ``endFrame()``.
+    var frame: UInt = 0
+
+    /// How many times this layout has wrapped its lines: what shows a frame
+    /// served from the wrappings it kept rather than wrapping again.
+    var wrapsMade = 0
 
     /// Splits `text` into its lines.
     init(text: String) {
