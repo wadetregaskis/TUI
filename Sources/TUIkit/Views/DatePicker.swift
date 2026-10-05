@@ -358,15 +358,12 @@ struct _DatePickerCore: View, Renderable, Layoutable {
         return (frames[cycle.step % max(1, frames.count)], run)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let isDisabled = self.isDisabled || !context.environment.isEnabled
-        let palette = context.environment.palette
-        let stateStorage = context.stateStorage!
-
-        let persistedFocusID = FocusRegistration.persistFocusID(
-            context: context, explicitFocusID: focusID,
-            defaultPrefix: "datepicker", propertyIndex: StateIndex.focusID)
-
+    /// The persisted handler, synced to this frame: its binding, its model —
+    /// rebuilt every frame, so a change of calendar or zone takes effect on the
+    /// next — and an active component the model still has.
+    private func resolveHandler(
+        focusID: String, isDisabled: Bool, storage: StateStorage, context: RenderContext
+    ) -> DatePickerHandler {
         // The subtree's calendar, in the subtree's zone. Both are read here
         // rather than baked into the handler, because the model is rebuilt each
         // frame and reassigned below — so changing either takes effect on the
@@ -378,16 +375,31 @@ struct _DatePickerCore: View, Renderable, Layoutable {
 
         let handlerKey = StateStorage.StateKey(
             identity: context.identity, propertyIndex: StateIndex.handler)
-        let handlerBox: StateBox<DatePickerHandler> = stateStorage.storage(
+        let handlerBox: StateBox<DatePickerHandler> = storage.storage(
             for: handlerKey,
             default: DatePickerHandler(
-                focusID: persistedFocusID, selection: selection, model: model,
+                focusID: focusID, selection: selection, model: model,
                 canBeFocused: !isDisabled))
         let handler = handlerBox.value
         handler.selection = selection
         handler.model = model
         handler.canBeFocused = !isDisabled
         handler.activeIndex = min(max(0, handler.activeIndex), max(0, model.orderedKinds().count - 1))
+        return handler
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let isDisabled = self.isDisabled || !context.environment.isEnabled
+        let palette = context.environment.palette
+        let stateStorage = context.stateStorage!
+
+        let persistedFocusID = FocusRegistration.persistFocusID(
+            context: context, explicitFocusID: focusID,
+            defaultPrefix: "datepicker", propertyIndex: StateIndex.focusID)
+
+        let handler = resolveHandler(
+            focusID: persistedFocusID, isDisabled: isDisabled, storage: stateStorage, context: context)
+        let model = handler.model
         // Keep the bound date within range (the binding is the source of truth).
         //
         // Only when it is actually out of range. Writing a binding writes a
