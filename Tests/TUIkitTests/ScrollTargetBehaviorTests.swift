@@ -20,80 +20,14 @@ import Testing
 @Suite("Scroll target behaviours")
 struct ScrollTargetBehaviorTests {
 
-    /// Renders frames of one view, and drives its wheel and keys.
-    @MainActor
-    private final class Frames {
-        let tui = TUIContext()
-        let focusManager = FocusManager()
-        var last = FrameBuffer()
-        var width: Int
-        var height: Int
-
-        init(width: Int = 30, height: Int = 10) {
-            self.width = width
-            self.height = height
-        }
-
-        @discardableResult
-        func render<V: View>(_ view: V) -> FrameBuffer {
-            var environment = EnvironmentValues()
-            environment.focusManager = focusManager
-            environment.verticalScrollIndicatorVisibility = .hidden
-            environment.horizontalScrollIndicatorVisibility = .hidden
-            environment.applyRuntimeServices(from: tui)
-            let context = RenderContext(
-                availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
-            tui.stateStorage.beginRenderPass()
-            tui.renderCache.beginRenderPass()
-            focusManager.beginRenderPass()
-            last = renderToBuffer(view, context: context)
-            focusManager.endRenderPass()
-            tui.stateStorage.endRenderPass()
-            tui.renderCache.removeInactive()
-            tui.mouseEventDispatcher.setRegions(last.hitTestRegions)
-            return last
-        }
-
-        /// One wheel tick over the middle of the view.
-        func wheel(_ button: MouseButton) {
-            tui.mouseEventDispatcher.setActiveSupport(.standard)
-            _ = tui.mouseEventDispatcher.dispatch(
-                MouseEvent(button: button, phase: .scrolled, x: width / 2, y: height / 2))
-        }
-
-        var scrollView: ScrollViewHandler? {
-            focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
-        }
-
-        /// The first row number drawn on the frame's first line that has one.
-        var topRow: Int? {
-            for line in last.lines {
-                let text = line.stripped
-                if let marker = text.range(of: "row ") {
-                    return Int(text[marker.upperBound...].prefix { $0.isNumber })
-                }
-            }
-            return nil
-        }
-    }
-
-    /// A lazy stack of `count` rows, each `height` lines tall with its number
-    /// on its first line.
-    private func rows(_ count: Int, height: @escaping (Int) -> Int = { _ in 1 }, lazy: Bool = true) -> AnyView {
-        let rows = ForEach(0..<count, id: \.self) { index in
-            Text("row \(index)").frame(height: height(index), alignment: .top)
-        }
-        return lazy
-            ? AnyView(LazyVStack(alignment: .leading, spacing: 0) { rows }.scrollTargetLayout())
-            : AnyView(VStack(alignment: .leading, spacing: 0) { rows }.scrollTargetLayout())
-    }
+    private typealias Frames = ScrollTargetFrames
 
     // MARK: - Paging on a ScrollView
 
     @Test("Paging: every wheel tick and key step moves a page, and the last page ends at the end")
     func pagingSteps() {
         let frames = Frames()
-        let view = ScrollView { rows(95) }.scrollTargetBehavior(.paging)
+        let view = ScrollView { scrollTargetRows(95) }.scrollTargetBehavior(.paging)
         frames.render(view)
         frames.wheel(.scrollDown)
         frames.render(view)
@@ -125,7 +59,7 @@ struct ScrollTargetBehaviorTests {
     @Test("A paging view resized between pages is put back on one, as SwiftUI consults on a size change")
     func pagingResettlesOnResize() {
         let frames = Frames()
-        let view = ScrollView { rows(95) }.scrollTargetBehavior(.paging)
+        let view = ScrollView { scrollTargetRows(95) }.scrollTargetBehavior(.paging)
         frames.render(view)
         frames.wheel(.scrollDown)
         frames.render(view)
@@ -156,7 +90,7 @@ struct ScrollTargetBehaviorTests {
     @Test("Paging under the \"N more\" lines: a page is the lines between them, so every line is read")
     func pagingUnderTextIndicators() {
         let frames = Frames()
-        let view = ScrollView { rows(30) }
+        let view = ScrollView { scrollTargetRows(30) }
             .frame(height: 10)
             .scrollIndicators(.automatic)
             .scrollIndicatorStyle(.text)
@@ -178,7 +112,7 @@ struct ScrollTargetBehaviorTests {
     @Test("View-aligned under the \"N more\" lines: the row a tick lands on is read whole, below \"▲\"")
     func viewAlignedUnderTextIndicators() {
         let frames = Frames()
-        let view = ScrollView { rows(30, height: { _ in 2 }) }
+        let view = ScrollView { scrollTargetRows(30, height: { _ in 2 }) }
             .frame(height: 10)
             .scrollIndicators(.automatic)
             .scrollIndicatorStyle(.text)
@@ -197,7 +131,7 @@ struct ScrollTargetBehaviorTests {
     @Test("Without a behaviour a wheel tick moves three lines")
     func freeControl() {
         let frames = Frames()
-        let view = ScrollView { rows(95) }
+        let view = ScrollView { scrollTargetRows(95) }
         frames.render(view)
         frames.wheel(.scrollDown)
         frames.render(view)
@@ -343,7 +277,7 @@ struct ScrollTargetBehaviorTests {
     @Test("A behaviour that holds the view mid-content keeps the wheel: nothing chains to the parent")
     func heldStepDoesNotChain() {
         let frames = Frames()
-        let view = ScrollView { rows(95) }
+        let view = ScrollView { scrollTargetRows(95) }
             .scrollTargetBehavior(Stay())
             .scrollChainingDelay(.zero)
         frames.render(view)
@@ -358,7 +292,7 @@ struct ScrollTargetBehaviorTests {
     @Test("A vertical-only pager's Left key moves nothing, and is not consumed")
     func horizontalKeyOnVerticalPager() {
         let frames = Frames()
-        let view = ScrollView { rows(93) }.scrollTargetBehavior(.paging)
+        let view = ScrollView { scrollTargetRows(93) }.scrollTargetBehavior(.paging)
         frames.render(view)
         _ = frames.scrollView?.handleKeyEvent(KeyEvent(key: .end))
         frames.render(view)
@@ -462,7 +396,7 @@ struct ScrollTargetBehaviorTests {
     func customBehaviour() {
         let frames = Frames()
         let asked = Asked()
-        let view = ScrollView { rows(95) }.scrollTargetBehavior(EveryFifth(asked: asked))
+        let view = ScrollView { scrollTargetRows(95) }.scrollTargetBehavior(EveryFifth(asked: asked))
         frames.render(view)
         frames.wheel(.scrollDown)
         frames.render(view)
@@ -491,7 +425,7 @@ struct ScrollTargetBehaviorTests {
         let frames = Frames()
         let anchor = Box<ScrollAnchor<Int>?>(nil)
         let binding = Binding(get: { anchor.value }, set: { anchor.value = $0 })
-        let view = ScrollView { rows(95) }
+        let view = ScrollView { scrollTargetRows(95) }
             .scrollTargetBehavior(Stay())
             .anchorPosition(binding)
         frames.render(view)
@@ -504,125 +438,6 @@ struct ScrollTargetBehaviorTests {
     nonisolated private final class Box<T> {
         var value: T
         init(_ value: T) { self.value = value }
-    }
-
-    // MARK: - View-aligned on a ScrollView
-
-    @Test("View-aligned: a tick over four-line rows lands on the next row, marked stack only",
-          arguments: [true, false])
-    func viewAlignedRows(marked: Bool) {
-        let frames = Frames()
-        let stack = LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<30, id: \.self) { Text("row \($0)").frame(height: 4, alignment: .top) }
-        }
-        let view = ScrollView { stack.scrollTargetLayout(isEnabled: marked) }
-            .scrollTargetBehavior(.viewAligned)
-        frames.render(view)
-        frames.wheel(.scrollDown)
-        frames.render(view)
-        #expect(frames.scrollView?.scrollOffset == (marked ? 4 : 3), "unmarked, nothing to align to")
-        frames.wheel(.scrollDown)
-        frames.render(view)
-        #expect(frames.scrollView?.scrollOffset == (marked ? 8 : 6))
-        _ = frames.scrollView?.handleKeyEvent(KeyEvent(key: .pageDown))
-        frames.render(view)
-        #expect(frames.scrollView?.scrollOffset == (marked ? 16 : 16), "a page reaches row 4")
-    }
-
-    /// Every way a stack reports its rows: the full walk (a lazy stack under
-    /// 256 rows), the anchored window (over it), and an eager stack's layout.
-    @Test(
-        "View-aligned settles on rows of varying height, lazy or eager",
-        arguments: [(true, 40), (true, 400), (false, 40)])
-    func viewAlignedVariableRows(lazy: Bool, count: Int) {
-        let frames = Frames()
-        // Heights 2, 5, 2, 5, …: row tops 0, 2, 7, 9, 14, 16, 21, …
-        let view = ScrollView { rows(count, height: { $0.isMultiple(of: 2) ? 2 : 5 }, lazy: lazy) }
-            .scrollTargetBehavior(.viewAligned)
-        frames.render(view)
-        var offsets: [Int] = []
-        for _ in 0..<4 {
-            frames.wheel(.scrollDown)
-            frames.render(view)
-            offsets.append(frames.scrollView?.scrollOffset ?? -1)
-        }
-        // From 0, 3 lines reach the top at 2; from 2, 5 reaches nothing further
-        // than 2 short of 7, so the next row, 7; from 7, 9; from 9, 14 (12 is short).
-        #expect(offsets == [2, 7, 9, 14], "\(offsets)")
-    }
-
-    /// The rows reach the scroll view moved by what is drawn above the stack
-    /// (`ScrollWindowRelay`): its content margins, or a `Section`'s header.
-    @Test("View-aligned finds the rows below the content's top margin")
-    func viewAlignedUnderAMargin() {
-        let frames = Frames()
-        let stack = LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<30, id: \.self) { Text("row \($0)").frame(height: 4, alignment: .top) }
-        }
-        let view = ScrollView { stack.scrollTargetLayout() }
-            .contentMargins(.top, 2)
-            .scrollTargetBehavior(.viewAligned)
-        frames.render(view)
-        var offsets: [Int] = []
-        for _ in 0..<2 {
-            frames.wheel(.scrollDown)
-            frames.render(view)
-            offsets.append(frames.scrollView?.scrollOffset ?? -1)
-        }
-        // Row tops at 2, 6, 10, …: the first tick reaches row 0's, the next
-        // row 1's.
-        #expect(offsets == [2, 6], "\(offsets)")
-    }
-
-    /// The carousel SwiftUI's documentation shows: a horizontal stack, marked.
-    @Test("View-aligned across: a tick lands on the next column, lazy or eager, under a leading margin too",
-          arguments: [(true, 0), (false, 0), (true, 1)])
-    func viewAlignedColumns(lazy: Bool, margin: Int) {
-        let frames = Frames(width: 20, height: 3)
-        let items = ForEach(0..<20, id: \.self) { Text("item\($0)").frame(width: 7, alignment: .leading) }
-        let stack: AnyView =
-            lazy
-            ? AnyView(LazyHStack(spacing: 2) { items }.scrollTargetLayout())
-            : AnyView(HStack(spacing: 2) { items }.scrollTargetLayout())
-        let view = ScrollView(.horizontal) { stack }
-            .contentMargins(.leading, margin)
-            .scrollTargetBehavior(.viewAligned)
-        frames.render(view)
-        var offsets: [Int] = []
-        for _ in 0..<2 {
-            frames.wheel(.scrollRight)
-            frames.render(view)
-            offsets.append(frames.scrollView?.horizontal.scrollOffset ?? -1)
-        }
-        // Columns every 9 cells (7 wide, a gap of 2), from the leading margin.
-        #expect(offsets == (margin == 0 ? [9, 18] : [1, 10]), "\(offsets)")
-    }
-
-    @Test("View-aligned limited to one view: a tick over one-line rows moves one row")
-    func viewAlignedByOne() {
-        let frames = Frames()
-        let view = ScrollView { rows(50) }.scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByOne))
-        frames.render(view)
-        frames.wheel(.scrollDown)
-        frames.render(view)
-        #expect(frames.scrollView?.scrollOffset == 1)
-        _ = frames.scrollView?.handleKeyEvent(KeyEvent(key: .pageDown))
-        frames.render(view)
-        #expect(frames.scrollView?.scrollOffset == 2, "a page too, one view at a time")
-    }
-
-    @Test("View-aligned at an anchor: a centred row's centre meets the view's")
-    func viewAlignedCentred() {
-        let frames = Frames()
-        let stack = LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<30, id: \.self) { Text("row \($0)").frame(height: 4, alignment: .top) }
-        }
-        let view = ScrollView { stack.scrollTargetLayout() }.scrollTargetBehavior(.viewAligned(anchor: .center))
-        frames.render(view)
-        frames.wheel(.scrollDown)
-        frames.render(view)
-        // Row 1 spans lines 4..<8, centred in ten lines from offset 1 (lines 1..<11).
-        #expect(frames.scrollView?.scrollOffset == 1)
     }
 
     // MARK: - List and Table
