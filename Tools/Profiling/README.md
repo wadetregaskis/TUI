@@ -420,7 +420,10 @@ Two estimates price output changes before anybody builds them
 
 - **`--runs`** counts, against today's stream, what each of O3's four byte
   trims would save on its own: the padding a whole-line row writes after its
-  `ESC[2K` (the erase already painted those cells), blank runs of five or more
+  `ESC[2K` (the erase already painted those cells — counted only where a
+  trailing blank shows nothing but the background in force at the erase, so
+  a reversed or differently coloured run to the row's end, such as a selected
+  row's highlight, is not padding), blank runs of five or more
   at a span's end that `CSI n X` could erase (only where the blanks carry
   nothing an erase would lose, such as an underline), absolute moves to a later
   column of the row the cursor is on that `CSI n C` could replace, and the `;1`

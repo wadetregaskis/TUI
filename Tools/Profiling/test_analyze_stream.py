@@ -80,6 +80,36 @@ class TestRuns(Scratch):
         self.assertEqual(trims["forward"], len(cup(3, 30)) - len(f"{ESC}[9C"))
         self.assertEqual(trims["default_column"], 3 + 2)
 
+    def test_padding_drawn_in_another_state_than_the_erase_is_not_padding(self):
+        # The review's row: the erase paints background 17, and the five
+        # trailing blanks are reverse video — a highlight running to the
+        # edge, which trimming would drop. None of them is padding.
+        reversed_tail = (cup(1, 1) + f"{ESC}[48;5;17m{ESC}[2K" + "hello"
+                         + f"{ESC}[7m" + " " * 5 + f"{ESC}[0m")
+        trims = self.quietly(analyze_stream.runs, self.write("reverse.ansi", reversed_tail))
+        self.assertEqual(trims["padding"], 0)
+        # Another background after the erase (a status bar's): not padding.
+        other_background = (cup(1, 1) + f"{ESC}[48;5;17m{ESC}[2K" + "hello"
+                            + f"{ESC}[48;5;52m" + " " * 5)
+        trims = self.quietly(analyze_stream.runs, self.write("background.ansi", other_background))
+        self.assertEqual(trims["padding"], 0)
+        # A reset before the tail leaves its blanks in the DEFAULT background,
+        # which is not the 17 the erase painted: not padding, and neither are
+        # the reversed blanks before them, which the walk back never reaches.
+        mixed = (cup(1, 1) + f"{ESC}[48;5;17m{ESC}[2K" + "hi" + f"{ESC}[7m" + " " * 4
+                 + f"{ESC}[0m" + " " * 3)
+        trims = self.quietly(analyze_stream.runs, self.write("mixed.ansi", mixed))
+        self.assertEqual(trims["padding"], 0)
+
+    def test_padding_in_the_erase_background_counts_whatever_the_foreground(self):
+        # A foreground or a bold shows nothing on a space, so blanks in the
+        # erase's background are padding even after the content changed them;
+        # only the blanks back to the first chunk in another state count.
+        stream = (cup(1, 1) + f"{ESC}[48;5;17m{ESC}[2K" + "hello" + f"{ESC}[7m" + " " * 2
+                  + f"{ESC}[27;38;5;9;1m" + " " * 6)
+        trims = self.quietly(analyze_stream.runs, self.write("foreground.ansi", stream))
+        self.assertEqual(trims["padding"], 6)
+
     def test_a_blank_an_erase_cannot_draw_is_not_counted(self):
         # Underlined blanks show the underline; an erase would not.
         stream = cup(2, 4) + "ab" + f"{ESC}[4m" + " " * 9

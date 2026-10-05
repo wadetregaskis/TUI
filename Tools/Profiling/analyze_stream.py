@@ -18,7 +18,8 @@ Two further analyses estimate output changes before anybody builds them
 (Documentation/Ghostty-VT-adoption.md, O2 and O3):
 
   --runs   The four byte trims of O3, each counted against today's stream:
-           the padding after a whole-line row's `ESC[2K`, blank runs a
+           the padding after a whole-line row's `ESC[2K` (trailing blanks
+           that show only the background the erase painted), blank runs a
            `CSI n X` could erase, cursor moves a `CSI n C` could replace, and
            the `;1` of a column-1 `CSI r;1 H`. Each figure is what that trim
            alone would save; they overlap, so they do not add up.
@@ -185,6 +186,20 @@ def only_background(state):
     return all(key in ("fg", "bg") or key in (b"1", b"2", b"3") for key in (state or {}))
 
 
+def blank_matches_erase(blank_state, erase_state):
+    """Whether a blank drawn in `blank_state` shows exactly what an erase
+    issued in `erase_state` left in its cell: the erase's background and
+    nothing else. Same state as far as a space can show it — a foreground, a
+    bold or an italic is invisible on one, so those may differ; a background,
+    a reverse, an underline or a strike may not. An erase issued with any of
+    those last three in force is one whose fill differs by terminal, so
+    nothing is matched against it."""
+    erase_state = erase_state or {}
+    blank_state = blank_state or {}
+    return (only_background(erase_state) and only_background(blank_state)
+            and blank_state.get("bg") == erase_state.get("bg"))
+
+
 def runs(path):
     """O3: what each of the four trims would save on this stream, alone."""
     data = read_stream(path)
@@ -201,7 +216,27 @@ def runs(path):
         nonlocal padding, padding_rows, erasable, erasable_spans
         if not segment or not segment["text"]:
             return
-        # The trailing blanks of the row's text, and whether every one of them
+        if segment["whole_line"]:
+            # The row opened with `ESC[2K`, which painted every cell in the
+            # background in force AT THE ERASE, and nothing else. A trailing
+            # blank is padding only where it shows exactly that; one drawn in
+            # another background, or reversed — a selected row's highlight
+            # running to the edge, a status bar — is the row's content, and
+            # trimming it would drop what it draws. So the walk back from the
+            # row's end stops at the first chunk that shows something else.
+            redundant = 0
+            for chunk, chunk_state in reversed(segment["text"]):
+                if not blank_matches_erase(chunk_state, segment["erase_state"]):
+                    break
+                stripped = chunk.rstrip(b" ")
+                redundant += len(chunk) - len(stripped)
+                if stripped:
+                    break
+            if redundant:
+                padding += redundant
+                padding_rows += 1
+            return
+        # The trailing blanks of the span's text, and whether every one of them
         # was written in a state an erase reproduces.
         trailing = 0
         plain = True
@@ -213,12 +248,7 @@ def runs(path):
                 break
         if not trailing:
             return
-        if segment["whole_line"]:
-            # The row opened with `ESC[2K`, which already painted these cells
-            # in the row's background: every one of them is padding.
-            padding += trailing
-            padding_rows += 1
-        elif plain and trailing >= 5:
+        if plain and trailing >= 5:
             erasable += trailing - len(f"\x1b[{trailing}X")
             erasable_spans += 1
 
@@ -228,6 +258,7 @@ def runs(path):
             continue
         if kind == "csi" and final == ord("K") and params == b"2" and segment is not None:
             segment["whole_line"] = True
+            segment["erase_state"] = state  # what the erase painted with
             continue
         if kind == "csi" and final in (ord("H"), ord("f")):
             close(segment)
