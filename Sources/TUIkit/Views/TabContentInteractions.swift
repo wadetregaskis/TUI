@@ -342,6 +342,12 @@ extension _TabViewCore {
     /// click region, which a right-click and a click released unmoved fall
     /// through to. Their menus go where the strip's Shift+F10 finds them, on
     /// its handler.
+    ///
+    /// The pointer's hover goes to the front-most region alone, and none of
+    /// the host's answers it, so in front of them all goes a hover observer
+    /// (``MouseEventDispatcher/registerHoverObserver(in:_:)``) that lifts the
+    /// chip as its own region does when nothing covers it. Without it a tab
+    /// with a menu, a drag or a drop never lifted under the pointer.
     @MainActor
     func attachTabInteractions(
         to buffer: inout FrameBuffer,
@@ -349,7 +355,7 @@ extension _TabViewCore {
         context: RenderContext
     ) {
         let handlerKey = StateStorage.StateKey(identity: context.identity, propertyIndex: TabViewStateIndex.handler)
-        guard !context.isMeasuring,
+        guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher,
             let handler = (context.stateStorage?.existingStorage(for: handlerKey) as StateBox<TabStripHandler>?)?.value
         else { return }
         let openers = handler.menuOpeners
@@ -368,10 +374,41 @@ extension _TabViewCore {
                         hoverBox.value = nil
                     }
                 })
-            let hosted = TUIkit.renderToBuffer(
-                host, context: context.withChildIdentity(erasedType: _RawTab.self, key: "\(tab.value)"))
+            let hostContext = context.withChildIdentity(erasedType: _RawTab.self, key: "\(tab.value)")
+            let hosted = TUIkit.renderToBuffer(host, context: hostContext)
             buffer.hitTestRegions += hosted.shiftedHitTestRegions(byX: region.x, y: region.y)
             buffer.overlays += hosted.shiftedOverlays(byX: region.x, y: region.y)
+            let observer = dispatcher.registerHoverObserver(in: hostContext) { event in
+                Self.hover(event, overTab: index, hoverBox: hoverBox) ?? false
+            }
+            buffer.hitTestRegions.append(
+                HitTestRegion(
+                    offsetX: region.x, offsetY: region.y, width: region.width, height: region.height,
+                    handlerID: observer, focusID: nil))
+        }
+    }
+
+    /// What the pointer's motion over the chip of tab `index` does: lifts it on
+    /// arriving, lets it down on leaving. `nil` for an event that is not
+    /// motion, which is the caller's to handle.
+    ///
+    /// Shared by the chip's own region (`attachTabClicks`) and, for a chip
+    /// whose tab carries interactions, the hover observer in front of them
+    /// (``attachTabInteractions(to:regions:context:)``).
+    static func hover(_ event: MouseEvent, overTab index: Int, hoverBox: StateBox<Int?>) -> Bool? {
+        switch event.phase {
+        case .entered, .moved:
+            // Only a CHANGE means something: consuming every .moved
+            // re-rendered the whole app once per motion drain for a
+            // cursor travelling inside a tab it already lit.
+            guard hoverBox.value != index else { return false }
+            hoverBox.value = index
+            return true
+        case .exited:
+            if hoverBox.value == index { hoverBox.value = nil }
+            return true
+        default:
+            return nil
         }
     }
 }

@@ -689,20 +689,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             let capture = selection
             let index = region.index
             let handlerID = dispatcher.register(in: context) { event in
-                switch event.phase {
-                case .entered, .moved:
-                    // Only a CHANGE means something: consuming every .moved
-                    // re-rendered the whole app once per motion drain for a
-                    // cursor travelling inside a tab it already lit.
-                    guard hoverBox.value != index else { return false }
-                    hoverBox.value = index
-                    return true
-                case .exited:
-                    if hoverBox.value == index { hoverBox.value = nil }
-                    return true
-                default:
-                    break
-                }
+                if let lifted = Self.hover(event, overTab: index, hoverBox: hoverBox) { return lifted }
                 guard event.phase == .released, event.button == .left else {
                     return event.phase == .pressed && event.button == .left
                 }
