@@ -4358,6 +4358,16 @@ the keypad.
   `modifierKeyAlternate(.command)` stay drawn on the way back. Whether a
   terminal itself reports releases on losing the focus is unmeasured; the
   rule holds either way.
+- **A pop forgets them too** — on the way into a suspend, as on the way out:
+  the decoder's memory goes with the protocol, and every modifier is reported
+  released (Caps Lock with them, which the fresh memory starts off) if the
+  state last reported was anything else, delivered at the first read after
+  the resume. After the re-push, the first key report that differs from
+  "nothing held" reports the state again. Until the 2026-10-05 review the
+  app kept the state it had: a Ctrl held for the Ctrl-Z that suspended it
+  and released in the shell matched the fresh memory's "nothing held", so no
+  report came, and a `modifierKeyAlternate(.control)` stayed drawn after `fg`
+  until Ctrl was pressed again.
 - Keys TUIkit has no `Key` for are dropped: Insert, the keypad's Begin, Print
   Screen, Pause, Menu, F21 and up, the media keys.
 

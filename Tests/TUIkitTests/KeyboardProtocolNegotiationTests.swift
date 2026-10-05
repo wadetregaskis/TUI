@@ -113,6 +113,37 @@ struct KeyboardProtocolNegotiationTests {
         #expect(terminal.keyboardEnhancement == .requested)
     }
 
+    @Test("A modifier held into a suspend is released by the pop, so the app does not believe it held after the resume")
+    func popReleasesModifiers() {
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?31u" + Self.fence])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
+        let monitor = ModifierKeyMonitor()
+        func read() -> [TerminalInput] {
+            var events: [TerminalInput] = []
+            while let event = terminal.readEvent() {
+                if case .modifierKeys(let state) = event { monitor.record(state) }
+                events.append(event)
+            }
+            return events
+        }
+        // Ctrl goes down, and Ctrl-Z, which an app that took it out of undo
+        // suspends on.
+        script.reads.append(Array("\u{1B}[57442;5u\u{1B}[122;5u".utf8))
+        _ = read()
+        #expect(monitor.current == .control)
+        terminal.popKeyboardFlags()
+        // Ctrl is let go in the shell, unreported; `fg`; a key.
+        terminal.repushKeyboardFlags()
+        script.reads.append(Array("\u{1B}[97u".utf8))
+        #expect(read() == [.modifierKeys(ModifierKeyState()), .key(KeyEvent(character: "a"))])
+        #expect(monitor.current.isEmpty)
+        // Nothing held into it, nothing reported out of it.
+        terminal.popKeyboardFlags()
+        terminal.repushKeyboardFlags()
+        script.reads.append(Array("\u{1B}[98u".utf8))
+        #expect(read() == [.key(KeyEvent(character: "b"))])
+    }
+
     @Test("Nothing is popped or pushed on a terminal that never took the protocol")
     func noPopWithoutAPush() {
         let (terminal, script) = makeTerminal(reads: [Self.fence])

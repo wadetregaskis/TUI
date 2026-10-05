@@ -14,8 +14,9 @@ import TUIkitCore
 /// Fed by the run loop from `TerminalInput.modifierKeys`, which only a terminal
 /// speaking the kitty keyboard protocol sends — a modifier key pressed or
 /// released on its own, or a lock key toggled, and the parser's own report
-/// when a key's modifiers disagree with the last one or the terminal loses
-/// the focus (`KittyKeyDecoder`). In a legacy encoding nothing
+/// when a key's modifiers disagree with the last one, the terminal loses the
+/// focus, or the protocol is popped for a suspend (`KittyKeyDecoder`). In a
+/// legacy encoding nothing
 /// feeds it, so the state stays empty and nothing it holds ever fires; the
 /// render loop does not even publish it there
 /// (``KeyboardReporting/reportsModifierKeys``).

@@ -127,6 +127,27 @@ package enum KittyKeyDecoder {
         return .modifierKeys(released)
     }
 
+    /// What the input parser reports when the protocol is popped — on the way
+    /// into a suspend, or out of the app: every modifier released, Caps Lock
+    /// off, if the state last reported was anything else; and `memory` is
+    /// forgotten.
+    ///
+    /// The state the app goes on with must be the one the forgotten memory
+    /// starts from. Whatever is let go of while the shell has the terminal is
+    /// not reported to the app, and a key report after the resume is compared
+    /// with the fresh memory's "nothing held": a Ctrl held for the Ctrl-Z that
+    /// suspended the app, and released in the shell, matched it, so nothing
+    /// was reported and the app believed Ctrl held until it was pressed again.
+    /// Caps Lock goes with the rest, unlike at a focus loss, because the fresh
+    /// memory starts it off; the first key report after the resume says
+    /// whether it is on.
+    package static func protocolPopped(memory: inout KittyKeyMemory) -> TerminalInput? {
+        let reported = memory.reportedState
+        memory = KittyKeyMemory()
+        guard let reported, let fresh = memory.reportedState, reported != fresh else { return nil }
+        return .modifierKeys(fresh)
+    }
+
     /// `decoded`, after a report of the modifier state when `bits` disagree
     /// with the one last reported.
     ///

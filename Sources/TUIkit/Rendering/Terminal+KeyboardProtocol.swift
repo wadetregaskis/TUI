@@ -226,12 +226,20 @@ extension Terminal {
     /// Pops the flags this process pushed, if it pushed any and has not
     /// popped them yet. On exit and on the way into a suspend, while the
     /// alternate screen whose stack they were pushed on is still showing.
+    ///
+    /// The decoder's memory goes with the protocol, and the app hears every
+    /// modifier released if it last heard one held: the report waits in the
+    /// queue for the first read after the resume, so the app's modifier state
+    /// starts again from the memory's, and the first key report that differs
+    /// from it reports the difference (``KittyKeyDecoder/protocolPopped(memory:)``).
     func popKeyboardFlags() {
         guard keyboardFlagsPushed else { return }
         sendToTerminal(KeyboardProtocolQuery.pop)
         keyboardFlagsPushed = false
         keyboardEnhancement = []
-        keyboardMemory = KittyKeyMemory()
+        if let released = KittyKeyDecoder.protocolPopped(memory: &keyboardMemory) {
+            queuedInputs.append(released)
+        }
         armSignalRestore()
     }
 
