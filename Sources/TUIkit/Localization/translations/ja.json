@@ -58,6 +58,7 @@
   "label.suppressDialog": "今後このメッセージを表示しない",
   "label.find": "検索",
   "label.replaceWith": "置換後の文字列",
+  "label.hideColumn": "「%@」を非表示",
 
   "error.invalid_input": "入力が無効です",
   "error.required_field": "この項目は必須です",
@@ -110,6 +111,7 @@
   "statusbar.cancelMove": "移動をキャンセル",
   "statusbar.clearSelection": "選択を解除",
   "statusbar.stopExtendingSelection": "選択の拡張を終了",
+  "statusbar.stopEditingColumns": "列の編集を終了",
   "statusbar.copied": "コピーしました",
   "statusbar.sentToTerminalClipboard": "ターミナルのクリップボードに送信しました",
   "statusbar.notCopiedNoClipboard": "コピーできません: ここから届くクリップボードがありません",

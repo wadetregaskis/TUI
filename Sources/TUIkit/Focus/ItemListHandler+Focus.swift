@@ -92,6 +92,13 @@ extension ItemListHandler {
             context.environment.statusBar?.escapeClaimGrabsInput = false
             return
         }
+        // A picked column owns Escape for the same reason: it lets it go.
+        if columnFocus != nil {
+            context.environment.statusBar?.escapeLabelOverride =
+                LocalizationService.shared.string(for: LocalizationKey.StatusBar.stopEditingColumns)
+            context.environment.statusBar?.escapeClaimGrabsInput = false
+            return
+        }
 
         guard selectionMode == .multi else { return }
         if isExtendingSelection {

@@ -58,6 +58,7 @@
   "label.suppressDialog": "Do not show this message again",
   "label.find": "Find",
   "label.replaceWith": "Replace with",
+  "label.hideColumn": "Hide “%@”",
 
   "error.invalid_input": "Invalid input",
   "error.required_field": "This field is required",
@@ -110,6 +111,7 @@
   "statusbar.cancelMove": "cancel move",
   "statusbar.clearSelection": "clear selection",
   "statusbar.stopExtendingSelection": "stop extending selection",
+  "statusbar.stopEditingColumns": "stop editing columns",
   "statusbar.copied": "Copied",
   "statusbar.sentToTerminalClipboard": "Sent to the terminal's clipboard",
   "statusbar.notCopiedNoClipboard": "Not copied: no clipboard reachable from here",

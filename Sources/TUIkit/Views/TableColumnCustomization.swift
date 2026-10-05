@@ -28,13 +28,19 @@
 /// ```
 ///
 /// It is `Codable`, so it can be persisted as is. The encoding is TUIkit's own
-/// — a column's stated visibility by identifier, and an order when one has
-/// been set — not SwiftUI's, which is private.
+/// — a column's stated visibility and width by identifier, and an order when
+/// one has been set — not SwiftUI's, which is private.
 ///
-/// A user customizes a SwiftUI table with the mouse: dragging a header to
-/// reorder, dragging a divider to resize, and the header's context menu to
-/// show or hide a column. None of those gestures exists in a TUIkit table yet,
-/// so the value changes when the app changes it.
+/// The user changes it as they would a SwiftUI table's: a right-click (or
+/// Ctrl-click) on the header opens a menu that hides or shows a column;
+/// dragging a header moves its column; dragging the gap after a column's
+/// header resizes it, within its bounds — and the width it is given is kept
+/// here, as SwiftUI keeps it. From the keyboard, **Ctrl-K** on the focused
+/// table picks a column (←/→ choose another): `<` and `>` move it, `-` and
+/// `+` resize it, Return opens the menu on it, Escape lets it go. Only a
+/// column with a ``TableColumnContent/customizationID(_:)`` takes part, and
+/// a column's ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes
+/// away the gestures it names.
 public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Sendable, Codable {
     /// Each customizable column's stated visibility, by identifier. A column
     /// with no entry is `.automatic`.
@@ -43,6 +49,10 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
     /// The order of the customizable columns, by identifier, once something
     /// has reordered them; `nil` while they keep their declared order.
     private var order: [String]?
+
+    /// Each resized column's width, in cells, by identifier. A column with no
+    /// entry is as wide as its declaration makes it.
+    private var widths: [String: Int] = [:]
 
     /// Creates an empty table column customization.
     ///
@@ -68,6 +78,46 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
         order = nil
     }
 
+    // MARK: What the gestures change
+
+    /// The width the column identified by `id` was resized to, in cells, or
+    /// `nil` when it keeps its declared width. Setting `nil` forgets it.
+    ///
+    /// Not public: SwiftUI's customization keeps a resized width too, and says
+    /// nothing about it in its API — it travels in the encoding.
+    subscript(width id: String) -> Int? {
+        get { widths[id] }
+        set { widths[id] = newValue.map { max(1, $0) } }
+    }
+
+    /// Moves the column identified by `id` to the place `target` holds, the
+    /// columns between them shifting one place toward where it came from —
+    /// what dropping a dragged header on another does.
+    ///
+    /// - Parameter declared: The identifiers of the table's customizable
+    ///   columns, in declaration order: what an order is laid over.
+    mutating func move(_ id: String, toPlaceOf target: String, declared: [String]) {
+        var current = currentOrder(declared: declared)
+        guard id != target, let from = current.firstIndex(of: id),
+            let to = current.firstIndex(of: target)
+        else { return }
+        current.remove(at: from)
+        current.insert(id, at: to)
+        order = current
+    }
+
+    /// The customizable columns' order as it stands: the stated order, with
+    /// any declared column it does not name after it in declaration order,
+    /// and any it names that is no longer declared left out.
+    func currentOrder(declared: [String]) -> [String] {
+        guard let order else { return declared }
+        let known = Set(declared)
+        var seen = Set<String>()
+        var result = order.filter { known.contains($0) && seen.insert($0).inserted }
+        result += declared.filter { !seen.contains($0) }
+        return result
+    }
+
     // MARK: Applying it
 
     /// The columns of a table bound to this customization that are shown, in
@@ -80,6 +130,13 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
         var shown = columns.filter { column in
             let stated = column.customizationID.map { self[visibility: $0] } ?? .automatic
             return Self.isShown(stated: stated, default: column.defaultVisibility)
+        }
+        if !widths.isEmpty {
+            for index in shown.indices {
+                if let id = shown[index].customizationID, let width = widths[id] {
+                    shown[index].resizedWidth = width
+                }
+            }
         }
         guard let order else { return shown }
         // The customizable columns take the slots customizable columns had,
@@ -108,7 +165,7 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
     // MARK: Coding
 
     private enum CodingKeys: String, CodingKey {
-        case visibility, order
+        case visibility, order, width
     }
 
     /// Creates a customization by decoding one this type encoded.
@@ -117,14 +174,18 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
         let stated = try container.decodeIfPresent([String: String].self, forKey: .visibility) ?? [:]
         visibilities = stated.compactMapValues(VisibilityCoding.visibility(named:))
         order = try container.decodeIfPresent([String].self, forKey: .order)
+        widths = (try container.decodeIfPresent([String: Int].self, forKey: .width) ?? [:])
+            .filter { $0.value > 0 }
     }
 
-    /// Encodes this customization: the stated visibilities by identifier, and
-    /// the order when one was set.
+    /// Encodes this customization: the stated visibilities by identifier, the
+    /// order when one was set, and the widths columns were resized to, when any
+    /// were.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(visibilities.mapValues(VisibilityCoding.name(of:)), forKey: .visibility)
         try container.encodeIfPresent(order, forKey: .order)
+        if !widths.isEmpty { try container.encode(widths, forKey: .width) }
     }
 }
 

@@ -24,6 +24,12 @@ extension ItemListHandler {
             return openContextMenu()
         }
 
+        // A table's columns, picked from the keyboard: the chord that picks
+        // one, and while one is picked the keys that move, resize and hide it.
+        if let handled = handleColumnKey(event) {
+            return handled
+        }
+
         // Everything reordering claims — picking a row up, the keys a held row
         // answers, and the navigators during a mouse drag — ahead of the
         // selection keys and of the plain movement below, both of which would
@@ -178,7 +184,7 @@ extension ItemListHandler {
 
         case .pickUpRow, .placeRow, .cancelMove, .moveRowUp, .moveRowDown,
             .moveRowToTop, .moveRowToBottom, .moveRowPageUp, .moveRowPageDown,
-            .sortNextColumn, .reverseSortOrder, nil:
+            .sortNextColumn, .reverseSortOrder, .customizeColumns, nil:
             // Not selection business — handled above, or not a chord at all.
             break
         }

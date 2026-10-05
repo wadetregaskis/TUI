@@ -1,0 +1,267 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  TableColumnGestureTests.swift
+//
+//  The user's gestures on a table bound to a `TableColumnCustomization`
+//  (decisions B45): the header's menu shows and hides columns, dragging a
+//  title moves its column, dragging the gap after it resizes it — the width
+//  kept in the customization, as SwiftUI keeps it — and Ctrl-K picks a column
+//  for the keyboard's `<`/`>`, `-`/`+` and Return. Each is taken away by the
+//  column's `disabledCustomizationBehavior`.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Observation
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+@Observable
+@MainActor
+private final class Columns {
+    var customization = TableColumnCustomization<Entry>()
+    var bound = true
+    var sortOrder = [KeyPathComparator(\Entry.alpha)]
+}
+
+private struct Entry: Identifiable, Equatable {
+    let id: Int
+    var alpha: String { "a\(id)" }
+    var beta: String { "b\(id)" }
+    var gamma: String { "g\(id)" }
+}
+
+private struct ColumnsApp: App {
+    let columns: Columns?
+
+    init() { columns = nil }
+
+    init(_ columns: Columns) { self.columns = columns }
+
+    var body: some Scene {
+        WindowGroup {
+            if let columns { ColumnsPage(columns: columns) }
+        }
+    }
+}
+
+private struct ColumnsPage: View {
+    let columns: Columns
+    private let entries = (1...3).map(Entry.init)
+
+    var body: some View {
+        if columns.bound {
+            Table(
+                entries, sortOrder: Bindable(columns).sortOrder,
+                columnCustomization: Bindable(columns).customization
+            ) {
+                TableColumn("Alpha", value: \.alpha)
+                    .width(min: 4, ideal: 8, max: 30).customizationID("alpha")
+                TableColumn("Beta", value: \.beta)
+                    .width(min: 4, ideal: 8, max: 30).customizationID("beta")
+                TableColumn("Gamma", value: \.gamma)
+                    .width(min: 4, ideal: 8, max: 30).customizationID("gamma")
+                    .disabledCustomizationBehavior([.resize, .reorder])
+                TableColumn("Delta") { (entry: Entry) in Text(verbatim: "d\(entry.id)") }
+                    .width(6)
+            }
+            .frame(height: 9)
+        } else {
+            Table(entries) {
+                TableColumn("Alpha", value: \.alpha).customizationID("alpha")
+                TableColumn("Beta", value: \.beta).customizationID("beta")
+            }
+            .frame(height: 9)
+        }
+    }
+}
+
+@MainActor
+private final class Harness {
+    let columns = Columns()
+    let app: HeadlessApp<ColumnsApp>
+    private var now: Int64 = 0
+
+    init(bound: Bool = true) {
+        columns.bound = bound
+        app = HeadlessApp(ColumnsApp(columns), width: 60, height: 14)
+        frame()
+        frame()
+    }
+
+    func frame() {
+        now += 16_666_667
+        app.frame(atNanos: now)
+    }
+
+    var lines: [String] { app.screen.map(\.stripped) }
+
+    var screen: String { lines.joined(separator: "\n") }
+
+    func shows(_ text: String) -> Bool { lines.contains { $0.contains(text) } }
+
+    /// The header line, found by two titles on it.
+    var headerY: Int? { lines.firstIndex { $0.contains("Alpha") && $0.contains("Delta") } }
+
+    func column(of text: String, on y: Int) -> Int? {
+        lines[y].range(of: text).map { lines[y].distance(from: lines[y].startIndex, to: $0.lowerBound) }
+    }
+
+    /// The headers' left edges, in the order drawn.
+    var headerOrder: [String] {
+        guard let y = headerY else { return [] }
+        return ["Alpha", "Beta", "Gamma", "Delta"]
+            .compactMap { title in column(of: title, on: y).map { (title, $0) } }
+            .sorted { $0.1 < $1.1 }.map(\.0)
+    }
+
+    func send(_ event: MouseEvent) {
+        app.send(event)
+        frame()
+    }
+
+    func key(_ event: KeyEvent) {
+        app.send(event)
+        frame()
+    }
+
+    func rightClick(x: Int, y: Int) {
+        app.send(MouseEvent(button: .right, phase: .pressed, x: x, y: y))
+        app.send(MouseEvent(button: .right, phase: .released, x: x, y: y))
+        frame()
+    }
+
+    /// A left-button drag from `from` to `to`, a cell at a time.
+    func drag(from: (x: Int, y: Int), toX: Int) {
+        send(MouseEvent(button: .left, phase: .pressed, x: from.x, y: from.y))
+        let step = toX > from.x ? 1 : -1
+        var x = from.x
+        while x != toX {
+            x += step
+            send(MouseEvent(button: .left, phase: .dragged, x: x, y: from.y))
+        }
+        send(MouseEvent(button: .left, phase: .released, x: toX, y: from.y))
+    }
+}
+
+@MainActor
+@Suite("Column customization gestures")
+struct TableColumnGestureTests {
+    @Test("A right-click on a header opens the column menu; Hide hides that column")
+    func headerMenuHides() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY, "\(harness.screen)")
+        harness.rightClick(x: try #require(harness.column(of: "Beta", on: y)), y: y)
+        #expect(harness.shows("Hide “Beta”"), "\(harness.screen)")
+        harness.key(KeyEvent(key: .down))
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.columns.customization[visibility: "beta"] == .hidden)
+        #expect(!harness.headerOrder.contains("Beta"), "\(harness.screen)")
+        // The menu shows it again, unmarked while hidden.
+        harness.rightClick(x: try #require(harness.column(of: "Alpha", on: y)), y: y)
+        #expect(harness.shows("Beta"), "the menu lists the hidden column:\n\(harness.screen)")
+        // Hide “Alpha”, the divider, Alpha, Beta: the fourth row.
+        for _ in 0..<3 { harness.key(KeyEvent(key: .down)) }
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.columns.customization[visibility: "beta"] == .visible, "\(harness.screen)")
+        #expect(harness.headerOrder.contains("Beta"))
+    }
+
+    @Test("Without a customization binding, the header has no column menu")
+    func noBindingNoMenu() throws {
+        let harness = Harness(bound: false)
+        let y = try #require(harness.lines.firstIndex { $0.contains("Alpha") && $0.contains("Beta") })
+        harness.rightClick(x: try #require(harness.column(of: "Beta", on: y)), y: y)
+        #expect(!harness.shows("Hide"), "\(harness.screen)")
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        harness.key(KeyEvent(key: .character(">")))
+        #expect(harness.lines[y].contains("Alpha"))
+    }
+
+    @Test("Dragging a title moves its column, and the customization records the order")
+    func dragReorders() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let alpha = try #require(harness.column(of: "Alpha", on: y))
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.drag(from: (alpha + 1, y), toX: beta + 6)
+        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.columns.sortOrder == [KeyPathComparator(\Entry.alpha)], "a drag must not sort")
+        let encoded = String(bytes: try JSONEncoder().encode(harness.columns.customization), encoding: .utf8) ?? ""
+        #expect(encoded.contains("\"order\""), "\(encoded)")
+        // Gamma may not move: a drag over it moves nothing.
+        let gamma = try #require(harness.column(of: "Gamma", on: y))
+        harness.drag(from: (gamma + 1, y), toX: gamma - 6)
+        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+    }
+
+    @Test("A click on a title still sorts")
+    func clickSorts() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y))
+        harness.send(MouseEvent(button: .left, phase: .released, x: beta + 1, y: y))
+        #expect(harness.columns.sortOrder.first == KeyPathComparator(\Entry.beta))
+    }
+
+    @Test("Dragging the gap after a title resizes the column within its bounds, and the width persists")
+    func dragResizes() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let alpha = try #require(harness.column(of: "Alpha", on: y))
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        let width = beta - alpha - 2
+        // The gap is the two cells before Beta.
+        harness.drag(from: (beta - 1, y), toX: beta + 2)
+        #expect(harness.columns.customization[width: "alpha"] == width + 3, "\(harness.screen)")
+        #expect(harness.column(of: "Beta", on: y) == beta + 3)
+        // Past the maximum, the width stops there.
+        let gap = try #require(harness.column(of: "Beta", on: y)) - 1
+        harness.drag(from: (gap, y), toX: gap + 20)
+        #expect(harness.columns.customization[width: "alpha"] == 30)
+        // The width survives an encoding round trip.
+        let data = try JSONEncoder().encode(harness.columns.customization)
+        let decoded = try JSONDecoder().decode(TableColumnCustomization<Entry>.self, from: data)
+        #expect(decoded[width: "alpha"] == 30)
+        #expect(decoded == harness.columns.customization)
+    }
+
+    @Test("A column whose resizing is disabled has no gap to drag")
+    func resizeDisabled() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let delta = try #require(harness.column(of: "Delta", on: y))
+        harness.drag(from: (delta - 1, y), toX: delta + 3)
+        #expect(harness.columns.customization[width: "gamma"] == nil)
+        #expect(harness.column(of: "Delta", on: y) == delta)
+    }
+
+    @Test("Ctrl-K picks a column; < and > move it, - and + resize it, Return opens its menu")
+    func keyboard() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        harness.key(KeyEvent(key: .character(">")))
+        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        harness.key(KeyEvent(key: .character("+")))
+        harness.key(KeyEvent(key: .character("+")))
+        let alphaWidth = try #require(harness.columns.customization[width: "alpha"])
+        harness.key(KeyEvent(key: .character("-")))
+        #expect(harness.columns.customization[width: "alpha"] == alphaWidth - 1)
+        // → picks the next column; Return opens the menu on it.
+        harness.key(KeyEvent(key: .right))
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.shows("Hide “Gamma”"), "\(harness.screen)")
+        harness.key(KeyEvent(key: .escape))
+        #expect(!harness.shows("Hide “Gamma”"))
+        // Escape lets the column go: ">" moves nothing now.
+        harness.key(KeyEvent(key: .escape))
+        harness.key(KeyEvent(key: .character(">")))
+        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        _ = beta
+    }
+}

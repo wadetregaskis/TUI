@@ -46,8 +46,40 @@ struct _TableColumnSpec<Value> {
     /// keyed by, so that they stay with the column rather than its position.
     var declarationIndex = 0
 
-    /// How this column is sized.
+    /// How this column is sized, as declared.
     var width: _TableColumnWidth
+
+    /// The width a user resized the column to, in cells, from the table's
+    /// ``TableColumnCustomization`` — `nil` while it keeps its declared width.
+    var resizedWidth: Int?
+
+    /// How the column is laid out: at the width it was resized to, or as
+    /// declared.
+    var effectiveWidth: _TableColumnWidth { resizedWidth.map(_TableColumnWidth.fixed) ?? width }
+
+    /// Whether a user may `behavior` this column: only a column with an
+    /// identifier can be customized at all, and its
+    /// ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes away
+    /// what it names.
+    func allows(_ behavior: TableColumnCustomizationBehavior) -> Bool {
+        customizationID != nil && !(disabledCustomizationBehavior?.contains(behavior) ?? false)
+    }
+
+    /// The widths a user may resize this column to, from its declaration — or
+    /// `nil` for one that cannot be resized: a fixed width, as SwiftUI's
+    /// `width(_:)` is (measured: its minimum and maximum are that width).
+    func resizeBounds(upTo widest: Int) -> ClosedRange<Int>? {
+        guard allows(.resize) else { return nil }
+        switch width {
+        case .fixed:
+            return nil
+        case .flexible(let minimum, _, let maximum):
+            let low = max(1, minimum ?? 1)
+            return low...max(low, min(maximum ?? widest, widest))
+        case .ratio, .fit:
+            return 1...max(1, widest)
+        }
+    }
 
     /// How a cell value is shortened when it is wider than the column.
     var truncationMode: TruncationMode

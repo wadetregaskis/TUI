@@ -239,7 +239,9 @@ public struct Table<Value: Identifiable>: View {
             dropInsertion: dropInsertion,
             rowTree: rowTree,
             rowTraits: rowTraits,
-            sectionHeaders: sectionHeaders
+            sectionHeaders: sectionHeaders,
+            declaredColumns: columns,
+            columnCustomization: columnCustomization
         )
         // The same pairing as `ScrollView.body` and `List.body`. A table's rows
         // are its own focus stops, so its stored flag alone already suppressed
@@ -576,6 +578,9 @@ private enum StateIndex {
     /// The row menu — a selection menu's or a row's own — and what it was
     /// opened on (``RowMenuState``).
     static let rowMenu = 3
+    /// The column menu, opened from the header or Return on a picked column,
+    /// and the column it was opened on.
+    static let columnMenu = 4
 }
 
 /// Internal core view that handles table rendering inside a ContainerView.
@@ -628,6 +633,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// The section headers among the rows (``Table/sectionHeaders``).
     var sectionHeaders: [_TableSectionHeader] = []
+
+    /// Every column the table declares, shown or not, in declaration order —
+    /// what the column menu lists and an order is laid over.
+    var declaredColumns: [_TableColumnSpec<Value>] = []
+
+    /// The customization the user's column gestures write to, when the table
+    /// was bound to one. A table without one takes no column gesture: its
+    /// columns are the app's alone, as SwiftUI's are to reorder.
+    var columnCustomization: Binding<TableColumnCustomization<Value>>?
 
     /// Where those headers fall among this frame's rows, when there are any.
     /// Filled in by ``resolvingRows(_:)``.
@@ -827,7 +841,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         // `.fit` is content-sized (a fixed width derived from the data), so
         // like `.fixed` it does not grow with the available width.
-        let fillsWidth = columns.contains { $0.width.growsWithAvailableWidth }
+        let fillsWidth = columns.contains { $0.effectiveWidth.growsWithAvailableWidth }
         return fillsWidth
             ? ViewSize.flexibleWidth(minWidth: size.width, height: size.height)
             : ViewSize.fixed(size.width, size.height)
@@ -1092,9 +1106,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Rows beyond the viewport are skipped, not gone: retain their state
         // (see StateStorage.retainSubtree). Render path only, per the
         // measure-side-effect rule.
-        if !context.isMeasuring {
-            stateStorage.retainSubtree(context.identity)
-        }
+        if !context.isMeasuring { stateStorage.retainSubtree(context.identity) }
 
         // Calculate available width inside container (subtract border + padding).
         let gutter = selectionGutter(context.environment)
@@ -1120,13 +1132,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let columnWidths = calculateColumnWidths(
             availableWidth: contentInnerWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
-        let header = renderHeader(columnWidths: columnWidths, gutter: gutter, palette: palette)
-        var headerLine = header.text
-        if wantsScrollbar {
-            // Pad the header to the full inner width so it aligns with the rows
-            // (whose last column is the scrollbar); the cell above the bar is blank.
-            headerLine += String(repeating: " ", count: max(0, innerWidth - headerLine.strippedLength))
-        }
 
         let contentLines: [String]
         var contentRuns: [AnimatedCellRun] = []
@@ -1168,6 +1173,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             contentClaims = result.claims
             contentPayload = result.payload
             renderState = result.state
+        }
+
+        // The header, once the rows have said which column the keyboard has
+        // picked (``ItemListHandler/columnFocus``), which it draws picked out.
+        let header = renderHeader(
+            columnWidths: columnWidths, gutter: gutter, palette: palette, picking: renderState?.handler)
+        var headerLine = header.text
+        if wantsScrollbar {
+            // Pad the header to the full inner width so it aligns with the rows
+            // (whose last column is the scrollbar); the cell above the bar is blank.
+            headerLine += String(repeating: " ", count: max(0, innerWidth - headerLine.strippedLength))
         }
 
         // A table that was GIVEN a height fills it. `hasExplicitHeight` is
@@ -1230,6 +1246,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             attachMouseHandlers(to: &buffer, context: context, state: state, scopesBefore: scopesBefore)
             buffer.hitTestRegions += cellRegions
             presentRowMenu(over: &buffer, state: state, context: context)
+            presentColumnMenu(over: &buffer, state: state, context: context)
         }
         return buffer
     }
@@ -2405,6 +2422,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.selectionDisabledRows = selectionDisabledRows
         handler.onMove = moveAction
         handler.onSort = sortKeyAction
+        handler.columnEditing = columnEditing(handler, context: context)
     }
 
     // MARK: - Row menus
@@ -3437,53 +3455,123 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             token: "table-scrollbar-repeat-\(context.identity.path)", context: context)
     }
 
-    /// Makes each sortable column's header title a click target that re-sorts.
+    /// Makes the header take the pointer: a click on a sortable column's title
+    /// re-sorts; on a table bound to a ``TableColumnCustomization``, dragging a
+    /// title moves its column, dragging the gap after it resizes it, and a
+    /// secondary click opens the column menu.
     ///
     /// One region per column rather than one for the whole header line: which
-    /// column was clicked is the entire content of the gesture, and a single
-    /// region would have to re-derive it from an x the dispatcher already knows
-    /// how to route. A column with no comparator registers nothing, so clicks
-    /// there fall through to the table's own handler and simply focus it — the
-    /// header of an unsortable column stays as inert as it looks.
+    /// column was pressed is the entire content of the gesture, and a single
+    /// region would have to re-derive it from an x the dispatcher already
+    /// knows how to route. A column that nothing can be done to registers
+    /// nothing, so clicks there fall through to the table's own handler and
+    /// simply focus it — a header that cannot sort or be customized stays as
+    /// inert as it looks.
     ///
     /// The header line is `y = 1` under a bordered style — the container's top
     /// border is `y = 0` and the rows start below it (see the layout sketch
     /// above) — and `y = 0` under `.inset`, which has no border.
     @MainActor
-    private func attachHeaderSortHandlers(
+    private func attachHeaderHandlers(
         to buffer: inout FrameBuffer,
         context: RenderContext,
         state: PopulatedRenderState,
         mouseDispatcher: MouseEventDispatcher
     ) {
-        guard sortModel != nil, !state.columnWidths.isEmpty,
+        let customizes = columnCustomization != nil
+        guard sortModel != nil || customizes, !state.columnWidths.isEmpty,
             headerLines(context.environment) > 0
         else { return }
-        let focusManager = context.environment.focusManager
-        let focusID = state.focusID
+        let headerY = borderWidth(context.environment)
         let originX = borderWidth(context.environment) + Self.containerPadding.leading
-        for (index, xRange) in headerColumnRanges(
+        let ranges = headerColumnRanges(
             columnWidths: state.columnWidths, originX: originX,
             gutter: selectionGutter(context.environment))
-        where columns.indices.contains(index) && columns[index].sortComparator != nil {
+        // Where the columns are on THIS frame, for a header drag that started
+        // on an earlier one: a live reorder moves them under the pointer.
+        if !context.isMeasuring {
+            state.handler.headerColumns = ranges.compactMap { index, range in
+                columns.indices.contains(index) ? (columns[index].customizationID, range) : nil
+            }
+            state.handler.headerColumnsWidest = max(1, state.rowContentWidth)
+        }
+        let gesture = _TableHeaderGesture(
+            focus: { [focusManager = context.environment.focusManager, id = state.focusID] in
+                focusManager?.focus(id: id)
+            },
+            openMenu: customizes ? columnMenuOpener(context: context, dispatcher: mouseDispatcher) : nil)
+        for (index, xRange) in ranges where columns.indices.contains(index) {
             let column = columns[index]
+            let sortable = sortModel != nil && column.sortComparator != nil
+            guard sortable || customizes else { continue }
             let handlerID = mouseDispatcher.register(in: context) { event in
-                guard event.button == .left else { return false }
-                // Claim the press so the release routes back here, and act on
-                // the release — the same press/release split every other
-                // click target in the framework uses, so sliding off the
-                // header before letting go cancels.
-                guard event.phase == .released else { return event.phase == .pressed }
-                toggleSort(column: column)
-                focusManager?.focus(id: focusID)
-                return true
+                headerTitleEvent(
+                    event, column: column, at: xRange.lowerBound, y: headerY, sortable: sortable,
+                    handler: state.handler, gesture: gesture)
             }
             buffer.hitTestRegions.insert(
                 HitTestRegion(
-                    offsetX: xRange.lowerBound, offsetY: borderWidth(context.environment),
+                    offsetX: xRange.lowerBound, offsetY: headerY,
                     width: xRange.count, height: 1, handlerID: handlerID),
                 at: 0
             )
+            // The gap after the title is the column's right edge, which a drag
+            // moves — when there is a gap, and the column may be resized.
+            guard customizes, columnSpacing > 0, index < ranges.count - 1,
+                let id = column.customizationID,
+                let bounds = column.resizeBounds(upTo: max(1, state.rowContentWidth))
+            else { continue }
+            let width = xRange.count
+            let gapID = mouseDispatcher.register(in: context) { event in
+                headerGapEvent(event, column: id, width: width, bounds: bounds, at: xRange.upperBound, gesture: gesture)
+            }
+            buffer.hitTestRegions.insert(
+                HitTestRegion(
+                    offsetX: xRange.upperBound, offsetY: headerY,
+                    width: columnSpacing, height: 1, handlerID: gapID),
+                at: 0
+            )
+        }
+    }
+
+    /// A press on a column's title: a click sorts by it, a drag moves it, a
+    /// secondary click opens the column menu on it. See
+    /// ``attachHeaderHandlers(to:context:state:mouseDispatcher:)``.
+    @MainActor
+    private func headerTitleEvent(
+        _ event: MouseEvent, column: _TableColumnSpec<Value>, at originX: Int, y: Int, sortable: Bool,
+        handler: ItemListHandler<Value.ID>, gesture: _TableHeaderGesture
+    ) -> Bool {
+        let x = originX + event.x
+        if RowContextMenuHost.isSecondary(event) {
+            guard let openMenu = gesture.openMenu else { return false }
+            // The rest of the gesture is the menu's, as `.contextMenu`'s is.
+            if event.phase == .pressed { openMenu(column.customizationID, x, y + 1) }
+            return true
+        }
+        guard event.button == .left else { return false }
+        switch event.phase {
+        case .pressed:
+            gesture.moved = false
+            return true
+        case .dragged:
+            if let target = reorderTarget(for: column, atX: x, handler: handler),
+                let id = column.customizationID, let binding = columnCustomization
+            {
+                binding.wrappedValue.move(
+                    id, toPlaceOf: target, declared: declaredColumns.compactMap(\.customizationID))
+                gesture.moved = true
+            }
+            return true
+        case .released:
+            // A press that moved a column was a drag, not a click: it sorts
+            // nothing. Sliding off the title before letting go still cancels.
+            if !gesture.moved, sortable { toggleSort(column: column) }
+            gesture.moved = false
+            gesture.focus()
+            return true
+        default:
+            return false
         }
     }
 
@@ -3516,6 +3604,175 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 },
                 cellsSelectText: cellsSelectText),
             for: id, in: context)
+    }
+
+    /// The column a header dragged to `x` takes the place of, or `nil` while
+    /// it stays where it is — over itself, over a column that may not move,
+    /// or short of the point past which the swap would put the pointer back
+    /// over the column it just passed, which would swap them back on the next
+    /// report.
+    private func reorderTarget(
+        for column: _TableColumnSpec<Value>, atX x: Int, handler: ItemListHandler<Value.ID>
+    ) -> String? {
+        guard columnCustomization != nil, column.allows(.reorder), let id = column.customizationID,
+            let own = handler.headerColumns.first(where: { $0.id == id })?.x,
+            !own.contains(x),
+            let over = handler.headerColumns.first(where: { $0.x.contains(x) }),
+            let target = over.id, target != id,
+            declaredColumns.first(where: { $0.customizationID == target })?.allows(.reorder) == true
+        else { return nil }
+        // After the swap the dragged column starts where the target started
+        // (moving left) or ends where it ended (moving right).
+        let movingRight = over.x.lowerBound > own.lowerBound
+        let swapped = movingRight ? (over.x.upperBound - own.count)..<over.x.upperBound : over.x.lowerBound..<(over.x.lowerBound + own.count)
+        return swapped.contains(x) ? target : nil
+    }
+
+    /// A press on the gap after a column's title: a drag resizes the column,
+    /// within its bounds, the width going to the customization.
+    @MainActor
+    private func headerGapEvent(
+        _ event: MouseEvent, column id: String, width: Int, bounds: ClosedRange<Int>, at originX: Int,
+        gesture: _TableHeaderGesture
+    ) -> Bool {
+        guard event.button == .left, !event.ctrl, let binding = columnCustomization else { return false }
+        let x = originX + event.x
+        switch event.phase {
+        case .pressed:
+            gesture.pressX = x
+            gesture.startWidth = width
+            return true
+        case .dragged:
+            let wanted = min(bounds.upperBound, max(bounds.lowerBound, gesture.startWidth + x - gesture.pressX))
+            if wanted != gesture.startWidth || binding.wrappedValue[width: id] != nil,
+                binding.wrappedValue[width: id] != wanted
+            {
+                binding.wrappedValue[width: id] = wanted
+            }
+            return true
+        case .released:
+            gesture.focus()
+            return true
+        default:
+            return false
+        }
+    }
+
+    // MARK: - Column customization
+
+    /// The column menu's state, at this table's identity.
+    private func columnMenuBox(_ context: RenderContext) -> StateBox<RowMenuState>? {
+        RowContextMenuHost.stateBox(context, propertyIndex: StateIndex.columnMenu)
+    }
+
+    /// Opens the column menu at a header press, on the column pressed — `nil`
+    /// for a press on no column — anchored at the press.
+    private func columnMenuOpener(
+        context: RenderContext, dispatcher: MouseEventDispatcher
+    ) -> ((String?, Int, Int) -> Void)? {
+        guard let box = columnMenuBox(context) else { return nil }
+        let onOpen = context.environment.menuOpenAction
+        return { id, x, y in
+            RowContextMenuHost.openByPointer(
+                box, target: id.map { .row(AnyHashable($0)) } ?? .selection([]), x: x, y: y,
+                dispatcher: dispatcher, onOpen: onOpen)
+        }
+    }
+
+    /// The column the keyboard has picked (``ItemListHandler/columnFocus``),
+    /// by its place among the shown columns, or `nil` when none is.
+    private func pickedColumn(_ handler: ItemListHandler<Value.ID>) -> Int? {
+        handler.columnFocus.flatMap { id in columns.firstIndex { $0.customizationID == id } }
+    }
+
+    /// What the column keys reach (``TableColumnEditing``) — `nil` for a table
+    /// with no customization binding, no header, or no column a user may
+    /// customize.
+    private func columnEditing(
+        _ handler: ItemListHandler<Value.ID>, context: RenderContext
+    ) -> TableColumnEditing? {
+        guard let binding = columnCustomization, headerLines(context.environment) > 0 else { return nil }
+        let ids = columns.compactMap(\.customizationID)
+        guard !ids.isEmpty else { return nil }
+        let declared = declaredColumns.compactMap(\.customizationID)
+        let specs = Dictionary(
+            columns.compactMap { column in column.customizationID.map { ($0, column) } },
+            uniquingKeysWith: { first, _ in first })
+        let box = columnMenuBox(context)
+        let onOpen = context.environment.menuOpenAction
+        return TableColumnEditing(
+            columns: ids,
+            move: { id, delta in
+                guard let position = ids.firstIndex(of: id), ids.indices.contains(position + delta),
+                    specs[id]?.allows(.reorder) == true, specs[ids[position + delta]]?.allows(.reorder) == true
+                else { return }
+                binding.wrappedValue.move(id, toPlaceOf: ids[position + delta], declared: declared)
+            },
+            resize: { [weak handler] id, delta in
+                guard let handler, let current = handler.headerColumns.first(where: { $0.id == id })?.x.count,
+                    let bounds = specs[id]?.resizeBounds(upTo: max(1, handler.headerColumnsWidest))
+                else { return }
+                binding.wrappedValue[width: id] = min(bounds.upperBound, max(bounds.lowerBound, current + delta))
+            },
+            openMenu: { id in
+                guard let box else { return }
+                RowContextMenuHost.openByKeyboard(box, target: .row(AnyHashable(id)), onOpen: onOpen)
+            })
+    }
+
+    /// Draws the open column menu over the table — anchored at the press, or
+    /// under the picked column's header when the keyboard opened it — or tears
+    /// down the section a closed one left.
+    private func presentColumnMenu(
+        over buffer: inout FrameBuffer, state: PopulatedRenderState, context: RenderContext
+    ) {
+        guard !context.isMeasuring, let binding = columnCustomization, let box = columnMenuBox(context)
+        else { return }
+        let target: String? =
+            if case .row(let id) = box.value.target { id.base as? String } else { nil }
+        let headerY = borderWidth(context.environment)
+        let anchor = target.flatMap { id in state.handler.headerColumns.first { $0.id == id } }
+            .map { (x: $0.x.lowerBound, y: headerY, height: 1) }
+        RowContextMenuHost.present(
+            items: AnyView(columnMenu(on: target, binding: binding)), over: &buffer, stateBox: box,
+            sectionID: "tablecolumns-\(context.identity.path)", keyboardAnchor: anchor, context: context)
+    }
+
+    /// The column menu, as macOS draws a table's (measured on macOS 15.8):
+    /// "Hide" for the column it was opened on, then every column in the order
+    /// shown, marked when it is visible — a column with no identifier, or one
+    /// whose visibility may not change, listed but disabled. The last column
+    /// shown cannot be hidden: a table of no columns has nothing to right-click
+    /// to bring one back.
+    private func columnMenu(
+        on target: String?, binding: Binding<TableColumnCustomization<Value>>
+    ) -> _TableColumnMenu {
+        let shown = Set(columns.map(\.declarationIndex))
+        // Every declared column, in the order shown: the customization with
+        // every identified column made visible lays them out.
+        var everything = binding.wrappedValue
+        for id in declaredColumns.compactMap(\.customizationID) { everything[visibility: id] = .visible }
+        let ordered = everything.shownColumns(declaredColumns)
+        let canHideOne = shown.count > 1
+        let entries = ordered.map { column -> _TableColumnMenu.Entry in
+            let isShown = shown.contains(column.declarationIndex)
+            let toggles = column.allows(.visibility) && (!isShown || canHideOne)
+            let id = column.customizationID
+            return _TableColumnMenu.Entry(
+                title: column.title, isShown: isShown,
+                toggle: toggles
+                    ? { id.map { binding.wrappedValue[visibility: $0] = isShown ? .hidden : .visible } }
+                    : nil)
+        }
+        let hide = target.flatMap { id in declaredColumns.first { $0.customizationID == id } }.map { column in
+            (
+                title: LocalizationService.shared.string(for: LocalizationKey.Label.hideColumn)
+                    .replacingOccurrences(of: "%@", with: column.title),
+                action: column.allows(.visibility) && canHideOne && shown.contains(column.declarationIndex)
+                    ? { binding.wrappedValue[visibility: column.customizationID ?? ""] = .hidden } : nil
+            )
+        }
+        return _TableColumnMenu(hide: hide, entries: entries)
     }
 
     private func attachMouseHandlers(
@@ -3560,7 +3817,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // the scrollbar above: registered first so the container's later
         // `insert(at: 0)` leaves these at a higher index, where the reverse
         // hit-test finds them before the table's own catch-all.
-        attachHeaderSortHandlers(
+        attachHeaderHandlers(
             to: &buffer, context: context, state: state, mouseDispatcher: mouseDispatcher)
 
         // The border columns are chrome: a click there (however row-aligned its
@@ -4016,7 +4273,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var flexibleBounds: [(min: Int?, ideal: Int?, max: Int?)] = []
 
         for (index, column) in columns.enumerated() {
-            switch column.width {
+            switch column.effectiveWidth {
             case .fixed(let fixedWidth):
                 widths[index] = fixedWidth
                 usedWidth += fixedWidth
@@ -4395,8 +4652,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     // MARK: - Header Rendering
 
     private func renderHeader(
-        columnWidths: [Int], gutter: Int, palette: any Palette
+        columnWidths: [Int], gutter: Int, palette: any Palette,
+        picking handler: ItemListHandler<Value.ID>? = nil
     ) -> ClaimingRow {
+        let pickedColumn = handler.flatMap(pickedColumn)
         // Through `ClaimingRow` so the header's own colour states its opaque spelling
         // and sends its alpha up as a region. `foregroundSecondary` is a re-spelling of
         // the palette's foreground and carries its alpha, so a faded theme reaches here
@@ -4415,8 +4674,22 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 alignment: column.alignment,
                 truncationMode: column.truncationMode
             )
-            row.append(
-                aligned, cells: width, ink: palette.foregroundSecondary, bold: true)
+            guard offset == pickedColumn else {
+                row.append(aligned, cells: width, ink: palette.foregroundSecondary, bold: true)
+                continue
+            }
+            // The picked column: the still fill a selected row wears, in the
+            // palette's own colours — or the pair reversed where the fill
+            // cannot be measured — so it reads as chosen, as a row in hand
+            // does, rather than as a header that is merely focused.
+            switch palette.selectedRowFill().stillFill {
+            case .fill(let field):
+                row.append(aligned, cells: width, ink: palette.foreground, field: field, bold: true)
+            case .reversed(let ink, let field), .reversingPulse(_, _, let ink, let field):
+                row.append(aligned, cells: width, ink: ink, field: field, bold: true, inverted: true)
+            case .pulse(_, let bright):
+                row.append(aligned, cells: width, ink: palette.foreground, field: bright, bold: true)
+            }
         }
         return row
     }
@@ -4549,7 +4822,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // The handler passes only the two sort actions; every other row verb
             // is the handler's own business. Written out rather than defaulted so
             // the next `RowAction` has to be answered here too.
-            case .selectAll, .extendSelection, .pickUpRow, .placeRow, .cancelMove,
+            case .selectAll, .extendSelection, .pickUpRow, .placeRow, .cancelMove, .customizeColumns,
                 .moveRowUp, .moveRowDown, .moveRowToTop, .moveRowToBottom,
                 .moveRowPageUp, .moveRowPageDown:
                 index = nil
@@ -5380,6 +5653,67 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             text, width: width, alignment: alignment, truncationMode: truncationMode,
             into: &aligned)
         return aligned
+    }
+}
+
+// MARK: - Column customization gestures
+
+/// One header gesture in flight: what a drag over the header needs to keep
+/// between its reports. Made each frame and captured by that frame's header
+/// handlers, so the press's handler — which the dispatcher keeps for the rest
+/// of its gesture — keeps the press's.
+@MainActor
+private final class _TableHeaderGesture {
+    /// Gives the table the focus, as a click anywhere on it does.
+    let focus: () -> Void
+
+    /// Opens the column menu at a press, on a column (by identifier) or none,
+    /// at a cell; `nil` for a table with no customization binding.
+    let openMenu: ((String?, Int, Int) -> Void)?
+
+    /// Where a resize drag was pressed, in the table's columns.
+    var pressX = 0
+
+    /// The column's width when the resize drag was pressed.
+    var startWidth = 0
+
+    /// Whether the drag has moved a column — then its release sorts nothing.
+    var moved = false
+
+    init(focus: @escaping () -> Void, openMenu: ((String?, Int, Int) -> Void)?) {
+        self.focus = focus
+        self.openMenu = openMenu
+    }
+}
+
+/// A table's column menu: "Hide" for the column it was opened on, then every
+/// column with a mark while it is shown.
+private struct _TableColumnMenu: View {
+    /// One column's row: its title, whether it is shown, and what choosing it
+    /// does — `nil` for a column whose visibility may not change.
+    struct Entry {
+        let title: String
+        let isShown: Bool
+        let toggle: (() -> Void)?
+    }
+
+    /// The "Hide" row, when the menu was opened on a column; its action is
+    /// `nil` when that column may not be hidden.
+    let hide: (title: String, action: (() -> Void)?)?
+
+    let entries: [Entry]
+
+    var body: some View {
+        if let hide {
+            Button(hide.title) { hide.action?() }
+                .disabled(hide.action == nil)
+            Divider()
+        }
+        ForEach(entries.indices, id: \.self) { index in
+            let entry = entries[index]
+            Toggle(entry.title, isOn: Binding(get: { entry.isShown }, set: { _ in entry.toggle?() }))
+                .disabled(entry.toggle == nil)
+        }
     }
 }
 

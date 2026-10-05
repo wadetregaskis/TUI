@@ -58,6 +58,7 @@
   "label.suppressDialog": "Diese Meldung nicht mehr anzeigen",
   "label.find": "Suchen",
   "label.replaceWith": "Ersetzen durch",
+  "label.hideColumn": "„%@“ ausblenden",
 
   "error.invalid_input": "Ungültige Eingabe",
   "error.required_field": "Dieses Feld ist erforderlich",
@@ -110,6 +111,7 @@
   "statusbar.cancelMove": "Verschieben abbrechen",
   "statusbar.clearSelection": "Auswahl aufheben",
   "statusbar.stopExtendingSelection": "Auswahl nicht mehr erweitern",
+  "statusbar.stopEditingColumns": "Spaltenbearbeitung beenden",
   "statusbar.copied": "Kopiert",
   "statusbar.sentToTerminalClipboard": "An die Zwischenablage des Terminals gesendet",
   "statusbar.notCopiedNoClipboard": "Nicht kopiert: keine Zwischenablage von hier erreichbar",

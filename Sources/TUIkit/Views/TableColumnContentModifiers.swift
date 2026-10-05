@@ -103,11 +103,12 @@ extension TableColumnContent {
     /// Sets the disabled customization behavior for a table column.
     ///
     /// A table bound to a ``TableColumnCustomization`` lets the user reorder,
-    /// resize and hide its columns in SwiftUI on macOS, and this disables the
-    /// behaviors given. A TUIkit table offers its user none of those gestures
-    /// yet, so there is nothing for this to take away; it is recorded with the
-    /// column. It never stops the app changing a customization itself, in
-    /// SwiftUI or here.
+    /// resize and hide its columns — dragging a header, dragging the gap after
+    /// it, the header's menu, and Ctrl-K's keys — and this takes away the
+    /// behaviors given: `.reorder` stops the column moving and other columns
+    /// moving past it by a drag over it, `.resize` leaves it no gap to drag and
+    /// no `-`/`+`, and `.visibility` disables its row in the column menu. It
+    /// never stops the app changing a customization itself, in SwiftUI or here.
     ///
     /// - Parameter behavior: The behavior to disable, or `.all` to not allow
     ///   any customization.

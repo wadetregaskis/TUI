@@ -1,0 +1,82 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ItemListHandler+Columns.swift
+//
+//  A table's columns from the keyboard: Ctrl-K picks one, and while it is
+//  picked the arrows choose another, `<`/`>` move it, `-`/`+` resize it and
+//  Return opens the column menu on it — the keyboard's route to the gestures
+//  a table's header takes from the pointer.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+// MARK: - What the keys reach
+
+/// A table's column customization as the keyboard reaches it: built each frame
+/// by a table bound to a ``TableColumnCustomization``, from the columns it is
+/// showing.
+struct TableColumnEditing {
+    /// The shown columns a user may customize, by identifier, in the order
+    /// they are shown.
+    let columns: [String]
+
+    /// Moves a column one place among the shown ones — `-1` left, `+1` right —
+    /// when it and its neighbour may move.
+    let move: (_ id: String, _ delta: Int) -> Void
+
+    /// Resizes a column by `delta` cells, within its bounds, when it may be
+    /// resized.
+    let resize: (_ id: String, _ delta: Int) -> Void
+
+    /// Opens the column menu on a column, under its header.
+    let openMenu: (_ id: String) -> Void
+}
+
+// MARK: - The keys
+
+extension ItemListHandler {
+    /// The column keys: the chord that picks a column or lets it go, and while
+    /// one is picked, the mode's own keys — a mode, like a row picked up with
+    /// Ctrl-R, because a column has to be chosen before anything can be done
+    /// to it, and the keys that do things to it need no modifier a terminal
+    /// might not send.
+    ///
+    /// - Returns: `nil` for a key that is not a column key here, so it goes on
+    ///   to the rows; `true` for one that was.
+    func handleColumnKey(_ event: KeyEvent) -> Bool? {
+        guard let editing = columnEditing, !editing.columns.isEmpty else {
+            columnFocus = nil
+            return nil
+        }
+        if shortcuts.action(for: event)?.action == .customizeColumns {
+            columnFocus = columnFocus == nil ? editing.columns.first : nil
+            return true
+        }
+        guard let focus = columnFocus else { return nil }
+        // A column that has gone — hidden from its own menu, say — hands the
+        // pick to the first one left.
+        guard let position = editing.columns.firstIndex(of: focus) else {
+            columnFocus = editing.columns.first
+            return nil
+        }
+        switch event.key {
+        case .left where !event.shift, .right where !event.shift:
+            let step = event.key == .left ? -1 : 1
+            columnFocus = editing.columns[max(0, min(editing.columns.count - 1, position + step))]
+        case .left, .character("<"):
+            editing.move(focus, -1)
+        case .right, .character(">"):
+            editing.move(focus, 1)
+        case .character("-"), .character("_"):
+            editing.resize(focus, -1)
+        case .character("+"), .character("="):
+            editing.resize(focus, 1)
+        case .enter:
+            editing.openMenu(focus)
+        case .escape:
+            columnFocus = nil
+        default:
+            return nil
+        }
+        return true
+    }
+}

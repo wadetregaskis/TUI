@@ -408,6 +408,26 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// the chord falls through.
     var openContextMenu: (() -> Bool)?
 
+    /// What a `Table`'s column keys reach — set each frame by a table a user
+    /// may customize, `nil` for a `List` and for a table with no
+    /// customization binding. See ``TableColumnEditing``.
+    var columnEditing: TableColumnEditing?
+
+    /// Where a `Table`'s header drew each column on the last frame, by its
+    /// customization identifier — what a header drag that began on an earlier
+    /// frame finds the columns by, and what the column keys measure a width
+    /// from.
+    var headerColumns: [(id: String?, x: Range<Int>)] = []
+
+    /// The widest a `Table`'s column may be made, on the last frame: its row
+    /// content's width.
+    var headerColumnsWidest = 1
+
+    /// The column picked for the keyboard's customization (``RowAction/customizeColumns``),
+    /// by identifier, or `nil` when none is. Persisted with the handler, and
+    /// let go with the focus.
+    var columnFocus: String?
+
     /// The tree inside this list, when there is one — see
     /// ``OutlineRowActivating``. Left and Right collapse and expand through it.
     var outlineActivation: (any OutlineRowActivating)?
@@ -1340,6 +1360,9 @@ extension ItemListHandler {
         // A row in hand is the same: the keys that would place it have gone
         // with the focus, so put it back rather than leaving it stranded.
         if isKeyboardMove { cancelKeyboardMove() }
+
+        // …and so is a picked column: the keys that move it went too.
+        columnFocus = nil
 
         // When focus is lost, reset focused index to the first selected item
         // (if any) so that when focus returns, the user sees the selection.

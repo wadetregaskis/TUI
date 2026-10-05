@@ -631,6 +631,19 @@ Control letters rather than one chord with Shift on it, because
 variant is not merely unbound there, it is undeliverable. Both are rebindable —
 see ``RowAction/sortNextColumn`` and ``RowAction/reverseSortOrder``.
 
+## Customizing Columns
+
+A ``Table`` bound to a ``TableColumnCustomization`` lets its user hide, move and
+resize the columns that have a `customizationID`, as a macOS table does: a
+right-click (or <kbd>Ctrl</kbd>-click) on the header opens a menu that hides the
+column clicked and shows or hides any other; dragging a title moves its column;
+dragging the gap after a title resizes it within its declared bounds, and the
+width is kept in the customization. From the keyboard, <kbd>Ctrl</kbd>+<kbd>K</kbd>
+picks a column — ←/→ pick another, <kbd>&lt;</kbd>/<kbd>&gt;</kbd> move it,
+<kbd>-</kbd>/<kbd>+</kbd> resize it, Return opens the menu on it and Escape lets
+it go. ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes away what it
+names; ``RowAction/customizeColumns`` rebinds the chord.
+
 ## Reordering Several Rows
 
 Grab any row of a multi-selection and the whole selection comes — macOS's rule,

@@ -96,6 +96,9 @@ public enum LocalizationKey {
         case suppressDialog = "label.suppressDialog"
         case find = "label.find"
         case replaceWith = "label.replaceWith"
+        /// A table's column menu: the item that hides the column it was opened
+        /// on, its title as `%@`.
+        case hideColumn = "label.hideColumn"
     }
 
     /// Border appearance names, as shown in a settings screen.
@@ -231,6 +234,8 @@ public enum LocalizationKey {
         case cancelMove = "statusbar.cancelMove"
         case clearSelection = "statusbar.clearSelection"
         case stopExtendingSelection = "statusbar.stopExtendingSelection"
+        /// A table's column picked from the keyboard (Ctrl-K).
+        case stopEditingColumns = "statusbar.stopEditingColumns"
 
         // MARK: What became of a copy (`ClipboardWriter`)
 

@@ -66,6 +66,14 @@ public enum RowAction: Hashable, CaseIterable, Sendable {
     /// to clicking the header it is already sorted by.
     case reverseSortOrder
 
+    /// Pick a ``Table``'s column to customize, or put it down: the keyboard
+    /// route to the header's gestures, on a table bound to a
+    /// ``TableColumnCustomization``. While a column is picked, ←/→ choose
+    /// another, `<`/`>` move it, `-`/`+` resize it, Return opens the column
+    /// menu on it, and Escape lets it go. Inert in a ``List``, and in a table
+    /// with no customization binding.
+    case customizeColumns
+
     /// What TUIkit binds this action to out of the box.
     ///
     /// Control chords throughout, and deliberately: `Ctrl`+letter is not a
@@ -123,6 +131,8 @@ public enum RowAction: Hashable, CaseIterable, Sendable {
         // S for "sort", D for "direction".
         case .sortNextColumn: return [KeyboardShortcut("s", modifiers: .control)]
         case .reverseSortOrder: return [KeyboardShortcut("d", modifiers: .control)]
+        // K for "kolumn": C is spoken for, and K is free of every C0 alias.
+        case .customizeColumns: return [KeyboardShortcut("k", modifiers: .control)]
         }
     }
 }

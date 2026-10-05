@@ -140,6 +140,49 @@ for sections of views. A section among a table's rows has none:
 `sectionActions(content:)` is a `View` modifier and a row section is not a
 view, in SwiftUI as here. Nothing shipped for it; noted so B18 can close.
 
+### B-D4T-7. Column gestures need a customization binding and an identifier; the keyboard's are a mode
+
+*`TableColumnCustomization`, `TableColumnCustomizationBehavior`,
+`disabledCustomizationBehavior(_:)`, `RowAction.customizeColumns`
+(decisions B45)*
+
+**Measured on macOS 15.8** (a SwiftUI `Table` in an `NSHostingView`, its
+outline view driven directly): a table bound to a customization allows column
+reordering, one without does not, and both allow resizing; the header's
+right-click menu exists only with a binding, and reads "Hide “Alpha”", a
+divider, then every column in the order shown with a check while visible — a
+column with no `customizationID` checked and disabled; a resize is recorded as
+the column's `currentWidth` in the customization's encoding (SwiftUI records
+every customizable column's width, from the first layout), and a move as a
+`columnOrder` that names a column with no identifier by a transient entry;
+emptying the customization does not shrink a resized column back.
+
+**Shipped:** the three gestures — the header menu (right-click or Ctrl-click),
+dragging a title to move its column (live, as the pointer crosses the
+neighbour far enough that the swap does not swap back), dragging the gap after
+a title to resize within the column's declared bounds — on a table bound to a
+customization, for columns with an identifier, each taken away by the
+column's `disabledCustomizationBehavior`. The width goes into the
+customization and its encoding, as the owner expected and SwiftUI does; it is
+recorded only once the user resizes, so the value still records "what has
+been changed and nothing else", and an emptied customization puts the
+declared widths back. The last shown column cannot be hidden from the menu.
+
+From the keyboard the gestures are a mode rather than six chords: **Ctrl-K**
+picks a column (drawn in the selected-row fill in the header); while one is
+picked, ←/→ pick another, `<`/`>` (or Shift-←/→) move it, `-`/`+` resize it,
+Return opens the column menu on it, and Escape (or Ctrl-K) lets it go — the
+shape of Ctrl-R's row move, for the same reason: a column has to be chosen
+before anything can be done to it, and keys inside a mode need no modifier a
+terminal might not send. Only Ctrl-K is a rebindable `RowAction`; free Ctrl
+letters are too few for three pairs.
+
+**The fuller version:** gestures on a table without a binding and on columns
+without an identifier, kept in the table's own state as SwiftUI keeps them in
+the outline view — resizing everywhere, reordering with a binding. It costs a
+state lookup per table per frame for the transient widths, which every table
+would pay; half a day.
+
 ## C. Declined, with the reason
 
 ### C-D4T-1. B47 is not a gap: SwiftUI rejects the shape too

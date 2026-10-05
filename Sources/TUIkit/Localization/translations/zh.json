@@ -58,6 +58,7 @@
   "label.suppressDialog": "不再显示此消息",
   "label.find": "查找",
   "label.replaceWith": "替换为",
+  "label.hideColumn": "隐藏“%@”",
 
   "error.invalid_input": "输入无效",
   "error.required_field": "此字段为必填项",
@@ -110,6 +111,7 @@
   "statusbar.cancelMove": "取消移动",
   "statusbar.clearSelection": "清除选择",
   "statusbar.stopExtendingSelection": "停止扩展选择",
+  "statusbar.stopEditingColumns": "停止编辑列",
   "statusbar.copied": "已复制",
   "statusbar.sentToTerminalClipboard": "已发送到终端的剪贴板",
   "statusbar.notCopiedNoClipboard": "未复制：此处无法访问剪贴板",

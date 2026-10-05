@@ -58,6 +58,7 @@
   "label.suppressDialog": "No volver a mostrar este mensaje",
   "label.find": "Buscar",
   "label.replaceWith": "Reemplazar por",
+  "label.hideColumn": "Ocultar “%@”",
 
   "error.invalid_input": "Entrada no válida",
   "error.required_field": "Este campo es obligatorio",
@@ -110,6 +111,7 @@
   "statusbar.cancelMove": "cancelar el movimiento",
   "statusbar.clearSelection": "borrar la selección",
   "statusbar.stopExtendingSelection": "dejar de extender la selección",
+  "statusbar.stopEditingColumns": "dejar de editar columnas",
   "statusbar.copied": "Copiado",
   "statusbar.sentToTerminalClipboard": "Enviado al portapapeles del terminal",
   "statusbar.notCopiedNoClipboard": "No copiado: no hay portapapeles accesible desde aquí",
