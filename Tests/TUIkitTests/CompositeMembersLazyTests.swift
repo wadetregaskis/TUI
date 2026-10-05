@@ -125,6 +125,72 @@ struct CompositeMembersLazyTests {
         }
     }
 
+    // Beside a sibling the loop is spliced from its tuple slot: its rows sit
+    // one provider step further from the stack, and the tuple's children are
+    // resolved eagerly, so neither the pinning nor the laziness of the
+    // whole-content shape above says anything about this one.
+
+    /// A line of its own, then `rows`, in a pinned (or not) lazy stack in a
+    /// scroll view eight lines tall at `box`'s position.
+    private func pageBesideASibling(
+        _ box: PinnedPositionBox, pinned: Bool, @ViewBuilder rows: () -> some View
+    ) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: pinned ? .sectionHeaders : []) {
+                Text("Top")
+                rows()
+            }
+        }
+        .scrollPosition(Binding(get: { box.position }, set: { box.position = $0 }))
+        .scrollIndicators(.hidden)
+        .frame(height: 8)
+    }
+
+    @Test("Beside a sibling in a scroll view, such sections draw and pin as the same sections written bare", arguments: [false, true])
+    func loopBesideASiblingDrawsAsBare(pinned: Bool) {
+        let (viewsBox, bareBox) = (PinnedPositionBox(), PinnedPositionBox())
+        let views = pageBesideASibling(viewsBox, pinned: pinned) {
+            ForEach(0..<300, id: \.self) { GroupView(group: $0, built: nil) }
+        }
+        let bare = pageBesideASibling(bareBox, pinned: pinned) {
+            ForEach(0..<300, id: \.self) { bareGroup($0) }
+        }
+        let (viewsTUI, viewsFocus) = (TUIContext(), FocusManager())
+        let (bareTUI, bareFocus) = (TUIContext(), FocusManager())
+        var differing: [String] = []
+        for offset in [0, 1, 2, 3, 7, 50, 51, 52, 400, 0] {
+            viewsBox.position.scrollTo(y: offset)
+            bareBox.position.scrollTo(y: offset)
+            let drawn = scrollFrame(views, tui: viewsTUI, focusManager: viewsFocus)
+            let expected = scrollFrame(bare, tui: bareTUI, focusManager: bareFocus)
+            if offset == 50 {
+                // Line 50 is row 16.1, the last of its section: pinned, its
+                // header covers it.
+                #expect(
+                    expected.first == (pinned ? "Header 16" : "row 16.1"),
+                    "precondition, pinned \(pinned): \(expected)")
+            }
+            if drawn != expected { differing.append("offset \(offset): \(drawn) vs \(expected)") }
+        }
+        #expect(differing.isEmpty, "pinned \(pinned): \(differing.count) screens differ: \(differing.prefix(2))")
+    }
+
+    @Test("Beside a sibling, a lazy stack over a thousand sections of the app's own evaluates only the bodies it draws", arguments: [false, true])
+    func loopBesideASiblingStaysLazy(pinned: Bool) {
+        let built = Built()
+        let box = PinnedPositionBox()
+        let view = pageBesideASibling(box, pinned: pinned) {
+            ForEach(0..<1_000, id: \.self) { GroupView(group: $0, built: built) }
+        }
+        let (tui, focusManager) = (TUIContext(), FocusManager())
+        let drawn = scrollFrame(view, tui: tui, focusManager: focusManager)
+        #expect(drawn.first == "Top", "\(drawn)")
+        box.position.scrollTo(y: 50)
+        built.bodies = 0
+        _ = scrollFrame(view, tui: tui, focusManager: focusManager)
+        #expect(built.bodies < 100, "pinned \(pinned): evaluated \(built.bodies) bodies to draw a screen")
+    }
+
     @Test("To a List and to the section APIs, a loop of sections of the app's own is a loop of sections")
     func loopOfSectionViewsElsewhere() {
         let fixture = ListSectionEditingFixture()

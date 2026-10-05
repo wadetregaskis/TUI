@@ -53,13 +53,16 @@ extension ForEach where Content: View {
     ///   (`RenderContext.sectionWholeness`). One that keeps a loop's section
     ///   rows whole has a row that is a section be one child, as it always
     ///   was in a `List` — and so is a row of the app's own whose body is one
-    ///   (``isSectionRowType(_:)``): drawn whole where the walk keeps only a
-    ///   loop's sections whole (an unpinned lazy stack, whose section finds
-    ///   it is the stack's own by where it draws), and handed over as the
-    ///   section its body is where the walk keeps every section whole (a
-    ///   `List`, the section APIs, a pinned lazy stack, which look for the
-    ///   section among their children) — one child an element either way, so
-    ///   a lazy stack builds only the sections it draws.
+    ///   (``isSectionRowType(_:)``): drawn whole in a lazy stack's walk,
+    ///   pinned or not (`.loopRows`, `.pinned`), whose section finds it is
+    ///   the stack's own by where it draws, one sibling step below the stack;
+    ///   and handed over as the section its body is in a `List`'s and the
+    ///   section APIs' (`.all`), which look for the section among their
+    ///   children. One child an element either way, so a lazy stack builds
+    ///   only the sections it draws — and drawn whole, evaluated only where
+    ///   it is drawn, which a stack whose loop has a sibling needs: the tuple
+    ///   splice resolves the loop's rows eagerly, and handed over as its
+    ///   section each row's body was evaluated on every walk.
     func rowShape(sectionWholeness: SectionWholeness) -> ForEachRowShape {
         // A row of the app's own type is taken apart only when its body hands
         // over children (decisions D1S, B-D1S-6) — the static witness, a few

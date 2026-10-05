@@ -1012,6 +1012,7 @@ package func resolveChildViews<V: View>(
     switch context.sectionWholeness {
     case .apart: identityHash = context.identity.structuralHash
     case .loopRows: identityHash = context.identity.structuralHash ^ RenderCache.ChildViewsKey.loopedSectionsWholeSalt
+    case .pinned: identityHash = context.identity.structuralHash ^ RenderCache.ChildViewsKey.pinnedSectionsWholeSalt
     case .all: identityHash = context.identity.structuralHash ^ RenderCache.ChildViewsKey.sectionsWholeSalt
     }
     let key = RenderCache.ChildViewsKey(

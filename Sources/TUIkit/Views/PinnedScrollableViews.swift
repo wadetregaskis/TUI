@@ -89,7 +89,7 @@ struct PinnedSectionScope: Equatable {
     /// while it pins, and otherwise only a loop's section rows, which keep it
     /// lazy (`SectionWholeness`).
     var wholeness: SectionWholeness {
-        pinsHeaders || pinsFooters ? .all : .loopRows
+        pinsHeaders || pinsFooters ? .pinned : .loopRows
     }
 
     /// What a section at `identity` pins — nothing unless it is one of the

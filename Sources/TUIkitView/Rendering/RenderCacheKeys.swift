@@ -319,6 +319,12 @@ extension RenderCache {
         /// reason; another arbitrary odd constant.
         package static let loopedSectionsWholeSalt = 0x5EC7_10E5_100F_0003
 
+        /// Mixed into ``identityHash`` for a pinned lazy stack's walk
+        /// (`SectionWholeness.pinned`), which keeps every section whole as a
+        /// `List`'s does but resolves a loop of sections of the app's own to
+        /// different children; another arbitrary odd constant.
+        package static let pinnedSectionsWholeSalt = 0x5EC7_10E5_917E_0005
+
         public init(identityHash: Int, viewType: ObjectIdentifier, valueHash: Int) {
             self.identityHash = identityHash
             self.viewType = viewType

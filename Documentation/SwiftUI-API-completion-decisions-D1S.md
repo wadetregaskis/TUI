@@ -26,7 +26,10 @@ as its own children. A lazy stack is the exception, in two ways:
   copy of the header marked to pin; a stack handed the parts as anonymous rows
   could not say which row is whose header, and its windowed paths would not
   draw a header that has scrolled out of the band while its rows are still on
-  screen.
+  screen. A loop's row of the app's own whose body is a section —
+  `ForEach(groups) { GroupView(group: $0) }` — is drawn whole, as unpinned
+  (`SectionWholeness.pinned`): its section pins as the stack's own, and the
+  stack builds only the sections it draws, beside a sibling too.
 - **Unpinned**, it keeps the sections a `ForEach` makes as its rows whole —
   `ForEach(groups) { Section … }`, Apple's own shape, and `ForEach(groups) {
   GroupView(group: $0) }` where `GroupView`'s body is the section — and takes

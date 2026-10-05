@@ -301,9 +301,10 @@ public struct RenderContext {
     /// be resolved more than one way at one identity.
     package var sectionWholeness: SectionWholeness = .apart
 
-    /// Whether the walk keeps EVERY section whole (``sectionWholeness``).
+    /// Whether the walk keeps EVERY section whole (``sectionWholeness``): a
+    /// `List`'s, the section APIs' or a pinned lazy stack's.
     package var keepsSectionsWhole: Bool {
-        get { sectionWholeness == .all }
+        get { sectionWholeness == .all || sectionWholeness == .pinned }
         set { sectionWholeness = newValue ? .all : .apart }
     }
 
@@ -687,7 +688,17 @@ package enum SectionWholeness: UInt8 {
     /// as the stack would (`PinnedSectionLayout`). A section written in the
     /// stack's content is its parts there, as anywhere.
     case loopRows
-    /// Every section: a `List`'s walk, the section APIs', and a pinned lazy
-    /// stack's, whose own sections pin their headers and footers themselves.
+    /// Every section, in a pinned lazy stack's walk, whose own sections pin
+    /// their headers and footers themselves. As ``all``, but for a loop's row
+    /// of the app's own whose body is a section, which is drawn whole as under
+    /// ``loopRows`` rather than handed over as that section: the section finds
+    /// it is the stack's own by where it draws, one sibling step below the
+    /// stack wherever the loop is in its content, and the row is one child an
+    /// element whose body is evaluated only where it is drawn — so the stack
+    /// builds only the sections it draws, beside a sibling too, where the loop
+    /// is spliced from its tuple slot and its rows resolved eagerly.
+    case pinned
+    /// Every section: a `List`'s walk and the section APIs', which read a
+    /// section as a section.
     case all
 }
