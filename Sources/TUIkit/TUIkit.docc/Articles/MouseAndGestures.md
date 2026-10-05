@@ -277,7 +277,8 @@ it is on — on a single `Text`, that `Text` — and widens it to the rows of a
 to the text, so a drag selects it (kept to the row), a double-click selects a
 word, and a click selects nothing, while a press on the row's blank cells
 selects, drags or activates the row as before. On a row's own `Text` it does
-the same for that text, kept to it; on a `Table` cell's `Text`, for the row's.
+the same for that text, kept to it; on a `Table` cell's `Text`, for that text,
+kept to its cell, and for the row's other text, kept to the row.
 `.disabled` turns the selection off; the innermost modifier wins.
 
 ```swift

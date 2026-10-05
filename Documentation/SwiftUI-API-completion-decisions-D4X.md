@@ -224,10 +224,12 @@ handlers.
 ### B-D4X-17. `.textSelection(.enabled)` on a Table cell's Text makes the row's text selectable
 
 **Shipped:** on a `List` row's own `Text` the modifier makes that text
-selectable, kept to it, as SwiftUI's example does. A `Table` draws its cells
-as text and keeps none of their regions, so on a cell's `Text` it makes the
-whole row's text selectable, kept to the row — as the modifier around the
-table does (B-D4X-7).
+selectable, kept to it, as SwiftUI's example does. On a `Table` cell's `Text`
+it makes the whole row's text selectable, kept to the row — as the modifier
+around the table does (B-D4X-7) — but for a press on that cell's own text,
+which is kept to the cell: the table carries a view cell's regions up (B46),
+the scope's among them, and draws the rest of the row as text, keeping no
+rectangle of it.
 
 **The fuller version:** the table remembers which columns' cells filed an
 enabled scope and files the columns' geometry with its rows, so only those

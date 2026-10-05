@@ -1120,6 +1120,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let contentLines: [String]
         var contentRuns: [AnimatedCellRun] = []
         var contentClaims: [OpacityRegion] = []
+        /// What the drawn rows' view cells registered, in the content lines'
+        /// coordinates — see ``_TableRowPayload``.
+        var contentPayload = _TableRowPayload()
         let renderState: PopulatedRenderState?
         if data.isEmpty {
             contentLines = [emptyPlaceholder]
@@ -1138,6 +1141,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             contentLines = result.lines
             contentRuns = result.runs
             contentClaims = result.claims
+            contentPayload = result.payload
             renderState = result.state
         } else {
             let result = buildPopulatedContent(
@@ -1151,6 +1155,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             contentLines = result.lines
             contentRuns = result.runs
             contentClaims = result.claims
+            contentPayload = result.payload
             renderState = result.state
         }
 
@@ -1196,13 +1201,23 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     line: headerLines(context.environment) > 0 ? headerLine : nil,
                     claims: header.claims)
                 _TableContentView(
-                    lines: filledContentLines, runs: contentRuns, claims: contentClaims)
+                    lines: filledContentLines, runs: contentRuns, claims: contentClaims,
+                    payload: contentPayload)
             }
         }
         var buffer = TUIkit.renderToBuffer(container, context: context)
 
         if let state = renderState {
+            // The cells' regions are the only ones the container carries up, and
+            // they go back on LAST: above the table's own catch-all, its cursor
+            // marker and a draggable row's handle, so a control in a cell takes
+            // the press before anything the row registered — and a region that
+            // declines it (a context-menu trigger declines a left click) passes
+            // it on down to the row.
+            let cellRegions = buffer.hitTestRegions
+            buffer.hitTestRegions.removeAll()
             attachMouseHandlers(to: &buffer, context: context, state: state, scopesBefore: scopesBefore)
+            buffer.hitTestRegions += cellRegions
         }
         return buffer
     }
@@ -1220,7 +1235,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         innerWidth: Int
     ) -> (
         lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
-        state: PopulatedRenderState
+        payload: _TableRowPayload, state: PopulatedRenderState
     ) {
         // Multi-line cells (any column with a line limit above 1) take a separate,
         // height-aware layout path. Single-line tables keep the original
@@ -1294,6 +1309,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             lines: composed.lines,
             runs: composed.runs,
             claims: composed.claims,
+            payload: composed.payload,
             state: PopulatedRenderState(
                 handler: handler,
                 focusID: persistedFocusID,
@@ -1328,7 +1344,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         contentInnerWidth: Int
     ) -> (
         lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
-        state: PopulatedRenderState
+        payload: _TableRowPayload, state: PopulatedRenderState
     ) {
         let contentHeight = max(1, context.availableHeight - chromeLines(context.environment))
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -1395,6 +1411,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// The rows' claims, at their position among `rowLines` — moved by the same
         /// slide the runs are, once the clip has settled where the lines landed.
         var rowOpacity: [OpacityRegion] = []
+        /// The rows' cell payloads, at their position among `rowLines`.
+        var rowPayload = _TableRowPayload()
         rowLines.reserveCapacity(contentHeight)
         // One sampler for the frame, not one per row: building it quantises the
         // ramp, which is an array a row must not allocate.
@@ -1414,6 +1432,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     isSelected: handler.drawsSelected(at: rowIndex),
                     isReturningHome: handler.returningRows.contains(rowIndex),
                     context: context, palette: palette, memo: handler)
+                if !row.payload.isEmpty {
+                    rowPayload.append(row.payload.shifted(byX: 0, y: rowLines.count))
+                }
                 collect(
                     line: row.line, frames: row.pulseFrames, timing: row.pulseTiming, claims: row.claims,
                     into: &rowLines, runs: &pulseRuns, claims: &rowOpacity, transform: padded)
@@ -1458,6 +1479,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // The bar's claims are NOT slid: the bar stays put while the rows move.
             rowClaims(rowOpacity, slide: slide, topOffset: 0, lineCount: lines.count)
                 + bar.claims(atColumn: contentInnerWidth),
+            rowPayloads(rowPayload, slide: slide, topOffset: 0, lineCount: lines.count),
             PopulatedRenderState(
                 handler: handler, focusID: persistedFocusID, visibleRange: visibleRange,
                 scrollOffsetAbove: 0, drawnBands: bands, hasScrollbar: true,
@@ -1485,7 +1507,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         innerWidth: Int
     ) -> (
         lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
-        state: PopulatedRenderState
+        payload: _TableRowPayload, state: PopulatedRenderState
     ) {
         let gutter = selectionGutter(context.environment)
         // The chrome: top border + column header + bottom border, as the
@@ -1520,14 +1542,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // two don't overlap. Routing the suffix through `layoutOf` as well would
         // recover the end of the table and pay for it everywhere else, allocating
         // cells for a screenful of rows nothing draws.
-        var layoutCache: [Int: (cells: [[String]], height: Int)] = [:]
+        var layoutCache: [Int: MultiLineRowLayout] = [:]
         var heightCache: [Int: Int] = [:]
         /// The focused, selected row, laid out over a raised background once the
         /// focus is known (``raiseBackgroundProminence(handler:tableHasFocus:context:)``)
         /// — before the window walk, which is the first to lay a row out.
         var raisedRow: Int?
         /// The wrapped cells and the height of a row that is about to be drawn.
-        func layoutOf(_ index: Int) -> (cells: [[String]], height: Int) {
+        func layoutOf(_ index: Int) -> MultiLineRowLayout {
             if let cached = layoutCache[index] { return cached }
             let rowContext = index == raisedRow ? Self.raised(context) : context
             let layout = cellLayout(for: data[index], columnWidths: columnWidths, context: rowContext)
@@ -1705,6 +1727,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             lines: composed.lines,
             runs: composed.runs,
             claims: composed.claims,
+            payload: composed.payload,
             state: PopulatedRenderState(
                 handler: handler,
                 focusID: persistedFocusID,
@@ -1773,18 +1796,34 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// cell). Each cell is laid out into its column with `TextWrapping`, so an
     /// embedded newline or an over-long value expands within the column up to the
     /// column's line limit and then clips — the same model `Text` uses.
+    ///
+    /// A row about to be drawn is laid out under the live context, so its view
+    /// cells' controls register here, and what they registered comes back as
+    /// the layout's payload (``_TableRowPayload``).
     private func cellLayout(
         for item: Value, columnWidths: [Int], context: RenderContext
-    ) -> (cells: [[String]], height: Int) {
+    ) -> MultiLineRowLayout {
         var cells: [[String]] = []
         cells.reserveCapacity(columns.count)
         var height = 1
-        for (column, width) in zip(columns, columnWidths) {
-            let wrapped = cellLines(column, for: item, width: width, context: context)
+        var payload = _TableRowPayload()
+        for (index, (column, width)) in zip(columns, columnWidths).enumerated() {
+            let wrapped: [String]
+            if case .view = column.cell, !context.isMeasuring {
+                let buffer = viewCell(column, for: item, width: width, context: context)
+                wrapped = Self.cellLines(buffer, limit: column.lineLimit)
+                    .split(separator: "\n", omittingEmptySubsequences: false)
+                    .prefix(column.lineLimit).map(String.init)
+                absorbPayload(
+                    of: buffer, column: index, columnWidths: columnWidths, context: context,
+                    into: &payload)
+            } else {
+                wrapped = cellLines(column, for: item, width: width, context: context)
+            }
             height = max(height, wrapped.count)
             cells.append(wrapped)
         }
-        return (cells, height)
+        return MultiLineRowLayout(cells: cells, height: height, payload: payload)
     }
 
     /// One cell's lines on a multi-line row: a string wrapped into its column
@@ -1954,7 +1993,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         contentHeight: Int,
         bar: ClaimingColumn,
         context: RenderContext
-    ) -> (lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion], rowsEnd: Int) {
+    ) -> (
+        lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
+        payload: _TableRowPayload, rowsEnd: Int
+    ) {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
         // Every line — focused-row backgrounds and indicators included — is padded
@@ -2017,6 +2059,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// among `slidableRows` — see `collect`.
         var pulseRuns: [PulseRun] = []
         var rowOpacity: [OpacityRegion] = []
+        /// The rows' cell payloads, at their position among `slidableRows`.
+        var rowPayload = _TableRowPayload()
         let rowRamp = cellRamp(rowWidth: contentWidth, context: context)
         for rowIndex in window.range {
             let rendered = renderMultiLineRow(
@@ -2042,6 +2086,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let remaining = rowLineBudget - rowLinesEmitted
             if remaining <= 0 { break }
             if row.lines.count > remaining { row = row.keepingFirst(remaining) }
+            if !row.payload.isEmpty {
+                rowPayload.append(row.payload.shifted(byX: 0, y: slidableRows.count))
+            }
             collect(row, into: &slidableRows, runs: &pulseRuns, claims: &rowOpacity)
             rowLinesEmitted += row.lines.count
         }
@@ -2060,6 +2107,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             lineCount: rowsEnd)
         let claims = rowClaims(
             rowOpacity, slide: -handler.overscrollState.excursion, topOffset: rowsTop,
+            lineCount: rowsEnd)
+        let payload = rowPayloads(
+            rowPayload, slide: -handler.overscrollState.excursion, topOffset: rowsTop,
             lineCount: rowsEnd)
         if window.reservesBelow {
             let indicator = renderScrollIndicator(
@@ -2082,7 +2132,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 lines.append(String(repeating: " ", count: contentWidth))
             }
         }
-        guard showsBar else { return (lines, runs + chromeRuns, claims + chromeClaims, rowsEnd) }
+        guard showsBar else {
+            return (lines, runs + chromeRuns, claims + chromeClaims, payload, rowsEnd)
+        }
         // The bar is the rightmost interior column, merged in by absolute line
         // index so an overscroll slide moves the rows and leaves it where it
         // is (§1.5) — the same composition the single-line path uses, claims
@@ -2095,7 +2147,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         bar.fit(toCount: lines.count, field: ScrollbarColors.track(in: palette))
         return (
             zip(lines, bar.lines).map { $0 + $1 },
-            runs + chromeRuns, claims + chromeClaims + bar.claims(atColumn: contentWidth), rowsEnd)
+            runs + chromeRuns, claims + chromeClaims + bar.claims(atColumn: contentWidth), payload,
+            rowsEnd)
     }
 
     /// Renders one (possibly multi-line) row: the selection indicator on the first
@@ -2107,7 +2160,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// visible at all, so wrapping them again here to draw them was the same work a
     /// second time — see `buildMultiLineContent`'s layout memo.
     private func renderMultiLineRow(
-        layout: (cells: [[String]], height: Int),
+        layout: MultiLineRowLayout,
         paint: RowPaint,
         isFocused: Bool,
         isSelected: Bool,
@@ -2225,12 +2278,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         // Same recolour-the-finished-line trick the single-line path uses: one
         // recolouring per step, not one render of the row per step.
-        guard let framePaints else { return RenderedRow(lines: lines, claims: claims) }
+        guard let framePaints else {
+            return RenderedRow(lines: lines, claims: claims, payload: layout.payload)
+        }
         return RenderedRow(
             lines: lines,
             pulseFrames: bareLines.map { bare in framePaints.map { $0.painting(bare) } },
             pulseTiming: visual.background.pulseTiming,
-            claims: claims)
+            claims: claims, payload: layout.payload)
     }
 
     /// Hands the handler this frame's row actions: one call for both layout
@@ -2493,7 +2548,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         palette: any Palette
     ) -> (
         lines: [String], rowLines: [String], runs: [AnimatedCellRun],
-        claims: [OpacityRegion],
+        claims: [OpacityRegion], payload: _TableRowPayload,
         bands: [ItemListHandler<Value.ID>.DrawnBand]
     ) {
         let gutter = selectionGutter(context.environment)
@@ -2543,6 +2598,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// among `rowLines` — see `collect`.
         var pulseRuns: [PulseRun] = []
         var rowOpacity: [OpacityRegion] = []
+        /// The rows' cell payloads, at their position among `rowLines`.
+        var rowPayload = _TableRowPayload()
         // One sampler for the frame — see the twin in the single-line path.
         let rowRamp = cellRamp(rowWidth: contentWidth, context: context)
         beginRowMemo(
@@ -2563,6 +2620,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     palette: palette,
                     memo: handler
                 )
+                if !row.payload.isEmpty {
+                    rowPayload.append(row.payload.shifted(byX: 0, y: rowLines.count))
+                }
                 collect(
                     line: row.line, frames: row.pulseFrames, timing: row.pulseTiming, claims: row.claims,
                     into: &rowLines, runs: &pulseRuns, claims: &rowOpacity)
@@ -2623,6 +2683,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             pulseRuns, slide: slide, topOffset: rowsTop, lineCount: rowsTop + rowLines.count)
         let claims = rowClaims(
             rowOpacity, slide: slide, topOffset: rowsTop, lineCount: rowsTop + rowLines.count)
+        let payload = rowPayloads(
+            rowPayload, slide: slide, topOffset: rowsTop, lineCount: rowsTop + rowLines.count)
         if indicators.below {
             let indicator = renderScrollIndicator(
                 direction: .down, count: drawnBelow, unit: .rows, width: contentWidth,
@@ -2634,7 +2696,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // indexing them by `visibleRange` offset is exact.
         return (
             lines, handler.onMove == nil ? [] : rowLines, runs + chromeRuns, claims + chromeClaims,
-            bands)
+            payload, bands)
     }
 
     // MARK: - Reorder drag
@@ -2852,6 +2914,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             guard y >= topOffset, y < lineCount else { return nil }
             return claim.shifted(byX: 0, y: y - claim.offsetY)
         }
+    }
+
+    /// The collected cell payloads, moved exactly as
+    /// ``rowClaims(_:slide:topOffset:lineCount:)`` moves the claims: the same
+    /// slide, the same indicator offset, and a region trimmed to the lines the
+    /// rows still draw — a row slid half off the top answers a click on the
+    /// half that is left, as its band does.
+    private func rowPayloads(
+        _ collected: _TableRowPayload, slide: Int, topOffset: Int, lineCount: Int
+    ) -> _TableRowPayload {
+        guard !collected.isEmpty else { return collected }
+        return collected.shifted(byX: 0, y: slide + topOffset)
+            .clipped(toRows: topOffset..<max(topOffset, lineCount))
     }
 
     @MainActor
@@ -3180,8 +3255,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// enabled scope pays one read.
     ///
     /// A cell's scope makes the whole row's text selectable, kept to the row,
-    /// as an enabled scope around the table does (B-D4X-7): the table draws
-    /// its cells as text, so it knows no cell's rectangle to keep it to.
+    /// as an enabled scope around the table does (B-D4X-7) — but for a press
+    /// on the scoped cell itself, which is under the scope's own region (the
+    /// table carries a view cell's regions up, ``_TableRowPayload``) and is
+    /// kept to the cell. The rest of the row is drawn as text, and the table
+    /// knows no rectangle of it to keep a selection to.
     @MainActor
     private func fileSelectableRows(
         for id: HitTestRegion.HandlerID, state: PopulatedRenderState, dispatcher: MouseEventDispatcher,
@@ -3770,6 +3848,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
+    /// One drawn row's single-line composition, and what its cells' controls
+    /// registered (``_TableRowPayload``).
+    private typealias DrawnSingleLineRow = (
+        line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
+        claims: [OpacityRegion], payload: _TableRowPayload
+    )
+
     /// A plain `Text` cell's lines, or `nil` for a text that must be rendered.
     ///
     /// A plain `Text` says exactly what a `String` key path's value says, and
@@ -3809,15 +3894,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// column's line limit and truncation as the environment's, so a `Text`
     /// cell clips and wraps as the column says.
     ///
-    /// And no carried geometry origin. The cell is composed as text, which
-    /// drops the markers it drew, so no owner of a space finds a view in it
-    /// (decisions D5G, B-D5G-2): a reader there is told what one no owner
-    /// finds is told, the origin, as an `onGeometryChange` there is. Carried,
-    /// the table's own origin reached every cell — no row or column placed —
-    /// and was told to each reader from its second frame on as though it were
-    /// where the reader was, never checked; and every container in a cell
-    /// worked out placements nothing would read. A space declared inside the
-    /// cell starts an origin of its own, and is answered exactly.
+    /// And no carried geometry origin. The cell is composed as text, and the
+    /// markers it drew are left behind with it (``_TableRowPayload`` carries
+    /// its click regions and layers, not those), so no owner of a space finds
+    /// a view in it (decisions D5G, B-D5G-2): a reader there is told what one
+    /// no owner finds is told, the origin, as an `onGeometryChange` there is.
+    /// Carried, the table's own origin reached every cell — no row or column
+    /// placed — and was told to each reader from its second frame on as
+    /// though it were where the reader was, never checked; and every container
+    /// in a cell worked out placements nothing would read. A space declared
+    /// inside the cell starts an origin of its own, and is answered exactly.
     private func cellContext(
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> RenderContext {
@@ -4300,18 +4386,29 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         context: RenderContext,
         palette: any Palette,
         memo handler: ItemListHandler<Value.ID>? = nil
-    ) -> (
-        line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
-        claims: [OpacityRegion]
-    ) {
-        func compose(_ cells: [String]) -> (
-            line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
-            claims: [OpacityRegion]
-        ) {
-            renderRowUncached(
+    ) -> DrawnSingleLineRow {
+        /// What the cells' controls registered this frame. Fresh whichever
+        /// line is drawn, kept or composed: see ``_TableRowPayload``.
+        var payload = _TableRowPayload()
+        /// Hands back a kept row, counted and — under the verifier — checked,
+        /// with the payload its cells produced on THIS frame, never a kept one:
+        /// see ``_TableRowPayload``.
+        func serve(_ kept: TableRowMemoLine) -> DrawnSingleLineRow {
+            context.renderCache?.rowWork.served += 1
+            verifyRowServe(
+                kept.line, item: item, paint: paint, columnWidths: columnWidths,
+                isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
+            return (kept.line, nil, nil, kept.claims, payload)
+        }
+        func compose(_ cells: [String]) -> DrawnSingleLineRow {
+            let row = renderRowUncached(
                 cells: cells, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, isReturningHome: isReturningHome,
                 context: context, palette: palette)
+            // A row walking home draws a blank, and a blank has nothing to click.
+            return (
+                row.line, row.pulseFrames, row.pulseTiming, row.claims,
+                isReturningHome ? _TableRowPayload() : payload)
         }
         // A ramp colours a row by its ORDINAL, which moves when the table
         // scrolls while the row does not, so a ramped table keeps nothing.
@@ -4328,7 +4425,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         else {
             // The focused, selected row's cells render over a raised background.
             let cellContext = isFocused && isSelected ? Self.raised(context) : context
-            return compose(rowCells(for: item, columnWidths: columnWidths, context: cellContext))
+            return compose(
+                rowCells(
+                    for: item, columnWidths: columnWidths, context: cellContext, payload: &payload))
         }
         let kept = handler.tableRowMemo.entry(for: item.id)
         let rowBox = Self.rowsSignature(of: item)
@@ -4341,18 +4440,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         // The cheapest hit there is: every column names its value, so the cells
         // are a pure function of the row, and an equal row needs no cells built
-        // at all. Only available to a comparable row type.
+        // at all. Only available to a comparable row type. Nothing is lost by
+        // not running the cells: a column that names its value is never a view,
+        // so there is no control in the row to register.
         if let kept, let rowBox, handler.tableRowMemo.namesItsValues,
             kept.answers(row: rowBox, isSelected: isSelected, isStriped: isStriped, isDimmed: isDimmed)
         {
-            return serve(kept, item: item, paint: paint, columnWidths: columnWidths,
-                isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
+            return serve(kept)
         }
 
         // Otherwise the closures have to run — that is the app's own cost and
         // nothing can skip it — but what they produced settles the question
         // outright, for any row type and any column.
-        let cells = rowCells(for: item, columnWidths: columnWidths, context: context)
+        let cells = rowCells(
+            for: item, columnWidths: columnWidths, context: context, payload: &payload)
         if let kept,
             kept.answers(cells: cells, isSelected: isSelected, isStriped: isStriped, isDimmed: isDimmed)
         {
@@ -4362,8 +4463,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             if handler.tableRowMemo.namesItsValues, let rowBox, kept.row != rowBox {
                 handler.tableRowMemo.refresh(row: rowBox, for: item.id)
             }
-            return serve(kept, item: item, paint: paint, columnWidths: columnWidths,
-                isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
+            // The kept line, and the payload of the cells that just ran: their
+            // controls registered on THIS frame, under ids the line's regions
+            // must name.
+            return serve(kept)
         }
 
         let tracker = context.environment.volatileReadTracker
@@ -4383,24 +4486,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return result
     }
 
-    /// Hands back a kept row, counted and — under the verifier — checked.
-    private func serve(
-        _ kept: TableRowMemoLine, item: Value, paint: RowPaint, columnWidths: [Int],
-        isFocused: Bool, isSelected: Bool, context: RenderContext, palette: any Palette
-    ) -> (
-        line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
-        claims: [OpacityRegion]
-    ) {
-        context.renderCache?.rowWork.served += 1
-        let served = (
-            line: kept.line, pulseFrames: [String]?.none,
-            pulseTiming: IndicatorCycleTiming?.none, claims: kept.claims)
-        verifyRowServe(
-            served, item: item, paint: paint, columnWidths: columnWidths, isFocused: isFocused,
-            isSelected: isSelected, context: context, palette: palette)
-        return served
-    }
-
     /// Re-composes a served row and reports a disagreement, under
     /// `TUIKIT_VERIFY_RENDER_MEMO`.
     ///
@@ -4410,21 +4495,22 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// — the flag is for the standing CI lane and the contract suite, both of
     /// which now cover rows.
     private func verifyRowServe(
-        _ served: (
-            line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
-            claims: [OpacityRegion]
-        ),
+        _ servedLine: String,
         item: Value, paint: RowPaint, columnWidths: [Int], isFocused: Bool, isSelected: Bool,
         context: RenderContext, palette: any Palette
     ) {
         guard RenderCache.verifiesRenderMemo, let cache = context.renderCache else { return }
+        // The check compares lines; what the cells registered is the served
+        // row's, already.
+        var unused = _TableRowPayload()
         let fresh = renderRowUncached(
-            cells: rowCells(for: item, columnWidths: columnWidths, context: context),
+            cells: rowCells(
+                for: item, columnWidths: columnWidths, context: context, payload: &unused),
             item: item, paint: paint, columnWidths: columnWidths, isFocused: isFocused,
             isSelected: isSelected, isReturningHome: false, context: context, palette: palette)
-        guard fresh.line != served.line else { return }
+        guard fresh.line != servedLine else { return }
         cache.noteRenderMemoMismatch(
-            viewType: "\(Self.self) row", served: FrameBuffer(lines: [served.line]),
+            viewType: "\(Self.self) row", served: FrameBuffer(lines: [servedLine]),
             fresh: FrameBuffer(lines: [fresh.line]), identity: identityKey(item.id))
     }
 
@@ -4436,18 +4522,56 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// memo's soundness for a closure column: the closure may capture anything,
     /// but once it has RUN, what it produced is not a proxy for the row's text
     /// — it is the row's text.
+    ///
+    /// A view cell drawn under a live context leaves what its controls
+    /// registered in `payload`, placed in the row — see ``_TableRowPayload``.
     private func rowCells(
-        for item: Value, columnWidths: [Int], context: RenderContext
+        for item: Value, columnWidths: [Int], context: RenderContext,
+        payload: inout _TableRowPayload
     ) -> [String] {
         let count = min(columns.count, columnWidths.count)
         var cells: [String] = []
         cells.reserveCapacity(count)
         for index in 0..<count {
-            cells.append(
-                cellValue(columns[index], for: item, width: columnWidths[index],
-                    context: context))
+            let column = columns[index]
+            guard case .view = column.cell, !context.isMeasuring else {
+                cells.append(
+                    cellValue(column, for: item, width: columnWidths[index], context: context))
+                continue
+            }
+            let buffer = viewCell(column, for: item, width: columnWidths[index], context: context)
+            cells.append(Self.cellLines(buffer, limit: column.lineLimit))
+            absorbPayload(
+                of: buffer, column: index, columnWidths: columnWidths, context: context,
+                into: &payload)
         }
         return cells
+    }
+
+    /// A view cell's buffer, counted as ``cellValue(_:for:width:context:)``
+    /// counts it — the one place a view cell is rendered.
+    private func viewCell(
+        _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
+    ) -> FrameBuffer {
+        guard case .view(let render) = column.cell else { return FrameBuffer() }
+        context.renderCache?.rowWork.cellValues += 1
+        return render(item, cellContext(column, for: item, width: width, context: context))
+    }
+
+    /// Places a drawn view cell's payload in its row: at the column's start,
+    /// past the selection gutter and every column and gap before it. Asked
+    /// only of a cell that carries something, so the gutter and the walk are
+    /// never paid by a row that has nothing to place.
+    private func absorbPayload(
+        of buffer: FrameBuffer, column index: Int, columnWidths: [Int], context: RenderContext,
+        into payload: inout _TableRowPayload
+    ) {
+        guard !buffer.hitTestRegions.isEmpty || !buffer.overlays.isEmpty else { return }
+        var x = selectionGutter(context.environment)
+        for previous in 0..<index { x += columnWidths[previous] + columnSpacing }
+        payload.absorb(
+            buffer, atColumn: x, width: columnWidths[index], lines: columns[index].lineLimit,
+            alignment: columns[index].alignment)
     }
 
     private func renderRowUncached(
@@ -4644,11 +4768,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// clipping the caller applies to one it applies to all three.
         var claims: [OpacityRegion] = []
 
+        /// What the row's view cells registered, `offsetY` an index into
+        /// ``lines`` like the claims', and clipped with them.
+        var payload = _TableRowPayload()
+
         /// This row with its first `count` lines taken off: what a top clip
         /// leaves of it. Everything indexed by line goes with them — the
         /// frames, so `pulseFrames[i]` stays the frames of `lines[i]`, and the
-        /// claims, whose lines taken off the FRONT move every survivor's index
-        /// down by as many.
+        /// claims and the cells' payload, whose lines taken off the FRONT move
+        /// every survivor's index down by as many.
         func droppingFirst(_ count: Int) -> Self {
             guard count > 0 else { return self }
             var row = self
@@ -4658,6 +4786,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 guard claim.offsetY >= count else { return nil }
                 return claim.shifted(byX: 0, y: -count)
             }
+            row.payload = payload.shifted(byX: 0, y: -count).clipped(toRows: 0..<row.lines.count)
             return row
         }
 
@@ -4670,8 +4799,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             row.lines.removeLast(dropped)
             row.pulseFrames?.removeLast(dropped)
             row.claims = claims.filter { $0.offsetY < count }
+            row.payload = payload.clipped(toRows: 0..<count)
             return row
         }
+    }
+
+    /// A multi-line row laid out: each cell's wrapped lines, the row's height
+    /// (its tallest cell), and what its view cells registered.
+    struct MultiLineRowLayout {
+        let cells: [[String]]
+        let height: Int
+        var payload = _TableRowPayload()
     }
 
     /// How many frames a row's travel is cut into.
@@ -4805,7 +4943,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         /// The wrapped cells and height of the row at an index, memoised for the
         /// whole render — see `buildMultiLineContent`.
-        let layout: (Int) -> (cells: [[String]], height: Int)
+        let layout: (Int) -> MultiLineRowLayout
     }
 
     /// The ramp the cells are painted with, or `nil` when the paint is a plain
@@ -4988,6 +5126,11 @@ private struct _TableContentView: View, Renderable {
     /// backgrounds itself, and a translucent one of any of those owes a blend.
     var claims: [OpacityRegion] = []
 
+    /// What the rows' view cells registered — their controls' hit regions and
+    /// any overlay one raised — positioned the same way, so the container
+    /// carries them to where the cells are drawn. See ``_TableRowPayload``.
+    var payload = _TableRowPayload()
+
     var body: Never {
         fatalError("_TableContentView renders via Renderable")
     }
@@ -5001,6 +5144,8 @@ private struct _TableContentView: View, Renderable {
         guard !context.isMeasuring else { return buffer }
         buffer.animatedCells = runs
         buffer.opacityRegions = claims
+        buffer.hitTestRegions = payload.hitTestRegions
+        buffer.overlays = payload.overlays
         return buffer
     }
 }

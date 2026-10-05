@@ -222,6 +222,34 @@ struct TextSelectionModifierTests {
         #expect(page.selection.value == nil)
     }
 
+    struct TwoColumnCellTextPage: View {
+        var body: some View {
+            Table((0..<4).map { Item(id: $0, name: "item \($0) name") }) {
+                TableColumn("Name") { item in Text(item.name).textSelection(.enabled) }
+                TableColumn("Other") { item in Text("other \(item.id)") }
+            }
+            .frame(height: 9)
+        }
+    }
+
+    /// The table carries a view cell's regions up, its scope's among them: a
+    /// press on the scoped cell's text is under that scope, and the selection
+    /// keeps to the cell, as on a List row's own Text. A press on the row's
+    /// other text is under no scope, and keeps to the row (B-D4X-17).
+    @Test("On a Table cell's Text, a drag from it keeps to the cell, and from the row's other text to the row")
+    func cellTextKeepsToTheCell() throws {
+        let page = TwoColumnCellTextPage()
+        let harness = InputChainHarness(width: 60, height: 10)
+        harness.frame(page)
+        harness.frame(page)
+        let name = try find("item 1", in: harness, page)
+        drag(harness, page, from: (name.x + 5, name.y), to: (name.x + 40, name.y))
+        #expect(harness.tui.screenSelection.current?.text == "1 name")
+        let other = try find("other 1", in: harness, page)
+        drag(harness, page, from: (other.x + 1, other.y), to: (name.x, name.y))
+        #expect(harness.tui.screenSelection.current?.text.hasPrefix("item 1 name") == true)
+    }
+
     // MARK: - Seen through by containers
 
     struct LoopPage: View {

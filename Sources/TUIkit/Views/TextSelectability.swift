@@ -64,8 +64,10 @@ extension View {
     ///   the row as before. A row is reached from the keyboard as ever. On a
     ///   row's own `Text` — `List(items) { Text($0.name).textSelection(.enabled) }`,
     ///   SwiftUI's own example — it does the same for that text, kept to it;
-    ///   on a ``Table`` cell's, for the row's (a table draws its cells as text,
-    ///   and keeps no cell's rectangle).
+    ///   on a ``Table`` cell's, for that text, kept to its cell, and for the
+    ///   row's other text, kept to the row (a table keeps a view cell's
+    ///   regions, and draws the rest of the row as text, whose cells it keeps
+    ///   no rectangle for).
     /// - **`.disabled`** turns TUIkit's selection off here: a drag selects
     ///   nothing, and a scroll view's background takes its press at once. The
     ///   terminal's own selection, with its modifier held, is the terminal's.

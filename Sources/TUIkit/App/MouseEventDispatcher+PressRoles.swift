@@ -47,11 +47,12 @@ enum PressRole {
     ///
     /// `cellsSelectText` says the rows' own content asked for it: a `Table`
     /// whose cells filed an enabled scope while it drew them
-    /// (`Text(name).textSelection(.enabled)` in a column). A table draws its
-    /// cells as text and keeps none of their regions, so no scope is under
-    /// the press to say so; with this, a press under no scope at all is
-    /// treated as under an enabled one. A `List`'s rows keep their regions,
-    /// so a row's own scope is found under the press, and it passes `false`.
+    /// (`Text(name).textSelection(.enabled)` in a column). A table keeps a
+    /// view cell's regions, so a press on that cell is under its scope and
+    /// kept to it; the rest of the row is drawn as text, under no scope to
+    /// say so, and with this a press there under no scope at all is treated
+    /// as under an enabled one. A `List`'s rows keep their regions, so a
+    /// row's own scope is found under the press, and it passes `false`.
     case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?, cellsSelectText: Bool)
 }
 
