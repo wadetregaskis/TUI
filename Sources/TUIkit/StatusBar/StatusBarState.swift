@@ -450,8 +450,17 @@ public final class StatusBarState: @unchecked Sendable {
     /// otherwise empty still has to make room for one, or the tooltip is
     /// computed and then drawn nowhere.
     public var height: Int {
-        guard hasContent else { return 0 }
-        return style.barHeight(contentRows: (drawsItems ? 1 : 0) + tooltipLines.count)
+        height(itemRows: hasItems ? 1 : 0)
+    }
+
+    /// The height of the bar with `itemRows` rows of items and this frame's
+    /// tooltip, or 0 when that is nothing: what the window's chrome host
+    /// reserves, from last frame's items and this frame's tooltip. The items'
+    /// row is not counted while the line about a copy stands in for it
+    /// (``showsNoteInPlaceOfItems``).
+    func height(itemRows: Int) -> Int {
+        let rows = (showsNoteInPlaceOfItems ? 0 : itemRows) + tooltipLines.count
+        return rows > 0 ? style.barHeight(contentRows: rows) : 0
     }
 
     /// Whether the bar draws its row of items this frame: it has some, and the

@@ -11,6 +11,15 @@ Both were answered. Neither answer is the one the investigation started with,
 and the corrections are recorded here alongside the conclusions, because two of
 the wrong turns were more instructive than the right ones.
 
+> **2026-10-05: closed by A28.** The window's chrome is now drawn by a
+> scene-level host (`_WindowChromeHost`), and a bar's rows are last frame's
+> answer, adopted a frame after the walk that changed them
+> (`WindowChromeState`, the A28 design study's policy P2). The correction
+> re-render is deleted; every frame after the first is one walk, and the first
+> frame's extra walk is a measurement that seeds the reservations.
+> `RenderPassScopeTests.headerChangeIsOneDrawnWalk` replaced the known issue
+> below. The record that follows is kept as it was written.
+
 ## 1. Every discarded pass we have exists to measure the App Header
 
 `RenderLoop.renderContent` calls `renderScene` three times, and only ever draws

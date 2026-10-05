@@ -39,19 +39,23 @@ extension WindowGroup: SceneRenderable {
 ///
 /// What it does, per walk of the scene:
 ///
-/// 1. Reserves the rows the bars take: the header's ``AppHeaderState/reservedHeight``
-///    (the run loop's estimate, corrected by a second walk when the page's
-///    header turns out a different height), and the status bar's height as it
-///    stands before the page declares its items.
+/// 1. Reserves the rows the bars take: LAST frame's answer, from
+///    ``WindowChromeState`` (see there for why it cannot be this walk's).
 /// 2. Draws the content in what is left, at the content's own identity — this
 ///    view stores nothing of its own, so no `@State` or focus ID moves.
 /// 3. Composites the content's overlay layers inside the content area, with the
 ///    header's anchored layers lifted onto it, so a modal's dimming stops at
 ///    the chrome.
-/// 4. Draws each bar as its view, on its own surface, and stacks the three.
+/// 4. Draws each bar as its view, on its own surface, fitted to the rows it
+///    reserved, and stacks the three.
+/// 5. Settles the reservations against what the content declared this walk,
+///    asking for the frame that adopts a change.
 ///
-/// A measuring walk (the run loop's first-frame walk, whose only output is the
-/// header's height) draws the content and nothing else.
+/// A measuring walk (the run loop's first-frame walk, which seeds the
+/// reservations) draws the content and nothing else. A walk with no
+/// ``WindowChromeState`` in its environment — a scene rendered outside an app,
+/// which has no frames to adopt anything in — draws the content with its
+/// overlays composited, and no chrome.
 struct _WindowChromeHost<Content: View>: View, Renderable {
     /// The window's content.
     let content: Content
@@ -61,12 +65,13 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
-        let appHeader = context.environment.appHeader
-        let statusBar = context.environment.statusBar
-        // Read before the content draws, so the page's own declarations — made
-        // as it draws, and cleared before every walk — do not count yet.
-        let headerRows = appHeader?.reservedHeight ?? 0
-        let statusBarRows = statusBar?.height ?? 0
+        let chrome = context.environment.windowChrome
+        let appHeader = chrome == nil ? nil : context.environment.appHeader
+        let statusBar = chrome == nil ? nil : context.environment.statusBar
+        // Last frame's rows, in this frame's styles — and, for the status bar,
+        // this frame's tooltip, whose triggers all land between frames.
+        let headerRows = chrome.flatMap { chrome in appHeader?.height(contentRows: chrome.rows(.top)) } ?? 0
+        let statusBarRows = chrome.flatMap { chrome in statusBar?.height(itemRows: chrome.rows(.bottom)) } ?? 0
         let contentHeight = contentAreaHeight(
             terminalHeight: height, statusBarHeight: statusBarRows, headerHeight: headerRows)
 
@@ -82,17 +87,18 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
 
         let palette = context.environment.palette
         let backgrounds = RenderBackgroundCodes(palette: palette)
-        let header = appHeader.flatMap {
+        let header = headerRows == 0 ? nil : appHeader.flatMap {
             headerBuffer($0, width: width, context: context, liftingOverlaysOnto: &page)
         }
         // The screen selection reads the page and draws its highlight on it,
         // before the layers over the page — so a menu opened over it draws
         // over the highlight rather than through it. Nothing but a reference
-        // to the lines while nothing is selected (`ScreenSelection`).
+        // to the lines while nothing is selected (`ScreenSelection`). An app's
+        // frames only: a scene drawn outside one selects nothing.
         let isUnderPresentation = context.environment.focusManager?.activeSectionIsModal == true
-        if let selection = context.environment.screenSelection {
+        if chrome != nil, let selection = context.environment.screenSelection {
             page = selection.takeFrame(
-                page, width: width, palette: palette, top: header?.height ?? 0,
+                page, width: width, palette: palette, top: headerRows,
                 underPresentation: isUnderPresentation)
         }
         // Composite every free-floating overlay layer (Picker drop-downs,
@@ -101,11 +107,14 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         if !page.overlays.isEmpty {
             page = page.compositingOverlays(maxWidth: width, maxHeight: contentHeight, palette: palette)
         }
+        guard let chrome else { return page }
 
         var frame = FrameBuffer()
-        if var header {
-            header = header.resolvingOpacity(surface: palette.appHeaderBackground, palette: palette)
+        if headerRows > 0 {
+            var bar = (header ?? FrameBuffer())
+                .resolvingOpacity(surface: palette.appHeaderBackground, palette: palette)
                 .groundedAsChrome(width: width, background: backgrounds.appHeader)
+                .fittedAsChrome(toRows: headerRows, width: width, background: backgrounds.appHeader)
             // The header is drawn OUTSIDE the composited content area, so
             // nothing a presentation does can reach it: the modifier isolates
             // what it wraps, and the compositor dims what it composites. A
@@ -119,21 +128,43 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
             // design. What it must not do is answer a click that the same
             // page's body would refuse.
             if isUnderPresentation {
-                header.hitTestRegions = []
+                bar.hitTestRegions = []
             }
-            frame.appendVertically(header)
-        }
-        frame.appendVertically(page)
-        // `hasContent`, not `hasItems`: the question `statusBar.height`
-        // answered when it took the rows, so a tooltip on a bar with no items
-        // is drawn into the rows it reserved rather than leaving them blank.
-        if let statusBar, statusBar.hasContent {
-            let bar = statusBarBuffer(statusBar, width: width, context: context)
-                .resolvingOpacity(surface: palette.statusBarBackground, palette: palette)
-                .groundedAsChrome(width: width, background: backgrounds.statusBar)
             frame.appendVertically(bar)
         }
+        frame.appendVertically(page)
+        if let statusBar, statusBarRows > 0 {
+            // `hasContent`, not `hasItems`: a tooltip on a bar with no items
+            // is drawn into the rows it reserved rather than leaving them blank.
+            let bar = (statusBar.hasContent ? statusBarBuffer(statusBar, width: width, context: context) : FrameBuffer())
+                .resolvingOpacity(surface: palette.statusBarBackground, palette: palette)
+                .groundedAsChrome(width: width, background: backgrounds.statusBar)
+                .fittedAsChrome(toRows: statusBarRows, width: width, background: backgrounds.statusBar)
+            frame.appendVertically(bar)
+        }
+
+        // What the content declared this walk becomes the next frame's rows.
+        let now = context.environment.frameNowNanos
+        settle(chrome.settle(.top, wanting: appHeader?.contentRows ?? 0, nowNanos: now), context: context)
+        settle(
+            chrome.settle(.bottom, wanting: statusBar?.hasItems == true ? 1 : 0, nowNanos: now),
+            context: context)
         return frame
+    }
+
+    /// Asks for the frame a settlement owes: the next one, through the
+    /// scheduler, so a still screen still adopts the change; or one at the
+    /// instant an oscillation's pin lapses.
+    private func settle(_ settlement: WindowChromeState.Settlement, context: RenderContext) {
+        switch settlement {
+        case .settled:
+            break
+        case .nextFrame:
+            context.requestAnimation(
+                token: "window-chrome-adoption", frameTicks: AnimationClock.standardFrameTicks)
+        case .frame(let instant):
+            context.requestWake(token: "window-chrome-pin", atNanos: instant)
+        }
     }
 
     // MARK: The content
@@ -340,7 +371,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
     }
 }
 
-// MARK: - Grounding a Bar
+// MARK: - Grounding and Fitting a Bar
 
 extension FrameBuffer {
     /// This bar with its own background under every cell, out to `width`.
@@ -358,5 +389,18 @@ extension FrameBuffer {
             return missing > 0 ? line + String(asciiSpaces(missing)) : line
         }
         return replacingLines(padded).paintedOver(background: background)
+    }
+
+    /// This bar in exactly `rows` rows: cut to them when it declared more this
+    /// walk than last frame reserved, and padded with rows of its background
+    /// when it declared fewer — the frame is drawn honestly at the old
+    /// reservation, and the next one adopts the new (see `WindowChromeState`).
+    func fittedAsChrome(toRows rows: Int, width: Int, background: String) -> FrameBuffer {
+        if height > rows { return clamped(toWidth: width, height: rows) }
+        guard height < rows else { return self }
+        var padded = self
+        let blank = FrameBuffer(lines: Array(repeating: String(asciiSpaces(width)), count: rows - height))
+        padded.appendVertically(blank.groundedAsChrome(width: width, background: background))
+        return padded
     }
 }

@@ -12,11 +12,12 @@ import Testing
 
 // MARK: - Why these tests exist
 //
-// `RenderLoop.renderContent` may walk the scene tree MORE THAN ONCE inside a
-// single `beginRenderPass()`/`endRenderPass()` bracket: a throwaway walk on the
-// first frame to discover the app header's height, and a correction re-render on
-// any frame where the header's actual height disagrees with the estimate the
-// frame was laid out against. Only the last walk's buffer is drawn.
+// `RenderLoop.renderContent` walks the scene tree TWICE inside the first frame's
+// `beginRenderPass()`/`endRenderPass()` bracket: a throwaway walk to find the
+// chrome the content declares, then the drawn one. (It used to be any frame too:
+// a correction re-render ran wherever the header's actual height disagreed with
+// the estimate the frame was laid out against.) Only the last walk's buffer is
+// drawn.
 //
 // The per-frame registries used to be reset once per PASS, so the discarded
 // walk's registrations piled up on top of the drawn walk's. Nothing on either
@@ -139,11 +140,11 @@ struct RenderPassScopeTests {
         #expect(ProbeState.shared.keyTaps == 1, "one keypress must run a declining handler once")
     }
 
-    /// The second half: a header whose height CHANGES sends a later frame through
-    /// the correction re-render, which walks the tree a second time. Frame 1's
-    /// double walk is already over, so only a per-walk reset keeps this frame's
-    /// registrations single.
-    @Test("A header-height correction re-render does not double-register")
+    /// The second half: a header whose height CHANGES used to send a later
+    /// frame through a correction re-render, which walked the tree a second
+    /// time. That walk is gone (the chrome adopts the change a frame later), and
+    /// this keeps the frame's registrations single whichever way it is reached.
+    @Test("A frame whose header changes height registers once")
     func correctedFrameRegistersOnce() {
         ProbeState.shared.reset()
         let harness = RenderLoopHarness()
@@ -152,8 +153,8 @@ struct RenderPassScopeTests {
         _ = loop.render()
         let heightAfterFirstFrame = harness.appHeader.height
 
-        // Grow the header. Frame 2 lays out against the previous height and then
-        // re-renders once it sees the real one.
+        // Grow the header. Frame 2 lays out against the previous height and
+        // adopts the new one for frame 3.
         ProbeState.shared.headerLines = 3
         _ = loop.render()
 
@@ -161,11 +162,11 @@ struct RenderPassScopeTests {
         // discriminate if the correction branch stops being reached.
         #expect(
             harness.appHeader.height != heightAfterFirstFrame,
-            "the header must actually change height, or no correction re-render happens")
+            "the header must actually change height, or nothing is under test")
 
         #expect(
             harness.tuiContext.keyEventDispatcher.handlerCount == 1,
-            "the corrected frame must not keep the discarded walk's handler")
+            "the frame must register one walk's handler")
 
         let tapsBefore = ProbeState.shared.keyTaps
         _ = harness.tuiContext.keyEventDispatcher.dispatch(KeyEvent(key: .character("x")))
@@ -215,22 +216,20 @@ struct RenderPassScopeTests {
             "onAppear belongs to the drawn walk, not a discarded one")
     }
 
-    /// The same leak on the OTHER multi-walk path — and the half that cannot be
-    /// closed the same way.
+    /// The leak on the OTHER multi-walk path, closed.
     ///
-    /// Frame 1's extra walk is known to be throwaway *before* it runs, so it can
-    /// simply be marked as a measurement. A header-height correction cannot be:
-    /// the loop renders at the estimated height, discovers afterwards that the
-    /// real height differs, and only then re-renders. Marking the first walk
-    /// would suppress effects on every frame where the height turns out
-    /// unchanged — which is nearly all of them.
+    /// Frame 1's extra walk is known to be throwaway *before* it runs, so it is
+    /// simply marked as a measurement. A header-height correction could not be:
+    /// the loop rendered at the estimated height, discovered afterwards that the
+    /// real height differed, and only then re-rendered — so the first, discarded
+    /// walk ran every effect as a render. It was pinned here as a known gap,
+    /// waiting on effects staged per walk (upstream's PR #60/#61).
     ///
-    /// Closing it needs effects staged per walk and adopted from the last one,
-    /// which is upstream's PR #60/#61 and a `defer` here; see
-    /// `Documentation/Upstream-review/notes/PR-60.md`. Until then this pins the
-    /// gap, and flips to a plain failure the moment it is fixed.
-    @Test("KNOWN GAP: a header correction re-render still walks twice as a render")
-    func correctionRerenderLeaksEffects() {
+    /// The window's chrome now adopts a changed height a frame LATER instead
+    /// (`WindowChromeState`): the frame that sees the change is drawn at the old
+    /// reservation, so there is no second walk to discard.
+    @Test("A frame whose header changes height is one walk, and it is drawn")
+    func headerChangeIsOneDrawnWalk() {
         ProbeState.shared.reset()
         let harness = RenderLoopHarness()
         let loop = harness.loop(PhaseProbeApp())
@@ -244,13 +243,11 @@ struct RenderPassScopeTests {
 
         #expect(
             harness.appHeader.height != heightAfterFirstFrame,
-            "the header must actually change height, or no correction happens")
-
-        withKnownIssue("effects are not yet staged per walk and adopted from the last") {
-            let phases = ProbeState.shared.walkPhases
-            #expect(
-                phases.dropLast().allSatisfy { $0 },
-                "the discarded walk should be a measurement. Saw \(phases)")
-        }
+            "the header must actually change height, or nothing is under test")
+        let phases = ProbeState.shared.walkPhases
+        #expect(phases.filter { !$0 }.count == 1, "one drawn walk. Saw \(phases)")
+        #expect(
+            phases.dropLast().allSatisfy { $0 },
+            "nothing before the drawn walk renders. Saw \(phases)")
     }
 }

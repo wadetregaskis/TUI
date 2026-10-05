@@ -38,14 +38,6 @@ final class AppHeaderState: @unchecked Sendable {
     /// at the start of each render pass by `RenderLoop`.
     var contentBuffer: FrameBuffer?
 
-    /// The height from the previous render pass, used as an estimate
-    /// for layout calculations before the current pass populates the buffer.
-    ///
-    /// Defaults to 3 (typical header: 1 content line inside a box's two rules)
-    /// to avoid content shifting on the first frame when a header is present.
-    /// Apps without a header will have this reset to 0 after the first frame.
-    private var previousHeight: Int = 3
-
     /// Whether the header has content to display.
     var hasContent: Bool {
         guard let buffer = contentBuffer else { return false }
@@ -73,27 +65,23 @@ final class AppHeaderState: @unchecked Sendable {
     /// ``Scene/chromeStyle(_:)``.
     var style: ChromeStyle = .bordered
 
+    /// The rows of content this walk's header declared, or 0 when none drew.
+    var contentRows: Int {
+        guard hasContent else { return 0 }
+        return contentBuffer?.height ?? 0
+    }
+
     /// The height of the header in terminal lines: its content plus whatever
     /// chrome the style draws around it, or 0 when no content is set.
     var height: Int {
-        guard hasContent else { return 0 }
-        return style.barHeight(contentRows: contentBuffer?.height ?? 0)
+        height(contentRows: contentRows)
     }
 
-    /// The estimated height for the current frame, based on the previous
-    /// render pass. Available before the view tree is rendered.
-    var estimatedHeight: Int {
-        previousHeight
+    /// The height a header of `contentRows` rows takes in the current style,
+    /// or 0 for none: what the chrome host reserves for last frame's header.
+    func height(contentRows: Int) -> Int {
+        contentRows > 0 ? style.barHeight(contentRows: contentRows) : 0
     }
-
-    /// The rows the window's chrome host reserves above the content in the
-    /// walk about to run: set by `RenderLoop` before each walk of the scene —
-    /// nothing for the first frame's measuring walk, ``estimatedHeight`` for
-    /// the drawn one, and the header's real height for a correction.
-    ///
-    /// Not ``height``: the host lays the content out BEFORE the content draws
-    /// the header, so the height the walk will produce is not known yet.
-    var reservedHeight = 0
 }
 
 // MARK: - Render Pass
@@ -101,15 +89,10 @@ final class AppHeaderState: @unchecked Sendable {
 extension AppHeaderState {
     /// Clears the content buffer at the start of each render pass.
     ///
-    /// Saves the current height as ``estimatedHeight`` before clearing,
-    /// so `RenderLoop` can reserve the correct space before the
-    /// ``AppHeaderModifier`` populates the new buffer.
-    ///
-    /// Called by `RenderLoop` before rendering the view tree.
-    /// If no view sets `.appHeader { ... }` during the pass,
-    /// the header remains hidden.
+    /// Called by `RenderLoop` before rendering the view tree. If no view sets
+    /// `.appHeader { ... }` during the pass, the header goes — a frame later,
+    /// as the window's chrome adopts it (see `WindowChromeState`).
     func beginRenderPass() {
-        previousHeight = height
         contentBuffer = nil
     }
 }

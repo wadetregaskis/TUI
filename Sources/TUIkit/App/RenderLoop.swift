@@ -186,6 +186,11 @@ internal final class RenderLoop<A: App> {
     /// The app header state (content buffer, visibility).
     let appHeader: AppHeaderState
 
+    /// The rows the window's bars hold from frame to frame, which the scene's
+    /// chrome host reserves before the content draws and adopts a frame after
+    /// the content changes them. The loop's own, like ``diffWriter``.
+    let windowChrome = WindowChromeState()
+
     /// The focus manager (cleared each frame).
     let focusManager: FocusManager
 
@@ -317,10 +322,10 @@ internal final class RenderLoop<A: App> {
 
     /// Whether the first frame has been rendered.
     ///
-    /// On the first frame, we perform a "measurement pass" to determine
-    /// the actual header height before outputting anything. This prevents
-    /// visible content jumping when the estimated header height differs
-    /// from the actual height.
+    /// On the first frame, we perform a "measurement pass" to find the chrome
+    /// the content declares before outputting anything, which seeds
+    /// ``windowChrome``: there is no last frame to reserve the bars from, and
+    /// an app that declares its chrome once should not draw a frame without it.
     private var isFirstFrame = true
 
     /// Whether the app is running inside tmux, which decides what the terminal
@@ -486,10 +491,8 @@ extension RenderLoop {
         invalidateCacheIfEnvironmentChanged(environment: environment)
 
         // Render the scene: its chrome host lays the app header, the content
-        // and the status bar out as one frame the size of the terminal —
-        // resolving the app-header height first (a first-frame measure pass),
-        // then re-rendering once if the header turned out a different height
-        // than the rows reserved for it. See `renderContent`.
+        // and the status bar out as one frame the size of the terminal, in one
+        // walk (two on the first frame). See `renderContent`.
         let buffer = renderContent(
             scene: scene,
             environment: environment,
@@ -607,16 +610,13 @@ extension RenderLoop {
     }
 
     /// Renders the scene — the content framed by its chrome — and returns the
-    /// frame.
+    /// frame. One walk, on every frame after the first.
     ///
-    /// The chrome host reserves ``AppHeaderState/reservedHeight`` rows for the
-    /// app header before the content draws, and the content is what draws the
-    /// header. So on the first frame this runs a throwaway measure pass to
-    /// discover the header's real height before producing any visible output,
-    /// which prevents the content from jumping; every frame it then renders
-    /// against last frame's height and, if the header turned out a different
-    /// height, re-renders once against the real one so centering stays
-    /// accurate.
+    /// The chrome host reserves the bars' rows before the content draws, and
+    /// the content is what declares them, so the rows are last frame's answer
+    /// (see ``WindowChromeState``). The first frame has none, so it runs a
+    /// throwaway measure pass first, whose only output is the chrome the
+    /// content declares, and seeds the reservations from it.
     private func renderContent(
         scene: A.Body,
         environment: EnvironmentValues,
@@ -633,41 +633,30 @@ extension RenderLoop {
         )
         if isFirstFrame {
             var measureContext = context
-            // This walk's buffer is thrown away — only `appHeader.height`
+            // This walk's buffer is thrown away — only the chrome it declares
             // survives it — so it is a measurement, and every guard written as
             // `!context.isMeasuring` must apply: `onAppear`, `.task`, focus and
             // mouse registration, `onChange`. Without this the discarded walk
             // was indistinguishable from a real render, so a view present here
             // and NOT in the drawn walk (the two see different heights, since
-            // this one reserves no header rows) would appear, mount a task, and
-            // then be told it disappeared, having never been drawn.
+            // this one reserves no chrome) would appear, mount a task, and then
+            // be told it disappeared, having never been drawn.
             //
-            // `AppHeaderModifier` is deliberately NOT guarded that way, which is
-            // what lets this walk still do its one job. Anything that guards
-            // itself on the measure phase must not be load-bearing for the
-            // header's height.
+            // `AppHeaderModifier` and `.statusBarItems` are deliberately NOT
+            // guarded that way, which is what lets this walk still do its one
+            // job. Anything that guards itself on the measure phase must not be
+            // load-bearing for the chrome.
             measureContext.isMeasuring = true
-            appHeader.reservedHeight = 0
             _ = renderScene(scene, context: measureContext.withChildIdentity(type: type(of: scene)))
-            appHeader.reservedHeight = appHeader.height
+            windowChrome.seed(.top, rows: appHeader.contentRows)
+            windowChrome.seed(.bottom, rows: statusBar.hasItems ? 1 : 0)
             isFirstFrame = false
-        } else {
-            appHeader.reservedHeight = appHeader.estimatedHeight
         }
+        windowChrome.beginFrame()
 
         context.hasExplicitWidth = true
         context.hasExplicitHeight = true
-        var buffer = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
-
-        // If the header height changed after rendering, re-render against the
-        // correct height so centering is accurate.
-        if appHeader.height != appHeader.reservedHeight {
-            diffWriter.invalidate()
-            appHeader.reservedHeight = appHeader.height
-            buffer = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
-        }
-
-        return buffer
+        return renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
     }
 
     /// Invalidates the diff cache, forcing a full repaint on the next render.
@@ -737,6 +726,7 @@ extension RenderLoop {
         var environment = EnvironmentValues()
         environment.statusBar = statusBar
         environment.appHeader = appHeader
+        environment.windowChrome = windowChrome
         environment.focusManager = focusManager
         environment.paletteManager = paletteManager
         if let palette = paletteManager.currentPalette {
@@ -806,7 +796,6 @@ extension RenderLoop {
         // Per-PASS. `focusManager.beginRenderPass()` snapshots `previousSections`
         // and must therefore run BEFORE anything clears the current ring.
         focusManager.beginRenderPass()
-        appHeader.beginRenderPass()
         statusBar.focusManager = focusManager
         tuiContext.lifecycle.beginRenderPass()
         tuiContext.stateStorage.beginRenderPass()
@@ -822,12 +811,14 @@ extension RenderLoop {
 
     /// Clears the registries that belong to ONE walk of the scene tree.
     ///
-    /// `renderContent` may walk the scene more than once inside a single
-    /// ``beginRenderPass()``/``endRenderPass()`` bracket: a throwaway walk on
-    /// the first frame to discover the app header's height, and a correction
-    /// re-render on any frame where the header's actual height disagrees with
-    /// the estimate it was laid out against. Only the LAST walk's buffer is
-    /// drawn — so only the last walk's registrations should survive.
+    /// `renderContent` walks the scene twice inside the first frame's
+    /// ``beginRenderPass()``/``endRenderPass()`` bracket: a throwaway walk to
+    /// find the chrome the content declares, then the drawn one. (Every frame
+    /// used to be exposed: a correction re-render ran whenever the app header's
+    /// height disagreed with the estimate the frame was laid out against. The
+    /// window's chrome now adopts a change a frame later instead.) Only the
+    /// LAST walk's buffer is drawn — so only the last walk's registrations
+    /// should survive.
     ///
     /// Resetting these once per PASS instead let the discarded walk's entries
     /// pile up on top of the drawn walk's:
@@ -863,8 +854,7 @@ extension RenderLoop {
     ///
     /// What must NOT move here, and why: `focusManager.beginRenderPass()`
     /// (snapshots last frame's ring so a focus LOSS can still reach its
-    /// element), `appHeader.beginRenderPass()` (snapshots the height estimate
-    /// this pass is laid out against), `lifecycle` and `renderCache` (a token
+    /// element), `lifecycle` and `renderCache` (a token
     /// or cache entry seen only in a discarded walk surviving one extra frame
     /// is the conservative direction — no spurious `onDisappear`, no premature
     /// eviction), and above all `stateStorage.beginRenderPass()`, which also
@@ -880,8 +870,10 @@ extension RenderLoop {
         tuiContext.preferences.beginRenderPass()
         tuiContext.stateStorage.beginSceneRender()
         focusManager.beginSceneRender()
-        // The bar's items and its per-frame escape and Return claims.
+        // The bar's items and its per-frame escape and Return claims, and the
+        // header the page draws: what each walk declares is that walk's.
         statusBar.beginSceneRender()
+        appHeader.beginRenderPass()
         // And for a tooltip's FOCUS candidate, republished by the focused
         // control every render for the same reason. Its hover candidate is not
         // cleared here: the pointer stays where it is between frames, and only
