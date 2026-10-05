@@ -193,10 +193,31 @@ struct PresentationSizingTests {
         let lines = buffer.overlays.first?.content.lines.map(\.stripped) ?? []
         let betaRow = lines.firstIndex { $0.contains("Beta") }
         #expect(betaRow == 3, "Beta's title on row \(String(describing: betaRow)): \(lines)")
-        // And as wide as its content makes it, as outside a sheet.
+        // Across the scroll, the sheet's width still reaches them: a `.form`
+        // sheet's boxes span its 64 columns; a detent offers no width, so
+        // there they are as wide as their content, as outside a sheet.
         let alone = renderToBuffer(Panel("Alpha") { Text("a") }, context: context()).width
         let alphaWidth = lines.first.map { $0.trimmingCharacters(in: .whitespaces).count }
-        #expect(alphaWidth == alone, "Alpha \(String(describing: alphaWidth)) columns, \(alone) alone: \(lines)")
+        let expected = detented ? alone : 64
+        #expect(alphaWidth == expected, "Alpha \(String(describing: alphaWidth)) columns, \(expected) expected: \(lines)")
+    }
+
+    /// The common shape: one box in a vertical scroll view at a sized sheet's
+    /// root. The scroll takes the sheet's height off it, not its width, so the
+    /// box frames the sheet across and is its content's height, as SwiftUI's
+    /// box is in a scroll view.
+    @Test("One box in a vertical scroll view in a .form sheet spans the sheet and is its content's height")
+    func oneBoxInAScrollViewSpansTheSheet() {
+        let buffer = renderToBuffer(
+            Text("page").sheet(isPresented: .constant(true)) {
+                ScrollView { Panel("Alpha") { Text("a") } }.presentationSizing(.form)
+            },
+            context: context())
+        let lines = buffer.overlays.first?.content.lines.map(\.stripped) ?? []
+        let top = lines.first.map { $0.trimmingCharacters(in: .whitespaces).count }
+        #expect(top == 64, "the box's top border is \(String(describing: top)) columns: \(lines)")
+        let bottom = lines.firstIndex { $0.hasPrefix("╰") }
+        #expect(bottom == 2, "the box closes on row \(String(describing: bottom)): \(lines)")
     }
 
     @Test("Two stacked boxes share a detent's height as well")

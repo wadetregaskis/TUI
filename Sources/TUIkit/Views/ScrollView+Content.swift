@@ -55,13 +55,15 @@ extension _ScrollViewCore {
         if contentContext.environment.isScrollTargetLayout {
             contentContext.environment.isScrollTargetLayout = false
         }
-        // And a sheet's size, which its box takes (`consumeSheetSize()`): a
-        // scroll view offers its content as much as it wants along its axis,
-        // so the boxes in it are their content's size, as SwiftUI's are
-        // (measured on macOS 15.6: two `GroupBox`es in a `ScrollView` in a
-        // `.form` sheet 400 points tall are 43 points each, as outside one).
-        // Passed on, each box in it took the whole of the sheet.
-        contentContext.consumeSheetSize()
+        // And a sheet's size, which its box takes (`consumeSheetSize()`),
+        // along the axes this view scrolls: it offers its content as much as
+        // it wants along them, so the boxes in it are their content's size
+        // there, as SwiftUI's are (measured on macOS 15.6: two `GroupBox`es in
+        // a `ScrollView` in a `.form` sheet 400 points tall are 43 points
+        // each, as outside one). Passed on, each box in it took the whole of
+        // the sheet's height. Across them it offers its own extent, so a box
+        // in a vertical scroll view still spans the sheet's width.
+        contentContext.consumeSheetSize(along: axes)
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1

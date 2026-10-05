@@ -223,8 +223,9 @@ extension EnvironmentValues {
     /// same reason: a `Panel` nested inside a detented `Dialog` must not also
     /// stretch to the sheet's height. Boxes side by side under it each take
     /// it, flexibly, so a `VStack` or `HStack` of them shares it as it shares
-    /// any surplus. A `ScrollView` consumes it as a box does, so the boxes in
-    /// one are their content's size; a `ZStack`, a `Grid` and a lazy stack or
+    /// any surplus. A `ScrollView` consumes it along the axes it scrolls, so
+    /// the boxes in one are their content's size there (a vertical one still
+    /// passes the sheet's width on); a `ZStack`, a `Grid` and a lazy stack or
     /// lazy grid outside a scroll view pass it on, and each box below takes
     /// the whole of it.
     ///

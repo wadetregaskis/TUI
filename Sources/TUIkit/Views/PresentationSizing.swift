@@ -22,8 +22,10 @@ import TUIkitView
 /// (``View/presentationDetents(_:)``). An axis proposed `nil` is fitted: the
 /// sheet is as big as its content there. Boxes stacked in a ``VStack`` or
 /// side by side in an ``HStack`` share the proposal, as flexible views share a
-/// stack, and boxes in a ``ScrollView`` are their content's size, as the
-/// scroll view offers its content as much as it wants. Anywhere else — a
+/// stack, and boxes in a ``ScrollView`` are their content's size along the
+/// axes it scrolls, as it offers its content as much as it wants there, and
+/// take the sheet's size across them (a vertical scroll view's boxes span the
+/// sheet's width). Anywhere else — a
 /// ``ZStack``, a ``Grid``, a lazy stack or lazy grid outside a scroll view —
 /// each box takes the whole proposal. Content with no box keeps its own size,
 /// offered the proposal.

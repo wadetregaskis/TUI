@@ -1087,7 +1087,15 @@ extension RenderContext {
     /// view inside it copies, for a size almost no box is ever offered. A read
     /// of a key nobody wrote is a lookup that misses.
     mutating func consumeSheetSize() {
-        if environment.sheetDetentHeight != nil { environment.sheetDetentHeight = nil }
-        if environment.sheetProposedWidth != nil { environment.sheetProposedWidth = nil }
+        consumeSheetSize(along: [.horizontal, .vertical])
+    }
+
+    /// Takes a sheet's size off the environment along `axes` only: a scroll
+    /// view offers its content as much as it wants along the axes it scrolls,
+    /// and the rest of the sheet's size across them, so a box in a vertical
+    /// scroll view still spans the sheet's width.
+    mutating func consumeSheetSize(along axes: Axis.Set) {
+        if axes.contains(.vertical), environment.sheetDetentHeight != nil { environment.sheetDetentHeight = nil }
+        if axes.contains(.horizontal), environment.sheetProposedWidth != nil { environment.sheetProposedWidth = nil }
     }
 }
