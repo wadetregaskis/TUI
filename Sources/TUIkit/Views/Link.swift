@@ -269,8 +269,11 @@ private struct TerminalHyperlinkModifier: BufferModifier {
         else { return buffer }
         let link = TerminalHyperlink(
             destination: destination.absoluteString,
-            id: buffer.lines.count > 1 ? context.identity.path : nil)
-        let opening = link.opening
+            id: buffer.lines.count > 1 ? context.identity.path : nil,
+            localHostName: TerminalClient.localHostName)
+        // `nil` for a destination too long for a terminal to keep: the label
+        // draws as it is, and activating it still raises the destination.
+        guard let opening = link.opening else { return buffer }
         func linked(_ line: String) -> String {
             // An empty row has no cells to carry the link, so it gets no
             // sequences: they would be bytes on every frame saying nothing.

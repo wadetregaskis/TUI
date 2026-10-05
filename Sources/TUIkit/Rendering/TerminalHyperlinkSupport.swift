@@ -7,6 +7,51 @@
 import Foundation
 import TUIkitCore
 
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
+
+// MARK: - The machine a file link names
+
+extension TerminalClient {
+
+    /// The name of the machine this process runs on, as `gethostname` reports
+    /// it, read once; `nil` where it cannot be read.
+    ///
+    /// What a `file:` hyperlink names as its host (see
+    /// ``TerminalHyperlink/localHostName``): over ssh that is the REMOTE
+    /// machine, which is the point — a terminal that sees a host other than
+    /// its own does not open a same-named file on the user's machine.
+    ///
+    /// `gethostname` rather than `ProcessInfo.hostName`, which may wait on a
+    /// DNS lookup on macOS (a hypothesis, not measured): this is read on the
+    /// render path's first link, and the plain system call answers from the
+    /// kernel. Read here, in the umbrella module, because `TerminalHyperlink`
+    /// lives in a module that also builds where there is no POSIX.
+    static let localHostName: String? = readLocalHostName()
+
+    /// One `gethostname` call, its answer as a `String`.
+    static func readLocalHostName() -> String? {
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+            var buffer = [CChar](repeating: 0, count: 256)
+            guard gethostname(&buffer, buffer.count) == 0 else { return nil }
+            // Up to the terminator, or the whole buffer: POSIX does not
+            // promise a terminator when the name was truncated.
+            let length = buffer.firstIndex(of: 0) ?? buffer.count
+            let bytes = buffer[..<length].map { UInt8(bitPattern: $0) }
+            guard let name = String(bytes: bytes, encoding: .utf8), !name.isEmpty else { return nil }
+            return name
+        #else
+            // WebAssembly's wasip1 has no host name to ask for.
+            return nil
+        #endif
+    }
+}
+
 // MARK: - Which terminals honour OSC 8
 
 extension TerminalClient {

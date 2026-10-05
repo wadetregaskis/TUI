@@ -59,7 +59,12 @@ extension Text {
         return runs.enumerated().map { index, run in
             guard let link = run.link else { return nil }
             let id = lineCount > 1 ? "\(context.identity.path)#\(index)" : nil
-            return TerminalHyperlink(destination: link.absoluteString, id: id).opening
+            // `nil` too for a destination too long to send: that run draws
+            // as a link and carries none.
+            return TerminalHyperlink(
+                destination: link.absoluteString, id: id,
+                localHostName: TerminalClient.localHostName
+            ).opening
         }
     }
 

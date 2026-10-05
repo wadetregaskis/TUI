@@ -45,7 +45,7 @@ diverge between the two, an app draws on the ALTERNATE one, and a safety
 result that happens to have been taken on the primary would license an
 emission nobody measured. Two rows cost one extra pass.
 """
-import json, os, select, sys, termios, tty
+import json, os, select, socket, sys, termios, tty
 
 import probe_stamp
 
@@ -133,8 +133,20 @@ def card():
           f"\x1b]8;id=tuikit-card;{URL}{ST}"
           f"\x1b[4;34mtwo runs\x1b[0m\x1b]8;;{ST}"
           f"   (one link if honoured: hovering either should light both)")
+    # Three spellings of a link to a file that exists (this script): the
+    # empty host `URL(fileURLWithPath:)` writes and Ghostty documents
+    # refusing, the machine's own name, which TUIkit writes since 2026-10-04,
+    # and `localhost`.
+    path = os.path.abspath(__file__)
+    host = socket.gethostname()
+    print()
+    for label, uri in (("file:/// (no host)", f"file://{path}"),
+                       ("file://<hostname>", f"file://{host}{path}"),
+                       ("file://localhost", f"file://localhost{path}")):
+        print(f"    {label:<20} "
+              f"\x1b]8;;{uri}{ST}\x1b[4;34m{os.path.basename(path)}\x1b[0m\x1b]8;;{ST}")
     print("""
-  Three things to answer by looking, none of which a query reports:
+  Five things to answer by looking, none of which a query reports:
 
     1. Is the URL VISIBLE as text anywhere above? If so this host has no OSC
        parser and TUIkit must never emit the sequence here.
@@ -147,6 +159,8 @@ def card():
        reporting is on: the answers can differ, because a terminal that
        forwards the modified click to the application cannot also act on it.
        That second answer is the one that matters and the one still open.
+    5. Which of the three file links opens, or shows its destination? Ghostty
+       documents refusing the first; TUIkit sends the second.
 """)
 
 

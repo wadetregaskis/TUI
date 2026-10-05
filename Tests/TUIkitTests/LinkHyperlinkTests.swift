@@ -52,6 +52,31 @@ struct LinkHyperlinkTests {
         #expect(with.lines.map(\.stripped) == without.lines.map(\.stripped))
     }
 
+    /// `URL(fileURLWithPath:)` spells a local file with an empty host, and
+    /// Ghostty refuses such a link. The link names this machine instead, as
+    /// the OSC 8 specification asks: over ssh, the remote one.
+    @Test("A link to a local file names this machine as its host")
+    func fileLinkNamesTheHost() throws {
+        let host = try #require(TerminalClient.localHostName, "gethostname answered nothing")
+        let file = URL(fileURLWithPath: "/tmp/notes.txt")
+        let drawn = TerminalHyperlink.withSupport(true) {
+            render(Link("notes", destination: file)).lines.joined()
+        }
+        #expect(drawn.contains("\u{1B}]8;;file://\(host)/tmp/notes.txt\u{1B}\\"), "\(drawn.debugDescription)")
+        #expect(!drawn.contains("file:///"))
+    }
+
+    /// VTE and iTerm2 drop a link over 2083 bytes, so it is not sent: the
+    /// label draws as it is, which is what a host that dropped it would show.
+    @Test("A link too long for a terminal to keep draws its label without one")
+    func overLongLinkDrawsWithoutTheSequence() throws {
+        let long = try #require(URL(string: "https://example.com/" + String(repeating: "a", count: 2100)))
+        let drawn = TerminalHyperlink.withSupport(true) { render(Link("long", destination: long)) }
+        let without = TerminalHyperlink.withSupport(false) { render(Link("long", destination: long)) }
+        #expect(!drawn.lines.joined().contains("\u{1B}]8;"))
+        #expect(drawn.lines == without.lines)
+    }
+
     /// A disabled link is skipped by Tab, registers no region and never runs
     /// its action — and a terminal that honours OSC 8 opens a linked cell on
     /// its OWN gesture, past all of that. iTerm2 opens on every click.

@@ -3058,6 +3058,33 @@ every byte that is not a printable non-blank ASCII character rather than
 assuming the caller did. Same reasoning as `String.sanitizedForTerminal`:
 the gate belongs where the escape is written.
 
+### A `file:` link names its host, and an over-long URI is not wrapped — 2026-10-04
+
+Two rules from the OSC 8 specification (egmontkob's gist) and Ghostty's VT
+reference, adopted together (`Documentation/Ghostty-VT-adoption.md`, K5).
+Both are read, not measured here; the card is `hyperlink_probe.py` with
+`file://` rows on Ghostty, iTerm2 and kitty.
+
+- **A `file:` URI must name a host.** `URL(fileURLWithPath:)` spells a local
+  file `file:///path`, with an empty host, and Ghostty documents refusing such
+  links, so a `Link` to a local file did nothing on the host that otherwise
+  handles OSC 8 best. TUIkit now writes `file://<hostname>/path`, as the
+  specification asks of applications: over ssh that names the REMOTE machine,
+  which is what stops a terminal opening a same-named file on the user's own.
+  `file:/path` (no authority at all) is rewritten the same way; `localhost`
+  and any explicit host are left alone; so is a `file:` URI when the host name
+  is unknown or is not a plain DNS name. The name is `gethostname()`, read once
+  in the umbrella module (`TerminalClient.localHostName`) and handed to
+  `TerminalHyperlink` — the lower module never calls POSIX — rather than
+  `ProcessInfo.hostName`, which may wait on a DNS lookup on macOS (a
+  hypothesis; nothing here measured it).
+- **A URI over 2083 bytes, after encoding, is not wrapped at all.** VTE and
+  iTerm2 drop links that long, and Ghostty 1.1.1 fixed a crash on very large
+  ones. The label still draws and activating it still raises the destination
+  popover; only the terminal's own link is missing.
+  `TerminalHyperlink.opening` is `nil` for such a destination, so every
+  caller has to decide what to do without one.
+
 ---
 
 ## Graphics protocols, and a parser gap — measured 2026-09-02, iTerm2's placeholders 2026-09-03

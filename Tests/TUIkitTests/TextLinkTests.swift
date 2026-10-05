@@ -115,6 +115,26 @@ struct TextLinkTests {
         #expect(!disabled.joined().contains("\u{1B}]8;"))
     }
 
+    /// The rules `Link` follows, in a text's runs too: a file link names this
+    /// machine, and a link too long for a terminal to keep is drawn as a link
+    /// with no sequence.
+    @Test("A run's file link names the host, and an over-long one carries none")
+    func fileLinkAndCapInARun() throws {
+        let host = try #require(TerminalClient.localHostName, "gethostname answered nothing")
+        var file = AttributedString("notes")
+        file.link = URL(fileURLWithPath: "/tmp/notes.txt")
+        let filed = TerminalHyperlink.withSupport(true) { lines(Text(file)) }.joined()
+        #expect(filed.contains("\u{1B}]8;;file://\(host)/tmp/notes.txt\u{1B}\\"), "\(filed.debugDescription)")
+
+        let longURL = try #require(URL(string: "https://example.com/" + String(repeating: "a", count: 2100)))
+        var long = AttributedString("long")
+        long.link = longURL
+        let drawn = TerminalHyperlink.withSupport(true) { lines(Text(long)) }
+        let plain = TerminalHyperlink.withSupport(false) { lines(Text(long)) }
+        #expect(!drawn.joined().contains("\u{1B}]8;"))
+        #expect(drawn == plain, "still drawn as a link, in the accent and underlined")
+    }
+
     @Test("A link that wraps is balanced on every line and keeps one identity")
     func wrappedLink() {
         var link = AttributedString("alpha beta gamma delta")

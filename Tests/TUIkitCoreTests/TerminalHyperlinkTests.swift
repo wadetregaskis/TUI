@@ -32,9 +32,9 @@ struct TerminalHyperlinkSequenceTests {
     /// builds from data it did not author, which is why the encoding lives
     /// here rather than in each caller.
     @Test("A destination cannot break out of the sequence")
-    func destinationCannotEscape() {
+    func destinationCannotEscape() throws {
         let hostile = "https://example.com/\u{1B}]0;pwned\u{07}"
-        let opening = TerminalHyperlink(destination: hostile).opening
+        let opening = try #require(TerminalHyperlink(destination: hostile).opening)
         #expect(opening.hasSuffix("\u{1B}\\"), "it still ends with its own ST")
         // Between the introducer and that ST there must be no ESC and no BEL:
         // either would end the sequence early and print the rest.
@@ -65,12 +65,12 @@ struct TerminalHyperlinkSequenceTests {
     /// the container's syntax and must be encoded — while in the URI, the
     /// last field, they are the URI's own and must not be.
     @Test("An id encodes its field syntax; the URI keeps its own")
-    func parameterValueEncodesFieldSyntax() {
+    func parameterValueEncodesFieldSyntax() throws {
         #expect(TerminalHyperlink.encoded("a;b:c=d", in: .parameterValue) == "a%3Bb%3Ac%3Dd")
         #expect(TerminalHyperlink.encoded("a;b:c=d") == "a;b:c=d", "the URI is the last field")
         let link = TerminalHyperlink(destination: "https://x/?a=1;b", id: "row;2")
         #expect(link.opening == "\u{1B}]8;id=row%3B2;https://x/?a=1;b\u{1B}\\")
-        #expect(TerminalHyperlink.opensLink(link.opening))
+        #expect(TerminalHyperlink.opensLink(try #require(link.opening)))
     }
 
     /// The difference between the two sequences is the URI field, not the
@@ -84,6 +84,71 @@ struct TerminalHyperlinkSequenceTests {
         #expect(!TerminalHyperlink.opensLink("\u{1B}]8;;\u{07}"))
         #expect(!TerminalHyperlink.opensLink("\u{1B}]0;a title\u{07}"), "a different OSC command")
         #expect(!TerminalHyperlink.opensLink("\u{1B}[31m"))
+    }
+}
+
+/// The two rules the OSC 8 specification and Ghostty's reference add to the
+/// encoding: a `file:` link names its host, and a link too long for a terminal
+/// to keep is not sent at all.
+@Suite("OSC 8 file links and the length cap")
+struct TerminalHyperlinkFileAndCapTests {
+
+    private static func uri(_ destination: String, host: String? = "box") -> String? {
+        TerminalHyperlink(destination: destination, localHostName: host).opening.map {
+            String($0.dropFirst(TerminalHyperlink.introducer.count + 1).dropLast(2))
+        }
+    }
+
+    /// `URL(fileURLWithPath:)` spells a local file `file:///path`, with an
+    /// empty host, and Ghostty refuses that: a link to a local file did
+    /// nothing on the host that otherwise handles OSC 8 best.
+    @Test("A file URI with no host is given this machine's name")
+    func hostlessFileLinkNamesTheHost() {
+        #expect(Self.uri("file:///tmp/notes.txt") == "file://box/tmp/notes.txt")
+        #expect(Self.uri("file:/tmp/notes.txt") == "file://box/tmp/notes.txt", "no authority at all")
+        #expect(Self.uri("FILE:///tmp/x") == "FILE://box/tmp/x", "the scheme is case-blind, and kept")
+        // The host goes in before encoding, and the path is encoded as ever.
+        #expect(Self.uri("file:///tmp/a b") == "file://box/tmp/a%20b")
+        let fromFoundation = "file:///Users/robot/Read%20me.txt"
+        #expect(Self.uri(fromFoundation) == "file://box/Users/robot/Read%2520me.txt")
+    }
+
+    @Test("A file URI that names a host keeps it, localhost included")
+    func explicitHostsAreLeftAlone() {
+        #expect(Self.uri("file://localhost/tmp/x") == "file://localhost/tmp/x")
+        #expect(Self.uri("file://elsewhere.example/tmp/x") == "file://elsewhere.example/tmp/x")
+    }
+
+    @Test("Without a usable host name, and away from file:, nothing is rewritten")
+    func otherURIsAreLeftAlone() {
+        #expect(Self.uri("file:///tmp/x", host: nil) == "file:///tmp/x")
+        #expect(Self.uri("file:///tmp/x", host: "") == "file:///tmp/x")
+        // A name that is not a host name would change what the URI says.
+        #expect(Self.uri("file:///tmp/x", host: "evil/../x") == "file:///tmp/x")
+        #expect(Self.uri("file:///tmp/x", host: "user@box") == "file:///tmp/x")
+        #expect(Self.uri("https:///tmp/x") == "https:///tmp/x")
+        #expect(Self.uri("filer:///tmp/x") == "filer:///tmp/x")
+        #expect(Self.uri("file:relative") == "file:relative")
+        #expect(Self.uri("file:") == "file:")
+    }
+
+    /// VTE and iTerm2 drop a link over 2083 bytes and Ghostty 1.1.1 fixed a
+    /// crash on very large ones, so a longer one is not sent, and the label
+    /// draws as it is.
+    @Test("A URI over 2083 bytes, encoded, is not sent")
+    func overLongURIsAreNotSent() {
+        let prefix = "https://x/"
+        let atCap = prefix + String(repeating: "a", count: TerminalHyperlink.maximumURILength - prefix.count)
+        #expect(TerminalHyperlink(destination: atCap).opening != nil)
+        #expect(TerminalHyperlink(destination: atCap + "a").opening == nil)
+        // The ENCODED length: 700 spaces are 2,100 bytes once each is `%20`.
+        #expect(TerminalHyperlink(destination: prefix + String(repeating: " ", count: 700)).opening == nil)
+        // The host a file link gains counts too.
+        let file = "file:///" + String(repeating: "a", count: TerminalHyperlink.maximumURILength - 8)
+        #expect(TerminalHyperlink(destination: file).opening != nil)
+        #expect(TerminalHyperlink(destination: file, localHostName: "box").opening == nil)
+        // A string linked to one is the string as it was, with no sequence.
+        #expect("Docs".hyperlinked(to: TerminalHyperlink(destination: atCap + "a")) == "Docs")
     }
 }
 

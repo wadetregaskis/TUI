@@ -73,21 +73,100 @@ public struct TerminalHyperlink: Sendable, Equatable {
     /// the label was long enough to wrap.
     public let id: String?
 
+    /// The name of the machine the application runs on, which a `file:`
+    /// destination that names no host is given — see ``opening``.
+    ///
+    /// A parameter rather than something this type looks up, because looking
+    /// it up is `gethostname`, and this module also builds where there is no
+    /// POSIX. The umbrella module reads it once and passes it in
+    /// (`TerminalClient.localHostName`).
+    public let localHostName: String?
+
     /// Creates a hyperlink.
     ///
     /// - Parameters:
     ///   - destination: The URI to open. Encoded by ``opening``.
     ///   - id: An identity shared by every run of one logical link.
-    public init(destination: String, id: String? = nil) {
+    ///   - localHostName: The name of the machine the application runs on,
+    ///     for a `file:` destination that names no host.
+    public init(destination: String, id: String? = nil, localHostName: String? = nil) {
         self.destination = destination
         self.id = id
+        self.localHostName = localHostName
     }
 
     /// The sequence that opens this link — everything after it, up to a
-    /// ``closing``, carries the destination.
-    public var opening: String {
+    /// ``closing``, carries the destination — or `nil` when the destination
+    /// is too long to send.
+    ///
+    /// Two rules beyond the encoding, both from the OSC 8 specification and
+    /// Ghostty's reference (`Documentation/Terminal-compatibility.md`, "A
+    /// `file:` link names its host"):
+    ///
+    /// - **A `file:` URI names its host.** `file:///path` (and `file:/path`)
+    ///   becomes `file://<localHostName>/path`. Ghostty refuses a file link
+    ///   with an empty host, and the specification asks applications to name
+    ///   it, so that over ssh the link names the REMOTE machine rather than a
+    ///   same-named file on the user's own. `localhost` and any other host are
+    ///   left as written, and so is a destination when ``localHostName`` is
+    ///   `nil` or is not a plain host name.
+    /// - **A URI over ``maximumURILength`` bytes, encoded, is not sent.** VTE
+    ///   and iTerm2 drop such links, and Ghostty 1.1.1 fixed a crash on very
+    ///   large ones. The caller draws the label without a link: the cells
+    ///   still say what they say, and only the terminal's own link is missing.
+    public var opening: String? {
+        let uri = Self.encoded(Self.namingHost(in: destination, localHostName: localHostName))
+        guard uri.utf8.count <= Self.maximumURILength else { return nil }
         let parameters = id.map { "id=" + Self.encoded($0, in: .parameterValue) } ?? ""
-        return Self.introducer + parameters + ";" + Self.encoded(destination) + Self.terminator
+        return Self.introducer + parameters + ";" + uri + Self.terminator
+    }
+
+    /// The longest URI, in bytes after encoding, that ``opening`` will send.
+    ///
+    /// 2083 is the cap VTE applies, and iTerm2 drops a link that long too
+    /// (`Documentation/Ghostty-VT-adoption.md`, K5; read, not measured here).
+    /// Sending one would buy nothing on either and cost every byte of it each
+    /// time the row is redrawn.
+    public static let maximumURILength = 2083
+
+    /// `destination` with `localHostName` as its host, when it is a `file:`
+    /// URI that names none; otherwise `destination` unchanged.
+    ///
+    /// `file:///path` has an empty authority and `file:/path` none at all;
+    /// both mean "this machine", and both become `file://host/path`. A
+    /// `file://` followed by anything but `/` already names a host, so it is
+    /// left alone, `localhost` included. The scheme is matched without regard
+    /// to case, as URI schemes are, and kept as written.
+    static func namingHost(in destination: String, localHostName: String?) -> String {
+        guard let localHostName, isPlainHostName(localHostName),
+            destination.utf8.count > 5, destination.prefix(5).lowercased() == "file:"
+        else { return destination }
+        let scheme = destination.prefix(5)
+        let rest = destination.dropFirst(5)
+        if rest.hasPrefix("///") {
+            return scheme + "//" + localHostName + rest.dropFirst(2)
+        }
+        if rest.hasPrefix("/"), !rest.hasPrefix("//") {
+            return scheme + "//" + localHostName + rest
+        }
+        return destination
+    }
+
+    /// Whether `name` can stand as a URI host without encoding: letters,
+    /// digits, `-`, `.` and `_`, and not empty. A host name is that by
+    /// definition, and anything else — a `/`, an `@`, a space — would change
+    /// what the URI means, so a name that is not one is not used at all.
+    static func isPlainHostName(_ name: String) -> Bool {
+        !name.isEmpty
+            && name.utf8.allSatisfy { byte in
+                switch byte {
+                case UInt8(ascii: "a")...UInt8(ascii: "z"), UInt8(ascii: "A")...UInt8(ascii: "Z"),
+                    UInt8(ascii: "0")...UInt8(ascii: "9"), UInt8(ascii: "-"), UInt8(ascii: "."),
+                    UInt8(ascii: "_"):
+                    true
+                default: false
+                }
+            }
     }
 
     /// The sequence that closes whatever link is open. A link with no
@@ -241,9 +320,12 @@ extension String {
     /// in this framework counts them as the zero cells they paint.
     ///
     /// - Parameter link: Where the cells point.
-    /// - Returns: The string wrapped in the opening and closing sequences.
+    /// - Returns: The string wrapped in the opening and closing sequences, or
+    ///   the string as it is when the link is too long to send (see
+    ///   ``TerminalHyperlink/opening``).
     public func hyperlinked(to link: TerminalHyperlink) -> String {
-        link.opening + self + TerminalHyperlink.closing
+        guard let opening = link.opening else { return self }
+        return opening + self + TerminalHyperlink.closing
     }
 }
 
