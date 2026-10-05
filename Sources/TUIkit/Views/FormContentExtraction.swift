@@ -8,6 +8,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitCore
+
 // MARK: - Form Content Extraction
 
 /// Views that can contribute rows/sections to a ``Form``.
@@ -64,7 +66,14 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // the section's parts since a section outside a `List` became its parts
     // (B16). The body is evaluated as a render evaluates it — `@State` bound
     // here, `@Environment` resolved, observed — and read one step in.
-    if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil {
+    //
+    // A view nested in itself through such bodies is read through at every
+    // level, each a descent of this walk, so the walk stops where the stack
+    // runs short, as `compositeMembers(of:context:)` stops: the view is then
+    // the plain row below, drawn whole, and its own descent truncates under
+    // the render's guard, which counts. Unguarded, a tree of a few thousand
+    // levels in a form overflowed the stack.
+    if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil, StackGuard.hasHeadroomUncounted() {
         let body = evaluateCompositeBody(of: view, context: walk)
         return formElements(from: body, in: walk.withChildIdentity(type: V.Body.self))
     }

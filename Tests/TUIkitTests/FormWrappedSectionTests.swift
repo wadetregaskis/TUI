@@ -57,6 +57,18 @@ private struct Pair: View {
     }
 }
 
+/// A view of the app's own nested in itself through its body's rows, a level
+/// deeper each time, to `depth`: a linked list, each node a row and an `if`
+/// around the next.
+private struct NestedRows: View {
+    let level: Int
+    let depth: Int
+    var body: some View {
+        Text("L\(level)")
+        if level < depth { Self(level: level + 1, depth: depth) }
+    }
+}
+
 @MainActor
 @Suite("A form looks through a Group and an if")
 struct FormWrappedSectionTests {
@@ -208,5 +220,23 @@ struct FormWrappedSectionTests {
             }.formStyle(.columns)
         ).map(\.stripped)
         #expect(after.filter { $0.contains("Wi-Fi") } == on.filter { $0.contains("Wi-Fi") }, "\(after)")
+    }
+
+    @Test("A view of the app's own nested in itself deeper than the stack holds is read as far as the stack allows")
+    func deeplyNestedViewIsReadAsFarAsTheStackAllows() {
+        // Far deeper than any stack holds: the form's walk reads through each
+        // level's body, and without a guard on that descent it takes the
+        // whole test process down. The walk alone, as the form starts it:
+        // the level it stops at is then the render's to draw, whole.
+        let walk = makeRenderContext(width: 40, height: 10).withChildIdentity(type: _FormContentWalk.self)
+        let rows = formRows(of: formElements(from: NestedRows(level: 0, depth: 100_000), in: walk))
+        #expect(rows.count > 100, "the levels the stack holds are read through: \(rows.count) rows")
+        #expect(rows.count < 100_000, "the walk stopped short of the innermost level")
+        // The level it stopped at is one row, the view drawn whole.
+        guard case .plain(let rest)? = rows.last?.kind else {
+            Issue.record("the last row is no plain row")
+            return
+        }
+        #expect(rest.erasedView is NestedRows)
     }
 }
