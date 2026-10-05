@@ -198,6 +198,10 @@ private enum ASCIIByte {
     static let ctrlRangeEnd: UInt8 = 0x1A
     static let ctrlToLowerOffset: UInt8 = 0x60
 
+    // Ctrl-minus (and Ctrl-_ and Ctrl-/, which most terminals cannot tell
+    // from it): the C0 unit separator, "^_".
+    static let unitSeparator: UInt8 = 0x1F
+
     // Printable ASCII range
     static let printableStart: UInt8 = 0x20
     static let printableEnd: UInt8 = 0x7E
@@ -322,6 +326,14 @@ extension KeyEvent {
         case ASCIIByte.ctrlRangeStart...ASCIIByte.ctrlRangeEnd:
             let char = Character(UnicodeScalar(byte + ASCIIByte.ctrlToLowerOffset))
             return KeyEvent(key: .character(char), ctrl: true)
+        case ASCIIByte.unitSeparator:
+            // 0x1F, "^_", is what most terminals send for Ctrl-minus, and for
+            // Ctrl-_ and Ctrl-/ as well: the legacy encodings cannot tell the
+            // three apart. Read as Ctrl-minus, the key TUIkit binds undo to
+            // (the one zsh and Emacs bind to it too); see
+            // Documentation/Terminal-compatibility.md, "Control collides with
+            // the C0 range".
+            return KeyEvent(key: .character("-"), ctrl: true)
         case (ASCIIByte.printableStart + 1)...ASCIIByte.printableEnd:  // Skip space (0x20), handled above
             let char = Character(UnicodeScalar(byte))
             return KeyEvent(character: char)

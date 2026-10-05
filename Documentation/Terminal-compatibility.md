@@ -4024,6 +4024,13 @@ rather than wondering why one menu item is dead. `.commandKey(.option)` has no
 such collision, at the cost of Option itself being less reliable: Apple
 Terminal composes accented characters unless "Use Option as Meta key" is on.
 
+**Ctrl-minus arrives as 0x1F** (2026-10-04, from the encodings' definitions,
+not a capture): the C0 unit separator, `^_`, which most terminals also send for
+Ctrl-_ (Ctrl-Shift-minus) and Ctrl-/, so the three cannot be told apart in a
+legacy encoding. `KeyEvent.parse` reads it as Ctrl-minus, the key undo is on
+(see "Undo and redo"); before then 0x1F, like 0x1C–0x1E, was dropped. Under the
+kitty keyboard protocol the three arrive apart.
+
 **Ctrl-C and Ctrl-Z do arrive** (corrected 2026-09-24; this table used to list
 them as "taken by the shell's job control"). That is true of a cooked terminal,
 not of TUIkit's: `Terminal.enableRawMode()` clears `ISIG`, so the driver sends
