@@ -462,8 +462,7 @@ extension _ContainerViewCore {
     func bodyHeight(in context: RenderContext) -> Int {
         var innerContext = context.forBorderedContent(hasBorder: style.hasBorder)
         innerContext.environment.focusIndicator = nil
-        innerContext.environment.sheetDetentHeight = nil
-        innerContext.environment.sheetProposedWidth = nil
+        innerContext.consumeSheetSize()
         let footerContext = publishingStackAxis(
             innerContext.withChildIdentity(type: Footer.self, index: 1), stacking: footer)
         return verticalBudget(

@@ -124,10 +124,9 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         let sheetHeight = base.environment.sheetDetentHeight.map {
             min($0, max(0, base.availableHeight))
         }
-        innerContext.environment.sheetDetentHeight = nil
         // And a presentation sizing's width, the same way.
         let sheetInnerWidth = sheetInnerWidth(base, hasBorder: hasBorder)
-        innerContext.environment.sheetProposedWidth = nil
+        innerContext.consumeSheetSize()
         let innerWidthAvailable = innerContext.availableWidth
 
         // The body and footer are distinct structural children, so they get
@@ -296,10 +295,9 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         let sheetHeight = context.environment.sheetDetentHeight.map {
             min($0, max(0, context.availableHeight))
         }
-        innerContext.environment.sheetDetentHeight = nil
         // And a presentation sizing's width, the same way.
         let sheetInnerWidth = sheetInnerWidth(context, hasBorder: hasBorder)
-        innerContext.environment.sheetProposedWidth = nil
+        innerContext.consumeSheetSize()
 
         // Distinct identities for the body and footer (see `sizeThatFits` — must
         // match it exactly so the two passes agree on identity, hence on
@@ -1075,5 +1073,21 @@ extension _ContainerViewCore {
         guard let colour, !colour.isAnimating else { return colour }
         return AnimatedColor(
             ColorAnimation.resolving(colour.current, owner: Self.self, context: context))
+    }
+}
+
+extension RenderContext {
+    /// Takes a sheet's size off the environment a box hands its content: the
+    /// box takes it (``EnvironmentValues/sheetDetentHeight``,
+    /// ``EnvironmentValues/sheetProposedWidth``), what is inside it does not.
+    ///
+    /// Cleared only where a sheet offered one. Every box runs this on every
+    /// pass, and an unconditional `= nil` is an insert — the generic subscript
+    /// stores the nil — so each box paid two, and grew the environment every
+    /// view inside it copies, for a size almost no box is ever offered. A read
+    /// of a key nobody wrote is a lookup that misses.
+    mutating func consumeSheetSize() {
+        if environment.sheetDetentHeight != nil { environment.sheetDetentHeight = nil }
+        if environment.sheetProposedWidth != nil { environment.sheetProposedWidth = nil }
     }
 }

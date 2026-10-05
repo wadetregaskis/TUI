@@ -261,3 +261,71 @@ private struct _AnyChoiceSizing: PresentationSizing, _StickyPresentationSizing {
 
     var stickyAxes: (horizontal: Bool, vertical: Bool) { (false, isSticky) }
 }
+
+/// Records the keys of the environment it renders in.
+private struct EnvironmentKeysProbe: View, Renderable {
+    let seen: SeenKeys
+
+    var body: Never { fatalError("EnvironmentKeysProbe renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        seen.values = context.environment.storage
+        return FrameBuffer(lines: ["probe"])
+    }
+}
+
+/// What ``EnvironmentKeysProbe`` saw, outside the view.
+private final class SeenKeys: @unchecked Sendable {
+    var values: [ObjectIdentifier: Any] = [:]
+}
+
+@MainActor
+@Suite("A box's cost when no sheet is sized")
+struct ContainerSheetSizeCostTests {
+    /// Every box consumed the sheet's size on every pass by writing `nil`,
+    /// which stores a nil: two inserts per box per pass, and two more entries
+    /// in the environment every view inside it copies, for a size almost no
+    /// box is offered.
+    @Test("A box offered no sheet size leaves its content's environment without one")
+    func noSheetSizeNoWrite() {
+        // The two keys, found by what a sheet stores under them.
+        let offered = SeenKeys()
+        _ = renderToBuffer(
+            EnvironmentKeysProbe(seen: offered),
+            context: makeRenderContext(width: 40, height: 10) { environment, _ in
+                environment.sheetDetentHeight = 5
+                environment.sheetProposedWidth = 7
+            })
+        let sheetKeys = Set(
+            offered.values.compactMap { key, value in
+                switch value as? Int? {
+                case .some(.some(5)), .some(.some(7)): key
+                default: nil
+                }
+            })
+        #expect(sheetKeys.count == 2, "precondition: both keys found")
+
+        let inside = SeenKeys()
+        _ = renderToBuffer(
+            EnvironmentKeysProbe(seen: inside).border(), context: makeRenderContext(width: 40, height: 10))
+        let stored = sheetKeys.filter { inside.values[$0] != nil }
+        #expect(stored.isEmpty, "the box stored \(stored.count) sheet sizes it was never offered")
+
+        // Offered one, the box still keeps it from its content.
+        let consumed = SeenKeys()
+        _ = renderToBuffer(
+            EnvironmentKeysProbe(seen: consumed).border(),
+            context: makeRenderContext(width: 40, height: 10) { environment, _ in
+                environment.sheetDetentHeight = 5
+                environment.sheetProposedWidth = 7
+            })
+        #expect(!consumed.values.isEmpty, "precondition: the probe ran")
+        #expect(
+            sheetKeys.allSatisfy { key in
+                // Unwrapped first: a lookup's `Any?` cast to `Int?` flattens.
+                guard let value = consumed.values[key] else { return false }
+                if case .some(.none) = value as? Int? { return true }
+                return false
+            }, "the box passed a sheet size to its content")
+    }
+}
