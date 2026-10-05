@@ -132,15 +132,15 @@ struct LazyGridSectionTests {
 
     @Test("Whether a section can be among a view's children is read from its type, or looked for when it cannot be")
     func sectionMembershipFromTheType() {
-        #expect(!mayHandOverSections(ForEach<Range<Int>, Int, Text>.self))
-        #expect(!mayHandOverSections(TupleView<Text, Text>.self))
-        #expect(mayHandOverSections(TupleView<Text, Section<Text, Text, EmptyView>>.self))
-        #expect(mayHandOverSections(ForEach<Range<Int>, Int, Section<Text, Text, EmptyView>>.self))
-        #expect(mayHandOverSections(Optional<Group<Section<EmptyView, Text, EmptyView>>>.self))
+        #expect(!mayHandOver(.section, ForEach<Range<Int>, Int, Text>.self))
+        #expect(!mayHandOver(.section, TupleView<Text, Text>.self))
+        #expect(mayHandOver(.section, TupleView<Text, Section<Text, Text, EmptyView>>.self))
+        #expect(mayHandOver(.section, ForEach<Range<Int>, Int, Section<Text, Text, EmptyView>>.self))
+        #expect(mayHandOver(.section, Optional<Group<Section<EmptyView, Text, EmptyView>>>.self))
         // A view of the app's own is one child, which no grid takes apart.
-        #expect(!mayHandOverSections(Cells.self))
+        #expect(!mayHandOver(.section, Cells.self))
         // A provider whose members its type does not spell is walked.
-        #expect(mayHandOverSections(SubviewsCollection.self))
+        #expect(mayHandOver(.section, SubviewsCollection.self))
     }
 }
 

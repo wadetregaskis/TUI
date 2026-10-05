@@ -185,7 +185,7 @@ protocol PinningStackCore {
     var pinnedSectionLayout: PinnedSectionLayout { get }
 
     /// Whether the stack's content can hand it a `Section`, from its type
-    /// (``mayHandOverSections(_:)``) — so a lazy stack of anything else, which
+    /// (``mayHandOver(_:in:)``) — so a lazy stack of anything else, which
     /// is nearly every lazy stack, keeps no section scope and pays nothing
     /// for it.
     var contentMayHoldSections: Bool { get }
@@ -266,7 +266,7 @@ extension PinningStackCore {
 }
 
 extension _VStackCore: PinningStackCore {
-    var contentMayHoldSections: Bool { mayHandOverSections(Content.self) }
+    var contentMayHoldSections: Bool { mayHandOver(.section, in: content) }
 
     /// A column: its sections lay out downward, aligned across by its
     /// alignment.
@@ -278,7 +278,7 @@ extension _VStackCore: PinningStackCore {
 }
 
 extension _HStackCore: PinningStackCore {
-    var contentMayHoldSections: Bool { mayHandOverSections(Content.self) }
+    var contentMayHoldSections: Bool { mayHandOver(.section, in: content) }
 
     /// A row: its sections lay out along it, aligned up and down by its
     /// alignment.

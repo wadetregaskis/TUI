@@ -50,7 +50,7 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
     func childViews(context: RenderContext) -> [ChildView] {
         // The type says whether a section can be among the items at all, so
         // a menu of buttons resolves them exactly as it always did.
-        guard mayHandOverSections(Items.self) else { return resolveChildViews(from: items, context: context) }
+        guard mayHandOver(.section, in: items) else { return resolveChildViews(from: items, context: context) }
         let children = resolveChildViews(from: items, context: context.keepingSectionsWhole())
         guard children.contains(where: { sectionParts(of: $0) != nil }) else { return children }
         var entries: [Entry] = []

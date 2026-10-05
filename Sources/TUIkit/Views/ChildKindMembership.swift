@@ -84,11 +84,21 @@ func mayHandOver<V: View>(_ kind: ChildKind, _ type: V.Type, visited: inout Set<
     return true
 }
 
-/// Whether a `Section` can be among the children a view of type `type` hands
-/// the container resolving it — ``mayHandOver(_:_:)`` of ``ChildKind/section``.
+/// ``mayHandOver(_:_:)`` of `view`: its type's answer, except that an
+/// `AnyView`, whose type says nothing of what it erases, is answered by the
+/// type it erases — so a lazy stack whose content is an `AnyView` around one
+/// view keeps no section scope, and a menu of one resolves as it always did.
+/// A metatype compare for any other view.
 @MainActor
-func mayHandOverSections<V: View>(_ type: V.Type) -> Bool {
-    mayHandOver(.section, type)
+func mayHandOver<V: View>(_ kind: ChildKind, in view: V) -> Bool {
+    guard V.self == AnyView.self, let erased = view as? AnyView else { return mayHandOver(kind, V.self) }
+    return erasedMayHandOver(kind, erased.erasedView)
+}
+
+/// ``mayHandOver(_:_:)`` of the type `view` is — the existential opened.
+@MainActor
+private func erasedMayHandOver<E: View>(_ kind: ChildKind, _: E) -> Bool {
+    mayHandOver(kind, E.self)
 }
 
 /// ``mayHandOver(_:_:visited:)`` of a wrapper's content, the existential
@@ -150,9 +160,18 @@ extension Section: ChildKindsKnowing {
 }
 
 /// A loop's rows are its children, so its row type answers. (It makes keyed
-/// rows itself: the walk answers that before asking.)
+/// rows itself: the walk answers that before asking.) A row that is a provider
+/// the loop hands over as ONE child however it is walked — counted one
+/// (`staticRowMemberCount`): an `AnyView`, which a loop never takes apart, a
+/// `Group` of one view — hands over no section: no view of it is a child of
+/// the container's, and it is no section type (one counts none). So a lazy
+/// stack of erased rows keeps no section scope, as before an `AnyView` was a
+/// provider.
 extension ForEach: ChildKindsKnowing where Content: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        TUIkit.mayHandOver(kind, Content.self, visited: &visited)
+        if kind == .section, Content.self is any ChildViewProvider.Type, staticRowMemberCount(Content.self) == 1 {
+            return false
+        }
+        return TUIkit.mayHandOver(kind, Content.self, visited: &visited)
     }
 }

@@ -49,6 +49,21 @@ private struct PathProbe: View, Renderable {
     }
 }
 
+/// Records the section wholeness of the walk it is drawn in.
+@MainActor
+private final class Wholeness {
+    var seen: [SectionWholeness] = []
+}
+
+private struct WholenessProbe: View, Renderable {
+    let wholeness: Wholeness
+    var body: Never { fatalError("WholenessProbe renders via Renderable") }
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        wholeness.seen.append(context.sectionWholeness)
+        return FrameBuffer(text: "w")
+    }
+}
+
 @MainActor
 @Suite("An AnyView around several views is several children")
 struct AnyViewMembersTests {
@@ -115,6 +130,27 @@ struct AnyViewMembersTests {
         let loop = ForEach(0..<3, id: \.self) { _ in AnyView(Group { Text("a"); Text("b") }) }
         #expect(loop.rowShape(sectionWholeness: .apart) == .single)
         #expect(resolveChildViews(from: loop, context: makeRenderContext(width: 10, height: 4)).count == 3)
+    }
+
+    @Test("An AnyView around one view costs a lazy stack no section scope, as a plain view costs it none")
+    func oneViewCostsNoSectionScope() {
+        #expect(AnyView.erasesOneView(AnyView(Text("a"))))
+        #expect(!AnyView.erasesOneView(AnyView(Group { Text("a"); Text("b") })))
+        #expect(!AnyView.erasesOneView(Text("a")))
+        // A loop of erased rows hands over no section: a loop never takes an
+        // erased row apart. One erased view is answered by what it erases.
+        #expect(!mayHandOver(.section, ForEach<Range<Int>, Int, AnyView>.self))
+        #expect(!mayHandOver(.section, in: AnyView(Text("a"))))
+        #expect(mayHandOver(.section, in: AnyView(Section { Text("a") })))
+        // So the rows of such a stack are drawn in a walk that keeps no section
+        // whole, as they were before an `AnyView` was a provider.
+        let wholeness = Wholeness()
+        _ = lines(
+            ScrollView {
+                LazyVStack { ForEach(0..<3, id: \.self) { _ in AnyView(WholenessProbe(wholeness: wholeness)) } }
+            }.frame(height: 4))
+        _ = lines(ScrollView { LazyVStack { AnyView(WholenessProbe(wholeness: wholeness)) } }.frame(height: 4))
+        #expect(!wholeness.seen.isEmpty && wholeness.seen.allSatisfy { $0 == .apart }, "\(wholeness.seen)")
     }
 
     /// Renders `probe` — or `-` without one — from the environment, and is

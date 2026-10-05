@@ -138,11 +138,12 @@ public protocol ChildViewProvider {
     /// child — itself — rather than taken apart, asked with the context its
     /// children would resolve in.
     ///
-    /// Only a `Section`, and a wrapper around one, ever answers `true`: a
-    /// section is its header's, content's and footer's views in every
+    /// Only a `Section`, and a wrapper around one, answers `true` for its own
+    /// sake: a section is its header's, content's and footer's views in every
     /// container except the ones that read it as a section — a `List` and the
     /// section APIs, which resolve with `RenderContext.keepsSectionsWhole`, and
-    /// a lazy stack that pins its own sections' headers and footers. Honoured
+    /// a lazy stack that pins its own sections' headers and footers. An
+    /// `AnyView` answers for what it erases, and is whole around one view. Honoured
     /// wherever a provider is expanded into its container: the tuple splice,
     /// ``resolveChildViews(from:context:)`` for a provider that is a
     /// container's whole content, and a `ForEach` row.

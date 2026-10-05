@@ -163,7 +163,10 @@ extension TupleView: ChildViewProvider {
         context: RenderContext
     ) {
         defer { slot += 1 }
-        guard let provider = child as? ChildViewProvider else {
+        // An `AnyView` around one view is a provider that is one child in every
+        // context: handed over here as the plain view it was before it was a
+        // provider, without the step below (`AnyView.erasesOneView(_:)`).
+        guard let provider = child as? ChildViewProvider, !AnyView.erasesOneView(child) else {
             // A view of the app's own whose body is several views is those
             // views (`compositeMembers(of:context:)`), resolved at the identity
             // it would have drawn at; any other view is one child, at the

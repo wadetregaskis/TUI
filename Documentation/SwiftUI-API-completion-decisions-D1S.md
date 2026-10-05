@@ -35,7 +35,7 @@ as its own children. A lazy stack is the exception, in two ways:
   was built on every walk that asked the stack for its children; kept whole,
   the stack windows over the sections and builds only those it draws, as it did
   before a section was its parts. A stack whose content's type shows no section
-  can be among its children (`mayHandOverSections(_:)`) — nearly every lazy
+  can be among its children (`mayHandOver(_:in:)`) — nearly every lazy
   stack — keeps no scope and pays nothing.
 
 Each section kept whole lays its parts out as the stack would — along its

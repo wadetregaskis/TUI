@@ -46,6 +46,18 @@ extension AnyView: ChildViewProvider {
     }
 }
 
+extension AnyView {
+    /// Whether `view` is an `AnyView` around one view — one child in every
+    /// context, so the tuple splice hands it over before building the step its
+    /// views would resolve under (``staysWhole(in:)`` would answer `true`
+    /// there whatever the context). A metatype compare for any other view.
+    @inline(__always)
+    package static func erasesOneView<V: View>(_ view: V) -> Bool {
+        guard V.self == AnyView.self, let erased = view as? AnyView else { return false }
+        return !(erased.erasedView is ChildViewProvider)
+    }
+}
+
 /// The children of `view`, which `provider` is — the existential opened.
 @MainActor
 private func erasedMembers<V: View>(of view: V, as provider: ChildViewProvider, context: RenderContext)
