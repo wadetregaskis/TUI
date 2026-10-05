@@ -319,6 +319,50 @@ struct ScrollClipDisabledTests {
         #expect(lines[5].hasPrefix("row 5") && lines[5].hasSuffix("!"), "\(lines)")
     }
 
+    // MARK: - What the cover costs where nothing is unclipped
+
+    private func floating(_ text: String, overflow: Bool = false) -> FrameBuffer {
+        var buffer = FrameBuffer(lines: [text])
+        var layer = OverlayLayer(offsetX: 3, offsetY: 0, content: FrameBuffer(lines: ["*"]), isOpaque: false)
+        layer.isScrollOverflow = overflow
+        buffer.overlays = [layer]
+        return buffer
+    }
+
+    @Test("A stack of children with layers knows, after each append, that none is overflow")
+    func stackKnowsItHoldsNoOverflow() {
+        var column = FrameBuffer()
+        for index in 0..<200 {
+            column.appendVertically(floating("row \(index)"))
+            // Known without looking: the next append's cover test is one field.
+            #expect(column.overlaysAreFreeOfScrollOverflow, "unknown after child \(index)")
+        }
+        var row = FrameBuffer()
+        row.appendHorizontally(floating("a"))
+        row.appendHorizontally(floating("b"))
+        #expect(row.overlaysAreFreeOfScrollOverflow)
+        let composited = column.composited(with: floating("over"), at: (x: 0, y: 0))
+        #expect(composited.overlaysAreFreeOfScrollOverflow)
+        #expect(column.overlays.count == 200)
+    }
+
+    @Test("Overflow in a buffer, however it got there, is still covered by what comes after it")
+    func hintNeverHidesOverflow() {
+        var column = FrameBuffer()
+        column.appendVertically(floating("x"))
+        #expect(column.overlaysAreFreeOfScrollOverflow)
+        // Put there directly, not through a combining operation.
+        var layer = OverlayLayer(offsetX: 0, offsetY: 1, content: FrameBuffer(lines: ["overflow"]), isOpaque: false)
+        layer.isScrollOverflow = true
+        column.overlays.append(layer)
+        #expect(!column.overlaysAreFreeOfScrollOverflow, "any change to the layers is unknown")
+        column.appendVertically(FrameBuffer(lines: ["cover"]))
+        // "cover" paints the overflow's first five cells: "low" is left of it.
+        let drawn = column.overlays.filter(\.isScrollOverflow).map { "\($0.offsetX): \($0.content.lines.map(\.stripped))" }
+        #expect(drawn == ["5: [\"low\"]"], "\(drawn)")
+        #expect(!column.overlaysAreFreeOfScrollOverflow)
+    }
+
     @MainActor
     private final class Box<T> {
         var value: T

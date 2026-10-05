@@ -77,6 +77,17 @@ public struct FrameBuffer: Sendable, Equatable {
     /// the lines genuinely are uniform.
     public private(set) var linesAreUniformWidth: Bool
 
+    /// Whether ``overlays`` is known to hold no scroll view's overflow
+    /// (`OverlayLayer.isScrollOverflow`): a hint with ``linesAreUniformWidth``'s
+    /// conservative meaning — `true` is "definitely none", `false` "unknown,
+    /// look". Any change to ``overlays`` makes it unknown, and the combining
+    /// operations say what they know after each append
+    /// (`appendOverlays(of:shiftedByX:y:)`), so a stack of a thousand children
+    /// with a layer each asks about each child's layers once, not about every
+    /// layer so far at every child. Declared beside the other `Bool`, in its
+    /// padding, and excluded from `==` like the other hints.
+    package var overlaysAreFreeOfScrollOverflow = true
+
     /// Per-line visible widths, or `nil` when unknown ("measure on demand").
     ///
     /// A performance hint that complements ``linesAreUniformWidth`` for *ragged*
@@ -139,7 +150,9 @@ public struct FrameBuffer: Sendable, Equatable {
     /// layout. Each layer's offset is relative to this buffer's top-left and
     /// is shifted by every combining operation, so it becomes absolute by the
     /// time the buffer reaches the root. See ``OverlayLayer``.
-    public var overlays: [OverlayLayer] = []
+    public var overlays: [OverlayLayer] = [] {
+        didSet { overlaysAreFreeOfScrollOverflow = false }
+    }
 
     /// Mouse hit-test rectangles that ride alongside this buffer's
     /// content as parents combine it.
@@ -379,9 +392,7 @@ extension FrameBuffer {
             // overlay layers and hit-test regions that must be
             // preserved — those are anchored to its (zero-height)
             // position, not to any inter-child spacing.
-            if !other.overlays.isEmpty {
-                overlays.append(contentsOf: other.shiftedOverlays(byX: 0, y: priorHeight))
-            }
+            appendOverlays(of: other, shiftedByX: 0, y: priorHeight)
             if !other.hitTestRegions.isEmpty {
                 hitTestRegions.append(
                     contentsOf: other.shiftedHitTestRegions(byX: 0, y: priorHeight))
@@ -512,9 +523,7 @@ extension FrameBuffer {
         // Same story for the three carried side-channels: `a + b` allocates and
         // copies both sides every child, so accumulating N children's overlays
         // or hit regions was quadratic in their total count.
-        if !other.overlays.isEmpty {
-            overlays.append(contentsOf: other.shiftedOverlays(byX: 0, y: verticalShift))
-        }
+        appendOverlays(of: other, shiftedByX: 0, y: verticalShift)
         if !other.hitTestRegions.isEmpty {
             hitTestRegions.append(
                 contentsOf: other.shiftedHitTestRegions(byX: 0, y: verticalShift))
@@ -568,9 +577,7 @@ extension FrameBuffer {
             // overlay layers and hit-test regions that must be
             // preserved — those are anchored to its (zero-width)
             // position, not to any inter-child spacing.
-            if !other.overlays.isEmpty {
-                overlays.append(contentsOf: other.shiftedOverlays(byX: priorWidth, y: 0))
-            }
+            appendOverlays(of: other, shiftedByX: priorWidth, y: 0)
             if !other.hitTestRegions.isEmpty {
                 hitTestRegions.append(
                     contentsOf: other.shiftedHitTestRegions(byX: priorWidth, y: 0))
@@ -684,10 +691,7 @@ extension FrameBuffer {
         // Appended in place rather than via `a + b`, which allocates and copies
         // both sides on every child — quadratic in the accumulated count for a
         // stack of many interactive children. Mirrors `appendVertically`.
-        if !other.overlays.isEmpty {
-            overlays.append(
-                contentsOf: other.shiftedOverlays(byX: myWidth + spacingApplied, y: 0))
-        }
+        appendOverlays(of: other, shiftedByX: myWidth + spacingApplied, y: 0)
         if !other.hitTestRegions.isEmpty {
             hitTestRegions.append(
                 contentsOf: other.shiftedHitTestRegions(byX: myWidth + spacingApplied, y: 0))
@@ -786,8 +790,7 @@ extension FrameBuffer {
                 return self
             }
             var result = self
-            result.overlays.append(
-                contentsOf: overlay.shiftedOverlays(byX: position.x, y: position.y))
+            result.appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
             result.hitTestRegions.append(
                 contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))
             // …and the runs, which the guard above already tests for and this
@@ -845,9 +848,9 @@ extension FrameBuffer {
         // Keep this buffer's own layers + hit-test regions (a scroll view's
         // overflow cut where the overlay lands); lift the overlay's nested
         // ones, shifted to where the overlay was placed.
-        composited.overlays =
-            Self.coveringScrollOverflow(overlays, under: overlay, at: position)
-            + overlay.shiftedOverlays(byX: position.x, y: position.y)
+        composited.overlays = scrollOverflowCovered(under: overlay, at: position)
+        composited.overlaysAreFreeOfScrollOverflow = overlaysAreFreeOfScrollOverflow
+        composited.appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
         composited.hitTestRegions =
             hitTestRegions
             + overlay.shiftedHitTestRegions(byX: position.x, y: position.y)
@@ -908,8 +911,7 @@ extension FrameBuffer {
             guard !overlay.overlays.isEmpty || !overlay.hitTestRegions.isEmpty
                 || !overlay.animatedCells.isEmpty || !overlay.opacityRegions.isEmpty
             else { return }
-            overlays.append(
-                contentsOf: overlay.shiftedOverlays(byX: position.x, y: position.y))
+            appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
             hitTestRegions.append(
                 contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))
             animatedCells.append(
@@ -969,7 +971,7 @@ extension FrameBuffer {
         linesAreUniformWidth = true
         lineWidths = nil
         coverScrollOverflow(under: overlay, at: position)
-        overlays.append(contentsOf: overlay.shiftedOverlays(byX: position.x, y: position.y))
+        appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
         hitTestRegions.append(
             contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))
         // Punched, then lifted — same reasoning as the copying twin above: the

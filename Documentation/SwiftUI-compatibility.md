@@ -750,7 +750,8 @@ combining operations (`appendVertically`, `appendHorizontally`, `composite`):
 content placed after a scroll view cuts that scroll view's overflow away beneath
 the cells it paints (`OverlayLayer.isScrollOverflow`,
 `FrameBuffer.coverScrollOverflow`) — on each line, from its first painted cell
-to its last — at the cost of one test of a buffer's layers per operation. The
+to its last — at the cost of one test of a hint per operation (a buffer knows,
+after each combining step, that its layers hold no overflow). The
 blank space either side is not the later view drawing: a short `Text` padded to
 its stack's width, an overlay's `Spacer`, or an `.offset` view's empty footprint
 hides nothing, as in SwiftUI. No other layer is cut, so

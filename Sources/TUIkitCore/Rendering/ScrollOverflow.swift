@@ -168,21 +168,51 @@ extension FrameBuffer {
     /// the overflow through it. Cut by its whole rect, a short `Text` padded to
     /// its stack's width hid every overflowing line it sat on.
     ///
-    /// Costs one test of ``overlays`` on every combining operation, and
-    /// nothing more unless a scroll view has disabled its clip.
+    /// Costs a test of the hint ``overlaysAreFreeOfScrollOverflow`` on every
+    /// combining operation, a look at the layers when it does not know — after
+    /// which it does — and nothing more unless a scroll view has disabled its
+    /// clip.
     package mutating func coverScrollOverflow(under later: FrameBuffer, at position: (x: Int, y: Int)) {
-        guard !overlays.isEmpty else { return }
-        overlays = Self.coveringScrollOverflow(overlays, under: later, at: position)
+        guard !overlays.isEmpty, !overlaysAreFreeOfScrollOverflow else { return }
+        guard overlays.contains(where: \.isScrollOverflow) else {
+            overlaysAreFreeOfScrollOverflow = true
+            return
+        }
+        overlays = Self.covering(overlays, under: later, at: position)
+    }
+
+    /// ``overlays`` with the scroll overflow among them cut away where `later`,
+    /// placed at `position`, paints — ``coverScrollOverflow(under:at:)`` for a
+    /// buffer that is not changed in place. ``overlays`` itself when there is
+    /// none, which is almost always.
+    package func scrollOverflowCovered(under later: FrameBuffer, at position: (x: Int, y: Int)) -> [OverlayLayer] {
+        guard !overlays.isEmpty, !overlaysAreFreeOfScrollOverflow, overlays.contains(where: \.isScrollOverflow)
+        else { return overlays }
+        return Self.covering(overlays, under: later, at: position)
+    }
+
+    /// Whether ``overlays`` holds no scroll overflow: the hint when it knows,
+    /// a look otherwise.
+    package var overlaysHoldNoScrollOverflow: Bool {
+        overlaysAreFreeOfScrollOverflow || !overlays.contains(where: \.isScrollOverflow)
+    }
+
+    /// Appends `other`'s layers, shifted by (`dx`, `dy`), saying what is known
+    /// about scroll overflow after: none, when there was none before and
+    /// `other` has none. The combining operations' one way to lift layers, so
+    /// the hint survives the append that would otherwise make it unknown.
+    package mutating func appendOverlays(of other: FrameBuffer, shiftedByX dx: Int, y dy: Int) {
+        guard !other.overlays.isEmpty else { return }
+        let free = (overlays.isEmpty || overlaysAreFreeOfScrollOverflow) && other.overlaysHoldNoScrollOverflow
+        overlays.append(contentsOf: other.shiftedOverlays(byX: dx, y: dy))
+        overlaysAreFreeOfScrollOverflow = free
     }
 
     /// `layers` with the scroll overflow among them cut away where `later`,
-    /// placed at `position`, paints — see
-    /// ``coverScrollOverflow(under:at:)``. `layers` itself when there is
-    /// none, which is almost always.
-    package static func coveringScrollOverflow(
+    /// placed at `position`, paints.
+    private static func covering(
         _ layers: [OverlayLayer], under later: FrameBuffer, at position: (x: Int, y: Int)
     ) -> [OverlayLayer] {
-        guard !layers.isEmpty, layers.contains(where: \.isScrollOverflow) else { return layers }
         var covered = layers
         for block in later.paintedBlocks() {
             covered = covered.flatMap { layer -> [OverlayLayer] in
