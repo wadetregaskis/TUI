@@ -73,4 +73,96 @@ struct FlattenedRowLoopBoundsTests {
         }
         #expect(drawn == [99, 1, 2, 2, 3, 3, 4], "\(drawn)")
     }
+
+    // The loop in the middle is counted, and a run that cannot be counted
+    // comes after it — a third loop placed by its keys, or a view of the app's
+    // own holding a loop of its own — so neither end of the Group's runs is a
+    // counted loop to place first. The first loop must still stop where the
+    // counted one starts.
+
+    @Test("Between a loop placed by its keys and another, a counted loop keeps its rows, under Int ids")
+    func countedLoopBetweenTwoPlacedByKeys() {
+        let drawn = ids(Int.self) {
+            Text("All").tag(99)
+            Group {
+                ForEach([1, 2, 3], id: \.self) { n in
+                    Text("\(n)")
+                    if n == 2 { Text("two") }
+                }
+                ForEach([3, 4], id: \.self) { Text("x\($0)") }
+                ForEach([5, 6], id: \.self) { n in
+                    Text("\(n)")
+                    if n == 5 { Text("five") }
+                }
+            }
+        }
+        #expect(drawn == [99, 1, 2, 2, 3, 3, 4, 5, 5, 6], "\(drawn)")
+    }
+
+    @Test("And under String ids, where an unplaced row cannot be selected at all")
+    func countedLoopBetweenTwoPlacedByKeysStrings() {
+        let drawn = ids(String.self) {
+            Text("All").tag("all")
+            Group {
+                ForEach(["a", "b", "c"], id: \.self) { name in
+                    Text(name)
+                    if name == "b" { Text("detail") }
+                }
+                ForEach(["c", "d"], id: \.self) { Text("x\($0)") }
+                ForEach(["e", "f"], id: \.self) { name in
+                    Text(name)
+                    if name == "e" { Text("detail") }
+                }
+            }
+        }
+        #expect(drawn == ["all", "a", "b", "b", "c", "c", "d", "e", "e", "f"], "\(drawn)")
+    }
+
+    @Test("And with a view of the app's own holding a loop after the counted loop")
+    func countedLoopBeforeAViewHoldingALoop() {
+        let drawn = ids(String.self) {
+            Text("All").tag("all")
+            Group {
+                ForEach(["a", "b", "c"], id: \.self) { name in
+                    Text(name)
+                    if name == "b" { Text("detail") }
+                }
+                ForEach(["c", "d"], id: \.self) { Text("x\($0)") }
+                MoreRows(names: ["e"])
+            }
+        }
+        // The view's own loop keeps the hand-written rule (decisions D1S,
+        // B-D1S-6): no tag, so no `String` value.
+        #expect(drawn == ["all", "a", "b", "b", "c", "c", "d", nil], "\(drawn)")
+    }
+
+    @Test("A placement that fits is found when the counted loops after a loop placed by its keys share its spellings")
+    func countedLoopsSpelledAlike() {
+        // Placed as far as it reaches, the first loop took every "3"; stopped
+        // at the last place the next loop alone fits, it would leave no room
+        // for the loop after that. The only placement that fits gives each
+        // of the three one "3".
+        let drawn = ids(Int.self) {
+            Text("All").tag(99)
+            Group {
+                ForEach([1, 3], id: \.self) { n in
+                    Text("\(n)")
+                    if n == 1 { Text("one") }
+                }
+                ForEach([3], id: \.self) { Text("x\($0)") }
+                ForEach([3], id: \.self) { Text("y\($0)") }
+                ForEach([5, 6], id: \.self) { n in
+                    Text("\(n)")
+                    if n == 5 { Text("five") }
+                }
+            }
+        }
+        #expect(drawn == [99, 1, 1, 3, 3, 3, 5, 5, 6], "\(drawn)")
+    }
+}
+
+/// A view whose body is a loop of its own.
+private struct MoreRows: View {
+    let names: [String]
+    var body: some View { ForEach(names, id: \.self) { Text($0) } }
 }

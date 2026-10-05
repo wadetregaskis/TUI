@@ -107,12 +107,15 @@ arms differ, an `if` without `else` anywhere among the row's views (none of
 them while false), a section the walk takes apart — every row is built and
 resolved, though not drawn, on every walk that asks for the children; its
 views are still selected and tagged by their element, placed by the key each
-carries (`FlattenedRowIDs`). An `if` without `else` around ONE view that is
-the row's only view stays one child, empty when false, as before, where
-SwiftUI counts none: no stack draws or spaces an empty child, and a `Layout`
-counts it. Counting it as it is spliced would build every row of a loop that
-filters its elements with an `if` — a common shape — to learn which are
-there.
+carries (`FlattenedRowIDs`), between the loops beside it wherever those can
+still be placed (`KeyedRowTiling`). Only a key's spelling tells two such loops
+apart where they sit side by side in one slot (in one `Group`): when the
+first ends on an id spelled as the second's first, the first takes that row.
+An `if` without `else` around ONE view that is the row's only view stays one
+child, empty when false, as before, where SwiftUI counts none: no stack draws
+or spaces an empty child, and a `Layout` counts it. Counting it as it is
+spliced would build every row of a loop that filters its elements with an
+`if` — a common shape — to learn which are there.
 
 **The fuller version.** An index from element to first child, built once and
 kept across frames while the data is unchanged (the loop's `listRowsSignature`
