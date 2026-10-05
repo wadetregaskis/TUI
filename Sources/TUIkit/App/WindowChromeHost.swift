@@ -82,7 +82,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         let tooltip = hints.map { $0.showsNoteInPlaceOfItems ? [] : $0.tooltipLines } ?? []
         // Last frame's rows, in this frame's styles — and, below, this frame's
         // tooltip.
-        let rows = chrome.map { reservedRows($0, tooltipRows: tooltip.count) } ?? Rows()
+        let rows = chrome.map { reservedRows($0, tooltipRows: tooltip.count, height: height) } ?? Rows()
         let contentHeight = contentAreaHeight(
             terminalHeight: height, statusBarHeight: rows.bottom, headerHeight: rows.top)
 
@@ -174,10 +174,19 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
     /// Last frame's rows for each bar, in this frame's styles, with
     /// `tooltipRows` added to the bottom bar's: a tooltip with no bottom bar
     /// takes a bar of its own while it shows.
-    private func reservedRows(_ chrome: WindowChromeState, tooltipRows: Int) -> Rows {
-        Rows(
-            top: Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style),
-            bottom: Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.style))
+    ///
+    /// In a terminal of `height` rows too short for both, the bottom bar keeps
+    /// its rows and the top bar gets what is left, cut from its end. The line
+    /// of key hints lives in the bottom bar and is how a person finds the keys,
+    /// so it is the one that stays whole — as it did when the run loop wrote
+    /// it last, over the header, at the foot of the screen. Stacked uncut, the
+    /// frame was taller than the screen and the writer dropped its last rows:
+    /// the bottom bar's.
+    private func reservedRows(_ chrome: WindowChromeState, tooltipRows: Int, height: Int) -> Rows {
+        let bottom = min(
+            height, Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.style))
+        let top = min(height - bottom, Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style))
+        return Rows(top: top, bottom: bottom)
     }
 
     /// Asks for the frame a settlement owes: the next one, through the

@@ -44,6 +44,21 @@ private struct HintsApp: App {
     }
 }
 
+/// Both bars, bordered: three rows each.
+private struct BothBarsApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { Text("HEADER") }
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
+                }
+        }
+    }
+}
+
 @MainActor
 @Suite("Chrome is opt-in")
 struct OptInChromeTests {
@@ -88,5 +103,18 @@ struct OptInChromeTests {
             onSuspend: {})
         _ = handler.handle(KeyEvent(key: .character("q")))
         #expect(quits == 1)
+    }
+
+    @Test("In a terminal too short for both bars, the bottom bar stays whole and the top bar gives way")
+    func shortTerminalKeepsTheBottomBar() {
+        let app = HeadlessApp(BothBarsApp(), width: 40, height: 4)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        let rows = app.screen.map(\.stripped)
+        #expect(rows.count == 4, "\(rows)")
+        #expect(rows[0].hasPrefix("╭"), "the top bar's first row is all of it there is room for: \(rows)")
+        #expect(rows[1].hasPrefix("╭"), "the bottom bar's top border: \(rows)")
+        #expect(rows[2].contains("q quit"), "the line of key hints is on the screen: \(rows)")
+        #expect(rows[3].hasPrefix("╰"), "and the bar is closed: \(rows)")
     }
 }
