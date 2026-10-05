@@ -47,7 +47,7 @@ import TUIkitCore
 ///
 /// ## Equality
 ///
-/// Two actions are equal when they are the same action: the same ``Box``,
+/// Two actions are equal when they are the same action: the same `Box`,
 /// compared by identity, as `dismissSearch`'s is. A closure has no equality,
 /// and an environment value with none turns every memo below it off — so a
 /// view that writes an action for its content keeps one box for its life
