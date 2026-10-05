@@ -417,15 +417,15 @@ to be ambiguous-width. Only one of them is.
 | `⇧` | U+21E7 | Shift | **Ambiguous** | status bar constant | measured: 1 / contained |
 | `⌘` | U+2318 | Command | Neutral | status bar constant | measured: 1 / **Warp overhangs** |
 | `⎋` | U+238B | Escape | Neutral | yes | measured: 1 / **Warp overhangs** |
-| `↩` | U+21A9 | Return | Neutral | **no** — `↵` U+21B5 was | **UNMEASURED** |
+| `↩` | U+21A9 | Return | Neutral | **no** — `↵` U+21B5 was | 1 (2026-10-05, below) / ink **UNMEASURED** |
 | `⇥` | U+21E5 | Tab | Neutral | yes | measured: 1 / contained |
 | `⌫` | U+232B | Delete (backspace) | Neutral | yes | measured: 1 / **Warp overhangs** |
 | `⌦` | U+2326 | Forward Delete | Neutral | yes | measured: 1 / **Warp overhangs** |
 | `↑ ↓ ← →` | U+2191, 2193, 2190, 2192 | arrows | **Ambiguous** | yes | measured: 1 / contained |
-| `↖` | U+2196 | Home | **Ambiguous** | **no** — `⤒` U+2912 was | **UNMEASURED** |
-| `↘` | U+2198 | End | **Ambiguous** | **no** — `⤓` U+2913 was | **UNMEASURED** |
-| `⇞` | U+21DE | Page Up | Neutral | **no** (a constant nothing drew) | **UNMEASURED** |
-| `⇟` | U+21DF | Page Down | Neutral | **no** (likewise) | **UNMEASURED** |
+| `↖` | U+2196 | Home | **Ambiguous** | **no** — `⤒` U+2912 was | 1 (2026-10-05, below) / ink **UNMEASURED** |
+| `↘` | U+2198 | End | **Ambiguous** | **no** — `⤓` U+2913 was | 1 (2026-10-05, below) / ink **UNMEASURED** |
+| `⇞` | U+21DE | Page Up | Neutral | **no** (a constant nothing drew) | 1 (2026-10-05, below) / ink **UNMEASURED** |
+| `⇟` | U+21DF | Page Down | Neutral | **no** (likewise) | 1 (2026-10-05, below) / ink **UNMEASURED** |
 
 Shift-Tab is `⇧⇥`, as macOS draws it, so `⇤` (U+21E4) is no longer drawn by
 the framework; the space bar is a word, so `␣` (U+2423) is not either. Their
@@ -449,21 +449,31 @@ arrows and the borders in that class and add no new kind of failure. The
 symbols that were measured to overhang on Warp keep the per-host two-cell
 claim and `ECH`+`CUF` walk described above.
 
-**Measured by the coordinator, 2026-10-05: UNMEASURED — coordinator to fill.**
-Advance (DSR, `advance_probe.py`) and ink (`overhang_card.py`, read by a
-person) for the four glyphs the framework draws for the first time, `↩ ↖ ↘ ⇞ ⇟`,
-and for the whole key-symbol set on the hosts the 2026-09-04 card did not
-cover. Until a row is filled, the claim is one cell and no host widens it.
+**Advance measured by the coordinator, 2026-10-05; ink UNMEASURED —
+coordinator to fill.** Each glyph was written after a carriage return and an
+erase-line on the primary screen, with a cursor-position report before and
+after it: `⌃ ⌥ ⇧ ⌘ ⎋ ↩ ⌤ ⇥ ⇤ ⌫ ⌦ ← ↑ → ↓ ↖ ↘ ⇞ ⇟ ⌧ ⇪ ␣`, and the chord
+`⌃⇧Z`. Every glyph advanced one cell and the chord three, on every host
+reached, the four the framework draws for the first time (`↩ ↖ ↘ ⇞ ⇟`)
+included. What a DSR cannot see is the INK — whether a glyph overhangs its
+cell, or is drawn at all (a font with no glyph for it draws a box, which also
+advances one): that needs `overhang_card.py` read by a person, or a
+screenshot. Until a host's ink is read, the claim is one cell and no host
+widens it.
 
-| Host | `↩` advance / ink | `↖` | `↘` | `⇞` | `⇟` | `⌃⌥⇧⌘ ⎋ ⇥ ⌫ ⌦ ↑↓←→` |
-|---|---|---|---|---|---|---|
-| Apple Terminal | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
-| iTerm2, ambiguous narrow | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
-| iTerm2, ambiguous wide | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
-| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
-| Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | measured 2026-09-04 |
-| kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
-| tmux in Ghostty / iTerm2 | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Host | Version | Advance, all 22 glyphs | `⌃⇧Z` | Ink of `↩ ↖ ↘ ⇞ ⇟` |
+|---|---|---|---|---|
+| Apple Terminal | 455.1 | 1 each | 3 | UNMEASURED |
+| iTerm2, ambiguous narrow (the default) | 3.7.3 | 1 each | 3 | UNMEASURED |
+| iTerm2, "ambiguous characters are wide" | — | UNMEASURED (`⇧`, the arrows, `↖ ↘` expected 2) | — | UNMEASURED |
+| Ghostty | — | UNMEASURED (not reached: the launch waited on a prompt) | — | UNMEASURED |
+| Warp | v0.2026.09.30.08.29 | 1 each | 3 | UNMEASURED |
+| kitty | — | UNMEASURED (did not launch) | — | UNMEASURED |
+| tmux | 3.7c | 1 each | 3 | UNMEASURED |
+
+iTerm2 3.7.3 and Warp v0.2026.09.30 are newer than the versions the
+2026-09-04 card recorded; the ink of `⌃ ⌥ ⇧ ⌘ ⎋ ⇥ ⌫ ⌦ ↑ ↓ ← →` is that card's
+reading, on those older versions.
 
 A glyph that overhangs on a host joins that host's table in
 `TerminalWidthTraits.ChromeOverhang` (and its corpus row the `chrome_key`
