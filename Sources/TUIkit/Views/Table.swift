@@ -1617,7 +1617,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         func layoutOf(_ index: Int) -> MultiLineRowLayout {
             if let cached = layoutCache[index] { return cached }
             let rowContext = index == raisedRow ? Self.raised(context) : context
-            let layout = entryLayout(index, columnWidths: columnWidths, context: rowContext)
+            let layout = entryLayout(index, columnWidths: columnWidths, context: rowContext, headers: headers)
             layoutCache[index] = layout
             return layout
         }
@@ -1929,7 +1929,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return sectionHeaders.indices.map { index in
             let size = measureChild(
                 sectionHeaders[index].view, proposal: ProposedSize(width: width, height: nil),
-                context: sectionHeaderContext(index, width: width, context: probe))
+                context: sectionHeaderContext(
+                    index, width: width, height: max(1, context.availableHeight), context: probe))
             // An empty header (a `Text("")`) still holds its row's line, as
             // macOS's group row does: the sections are told apart by it.
             return max(1, size.height)
@@ -1942,14 +1943,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         max(1, columnWidths.reduce(0, +) + columnSpacing * max(0, columnWidths.count - 1))
     }
 
-    /// The context section header `index` draws under: its own identity, so a
-    /// collapsible header's control keeps its state; the cells' span as its
-    /// width; and a `List`'s section-header styling.
-    private func sectionHeaderContext(_ index: Int, width: Int, context: RenderContext) -> RenderContext {
+    /// The context section header `index` is measured or drawn under: its own
+    /// identity, so a collapsible header's control keeps its state; the cells'
+    /// span as its width, and `height` lines; and a `List`'s section-header
+    /// styling.
+    private func sectionHeaderContext(
+        _ index: Int, width: Int, height: Int, context: RenderContext
+    ) -> RenderContext {
         sectionChromeContext(
             context
                 .withChildIdentity(erasedType: _TableSectionHeader.self, index: index)
-                .withAvailableSize(width: width, height: max(1, context.availableHeight)),
+                .withAvailableSize(width: width, height: height),
             .sectionHeader)
     }
 
@@ -1979,7 +1983,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             fitting.append(index)
             used += heights[index]
         }
-        let drawn = renderedSectionHeaders(fitting, columnWidths: columnWidths, context: context)
+        let drawn = renderedSectionHeaders(
+            fitting, heights: heights, columnWidths: columnWidths, context: context)
         let lines = drawn.lines.prefix(max(1, rowArea)).map { line in
             line + String(repeating: " ", count: max(0, contentWidth - line.strippedLength))
         }
@@ -2001,15 +2006,21 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// Row `index` laid out to be drawn, with the section headers drawn with
     /// it rendered — under the live context, so a collapsible header's
-    /// disclosure control registers and its regions travel in the payload.
-    private func entryLayout(_ index: Int, columnWidths: [Int], context: RenderContext) -> MultiLineRowLayout {
+    /// disclosure control registers and its regions travel in the payload —
+    /// at the heights `headers` measured them at
+    /// (``sectionHeaderHeights(columnWidths:context:)``).
+    private func entryLayout(
+        _ index: Int, columnWidths: [Int], context: RenderContext, headers: [Int]
+    ) -> MultiLineRowLayout {
         var layout = cellLayout(for: data[index], columnWidths: columnWidths, context: context)
         guard let sections else { return layout }
         let aboveIndices = sections.headers(above: index)
         let belowIndices = sections.headers(below: index)
         guard !aboveIndices.isEmpty || !belowIndices.isEmpty else { return layout }
-        let above = renderedSectionHeaders(aboveIndices, columnWidths: columnWidths, context: context)
-        let below = renderedSectionHeaders(belowIndices, columnWidths: columnWidths, context: context)
+        let above = renderedSectionHeaders(
+            aboveIndices, heights: headers, columnWidths: columnWidths, context: context)
+        let below = renderedSectionHeaders(
+            belowIndices, heights: headers, columnWidths: columnWidths, context: context)
         let cellHeight = layout.height
         var payload = above.payload
         payload.append(layout.payload.shifted(byX: 0, y: above.lines.count))
@@ -2025,23 +2036,30 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// gutter — in line with the first column, as the row's cells are — under
     /// a `List`'s section-header styling, with what their controls registered
     /// placed on their lines.
+    ///
+    /// Each is drawn in exactly the lines `heights` measured it at, which is
+    /// what the window, the scroll and the hit bands count it as: offered the
+    /// table's whole height instead, a header that grows (a `Spacer` under its
+    /// title) drew as tall as the table while every count said one line.
     private func renderedSectionHeaders(
-        _ indices: [Int], columnWidths: [Int], context: RenderContext
+        _ indices: [Int], heights: [Int], columnWidths: [Int], context: RenderContext
     ) -> (lines: [String], payload: _TableRowPayload) {
         let width = sectionHeaderWidth(columnWidths)
         let gutter = selectionGutter(context.environment)
+        let indent = String(repeating: " ", count: gutter)
         var lines: [String] = []
         var payload = _TableRowPayload()
         for index in indices {
+            let height = heights.indices.contains(index) ? heights[index] : 1
             let buffer = TUIkit.renderToBuffer(
                 sectionHeaders[index].view,
-                context: sectionHeaderContext(index, width: width, context: context))
+                context: sectionHeaderContext(index, width: width, height: height, context: context))
             var placed = _TableRowPayload()
-            placed.absorb(buffer, atColumn: gutter, width: width, lines: buffer.height, alignment: .leading)
+            placed.absorb(buffer, atColumn: gutter, width: width, lines: height, alignment: .leading)
             payload.append(placed.shifted(byX: 0, y: lines.count))
-            let headerLines = buffer.lines.isEmpty ? [""] : buffer.lines
-            let indent = String(repeating: " ", count: gutter)
-            lines += headerLines.map { indent + $0.truncatedToWidth(width, mode: .tail) }
+            let drawn = buffer.lines.prefix(height)
+            lines += drawn.map { indent + $0.truncatedToWidth(width, mode: .tail) }
+            lines += Array(repeating: "", count: height - drawn.count)
         }
         return (lines, payload)
     }

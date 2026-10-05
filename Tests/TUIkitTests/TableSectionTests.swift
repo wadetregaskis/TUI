@@ -27,6 +27,8 @@ private final class Produce {
     var onlyFruits = false
     /// Every section empty.
     var noRows = false
+    /// The vegetables' header grows: a `Spacer` under its title.
+    var flexibleHeader = false
     var rows = 4
     var menuSets: [[Int]] = []
 }
@@ -83,7 +85,14 @@ private struct ProducePage: View {
                 Section {
                     ForEach(vegetables) { TableRow($0) }
                 } header: {
-                    Text(verbatim: "Vegetables")
+                    if produce.flexibleHeader {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(verbatim: "Vegetables")
+                            Spacer()
+                        }
+                    } else {
+                        Text(verbatim: "Vegetables")
+                    }
                 }
                 Section("Last") {
                     ForEach([Item]()) { TableRow($0) }
@@ -245,6 +254,19 @@ struct TableSectionTests {
         let title = try #require(harness.line(of: "Name"))
         #expect(fruits == title + 1)
         #expect(harness.column(of: "Fruits", on: fruits) == harness.column(of: "Name", on: title))
+    }
+
+    @Test("A header that grows is drawn at the height it is measured at, not the table's")
+    func flexibleHeader() throws {
+        let harness = Harness { $0.flexibleHeader = true }
+        let vegetables = try #require(harness.line(of: "Vegetables"), "\(harness.screen)")
+        let veg = try #require(harness.line(of: "veg11"), "the header pushed its rows away:\n\(harness.screen)")
+        #expect(veg - vegetables <= 2, "\(harness.screen)")
+        #expect(harness.line(of: "Last") == (harness.line(of: "veg12") ?? -1) + 1, "\(harness.screen)")
+        // A click lands on the row it is drawn on: the bands count the header
+        // as many lines as it draws.
+        harness.click(x: 6, y: veg + 1)
+        #expect(harness.produce.selection == [12], "\(harness.produce.selection)\n\(harness.screen)")
     }
 
     @Test("Scrolled, the headers scroll with their rows and the clicks still land on the rows")
