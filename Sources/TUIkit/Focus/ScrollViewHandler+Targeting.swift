@@ -19,10 +19,13 @@ struct ScrollViewTargeting {
     let axes: Axis.Set
     let environment: EnvironmentValues
 
-    /// The width the content is seen through, and the content's whole width,
-    /// as the last frame drew them.
-    var containerWidth = 0
-    var contentWidth = 0
+    /// The width a view that does not scroll across shows its content at, as
+    /// the last frame drew it — its container's width and its content's both.
+    /// A view that does scroll across reads its horizontal axis instead
+    /// (``ScrollViewHandler/targetedOffsets(proposedX:proposedY:velocity:)``),
+    /// which the render syncs before anything consults the behaviour, so a
+    /// resize settles to the new width rather than the last frame's.
+    var width = 0
 
     /// The rows of the content's scroll target layout, as the last frame
     /// reported them (``ScrollContentReply/targetLayoutRows``), and its
@@ -53,7 +56,9 @@ extension ScrollViewHandler {
     func targetedOffsets(proposedX: Int, proposedY: Int, velocity: CellVector) -> (x: Int, y: Int)? {
         guard let targeting = scrollTargeting else { return nil }
         let inset = textIndicatorInset
-        let container = CellSize(width: targeting.containerWidth, height: pageDistance)
+        let scrollsAcross = targeting.axes.contains(.horizontal)
+        let container = CellSize(
+            width: scrollsAcross ? horizontal.viewportHeight : targeting.width, height: pageDistance)
         let original = ScrollTarget(
             rect: CellRect(
                 x: horizontal.scrollOffset, y: scrollOffset + inset,
@@ -63,7 +68,7 @@ extension ScrollViewHandler {
         target.rect.y = proposedY + inset
         let context = ScrollTargetBehaviorContext(
             originalTarget: original, velocity: velocity,
-            contentSize: CellSize(width: targeting.contentWidth, height: contentHeight),
+            contentSize: CellSize(width: scrollsAcross ? horizontal.extent : targeting.width, height: contentHeight),
             containerSize: container, axes: targeting.axes, environment: targeting.environment,
             targetLayoutRows: targeting.rows, targetLayoutColumns: targeting.columns)
         targeting.behavior.updateTarget(&target, context: context)
@@ -104,12 +109,20 @@ extension ScrollViewHandler {
     /// Settles a gesture that ended where it is (``ScrollableOffsetState``
     /// requirement): both axes go where the behaviour puts the visible area.
     public func settleUserScroll() {
+        settle([.horizontal, .vertical])
+    }
+
+    /// Puts `axes` where the behaviour puts the visible area as it is, as a
+    /// gesture with no velocity; the other axis stays where it is.
+    func settle(_ axes: Axis.Set) {
         guard
             let landed = targetedOffsets(
                 proposedX: horizontal.scrollOffset, proposedY: scrollOffset, velocity: .zero)
         else { return }
-        if landed.y != scrollOffset { scrollToOffset(landed.y) }
-        if landed.x != horizontal.scrollOffset { horizontal.scrollToOffset(landed.x) }
+        if axes.contains(.vertical), landed.y != scrollOffset { scrollToOffset(landed.y) }
+        if axes.contains(.horizontal), landed.x != horizontal.scrollOffset {
+            horizontal.scrollToOffset(landed.x)
+        }
     }
 }
 
@@ -119,7 +132,7 @@ extension _ScrollViewCore {
     /// Captures the scroll target behaviour in force onto the handler, for the
     /// steps it lands at event time — or clears it, when there is none.
     ///
-    /// The widths and the target layout's rows are kept from the last frame
+    /// The width and the target layout's rows are kept from the last frame
     /// that recorded them (``recordTargetingGeometry(handler:contentWidth:)``,
     /// and the content's reply), so a measure pass, which records neither,
     /// leaves them as the last drawn frame had them.
@@ -132,16 +145,13 @@ extension _ScrollViewCore {
         let previous = handler.scrollTargeting
         handler.scrollTargeting = ScrollViewTargeting(
             behavior: behavior, axes: axes, environment: context.environment,
-            containerWidth: previous?.containerWidth ?? 0, contentWidth: previous?.contentWidth ?? 0,
-            rows: previous?.rows ?? .none, columns: previous?.columns ?? .none)
+            width: previous?.width ?? 0, rows: previous?.rows ?? .none, columns: previous?.columns ?? .none)
     }
 
-    /// Records the widths a drawn frame settled on, for a behaviour's context.
+    /// Records the width a drawn frame settled on, for a behaviour's context.
     /// Render passes only, from `finishFrame`.
     func recordTargetingGeometry(handler: ScrollViewHandler, contentWidth: Int) {
         guard handler.scrollTargeting != nil else { return }
-        handler.scrollTargeting?.containerWidth = contentWidth
-        handler.scrollTargeting?.contentWidth =
-            axes.contains(.horizontal) ? handler.horizontal.extent : contentWidth
+        handler.scrollTargeting?.width = contentWidth
     }
 }

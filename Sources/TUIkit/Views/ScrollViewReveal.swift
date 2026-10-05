@@ -340,14 +340,24 @@ extension _ScrollViewCore {
     /// on several rows arriving at once — landed on placeholders just as a
     /// slice's gap does. Eager content reports neither, and is all drawn.
     /// SwiftUI consults a scroll target behaviour when the view changes size
-    /// too: a paging view resized between two pages is put back on one. Not at
-    /// an edge, which every behaviour rests at — and which a bottom anchor's
-    /// follow holds, and must keep holding.
+    /// too: a paging view resized between two pages is put back on one. Each
+    /// axis this view scrolls is settled when the resize left it between its
+    /// edges, and only then: every behaviour rests at an edge, and a bottom
+    /// anchor's follow holds that one, and must keep holding it. Per axis, so a
+    /// horizontal pager — whose vertical offset is always 0 — settles at all,
+    /// and a two-axis view at its bottom keeps it while its columns settle.
     private func settleTargetAfterResize(_ handler: ScrollViewHandler) {
-        guard handler.scrollTargeting != nil, handler.scrollOffset > 0,
-            handler.scrollOffset < handler.maxOffset
-        else { return }
-        handler.settleUserScroll()
+        guard handler.scrollTargeting != nil else { return }
+        var between: Axis.Set = []
+        if axes.contains(.vertical), handler.scrollOffset > 0, handler.scrollOffset < handler.maxOffset {
+            between.insert(.vertical)
+        }
+        let across = handler.horizontal
+        if axes.contains(.horizontal), across.scrollOffset > 0, across.scrollOffset < across.maxOffset {
+            between.insert(.horizontal)
+        }
+        guard !between.isEmpty else { return }
+        handler.settle(between)
     }
 
     func coverSnappedViewport(

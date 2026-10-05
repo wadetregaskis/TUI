@@ -26,7 +26,7 @@ struct ScrollTargetBehaviorTests {
         let tui = TUIContext()
         let focusManager = FocusManager()
         var last = FrameBuffer()
-        let width: Int
+        var width: Int
         var height: Int
 
         init(width: Int = 30, height: Int = 10) {
@@ -220,6 +220,23 @@ struct ScrollTargetBehaviorTests {
         #expect(frames.scrollView?.horizontal.scrollOffset == 20, "an arrow is a page across too")
     }
 
+    @Test("A horizontal pager resized between pages is put back on one of the new width")
+    func horizontalPagingResettlesOnResize() {
+        let frames = Frames(width: 20, height: 3)
+        let view = ScrollView(.horizontal) { Text(String(repeating: "abcdefghij", count: 20)) }
+            .scrollTargetBehavior(.paging)
+        frames.render(view)
+        frames.wheel(.scrollRight)
+        frames.render(view)
+        frames.wheel(.scrollRight)
+        frames.render(view)
+        #expect(frames.scrollView?.horizontal.scrollOffset == 40)
+        frames.width = 30
+        frames.render(view)
+        // The nearest boundary of a thirty-column page, not of the old twenty.
+        #expect(frames.scrollView?.horizontal.scrollOffset == 30)
+    }
+
     @Test("A released scrollbar thumb settles on the nearest page")
     func thumbReleaseSettles() {
         let handler = ScrollViewHandler(focusID: "t")
@@ -228,7 +245,7 @@ struct ScrollTargetBehaviorTests {
         handler.viewportHeight = 10
         handler.scrollTargeting = ScrollViewTargeting(
             behavior: PagingScrollTargetBehavior(), axes: .vertical, environment: EnvironmentValues(),
-            containerWidth: 10, contentWidth: 10)
+            width: 10)
         let bar = ScrollbarRenderer.verticalMouseHandler(
             for: handler, length: 10, arrows: .none, proportional: true, behavior: .page)
         _ = bar(MouseEvent(button: .left, phase: .pressed, x: 0, y: 0))  // the thumb, at the top
