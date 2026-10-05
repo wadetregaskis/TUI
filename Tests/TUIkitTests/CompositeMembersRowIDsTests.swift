@@ -122,4 +122,17 @@ struct CompositeMembersRowIDsTests {
             context: makeRenderContext(width: 20, height: 6))
         #expect(tags == [nil, nil, "apple", "banana", nil, nil], "\(tags)")
     }
+
+    @Test("In one slot with the loop — a Group beside a hand-written row — the headings still leave it its values")
+    func inOneSlotWithTheLoop() {
+        let drawn = ids(String.self) {
+            Text("All").tag("all")
+            Group {
+                Heading()
+                ForEach(Self.fruits, id: \.self) { Text($0) }
+                Heading()
+            }
+        }
+        #expect(drawn == ["all", nil, nil, "apple", "banana", nil, nil], "\(drawn)")
+    }
 }

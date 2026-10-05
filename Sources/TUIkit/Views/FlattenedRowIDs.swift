@@ -658,7 +658,7 @@ protocol KeyedRowProvider {
 /// out one by one. Any other provider is a run of its own that cannot be
 /// counted.
 @MainActor
-func appendKeyedRowRuns(of view: some View, to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+func appendKeyedRowRuns<V: View>(of view: V, to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
     if let provider = view as? KeyedRowProvider {
         provider.appendKeyedRowRuns(to: &runs, sectionsWhole: sectionsWhole)
         return
@@ -667,7 +667,10 @@ func appendKeyedRowRuns(of view: some View, to runs: inout KeyedRowRuns, section
         // A view of the app's own taken apart into its body's views
         // (`compositeMembers(of:context:)`) may hand over a loop's keyed rows,
         // which only its body, evaluated, can say: a run that cannot be counted.
-        if isCompositeHandingOverChildren(type(of: view)) { runs.append(.opaque) }
+        // Unless its body's type holds no loop — a heading, a pair of rows —
+        // when it hands over none, and is no run at all: counted as one, two
+        // of them around a loop in one slot left the loop unplaced.
+        if isCompositeHandingOverChildren(V.self), mayHandOver(.keyedRow, V.self) { runs.append(.opaque) }
         return
     }
     if let wrapper = view as? any SingleContentWrapper {
