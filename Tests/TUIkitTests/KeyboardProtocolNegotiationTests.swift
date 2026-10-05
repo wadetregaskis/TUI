@@ -144,6 +144,49 @@ struct KeyboardProtocolNegotiationTests {
         #expect(read() == [.key(KeyEvent(character: "b"))])
     }
 
+    @Test("Caps Lock on across a suspend stays on through the pop, and only a change made in the shell is heard")
+    func popKeepsCapsLock() {
+        let (terminal, script) = makeTerminal(reads: ["\u{1B}[?31u" + Self.fence])
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
+        let monitor = ModifierKeyMonitor()
+        // A view's `.onModifierKeysChanged(mask: .capsLock)`.
+        var heard: [EventModifiers] = []
+        monitor.observe(mask: .capsLock) { _, new in heard.append(new) }
+        // What each read reports of the modifier state.
+        func reported() -> [ModifierKeyState] {
+            var states: [ModifierKeyState] = []
+            while let event = terminal.readEvent() {
+                guard case .modifierKeys(let state) = event else { continue }
+                monitor.record(state)
+                states.append(state)
+            }
+            return states
+        }
+        // Caps Lock on (64 in a key's modifier bits); then Ctrl down, and
+        // Ctrl-Z, which an app that took it out of undo suspends on.
+        script.reads.append(Array("\u{1B}[97;65u\u{1B}[57442;69u\u{1B}[122;69u".utf8))
+        #expect(reported() == [ModifierKeyState(capsLock: true), ModifierKeyState(control: true, capsLock: true)])
+        #expect(heard == [.capsLock])
+        // Ctrl is let go in the shell, unreported; `fg`; a key, Caps Lock on.
+        terminal.popKeyboardFlags()
+        terminal.repushKeyboardFlags()
+        script.reads.append(Array("\u{1B}[98;65u".utf8))
+        #expect(reported() == [ModifierKeyState(capsLock: true)], "Ctrl released, Caps Lock kept; the key agrees")
+        #expect(monitor.current == .capsLock)
+        // Caps Lock alone into a suspend: nothing out of it.
+        terminal.popKeyboardFlags()
+        terminal.repushKeyboardFlags()
+        script.reads.append(Array("\u{1B}[99;65u".utf8))
+        #expect(reported().isEmpty)
+        #expect(heard == [.capsLock], "never off and on again across a suspend")
+        // Caps Lock turned off in the shell: the first key says so.
+        terminal.popKeyboardFlags()
+        terminal.repushKeyboardFlags()
+        script.reads.append(Array("\u{1B}[100u".utf8))
+        #expect(reported() == [ModifierKeyState()])
+        #expect(heard == [.capsLock, []])
+    }
+
     @Test("Nothing is popped or pushed on a terminal that never took the protocol")
     func noPopWithoutAPush() {
         let (terminal, script) = makeTerminal(reads: [Self.fence])
