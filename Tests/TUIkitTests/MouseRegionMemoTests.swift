@@ -284,4 +284,42 @@ struct MouseRegionMemoTests {
         harness.click(x: spot.x, y: spot.y)
         #expect(tally.clicks == ["tap me"], "the click on the served frame reached nothing")
     }
+
+    /// A selection scope and a press role are filed beside a handler, and a
+    /// served frame skips the render that filed them: both must be filed again
+    /// from the journal, or a memoized `.textSelection(.disabled)` would stop
+    /// turning the selection off, and a memoized scroll view's background
+    /// would hear its press at once.
+    @Test("A served frame files its selection scopes and press roles again")
+    func servedScopesAndRoles() {
+        let harness = LoopHarness()
+        harness.frame(Self.scopedPage())
+        let missesBefore = harness.cache.stats.misses
+        harness.frame(Self.scopedPage())
+        #expect(harness.cache.stats.misses == missesBefore, "the scoped card rendered again")
+        #expect(harness.dispatcher.selectionScopes.values.contains(false), "the served scope was not filed")
+        #expect(!harness.dispatcher.pressRoles.isEmpty, "the served scroll view's role was not filed")
+    }
+
+    @MainActor
+    private static func scopedPage() -> some View {
+        VStack {
+            Text("ahead").focusable()
+            ScopedCard(title: "quiet").equatable()
+        }
+    }
+}
+
+/// A memoizable card under `.textSelection(.disabled)`, with a scroll view, equal
+/// by title as ``ButtonCard`` is.
+private struct ScopedCard: View, @MainActor Equatable {
+    let title: String
+
+    var body: some View {
+        ScrollView {
+            Text(title)
+        }
+        .frame(height: 3)
+        .textSelection(.disabled)
+    }
 }
