@@ -125,6 +125,9 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             min($0, max(0, base.availableHeight))
         }
         innerContext.environment.sheetDetentHeight = nil
+        // And a presentation sizing's width, the same way.
+        let sheetInnerWidth = sheetInnerWidth(base, hasBorder: hasBorder)
+        innerContext.environment.sheetProposedWidth = nil
         let innerWidthAvailable = innerContext.availableWidth
 
         // The body and footer are distinct structural children, so they get
@@ -208,7 +211,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // Inner width: the widest of title / body / footer, capped at the
         // space between the side borders.
         let titleWidth = title.map { $0.strippedLength + 4 } ?? 0
-        let contentBasedWidth = max(titleWidth, bodyWidth, footerNaturalWidth)
+        let contentBasedWidth = max(titleWidth, bodyWidth, footerNaturalWidth, sheetInnerWidth)
         let innerWidth = base.resolveContainerWidth(
             contentWidth: contentBasedWidth, innerAvailableWidth: innerWidthAvailable)
 
@@ -253,6 +256,14 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         )
     }
 
+    /// The width a presentation sizing gives this box inside its side
+    /// borders, or 0 where none does: the box is at least that wide, enclosing
+    /// what its content leaves as interior (``EnvironmentValues/sheetProposedWidth``).
+    private func sheetInnerWidth(_ context: RenderContext, hasBorder: Bool) -> Int {
+        guard let width = context.environment.sheetProposedWidth else { return 0 }
+        return max(0, min(width, context.availableWidth) - (hasBorder ? 2 : 0))
+    }
+
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let appearance = context.environment.appearance
         let effectiveBorderStyle = style.borderStyle ?? appearance.borderStyle
@@ -280,6 +291,9 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             min($0, max(0, context.availableHeight))
         }
         innerContext.environment.sheetDetentHeight = nil
+        // And a presentation sizing's width, the same way.
+        let sheetInnerWidth = sheetInnerWidth(context, hasBorder: hasBorder)
+        innerContext.environment.sheetProposedWidth = nil
 
         // Distinct identities for the body and footer (see `sizeThatFits` — must
         // match it exactly so the two passes agree on identity, hence on
@@ -338,7 +352,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // space available between the side borders.
         let titleWidth = title.map { $0.strippedLength + 4 } ?? 0  // " Title " + borders
         let footerNaturalWidth = measuredFooter?.width ?? 0
-        let contentBasedWidth = max(titleWidth, bodyBuffer.width, footerNaturalWidth)
+        let contentBasedWidth = max(titleWidth, bodyBuffer.width, footerNaturalWidth, sheetInnerWidth)
         let innerWidth = context.resolveContainerWidth(
             contentWidth: contentBasedWidth,
             innerAvailableWidth: innerContext.availableWidth

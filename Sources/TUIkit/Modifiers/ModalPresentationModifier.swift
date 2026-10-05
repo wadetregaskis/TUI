@@ -341,6 +341,16 @@ extension ModalPresentationModifier: Renderable {
         case .sheet:
             var sheetContext = modalContext
             var capHeight = overlayHeight
+            // A sizing the content named proposes the sheet's size, and its box
+            // takes it — the height as a detent's, the width likewise (see
+            // ``EnvironmentValues/sheetProposedWidth``). A detent's height wins.
+            if let sizing = presentationTrait(PresentationSizingProviding.self, of: modal)?.sizing,
+                let proposedHeight = applyPresentationSizing(
+                    sizing, of: modal, to: &sheetContext, hasDetent: detentHeight != nil,
+                    kept: keptSheetSize(context: context))
+            {
+                capHeight = proposedHeight
+            }
             if let detentHeight {
                 // The height goes to the sheet's own box, via the environment
                 // (``EnvironmentValues/sheetDetentHeight``) — NOT as a frame
@@ -410,6 +420,19 @@ func renderPresentedDialog<V: View>(
 private enum StateIndex {
     static let dragHandler = 0
     static let dismissalGate = 1
+    /// The largest size a sticky ``PresentationSizing`` has given the sheet,
+    /// for as long as it stays presented: a manual box, pruned once the sheet
+    /// closes, so presenting it again starts over.
+    static let keptSheetSize = 2
+}
+
+extension ModalPresentationModifier {
+    /// The presenter's box for the largest size a sticky sizing has kept.
+    fileprivate func keptSheetSize(context: RenderContext) -> StateBox<CellSize?>? {
+        context.stateStorage?.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.keptSheetSize),
+            default: nil)
+    }
 }
 
 // MARK: - Layoutable

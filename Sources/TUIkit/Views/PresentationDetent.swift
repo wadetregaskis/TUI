@@ -207,7 +207,8 @@ private struct SheetDetentHeightKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// The height the presented sheet's box must take, set by the modal host
-    /// when the content named a detent.
+    /// when the content named a detent, or a ``PresentationSizing`` that
+    /// proposes a height (its width twin is ``sheetProposedWidth``).
     ///
     /// A detent is a height for the *sheet*, and in SwiftUI the sheet is a card
     /// with its own material, so the height is always something you can see. A
