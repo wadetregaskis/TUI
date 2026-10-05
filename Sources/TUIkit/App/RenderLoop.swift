@@ -718,6 +718,7 @@ extension RenderLoop {
     func buildEnvironment() -> EnvironmentValues {
         var environment = EnvironmentValues()
         environment.statusBar = statusBar
+        environment.appStatusBar = statusBar
         environment.windowChrome = windowChrome
         environment.focusManager = focusManager
         environment.paletteManager = paletteManager

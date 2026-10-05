@@ -641,6 +641,12 @@ private struct StatusBarKey: EnvironmentKey {
     static let defaultValue: StatusBarState? = nil
 }
 
+/// Environment key for the app's own status bar state, which isolation never
+/// replaces.
+private struct AppStatusBarKey: EnvironmentKey {
+    static let defaultValue: StatusBarState? = nil
+}
+
 extension EnvironmentValues {
     /// The status bar state for the current application.
     ///
@@ -664,5 +670,26 @@ extension EnvironmentValues {
     public var statusBar: StatusBarState? {
         get { self[StatusBarKey.self] }
         set { self[StatusBarKey.self] = newValue }
+    }
+
+    /// The app's own status bar state — the one the input handler dispatches
+    /// keys from — which ``StatusBar``'s `init()` draws, wherever it is drawn.
+    ///
+    /// Not ``statusBar``, which is the channel a subtree DECLARES its items
+    /// into: rendering the page beneath a modal as a backdrop, or a `.dimmed()`
+    /// subtree, swaps that one for a throwaway (`isolatedForBackground()`), so
+    /// what the page declares there neither shows nor fires. The line of key
+    /// hints is not something the page declares but a view of what the app
+    /// does with a key, and a `StatusBar()` placed by a `.toolbar` that a
+    /// `.sheet` wraps is drawn in that backdrop's environment: reading the
+    /// throwaway, it showed the page's `n new` over the sheet, not the sheet's
+    /// `⎋ dismiss`, and a click on `n new` ran the page's action behind it.
+    ///
+    /// Set at the root by the render loop, with ``statusBar``, and replaced by
+    /// nothing. `nil` outside a running app, where `StatusBar()` falls back to
+    /// ``statusBar``.
+    var appStatusBar: StatusBarState? {
+        get { self[AppStatusBarKey.self] }
+        set { self[AppStatusBarKey.self] = newValue }
     }
 }

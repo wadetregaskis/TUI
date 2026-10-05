@@ -74,10 +74,13 @@ public struct StatusBar: View {
     /// Creates the app's line of key hints, for the window's bottom bar.
     ///
     /// It shows what the app's status bar state holds when the frame is drawn:
-    /// the page's items, the focus section's, and the system items. It draws
-    /// nothing round itself — the bar it is placed in frames it — and takes the
-    /// alignment and colours the state was given. Outside a running app there
-    /// is no state, and it draws nothing.
+    /// the page's items, the focus section's, and the system items — the
+    /// keys the app answers, wherever the line is placed, so while a sheet is
+    /// up it shows the sheet's (`⎋ dismiss`) even when the `.toolbar` that
+    /// placed it is part of the page beneath. It draws nothing round itself —
+    /// the bar it is placed in frames it — and takes the alignment and colours
+    /// the state was given. Outside a running app there is no state, and it
+    /// draws nothing.
     public init() {
         self.userItems = []
         self.systemItems = []
@@ -212,7 +215,11 @@ private struct _AppStatusBarCore: View, Renderable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard let state = context.environment.statusBar else { return FrameBuffer() }
+        // The APP's state, not whatever this subtree declares into: drawn where
+        // a backdrop's isolation has swapped `statusBar` for a throwaway, it
+        // is still the line of what the app's keys do (see `appStatusBar`).
+        guard let state = context.environment.appStatusBar ?? context.environment.statusBar
+        else { return FrameBuffer() }
         // Its items change with the focus and with what the page declares, all
         // of it read here rather than from a value a memo could compare.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
@@ -222,6 +229,11 @@ private struct _AppStatusBarCore: View, Renderable {
         // there are items for it to stand in for is what the next frame asks.
         let note = state.showsNoteInPlaceOfItems && state.hasItems
         if state.hasItems, !context.isMeasuring { state.lineShowsItems = true }
+        // And the core reads the same state for what it reads of its own —
+        // the claimed Escape and Return labels, which item the pointer is over
+        // — and writes the hover back to it.
+        var lineContext = context
+        lineContext.environment.statusBar = state
         return TUIkit.renderToBuffer(
             _StatusBarCore(
                 userItems: note ? [] : state.currentUserItems,
@@ -232,7 +244,7 @@ private struct _AppStatusBarCore: View, Renderable {
                 labelColor: state.labelColor,
                 tooltipLines: note ? state.tooltipLines : []
             ),
-            context: context)
+            context: lineContext)
     }
 }
 
