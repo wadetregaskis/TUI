@@ -576,7 +576,9 @@ extension Terminal {
     /// - `CSI ? 6 l`: origin mode (DECOM) off, which would make every row
     ///   number relative to that region.
     /// - `CSI ? 1 l`: cursor keys back to normal mode (DECCKM), so arrows,
-    ///   Home and End arrive as `CSI A`… rather than their SS3 spellings.
+    ///   Home and End arrive as `CSI A`… rather than their SS3 spellings —
+    ///   which the parser reads as well, for a terminal that sends them
+    ///   anyway (`KeyEvent.parse`).
     /// - `ESC >`: the keypad back to numeric mode (DECKPNM), so its keys
     ///   arrive as the characters on them.
     ///

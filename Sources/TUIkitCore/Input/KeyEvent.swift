@@ -12,8 +12,9 @@
 /// legacy encodings every terminal speaks, a key event is the bytes the key
 /// produces: it is sent when the key goes down and again for each auto-repeat,
 /// with nothing to tell the two apart, and a release sends nothing. So there
-/// every event is a ``Phase/press``, and ``capsLock`` and ``numericPad`` are
-/// `false`. Where the terminal speaks the kitty keyboard protocol, which TUIkit
+/// every event is a ``Phase/press``, ``capsLock`` is `false`, and so is
+/// ``numericPad`` unless the keypad is in its application mode. Where the
+/// terminal speaks the kitty keyboard protocol, which TUIkit
 /// turns on when the terminal answers its query, the same fields carry what
 /// the terminal reported: a repeat, a release, the Caps Lock state and the
 /// keypad.
@@ -43,9 +44,12 @@ public struct KeyEvent: Equatable, Sendable {
     /// arrives as the uppercase character.
     public let capsLock: Bool
 
-    /// Whether the key is on the numeric keypad. Reported only by a terminal
-    /// speaking the kitty keyboard protocol; elsewhere a keypad digit arrives
-    /// as the digit.
+    /// Whether the key is on the numeric keypad. Reported by a terminal
+    /// speaking the kitty keyboard protocol, and by one whose keypad is in its
+    /// application mode (DECKPAM), which sends the keypad as `ESC O p`… —
+    /// a mode TUIkit turns off at startup, so only a terminal that sends it
+    /// anyway reports it that way. Elsewhere a keypad digit arrives as the
+    /// digit.
     public let numericPad: Bool
 
     /// Creates a key event.
@@ -353,7 +357,9 @@ extension KeyEvent {
         // inner sequence and mark alt.
         if bytes[1] == 0x1B {
             if bytes.count > 2, let inner = parseEscapeSequence(Array(bytes.dropFirst())) {
-                return KeyEvent(key: inner.key, ctrl: inner.ctrl, alt: true, shift: inner.shift)
+                return KeyEvent(
+                    key: inner.key, ctrl: inner.ctrl, alt: true, shift: inner.shift,
+                    numericPad: inner.numericPad)
             }
             return KeyEvent(key: .escape, alt: true)
         }
@@ -363,9 +369,9 @@ extension KeyEvent {
             return parseCSISequence(Array(bytes.dropFirst(2)))
         }
 
-        // SS3 sequences: ESC O (F1-F4 on some terminals)
+        // SS3 sequences: ESC O, then any parameters, then the key's byte.
         if bytes[1] == 0x4F && bytes.count >= 3 {  // 'O'
-            return parseSS3Sequence(bytes[2])
+            return parseSS3Sequence(bytes[2...])
         }
 
         // Alt+key: ESC followed by key
@@ -388,18 +394,67 @@ extension KeyEvent {
         return KeyEvent(key: .escape)
     }
 
-    /// Parses SS3 (Single Shift 3) sequences for F1-F4.
+    /// Parses an SS3 (Single Shift 3) key: what follows `ESC O`.
     ///
-    /// Some terminals send F1-F4 as `ESC O P/Q/R/S`.
-    private static func parseSS3Sequence(_ byte: UInt8) -> KeyEvent? {
-        switch byte {
-        case 0x50: return KeyEvent(key: .f1)  // 'P'
-        case 0x51: return KeyEvent(key: .f2)  // 'Q'
-        case 0x52: return KeyEvent(key: .f3)  // 'R'
-        case 0x53: return KeyEvent(key: .f4)  // 'S'
-        default: return nil
+    /// SS3 is how a terminal sends a key in its APPLICATION modes, which a
+    /// program turns on and which outlive it: DECCKM (`CSI ? 1 h`) for the
+    /// cursor keys, DECKPAM (`ESC =`) for the keypad. A killed `vim`, `less` or
+    /// `htop`, or a shell that sends terminfo's `smkx` without its `rmkx`,
+    /// leaves them on; TUIkit turns both off at startup
+    /// (`Terminal.inheritedDefaults`), and reads these spellings anyway, for a
+    /// terminal or multiplexer that sends them regardless. Read only, they
+    /// lost every arrow key. The table is xterm's (ctlseqs, "PC-Style
+    /// Function Keys" and the VT220 keypad):
+    ///
+    /// - `A` `B` `C` `D`: the arrows; `H` `F`: Home and End. Not on the
+    ///   keypad: in cursor-key mode the main arrows send these.
+    /// - `P` `Q` `R` `S`: F1 to F4 (PF1 to PF4), in every mode.
+    /// - The keypad, carrying ``numericPad`` as the kitty keyboard protocol's
+    ///   keypad keys do: `p`…`y` the digits, `j` `k` `l` `m` `n` `o` the
+    ///   operators `* + , - . /`, `X` its `=`, `M` its Enter, `I` its Tab and
+    ///   a space its Space.
+    /// - `E`, the keypad's Begin (its 5 with Num Lock off), is consumed as a
+    ///   key this framework has no `Key` for.
+    ///
+    /// A modifier rides between the `O` and the key's byte where a terminal
+    /// sends one, as the CSI forms carry it: `ESC O 2 P` (xterm's older
+    /// spelling) or `ESC O 1 ; 2 P` is Shift-F1.
+    private static func parseSS3Sequence(_ body: ArraySlice<UInt8>) -> KeyEvent? {
+        guard let final = body.last else { return nil }
+        let parameters = body.dropLast()
+        // The modifier is the last parameter: `2` alone, or `1;2`.
+        let modifierBytes = parameters.split(separator: 0x3B, omittingEmptySubsequences: false).last ?? []
+        let modifiers: (shift: Bool, alt: Bool, ctrl: Bool)
+        if modifierBytes.isEmpty {
+            modifiers = (false, false, false)
+        } else {
+            guard let code = ASCIIDecimal.value(of: modifierBytes), (1...16).contains(code) else { return nil }
+            modifiers = decodeModifierCode(code)
         }
+        // 'E', the keypad's Begin, and anything else: a key with no `Key`.
+        guard let (key, numericPad) = ss3Keys[final] else { return nil }
+        return KeyEvent(
+            key: key, ctrl: modifiers.ctrl, alt: modifiers.alt, shift: modifiers.shift,
+            numericPad: numericPad)
     }
+
+    /// The key each SS3 byte stands for, and whether it is on the keypad: see
+    /// ``parseSS3Sequence(_:)``.
+    private static let ss3Keys: [UInt8: (key: Key, numericPad: Bool)] = {
+        var keys: [UInt8: (key: Key, numericPad: Bool)] = [
+            ASCIIByte.arrowUp: (.up, false), ASCIIByte.arrowDown: (.down, false),
+            ASCIIByte.arrowRight: (.right, false), ASCIIByte.arrowLeft: (.left, false),
+            ASCIIByte.home: (.home, false), ASCIIByte.end: (.end, false),
+            0x50: (.f1, false), 0x51: (.f2, false), 0x52: (.f3, false), 0x53: (.f4, false),  // P Q R S
+            0x4D: (.enter, true), 0x49: (.tab, true), 0x20: (.space, true),  // M I space
+            0x58: (.character("="), true),  // X
+        ]
+        // 'j'…'y': the keypad's * + , - . / and then its digits.
+        for (offset, character) in "*+,-./0123456789".enumerated() {
+            keys[0x6A + UInt8(offset)] = (.character(character), true)
+        }
+        return keys
+    }()
 
     /// Parses a CSI (Control Sequence Introducer) sequence.
     ///
@@ -441,9 +496,36 @@ extension KeyEvent {
         case ASCIIByte.shiftTab:
             // Shift+Tab: ESC [ Z (CSI Z / backtab)
             return KeyEvent(key: .tab, shift: true)
+        case .some(0x50...0x53):  // 'P' 'Q' 'R' 'S'
+            return parseModifiedFunctionKey(params, modifiers: modifiers)
         default:
             return nil
         }
+    }
+
+    /// F1 to F4 with a modifier, as xterm sends them: `CSI 1 ; m P` to
+    /// `CSI 1 ; m S`, so Shift-F3 is `CSI 1;2 R`. Unmodified they come as SS3
+    /// (`ESC O P`…, ``parseSS3Sequence(_:)``). Only that shape: the first
+    /// parameter 1 and a modifier code from 1 to 16.
+    ///
+    /// `CSI 1;m R` is also a cursor-position report's shape, for row 1 and
+    /// column m. It is read as F3 because TUIkit asks for no cursor report: its
+    /// startup exchanges have been fenced by the status report, `CSI 5 n`,
+    /// since 2026-10-05, for exactly this collision
+    /// (`Documentation/Terminal-compatibility.md`, "Asking the terminal —
+    /// Device Attributes"). Anything that sends `CSI 6 n` again has to take
+    /// F3 out of here first, or its report arrives as a keystroke.
+    private static func parseModifiedFunctionKey(
+        _ params: [UInt8], modifiers: (shift: Bool, alt: Bool, ctrl: Bool)
+    ) -> KeyEvent? {
+        let fields = params.dropLast().split(separator: 0x3B, omittingEmptySubsequences: false)
+        guard fields.count == 2, ASCIIDecimal.value(of: fields[0]) == 1,
+            let code = ASCIIDecimal.value(of: fields[1]), (1...16).contains(code)
+        else { return nil }
+        let keys: [Key] = [.f1, .f2, .f3, .f4]
+        guard let final = params.last, (0x50...0x53).contains(final) else { return nil }
+        return KeyEvent(
+            key: keys[Int(final - 0x50)], ctrl: modifiers.ctrl, alt: modifiers.alt, shift: modifiers.shift)
     }
 
     /// Extracts modifier flags from CSI parameters.
@@ -492,7 +574,12 @@ extension KeyEvent {
         guard let modifier = ASCIIDecimal.value(of: modifierBytes) else {
             return (shift: false, alt: false, ctrl: false)
         }
+        return decodeModifierCode(modifier)
+    }
 
+    /// The modifiers an xterm modifier code stands for: the code is `1 +` a
+    /// bitfield, see ``extractModifiers(from:)``.
+    private static func decodeModifierCode(_ modifier: Int) -> (shift: Bool, alt: Bool, ctrl: Bool) {
         // Decode modifier bits (modifier - 1 gives the bit flags)
         // Bit 0 = Shift, Bit 1 = Alt, Bit 2 = Ctrl, Bit 3 = Meta (read as Alt)
         let bits = modifier - 1

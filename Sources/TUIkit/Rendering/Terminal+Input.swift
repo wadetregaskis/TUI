@@ -114,11 +114,8 @@ extension Terminal {
             return tryExtractCSI()
         }
 
-        if second == 0x4F {  // ESC O = SS3 (F1-F4 etc.)
-            guard input.count >= 3 else { return nil }
-            let bytes = [first, second, input[2]]
-            consume(3)
-            return bytes
+        if second == 0x4F {  // ESC O = SS3: application-mode keys, F1-F4
+            return tryExtractSS3()
         }
 
         if second == 0x1B {
@@ -260,6 +257,48 @@ extension Terminal {
         case 0xF0...0xF4: return 4
         default: return nil
         }
+    }
+
+    /// The most parameter bytes an SS3 key carries before its own byte: a
+    /// modifier, `1;16` at the longest.
+    private static let maxSS3ParameterBytes = 8
+
+    /// SS3 extractor — assumes `input` starts with `ESC O`. An SS3 key is
+    /// `ESC O`, any parameter bytes (digits and `;`: a modifier, where a
+    /// terminal sends one, as in `ESC O 2 P`), and then the key's own byte.
+    /// Returns the whole sequence, or `nil` while the key's byte has not
+    /// arrived. `KeyEvent.parse` says which key it is.
+    ///
+    /// Two shapes are not SS3 keys, and both are a meta-sending terminal's
+    /// Alt-Shift-O, which it spells `ESC O` too:
+    ///
+    /// - An `ESC` where the key's byte should be: Alt-Shift-O typed before
+    ///   another sequence. Behind no parameters, the chord is returned and the
+    ///   sequence parses on its own; taken as the key's byte, it stranded the
+    ///   rest of that sequence as keystrokes. Behind parameters, they are
+    ///   dropped with the `ESC O`, as the CSI extractor drops a sequence a new
+    ///   `ESC` cut short.
+    /// - More digits than any modifier has: the chord, then those digits as
+    ///   typing.
+    private func tryExtractSS3() -> [UInt8]? {
+        var end = 2
+        while end < input.count, (0x30...0x3F).contains(input[end]) {
+            end += 1
+            if end - 2 > Self.maxSS3ParameterBytes {
+                consume(2)
+                return [0x1B, 0x4F]
+            }
+        }
+        guard end < input.count else { return nil }  // the key's byte is in flight
+        if input[end] == 0x1B {
+            consume(end)
+            return end == 2 ? [0x1B, 0x4F] : nil
+        }
+        var bytes = [UInt8]()
+        bytes.reserveCapacity(end + 1)
+        for index in 0...end { bytes.append(input[index]) }
+        consume(end + 1)
+        return bytes
     }
 
     /// CSI extractor — assumes `input` starts with `ESC [`
@@ -446,7 +485,7 @@ extension Terminal {
     /// The LOOP is the point. ``finalize(bytes:)`` returns nil for sequences it
     /// recognises and deliberately drops: a CSI whose final byte
     /// `KeyEvent.parseCSISequence` does not model (a `ESC[?62;22c` device
-    /// answer, a late `ESC[24;80R`, xterm's `ESC[1;5P`), and a legacy mouse
+    /// answer, a stray `ESC[24;80R`, a late `ESC[?2027;1$y`), and a legacy mouse
     /// report that is malformed. Returning that nil straight to the caller made
     /// it indistinguishable from "the buffer is empty", so `App`'s
     /// `while let input = terminal.readEvent()` ended the frame's drain with

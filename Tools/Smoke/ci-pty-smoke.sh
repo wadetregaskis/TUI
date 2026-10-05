@@ -93,6 +93,15 @@ cd "$REPO"
 walk Example "$EXAMPLE_ITEMS"
 walk Stress  "$STRESS_ITEMS"
 
+# The arrows as a terminal left in application cursor-key mode sends them
+# (`ESC O B`): a killed vim or less leaves DECCKM on, and the parser read only
+# F1–F4 in that spelling, so the app's arrows were dead. A walk with dead arrows
+# stops at its first item and calls it the end of the menu, which
+# `--min-items` turns into a failure. Three items, about five seconds.
+echo "── application-mode arrows (SS3) move the menu ──"
+"$VENV/bin/python" "$HERE/tui_walk.py" "$REPO/$BUILD_DIR/Example" 3 \
+    --application-keys --min-items 3 --settle 0.5 --per-item ""
+
 # Two checks on the terminal handshake, both cheap (a couple of seconds each)
 # and both guarding ORDERING that no type can enforce: the host must be
 # identified, and mode 2027 negotiated, before RenderLoop is built, because its

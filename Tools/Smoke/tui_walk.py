@@ -10,6 +10,9 @@ Visits item i (for i in 0..<count) as: Down×i, Enter, wait, [KEYS], Esc.
 KEYS is a comma list of: down, up, enter, esc, tab, space, or wait<seconds>,
 each optionally repeated as `down*5`. The child runs with an isolated
 TUIKIT_CONFIG_DIR (never the user's real preferences) and TERM=xterm-256color.
+`--application-keys` sends the arrows as `ESC O B` and so on, as a terminal
+left in application cursor-key mode does; `--min-items N` fails a walk that
+stopped short of N items.
 
 Exit code: 0 if the app survived every visit, 1 otherwise (the failing item
 index and final screen are printed). This is the standing regression net for
@@ -34,6 +37,11 @@ SEQUENCES = {
     "enter": "\r", "esc": "\x1b", "tab": "\t", "space": " ",
 }
 
+# The arrows as a terminal sends them in application cursor-key mode (DECCKM),
+# which a killed vim or less leaves on: `--application-keys` walks with these,
+# so a parser that drops them shows up as a walk that never gets past item 0.
+APPLICATION_ARROWS = {"down": "\x1bOB", "up": "\x1bOA", "left": "\x1bOD", "right": "\x1bOC"}
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -53,7 +61,16 @@ def main() -> int:
                              "before the walk calls it stuck (see settled_change); "
                              "only a failing walk, and the Down at the bottom of "
                              "the menu, ever waits it out")
+    parser.add_argument("--application-keys", action="store_true",
+                        help="send the arrows in their application-mode (SS3) "
+                             "spelling, ESC O A and so on")
+    parser.add_argument("--min-items", type=int, default=0,
+                        help="fail unless the walk reached at least this many "
+                             "items: with dead arrows a walk stops at the first "
+                             "and calls it the end of the menu")
     args = parser.parse_args()
+    if args.application_keys:
+        SEQUENCES.update(APPLICATION_ARROWS)
 
     screen = pyte.Screen(args.cols, args.rows)
     stream = pyte.ByteStream(screen)
@@ -329,6 +346,10 @@ def main() -> int:
     except ProcessLookupError:
         pass
     os.waitpid(pid, 0)
+    if walked < args.min_items:
+        print(f"FAIL: walked {walked} items, fewer than the {args.min_items} expected — "
+              "a Down that moves nothing ends the walk")
+        return 1
     print(f"walked {walked} items: all alive")
     return 0
 

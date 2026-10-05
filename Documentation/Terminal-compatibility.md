@@ -3960,13 +3960,46 @@ UTF-8 bytes of a printable key nor xterm's CSI modifier parameter (Shift, Alt,
 Ctrl, Meta — see below) has a bit for a lock state or for the keypad. A letter
 typed under Caps Lock arrives as the uppercase character, indistinguishable
 from Shift and that letter; a keypad digit arrives as the digit, unless the
-app has switched the keypad to application mode (DECKPAM), which TUIkit does
-not. The kitty keyboard protocol does carry both (`caps_lock`, `num_lock`,
-and distinct keypad key codes) once an app negotiates it, and TUIkit does
-where the terminal answers (2026-10-04, "The kitty keyboard protocol").
+keypad is in application mode (DECKPAM). The kitty keyboard protocol does
+carry both (`caps_lock`, `num_lock`, and distinct keypad key codes) once an
+app negotiates it, and TUIkit does where the terminal answers (2026-10-04,
+"The kitty keyboard protocol").
 
-So in the legacy encodings `EventModifiers.capsLock` and `.numericPad` never
-appear in a key press's modifiers. Where the protocol is on (2026-10-04) they
+**Application mode, since 2026-10-05.** DECKPAM (`ESC =`) and its cursor-key
+twin DECCKM (`CSI ? 1 h`) outlive the program that set them: a killed `vim`,
+`less` or `htop`, or a shell that sends terminfo's `smkx` without `rmkx`,
+leaves them on. The keys then arrive in their SS3 spellings, which the parser
+dropped, all but F1–F4, so a TUIkit app started after such a program had dead
+arrow keys. Now TUIkit puts both back at startup and on resume ("Inherited
+state: the defaults raw mode asserts"), and reads every SS3 spelling anyway,
+for a terminal that sends them regardless (xterm's table, ctlseqs):
+
+| `ESC O` + | Key |
+|---|---|
+| `A` `B` `C` `D`, `H` `F` | the arrows, Home, End (the main keys, not the keypad) |
+| `P` `Q` `R` `S` | F1 to F4 |
+| `p` … `y` | keypad 0 to 9, with `.numericPad` |
+| `j` `k` `l` `m` `n` `o`, `X` | keypad `*` `+` `,` `-` `.` `/`, `=`, with `.numericPad` |
+| `M`, `I`, space | keypad Enter, Tab, Space, with `.numericPad` |
+| `E` | the keypad's Begin: consumed, no key |
+
+A modifier between the `O` and the key's byte (`ESC O 2 P`, xterm's older
+spelling, or `ESC O 1;5 A`) is read as the CSI forms' is. A keypad key decodes
+to exactly the event the kitty protocol's report of it does, so a binding sees
+one key whichever encoding the terminal is in; `ApplicationModeKeyTests` pins
+both, `InputSplitInvarianceTests` every spelling split at every byte, and the
+CI PTY smoke walks Example's menu with `ESC O B` arrows
+(`tui_walk.py --application-keys`).
+`ESC O` is also how a meta-sending terminal spells Alt-Shift-O: followed by
+another escape sequence, or by more digits than a modifier has, it is read as
+that chord. Found by reading Ghostty's VT reference
+(`Documentation/Ghostty-VT-adoption.md`, K1). **To measure** on each host: run
+`printf '\e[?1h\e='`, then launch Example; the arrows must move the focus
+(UNMEASURED, 2026-10-05).
+
+So in the legacy encodings `EventModifiers.capsLock` never appears in a key
+press's modifiers, and `.numericPad` only on a keypad in application mode,
+which TUIkit turns off. Where the protocol is on (2026-10-04) they
 do, as SwiftUI reports them — Caps Lock on every key while it is on, the
 numeric pad on a keypad key (not on the arrows, which macOS also flags). A
 keyboard shortcut ignores both either way, as AppKit's key equivalents do, so
@@ -4282,6 +4315,24 @@ rewriting it would cost more than it buys.
 This is why `.contextMenu`'s Shift+F10 route appeared dead: the binding was
 correct, but `parseExtendedKey` stopped at 24, so `ESC[32~` decoded to nothing
 and never became an event at all.
+
+### Modified F1–F4 are CSI letters (xterm) — decoded since 2026-10-05
+
+F1–F4 alone arrive as SS3 (`ESC O P` … `ESC O S`), but with a modifier xterm,
+iTerm2, Ghostty and Warp send them as CSI letters with the modifier code:
+`CSI 1 ; m P` … `CSI 1 ; m S`, so Shift-F3 is `ESC[1;2R` and Ctrl-F1
+`ESC[1;5P` (from xterm's ctlseqs; not captured here). The parser dropped all
+four until 2026-10-05. It reads them now, for the first parameter 1 and a
+modifier code from 1 to 16, and nothing else ending in those letters.
+
+`CSI 1;m R` is also a cursor-position report for row 1, column m. That is safe
+to read as F3 only because TUIkit asks for no cursor report: since the startup
+exchanges moved to the `CSI 5 n` fence (same day, "Asking the terminal —
+Device Attributes"), nothing in TUIkit sends `CSI 6 n`. Anything that brings
+a cursor-report request back must stop decoding `R` first, or its report
+arrives as Shift-F3 and the like. Under the kitty keyboard protocol F3 is
+`CSI 13 ~`, precisely to avoid this collision; P, Q and S keep their letters
+there and are decoded by `KittyKeyDecoder`.
 
 ## The kitty keyboard protocol — documented, NOT yet measured
 

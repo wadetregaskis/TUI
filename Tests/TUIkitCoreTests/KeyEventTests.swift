@@ -643,3 +643,110 @@ struct LegacyFunctionKeyTests {
         #expect(event?.normalizingLegacyShiftedFunctionKeys() == event)
     }
 }
+
+// MARK: - Application-mode keys (SS3)
+
+/// The cursor keys and keypad in their application modes (DECCKM, DECKPAM),
+/// which a program turns on and which outlive it: every key arrives as
+/// `ESC O` and a byte. Only F1–F4 were read, so a TUIkit app started after a
+/// killed `vim` had dead arrows (K1 in `Documentation/Ghostty-VT-adoption.md`).
+@Suite("Application-mode keys (SS3)")
+struct ApplicationModeKeyTests {
+    private func parse(_ tail: String) -> KeyEvent? {
+        KeyEvent.parse([0x1B] + Array(tail.utf8))
+    }
+
+    @Test(
+        "The cursor keys, Home, End and F1–F4",
+        arguments: [
+            ("OA", Key.up), ("OB", .down), ("OC", .right), ("OD", .left),
+            ("OH", .home), ("OF", .end), ("OP", .f1), ("OQ", .f2), ("OR", .f3), ("OS", .f4),
+        ])
+    func cursorAndFunctionKeys(tail: String, key: Key) {
+        #expect(parse(tail) == KeyEvent(key: key), "not on the keypad: the main arrows send these")
+    }
+
+    @Test(
+        "The keypad, each key carrying the numeric pad",
+        arguments: [
+            ("Op", Key.character("0")), ("Oq", .character("1")), ("Or", .character("2")),
+            ("Os", .character("3")), ("Ot", .character("4")), ("Ou", .character("5")),
+            ("Ov", .character("6")), ("Ow", .character("7")), ("Ox", .character("8")),
+            ("Oy", .character("9")), ("Oj", .character("*")), ("Ok", .character("+")),
+            ("Ol", .character(",")), ("Om", .character("-")), ("On", .character(".")),
+            ("Oo", .character("/")), ("OX", .character("=")), ("OM", .enter),
+            ("OI", .tab), ("O ", .space),
+        ])
+    func keypad(tail: String, key: Key) {
+        #expect(parse(tail) == KeyEvent(key: key, numericPad: true))
+    }
+
+    /// The same key reaches a handler whichever encoding the terminal is in:
+    /// what the kitty keyboard protocol's decoder makes of its keypad report.
+    @Test(
+        "A keypad key is the event the kitty protocol's report of it decodes to",
+        arguments: [
+            ("Op", "57399;;48u"), ("Ou", "57404;;53u"), ("Oy", "57408;;57u"),
+            ("On", "57409;;46u"), ("Oo", "57410;;47u"), ("Oj", "57411;;42u"),
+            ("Om", "57412;;45u"), ("Ok", "57413;;43u"), ("OM", "57414u"),
+            ("OX", "57415;;61u"), ("Ol", "57416;;44u"),
+        ])
+    func keypadMatchesTheKittyDecoder(tail: String, report: String) throws {
+        let legacy = try #require(parse(tail))
+        #expect(KittyKeyDecoder.decode(Array("\u{1B}[\(report)".utf8)) == [.key(legacy)])
+    }
+
+    @Test("A modifier between the O and the key is read, in either spelling")
+    func modifiers() {
+        #expect(parse("O2P") == KeyEvent(key: .f1, shift: true), "xterm's older spelling")
+        #expect(parse("O1;5A") == KeyEvent(key: .up, ctrl: true))
+        #expect(parse("O1;3p") == KeyEvent(key: .character("0"), alt: true, numericPad: true))
+        #expect(parse("O1;17A") == nil, "past every modifier code")
+    }
+
+    @Test("The keypad's Begin, and a byte that is no key, decode to nothing")
+    func keysWithoutAKey() {
+        #expect(parse("OE") == nil)
+        #expect(parse("OZ") == nil)
+    }
+
+    @Test("An Option prefix keeps the numeric pad")
+    func metaPrefixedKeypad() {
+        #expect(
+            KeyEvent.parse([0x1B, 0x1B] + Array("Ou".utf8))
+                == KeyEvent(key: .character("5"), alt: true, numericPad: true))
+    }
+}
+
+// MARK: - Modified F1–F4 (CSI 1 ; m P…S)
+
+/// xterm sends F1–F4 with a modifier as `CSI 1 ; m P` to `CSI 1 ; m S`, and the
+/// parser dropped them. `CSI 1;m R` is a cursor report's shape too; TUIkit
+/// asks for no cursor report, so it is F3.
+@Suite("Modified F1–F4")
+struct ModifiedFunctionKeyTests {
+    private func parse(_ tail: String) -> KeyEvent? {
+        KeyEvent.parse([0x1B] + Array(tail.utf8))
+    }
+
+    @Test(
+        "Each of F1–F4 with each modifier",
+        arguments: [
+            ("[1;2P", KeyEvent(key: .f1, shift: true)),
+            ("[1;5Q", KeyEvent(key: .f2, ctrl: true)),
+            ("[1;2R", KeyEvent(key: .f3, shift: true)),
+            ("[1;5R", KeyEvent(key: .f3, ctrl: true)),
+            ("[1;3S", KeyEvent(key: .f4, alt: true)),
+            ("[1;8S", KeyEvent(key: .f4, ctrl: true, alt: true, shift: true)),
+        ])
+    func modified(tail: String, event: KeyEvent) {
+        #expect(parse(tail) == event)
+    }
+
+    @Test(
+        "Only the 1;m shape is a key: a cursor report elsewhere, or a bare final, is not",
+        arguments: ["[24;80R", "[1;80R", "[2;2R", "[R", "[P", "[1;2;3P", "[1;P"])
+    func otherShapes(tail: String) {
+        #expect(parse(tail) == nil)
+    }
+}

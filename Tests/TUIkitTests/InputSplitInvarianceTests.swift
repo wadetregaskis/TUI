@@ -125,4 +125,54 @@ struct InputSplitInvarianceTests {
         }
         #expect(reports.isEmpty, "\(reports.count) split divergences — see printed report")
     }
+
+    /// The application-mode keys (`ESC O` and a byte, a modifier between them
+    /// where a terminal sends one), whole and split at every byte: each must
+    /// arrive as its key, and only its key. K1 in
+    /// `Documentation/Ghostty-VT-adoption.md`.
+    @Test("Every SS3 key spelling decodes to its key, split at every byte")
+    func ss3SplitInvariance() {
+        let keypadBytes = Array("pqrstuvwxyjklmnoXMI ".utf8)
+        let keypadKeys: [Key] = (0...9).map { .character(Character(String($0))) }
+            + ["*", "+", ",", "-", ".", "/", "="].map { .character($0) } + [.enter, .tab, .space]
+        var cases: [(String, [UInt8], [TerminalInput])] = zip(keypadBytes, keypadKeys).map { byte, key in
+            ("keypad-\(Character(UnicodeScalar(byte)))", [0x1B, 0x4F, byte], [.key(KeyEvent(key: key, numericPad: true))])
+        }
+        for (byte, key) in zip(Array("ABCDHFPQRS".utf8), [Key.up, .down, .right, .left, .home, .end, .f1, .f2, .f3, .f4]) {
+            cases.append(("ss3-\(Character(UnicodeScalar(byte)))", [0x1B, 0x4F, byte], [.key(KeyEvent(key: key))]))
+        }
+        let esc: [UInt8] = [0x1B]
+        cases += [
+            ("shift-f1-old", esc + Array("O2P".utf8), [.key(KeyEvent(key: .f1, shift: true))]),
+            ("ctrl-up-ss3", esc + Array("O1;5A".utf8), [.key(KeyEvent(key: .up, ctrl: true))]),
+            ("begin-then-text", esc + Array("OEx".utf8), [.key(KeyEvent(character: "x"))]),
+            ("ss3-then-text", esc + Array("OAb".utf8), [.key(KeyEvent(key: .up)), .key(KeyEvent(character: "b"))]),
+            ("two-ss3", esc + Array("OB".utf8) + esc + Array("OC".utf8),
+             [.key(KeyEvent(key: .down)), .key(KeyEvent(key: .right))]),
+            // Alt-Shift-O, which a meta-sending terminal also spells `ESC O`,
+            // typed before an arrow: the arrow's ESC is not the SS3 key's byte.
+            ("alt-shift-o-then-arrow", esc + Array("O".utf8) + esc + Array("[A".utf8),
+             [.key(KeyEvent(key: .character("O"), alt: true, shift: true)), .key(KeyEvent(key: .up))]),
+            ("shift-f3-csi", esc + Array("[1;2R".utf8), [.key(KeyEvent(key: .f3, shift: true))]),
+        ]
+
+        var reports: [String] = []
+        for (name, bytes, expected) in cases {
+            let (wholeTerminal, wholeStage) = makeTerminal()
+            wholeStage(bytes)
+            let whole = drain(wholeTerminal)
+            if whole != expected { reports.append("\(name) whole: \(whole), expected \(expected)") }
+
+            for splitAt in 1..<bytes.count {
+                let (terminal, stage) = makeTerminal()
+                stage(Array(bytes[..<splitAt]))
+                var events: [TerminalInput] = []
+                if let event = terminal.readEvent() { events.append(event) }
+                stage(Array(bytes[splitAt...]))
+                events.append(contentsOf: drain(terminal))
+                if events != expected { reports.append("\(name) split@\(splitAt): \(events)") }
+            }
+        }
+        #expect(reports.isEmpty, "\(reports.count) divergences: \(reports.prefix(10))")
+    }
 }
