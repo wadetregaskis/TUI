@@ -157,6 +157,17 @@ struct KittyKeyboardInputTests {
         #expect(log.entries == [".down", ".repeat"])
     }
 
+    @Test("Under the protocol + and _ step a focused Stepper by one, as their legacy bytes do")
+    func shiftedSymbolsStepByOne() {
+        let harness = InputChainHarness(keyboard: .requested)
+        let value = Box(5)
+        let typed = events(terminal("\u{1B}[61:43;2;43u\u{1B}[61:43;2;43u\u{1B}[45:95;2;95u"))
+        harness.play(typed.compactMap { if case .key(let key) = $0 { key } else { nil } }) {
+            Stepper("Count", value: Binding(get: { value.value }, set: { value.value = $0 }), in: 0...100)
+        }
+        #expect(value.value == 6)
+    }
+
     // MARK: - The chords the legacy bytes spent on other keys
 
     @Test("Ctrl-H nothing binds rubs out, as the legacy Backspace it was")

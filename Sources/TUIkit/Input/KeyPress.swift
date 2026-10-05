@@ -29,7 +29,11 @@ import TUIkitCore
 /// - **``modifiers`` holds what the terminal reports**: Control, Option and
 ///   Shift; and Caps Lock and the numeric pad where it speaks the kitty
 ///   keyboard protocol. Never Command (see ``EventModifiers``), and not the
-///   numeric-pad flag macOS sets on an arrow key either.
+///   numeric-pad flag macOS sets on an arrow key either. On a key that types
+///   a character, Shift is that character's case — `"A"` has it, `"!"` and
+///   `"+"` do not — because that is all a legacy encoding can say, and under
+///   the kitty keyboard protocol TUIkit says the same, so a handler sees one
+///   key press whatever the terminal (macOS reports Shift on `"!"`).
 /// - **A key the terminal composed arrives composed.** Without "Option as
 ///   Meta", Option-A arrives as "å" with no modifier, where macOS reports "a"
 ///   and Option; and Control-Shift-A arrives as Control-A, because the control

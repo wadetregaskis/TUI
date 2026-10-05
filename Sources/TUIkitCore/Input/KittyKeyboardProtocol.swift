@@ -94,12 +94,19 @@ package enum KittyKeyDecoder {
     /// ## Text, and the modifiers it consumed
     ///
     /// A report that carries text is the text: its key is the text's
-    /// character, as the legacy encoding sends it. Shift is kept as reported,
-    /// so `!` is Shift and `!`. Control and Option are dropped, because the
-    /// text already includes what they did: Option-E then E arrives as `é`, and
-    /// a terminal not treating Option as Alt reports Option on a key that typed
-    /// `å`. Either way, a legacy terminal sends the text alone, and a text
-    /// field has to insert it rather than read a chord.
+    /// character, as the legacy encoding sends it, and it carries the
+    /// modifiers the legacy encoding's byte implies, not the ones the report
+    /// says were held. Control and Option are dropped, because the text
+    /// already includes what they did: Option-E then E arrives as `é`, and a
+    /// terminal not treating Option as Alt reports Option on a key that typed
+    /// `å`. Shift is the text's case — `true` on an uppercase letter, `false`
+    /// on everything else, `!` and `+` included — which is what
+    /// `KeyEvent(character:)` makes of a legacy byte. The text already says
+    /// what Shift did, and a handler written against a legacy terminal (a
+    /// `Stepper` whose Shift-arrow steps by five, say) must not find a Shift
+    /// it never saw on the same key there. The same goes for a chord whose key
+    /// is its shifted character (Ctrl-Shift-Z as `Z`, Option-Shift-minus as
+    /// `_`): Shift is that character's case.
     ///
     /// ## ⌘, and the other modifiers a terminal never used to send
     ///
@@ -269,29 +276,59 @@ package enum KittyKeyDecoder {
             return [.key(event(key, bits: bits, phase: phase, numericPad: functional.isKeypad))]
         }
 
-        // A key that typed no text: a Control or Option chord, a release, or a
-        // report from a terminal that sends no text. The shifted key when
-        // Shift is held, so Ctrl-Shift-Z is `Z`; the base-layout key for a
-        // chord on a non-Latin layout, so Ctrl-С is Ctrl-C as its bytes are.
-        var chosen = code
-        if bits & shiftBit != 0, let shifted {
-            chosen = shifted
-        } else if bits & (ctrlBit | altBit) != 0, code > 0x7F, let base {
-            chosen = base
-        }
-        guard let key = Self.textKey(chosen) else { return nil }
-        return [.key(event(key, bits: bits, phase: phase))]
+        let chord = chordKey(code: code, shifted: shifted, base: base, bits: bits)
+        guard let key = Self.textKey(chord.code) else { return nil }
+        return [.key(event(key, bits: chord.bits, phase: phase))]
     }
 
-    /// One key event per character of `text`, carrying Shift and the lock and
-    /// keypad state but not the Control and Option the text consumed.
+    /// The key a report that typed no text stands for — a Control or Option
+    /// chord, a release, or a report from a terminal that sends no text — and
+    /// the modifier bits it carries.
+    ///
+    /// The shifted key when Shift is held, so Ctrl-Shift-Z is `Z`; the
+    /// base-layout key for a chord on a non-Latin layout, so Ctrl-С is Ctrl-C
+    /// as its bytes are.
+    private static func chordKey(code: Int, shifted: Int?, base: Int?, bits: Int) -> (code: Int, bits: Int) {
+        if bits & shiftBit != 0, let shifted {
+            // The shifted character says what Shift did, so Shift is its
+            // case, as on a key that typed text (see ``decode(_:)``).
+            return (shifted, isUppercaseLetter(shifted) ? bits : bits & ~shiftBit)
+        }
+        if bits & shiftBit != 0, let upper = uppercaseLetter(code) {
+            // No shifted key reported (flag 4 not taken): a letter is its
+            // capital all the same, as the legacy byte for Shift and it is.
+            // Anything else keeps the bit, the only way left to say it.
+            return (upper, bits)
+        }
+        if bits & (ctrlBit | altBit) != 0, code > 0x7F, let base {
+            return (base, bits)
+        }
+        return (code, bits)
+    }
+
+    /// Whether `code` is an uppercase letter.
+    private static func isUppercaseLetter(_ code: Int) -> Bool {
+        guard let scalar = Unicode.Scalar(UInt32(clamping: code)) else { return false }
+        return Character(scalar).isUppercase
+    }
+
+    /// The capital of a lowercase ASCII letter, or `nil` for anything else.
+    private static func uppercaseLetter(_ code: Int) -> Int? {
+        (0x61...0x7A).contains(code) ? code - 0x20 : nil
+    }
+
+    /// One key event per character of `text`, carrying the lock and keypad
+    /// state, Shift as the character's case, and not the Control and Option
+    /// the text consumed — the event `KeyEvent(character:)` makes of the same
+    /// character's legacy byte, plus what only the protocol reports.
     private static func textEvents(
         _ text: String, bits: Int, phase: KeyEvent.Phase, numericPad: Bool
     ) -> [TerminalInput] {
-        let kept = bits & (shiftBit | capsLockBit)
+        let kept = bits & capsLockBit
         return text.map { character in
             let key: Key = character == " " ? .space : .character(character)
-            return .key(event(key, bits: kept, phase: phase, numericPad: numericPad))
+            let shift = character.isUppercase ? shiftBit : 0
+            return .key(event(key, bits: kept | shift, phase: phase, numericPad: numericPad))
         }
     }
 

@@ -31,10 +31,13 @@ struct KittyKeyDecoderTests {
         #expect(decode("97;;97u") == key(KeyEvent(key: .character("a"))))
     }
 
-    @Test("Shift on a printable key is a real bit, and the text is the shifted character")
+    @Test("Shift on a typed key is the text's case, as KeyEvent(character:) reads a legacy byte")
     func shiftedPrintable() {
         #expect(decode("97:65;2;65u") == key(KeyEvent(key: .character("A"), shift: true)))
-        #expect(decode("49:33;2;33u") == key(KeyEvent(key: .character("!"), shift: true)))
+        #expect(decode("97:65;2;65u") == key(KeyEvent(character: "A")))
+        #expect(decode("49:33;2;33u") == key(KeyEvent(character: "!")))
+        #expect(decode("61:43;2;43u") == key(KeyEvent(character: "+")))
+        #expect(decode("45:95;2;95u") == key(KeyEvent(character: "_")))
     }
 
     @Test("Text the key typed with Option is the text, without Option")
@@ -53,13 +56,13 @@ struct KittyKeyDecoderTests {
     @Test("Space with text is the space key")
     func spaceWithText() {
         #expect(decode("32;;32u") == key(KeyEvent(key: .space)))
-        #expect(decode("32;2;32u") == key(KeyEvent(key: .space, shift: true)))
+        #expect(decode("32;2;32u") == key(KeyEvent(key: .space)))
     }
 
-    @Test("Caps Lock is reported, and its letter keeps Shift as reported")
+    @Test("Caps Lock is reported, and its capital carries Shift as the legacy byte does")
     func capsLock() {
         #expect(
-            decode("97;65;65u") == key(KeyEvent(key: .character("A"), capsLock: true)))
+            decode("97;65;65u") == key(KeyEvent(key: .character("A"), shift: true, capsLock: true)))
     }
 
     @Test("A text-carrying report with a control code in its text falls back to its key")
@@ -84,13 +87,19 @@ struct KittyKeyDecoderTests {
         }
     }
 
-    @Test("A shifted chord is its shifted key: Ctrl-Shift-Z is Z, Ctrl-Shift-minus is underscore")
+    @Test("A shifted chord is its shifted key, Shift its case: Ctrl-Shift-Z is Z, Ctrl-Shift-minus is _")
     func shiftedChordUsesShiftedKey() {
         #expect(
             decode("122:90;6u") == key(KeyEvent(key: .character("Z"), ctrl: true, shift: true)))
-        #expect(
-            decode("45:95;6u") == key(KeyEvent(key: .character("_"), ctrl: true, shift: true)))
+        #expect(decode("45:95;6u") == key(KeyEvent(key: .character("_"), ctrl: true)))
+        #expect(decode("45:95;4u") == key(KeyEvent(key: .character("_"), alt: true)))
         #expect(decode("45;5u") == key(KeyEvent(key: .character("-"), ctrl: true)))
+    }
+
+    @Test("Without the shifted key reported, a shifted letter is its capital and anything else keeps the bit")
+    func shiftedChordWithoutAlternateKeys() {
+        #expect(decode("122;6u") == key(KeyEvent(key: .character("Z"), ctrl: true, shift: true)))
+        #expect(decode("45;6u") == key(KeyEvent(key: .character("-"), ctrl: true, shift: true)))
     }
 
     @Test("A chord on a non-Latin layout is its base-layout key")

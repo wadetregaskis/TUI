@@ -3921,6 +3921,24 @@ as well. The `KeyEquivalent` itself keeps its case (since 2026-10-03, as
 SwiftUI's does: `"A"` is not `"a"`), so the folding is the shortcut's, not the
 key's.
 
+**Under the kitty keyboard protocol too** (decided 2026-10-04, after a review
+found the opposite shipped). The protocol does report Shift as a bit on a key
+that typed text — `+` is `CSI 61:43;2;43u`, Shift-`=` typing `+` — and the
+decoder first kept it. Every handler in TUIkit was written against the legacy
+encodings, where `+` has no Shift, and some read the flag: a focused
+`Stepper` or `Slider` steps by its Shift multiplier when Shift is held, so
+under the protocol `+` and `_` stepped by five where they step by one
+everywhere else. The rule now: **a key that typed a character carries Shift
+as the character's case**, exactly what `KeyEvent(character:)` makes of the
+legacy byte — `true` for `A` (Caps Lock's capital included), `false` for `!`,
+`+`, `_` and a space. A chord whose key is reported as its shifted character
+(Ctrl-Shift-Z as `Z`, Option-Shift-minus as `_`) follows the same rule; one
+whose shifted character is not reported (flag 4 not taken) is its capital for
+a letter and keeps the bit for anything else, the only way left to say it. So
+an event is the same event on every terminal, and nothing tuned on one needs
+to know which encoding it came in. The cost is SwiftUI's `KeyPress.modifiers`,
+which on macOS has Shift on `!`; here it has not, on any terminal.
+
 The flag IS meaningful on **non-printable** keys (arrows, function keys), where
 it arrives in the CSI parameters — and there it is unreliable in a different
 way: Apple Terminal sends bare `ESC[A`/`ESC[B` for Up/Down, dropping every
@@ -4251,7 +4269,8 @@ input method. Flag 16 puts the text the terminal composed back into the report
 (`CSI 97 ; ; 97 u`, `CSI 101 ; ; 233 u` for é), and TUIkit takes the text as
 the keystroke, as it took the legacy bytes. Text arrives without the Control or
 Option it consumed (Option-S typing ß arrives as ß, as it does in a legacy
-encoding) and with Shift as reported.
+encoding) and with Shift as the text's case ("Shift on a printable key is
+the character, not a bit").
 
 **What 8 costs:** with it on, Return is `CSI 13 u`. A process that dies with
 the flags pushed and the alternate screen still up leaves a shell that cannot
@@ -4271,11 +4290,14 @@ the keypad.
 ### How keys decode (`KittyKeyDecoder`)
 
 - A report with text **is** the text, one key event per character (an input
-  method committing a word through one key gives several), Shift kept,
+  method committing a word through one key gives several), Shift as the
+  character's case (`A` has it, `!` does not, as in a legacy encoding),
   Control and Option dropped.
 - A report without text (a Control or Option chord, a release, a key that types
-  nothing) uses the shifted key when Shift is held, else the base-layout key for
-  a Control/Option chord on a non-ASCII key, else the key itself.
+  nothing) uses the shifted key when Shift is held, its Shift then being that
+  key's case; else, with Shift held on a letter and no shifted key reported,
+  the capital; else the base-layout key for a Control/Option chord on a
+  non-ASCII key, else the key itself.
 - **Bit 8 means Super (⌘), not Meta.** In xterm's legacy modifier parameter the
   same bit is Meta, which terminals send for Option, and TUIkit's legacy parser
   reads it as Option ("Option arrives in two different spellings"). Under the
