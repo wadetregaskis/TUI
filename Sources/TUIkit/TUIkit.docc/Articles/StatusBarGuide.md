@@ -54,7 +54,7 @@ way:
 | `Shortcut.arrowUp` | `↑` | Arrow up |
 | `Shortcut.arrowDown` | `↓` | Arrow down |
 | `Shortcut.arrowsUpDown` | `↑↓` | Vertical navigation |
-| `Shortcut.ctrl("q")` | `⌃Q` | Control-Q, named as a menu names it |
+| `Shortcut.ctrl("q")` | `⌃Q` | Control and Q, named as a menu names the chord |
 
 `Shortcut` defines how the item is displayed. If you do not pass `key:`, `StatusBarItem` derives a trigger key from the shortcut string where possible.
 

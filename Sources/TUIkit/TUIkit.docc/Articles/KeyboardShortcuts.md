@@ -12,7 +12,7 @@ Three additional stages refine the layer sequence. When an open drop-down (e.g. 
 
 @Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (q quit and ? help always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
 
-`Ctrl+C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUIkit's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and nothing binds it unless you do: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. `Ctrl+Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see Default Bindings).
+`⌃C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUIkit's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and nothing binds it unless you do: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. `⌃Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see Default Bindings).
 
 ## Available Keys
 
@@ -81,8 +81,8 @@ public struct KeyEvent {
 
 The terminal encodes modifiers differently from GUI frameworks:
 
-- **Ctrl+letter**: Detected from ASCII control codes (0x01–0x1A). For example, `Ctrl+C` produces byte `0x03`.
-- **Alt+key**: Detected from ESC prefix sequences (`ESC` followed by the key byte).
+- **⌃-letter**: Detected from ASCII control codes (0x01–0x1A). For example, `⌃C` produces byte `0x03`.
+- **⌥-key**: Detected from ESC prefix sequences (`ESC` followed by the key byte).
 - **Shift**: Only auto-detected for uppercase letters. The terminal does not send distinct shift codes for most keys.
 
 ## SwiftUI's onKeyPress
@@ -216,13 +216,13 @@ A `Button`'s own shortcut is registered again the same way, on one condition: th
 The `FocusManager` dispatches key events in three steps:
 
 1. **Focused element delegation**: the focused element's `handleKeyEvent(_:)` is called first. If it consumes the event, dispatch stops.
-2. **Tab / Shift+Tab**: cycles focus between elements (wraps around).
+2. **⇥ / ⇧⇥**: cycles focus between elements (wraps around).
 3. **Arrow key fallback**: Up/Left move to the previous element in the section, Down/Right move to the next. This only triggers if the focused element did not consume the arrow key in step 1.
 
 | Key | Action |
 |-----|--------|
-| Tab | Move focus to the next focusable element (wraps around) |
-| Shift+Tab | Move focus to the previous focusable element (wraps around) |
+| ⇥ | Move focus to the next focusable element (wraps around) |
+| ⇧⇥ | Move focus to the previous focusable element (wraps around) |
 | Up / Left | Move to previous element in section (fallback) |
 | Down / Right | Move to next element in section (fallback) |
 
@@ -238,18 +238,18 @@ A few controls bind keys of their own, the way SwiftUI's built-in menu items do.
 
 | Chord | Default keys | Action |
 |-------|--------------|--------|
-| ⌃⌘S | Ctrl-S (0x13) | Toggle the sidebar of the split view that holds the focus, else the first on screen |
-| ⌥⌘S | Option-Ctrl-S (ESC 0x13, where Option sends ESC) | The same |
+| ⌃⌘S | ⌃S (0x13) | Toggle the sidebar of the split view that holds the focus, else the first on screen |
+| ⌥⌘S | ⌃⌥S (ESC 0x13, where Option sends ESC) | The same |
 
 They work wherever the focus is, but they are the framework's, not yours, so
 everything of yours on the same keys comes first:
 
 - A `.keyboardShortcut` on the same keys wins, wherever its button renders. Under
-  `.control`, your ⌘S *is* Ctrl-S, so a Save button takes Ctrl-S and the split
-  view keeps Option-Ctrl-S.
+  `.control`, your ⌘S *is* ⌃S, so a Save button takes ⌃S and the split
+  view keeps ⌃⌥S.
 - An `onKeyEvent` handler that consumes the key wins.
 - A focused control that uses the key wins: a sortable ``Table`` sorts on
-  Ctrl-S. A `TextField`, a `TextEditor` and a `List` do not use it, so the chord
+  ⌃S. A `TextField`, a `TextEditor` and a `List` do not use it, so the chord
   works while typing. That holds for every framework shortcut, including the
   text controls' own editing chords against a framework default. Only your
   own shortcuts can take one of those, as the next section describes.
@@ -263,10 +263,10 @@ Layer 3 come before Layer 3.5), so as a rule a focused control that uses a key
 keeps it. The text controls are the exception, for one family of keys.
 
 Under the default ``EnvironmentValues/commandKey`` of `.control`, a SwiftUI ⌘
-shortcut arrives as a Control chord: `.keyboardShortcut("f")`, Find, is Ctrl-F.
-Ctrl-F is also an Emacs editing chord in ``TextField``, ``SecureField``, a
+shortcut arrives as a Control chord: `.keyboardShortcut("f")`, Find, is ⌃F.
+⌃F is also an Emacs editing chord in ``TextField``, ``SecureField``, a
 `.searchable` field and ``TextEditor``, where it moves the caret forward a
-character. Under `.option`, ⌘B and ⌘F arrive as Option-B and Option-F,
+character. Under `.option`, ⌘B and ⌘F arrive as ⌥B and ⌥F,
 readline's word motions, which every text control answers. The text controls
 read those chords the way the macOS text system and readline do, and they are
 a bonus: whatever one does can be done some other way, with another key or by
@@ -277,35 +277,35 @@ not bind would, and Layer 3.5 fires your button.
 
 | Chord | What the text control does with it | With your shortcut on it |
 |-------|------------------------------------|--------------------------|
-| Ctrl-A, Ctrl-E | A field: start, end of the line, as Home and End do | Yours |
-| Ctrl-A, Ctrl-E | `TextEditor`: start, end of the line; its Home and End go to the ends of the document | The editor's |
-| Option-B, Option-F | Back, forward a word, as Option-Left and Option-Right do (a character in a `SecureField`); with Shift, a field extends its selection | Yours |
-| Option-Ctrl-B, Option-Ctrl-F | A field: back, forward a word. `TextEditor`: back, forward a character | Yours |
-| Ctrl-B, Ctrl-F | Back, forward a character | Yours |
-| Ctrl-D | Delete forward | Yours |
-| Ctrl-K, Ctrl-Y | Kill to the end of the line, yank it back (a `SecureField` keeps no kill to yank) | Yours |
-| Ctrl-T | Transpose the characters around the caret | Yours |
-| Ctrl-P, Ctrl-N | `TextEditor`: previous, next line | Yours |
-| Ctrl-O | `TextEditor`: open a line after the caret | Yours |
-| Ctrl-V | `TextEditor`: page down | Yours |
-| Option-Ctrl-A | Select all | The control's |
-| Ctrl-C, Ctrl-X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours. While a mouse selection is on the screen, Ctrl-C copies that instead, until the control takes a key |
-| Ctrl-Z | Undo | The control's |
-| Ctrl-V, Ctrl-U | A field's paste and erase | The field's |
+| ⌃A, ⌃E | A field: start, end of the line, as Home and End do | Yours |
+| ⌃A, ⌃E | `TextEditor`: start, end of the line; its Home and End go to the ends of the document | The editor's |
+| ⌥B, ⌥F | Back, forward a word, as ⌥← and ⌥→ do (a character in a `SecureField`); with Shift, a field extends its selection | Yours |
+| ⌃⌥B, ⌃⌥F | A field: back, forward a word. `TextEditor`: back, forward a character | Yours |
+| ⌃B, ⌃F | Back, forward a character | Yours |
+| ⌃D | Delete forward | Yours |
+| ⌃K, ⌃Y | Kill to the end of the line, yank it back (a `SecureField` keeps no kill to yank) | Yours |
+| ⌃T | Transpose the characters around the caret | Yours |
+| ⌃P, ⌃N | `TextEditor`: previous, next line | Yours |
+| ⌃O | `TextEditor`: open a line after the caret | Yours |
+| ⌃V | `TextEditor`: page down | Yours |
+| ⌃⌥A | Select all | The control's |
+| ⌃C, ⌃X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours. While a mouse selection is on the screen, ⌃C copies that instead, until the control takes a key |
+| ⌃Z | Undo | The control's |
+| ⌃V, ⌃U | A field's paste and erase | The field's |
 
 A chord gives way when what it does can be done some other way in that
 control, and keeps the key when it is the only way. Select-all has no other key
 at all, since ⌘A cannot reach a terminal app. A field's Home and End go to the
-ends of its line, so its Ctrl-A and Ctrl-E give way. The editor's Home and End
-go to the ends of the whole document, which leaves Ctrl-A and Ctrl-E its only
+ends of its line, so its ⌃A and ⌃E give way. The editor's Home and End
+go to the ends of the whole document, which leaves ⌃A and ⌃E its only
 keys for the ends of a line, so there they stay. The clipboard and undo chords
-stand in for ⌘C, ⌘X, ⌘V and ⌘Z and do what those would, and a field's Ctrl-U
+stand in for ⌘C, ⌘X, ⌘V and ⌘Z and do what those would, and a field's ⌃U
 erases it; those stay too, except that copy and cut have nothing to act on
-without a selection. Then Ctrl-C and Ctrl-X are not the control's at all: they
+without a selection. Then ⌃C and ⌃X are not the control's at all: they
 go on down the chain whether or not you have a shortcut on them, so your ⌘C
-fires, and so does ``QuitShortcut/ctrlC``. Ctrl-Z never passes on: it is the
-app's undo, which a focused text control's Ctrl-Z stands in for, and so it
-stays the control's even in an app that has taken Ctrl-Z out of its undo keys
+fires, and so does ``QuitShortcut/ctrlC``. ⌃Z never passes on: it is the
+app's undo, which a focused text control's ⌃Z stands in for, and so it
+stays the control's even in an app that has taken ⌃Z out of its undo keys
 to make it suspend.
 
 Only your shortcuts take a chord this way, and only one that is registered: an
@@ -324,11 +324,11 @@ field — which is safe because it only sees keys while the focus is inside its
 view. So to take a chord from a focused text control, put an `onKeyPress` on
 the control or a view around it, or give the chord a `.keyboardShortcut`.
 
-A key the control lets go of does pass Layer 2 on its way, though: Ctrl-C and
-Ctrl-X with nothing selected, and an editing chord given up to your shortcut.
+A key the control lets go of does pass Layer 2 on its way, though: ⌃C and
+⌃X with nothing selected, and an editing chord given up to your shortcut.
 An `onKeyEvent` matches a key whatever its modifiers — as SwiftUI's
-`onKeyPress` does, whose `onKeyPress("c")` also fires for Control-C — so a page's
-`.onKeyEvent(.character("c"))` runs on Ctrl-C from a field with nothing
+`onKeyPress` does, whose `onKeyPress("c")` also fires for ⌃C — so a page's
+`.onKeyEvent(.character("c"))` runs on ⌃C from a field with nothing
 selected, ahead of your ⌘C and of a `.ctrlC` quit. Where that is not what you
 want, use the form whose handler takes the ``KeyEvent``, check its `ctrl`, and
 return `false` to let the key go on.
@@ -340,8 +340,8 @@ Layer 4 provides six built-in key bindings, but only quit, undo and redo, and he
 | Key | Action | Condition |
 |-----|--------|-----------|
 | `q` / `Q` | Quit application | Enabled by default; gated by ``QuitBehavior`` |
-| Undo and redo | ``UndoCommand/defaultShortcuts``: Ctrl-Z, Ctrl-minus and Ctrl-/ undo; Ctrl-Shift-Z, Ctrl-_ and Option-_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so Ctrl-Z with nothing to undo does nothing |
-| Ctrl-Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
+| Undo and redo | ``UndoCommand/defaultShortcuts``: ⌃Z, ⌃- and ⌃/ undo; ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so ⌃Z with nothing to undo does nothing |
+| ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Active unless a modal surface has grabbed input (its status bar item is hidden by default) |
@@ -410,8 +410,8 @@ statusBar.quitShortcut = QuitShortcut(
 
 This changes both the Layer 4 quit binding and the displayed system item.
 `.ctrlC` quits from a focused text field or editor too, unless text is
-selected there: then Ctrl-C copies it. Nor does it quit while something on the
-screen is selected with the mouse: then Ctrl-C copies that, ahead of every
+selected there: then ⌃C copies it. Nor does it quit while something on the
+screen is selected with the mouse: then ⌃C copies that, ahead of every
 layer (see <doc:MouseAndGestures>, "Selecting Text").
 
 ### Overriding `q` in a local view context

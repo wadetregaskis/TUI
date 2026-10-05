@@ -4,7 +4,7 @@ Navigate between interactive elements using the keyboard.
 
 ## Overview
 
-TUIkit provides a focus system that lets users move between interactive views (buttons, menus, text fields) using Tab, Shift+Tab, or arrow keys. The system consists of three parts:
+TUIkit provides a focus system that lets users move between interactive views (buttons, menus, text fields) using ⇥, ⇧⇥, or arrow keys. The system consists of three parts:
 
 - **`FocusManager`**: Tracks which element is focused, handles navigation
 - **``Focusable``**: Protocol that views adopt to receive focus
@@ -96,7 +96,7 @@ Two more modifiers shape the ring itself:
 - `focusable(_:interactions:)` makes any view a Tab stop — `.activate` also
   makes a click focus it — so a custom view joins the ring without adopting
   ``Focusable``.
-- `focusSection(_:)` groups a region. Tab and Shift+Tab move *between*
+- `focusSection(_:)` groups a region. ⇥ and ⇧⇥ move *between*
   sections, entering each at its edge (first element going forward, last going
   back) rather than at whatever was last focused inside it.
 - `focusID(_:)` pins an explicit identity on a control, instead of the one
@@ -108,8 +108,8 @@ The `FocusManager` responds to these keys during dispatch:
 
 | Key | Action |
 |-----|--------|
-| Tab | Move focus to the next element |
-| Shift+Tab | Move focus to the previous element |
+| ⇥ | Move focus to the next element |
+| ⇧⇥ | Move focus to the previous element |
 | Arrow Down / Right | Move focus to the next element |
 | Arrow Up / Left | Move focus to the previous element |
 
@@ -360,6 +360,6 @@ Focus dispatch happens in Layer 3 of the key event pipeline (see <doc:AppLifecyc
 2. Layer 0: text input, when `focusManager.hasTextInputFocus` — mutually exclusive with Layer 3
 3. Layer 1 (status bar) gets first chance at everything else. A presented alert or modal publishes its own `⎋ dismiss` item here, which is what stops a page's `⎋ back` from firing underneath it
 4. Layer 2: `KeyEventDispatcher` dispatches `.onKeyEvent` handlers (deepest view first)
-5. Layer 3: `FocusManager` delegates to the focused view's `handleKeyEvent(_:)`, then handles Tab/Shift+Tab and arrow key fallback
+5. Layer 3: `FocusManager` delegates to the focused view's `handleKeyEvent(_:)`, then handles ⇥/⇧⇥ and arrow key fallback
 6. Layer 3.5: semantic shortcut actions — `.defaultAction` (Return) and `.cancelAction` (Escape) — so a default button fires only once the focused control has let the key through
 7. Layer 4 (default bindings) handles quit, theme cycling, etc.

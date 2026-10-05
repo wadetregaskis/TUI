@@ -63,7 +63,7 @@ In raw mode, the terminal delivers every keystroke immediately without waiting f
 
 - **No echo**: typed characters are not displayed
 - **No canonical mode**: input is byte-by-byte, not line-by-line
-- **No signal processing**: Ctrl+C and Ctrl+Z arrive as keys, not as SIGINT and SIGTSTP. Nothing binds Ctrl+C unless the app does; Ctrl+Z is the app's undo by default, and suspends the app from Layer 4 where the app's undo keys leave it out (`Scene.undoShortcuts(_:)`)
+- **No signal processing**: ⌃C and ⌃Z arrive as keys, not as SIGINT and SIGTSTP. Nothing binds ⌃C unless the app does; ⌃Z is the app's undo by default, and suspends the app from Layer 4 where the app's undo keys leave it out (`Scene.undoShortcuts(_:)`)
 - **Non-blocking reads**: input is drained without blocking; when nothing is pending the loop sleeps until woken rather than polling on a fixed timeout (see Main Loop)
 
 The original terminal settings are saved and restored during cleanup.
@@ -98,10 +98,10 @@ The rest set boolean flags and wake the loop; the actual rendering always happen
 
 | Signal | Trigger | Effect |
 |--------|---------|--------|
-| `SIGINT` | `kill -INT` (in raw mode Ctrl+C is a key, not this signal) | Sets a shutdown flag → main loop exits |
+| `SIGINT` | `kill -INT` (in raw mode ⌃C is a key, not this signal) | Sets a shutdown flag → main loop exits |
 | `SIGTERM` | `kill` | The same shutdown flag, so the terminal-restore teardown still runs |
 | `SIGWINCH` | Terminal resize | Sets a re-render flag → next iteration re-renders |
-| `SIGTSTP` | Ctrl+Z, re-raised by Layer 4 when no view claimed the key and the app's undo keys do not include it, or `kill -TSTP` | Sets a suspend flag. The default stop action is suppressed on purpose: stopping the moment the signal lands would strand the user's shell in raw mode on the alternate screen, so the loop hands the terminal back and only then stops for real |
+| `SIGTSTP` | ⌃Z, re-raised by Layer 4 when no view claimed the key and the app's undo keys do not include it, or `kill -TSTP` | Sets a suspend flag. The default stop action is suppressed on purpose: stopping the moment the signal lands would strand the user's shell in raw mode on the alternate screen, so the loop hands the terminal back and only then stops for real |
 | `SIGCONT` | `fg`, after an *external* `SIGSTOP` | Sets a repaint flag — nothing was torn down, but the screen may have been disturbed while the process slept. The suspend path's own `fg` is swallowed instead, so it does not repaint twice |
 | `SIGPIPE` | A clipboard helper or a pty reader that went away mid-write | No source at all: `SIG_IGN`, process-wide. Nothing wants to *observe* it, only to survive it, so the write returns `EPIPE` instead of killing the app mid-raw-mode |
 
@@ -140,9 +140,9 @@ Before any layer, the `onKeyPress` handlers on the views that contain the focuse
 
 ### Layer 0: Text Input (conditional)
 
-When a text input element (TextField/SecureField) is focused, `focusManager.dispatchKeyEvent()` runs first. This ensures printable characters, backspace, delete, arrows, home, end, and enter reach the text field before any other layer. Only keys the text field does not consume (Escape, Tab, unhandled Ctrl+shortcuts) fall through.
+When a text input element (TextField/SecureField) is focused, `focusManager.dispatchKeyEvent()` runs first. This ensures printable characters, backspace, delete, arrows, home, end, and enter reach the text field before any other layer. Only keys the text field does not consume (Escape, Tab, unhandled ⌃ chords) fall through.
 
-One key is not offered to the text input at all: an Emacs editing chord that an app's `.keyboardShortcut` is registered on, such as Ctrl-F under an app's ⌘F. It goes on down the chain as a chord the text input does not bind would, and Layer 3.5 fires the shortcut. See <doc:KeyboardShortcuts> for which chords give way.
+One key is not offered to the text input at all: an Emacs editing chord that an app's `.keyboardShortcut` is registered on, such as ⌃F under an app's ⌘F. It goes on down the chain as a chord the text input does not bind would, and Layer 3.5 fires the shortcut. See <doc:KeyboardShortcuts> for which chords give way.
 
 ### Layer 0.5: Drag Navigators
 
@@ -158,7 +158,7 @@ The `KeyEventDispatcher` iterates handlers registered via `onKeyEvent()` modifie
 
 ### Layer 3: Focus System (conditional)
 
-Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then offers what it declined to SwiftUI's move, exit and delete commands on the views containing it (innermost first — Layer 0 does the same for a text input), then handles Tab/Shift+Tab for focus cycling, then arrow keys as section navigation fallback.
+Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then offers what it declined to SwiftUI's move, exit and delete commands on the views containing it (innermost first — Layer 0 does the same for a text input), then handles ⇥/⇧⇥ for focus cycling, then arrow keys as section navigation fallback.
 
 ### Layer 3.5: Semantic Shortcut Actions
 
@@ -171,8 +171,8 @@ Built-in key bindings that apply when no handler consumed the event:
 | Key | Action | Condition |
 |-----|--------|-----------|
 | `q` / `Q` | Quit application | `statusBar.isQuitAllowed` — offered even behind a modal, as its escape hatch |
-| Undo, redo | The app's undo manager's undo and redo, on the scene's `UndoShortcuts`: by default Ctrl-Z, Ctrl-minus and Ctrl-/ undo, Ctrl-Shift-Z, Ctrl-_ and Option-_ redo | Always, after the app's own shortcuts; a bound key is taken whether or not there is a step |
-| Ctrl-Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode clears `ISIG`, so the driver never turns `^Z` into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
+| Undo, redo | The app's undo manager's undo and redo, on the scene's `UndoShortcuts`: by default ⌃Z, ⌃- and ⌃/ undo, ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after the app's own shortcuts; a bound key is taken whether or not there is a step |
+| ⌃Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode clears `ISIG`, so the driver never turns `^Z` into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
 | `t` / `T` | Cycle to next palette | `statusBar.showThemeItem`, and no transient surface has grabbed input |
 | `a` / `A` | Cycle to next appearance | No transient surface has grabbed input — otherwise `a` would restyle the app from behind a modal the user cannot see the controls for |
 
@@ -214,7 +214,7 @@ When the main loop exits: via SIGINT or SIGTERM, the quit key, or programmatic s
 
 The `Terminal` class also has a `deinit` safety net that disables raw mode if it was not explicitly restored.
 
-A process that dies of a signal with no orderly way out — a trap, a bad access, an abort, and the quiet terminations nothing in TUIkit handles (`SIGHUP`, `SIGUSR1` and the like, where the app has installed no handler of its own) — runs none of this. A handler for those signals pays what it can before passing the signal on: it pops the kitty keyboard protocol's flags if they are pushed, because they make every key an escape code, Return included, and would leave a shell that cannot be typed at; turns off the other input modes the app turned on; shows the cursor; and puts the shell's terminal settings back. It leaves the alternate screen up, with a crash's report on it. A suspend (Ctrl-Z, where it suspends) pops the flags too, and the resume pushes them again.
+A process that dies of a signal with no orderly way out — a trap, a bad access, an abort, and the quiet terminations nothing in TUIkit handles (`SIGHUP`, `SIGUSR1` and the like, where the app has installed no handler of its own) — runs none of this. A handler for those signals pays what it can before passing the signal on: it pops the kitty keyboard protocol's flags if they are pushed, because they make every key an escape code, Return included, and would leave a shell that cannot be typed at; turns off the other input modes the app turned on; shows the cursor; and puts the shell's terminal settings back. It leaves the alternate screen up, with a crash's report on it. A suspend (⌃Z, where it suspends) pops the flags too, and the resume pushes them again.
 
 ## Subsystem Dependency Graph
 
