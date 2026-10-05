@@ -263,6 +263,18 @@ settings and every run starts from the defaults. Set `TUIKIT_CONFIG_DIR`
 yourself to profile against a particular saved state; that directory is used
 as given and kept. `python3 Tools/Profiling/test_drive.py` checks both.
 
+`--dump OUT.ansi` writes the app's output exactly as it arrived, and beside it
+`OUT.ansi.steps.json`: the scenario, the size, and one marker per scripted
+step — its index, the input sent (`ESC[B`, `-`, or empty for a pause), and
+the dump `offset` at the moment it was sent. Startup is marker 0, at offset 0.
+The bytes from one marker to the next are what the app wrote in answer to that
+step, as near as a PTY can say: a slow frame can spill past the next marker,
+since nothing in the stream says where a frame ends. The markers live in a
+sidecar, not in the stream, so every byte count taken from the dump is still
+the app's own. `test_drive.py` checks that the stream is unchanged, that no
+marker falls after its own step's reply, and that most fall after
+the previous step's.
+
 ### `analyze_timeprofile.py` — trace → hot functions
 
 > **`--blame` is usually the one you want.** Self time says where the CPU was,
@@ -402,6 +414,76 @@ restating a colour the terminal already had.
 python3 Tools/Profiling/drive.py BIN --dump /tmp/frames.ansi
 python3 Tools/Profiling/analyze_stream.py /tmp/frames.ansi
 ```
+
+Two estimates price output changes before anybody builds them
+(`Documentation/Ghostty-VT-adoption.md`, O2 and O3):
+
+- **`--runs`** counts, against today's stream, what each of O3's four byte
+  trims would save on its own: the padding a whole-line row writes after its
+  `ESC[2K` (the erase already painted those cells), blank runs of five or more
+  at a span's end that `CSI n X` could erase (only where the blanks carry
+  nothing an erase would lose, such as an underline), absolute moves to a later
+  column of the row the cursor is on that `CSI n C` could replace, and the `;1`
+  of a column-1 `CSI r;1 H`. The four overlap — a move counted under CUF may
+  also be a column-1 move — so they are not added up.
+- **`--shift`** is O2's hardware-scroll estimate. It replays the stream
+  through `pyte`, step by step from the markers file, and asks of each step
+  whether a band of at least four rows moved by k whole rows (|k| up to half
+  the height). Where one did, it counts the bytes the step spent on the band,
+  less what painting the rows a scroll exposes would cost and the ~20 bytes of
+  `CSI a;b r`, `CSI k S` and `CSI r`. It prints the total, the share, the
+  shifts used, and the three steps that pay most, by marker index, to check
+  by eye. An upper bound on the saving: it knows nothing of O2's exclusions
+  (compensated clusters, images, replayed animation rows). And pyte abandons a
+  write at a U+FE0F (above), so on a page with emoji the model is wrong from
+  that point; prefer the text-heavy scenarios.
+
+`python3 Tools/Profiling/test_analyze_stream.py` checks both against streams
+small enough to count by hand.
+
+`--shift` reports two searches. **Exact bands** are rows equal to their
+source k rows away, as O2 is specified. **With an N-cell residue** (`--residue
+N`, default 4) a row also rides the shift when it differs from its source in
+at most N cells, which are then repainted after it: a scroll view's own
+indicator column (the arrows and the thumb sit still while the rows move under
+them) cuts every exact band, and the residue is what O2's step 4 says the
+ordinary diff writes. Only shifts that moved at least one row exactly are
+tried.
+
+The capture O2 and O3 wait on (M0 in the adoption study). Bytes, not time, but
+a loaded machine coalesces keys into fewer frames and so writes fewer bytes, so
+take the numbers that go in a commit message from a quiet box. Pass
+**`--answer-fence`**: without it the PTY answers none of the app's startup
+exchanges, each waits out its half-second deadline, and the first frame comes
+about 1.5 s after launch — so a scenario's keys land during startup and are
+parsed as one burst once the app is up. Measured 2026-10-05 on a debug
+Example, `scroll` drew its page for the first time at step 83 of 93 without
+the flag. It is off by default so a number taken before it existed stays
+comparable; one taken since the startup exchanges existed may share that
+artefact, and which do is not established.
+
+```bash
+BIN="$(swift build -c release --product Example --show-bin-path)/Example"
+mkdir -p /tmp/m0
+for scenario in tour splitdrag table scroll list; do
+    python3 Tools/Profiling/drive.py "$BIN" --scenario "$scenario" --answer-fence \
+        --dump "/tmp/m0/$scenario.ansi" --quiet
+done
+python3 Tools/Profiling/analyze_stream.py --runs --shift /tmp/m0/*.ansi
+```
+
+The study's thresholds: a trim is kept only where its scenario shows at least
+3%, and the hardware scroll is built only if `scroll` and `list` show at least
+50% fewer bytes.
+
+**Read the scenarios before the numbers (2026-10-05).** None of the five
+scrolls a full-width band. `scroll`'s views are bordered boxes seven rows tall
+with their own indicator column; `table`'s file browser shows five rows; and
+`list` scrolls nothing at all, because the Lists page now opens with the focus
+in a search field and its Down keys move nothing (the bytes after its first
+frame are a blinking caret). So a 0% from `--shift` on these says the
+scenarios cannot answer O2, not that O2 saves nothing; only a page with a
+tall, full-width list can.
 
 ### `idle-image.sh` + `IdleProbe` — idle cost with nothing else awake
 `idle_cpu.py` answers "what does a static screen cost?" only for a screen that

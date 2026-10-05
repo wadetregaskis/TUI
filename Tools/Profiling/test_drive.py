@@ -105,6 +105,154 @@ class TestConfigIsolation(unittest.TestCase):
             "a directory the caller named is the caller's to delete")
 
 
+# A stand-in that answers every byte it reads with that byte in hex, and
+# writes nothing else, so the stream the driver dumps is a known function of
+# what the driver sent: the reply to a step begins exactly where the hex of
+# every earlier step ends.
+_ECHO_STUB = """\
+import os, sys, tty
+tty.setraw(0)
+while True:
+    data = os.read(0, 4096)
+    if not data:
+        break
+    os.write(1, data.hex().encode())
+    if b"q" in data:
+        break
+"""
+
+
+class TestStepMarkers(unittest.TestCase):
+    """`--dump` writes where each step was sent, beside the stream.
+
+    O2's estimate (`analyze_stream.py --shift`) compares the screen before and
+    after each step, so it needs to know which bytes answered which input. A
+    PTY delivers one undivided stream; the driver is the only party that knows
+    when it wrote each key.
+    """
+
+    def setUp(self):
+        self.scratch = tempfile.mkdtemp(prefix="test-drive-steps-")
+        self.addCleanup(shutil.rmtree, self.scratch, ignore_errors=True)
+        self.stub = os.path.join(self.scratch, "Example")
+        with open(self.stub, "w") as handle:
+            handle.write(f"#!{sys.executable}\n{_ECHO_STUB}")
+        os.chmod(self.stub, os.stat(self.stub).st_mode | stat.S_IXUSR)
+
+    def test_each_step_is_marked_where_it_was_sent(self):
+        sys.path.insert(0, _HERE)
+        try:
+            import drive
+        finally:
+            sys.path.remove(_HERE)
+        dump = os.path.join(self.scratch, "list.ansi")
+        env = dict(os.environ, TUIKIT_CONFIG_DIR=self.scratch)
+        subprocess.run(
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "0.1",
+             "--rows", "30", "--cols", "90", "--dump", dump, "--quiet"],
+            env=env, check=True, timeout=60)
+        with open(dump, "rb") as handle:
+            stream = handle.read()
+        with open(dump + ".steps.json") as handle:
+            markers = json.load(handle)
+
+        script = drive.build_scenario("list", 30, 90)
+        payloads = [payload for _, payload in script]
+        # The stream is still exactly the app's: the markers live beside it,
+        # and the stub's only output is the hex of what it was sent.
+        self.assertEqual(stream, b"".join(payloads).hex().encode())
+        self.assertEqual(markers["total"], len(stream))
+        self.assertEqual(
+            (markers["scenario"], markers["rows"], markers["cols"], markers["loops"]),
+            ("list", 30, 90, 1))
+
+        steps = markers["steps"]
+        # Startup, then one marker per scripted step, in order.
+        self.assertEqual(len(steps), len(script) + 1)
+        self.assertEqual([step["index"] for step in steps], list(range(len(steps))))
+        self.assertEqual((steps[0]["offset"], steps[0]["input"]), (0, "startup"))
+        self.assertEqual(steps[1]["input"], "-", "the Lists page shortcut")
+        self.assertEqual(steps[2]["input"], "ESC[B", "a Down arrow")
+        offsets = [step["offset"] for step in steps]
+        self.assertEqual(offsets, sorted(offsets))
+        # No marker is late: the reply to a step cannot begin before the
+        # step's own marker, because the marker is taken before the write.
+        # Step k's reply begins after the hex of every earlier step.
+        echoed = 0
+        answered = 0
+        for step, payload in zip(steps[1:], payloads):
+            self.assertLessEqual(step["offset"], echoed, f"step {step['index']}")
+            # …and not early: by the time a step is sent, the delay before it
+            # has drained the reply to the step before. Only nearly always —
+            # a PTY makes no promise about when the stub's reply lands — but
+            # a marker taken before the delay's drain misses it every time.
+            if step["offset"] == echoed:
+                answered += 1
+            echoed += 2 * len(payload)
+        self.assertGreaterEqual(
+            answered, len(payloads) // 2,
+            "most markers should fall after the previous step's reply")
+        times = [step["at"] for step in steps]
+        self.assertEqual(times, sorted(times))
+
+
+# A stand-in that asks what every TUIkit startup exchange asks last, the
+# status report `CSI 5n`, and records whether `CSI 0n` came back before the
+# deadline TUIkit gives it — split across two writes, as a slow app might.
+_FENCE_STUB = """\
+import json, os, select, sys, time, tty
+tty.setraw(0)
+os.write(1, b"\\x1b[5")
+time.sleep(0.05)
+os.write(1, b"n")
+got = b""
+deadline = time.time() + 0.5
+while time.time() < deadline and b"\\x1b[0n" not in got:
+    ready, _, _ = select.select([0], [], [], max(0.0, deadline - time.time()))
+    if ready:
+        got += os.read(0, 64)
+with open(os.environ["DRIVE_TEST_REPORT"], "w") as report:
+    json.dump({"answered": b"\\x1b[0n" in got}, report)
+while b"q" not in got:
+    data = os.read(0, 4096)
+    if not data:
+        break
+    got += data
+"""
+
+
+class TestAnswerFence(unittest.TestCase):
+    """`--answer-fence` answers the status request as a terminal would.
+
+    A PTY answers nothing, so each of a TUIkit app's three startup exchanges
+    waits out its half-second deadline, and a scenario's keys land while it
+    does: `scroll` lost all but a dozen of its steps to that. The flag is off
+    by default, so numbers taken without it stay comparable.
+    """
+
+    def setUp(self):
+        self.scratch = tempfile.mkdtemp(prefix="test-drive-fence-")
+        self.addCleanup(shutil.rmtree, self.scratch, ignore_errors=True)
+        self.stub = os.path.join(self.scratch, "Example")
+        with open(self.stub, "w") as handle:
+            handle.write(f"#!{sys.executable}\n{_FENCE_STUB}")
+        os.chmod(self.stub, os.stat(self.stub).st_mode | stat.S_IXUSR)
+
+    def answered(self, *flags):
+        report = os.path.join(self.scratch, "fence.json")
+        env = dict(os.environ, TUIKIT_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report)
+        subprocess.run(
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "1",
+             "--quiet", *flags],
+            env=env, check=True, timeout=60)
+        with open(report) as handle:
+            return json.load(handle)["answered"]
+
+    def test_the_status_request_is_answered_only_when_asked_to(self):
+        self.assertTrue(self.answered("--answer-fence"), "even split across two reads")
+        self.assertFalse(self.answered(), "off by default")
+
+
 _REPO = os.path.dirname(os.path.dirname(_HERE))
 _EXAMPLE = os.environ.get("DRIVE_TEST_BINARY", os.path.join(_REPO, ".build", "debug", "Example"))
 

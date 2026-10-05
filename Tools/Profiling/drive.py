@@ -19,7 +19,12 @@ Two modes:
 Usage:
     drive.py BIN [--scenario tour|list|table|emoji|scroll|mouse|splitdrag|idle|menu]
                  [--loops N] [--rows R] [--cols C] [--settle S]
-                 [--trace OUT.trace] [--time-limit MS] [--dump OUT.ansi] [--quiet]
+                 [--trace OUT.trace] [--time-limit MS] [--dump OUT.ansi] [--answer-fence] [--quiet]
+
+`--dump OUT.ansi` writes the app's output exactly as it arrived, and beside it
+`OUT.ansi.steps.json`: where in that stream each scripted step was sent (see
+`write_steps`). The stream itself carries no markers, so every byte count taken
+from it is still the app's own.
 
 Quits the app cleanly with 'q' (TUIkit's default quit shortcut) from the main
 menu, falling back to SIGTERM/SIGKILL — and then exiting 2, because an app that
@@ -32,6 +37,7 @@ set `TUIKIT_CONFIG_DIR` itself (then that directory is used and kept). See
 """
 import argparse
 import atexit
+import json
 import os
 import pty
 import select
@@ -56,6 +62,18 @@ PAGE_KEYS = {
     "text": "1", "colors": "2", "containers": "3", "buttons": "6",
     "radios": "9", "sliders": "[", "steppers": "]", "split": ";",
 }
+
+
+# The status request every TUIkit startup exchange ends with, and the reply
+# every terminal sends (`TerminalQueryReplies.statusFence`). A PTY answers
+# nothing, so without `--answer-fence` the identity, graphics and colour
+# exchanges each wait out their half-second deadline: the first frame comes
+# about 1.5 s after launch, and the keys a scenario sends before then are
+# handed back and parsed as one burst once it is up. `scroll` lost all but
+# its last dozen steps that way (measured 2026-10-05, debug Example). Off by
+# default, so a number taken before the flag existed is still comparable.
+STATUS_REQUEST = ESC + b"[5n"
+STATUS_REPLY = ESC + b"[0n"
 
 
 def mouse_sgr(button, col, row, press):
@@ -227,6 +245,58 @@ def config_directory():
     return fresh
 
 
+def steps_path(dump):
+    """Where the step markers for the stream dumped to `dump` go."""
+    return dump + ".steps.json"
+
+
+def describe_input(payload):
+    """A step's input as readable text: `ESC` for the escape byte, `\\r` and
+    `\\t` spelt out, other control bytes as `\\xNN`. Only for a reader of the
+    markers file; nothing parses it back."""
+    out = []
+    for byte in payload:
+        if byte == 0x1B:
+            out.append("ESC")
+        elif byte == 0x0D:
+            out.append("\\r")
+        elif byte == 0x09:
+            out.append("\\t")
+        elif 0x20 <= byte < 0x7F:
+            out.append(chr(byte))
+        else:
+            out.append(f"\\x{byte:02x}")
+    return "".join(out)
+
+
+def write_steps(path, scenario, rows, cols, loops, markers, total):
+    """Write the step markers for a dumped stream.
+
+    One marker per scripted step, plus a first one at offset 0 for startup:
+    `offset` is how many bytes of the dump had arrived when the step's input
+    was written, so the bytes from one marker's offset to the next are what
+    the app wrote in answer to that step, as far as a PTY can tell. A slow
+    frame can spill past the next marker; nothing in the stream says where a
+    frame ends until synchronized output (mode 2026) brackets each one.
+
+    A sidecar rather than markers in the stream, so `analyze_stream.py`'s
+    totals, and anything else that replays the dump, see only the app's bytes.
+    `rows` and `cols` are here because a replay through a screen model needs
+    the size the app drew at.
+    """
+    with open(path, "w") as handle:
+        json.dump({
+            "format": 1,
+            "scenario": scenario,
+            "rows": rows,
+            "cols": cols,
+            "loops": loops,
+            "total": total,
+            "steps": markers,
+        }, handle, indent=1)
+        handle.write("\n")
+
+
 def set_winsize(fd, rows, cols):
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 
@@ -266,7 +336,12 @@ def main():
                     help="xctrace recording limit in ms (only with --trace)")
     ap.add_argument("--dump", default=None,
                     help="write the app's raw output stream to this file, for "
-                         "byte attribution (see analyze_stream.py)")
+                         "byte attribution (see analyze_stream.py), and where "
+                         "each step was sent to FILE.steps.json")
+    ap.add_argument("--answer-fence", action="store_true",
+                    help="answer the app's startup status requests (CSI 5n) as every "
+                         "terminal does, so its exchanges end at once instead of after "
+                         "their half-second deadlines; see STATUS_REQUEST")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
@@ -291,8 +366,12 @@ def main():
     # which is not the scenario, and counting it would move every total.
     counting = True
 
+    # The last bytes of the previous read, so a status request split across
+    # two reads is still answered (see `--answer-fence`).
+    carry = b""
+
     def drain(timeout):
-        nonlocal total
+        nonlocal total, carry
         while True:
             r, _, _ = select.select([master], [], [], timeout)
             if not r:
@@ -303,6 +382,11 @@ def main():
                 return -1
             if not data:
                 return -1
+            if args.answer_fence:
+                seen = carry + data
+                for _ in range(seen.count(STATUS_REQUEST)):
+                    os.write(master, STATUS_REPLY)
+                carry = seen[-(len(STATUS_REQUEST) - 1):]
             if counting:
                 total += len(data)
                 if dump:
@@ -320,8 +404,18 @@ def main():
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         time.sleep(2.0)  # let xctrace begin sampling before we drive
 
-    def play(steps):
+    # Where each step was sent, in dump offsets: see `write_steps`. Startup is
+    # the first "step", at offset 0.
+    started = time.time()
+    markers = [{"index": 0, "offset": 0, "at": 0.0, "input": "startup"}]
+
+    def play(steps, mark=False):
         """Send each `(delay, payload)`: wait `delay` draining, then write.
+
+        With `mark`, note where in the dump each step's input went, after the
+        delay's drain and before the write, so a step's bytes start at its own
+        marker. A step with no payload (a pause) is marked too: on an idle
+        scenario the pauses are all there is.
 
         Stops at the first write the child can no longer receive.
         """
@@ -331,6 +425,11 @@ def main():
                 while time.time() < end:
                     if drain(min(0.01, max(0.0, end - time.time()))) < 0:
                         break
+            if mark:
+                markers.append({
+                    "index": len(markers), "offset": total,
+                    "at": round(time.time() - started, 4),
+                    "input": describe_input(payload)})
             if payload:
                 try:
                     os.write(master, payload)
@@ -341,7 +440,7 @@ def main():
     for _ in range(args.loops):
         script.extend(build_scenario(args.scenario, args.rows, args.cols))
 
-    play(script)
+    play(script, mark=True)
 
     end = time.time() + 0.4
     while time.time() < end:
@@ -380,6 +479,8 @@ def main():
 
     if dump:
         dump.close()
+        write_steps(steps_path(args.dump), args.scenario, args.rows, args.cols,
+                    args.loops, markers, total)
 
     if not quit_on_q:
         # An app still running after Escape, Escape, `q` is not on the menu, so
