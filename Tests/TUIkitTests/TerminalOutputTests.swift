@@ -81,6 +81,44 @@ extension TerminalOutputTests {
         #expect(quiet.outputModesOff == "\u{1B}[?7h", "owed whether or not frames are held")
     }
 
+    /// K3's precondition: Apple Terminal's card decides, so until it is run
+    /// that host keeps the terminal's default, at startup and on every resume.
+    @Test("Apple Terminal, named by the environment, keeps autowrap on")
+    func appleTerminalKeepsAutowrap() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal(environment: ["TERM_PROGRAM": "Apple_Terminal"])
+        terminal.enableRawMode()
+        #expect(output.bytes.hasPrefix(Terminal.inheritedDefaults + "\u{1B}[?2004h"), "the defaults, and no autowrap off")
+        #expect(!output.bytes.contains("\u{1B}[?7l"))
+        terminal.disableRawMode()
+        output.clear()
+        terminal.enableRawMode()
+        #expect(!output.bytes.contains("\u{1B}[?7l"), "nor on a resume")
+    }
+
+    /// Over ssh nothing in the environment names the host, so raw mode has
+    /// turned autowrap off before the startup exchange answers.
+    @Test("Apple Terminal named by the startup exchange gets autowrap back on at once, and keeps it")
+    func appleTerminalNamedLateGetsAutowrapBack() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        #expect(output.bytes.contains("\u{1B}[?7l"))
+        output.clear()
+        terminal.keepAutowrapIfAppleTerminal(environment: ["TUIKIT_TERM_PROGRAM": "Apple_Terminal"])
+        #expect(output.writes == ["\u{1B}[?7h"])
+        terminal.keepAutowrapIfAppleTerminal(environment: ["TUIKIT_TERM_PROGRAM": "Apple_Terminal"])
+        #expect(output.writes == ["\u{1B}[?7h"], "once")
+        terminal.disableRawMode()
+        output.clear()
+        terminal.enableRawMode()
+        #expect(!output.bytes.contains("\u{1B}[?7l"), "a resume leaves it on")
+
+        let (ghostty, ghosttyOutput) = ScriptedTerminalOutput.terminal()
+        ghostty.enableRawMode()
+        ghosttyOutput.clear()
+        ghostty.keepAutowrapIfAppleTerminal(environment: ["TUIKIT_TERM_PROGRAM": "ghostty"])
+        #expect(ghosttyOutput.writes.isEmpty, "another host keeps it off")
+    }
+
     /// Raw mode is entered before the terminal is identified, so what it
     /// sends reaches Apple Terminal whether or not it is known to be there.
     @Test("Nothing raw mode sends is a shape Apple Terminal prints")

@@ -298,13 +298,30 @@ final class Terminal: TerminalProtocol {
     /// before the first move (rows count from 1).
     private var synchronizedLastRow = 0
 
+    /// Whether autowrap stays on while the app runs: on Apple Terminal, until
+    /// a card measures it there, and everywhere else it goes off
+    /// (``outputModesOn``).
+    ///
+    /// The plan made Apple Terminal's card the precondition
+    /// (`Documentation/Ghostty-VT-adoption.md`, K3): its phantom right-edge
+    /// repaint (`FrameDiffWriter.repaintRightEdge`) and the peak its clip lets
+    /// an over-advancer reach at the last cell were both written against a row
+    /// that wraps. So it keeps the terminal's default. Named by the
+    /// environment, it is known here; reached over ssh, only once the startup
+    /// exchange has named it (``keepAutowrapIfAppleTerminal(environment:)``).
+    private(set) var keepsAutowrap: Bool
+
     /// Creates a new terminal instance.
     ///
     /// - Parameter environment: Where `TUIKIT_SYNCHRONIZED_OUTPUT` is read
-    ///   from: the process's own, unless a test poses another.
+    ///   from, and the host that decides ``keepsAutowrap``: the process's
+    ///   own, unless a test poses another.
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
         frameBuffer.reserveCapacity(16_384)
         synchronizesOutput = Self.synchronizedOutputAllowed(environment: environment)
+        // The pure detector, not `TerminalHost.isAppleTerminal`: that one
+        // freezes on its first read, which must wait for the startup exchange.
+        keepsAutowrap = TerminalHost.detectAppleTerminal(environment: environment)
     }
 
     /// Destructor ensures raw mode is disabled.
@@ -462,7 +479,7 @@ extension Terminal {
         // a program killed before it put them back leaves them for the next
         // one (``inheritedDefaults``). Then the output modes TUIkit runs in,
         // which ``disableRawMode()`` puts back (``outputModesOn``).
-        writeImmediate(Self.inheritedDefaults + Self.outputModesOn)
+        writeImmediate(Self.inheritedDefaults + outputModesOn)
 
         // Enable bracketed paste mode so that terminal paste operations
         // are wrapped in ESC[200~ ... ESC[201~ markers. This allows the
@@ -620,18 +637,41 @@ extension Terminal {
     /// The output modes TUIkit runs in, set by ``enableRawMode()`` at startup
     /// and on every resume, and put back by ``outputModesOff``:
     ///
-    /// - Autowrap off (DECAWM, `CSI ? 7 l`). Every row TUIkit writes is as wide
-    ///   as the screen by its own count, and nothing it draws relies on
-    ///   wrapping. Where a host advances a cluster further than TUIkit counted
-    ///   — a host it has not measured, or iTerm2 and Terminal.app with
+    /// - Autowrap off (DECAWM, `CSI ? 7 l`), except where it is kept on
+    ///   (``keepsAutowrap``: Apple Terminal, until its card). Every row TUIkit
+    ///   writes is as wide as the screen by its own count, and nothing it draws
+    ///   relies on wrapping. Where a host advances a cluster further than
+    ///   TUIkit counted — a host it has not measured, or iTerm2 with
     ///   "ambiguous characters are wide" — the row wrapped into the next one,
     ///   and on the bottom row scrolled the whole screen up a line, leaving the
     ///   diff writer's picture of the screen wrong until something invalidated
     ///   it. With autowrap off the row loses its own last cells instead. Costs
     ///   nothing per frame. `?`, no intermediate byte: the shape Apple Terminal
-    ///   consumes. Found by reading Ghostty's VT reference
+    ///   consumes, which matters because over ssh it is sent before the host
+    ///   is known. Found by reading Ghostty's VT reference
     ///   (`Documentation/Ghostty-VT-adoption.md`, K3).
-    static let outputModesOn = "\u{1B}[?7l"
+    var outputModesOn: String {
+        keepsAutowrap ? "" : Self.autowrapOff
+    }
+
+    /// `CSI ? 7 l`: autowrap (DECAWM) off.
+    static let autowrapOff = "\u{1B}[?7l"
+
+    /// `CSI ? 7 h`: autowrap (DECAWM) on, every terminal's default.
+    static let autowrapOn = "\u{1B}[?7h"
+
+    /// Puts autowrap back on for good if the startup exchange has just named
+    /// Apple Terminal (``keepsAutowrap``), which the environment did not:
+    /// reached over ssh, it was sent ``outputModesOn`` before anything knew
+    /// which host it was. Does nothing otherwise, and nothing a second time.
+    ///
+    /// - Parameter environment: The process's environment, where the exchange
+    ///   seeds what it found (`TerminalHost.seedDiscoveredHost(_:)`).
+    func keepAutowrapIfAppleTerminal(environment: [String: String]) {
+        guard !keepsAutowrap, TerminalHost.detectAppleTerminal(environment: environment) else { return }
+        keepsAutowrap = true
+        if isRawMode { writeImmediate(Self.autowrapOn) }
+    }
 
     /// Puts back every output mode the frames may have changed, in one write —
     /// the orderly teardown's, and the head of the debt a signal pays:
@@ -645,9 +685,10 @@ extension Terminal {
     ///   Harmless where nothing is held.
     /// - autowrap back on (`CSI ? 7 h`), the default a shell expects:
     ///   ``outputModesOn`` turned it off. Not per screen, so leaving the
-    ///   alternate screen does not put it back.
+    ///   alternate screen does not put it back. Sent where it was kept on too:
+    ///   harmless there, and one debt for every host.
     var outputModesOff: String {
-        (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + "\u{1B}[?7h"
+        (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + Self.autowrapOn
     }
 
     /// What the terminal is owed, should the process die of a signal now:

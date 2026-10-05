@@ -290,6 +290,10 @@ extension AppRunner {
         // client's, and `$TMUX` has already answered.
         if !TerminalHost.hostIsNamedByEnvironment, !TerminalHost.isTmux {
             TerminalHost.identify(using: terminal)
+            // An Apple Terminal named only now keeps autowrap on, as one the
+            // environment named does; raw mode turned it off before anything
+            // knew (`Terminal.keepsAutowrap`).
+            terminal.keepAutowrapIfAppleTerminal(environment: ProcessInfo.processInfo.environment)
         }
 
         // AFTER identification, because the question is only safe to ask a host

@@ -4873,7 +4873,7 @@ Found by reading Ghostty's VT reference (`Documentation/Ghostty-VT-adoption.md`,
 K2). It must land before any hardware scrolling (O2 there), which sets a
 region of its own and must not inherit one.
 
-## Autowrap off while the app runs — since 2026-10-05, NOT yet measured
+## Autowrap off while the app runs — since 2026-10-05, NOT yet measured; not on Apple Terminal
 
 `Terminal.enableRawMode` (startup and every resume) turns autowrap off with
 `CSI ? 7 l` (DECAWM), and `Terminal.outputModesOff` turns it back on with
@@ -4883,10 +4883,16 @@ source has wraparound, mode 7, default on), and it is not per screen, so
 leaving the alternate screen does not restore it. `?`, no intermediate: the
 shape Apple Terminal consumes.
 
+**Except on Apple Terminal, until its card** (`Terminal.keepsAutowrap`). The
+plan made that card the precondition, so Apple Terminal keeps the default,
+named by the environment or, over ssh, as soon as the startup exchange names
+it: raw mode has sent `?7l` by then, and `?7h` follows at once, before the
+first frame. `?7h` is still in its teardown and debt, where it is harmless.
+
 **What it buys.** Every row TUIkit writes is as wide as the screen by TUIkit's
 count, and nothing it draws relies on wrapping. Where a host advances a cluster
-further than that count — a host TUIkit has not measured, or iTerm2 and Apple
-Terminal with "ambiguous characters are wide" on — the row used to wrap its
+further than that count — a host TUIkit has not measured, or iTerm2 (and, once
+its card allows, Apple Terminal) with "ambiguous characters are wide" on — the row used to wrap its
 tail into the next row, and on the bottom row scroll the whole screen up a
 line, after which the diff writer's picture of the screen was wrong until
 something invalidated it. With autowrap off, the row loses its own last cells
@@ -4906,16 +4912,19 @@ advance no cluster past its claim, except Warp's keycaps, its EAW-base VS-16
 exceptions and its tag flag, which no escape can repair and which still go
 out unguarded.
 
-**Apple Terminal first, by card.** `FrameDiffWriter.repaintRightEdge`, its
-phantom right-edge repaint, was written against a row that *wraps*. With
-autowrap off it may have nothing left to do, or may need adjusting; an
-over-wide last-row card on Apple Terminal (light and dark) decides, then the
-same card on iTerm2 with ambiguous-wide on, Ghostty, Warp, kitty and tmux.
-`Stress --selfcheck` passes; it draws no terminal.
+**Apple Terminal first, by card — and kept on until then.**
+`FrameDiffWriter.repaintRightEdge`, its phantom right-edge repaint, was written
+against a row that *wraps*, and so was its clip's bet that an over-advancer's
+peak may end on the last cell. With autowrap off the repaint may have
+nothing left to do, or may need adjusting; an over-wide last-row card on Apple
+Terminal (light and dark), run once with `printf '\e[?7l'` sent by hand since
+TUIkit no longer sends it there, decides, then the same card on iTerm2 with
+ambiguous-wide on, Ghostty, Warp, kitty and tmux. `Stress --selfcheck`
+passes; it draws no terminal.
 
 | Host | Over-wide last row stays on its row | Bottom row does not scroll the screen | Apple's right-edge repaint still needed |
 |---|---|---|---|
-| Apple Terminal (light, dark) | UNMEASURED | UNMEASURED | UNMEASURED |
+| Apple Terminal (light, dark) | UNMEASURED; autowrap kept on | UNMEASURED | UNMEASURED |
 | iTerm2, ambiguous-wide on | UNMEASURED | UNMEASURED | — |
 | Ghostty | UNMEASURED | UNMEASURED | — |
 | Warp | UNMEASURED | UNMEASURED | — |

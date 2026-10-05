@@ -34,24 +34,30 @@ exchange Ghostty already gets for mode 2027 at no extra round trip. About two
 hours. The saving is small (0.8% of the tour's bytes), so this is worth doing
 only if a probe finds a host that takes the markers badly.
 
-### B-G2-2. Autowrap is off everywhere before the over-wide last-row cards
+### B-G2-2. Autowrap is off everywhere but Apple Terminal, which waits for its card
 
 *V5 (K3).*
 
-**Shipped:** `CSI ? 7 l` on every host from startup (and on resume),
-`CSI ? 7 h` on every way out and in the fatal-signal debt. The study asks for a
-card session on Apple Terminal first, because its right-edge phantom repaint
-(`FrameDiffWriter.repaintRightEdge`) was written against a row that wraps. The
-repaint writes by absolute position, erasing and redrawing the last two cells,
-so it does not depend on wrapping and should be harmless overdraw at worst; an
-over-advancing cluster at the edge now clamps on its own row instead of
-wrapping into the next or scrolling the screen.
+**Shipped:** `CSI ? 7 l` from startup (and on resume) on every host but Apple
+Terminal; `CSI ? 7 h` on every way out and in the fatal-signal debt, on every
+host (harmless where it was never turned off). The plan makes a card session on
+Apple Terminal the precondition, because its right-edge phantom repaint
+(`FrameDiffWriter.repaintRightEdge`) and its clip's peak guard were written
+against a row that wraps, so Apple Terminal keeps the terminal's default
+(`Terminal.keepsAutowrap`): named by the environment, it is never sent `?7l`;
+reached over ssh, it is sent `?7h` as soon as the startup exchange names it,
+before the first frame. (The first cut of this step shipped `?7l` to Apple
+Terminal too; review found that its clip lets an over-advancer's peak end on the
+last cell, where with autowrap off the cursor is pinned and the `CUB` repair
+lands one column short.)
 
 **The fuller version:** the cards (`Terminal-compatibility.md`, "Autowrap off
 while the app runs": an over-wide last row on Apple Terminal light and dark,
-then iTerm2 with ambiguous-wide on, Ghostty, Warp, kitty and tmux). If Apple
-Terminal's phantom cells no longer appear with autowrap off, the repaint and
-its per-row overdraw can go: about half a day after the cards.
+with `?7l` sent by hand, then iTerm2 with ambiguous-wide on, Ghostty, Warp,
+kitty and tmux). If Apple Terminal behaves, dropping `keepsAutowrap` turns it
+on there, and its clip must then stop an over-advancer's peak short of the
+last cell; if its phantom cells no longer appear, the repaint and its per-row
+overdraw can go. About half a day after the cards.
 
 ### B-G2-3. The keypad's Tab and Space carry the numeric pad in their SS3 spelling
 
