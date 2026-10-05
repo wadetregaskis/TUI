@@ -37,8 +37,6 @@
   "BlurReplaceTransition.configuration",
   "BlurReplaceTransition.init(configuration:)",
   "ContentToolbarPlacement",
-  "ContentTransition.symbolEffect",
-  "ContentTransition.symbolEffect(_:options:)",
   "CoordinateSpace.named(_:)",
   "CoordinateSpaceProtocol.named(_:)",
   "CoordinateSpaceProtocol.scrollView",
@@ -219,8 +217,6 @@
   "Transaction.dismissBehavior",
   "Transition.blurReplace",
   "Transition.blurReplace(_:)",
-  "Transition.symbolEffect",
-  "Transition.symbolEffect(_:options:)",
   "UnifiedCompactWindowToolbarStyle",
   "UnifiedCompactWindowToolbarStyle.init()",
   "UnifiedCompactWindowToolbarStyle.init(showsTitle:)",
@@ -297,9 +293,6 @@
   "View.shadow(color:radius:x:y:)",
   "View.strikethrough(_:pattern:color:)",
   "View.swipeActions(edge:allowsFullSwipe:content:)",
-  "View.symbolEffect(_:options:isActive:)",
-  "View.symbolEffect(_:options:value:)",
-  "View.symbolEffectsRemoved(_:)",
   "View.tabBarMinimizeBehavior(_:)",
   "View.tabViewSearchActivation(_:)",
   "View.task(id:name:priority:file:line:_:)",
@@ -325,8 +318,7 @@
   "VisualEffect.rotationEffect(_:anchor:)",
   "VisualEffect.scaleEffect(_:anchor:)",
   "VisualEffect.scaleEffect(x:y:anchor:)",
-  "VisualEffect.transformEffect(_:)",
-  "WiggleSymbolEffect.custom(angle:)"
+  "VisualEffect.transformEffect(_:)"
  ],
  "labelDeviations": [
   "EdgeInsets.init(_:)",

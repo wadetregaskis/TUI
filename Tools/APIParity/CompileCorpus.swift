@@ -2289,3 +2289,32 @@ private struct SizeDependentShapes: View {
         }
     }
 }
+
+// MARK: - Symbol effects (D6M A35)
+
+#if canImport(Symbols)
+    import Symbols
+
+    /// SwiftUI's own symbol-effect examples, over Apple's Symbols types.
+    @MainActor
+    private struct SymbolEffectShapes: View {
+        @State private var counter = 0
+        @State private var showing = true
+
+        var body: some View {
+            VStack {
+                Image(systemName: "bolt.slash.fill").symbolEffectsRemoved()
+                Image(systemName: "folder.fill.badge.person.crop")
+                if showing {
+                    Image(systemName: "star").transition(.symbolEffect(.appear))
+                    Image(systemName: "star.fill").transition(.symbolEffect)
+                }
+                Image(systemName: counter.isMultiple(of: 2) ? "play" : "pause")
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .symbolEffect(.pulse)
+            .symbolEffect(.bounce, value: counter)
+            .symbolEffect(.variableColor.iterative, options: .repeating, isActive: showing)
+        }
+    }
+#endif

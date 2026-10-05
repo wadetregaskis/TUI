@@ -130,6 +130,10 @@ private enum ImportScan {
         "Synchronization", "DequeModule",
         "Darwin", "Glibc", "Musl", "WASILibc", "ucrt", "WinSDK", "os",
         "CoreGraphics", "CoreText", "ImageIO", "UniformTypeIdentifiers",
+        // The symbol effects' types (decisions A35). Checked 2026-10-05 as the
+        // rest were: with only `import Symbols`, `NSColor` is not in scope, and
+        // neither is SwiftUICore's `FormatStyle.offset(to:)`.
+        "Symbols",
     ]
 
     /// The kinds a scoped import names (`import struct AppKit.NSColor`).

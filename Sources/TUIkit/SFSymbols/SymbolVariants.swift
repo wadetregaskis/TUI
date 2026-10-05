@@ -194,6 +194,11 @@ public struct _SymbolIcon: View {
 
     @Environment(\.symbolVariants) private var variants
 
+    /// The pulse or breathe a `symbolEffect` above asks of this glyph
+    /// (decisions A35); `nil` almost everywhere.
+    @Environment(\.symbolGlyphEffect) private var effect
+
+    @ViewBuilder
     public var body: some View {
         // Nothing at all where the symbol would not really draw. ``Label`` never
         // reaches this — it drops the icon *and* its gap up front — but
@@ -201,7 +206,12 @@ public struct _SymbolIcon: View {
         // to, so the check has to live where the glyph is emitted. Asked of the
         // base name, as ``Label`` asks it: the variant chooses the cut, not
         // whether there is a symbol.
-        Text(verbatim: SFSymbol.canRender(named: name) ? Self.glyph(for: name, variants: variants) : "")
+        let glyph = SFSymbol.canRender(named: name) ? Self.glyph(for: name, variants: variants) : ""
+        if let effect, !glyph.isEmpty {
+            _SymbolEffectGlyph(glyph: glyph, effect: effect)
+        } else {
+            Text(verbatim: glyph)
+        }
     }
 
     /// The glyph for `name` under `variants`, falling back to the base symbol.
@@ -224,5 +234,6 @@ public struct _SymbolIcon: View {
 extension _SymbolIcon: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _variants.resolveEnvironment(environment)
+        _effect.resolveEnvironment(environment)
     }
 }
