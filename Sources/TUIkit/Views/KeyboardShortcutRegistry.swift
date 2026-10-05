@@ -32,7 +32,13 @@
 /// (`MouseEventDispatcher`, `KeyEventDispatcher`): touched only from the
 /// main run loop (render pass registration + input dispatch).
 final class KeyboardShortcutRegistry: @unchecked Sendable {
-    private var actions: [KeyboardShortcut.Trigger: () -> Void] = [:]
+    /// An app shortcut's action, and whether a held key's repeats run it again.
+    private struct Entry {
+        let repeats: Bool
+        let action: () -> Void
+    }
+
+    private var actions: [KeyboardShortcut.Trigger: Entry] = [:]
 
     /// A framework default, and whether the view that registered it held the
     /// focus.
@@ -52,8 +58,15 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     }
 
     /// Registers `action` for `shortcut`; the last registration in a frame wins.
-    func register(_ shortcut: KeyboardShortcut, action: @escaping () -> Void) {
-        actions[shortcut.trigger] = action
+    ///
+    /// - Parameter repeats: Whether a held key's repeats run the action again.
+    ///   A repeat is told from a press only where the terminal speaks the kitty
+    ///   keyboard protocol; in a legacy encoding every repeat is a press and
+    ///   runs it. A repeat that does not run it is still taken, so it reaches
+    ///   nothing else: holding a button's shortcut never falls through to
+    ///   whatever the key means further down.
+    func register(_ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void) {
+        actions[shortcut.trigger] = Entry(repeats: repeats, action: action)
     }
 
     /// Registers a framework default for `shortcut`, which fires only when no
@@ -81,6 +94,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// ``KeyboardShortcut/trigger(for:)``, shared with the row-shortcut table.
     func trigger(for event: KeyEvent) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
+        if event.phase == .repeat, let entry = actions[trigger], !entry.repeats { return true }
         return run(trigger)
     }
 
@@ -102,7 +116,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// Runs the registered action for `trigger`, reporting whether there was one:
     /// the app's, else the framework default's.
     private func run(_ trigger: KeyboardShortcut.Trigger) -> Bool {
-        guard let action = actions[trigger] ?? defaults[trigger]?.action else { return false }
+        guard let action = actions[trigger]?.action ?? defaults[trigger]?.action else { return false }
         action()
         return true
     }

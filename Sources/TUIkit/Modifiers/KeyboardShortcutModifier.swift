@@ -112,15 +112,19 @@ enum KeyboardShortcutRegistrar {
     /// and a `.dimmed()` subtree or the page beneath a modal is handed a
     /// throwaway one.
     ///
+    /// - Parameter repeats: Whether a held key's repeats run the action again
+    ///   (``ButtonRepeatBehavior/enabled``); see
+    ///   ``KeyboardShortcutRegistry/register(_:repeats:action:)``.
     /// - Returns: `false` outside a running app, where there is no registry and
     ///   nothing was registered — so the caller declares nothing either.
     @MainActor
     @discardableResult
     static func register(
-        _ shortcut: KeyboardShortcut, action: @escaping () -> Void, context: RenderContext
+        _ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void,
+        context: RenderContext
     ) -> Bool {
         guard let registry = context.environment.keyboardShortcutRegistry else { return false }
-        registry.register(shortcut, action: action)
+        registry.register(shortcut, repeats: repeats, action: action)
         return true
     }
 
@@ -151,7 +155,7 @@ enum KeyboardShortcutRegistrar {
     /// declines for both, rather than only for the inner one it sits above.
     @MainActor
     static func declare(
-        _ shortcut: KeyboardShortcut, action: @escaping () -> Void,
+        _ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void,
         carrier: KeyboardShortcutAssignment, context: RenderContext
     ) {
         let tracker = context.environment.volatileReadTracker
@@ -169,7 +173,7 @@ enum KeyboardShortcutRegistrar {
             EffectJournal.Entry(
                 kind: kind, channelToken: context.environment.keyChannelToken
             ) { replay in
-                register(shortcut, action: action, context: replay)
+                register(shortcut, repeats: repeats, action: action, context: replay)
             })
     }
 }

@@ -428,7 +428,8 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                 // Read here rather than in the closure: the environment is out
                 // of reach by the time a key arrives, exactly as the menu's
                 // dismiss action is.
-                extras: context.environment.buttonKeyExtras)
+                extras: context.environment.buttonKeyExtras,
+                repeats: context.environment.buttonRepeatBehavior == .enabled)
             // `ActionHandler` is rebuilt from `focusID` on every frame, so it
             // agrees with the declaration by construction — see
             // ``PersistedFocusable``.
@@ -583,12 +584,15 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             // render side effect when it was planted above one, where a served
             // frame would leave the offer standing. See
             // `KeyboardShortcutRegistrar`.
+            // A held shortcut repeats the action only under
+            // `.buttonRepeatBehavior(.enabled)`, as a held Return does.
+            let repeats = context.environment.buttonRepeatBehavior == .enabled
             if let resolvedShortcut, !context.isMeasuring,
                 KeyboardShortcutRegistrar.register(
-                    resolvedShortcut, action: effectiveAction, context: context)
+                    resolvedShortcut, repeats: repeats, action: effectiveAction, context: context)
             {
                 KeyboardShortcutRegistrar.declare(
-                    resolvedShortcut, action: effectiveAction, carrier: assignment,
+                    resolvedShortcut, repeats: repeats, action: effectiveAction, carrier: assignment,
                     context: context)
             }
         }
@@ -791,18 +795,39 @@ extension _ButtonCore {
 // MARK: - Repeat behaviour
 
 /// The options for controlling the repeatability of button actions.
+///
+/// A button can be held three ways, as in SwiftUI: the mouse, its keyboard
+/// shortcut, and Return or Space while it has the focus. Under ``enabled``
+/// each repeats the action; under ``automatic`` and ``disabled`` each acts
+/// once.
+///
+/// **The keyboard half needs the terminal to report repeats.** A terminal in
+/// its legacy key encodings resends a held key at its own autorepeat rate and
+/// reports no release, and each copy is indistinguishable from a fresh press —
+/// so there a held Return, Space or shortcut acts again with every copy,
+/// whatever the behavior. Where the terminal speaks the kitty keyboard
+/// protocol, which TUIkit turns on wherever the terminal answers its query, a
+/// repeat is reported as one, and the behavior holds: ``enabled`` acts on the
+/// press and on each repeat, at the terminal's own key-repeat rate; the other
+/// two act on the press alone. ``EnvironmentValues/keyboardReporting``'s
+/// ``KeyboardReporting/reportsRepeats`` says which is the case. The mouse half
+/// works on every terminal that reports clicks.
 public struct ButtonRepeatBehavior: Hashable, Sendable {
     private enum Kind: Hashable, Sendable { case automatic, enabled, disabled }
     private let kind: Kind
 
-    /// The automatic repeat behavior: a button acts once, on the release.
+    /// The automatic repeat behavior: a button acts once — on the mouse's
+    /// release, and on a key's press.
     public static let automatic = Self(kind: .automatic)
 
     /// Repeat is enabled: holding the mouse button on a button performs its
-    /// action at once, then at the auto-repeat cadence until the release.
+    /// action at once, then at the auto-repeat cadence until the release; a
+    /// held key performs it on the press and on each of the key's repeats.
     public static let enabled = Self(kind: .enabled)
 
-    /// Repeat is disabled.
+    /// Repeat is disabled: a button acts once however long it is held —
+    /// by the keyboard, only where the terminal reports repeats (see the
+    /// type's discussion).
     public static let disabled = Self(kind: .disabled)
 }
 
@@ -830,10 +855,15 @@ extension View {
     ///
     /// With `.enabled`, pressing and holding the mouse on the button performs
     /// its action at once and then at the auto-repeat cadence until the
-    /// release, as a ``Stepper``'s arrows do. A held key repeats on its own: the
-    /// terminal sends the key again for as long as it is down, and every press
-    /// activates — so `.disabled` cannot stop a held Return or Space repeating;
-    /// that needs the terminal to report key releases (decisions A4).
+    /// release, as a ``Stepper``'s arrows do, and holding Return, Space or
+    /// the button's keyboard shortcut performs it on the press and on each
+    /// repeat of the key. Otherwise each acts once.
+    ///
+    /// The keyboard half needs a terminal that reports a held key's repeats as
+    /// repeats: one speaking the kitty keyboard protocol
+    /// (``KeyboardReporting/reportsRepeats``). A terminal in its legacy
+    /// encodings sends each repeat as another press, so there a held key acts
+    /// again and again under every behavior, `.disabled` included.
     ///
     /// - Parameter behavior: The repeat behavior.
     /// - Returns: A view whose buttons repeat, or do not, as `behavior` says.

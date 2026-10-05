@@ -61,6 +61,12 @@ final class ActionHandler: Focusable {
     /// focus — a disclosure's Left and Right. See ``ButtonKeyExtras``.
     let extras: ButtonKeyExtras?
 
+    /// Whether a held trigger key's repeats run the action again. A repeat is
+    /// told from a press only where the terminal speaks the kitty keyboard
+    /// protocol; in a legacy encoding every repeat arrives as a press and
+    /// runs it whatever this says.
+    let repeats: Bool
+
     /// Creates an action handler.
     ///
     /// - Parameters:
@@ -69,18 +75,21 @@ final class ActionHandler: Focusable {
     ///   - canBeFocused: Whether this element can receive focus. Defaults to `true`.
     ///   - triggerKeys: The keys that trigger the action. Defaults to Enter and Space.
     ///   - extras: Extra keys supplied by an enclosing control, if any.
+    ///   - repeats: Whether a held trigger key's repeats run the action again.
     init(
         focusID: String,
         action: @escaping () -> Void,
         canBeFocused: Bool = true,
         triggerKeys: Set<Key> = [.enter, .space],
-        extras: ButtonKeyExtras? = nil
+        extras: ButtonKeyExtras? = nil,
+        repeats: Bool = true
     ) {
         self.focusID = focusID
         self.action = action
         self.canBeFocused = canBeFocused
         self.triggerKeys = triggerKeys
         self.extras = extras
+        self.repeats = repeats
     }
 }
 
@@ -96,6 +105,9 @@ extension ActionHandler {
             return true
         }
         guard triggerKeys.contains(event.key) else { return false }
+        // A repeat that does not act is still taken: a held Return must not
+        // fall through to the default button once the focused one declines.
+        if event.phase == .repeat, !repeats { return true }
         action()
         return true
     }

@@ -119,14 +119,26 @@ struct KittyKeyboardInputTests {
         #expect(harness.quits == 1)
     }
 
-    @Test("A repeat is a press to every layer")
+    @Test("A repeat is a press to the layers that do not ask which it is")
     func repeatIsAPress() {
         let harness = InputChainHarness()
-        let count = Counter()
+        let toggles = Counter()
+        let seen = Counter()
+        let isOn = Box(false)
         harness.play([KeyEvent(key: .enter), KeyEvent(key: .enter, phase: .repeat)]) {
-            Button("Go") { count.value += 1 }
+            VStack {
+                // A focused toggle acts on each (only a button's repeats are
+                // governed, by `buttonRepeatBehavior`).
+                Toggle("On", isOn: Binding(get: { isOn.value }, set: { isOn.value = $0; toggles.value += 1 }))
+            }
+            .onKeyEvent { event in
+                // A view handler hears the repeat as a key like any other.
+                if event.key == .enter { seen.value += 1 }
+                return false
+            }
         }
-        #expect(count.value == 2)
+        #expect(seen.value == 2)
+        #expect(toggles.value == 2)
     }
 
     @Test("A default onKeyPress hears the press and its repeats, never the release")
@@ -189,6 +201,10 @@ struct KittyKeyboardInputTests {
     }
 
     private final class Counter { var value = 0 }
+    private final class Box<Value> {
+        var value: Value
+        init(_ value: Value) { self.value = value }
+    }
     private final class Log { var entries: [String] = [] }
     private final class TextBox {
         var value: String
