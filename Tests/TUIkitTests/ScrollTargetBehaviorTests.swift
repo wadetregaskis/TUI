@@ -322,6 +322,26 @@ struct ScrollTargetBehaviorTests {
         #expect(consumed == false)
     }
 
+    @Test("The framework's own scroller — a tall inline menu's — does not take the page's behaviour")
+    func chromeScrollerIgnoresBehaviour() {
+        let frames = Frames(width: 30, height: 14)
+        let view = VStack {
+            Menu("Pick") {
+                ForEach(0..<60, id: \.self) { index in Button("item \(index)") {} }
+            }
+            .menuStyle(.inline)
+        }
+        .scrollTargetBehavior(.paging)
+        frames.render(view)
+        #expect(frames.scrollView?.maxOffset ?? 0 > 0, "the menu scrolls inside its box")
+        // Over the menu's rows, which sit at the leading edge.
+        frames.tui.mouseEventDispatcher.setActiveSupport(.standard)
+        _ = frames.tui.mouseEventDispatcher.dispatch(
+            MouseEvent(button: .scrollDown, phase: .scrolled, x: 4, y: 6))
+        frames.render(view)
+        #expect(frames.scrollView?.scrollOffset == 3, "three lines a tick, not a page")
+    }
+
     @Test("A released scrollbar thumb settles on the nearest page")
     func thumbReleaseSettles() {
         let handler = ScrollViewHandler(focusID: "t")

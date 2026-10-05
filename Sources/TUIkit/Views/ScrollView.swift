@@ -133,7 +133,8 @@ public struct ScrollView<Content: View>: View {
             content: content,
             explicitFocusID: explicitFocusID,
             isDisabled: isDisabled,
-            isFocusStop: isFocusStop
+            isFocusStop: isFocusStop,
+            isChrome: isChrome
         )
         .disabled(isDisabled)
         .paintingScrollContentBackground(reads: !isChrome)
@@ -185,10 +186,15 @@ extension ScrollView {
 
     /// This scroll view as framework chrome: the scroller a menu, a sheet or
     /// a framed container puts around content too tall for it, rather than a
-    /// scrollable the app wrote. It does not answer
-    /// ``TUIkit/View/scrollContentBackground(_:)`` — the surface around it
-    /// paints its own background, and the content inside it still reads the
-    /// setting for its own scrollables.
+    /// scrollable the app wrote. It does not answer the scroll modifiers an
+    /// app states for its own scroll views, which a subtree passes down to
+    /// whatever is inside it:
+    /// - ``TUIkit/View/scrollContentBackground(_:)`` — the surface around it
+    ///   paints its own background;
+    /// - ``TUIkit/View/scrollTargetBehavior(_:)`` — it scrolls a line a step,
+    ///   as a menu's rows always have.
+    ///
+    /// The content inside it still reads them, for its own scrollables.
     func asChrome() -> ScrollView<Content> {
         var copy = self
         copy.isChrome = true
@@ -261,6 +267,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     let explicitFocusID: String?
     let isDisabled: Bool
     var isFocusStop = true
+    /// Whether this scroll view is the framework's own — see
+    /// ``ScrollView/asChrome()``, which says what it does not answer.
+    var isChrome = false
     /// Whether this is the copy of a scroll view that draws its content inside
     /// its content margins — see ``margined(context:)``. Stops that copy from
     /// making another of itself.

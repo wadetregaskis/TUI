@@ -153,9 +153,14 @@ extension _ScrollViewCore {
     /// that recorded them (``recordTargetingGeometry(handler:contentWidth:)``,
     /// and the content's reply), so a measure pass, which records neither,
     /// leaves them as the last drawn frame had them.
+    ///
+    /// The framework's own scrollers (``ScrollView/asChrome()``) — a tall
+    /// menu's column, a sheet's or a framed container's content — take no
+    /// behaviour: the page's `.paging` is for the page's scroll views, and
+    /// paged an inline menu's rows a screenful a wheel tick.
     func captureScrollTargeting(handler: ScrollViewHandler, context: RenderContext) {
-        let behavior = context.environment.scrollTargetBehavior
-        guard !(behavior is _FreeScrollTargetBehavior) else {
+        let behavior = isChrome ? nil : context.environment.scrollTargetBehavior
+        guard let behavior, !(behavior is _FreeScrollTargetBehavior) else {
             if handler.scrollTargeting != nil { handler.scrollTargeting = nil }
             return
         }
