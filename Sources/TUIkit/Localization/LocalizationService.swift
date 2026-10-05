@@ -68,6 +68,10 @@ public final class LocalizationService: @unchecked Sendable {
     /// own keys and override framework defaults.
     private var appTranslations: [String: [String: String]] = [:]
 
+    /// The app's own string tables, read for a key the dictionaries above do
+    /// not hold — see ``BundleStringTables``. Used under `lock`.
+    private let bundleTables: BundleStringTables
+
     /// Lock for thread-safe access
     private let lock = NSLock()
 
@@ -86,6 +90,7 @@ public final class LocalizationService: @unchecked Sendable {
     /// — and then to English.
     public init() {
         self.configDirectoryOverride = nil
+        self.bundleTables = BundleStringTables()
 
         // Compute initial language before assignment to avoid didSet side effects.
         let initial: Language
@@ -106,9 +111,11 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// Creates a localization service with a custom config directory.
     ///
-    /// Used for testing to isolate file system access.
-    init(configDirectoryPath: String) {
+    /// Used for testing to isolate file system access, and to read string
+    /// tables from a bundle of the test's own in place of the main bundle.
+    init(configDirectoryPath: String, defaultBundle: Bundle = .main) {
         self.configDirectoryOverride = configDirectoryPath
+        self.bundleTables = BundleStringTables(defaultBundle: defaultBundle)
 
         let initial: Language
         if let stored = Self.loadLanguagePreference(from: configDirectoryPath) {
@@ -224,12 +231,22 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// Resolves a localized string using a dot-notation key.
     ///
-    /// Falls back to English if the key is missing in the current language,
-    /// then to the key itself if not found in English.
+    /// Falls back to English if the key is missing in the current language.
+    /// A key neither holds is looked up in the main bundle's `Localizable`
+    /// string table, as SwiftUI looks a key up (see ``BundleStringTables``),
+    /// and is its own text if that has none either.
     ///
     /// - Parameter key: Dot-notation path (e.g., "button.ok", "error.invalid_input")
     /// - Returns: The localized string, or the key if not found.
     public func string(for key: String) -> String {
+        string(for: key, tableName: nil, bundle: nil)
+    }
+
+    /// Resolves `key` as ``string(for:)`` does, except that a key the
+    /// dictionaries miss is looked up in the table named `tableName` of
+    /// `bundle` — `Localizable` and the main bundle where `nil`, as SwiftUI's
+    /// `Text(_:tableName:bundle:comment:)` reads them.
+    func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
         lock.lock()
         defer { lock.unlock() }
 
@@ -242,6 +259,12 @@ public final class LocalizationService: @unchecked Sendable {
         if currentLanguage != .english,
             let value = _translationValue(key, in: .english)
         {
+            return value
+        }
+
+        // Then the app's own string table, which costs a stored Bool for an
+        // app that ships none.
+        if let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: currentLanguage) {
             return value
         }
 

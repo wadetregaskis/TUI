@@ -53,9 +53,10 @@ import Foundation
 ///   is something to substitute, and an unrecognised `%` sequence is passed
 ///   through either way.
 ///
-/// > Note: SwiftUI's `tableName:bundle:comment:` parameters are absent —
-///   TUIkit's localization is a registered dictionary, with no bundles or
-///   string tables for them to name.
+/// A key TUIkit's dictionaries do not hold is looked up in the main bundle's
+/// `Localizable.strings`, as SwiftUI looks it up, and
+/// ``Text/init(_:tableName:bundle:comment:)`` names another table or bundle.
+/// See ``LocalizationService/string(for:)``.
 public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// The lookup key: the literal, with `%@` where each interpolation was.
     let key: String

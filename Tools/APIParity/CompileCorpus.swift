@@ -2226,3 +2226,20 @@ private struct InteractiveResizeShapes: View {
             }
     }
 }
+
+// MARK: - String tables (D6M A14)
+
+/// SwiftUI's full localized-text initialiser, and the variable-key idiom its
+/// documentation gives.
+@MainActor
+private struct StringTableShapes: View {
+    let someString = "pencil"
+
+    var body: some View {
+        VStack {
+            Text("onboarding.welcome", tableName: "Onboarding", bundle: .main, comment: "Shown once")
+            Text("pencil", comment: "A drawing tool")
+            Text(LocalizedStringKey(someString))
+        }
+    }
+}

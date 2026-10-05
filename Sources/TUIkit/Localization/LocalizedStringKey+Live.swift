@@ -74,13 +74,18 @@ extension LocalizedStringKey.StringInterpolation {
 /// up as it always is, with each live argument read at the frame's date.
 struct LocalizedKeySource: LiveTextSource, Equatable {
     let key: LocalizedStringKey
+    /// The string table the key is read from where TUIkit's dictionaries miss
+    /// it, as `Text(_:tableName:bundle:comment:)` named it.
+    var tableName: String?
+    var bundle: Bundle?
 
     func text(at date: Date, in environment: LiveTextEnvironment) -> String {
         var arguments = key.arguments
         for (index, live) in key.liveArguments where arguments.indices.contains(index) {
             arguments[index] = live.source.text(at: date, in: environment)
         }
-        return LocalizedStringKey(key: key.key, arguments: arguments).localized
+        let template = LocalizationService.shared.string(for: key.key, tableName: tableName, bundle: bundle)
+        return arguments.isEmpty ? template : LocalizedStringKey.substituting(arguments, into: template)
     }
 
     func nextChange(after date: Date, in environment: LiveTextEnvironment) -> Date? {

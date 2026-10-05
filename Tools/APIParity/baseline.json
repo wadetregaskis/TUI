@@ -204,7 +204,6 @@
   "Text.WritingDirectionStrategy.default",
   "Text.WritingDirectionStrategy.layoutBased",
   "Text.customAttribute(_:)",
-  "Text.init(_:tableName:bundle:comment:)",
   "Text.strikethrough(_:color:)",
   "Text.strikethrough(_:pattern:color:)",
   "Text.underline(_:color:)",

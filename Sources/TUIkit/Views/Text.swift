@@ -117,9 +117,35 @@ public struct Text: View, Equatable {
     /// stands — and neither is a `String` you pass, nor ``init(verbatim:)``.
     /// The rules are Foundation's, measured: see `InlineMarkdown`.
     ///
-    /// - Parameter key: The key to look up.
-    public init(_ key: LocalizedStringKey) {
-        let template = LocalizationService.shared.string(for: key.key)
+    /// ## String tables
+    ///
+    /// The key is looked up in the dictionaries ``LocalizationService`` holds
+    /// — TUIkit's own strings and any the app registered — and, where they do
+    /// not hold it, in the string table `tableName` of `bundle`: the app's
+    /// `Localizable.strings` in the main bundle unless they say otherwise, as
+    /// SwiftUI reads them. The table is read in the app's language, from the
+    /// `.lproj` that matches it, then from the English one.
+    ///
+    /// ```swift
+    /// Text("greeting", tableName: "Onboarding", bundle: .module)
+    /// ```
+    ///
+    /// `.strings` tables only: a String Catalog (`.xcstrings`) is compiled
+    /// into them by Xcode alone, so a SwiftPM app ships `.strings` files or
+    /// registers a dictionary.
+    ///
+    /// - Parameters:
+    ///   - key: The key for a string in the table identified by `tableName`.
+    ///   - tableName: The name of the string table to search. If `nil`, use
+    ///     the table in the `Localizable.strings` file.
+    ///   - bundle: The bundle containing the strings file. If `nil`, use the
+    ///     main bundle.
+    ///   - comment: Contextual information about this key-value pair, for a
+    ///     translator; not read.
+    public init(
+        _ key: LocalizedStringKey, tableName: String? = nil, bundle: Bundle? = nil, comment: StaticString? = nil
+    ) {
+        let template = LocalizationService.shared.string(for: key.key, tableName: tableName, bundle: bundle)
         // A byte scan first: most keys hold nothing Markdown could act on, and
         // those take the plain path exactly as before.
         if InlineMarkdown.mightContainMarkup(template) {
@@ -131,7 +157,11 @@ public struct Text: View, Equatable {
         self.init(
             verbatim: key.arguments.isEmpty ? template : LocalizedStringKey.substituting(key.arguments, into: template))
         if !key.liveArguments.isEmpty {
-            runs = [Run(text: content, style: TextStyle(), live: LiveTextBox(LocalizedKeySource(key: key)))]
+            runs = [
+                Run(
+                    text: content, style: TextStyle(),
+                    live: LiveTextBox(LocalizedKeySource(key: key, tableName: tableName, bundle: bundle)))
+            ]
         }
     }
 
