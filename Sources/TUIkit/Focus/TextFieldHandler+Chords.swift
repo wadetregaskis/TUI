@@ -15,7 +15,7 @@
 /// another, so it is written down once, here, and the field's key handling is
 /// only a switch over the result.
 enum TextFieldChord: Equatable {
-    /// Ctrl-C, X, V, Z and U: copy, cut, paste, undo and erase, the chords that
+    /// Ctrl-C, X, V, Z, Shift-Z and U: copy, cut, paste, undo, redo and erase, the chords that
     /// stand in for the Command-key ones. Ctrl-V is read here before the shared
     /// table, where it is the editor's page down, which a single line has no
     /// use for.
@@ -37,7 +37,7 @@ enum TextFieldChord: Equatable {
             return
         }
         guard event.ctrl else { return nil }
-        if let command = StandInEditingCommand(control: character) {
+        if let command = StandInEditingCommand(control: character, shift: event.shift) {
             self = .standIn(command)
         } else if let command = TextEditingCommand(control: character, alt: event.alt) {
             self = .shared(command)
@@ -91,6 +91,7 @@ extension TextFieldHandler {
             cutSelection()
         case .paste: paste()
         case .undo: undo()
+        case .redo: redo()
         case .erase: eraseAll()
         }
         return true

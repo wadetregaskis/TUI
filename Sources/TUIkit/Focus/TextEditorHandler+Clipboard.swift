@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 // MARK: - Command-Key Stand-Ins
 
 extension TextEditorHandler {
@@ -17,10 +19,10 @@ extension TextEditorHandler {
     /// is not bound: one chord erasing a whole document is a different thing.
     func standInCommand(for event: KeyEvent) -> StandInEditingCommand? {
         guard event.ctrl, case .character(let character) = event.key,
-            let command = StandInEditingCommand(control: character)
+            let command = StandInEditingCommand(control: character, shift: event.shift)
         else { return nil }
         switch command {
-        case .copy, .cut, .undo: return command
+        case .copy, .cut, .undo, .redo: return command
         case .paste, .erase: return nil
         }
     }
@@ -42,22 +44,73 @@ extension TextEditorHandler {
                 deleteSelection(span)
             }
             return true
-        case .undo, .paste, .erase:
+        case .undo, .redo, .paste, .erase:
             return false
         }
     }
 
-    /// Ctrl-Z: puts the text back as it was before the newest edit, with the
-    /// cursor where it was, and drops the selection. With nothing to undo it
-    /// does nothing, and the key is still the editor's.
+    /// Ctrl-Z, the stand-in for ⌘Z: undoes the app's newest step where there
+    /// is an app — the editor's last edit, unless the app registered something
+    /// since — and otherwise puts the text back as it was before the newest
+    /// edit, with the cursor where it was, and drops the selection. With
+    /// nothing to undo it does nothing, and the key is still the editor's.
     func undo() {
-        guard let previous = undoHistory.popLast() else { return }
-        write(previous.text)
+        if let undoManager {
+            _ = UndoKey.undo.perform(on: undoManager)
+        } else {
+            _ = undoOwnStep()
+        }
+    }
+
+    /// Ctrl-Shift-Z, the stand-in for ⇧⌘Z, where the terminal tells it from
+    /// Ctrl-Z: redoes, as ``undo()`` undoes.
+    func redo() {
+        if let undoManager {
+            _ = UndoKey.redo.perform(on: undoManager)
+        } else {
+            _ = redoOwnStep()
+        }
+    }
+
+    /// Forgets the history, and the steps registered for it, if the app has
+    /// replaced the text since the editor last wrote it.
+    func forgetHistoryIfReplaced() {
+        if undoHistory.forgetIfReplaced(current: text.wrappedValue), let undoManager {
+            TextUndoBridge.forgetEdits(of: self, on: undoManager)
+        }
+    }
+
+    /// Restores `state`, as an undo or a redo does.
+    private func restore(_ state: (text: String, caret: TextEditorPosition)) {
+        write(state.text)
         selectionAnchor = nil
-        cursor = previous.caret
+        cursor = state.caret
         clampCursor()
         syncDesiredColumn()
     }
+}
+
+// MARK: - AppUndoableText
+
+extension TextEditorHandler: AppUndoableText {
+    func undoOwnStep() -> Bool {
+        // Runs inside the undo manager's own undo, so a replaced text forgets
+        // the history here without touching the manager.
+        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursor)) else { return false }
+        restore(previous)
+        return true
+    }
+
+    func redoOwnStep() -> Bool {
+        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        guard let next = undoHistory.redo(from: (text.wrappedValue, cursor)) else { return false }
+        restore(next)
+        return true
+    }
+}
+
+extension TextEditorHandler {
 
     /// The text `span` covers, its lines joined by line breaks.
     func selectedText(_ span: SelectionSpan) -> String {

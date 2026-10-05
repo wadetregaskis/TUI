@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 /// A focus handler for text field components.
 ///
 /// `TextFieldHandler` manages text editing state and keyboard input for
@@ -190,6 +192,11 @@ final class TextFieldHandler: PersistedFocusable {
 
     /// The text and cursor position before each edit, for Ctrl-Z.
     private var undoHistory = TextUndoHistory<Int>()
+
+    /// The app's undo manager, which the field's edits are registered with —
+    /// set each frame from `\.undoManager`; `nil` outside a running app and in
+    /// a ``SecureField``, where Ctrl-Z undoes the field's own history only.
+    var undoManager: UndoManager?
 
     // MARK: Input suggestions (``View/textInputSuggestions(_:)``)
 
@@ -920,21 +927,76 @@ extension TextFieldHandler {
     /// Pushes the current state onto the undo stack, after forgetting the
     /// history if the app has replaced the text since the field last wrote it.
     /// Every edit calls this before it writes.
+    ///
+    /// In a running app the step is registered with the app's undo manager
+    /// too (``TextUndoBridge``), so Ctrl-minus and the status bar undo it.
     func pushUndoState() {
-        undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        undoHistory.record(text: text.wrappedValue, caret: cursorPosition)
+        forgetHistoryIfReplaced()
+        if undoHistory.record(text: text.wrappedValue, caret: cursorPosition), let undoManager {
+            TextUndoBridge.registerEdit(of: self, on: undoManager)
+        }
     }
 
-    /// Restores the previous text state from the undo stack. After the app has
-    /// replaced the text there is nothing to restore: the history described
-    /// the text that was replaced.
+    /// Forgets the history, and the steps registered for it, if the app has
+    /// replaced the text since the field last wrote it.
+    private func forgetHistoryIfReplaced() {
+        if undoHistory.forgetIfReplaced(current: text.wrappedValue), let undoManager {
+            TextUndoBridge.forgetEdits(of: self, on: undoManager)
+        }
+    }
+
+    /// Ctrl-Z, the stand-in for ⌘Z: undoes the app's newest step where there
+    /// is an app, as ⌘Z undoes the window's on macOS — the field's own last
+    /// edit, unless the app registered something since — and the field's own
+    /// last edit where there is not. After the app has replaced the text there
+    /// is nothing of the field's to restore: the history described the text
+    /// that was replaced.
     func undo() {
-        undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let previous = undoHistory.popLast() else { return }
+        forgetHistoryIfReplaced()
+        if let undoManager {
+            _ = UndoKey.undo.perform(on: undoManager)
+        } else {
+            _ = undoOwnStep()
+        }
+    }
+
+    /// Ctrl-Shift-Z, the stand-in for ⇧⌘Z, where the terminal tells it from
+    /// Ctrl-Z: redoes, as ``undo()`` undoes.
+    func redo() {
+        forgetHistoryIfReplaced()
+        if let undoManager {
+            _ = UndoKey.redo.perform(on: undoManager)
+        } else {
+            _ = redoOwnStep()
+        }
+    }
+
+    /// Restores `state`, as an undo or a redo does.
+    private func restore(_ state: (text: String, caret: Int)) {
         resetSuggestionNavigation()
-        write(previous.text)
-        cursorPosition = min(previous.caret, previous.text.count)
+        write(state.text)
+        cursorPosition = min(state.caret, state.text.count)
         clearSelection()
+    }
+}
+
+// MARK: - AppUndoableText
+
+extension TextFieldHandler: AppUndoableText {
+    func undoOwnStep() -> Bool {
+        // No forgetting of registered steps here: this runs inside the undo
+        // manager's own undo. A replaced text simply has nothing to undo.
+        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursorPosition)) else { return false }
+        restore(previous)
+        return true
+    }
+
+    func redoOwnStep() -> Bool {
+        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        guard let next = undoHistory.redo(from: (text.wrappedValue, cursorPosition)) else { return false }
+        restore(next)
+        return true
     }
 }
 
@@ -952,6 +1014,14 @@ extension TextFieldHandler {
         // starts with the keyboard at the caret and the menu closed.
         suggestionsOpen = false
         resetSuggestionNavigation()
+        // Editing has ended, and with it the field's undo in the app's
+        // history, as a text field's field editor removes its actions when it
+        // resigns on macOS: an undo from elsewhere must not change a field
+        // nobody is in.
+        if let undoManager {
+            TextUndoBridge.forgetEdits(of: self, on: undoManager)
+            undoHistory.forget()
+        }
         // Editing has ended: the commit point for values that apply live —
         // a combo box records its recents here, not just on Enter.
         onEditingChanged?(false)

@@ -185,8 +185,8 @@ extension TextEditingCommand {
 // MARK: - Command-Key Stand-Ins
 
 /// An editing command that a text control binds to a Control chord in place
-/// of the Command-key chord a terminal app never receives: ⌘C, ⌘X, ⌘V and ⌘Z
-/// are Ctrl-C, X, V and Z here, and Ctrl-U erases.
+/// of the Command-key chord a terminal app never receives: ⌘C, ⌘X, ⌘V, ⌘Z and
+/// ⇧⌘Z are Ctrl-C, X, V, Z and Shift-Z here, and Ctrl-U erases.
 ///
 /// A separate table from ``TextEditingCommand``, because the two disagree
 /// about V: here it is paste, and in the Emacs table it is page down. A
@@ -200,17 +200,20 @@ enum StandInEditingCommand: Equatable {
     case paste
     /// Ctrl-Z: undo.
     case undo
+    /// Ctrl-Shift-Z: redo, where the terminal tells it from Ctrl-Z (the kitty
+    /// keyboard protocol); in a legacy encoding it arrives as Ctrl-Z.
+    case redo
     /// Ctrl-U: erase the whole text, not only the text before the caret.
     case erase
 
     /// The command a Control chord names, or `nil` when it names none here.
-    /// Option held as well changes nothing.
-    init?(control character: Character) {
+    /// Option held as well changes nothing; Shift changes Z from undo to redo.
+    init?(control character: Character, shift: Bool = false) {
         switch character {
         case "c", "C": self = .copy
         case "x", "X": self = .cut
         case "v", "V": self = .paste
-        case "z", "Z": self = .undo
+        case "z", "Z": self = shift ? .redo : .undo
         case "u", "U": self = .erase
         default: return nil
         }

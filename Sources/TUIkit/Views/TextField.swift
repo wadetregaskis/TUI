@@ -46,14 +46,23 @@
 /// | Option+Ctrl+A | Select all |
 /// | Ctrl+C / Ctrl+X / Ctrl+V | Copy / cut the selection, paste (with nothing selected, Ctrl+C and Ctrl+X pass on to the app) |
 /// | Ctrl+Z | Undo |
+/// | Ctrl+Shift+Z | Redo, where the terminal tells it from Ctrl+Z (the kitty keyboard protocol) |
 /// | Ctrl+U | Erase the entire field |
 /// | Enter | Trigger onSubmit action |
 ///
-/// Undo takes back one key's change at a time, from the last 50. It has no
-/// grouping of a typing run, as the macOS text system has, so a typed word
-/// takes as many undos as it has letters. It never brings back text the field
-/// did not produce: when the app replaces the bound text, clearing the field
-/// in `onSubmit` or loading other text into it, the field forgets its history.
+/// Each change is registered with the app's undo manager
+/// (``EnvironmentValues/undoManager``), so Ctrl-minus and the status bar's
+/// "undo" take it back too, and Ctrl+Z is the app's undo, as ⌘Z is a window's
+/// on macOS: it undoes the newest step in the app, which is the field's last
+/// change unless the app registered something since. The app's undo manager
+/// makes each event's changes one step, which for a field is one key; outside a
+/// running app, Ctrl+Z takes back one key's change at a time from the field's
+/// own history. Either way the last 50 are kept. As a text field's undo does on
+/// macOS, the field's steps leave the app's history when it loses the focus.
+/// It never brings back text the field did not produce: when the app replaces
+/// the bound text, clearing the field in `onSubmit` or loading other text into
+/// it, the field forgets its history. A ``SecureField`` keeps its own history
+/// and registers nothing with the app's.
 ///
 /// The Emacs-style Control chords name the same commands as in ``TextEditor``,
 /// read from one table, but a field is a single line with a keyboard
@@ -884,6 +893,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             role: context.environment.submitTriggerRole)
         handler.onEditingChanged = onEditingChangedAction
         handler.textContentType = context.environment.textContentType
+        // The app's undo manager, which the field's edits are registered with.
+        // `SecureField` resolves its own handler and leaves this nil: a secure
+        // field's typing is not something to undo from elsewhere.
+        handler.undoManager = context.environment.undoManager
         handler.selectionAffinity = context.environment.textSelectionAffinity
         // One line until a vertical field's render says otherwise, so a field
         // that changes axis between frames does not keep the old one's keys.

@@ -34,6 +34,7 @@
 /// | Ctrl-V | Page down |
 /// | Ctrl-C / Ctrl-X | Copy / cut the selection (with nothing selected, the key passes on) |
 /// | Ctrl-Z | Undo the last change |
+/// | Ctrl-Shift-Z | Redo, where the terminal tells it from Ctrl-Z (the kitty keyboard protocol) |
 /// | Option-← / → | Move by a word |
 /// | Option-B / F | Move by a word (Emacs) |
 /// | Option-Backspace / Delete | Delete the word before / after the cursor |
@@ -52,11 +53,14 @@
 /// never receives, as they do in a field. Copy and cut act on the selection;
 /// with nothing selected they pass the key on, so an app's ⌘C or ⌘X fires, or
 /// `QuitShortcut.ctrlC` quits. Paste arrives through the terminal's own paste,
-/// since Ctrl-V is the page down here. Undo takes back one key's change at a
-/// time, from the last 50, with no grouping of a typing run as the macOS text
-/// system has; and it never brings back text the editor did not produce: when
-/// the app replaces the bound text, loading another document, the editor
-/// forgets its history.
+/// since Ctrl-V is the page down here. Each change is registered with the app's
+/// undo manager (``EnvironmentValues/undoManager``), so Ctrl-minus and the
+/// status bar's "undo" take it back from anywhere, and Ctrl-Z is the app's
+/// undo, as ⌘Z is a window's on macOS. Each event's changes are one step there;
+/// outside a running app Ctrl-Z takes back one key's change at a time from the
+/// editor's own history, from the last 50. It never brings back text the editor
+/// did not produce: when the app replaces the bound text, loading another
+/// document, the editor forgets its history.
 ///
 /// An app's own keyboard shortcut beats most of the Emacs chords. Under the
 /// default ``EnvironmentValues/commandKey`` a SwiftUI ⌘ shortcut arrives as a
@@ -292,6 +296,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
+        // The app's undo manager, which the editor's edits are registered with.
+        handler.undoManager = context.environment.undoManager
         handler.viewportHeight = height
         // Synced each render so the handler's vertical motion preserves the
         // same *visual* column the renderer draws the caret at.

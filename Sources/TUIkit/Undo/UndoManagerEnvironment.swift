@@ -33,6 +33,11 @@ extension EnvironmentValues {
     /// }
     /// ```
     ///
+    /// ``TextField`` and ``TextEditor`` register their own edits with it, so
+    /// undo means something in an app that registers nothing itself; a field's
+    /// leave it when the field loses the focus, as on macOS. A ``SecureField``'s
+    /// do not.
+    ///
     /// ## Undoing in a terminal
     ///
     /// A terminal app has no Edit menu and no ⌘Z. The keys, which an app's own
@@ -40,7 +45,9 @@ extension EnvironmentValues {
     ///
     /// - **Undo:** Ctrl-minus, on every terminal. Most terminals send the same
     ///   byte for Ctrl-_ and Ctrl-/, so those undo too; under the kitty
-    ///   keyboard protocol Ctrl-/ still does.
+    ///   keyboard protocol Ctrl-/ still does. A focused text control's Ctrl-Z,
+    ///   the stand-in for ⌘Z, is this undo too, and its Ctrl-Shift-Z this
+    ///   redo.
     /// - **Redo:** Ctrl-Shift-Z and Ctrl-_ (Ctrl-Shift-minus) where the
     ///   terminal tells them from Ctrl-Z and Ctrl-minus — the kitty keyboard
     ///   protocol, ``KeyboardReporting/reportsShiftedKeys``; and Option-_

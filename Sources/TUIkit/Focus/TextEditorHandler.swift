@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
+
 // MARK: - Text Editor Handler
 
 /// The editing model behind ``TextEditor``: a two-dimensional cursor over a
@@ -83,6 +85,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// The text and caret before each key that changed the text, for Ctrl-Z.
     var undoHistory = TextUndoHistory<TextEditorPosition>()
 
+    /// The app's undo manager, which the editor's edits are registered with —
+    /// set each frame from `\.undoManager`; `nil` outside a running app.
+    var undoManager: UndoManager?
+
     init(focusID: String, text: Binding<String>, canBeFocused: Bool = true) {
         self.focusID = focusID
         self.text = text
@@ -159,11 +165,16 @@ final class TextEditorHandler: PersistedFocusable {
         normalizeStaleState()
         // Before anything writes: a history of text the app has since
         // replaced is forgotten, so undo never brings that text back.
-        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        forgetHistoryIfReplaced()
         let standIn = standInCommand(for: event)
-        // Undo is not an edit to record: it takes the newest record back.
+        // Undo and redo are not edits to record: they move through the
+        // records.
         if standIn == .undo {
             undo()
+            return true
+        }
+        if standIn == .redo {
+            redo()
             return true
         }
         // Any key that changes the text records what the text was, so Ctrl-Z
@@ -179,8 +190,10 @@ final class TextEditorHandler: PersistedFocusable {
         } else {
             handled = handleEditingKey(event)
         }
-        if text.wrappedValue != textBefore {
-            undoHistory.record(text: textBefore, caret: caretBefore)
+        if text.wrappedValue != textBefore,
+            undoHistory.record(text: textBefore, caret: caretBefore), let undoManager
+        {
+            TextUndoBridge.registerEdit(of: self, on: undoManager)
         }
         return handled
     }
