@@ -283,7 +283,10 @@
         /// images within the inserted or removed view hierarchy — drawn as a
         /// fade (see ``SymbolEffectTransition``).
         ///
-        /// - Parameter effect: the symbol effect value.
+        /// - Parameters:
+        ///   - effect: the symbol effect value.
+        ///   - options: the symbol effect options; not drawn, as the effect's
+        ///     direction is not.
         /// - Returns: a new transition.
         public static func symbolEffect<T: SymbolEffect & TransitionSymbolEffect>(
             _ effect: T, options: SymbolEffectOptions = .default
