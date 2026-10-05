@@ -260,7 +260,8 @@ public final class LocalizationService: @unchecked Sendable {
         var language = currentLanguage
         while true {
             if namesTable,
-                let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: language)
+                let value = bundleTables.string(
+                    for: key, tableName: tableName, bundle: bundle, language: language.rawValue)
             {
                 return value
             }
@@ -268,7 +269,9 @@ public final class LocalizationService: @unchecked Sendable {
                 return value
             }
             // The app's table costs a stored Bool for an app that ships none.
-            if !namesTable, let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: language) {
+            if !namesTable,
+                let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: language.rawValue)
+            {
                 return value
             }
             if let value = _translations(for: language)[key] {

@@ -44,12 +44,13 @@ final class BundleStringTables {
         /// Whether the bundle holds a table of this name anywhere — the one
         /// question asked on every miss of an app that ships no tables.
         let exists: Bool
-        /// The `.lproj` sub-bundle each language reads, `.some(nil)` where the
-        /// bundle has none for it.
-        var localizations: [LocalizationService.Language: Bundle?] = [:]
-        /// What each key resolved to in each language's `.lproj`, `.some(nil)`
-        /// for a key the table lacks — bounded, see ``Answers``.
-        var answers: [LocalizationService.Language: Answers] = [:]
+        /// The `.lproj` sub-bundle each language code reads, `.some(nil)`
+        /// where the bundle has none for it.
+        var localizations: [String: Bundle?] = [:]
+        /// What each key resolved to in each language's `.lproj`, by language
+        /// code, `.some(nil)` for a key the table lacks — bounded, see
+        /// ``Answers``.
+        var answers: [String: Answers] = [:]
         /// What each key resolved to as Foundation chooses for the bundle.
         var fallbackAnswers = Answers()
 
@@ -143,11 +144,9 @@ final class BundleStringTables {
 
     /// The text of `key` in the table named `tableName` (`Localizable` for
     /// `nil`) of `bundle` (the default bundle for `nil`), read from the
-    /// `.lproj` that matches `language`, or `nil` where that has none or does
-    /// not hold the key.
-    func string(
-        for key: String, tableName: String?, bundle: Bundle?, language: LocalizationService.Language
-    ) -> String? {
+    /// `.lproj` that matches `language` — a language code, `"de"` — or `nil`
+    /// where that has none or does not hold the key.
+    func string(for key: String, tableName: String?, bundle: Bundle?, language: String) -> String? {
         let table = self.table(named: tableName, in: bundle)
         guard table.exists else { return nil }
         if let answer = table.answers[language, default: Answers()].answer(for: key) { return answer }
@@ -205,12 +204,11 @@ final class BundleStringTables {
         return table
     }
 
-    /// The `.lproj` sub-bundle of `table`'s bundle that best matches
-    /// `language` — `nil` where it has none in that language, rather than the
-    /// fallback Foundation's matching offers.
-    private func localization(of table: Table, for language: LocalizationService.Language) -> Bundle? {
-        if let known = table.localizations[language] { return known }
-        let code = language.rawValue
+    /// The `.lproj` sub-bundle of `table`'s bundle that best matches the
+    /// language `code` — `nil` where it has none in that language, rather
+    /// than the fallback Foundation's matching offers.
+    private func localization(of table: Table, for code: String) -> Bundle? {
+        if let known = table.localizations[code] { return known }
         var found: Bundle?
         let matches = Bundle.preferredLocalizations(from: table.bundle.localizations, forPreferences: [code])
         if let name = matches.first, Locale(identifier: name).language.languageCode?.identifier == code,
@@ -218,7 +216,7 @@ final class BundleStringTables {
         {
             found = Bundle(path: path)
         }
-        table.localizations[language] = .some(found)
+        table.localizations[code] = .some(found)
         return found
     }
 }
