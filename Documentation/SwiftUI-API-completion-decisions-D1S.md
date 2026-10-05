@@ -53,6 +53,11 @@ stack draws what it would with the parts as its children, but for:
 - **The stack windows by section.** A section in the band draws all of its
   rows, as before this lane; a section written in an unpinned stack's content
   is taken apart, and the stack windows over its rows.
+- **A loop's section under an `if` is not kept whole.** `ForEach(groups) { g
+  in if g.visible { Section … } }` makes rows of a number only each row
+  knows, so it is taken apart and every row of every section is built on
+  every walk, as any loop whose rows vary is (B-D1S-5). A section in a view of
+  the app's own (`ForEach(groups) { GroupView(group: $0) }`) is kept whole.
 
 **The fuller version.** The stack takes its own sections apart like any other
 container and does the pinning itself: it keeps a map from each section to its
