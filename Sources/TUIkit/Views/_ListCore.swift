@@ -494,7 +494,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // it was an immovable demand for the whole column, and a view stacked
         // below a hugging list — a sidebar's footer — was pushed off the bottom.
         return ViewSize(
-            width: allRowsContentWidth(context: context), height: height,
+            width: allRowsContentWidth(context: context.drawingListSectionChrome()), height: height,
             isWidthFlexible: false, isHeightFlexible: true)
     }
 
@@ -735,6 +735,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     )
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A section this list draws as one row keeps the list's styling.
+        let context = context.drawingListSectionChrome()
         let palette = context.environment.palette
         let style = context.environment.listStyle
         let stateStorage = context.stateStorage!
@@ -3380,10 +3382,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // a handful and none is deferred, so unlike the windowed path this can
         // measure them all and place every row exactly — no pitch, no estimate.
         // Measured only when a ramp is in force.
-        let resolved = resolveChildViews(from: content, context: context)
+        // A `Section` among them whole, as one child: it is spliced below as
+        // rows of this list — header, items and footer — where the walk would
+        // otherwise hand over its parts as anonymous rows
+        // (`RenderContext.keepsSectionsWhole`). Only the walk: the rows draw in
+        // the list's own context, so a stack inside one takes its sections apart.
+        let resolved = resolveChildViews(from: content, context: context.keepingSectionsWhole())
         // Asked by each child's place among ALL the children, spacers
         // included: the place is what matches a looped row to its `ForEach`.
-        let rowIDs = FlattenedRowIDs<SelectionValue>(content: content, children: resolved)
+        let rowIDs = FlattenedRowIDs<SelectionValue>(content: content, children: resolved, sectionsWhole: true)
         let childIndices = resolved.indices.filter { !resolved[$0].isSpacer }
         let children = childIndices.map { resolved[$0] }
         var gradientFrame: GradientFrame?
@@ -3413,10 +3420,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // items and its footer are rows of THIS list, each item keyed by
             // its own id — exactly the array `extractSectionRows` already
             // produces for a list whose entire content is one Section. Two
-            // Sections make a `TupleView`, and `TupleView` is the only provider
-            // in play here (`Section` is deliberately a `ChildInfoProvider`
-            // only, so a stack draws it as one unit), so without this splice
-            // each whole Section collapsed into a single ordinal-keyed row: the
+            // Sections make a `TupleView`, whose walk above keeps each section
+            // whole, so without this splice each whole Section collapsed into
+            // a single ordinal-keyed row: the
             // header was selectable, Down jumped a section at a time, and a
             // selection binding got an ordinal rather than an item's id.
             // Asked under the CHILD's context — the identity step is the whole

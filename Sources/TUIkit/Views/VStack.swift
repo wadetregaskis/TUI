@@ -107,7 +107,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         let context = context.publishingContainerAxis(.vertical)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
-        case .window: return windowSizeThatFits(proposal: proposal, context: context)
+        case .window: return windowSizeThatFits(proposal: proposal, context: withPinnedSectionScope(context))
         }
     }
 

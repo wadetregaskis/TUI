@@ -50,9 +50,11 @@ struct EmptyChromeRenderTests {
 
     @Test("A Section with an empty header shows no blank line above the body")
     func sectionEmptyHeaderNoBlankLine() {
-        let out = lines(Section { Text("body") } header: { Text("") })
-        #expect(out.first == "body", "got: \(out)")
-        #expect(out.count == 1)
+        // In a `List`, which drops a blank header row. Outside one a header is
+        // drawn as written (decisions B16), and an empty `Text` is its line.
+        let out = lines(List { Section { Text("body") } header: { Text("") } })
+        // The first line inside the list's border is the body's.
+        #expect(out.dropFirst().first?.contains("body") == true, "got: \(out)")
     }
 
     @Test("A Section with a real header shows it above the body")

@@ -50,7 +50,9 @@
 /// scrolls it clear of the pinned header, though `scrollTo(_:anchor:)` puts
 /// a row under it, as SwiftUI's does. Only the stack's own
 /// sections pin — written in its content or made there by a `ForEach` — and
-/// outside a scroll view nothing does.
+/// outside a scroll view nothing does. A section of its own is laid out as
+/// the stack lays out its children, `spacing` between its header and its
+/// first row as between any two rows (SwiftUI's spacing, measured).
 ///
 /// ```swift
 /// ScrollView {
@@ -64,10 +66,15 @@
 /// }
 /// ```
 ///
-/// One deviation: SwiftUI's header is transparent, so the rows scrolling
+/// Two deviations: SwiftUI's header is transparent, so the rows scrolling
 /// under it show through wherever it draws nothing. A cell holds one
 /// glyph, so here the header's cells replace the rows' glyphs across the
-/// section's width, and keep only their background.
+/// section's width, and keep only their background. And to pin them, the
+/// stack keeps its own sections whole where any other container takes a
+/// section apart: a centre-aligned section's views are centred within the
+/// section's widest view and the section within the stack, which can be a
+/// cell from where the stack would centre the same views unpinned, and a
+/// modifier on such a section wraps the section rather than each view.
 ///
 /// - Note: Documented deviations from SwiftUI (per the parity rule): the
 ///   cross-axis width hugs the widest *placed* child (SwiftUI's ideal width

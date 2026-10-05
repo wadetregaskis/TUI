@@ -150,12 +150,15 @@ func appendMembers(
     of base: some View, in scope: RenderContext, flatteningSections: Bool,
     into members: inout [SubviewMembers.Member]
 ) {
-    let children = resolveChildViews(from: base, context: scope)
+    // Sections whole (`RenderContext.keepsSectionsWhole`), so this walk takes
+    // them apart itself — or, for the section APIs, keeps them — rather than
+    // the splice handing over their parts unlabelled.
+    let children = resolveChildViews(from: base, context: scope.keepingSectionsWhole())
     // Only a `ForEach` makes a keyed child, so a container of hand-written
     // views has no implicit tags to place.
     let rowIDs =
         children.contains { $0.identityChildKey != nil }
-        ? FlattenedRowIDs<AnyHashable>(content: base, children: children) : nil
+        ? FlattenedRowIDs<AnyHashable>(content: base, children: children, sectionsWhole: true) : nil
     for (index, child) in children.enumerated() {
         if isEmptyMember(child) { continue }
         if flatteningSections, let section = sectionParts(of: child) {

@@ -38,12 +38,30 @@
 /// }
 /// ```
 ///
-/// ## Visual Rendering
+/// ## In a List, a Form and a Table
 ///
-/// - **Header**: Rendered with dimmed foreground and bold styling
-/// - **Footer**: Rendered with dimmed foreground
-/// - **Content**: Rendered normally between header and footer
-/// - **Spacing**: Sections are separated by vertical space in List
+/// A `List` draws a section as a group of its rows: the header bold and
+/// dimmed, the footer dimmed, a blank header or footer dropped, and a
+/// collapsible section's header behind a disclosure triangle that toggles it.
+/// A `Form` and a `Table` draw sections in their own ways.
+///
+/// ## Everywhere Else
+///
+/// In any other container a section is its parts: its header's, content's and
+/// footer's views become the container's own children, laid out as the
+/// container lays out any child — in a `VStack` its `spacing` falls between
+/// the header and the first row as between any two rows, an `HStack` lays the
+/// parts along its row, a `Grid` gives each a row of its own and a `Layout`
+/// sees each as a subview. The header and footer are drawn as written, with no
+/// styling of their own, and a collapsible section shows its header as written
+/// and its content only while expanded — as SwiftUI does (measured on macOS
+/// 15.8). A modifier written on the section reaches each part, as one on a
+/// `Group` reaches each member. Drawn on its own — a view's whole `body` — a
+/// section stacks its parts vertically, as a `Group` does.
+///
+/// A lazy stack that pins its sections' headers or footers (`pinnedViews:`)
+/// keeps its own sections whole, to pin them, and lays each one's parts out as
+/// it lays out its children.
 public struct Section<Parent: View, Content: View, Footer: View>: View {
     /// The header view displayed above the section content.
     let header: Parent
@@ -185,11 +203,13 @@ extension Section where Parent == Text, Footer == EmptyView {
     /// Creates a section with a localized title as its header, and a binding
     /// to whether its content is shown.
     ///
-    /// The header carries a disclosure triangle — `▼` while the content is
-    /// shown, `▶` while it is not — and is a control of its own: a Tab stop
-    /// that Return or Space toggles, Right opens and Left closes, and a click
-    /// toggles, as a ``DisclosureGroup``'s header is. A collapsed section's
-    /// rows leave the list.
+    /// In a `List` the header carries a disclosure triangle — `▼` while the
+    /// content is shown, `▶` while it is not — and is a control of its own: a
+    /// Tab stop that Return or Space toggles, Right opens and Left closes, and
+    /// a click toggles, as a ``DisclosureGroup``'s header is. A collapsed
+    /// section's rows leave the list. Anywhere else the header is drawn as
+    /// written and the content only while the binding is `true`, as SwiftUI's
+    /// is (measured on macOS 15.8).
     ///
     /// - Parameters:
     ///   - titleKey: The key for the header text — a literal is looked up, see
@@ -240,7 +260,7 @@ extension Section where Footer == EmptyView {
     }
 }
 
-/// A section's header as it is drawn: the header itself, or — for a
+/// A section's header as a `List` draws it: the header itself, or — for a
 /// collapsible section — the header behind a disclosure triangle, the whole of
 /// it one control that toggles the section (a ``DisclosureGroup``'s header,
 /// with nothing to disclose but the section's own content).
@@ -266,27 +286,59 @@ extension Section {
     /// with no header.
     fileprivate var hasHeader: Bool { !(header is EmptyView) }
 
-    /// The header as it is drawn (``_SectionHeader``).
+    /// The header as a `List` draws it (``_SectionHeader``): behind a
+    /// disclosure triangle for a collapsible section.
     fileprivate var drawnHeader: _SectionHeader<Parent> {
         _SectionHeader(header: header, isExpanded: isExpanded)
     }
-
-    /// Whether the content is shown: always, unless the section is collapsible
-    /// and collapsed.
-    fileprivate var showsContent: Bool { isExpanded?.wrappedValue ?? true }
 }
 
-/// Returns `context` with `role` set as its chrome role, so a `Section`'s
+/// Returns `context` with `role` set as its chrome role, so a `List` section's
 /// header/footer text styles via the cascade (the ``ChromeRole`` defaults plus
 /// any `.chrome(...)` overrides) rather than being post-styled with fixed ANSI.
 func sectionChromeContext(_ context: RenderContext, _ role: ChromeRole) -> RenderContext {
     context.withEnvironment(context.environment.setting(\.chromeRole, to: role))
 }
 
-/// Whether a rendered header/footer buffer is entirely blank — so it should be
-/// dropped rather than shown as an empty line (e.g. an empty `Text("")` header).
+/// Whether a rendered header/footer buffer is entirely blank — so a `List`
+/// drops it rather than show an empty row (e.g. an empty `Text("")` header).
 func sectionBufferIsBlank(_ buffer: FrameBuffer) -> Bool {
     buffer.isBlank
+}
+
+// MARK: - A List's Section Styling
+
+private struct ListSectionChromeKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether a section drawn as one view here is drawn as a `List` draws its
+    /// sections — header bold and dimmed, footer dimmed, a blank one dropped, a
+    /// collapsible section's header behind a disclosure triangle.
+    ///
+    /// Set by a `List` for everything it draws. A list reads most sections as
+    /// rows of its own and styles their headers itself; a section it cannot
+    /// read that way — one wrapped in a modifier, or nested in another's
+    /// content — it draws as one row, and that row's section keeps the list's
+    /// styling through this, as SwiftUI styles every section of a list.
+    /// Anywhere else a section is drawn as written (decisions B16).
+    var drawsListSectionChrome: Bool {
+        get { self[ListSectionChromeKey.self] }
+        set { self[ListSectionChromeKey.self] = newValue }
+    }
+}
+
+extension RenderContext {
+    /// This context with ``EnvironmentValues/drawsListSectionChrome`` set, for
+    /// a `List` to draw in. Written directly, as a stack publishes its axis: a
+    /// list is a list on every frame, so no memo can hold a value that changed.
+    func drawingListSectionChrome() -> RenderContext {
+        guard !environment.drawsListSectionChrome else { return self }
+        var copy = self
+        copy.environment.drawsListSectionChrome = true
+        return copy
+    }
 }
 
 // MARK: - Section Row Extractor
@@ -486,9 +538,12 @@ extension Section: ListRowExtractor {
             // rendered at the list's identity and shared their `@State`. (A
             // lone one never reaches here: it is taken off above, under the
             // same step.)
+            //
+            // A `Section` nested in the content whole, as the list's own walk
+            // keeps its sections (`RenderContext.keepsSectionsWhole`): one row.
             var rows: [ListRow<RowID>] = []
-            let children = resolveChildViews(from: content, context: context)
-            let rowIDs = FlattenedRowIDs<RowID>(content: content, children: children)
+            let children = resolveChildViews(from: content, context: context.keepingSectionsWhole())
+            let rowIDs = FlattenedRowIDs<RowID>(content: content, children: children, sectionsWhole: true)
             for (index, child) in children.enumerated() where !child.isSpacer {
                 // A looped row by its own `ForEach`'s rule, any other row by
                 // its own `.tag(_:)`, else its index — through the same

@@ -490,7 +490,10 @@ List("Settings", selection: $selected) {
 }
 ```
 
-Section headers are rendered with secondary foreground color and bold styling above the group.
+In a list, section headers are rendered dimmed and bold above the group, and
+footers dimmed below it. Outside a `List`, a `Form` and a `Table`, a `Section`
+is its parts: a stack lays its header, rows and footer out as its own children,
+drawn as written.
 
 ## Badges
 

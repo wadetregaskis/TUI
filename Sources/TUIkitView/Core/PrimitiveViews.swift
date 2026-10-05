@@ -312,7 +312,7 @@ extension Optional: ChildViewProvider where Wrapped: View {
     public func childViews(context: RenderContext) -> [ChildView] {
         switch self {
         case .some(let wrapped):
-            guard let provider = wrapped as? ChildViewProvider else {
+            guard let provider = wrapped as? ChildViewProvider, !provider.staysWhole(in: context) else {
                 return [ChildView(wrapped, childIndex: 0)]
             }
             let children = resolveChildViews(from: wrapped, as: provider, context: context)

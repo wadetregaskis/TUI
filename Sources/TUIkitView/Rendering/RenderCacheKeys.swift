@@ -307,6 +307,13 @@ extension RenderCache {
         public let viewType: ObjectIdentifier
         public let valueHash: Int
 
+        /// Mixed into ``identityHash`` for a walk that keeps sections whole
+        /// (`RenderContext.keepsSectionsWhole`), which resolves the same content
+        /// at the same identity to different children. An arbitrary odd
+        /// constant; a structural hash that differs from another by exactly it
+        /// is the collision the hash-only key already accepts.
+        package static let sectionsWholeSalt = 0x5EC7_10E5_A5ED_0001
+
         public init(identityHash: Int, viewType: ObjectIdentifier, valueHash: Int) {
             self.identityHash = identityHash
             self.viewType = viewType

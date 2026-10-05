@@ -277,6 +277,33 @@ public struct RenderContext {
     /// No real depth: the scroll view marks none this deep.
     package static let belowScrollContentOrigin = UInt16.max
 
+    /// Whether the provider walk this context is handed to hands every
+    /// `Section` it meets to its container WHOLE, as one child, rather than
+    /// taking it apart into its header's, content's and footer's views
+    /// (``ChildViewProvider/staysWhole(in:)``).
+    ///
+    /// A `Section` is its parts in every container, as SwiftUI's is, except
+    /// those that read sections as sections: a `List`, and the section APIs
+    /// (`Group(sections:)`, `ForEach(sections:)`). They set this on the context
+    /// they RESOLVE their content with and on no other — the views they then
+    /// draw are drawn in their ordinary context — so it reaches every provider
+    /// in the walk (a `Group`, an `if`, a `ForEach` of sections) and no
+    /// container below a row.
+    ///
+    /// A `Bool` among the flags, in padding that was already there, for the
+    /// reason ``measureGeneration`` gives: this struct's stride is load-bearing.
+    /// Folded into the per-pass child memo's key, since one content value can
+    /// be resolved both ways at one identity.
+    package var keepsSectionsWhole: Bool = false
+
+    /// This context for a provider walk that keeps sections whole — see
+    /// ``keepsSectionsWhole``.
+    package func keepingSectionsWhole() -> Self {
+        var copy = self
+        copy.keepsSectionsWhole = true
+        return copy
+    }
+
     /// Whether this measure is a horizontal natural-extent probe's IDEAL-WIDTH
     /// ask — see ``measureGeneration``'s bit 7. Under it, a width proposal of
     /// `nil` means SwiftUI's unspecified: a view that fills whatever it is

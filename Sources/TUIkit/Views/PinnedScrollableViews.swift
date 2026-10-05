@@ -79,12 +79,75 @@ struct PinnedSectionScope: Equatable {
     /// Whether the sections' footers are pinned.
     var pinsFooters: Bool
 
+    /// Whether a section at `identity` is one of the stack's own.
+    func owns(sectionAt identity: ViewIdentity) -> Bool {
+        identity.siblingSteps(belowDepth: Int(stackDepth)) == 1
+    }
+
     /// What a section at `identity` pins — nothing unless it is one of the
     /// stack's own.
     func pins(at identity: ViewIdentity) -> (headers: Bool, footers: Bool) {
-        guard identity.siblingSteps(belowDepth: Int(stackDepth)) == 1 else { return (false, false) }
+        guard owns(sectionAt: identity) else { return (false, false) }
         return (pinsHeaders, pinsFooters)
     }
+}
+
+// MARK: - How the Stack Lays Out Its Own Sections
+
+/// How a pinned lazy stack lays out its children, for the sections it keeps
+/// whole.
+///
+/// Everywhere else a `Section` is its header's, content's and footer's views,
+/// the container's own children (decisions B16). A pinned stack keeps its own
+/// sections whole (``ChildViewProvider/staysWhole(in:)``) because pinning is
+/// done BY the section — it knows where its header, content and footer are,
+/// which a flattened row cannot say — and the section lays its views out as the
+/// stack would have: along the stack's axis, `spacing` apart, each aligned
+/// across by the stack's alignment. So `LazyVStack(spacing: 1, pinnedViews:
+/// .sectionHeaders)` spaces a header from its first row as SwiftUI's does
+/// (measured on macOS 15.8).
+///
+/// A value of its own beside ``PinnedSectionScope`` rather than inside it: the
+/// scope rides in the entry every stack core writes on every render, which
+/// must stay within an existential's inline buffer, and an alignment would not
+/// fit. Written only by a stack that pins, and read only by a section the scope
+/// says is the stack's own.
+struct PinnedSectionLayout: Equatable {
+    /// The stack's axis: a column's sections lay out downward, a row's along it.
+    var axis: Axis
+
+    /// The stack's spacing between its children.
+    var spacing: Int
+
+    /// The stack's alignment: its horizontal half for a column, its vertical
+    /// half for a row.
+    var alignment: Alignment
+}
+
+private struct PinnedSectionLayoutKey: EnvironmentKey {
+    static let defaultValue: PinnedSectionLayout? = nil
+}
+
+extension EnvironmentValues {
+    /// How the pinned stack whose sections the views below may be lays out
+    /// its children — see ``PinnedSectionLayout``.
+    var pinnedSectionLayout: PinnedSectionLayout? {
+        get { self[PinnedSectionLayoutKey.self] }
+        set { self[PinnedSectionLayoutKey.self] = newValue }
+    }
+}
+
+// MARK: - Whether a Section Stays Whole
+
+/// Whether a `Section` resolved in `context` is handed to its container whole
+/// (``ChildViewProvider/staysWhole(in:)``): in a walk that keeps sections whole
+/// — a `List`'s, the section APIs' — and as one of a pinned lazy stack's own
+/// sections, which pins its header and footer itself.
+@MainActor
+func sectionStaysWhole(in context: RenderContext) -> Bool {
+    if context.keepsSectionsWhole { return true }
+    guard let scope = context.environment.pinnedSectionScope else { return false }
+    return scope.owns(sectionAt: context.identity)
 }
 
 // MARK: - The Stack That Hands It Out
@@ -100,23 +163,60 @@ extension _VStackCore {
     /// as an `.environment(_:_:)` modifier's change does, through the same
     /// once-a-pass record.
     func scopingPinnedSections(_ context: RenderContext) -> RenderContext {
-        let scope =
-            pinsSectionHeaders || pinsSectionFooters
-            ? PinnedSectionScope(
-                stackDepth: Int32(clamping: context.identity.depth),
-                pinsHeaders: pinsSectionHeaders, pinsFooters: pinsSectionFooters)
-            : nil
-        if let cache = context.renderCache,
-            cache.noteAppliedEnvironment(
-                scope as Any, identity: context.identity,
-                keyPath: \EnvironmentValues.pinnedSectionScope,
-                depth: context.environmentApplicationDepth) == .changed
-        {
-            cache.clearAffected(by: context.identity)
+        let scope = pinnedSectionScope(context)
+        let layout = scope.map { _ in pinnedSectionLayout }
+        if let cache = context.renderCache {
+            let scopeChanged =
+                cache.noteAppliedEnvironment(
+                    scope as Any, identity: context.identity,
+                    keyPath: \EnvironmentValues.pinnedSectionScope,
+                    depth: context.environmentApplicationDepth) == .changed
+            // The layout too, while the stack pins: a section it keeps whole
+            // draws with its spacing and alignment, which a memoized buffer
+            // does not key on either. Not while it does not — pinning switched
+            // on again is a change of scope, which clears what was kept — so a
+            // stack that pins nothing pays the one note it always did.
+            let layoutChanged =
+                layout != nil
+                && cache.noteAppliedEnvironment(
+                    layout as Any, identity: context.identity,
+                    keyPath: \EnvironmentValues.pinnedSectionLayout,
+                    depth: context.environmentApplicationDepth) == .changed
+            if scopeChanged || layoutChanged { cache.clearAffected(by: context.identity) }
         }
         guard let scope else { return context }
         var scoped = context
         scoped.environment.pinnedSectionScope = scope
+        scoped.environment.pinnedSectionLayout = layout
         return scoped
+    }
+
+    /// `context` with this stack's pinned-section scope and layout, when it
+    /// pins, for a walk that only asks — a measure, a placement query — and so
+    /// notes nothing: whether a section stays whole is decided where its
+    /// children are resolved (``sectionStaysWhole(in:)``), and every walk of a
+    /// pinned stack must decide it the same way.
+    func withPinnedSectionScope(_ context: RenderContext) -> RenderContext {
+        guard let scope = pinnedSectionScope(context) else { return context }
+        var scoped = context
+        scoped.environment.pinnedSectionScope = scope
+        scoped.environment.pinnedSectionLayout = pinnedSectionLayout
+        return scoped
+    }
+
+    /// The scope this stack hands its rows in `context`, or `nil` when it pins
+    /// nothing.
+    private func pinnedSectionScope(_ context: RenderContext) -> PinnedSectionScope? {
+        guard pinsSectionHeaders || pinsSectionFooters else { return nil }
+        return PinnedSectionScope(
+            stackDepth: Int32(clamping: context.identity.depth),
+            pinsHeaders: pinsSectionHeaders, pinsFooters: pinsSectionFooters)
+    }
+
+    /// How this stack lays out its children, for the sections it keeps whole.
+    private var pinnedSectionLayout: PinnedSectionLayout {
+        PinnedSectionLayout(
+            axis: .vertical, spacing: spacing,
+            alignment: Alignment(horizontal: alignment, vertical: .top))
     }
 }

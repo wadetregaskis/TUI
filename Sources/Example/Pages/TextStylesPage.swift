@@ -270,22 +270,28 @@ struct TextStylesPage: View {
                     Text("page.textStyles.chromeExplain")
                     .foregroundStyle(.palette.foregroundSecondary)
 
-                    Section {
-                        Text("page.textStyles.bodyLine")
-                    } header: {
-                        Text("page.textStyles.defaultHeader")
-                    }
+                    // In a `List`, which is what styles a section's header:
+                    // anywhere else a header is drawn as written, as
+                    // SwiftUI's is.
+                    List {
+                        Section {
+                            Text("page.textStyles.bodyLine")
+                        } header: {
+                            Text("page.textStyles.defaultHeader")
+                        }
 
-                    // The same header, re-themed: uppercased and not bold.
-                    Section {
-                        Text("page.textStyles.bodyLine")
-                    } header: {
-                        Text("page.textStyles.themedHeader")
+                        // The same header, re-themed: uppercased and not bold.
+                        Section {
+                            Text("page.textStyles.bodyLine")
+                        } header: {
+                            Text("page.textStyles.themedHeader")
+                        }
+                        .style(.chrome(.sectionHeader)) {
+                            $0.textCase = .uppercase
+                            $0.bold = false
+                        }
                     }
-                    .style(.chrome(.sectionHeader)) {
-                        $0.textCase = .uppercase
-                        $0.bold = false
-                    }
+                    .frame(height: 6)
                 }
             }
         }

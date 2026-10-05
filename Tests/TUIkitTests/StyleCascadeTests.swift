@@ -269,8 +269,9 @@ struct StyleCascadeTests {
 
     @Test("A section header is bold + dim by default")
     func chromeHeaderDefault() {
+        // In a `List`: outside one a section's header has no chrome (B16).
         let section = Section("Header") { Text("Body") }
-        let header = renderToBuffer(section, context: context()).lines.first ?? ""
+        let header = renderToBuffer(List { section }, context: context()).lines.first { $0.contains("Header") } ?? ""
         // bold (1) then dim (2) as the leading style codes.
         #expect(header.contains("\u{1B}[1;2"))
     }
@@ -279,7 +280,7 @@ struct StyleCascadeTests {
     func chromeHeaderBoldOff() {
         let section = Section("Header") { Text("Body") }
             .style(.chrome(.sectionHeader)) { $0.bold = false }
-        let header = renderToBuffer(section, context: context()).lines.first ?? ""
+        let header = renderToBuffer(List { section }, context: context()).lines.first { $0.contains("Header") } ?? ""
         #expect(!header.contains("\u{1B}[1;2"), "bold should be off")
         #expect(header.contains("\u{1B}[2;") || header.contains("\u{1B}[2m"), "dim should remain")
     }
@@ -288,7 +289,7 @@ struct StyleCascadeTests {
     func chromeHeaderUppercase() {
         let section = Section("Header") { Text("Body") }
             .style(.chrome(.sectionHeader)) { $0.textCase = .uppercase }
-        let lines = renderToBuffer(section, context: context()).lines
+        let lines = renderToBuffer(List { section }, context: context()).lines
         #expect(lines.contains { $0.contains("HEADER") }, "header should be uppercased")
         #expect(lines.contains { $0.contains("Body") }, "body should be unaffected")
     }
@@ -387,9 +388,11 @@ struct ThemeBundleTests {
                     scope: .chrome(.sectionHeader),
                     attributes: StyleAttributes(textCase: .uppercase))
             ])
+        // The section in a `List`, whose section headers take the chrome role
+        // a theme styles; in a stack a header is drawn as written (B16).
         let view = VStack {
             Button("Save") {}.buttonStyle(.borderedProminent)
-            Section("settings") { Text("body") }
+            List { Section("settings") { Text("body") } }
         }
         .theme(theme)
         let buffer = renderToBuffer(view, context: makeRenderContext(width: 40, height: 12))

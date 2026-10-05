@@ -90,8 +90,8 @@ struct SectionRenderingTests {
         #expect(content.contains("Content"))
     }
 
-    @Test("Section header is styled with dim")
-    func sectionHeaderIsDim() {
+    @Test("Outside a List the header is drawn as written: neither bold nor dim")
+    func sectionHeaderIsAsWritten() {
         let context = createTestContext()
 
         let section = Section {
@@ -103,9 +103,11 @@ struct SectionRenderingTests {
         let buffer = renderToBuffer(section, context: context)
         let headerLine = buffer.lines.first ?? ""
 
-        // Dim ANSI code is SGR 2
-        #expect(headerLine.contains("\u{1B}["))
-        #expect(headerLine.contains("2"))
+        // A `List` draws its section headers bold and dim (`1;2`, see
+        // `SectionListIntegrationTests`); SwiftUI styles a header nowhere else
+        // (decisions B16).
+        #expect(headerLine == renderToBuffer(Text("Header"), context: context).lines.first)
+        #expect(!headerLine.contains("\u{1B}[1;2"))
     }
 
     @Test("Section content only (no header/footer)")

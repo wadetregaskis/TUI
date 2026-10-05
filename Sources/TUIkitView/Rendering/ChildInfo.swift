@@ -133,6 +133,20 @@ public protocol ChildViewProvider {
     /// `ChildView.providerSlot`). This costs a word on a protocol nothing
     /// else implements.
     var identityBranchLabel: String? { get }
+
+    /// Whether this provider is handed to the container resolving it as ONE
+    /// child — itself — rather than taken apart, asked with the context its
+    /// children would resolve in.
+    ///
+    /// Only a `Section`, and a wrapper around one, ever answers `true`: a
+    /// section is its header's, content's and footer's views in every
+    /// container except the ones that read it as a section — a `List` and the
+    /// section APIs, which resolve with `RenderContext.keepsSectionsWhole`, and
+    /// a lazy stack that pins its own sections' headers and footers. Honoured
+    /// wherever a provider is expanded into its container: the tuple splice,
+    /// ``resolveChildViews(from:context:)`` for a provider that is a
+    /// container's whole content, and a `ForEach` row.
+    func staysWhole(in context: RenderContext) -> Bool
 }
 
 extension ChildViewProvider {
@@ -141,6 +155,9 @@ extension ChildViewProvider {
 
     /// Nothing to distinguish, unless a provider says otherwise.
     public var identityBranchLabel: String? { nil }
+
+    /// Taken apart, unless a provider says otherwise.
+    public func staysWhole(in context: RenderContext) -> Bool { false }
 }
 
 // MARK: - Single-Content Wrappers
@@ -330,6 +347,10 @@ extension ChildViewProvider where Self: ContentRewrapping, WrappedContent: Child
     /// defect ``ChildViewProvider/identityBranchLabel`` exists to prevent, one
     /// wrapper further out.
     public var identityBranchLabel: String? { wrappedContent.identityBranchLabel }
+
+    /// The content's answer: a `Section` with a style on it is still a
+    /// section to a container that keeps sections whole.
+    public func staysWhole(in context: RenderContext) -> Bool { wrappedContent.staysWhole(in: context) }
 }
 
 /// Creates a ChildInfo for a single view.
@@ -910,7 +931,9 @@ public func resolveChildInfos<V: View>(from content: V, context: RenderContext) 
 /// - Returns: An array of ``ChildView``.
 @MainActor
 public func resolveChildViews<V: View>(from content: V, context: RenderContext) -> [ChildView] {
-    guard let provider = content as? ChildViewProvider else { return [ChildView(content)] }
+    guard let provider = content as? ChildViewProvider, !provider.staysWhole(in: context) else {
+        return [ChildView(content)]
+    }
     return resolveChildViews(from: content, as: provider, context: context)
 }
 
@@ -975,9 +998,15 @@ package func resolveChildViews<V: View>(
         cache.noteChildViewsMemoBypass()
         return provider.childViews(context: context)
     }
+    // A walk that keeps sections whole resolves the same content differently
+    // (`RenderContext.keepsSectionsWhole`): a `List` and the stack drawing one
+    // of its rows can resolve one content value at one identity in a pass.
+    let identityHash =
+        context.keepsSectionsWhole
+        ? context.identity.structuralHash ^ RenderCache.ChildViewsKey.sectionsWholeSalt
+        : context.identity.structuralHash
     let key = RenderCache.ChildViewsKey(
-        identityHash: context.identity.structuralHash, viewType: ObjectIdentifier(V.self),
-        valueHash: valueHash)
+        identityHash: identityHash, viewType: ObjectIdentifier(V.self), valueHash: valueHash)
     if let remembered = cache.lookupChildViews(key: key) { return remembered }
     // Identities resolved once here, for the same reason the array is: every
     // later use of this entry is under `context.identity` (it is in the key).

@@ -117,10 +117,11 @@ extension SectionCollection {
     /// styling a `List` gives one.
     @MainActor
     init(resolving base: some View, in scope: RenderContext) {
-        let children = resolveChildViews(from: base, context: scope)
+        // Sections whole, to be read as sections (`RenderContext.keepsSectionsWhole`).
+        let children = resolveChildViews(from: base, context: scope.keepingSectionsWhole())
         let rowIDs =
             children.contains { $0.identityChildKey != nil }
-            ? FlattenedRowIDs<AnyHashable>(content: base, children: children) : nil
+            ? FlattenedRowIDs<AnyHashable>(content: base, children: children, sectionsWhole: true) : nil
         var sections: [SectionConfiguration] = []
         var loose: [SubviewMembers.Member] = []
 

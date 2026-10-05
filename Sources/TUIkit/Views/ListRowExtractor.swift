@@ -514,7 +514,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
 extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// This loop's rows, as the flattening emits them: one per element, in
     /// order — see ``FlattenedRowIDs``.
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
         runs.append(.loop(self))
     }
 

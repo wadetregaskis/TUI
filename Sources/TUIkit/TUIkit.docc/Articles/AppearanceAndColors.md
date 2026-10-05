@@ -446,8 +446,10 @@ RootView()
     .style(.semanticColor(.foregroundSecondary)) { $0.dim = true }
 ```
 
-Structural **chrome** — `Section` headers and footers — can be targeted the same
-way (they are bold + dim by default, and the cascade overrides that):
+Structural **chrome** — a `List`'s `Section` headers and footers — can be
+targeted the same way (they are bold + dim by default, and the cascade
+overrides that). Outside a list a section's header and footer are drawn as
+written, as SwiftUI's are, and take no chrome role:
 
 ```swift
 List {

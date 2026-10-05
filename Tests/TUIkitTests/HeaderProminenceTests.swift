@@ -31,7 +31,7 @@ struct HeaderProminenceTests {
             Text(verbatim: "TODAY")
         }
         let view = prominence.map { AnyView(section.headerProminence($0)) } ?? AnyView(section)
-        let lines = renderToBuffer(view, context: makeRenderContext(width: 30, height: 6)).lines
+        let lines = renderToBuffer(List { view }, context: makeRenderContext(width: 30, height: 6)).lines
         return lines.first { $0.contains("TODAY") } ?? ""
     }
 
@@ -78,7 +78,7 @@ struct HeaderProminenceTests {
         .style(.chrome(.sectionHeader)) { $0.dim = true }
 
         let lines = renderToBuffer(
-            AnyView(section), context: makeRenderContext(width: 30, height: 6)
+            List { AnyView(section) }, context: makeRenderContext(width: 30, height: 6)
         ).lines
         let row = lines.first { $0.contains("TODAY") } ?? ""
         #expect(isDim(row), "the explicit dim survived .increased: \(row)")

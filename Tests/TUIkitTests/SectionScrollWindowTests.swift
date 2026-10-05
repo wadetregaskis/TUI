@@ -458,15 +458,16 @@ struct SectionScrollWindowTests {
     }
 
     @Test(
-        "A footer that draws blank is not counted: at the end, read-back reports the last row, as with no footer",
+        "A footer that draws blank is its line: at the end, read-back still reports the last row above it",
         arguments: [SectionContentPath.uniform, .exactWalk, .anchored])
     func readBackOverABlankFooter(path: SectionContentPath) {
-        // The section drops a blank footer, so the content ends at the last
-        // row, which is on the viewport's last line with no "more below" line
-        // over it. Counted, the footer's line was content below the viewport,
-        // the sample was charged that indicator's line, and it named the row
-        // above. The anchored window's last row is one line here too, so a
-        // line too high lands on the row above it.
+        // Outside a `List` a section draws its footer as written, so a blank
+        // one is a blank line below the last row, as SwiftUI's `Text(" ")` is
+        // (decisions B16; a `List` still drops it). The read-back sample must
+        // count that line once — as the footer, not as content still below
+        // the viewport, which charged the sample a "more below" line and named
+        // the row above the last. The anchored window's last row is one line
+        // here too, so a line too high lands on the row above it.
         let count = path == .anchored ? path.count + 1 : path.count
         func bottom(blankFooter: Bool) -> (screen: [String], id: Int?) {
             var position = ScrollPosition()
@@ -493,7 +494,11 @@ struct SectionScrollWindowTests {
         let blank = bottom(blankFooter: true)
         let bare = bottom(blankFooter: false)
         #expect(bare.id == count - 1, "precondition: \(bare.screen)")
-        #expect(blank.screen == bare.screen, "\(blank.screen) where no footer draws \(bare.screen)")
+        // The same screen moved up a line for the footer's: the indicator, the
+        // rows from the second on, and the blank footer below the last.
+        #expect(
+            Array(blank.screen) == [bare.screen[0]] + bare.screen.dropFirst(2) + [""],
+            "\(blank.screen) where no footer draws \(bare.screen)")
         #expect(blank.id == count - 1, "\(blank.screen)")
     }
 

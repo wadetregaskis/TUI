@@ -105,6 +105,11 @@ final class FlattenedRowIDs<ID: Hashable> {
     /// spacers included, since a position is what matches a row to its loop.
     private let children: [ChildView]
 
+    /// Whether the walk that made ``children`` kept each `Section` whole
+    /// (`RenderContext.keepsSectionsWhole`), so that a section is one
+    /// positional child rather than its parts' children.
+    private let sectionsWhole: Bool
+
     /// How each child, by its index in ``children``, was placed — `nil` until
     /// the first answer is asked for, then empty when no child was placed as a
     /// looped row, which is every container of hand-written rows.
@@ -142,11 +147,13 @@ final class FlattenedRowIDs<ID: Hashable> {
         case answered(ID?)
     }
 
-    /// The answers for `children`, which `resolveChildViews` made of `content`.
-    /// Nothing is walked here; see the type's note.
-    init(content: some View, children: [ChildView]) {
+    /// The answers for `children`, which `resolveChildViews` made of `content`
+    /// — keeping each `Section` whole when `sectionsWhole`, as a `List`'s walk
+    /// does. Nothing is walked here; see the type's note.
+    init(content: some View, children: [ChildView], sectionsWhole: Bool = false) {
         self.content = content
         self.children = children
+        self.sectionsWhole = sectionsWhole
     }
 
     /// The selection value of the child at `index`, the `ordinal`-th row of its
@@ -268,7 +275,7 @@ final class FlattenedRowIDs<ID: Hashable> {
         // section's own items, and asks nothing here. So nothing is walked.
         guard !keyed.isEmpty, !keyed.allSatisfy({ Self.isSection(children[$0]) }) else { return [] }
         var runs: [KeyedRowRun] = []
-        appendKeyedRowRuns(of: content, to: &runs)
+        appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
         let loops = runs.compactMap { run -> (any KeyedLoop)? in
             if case .loop(let loop) = run { return loop }
             return nil
@@ -454,8 +461,10 @@ protocol KeyedLoop {
 /// ``ChildViewProvider``, which is exactly when the splice does.
 @MainActor
 protocol KeyedRowProvider {
-    /// Appends the runs of keyed rows this view flattens, in order.
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun])
+    /// Appends the runs of keyed rows this view flattens, in order — with each
+    /// `Section` kept whole when `sectionsWhole`, as the walk that flattened
+    /// the children did (`RenderContext.keepsSectionsWhole`).
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool)
 }
 
 /// Appends the runs of keyed rows `view` flattens into its container, going
@@ -468,53 +477,69 @@ protocol KeyedRowProvider {
 /// out one by one. Any other provider is a run of its own that cannot be
 /// counted.
 @MainActor
-func appendKeyedRowRuns(of view: some View, to runs: inout [KeyedRowRun]) {
+func appendKeyedRowRuns(of view: some View, to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
     if let provider = view as? KeyedRowProvider {
-        provider.appendKeyedRowRuns(to: &runs)
+        provider.appendKeyedRowRuns(to: &runs, sectionsWhole: sectionsWhole)
         return
     }
     guard view is ChildViewProvider else { return }
     if let wrapper = view as? any SingleContentWrapper {
-        appendKeyedRowRuns(of: wrapper.wrappedContent, to: &runs)
+        appendKeyedRowRuns(of: wrapper.wrappedContent, to: &runs, sectionsWhole: sectionsWhole)
     } else {
         runs.append(.opaque)
     }
 }
 
 extension TupleView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
         for child in repeat each children {
-            TUIkit.appendKeyedRowRuns(of: child, to: &runs)
+            TUIkit.appendKeyedRowRuns(of: child, to: &runs, sectionsWhole: sectionsWhole)
         }
     }
 }
 
 extension Group: KeyedRowProvider where Content: View {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
-        TUIkit.appendKeyedRowRuns(of: content, to: &runs)
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+        TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
 extension ConditionalView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
         switch self {
-        case .trueContent(let content): TUIkit.appendKeyedRowRuns(of: content, to: &runs)
-        case .falseContent(let content): TUIkit.appendKeyedRowRuns(of: content, to: &runs)
+        case .trueContent(let content):
+            TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
+        case .falseContent(let content):
+            TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
         }
     }
 }
 
 extension Optional: KeyedRowProvider where Wrapped: View {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
         // A `nil` still leaving keeps a slot in its container (see
         // `Optional.childViews`), but a positional one: no keyed row.
-        if case .some(let wrapped) = self { TUIkit.appendKeyedRowRuns(of: wrapped, to: &runs) }
+        if case .some(let wrapped) = self {
+            TUIkit.appendKeyedRowRuns(of: wrapped, to: &runs, sectionsWhole: sectionsWhole)
+        }
     }
 }
 
 extension OutlineGroup: KeyedRowProvider where Leaf: View {
-    func appendKeyedRowRuns(to runs: inout [KeyedRowRun]) {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
         runs.append(.outline)
+    }
+}
+
+/// A section is its parts' children to a walk that takes it apart, so its
+/// parts' loops are runs of the container's; kept whole, it is one positional
+/// child and makes none. A collapsed section's content makes none either.
+extension Section: KeyedRowProvider {
+    func appendKeyedRowRuns(to runs: inout [KeyedRowRun], sectionsWhole: Bool) {
+        guard !sectionsWhole else { return }
+        TUIkit.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)
+        if showsContent { TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: false) }
+        TUIkit.appendKeyedRowRuns(of: footer, to: &runs, sectionsWhole: false)
     }
 }
 

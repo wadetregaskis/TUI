@@ -172,7 +172,10 @@ extension _VStackCore {
         var placementContext = context
         switch overflow {
         case .clip: placementContext.environment.scrollContentWindow = nil
-        case .window: placementContext.leaveScrollOrigin()
+        case .window:
+            placementContext.leaveScrollOrigin()
+            // The rows the render draws: a pinned stack's own sections whole.
+            placementContext = withPinnedSectionScope(placementContext)
         }
         return placementContext
     }

@@ -137,8 +137,9 @@ struct StyleCascadeCoverageTests {
 
     @Test("A section footer is dim (not bold) by default")
     func footerDefault() {
+        // In a `List`: outside one a section's footer has no chrome (B16).
         let section = Section { Text("Body") } footer: { Text("Foot") }
-        let footer = renderToBuffer(section, context: context()).lines.last ?? ""
+        let footer = renderToBuffer(List { section }, context: context()).lines.first { $0.contains("Foot") } ?? ""
         #expect(footer.contains("\u{1B}[2;") || footer.contains("\u{1B}[2m"), "footer should be dim")
         #expect(!footer.contains("\u{1B}[1;2"), "footer should not be bold")
     }
@@ -147,7 +148,7 @@ struct StyleCascadeCoverageTests {
     func footerOverride() {
         let section = Section { Text("Body") } footer: { Text("Foot") }
             .style(.chrome(.sectionFooter)) { $0.bold = true }
-        let footer = renderToBuffer(section, context: context()).lines.last ?? ""
+        let footer = renderToBuffer(List { section }, context: context()).lines.first { $0.contains("Foot") } ?? ""
         #expect(footer.contains("\u{1B}[1;2"), "footer should now be bold + dim")
     }
 

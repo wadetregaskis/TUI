@@ -1,8 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  SectionCore.swift
 //
-//  How a `Section` draws when it is drawn as one view: split out of
-//  `Section.swift`, which had passed the file-length ceiling.
+//  How a `Section` draws when it is drawn as one view: on its own — a view's
+//  whole `body`, a scroll view's content — or as one of a pinned lazy stack's
+//  own sections. Anywhere else it never draws as one: a container takes it
+//  apart (`SectionAsParts.swift`), and a `List` reads it as rows.
 //
 //  Created by LAYERED.work
 //  License: MIT
@@ -12,39 +14,92 @@ import TUIkitView
 
 // MARK: - Section Core (Internal Rendering)
 
-/// Internal core view that handles section rendering.
+/// A section drawn as one view.
 ///
-/// `_SectionCore` is a leaf node that renders the section's header, content,
-/// and footer with appropriate styling. It conforms to `Renderable` for
-/// direct buffer output.
+/// On its own it stacks its header, content and footer vertically, with no
+/// styling and no spacing, as a `Group` drawn on its own stacks its members; a
+/// lazy stack in its content still bands itself against the scroll window
+/// (`ScrollWindowRelay`). Drawn by a `List` as one of its rows — a section the
+/// list cannot read as rows of its own, such as one wrapped in a modifier — it
+/// keeps the list's styling (``EnvironmentValues/drawsListSectionChrome``). As one of a pinned lazy stack's own sections it lays
+/// its parts out as the stack lays out its children
+/// (``PinnedSectionLayout``) and pins its header and footer
+/// (`OverlayLayer.scrollPin`).
 struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable, Layoutable {
     let header: Parent
     let content: Content
     let footer: Footer
     let isExpanded: Binding<Bool>?
 
-    /// The header as it is drawn: behind a disclosure triangle for a
-    /// collapsible section.
-    private var drawnHeader: _SectionHeader<Parent> {
-        _SectionHeader(header: header, isExpanded: isExpanded)
-    }
-
     /// Whether the content is drawn: not while a collapsible section is
     /// collapsed.
     private var showsContent: Bool { isExpanded?.wrappedValue ?? true }
+
+    /// The header as a `List` draws it: behind a disclosure triangle for a
+    /// collapsible section, under the header's chrome role.
+    private var listHeader: _SectionHeader<Parent> {
+        _SectionHeader(header: header, isExpanded: isExpanded)
+    }
+
+    /// `context` for a header or footer: under its chrome role when a `List`
+    /// draws the section (``EnvironmentValues/drawsListSectionChrome``), so its
+    /// text takes the role's styling through the cascade, and as it is
+    /// otherwise.
+    private func chromeContext(_ context: RenderContext, _ role: ChromeRole) -> RenderContext {
+        context.environment.drawsListSectionChrome ? sectionChromeContext(context, role) : context
+    }
+
+    /// The header or footer as drawn: dropped when a `List` draws the section
+    /// and it draws blank (a `Text("")`), as a list drops a blank header row.
+    private func drawnChrome(_ buffer: FrameBuffer, _ context: RenderContext) -> FrameBuffer? {
+        context.environment.drawsListSectionChrome && sectionBufferIsBlank(buffer) ? nil : buffer
+    }
+
+    /// The header as drawn in `context`.
+    private func renderHeader(_ context: RenderContext) -> FrameBuffer? {
+        guard !(header is EmptyView) else { return nil }
+        let headerContext = chromeContext(context, .sectionHeader)
+        let buffer =
+            context.environment.drawsListSectionChrome
+            ? TUIkit.renderToBuffer(listHeader, context: headerContext)
+            : TUIkit.renderToBuffer(header, context: headerContext)
+        return drawnChrome(buffer, context)
+    }
 
     var body: Never {
         fatalError("_SectionCore renders via Renderable")
     }
 
-    /// Size from one render: the stack of header/content/footer drops a *blank*
-    /// header or footer (e.g. `header: { Text("") }` that padded to spaces),
-    /// which can't be detected without rendering, so the height isn't a clean
-    /// structural sum. Flexibility comes from the parts — measured under the same
-    /// chrome contexts the render uses (chrome role styles, it does not resize) —
-    /// so a `.frame(maxWidth: .infinity)` content still reports the section
-    /// width-flexible to its parent.
+    /// The pinned stack this is one of the own sections of: what it pins, and
+    /// how it lays out its children — or `nil`.
+    private func pinningStack(
+        _ context: RenderContext
+    ) -> (pins: (headers: Bool, footers: Bool), layout: PinnedSectionLayout)? {
+        guard let scope = context.environment.pinnedSectionScope,
+            scope.owns(sectionAt: context.identity),
+            let layout = context.environment.pinnedSectionLayout
+        else { return nil }
+        return ((scope.pinsHeaders, scope.pinsFooters), layout)
+    }
+
+    /// `context` for what the section draws, which is no section of the
+    /// stack's: a section in its content is that section's, not the stack's.
+    private func drawingContext(_ context: RenderContext) -> RenderContext {
+        guard context.environment.pinnedSectionScope != nil else { return context }
+        var drawing = context
+        drawing.environment.pinnedSectionScope = nil
+        return drawing
+    }
+
+    /// Size from one render, on its own: whether a lazy stack in the content
+    /// draws a band or every row is known only by drawing it. Flexibility comes
+    /// from the parts, so a `.frame(maxWidth: .infinity)` content still reports
+    /// the section width-flexible to its parent.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let stack = pinningStack(context) {
+            return stackedSize(
+                layout: stack.layout, proposal: proposal, context: drawingContext(context))
+        }
         let size = measureFixedByRendering(self, proposal: proposal, context: context)
         var widthFlexible = false
         var heightFlexible = false
@@ -53,13 +108,11 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             if childSize.isHeightFlexible { heightFlexible = true }
         }
         if !(header is EmptyView) {
-            note(measureChild(drawnHeader, proposal: proposal,
-                              context: sectionChromeContext(context, .sectionHeader)))
+            note(measureChild(header, proposal: proposal, context: chromeContext(context, .sectionHeader)))
         }
         if showsContent { note(measureChild(content, proposal: proposal, context: context)) }
         if !(footer is EmptyView) {
-            note(measureChild(footer, proposal: proposal,
-                              context: sectionChromeContext(context, .sectionFooter)))
+            note(measureChild(footer, proposal: proposal, context: chromeContext(context, .sectionFooter)))
         }
         return ViewSize(
             width: size.width, height: size.height,
@@ -67,12 +120,9 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // One of a pinned lazy stack's own sections pins its header and footer
-        // (`PinnedSectionScope`). What it draws is not the stack's: a section
-        // that is this one's whole content is no section of the stack's.
-        let pins = context.environment.pinnedSectionScope?.pins(at: context.identity)
-        var context = context
-        if pins != nil { context.environment.pinnedSectionScope = nil }
+        let stack = pinningStack(context)
+        let context = drawingContext(context)
+        if let stack { return renderStacked(layout: stack.layout, pins: stack.pins, context: context) }
 
         var lines: [String] = []
         // A `Section` assembles its lines by hand rather than compositing, so
@@ -112,18 +162,10 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             regions += buffer.shiftedHitTestRegions(byX: 0, y: dy)
         }
 
-        // Header and footer render under a chrome role, so their text resolves
-        // the role's default styling (header bold+dim, footer dim) plus any
-        // `.chrome(...)` theme overrides through the normal cascade — see
-        // ``ChromeRole`` and ``Text``.
-        var headerBuffer: FrameBuffer?
-        if !(header is EmptyView) {
-            let rendered = TUIkit.renderToBuffer(
-                drawnHeader, context: sectionChromeContext(context, .sectionHeader))
-            // Drop a blank header (e.g. `header: { Text("") }`) rather than show
-            // an empty line above the content.
-            if !sectionBufferIsBlank(rendered) { headerBuffer = rendered }
-        }
+        // The header and footer as written: outside a `List`, a section gives
+        // them no styling of its own (decisions B16), and a collapsible
+        // section's header is no control. A list's section keeps the list's.
+        let headerBuffer = renderHeader(context)
 
         // A lazy stack in the content still bands itself against a scroll
         // window — single-child steps lead to it — so it is handed the window
@@ -136,12 +178,11 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             ? TUIkit.renderToBuffer(content, context: relay?.contentContext(context) ?? context)
             : FrameBuffer()
 
-        var footerBuffer: FrameBuffer?
-        if !(footer is EmptyView) {
-            let rendered = TUIkit.renderToBuffer(
-                footer, context: sectionChromeContext(context, .sectionFooter))
-            if !sectionBufferIsBlank(rendered) { footerBuffer = rendered }
-        }
+        let footerBuffer: FrameBuffer? =
+            footer is EmptyView
+            ? nil
+            : drawnChrome(
+                TUIkit.renderToBuffer(footer, context: chromeContext(context, .sectionFooter)), context)
 
         let placement =
             relay?.answer(contentBuffer: contentBuffer, linesBelow: footerBuffer?.height ?? 0)
@@ -162,12 +203,6 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             }
         }
 
-        if let pins, pins.headers || pins.footers, !context.isMeasuring {
-            overlays += pinnedChrome(
-                header: placement.drawsAbove ? headerBuffer : nil, content: contentBuffer,
-                footer: placement.drawsBelow ? footerBuffer : nil, pins: pins)
-        }
-
         var buffer = FrameBuffer(lines: lines)
         buffer.overlays = overlays
         buffer.hitTestRegions = regions
@@ -184,62 +219,133 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         return buffer
     }
 
-    /// The layers that pin this section's header to the top edge of the
-    /// scroll view it is in, and its footer to the bottom, for a section of a
-    /// pinned lazy stack (`OverlayLayer.scrollPin`): a copy of each, where
-    /// the flow draws it, free to travel the height of the content.
-    ///
-    /// Padded to the section's width, so a pinned header covers every cell of
-    /// the rows it lands on — the section's own rows, since the content's
-    /// last row is as far as it goes. Without its presentations: those ride
-    /// on the header the flow draws, and the scroll view moves them with it.
-    ///
-    /// - Parameters:
-    ///   - header: The header, when it was drawn at the top of the section.
-    ///   - footer: The footer, when it was drawn at the bottom.
-    private func pinnedChrome(
-        header: FrameBuffer?, content: FrameBuffer, footer: FrameBuffer?,
-        pins: (headers: Bool, footers: Bool)
-    ) -> [OverlayLayer] {
-        let travel = content.height
-        guard travel > 0 else { return [] }
-        let width = max(header?.width ?? 0, content.width, footer?.width ?? 0)
-        func layer(_ chrome: FrameBuffer, atY y: Int, edge: OverlayLayer.ScrollPin.Edge) -> OverlayLayer {
-            var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(width) })
-            copy.overlays = []
-            var layer = OverlayLayer(offsetX: 0, offsetY: y, content: copy, isOpaque: false)
-            layer.scrollPin = OverlayLayer.ScrollPin(edge: edge, travel: travel)
-            return layer
-        }
-        var layers: [OverlayLayer] = []
-        if pins.headers, let header {
-            layers.append(layer(header, atY: 0, edge: .top))
-        }
-        if pins.footers, let footer {
-            layers.append(layer(footer, atY: (header?.height ?? 0) + travel, edge: .bottom))
-        }
-        return layers
-    }
-
     /// The footer's lines, for a lazy stack in the content that bands itself
     /// against a scroll window (`ScrollWindowRelay`, which asks only when it
     /// relays one) and needs them before the footer is drawn: drawn after the
     /// content, the footer's controls join the focus ring after the content's.
-    ///
     /// So they are drawn once first as a measure draws them — no control
-    /// registers there — and a footer that draws blank has none, as the
-    /// render drops it. Measured instead, a blank footer counted its lines,
-    /// and the stack answered for content longer than the content drawn: at
-    /// the end, over a blank footer of one line, the read-back sample was
-    /// charged a "more below" line that was not drawn, and named the row above
-    /// the last.
+    /// registers there — and a footer the section drops (a `List`'s blank
+    /// one) has none.
     private func footerLinesBelowScrollContent(context: RenderContext) -> Int {
         guard !(footer is EmptyView) else { return 0 }
         let drawn = TUIkit.renderToBuffer(
             footer,
             context: fixedMeasureContext(
                 proposal: ProposedSize(width: context.availableWidth, height: nil),
-                context: sectionChromeContext(context, .sectionFooter)))
-        return sectionBufferIsBlank(drawn) ? 0 : drawn.height
+                context: chromeContext(context, .sectionFooter)))
+        return drawnChrome(drawn, context)?.height ?? 0
+    }
+}
+
+// MARK: - One of a Pinned Stack's Own Sections
+
+extension _SectionCore {
+    /// The views of each part, resolved as a container taking the section
+    /// apart resolves them (`sectionPartChildren`), so the section lays out
+    /// exactly what such a container would.
+    private func partChildren(_ context: RenderContext) -> [[ChildView]] {
+        [
+            sectionPartChildren(header, part: 0, in: context),
+            showsContent ? sectionPartChildren(content, part: 1, in: context) : [],
+            sectionPartChildren(footer, part: 2, in: context),
+        ]
+    }
+
+    /// The section's size laid out as the stack lays out its children: the
+    /// views' extents along the stack's axis, `spacing` between every two that
+    /// draw something, and across it the widest of them.
+    private func stackedSize(
+        layout: PinnedSectionLayout, proposal: ProposedSize, context: RenderContext
+    ) -> ViewSize {
+        var along = 0
+        var across = 0
+        var placed = 0
+        var widthFlexible = false
+        var heightFlexible = false
+        for child in partChildren(context).joined() {
+            let size = child.measure(proposal: ProposedSize(width: proposal.width, height: nil), context: context)
+            if size.isWidthFlexible { widthFlexible = true }
+            if size.isHeightFlexible { heightFlexible = true }
+            // A view that draws no line takes no room and earns no gap — the
+            // stack's own rule (`FrameBuffer.appendVertically`).
+            guard size.height > 0 else { continue }
+            along += (placed > 0 ? layout.spacing : 0) + size.height
+            across = max(across, size.width)
+            placed += 1
+        }
+        return ViewSize(
+            width: across, height: along, isWidthFlexible: widthFlexible,
+            isHeightFlexible: heightFlexible)
+    }
+
+    /// The section laid out as the stack lays out its children, its header
+    /// and footer pinned.
+    ///
+    /// Each part is drawn as a block of its views, aligned across the
+    /// section's width by the stack's alignment, and the blocks are stacked
+    /// `spacing` apart: what the stack would draw with the parts as its own
+    /// children, the section's width standing in for the stack's.
+    private func renderStacked(
+        layout: PinnedSectionLayout, pins: (headers: Bool, footers: Bool), context: RenderContext
+    ) -> FrameBuffer {
+        let width = context.availableWidth
+        let drawn = partChildren(context).map { children in
+            children.map { child in
+                let height =
+                    child.measure(proposal: ProposedSize(width: width, height: nil), context: context).height
+                return child.render(width: width, height: max(0, height), context: context)
+            }
+        }
+        let breadth = drawn.joined().filter { !$0.lines.isEmpty }.map(\.width).max() ?? 0
+        let blocks = drawn.map { buffers in
+            var block = FrameBuffer()
+            for buffer in buffers {
+                block.appendVertically(
+                    buffer.horizontallyAligned(toWidth: breadth, alignment: layout.alignment.horizontal),
+                    spacing: layout.spacing)
+            }
+            return block
+        }
+        let (header, content, footer) = (blocks[0], blocks[1], blocks[2])
+
+        var section = FrameBuffer()
+        section.appendVertically(header, spacing: layout.spacing)
+        let contentTop = section.height + (section.height > 0 && content.height > 0 ? layout.spacing : 0)
+        section.appendVertically(content, spacing: layout.spacing)
+        let footerTop = section.height + (section.height > 0 && footer.height > 0 ? layout.spacing : 0)
+        section.appendVertically(footer, spacing: layout.spacing)
+
+        if !context.isMeasuring, content.height > 0 {
+            let contentBottom = contentTop + content.height
+            if pins.headers, header.height > 0 {
+                section.overlays.append(
+                    Self.pinnedLayer(header, atY: 0, edge: .top, travel: contentBottom - header.height))
+            }
+            if pins.footers, footer.height > 0 {
+                section.overlays.append(
+                    Self.pinnedLayer(footer, atY: footerTop, edge: .bottom, travel: footerTop - contentTop))
+            }
+        }
+        return section
+    }
+
+    /// A layer pinning `chrome` — a header or a footer, drawn where the flow
+    /// draws it — to an edge of the scroll view it is in (`OverlayLayer.scrollPin`),
+    /// free to travel `travel` rows toward the far end of its section: until a
+    /// header's bottom meets the content's last row, or a footer's top the
+    /// content's first, which is SwiftUI's rule (measured on macOS 15.8).
+    ///
+    /// Padded to the section's width — the chrome block's, which every part is
+    /// aligned across — so a pinned header covers every cell of the rows it
+    /// lands on. Without its presentations: those ride on the chrome the flow
+    /// draws, and the scroll view moves them with it.
+    private static func pinnedLayer(
+        _ chrome: FrameBuffer, atY y: Int, edge: OverlayLayer.ScrollPin.Edge, travel: Int
+    ) -> OverlayLayer {
+        var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(chrome.width) })
+        copy.overlays = []
+        var layer = OverlayLayer(offsetX: 0, offsetY: y, content: copy, isOpaque: false)
+        layer.scrollPin = OverlayLayer.ScrollPin(edge: edge, travel: travel)
+        return layer
     }
 }

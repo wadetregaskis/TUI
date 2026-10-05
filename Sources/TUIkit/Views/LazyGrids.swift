@@ -221,9 +221,9 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
 /// row below, and its footer spans the columns after them. Views outside any
 /// section flow as they do in a grid with none, between the sections. Header
 /// and footer sit across the grid where `alignment` puts a view in a cell, as
-/// SwiftUI's do (measured on macOS 15.8), and keep the dimmed styling a
-/// section's header has outside a `List`. With `pinnedViews:`, they pin to the
-/// enclosing scroll view's edges exactly as a ``LazyVStack``'s do:
+/// SwiftUI's do (measured on macOS 15.8), drawn as written: outside a `List` a
+/// section's header has no styling of its own. With `pinnedViews:`, they pin
+/// to the enclosing scroll view's edges exactly as a ``LazyVStack``'s do:
 ///
 /// ```swift
 /// ScrollView {
@@ -239,9 +239,9 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
 ///
 /// Two deviations: a sectioned grid fills the width it is offered, as a grid
 /// of `.flexible` or `.adaptive` columns always does, so a section's header
-/// can sit across it; and `spacing` falls between the sections and between
-/// rows, not between a header and its section's first row, as in a
-/// ``LazyVStack``'s sections.
+/// can sit across it; and, unless the grid pins, `spacing` falls between the
+/// sections and between rows but not between a header and its section's
+/// first row, where SwiftUI's falls there too (decisions B15).
 ///
 /// - Note: Unlike SwiftUI's, this grid measures every subview — "lazy" here
 ///   describes the API shape, not deferred construction. A grid whose rows must
@@ -349,9 +349,12 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
         }
     }
 
-    /// Whether a `Section` is among the grid's views.
+    /// Whether a `Section` is among the grid's views — asked of a walk that
+    /// keeps sections whole, to be found (`RenderContext.keepsSectionsWhole`).
     private func hasSections(_ context: RenderContext) -> Bool {
-        resolveChildViews(from: content, context: context).contains { sectionParts(of: $0) != nil }
+        resolveChildViews(from: content, context: context.keepingSectionsWhole()).contains {
+            sectionParts(of: $0) != nil
+        }
     }
 
     /// The context the sectioned form is drawn and measured in.

@@ -345,6 +345,10 @@ extension ModifiedView: ChildViewProvider where Content: ChildViewProvider {
     /// defect ``ChildViewProvider/identityBranchLabel`` exists to prevent, one
     /// wrapper further out.
     public var identityBranchLabel: String? { content.identityBranchLabel }
+
+    /// The content's answer: a modified `Section` is still a section to a
+    /// container that keeps sections whole.
+    public func staysWhole(in context: RenderContext) -> Bool { content.staysWhole(in: context) }
 }
 
 // MARK: - Layoutable

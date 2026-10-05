@@ -50,7 +50,7 @@ struct SectionIsExpandedTests {
         #expect(closed.contains { $0.contains("Leek") } && closed.contains { $0.contains("Loose") }, "\(closed)")
     }
 
-    @Test("Outside a list the section draws its content only while expanded")
+    @Test("Outside a list the section draws its header as written and its content only while expanded")
     func collapsedOutsideAList() {
         func view(_ box: Box) -> some View {
             VStack {
@@ -65,6 +65,9 @@ struct SectionIsExpandedTests {
         #expect(open.contains { $0.contains("Head") } && open.contains { $0.contains("Inside") }, "\(open)")
         let closed = lines(view(Box(false)))
         #expect(closed.contains { $0.contains("Head") } && !closed.contains { $0.contains("Inside") }, "\(closed)")
+        // No disclosure triangle: SwiftUI's header outside a list is no
+        // control (measured on macOS 15.8), so neither is this one.
+        #expect(!(open + closed).contains { $0.contains("▶") || $0.contains("▼") }, "\(open) \(closed)")
     }
 
     @Test("The header is a focus stop that Return toggles")

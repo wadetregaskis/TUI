@@ -212,6 +212,14 @@ extension TupleView: ChildViewProvider {
         // step, not beside it. Handing it the stack's context instead makes
         // every removal transition inside an `if` stop playing.
         var providerContext = context.withChildIdentity(erasedType: C.self, index: slot)
+        // A provider that stays whole here (``ChildViewProvider/staysWhole(in:)``
+        // — a `Section` in a `List`) is one child, addressed as any other
+        // view is. Asked in its own step, where its children would have
+        // resolved: a pinned stack's own section is one sibling step down.
+        if provider.staysWhole(in: providerContext) {
+            views.append(ChildView(child, childIndex: slot))
+            return
+        }
         // An `if`/`else` offers one branch or the other from the same slot,
         // and the two must not share an identity — see
         // ``ChildViewProvider/identityBranchLabel``. The same step

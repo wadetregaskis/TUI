@@ -27,7 +27,8 @@ public enum ControlKind: Sendable, Hashable {
 // MARK: - Chrome role
 
 /// A non-control structural element that draws text (so it can be styled by the
-/// theme), e.g. a `Section`'s header.
+/// theme), e.g. a `Section`'s header in a `List` — outside a list a section's
+/// header and footer are drawn as written, with no role.
 public enum ChromeRole: Sendable, Hashable {
     case sectionHeader
     case sectionFooter
