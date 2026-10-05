@@ -48,12 +48,10 @@ final class BundleStringTables {
         /// bundle has none for it.
         var localizations: [LocalizationService.Language: Bundle?] = [:]
         /// What each key resolved to in each language's `.lproj`, `.some(nil)`
-        /// for a key the table lacks. At most ``BundleStringTables/answerLimit``
-        /// a language — see ``remember(_:for:in:)``.
-        var answers: [LocalizationService.Language: [String: String?]] = [:]
-        /// What each key resolved to as Foundation chooses for the bundle,
-        /// at most ``BundleStringTables/answerLimit`` of them.
-        var fallbackAnswers: [String: String?] = [:]
+        /// for a key the table lacks — bounded, see ``Answers``.
+        var answers: [LocalizationService.Language: Answers] = [:]
+        /// What each key resolved to as Foundation chooses for the bundle.
+        var fallbackAnswers = Answers()
 
         init(bundle: Bundle, name: String) {
             self.bundle = bundle
@@ -86,8 +84,8 @@ final class BundleStringTables {
     /// spells, so a translation that happens to equal its key still counts.
     private static let missing = "\u{FFFF}TUIkit.missing\u{FFFF}"
 
-    /// How many answers one table keeps per language (and for its fallback)
-    /// before it forgets them all and starts again.
+    /// How many answers one generation of a table's answers holds, per
+    /// language and for its fallback — see ``Answers``.
     ///
     /// The answers only spare Foundation's lookup, which reads a table it has
     /// already loaded, so forgetting costs a re-read and nothing else. Without
@@ -96,6 +94,48 @@ final class BundleStringTables {
     /// ever asked for, for the life of the process. An app's literal keys are
     /// far fewer than this, so they are never forgotten in practice.
     static let answerLimit = 4_096
+
+    /// The answers one table keeps for one language (or its fallback): at
+    /// most two generations of ``BundleStringTables/answerLimit`` each.
+    ///
+    /// NOT one map emptied when it fills. That was the flat cap a memo of
+    /// TUIkit's has already lost to once (the text-wrap memo): a working set
+    /// just over the limit — 4,097 keys a frame — filled the map, emptied it
+    /// at the 4,097th key and refilled it, so every frame read every key from
+    /// Foundation again and nothing was ever served. Here a full generation
+    /// becomes the previous one and the one before it is forgotten, and an
+    /// answer found in the previous generation moves back into the current
+    /// one, so a set of keys asked for again and again stays kept whole up to
+    /// twice the limit, and only keys nobody has asked for in a whole
+    /// generation are forgotten.
+    struct Answers {
+        private var current: [String: String?] = [:]
+        private var previous: [String: String?] = [:]
+
+        /// The answer kept for `key` — `.some(nil)` for a key the table was
+        /// found to lack — or `nil` where none is kept.
+        mutating func answer(for key: String) -> String?? {
+            if let kept = current[key] { return kept }
+            guard let kept = previous[key] else { return nil }
+            remember(kept, for: key)
+            return kept
+        }
+
+        /// Keeps `answer` for `key`, starting a new generation first if the
+        /// current one is full.
+        mutating func remember(_ answer: String?, for key: String) {
+            if current.count >= BundleStringTables.answerLimit {
+                // The old previous generation's storage becomes the new
+                // current one, emptied, so a turnover allocates nothing.
+                swap(&current, &previous)
+                current.removeAll(keepingCapacity: true)
+            }
+            current[key] = .some(answer)
+        }
+
+        /// How many answers are kept, in both generations.
+        var count: Int { current.count + previous.count }
+    }
 
     init(defaultBundle: Bundle = .main) {
         self.defaultBundle = defaultBundle
@@ -110,13 +150,14 @@ final class BundleStringTables {
     ) -> String? {
         let table = self.table(named: tableName, in: bundle)
         guard table.exists else { return nil }
-        if let answer = table.answers[language]?[key] { return answer }
+        if let answer = table.answers[language, default: Answers()].answer(for: key) { return answer }
         var answer: String?
         if let source = localization(of: table, for: language) {
+            foundationReads += 1
             let value = source.localizedString(forKey: key, value: Self.missing, table: table.name)
             if value != Self.missing { answer = value }
         }
-        remember(answer, for: key, in: &table.answers[language, default: [:]])
+        table.answers[language, default: Answers()].remember(answer, for: key)
         return answer
     }
 
@@ -126,18 +167,12 @@ final class BundleStringTables {
     func fallbackString(for key: String, tableName: String?, bundle: Bundle?) -> String? {
         let table = self.table(named: tableName, in: bundle)
         guard table.exists else { return nil }
-        if let answer = table.fallbackAnswers[key] { return answer }
+        if let answer = table.fallbackAnswers.answer(for: key) { return answer }
+        foundationReads += 1
         let value = table.bundle.localizedString(forKey: key, value: Self.missing, table: table.name)
         let answer = value == Self.missing ? nil : value
-        remember(answer, for: key, in: &table.fallbackAnswers)
+        table.fallbackAnswers.remember(answer, for: key)
         return answer
-    }
-
-    /// Keeps `answer` for `key`, forgetting every answer kept beside it first
-    /// if there are ``answerLimit`` of them already.
-    private func remember(_ answer: String?, for key: String, in answers: inout [String: String?]) {
-        if answers.count >= Self.answerLimit { answers.removeAll(keepingCapacity: true) }
-        answers[key] = .some(answer)
     }
 
     /// How many answers the tables keep, in all — for the tests of the bound.
@@ -147,6 +182,10 @@ final class BundleStringTables {
             total + table.fallbackAnswers.count + table.answers.values.reduce(0) { $0 + $1.count }
         }
     }
+
+    /// How many times a table was read through Foundation, for an answer not
+    /// kept — for the tests of the bound's hit rate. One increment a miss.
+    private(set) var foundationReads = 0
 
     /// The table named `tableName` of `bundle`, `nil` meaning `Localizable`
     /// and the default bundle: made once and kept.

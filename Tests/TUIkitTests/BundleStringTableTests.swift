@@ -142,9 +142,29 @@ final class BundleStringTableTests {
         for index in 0..<(BundleStringTables.answerLimit + 100) {
             _ = service.string(for: "row.\(index)")
         }
-        // English's answers and the fallback's, each at most the limit.
-        #expect(service.keptTableAnswerCount <= 2 * BundleStringTables.answerLimit)
+        // English's answers and the fallback's, each at most two generations.
+        #expect(service.keptTableAnswerCount <= 4 * BundleStringTables.answerLimit)
         #expect(service.string(for: "greeting") == "Hello", "a forgotten answer is not read again")
+    }
+
+    /// The flat cap's failure: a map emptied when it fills served nothing to
+    /// a set of keys one larger than it, asked for round after round — every
+    /// round filled it, emptied it at the last key and read every key again.
+    @Test("A set of keys just over the bound, asked for again and again, is still served from what was kept")
+    func aWorkingSetJustOverTheBoundStillHits() throws {
+        let files = try tables()
+        let service = LocalizationService(configDirectoryPath: configDir, defaultBundle: files.bundle)
+        service.pinLanguageForTesting(.english)
+        let keys = (0...BundleStringTables.answerLimit).map { "row.\($0)" }
+        for key in keys { _ = service.string(for: key) }
+        let afterFirstRound = service.tableReadCount
+        // English's .lproj and then the fallback, once each for every key.
+        #expect(afterFirstRound == 2 * keys.count)
+        for _ in 0..<3 {
+            for key in keys { _ = service.string(for: key) }
+        }
+        #expect(service.tableReadCount == afterFirstRound, "a kept answer was read from Foundation again")
+        #expect(service.keptTableAnswerCount <= 4 * BundleStringTables.answerLimit)
     }
 
     @Test("An interpolated key is read from the table and filled in")

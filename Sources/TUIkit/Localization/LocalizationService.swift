@@ -294,6 +294,14 @@ public final class LocalizationService: @unchecked Sendable {
         return bundleTables.keptAnswerCount
     }
 
+    /// How many times the service read a table through Foundation for an
+    /// answer it had not kept — for the tests of the bound's hit rate.
+    var tableReadCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return bundleTables.foundationReads
+    }
+
     /// Resolves a key in `language`, whatever the current language is —
     /// falling back to English, then to the key, as ``string(for:)`` does.
     ///
