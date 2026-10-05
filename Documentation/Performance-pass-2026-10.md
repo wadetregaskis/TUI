@@ -254,3 +254,86 @@ The owed A/Bs the decisions doc names that this pass did run:
   running concurrently. Put to a separate task.
 - **A single tap chained under a double tap fires once, then never.** Found by
   the gesture agent on unmodified code. Put to a separate task.
+
+## 8. A second pass: what was left, and what was always there
+
+The owner asked for more after §6. This pass profiled what was still slower
+than base, and also looked for costs every app had paid all along. It is 31
+commits, `4de3b6e3d..f62b3cc9d`.
+
+**Method.** The same profiles as §1, base against `d5fa453c5`, on the
+scenarios §6 left open. Five read-only agents then each read one group's
+profile deltas and the code behind them, proposed changes and estimated what
+each would save, and a skeptic per group checked each proposal against the
+code and the traces. Two agents implemented the reviewed proposals in
+worktrees, and a third reviewed each chain for behaviour changes; one
+`TransformEnvironmentModifier` fix came out of that review. Every change was
+built as a release binary of its own and A/B'd against its parent (15 reps,
+quiet machine, same flags as §1). Every step binary was also checked to draw
+byte-identical frames to `d5fa453c5` on nine scenarios. Four changes measured
+as nothing or worse and were not committed.
+
+**The largest find was not the batch's.** `EnvironmentValues`' key getter
+lives in TUIkitCore, and every accessor that calls it is in another module,
+so it ran unspecialised. Its `as? K.Value` makes a `K.Value?`, and the
+compiler fetched `Optional<K.Value>`'s metadata at the getter's entry, on
+every read, hit or miss. That was 16.6% of a `scrolleager` frame (base 14.5%)
+and 9% of `controls`/`tap`. It is the "unexplained ~10% in the metadata cache"
+an earlier environment study left open. Making the getter `@inlinable`
+specialises each accessor to its key. The same hoisted `Optional<V>` sat at
+the entry of the unspecialised `renderToBuffer` and `measureChildUncached`,
+for the rare animatable branch, and moved out of line.
+
+| Commit (short subject) | Scenario | Change |
+|---|---|---|
+| environment reads specialised | scrolleager / controls tap / menus / dashboard / kitchensink | −21.0% / −13.6% / −8.6% / −5.4% / −2.5% |
+| animatable substitute out of line | dashboard cold / scrolleager / tables-scroll / deep | −2.8% / −2.6% / −2.4% / −2.0% |
+| track fill spelled once per glyph, not per cell | controls progress / dashboard cold | **−65.5%** / −3.8% |
+| field surface walked once and kept | controls fields | −24.3% |
+| row builder: hidden requirement, no per-row cast | table-api rows-builder (new) | −55.9% (cold −53.4%) |
+| flat row list kept as values | table-api rows-builder | −36.1% (cold −32.0%) |
+| line feeds found by `memchr` | truncate / cold | −6.9% / −12.4% |
+| concatenation runs attributed whole | controls markdown | −15.8% |
+| Markdown template keeps merged runs | controls markdown | −8.7% |
+| `%` tested as a byte before Foundation | controls markdown / interpolated | −8.1% / −4.8% |
+| String and Int arguments without `String(describing:)` | controls interpolated / dashboard cold | −5.5% / −1.2% |
+| bare `%@` templates substituted from bytes | controls interpolated | −4.9% |
+| SGR introducer written as one string | controls markdown / menus / tap | −4.6% / −3.1% / −2.7% |
+| picture token only when a picture can draw | controls progress | −6.8% |
+| built-in progress style by metatype, drawn in place | controls progress / dashboard cold | −5.3% / −1.2% |
+| scroll bar lines joined in one string | tables-scroll / preferences | −6.0% / −1.5% |
+| ForEach reads `Identifiable` ids directly | scrolleager | −5.2% |
+| observation leases behind a constant pointer | controls fields / progress | −4.2% / −2.9% |
+
+Smaller commits, each A/B'd alone: the Text column cast once per column
+(truncate cold −2.1%), the one-line fit scan (truncate cold −1.7%), the column
+hidden requirement (truncate −1.1%), the auto-repeat token (tables-scroll
+−1.3%), field caps memo (fields −3.4%), unbordered field core in place (fields
+−3.1%), the list bar memo (kitchensink −1.9%), `noteAppliedEnvironment`'s
+autoclosure (menus −1.3%), the transform environment's one projection (menus
+−2.0%), and the read tracker's counters (fields −1.1%, dashboard cold −1.0%).
+The shared button-cap introducer measured as nothing; it stays as the helper
+the field-caps commit is built on.
+
+`table-api`/`rows-builder` is a new Stress variant: `Table(of:columns:rows:)`
+over `ForEach(rows) { TableRow($0) }`. Nothing measured the row builder
+before. It cost 3,953 µs a frame against 441 for the same table built from a
+collection; after these two commits it is about 973.
+
+**Measured as nothing, not committed:** comparing a `TextStyle` to the
+default by its bytes (+1.1% slower on truncate); stamping a table's column
+indices in place; skipping the privacy read when `.privacy` is off (nothing,
+once environment reads were cheap); deferring the status bar's Return verb.
+
+**Lessons.**
+- A cast to a protocol constrained by a generic argument (`as? any P<T>`)
+  builds its metadata from a mangled name on every call.
+- `as?` to a type parameter in unspecialised code costs an `Optional<T>`
+  metadata lookup at the function's entry, taken or not. A pattern cast
+  avoids it in a plain generic. A cross-module accessor needs `@inlinable`.
+- An incremental release build after a class's stored layout changes can fail
+  to link, because a dependent still references the old field-offset symbol.
+  Build those steps clean.
+
+The full sweep against base, after this pass, is still to run; its numbers
+will be added here.
