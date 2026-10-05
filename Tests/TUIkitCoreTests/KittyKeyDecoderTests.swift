@@ -136,33 +136,82 @@ struct KittyKeyDecoderTests {
         return bodies.map { KittyKeyDecoder.decode(Array("\u{1B}[\($0)".utf8), memory: &memory) }
     }
 
+    /// ``decodeInTurn(_:)``'s key events alone, for a test of keys rather
+    /// than of the modifier state reported beside them.
+    private func keysInTurn(_ bodies: [String]) -> [[TerminalInput]] {
+        decodeInTurn(bodies).map { ($0 ?? []).filter { $0.keyEvent != nil } }
+    }
+
     @Test("A release is the key its press was: Caps Lock's A comes up as A, a dead key's é as é")
     func releaseMatchesPress() {
         #expect(
-            decodeInTurn(["97;65;65u", "97;65:3u"])
+            keysInTurn(["97;65;65u", "97;65:3u"])
                 == [
                     key(KeyEvent(key: .character("A"), shift: true, capsLock: true)),
                     key(KeyEvent(key: .character("A"), shift: true, phase: .release, capsLock: true)),
                 ])
         #expect(
-            decodeInTurn(["101;;233u", "101;1:3u"])
+            keysInTurn(["101;;233u", "101;1:3u"])
                 == [key(KeyEvent(key: .character("é"))), key(KeyEvent(key: .character("é"), phase: .release))])
         // Shift let go before the key: still the key that went down.
         #expect(
-            decodeInTurn(["97:65;2;65u", "97;1:3u"]).last
+            keysInTurn(["97:65;2;65u", "97;1:3u"]).last
                 == key(KeyEvent(key: .character("A"), shift: true, phase: .release)))
         // A chord's release is the chord's key too.
         #expect(
-            decodeInTurn(["122:90;6u", "122;5:3u"]).last
+            keysInTurn(["122:90;6u", "122;5:3u"]).last
                 == key(KeyEvent(key: .character("Z"), ctrl: true, shift: true, phase: .release)))
     }
 
     @Test("A release of a key not seen going down is decoded from its code, and a release is remembered once")
     func releaseWithoutPress() {
-        #expect(decodeInTurn(["97;1:3u"]) == [key(KeyEvent(key: .character("a"), phase: .release))])
+        #expect(keysInTurn(["97;1:3u"]) == [key(KeyEvent(key: .character("a"), phase: .release))])
         #expect(
-            decodeInTurn(["97;65;65u", "97;65:3u", "97;1:3u"]).last
+            keysInTurn(["97;65;65u", "97;65:3u", "97;1:3u"]).last
                 == key(KeyEvent(key: .character("a"), phase: .release)))
+    }
+
+    // MARK: Modifier state across reports
+
+    @Test("With both Shift keys held, letting one go leaves Shift held, whatever bit the report carries")
+    func twoShiftKeys() {
+        let shift = [TerminalInput.modifierKeys(ModifierKeyState(shift: true))]
+        let none = [TerminalInput.modifierKeys(ModifierKeyState())]
+        #expect(decodeInTurn(["57441;2u", "57447;2u", "57441;2:3u", "57447;1:3u"]) == [shift, shift, shift, none])
+        #expect(decodeInTurn(["57441;2u", "57447;2u", "57441;1:3u"]).last == shift)
+    }
+
+    @Test("A key report whose modifiers disagree with the last state reports the state first")
+    func keyReportResyncs() {
+        // Shift's release was missed: the next key says it is up.
+        #expect(
+            decodeInTurn(["57441;2u", "97;1;97u"]).last
+                == [.modifierKeys(ModifierKeyState()), .key(KeyEvent(key: .character("a")))])
+        // Control's press was missed: the chord says it is down.
+        #expect(
+            decodeInTurn(["97;5u"])
+                == [[.modifierKeys(ModifierKeyState(control: true)), .key(KeyEvent(key: .character("a"), ctrl: true))]])
+        // Agreeing, nothing more.
+        #expect(
+            decodeInTurn(["57441;2u", "97:65;2;65u"]).last
+                == [.key(KeyEvent(key: .character("A"), shift: true))])
+        // A missed release is forgotten as a key held, so the other Shift's
+        // release is the last.
+        #expect(
+            decodeInTurn(["57441;2u", "97;1;97u", "57447;2u", "57447;1:3u"]).last
+                == [.modifierKeys(ModifierKeyState())])
+    }
+
+    @Test("Losing the focus forgets what is held and reports it released, Caps Lock kept")
+    func focusLost() {
+        var memory = KittyKeyMemory()
+        _ = KittyKeyDecoder.decode(Array("\u{1B}[57441;66u".utf8), memory: &memory)
+        #expect(
+            KittyKeyDecoder.focusLost(memory: &memory) == .modifierKeys(ModifierKeyState(capsLock: true)))
+        #expect(KittyKeyDecoder.focusLost(memory: &memory) == nil, "nothing more to release")
+        #expect(
+            KittyKeyDecoder.decode(Array("\u{1B}[97;65;65u".utf8), memory: &memory)
+                == key(KeyEvent(key: .character("A"), shift: true, capsLock: true)))
     }
 
     @Test("An unknown event type is dropped as malformed")

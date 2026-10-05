@@ -44,8 +44,13 @@ struct KittyKeyboardInputTests {
         let parsed = events(terminal("\u{1B}[104;5u\u{1B}[97:65;2;65u\u{1B}[27u"))
         #expect(
             parsed == [
+                // Each report's modifiers are the state, reported where it
+                // changes: no Control or Shift key report came first.
+                .modifierKeys(ModifierKeyState(control: true)),
                 .key(KeyEvent(key: .character("h"), ctrl: true)),
+                .modifierKeys(ModifierKeyState(shift: true)),
                 .key(KeyEvent(key: .character("A"), shift: true)),
+                .modifierKeys(ModifierKeyState()),
                 .key(KeyEvent(key: .escape)),
             ])
     }
@@ -71,6 +76,17 @@ struct KittyKeyboardInputTests {
                 .key(KeyEvent(key: .character("日"))), .key(KeyEvent(key: .character("本"))),
                 .key(KeyEvent(character: "x")),
             ])
+    }
+
+    @Test("Losing the focus releases the modifier keys held, after the focus report")
+    func focusOutReleasesModifiers() {
+        #expect(
+            events(terminal("\u{1B}[57444;9u\u{1B}[O"))
+                == [
+                    .modifierKeys(ModifierKeyState(command: true)), .focusChanged(isFocused: false),
+                    .modifierKeys(ModifierKeyState()),
+                ])
+        #expect(events(terminal("\u{1B}[O")) == [.focusChanged(isFocused: false)], "nothing held, nothing released")
     }
 
     @Test("Bracketed paste, mouse and focus reports are untouched by the protocol")

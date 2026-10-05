@@ -18,6 +18,14 @@
 /// the key it heard go down. So the press is remembered, by the key's code,
 /// and its release delivers the same key events again.
 ///
+/// The modifier keys are remembered too, each by its own code, because the
+/// report of one says nothing about its twin: with both Shift keys held,
+/// releasing one leaves Shift held. And the state last reported is kept, so a
+/// key report whose modifier bits disagree with it — a modifier's release
+/// that went to another window, a press made before the app started —
+/// reports the state again before its key (see
+/// ``KittyKeyDecoder/decode(_:memory:)``).
+///
 /// One per terminal, kept by the input parser while the protocol is on and
 /// forgotten when it is popped.
 package struct KittyKeyMemory: Sendable {
@@ -25,7 +33,24 @@ package struct KittyKeyMemory: Sendable {
     /// repeated), by its code: what its release delivers again.
     var pressed: [Int: [KeyEvent]] = [:]
 
+    /// The modifier keys down, by code: the left and right Shift are two.
+    var heldModifierKeys: Set<Int> = []
+
+    /// The modifier state last reported as `.modifierKeys`: nothing held, and
+    /// Caps Lock off, until a report says otherwise — what the app's modifier
+    /// state starts as. `nil` for a decoder that keeps no state between
+    /// reports and reports none of its own (``KittyKeyDecoder/decode(_:)``).
+    var reportedState: ModifierKeyState? = ModifierKeyState()
+
     package init() {}
+
+    /// A memory for one report on its own: it reports no modifier state the
+    /// report does not carry itself.
+    static var oneReport: Self {
+        var memory = Self()
+        memory.reportedState = nil
+        return memory
+    }
 
     /// Notes what the key `code` delivered going down or repeating.
     mutating func press(_ code: Int, delivered events: [KeyEvent]) {

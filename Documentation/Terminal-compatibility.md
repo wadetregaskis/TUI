@@ -4337,10 +4337,23 @@ the keypad.
   still reported, as a modifier key. *If a host sends Option-as-Meta in bit 8
   under the protocol, its ⌥ chords are dropped too — check this when
   measuring.*
-- A modifier key's own report sets its bit from the event (down: held; up:
-  released), whatever the terminal reported for it. The specification says the
-  bit includes the event's own effect; the decoder does not depend on every
-  terminal agreeing. Caps Lock toggles, so its bit is taken as reported.
+- A modifier key's own report sets its modifier from the keys of its kind
+  known to be down, this one included or not by its event, whatever the
+  terminal reported for the bit: with both Shift keys held, letting one go
+  leaves Shift held (it reported Shift released until 2026-10-04's review).
+  The specification says the bit includes the event's own effect; the decoder
+  does not depend on every terminal agreeing. Caps Lock toggles, so its bit is
+  taken as reported.
+- Every other key report carries the modifiers held too, and where they
+  disagree with the state last reported, the state is reported again first:
+  a modifier's release that went to another window, or a press made before
+  the app started, is put right by the next key. And when the terminal
+  reports losing the focus (mode 1004), every key and modifier held is
+  forgotten and reported released (Caps Lock kept): a ⌘ held for ⌘-Tab would
+  otherwise stay held, its release sent to the other window, and a
+  `modifierKeyAlternate(.command)` stay drawn on the way back. Whether a
+  terminal itself reports releases on losing the focus is unmeasured; the
+  rule holds either way.
 - Keys TUIkit has no `Key` for are dropped: Insert, the keypad's Begin, Print
   Screen, Pause, Menu, F21 and up, the media keys.
 

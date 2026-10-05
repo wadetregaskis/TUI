@@ -137,25 +137,78 @@ package enum KittyKeyDecoder {
         if let first = body.first, (0x3C...0x3F).contains(first) { return nil }
         guard let fields = Self.fields(body) else { return nil }
 
+        let decoded: [TerminalInput]?
         switch final {
         case 0x75:  // 'u'
-            return decodeCodePointReport(fields, memory: &memory)
+            // A modifier key's own report is the state, and sets it itself.
+            if modifierKey(value(fields, 0, 0) ?? 0) != nil {
+                return decodeModifierKeyReport(fields, memory: &memory)
+            }
+            decoded = decodeCodePointReport(fields, memory: &memory)
         case 0x7E:  // '~'
             guard let number = value(fields, 0, 0) else { return nil }
             guard let key = Self.tildeKey(number) else { return nil }
-            return decodeFunctionalKey(key, fields: fields)
+            decoded = decodeFunctionalKey(key, fields: fields)
         default:
             guard let key = Self.letterKey(final) else { return nil }
             // `CSI 1 ; mods A`, or the bare `CSI A`: the number is always 1.
             if let number = value(fields, 0, 0), number != 1 { return nil }
-            return decodeFunctionalKey(key, fields: fields)
+            decoded = decodeFunctionalKey(key, fields: fields)
         }
+        guard let decoded, let (bits, _) = modifiers(fields) else { return nil }
+        return resynced(decoded, bits: bits, memory: &memory)
+    }
+
+    /// What the input parser reports when the terminal loses the focus: the
+    /// modifier keys released, if any was held.
+    ///
+    /// A key or modifier let go while another window has the focus is not
+    /// reported to this one, so a ⌘ held for ⌘-Tab would otherwise stay held
+    /// here until ⌘ was pressed again. Everything down is forgotten, and Caps
+    /// Lock, which is a state of the keyboard rather than a key held, is kept.
+    /// The next key report after the focus comes back says what is held then.
+    package static func focusLost(memory: inout KittyKeyMemory) -> TerminalInput? {
+        memory.pressed.removeAll()
+        memory.heldModifierKeys.removeAll()
+        guard let reported = memory.reportedState else { return nil }
+        let released = ModifierKeyState(capsLock: reported.capsLock)
+        guard released != reported else { return nil }
+        memory.reportedState = released
+        return .modifierKeys(released)
+    }
+
+    /// `decoded`, after a report of the modifier state when `bits` disagree
+    /// with the one last reported.
+    ///
+    /// Every key report carries the modifiers held, and a modifier key's own
+    /// press or release can go missing — let go while another window had the
+    /// focus, held since before the app started. Without this the state stayed
+    /// wrong until that modifier was pressed and released again. A modifier
+    /// the bits say is up is also forgotten as a key held.
+    private static func resynced(
+        _ decoded: [TerminalInput], bits: Int, memory: inout KittyKeyMemory
+    ) -> [TerminalInput] {
+        let reported = state(bits)
+        memory.heldModifierKeys = memory.heldModifierKeys.filter { code in
+            switch modifierKey(code) {
+            case .shift: reported.shift
+            case .control: reported.control
+            case .option: reported.option
+            case .command: reported.command
+            case .other, nil: true
+            }
+        }
+        guard let last = memory.reportedState, reported != last else { return decoded }
+        memory.reportedState = reported
+        // A dropped ⌘ chord already is this report.
+        if decoded == [.modifierKeys(reported)] { return decoded }
+        return [.modifierKeys(reported)] + decoded
     }
 
     /// ``decode(_:memory:)`` for one report on its own, with nothing
     /// remembered before it or kept after.
     package static func decode(_ bytes: [UInt8]) -> [TerminalInput]? {
-        var memory = KittyKeyMemory()
+        var memory = KittyKeyMemory.oneReport
         return decode(bytes, memory: &memory)
     }
 
@@ -255,21 +308,29 @@ package enum KittyKeyDecoder {
         return [.key(event(key, bits: bits, phase: phase))]
     }
 
-    /// A `CSI … u` report.
-    private static func decodeCodePointReport(_ fields: [[Int?]], memory: inout KittyKeyMemory) -> [TerminalInput]? {
-        guard let (bits, phase) = modifiers(fields) else { return nil }
-        let code = value(fields, 0, 0) ?? 0
-        let shifted = value(fields, 0, 1)
-        let base = value(fields, 0, 2)
-
-        // The modifier and lock keys themselves: the state they leave.
-        if let held = modifierKey(code) {
-            var state = state(bits)
-            // The spec has the key's own bit include its own event, which not
-            // every terminal has always done; setting it from the event itself
-            // is right either way for the keys that are held rather than
-            // toggled. Caps Lock toggles, so its bit is taken as reported.
-            let isDown = phase != .release
+    /// A modifier or lock key's own report: the state it leaves.
+    ///
+    /// The specification has the key's own bit include its own event, which
+    /// not every terminal has always done, and a report of one Shift says
+    /// nothing of the other. So a modifier that is held rather than toggled is
+    /// set from the keys of its kind known to be down, this one included or
+    /// not by its event: with both Shift keys held, letting one go leaves
+    /// Shift held. Caps Lock toggles, so its bit is taken as reported, and the
+    /// other modifiers' as reported too.
+    private static func decodeModifierKeyReport(
+        _ fields: [[Int?]], memory: inout KittyKeyMemory
+    ) -> [TerminalInput]? {
+        guard let (bits, phase) = modifiers(fields), let code = value(fields, 0, 0),
+            let held = modifierKey(code)
+        else { return nil }
+        var state = state(bits)
+        if held != .other {
+            if phase == .release {
+                memory.heldModifierKeys.remove(code)
+            } else {
+                memory.heldModifierKeys.insert(code)
+            }
+            let isDown = memory.heldModifierKeys.contains { modifierKey($0) == held }
             switch held {
             case .shift: state.shift = isDown
             case .control: state.control = isDown
@@ -277,8 +338,17 @@ package enum KittyKeyDecoder {
             case .command: state.command = isDown
             case .other: break
             }
-            return [.modifierKeys(state)]
         }
+        if memory.reportedState != nil { memory.reportedState = state }
+        return [.modifierKeys(state)]
+    }
+
+    /// A `CSI … u` report.
+    private static func decodeCodePointReport(_ fields: [[Int?]], memory: inout KittyKeyMemory) -> [TerminalInput]? {
+        guard let (bits, phase) = modifiers(fields) else { return nil }
+        let code = value(fields, 0, 0) ?? 0
+        let shifted = value(fields, 0, 1)
+        let base = value(fields, 0, 2)
 
         // A release is the key its press was, whatever its own report says.
         if phase == .release, let pressed = memory.release(code) {

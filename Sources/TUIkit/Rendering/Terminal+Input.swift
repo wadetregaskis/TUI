@@ -724,7 +724,14 @@ extension Terminal {
         // Focus reports, before the key parser: it models neither final byte
         // and would drop them.
         if bytes == Self.focusIn { return .focusChanged(isFocused: true) }
-        if bytes == Self.focusOut { return .focusChanged(isFocused: false) }
+        if bytes == Self.focusOut {
+            // Under the kitty keyboard protocol, the keys held are forgotten:
+            // their releases go to the window that has the focus now.
+            if !keyboardEnhancement.isEmpty, let released = KittyKeyDecoder.focusLost(memory: &keyboardMemory) {
+                queuedInputs.append(released)
+            }
+            return .focusChanged(isFocused: false)
+        }
 
         // While the kitty keyboard protocol is on, a CSI is read in its
         // grammar, whose legacy-looking forms mean something else (bit 8 is
