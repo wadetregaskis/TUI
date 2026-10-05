@@ -20,7 +20,8 @@ import Musl
 extension TerminalClient {
 
     /// The name of the machine this process runs on, as `gethostname` reports
-    /// it, read once; `nil` where it cannot be read.
+    /// it, read once; `nil` where it cannot be read. A task's
+    /// ``localHostNamePin`` answers instead where one is bound.
     ///
     /// What a `file:` hyperlink names as its host (see
     /// ``TerminalHyperlink/localHostName``): over ssh that is the REMOTE
@@ -32,7 +33,16 @@ extension TerminalClient {
     /// render path's first link, and the plain system call answers from the
     /// kernel. Read here, in the umbrella module, because `TerminalHyperlink`
     /// lives in a module that also builds where there is no POSIX.
-    static let localHostName: String? = readLocalHostName()
+    static var localHostName: String? { localHostNamePin ?? processLocalHostName }
+
+    /// A task-local answer for ``localHostName`` — for tests, whose expected
+    /// output must not depend on what the machine running them is called:
+    /// `TerminalHyperlink` uses a name only when it is a plain host name, so
+    /// a test reading the real one passes or fails by the machine's name.
+    @TaskLocal static var localHostNamePin: String?
+
+    /// `gethostname`'s answer, read once per process.
+    private static let processLocalHostName: String? = readLocalHostName()
 
     /// One `gethostname` call, its answer as a `String`.
     static func readLocalHostName() -> String? {

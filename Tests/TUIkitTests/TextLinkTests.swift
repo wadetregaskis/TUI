@@ -120,11 +120,14 @@ struct TextLinkTests {
     /// with no sequence.
     @Test("A run's file link names the host, and an over-long one carries none")
     func fileLinkAndCapInARun() throws {
-        let host = try #require(TerminalClient.localHostName, "gethostname answered nothing")
         var file = AttributedString("notes")
         file.link = URL(fileURLWithPath: "/tmp/notes.txt")
-        let filed = TerminalHyperlink.withSupport(true) { lines(Text(file)) }.joined()
-        #expect(filed.contains("\u{1B}]8;;file://\(host)/tmp/notes.txt\u{1B}\\"), "\(filed.debugDescription)")
+        // The machine's name is pinned, so the expectation holds whatever
+        // the machine running this is called.
+        let filed = TerminalClient.$localHostNamePin.withValue("box") {
+            TerminalHyperlink.withSupport(true) { lines(Text(file)) }.joined()
+        }
+        #expect(filed.contains("\u{1B}]8;;file://box/tmp/notes.txt\u{1B}\\"), "\(filed.debugDescription)")
 
         let longURL = try #require(URL(string: "https://example.com/" + String(repeating: "a", count: 2100)))
         var long = AttributedString("long")

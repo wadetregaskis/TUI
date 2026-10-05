@@ -55,15 +55,26 @@ struct LinkHyperlinkTests {
     /// `URL(fileURLWithPath:)` spells a local file with an empty host, and
     /// Ghostty refuses such a link. The link names this machine instead, as
     /// the OSC 8 specification asks: over ssh, the remote one.
+    ///
+    /// The machine's name is pinned, so this asks the same question whatever
+    /// the machine running it is called — a name that is not a plain host
+    /// name is not used at all, which is the second half.
     @Test("A link to a local file names this machine as its host")
-    func fileLinkNamesTheHost() throws {
-        let host = try #require(TerminalClient.localHostName, "gethostname answered nothing")
+    func fileLinkNamesTheHost() {
         let file = URL(fileURLWithPath: "/tmp/notes.txt")
-        let drawn = TerminalHyperlink.withSupport(true) {
-            render(Link("notes", destination: file)).lines.joined()
+        func drawn(onHost host: String) -> String {
+            TerminalClient.$localHostNamePin.withValue(host) {
+                TerminalHyperlink.withSupport(true) {
+                    render(Link("notes", destination: file)).lines.joined()
+                }
+            }
         }
-        #expect(drawn.contains("\u{1B}]8;;file://\(host)/tmp/notes.txt\u{1B}\\"), "\(drawn.debugDescription)")
-        #expect(!drawn.contains("file:///"))
+        let named = drawn(onHost: "box")
+        #expect(named.contains("\u{1B}]8;;file://box/tmp/notes.txt\u{1B}\\"), "\(named.debugDescription)")
+        #expect(!named.contains("file:///"))
+
+        let unusable = drawn(onHost: "user@box")
+        #expect(unusable.contains("\u{1B}]8;;file:///tmp/notes.txt\u{1B}\\"), "\(unusable.debugDescription)")
     }
 
     /// `Link` sends `URL.absoluteString`, which Foundation has already
