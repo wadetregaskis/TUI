@@ -78,6 +78,26 @@ struct ScreenSelectionMenuTests {
         #expect(app.services.screenSelection.hasSelection)
     }
 
+    /// As `.contextMenu`'s: press, slide down onto the row with the button
+    /// held, release on it.
+    @Test("A right press held and dragged onto Copy highlights it, and the release there copies")
+    func heldDragTracks() throws {
+        let log = SystemClipboardLog()
+        let (app, clock, x, y) = try selected(log: log)
+        app.send(MouseEvent(button: .right, phase: .pressed, x: x + 1, y: y))
+        frame(app, clock)
+        let lines = app.screen.map(\.stripped)
+        let row = try #require(lines.firstIndex { $0.contains(copyTitle) })
+        let column = lines[row][..<(try #require(lines[row].range(of: copyTitle)).lowerBound)].count
+        app.send(MouseEvent(button: .right, phase: .dragged, x: column + 1, y: row))
+        frame(app, clock)
+        #expect(app.services.screenSelection.menuController?.highlightedOrdinal == 0)
+        app.send(MouseEvent(button: .right, phase: .released, x: column + 1, y: row))
+        frame(app, clock)
+        #expect(log.writes == ["alpha"])
+        #expect(app.services.screenSelection.menuAnchor == nil)
+    }
+
     @Test("Escape closes the menu and keeps the selection")
     func escapeClosesTheMenu() throws {
         let log = SystemClipboardLog()

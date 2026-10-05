@@ -783,6 +783,14 @@ extension MouseEventDispatcher {
         if event.phase == .pressed, event.button == .right || (event.button == .left && event.ctrl),
             screenSelection?.openMenu(at: ScreenSelection.Point(x: event.x, y: event.y)) == true
         {
+            // The bookkeeping `.contextMenu`'s opening press does through
+            // `handOffGesture()` and `pressOpenedPopup()`: the held drag and
+            // the release are the menu's, hit-tested live against its rows,
+            // and the release ending a plain click leaves it up. Without it a
+            // held drag had nothing captured and was dropped, so the menu's
+            // highlight never followed the pointer.
+            handedOffPresses.insert(event.button)
+            pressOpenedPopupMenu = true
             return true
         }
         if event.phase == .pressed, event.button == .left {
