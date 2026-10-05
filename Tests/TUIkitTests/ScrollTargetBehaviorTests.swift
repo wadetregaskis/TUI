@@ -144,6 +144,56 @@ struct ScrollTargetBehaviorTests {
         #expect(frames.scrollView?.scrollOffset == frames.scrollView?.maxOffset, "still at the end")
     }
 
+    /// The rows readable on the last frame: every line but an "N more" one.
+    private func readableRows(_ frames: Frames) -> [Int] {
+        frames.last.lines.compactMap { line -> Int? in
+            let text = line.stripped
+            guard !text.contains("more"), let marker = text.range(of: "row ") else { return nil }
+            return Int(text[marker.upperBound...].prefix { $0.isNumber })
+        }
+    }
+
+    @Test("Paging under the \"N more\" lines: a page is the lines between them, so every line is read")
+    func pagingUnderTextIndicators() {
+        let frames = Frames()
+        let view = ScrollView { rows(30) }
+            .frame(height: 10)
+            .scrollIndicators(.automatic)
+            .scrollIndicatorStyle(.text)
+            .scrollTargetBehavior(.paging)
+        frames.render(view)
+        var read = Set(readableRows(frames))
+        var stops = [frames.scrollView?.scrollOffset ?? -1]
+        for _ in 0..<4 {
+            frames.wheel(.scrollDown)
+            frames.render(view)
+            read.formUnion(readableRows(frames))
+            stops.append(frames.scrollView?.scrollOffset ?? -1)
+        }
+        // Eight readable lines a page: the band starts a line below the offset.
+        #expect(stops == [0, 7, 15, 20, 20], "\(stops)")
+        #expect(read == Set(0..<30), "never readable: \(Set(0..<30).subtracting(read).sorted())")
+    }
+
+    @Test("View-aligned under the \"N more\" lines: the row a tick lands on is read whole, below \"▲\"")
+    func viewAlignedUnderTextIndicators() {
+        let frames = Frames()
+        let view = ScrollView { rows(30, height: { _ in 2 }) }
+            .frame(height: 10)
+            .scrollIndicators(.automatic)
+            .scrollIndicatorStyle(.text)
+            .scrollTargetBehavior(.viewAligned)
+        frames.render(view)
+        frames.wheel(.scrollDown)
+        frames.render(view)
+        let lines = frames.last.lines.map(\.stripped)
+        #expect(lines.first?.contains("more") == true, "\(lines)")
+        // Rows are two lines with the number on the first: the row landed on
+        // starts on the first line the indicator leaves.
+        #expect(lines.dropFirst().first?.contains("row 2") == true, "\(lines)")
+        #expect(frames.scrollView?.scrollOffset == 3)
+    }
+
     @Test("Without a behaviour a wheel tick moves three lines")
     func freeControl() {
         let frames = Frames()

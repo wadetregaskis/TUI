@@ -40,16 +40,27 @@ extension ScrollViewHandler {
     /// visible area at the target's anchor — the top-leading corner when it
     /// names none. The offsets are not clamped here: the step that moves there
     /// clamps them, as it clamps any step.
+    ///
+    /// The visible area is what can be READ. Under the "N more" lines drawn
+    /// over the viewport's first and last line (``textIndicatorInset``) that is
+    /// the band between them: ``pageDistance`` lines, starting a line below the
+    /// offset — Page Down's page, for the reason it is Page Down's. Handed the
+    /// whole viewport, `.paging` stepped a full viewport and left the two lines
+    /// under the indicators at every boundary unreadable at every stop, and
+    /// `.viewAligned` landed each row's first line under "▲ N more". At the top
+    /// and bottom, where one indicator is not drawn, the band is a line short of
+    /// what shows; the safe direction, as it is for Page Down.
     func targetedOffsets(proposedX: Int, proposedY: Int, velocity: CellVector) -> (x: Int, y: Int)? {
         guard let targeting = scrollTargeting else { return nil }
-        let container = CellSize(width: targeting.containerWidth, height: viewportHeight)
+        let inset = textIndicatorInset
+        let container = CellSize(width: targeting.containerWidth, height: pageDistance)
         let original = ScrollTarget(
             rect: CellRect(
-                x: horizontal.scrollOffset, y: scrollOffset,
+                x: horizontal.scrollOffset, y: scrollOffset + inset,
                 width: container.width, height: container.height))
         var target = original
         target.rect.x = proposedX
-        target.rect.y = proposedY
+        target.rect.y = proposedY + inset
         let context = ScrollTargetBehaviorContext(
             originalTarget: original, velocity: velocity,
             contentSize: CellSize(width: targeting.contentWidth, height: contentHeight),
@@ -59,7 +70,8 @@ extension ScrollViewHandler {
         let anchor = target.anchor ?? .topLeading
         return (
             x: target.rect.x + Int((anchor.x * Double(target.rect.width - container.width)).rounded(.down)),
-            y: target.rect.y + Int((anchor.y * Double(target.rect.height - container.height)).rounded(.down))
+            y: target.rect.y - inset
+                + Int((anchor.y * Double(target.rect.height - container.height)).rounded(.down))
         )
     }
 

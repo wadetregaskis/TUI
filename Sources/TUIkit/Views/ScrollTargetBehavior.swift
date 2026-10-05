@@ -81,7 +81,8 @@ public struct ScrollTargetBehaviorContext {
     public let contentSize: CellSize
 
     /// The size of the area the content is seen through: the viewport, less
-    /// what the scroll bars take.
+    /// what the scroll bars take, and less the "N more" lines where they are
+    /// drawn over its first and last line — the lines that can be read.
     public let containerSize: CellSize
 
     /// The axes in which the scrollable view is scrollable.
