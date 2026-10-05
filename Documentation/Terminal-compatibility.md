@@ -4816,7 +4816,11 @@ debug build): 146 and 149 frames held in two runs, 2.3 KB of markers in
 about 289 KB (0.8%). Without the markers the two runs held 286.8 KB and
 289.2 KB, against 286.1 KB and 286.4 KB in two runs with
 `TUIKIT_SYNCHRONIZED_OUTPUT=0`: the tour's timing moves a few frames from run
-to run, a spread as large as the markers.
+to run, a spread as large as the markers. On `splitdrag`, which needs
+`--answer-fence` (without it the scripted press lands before the app is up and
+misses the divider, `SwiftUI-API-completion-decisions-G1.md` B-G1-2): 58
+frames held, 928 bytes of markers in 196 KB (0.5%); the run with the switch
+off wrote 211 KB, the drag's frame count moving with its timing.
 
 | Host | Pair prints nothing | DECRQM `?2026` | Hold timeout | Tearing on `splitdrag`, off → on |
 |---|---|---|---|---|
