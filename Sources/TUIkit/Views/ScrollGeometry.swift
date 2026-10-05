@@ -31,8 +31,10 @@ import TUIkitView
 ///   indicators take — a bar's column or row, the "N more" lines when they are
 ///   reserved — since a terminal's bars are cells of the viewport, not overlays.
 ///
-/// So `contentOffset.y + containerSize.height + contentInsets.bottom` reaches
-/// `contentSize.height + contentInsets.bottom` exactly at the bottom.
+/// So scrolled to the end of content taller than the view, ``visibleRect``
+/// ends where the bottom inset does: `visibleRect.maxY == contentSize.height +
+/// contentInsets.bottom`. ``bounds`` does not: it is ``containerSize`` from the
+/// offset, so it stops the top and bottom insets short of that.
 ///
 /// Content shorter than the view and placed lower down it by its alignment
 /// anchor (``ScrollAnchorRole/alignment``) reports the room above it as more
@@ -40,8 +42,8 @@ import TUIkitView
 /// ``containerSize``: SwiftUI's reading, measured on macOS 15 — three 20-point
 /// rows at the bottom of a 300-point view report a container of 300, a top
 /// inset of 240 and an offset of -240, so ``visibleRect`` is 540 tall and
-/// ``bounds`` is 300 tall from -240. The sum above still holds: the offset and
-/// the container reach the content's end.
+/// ``bounds`` is 300 tall from -240. With no content margins as well, ``bounds``
+/// then ends where the content does: `bounds.maxY == contentSize.height`.
 public struct ScrollGeometry: Equatable, Sendable {
     /// Where the scroll view is in its content: the column and row of the
     /// content at the top-leading corner of ``bounds``.
@@ -70,8 +72,14 @@ public struct ScrollGeometry: Equatable, Sendable {
         self.containerSize = containerSize
     }
 
-    /// The part of the content inside the insets: ``containerSize`` at
-    /// ``contentOffset``. SwiftUI's, measured: the origin is the offset itself.
+    /// ``containerSize`` at ``contentOffset``: the container's size, from the
+    /// visible area's top-leading corner. SwiftUI's, measured — the origin is the
+    /// offset itself, not moved in by the insets. So it is the insets' size
+    /// without their place, whatever SwiftUI's documentation says of it being
+    /// "within the content insets": under a top margin it starts on the margin
+    /// (a margin of 2 over a 6-line view: 2 lines from -2), and under an
+    /// alignment anchor's room it covers the room (three rows at the bottom of
+    /// an 8-line view: 8 lines from -5).
     public var bounds: CellRect {
         CellRect(
             x: contentOffset.x, y: contentOffset.y,

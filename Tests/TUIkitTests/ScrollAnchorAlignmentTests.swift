@@ -215,6 +215,8 @@ struct ScrollAnchorAlignmentTests {
         #expect(reported?.containerSize.height == Self.viewport)
         #expect(reported?.visibleRect.y == -5 && reported?.visibleRect.height == Self.viewport + 5)
         #expect(reported?.bounds.y == -5 && reported?.bounds.height == Self.viewport)
+        // With no margins the bounds end where the content does.
+        #expect(reported?.bounds.maxY == reported?.contentSize.height)
     }
 
     // MARK: - List and Table ignore it, as macOS's do

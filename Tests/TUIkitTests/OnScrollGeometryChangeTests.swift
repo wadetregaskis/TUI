@@ -126,8 +126,11 @@ struct OnScrollGeometryChangeTests {
         frames.handler?.userScrollToBottom()
         frames.render(view)
         if let bottom = log.calls.last?.new {
-            // At the bottom the visible area reaches the end of the bottom margin.
+            // At the bottom the visible area reaches the end of the bottom margin,
+            // and the bounds — the container's size from the offset — stop both
+            // margins short of it.
             #expect(bottom.visibleRect.maxY == bottom.contentSize.height + bottom.contentInsets.bottom)
+            #expect(bottom.bounds.maxY == bottom.visibleRect.maxY - 4, "\(bottom)")
         } else {
             Issue.record("no report")
         }
