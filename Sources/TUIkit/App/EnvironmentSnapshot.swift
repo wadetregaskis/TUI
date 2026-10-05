@@ -73,6 +73,11 @@ internal struct EnvironmentSnapshot: Equatable {
     /// size from it.
     let imageCellPoints: TerminalCellPoints?
 
+    /// Whether to reduce motion: a scene's `.reduceMotion(_:)` can change it
+    /// while the app runs, and a transition drawn before the change chose its
+    /// effect by it.
+    let accessibilityReduceMotion: Bool
+
     /// The terminal's size in cells, which the render loop reads every frame
     /// and publishes at the root, as `\.terminalWidth` and `\.terminalHeight`.
     /// A view in a frame of its own size — a card, a status line — is offered
@@ -92,6 +97,7 @@ internal struct EnvironmentSnapshot: Equatable {
         self.imageCellAspect = environment.imageCellAspect
         self.imageCellPixels = environment.imageCellPixels
         self.imageCellPoints = environment.imageCellPoints
+        self.accessibilityReduceMotion = environment.accessibilityReduceMotion
         self.terminalWidth = environment.terminalWidth
         self.terminalHeight = environment.terminalHeight
     }

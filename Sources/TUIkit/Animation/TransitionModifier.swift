@@ -133,6 +133,9 @@ extension View {
 /// Applies a transition to its content while the content is arriving, and
 /// leaves behind what is needed to play it out when the content goes.
 /// See `View.transition(_:)`.
+///
+/// Where the environment reduces motion, a transition with motion plays as a
+/// fade instead (``AnyTransition/reducingMotion(in:)``), decided as it renders.
 struct _TransitionView<Content: View>: View {
     let content: Content
     let transition: AnyTransition
@@ -149,6 +152,7 @@ private enum StateIndex {
 
 extension _TransitionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let transition = transition.reducingMotion(in: context.environment)
         if let custom = transition.custom { return renderBody(of: custom, context: context) }
         let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, let storage = context.stateStorage else { return buffer }
@@ -212,7 +216,7 @@ extension _TransitionView: Layoutable {
     /// on why the effects are applied to the buffer rather than to layout — so
     /// this measures exactly as its content, or as a custom body at rest.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        guard let custom = transition.custom else {
+        guard let custom = transition.reducingMotion(in: context.environment).custom else {
             return measureChild(content, proposal: proposal, context: context)
         }
         return custom.measure(

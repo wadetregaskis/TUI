@@ -29,11 +29,17 @@ final class _AnyTransitionBox: Equatable, @unchecked Sendable {
     private let size:
         @MainActor (TransitionPhase, PlaceholderSource, ProposedSize, RenderContext) -> ViewSize
 
+    /// Whether the transition has motion — its ``TransitionProperties``, or
+    /// for a composed pair either half's — which decides whether it is
+    /// replaced by a fade where motion is reduced.
+    let hasMotion: Bool
+
     /// `transition`'s body.
     @MainActor
     init<T: Transition>(_ transition: T) {
         draw = { renderTransitionBody(transition, phase: $0, content: $1, context: $2) }
         size = { measureTransitionBody(transition, phase: $0, content: $1, proposal: $2, context: $3) }
+        hasMotion = T.properties.hasMotion
     }
 
     /// How two erased transitions are put together, where one of them has a
@@ -49,6 +55,8 @@ final class _AnyTransitionBox: Equatable, @unchecked Sendable {
     /// composed ``Transition``, which is main-actor isolated and could not be
     /// built where an `AnyTransition` is.
     init(_ composition: Composition, _ first: AnyTransition, _ second: AnyTransition) {
+        // Either half, combined or asymmetric — as SwiftUI's pairs report it.
+        hasMotion = first.hasMotion || second.hasMotion
         switch composition {
         case .combined:
             draw = { phase, content, context in

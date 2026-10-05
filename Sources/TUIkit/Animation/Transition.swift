@@ -195,10 +195,11 @@ public enum TransitionPhase: Hashable, Sendable {
 public struct TransitionProperties: Sendable, Equatable {
     /// Whether the transition includes motion.
     ///
-    /// SwiftUI replaces a transition with motion by an opacity transition when
-    /// Reduce Motion is on. TUIkit reads no such setting yet (O1 in
-    /// `Documentation/SwiftUI-API-completion-refusal-review.md`), so for now
-    /// this is recorded and nothing reads it.
+    /// When it does, the transition is replaced by `.opacity` wherever
+    /// ``EnvironmentValues/accessibilityReduceMotion`` is `true` — as SwiftUI
+    /// replaces it when Reduce Motion is on. In a terminal that is the user's
+    /// `TUIKIT_REDUCE_MOTION=1` or the app's `Scene.reduceMotion(_:)`; the
+    /// replacement keeps the transition's own animation, if it has one.
     ///
     /// Defaults to `true`.
     public var hasMotion: Bool

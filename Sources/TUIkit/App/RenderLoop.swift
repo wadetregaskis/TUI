@@ -847,6 +847,9 @@ extension RenderLoop {
             environment.appearance = appearance
         }
         environment.notificationService = NotificationService.current
+        // The user's `TUIKIT_REDUCE_MOTION`, at the root; a scene's own
+        // `.reduceMotion(_:)` is applied over it with the scene's other writes.
+        environment.accessibilityReduceMotion = TerminalClient.reduceMotionRequested
 
         // Terminal-adaptive defaults belong to the app run loop, where a real
         // terminal exists — the bare EnvironmentValues defaults stay

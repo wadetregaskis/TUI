@@ -1900,3 +1900,30 @@ private struct BoundedSplitPanes: View {
         }
     }
 }
+
+// MARK: - Reduce motion
+
+/// SwiftUI's way of asking whether to reduce motion, and a transition that
+/// says it has none.
+@MainActor
+private struct ReduceMotionShapes: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showing = false
+
+    private struct Glow: Transition {
+        static let properties = TransitionProperties(hasMotion: false)
+
+        func body(content: Content, phase: TransitionPhase) -> some View {
+            content.opacity(phase.isIdentity ? 1 : 0)
+        }
+    }
+
+    var body: some View {
+        VStack {
+            if showing {
+                Text("motion.detail").transition(reduceMotion ? AnyTransition.opacity : .slide)
+                Text("motion.glow").transition(Glow())
+            }
+        }
+    }
+}

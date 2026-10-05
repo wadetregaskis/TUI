@@ -86,6 +86,15 @@ public struct AnyTransition: Sendable, Equatable {
     /// One effect, or several composed. A value rather than a closure so a
     /// transition can be compared, stored, and reasoned about in a test.
     indirect enum Effect: Sendable, Equatable {
+        /// Whether the effect moves the view — every one but a fade and none.
+        var hasMotion: Bool {
+            switch self {
+            case .identity, .opacity: false
+            case .move, .offset, .scale: true
+            case .combined(let first, let second): first.hasMotion || second.hasMotion
+            }
+        }
+
         /// Appears and disappears with no effect at all.
         case identity
         /// Fades toward the background.
@@ -130,6 +139,22 @@ public struct AnyTransition: Sendable, Equatable {
 
     private init(_ effect: Effect) {
         self.init(insertion: effect, removal: effect)
+    }
+
+    /// Whether this transition moves its view, as
+    /// ``TransitionProperties/hasMotion`` says of a ``Transition``: a moved,
+    /// offset or scaled effect does, at either end, and a fade or nothing does
+    /// not. A transition with a body of the app's own says for itself.
+    var hasMotion: Bool {
+        if let custom { return custom.hasMotion }
+        return insertion.hasMotion || removal.hasMotion
+    }
+
+    /// What this transition plays as here: itself, or — where the environment
+    /// reduces motion and it has some — a fade, with its own animation.
+    func reducingMotion(in environment: EnvironmentValues) -> Self {
+        guard environment.accessibilityReduceMotion, hasMotion else { return self }
+        return Self(insertion: .opacity, removal: .opacity, explicitAnimation: explicitAnimation)
     }
 
     /// Create an instance that type-erases `transition`.
