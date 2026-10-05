@@ -76,6 +76,56 @@ struct GestureAdaptorTests {
         #expect(log.entries == ["changed true", "changed true"])
     }
 
+    /// Measured on macOS 15.8: a long press with no minimum duration ends at
+    /// each press, so three clicks run its action three times, in every
+    /// spelling. It goes from one end straight to the next, never through a
+    /// phase that is not an end, which is what the action's "already run"
+    /// mark was re-armed by: only the first press ran it.
+    @Test("A long press with no minimum duration runs its action at every press")
+    func zeroDurationLongPressEveryPress() {
+        let spellings: [(String, (GestureRecord) -> AnyView)] = [
+            ("onLongPressGesture", { log in AnyView(Text("").frame(width: 10, height: 3).onLongPressGesture(minimumDuration: 0) { log("long") }) }),
+            ("onEnded", { log in AnyView(box(LongPressGesture(minimumDuration: 0).onEnded { _ in log("long") })) }),
+        ]
+        for (name, view) in spellings {
+            let log = GestureRecord()
+            let harness = makeHarness()
+            harness.frame(view(log))
+            for time in [Int64(0), 600, 1_200] {
+                harness.now = time * gestureMillisecond
+                harness.frame(view(log))
+                harness.click(1, 1) { view(log) }
+            }
+            #expect(log.entries == ["long", "long", "long"], "\(name)")
+        }
+    }
+
+    /// Measured on macOS 15.8: two zero-duration long presses together end
+    /// at the press and run the action once, and the release runs nothing
+    /// more. The combination reports again at every input, so the action is
+    /// keyed on the press that begins a gesture, not on a new report.
+    @Test("Two zero-duration long presses together run the action once a press, not again at the release")
+    func zeroDurationPairOncePerPress() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            box(
+                LongPressGesture(minimumDuration: 0).simultaneously(with: LongPressGesture(minimumDuration: 0))
+                    .onEnded { _ in log("pair") })
+        }
+        harness.frame(view())
+        harness.pointer([(.pressed, 1, 1)], view)
+        #expect(log.entries == ["pair"], "at the press")
+        harness.now = 300 * gestureMillisecond
+        harness.frame(view())
+        harness.pointer([(.released, 1, 1)], view)
+        #expect(log.entries == ["pair"], "the release runs nothing more")
+        harness.now = 900 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == ["pair", "pair"])
+    }
+
     @Test("map(_:) transforms the gesture's value")
     func map() {
         let log = GestureRecord()

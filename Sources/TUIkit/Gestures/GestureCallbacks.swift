@@ -193,12 +193,24 @@ final class EndedGestureNode<Value>: PassThroughGestureNode<Value> {
     /// Whether `action` has run for the end the child is at.
     private var delivered = false
 
-    /// Re-arms the action whenever the child is anywhere but its end — on
-    /// every input, delivered or not. Cleared only in ``deliverOwn()``, it
-    /// stayed set across a gesture held back from start to end: a single tap
-    /// behind a double tap is fed each click with delivery off, so after it
-    /// ran once, every later click's end, released when the double tap gave
-    /// up, was taken for the end it had already reported.
+    /// Re-arms the action at every press, and whenever the child is anywhere
+    /// but its end — on every input, delivered or not.
+    ///
+    /// The press is what begins a gesture: a long press with no minimum
+    /// duration goes from one end straight to the next, never through a phase
+    /// that is not an end, so it ran its action at the first press alone
+    /// (macOS 15.8 runs it at each). Not a new report: a combination reports
+    /// at every input, and two such presses together, ended at the press,
+    /// would run again at the release. Cleared only in ``deliverOwn()``, the
+    /// mark stayed set across a gesture held back from start to end: a single
+    /// tap behind a double tap is fed each click with delivery off, so after
+    /// it ran once, every later click's end, released when the double tap
+    /// gave up, was taken for the end it had already reported.
+    override func receive(_ input: GestureInput, deliver: Bool) {
+        if case .pointer(let pointer) = input, pointer.kind == .down { delivered = false }
+        super.receive(input, deliver: deliver)
+    }
+
     override func mirror() {
         super.mirror()
         if phase != .ended { delivered = false }
