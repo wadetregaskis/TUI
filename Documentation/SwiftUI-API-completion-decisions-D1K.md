@@ -185,7 +185,11 @@ TUI-only scene modifier `.undoShortcuts([.undo: …, .redo: …])` replaces
 either list app-wide, with `rowShortcuts`' rules (the two tables share their
 engine, `ShortcutTable`). A bound key is its command's whether or not there
 is a step: Ctrl-Z with nothing to undo does nothing, never "sometimes
-suspends"; taken out of undo, Ctrl-Z suspends exactly as before. An app's own
+suspends"; taken out of undo, Ctrl-Z suspends exactly as before. The suspend
+key is the pre-lane one, any Control chord on `z` that nothing took, so
+Ctrl-Option-Z still suspends with the default keys, and under the kitty
+protocol a redo list without Ctrl-Shift-Z (`.redo: .unbound`) gives that
+chord back to the suspend; both are what a shell does with them. An app's own
 shortcut on a chord still wins, and a focused text control's Ctrl-Z stays its
 undo. The status bar's "undo" and "redo" appear while each has a step and
 perform it on a click — on every terminal — each naming the first of its keys

@@ -101,6 +101,20 @@ struct AppUndoTests {
         #expect(model.value == 0, "the keys left bound still undo")
     }
 
+    @Test("The suspend key is any Control chord on z that nothing took: Ctrl-Option-Z, and an unbound Ctrl-Shift-Z")
+    func suspendMatcherIsTheShells() throws {
+        let harness = InputChainHarness(keyboard: .requested, undoManager: makeManager())
+        let controlOptionZ = try #require(KeyEvent.parse([0x1B, 0x1A]))
+        #expect(controlOptionZ.ctrl && controlOptionZ.alt && controlOptionZ.key == .character("z"))
+        harness.play([controlOptionZ, KeyEvent(key: .character("z"), ctrl: true, alt: true)]) { Text("page") }
+        #expect(harness.suspends == 2, "not one of undo's keys, with the defaults")
+        harness.play([Self.controlShiftZ]) { Text("page") }
+        #expect(harness.suspends == 2, "redo's, step or no step")
+        harness.tui.undoKeys.publish(UndoShortcuts([.redo: .unbound]), commandKey: .control)
+        harness.play([Self.controlShiftZ]) { Text("page") }
+        #expect(harness.suspends == 3, "given back to the suspend, as the shell has it")
+    }
+
     @Test("Without an app's undo manager Ctrl-Z suspends, as it always did")
     func noManagerSuspends() {
         let harness = InputChainHarness()

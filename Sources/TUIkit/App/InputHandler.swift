@@ -283,7 +283,10 @@ extension InputHandler {
         // the suspend machinery observes and acts on between frames. With
         // Shift too, which a legacy encoding cannot even send apart from
         // Ctrl-Z (both are 0x1A): only a Ctrl-Shift-Z the redo keys leave
-        // unbound reaches here.
+        // unbound reaches here. And with Option, as before the app had an
+        // undo: Ctrl-Option-Z is not one of undo's keys, and a shell reads
+        // its `ESC 0x1A` as a suspend too (Terminal-compatibility.md, "Undo
+        // and redo").
         if event.ctrl, case .character(let character) = event.key,
             character == "z" || character == "Z"
         {

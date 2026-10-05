@@ -3909,8 +3909,11 @@ unresolved `.command`. The exit and delete commands ignore them too.
 
 A terminal sends a shifted printable as the shifted **character** with no
 modifier bits: "A" is one byte, 0x41, and `KeyEvent.parse`'s printable branch
-builds `KeyEvent(character:)` with `ctrl`/`alt`/`shift` all false. There is no
-shift flag to read.
+builds `KeyEvent(character:)`, with `ctrl` and `alt` false and `shift` the
+character's case (`isUppercase`: `true` for "A", `false` for "!" and "a").
+There is no shift flag on the wire to read; the event's is derived.
+(Corrected 2026-10-05: this said `shift` was false too, which the protocol
+rule below, written against the case rule, contradicted.)
 
 So a shortcut's Shift has to be derived from case, both when it is declared and
 when a key arrives. `KeyboardShortcut` does exactly that: it reads
@@ -4451,6 +4454,27 @@ and an unclaimed Ctrl-Z — or Ctrl-Shift-Z, which a legacy encoding cannot tell
 from it, wherever redo leaves it unbound — reaches layer 4 and is re-raised as
 SIGTSTP. A focused text control's own Ctrl-Z, the stand-in for ⌘Z, stays its
 undo either way, as it was before the app had one.
+
+**The suspend key is wider than undo's.** Layer 4 suspends on any Control
+chord on `z` that reaches it, whatever else is held — the matcher
+(`InputHandler.dispatchPress`) is the one it was before the app had an undo,
+kept as it was. So:
+
+- **Ctrl-Option-Z suspends**, with the default keys too: it is not one of
+  undo's, so nothing takes it before layer 4. It arrives as `ESC 0x1A` where
+  Option is sent as Meta and `CSI 122;7u` under the kitty protocol. That is
+  the shell's own reading of it: in a cooked terminal `ESC 0x1A` is an Escape
+  and then the `^Z` byte the line discipline turns into SIGTSTP (from the
+  line discipline's definition; not measured).
+- **Under the kitty protocol, `.redo: .unbound`** (or any redo list without
+  Ctrl-Shift-Z) leaves Ctrl-Shift-Z to suspend again, as it does in the shell,
+  where it is `0x1A`. With redo's defaults it is redo, step or no step.
+
+Narrowing the matcher to the chords undo would take was weighed and not done:
+it would make Ctrl-Option-Z and an unbound Ctrl-Shift-Z do nothing at all in
+a TUIkit app while they suspend at the shell prompt beside it, and the rule
+"a bound key is its command's, step or no step" is about the bound keys
+only. An app that wants either chord to do something else binds it.
 
 **The status bar names the first key the terminal can deliver** as itself:
 the bound keys in `KeyboardShortcut` order, TUIkit's own first, filtered by
