@@ -215,7 +215,8 @@ extension AppRunner {
             tuiContext: tuiContext,
             // The one loop that reads the process's environment for it: an
             // app in a real terminal, run by the user who set it.
-            reducesMotion: TerminalClient.reduceMotionRequested
+            reducesMotion: TerminalClient.reduceMotionRequested,
+            keyNotation: TerminalClient.keyNotationRequested
         )
     }
 

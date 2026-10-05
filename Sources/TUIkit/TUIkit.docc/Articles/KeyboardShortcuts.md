@@ -456,6 +456,21 @@ Command (⌘) is shown only by a shortcut that still holds it once
 ``EnvironmentValues/commandKey`` has resolved it, which is to say never under
 the default: ⌘S is shown as the `⌃S` that fires it.
 
+The symbols are drawn in the terminal's font. For a font with no glyph for
+them, the user sets `TUIKIT_KEY_SYMBOLS=0`, or the app asks with
+`.keyNotation(.spelledOut)` on its scene, and the status bar and a menu's
+shortcut column write the keys' names instead: `Ctrl-Shift-Z`, `Esc`,
+`Shift-Tab` (see ``KeyNotation``). Text of your own that names a key follows
+the same choice through ``KeyNotation/spelling(_:)``:
+
+```swift
+@Environment(\.keyNotation) private var keyNotation
+
+var body: some View {
+    Text("Save: " + keyNotation.spelling(save.displayString ?? ""))
+}
+```
+
 ## Status Bar Shortcuts
 
 The status bar displays available shortcuts to the user. Use the ``Shortcut`` namespace for consistent symbols: a key's constant is the symbol a macOS menu draws for it, from the one formatter every key TUIkit names comes from (see <doc:KeyboardShortcuts#Key-Symbols>):
@@ -591,6 +606,7 @@ When all system items are hidden and there are no active user items, the status 
 
 - ``Key``
 - ``KeyEvent``
+- ``KeyNotation``
 - ``QuitBehavior``
 
 ### Focus

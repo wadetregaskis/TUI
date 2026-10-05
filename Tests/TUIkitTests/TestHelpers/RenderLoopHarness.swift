@@ -63,16 +63,20 @@ final class RenderLoopHarness {
     /// What the loop publishes about the terminal's colours goes to
     /// ``publishedColors``.
     ///
-    /// `reducesMotion` is what the app runner reads from `TUIKIT_REDUCE_MOTION`;
-    /// a test states it, and by default the loop draws as if it were unset.
-    func loop<A: App>(_ app: A, isTmux: Bool = false, reducesMotion: Bool = false) -> RenderLoop<A> {
-        loop(app, on: terminal, isTmux: isTmux, reducesMotion: reducesMotion)
+    /// `reducesMotion` is what the app runner reads from `TUIKIT_REDUCE_MOTION`,
+    /// and `keyNotation` what it reads from `TUIKIT_KEY_SYMBOLS`; a test states
+    /// them, and by default the loop draws as if both were unset.
+    func loop<A: App>(
+        _ app: A, isTmux: Bool = false, reducesMotion: Bool = false, keyNotation: KeyNotation = .symbols
+    ) -> RenderLoop<A> {
+        loop(app, on: terminal, isTmux: isTmux, reducesMotion: reducesMotion, keyNotation: keyNotation)
     }
 
     /// A loop over another terminal: a real `Terminal` writing to a script
     /// (`ScriptedTerminalOutput`), for a test of the bytes a frame is sent as.
     func loop<A: App>(
-        _ app: A, on terminal: any TerminalProtocol, isTmux: Bool = false, reducesMotion: Bool = false
+        _ app: A, on terminal: any TerminalProtocol, isTmux: Bool = false, reducesMotion: Bool = false,
+        keyNotation: KeyNotation = .symbols
     ) -> RenderLoop<A> {
         RenderLoop(
             app: app,
@@ -85,6 +89,7 @@ final class RenderLoopHarness {
             tuiContext: tuiContext,
             isTmux: isTmux,
             publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) },
-            reducesMotion: reducesMotion)
+            reducesMotion: reducesMotion,
+            keyNotation: keyNotation)
     }
 }

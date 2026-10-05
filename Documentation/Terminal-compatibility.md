@@ -471,6 +471,18 @@ class, with `ChromeGlyphAdvanceTests`' count). A host measured to have no
 glyph for the symbols at all (a missing-glyph box) is a different case: it
 needs the keys' names spelled out instead, not a wider claim.
 
+**Spelled out, where the font has no glyph for them.** The symbols are drawn
+in the terminal's font, which TUIkit cannot see, so the user can turn them off
+with `TUIKIT_KEY_SYMBOLS=0` and an app with `Scene.keyNotation(.spelledOut)`;
+the status bar and a menu's shortcut column then write `Ctrl-Shift-Z`, `Esc`,
+`Return`, `Shift-Tab`, `Backspace`, `Del`, `Home`, `End`, `PgUp`, `PgDn`
+(`KeyNotation`). The arrows stay arrows, being in every font a terminal uses,
+and the function keys and the space bar are words already. **No host is
+measured unable to draw the symbols**, so none defaults to the names: the
+symbols are the default everywhere until a measurement above says otherwise,
+and such a host's default would be set where the app runner reads
+`TUIKIT_KEY_SYMBOLS` (`TerminalClient.keyNotationRequested`).
+
 ## Identifying the host terminal
 
 Every per-terminal model in this document is only as good as the answer to

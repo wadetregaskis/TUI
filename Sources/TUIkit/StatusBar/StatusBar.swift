@@ -219,6 +219,9 @@ private struct _StatusBarCore: View, Renderable {
         // drop-down, an inline editor, etc.) so the escape entry shows
         // "close menu" or similar while the underlying handler is unchanged.
         let escapeOverride = context.environment.statusBar?.escapeLabelOverride
+        // How the keys are written: their symbols, or their names where the
+        // user or the app asked for those (`KeyNotation`).
+        let keyNotation = context.environment.keyNotation
 
         // Combine: sorted user items, then the system items in THEIR order —
         // which is what puts the two contextual keys next to the page's own
@@ -246,6 +249,7 @@ private struct _StatusBarCore: View, Renderable {
                 item: item,
                 colours: colours,
                 escapeOverride: escapeOverride,
+                keyNotation: keyNotation,
                 activationOverride: activationOverride,
                 isHovered: item.id == hoveredID && itemIsClickable(item)
             )
@@ -406,18 +410,19 @@ private struct _StatusBarCore: View, Renderable {
     }
 
     /// Renders a single item's `shortcut + " " + label` in `colours` and with the
-    /// escape-label override. When `isHovered` is true, the whole item is
-    /// underlined so the user has a clear visual confirmation that they're over a
-    /// clickable target.
+    /// escape-label override, the shortcut's key symbols written in `keyNotation`.
+    /// When `isHovered` is true, the whole item is underlined so the user has a
+    /// clear visual confirmation that they're over a clickable target.
     private func renderItemString(
         item: any StatusBarItemProtocol,
         colours: ItemColours,
         escapeOverride: String?,
+        keyNotation: KeyNotation,
         activationOverride: String?,
         isHovered: Bool
     ) -> String {
         let shortcutStyled = ANSIRenderer.render(
-            item.shortcut,
+            keyNotation.spelling(item.shortcut),
             with: {
                 var textStyle = TextStyle()
                 textStyle.foregroundColor = colours.highlight.opaqueSpelling
@@ -476,7 +481,8 @@ private struct _StatusBarCore: View, Renderable {
     ) -> FrameBuffer {
         var claimed = applyOpacityClaims(
             buffer: buffer, layouts: layouts, columns: columns,
-            columnOffset: columnOffset, rowOffset: rowOffset, colours: colours)
+            columnOffset: columnOffset, rowOffset: rowOffset, colours: colours,
+            keyNotation: context.environment.keyNotation)
         // The tooltip's rows, when the palette slot they paint is faded. They sit
         // directly above the items and are inset exactly as the items are — flush
         // for `.compact` and `.rule`, past the wall and a space of padding for
@@ -521,6 +527,8 @@ private struct _StatusBarCore: View, Renderable {
     ///     bar).
     ///   - rowOffset: Which row of the buffer the items are on.
     ///   - colours: The two colours the items were drawn in, resolved.
+    ///   - keyNotation: How the shortcuts were written, which decides how wide
+    ///     each one's run is.
     /// - Returns: The buffer, with the claims appended.
     private func applyOpacityClaims(
         buffer: FrameBuffer,
@@ -528,7 +536,8 @@ private struct _StatusBarCore: View, Renderable {
         columns: [Int],
         columnOffset: Int,
         rowOffset: Int,
-        colours: ItemColours
+        colours: ItemColours,
+        keyNotation: KeyNotation
     ) -> FrameBuffer {
         // Asked of the two colours before anything is walked: an app that has not
         // faded either — which is every app until one does — pays one comparison.
@@ -539,7 +548,7 @@ private struct _StatusBarCore: View, Renderable {
             // The shortcut, then the label — which carries the separating space, so
             // the two runs together are exactly `visibleWidth` and neither the gap
             // nor the last cell belongs to nobody.
-            let shortcutWidth = layout.item.shortcut.strippedLength
+            let shortcutWidth = keyNotation.spelling(layout.item.shortcut).strippedLength
             if let claim = OpacityRegion.claim(
                 offsetX: start, offsetY: rowOffset, width: shortcutWidth, height: 1,
                 ink: colours.highlight)

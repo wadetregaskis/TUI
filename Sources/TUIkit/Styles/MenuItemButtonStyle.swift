@@ -56,7 +56,7 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
     /// The row without the bar — what is measured, and what each step of the
     /// cycle is painted over.
     ///
-    /// The three environment values the row draws itself from are read HERE and
+    /// The environment values the row draws itself from are read HERE and
     /// handed over as stored properties, rather than declared as `@Environment`
     /// on the row. This view is `Renderable`, so it has the render context that
     /// a `ButtonStyle`'s body does not — and the row sits directly inside it
@@ -73,7 +73,17 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
             configuration: configuration,
             palette: context.environment.palette,
             menuRowWidth: context.environment.menuRowWidth,
-            menuRowInset: context.environment.menuRowInset)
+            menuRowInset: context.environment.menuRowInset,
+            hint: hint(in: context))
+    }
+
+    /// The button's key equivalent, as the row prints it: its symbols, or
+    /// their names where ``EnvironmentValues/keyNotation`` asks for those.
+    /// Formatted once here rather than on each of the row's three reads of it,
+    /// and asked of the environment only by a row that has a shortcut.
+    private func hint(in context: RenderContext) -> String {
+        guard let symbols = configuration.keyboardShortcut?.displayString else { return "" }
+        return context.environment.keyNotation.spelling(symbols)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -297,6 +307,12 @@ private struct _MenuItemRow: View {
     let menuRowWidth: Int?
     let menuRowInset: Int
 
+    /// The button's key equivalent, printed at the trailing edge the way a
+    /// menu item's key equivalent is on every desktop platform; empty for a
+    /// button without one. Formatted by ``_MenuItemRowBar``, which has the
+    /// key notation in its context.
+    let hint: String
+
     @ViewBuilder
     var body: some View {
         // Inside the background, so the highlight covers the breathing room
@@ -339,12 +355,6 @@ private struct _MenuItemRow: View {
 
     private var row: some View {
         label.foregroundStyle(foreground)
-    }
-
-    /// The button's key equivalent, printed at the trailing edge the way a
-    /// menu item's key equivalent is on every desktop platform.
-    private var hint: String {
-        configuration.keyboardShortcut?.displayString ?? ""
     }
 
     /// The label's share of the row: everything the hint doesn't take. The

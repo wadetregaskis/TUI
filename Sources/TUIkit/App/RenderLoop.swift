@@ -369,6 +369,15 @@ internal final class RenderLoop<A: App> {
     /// into a fade.
     private let reducesMotion: Bool
 
+    /// How the user asked for keys to be written with `TUIKIT_KEY_SYMBOLS`, as
+    /// the app runner read it from the process: written at the root of every
+    /// frame as ``EnvironmentValues/keyNotation``.
+    ///
+    /// ``KeyNotation/symbols`` unless the runner says otherwise, for the reason
+    /// ``reducesMotion`` gives: what a test draws must not depend on the
+    /// environment its process was started in.
+    private let keyNotation: KeyNotation
+
     init(
         app: A,
         terminal: any TerminalProtocol,
@@ -381,11 +390,13 @@ internal final class RenderLoop<A: App> {
         isTmux: Bool = TerminalHost.isTmux,
         publishTerminalColors: @escaping (TerminalColors) -> Void =
             TerminalColorRefresher.publishProcessWide,
-        reducesMotion: Bool = false
+        reducesMotion: Bool = false,
+        keyNotation: KeyNotation = .symbols
     ) {
         self.isTmux = isTmux
         self.publishTerminalColors = publishTerminalColors
         self.reducesMotion = reducesMotion
+        self.keyNotation = keyNotation
         self.app = app
         self.terminal = terminal
         self.synchronizedUpdates = terminal as? any SynchronizedUpdating
@@ -906,6 +917,9 @@ extension RenderLoop {
         // passed it (see `reducesMotion`); a scene's own `.reduceMotion(_:)` is
         // applied over it with the scene's other writes.
         environment.accessibilityReduceMotion = reducesMotion
+        // The user's `TUIKIT_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
+        // can only add to it.
+        environment.keyNotation = keyNotation
 
         // Terminal-adaptive defaults belong to the app run loop, where a real
         // terminal exists — the bare EnvironmentValues defaults stay
