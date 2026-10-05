@@ -310,6 +310,45 @@ struct ScrollClipDisabledTests {
         #expect(frames.lines[3] == "row 3", "\(frames.lines)")
     }
 
+    /// The reviewer's case for 5b89231e3: a later view whose tap area, its
+    /// whole frame here, runs under the overflow drawn through its padding.
+    /// Clicks follow what is drawn, as the overflow's own do (B-D2S-5) — and as
+    /// SwiftUI's do for a view with no `contentShape`, whose padding is not
+    /// hit at all.
+    @Test("Under a later view's padding, a click on the overflow drawn there is the overflow's; the rest is the view's")
+    func laterViewPaddingClicksFollowTheDrawing() {
+        let frames = Frames(width: 30, height: 8)
+        let tapped = Box<Int?>(nil)
+        let okay = Box(0)
+        let view = VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<8, id: \.self) { index in
+                        Text("row \(index)").onTapGesture { tapped.value = index }
+                    }
+                }
+            }
+            .frame(width: 12, height: 2)
+            .scrollClipDisabled()
+            Text("OK").frame(width: 12, alignment: .leading).onTapGesture { okay.value += 1 }
+        }
+        frames.render(view)
+        #expect(frames.lines[2] == "OKw 2", "\(frames.lines)")
+        let dispatcher = frames.tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        dispatcher.setRegions(frames.last.hitTestRegions)
+        func click(_ x: Int) {
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x, y: 2))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: x, y: 2))
+        }
+        click(3)
+        #expect(tapped.value == 2 && okay.value == 0, "the \"w\" drawn there is row 2's")
+        click(0)
+        #expect(okay.value == 1, "the view's own text is the view's")
+        click(8)
+        #expect(okay.value == 2 && tapped.value == 2, "past the overflow's last cell the padding is the view's again")
+    }
+
     @Test("Blank later views cover nothing: a spacer, an offset view's footprint, an overlay's leading space")
     func blankCellsDoNotCover() {
         let frames = Frames(width: 30, height: 8)

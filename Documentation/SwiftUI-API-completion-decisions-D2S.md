@@ -106,6 +106,20 @@ cells either side — a stack's alignment padding, an overlay's `Spacer`, an
 as SwiftUI's does. The overflow is drawn by the same rule: its blank cells at
 either end of a line draw nothing and take no click.
 
+**Clicks follow the drawing.** A TUIkit tap covers its view's whole frame,
+padding included, and where the overflow draws over a later view's padding the
+overflow takes the click there: `Text("OK").frame(width: 12,
+alignment: .leading).onTapGesture { … }` under a scroll view whose row 2 runs
+down into it draws "OKw 2", and a click on the "w 2" is row 2's, while "OK" and
+the padding past the overflow's last cell stay OK's. That is SwiftUI's routing
+for a view with no `contentShape` — its padding is not hit at all — and the
+alternative, the later view keeping its frame under the overflow, sends a
+click on visible overflow text to the view beside it. With a `contentShape`
+SwiftUI's later view takes that area; TUIkit has no `contentShape` yet (a
+baseline gap waiting on shapes), and when it lands its shape should cut the
+overflow's regions as a painted cell does. Pinned by
+`laterViewPaddingClicksFollowTheDrawing`.
+
 **The fuller version:** treat EVERY unstyled blank cell as transparent, inside
 a line too, so the overflow shows between the words of a later `Text` as it
 does between SwiftUI's glyphs. It is a small change (cut per run of painted
@@ -144,6 +158,28 @@ than the view even at the top, where only "▼" shows, and the container would
 have to depend on the behaviour, or every `.text` scroll view's full-height
 content would lose two lines. About as small a change; owner's call if the
 always-drawn pair reads badly.
+
+### B-D2S-7. A scroll target behaviour's container and content include the content margins
+
+SwiftUI documents the context's `containerSize` as the scroll view's bounds
+less its insets, and `ScrollGeometry` already reads that way here. Shipped
+(since ac1bb4801): the behaviour's container is the content window, margins
+included, its content the margined content, and its target the window at the
+offset. So under `.contentMargins`, `.paging` steps the whole window while a
+`containerRelativeFrame` page is the window less the margins, and
+`.viewAligned` lands a view at the window's edge with its margin scrolled off
+(`viewAlignedUnderAMargin`, `viewAlignedColumns`). No other case is affected:
+the end and every edge agree either way.
+
+**The fuller version:** SwiftUI's coordinates — the target is the area inside
+the margins, the content its size without them, and the target layout's spans
+moved back by the top or leading margin — so a page sized against the
+container lands inside the margins, and a carousel's views align at its
+leading margin with their neighbours showing beside it, if SwiftUI's
+view-aligned behaviour honours the margins as its documentation of
+`containerSize` suggests. Not measured: SwiftUI consults a behaviour only on a
+gesture or a resize, which an offscreen probe does not drive readily. Half a
+day with a resize probe and the two tests' new numbers. Owner's call.
 
 ### Notes on A6 that are not decisions
 
