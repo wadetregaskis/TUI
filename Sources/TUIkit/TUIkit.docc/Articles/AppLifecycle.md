@@ -51,6 +51,7 @@ Before the main loop starts, `run()` prepares the terminal:
 | 2 | Enter alternate screen | Preserve the user's existing terminal content |
 | 3 | Hide cursor | Avoid cursor flicker during rendering |
 | 4 | Enable raw mode | Disable line buffering, echo, and signal processing |
+| 4a | Ask about the kitty keyboard protocol | Where the terminal speaks it, push its flags, so key releases, repeats, modifier keys alone, Caps Lock and the keypad are reported (``EnvironmentValues/keyboardReporting``); one round trip where it does not |
 | 5 | Register state observer | `AppState` changes set `appState.needsRender` and `wake()` the loop |
 | 6 | Register focus observer | Focus changes restart the breath (so the newly focused control is at its brightest) and trigger re-renders |
 | 7 | Prepare the animation clock | CursorTimer (50 ms), started on demand only while a rendered frame consumes it |
@@ -203,7 +204,7 @@ When the main loop exits: via SIGINT or SIGTERM, the quit key, or programmatic s
 
 | Step | What | Why |
 |------|------|-----|
-| 1 | Disable raw mode | Restore original terminal settings |
+| 1 | Disable raw mode | Pop the kitty keyboard protocol's flags, if they were pushed, while the alternate screen they were pushed on is still up; restore original terminal settings |
 | 2 | Show cursor | Make the cursor visible again |
 | 3 | Exit alternate screen | Restore the user's previous terminal content |
 | 4 | Clear state observers | Remove `AppState` observer callbacks |
@@ -211,6 +212,8 @@ When the main loop exits: via SIGINT or SIGTERM, the quit key, or programmatic s
 | 6 | Reset TUIContext | Clear lifecycle, key handlers, and preferences |
 
 The `Terminal` class also has a `deinit` safety net that disables raw mode if it was not explicitly restored.
+
+A process that dies of a signal it cannot survive — a trap, a bad access, an abort — runs none of this. While the kitty keyboard protocol's flags are pushed, a handler for those signals pops them before passing the signal on, because those flags make every key an escape code, Return included, and would leave a shell that cannot be typed at. A suspend (Ctrl-Z) pops them too, and the resume pushes them again.
 
 ## Subsystem Dependency Graph
 

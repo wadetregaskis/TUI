@@ -172,6 +172,15 @@ final class Terminal: TerminalProtocol {
     /// an extension cannot hold stored properties.
     var keyboardEnhancement: KittyKeyboardFlags = []
 
+    /// What the negotiation pushed, and which of it the terminal said it took,
+    /// or `nil` when the terminal does not speak the kitty keyboard protocol
+    /// (or was never asked). Kept across a suspend, so the resume pushes the
+    /// same flags without asking again.
+    var negotiatedKeyboardFlags: (pushed: KittyKeyboardFlags, granted: KittyKeyboardFlags)?
+
+    /// Whether this process's push is on the terminal's stack: a pop is owed.
+    var keyboardFlagsPushed = false
+
     /// Events one sequence decoded to beyond the first, waiting their turn.
     ///
     /// A kitty key report carries the text its key typed, and an input method
@@ -453,6 +462,12 @@ extension Terminal {
         // its preferences (or use a terminal with full modifier support).
         writeImmediate("\u{1B}[>1;2m")
 
+        // The kitty keyboard protocol, on the way back from a suspend: the
+        // flags negotiated at startup, pushed again without asking. At
+        // startup nothing is negotiated yet, so this does nothing; the
+        // negotiation pushes once it has its answer.
+        repushKeyboardFlags()
+
         // Mouse tracking is now managed dynamically by
         // ``applyMouseSupport(_:)`` — see ``MouseSupport`` for the
         // selection of tracking modes. We always end up enabling SGR
@@ -467,6 +482,11 @@ extension Terminal {
         #else
             guard isRawMode, var original = originalTermios else { return }
         #endif
+
+        // The kitty keyboard protocol's flags off first, while the alternate
+        // screen whose stack they were pushed on is still up, so the keys the
+        // shell reads next are the legacy bytes it expects.
+        popKeyboardFlags()
 
         // Reset modifyCursorKeys back to the terminal's default before
         // restoring terminal state.

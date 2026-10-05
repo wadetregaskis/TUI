@@ -255,6 +255,14 @@ extension AppRunner {
         // protects is frozen into `FrameDiffWriter` at construction.
         terminal.pinGraphemeClusteringIfNeeded()
 
+        // The kitty keyboard protocol, where the terminal speaks it: key
+        // releases, repeats, modifier keys alone, Caps Lock and the keypad,
+        // and Ctrl-H/I/J/M/[ as themselves. Asked once — one round trip where
+        // the terminal does not speak it, two where it does — and published
+        // before the first frame, which is when a view first reads it.
+        terminal.negotiateKeyboardProtocol()
+        tuiContext.keyboardReporting = KeyboardReporting(flags: terminal.keyboardEnhancement)
+
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.
         TerminalClient.applyWidthTraits()
@@ -678,6 +686,8 @@ extension AppRunner {
         // without it compensated every later frame against a terminal whose
         // mode had changed under it.
         terminal.pinGraphemeClusteringIfNeeded()
+        // The kitty keyboard protocol's flags are pushed again by
+        // `enableRawMode`, as `disableRawMode` popped them.
         renderer.invalidateDiffCache()
     }
 

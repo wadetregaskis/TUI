@@ -104,6 +104,14 @@ echo "── identity: detection reaches the compensation ──"
 echo "── mode 2027: pinned when needed, and only then ──"
 "$VENV/bin/python" "$HERE/mode_pin_smoke.py" "$REPO/$BUILD_DIR/Example"
 
+# The kitty keyboard protocol: pushed only where the terminal answers its
+# query, and popped on every way out — a quit, a suspend, and an abort, which
+# runs none of the teardown. Its flags make every key an escape code, Return
+# included, so a pop missed on any of those leaves a shell that cannot be typed
+# at. Four short runs, about twenty seconds.
+echo "── kitty keyboard protocol: pushed where spoken, popped on every exit ──"
+"$VENV/bin/python" "$HERE/keyboard_protocol_smoke.py" "$REPO/$BUILD_DIR/Example"
+
 # The same class, for the colour exchange: the terminal's colours are asked
 # once, with the request its host needs, and published before RenderLoop draws
 # its first frame (under tmux the sixteen slots follow that frame, once, rather

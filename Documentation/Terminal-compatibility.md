@@ -3855,7 +3855,11 @@ Read this before designing any binding that depends on a modifier.
 
 ### Command is never reported
 
-No terminal forwards the Command key on a **key** event. `⌘S` cannot arrive.
+No terminal forwards the Command key on a **key** event in its legacy
+encodings. `⌘S` cannot arrive. Under the kitty keyboard protocol a ⌘ chord the
+terminal does not keep for itself can arrive, as the Super bit; TUIkit drops it
+rather than deliver the bare key, so this rule still holds for chords (see
+"The kitty keyboard protocol"), and reports ⌘ held alone as a modifier key.
 This is why `CommandKeyBinding` exists: SwiftUI source says `⌘S`, and an app
 states once at its root which terminal modifier stands in for it
 (`.commandKey(.control)`), rather than every shared shortcut being rewritten.
@@ -3865,16 +3869,19 @@ different things: iTerm2 forwards ⌘ as meta, Apple Terminal forwards ⌥ (see 
 mouse sections above). The standing rule from that measurement holds here too —
 never design around one specific macOS modifier key being available.
 
-### A release is never reported, and a repeat is another press
+### A release is never reported, and a repeat is another press — in the legacy encodings
 
 Recorded 2026-10-03, adding SwiftUI's `onKeyPress` and `KeyPress.Phases`.
+Since 2026-10-04 this is the legacy encodings' story only: where the terminal
+speaks the kitty keyboard protocol, TUIkit turns on its event types and both
+are reported (see "The kitty keyboard protocol").
 From the legacy encodings' definitions, not a per-terminal capture: a key
 event is the bytes the key produces, sent when it goes down and again for each
 auto-repeat while it is held, with nothing to tell a repeat from a fresh press.
 Releasing a key sends nothing. So `KeyPress.phase` is always `.down`, a
 `.repeat` handler hears every press, and `KeyPress.Phases` has no `.up`. The
 kitty keyboard protocol's "report event types" enhancement reports all three
-explicitly; TUIkit does not negotiate it yet.
+explicitly; TUIkit negotiates it where the terminal answers (2026-10-04).
 
 ### Caps Lock and the numeric pad are never reported
 
@@ -3886,7 +3893,8 @@ typed under Caps Lock arrives as the uppercase character, indistinguishable
 from Shift and that letter; a keypad digit arrives as the digit, unless the
 app has switched the keypad to application mode (DECKPAM), which TUIkit does
 not. The kitty keyboard protocol does carry both (`caps_lock`, `num_lock`,
-and distinct keypad key codes) once an app negotiates it; TUIkit does not yet.
+and distinct keypad key codes) once an app negotiates it, and TUIkit does
+where the terminal answers (2026-10-04, "The kitty keyboard protocol").
 
 So `EventModifiers.capsLock` and `.numericPad` exist for source
 compatibility and never match, and
@@ -4002,7 +4010,9 @@ not already spent:
 | Ctrl-M | Enter | 0x0D is CR |
 | Ctrl-[ | Escape | 0x1B, outside the 0x01–0x1A range |
 
-These five cannot be delivered under `.commandKey(.control)` by any means (Ctrl-H added 2026-09-24: `isDeliverableInTerminal` used to call it deliverable, though a ⌘H button could never fire). Ask
+These five cannot be delivered under `.commandKey(.control)` by any means in
+the legacy encodings; under the kitty keyboard protocol's "disambiguate"
+enhancement they arrive as themselves (see "The kitty keyboard protocol") (Ctrl-H added 2026-09-24: `isDeliverableInTerminal` used to call it deliverable, though a ⌘H button could never fire). Ask
 `KeyboardShortcut.isDeliverableInTerminal` (after `resolved(commandKey:)`)
 rather than wondering why one menu item is dead. `.commandKey(.option)` has no
 such collision, at the cost of Option itself being less reliable: Apple
@@ -4166,6 +4176,145 @@ rewriting it would cost more than it buys.
 This is why `.contextMenu`'s Shift+F10 route appeared dead: the binding was
 correct, but `parseExtendedKey` stopped at 24, so `ESC[32~` decoded to nothing
 and never became an event at all.
+
+## The kitty keyboard protocol — documented, NOT yet measured
+
+Added 2026-10-04 with TUIkit's negotiation of it (decisions A4). **Nothing in
+this section has been captured from a real terminal yet.** It records what the
+specification says and what each terminal's own documentation, or the
+specification's list of implementations, says, so the measurements can be
+checked against it. The probes that will measure it are
+`Tools/TerminalProbes/keyboard_protocol_probe.py` (does it answer, which flags
+does it take) and `Tools/TerminalProbes/keyboard_events_probe.py` (what each key
+sends with the flags pushed). Replace each "documented" below with a
+version-stamped measurement as it is made.
+
+### What TUIkit does
+
+The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
+
+- **Asks** at startup, after raw mode is on: `CSI ? u` (report the current
+  flags), fenced by `CSI c` (Primary Device Attributes), which every terminal
+  answers. A DA1 answer without a `CSI ? flags u` answer means the terminal does
+  not speak the protocol; that is the specification's own detection. One round
+  trip. Not asked of Apple Terminal, which does not speak it (and is not in the
+  specification's list). `CSI ? u` is a `?` with no intermediate byte, the shape
+  measured clean on Apple Terminal 455.1 ("Asking the terminal — Device
+  Attributes"), so an unidentified Apple Terminal behind ssh is asked safely.
+- **Pushes** `CSI > 31 u` where it answered, and asks again: a terminal may
+  take only some flags, and the second answer is what TUIkit reads keys by. If
+  it took flag 8 without flag 16, the push is replaced by one without 8 (see
+  the flags below). Two round trips in all.
+- **Pops** with `CSI < u` on quit, on Ctrl-Z, and on a fatal signal (a trap, a
+  bad access, `abort`, `SIGQUIT`), always before leaving the alternate screen;
+  **pushes again** on resume without asking. The specification keeps a separate
+  flag stack per screen and TUIkit pushes on the alternate one, so the shell's
+  own screen is never changed.
+- **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
+  so an app can tell which of SwiftUI's keyboard features work here.
+
+`Tools/Smoke/keyboard_protocol_smoke.py` checks all of that against a PTY
+that plays a terminal by the specification (CI runs it). That checks TUIkit,
+not any terminal.
+
+### The flags, and why all five
+
+| Flag | Enhancement | What it buys | Why it is safe |
+|---|---|---|---|
+| 1 | disambiguate escape codes | Escape as `CSI 27 u` (no Escape-vs-sequence timeout); Ctrl-H, Ctrl-I, Ctrl-J, Ctrl-M and Ctrl-[ as themselves; every Control/Option chord on an ASCII key as a `CSI u` report | — |
+| 2 | report event types | repeats (`:2`) and releases (`:3`) | every layer but `onKeyPress` ignores a release; a repeat is a press to all of them |
+| 4 | report alternate keys | the shifted key of a chord (Ctrl-Shift-Z reports `z:Z`, decoded as `Z`), and the base-layout key, so Ctrl-С on a Russian layout is Ctrl-C | — |
+| 8 | report all keys as escape codes | a modifier key pressed alone; Caps Lock on every key; the keypad's digits as keypad keys; releases of Return, Tab and Backspace | the text a key types is taken from flag 16, not reconstructed |
+| 16 | report associated text | the text a key typed, inside its report | — |
+
+**Flag 8 is the dangerous one, and flag 16 is what makes it safe.** With 8 on,
+a plain letter is no longer sent as its text: `a` arrives as `CSI 97 u`. Text
+reconstructed from key codes would be wrong for every shifted character on a
+non-US layout, every dead key (´ then e), every compose sequence and every
+input method. Flag 16 puts the text the terminal composed back into the report
+(`CSI 97 ; ; 97 u`, `CSI 101 ; ; 233 u` for é), and TUIkit takes the text as
+the keystroke, as it took the legacy bytes. Text arrives without the Control or
+Option it consumed (Option-S typing ß arrives as ß, as it does in a legacy
+encoding) and with Shift as reported.
+
+**What 8 costs:** with it on, Return is `CSI 13 u`. A process that dies with
+the flags pushed and the alternate screen still up leaves a shell that cannot
+read Return, so `reset` cannot even be typed. Hence the pop on every fatal
+signal TUIkit can catch. `SIGKILL` (and an out-of-memory kill) cannot be
+caught: the terminal is then left on the alternate screen with the flags
+pushed. Closing the tab recovers it, and so does any terminal action that
+resets the terminal (kitty's "reset terminal", for one); typing `tput rmcup`
+blind does not, Return being an escape code. Flags 1 and 2 alone would not have
+this problem — the specification keeps Return, Tab and Backspace legacy under
+them for exactly this reason — and would lose the modifier keys, Caps Lock and
+the keypad.
+
+**Bracketed paste is separate** and unchanged: a paste still arrives between
+`CSI 200 ~` and `CSI 201 ~`, not as key reports.
+
+### How keys decode (`KittyKeyDecoder`)
+
+- A report with text **is** the text, one key event per character (an input
+  method committing a word through one key gives several), Shift kept,
+  Control and Option dropped.
+- A report without text (a Control or Option chord, a release, a key that types
+  nothing) uses the shifted key when Shift is held, else the base-layout key for
+  a Control/Option chord on a non-ASCII key, else the key itself.
+- **Bit 8 means Super (⌘), not Meta.** In xterm's legacy modifier parameter the
+  same bit is Meta, which terminals send for Option, and TUIkit's legacy parser
+  reads it as Option ("Option arrives in two different spellings"). Under the
+  protocol a chord on Super, Hyper or Meta that types no text is **dropped**,
+  reporting only the modifier state: the legacy encodings never deliver a ⌘
+  chord, and delivered as the bare key ⌘K would type a `k`. ⌘ held on its own is
+  still reported, as a modifier key. *If a host sends Option-as-Meta in bit 8
+  under the protocol, its ⌥ chords are dropped too — check this when
+  measuring.*
+- A modifier key's own report sets its bit from the event (down: held; up:
+  released), whatever the terminal reported for it. The specification says the
+  bit includes the event's own effect; the decoder does not depend on every
+  terminal agreeing. Caps Lock toggles, so its bit is taken as reported.
+- Keys TUIkit has no `Key` for are dropped: Insert, the keypad's Begin, Print
+  Screen, Pause, Menu, F21 and up, the media keys.
+
+### Which terminals — documented
+
+The specification lists these implementations (fetched 2026-10-04): kitty
+itself, AbsoluteTelnet, Alacritty, foot, **Ghostty**, **iTerm2**, Microsoft
+Terminal, rio, TuiOS, **Warp**, WezTerm (behind its `enable_kitty_keyboard`
+setting) and xterm.js. Of the hosts measured elsewhere in this document:
+
+| Host | Documented | Notes |
+|---|---|---|
+| Apple Terminal | **no** | not in the list; TUIkit does not ask |
+| iTerm2 | yes | in the list; iTerm2's own CSI u page says its CSI u mode "is no longer recommended. Applications should implement the Kitty keyboard protocol instead". Which flags it takes, and what Option set to Esc+ sends under the protocol, unmeasured |
+| Ghostty | yes | in the list; its configuration reference names no setting for it |
+| Warp | yes | in the list, by an issue comment; nothing else known |
+| tmux | no | not in the list. Its own `extended-keys` (CSI u or modifyOtherKeys) is a different scheme TUIkit does not ask for; under tmux the query is answered (or not) by tmux, not by the client |
+| xterm.js | yes | in the list |
+
+### To measure, per host
+
+Run `keyboard_protocol_probe.py` (one line of JSON: whether it answered, and
+the flags before, after the push and after the pop), then
+`keyboard_events_probe.py`, and press in order: `a`, Shift-`a`, Shift-`1`, Caps
+Lock then `a` (and Caps Lock again), Option-`e` then `e` (a dead key), Ctrl-`h`,
+Ctrl-`i`, Ctrl-`m`, Ctrl-`[`, Escape, Ctrl-Shift-`z`, Ctrl-`-`, Ctrl-Shift-`-`,
+Option-Shift-`-`, ⌘-`k`, Shift alone, Option alone, ⌘ alone, keypad `5` and
+keypad Enter (where there is a keypad), an arrow held until it repeats, and a
+paste. Record per host and version:
+
+1. Whether it answers, and which flags it takes of 31.
+2. Whether a release is reported for each key, and whether a held key's repeats
+   are `:2`.
+3. Whether text arrives in the report (flag 16) for each typing key, the dead
+   key included, and for an input method if one is installed.
+4. What Option sends — Alt (bit 2), text, or bit 8 — under each of the host's
+   Option settings.
+5. Which ⌘ chords reach the app at all (bit 8), and whether ⌘ alone is
+   reported.
+6. Whether a modifier key's own bit, on its press and on its release, includes
+   the event (the decoder copes either way; the record is for the
+   specification).
 
 ## Mouse button codes: bit 7 means two different things
 

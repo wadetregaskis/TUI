@@ -309,6 +309,12 @@ final class TUIContext: @unchecked Sendable {
     /// loop handles between frames. See ``ScenePhase``.
     var scenePhase: ScenePhase = .active
 
+    /// What the terminal reports about the keyboard, published to
+    /// `\.keyboardReporting`. Set once, by the run loop, from the startup
+    /// negotiation of the kitty keyboard protocol; ``KeyboardReporting/legacy``
+    /// until then, and for a context with no terminal behind it.
+    var keyboardReporting = KeyboardReporting.legacy
+
     /// Persistent `@State` value storage indexed by `ViewIdentity`.
     let stateStorage: StateStorage
 
