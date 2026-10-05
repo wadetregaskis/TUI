@@ -59,9 +59,7 @@ entry has the options and their prices.
 
 **Features, priced.**
 
-- A1 — undo: one `UndoManager` per app, on Ctrl-_.
 - A3 — `layoutDirectionBehavior`: wait for right-to-left support.
-- A4 — the kitty keyboard protocol: negotiate it where the terminal answers.
 - A5 — a live resize from `SIGWINCH`: synthesise it.
 - A6 — scroll target behaviours: SwiftUI's protocol, staged.
 - A8, A9, A10 — scroll anchors, `scrollContentBackground`, `scrollClipDisabled`:
@@ -139,41 +137,6 @@ They are not repeated here. In brief:
 - **O15** `ButtonBorderShape`.
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
 - **O17** The toolbar's `.title` and `.search` items.
-
-### A1. `\.undoManager`: who performs an undo?
-
-*`EnvironmentValues.undoManager`*
-
-SwiftUI hands views the window's `UndoManager`. Views register undo actions
-on it, and the Edit menu's Undo/Redo (⌘Z/⇧⌘Z) performs them. A terminal app
-has no Edit menu, and no key that every terminal passes through unclaimed:
-
-- Ctrl-Z is suspend, which TUIkit already honours by drawing a final
-  `.background` frame.
-- Ctrl-Y is "delayed suspend" on BSD-derived ttys. In raw mode it reaches the
-  app, but it is an odd key to claim.
-
-**Options.**
-
-1. **`nil`, always.** SwiftUI documents the value as optional, and macOS
-   itself returns `nil` outside a window, so apps already handle it. Honest
-   and free, but any undo support in ported code goes dark.
-2. **One `UndoManager` per app, performed by a key TUIkit claims** (Ctrl-_
-   is Emacs's undo; or a key the app chooses through a TUIkit-only
-   modifier). Roughly a day of work:
-   - the manager in the environment;
-   - the key binding;
-   - a status-bar hint;
-   - `TextField`/`TextEditor` registering their own edits, so undo means
-     something by default.
-   One more thing to check: whether swift-corelibs-foundation's
-   `UndoManager` is complete enough on Linux. I have not checked yet.
-3. **Option 2 without the default key.** The manager exists, and the app
-   wires its own key.
-
-**Recommendation:** 2, with Ctrl-_ (which terminals send as 0x1F) and
-Ctrl-Shift-_ for redo where the terminal can distinguish them. Nothing
-ships until you decide.
 
 ### A2. Anchors and named coordinate spaces
 
@@ -253,66 +216,6 @@ except on a right-to-left paragraph. There, `.writingDirectionBased` and
 `.contentBased` would right-align a Hebrew line in SwiftUI and left-align it
 here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
-
-### A4. Speak the kitty keyboard protocol where the terminal does?
-
-*`KeyPress.Phases.up` (and a real `.repeat`), `View.onModifierKeysChanged(mask:initial:_:)`,
-`View.modifierKeyAlternate(_:_:)`; and, as by-products, `EventModifiers.capsLock`
-and `.numericPad`, and `KeyboardShortcut.Localization`'s remapping*
-
-Four of this wave's gaps share one cause. A terminal's legacy key encoding
-reports a key going down and nothing else:
-
-- no release;
-- no repeat flag;
-- no modifier pressed on its own;
-- no lock state.
-
-The kitty keyboard protocol reports all of those, once an app asks for it with
-`CSI > flags u`. Flag 2 reports event types (press, repeat, release). Flag 8
-reports every key as an escape code, including the modifiers themselves. kitty,
-Ghostty, WezTerm and foot implement it, and recent iTerm2 and Alacritty
-releases say they do. That is from their documentation, not measured here.
-Apple Terminal does not.
-
-Until this is decided:
-
-- `.up` is absent, and every press is `.down` (B7).
-- `onModifierKeysChanged` and `modifierKeyAlternate` are absent: on a legacy
-  terminal they could never fire.
-- Caps Lock and the numeric pad never match (the `EventModifiers.command`
-  precedent).
-
-**Options.**
-
-1. **Stay on the legacy encoding.** Free. The four APIs stay absent for good,
-   on every terminal, including the ones that could honour them.
-2. **Negotiate flags 1 + 2 + 8 where the terminal answers the `CSI ? u`
-   query, and keep the legacy decoder for the rest.** Roughly three to four
-   days:
-   - the negotiation and its teardown on suspend, exit and crash, beside the
-     modes `Terminal` already restores;
-   - a `CSI … u` decoder;
-   - `KeyEvent` gaining a phase, and every consumer learning to ignore
-     releases;
-   - a per-terminal survey into `Terminal-compatibility.md`.
-
-   It also fixes things outside this wave. Ctrl-H, Ctrl-I, Ctrl-J, Ctrl-M and
-   Ctrl-[ become deliverable shortcuts. Shift on a printable key becomes a real
-   bit. A held key's repeats become identifiable.
-3. **Option 2 with flag 1 only (disambiguate).** About a day and a half. Fixes
-   the C0 collisions and nothing in this wave.
-
-Under option 2 a second question follows, and it is about the rule rather
-than the code. Should `.up`, `onModifierKeysChanged` and `modifierKeyAlternate`
-**compile everywhere** and fire only where the protocol is spoken, documented
-per terminal as `EventModifiers.command` is? Or should they stay absent, since
-on Apple Terminal they would be silent?
-
-**Recommendation:** option 2. On the second question: compile everywhere, with
-a runtime query (a `\.keyboardReportsReleases`-style environment value) so an
-app can offer its own fallback. Leaving the APIs absent would deny them to
-every terminal that can honour them in order to protect the one that cannot.
 
 ### A5. `onInteractiveResizeChange`: synthesise a live resize from `SIGWINCH`?
 
@@ -1919,35 +1822,6 @@ something.
 content it is padding, and for a scroll view it is a content margin along the
 axes it scrolls (B25).
 
-### B7. Key-press phases: every press is `.down`, and there is no `.up`
-
-*`KeyPress.Phases.down`, `.repeat`, `.up`, `.all`; `KeyPress.phase`*
-
-SwiftUI tells three phases apart: the press, each auto-repeat of a held key,
-and the release. Measured on macOS 15, a `phases: .up` handler hears only the
-release, and the default `[.down, .repeat]` hears the press and its repeats.
-
-A terminal in its legacy encoding reports none of that. A held key's repeats
-arrive as more copies of the same bytes, and a release sends nothing at all.
-
-**Shipped:**
-
-- `.down`, `.repeat` and `.all` exist, with SwiftUI's raw values (1, 2,
-  `Int.max`).
-- Every press is reported as `.down`.
-- A handler whose phases include `.down` or `.repeat` hears every press. So
-  the default, and an explicit `[.down, .repeat]`, mean exactly what they mean
-  in SwiftUI. A `.down`-only handler also hears the repeats, and a
-  `.repeat`-only one also hears the first press. Both over-fire visibly; neither
-  drops anything silently.
-- `.up` is absent, so `onKeyPress(phases: .up)` and `press.phase == .up` fail
-  to compile. A release handler could never run.
-
-**The fuller version** is the kitty keyboard protocol, which reports press,
-repeat and release explicitly on the terminals that speak it. It is priced in
-A4, together with the open question of whether `.up` should then compile
-on terminals that will never fire it.
-
 ### B8. `KeyboardShortcut.Localization` is recorded, and every strategy behaves as `.custom`
 
 *`KeyboardShortcut.Localization` (`.automatic`, `.withoutMirroring`,
@@ -1982,7 +1856,8 @@ That is honest on its own, because neither half has anything to act on:
   other two.
 - *Remapping* would need the key's position. The kitty keyboard protocol's
   "report alternate keys" enhancement sends the base-layout key alongside
-  the character, so it is the same negotiation A4 prices, plus a
+  the character, so it is the same negotiation as the kitty protocol's
+  (A4, shipped 2026-10-05), plus a
   remapping table. That table is AppKit's, and it is not public, so it would
   have to be inferred per layout. I would not do it: an app that wants
   layout-aware shortcuts in a terminal is better served by bare keys.
@@ -2048,26 +1923,6 @@ operation (`+` for copy, as Finder draws), and a source-side callback when a
 drop completes with `.move` or `.delete`. SwiftUI's is `onDragSessionUpdated`,
 which the `DragSession*` family rule declines. About half a day for the
 badge; the callback belongs with that family's re-examination in Wave 17.
-
-### B12. `buttonRepeatBehavior(.disabled)` cannot stop a held key repeating
-
-*`ButtonRepeatBehavior` (`.automatic`, `.enabled`, `.disabled`),
-`EnvironmentValues.buttonRepeatBehavior`, `View.buttonRepeatBehavior(_:)`*
-
-SwiftUI names three ways to hold a button: the mouse, its keyboard shortcut,
-and Space while it is focused. Under `.enabled` each repeats the action;
-otherwise each acts once.
-
-**Shipped:** the mouse half exactly — under `.enabled` the press acts at once
-and repeats at the auto-repeat cadence a `Stepper`'s arrows use until the
-release; otherwise the button acts once, on the release, as before.
-
-**What it cannot do:** a held key repeats under every setting. The terminal
-resends a held key at its own autorepeat rate and reports no release, and each
-arrival is a press, so a held Return or Space — or a held shortcut — acts again
-and again even under `.disabled`. Telling a repeat from a fresh press needs
-the kitty keyboard protocol's repeat and release events (A4); with A4, this
-becomes exact.
 
 ### B13. A segmented picker's segments are each a focus stop
 
@@ -3638,10 +3493,11 @@ What a terminal delivers decides what TUIkit can honour:
    terminal chat and prompt tools. About half a day with the tests. The risk
    is any path that delivers LF for Return (none known with `ICRNL` off, but a
    multiplexer or a serial line would need checking), where every Return would
-   insert a newline instead of submitting. It also bears on A4, which lists
-   Ctrl-J among the chords only the kitty protocol frees.
-2. **Shift-Return and Ctrl-Return** wherever A4's kitty keyboard protocol is
-   negotiated, where they arrive as themselves. Comes with A4.
+   insert a newline instead of submitting. It also bears on the kitty keyboard
+   protocol (A4, shipped 2026-10-05), which frees Ctrl-J among other chords.
+2. **Shift-Return and Ctrl-Return** wherever the kitty keyboard protocol is
+   negotiated, where they arrive as themselves. Possible now that the
+   protocol has shipped (A4, 2026-10-05).
 
 ### B64. `lineLimit`'s range forms ship, reversing their omission
 
@@ -4727,7 +4583,7 @@ shortcut on it would compile and never fire. Rule 2 says leave it out.
 
 Not byte-captured: this machine has no extended keyboard. If a terminal turns
 out to send the key, distinctly from Num Lock, the parser gains a case and
-this entry goes. The kitty keyboard protocol of A4 is the likeliest
+this entry goes. The kitty keyboard protocol (A4, shipped 2026-10-05) is the likeliest
 route: it reports keypad keys by their own codes.
 
 ### C5. `HelpLink(anchor:)` and `HelpLink(anchor:book:)`
