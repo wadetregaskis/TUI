@@ -18,9 +18,10 @@ extension View {
     /// `dismissalConfirmationDialog(_:shouldPresent:actions:message:)`.
     ///
     /// Apply it to the content of a sheet, cover or popover — or to an app's
-    /// top-level content. While `shouldPresent` is `true`, the reader's own
-    /// ways out ask first: Escape and an outside click on a presentation, and
-    /// the quit key at the top level.
+    /// top-level content. While `shouldPresent` is `true`, every way out asks
+    /// first: Escape and an outside click on a presentation, the quit key at
+    /// the top level, and the content's own `@Environment(\.dismiss)` call
+    /// wherever it is.
     ///
     /// ```swift
     /// MessageEditor(message: $message)
@@ -40,8 +41,12 @@ extension View {
     /// also chooses — keeps the presentation; any other action lets the
     /// dismissal go ahead once it has run.
     ///
-    /// An app's own `@Environment(\.dismiss)` call is not intercepted: it is
-    /// the app's decision, made in code, and goes through as written.
+    /// An app's own `dismiss()` asks as SwiftUI's does. `shouldPresent` is
+    /// the value the view was last drawn with, so a Save button that saves
+    /// and dismisses in one action asks about the changes it has just saved:
+    /// let it dismiss once the saved state has been drawn, or answer the
+    /// question with a button that dismisses. A pushed `NavigationStack`
+    /// screen's Escape (back) and a signal do not ask.
     ///
     /// A string **literal** binds here, so the title is a lookup key — see
     /// ``LocalizedStringKey``.
@@ -223,6 +228,15 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
     @State private var isConfirming = false
     @State private var pending = PendingDismissal()
 
+    /// What `dismiss()` means outside this modifier: closing the presentation
+    /// the content is in, or quitting at the top level.
+    @Environment(\.dismiss) private var outerDismiss
+
+    /// The content's `\.dismiss`, kept for the modifier's life so the action
+    /// the content reads is equal from frame to frame (decisions B37) — what
+    /// it does is brought up to date below, on every render.
+    @State private var contentDismissal = DismissAction.Box()
+
     var body: some View {
         let pending = pending
         let isConfirming = $isConfirming
@@ -230,20 +244,37 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
             pending.proceed = proceed
             isConfirming.wrappedValue = true
         }
+        // The app's own `dismiss()` asks too, as SwiftUI's does ("when a
+        // dismiss action has been triggered"): while `shouldPresent` holds it
+        // puts the question in the way, and the dismissal goes ahead on any
+        // answer but Cancel; otherwise it dismisses as it would have.
+        let outer = outerDismiss
+        let shouldPresent = shouldPresent
+        contentDismissal.action = {
+            if shouldPresent {
+                ask { outer() }
+            } else {
+                outer()
+            }
+        }
         let dialogActions = _DismissalActions(actions: actions, pending: pending)
         // The registrar goes OUTSIDE the dialog's presenter, which draws the
         // content beneath an open dialog as an inert backdrop: registered from
         // in there, the quit key would lose its question while the question is
         // on screen.
         return _DismissalConfirmationRegistrar(
-            content: dialog(isConfirming: isConfirming, actions: dialogActions),
+            content: dialog(
+                content.environment(\.dismiss, DismissAction(box: contentDismissal)),
+                isConfirming: isConfirming, actions: dialogActions),
             shouldPresent: shouldPresent, ask: ask)
     }
 
-    /// The content with the dialog on it — with a message only when the app
+    /// `content` with the dialog on it — with a message only when the app
     /// gave one, since an empty one would still keep a blank line.
     @ViewBuilder
-    private func dialog(isConfirming: Binding<Bool>, actions: _DismissalActions<A>) -> some View {
+    private func dialog(
+        _ content: some View, isConfirming: Binding<Bool>, actions: _DismissalActions<A>
+    ) -> some View {
         if let message {
             content.confirmationDialog(
                 title, isPresented: isConfirming, titleVisibility: .visible,

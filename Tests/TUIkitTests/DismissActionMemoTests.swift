@@ -3,7 +3,8 @@
 //
 //  `DismissAction` is equal to itself by identity (decisions B37), so a view
 //  that writes one into its content's environment from a box it keeps does
-//  not turn off the memos below it.
+//  not turn off the memos below it — and a dismissal confirmation, which
+//  wraps its content's `\.dismiss`, leaves them on.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -59,6 +60,24 @@ private struct WriterApp: App {
     }
 }
 
+/// The same memoized view under a dismissal confirmation.
+private struct ConfirmingApp: App {
+    let count: BodyCount
+
+    init() { self.init(count: BodyCount()) }
+
+    init(count: BodyCount) { self.count = count }
+
+    var body: some Scene {
+        WindowGroup {
+            Counted(count: count).equatable()
+                .dismissalConfirmationDialog("Discard changes?", shouldPresent: true) {
+                    Button("Discard", role: .destructive) {}
+                }
+        }
+    }
+}
+
 @MainActor
 @Suite("DismissAction and the memos")
 struct DismissActionMemoTests {
@@ -95,5 +114,11 @@ struct DismissActionMemoTests {
         #expect(laterBodies(of: WriterApp(count: kept, freshEachRender: false), count: kept) == 0)
         let fresh = BodyCount()
         #expect(laterBodies(of: WriterApp(count: fresh, freshEachRender: true), count: fresh) > 0)
+    }
+
+    @Test("A dismissal confirmation, which wraps its content's dismiss, leaves the memo below on")
+    func theConfirmationKeepsTheMemo() {
+        let count = BodyCount()
+        #expect(laterBodies(of: ConfirmingApp(count: count), count: count) == 0)
     }
 }
