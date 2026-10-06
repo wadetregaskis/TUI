@@ -136,36 +136,34 @@ extension FrameBuffer {
     /// This buffer with its overlay layers moved onto `buffer` and shifted
     /// `rows` down, and nothing else changed.
     ///
-    /// A `Menu`, `.popover`, `.sheet` or `.alert` declared inside
-    /// a toolbar item emits a layer like any other, and `_ChromeBarFrame`
-    /// carries it through the rebuild above. That was a prerequisite and not
-    /// the fix: the chrome host composites layers inside the content area, and
-    /// a layer left on the header buffer would never be composited at all. A
-    /// drop-down opened from a header button took the focus and drew nothing.
+    /// A `Menu`, `.popover`, `.sheet` or `.alert` declared inside a toolbar
+    /// item emits a layer like any other, and `_ChromeBarFrame` carries it
+    /// through the rebuild above. That was a prerequisite and not the fix: the
+    /// chrome host composites layers inside the content area, and a layer left
+    /// on a bar's buffer would never be composited at all. A drop-down opened
+    /// from a top-bar button took the focus and drew nothing.
     ///
-    /// Moved to the page rather than composited into the header, because a
-    /// drop-down anchored on the bottom row of a three-row header is taller
-    /// than the header it hangs out of: compositing it there would clip it to
-    /// the chrome it escaped. The page is where it belongs and where the
-    /// page's own drop-downs already are.
+    /// Moved to the page rather than composited into the bar, because a
+    /// drop-down anchored on the bottom row of a three-row top bar is taller
+    /// than the bar it hangs out of: compositing it there would clip it to the
+    /// chrome it escaped. The page is where it belongs and where the page's own
+    /// drop-downs already are.
     ///
-    /// `rows` is the same translation the header's hit regions take, and for
-    /// the same reason — the header sits `appHeader.height` rows above the
-    /// content area, so header row `h` is content row `h - appHeader.height`.
-    /// That is negative for a layer still inside the header, which is fine:
-    /// the compositor cuts a layer overhanging the top edge exactly as it cuts
-    /// one overhanging the left.
+    /// Both bars lift theirs. `rows` is where the bar's first row sits relative
+    /// to the content area's: minus the top bar's rows for the top bar, so its
+    /// row `h` is content row `h - rows`, which is negative for a layer still
+    /// inside the bar — fine, the compositor cuts a layer overhanging the top
+    /// edge exactly as it cuts one overhanging the left — and the content
+    /// area's height for the bottom bar, below it. Anything can be placed in
+    /// the bottom bar (a `Menu` beside the line of key hints), so it can
+    /// present as the top bar can, and its layers go to the page the same way.
     ///
     /// A CENTRED layer is the exception, and it divides on the same line
     /// `.zIndex` and `.alignmentGuide` do: an anchored layer's offset is a
     /// POSITION, which means something different in a different coordinate
     /// space, while a centred one's is a post-centre DELTA — zero until the
     /// user drags the dialog — which means the same thing in both. Shifting it
-    /// would slide a header-presented dialog up by the height of the header.
-    ///
-    /// The status bar needs no twin of this. Its content is ``StatusBarItem``s
-    /// — a shortcut, a label and an action — rather than views, so nothing
-    /// down there can present anything.
+    /// would slide a dialog presented from the top bar up by the bar's height.
     func liftingOverlays(shiftingBy rows: Int, onto buffer: inout FrameBuffer) -> FrameBuffer {
         guard !overlays.isEmpty else { return self }
         var lifted = self

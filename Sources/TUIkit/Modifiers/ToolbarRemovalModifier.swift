@@ -2,9 +2,9 @@
 //  ToolbarRemovalModifier.swift
 //
 //  `View.toolbar(removing:)`: take away a control the framework provides by
-//  default. TUIkit has no toolbar container (see
-//  `Documentation/SwiftUI-compatibility.md` §2.6); the one default item it has
-//  is the split view's sidebar toggle, which lives on the split itself.
+//  default. TUIkit's window bars hold only what a `.toolbar` places in them
+//  (see `Documentation/SwiftUI-compatibility.md` §2.6); the one default item it
+//  has is the split view's sidebar toggle, which lives on the split itself.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -14,8 +14,9 @@
 /// A kind of control the framework provides by default, which
 /// ``View/toolbar(removing:)`` can take away.
 ///
-/// Mirrors SwiftUI's `ToolbarDefaultItemKind`. TUIkit has no toolbar, so the
-/// only kind is ``sidebarToggle``, the ``NavigationSplitView``'s own handles.
+/// Mirrors SwiftUI's `ToolbarDefaultItemKind`. TUIkit's window bars hold only
+/// what a `.toolbar` places in them, so the only kind is ``sidebarToggle``, the
+/// ``NavigationSplitView``'s own handles.
 /// SwiftUI's `.title` is not provided: TUIkit draws no default title to remove.
 public struct ToolbarDefaultItemKind {
     /// The item kinds TUIkit has.
@@ -135,8 +136,9 @@ extension View {
     /// Removing the handles does not change what `columnVisibility` can do from
     /// code.
     ///
-    /// TUIkit has no toolbar: this is a removal, not a toolbar container (see
-    /// `Documentation/SwiftUI-compatibility.md` §2.6).
+    /// The window's bars put no default item of their own beside what a
+    /// `.toolbar` places in them, so the split view's handles are all there is
+    /// to remove (see `Documentation/SwiftUI-compatibility.md` §2.6).
     ///
     /// - Parameter defaultItemKind: The kind of control to remove, or `nil`.
     /// - Returns: A view whose split views omit that control.
