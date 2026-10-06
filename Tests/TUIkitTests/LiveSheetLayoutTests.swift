@@ -13,19 +13,32 @@ import Testing
 @testable import TUIkit
 @testable import TUIkitCore
 
-/// A page that says the height it was laid out at, under a live sheet.
+/// A page that says the height it was laid out at, under a live sheet — in
+/// a box, or with none (`boxed`).
 private struct DockedPage: View {
     let model: LiveSheetModel
     var interaction: PresentationBackgroundInteraction = .enabled
+    var boxed = true
 
     var body: some View {
         GeometryReader { proxy in
             Text("page height \(proxy.size.height)")
         }
         .sheet(isPresented: model.presentedBinding) {
-            Panel("Sheet") { Text("sheet body") }
-                .presentationDetents([.height(6), .large], selection: model.detentBinding)
+            content
+                // `.medium` rather than `.large` for the box-less sheet: at
+                // `.large` the page would keep no rows, and the sheet is a
+                // modal.
+                .presentationDetents([.height(6), boxed ? .large : .medium], selection: model.detentBinding)
                 .presentationBackgroundInteraction(interaction)
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        if boxed {
+            Panel("Sheet") { Text("sheet body") }
+        } else {
+            Text("sheet body")
         }
     }
 }
@@ -33,19 +46,22 @@ private struct DockedPage: View {
 private struct DockedApp: App {
     let model: LiveSheetModel
     let interaction: PresentationBackgroundInteraction
+    let boxed: Bool
 
     init() {
         model = LiveSheetModel()
         interaction = .enabled
+        boxed = true
     }
 
-    init(model: LiveSheetModel, interaction: PresentationBackgroundInteraction = .enabled) {
+    init(model: LiveSheetModel, interaction: PresentationBackgroundInteraction = .enabled, boxed: Bool = true) {
         self.model = model
         self.interaction = interaction
+        self.boxed = boxed
     }
 
     var body: some Scene {
-        WindowGroup { DockedPage(model: model, interaction: interaction) }
+        WindowGroup { DockedPage(model: model, interaction: interaction, boxed: boxed) }
     }
 }
 
@@ -226,6 +242,33 @@ struct LiveSheetLayoutTests {
         app.frame(atNanos: now + Self.frameNanos)
         #expect(rows(app).contains { $0.contains("Docked") }, "the sheet went again: \(rows(app))")
         #expect(model.presented)
+    }
+
+    /// The dock reserved the whole detent, and content with no box draws
+    /// only its own height: the page was laid out in 14 of 20 rows, with four
+    /// blank rows between it and the sheet's rule.
+    @Test("A live sheet with no box docks the rows it draws, not its detent's, at every detent")
+    func boxlessSheetDocksItsRows() {
+        let model = LiveSheetModel()
+        let app = HeadlessApp(DockedApp(model: model, boxed: false), width: 40, height: 20)
+        var now: Int64 = 0
+        func settle() {
+            app.frame(atNanos: now)
+            for _ in 0..<4 {
+                now += Self.frameNanos
+                app.frame(atNanos: now)
+            }
+        }
+        settle()
+        var screen = rows(app)
+        #expect(screen.contains { $0.contains("page height 18") }, "\(screen)")
+        #expect(screen[18].contains("─"), "the rule is not on the row under the page: \(screen)")
+        #expect(screen[19].contains("sheet body"), "\(screen)")
+        // Moved to its other detent, it still draws two rows, and docks two.
+        model.detent = .medium
+        settle()
+        screen = rows(app)
+        #expect(screen.contains { $0.contains("page height 18") }, "\(screen)")
     }
 
     @Test("A terminal too short to leave the page three rows presents the sheet as a modal")

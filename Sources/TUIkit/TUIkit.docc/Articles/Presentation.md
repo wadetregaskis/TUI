@@ -187,7 +187,10 @@ List(notes, selection: $selected) { note in Text(note.title) }
   does: its box — a `Dialog`, `Panel`, `Card` or `.border()` — takes the
   whole width, at every detent. A ``View/presentationSizing(_:)`` the content
   names still sizes it (`.fitted` is a card centred where the band would be),
-  and content with no box keeps its own width.
+  and content with no box keeps its own width — and its own height, so the
+  page is laid out down to the rows it draws, not to its detent, with nothing
+  blank between the two. (Opened, such a sheet is drawn for a frame under a
+  page laid out by its detent, before the page takes the rest.)
 - **The page is shorter.** It is laid out in the rows the sheet leaves, as a
   terminal resize would lay it out: a `GeometryReader` or
   `containerRelativeFrame` sees the shorter height, a list scrolls in it, and

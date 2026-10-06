@@ -44,6 +44,7 @@ extension ModalPresentationModifier {
         if let entry = existingPresentationEntry(context: context) {
             entry.hasEntered = false
             entry.isKeptOffTheDock = false
+            entry.rowsShortOfDetent = nil
         }
     }
 

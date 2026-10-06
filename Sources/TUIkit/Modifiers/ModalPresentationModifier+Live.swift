@@ -112,6 +112,16 @@ final class PresentationEntry {
     /// Docked again, the row would leave again, and the sheet with it.
     var isKeptOffTheDock = false
 
+    /// The rows the live sheet was last drawn in, where that was fewer than
+    /// its detent — content with no box, which keeps its own height
+    /// (`sheetDetentHeight`) — or `nil` where it filled the detent.
+    ///
+    /// What it docks, then, rather than the detent: the rows between the
+    /// page and a sheet that does not fill them would belong to nothing. Kept
+    /// only while short, so a sheet that fills its detent docks the detent
+    /// the reader moves it to on that very frame, never a frame late.
+    var rowsShortOfDetent: Int?
+
     /// The identity key of the item the sheet was last presented for, for
     /// the `item:` forms — `nil` for the `isPresented:` forms, which are
     /// about nothing.
@@ -152,9 +162,11 @@ extension ModalPresentationModifier {
         focusManager.notePresentationDock(id: sectionID) { contentHeight in
             guard isPresented.wrappedValue else { return nil }
             let detents = PresentedDetents(of: modal, extent: contentHeight, environment: environment, state: state)
-            return LiveSheet.dock(
+            let rows = LiveSheet.dock(
                 detents: detents, interaction: interaction, extent: contentHeight, environment: environment,
                 entry: entry)
+            // Content with no box docks the rows it draws, not its detent's.
+            return rows.map { min($0, entry?.rowsShortOfDetent ?? $0) }
         }
     }
 
@@ -180,6 +192,11 @@ extension ModalPresentationModifier {
                 modalContext: presented.modalContext, detents: presented.detents, isGrabbed: presented.isGrabbed,
                 gate: presented.gate, escape: presented.escape, escapeItemRegistration: escapeItemRegistration,
                 sectionID: presented.sectionID, context: context)
+        }
+        if !context.isMeasuring, let detentHeight = presented.detents?.height {
+            // Short of its detent, the sheet docks the rows it drew (`postDock`).
+            presentationEntry(context: context).rowsShortOfDetent =
+                sheet.height < detentHeight ? sheet.height : nil
         }
         guard !sheet.isEmpty else { return baseBuffer }
         if !context.isMeasuring { blockThePage(under: &sheet, context: context) }
