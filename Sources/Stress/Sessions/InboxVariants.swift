@@ -67,6 +67,8 @@ final class InboxPlacement {
     var tinted = false
     /// The detent the docked sheet rests at.
     var detent: PresentationDetent = .height(8)
+    /// How many times a key only the page answers (F5) reached it.
+    var pageKeys = 0
 }
 
 /// The inbox page, put where `variant` puts it.
@@ -91,11 +93,16 @@ struct InboxVariantPage: View {
         case .observable:
             InboxPage(inbox: inbox, bindsThroughBindable: true)
         case .docked:
+            // F5 is the page's own key: heard wherever the focus is while the
+            // page is live, and never while a modal holds it.
             InboxPage(inbox: inbox)
+                .onKeyEvent(.f5) { placement.pageKeys += 1 }
                 .sheet(isPresented: Binding(get: { placement.presented }, set: { placement.presented = $0 })) {
                     InboxDetail(inbox: inbox)
+                        // `.fraction(0.75)` past the threshold, where the sheet
+                        // is a modal and the page still shows above it, dimmed.
                         .presentationDetents(
-                            [.height(8), .medium, .large],
+                            [.height(8), .medium, .fraction(0.75), .large],
                             selection: Binding(get: { placement.detent }, set: { placement.detent = $0 }))
                         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                 }
@@ -147,6 +154,10 @@ final class InboxVariantSession: StressSession {
     /// The interlude's move the last step made, if it made one.
     private var lastDockedMove: DockedMove?
 
+    /// How many times the page's own key had reached it before the step that
+    /// pressed it — `nil` on any other step.
+    private var pageKeysBeforeStep: Int?
+
     /// What the last step was, and the selection before its keys: a select
     /// that moved the selection reached the list, whose cursor row is then on
     /// the screen.
@@ -181,6 +192,15 @@ final class InboxVariantSession: StressSession {
         variant == .docked ? dockedCheck(screen, after: index) : inbox.check(screen, after: index)
     }
 
+    func check(styled screen: [String], after index: Int) -> String? {
+        variant == .docked ? dockedStyledCheck(screen, after: index) : nil
+    }
+
+    /// The docked variant's frames are drawn in 24 bits, its styled checks
+    /// reading the colours the palette states; the others at whatever the
+    /// process detected.
+    var colorDepth: ColorDepth? { variant == .docked ? .truecolor : nil }
+
     static func descriptor(_ variant: InboxVariant) -> SessionDescriptor {
         SessionDescriptor(
             id: variant.rawValue,
@@ -198,10 +218,16 @@ final class InboxVariantSession: StressSession {
 // MARK: - The docked sheet
 
 /// One move of the docked sheet's interlude: into the sheet, up to `.medium`,
-/// past it to `.large` — a modal — back down, dismissed, opened again by the
-/// app, and back out to the list.
+/// the page's own key, past `.medium` to `.fraction(0.75)` — a modal — the
+/// page's key again, back down, dismissed, a frame with no input, opened again
+/// by the app, another frame with no input, and back out to the list.
 private enum DockedMove: CaseIterable {
-    case into, grow, past, back, dismiss, reopen, out
+    case into, grow, pageKeyLive, past, pageKeyPast, back, dismiss, settleDismissed, reopen, settleReopened, out
+
+    /// Whether the move moves the focus between the panes by presenting or
+    /// dismissing the sheet: its frame is drawn before the focus it gives
+    /// out is painted (`dockedStyledCheck`).
+    var handsTheFocusOver: Bool { self == .dismiss || self == .reopen }
 }
 
 extension InboxVariantSession {
@@ -222,6 +248,9 @@ extension InboxVariantSession {
         switch move {
         case .into: return SessionStep(action: "sheet-in", keys: [KeyEvent(key: .tab)])
         case .grow: return SessionStep(action: "sheet-grow", keys: [KeyEvent(key: .up)])
+        case .pageKeyLive, .pageKeyPast:
+            pageKeysBeforeStep = placement.pageKeys
+            return SessionStep(action: "page-key", keys: [KeyEvent(key: .f5)])
         case .past: return SessionStep(action: "sheet-past", keys: [KeyEvent(key: .up)])
         case .back: return SessionStep(action: "sheet-back", keys: [KeyEvent(key: .down)])
         case .dismiss: return SessionStep(action: "sheet-dismiss", keys: [KeyEvent(key: .escape)])
@@ -229,6 +258,7 @@ extension InboxVariantSession {
             placement.detent = .height(8)
             placement.presented = true
             return SessionStep(action: "sheet-reopen")
+        case .settleDismissed, .settleReopened: return SessionStep(action: "quiet")
         case .out: return SessionStep(action: "sheet-out", keys: [KeyEvent(key: .tab, shift: true)])
         }
     }
@@ -254,6 +284,7 @@ extension InboxVariantSession {
         }
         // No grabber: a terminal too short for two heights. Covering the
         // content area: past `upThrough`.
+        if let problem = pageKeyProblem(screen, rule: rule) { return problem }
         guard let rule, rule > 0 else { return rule == nil ? inbox.check(screen, after: index) : nil }
         let page = Array(screen[..<rule])
         if let problem = inbox.check(page, after: index) { return "\(problem) above the sheet" }
@@ -266,11 +297,120 @@ extension InboxVariantSession {
             ? nil : "the list's cursor row (\(prefix)…) is not above the sheet"
     }
 
+    /// The page's own key (F5) reaches the page while it is live, and does
+    /// nothing while the sheet is a modal over it — past its `upThrough`, or
+    /// where a short terminal leaves no room to dock — as the frame's
+    /// geometry says (``DockedGeometry``).
+    private func pageKeyProblem(_ screen: [String], rule: Int?) -> String? {
+        guard lastDockedMove == .pageKeyLive || lastDockedMove == .pageKeyPast,
+            let before = pageKeysBeforeStep
+        else { return nil }
+        pageKeysBeforeStep = nil
+        let heard = placement.pageKeys > before
+        let geometry = rule.map { DockedGeometry(screen: screen, rule: $0) }
+        let isModal = geometry?.isModal ?? false
+        if isModal, heard { return "the page's key reached the page under the sheet past its threshold" }
+        if !isModal, !heard { return "the page's key did not reach the live page beside the sheet" }
+        return nil
+    }
+
+    /// The docked variant's checks of how the frame is painted:
+    ///
+    /// - one pane shows the focus, the one the status bar's items say holds
+    ///   it — the sheet's "⎋ dismiss" shows only while the focus is in the
+    ///   sheet. In the sheet, the grabber's handle is lit (its only focus
+    ///   stop) and no row of the list breathes; on the page, the handle is
+    ///   not lit. (The list's cursor need not be on the screen: a list that
+    ///   does not hold the focus does not keep it in view as the page is
+    ///   laid out short, and a resize cuts the viewport it was revealed in.)
+    /// - past the threshold the page above the sheet is dimmed, every inked
+    ///   cell of it; at or below it, it is not.
+    ///
+    /// Not on the frames that present the sheet again and dismiss it, which
+    /// are drawn before the focus they hand over is painted. Presenting, the
+    /// page is drawn before the presenter takes the focus into the sheet as
+    /// it enters, so the list's cursor is still lit beside the handle;
+    /// dismissing, the focus comes back to the list at the end of the pass,
+    /// and the list reveals its cursor — which an unfocused list, laid out
+    /// short, need not have kept in view — on the next. Each focus change
+    /// asks for that next frame, which the `settle…` moves draw and this
+    /// checks like any other.
+    fileprivate func dockedStyledCheck(_ screen: [String], after index: Int) -> String? {
+        guard lastDockedMove?.handsTheFocusOver != true else { return nil }
+        let lines = screen.map(\.stripped)
+        let cells = ScreenCells(screen)
+        let rule = placement.presented ? lines.firstIndex(where: Self.isGrabberRule) : nil
+        let geometry = rule.map { DockedGeometry(screen: lines, rule: $0) }
+        let pageRows = 0..<(rule ?? lines.count)
+        let handleLit = rule.map { Self.isHandleLit(cells.rows[$0]) } ?? false
+        let cursorShown = listShowsItsCursor(lines, cells, in: pageRows)
+        let focusInSheet = DockedGeometry.statusLine(of: lines)?.contains("⎋") == true
+        if handleLit, cursorShown { return "both panes show the focus: the grabber's handle and the list's cursor" }
+        if focusInSheet, !handleLit { return "the focus is in the sheet, and its grabber's handle is not lit" }
+        if !focusInSheet, handleLit { return "the focus is on the page, and the sheet's grabber's handle is lit" }
+        guard let geometry, let rule, rule > 0 else { return nil }
+        let inked = pageRows.flatMap { cells.rows[$0] }.filter(\.hasInk)
+        guard !inked.isEmpty else { return nil }
+        let dimmed = inked.allSatisfy(\.isDim)
+        if geometry.isModal, !dimmed { return "past its threshold the sheet leaves the page above it undimmed" }
+        if !geometry.isModal, dimmed { return "the page beside the live sheet is dimmed" }
+        return nil
+    }
+
+    /// Whether the rule's handle — its heavier middle run — is drawn in
+    /// another ink than the rule: lit by the focus. (At rest it is the
+    /// rule's own ink in the palette this session draws in; the pointer,
+    /// which also lights it, is never moved here.)
+    private static func isHandleLit(_ row: [ScreenCell]) -> Bool {
+        guard let rest = row.first(where: { $0.character == "─" })?.foreground,
+            let handle = row.first(where: { $0.character != nil && $0.character != "─" && $0.hasInk })
+        else { return false }
+        return ScreenCell.name(handle.foreground) != ScreenCell.name(rest)
+    }
+
+    /// Whether a row of the list in `rows` breathes the focus: a row on a
+    /// field that is neither the page's (the list's most common) nor, for
+    /// the selected row, the tint a selection rests in while the list does
+    /// not hold the focus.
+    private func listShowsItsCursor(_ lines: [String], _ cells: ScreenCells, in rows: Range<Int>) -> Bool {
+        var fields: [(row: Int, field: String, selected: Bool)] = []
+        for y in rows where lines[y].hasPrefix("│") && (lines[y].contains("[ ]") || lines[y].contains("[x]")) {
+            fields.append((y, ScreenCell.name(cells.cell(row: y, column: 3)?.background), lines[y].contains("│●")))
+        }
+        let counts = Dictionary(fields.map { ($0.field, 1) }, uniquingKeysWith: +)
+        guard let page = counts.max(by: { $0.value < $1.value })?.key else { return false }
+        let tint = ColorDepth.withCurrent(.truecolor) { SystemPalette(.green).selectedRowFill() }
+        let tintName = if case .fill(let colour) = tint { ScreenCell.name(colour) } else { "" }
+        return fields.contains { $0.field != page && !($0.selected && $0.field == tintName) }
+    }
+
     /// Whether `line` is the grabber's rule: a row of nothing but horizontal
     /// rule — the handle in its middle drawn in a heavier one — unlike a box's
     /// top or bottom border, which has corners.
     private static func isGrabberRule(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         return trimmed.count >= 8 && trimmed.allSatisfy { "─━═".contains($0) } && trimmed.contains { $0 != "─" }
+    }
+}
+
+/// Where a docked frame puts the sheet, and so whether TUIkit must draw it as
+/// a modal: the content area is the frame less the status bar's box, the
+/// sheet runs from its rule to the content area's foot, and it docks live
+/// only at or below `.medium` (its `upThrough`) and with three rows or more
+/// for both it and the page — `LiveSheet.dock`'s rule, in rows.
+private struct DockedGeometry {
+    let isModal: Bool
+
+    init(screen: [String], rule: Int) {
+        let extent = Self.statusLine(of: screen) == nil ? screen.count : screen.count - 3
+        let sheet = extent - rule
+        isModal = sheet > extent / 2 || sheet < 3 || extent - sheet < 3
+    }
+
+    /// The status bar's line, where the frame ends in its box.
+    static func statusLine(of screen: [String]) -> String? {
+        guard screen.count >= 3, screen[screen.count - 3].hasPrefix("╭"), screen[screen.count - 1].hasPrefix("╰")
+        else { return nil }
+        return screen[screen.count - 2]
     }
 }
