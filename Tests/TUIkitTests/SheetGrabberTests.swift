@@ -258,6 +258,26 @@ struct SheetGrabberTests {
         #expect(try #require(sheet(frame(harness, view))).content.height == 6)
     }
 
+    /// The review of b0cffd96a asked whether the hover outlives the sheet:
+    /// it does not, because the frame's new regions re-resolve the hover
+    /// under the resting cursor and send the grabber its exit.
+    @Test("Dismissed under a pointer that has not moved, the grabber's handle reopens at rest, not lit")
+    func hoverEndsWithTheSheet() throws {
+        let harness = harness()
+        let presented = Box(true)
+        let view = GrabbedSheet(isPresented: presented.binding)
+        let resting = try #require(sheet(frame(harness, view))).content.lines[0]
+        let rule = Self.height - 6
+        harness.mouse(MouseEvent(button: .none, phase: .moved, x: 20, y: rule))
+        let lit = try #require(sheet(frame(harness, view))).content.lines[0]
+        #expect(lit != resting, "precondition: the pointer lights the handle")
+        presented.value = false
+        frame(harness, view)
+        presented.value = true
+        let reopened = try #require(sheet(frame(harness, view))).content.lines[0]
+        #expect(reopened == resting, "the reopened sheet's handle is still lit")
+    }
+
     // MARK: - Ink
 
     @Test("The handle breathes while the grabber holds the focus, and rests otherwise")
