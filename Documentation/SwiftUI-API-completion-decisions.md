@@ -40,8 +40,6 @@ entry has the options and their prices.
 - **A18 — Apple-only API behind `#if canImport`.** Allow it where the feature
   is honoured (what the batch has done). The `UserDefaults` storage
   spellings wait on it (A35 shipped on it, 2026-10-05).
-- **A2 — anchors and named coordinate spaces.** Markers stamped where a reader
-  or anchor sits (G1). A7, scroll visibility, builds on the same markers.
 - **A13 — text selection.** Shipped 2026-10-05: drag-select of what is drawn,
   `textSelection(_:)`, OSC 52 copies, opt-in copy on release. The mouse
   hand-off (A13.2) is deferred, with no key. A25 waits on A13.
@@ -75,7 +73,7 @@ entry has the options and their prices.
 - A53 — the drag-session behaviour (callbacks, configurations, containers,
   formations): callbacks and configurations on today's single-item drags.
 
-**Waiting on another answer.** A7 (A2), A11 (O8), A12 (O7), A22 and A26 (O9),
+**Waiting on another answer.** A11 (O8), A12 (O7), A22 and A26 (O9),
 A23 and A36 (O4), A24 (O0, O15), A25 (A13), A37 (O2), A38 (O3), A39 (A27), A41
 (O5), A51 (O8).
 
@@ -122,52 +120,6 @@ They are not repeated here. In brief:
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
 - **O17** The toolbar's `.title` and `.search` items.
 
-### A2. Anchors and named coordinate spaces
-
-*`Anchor`, `Anchor.Source`, `View.anchorPreference(key:value:transform:)`,
-`View.transformAnchorPreference(key:value:transform:)`,
-`GeometryProxy.subscript(_:)`, `GeometryProxy.bounds(of:)`,
-`View.coordinateSpace(_:)`, `NamedCoordinateSpace`,
-`CoordinateSpaceProtocol.named(_:)`, `.scrollView`, `.scrollView(axis:)`,
-`CoordinateSpace.named(_:)`*
-
-A `GeometryProxy` has to answer "where am I, in that space?" while its own
-content is still being built. TUIkit renders bottom-up: a view learns where it
-sits only when its ancestors composite it. `.global` already shows the
-problem — nothing sets `GeometryProxy.globalOrigin`, so `frame(in: .global)`
-answers the local frame and says so (`hasGlobalPosition`).
-
-Measured in SwiftUI (W05 brief, probes L and M): an anchor resolves relative
-to the reading proxy's own origin; `frame(in: .named("s"))` and
-`bounds(of: .named("s"))` answer in the named view's space, and an unknown
-name gives the local frame and `nil`; `.scrollView` answers in the scroll
-content's space.
-
-**Options.**
-
-1. **G1 — markers.** A reader or an anchor site stamps a zero-content marker
-   into its buffer as a floating layer, which already survives every
-   combinator. The geometry owner (a preference reader, a `.coordinateSpace`
-   view, a `ScrollView`, the scene root) reads the markers back out of its
-   rendered subtree in its own coordinates. A proxy answers from what its
-   owners found LAST frame; when that turns out wrong, the owner re-renders
-   its subtree once with the corrected positions. `.global` becomes exact.
-   3–4 days. The price: a correction re-render on frames where a queried
-   position moved — none in steady state, but at the root it is a
-   whole-frame re-render, a second source of discarded passes beside the
-   app-header correction.
-2. **G2 — G1 without the root correction.** `.global` keeps its documented
-   fallback. About 3 days.
-3. **G0 — decline the family.** Only `CoordinateSpaceProtocol` with
-   `.local`/`.global` ships (it has, as the safe part).
-   `anchorPreference`, named spaces and `.scrollView` geometry fail to
-   compile; scroll-offset tracking leans on `onScrollGeometryChange`.
-
-**Recommendation:** G1. It is one mechanism used five times, it closes the
-`.global` hole, `onGeometryChange` needs it for named spaces, and it lets
-popovers replace `PopoverAttachmentRect` with `Anchor<CellRect>.Source`.
-Measure the correction rate on Stress before landing it.
-
 ### A3. `layoutDirectionBehavior(_:)`: mirror now, or with right-to-left?
 
 *`LayoutDirectionBehavior` (`.fixed`, `.mirrors`, `.mirrors(in:)`),
@@ -202,47 +154,6 @@ here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
 
 *Wave 10's entries (A6–A12, B23–B31, C6–C7): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
-
-### A7. Scroll visibility needs a way to find a view inside the scroll content
-
-*`View.onScrollVisibilityChange(threshold:_:)`,
-`View.onScrollTargetVisibilityChange(idType:threshold:_:)`; and the scroll
-transitions, which need the same reading (`View.scrollTransition(_:axis:transition:)`,
-`View.scrollTransition(topLeading:bottomTrailing:axis:transition:)`,
-`ScrollTransitionConfiguration`, `ScrollTransitionPhase`), now that Wave 12's
-`VisualEffect` gives their bodies something to return*
-
-Measured in SwiftUI: every observed view reports once when it first appears —
-`true` or `false` — then at each crossing of the threshold (0.5 by default)
-of its fraction inside the scroll view's viewport; a view in no scroll view
-reports its visibility in the window; `onScrollTargetVisibilityChange` reports
-the ordered ids of the `scrollTargetLayout()` children past the threshold.
-
-A view does not know where it is until its ancestors composite it (the A2
-problem), so the scroll view has to find the observed views in its content
-after drawing it. That is A2's question in another form.
-
-**Options.**
-
-1. **Build on A2's G1 markers**, if you choose them: the observed view stamps a
-   marker, the nearest scroll view measures each marker against its viewport
-   (the root against the screen), fires on crossings, and fires `false` for a
-   marker that has vanished — a row windowed out of a lazy stack's band, which
-   has certainly left the viewport. About a day after G1.
-2. **Standalone**, if A2 goes another way: the same, with the marker carried as
-   a hit-test region from a reserved handler-id range that the mouse
-   dispatcher skips (regions already travel through every combinator and are
-   how the focus reveal finds a control). One more test per region in hit
-   testing, and the same day of work.
-3. **Approximate with appearance** (visible ⇔ drawn in a band): wrong for
-   eager content and for thresholds. I don't recommend it.
-
-`onScrollTargetVisibilityChange` also needs the target layout's children and
-their ids, which the stack files carry — the other lane's — so it lands after
-them either way. `scrollTransition` (deferred below) needs the same
-measurement.
-
-**Recommendation:** decide A2 first; then 1, or 2 if A2 does not choose markers.
 
 ### A11. `scrollDismissesKeyboard(_:)` joins O8
 
@@ -2427,40 +2338,6 @@ velocity at retarget and start the next closed form with it
 store records where the picture is; it would also record how fast — but a
 curve retargeting into a spring, or a spring into a curve, has no velocity
 model, which is O3's question.
-
-### B59. Visual effects: the five a cell can show, drawn by the `View` modifiers of the same names
-
-*`VisualEffect`, `EmptyVisualEffect` (`init()`, `AnimatableData`),
-`View.visualEffect(_:)`, `VisualEffect.offset(_:)`, `offset(x:y:)`,
-`opacity(_:)`, and — moved out of the map's pixel-effects family, as the Wave
-17 review (P14) found they should be — `brightness(_:)`, `contrast(_:)`,
-`saturation(_:)`, `grayscale(_:)`, `hueRotation(_:)`*
-
-**Shipped.** The content is drawn, the closure is handed a `GeometryProxy` of
-the size it drew at, and the effect it returns is applied to the drawing.
-Each effect is drawn by the `View` modifier of the same name around the
-drawn buffer, so `.visualEffect { $0.grayscale(1) }` is exactly
-`.grayscale(1)` (pinned by a test per effect); a chain applies the later
-effect over the earlier. The effect is `Animatable` and animates as a
-modifier does, keyed by its place in the tree. Effects never change layout.
-
-**Where it differs.**
-
-- **The proxy's frame is local.** `frame(in: .global)` answers as `.local`
-  does, which `GeometryProxy` already documents (A2 is the question of making
-  global geometry real). SwiftUI's own example, an offset that follows the
-  view's global position, therefore draws no offset here.
-- **The closure is main-actor isolated** where SwiftUI's is only `@Sendable`.
-  TUIkit's `Animatable` is a main-actor protocol (the decision recorded in
-  `Animatable.swift`), so building an effect is main-actor work. A closure
-  literal — the only way the API is used — takes on the isolation it is
-  declared with, so SwiftUI's source compiles unchanged.
-- **Offsets are whole cells**, as `View.offset` is (§2.1 of the
-  compatibility doc).
-
-**Not offered** — so asking fails to compile: rotation, scale, 3D rotation
-and arbitrary transforms wait on Wave 16 (A39); blur, blend modes and
-the shader effects stay in the map's pixel-effects family.
 
 ### B60. Keyframe timelines follow SwiftUI's curves, measured; the animator views stay with O2
 
