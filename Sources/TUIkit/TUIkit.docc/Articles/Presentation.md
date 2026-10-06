@@ -214,7 +214,11 @@ List(notes, selection: $selected) { note in Text(note.title) }
   height only its content knows, stays a modal dialog, as an undetented sheet
   covers the page on a phone. A sheet presented from inside a modal sheet, a
   full-screen cover or a popover is a modal too: what is behind it holds the
-  keyboard, and is not a page the two could share.
+  keyboard, and is not a page the two could share. And so is one presented
+  from a row of a `List` or a lazy stack that the shortened page leaves out
+  of its window: docked, it would go with its row, and the page would grow
+  back and bring both again, frame after frame. Shown for a frame and gone,
+  it comes back as a modal, for as long as it stays presented.
 - **The page's pop-ups open over it.** A page's drop-down, menu or tooltip
   opens over the sheet as it opens over anything else on the page.
 
@@ -222,7 +226,9 @@ The height the page is laid out at is known before the page is drawn — from
 the sheet's detent, read as the frame begins — so moving the sheet relayouts
 the page once, on the same frame. A `sheet(item:)` that opens is drawn one
 frame over the page's bottom rows before the page makes room: its content is
-not known until the item is.
+not known until the item is. Likewise, the frame after the view that
+presented a sheet stops being drawn — its page navigated away from with the
+sheet up — is laid out short by the sheet's rows, and the next takes them back.
 
 ## Alerts
 

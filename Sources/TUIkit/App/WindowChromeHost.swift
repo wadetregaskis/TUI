@@ -251,7 +251,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
     /// drawn is honest at the old height, the sheet over the page's bottom
     /// rows, and the next adopts the new one, as a bar's rows are adopted.
     private func settleDock(_ dock: Int, focusManager: FocusManager, contentHeight: Int, context: RenderContext) {
-        guard focusManager.postedPresentationDock(in: contentHeight) != dock else { return }
+        guard focusManager.settlePresentationDock(laidOutBy: dock, in: contentHeight) else { return }
         context.requestAnimation(token: "presentation-dock-adoption", frameTicks: AnimationClock.standardFrameTicks)
     }
 

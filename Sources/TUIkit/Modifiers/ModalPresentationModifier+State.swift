@@ -30,7 +30,7 @@ extension ModalPresentationModifier {
     /// Empties what the presenter keeps for the sheet it presents, so the
     /// next is a new sheet: it opens where an undragged one does, its sticky
     /// sizing starts again from its content, it rests at the bound detent or
-    /// the smallest, and a live one takes the focus again.
+    /// the smallest, and a live one takes the focus again, and may dock.
     ///
     /// On the frames the sheet is closed, rather than left to the end of the
     /// pass's prune: a presenter whose identity something else keeps — a row
@@ -41,7 +41,10 @@ extension ModalPresentationModifier {
         DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
         existingKeptSheetSize(context: context)?.size = nil
         existingDetentState(context: context)?.chosen = nil
-        existingPresentationEntry(context: context)?.hasEntered = false
+        if let entry = existingPresentationEntry(context: context) {
+            entry.hasEntered = false
+            entry.isKeptOffTheDock = false
+        }
     }
 
     /// Starts over (``startOver(context:)``) when the sheet is presented for

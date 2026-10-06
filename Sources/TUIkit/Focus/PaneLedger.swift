@@ -23,6 +23,17 @@ struct PaneLedger {
     /// the walk, how many rows to lay the page out short.
     private(set) var previousDocks: [String: PresentationDockResolver] = [:]
 
+    /// The sections whose sheets docked the page this frame: the resolvers
+    /// that answered rows when the root asked, before the walk
+    /// (`FocusManager.presentationDock(in:)`).
+    var dockedBeforeTheWalk: Set<String> = []
+
+    /// The sections whose sheet docked the page LAST frame and whose
+    /// presenter that frame did not draw — noted after its walk
+    /// (``noteDocksLeftUndrawn()``), for the presenters of the next to ask
+    /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`).
+    private(set) var undrawnUnderTheirDock: Set<String> = []
+
     /// The pane whose content is rendering now, if any — see
     /// `FocusManager.beginPane(id:)`.
     var current: String?
@@ -35,6 +46,14 @@ struct PaneLedger {
     /// of a render pass, before the walk empties them.
     mutating func beginFrame() {
         previousDocks = docks
+        if !dockedBeforeTheWalk.isEmpty { dockedBeforeTheWalk.removeAll() }
+    }
+
+    /// Notes, after the walk, which of the sheets that docked the page this
+    /// frame had no presenter drawn in it: their docks were not posted again.
+    mutating func noteDocksLeftUndrawn() {
+        guard !dockedBeforeTheWalk.isEmpty || !undrawnUnderTheirDock.isEmpty else { return }
+        undrawnUnderTheirDock = dockedBeforeTheWalk.filter { docks[$0] == nil }
     }
 
     /// Empties what a walk posts, before the walk re-posts it.

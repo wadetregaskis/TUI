@@ -142,31 +142,69 @@ extension FocusManager {
     ///
     /// The most any one sheet asks for: two docked sheets overlap on the bottom
     /// edge, and the taller decides how much of the page is covered.
+    ///
+    /// Notes which sheets docked it (``PaneLedger/dockedBeforeTheWalk``), for
+    /// ``settlePresentationDock(laidOutBy:in:)`` to find the ones whose
+    /// presenters the frame then did not draw.
     @MainActor
     func presentationDock(in contentHeight: Int) -> Int {
-        Self.dock(panes.previousDocks, in: contentHeight)
+        Self.dock(panes.previousDocks, in: contentHeight) { panes.dockedBeforeTheWalk.insert($0) }
     }
 
     /// The same, by the resolvers posted THIS frame: what the root compares
     /// with ``presentationDock(in:)`` after the walk.
     ///
-    /// Different only when the dock was learnt late — a presenter's first
-    /// drawn frame, a sheet presented for an item whose content was unknown
-    /// until it opened — and that frame was laid out at the old dock, the
-    /// sheet drawn over the page's bottom rows. The root then asks for the
-    /// next frame, which settles: one frame late, not a discarded walk.
+    /// Different when the dock was learnt late — a presenter's first drawn
+    /// frame, a sheet presented for an item whose content was unknown until
+    /// it opened — and that frame was laid out at the old dock, the sheet
+    /// drawn over the page's bottom rows; or when a sheet's presenter was not
+    /// drawn, its page gone or its row out of a lazy window. The root then
+    /// asks for the next frame, which settles: one frame late, not a
+    /// discarded walk.
     @MainActor
     func postedPresentationDock(in contentHeight: Int) -> Int {
-        Self.dock(panes.docks, in: contentHeight)
+        Self.dock(panes.docks, in: contentHeight) { _ in }
     }
 
+    /// After the walk, whether the next frame must be laid out at another
+    /// dock than this one was (`dock`): see ``postedPresentationDock(in:)``.
+    ///
+    /// And notes the sheets that docked this frame whose presenters it did
+    /// not draw, for their presenters to find on the next
+    /// (``presenterWentUndrawnUnderItsDock(_:)``).
     @MainActor
-    private static func dock(_ resolvers: [String: PresentationDockResolver], in contentHeight: Int) -> Int {
+    func settlePresentationDock(laidOutBy dock: Int, in contentHeight: Int) -> Bool {
+        panes.noteDocksLeftUndrawn()
+        return postedPresentationDock(in: contentHeight) != dock
+    }
+
+    /// Whether the sheet presented in section `id` docked the page last
+    /// frame and that frame did not draw its presenter.
+    ///
+    /// A presenter drawn now that was not drawn then went undrawn because of
+    /// the frame it docked — a row of a lazy stack or a list that the page,
+    /// laid out short by the sheet, left out of its window — or came back
+    /// within a frame of leaving. Docked again, the row would leave the window
+    /// again, the sheet with it, and the page would grow back: the two
+    /// alternated every frame, the app never idled, and the sheet lost the
+    /// focus for good.
+    func presenterWentUndrawnUnderItsDock(_ id: String) -> Bool {
+        panes.undrawnUnderTheirDock.contains(id)
+    }
+
+    /// The most `resolvers` dock in a content area `contentHeight` rows tall,
+    /// each section that docks any handed to `docked`.
+    @MainActor
+    private static func dock(
+        _ resolvers: [String: PresentationDockResolver], in contentHeight: Int, docked: (String) -> Void
+    ) -> Int {
         // The common frame: no live sheet anywhere.
         guard !resolvers.isEmpty, contentHeight > 0 else { return 0 }
         var dock = 0
-        for resolver in resolvers.values {
-            if let rows = resolver(contentHeight) { dock = max(dock, rows) }
+        for (id, resolver) in resolvers {
+            guard let rows = resolver(contentHeight) else { continue }
+            dock = max(dock, rows)
+            docked(id)
         }
         return min(dock, contentHeight)
     }

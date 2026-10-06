@@ -41,12 +41,16 @@ enum LiveSheet {
     /// there, it reflowed the dimmed page under both, and the presentation
     /// around it took the focus back every frame and kept the input grabbed,
     /// so nothing in it could be reached from the keyboard.
+    ///
+    /// And so is one its presenter's `entry` keeps off the dock
+    /// (``PresentationEntry/isKeptOffTheDock``).
     @MainActor
     static func dock(
         detents: PresentedDetents?, interaction: PresentationBackgroundInteraction, extent: Int,
-        environment: EnvironmentValues
+        environment: EnvironmentValues, entry: PresentationEntry?
     ) -> Int? {
-        guard !environment.isInModalPresentation, let height = detents?.height, height >= minimumRows,
+        guard !environment.isInModalPresentation, entry?.isKeptOffTheDock != true,
+            let height = detents?.height, height >= minimumRows,
             extent - height >= minimumRows,
             interaction.letsThePageThrough(atHeight: height, extent: extent, environment: environment)
         else { return nil }
@@ -100,6 +104,14 @@ extension EnvironmentValues {
 final class PresentationEntry {
     var hasEntered = false
 
+    /// Whether the sheet is a modal, not docked, for as long as it stays
+    /// presented: set when its presenter, drawn now, was not drawn on the
+    /// frame laid out short by the sheet's dock
+    /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`) — a row of a lazy
+    /// stack or a list that the shortened page left out of its window.
+    /// Docked again, the row would leave again, and the sheet with it.
+    var isKeptOffTheDock = false
+
     /// The identity key of the item the sheet was last presented for, for
     /// the `item:` forms — `nil` for the `isPresented:` forms, which are
     /// about nothing.
@@ -117,6 +129,11 @@ extension ModalPresentationModifier {
     /// resolver reads the binding when the root asks, before the walk. An
     /// `item:` sheet's content is unknown while it is dismissed, so its first
     /// frame is learnt late, and settles on the next.
+    ///
+    /// A presented sheet whose presenter its own dock pushed out of the
+    /// page's lazy window, drawn again now the page is whole, is kept off the
+    /// dock from here on (``PresentationEntry/isKeptOffTheDock``): a modal,
+    /// which leaves the page its height and the presenter its row.
     func postDock(_ interaction: PresentationBackgroundInteraction, sectionID: String, context: RenderContext) {
         guard !context.isMeasuring, case .enabled = interaction.kind,
             let focusManager = context.environment.focusManager, !focusManager.isBackdrop
@@ -127,11 +144,17 @@ extension ModalPresentationModifier {
         let state =
             isPresented.wrappedValue
             ? detentState(context: context) : existingDetentState(context: context) ?? SheetDetentState()
+        let entry =
+            isPresented.wrappedValue ? presentationEntry(context: context) : existingPresentationEntry(context: context)
+        if let entry, isPresented.wrappedValue, focusManager.presenterWentUndrawnUnderItsDock(sectionID) {
+            entry.isKeptOffTheDock = true
+        }
         focusManager.notePresentationDock(id: sectionID) { contentHeight in
             guard isPresented.wrappedValue else { return nil }
             let detents = PresentedDetents(of: modal, extent: contentHeight, environment: environment, state: state)
             return LiveSheet.dock(
-                detents: detents, interaction: interaction, extent: contentHeight, environment: environment)
+                detents: detents, interaction: interaction, extent: contentHeight, environment: environment,
+                entry: entry)
         }
     }
 

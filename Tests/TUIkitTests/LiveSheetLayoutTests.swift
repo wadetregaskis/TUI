@@ -84,6 +84,40 @@ private struct ToolbarDockApp: App {
     }
 }
 
+/// Whether the row-hosted sheet is presented, by reference so the binding a
+/// frame built reaches it.
+@MainActor
+private final class RowSheetModel {
+    var presented = false
+    var binding: Binding<Bool> { Binding(get: { self.presented }, set: { self.presented = $0 }) }
+}
+
+/// The review of 0b2d764f1's failing input: a list whose row 15 — inside
+/// the window at the full height, outside it at the height a docked sheet
+/// leaves — presents a live sheet. Nothing in the sheet takes the focus, so
+/// nothing breathes and asks for frames.
+private struct RowSheetApp: App {
+    let model: RowSheetModel
+
+    init() { model = RowSheetModel() }
+
+    init(model: RowSheetModel) { self.model = model }
+
+    var body: some Scene {
+        WindowGroup {
+            List(0..<30, id: \.self) { index in
+                Text("row \(index)")
+                    .sheet(isPresented: index == 15 ? model.binding : .constant(false)) {
+                        Panel("Docked") { Text("x") }
+                            .presentationDetents([.height(8), .large])
+                            .presentationDragIndicator(.hidden)
+                            .presentationBackgroundInteraction(.enabled)
+                    }
+            }
+        }
+    }
+}
+
 @MainActor
 @Suite("A live sheet's page is laid out above it", .rendersEnglishUI)
 struct LiveSheetLayoutTests {
@@ -162,6 +196,36 @@ struct LiveSheetLayoutTests {
         app.frame(atNanos: wake)
         let docked = try #require(rows(app).first { $0.contains("page height") })
         #expect(docked != full, "the page was not laid out above the sheet: \(rows(app))")
+    }
+
+    /// Docked, the page shrank and the row left the list's window; undrawn,
+    /// the sheet went and its dock with it; the page grew back, the row and
+    /// the sheet returned — every frame, for good, the focus lost each time.
+    @Test("A live sheet whose dock pushes its row out of the list's window settles as a modal and lets the app idle")
+    func rowHostedSheetDoesNotLoop() {
+        let model = RowSheetModel()
+        let app = HeadlessApp(RowSheetApp(model: model), width: 40, height: 20)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: Self.frameNanos)
+        #expect(rows(app).contains { $0.contains("row 15") }, "precondition: the row is in the window: \(rows(app))")
+        // As an app's own write would, the presentation asks for a frame.
+        model.presented = true
+        var now = 2 * Self.frameNanos
+        app.frame(atNanos: now)
+        var drawn = [rows(app).contains { $0.contains("Docked") }]
+        for _ in 0..<8 {
+            guard let wake = app.nextWake(after: now) else { break }
+            now = max(wake, now + 1)
+            app.frame(atNanos: now)
+            drawn.append(rows(app).contains { $0.contains("Docked") })
+        }
+        // The frame laid out short by the dock left the sheet undrawn; from
+        // the one after, it is drawn for good, and nothing asks for frames.
+        #expect(app.nextWake(after: now) == nil, "the page and the sheet are still alternating: \(drawn)")
+        #expect(drawn.last == true, "the sheet is not drawn: \(drawn)")
+        app.frame(atNanos: now + Self.frameNanos)
+        #expect(rows(app).contains { $0.contains("Docked") }, "the sheet went again: \(rows(app))")
+        #expect(model.presented)
     }
 
     @Test("A terminal too short to leave the page three rows presents the sheet as a modal")

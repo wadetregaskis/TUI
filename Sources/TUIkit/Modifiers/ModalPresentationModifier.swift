@@ -180,7 +180,7 @@ extension ModalPresentationModifier: Renderable {
         if let backgroundInteraction,
             LiveSheet.dock(
                 detents: detents, interaction: backgroundInteraction, extent: overlayHeight,
-                environment: modalContext.environment) != nil
+                environment: modalContext.environment, entry: existingPresentationEntry(context: context)) != nil
         {
             return renderLive(
                 LiveSheet.Presented(

@@ -112,3 +112,29 @@ per-frame re-activation and its grab made pane-aware — and the modal page unde
 both staying inert. About two days, with the presented-section and grab
 machinery the riskiest part.
 
+### B-D7S-5. A live sheet whose dock pushes its presenting row out of a lazy window comes back as a modal
+
+*`presentationBackgroundInteraction(.enabled)` on a sheet presented from a row
+of a `List` or a lazy stack (decisions A19, design C; review of 0b2d764f1)*
+
+**Shipped:** the page under a docked sheet is laid out shorter, and a lazy
+container draws only the rows in its window — so a sheet presented from a row
+inside the window at the full height and outside it at the docked one took its
+own presenter away: undrawn, the sheet went and its dock with it, the page grew
+back, the row and the sheet returned, and so on every frame, the app never
+idling and the focus lost. Now the frame laid out short that leaves a docked
+sheet's presenter undrawn is noted (`FocusManager.presenterWentUndrawnUnderItsDock`),
+and a presenter drawn again on the next frame keeps its sheet off the dock for
+as long as it stays presented (`PresentationEntry.isKeptOffTheDock`): a modal
+over the whole page, which leaves the row where it was. One frame shows the
+page short with no sheet; from the next the sheet is a modal and nothing
+alternates. A presenter that stays undrawn (another tab, a page navigated away
+from) is not affected, and docks again when drawn.
+
+**The fuller version, and its price:** keep the row in the window instead —
+the page's lazy container told, through the ledger, to scroll so that the
+presenting row stays above the dock (as it reveals the focused row), and the
+sheet docked. About a day: the container has to know which of its rows
+presents, before the walk that lays it out at the docked height, and a row the
+reader then scrolls away would still take the sheet with it.
+
