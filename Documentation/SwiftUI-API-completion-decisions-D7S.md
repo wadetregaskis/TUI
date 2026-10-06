@@ -42,3 +42,25 @@ content's own top border and prepending a rule only for box-less content:
   `interactiveDismissDisabled`), with ↓ at the smallest as its keyboard route
   — iOS's gesture, about half a day; the keyboard half is the doubtful part,
   since a held ↓ would close the sheet.
+
+### B-D7S-2. A key equivalent the sheet does not bind reaches the page's; Return and Escape do not
+
+*`.keyboardShortcut` behind a live sheet (decisions A19, design C; study §7
+"`.keyboardShortcut` becomes pane-scoped")*
+
+**Shipped:** the page and a live sheet docked under it are PANES, and a
+shortcut registered in one is that pane's. With the focus in the sheet, the
+sheet's shortcuts fire; a key equivalent it does not bind (a ⌃N "new note" on
+the page) still reaches the page's, as a key goes up a responder chain — but
+Return and Escape, the `.defaultAction` and `.cancelAction` roles, are the
+sheet's alone: a field in the sheet that lets Return through must not press
+the page's default button, which was the study's motivating defect. With the
+focus on the page, only the page's fire; the sheet's never do. Escape claims
+follow the same panes (a `NavigationStack` in the sheet claims Escape, and
+pops, only while the focus is in the sheet — owner Q6).
+
+**The study's rule, and its price:** page registrations eligible only while
+no pane is active — a page's app-wide chords dead whenever the reader is in
+the sheet. One line in `KeyboardShortcutRegistry.appEntry(for:activePane:)`;
+held back because a docked sheet is meant to be a pane BESIDE a live page,
+and macOS fires a window's key equivalents from whichever pane has the focus.

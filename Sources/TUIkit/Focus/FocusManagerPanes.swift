@@ -1,0 +1,71 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  FocusManagerPanes.swift
+//
+//  Panes: parts of the screen that share the keyboard, each holding it while
+//  the focus is inside it — a live sheet docked under the page it was
+//  presented over (A19, design C). The channels the framework once assumed
+//  were the whole screen's — `.keyboardShortcut`, the claim on Escape — are
+//  the active pane's.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+extension FocusManager {
+    /// The pane whose content is rendering now, if any — see
+    /// ``beginPane(id:)``.
+    var currentPaneID: String? { panes.current }
+
+    /// Starts rendering the content of pane `id`: the sections registered
+    /// until ``endPane(restoring:)`` are the pane's, and so are the claims on
+    /// Escape made meanwhile (`StatusBarState.claimEscape(_:)`).
+    ///
+    /// - Returns: The pane this one is rendered inside, if any, to hand back
+    ///   to ``endPane(restoring:)``.
+    func beginPane(id: String) -> String? {
+        let outer = panes.current
+        panes.current = id
+        panes.sectionPanes[id] = id
+        return outer
+    }
+
+    /// Ends the pane ``beginPane(id:)`` began, back in `outer`.
+    func endPane(restoring outer: String?) {
+        panes.current = outer
+    }
+
+    /// The pane the focus is in: the one the active section belongs to, or
+    /// `nil` while it is on the page outside every pane — always, where no
+    /// pane is drawn.
+    ///
+    /// A section's pane is known from the walk that registered it, so this is
+    /// the last walk's answer between frames, when keys arrive.
+    var activePaneID: String? {
+        guard !panes.sectionPanes.isEmpty, let activeSectionID = activeSectionIdentifier else { return nil }
+        return panes.sectionPanes[activeSectionID]
+    }
+}
+
+/// Renders `content` as the content of pane `id`, with the focus manager and
+/// the shortcut registry told so for as long as it renders — see
+/// ``FocusManager/beginPane(id:)``.
+///
+/// A memo that serves a subtree of the content replays its registrations here,
+/// where the subtree would have rendered, so they land in the pane as well.
+@MainActor
+func renderingPane<Result>(_ id: String, context: RenderContext, _ content: () -> Result) -> Result {
+    guard !context.isMeasuring else { return content() }
+    let focusManager = context.environment.focusManager
+    let registry = context.environment.keyboardShortcutRegistry
+    var outer: String?
+    if let focusManager { outer = focusManager.beginPane(id: id) }
+    var outerShortcutPane: String?
+    if let registry {
+        outerShortcutPane = registry.currentPane
+        registry.currentPane = id
+    }
+    defer {
+        focusManager?.endPane(restoring: outer)
+        registry?.currentPane = outerShortcutPane
+    }
+    return content()
+}

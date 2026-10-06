@@ -28,6 +28,16 @@
 /// same ⌃S, and the app means its own. This is `RowShortcuts`' rule, "defaults
 /// first, then the overrides on top".
 ///
+/// A shortcut registered inside a PANE — a live sheet docked under the page,
+/// whose content renders through `renderingPane(_:context:_:)` — is that
+/// pane's: it fires while the focus is in the pane, and only then. The page's
+/// own (registered outside every pane) fire while the focus is on the page;
+/// while it is in a pane, a key equivalent the pane does not bind still
+/// reaches the page's, as a key goes up a responder chain, but Return and
+/// Escape — the default and cancel actions — are the pane's alone: a field in
+/// the sheet that lets Return through must not press the page's default
+/// button. Where no pane is drawn, nothing here changes.
+///
 /// `@unchecked Sendable` like its sibling per-frame services
 /// (`MouseEventDispatcher`, `KeyEventDispatcher`): touched only from the
 /// main run loop (render pass registration + input dispatch).
@@ -40,7 +50,16 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
         let serial: Int
     }
 
+    /// The app's shortcuts registered outside every pane.
     private var actions: [KeyboardShortcut.Trigger: Entry] = [:]
+
+    /// The app's shortcuts registered inside each pane, by the pane.
+    private var paneActions: [String: [KeyboardShortcut.Trigger: Entry]] = [:]
+
+    /// The pane whose content is rendering now, if any: set around it by
+    /// `renderingPane(_:context:_:)`, so what registers meanwhile is the
+    /// pane's.
+    var currentPane: String?
 
     /// How many app shortcuts this frame has registered so far: a mark a
     /// presenter takes before its content renders, and hands back to
@@ -61,6 +80,8 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// Clears the frame's registrations (called from the render loop).
     func beginRenderPass() {
         actions.removeAll(keepingCapacity: true)
+        if !paneActions.isEmpty { paneActions.removeAll() }
+        currentPane = nil
         defaults.removeAll(keepingCapacity: true)
         registrationCount = 0
     }
@@ -75,7 +96,12 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///   whatever the key means further down.
     func register(_ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void) {
         registrationCount += 1
-        actions[shortcut.trigger] = Entry(repeats: repeats, action: action, serial: registrationCount)
+        let entry = Entry(repeats: repeats, action: action, serial: registrationCount)
+        if let currentPane {
+            paneActions[currentPane, default: [:]][shortcut.trigger] = entry
+        } else {
+            actions[shortcut.trigger] = entry
+        }
     }
 
     /// What `shortcut` runs, and whether a held key repeats it, if its
@@ -85,9 +111,26 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///
     /// How a presenter finds its content's cancel button
     /// (``DismissalGate/cancelButton``).
+    ///
+    /// Among the shortcuts of the pane rendering now (``currentPane``), or of
+    /// the page outside every pane: a live sheet's content registers in its
+    /// pane, and its presenter asks while the pane is still rendering.
     func entry(for shortcut: KeyboardShortcut, registeredAfter mark: Int) -> Entry? {
-        guard let entry = actions[shortcut.trigger], entry.serial > mark else { return nil }
+        let table = currentPane.map { paneActions[$0] ?? [:] } ?? actions
+        guard let entry = table[shortcut.trigger], entry.serial > mark else { return nil }
         return entry
+    }
+
+    /// The app's shortcut on `trigger` that fires while the focus is in
+    /// `activePane` (`nil`: on the page): the pane's own; else, for anything
+    /// but Return and Escape, the page's — see the type's discussion.
+    private func appEntry(for trigger: KeyboardShortcut.Trigger, activePane: String?) -> Entry? {
+        guard let activePane else { return actions[trigger] }
+        if let entry = paneActions[activePane]?[trigger] { return entry }
+        switch trigger {
+        case .defaultAction, .cancelAction: return nil
+        case .key: return actions[trigger]
+        }
     }
 
     /// Registers a framework default for `shortcut`, which fires only when no
@@ -113,10 +156,16 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// reported. Exactly, not "at least": a shortcut on plain "q" must not fire
     /// on Ctrl-Q. The event → trigger rule itself is
     /// ``KeyboardShortcut/trigger(for:)``, shared with the row-shortcut table.
-    func trigger(for event: KeyEvent) -> Bool {
+    ///
+    /// - Parameter activePane: The pane the focus is in
+    ///   (`FocusManager.activePaneID`), or `nil` on the page.
+    func trigger(for event: KeyEvent, activePane: String? = nil) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
-        if event.phase == .repeat, let entry = actions[trigger], !entry.repeats { return true }
-        return run(trigger)
+        let entry = appEntry(for: trigger, activePane: activePane)
+        if event.phase == .repeat, let entry, !entry.repeats { return true }
+        guard let action = entry?.action ?? defaults[trigger]?.action else { return false }
+        action()
+        return true
     }
 
     /// Whether an app shortcut is registered for `event`: what ``trigger(for:)``
@@ -129,17 +178,9 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// one of its editing chords. An app shortcut on the chord takes the key
     /// instead; see
     /// ``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``.
-    func hasAppShortcut(for event: KeyEvent) -> Bool {
+    func hasAppShortcut(for event: KeyEvent, activePane: String? = nil) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
-        return actions[trigger] != nil
-    }
-
-    /// Runs the registered action for `trigger`, reporting whether there was one:
-    /// the app's, else the framework default's.
-    private func run(_ trigger: KeyboardShortcut.Trigger) -> Bool {
-        guard let action = actions[trigger]?.action ?? defaults[trigger]?.action else { return false }
-        action()
-        return true
+        return appEntry(for: trigger, activePane: activePane) != nil
     }
 }
 

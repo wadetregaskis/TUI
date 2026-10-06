@@ -433,7 +433,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         // what ESC fires. A presenter rendered AFTER the stack marks its section
         // too late for this to see; it withdraws this claim instead, as it
         // takes the keyboard (`StatusBarState.withdrawEscapeClaim`).
-        if !context.isMeasuring, barContext.environment.statusBar?.escapeLabelOverride == nil,
+        if !context.isMeasuring, barContext.environment.statusBar?.hasEscapeClaimHere != true,
             barContext.environment.focusManager?.activeSectionIsModal != true
         {
             // The claim and the handler are both per-frame: the render loop
@@ -459,11 +459,17 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             // screen, because it has to see whether something inside claimed
             // ESC first; hoisted, it would also lower the grabs-input flag
             // under a drop-down that has yet to post its own claim.
+            //
+            // In a pane — a live sheet docked under the page — only while the
+            // focus is in that pane, as its claim holds only then: with the
+            // focus on the page, Escape is the page's (A19, owner Q6).
+            let focusManager = barContext.environment.focusManager
+            let pane = focusManager?.currentPaneID
             barContext.environment.keyEventDispatcher?.insertHandler(
                 at: escapeHandlerSlot,
                 sectionID: barContext.environment.activeFocusSectionID
             ) { event in
-                guard event.key == .escape else { return false }
+                guard event.key == .escape, focusManager?.activePaneID == pane else { return false }
                 coordinator.pop()
                 return true
             }

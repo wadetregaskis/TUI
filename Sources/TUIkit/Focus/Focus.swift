@@ -1122,6 +1122,7 @@ extension FocusManager {
         guard !sections.contains(where: { $0.id == id }) else { return }
         let section = FocusSection(id: id)
         sections.append(section)
+        panes.noteSection(id)
 
         // Auto-activate first section — never a passive one.
         if activeSectionID == nil, !passiveSectionIDs.contains(id) {

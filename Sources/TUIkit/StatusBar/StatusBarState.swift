@@ -247,8 +247,14 @@ public final class StatusBarState: @unchecked Sendable {
     /// — the latest claim stands, and each is a new one, however it is
     /// labelled (``claimEscape(_:)``). Clearing it (set to nil) withdraws the
     /// claim and restores the underlying item label.
+    ///
+    /// Where a live sheet is docked under the page, each pane — the page, the
+    /// sheet — has a claim of its own: one is made in the pane rendering it,
+    /// and what this reads is the claim of the pane the focus is in
+    /// (``activeEscapeClaim``). A `NavigationStack` in the sheet does not take
+    /// Escape from the page while the focus is on the page.
     public var escapeLabelOverride: String? {
-        get { escapeClaim?.label }
+        get { activeEscapeClaim?.label }
         set {
             if let newValue { claimEscape(newValue) } else { withdrawEscapeClaim() }
         }
@@ -266,13 +272,16 @@ public final class StatusBarState: @unchecked Sendable {
     /// Meaningless while ``escapeLabelOverride`` is `nil`, and set then, it is
     /// dropped.
     public var escapeClaimGrabsInput: Bool {
-        get { escapeClaim?.grabsInput ?? true }
-        set { escapeClaim?.grabsInput = newValue }
+        get { activeEscapeClaim?.grabsInput ?? true }
+        set { updateEscapeClaimHere { $0.grabsInput = newValue } }
     }
 
-    /// The frame's claim on Escape, if anything has made one — see
-    /// ``EscapeClaim``.
+    /// The page's claim on Escape this frame — made outside every pane — if
+    /// anything has made one: see ``EscapeClaim``.
     var escapeClaim: EscapeClaim?
+
+    /// Each pane's claim on Escape this frame, by the pane.
+    var paneEscapeClaims: [String: EscapeClaim] = [:]
 
     /// The token the next claim on Escape is made with. Never reused, so a
     /// token kept from an earlier claim — or an earlier frame — names that
@@ -646,6 +655,7 @@ extension StatusBarState {
         // grabs-input flag travels with it (modal by default; a list's
         // lightweight selection claim lowers it each frame it applies).
         escapeClaim = nil
+        if !paneEscapeClaims.isEmpty { paneEscapeClaims.removeAll() }
         itemActionsSuppressed = false
         // Same contract for the Return verb: published by whichever control
         // holds the focus this frame, so its absence has to be the default or a

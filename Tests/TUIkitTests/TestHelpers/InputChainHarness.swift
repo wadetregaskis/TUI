@@ -102,7 +102,11 @@ final class InputChainHarness {
         tui.renderCache.beginRenderPass()
         tui.keyboardShortcuts.beginRenderPass()
         tui.preferences.beginRenderPass()
-        statusBar.beginRenderPass()
+        // The walk's claims too — the escape claim, the Return verb — as
+        // `RenderLoop.beginSceneRender()` empties them before every walk: a
+        // claim kept from the frame before read as one made inside this walk,
+        // so a `NavigationStack` saw its own last claim and made none.
+        statusBar.beginSceneRender()
         focusManager.beginRenderPass()
         // As `RenderLoop.beginRenderPass()` does, once the focus manager has
         // let go of last frame's controls: a text control that went away takes
