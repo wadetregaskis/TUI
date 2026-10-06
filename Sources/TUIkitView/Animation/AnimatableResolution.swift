@@ -48,6 +48,35 @@ func resolvingAnimation<V: View>(
 /// itself if it moves things, as in SwiftUI.
 package protocol SpatialAnimatable: Animatable {}
 
+/// An ``Animatable`` kind only part of whose data is motion: a visual effect
+/// chain, one animated value whose offsets move things in X and Y and whose
+/// opacity and colours do not.
+///
+/// Under ``EnvironmentValues/accessibilityReduceMotion`` a change that moves
+/// only its motion — where the picture is and where it is going differ in
+/// nothing else — jumps to its end, as a ``SpatialAnimatable`` change does: no
+/// animation is started, so a `withAnimation` completion waiting on nothing
+/// else fires at once and the loop draws no frames for it. A change that
+/// moves anything else animates, and its drawer holds the motion at the
+/// target meanwhile (``holdingMotion(at:)``).
+package protocol PartlySpatialAnimatable: Animatable {
+    /// This value — where the picture is — with its motion at `target`'s and
+    /// the rest as it is.
+    func holdingMotion(at target: Self) -> Self
+}
+
+extension PartlySpatialAnimatable {
+    /// Whether the picture at `presented` and the value `target` differ in
+    /// motion alone. `Any`-typed so it can be asked of the existential
+    /// metatype `animatedValue` holds; each is cast back to this type's own.
+    static func changeIsMotionOnly(to target: Any, from presented: Any) -> Bool {
+        guard let target = target as? Self, let presented = presented as? AnimatableData else { return false }
+        var picture = target
+        picture.animatableData = presented
+        return picture.holdingMotion(at: target).animatableData == target.animatableData
+    }
+}
+
 extension View where Self: Animatable {
     /// An ``Animatable`` view nominates something continuous about itself, so
     /// the render and measure walks must ask the animation store what to draw
@@ -111,7 +140,9 @@ package func animatedValue<A: Animatable>(
     // change that would animate, so a settled or unanimated value — every one
     // but the few changing this frame — pays nothing for it; a colour or an
     // opacity is not motion and is never asked.
-    if animation != nil, A.self is any SpatialAnimatable.Type, context.environment.accessibilityReduceMotion {
+    if animation != nil,
+        holdsStill(value, at: key, in: storage.animations, nowNanos: frame.nowNanos, context: context)
+    {
         animation = nil
     }
     let drawn = storage.animations.value(
@@ -126,4 +157,23 @@ package func animatedValue<A: Animatable>(
     var copy = value
     copy.animatableData = drawn
     return copy
+}
+
+/// Whether reduce motion holds `value`'s change at `key` still: a
+/// ``SpatialAnimatable`` change where motion is reduced, or a
+/// ``PartlySpatialAnimatable`` one that moves nothing but its motion from
+/// where the picture is. Asked only of a change that would animate.
+@MainActor
+private func holdsStill<A: Animatable>(
+    _ value: A, at key: AnimationStore.Key, in store: AnimationStore, nowNanos: Int64, context: RenderContext
+) -> Bool {
+    if A.self is any SpatialAnimatable.Type { return context.environment.accessibilityReduceMotion }
+    // From where the picture IS, not from the last target: an offset moved
+    // while an opacity is still fading is not motion alone, and jumping
+    // there would cut the fade short.
+    guard let partly = A.self as? any PartlySpatialAnimatable.Type,
+        context.environment.accessibilityReduceMotion,
+        let presented = store.presentedValue(at: key, as: A.AnimatableData.self, nowNanos: nowNanos)
+    else { return false }
+    return partly.changeIsMotionOnly(to: value, from: presented)
 }

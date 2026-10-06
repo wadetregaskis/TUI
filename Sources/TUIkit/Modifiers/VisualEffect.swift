@@ -136,13 +136,16 @@ extension _VisualEffectView: Renderable, Layoutable {
             EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask))
         // The effect animates as an animatable modifier does: keyed by this
         // place and this type, substituted with where its picture has got to.
+        // Under reduce motion a change of its offsets alone jumps there and
+        // starts nothing (`PartlySpatialAnimatable`).
         if let animated = animatedValue(
-            of: applied, owner: Self.self, context: context, isMeasuring: context.isMeasuring)
+            of: _AnimatedEffect(effect: applied), owner: Self.self, context: context,
+            isMeasuring: context.isMeasuring)?.effect
         {
-            // Under reduce motion an offset is at its end at once and the
-            // colours and opacity still move (owner decision A-D3M-1): one
-            // animation runs for the whole chain, and its motion is read from
-            // the target. Asked only while the effect is changing.
+            // A change of anything else animates, the colours and opacity
+            // moving and the offsets at their end at once (owner decision
+            // A-D3M-1): one animation runs for the whole chain, and its motion
+            // is read from the target. Asked only while the effect is changing.
             applied = context.environment.accessibilityReduceMotion ? animated._holdingMotion(at: applied) : animated
         }
         var drawn = applied._applied(to: buffer, context: context)
@@ -161,6 +164,23 @@ extension _VisualEffectView: Renderable, Layoutable {
     /// Effects do not change layout: this measures as its content.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
+    }
+}
+
+/// An effect chain as the animation store sees it: the chain's data, and the
+/// part of it that is motion — its offsets (``VisualEffect/_holdingMotion(at:)``).
+/// One wrapper for every chain, so an effect added later is covered by its
+/// own witness.
+private struct _AnimatedEffect<Effect: VisualEffect>: PartlySpatialAnimatable {
+    var effect: Effect
+
+    var animatableData: Effect.AnimatableData {
+        get { effect.animatableData }
+        set { effect.animatableData = newValue }
+    }
+
+    func holdingMotion(at target: Self) -> Self {
+        Self(effect: effect._holdingMotion(at: target.effect))
     }
 }
 

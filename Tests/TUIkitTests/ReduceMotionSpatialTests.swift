@@ -120,26 +120,70 @@ struct ReduceMotionSpatialTests {
         #expect(moving.overlays.first?.offsetX == 10, "it slides")
     }
 
+    /// `before` drawn and settled, then `after` drawn under a `withAnimation`
+    /// with a completion: whether the completion fired on that frame, and
+    /// whether the store still had anything moving half way through.
+    private func completion<V: View>(
+        reducesMotion: Bool, from before: V, to after: V
+    ) -> (firedAtOnce: Bool, liveHalfway: Bool) {
+        let screen = Screen(reducesMotion: reducesMotion)
+        let storage = screen.context.environment.stateStorage!
+        _ = screen.render(before, atMillis: 0)
+        var fired = false
+        var transaction = Transaction(animation: .linear(duration: 1))
+        transaction.addAnimationCompletion { fired = true }
+        screen.context.environment.transaction = transaction
+        storage.beginRenderPass()
+        storage.animationCompletions.beginPass(placing: transaction.completions)
+        _ = renderToBuffer(after, context: screen.context)
+        storage.endRenderPass()
+        storage.animationCompletions.endPass(at: 0, animations: storage.animations)
+        return (fired, storage.animations.hasLiveAnimations(at: 500_000_000))
+    }
+
     /// Nothing animated, so nothing waits: a `withAnimation` whose only change
     /// is held still completes on the frame it lands on.
     @Test("A completion waiting on nothing but held motion fires on the frame the change lands")
     func completionFiresAtOnce() {
         func completes(reducesMotion: Bool) -> Bool {
-            let screen = Screen(reducesMotion: reducesMotion)
-            let storage = screen.context.environment.stateStorage!
-            _ = screen.render(Text("ab").offset(x: 0), atMillis: 0)
-            var fired = false
-            var transaction = Transaction(animation: .linear(duration: 1))
-            transaction.addAnimationCompletion { fired = true }
-            screen.context.environment.transaction = transaction
-            storage.beginRenderPass()
-            storage.animationCompletions.beginPass(placing: transaction.completions)
-            _ = renderToBuffer(Text("ab").offset(x: 20), context: screen.context)
-            storage.endRenderPass()
-            storage.animationCompletions.endPass(at: 0, animations: storage.animations)
-            return fired
+            completion(reducesMotion: reducesMotion, from: Text("ab").offset(x: 0), to: Text("ab").offset(x: 20))
+                .firedAtOnce
         }
         #expect(!completes(reducesMotion: false), "it waits for the slide")
         #expect(completes(reducesMotion: true))
+    }
+
+    /// The review's case: the chain's offset was drawn at its end, but the
+    /// store still ran the chain's whole animation, so the completion waited
+    /// the full second and the loop drew identical frames for it.
+    @Test("A visual effect whose change is its offset alone starts no animation where motion is reduced")
+    func visualEffectMotionAloneStartsNothing() {
+        func view(_ x: Int) -> some View {
+            Text("ab").visualEffect { content, _ in content.offset(x: x).opacity(1) }
+        }
+        let reduced = completion(reducesMotion: true, from: view(0), to: view(20))
+        #expect(reduced.firedAtOnce, "the completion waited on a held offset")
+        #expect(!reduced.liveHalfway, "the loop is still drawing frames for it")
+        let moving = completion(reducesMotion: false, from: view(0), to: view(20))
+        #expect(!moving.firedAtOnce && moving.liveHalfway, "it slides")
+    }
+
+    /// Motion alone is judged from where the picture IS: an offset moved while
+    /// the opacity is still fading must not cut the fade short.
+    @Test("A visual effect's offset moved during an opacity fade jumps, and the fade carries on")
+    func visualEffectOffsetDuringAFade() {
+        func view(_ x: Int, _ opacity: Double) -> some View {
+            Text("ab").visualEffect { content, _ in content.offset(x: x).opacity(opacity) }
+        }
+        let screen = Screen(reducesMotion: true)
+        _ = screen.render(view(0, 1), atMillis: 0)
+        _ = screen.render(view(0, 0), atMillis: 0)
+        _ = screen.render(view(20, 0), atMillis: 250)
+        let drawn = screen.render(view(20, 0), atMillis: 500)
+        let faded = Screen(reducesMotion: true).render(view(20, 0), atMillis: 0)
+        #expect(drawn.overlays.first?.offsetX == 20, "the offset jumped")
+        #expect(
+            drawn.overlays.first?.content.opacityRegions != faded.overlays.first?.content.opacityRegions,
+            "the fade was cut short")
     }
 }

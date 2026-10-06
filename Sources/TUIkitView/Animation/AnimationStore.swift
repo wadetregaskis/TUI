@@ -292,6 +292,17 @@ extension AnimationStore {
         completionTracker.noteStarted(animation, at: nowNanos, key: key)
     }
 
+    /// Where the picture of the value at `key` is at `nowNanos` — what an
+    /// unchanged value there would draw — or `nil` where nothing of type `D`
+    /// is recorded (a first sight) or while a transition scrub draws, which
+    /// answers from its own renders. Reads only: asking writes nothing.
+    package func presentedValue<D: VectorArithmetic>(at key: Key, as _: D.Type, nowNanos: Int64) -> D? {
+        guard scrub == nil, let record = records[key],
+            let from = record.from as? D, let target = record.target as? D
+        else { return nil }
+        return presented(record, from: from, target: target, nowNanos: nowNanos)
+    }
+
     /// Whether anything is recorded at `key` — whether the tree still asks
     /// about the value there.
     package func hasRecord(at key: Key) -> Bool {
