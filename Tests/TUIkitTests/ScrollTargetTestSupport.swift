@@ -20,10 +20,15 @@ final class ScrollTargetFrames {
     var last = FrameBuffer()
     var width: Int
     var height: Int
+    /// Whether each frame installs a volatile-read tracker, as the render
+    /// loop does: without one the pass's measure memo is off, and a size it
+    /// would serve from another question is never seen.
+    let memoisesMeasures: Bool
 
-    init(width: Int = 30, height: Int = 10) {
+    init(width: Int = 30, height: Int = 10, memoisesMeasures: Bool = false) {
         self.width = width
         self.height = height
+        self.memoisesMeasures = memoisesMeasures
     }
 
     @discardableResult
@@ -33,6 +38,7 @@ final class ScrollTargetFrames {
         environment.verticalScrollIndicatorVisibility = .hidden
         environment.horizontalScrollIndicatorVisibility = .hidden
         environment.applyRuntimeServices(from: tui)
+        if memoisesMeasures { environment.installVolatileReadTracker(VolatileReadTracker()) }
         let context = RenderContext(
             availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
         tui.stateStorage.beginRenderPass()

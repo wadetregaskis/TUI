@@ -101,4 +101,46 @@ struct ScrollTextIndicatorReservationTests {
         #expect(result.rows == [0, 1, 2, 3, 4], "\(frames.last.lines.map(\.stripped))")
         #expect(result.indicators == 2)
     }
+
+    /// The overflow is decided on the content measured against the whole
+    /// window, and the content is then drawn against the window less the
+    /// pair: two questions at one proposal, which the measure memos must not
+    /// answer with each other's sizes. Served the probe's 50 lines, five
+    /// window-sized pages drawn eight lines tall left the trailing spacer ten
+    /// blank lines, and paging ended on them past the last page. The memoised
+    /// rows' cross-frame size table served it without a pass tracker too; with
+    /// one, the pass's own memo is on as well.
+    @Test(
+        "Pages sized against the window are measured against the window the pair leaves",
+        arguments: [false, true])
+    func theOverflowProbeIsNotServedToTheDraw(memoisesMeasures: Bool) {
+        let frames = ScrollTargetFrames(width: 30, height: 10, memoisesMeasures: memoisesMeasures)
+        let view = ScrollView {
+            VStack(spacing: 0) {
+                ForEach(0..<5, id: \.self) { page in
+                    VStack(spacing: 0) {
+                        Text("top \(page)")
+                        Spacer(minLength: 0)
+                        Text("end \(page)")
+                    }
+                    .containerRelativeFrame(.vertical)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: 10)
+        .scrollIndicators(.automatic)
+        .scrollIndicatorStyle(.text)
+        .scrollTargetBehavior(.paging)
+        frames.render(view)
+        frames.render(view)
+        #expect(frames.scrollView?.contentHeight == 40, "the pages were measured against the whole window")
+        for _ in 0..<8 {
+            frames.wheel(.scrollDown)
+            frames.render(view)
+        }
+        let lines = frames.last.lines.map(\.stripped)
+        #expect(lines.contains { $0.contains("top 4") }, "\(lines)")
+        #expect(lines.contains { $0.contains("end 4") }, "\(lines)")
+    }
 }

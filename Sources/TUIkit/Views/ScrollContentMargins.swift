@@ -332,12 +332,21 @@ extension _ScrollViewCore {
     /// horizontal bar is drawn, as ``containerSize(viewport:context:)`` asks.
     ///
     /// A measure of the content, paid only by a text-style view under a
-    /// behaviour (the free one, the default, asks nothing), and asked again
-    /// by the render at the same proposal, which the pass's measure memo
-    /// serves.
+    /// behaviour (the free one, the default, asks nothing), in a measure
+    /// generation of its own (``RenderContext/invalidatingMeasureMemo()``).
+    /// The render then measures the content again at the same proposal, and
+    /// where it reserves, against a container two lines shorter — a different
+    /// question that the measure memos' keys cannot tell apart, since they
+    /// leave the environment out. Sharing a generation, the pass's memo and the
+    /// memoised rows' cross-frame sizes served the probe's pages to the render:
+    /// five window-sized pages measured ten lines each where they were drawn
+    /// eight, and the canvas was ten lines too tall. Apart, the probe's answers
+    /// still serve the probe, frame after frame; the price is that a view
+    /// reserving nothing is no longer served the probe's measure for its own.
     func contentOverflowsWindow(viewport: CellSize, context: RenderContext) -> Bool {
         let probe = context.publishingContainerSize(
-            unreservedContainerSize(viewport: viewport, context: context), noting: false)
+            unreservedContainerSize(viewport: viewport, context: context), noting: false
+        ).invalidatingMeasureMemo()
         let width = max(1, viewport.width)
         guard axes.contains(.horizontal) else {
             return contentOverflowsCanvas(contentWidth: width, viewportHeight: viewport.height, context: probe)
