@@ -50,7 +50,10 @@ extension WindowGroup: SceneRenderable {
 ///    for the bottom bar this frame's tooltip row, whose triggers all land
 ///    between frames.
 /// 2. Draws the content in what is left, at the content's own identity — this
-///    view stores nothing of its own, so no `@State` or focus ID moves.
+///    view stores nothing of its own, so no `@State` or focus ID moves — less
+///    the rows a sheet docked live at the bottom takes, which last frame's
+///    presenters said (``FocusManager/presentationDock(in:)``): the page is
+///    laid out in the rows above it.
 /// 3. Draws each bar's items after the content, so their focus sections follow
 ///    the page's, and composites the content's overlay layers — with the bars'
 ///    anchored ones lifted onto them — inside the content area, so a modal's
@@ -85,15 +88,21 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         let rows = chrome.map { reservedRows($0, tooltipRows: tooltip.count, height: height) } ?? Rows()
         let contentHeight = contentAreaHeight(
             terminalHeight: height, statusBarHeight: rows.bottom, headerHeight: rows.top)
+        // A sheet docked live at the bottom of the content area takes its rows
+        // from the page, which is laid out in the rows above it: last frame's
+        // answer, asked before the walk (`FocusManager.notePresentationDock`).
+        let focusManager = context.environment.focusManager
+        let dock = focusManager?.presentationDock(in: contentHeight) ?? 0
 
         // Placed below the top bar's rows, which a reader in the content is
         // told (the carried geometry origin, `RenderContext.placingChild`).
         var contentContext = context.placingChild(gradient: nil, x: 0, y: rows.top)
-        contentContext.availableHeight = contentHeight
+        contentContext.availableHeight = contentHeight - dock
         // Anchored overlays (a Picker drop-down) size to the area the
         // compositor will clamp them to — between the bars — rather than to
         // the full terminal height, which would shave their bottom rows off
-        // against the bottom bar.
+        // against the bottom bar. The whole of it, dock included: the docked
+        // sheet is one of them, and a page's drop-down may draw over it.
         contentContext.environment.overlayContentHeight = contentHeight
         // The content offers the window its title as it draws — on the seeding
         // walk too, although it measures, since the title sizes the top bar
@@ -107,6 +116,9 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
             }
             return page
         }
+        if let focusManager { settleDock(dock, focusManager: focusManager, contentHeight: contentHeight, context: context) }
+        // The dock's rows, blank under the sheet composited onto them.
+        if dock > 0 { page = page.placedVertically(inHeight: contentHeight, topPadding: 0) }
 
         let palette = context.environment.palette
         let isModal = context.environment.focusManager?.activeSectionIsModal == true
@@ -229,6 +241,16 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         case .frame(let instant):
             context.requestWake(token: "window-chrome-pin", atNanos: instant)
         }
+    }
+
+    /// Asks for the next frame when the docks this walk posted ask for
+    /// another height than the `dock` it was laid out short by — a dock
+    /// learnt late (``FocusManager/postedPresentationDock(in:)``). The frame
+    /// drawn is honest at the old height, the sheet over the page's bottom
+    /// rows, and the next adopts the new one, as a bar's rows are adopted.
+    private func settleDock(_ dock: Int, focusManager: FocusManager, contentHeight: Int, context: RenderContext) {
+        guard focusManager.postedPresentationDock(in: contentHeight) != dock else { return }
+        context.requestAnimation(token: "presentation-dock-adoption", frameTicks: AnimationClock.standardFrameTicks)
     }
 
     // MARK: The content

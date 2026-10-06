@@ -105,3 +105,66 @@ extension FocusManager {
         dismiss()
     }
 }
+
+// MARK: - The dock
+
+/// How many rows a sheet docked live at the bottom of a content area
+/// `contentHeight` rows tall takes from the page, or `nil` while it is not
+/// docked — dismissed, or presented as a modal over the whole page.
+///
+/// Asked outside the walk, so it reads what decides the answer — the
+/// presentation binding, the detent the sheet rests at — when it is called,
+/// not when it was posted: a key that moves the sheet between two frames is
+/// answered by last frame's resolver already, and never draws late.
+typealias PresentationDockResolver = (_ contentHeight: Int) -> Int?
+
+extension FocusManager {
+    /// Posts how many rows the sheet presented in section `id` docks at the
+    /// bottom of the content area — asked by its presenter every frame it is
+    /// drawn.
+    ///
+    /// The page behind a live sheet is laid out in the rows above it (the
+    /// owner's split-view reading of A19's design C), so the page's height
+    /// depends on a presentation declared INSIDE the page. Learnt by walking
+    /// the tree, that is the circularity a piece of chrome must not have: the
+    /// walk that learns it was laid out at the wrong height, and has to be
+    /// thrown away. So the presenter posts a resolver instead, and the root
+    /// asks LAST frame's resolvers, before it lays the page out
+    /// (``presentationDock(in:)``) — one walk, at a height known in advance.
+    /// The same current-and-previous shape as ``notePresentation(id:dismiss:)``.
+    func notePresentationDock(id: String, resolver: @escaping PresentationDockResolver) {
+        presentationDocks[id] = resolver
+    }
+
+    /// The rows a content area `contentHeight` rows tall gives up at its
+    /// bottom, by the resolvers LAST frame posted: what the root lays the page
+    /// out short by, before the walk.
+    ///
+    /// The most any one sheet asks for: two docked sheets overlap on the bottom
+    /// edge, and the taller decides how much of the page is covered.
+    func presentationDock(in contentHeight: Int) -> Int {
+        Self.dock(previousPresentationDocks, in: contentHeight)
+    }
+
+    /// The same, by the resolvers posted THIS frame: what the root compares
+    /// with ``presentationDock(in:)`` after the walk.
+    ///
+    /// Different only when the dock was learnt late — a presenter's first
+    /// drawn frame, a sheet presented for an item whose content was unknown
+    /// until it opened — and that frame was laid out at the old dock, the
+    /// sheet drawn over the page's bottom rows. The root then asks for the
+    /// next frame, which settles: one frame late, not a discarded walk.
+    func postedPresentationDock(in contentHeight: Int) -> Int {
+        Self.dock(presentationDocks, in: contentHeight)
+    }
+
+    private static func dock(_ resolvers: [String: PresentationDockResolver], in contentHeight: Int) -> Int {
+        // The common frame: no live sheet anywhere.
+        guard !resolvers.isEmpty, contentHeight > 0 else { return 0 }
+        var dock = 0
+        for resolver in resolvers.values {
+            if let rows = resolver(contentHeight) { dock = max(dock, rows) }
+        }
+        return min(dock, contentHeight)
+    }
+}

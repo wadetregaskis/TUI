@@ -157,6 +157,16 @@ public final class FocusManager: @unchecked Sendable {
     /// frame and was not drawn in this one.
     var previousPresentationDismissals: [String: () -> Void] = [:]
 
+    /// How many rows each sheet docked live at the bottom of the content area
+    /// takes from the page, as a resolver posted by its presenter every frame
+    /// it is drawn (``notePresentationDock(id:resolver:)``).
+    var presentationDocks: [String: PresentationDockResolver] = [:]
+
+    /// ``presentationDocks`` as the previous frame left them, snapshotted by
+    /// ``beginRenderPass()``: what the root asks, BEFORE the walk, how many
+    /// rows to lay the page out short (``presentationDock(in:)``).
+    var previousPresentationDocks: [String: PresentationDockResolver] = [:]
+
     /// Which device drove the most recent input event.
     ///
     /// A control that behaves differently depending on how it was activated —
@@ -1334,6 +1344,7 @@ extension FocusManager {
         // them: see ``previousModalSectionIDs``.
         previousModalSectionIDs = modalSectionIDs
         previousPresentationDismissals = presentationDismissals
+        previousPresentationDocks = presentationDocks
         beginSceneRender()
         focusScopes.beginPass()
         // A new generation so this pass's @FocusState registrations can be told
@@ -1368,6 +1379,7 @@ extension FocusManager {
         // longer re-marks) stops grabbing input on the very next frame.
         modalSectionIDs.removeAll()
         presentationDismissals.removeAll()
+        presentationDocks.removeAll()
         // Re-posted each render by whatever lays the columns out, for the same reason.
         sectionGroups.removeAll()
         optionalFocusSectionIDs.removeAll()
