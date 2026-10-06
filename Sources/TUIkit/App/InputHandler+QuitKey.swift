@@ -20,7 +20,7 @@ enum QuitKeyBindings: Equatable {
     case unbound
 
     /// ⌃4, ⌃| or ⌃⇧\ (with or without Option), on a host that may send
-    /// ⌃\'s byte for them in its legacy encoding, and not the quit key's own
+    /// ⌃\\'s byte for them in its legacy encoding, and not the quit key's own
     /// chord. The quit is masked in the legacy encoding, where the byte may
     /// be one of them; not under the kitty keyboard protocol, where each
     /// arrives as itself and ⌃\ is a report the driver never sees. But a pop
@@ -54,14 +54,14 @@ extension InputHandler {
     ///
     /// The owner's rule (2026-10-06): ⌃\ is a hung app's way out, and stays
     /// the driver's unless the app binds it — or binds ⌃4, ⌃| or ⌃⇧\ where
-    /// the terminal may send ⌃\'s byte for them (`hostAliases`). With the
+    /// the terminal may send ⌃\\'s byte for them (`hostAliases`). With the
     /// byte, the chords count with Option too: a legacy encoding sends
     /// Option as an ESC before the byte, which the driver still acts on.
     ///
     /// Answered for the terminal's legacy encoding whatever the terminal
     /// speaks now: under the kitty keyboard protocol only ``QuitKeyBindings/ownChord``
     /// masks, but the stall watchdog's pop would put the terminal back in
-    /// its legacy encoding, where ⌃4 may be ⌃\'s byte again.
+    /// its legacy encoding, where ⌃4 may be ⌃\\'s byte again.
     ///
     /// Declared is what the framework can know without running the app's
     /// code (``declaresBinding(forAnyOf:)``). A handler that hears every key —
@@ -71,7 +71,7 @@ extension InputHandler {
     /// - Parameters:
     ///   - byte: The user's quit key's byte (`Terminal.quitKeyByte`), or
     ///     `nil` where there is none: then nothing is bound to it.
-    ///   - hostAliases: Whether the host may send ⌃\'s byte for ⌃4, ⌃| and
+    ///   - hostAliases: Whether the host may send ⌃\\'s byte for ⌃4, ⌃| and
     ///     ⌃⇧\ in its legacy encoding: one not measured to send them apart
     ///     (`TerminalClient.mayAliasQuitByte(_:)`).
     func quitKeyBindings(byte: UInt8?, hostAliases: Bool) -> QuitKeyBindings {
@@ -190,8 +190,8 @@ extension KeyEvent {
     }
 
     /// The chords a terminal in its legacy encoding may have meant by this
-    /// ⌃\: ⌃4, ⌃| and ⌃⇧\, for which xterm, VTE (GNOME Terminal and its
-    /// kin), Konsole and the Linux console send ⌃\'s 0x1C too, by their tables
+    /// ⌃\\: ⌃4, ⌃| and ⌃⇧\\, for which xterm, VTE (GNOME Terminal and its
+    /// kin), Konsole and the Linux console send ⌃\\'s 0x1C too, by their tables
     /// of the encoding (not measured). Option kept, as the ESC before the
     /// byte keeps it; empty for any other event.
     ///

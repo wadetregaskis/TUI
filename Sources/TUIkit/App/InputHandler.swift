@@ -113,7 +113,7 @@ internal struct InputHandler {
     var screenSelection: ScreenSelection?
 
     /// The user's quit key, as the byte a legacy encoding sends for it
-    /// (`Terminal.quitKeyByte`: ⌃\'s 0x1C unless they moved it), asked when
+    /// (`Terminal.quitKeyByte`: ⌃\\'s 0x1C unless they moved it), asked when
     /// a Control chord nothing took arrives; `nil` where there is none.
     /// Defaulted, as ``undoManager`` is, for a test harness that does not
     /// exercise it.
@@ -133,7 +133,7 @@ internal struct InputHandler {
     var onQuitKey: () -> Void = {}
 
     /// Whether a key that arrives as ⌃\ may be ⌃4, ⌃| or ⌃⇧\ instead: the
-    /// terminal is in its legacy encoding, where some terminals send ⌃\'s
+    /// terminal is in its legacy encoding, where some terminals send ⌃\\'s
     /// 0x1C for all four, and is not one measured to keep them apart
     /// (`TerminalClient.mayAliasQuitByte(_:)`). Asked for a ⌃\ nothing took.
     /// Defaulted, as ``quitKey`` is.

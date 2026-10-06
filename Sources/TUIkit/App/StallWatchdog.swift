@@ -133,11 +133,11 @@ final class TerminalWriteGate: @unchecked Sendable {
 /// 0x1C the driver turns into `SIGQUIT`. A running app reads the report and
 /// quits itself (`QuitKeyReport`); a hung one reads nothing. So: when input
 /// has been waiting that long with no drain by the loop — the user pressing
-/// keys at an app that does not answer, the first ⌃\'s report among them —
+/// keys at an app that does not answer, the first ⌃\\'s report among them —
 /// the watchdog writes `CSI < u`. The terminal sends keys in the legacy
 /// encoding from then on, and the next ⌃\ is 0x1C, which the driver quits on
 /// whatever the app is doing. The report that tripped it stays unread: under
-/// the protocol it takes a second ⌃\, about two seconds after the first, to
+/// the protocol it takes a second ⌃\\, about two seconds after the first, to
 /// quit a hung app.
 ///
 /// A loop that was only slow (a frame that took two seconds) finds the flags

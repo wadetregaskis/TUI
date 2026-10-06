@@ -78,7 +78,7 @@ enum QuitKeyReport {
     /// Why hold it: the kernel may hand the signal to any thread that does not
     /// block it, and the handler run there after `kill` returned. Until then
     /// this thread would go on — dispatching the rest of the batch of input
-    /// the report came in (up to 128 events: a Return typed after the ⌃\
+    /// the report came in (up to 128 events: a Return typed after the ⌃\\
     /// would run its action), and maybe writing a frame, which after the
     /// handler's exit from the alternate screen lands on the shell's screen.
     /// Held, nothing more of the app runs here, and the handler ends the

@@ -587,12 +587,12 @@ extension Terminal {
     /// its byte (``QuitKeyBindings/masksQuitKey(inLegacyEncoding:)``).
     ///
     /// The owner's rule (2026-10-06): the driver's quit is the backup that
-    /// ends a hung app, and stays live unless the app binds the key — ⌃\
-    /// itself, or ⌃4, ⌃| or ⌃⇧\ where the terminal may send ⌃\'s byte for
+    /// ends a hung app, and stays live unless the app binds the key — ⌃\\
+    /// itself, or ⌃4, ⌃| or ⌃⇧\ where the terminal may send ⌃\\'s byte for
     /// them — and then the byte arrives as a key, which the app's bindings
     /// hear first and which quits where none takes it (`InputHandler`). What
     /// that costs: while masked, a HUNG app does not quit by the key. Nor,
-    /// under the kitty keyboard protocol, while a binding on ⌃4, ⌃| or ⌃⇧\
+    /// under the kitty keyboard protocol, while a binding on ⌃4, ⌃| or ⌃⇧\\
     /// is on screen, though the driver's quit is live there: the stall
     /// watchdog is not armed for it (``refreshStallWatch()``).
     ///
@@ -623,7 +623,7 @@ extension Terminal {
     ///
     /// The legacy encoding's answer, not the protocol's: under the protocol
     /// a ⌘4 shortcut (⌃4) leaves the driver's quit live, since ⌃4 arrives
-    /// as itself — but after a pop the terminal may send ⌃\'s 0x1C for ⌃4
+    /// as itself — but after a pop the terminal may send ⌃\\'s 0x1C for ⌃4
     /// (kitty, Ghostty, WezTerm and foot do, by the protocol's table of the
     /// legacy encoding), and the driver, never told to mask it, would quit
     /// the app on the user's ⌃4 during a slow frame. So with one on screen a
@@ -638,7 +638,7 @@ extension Terminal {
 
     /// The user's quit key, as the byte a legacy encoding sends for it: what
     /// the driver turns into `SIGQUIT` while raw mode is on
-    /// (``rawModeAttributes(from:)``) — ⌃\'s 0x1C unless the user moved it —
+    /// (``rawModeAttributes(from:)``) — ⌃\\'s 0x1C unless the user moved it —
     /// or `nil` where there is none: turned off, signals off, or no line
     /// discipline (a scripted terminal, wasip1). Read from the termios raw
     /// mode was made from, so `nil` until raw mode is first on. Where the

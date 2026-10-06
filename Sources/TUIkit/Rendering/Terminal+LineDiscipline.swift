@@ -102,7 +102,7 @@ extension Terminal {
         return raw
     }
 
-    /// The quit key `attributes` give the driver, as its byte — ⌃\'s 0x1C
+    /// The quit key `attributes` give the driver, as its byte — ⌃\\'s 0x1C
     /// unless the user moved it — or `nil` where the driver raises no
     /// `SIGQUIT`: the key turned off (`stty quit undef`), or signals with it
     /// (`stty -isig`).

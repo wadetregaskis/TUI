@@ -109,7 +109,7 @@ internal final class AppRunner<A: App> {
     let tuiContext: TUIContext
     private var isRunning = false
 
-    /// Whether the host may send ⌃\'s byte for ⌃4, ⌃| and ⌃⇧\
+    /// Whether the host may send ⌃\\'s byte for ⌃4, ⌃| and ⌃⇧\\
     /// (`TerminalClient.mayAliasQuitByte(_:)`): settled once the host is
     /// identified, at startup; until then, as for any host not measured, yes.
     private var hostAliasesQuitByte = true
