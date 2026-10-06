@@ -71,6 +71,54 @@ struct CompositeGestureTests {
         #expect(log.entries == ["changed first(true)"])
     }
 
+    /// A sequence that restarted at a press read its second gesture as the
+    /// last sequence left it — ended — so when the long press ended on its
+    /// clock the sequence ended too, with the last drag's value: `onEnded`
+    /// ran at that tick and again at the release.
+    @Test("A sequence run a second time reports nothing of the first run's second gesture")
+    func sequenceRunTwice() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = { sequence(log) }
+        harness.frame(view())
+        for start: Int64 in [0, 1_000] {
+            harness.now = start * gestureMillisecond
+            harness.frame(view())
+            harness.pointer([(.pressed, 1, 1)], view)
+            harness.now = (start + 300) * gestureMillisecond
+            harness.frame(view())
+            harness.pointer([(.dragged, 3, 1), (.dragged, 5, 1), (.released, 5, 1)], view)
+        }
+        let run = [
+            "changed first(true)", "changed second(true, nil)", "changed second(true, 0)",
+            "changed second(true, 2)", "ended second(true, 2)",
+        ]
+        #expect(log.entries == run + run)
+    }
+
+    /// The same with a long press that ends at the press: the second press
+    /// ended the sequence on the spot, with the first drag's value, before
+    /// its own drag ended it again at the release — three ends for two drags.
+    @Test("A sequence after a long press with no minimum duration ends once per drag, at the release")
+    func zeroDurationSequenceRunTwice() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            box(
+                LongPressGesture(minimumDuration: 0).sequenced(before: DragGesture())
+                    .onEnded { log("ended \(Self.describe($0))") })
+        }
+        harness.frame(view())
+        harness.pointer([(.pressed, 1, 1), (.dragged, 3, 1), (.dragged, 6, 1), (.released, 6, 1)], view)
+        #expect(log.entries == ["ended second(true, 3)"])
+        harness.now = 600 * gestureMillisecond
+        harness.frame(view())
+        harness.pointer([(.pressed, 1, 1)], view)
+        #expect(log.entries == ["ended second(true, 3)"], "the second press ends nothing")
+        harness.pointer([(.dragged, 3, 1), (.dragged, 6, 1), (.released, 6, 1)], view)
+        #expect(log.entries == ["ended second(true, 3)", "ended second(true, 3)"])
+    }
+
     // MARK: Exclusive
 
     private static func describe(_ value: ExclusiveGesture<DragGesture, LongPressGesture>.Value) -> String {

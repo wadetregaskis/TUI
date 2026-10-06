@@ -255,7 +255,13 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
     /// Whether the first part has succeeded and the second is being fed.
     private var onSecond = false
 
-    /// Whether the second part has had its first event.
+    /// Whether the second part has had its first event in the sequence under
+    /// way. Until it has, the second part is where the LAST sequence left it
+    /// — ended, most likely — and nothing of it is read: a sequence that
+    /// restarted at a press and whose first part then ended took that old end
+    /// for its own and ran `onEnded` with the old value, at the press for a
+    /// long press with no minimum duration and at the end tick for any other,
+    /// then again at the release.
     private var secondStarted = false
 
     override func receive(_ input: GestureInput, deliver: Bool) {
@@ -286,16 +292,19 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
 
     override func flush() {
         first.flush()
-        if onSecond { second.flush() }
+        if secondStarted { second.flush() }
     }
 
     override func cancel() {
         first.cancel()
-        if onSecond { second.cancel() }
+        if secondStarted { second.cancel() }
         recompute()
     }
 
-    override var deadline: Int64? { onSecond ? second.deadline : first.deadline }
+    override var deadline: Int64? {
+        guard onSecond else { return first.deadline }
+        return secondStarted ? second.deadline : nil
+    }
 
     private func recompute() {
         guard onSecond else {
@@ -306,6 +315,12 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
         guard let firstValue = first.value else {
             phase = .failed
             report(nil)
+            return
+        }
+        guard secondStarted else {
+            // Under way, the second part not yet begun (`secondStarted`).
+            phase = .active
+            report(.second(firstValue, nil))
             return
         }
         switch second.phase {
