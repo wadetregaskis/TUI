@@ -54,7 +54,7 @@ extension MouseEventDispatcher {
     @MainActor
     private func fileGesture(_ role: GestureRole, id: HitTestRegion.HandlerID) {
         // Captures nothing, so a constant: no closure context is allocated.
-        MouseHandlerRegistrar.register(id: id, handler: { _ in false }, isHoverObserver: true, into: self)
+        MouseHandlerRegistrar.register(id: id, handler: { _ in false }, lane: .hoverObserver, into: self)
         gestureRoles[id] = role
         requestFeature(.clicks)
         requestFeature(.drag)

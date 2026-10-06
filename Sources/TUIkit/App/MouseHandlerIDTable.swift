@@ -215,7 +215,7 @@ extension MouseEventDispatcher {
     func register(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
-        registerInterned(handler, isHoverObserver: false, in: context)
+        registerInterned(handler, lane: .control, in: context)
     }
 
     /// Registers `handler`, with the pointer's enter/exit tracked into
@@ -313,7 +313,7 @@ extension MouseEventDispatcher {
     func registerHoverObserver(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
-        registerInterned(handler, isHoverObserver: true, in: context)
+        registerInterned(handler, lane: .hoverObserver, in: context)
     }
 
     /// Mints this control's id, files `handler` under it, and — while a value
@@ -329,12 +329,12 @@ extension MouseEventDispatcher {
     /// it can only be built where the render walk runs.
     @MainActor
     private func registerInterned(
-        _ handler: @escaping (MouseEvent) -> Bool, isHoverObserver: Bool,
+        _ handler: @escaping (MouseEvent) -> Bool, lane: MouseHandlerLane,
         in context: RenderContext
     ) -> HitTestRegion.HandlerID {
         let id = handlerIDs.id(registeredIn: context)
         MouseHandlerRegistrar.register(
-            id: id, handler: handler, isHoverObserver: isHoverObserver, into: self)
+            id: id, handler: handler, lane: lane, into: self)
         // A measure pass registers nothing a frame can be served from: the
         // controls that emit regions suppress them while measuring, and the id
         // above names no control. Nothing to declare, and nothing to replay.
@@ -350,13 +350,24 @@ extension MouseEventDispatcher {
                 kind: MouseHandlerRegistrar.kind, channelToken: context.environment.keyChannelToken
             ) { replay in
                 MouseHandlerRegistrar.register(
-                    id: id, handler: handler, isHoverObserver: isHoverObserver, context: replay)
+                    id: id, handler: handler, lane: lane, context: replay)
             })
         return id
     }
 }
 
 // MARK: - Registration
+
+/// Which of the dispatcher's lanes a handler is filed on.
+enum MouseHandlerLane {
+    /// A control: the region the pointer is over, for hover and for every
+    /// event.
+    case control
+    /// A handler that hears the pointer enter and leave its region without
+    /// taking the hover from the control inside it — see
+    /// ``MouseEventDispatcher/registerHoverObserver(in:_:)``.
+    case hoverObserver
+}
 
 /// The mouse registrations a render walk makes, shared by the live render and
 /// by a value memo replaying them — see `EffectJournal`.
@@ -367,14 +378,16 @@ enum MouseHandlerRegistrar {
     /// The journal kind of a per-frame mouse feature request.
     static let featureKind = EffectJournal.Kind("mouseFeature")
 
-    /// Files `handler` under `id` in `dispatcher`, on the lane
-    /// `isHoverObserver` names.
+    /// Files `handler` under `id` in `dispatcher`, on `lane`.
     static func register(
         id: HitTestRegion.HandlerID, handler: @escaping (MouseEvent) -> Bool,
-        isHoverObserver: Bool, into dispatcher: MouseEventDispatcher
+        lane: MouseHandlerLane, into dispatcher: MouseEventDispatcher
     ) {
         _ = dispatcher.register(id: id, handler)
-        if isHoverObserver { dispatcher.noteHoverObserver(id) }
+        switch lane {
+        case .control: break
+        case .hoverObserver: dispatcher.noteHoverObserver(id)
+        }
     }
 
     /// The same, into the dispatcher `context` carries rather than a captured
@@ -382,10 +395,10 @@ enum MouseHandlerRegistrar {
     /// the subtree rather than the one that stored it.
     static func register(
         id: HitTestRegion.HandlerID, handler: @escaping (MouseEvent) -> Bool,
-        isHoverObserver: Bool, context: RenderContext
+        lane: MouseHandlerLane, context: RenderContext
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
-        register(id: id, handler: handler, isHoverObserver: isHoverObserver, into: dispatcher)
+        register(id: id, handler: handler, lane: lane, into: dispatcher)
     }
 
     /// Asks `context`'s dispatcher for `feature`, for the same reason and in
