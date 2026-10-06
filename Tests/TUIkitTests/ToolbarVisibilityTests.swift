@@ -44,6 +44,29 @@ private struct VisibilityApp: App {
     }
 }
 
+/// A toolbar item whose own `@State` counts its presses.
+private struct PressCounter: View {
+    @State private var count = 0
+
+    var body: some View {
+        Button("PRESSED \(count)") { count += 1 }
+            .keyboardShortcut("c", modifiers: [])
+    }
+}
+
+/// A top bar holding a `PressCounter`, its visibility stated from outside.
+private struct HiddenCounterApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar { ToolbarItem(placement: .primaryAction) { PressCounter() } }
+                .toolbarVisibility(HiddenBars.shared.top, for: .windowToolbar)
+        }
+    }
+}
+
 @MainActor
 @Suite("Toolbar visibility", .serialized)
 struct ToolbarVisibilityTests {
@@ -111,5 +134,34 @@ struct ToolbarVisibilityTests {
         _ = loop.render()
         let rows = loop.diffWriter.shownLines.map(\.stripped)
         #expect(!rows.contains { $0.contains("TOP-ITEM") }, "\(rows)")
+    }
+
+    @Test("A bar hidden and shown again keeps its items' @State")
+    func hidingKeepsItemState() {
+        reset()
+        defer { reset() }
+        let app = HeadlessApp(HiddenCounterApp(), width: 40, height: 10)
+        var now: Int64 = 0
+        func frames(_ count: Int) {
+            for _ in 0..<count {
+                app.frame(atNanos: now)
+                now += 20_000_000
+            }
+        }
+        let rows = { app.screen.map(\.stripped) }
+        frames(2)
+        app.send(KeyEvent(key: .character("c")))
+        frames(1)
+        app.send(KeyEvent(key: .character("c")))
+        frames(1)
+        #expect(rows().contains { $0.contains("PRESSED 2") }, "sanity: \(rows())")
+
+        HiddenBars.shared.top = .hidden
+        frames(3)
+        #expect(!rows().contains { $0.contains("PRESSED") }, "sanity: the bar is gone: \(rows())")
+
+        HiddenBars.shared.top = .automatic
+        frames(3)
+        #expect(rows().contains { $0.contains("PRESSED 2") }, "the count came back with its bar: \(rows())")
     }
 }

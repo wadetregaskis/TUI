@@ -277,7 +277,13 @@ final class WindowChromeState: @unchecked Sendable {
     /// `.toolbarVisibility(.hidden, for:)` hides it.
     func toolbarEntries(for edge: Edge) -> [ToolbarEntry] {
         guard !isHidden(edge) else { return [] }
-        return toolbarEntries.filter { $0.placement.bar == edge }
+        return declaredEntries(for: edge)
+    }
+
+    /// The items this walk declared for the toolbar at `edge`, whether or not
+    /// it is hidden.
+    func declaredEntries(for edge: Edge) -> [ToolbarEntry] {
+        toolbarEntries.filter { $0.placement.bar == edge }
     }
 
     /// Takes `rows` as `edge`'s reservation outright: what the first frame's

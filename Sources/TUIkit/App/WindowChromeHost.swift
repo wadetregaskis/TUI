@@ -119,6 +119,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
                 .bottom, chrome: $0, contentRows: $0.rows(.bottom), tooltip: tooltip, width: width,
                 isModal: isModal, context: context)
         }
+        if let chrome { retainUndrawnItems(chrome, context: context) }
         top = top?.liftingOverlays(shiftingBy: -rows.top, onto: &page)
         bottom = bottom?.liftingOverlays(shiftingBy: contentHeight, onto: &page)
         // The screen selection reads the page and draws its highlight on it,

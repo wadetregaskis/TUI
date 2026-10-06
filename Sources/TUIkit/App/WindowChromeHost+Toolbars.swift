@@ -90,6 +90,29 @@ extension _WindowChromeHost {
             .groundedAsChrome(width: width, background: background)
     }
 
+    /// Keeps the `@State` of the items a walk declared but did not draw: those
+    /// of a bar `.toolbarVisibility(.hidden, for:)` hides, and of a bar
+    /// declared on a frame laid out with no rows for it — the frame before a
+    /// bar is adopted, whether it is new or coming back.
+    ///
+    /// An item's state is kept at the identity it was declared at, and state
+    /// whose view did not render is collected at the end of the pass, so
+    /// hiding a bar and showing it again reset every item in it — a counter
+    /// went back to 0, a field was blank — and the adoption frame of a bar
+    /// coming back did the same on its own. The declaration says the items
+    /// are still there; ``StateStorage/retainSubtree(_:)`` says it to the
+    /// state, as a collapsed `DisclosureGroup` does for its content. Per walk,
+    /// so an item that stops being declared is collected the pass after.
+    func retainUndrawnItems(_ chrome: WindowChromeState, context: RenderContext) {
+        guard let storage = context.stateStorage else { return }
+        for edge in WindowChromeState.Edge.allCases where chrome.isHidden(edge) || chrome.rows(edge) == 0 {
+            for entry in chrome.declaredEntries(for: edge) {
+                storage.markActive(entry.identity)
+                storage.retainSubtree(entry.identity)
+            }
+        }
+    }
+
     /// The focus section the toolbar at `edge` puts its items in.
     static func toolbarSectionID(_ edge: WindowChromeState.Edge) -> String {
         "window-toolbar-\(edge)"

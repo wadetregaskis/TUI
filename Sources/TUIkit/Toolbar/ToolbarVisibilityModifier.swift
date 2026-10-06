@@ -26,7 +26,8 @@ extension View {
     /// ```
     ///
     /// Hiding the bottom bar hides the line of key hints a `StatusBar()` there
-    /// draws, not the keys: they still work.
+    /// draws, not the keys: they still work. A hidden bar's items keep their
+    /// `@State`, so the bar comes back as it went.
     ///
     /// In presented content — a sheet's, a full-screen cover's, a popover's —
     /// it states nothing. The presentation draws its own `.toolbar` items (see

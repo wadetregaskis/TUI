@@ -619,8 +619,9 @@ with an `if`.)
 
 `.toolbarVisibility(_:for:)` takes a bar away (`.windowToolbar` or
 `.automatic` the top bar, `.bottomBar` the bottom one) — a frame later, like
-any change to the bars; the statement closest to the content wins, and a
-hidden line of key hints leaves its keys working.
+any change to the bars; the statement closest to the content wins, a
+hidden line of key hints leaves its keys working, and a hidden bar's items keep
+their `@State` for when it comes back.
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
 modifiers (`toolbarBackground`, `toolbarRole`, `toolbarItemHidden`,
