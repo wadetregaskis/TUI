@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkit
+@testable import TUIkitCore
 
 @MainActor
 private final class Frames {
@@ -111,5 +112,42 @@ struct VisualEffectTests {
         let still = Frames().draw(view(0.5))
         #expect(halfway.opacityRegions == still.opacityRegions)
         #expect(halfway.opacityRegions != Frames().draw(view(0)).opacityRegions)
+    }
+
+    @Test("SwiftUI's own example: an offset following the view's global position is drawn, in the frame that draws it")
+    func globalPositionDrivesTheEffect() {
+        let harness = InputChainHarness()
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Text("a")
+            Text("b")
+            Text("c")
+            Text("row").visualEffect { content, proxy in
+                content.offset(x: proxy.frame(in: .global).origin.y)
+            }
+        }
+        // Three rows down: drawn three cells right, on the frame it first
+        // appears — the root draws it again once it has found it (B59, A2).
+        #expect(picture(harness.frame(view))[3] == "   row")
+        #expect(harness.geometryCorrections.root == 1)
+        // From then on the root carries an origin, and the stack predicts it.
+        #expect(picture(harness.frame(view))[3] == "   row")
+        #expect(harness.geometryCorrections.root == 1)
+    }
+
+    @Test("An effect asking a named space is answered in it, and an effect asking only its size stamps nothing")
+    func namedSpaceAndLocalEffects() {
+        let harness = InputChainHarness()
+        let named = harness.frame(
+            VStack(alignment: .leading, spacing: 0) {
+                Text("a")
+                Text("row").visualEffect { content, proxy in
+                    content.offset(x: proxy.frame(in: .named("list")).minY * 2)
+                }
+            }
+            .coordinateSpace(.named("list")))
+        #expect(picture(named)[1] == "  row")
+        #expect(harness.geometryCorrections.total == 0)
+        let local = harness.frame(Text("abc").visualEffect { content, proxy in content.offset(x: proxy.size.width) })
+        #expect(!local.carriesGeometryMarkers)
     }
 }

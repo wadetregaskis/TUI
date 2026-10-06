@@ -21,7 +21,7 @@ import TUIkitView
 /// var body: some View {
 ///     ContentRow()
 ///         .visualEffect { content, geometryProxy in
-///             content.offset(x: geometryProxy.size.width / 4)
+///             content.offset(x: geometryProxy.frame(in: .global).origin.y)
 ///         }
 /// }
 /// ```
@@ -79,8 +79,11 @@ extension View {
     /// ```
     ///
     /// The proxy describes the view as it was laid out: its ``GeometryProxy/size``
-    /// in cells, and a frame in `.local` space. A `.global` frame answers as
-    /// `.local` does here, as `GeometryProxy.frame(in:)` documents.
+    /// in cells, and its frame in every space — `.global`, a name a view around
+    /// it declared, the nearest scroll view's — answered as a `GeometryReader`'s
+    /// is: predicted before the effect is drawn, and drawn once more by the
+    /// space's owner when the prediction missed (design study A2). The effect
+    /// never moves where the view is in any of them.
     ///
     /// - Parameter effect: A closure that returns the effect to be applied. The
     ///   first argument provided to the closure is a placeholder representing
@@ -107,7 +110,12 @@ struct _VisualEffectView<Content: View, Effect: VisualEffect>: View {
 extension _VisualEffectView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let buffer = TUIkit.renderToBuffer(content, context: context)
-        var applied = effect(EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height))
+        // What the effect asks about the spaces around the view goes through
+        // this, and is held to by the spaces' owners, as a reader's is — the
+        // effect is built from the answer (`GeometryAsk.Role.reader`).
+        let ask = context.makeGeometryAsk(role: .reader)
+        var applied = effect(
+            EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask))
         // The effect animates as an animatable modifier does: keyed by this
         // place and this type, substituted with where its picture has got to.
         if let animated = animatedValue(
@@ -115,7 +123,17 @@ extension _VisualEffectView: Renderable, Layoutable {
         {
             applied = animated
         }
-        return applied._applied(to: buffer, context: context)
+        var drawn = applied._applied(to: buffer, context: context)
+        // An effect that asked another space stamps where the view is laid out
+        // — the drawing's own frame, which no effect moves — for that space's
+        // owner to find; one that asked only its size stamps nothing.
+        if let ask {
+            ask.finishRecording(size: buffer.cellSize)
+            if context.geometryCoordinator?.register(ask) == true {
+                drawn.hitTestRegions.append(.geometryMarker(ask.id))
+            }
+        }
+        return drawn
     }
 
     /// Effects do not change layout: this measures as its content.

@@ -2625,3 +2625,15 @@ private func scrollTransitionConfigurations() -> [ScrollTransitionConfiguration]
         .interactive.animation(.easeOut).threshold(.hidden.interpolated(towards: .visible, amount: 0.5)),
     ]
 }
+
+/// SwiftUI's own `VisualEffect` example: an offset following the view's global
+/// position, which draws its offset now that the proxy answers `.global`.
+@MainActor
+private struct GlobalVisualEffect: View {
+    var body: some View {
+        Text("ContentRow")
+            .visualEffect { content, geometryProxy in
+                content.offset(x: geometryProxy.frame(in: .global).origin.y)
+            }
+    }
+}
