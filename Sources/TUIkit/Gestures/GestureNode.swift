@@ -77,11 +77,15 @@ struct GesturePointer {
     /// This report, standing in for a press: how the second gesture of a
     /// sequence takes the event that ended the first, or the first event
     /// after a first that ended on its clock. A release makes a press that
-    /// is already over (``isOver``).
+    /// is already over (``isOver``), and so does a press that already was:
+    /// a sequence that is itself a second part hands its own second part the
+    /// over press it was handed. Measured on macOS 15.8, a tap before a
+    /// sequence of two zero-duration long presses ends both `false`; a press
+    /// made live again ended the second `true`.
     var asDown: Self {
         var down = self
         down.kind = .down
-        down.isOver = kind == .up
+        down.isOver = isOver || kind == .up
         return down
     }
 

@@ -36,6 +36,9 @@ extension Gesture {
     /// reports only how it ends: after a tap, a drag or a long press fails
     /// at once, so `TapGesture().sequenced(before: DragGesture())` never
     /// ends, while a long press with no minimum duration ends there, `false`.
+    /// A second gesture that is itself a sequence hands its own second that
+    /// press, still over: after a tap, two zero-duration long presses in
+    /// sequence both end `false`, the first's `onEnded` before the second's.
     /// A long press that ends on its clock, the button still down, hands a
     /// following drag the next move as its start. The sequence ends when the
     /// second gesture does (all measured on macOS 15.8).
@@ -271,17 +274,33 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
     /// then again at the release.
     private var secondStarted = false
 
+    /// Whether the first part ended with delivery off, and has not reported
+    /// that end yet. Only a sequence that is itself a second part sees this
+    /// without a ``flush()`` to follow: it is handed the press already over
+    /// (``GesturePointer/isOver``) with delivery off and the release with
+    /// it on, and the release goes to its second part alone. Measured on
+    /// macOS 15.8, a tap before a sequence of two zero-duration long presses
+    /// runs the first long press's `onEnded` at the tap's release, before
+    /// the second's; until then it never ran.
+    private var firstHeld = false
+
     override func receive(_ input: GestureInput, deliver: Bool) {
         if case .pointer(let pointer) = input, pointer.kind == .down, !onSecond || isSettled(phase) {
             onSecond = false
             secondStarted = false
+            firstHeld = false
         }
         if onSecond {
+            if deliver, firstHeld {
+                firstHeld = false
+                first.flush()
+            }
             feedSecond(input, deliver: deliver)
         } else {
             first.receive(input, deliver: deliver)
             if first.phase == .ended {
                 onSecond = true
+                firstHeld = !deliver
                 // The event that ended the first part is the second's first,
                 // as on macOS 15.8: fed only the events after it, a tap
                 // before a tap waited for a second click, and a drag after a
@@ -316,11 +335,13 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
     }
 
     override func flush() {
+        firstHeld = false
         first.flush()
         if secondStarted { second.flush() }
     }
 
     override func cancel() {
+        firstHeld = false
         first.cancel()
         if secondStarted { second.cancel() }
         recompute()

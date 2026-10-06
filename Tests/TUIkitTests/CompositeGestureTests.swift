@@ -246,6 +246,38 @@ struct CompositeGestureTests {
         #expect(log.entries == click + click)
     }
 
+    /// Measured on macOS 15.8 (F2 probe review4, N1): after a tap, a
+    /// sequence of two zero-duration long presses ends at the tap's release
+    /// with both `false`: the press already over that starts the inner
+    /// sequence is still over when its first long press hands it to its
+    /// second. Taking that press for a press of its own, the second ended
+    /// `true`.
+    @Test("A tap before a sequence of zero-duration long presses ends both false at the tap's release")
+    func tapBeforeInstantSequence() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            box(
+                TapGesture().onEnded { log("tap") }
+                    .sequenced(
+                        before: LongPressGesture(minimumDuration: 0).onEnded { log("a \($0)") }
+                            .sequenced(before: LongPressGesture(minimumDuration: 0).onEnded { log("b \($0)") })
+                            .onEnded { value in
+                                if case .second(let a, let b) = value { log("inner \(a) \(b.map { "\($0)" } ?? "nil")") }
+                            }
+                    )
+                    .onEnded { _ in log("seq") })
+        }
+        let click = ["tap", "a false", "b false", "inner false false", "seq"]
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == click)
+        harness.now = 600 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == click + click)
+    }
+
     /// Measured on macOS 15.8: a drag before a tap ends at the drag's
     /// release — the drag's end, then the tap's, then the sequence's — and
     /// a click after it, which is no drag, ends nothing.
