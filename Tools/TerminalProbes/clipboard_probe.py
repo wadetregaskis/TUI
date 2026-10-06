@@ -34,13 +34,20 @@ that fails — where a helper can write it (never in `--manual`). A helper puts
 back TEXT only, so a clipboard holding anything else (a picture, files, rich
 text: `osascript`'s `clipboard info`, `wl-paste --list-types` or xclip's
 `TARGETS` say what it holds) stops the run before anything is written, unless
-`--clobber` says it may be lost. Where the types cannot be listed (`xsel`) the
-run stops the same way.
+`--clobber` says it may be lost. Text copied from Safari, Notes or TextEdit is
+rich text too: copy plain text first (`printf probe | pbcopy`, `wl-copy`,
+`xclip -selection clipboard`), which the run then puts back whole. Where the
+types cannot be listed (`xsel`) the run stops the same way; an empty X11 or
+Wayland clipboard, whose lister says nothing is copied, is listed as empty.
 
 1. **Leak.** The cursor column (DSR 6) before and after an OSC 52 write, as
    `hyperlink_probe.py` asks it of OSC 8. A column that moved means the host
    printed part of the sequence. Every host the compatibility doc measured
-   swallows unknown OSC numbers, so this is expected clean everywhere.
+   swallows unknown OSC numbers, so this is expected clean everywhere. It
+   needs no reader, so it is taken wherever its write is allowed: put back
+   (a text clipboard here), or accepted (`--manual`, `--clobber`) — over ssh
+   without `--manual` too, with `--clobber`, though nothing here can read the
+   clipboard it writes or put it back.
 
 2. **Identity.** XTVERSION, DA1 and DA2, DSR-fenced. Whether `52` is among
    DA1's parameters is recorded on its own: TUIkit lets DA1 *add* a terminal to
@@ -137,16 +144,25 @@ def local_helpers():
     return None, None
 
 
+# What a lister says, on its error stream and with a failing exit, when the
+# clipboard holds nothing at all: an empty clipboard, not one whose types
+# cannot be listed. wl-paste says "Nothing is copied" (wl-clipboard 2; "No
+# selection" before), and xclip that no owner offers TARGETS.
+WAYLAND_EMPTY = re.compile(r"Nothing is copied|No selection")
+XCLIP_EMPTY = re.compile(r"target TARGETS not available")
+
+
 def type_lister():
-    """argv that lists the types this machine's clipboard holds, and how to
-    read its output into names — or (None, None) where nothing can list them."""
+    """argv that lists the types this machine's clipboard holds, how to read
+    its output into names, and the error a failing listing gives for an empty
+    clipboard — or (None, None, None) where nothing can list them."""
     if sys.platform == "darwin":
-        return ["osascript", "-e", "clipboard info"], parse_clipboard_info
+        return ["osascript", "-e", "clipboard info"], parse_clipboard_info, None
     if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-paste"):
-        return ["wl-paste", "--list-types"], str.split
+        return ["wl-paste", "--list-types"], str.split, WAYLAND_EMPTY
     if os.environ.get("DISPLAY") and shutil.which("xclip"):
-        return ["xclip", "-selection", "clipboard", "-t", "TARGETS", "-o"], str.split
-    return None, None
+        return ["xclip", "-selection", "clipboard", "-t", "TARGETS", "-o"], str.split, XCLIP_EMPTY
+    return None, None, None
 
 
 def parse_clipboard_info(output):
@@ -162,6 +178,11 @@ MAC_TEXT_TYPES = {"«class utf8»", "«class ut16»", "string", "Unicode text"}
 X_TEXT_TARGETS = {"UTF8_STRING", "STRING", "TEXT", "COMPOUND_TEXT"}
 # What X11 lists beside the data, which is not data.
 X_META_TARGETS = {"TARGETS", "TIMESTAMP", "MULTIPLE", "SAVE_TARGETS", "DELETE", "INCR"}
+
+
+# Rich text: a clipboard holding one beside its plain text loses its
+# formatting when only the text is put back.
+RICH_TEXT_TYPES = {"«class RTF »", "«class HTML»", "«class rtfd»", "text/html", "text/rtf", "application/rtf"}
 
 
 def holds_only_text(types):
@@ -185,7 +206,9 @@ class Clipboard:
             self.read_argv, self.write_argv = None, None
         else:
             self.read_argv, self.write_argv = helpers or local_helpers()
-        self.list_argv, self.parse_types = (None, None) if manual else (lister or type_lister())
+        listing = (None, None, None) if manual else (lister or type_lister())
+        # A lister given as (argv, parse) recognises no empty clipboard.
+        self.list_argv, self.parse_types, self.empty_error = (tuple(listing) + (None,))[:3]
         self.saved = None
         self.held = None
 
@@ -229,7 +252,9 @@ class Clipboard:
         except Exception:
             return None
         if done.returncode != 0:
-            return None
+            # An empty X11 or Wayland clipboard fails its listing, saying so.
+            error = done.stderr.decode("utf-8", "replace")
+            return [] if self.empty_error is not None and self.empty_error.search(error) else None
         return self.parse_types(done.stdout.decode("utf-8", "replace"))
 
     def save(self):
@@ -353,6 +378,26 @@ def tmux_state(written):
     }
 
 
+def plain_text_advice():
+    """How to put plain text on this machine's clipboard, which the run can
+    put back whole."""
+    if sys.platform == "darwin":
+        return "printf probe | pbcopy"
+    if os.environ.get("WAYLAND_DISPLAY"):
+        return "printf probe | wl-copy"
+    return "printf probe | xclip -selection clipboard"
+
+
+def refusal_advice(held):
+    """What a refused run says to do: copy plain text first, and how — rich
+    text copied from an app is refused too, its formatting being what writing
+    its text back would lose."""
+    rich = held is not None and any(name in RICH_TEXT_TYPES for name in held)
+    what = "rich text, whose formatting writing its text back would lose" if rich else None
+    lead = f"the clipboard holds {what}" if what else None
+    return lead, f"copy plain text first ({plain_text_advice()}), or pass --clobber"
+
+
 def preserving(board, clobber, writes):
     """Runs `writes` — everything that may write the clipboard — with the
     clipboard saved first and put back however they end, an exception or an
@@ -361,12 +406,37 @@ def preserving(board, clobber, writes):
     `clobber`, and `refusal` says what it holds."""
     if not board.manual and not board.save() and not clobber:
         held = ", ".join(board.held) if board.held is not None else "types that cannot be listed"
-        return False, False, f"the clipboard holds {held}, which writing its text back would lose"
+        lead, advice = refusal_advice(board.held)
+        lead = lead or f"the clipboard holds {held}, which writing its text back would lose"
+        return False, False, f"{lead}: {advice}"
     try:
         writes()
     finally:
         restored = board.restore()
     return True, restored, None
+
+
+def run_writes(board, clobber, writes, leak):
+    """Runs the steps that write the clipboard as far as they may, and returns
+    what to record of it.
+
+    Where a helper can read the clipboard, every step runs with it saved and
+    put back (``preserving``). Where none can, only the leak check, which
+    needs no reader — and only with `--clobber`, as its write lands on a
+    clipboard nothing here can put back."""
+    if not board.readable:
+        if clobber:
+            leak()
+            return {"note": ("no helper can read the clipboard the terminal writes: the leak check "
+                             "alone ran, and its write was not put back; run with --manual for the rest")}
+        return {"note": ("no helper can read this machine's clipboard: run with --manual, or on the "
+                         "machine the terminal runs on; --clobber takes the leak check alone, its "
+                         "write not put back")}
+    ran, restored, refusal = preserving(board, clobber, writes)
+    out = {"restored": restored}
+    if not ran:
+        out["note"] = refusal
+    return out
 
 
 def main():
@@ -410,13 +480,10 @@ def main():
                             if os.environ.get(k)}
         result["read_back"] = "by hand" if manual else (" ".join(board.read_argv) if board.read_argv else None)
         result["identity"] = identity(fd)
-        if not board.readable:
-            result["note"] = ("no helper can read this machine's clipboard: run with --manual, "
-                              "or on the machine the terminal runs on")
-        else:
-            ran, result["restored"], refusal = preserving(board, clobber, writes)
-            if not ran:
-                result["note"] = refusal + ": copy some text first, or pass --clobber"
+        def leak():
+            result["leak"] = leak_check(fd)
+
+        result.update(run_writes(board, clobber, writes, leak))
     finally:
         if manual:
             os.write(fd, b"\x1b[?2004l")

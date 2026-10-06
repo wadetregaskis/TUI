@@ -174,6 +174,12 @@ jobs:
       - name: Parity tool tests
         run: python3 -m unittest discover -s Tools/APIParity
 
+      # The clipboard probe's guards for the user's clipboard — what it puts
+      # back, what it refuses to write over, when it takes the leak check — on
+      # a file standing in for the clipboard: no terminal, no SDK, ~0.1 s.
+      - name: Terminal probe tests
+        run: python3 -m unittest discover -s Tools/TerminalProbes -p 'test_*.py'
+
       # Fails on a new unexplained gap, on a gap CLOSED but not recorded, on a
       # new argument-label deviation, and on a map entry that has gone stale.
       # The last two are the ones no human notices: a map nobody audits stops

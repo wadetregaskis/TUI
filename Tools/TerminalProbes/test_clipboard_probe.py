@@ -26,9 +26,10 @@ class FileClipboard:
             out.write(contents)
         self.types = types
 
-    def board(self):
+    def board(self, lister=None):
         helpers = (["cat", self.path], ["sh", "-c", f"cat > '{self.path}'"])
-        lister = (["sh", "-c", "true"], lambda _: self.types) if self.types is not None else (None, None)
+        if lister is None:
+            lister = (["sh", "-c", "true"], lambda _: self.types) if self.types is not None else (None, None)
         return clipboard_probe.Clipboard(fd=-1, manual=False, helpers=helpers, lister=lister)
 
     def contents(self):
@@ -112,6 +113,37 @@ class PreservingTests(unittest.TestCase):
         self.assertFalse(done)
         self.assertIn("cannot be listed", refusal)
 
+    def test_an_empty_x11_or_wayland_clipboard_is_empty_not_unlistable(self):
+        self.clipboard = FileClipboard("", None)
+        for message, pattern in [
+            ("Nothing is copied", clipboard_probe.WAYLAND_EMPTY),
+            ("Error: target TARGETS not available", clipboard_probe.XCLIP_EMPTY),
+        ]:
+            failing = ["sh", "-c", f"echo '{message}' >&2; exit 1"]
+            board = self.clipboard.board(lister=(failing, str.split, pattern))
+            self.assertEqual(board.types(), [])
+            done, restored, refusal = clipboard_probe.preserving(
+                board, clobber=False, writes=lambda: self.clipboard.write("nonce"))
+            self.assertTrue(done, refusal)
+            self.assertTrue(restored)
+            self.assertEqual(self.clipboard.contents(), "")
+
+    def test_a_listing_that_fails_otherwise_still_cannot_be_listed(self):
+        self.clipboard = FileClipboard("text", None)
+        failing = ["sh", "-c", "echo 'Error: Can't open display' >&2; exit 1"]
+        board = self.clipboard.board(lister=(failing, str.split, clipboard_probe.XCLIP_EMPTY))
+        self.assertIsNone(board.types())
+
+    def test_rich_text_is_refused_with_a_way_to_copy_plain_text(self):
+        self.clipboard = FileClipboard("styled", ["«class RTF »", "«class HTML»", "«class utf8»"])
+        done, _, refusal = clipboard_probe.preserving(
+            self.clipboard.board(), clobber=False, writes=lambda: self.fail("wrote"))
+        self.assertFalse(done)
+        self.assertIn("rich text", refusal)
+        self.assertIn("copy plain text first", refusal)
+        self.assertIn("printf probe |", refusal)
+        self.assertEqual(self.clipboard.contents(), "styled")
+
     def test_clobber_runs_anyway(self):
         self.clipboard = FileClipboard("", ["«class PNGf»"])
         ran = []
@@ -127,6 +159,24 @@ class PreservingTests(unittest.TestCase):
         self.assertTrue(done)
         self.assertTrue(restored)
         self.assertEqual(self.clipboard.contents(), "before")
+
+
+class LeakCheckTests(unittest.TestCase):
+
+    def unreadable(self):
+        return clipboard_probe.Clipboard(fd=-1, manual=False, helpers=(None, None), lister=(None, None))
+
+    def test_the_leak_check_runs_without_a_reader_where_its_write_is_accepted(self):
+        ran = []
+        out = clipboard_probe.run_writes(
+            self.unreadable(), clobber=True, writes=lambda: self.fail("wrote"), leak=lambda: ran.append(True))
+        self.assertEqual(ran, [True])
+        self.assertIn("leak check alone ran", out["note"])
+
+    def test_without_a_reader_or_clobber_nothing_is_written(self):
+        out = clipboard_probe.run_writes(
+            self.unreadable(), clobber=False, writes=lambda: self.fail("wrote"), leak=lambda: self.fail("leaked"))
+        self.assertIn("--clobber takes the leak check alone", out["note"])
 
 
 if __name__ == "__main__":

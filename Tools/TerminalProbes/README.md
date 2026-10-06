@@ -141,11 +141,15 @@ when unset), the visual/aspect probes print to the terminal.
   `--destructive` adds the empty and the non-base64 payloads, which Ghostty
   documents as CLEARING the clipboard. The clipboard is saved before the
   first write and put back however the run ends, where a helper can write
-  it; a clipboard holding anything but text (a picture, files, rich text),
-  or whose types cannot be listed, stops the run before anything is written
-  unless `--clobber` says it may be lost. `test_clipboard_probe.py` pins
-  that guard (`python3 -m unittest test_clipboard_probe`, no terminal
-  needed). JSON to `$PROBE_OUT`; `PROBE_ALT=1` for the
+  it; a clipboard holding anything but text (a picture, files, rich text —
+  which is what text copied from Safari or Notes is: copy plain text first,
+  `printf probe | pbcopy`), or whose types cannot be listed, stops the run
+  before anything is written unless `--clobber` says it may be lost. An
+  empty X11 or Wayland clipboard is empty, not unlistable. With no helper to
+  read the clipboard (over ssh without `--manual`), `--clobber` still takes
+  the leak check, which needs no reader. `test_clipboard_probe.py` pins
+  those rules (`python3 -m unittest test_clipboard_probe`, no terminal
+  needed; CI runs it). JSON to `$PROBE_OUT`; `PROBE_ALT=1` for the
   alternate screen. NOT YET RUN on any host (2026-10-05): Ghostty, iTerm2 with
   its clipboard setting on and off, Apple Terminal, Warp, kitty, and tmux with
   `set-clipboard on` and `external` are owed.
