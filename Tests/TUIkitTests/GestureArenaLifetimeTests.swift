@@ -158,6 +158,8 @@ struct GestureArenaLifetimeTests {
         for (millis, column) in [(1_000, 7), (2_000, 7), (3_000, 1), (4_000, 1)] {
             frame(harness, at: Int64(millis), view)
             harness.click(column, 0, view)
+            // The end comes at the click on the sequence at 3 s, not later.
+            #expect(log.entries == (millis < 3_000 ? [] : ["seq"]), "after the click at \(millis) ms")
         }
         frame(harness, at: 5_000, view)
         #expect(log.entries == ["seq"])
