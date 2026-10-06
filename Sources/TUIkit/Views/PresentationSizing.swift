@@ -317,30 +317,14 @@ extension EnvironmentValues {
 // MARK: - Resolving it
 
 /// The largest size a sticky sizing has given a sheet while it stays
-/// presented, kept in the presenter's state. A class, changed in place: the
-/// sheet draws at the size it records on the frame it records it, so neither
-/// growing it nor emptying it on close needs another frame, as a state write
-/// would ask for.
+/// presented, kept in the presenter's state, and emptied when it closes or
+/// is presented for another item (`ModalPresentationModifier.startOver(context:)`).
+/// A class, changed in place: the sheet draws at the size it records on the
+/// frame it records it, so neither growing it nor emptying it on close needs
+/// another frame, as a state write would ask for.
 @MainActor
 final class KeptSheetSize {
     var size: CellSize?
-
-    /// The identity key of the item the size was kept for, for the `item:`
-    /// forms — `nil` for the `isPresented:` forms, which are about nothing.
-    private var itemKey: String?
-
-    /// This record for the sheet presented for `itemKey`: emptied first when
-    /// it was kept for another item. A `.sheet(item:)` switched to another
-    /// item is never closed — its binding stays non-`nil` — and the item's id
-    /// is the sheet's identity, so another item is another sheet, which
-    /// starts from its own content, as one presented again does.
-    func presenting(_ itemKey: String?) -> KeptSheetSize {
-        if itemKey != self.itemKey {
-            size = nil
-            self.itemKey = itemKey
-        }
-        return self
-    }
 }
 
 /// The size a sheet's sizing gives it, applied to the context it renders in:

@@ -44,6 +44,24 @@ private struct GrabbedSheet: View {
     }
 }
 
+/// What an `item:` sheet is presented for.
+private struct Note: Identifiable {
+    let id: Int
+}
+
+/// A page under a detented `item:` sheet with no selection binding.
+@MainActor
+private struct ItemSheet: View {
+    let item: Binding<Note?>
+
+    var body: some View {
+        Text("PAGE").sheet(item: item) { note in
+            Panel("NOTE \(note.id)") { Button("OK") {} }
+                .presentationDetents([.height(6), .medium, .large])
+        }
+    }
+}
+
 /// A value the test and the view share.
 @MainActor
 private final class Box<Value> {
@@ -181,6 +199,25 @@ struct SheetGrabberTests {
         frame(harness, view)
         presented.value = true
         #expect(try #require(sheet(frame(harness, view))).content.height == 6)
+    }
+
+    /// An `item:` sheet switched to another item is never closed, so the
+    /// detent the reader chose for the first item was the second's too.
+    @Test("Presented for another item, an unbound sheet opens at its smallest detent")
+    func anotherItemOpensAtTheSmallest() throws {
+        let harness = harness()
+        let note = Box<Note?>(Note(id: 1))
+        let view = ItemSheet(item: note.binding)
+        frame(harness, view)
+        harness.press(KeyEvent(key: .tab))
+        frame(harness, view)
+        #expect(isGrabberFocused(harness))
+        harness.press(KeyEvent(key: .end))
+        #expect(try #require(sheet(frame(harness, view))).content.height == 20)
+        note.value = Note(id: 2)
+        let second = try #require(sheet(frame(harness, view)))
+        #expect(second.content.lines.contains { $0.stripped.contains("NOTE 2") }, "precondition: the second item")
+        #expect(second.content.height == 6, "the second item's sheet opened at the first's detent")
     }
 
     @Test("Escape on the grabber of a sheet that may not be dismissed by hand does nothing")

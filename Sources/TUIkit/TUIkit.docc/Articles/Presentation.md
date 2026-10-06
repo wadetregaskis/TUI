@@ -101,7 +101,9 @@ round. Anything else you wrap it in is not.)
 
 ### The grabber
 
-A sheet with two detents or more opens at the smallest and has a **grabber**: a
+A sheet with two detents or more opens at the smallest — each time it is
+presented, and for each item a `sheet(item:)` is presented for — and has a
+**grabber**: a
 rule across its top edge with a handle in the middle — the divider of a
 ``VSplitView``, between the sheet and the page — inside the detent's height. It
 is a focus stop after the sheet's own controls:

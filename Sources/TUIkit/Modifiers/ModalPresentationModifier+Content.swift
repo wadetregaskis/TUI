@@ -101,7 +101,7 @@ extension ModalPresentationModifier {
             } else if let sizing,
                 let proposedHeight = applyPresentationSizing(
                     sizing, of: modal, to: &sheetContext, hasDetent: detentHeight != nil,
-                    kept: keptSheetSize(context: context)?.presenting(itemKey))
+                    kept: keptSheetSize(context: context))
             {
                 capHeight = proposedHeight
             }

@@ -128,19 +128,13 @@ extension ModalPresentationModifier: Renderable {
                 // (see the presentation branch below).
                 context.environment.volatileReadTracker?.recordRenderSideEffect()
                 context.environment.focusManager?.deactivateSection(id: sectionID)
-                // Recentre next time it opens.
-                DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
-                // And start a sticky sizing over: its largest size is kept for
-                // as long as the sheet stays presented, no longer.
-                existingKeptSheetSize(context: context)?.size = nil
-                // And the detent the reader moved it to: it opens again at the
-                // bound detent, or the smallest, as a new sheet does.
-                existingDetentState(context: context)?.chosen = nil
-                // Presented again, a live sheet takes the focus again.
-                existingPresentationEntry(context: context)?.hasEntered = false
+                // Presented again, it is a new sheet.
+                startOver(context: context)
             }
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
+        // So is one presented for another item.
+        if !context.isMeasuring, let itemKey { startOver(forItem: itemKey, context: context) }
 
         // Whether the content forbade interactive dismissal. Read BEFORE the
         // status-bar item below, which is why it rides a static conformance

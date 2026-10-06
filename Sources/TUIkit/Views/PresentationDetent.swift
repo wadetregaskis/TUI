@@ -313,7 +313,9 @@ struct SheetDetentStop: Equatable {
 
 /// The detent a sheet with no selection binding rests at, kept by its
 /// presenter for as long as the sheet stays up: `nil` until the reader moves
-/// it, and again once it is dismissed, so it opens at the smallest.
+/// it, and again once it is dismissed or presented for another item
+/// (`ModalPresentationModifier.startOver(context:)`), so it opens at the
+/// smallest.
 ///
 /// A class, changed in place, as ``KeptSheetSize`` is: the sheet draws at the
 /// detent it records on the frame it records it. Not main-actor isolated, for

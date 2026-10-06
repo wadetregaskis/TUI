@@ -59,7 +59,9 @@ enum LiveSheet {
 }
 
 /// Whether a presented sheet has taken the focus since it was presented — a
-/// box at the presenter's identity, emptied on its closed frames.
+/// box at the presenter's identity, emptied on its closed frames and when an
+/// `item:` sheet is presented for another item
+/// (`ModalPresentationModifier.startOver(context:)`).
 ///
 /// A modal sheet takes the focus on every frame it is drawn
 /// (`FocusManager.activatePresentedSection(id:)`); a live one only on entry,
@@ -68,6 +70,11 @@ enum LiveSheet {
 /// another presentation's throwaway backdrop has not entered anything.
 final class PresentationEntry {
     var hasEntered = false
+
+    /// The identity key of the item the sheet was last presented for, for
+    /// the `item:` forms — `nil` for the `isPresented:` forms, which are
+    /// about nothing.
+    var itemKey: String?
 }
 
 // MARK: - Presenting live

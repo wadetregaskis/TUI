@@ -29,6 +29,28 @@ final class LiveSheetModel {
     var alertBinding: Binding<Bool> { Binding(get: { self.alerting }, set: { self.alerting = $0 }) }
 }
 
+/// What a live `item:` sheet is presented for.
+struct LiveNote: Identifiable {
+    let id: Int
+}
+
+/// A page with a button, and a live `item:` sheet over it.
+private struct LiveItemPage: View {
+    let item: Binding<LiveNote?>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button("Page A") {}
+            Spacer()
+        }
+        .sheet(item: item) { note in
+            Panel("Note \(note.id)") { Button("Inside") {} }
+                .presentationDetents([.height(6), .large])
+                .presentationBackgroundInteraction(.enabled)
+        }
+    }
+}
+
 /// A page with two buttons and a chord, and a sheet over it whose content
 /// says `interaction`, at `[.height(6), .large]`.
 private struct LivePage: View {
@@ -224,6 +246,20 @@ struct LiveSheetTests {
         #expect(!harness.focusManager.activeSectionIsModal)
         #expect(harness.focusManager.activePaneID != nil, "shrinking moved the focus out of the sheet")
         #expect(harness.tui.keyEventDispatcher.grabbingSectionID == nil)
+    }
+
+    @Test("A live sheet presented for another item takes the focus, as a newly presented one does")
+    func anotherItemTakesTheFocus() {
+        let harness = harness()
+        var current: LiveNote? = LiveNote(id: 1)
+        let view = LiveItemPage(item: Binding(get: { current }, set: { current = $0 }))
+        open(harness, view)
+        tab(toPage: true, harness, view)
+        #expect(harness.focusManager.activePaneID == nil, "precondition: the focus is on the page")
+        current = LiveNote(id: 2)
+        frame(harness, view)
+        frame(harness, view)
+        #expect(harness.focusManager.activePaneID != nil, "the second item's sheet left the focus on the page")
     }
 
     @Test("Dismissed with the focus on the page, the sheet leaves the focus where it is")

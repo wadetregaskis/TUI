@@ -13,19 +13,48 @@ enum ModalPresentationStateIndex {
     static let dragHandler = 0
     static let dismissalGate = 1
     /// The largest size a sticky ``PresentationSizing`` has given the sheet,
-    /// for as long as it stays presented: emptied on the frames the sheet is
-    /// closed, so presenting it again starts over — and, for the `item:`
-    /// forms, when it is presented for another item (`KeptSheetSize`).
+    /// for as long as it stays presented (`KeptSheetSize`).
     static let keptSheetSize = 2
     /// The detent a sheet with no selection binding rests at, once the reader
-    /// has moved it (`SheetDetentState`): emptied on the frames it is closed.
+    /// has moved it (`SheetDetentState`).
     static let detentState = 3
     /// The grabber's focus id and its handler (`SheetGrabber`).
     static let grabberFocusID = 4
     static let grabber = 5
-    /// Whether the sheet has taken the focus since it was presented
-    /// (`PresentationEntry`): a live sheet takes it on entry only.
+    /// Whether the sheet has taken the focus since it was presented, and for
+    /// which item (`PresentationEntry`): a live sheet takes it on entry only.
     static let entry = 6
+}
+
+extension ModalPresentationModifier {
+    /// Empties what the presenter keeps for the sheet it presents, so the
+    /// next is a new sheet: it opens where an undragged one does, its sticky
+    /// sizing starts again from its content, it rests at the bound detent or
+    /// the smallest, and a live one takes the focus again.
+    ///
+    /// On the frames the sheet is closed, rather than left to the end of the
+    /// pass's prune: a presenter whose identity something else keeps — a row
+    /// of a list, which keeps every row's state, or the root of a test harness
+    /// — was never pruned, and a sheet presented again came back as it was
+    /// left.
+    func startOver(context: RenderContext) {
+        DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
+        existingKeptSheetSize(context: context)?.size = nil
+        existingDetentState(context: context)?.chosen = nil
+        existingPresentationEntry(context: context)?.hasEntered = false
+    }
+
+    /// Starts over (``startOver(context:)``) when the sheet is presented for
+    /// another item than it was: an `item:` sheet switched to another item is
+    /// never closed — its binding stays non-`nil` — but the item's id is the
+    /// sheet's identity, so another item is another sheet, as SwiftUI
+    /// presents it.
+    func startOver(forItem itemKey: String, context: RenderContext) {
+        let entry = presentationEntry(context: context)
+        guard entry.itemKey != itemKey else { return }
+        startOver(context: context)
+        entry.itemKey = itemKey
+    }
 }
 
 private typealias StateIndex = ModalPresentationStateIndex
@@ -39,13 +68,8 @@ extension ModalPresentationModifier {
         ).value
     }
 
-    /// The same record, if a sticky sizing ever made one.
-    ///
-    /// Emptied on a closed frame rather than left to the end of the pass's
-    /// prune: a presenter whose identity something else keeps — a row of a
-    /// list, which keeps every row's state, or the root of a test harness —
-    /// was never pruned, and a sticky sheet presented again came back at the
-    /// size it had last time.
+    /// The same record, if a sticky sizing ever made one — to empty
+    /// (``startOver(context:)``).
     func existingKeptSheetSize(context: RenderContext) -> KeptSheetSize? {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.keptSheetSize))
@@ -60,8 +84,7 @@ extension ModalPresentationModifier {
         ).value ?? SheetDetentState()
     }
 
-    /// The same record, if the sheet was ever presented: emptied on a closed
-    /// frame, as ``existingKeptSheetSize(context:)`` is, and for its reason.
+    /// The same record, if the sheet was ever presented — to empty.
     func existingDetentState(context: RenderContext) -> SheetDetentState? {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.detentState))
@@ -77,8 +100,7 @@ extension ModalPresentationModifier {
         ).value ?? PresentationEntry()
     }
 
-    /// The same record, if the sheet was ever presented: emptied on a closed
-    /// frame, as ``existingDetentState(context:)`` is.
+    /// The same record, if the sheet was ever presented — to empty.
     func existingPresentationEntry(context: RenderContext) -> PresentationEntry? {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.entry))
