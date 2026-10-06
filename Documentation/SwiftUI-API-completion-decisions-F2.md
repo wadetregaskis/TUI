@@ -54,7 +54,7 @@ It adds a branch to the press path only, not to frames.
 
 ## For the main decisions doc
 
-Two corrections the coordinator owes `SwiftUI-API-completion-decisions.md`,
+Three corrections the coordinator owes `SwiftUI-API-completion-decisions.md`,
 which this lane does not edit:
 
 - **B93** ("the next press within 0.35 s of the release") and the measurement
@@ -68,3 +68,10 @@ which this lane does not edit:
   give a waiting gesture up" ships: a click on another view does not give a
   waiting double tap up, and the single tap behind it still runs for the first
   click when the double tap gives up.
+- The measurement table's row "A sequence's `onEnded`" says the second
+  gesture "takes the first event after the first ends as its start". Measured
+  on macOS 15.8 since, and shipped by the commit "A sequence's second gesture
+  starts with the event that ended the first": the event that ends the first
+  gesture is the second's first, so a tap before a tap ends at one click and
+  a drag after a zero-duration long press starts at the press; only a first
+  gesture that ends on its clock leaves the second to the next event.
