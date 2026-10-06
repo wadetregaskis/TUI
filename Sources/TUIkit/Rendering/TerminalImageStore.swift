@@ -276,6 +276,11 @@ final class TerminalImageStore: @unchecked Sendable {
     /// exists to prevent.
     var imageCount: Int { images.count }
 
+    /// Counts every image put in the terminal or taken out of it, so the run
+    /// loop can tell after a frame whether ``farewell(fitting:)`` changed
+    /// without spelling it again.
+    private(set) var generation = 0
+
     // MARK: - Drawing
 
     /// The placeholder rows for `token`'s image, transmitting it first if the
@@ -397,15 +402,32 @@ final class TerminalImageStore: @unchecked Sendable {
     /// Gives back every image, for a shutdown that wants to leave the terminal
     /// as it found it.
     func releaseAll() {
-        // In the order the images were put in, so a shutdown writes the same
-        // bytes on every run. A dictionary's order is not that: it changes
-        // from one process to the next.
-        for image in images.values.sorted(by: { $0.arrival < $1.arrival }) {
-            pending += KittyGraphics.delete(id: image.id)
-        }
+        pending += farewell()
         images.removeAll()
         slots.removeAll()
         entries.removeAll()
+        generation += 1
+    }
+
+    /// What ``releaseAll()`` would write, without releasing anything: a delete
+    /// for every image, as long as the deletes fit in `limit` bytes — whole
+    /// deletes only, as a cut one would leave the terminal reading the rest of
+    /// its output as the command's payload.
+    ///
+    /// In the order the images were put in, so a shutdown writes the same
+    /// bytes on every run. A dictionary's order is not that: it changes from
+    /// one process to the next.
+    ///
+    /// What a `SIGQUIT` owes the terminal too, which skips the teardown that
+    /// calls ``releaseAll()`` (`Terminal.quitFarewell`).
+    func farewell(fitting limit: Int = .max) -> String {
+        var farewell = ""
+        for image in images.values.sorted(by: { $0.arrival < $1.arrival }) {
+            let delete = KittyGraphics.delete(id: image.id)
+            guard farewell.utf8.count + delete.utf8.count <= limit else { break }
+            farewell += delete
+        }
+        return farewell
     }
 
     /// The escapes owed to the terminal, and clears them.
@@ -450,11 +472,13 @@ final class TerminalImageStore: @unchecked Sendable {
     private func file(_ image: Image) {
         images[image.id] = image
         slots[image.slot, default: []].append(image.id)
+        generation += 1
     }
 
     @discardableResult
     private func unfile(_ id: KittyGraphics.ImageID) -> Image? {
         guard let image = images.removeValue(forKey: id) else { return nil }
+        generation += 1
         slots[image.slot]?.removeAll { $0 == id }
         if slots[image.slot]?.isEmpty == true { slots.removeValue(forKey: image.slot) }
         return image

@@ -103,6 +103,23 @@ struct SynchronizedOutputTests {
         terminal.pinnedGraphemeClustering = true
         #expect(terminal.signalDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
         #expect(terminal.quitDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
+
+        // And a quit's, the deletes for more images than its farewell holds.
+        let images = TerminalImageStore()
+        for index in 0..<400 {
+            _ = images.placeholderRows(
+                token: "t\(index)",
+                signature: TerminalImageSignature(
+                    source: .file("s\(index)"), rawWidth: 1, rawHeight: 1, pixelWidth: 1, pixelHeight: 1,
+                    colorMode: .trueColor, toneCurve: nil, edgeContrast: 0, dithering: .none,
+                    monoInk: RGBA(r: 255, g: 255, b: 255), monoPaper: RGBA(r: 0, g: 0, b: 0),
+                    terminalColors: .unknown),
+                columns: 1, rows: 1, pixels: { ([0x80, 0x80, 0x80, 0xFF], .rgba, 1, 1) })
+        }
+        terminal.oweFarewell(for: images)
+        #expect(terminal.quitFarewell.utf8.count > Terminal.quitFarewellCapacity - 32, "filled")
+        #expect(terminal.quitFarewell.utf8.count <= Terminal.quitFarewellCapacity)
+        #expect(terminal.quitDebt.utf8.count <= FatalSignalTerminalRestore.quitCapacity)
         terminal.keyboardFlagsPushed = false
     }
     #endif

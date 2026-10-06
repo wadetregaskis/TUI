@@ -648,6 +648,8 @@ extension AppRunner {
         let effective = renderer.effectiveMouseSupport()
         terminal.applyMouseSupport(effective)
         tuiContext.mouseEventDispatcher.setActiveSupport(effective, isFrameFinal: true)
+        // What a SIGQUIT owes for the images this frame put in or took out.
+        terminal.oweFarewell(for: tuiContext.terminalImageStore)
         return FramePacer.Frame(
             renderedAtNanos: MonotonicClock.nowNanoseconds,
             animationDeadlineNanos: deadline)

@@ -395,6 +395,71 @@ struct TerminalImageStoreTests {
         #expect(store.imageCount == 0)
     }
 
+    /// A `SIGQUIT` skips the teardown that deletes the app's images
+    /// (`AppRunner.cleanup`), and the terminal keeps an image for as long as
+    /// IT runs. So the deletes are spelled ahead of time, without releasing
+    /// anything, and cut only between whole deletes: a cut one would leave
+    /// the terminal reading what follows as the command's payload.
+    @Test("The farewell deletes every image, whole deletes only, and releases none")
+    func farewellIsWholeDeletes() {
+        let store = TerminalImageStore()
+        #expect(store.farewell().isEmpty)
+        let before = store.generation
+        for index in 0..<3 {
+            _ = store.placeholderRows(
+                token: "t\(index)", signature: signature("s\(index)"), columns: 4, rows: 2,
+                pixels: { (pixels(64), .rgba, 8, 8) })
+        }
+        #expect(store.generation != before, "putting images in changes the generation")
+        let all = store.farewell()
+        #expect(all == KittyGraphics.delete(id: 1) + KittyGraphics.delete(id: 2) + KittyGraphics.delete(id: 3))
+        #expect(store.imageCount == 3, "nothing released")
+        let one = KittyGraphics.delete(id: 1).utf8.count
+        #expect(store.farewell(fitting: 2 * one + 1) == KittyGraphics.delete(id: 1) + KittyGraphics.delete(id: 2))
+        #expect(store.farewell(fitting: one - 1).isEmpty)
+
+        let held = store.generation
+        store.release(token: "t1")
+        #expect(store.generation != held, "taking one out changes it too")
+        #expect(store.farewell() == KittyGraphics.delete(id: 1) + KittyGraphics.delete(id: 3))
+        _ = store.takePending()
+        store.releaseAll()
+        #expect(store.takePending() == all.replacingOccurrences(of: KittyGraphics.delete(id: 2), with: ""))
+    }
+
+    /// The SIGQUIT debt is what a quit writes, the images' deletes first —
+    /// held to the quit's own path: `releaseAll` and `Terminal.handBack`, as
+    /// `AppRunner.cleanup` calls them. Before 2026-10-06 a `SIGQUIT` (⌃\\)
+    /// left every image in the terminal.
+    @Test("A SIGQUIT's debt deletes the images a quit deletes, kept in step after each frame")
+    func quitDebtDeletesTheImages() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enterAlternateScreen()
+        terminal.enableRawMode()
+        let store = TerminalImageStore()
+        for index in 0..<2 {
+            _ = store.placeholderRows(
+                token: "t\(index)", signature: signature("s\(index)"), columns: 4, rows: 2,
+                pixels: { (pixels(64), .rgba, 8, 8) })
+        }
+        _ = store.takePending()
+        #expect(!terminal.quitDebt.contains("a=d"), "owed only once a frame has said so")
+        terminal.oweFarewell(for: store)
+        let owed = terminal.quitDebt
+        #expect(owed.hasPrefix(store.farewell()) && !store.farewell().isEmpty)
+
+        output.clear()
+        store.releaseAll()
+        let diffWriter = FrameDiffWriter()
+        terminal.handBack(
+            farewell: store.takePending(),
+            restoringStyling: { diffWriter.restoreDefaultStyling(on: terminal) })
+        #expect(owed == output.bytes)
+
+        terminal.oweFarewell(for: store)
+        #expect(!terminal.quitDebt.contains("a=d"), "released: nothing more owed")
+    }
+
     @Test("An extent the protocol cannot address is declined, not truncated")
     func oversizeRequestsAreDeclined() {
         let store = TerminalImageStore()

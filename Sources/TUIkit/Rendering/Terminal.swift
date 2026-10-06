@@ -251,6 +251,26 @@ final class Terminal: TerminalProtocol {
         private var originalTermios: termios?
     #endif
 
+    /// What a quit writes ahead of the hand-back, kept current for a
+    /// `SIGQUIT`, which skips the teardown: a delete for each image the app
+    /// put in the terminal (`TerminalImageStore.farewell(fitting:)`), which
+    /// the terminal otherwise keeps for as long as IT runs. The run loop has
+    /// it spelled after every frame that put an image in or took one out
+    /// (``oweFarewell(for:)``), and it is owed from then on
+    /// (``armSignalRestore()``).
+    ///
+    /// At most ``quitFarewellCapacity`` bytes, whole deletes only: about 150
+    /// images. One more is left in the terminal by a `SIGQUIT`, as every image
+    /// was before 2026-10-06; an orderly quit deletes them all.
+    private(set) var quitFarewell = "" {
+        didSet {
+            if quitFarewell != oldValue { armSignalRestore() }
+        }
+    }
+
+    /// The image store's generation ``quitFarewell`` was last spelled from.
+    private var owedImageGeneration = 0
+
     /// Whether frame buffering is active.
     ///
     /// When `true`, ``write(_:)`` appends to ``frameBuffer`` instead of
@@ -722,13 +742,28 @@ extension Terminal {
 
     /// What the terminal is owed should the process die of `SIGQUIT`, the
     /// user's quit key: what a quit writes (``handBack(farewell:restoringStyling:)``),
-    /// in a quit's order — the styling reset (`RenderLoop.restoreTerminalStyling()`),
-    /// ``signalDebt``, which is raw mode's teardown and the cursor shown, and
-    /// the alternate screen left (``isOnAlternateScreen``). Unlike a crash, a
-    /// quit has no report to keep on the screen.
+    /// in a quit's order — the farewell (``quitFarewell``), the styling reset
+    /// (`RenderLoop.restoreTerminalStyling()`), ``signalDebt``, which is raw
+    /// mode's teardown and the cursor shown, and the alternate screen left
+    /// (``isOnAlternateScreen``). Unlike a crash, a quit has no report to keep
+    /// on the screen.
     var quitDebt: String {
-        ANSIRenderer.reset + signalDebt + (isOnAlternateScreen ? ANSIRenderer.exitAlternateScreen : "")
+        quitFarewell + ANSIRenderer.reset + signalDebt
+            + (isOnAlternateScreen ? ANSIRenderer.exitAlternateScreen : "")
     }
+
+    /// Keeps ``quitFarewell`` in step with `images`, after a frame: one
+    /// integer compare, and the deletes spelled again only when the frame put
+    /// an image in or took one out.
+    func oweFarewell(for images: TerminalImageStore) {
+        guard images.generation != owedImageGeneration else { return }
+        owedImageGeneration = images.generation
+        quitFarewell = images.farewell(fitting: Self.quitFarewellCapacity)
+    }
+
+    /// The most bytes ``quitFarewell`` may be: what the signal handler's
+    /// buffer holds beyond the rest of ``quitDebt``.
+    nonisolated static let quitFarewellCapacity = 4096
 
     /// Owes the terminal ``signalDebt``, or ``quitDebt`` for a `SIGQUIT`, and
     /// the shell's termios, should the process die of a signal now; see

@@ -45,12 +45,17 @@ import Musl
 /// `SIGQUIT` is the exception. It is the user's quit key, `⌃\`, which the
 /// terminal driver turns into the signal (raw mode keeps only that one signal
 /// character live), and a quit is not a crash: there is no report to keep,
-/// and the user asked to leave. So it pays what a normal quit writes — the
-/// styling reset, the debt above, and the alternate screen left
-/// (`Terminal.quitDebt`) — and then ends by the signal's default action, the
-/// shell's "Quit: 3", never through the handler that was there before: that
-/// is the Swift runtime's crash reporter, which would print a backtrace,
-/// call it a crash, and on a terminal wait half a minute for a key.
+/// and the user asked to leave. So it pays what a normal quit writes — a
+/// delete for each image the app put in the terminal, the styling reset, the
+/// debt above, and the alternate screen left (`Terminal.quitDebt`) — and then
+/// ends by the signal's default action, the shell's "Quit: 3", never through
+/// the handler that was there before: that is the Swift runtime's crash
+/// reporter, which would print a backtrace, call it a crash, and on a
+/// terminal wait half a minute for a key. Of the rest of a quit's teardown it
+/// does nothing: no focus is given up, a setting saved a moment before may
+/// not be on disk, and under tmux the client hooks stay installed until their
+/// next firing removes them (`TerminalHost.tmuxClientChangeHookArguments`),
+/// as after a crash — removing them forks tmux, no call for a signal handler.
 ///
 /// ## Which signals
 ///
@@ -122,6 +127,10 @@ enum FatalSignalTerminalRestore {
     /// ``arm(owing:onQuit:restoring:)`` would cut off the rest.
     static let capacity = 256
 
+    /// The most bytes a quit's debt can be: ``capacity``, and the image
+    /// deletes a quit writes first (`Terminal.quitFarewell`).
+    static let quitCapacity = capacity + Terminal.quitFarewellCapacity
+
     /// The owed bytes, and how many of them are owed: zero when nothing is.
     /// Written only on the main actor, read only by the handler.
     nonisolated(unsafe) private static let owed = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
@@ -129,7 +138,7 @@ enum FatalSignalTerminalRestore {
 
     /// What a `SIGQUIT` pays instead: what a quit writes, the alternate screen
     /// left with the rest.
-    nonisolated(unsafe) private static let owedOnQuit = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+    nonisolated(unsafe) private static let owedOnQuit = UnsafeMutablePointer<UInt8>.allocate(capacity: quitCapacity)
     nonisolated(unsafe) private static var owedOnQuitCount = 0
 
     /// The termios the shell had, put back by the handler while
@@ -151,7 +160,7 @@ enum FatalSignalTerminalRestore {
     @MainActor
     static func arm(owing sequence: String, onQuit quitSequence: String, restoring termios: termios?) {
         let bytes = Array(sequence.utf8.prefix(capacity))
-        let quitBytes = Array(quitSequence.utf8.prefix(capacity))
+        let quitBytes = Array(quitSequence.utf8.prefix(quitCapacity))
         owedCount = 0
         owedOnQuitCount = 0
         owesTermios = false
