@@ -356,9 +356,10 @@ enum ContextMenuPresentation {
                 dispatcher.pressOpenedPopup()
                 return true
             case .released:
-                // Spent on the press. Only reached when the menu did not take
-                // the release — a press and release in one input batch, with no
-                // frame in between for the menu to register its regions.
+                // Spent on the press. Only reached when no menu is drawn to
+                // take the release — one with nothing in it. (Before a frame
+                // has drawn the menu, the dispatcher spends the release itself:
+                // ``MouseEventDispatcher/pressOpenedPopup(closing:)``.)
                 return true
             default:
                 return false

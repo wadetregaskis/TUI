@@ -723,9 +723,9 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     return true
                 case .released where event.button == .left:
                     // The trigger already fired on the press. This release only
-                    // arrives when the menu did not take it (it opens on the
-                    // frame after the press, so a press and release in one input
-                    // batch both land here) — consumed, but never a second
+                    // arrives when no menu is drawn to take it — one with nothing
+                    // in it; before a frame has drawn the menu, the dispatcher
+                    // spends the release itself — consumed, but never a second
                     // activation, which would toggle the menu straight shut.
                     guard !isMenuTrigger else { return true }
                     capturePressBox.value = false

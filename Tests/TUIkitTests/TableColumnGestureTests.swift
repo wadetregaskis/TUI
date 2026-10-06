@@ -25,6 +25,11 @@ private final class Columns {
     var bound = true
     var sortOrder = [KeyPathComparator(\Entry.alpha)]
     var selection: Set<Int> = []
+    /// Whether the table carries a column of `Toggle`s instead of its usual
+    /// four columns.
+    var toggles = false
+    /// The entries whose toggle is on.
+    var flags: Set<Int> = []
 }
 
 private struct Entry: Identifiable, Equatable {
@@ -56,7 +61,9 @@ private struct ColumnsPage: View {
     private let entries = (1...3).map(Entry.init)
 
     var body: some View {
-        if columns.bound {
+        if columns.toggles {
+            toggleTable
+        } else if columns.bound {
             Table(
                 entries, selection: Bindable(columns).selection, sortOrder: Bindable(columns).sortOrder,
                 columnCustomization: Bindable(columns).customization
@@ -82,14 +89,39 @@ private struct ColumnsPage: View {
     }
 }
 
+extension ColumnsPage {
+    /// Alpha and Beta, and a Delta column of toggles.
+    private var toggleTable: some View {
+        Table(
+            entries, selection: Bindable(columns).selection, sortOrder: Bindable(columns).sortOrder,
+            columnCustomization: Bindable(columns).customization
+        ) {
+            TableColumn("Alpha", value: \.alpha).customizationID("alpha")
+            TableColumn("Beta", value: \.beta).customizationID("beta")
+            TableColumn("Delta") { (entry: Entry) in
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { columns.flags.contains(entry.id) },
+                        set: { on in
+                            if on { columns.flags.insert(entry.id) } else { columns.flags.remove(entry.id) }
+                        }))
+            }
+            .width(6)
+        }
+        .frame(height: 9)
+    }
+}
+
 @MainActor
 private final class Harness {
     let columns = Columns()
     let app: HeadlessApp<ColumnsApp>
     private var now: Int64 = 0
 
-    init(bound: Bool = true) {
+    init(bound: Bool = true, toggles: Bool = false) {
         columns.bound = bound
+        columns.toggles = toggles
         app = HeadlessApp(ColumnsApp(columns), width: 60, height: 14)
         frame()
         frame()
@@ -399,6 +431,31 @@ struct TableColumnGestureTests {
         harness.app.send(MouseEvent(button: .left, phase: .released, x: alpha, y: row))
         harness.frame()
         #expect(harness.columns.selection.isEmpty, "the release selected a row:\n\(harness.screen)")
+        #expect(harness.shows("Hide “Beta”"), "a click's release closed the menu:\n\(harness.screen)")
+    }
+
+    @Test(
+        "The release of the press that opened the column menu toggles no Toggle under it, with or without a frame between",
+        arguments: [false, true])
+    func menuOpeningPressSpendsItsReleaseOnAControl(frameBetween: Bool) throws {
+        // A row's controls win over the rows' own region, so the rows' check
+        // of the gesture never hears a release on one: until a frame drew the
+        // menu, it was the Toggle's — a click it was never pressed for.
+        let harness = Harness(toggles: true)
+        let y = try #require(harness.headerY, "\(harness.screen)")
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        let delta = try #require(harness.column(of: "Delta", on: y))
+        let first = try #require(harness.lines.firstIndex { $0.contains("a1") }, "\(harness.screen)")
+        let second = try #require(harness.lines.firstIndex { $0.contains("a2") })
+        // A click on a toggle toggles it: the cell takes the pointer.
+        harness.send(MouseEvent(button: .left, phase: .pressed, x: delta + 1, y: first))
+        harness.send(MouseEvent(button: .left, phase: .released, x: delta + 1, y: first))
+        #expect(harness.columns.flags == [1], "\(harness.screen)")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
+        if frameBetween { harness.frame() }
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: delta + 1, y: second))
+        harness.frame()
+        #expect(harness.columns.flags == [1], "the release toggled a2:\n\(harness.screen)")
         #expect(harness.shows("Hide “Beta”"), "a click's release closed the menu:\n\(harness.screen)")
     }
 

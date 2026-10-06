@@ -3784,12 +3784,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // from a secondary press on a title, or any other pop-up — is the
         // menu's. A menu-opening press hands its gesture off
         // (``MouseEventDispatcher/handOffGesture()``), so what follows it is
-        // hit-tested live, and until a frame draws the menu over the header
-        // the header's own regions are what it lands on. Asked of the
-        // event alone, a drag there after a Ctrl-press whose Ctrl was let go —
-        // a drag does not carry its press's modifiers, as the release does —
-        // was a resize on the gap it crossed, measured from a press the gap
-        // never took. The title, and the row menu
+        // hit-tested live: the dispatcher spends it until a frame has drawn
+        // the menu, but a drawn menu's backdrop passes a drag on to what is
+        // under it, and a pop-up that drew nothing is gone. Asked of the event
+        // alone, a drag here after a Ctrl-press whose Ctrl was let go — a drag
+        // does not carry its press's modifiers, as the release does — was a
+        // resize on the gap it crossed, measured from a press the gap never
+        // took. The title, and the row menu
         // (``RowContextMenuHost/preflight(_:wheel:menu:dispatcher:row:)``),
         // ask the gesture the same way.
         if dispatcher.followsPopupOpeningPress(event) { return true }

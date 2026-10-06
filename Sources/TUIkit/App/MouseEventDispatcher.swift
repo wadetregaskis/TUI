@@ -638,6 +638,11 @@ extension MouseEventDispatcher {
     ///
     /// The ordinary press keeps its capture, and should: it is what lets you
     /// press a button, slide off it, and release to cancel.
+    ///
+    /// A press that hands off says too that it opened a pop-up
+    /// (``pressOpenedPopup(closing:)``), and until a frame has drawn the
+    /// pop-up there is nothing of it on screen to hit-test against: the
+    /// dispatcher spends those drags and that release itself.
     func handOffGesture() {
         gestureHandedOff = true
     }
@@ -646,16 +651,19 @@ extension MouseEventDispatcher {
     /// OPENED a pop-up menu, so the release ending the same click is already
     /// spoken for. See ``endsPopupOpeningClick(_:)``.
     ///
+    /// Until a frame has drawn the pop-up, the dispatcher spends the drags and
+    /// the release of the gesture itself (``routeAgainstItsPress(_:)``):
+    /// hit-tested live, they would land on the screen as the last frame left
+    /// it, where nothing of the pop-up's is yet.
+    ///
     /// - Parameter closing: How to close the pop-up if the gesture ends in a
     ///   held release (``endsHeldGesture(_:)``) before any frame has drawn it.
     ///   Drawn, a pop-up closes on such a release itself, wherever it lands:
     ///   the dismiss backdrop closes it, its chrome does, and a row it lands
-    ///   on runs and closes it. Undrawn, the release is hit-tested against the
-    ///   screen as the last frame left it, where nothing of the pop-up's is —
-    ///   the press and its release came in one input batch — and left it up.
-    ///   With this the dispatcher closes it, without choosing anything: the
-    ///   user let go before the menu was there to see. `nil` leaves an undrawn
-    ///   pop-up up.
+    ///   on runs and closes it. Undrawn — the press and its release came in
+    ///   one input batch — the dispatcher spends the release and runs this,
+    ///   which closes it without choosing anything: the user let go before the
+    ///   menu was there to see. `nil` leaves an undrawn pop-up up.
     func pressOpenedPopup(closing: (() -> Void)? = nil) {
         pressOpenedPopupMenu = true
         closeUndrawnPopup = closing
@@ -956,8 +964,9 @@ extension MouseEventDispatcher {
     ///
     /// - Returns: the dispatch result when the press itself decides the
     ///   event's fate — routed to a live capture, to the legacy-release
-    ///   fallback, or dropped for having no press behind it at all — and `nil`
-    ///   when the event should go on to ordinary live hit-testing.
+    ///   fallback, spent for a pop-up no frame has drawn yet, or dropped for
+    ///   having no press behind it at all — and `nil` when the event should go
+    ///   on to ordinary live hit-testing.
     func routeAgainstItsPress(_ event: MouseEvent) -> Bool? {
         // When a button is held, every subsequent event for it goes to the
         // handler that took the press, wherever the cursor sits now.
@@ -968,6 +977,24 @@ extension MouseEventDispatcher {
             if event.phase == .released {
                 pressedHandlers[event.button] = nil
             }
+            return true
+        }
+
+        // The drags and the release a pop-up-opening press handed off, before
+        // any frame has drawn the pop-up. Hit-tested live they land on the
+        // screen as the last frame left it, where nothing of the pop-up's is
+        // yet — the press and they came in one input batch — and whatever is
+        // under them got a gesture it was never pressed for: a `Toggle` acting
+        // on the release toggled, a text field selected to the drag, a row was
+        // clicked. With a frame between, the pop-up's backdrop takes the
+        // release. So until then the dispatcher spends them itself, as the
+        // backdrop would:
+        // a held release closes the pop-up (the `dispatch` defer, through
+        // ``pressOpenedPopup(closing:)``), a click's release leaves it up.
+        if event.phase == .dragged || event.phase == .released, pressOpenedPopupMenu, !renderedSincePress,
+            handedOffPresses.contains(event.button)
+        {
+            if event.phase == .released { handedOffPresses.remove(event.button) }
             return true
         }
 

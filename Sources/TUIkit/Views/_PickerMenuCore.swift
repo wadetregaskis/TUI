@@ -352,9 +352,10 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 }
                 return true
             case .released where event.button == .left:
-                // Already acted on, on the press. Only reached when the menu did
-                // not take the release (press and release in one input batch, so
-                // no frame in between) — consumed, never a second toggle.
+                // Already acted on, on the press. Only reached when no drop-down
+                // is drawn to take the release (before a frame has drawn it, the
+                // dispatcher spends the release itself) — consumed, never a
+                // second toggle.
                 return true
             default: return false
             }

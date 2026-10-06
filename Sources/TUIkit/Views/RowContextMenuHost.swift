@@ -179,13 +179,12 @@ enum RowContextMenuHost {
         // slow one did different things. Nor is it a secondary click by its
         // modifiers alone, for the same reason.
         //
-        // Asked before whether this container has a menu at all: the pop-up
-        // may be another's — a table's column menu, a `.contextMenu` beside
-        // the list — and until a frame draws it over the rows, the drags and
-        // release it was handed (``MouseEventDispatcher/handOffGesture()``)
-        // land on them. A release there was a click on a row, carrying its
-        // press's Ctrl, where with a frame between the menu's backdrop took
-        // it.
+        // Until a frame has drawn the pop-up, the dispatcher spends the drags
+        // and release it was handed (``MouseEventDispatcher/handOffGesture()``)
+        // itself; this is for after one, when a pop-up that drew nothing is
+        // gone and they land on the rows. Asked before whether this container
+        // has a menu at all, since the pop-up may be another's — a
+        // `.contextMenu` beside the list.
         //
         // Its drags and its release only: the record of that press stands
         // until the next one, and the motion, wheel and hover between are
