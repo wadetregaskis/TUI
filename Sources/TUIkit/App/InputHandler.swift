@@ -318,12 +318,7 @@ extension InputHandler {
         // Quit stays available even behind a transient surface — a modal's status
         // bar still offers `q quit` as an escape hatch — so it is handled first,
         // unconditionally.
-        if statusBar.quitShortcut.matches(event) {
-            if statusBar.isQuitAllowed {
-                // Through the bar, so a top-level dismissal confirmation can
-                // ask first.
-                statusBar.requestQuit(onQuit)
-            }
+        if runQuitShortcut(event) {
             return true
         }
 
@@ -331,11 +326,8 @@ extension InputHandler {
         // Ctrl-minus and Ctrl-/ for undo, Ctrl-Shift-Z, Ctrl-_ and Option-_ for
         // redo, where the terminal can send them. Down here, after the app's
         // shortcuts, so a binding of the app's own on the chord — a ⌘- zoom-out
-        // under `.commandKey(.control)` — keeps it. A bound key is the
-        // command's whether or not there is a step: with nothing to undo,
-        // Ctrl-Z does nothing, rather than suspend the app some of the time.
-        if let undoManager, let command = undoKeys.command(for: event) {
-            _ = command.perform(on: undoManager)
+        // under `.commandKey(.control)` — keeps it.
+        if runUndoKey(event) {
             return true
         }
 
@@ -372,6 +364,31 @@ extension InputHandler {
         // only the ESC key; it doesn't ground the chrome shortcuts the way
         // an open drop-down does — hence the grabs-input qualifier.
         return handleGlobalShortcut(event, inputGrabbed: globalChromeGrabbed)
+    }
+
+    /// Layer 4's quit: the status bar's quit key (`q` by default), which
+    /// quits through the bar, so a top-level dismissal confirmation can ask
+    /// first — and does nothing where the bar does not allow a quit.
+    ///
+    /// - Returns: Whether `event` was the quit key: taken, quit or not.
+    func runQuitShortcut(_ event: KeyEvent) -> Bool {
+        guard statusBar.quitShortcut.matches(event) else { return false }
+        if statusBar.isQuitAllowed {
+            statusBar.requestQuit(onQuit)
+        }
+        return true
+    }
+
+    /// Layer 4's undo and redo: the scene's keys (``undoKeys``), once there
+    /// is an undo manager. A bound key is the command's whether or not there
+    /// is a step: with nothing to undo, Ctrl-Z does nothing, rather than
+    /// suspend the app some of the time.
+    ///
+    /// - Returns: Whether `event` was one of the keys.
+    func runUndoKey(_ event: KeyEvent) -> Bool {
+        guard let undoManager, let command = undoKeys.command(for: event) else { return false }
+        _ = command.perform(on: undoManager)
+        return true
     }
 
     /// Offers a key's release to the focus path's key-press handlers, the
