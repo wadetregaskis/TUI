@@ -144,8 +144,9 @@ viewport.
 
 Shipped: a `ScrollView` under any behaviour but the default reserves the pair
 at every offset, as `.visible` does, wherever its content overflows the
-viewport — decided once per layout, on the content's height in the whole
-viewport, so it is the same at every stop; content that fits has nowhere to
+window it is seen through — decided once per layout, on the content's height
+in that window with nothing reserved (the viewport, less a horizontal bar that
+is always drawn), so it is the same at every stop; content that fits has nowhere to
 step and reserves nothing (scroll lane review 3: five rows in a dialog drew
 three between "▲ 0 more" and "▼ 2 more", and scrolled). Reserved lines come
 off the `containerRelativeFrame` container (under `.visible` too, with or

@@ -333,8 +333,13 @@ extension _ScrollViewCore {
     /// same at every stop; and on the whole window, so content sized against
     /// the container answers as it will be drawn — pages as tall as the whole
     /// window that overflow it overflow the window less the pair as well, and
-    /// one page that fits it is drawn unreserved and fits. Asked as though no
-    /// horizontal bar is drawn, as ``containerSize(viewport:context:)`` asks.
+    /// one page that fits it is drawn unreserved and fits. The window is the
+    /// one ``containerSize(viewport:context:)`` leaves when it reserves
+    /// nothing: less a horizontal bar known to be drawn (`.visible`), its row
+    /// and its indicator margin. Asked of the whole viewport, content that
+    /// overflowed the window by no more than the bar's row reserved nothing,
+    /// and its pair was drawn over the window's edge lines under a behaviour
+    /// that lands steps in it.
     ///
     /// A measure of the content, paid only by a text-style view under a
     /// behaviour (the free one, the default, asks nothing), in a measure
@@ -349,16 +354,20 @@ extension _ScrollViewCore {
     /// still serve the probe, frame after frame; the price is that a view
     /// reserving nothing is no longer served the probe's measure for its own.
     func contentOverflowsWindow(viewport: CellSize, context: RenderContext) -> Bool {
+        let (bar, barMargin) = knownHorizontalBar(context)
+        let barRows = bar ? 1 + barMargin : 0
+        let container = unreservedContainerSize(viewport: viewport, context: context)
         let probe = context.publishingContainerSize(
-            unreservedContainerSize(viewport: viewport, context: context), noting: false
+            CellSize(width: container.width, height: max(0, container.height - barRows)), noting: false
         ).invalidatingMeasureMemo()
         let width = max(1, viewport.width)
+        let window = max(0, viewport.height - barRows)
         guard axes.contains(.horizontal) else {
-            return contentOverflowsCanvas(contentWidth: width, viewportHeight: viewport.height, context: probe)
+            return contentOverflowsCanvas(contentWidth: width, viewportHeight: window, context: probe)
         }
         return contentExtents(
-            contentWidth: width, viewportHeight: viewport.height, horizontal: true, context: probe
-        ).height > viewport.height
+            contentWidth: width, viewportHeight: window, horizontal: true, context: probe
+        ).height > window
     }
 }
 

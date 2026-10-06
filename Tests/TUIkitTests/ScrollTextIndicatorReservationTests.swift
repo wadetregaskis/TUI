@@ -143,4 +143,27 @@ struct ScrollTextIndicatorReservationTests {
         #expect(lines.contains { $0.contains("top 4") }, "\(lines)")
         #expect(lines.contains { $0.contains("end 4") }, "\(lines)")
     }
+
+    /// A horizontal bar that is always drawn takes its row off the window, so
+    /// content as tall as the viewport overflows the window by that row. The
+    /// decision was asked of the whole viewport, so it reserved nothing, and
+    /// the pair was drawn over the window's edge lines under the behaviour.
+    @Test("Content that overflows only by an always-drawn horizontal bar's row still has the pair reserved")
+    func overflowByTheBarsRowReserves() {
+        let frames = ScrollTargetFrames(width: 20, height: 10)
+        let view = ScrollView([.horizontal, .vertical]) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<10, id: \.self) { Text("row \($0) " + String(repeating: "-", count: 30)) }
+            }
+        }
+        .scrollIndicators(.visible, axes: .horizontal)
+        .scrollIndicators(.automatic, axes: .vertical)
+        .scrollIndicatorStyle(.text)
+        .scrollTargetBehavior(.paging)
+        frames.render(view)
+        frames.render(view)
+        let result = drawn(frames)
+        #expect(result.rows == Array(0..<7), "\(frames.last.lines.map(\.stripped))")
+        #expect(result.indicators == 2)
+    }
 }
