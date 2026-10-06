@@ -763,7 +763,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     private func applyOverscroll(
         to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int, clips: Bool, context: RenderContext
     ) -> FrameBuffer {
-        let excursion = contentSlide(handler: handler, viewportHeight: buffer.lines.count, context: context)
+        let excursion = windowSlide(handler: handler, viewportHeight: buffer.lines.count, context: context)
         guard excursion != 0, !buffer.lines.isEmpty else { return buffer }
         let blank = String(repeating: " ", count: max(0, width))
         let gap = min(abs(excursion), buffer.lines.count)

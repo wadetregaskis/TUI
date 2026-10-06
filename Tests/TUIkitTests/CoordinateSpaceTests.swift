@@ -276,6 +276,22 @@ struct CoordinateSpaceTests {
         #expect(harness.geometryCorrections == settled)
     }
 
+    @Test("A scroll view places its content by its slide only for a carried origin, which alone reads it")
+    func slideIsReadOnlyForACarriedOrigin() {
+        let core = _ScrollViewCore(axes: .vertical, content: Text("x"), explicitFocusID: nil, isDisabled: false)
+        let handler = ScrollViewHandler(focusID: "sv")
+        // Three rows at the bottom of a viewport of ten: the window is slid
+        // seven rows down over them.
+        handler.contentHeight = 3
+        var environment = EnvironmentValues()
+        environment.defaultScrollAnchor = .bottom
+        let context = RenderContext(availableWidth: 20, availableHeight: 10, environment: environment)
+        #expect(core.contentSlide(handler: handler, viewportHeight: 10, context: context.carryingGeometryOrigin()) == -7)
+        // With no origin carried, the placement moves nothing, and no
+        // alignment anchor is read for it.
+        #expect(core.contentSlide(handler: handler, viewportHeight: 10, context: context) == 0)
+    }
+
     @Test(".scrollView is the innermost scroll view; .scrollView(axis:) the innermost along that axis")
     func nestedScrollViews() {
         let inner = Seen()

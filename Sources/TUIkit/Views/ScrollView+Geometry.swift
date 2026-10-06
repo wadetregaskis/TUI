@@ -99,9 +99,20 @@ extension _ScrollViewCore {
     /// offset, as drawn (`applyOverscroll`): the overscroll excursion —
     /// negative past the top, the content pushed down — less the alignment
     /// anchor's shift of content shorter than the viewport.
-    func contentSlide(handler: ScrollViewHandler, viewportHeight: Int, context: RenderContext) -> Int {
+    func windowSlide(handler: ScrollViewHandler, viewportHeight: Int, context: RenderContext) -> Int {
         handler.overscrollState.excursion
             - alignmentShift(handler: handler, viewportHeight: viewportHeight, context: context)
+    }
+
+    /// How far a drawing of the content is slid for the readers in it: the
+    /// window's slide (``windowSlide(handler:viewportHeight:context:)``)
+    /// where an origin is carried to this view, and `0` where none is — the
+    /// placement it feeds then moves nothing (`RenderContext.placingChild`),
+    /// so a scroll view with no reader in or around it reads no alignment
+    /// anchor for it, whatever its content's height.
+    func contentSlide(handler: ScrollViewHandler, viewportHeight: Int, context: RenderContext) -> Int {
+        guard context.carriesGeometryOrigin else { return 0 }
+        return windowSlide(handler: handler, viewportHeight: viewportHeight, context: context)
     }
 
     /// Where the frame shows the content's top-left in the viewport: minus
@@ -133,9 +144,12 @@ extension _ScrollViewCore {
         of drawing: ScrollContentDrawing, handler: ScrollViewHandler, viewport: CellSize, horizontal: Bool,
         context: RenderContext
     ) {
-        guard !context.isMeasuring, let geometry = context.geometryCoordinator, geometry.unansweredTotal > 0 else {
-            return
-        }
+        // Nothing carried to this view, nothing in its content was predicted
+        // from where it placed it: an origin a declaration inside starts is
+        // answered inside, before this view has drawn.
+        guard !context.isMeasuring, context.carriesGeometryOrigin, let geometry = context.geometryCoordinator,
+            geometry.unansweredTotal > 0
+        else { return }
         let settled = settledPlacement(
             handler: handler, viewportHeight: viewport.height, horizontal: horizontal, context: context)
         guard settled != drawing.placement else { return }

@@ -289,8 +289,9 @@ extension _ScrollViewCore {
     ///   is `verticalScrollOffset`).
     /// - Parameter slide: How far the window will be slid up over the
     ///   content past the offset — the overscroll excursion less the alignment
-    ///   anchor's shift (``contentSlide(handler:viewportHeight:context:)``) —
-    ///   which places the content for its readers too.
+    ///   anchor's shift — which places the content for its readers too: `0`
+    ///   where nothing carries an origin to read it
+    ///   (``contentSlide(handler:viewportHeight:context:)``).
     func renderedContent(
         contentWidth: Int, viewportHeight: Int, horizontal: Bool,
         verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, slide: Int = 0, seek: ScrollToRequest? = nil,
