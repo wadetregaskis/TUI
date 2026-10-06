@@ -81,6 +81,11 @@ public struct StatusBar: View {
     /// the bar it is placed in frames it — and takes the alignment and colours
     /// the state was given. Outside a running app there is no state, and it
     /// draws nothing.
+    ///
+    /// What it draws is read when the frame is drawn, so the value itself
+    /// describes none of it: its ``userItems`` and ``systemItems`` are empty,
+    /// ``hasItems`` is `false` and ``height`` is 0. Ask the app's
+    /// ``StatusBarState`` (`currentItems`, `hasItems`) what the line holds.
     public init() {
         self.userItems = []
         self.systemItems = []
