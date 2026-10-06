@@ -430,48 +430,9 @@ extension RenderLoop {
         // This frame's instant, before anything reads a phase from the clock. The run
         // loop has already shown it; a render called any other way has not.
         cursorTimer?.observe(nowNanos: UInt64(bitPattern: frameNowNanos))
-        // Drag auto-scroll: drive ONE tick against the PREVIOUS frame's zones
-        // and region rects — before `beginRenderPass()` clears the dispatcher's
-        // regions and before the tree re-registers this frame's zones. The drag
-        // cursor is current, so a scroll near an edge shows in the frame we're
-        // about to render, with no visible lag. This must precede
-        // `beginRenderPass()`: that call empties `mouseEventDispatcher.regions`,
-        // and `driveAutoScroll` resolves each zone's on-screen rect through the
-        // dispatcher — run it after, and every `regionRect` lookup is nil and the
-        // viewport never scrolls. While engaged the loop must keep ticking even
-        // if the cursor holds still, so request a lattice at the auto-scroll cadence.
-        //
-        // Sourced from `tuiContext` (not `environment`, which isn't built until
-        // below) — the same session either way (see ServiceEnvironment).
-        if tuiContext.dragAndDropSession.driveAutoScroll(
-            nowNanos: UInt64(bitPattern: frameNowNanos))
-        {
-            animationScheduler?.request("drag-autoscroll", .dragAutoScroll)
-        }
-
-        // Spring loading, at the same point and for the same reason: the pause
-        // is over what the LAST frame drew. A control the pause activates shows
-        // its effect in this frame; one still pending asks for a frame at the
-        // instant the pause will have lasted the delay, since a pointer resting
-        // still sends nothing that would ask for one.
-        if let deadline = tuiContext.dragAndDropSession.driveSpringLoading(
-            nowNanos: UInt64(bitPattern: frameNowNanos))
-        {
-            animationScheduler?.requestWake("drag-spring-loading", at: Int64(bitPattern: deadline))
-        }
-
-        driveDragFlights(nowNanos: frameNowNanos, scheduler: animationScheduler)
-
-        // The gestures' clocks — a long press's minimum duration, a tap's wait
-        // for its next click — run to this frame's instant before the tree
-        // renders, so what a timed end changes is drawn in this frame. Before
-        // `beginRenderPass()` as well: a control a gesture was holding back is
-        // handed its press here, against the handlers of the frame it was
-        // pressed on.
-        tuiContext.mouseEventDispatcher.advanceGestures(nowNanos: frameNowNanos)
-        if let deadline = tuiContext.mouseEventDispatcher.gestureDeadline {
-            animationScheduler?.requestWake("gestures", at: deadline)
-        }
+        // The timed input — drags, spring loading, gestures — runs to this
+        // frame's instant first, against the last frame's regions.
+        driveTimedInput(nowNanos: frameNowNanos, scheduler: animationScheduler)
 
         beginRenderPass()
 
@@ -679,6 +640,56 @@ extension RenderLoop {
             usesCursor: cursorTimer?.didReadThisFrame ?? false,
             chromeRuns: (appHeaderBuffer?.animatedCells ?? [])
                 + (statusBarBuffer?.animatedCells ?? []))
+    }
+
+    /// Runs the timed input to this frame's instant, before
+    /// ``beginRenderPass()`` clears the regions it resolves against: the drag
+    /// session's auto-scroll and spring loading, the drag flights, and the
+    /// gestures' clocks. What each asks for next — a lattice, a wake — goes to
+    /// `scheduler`.
+    private func driveTimedInput(nowNanos: Int64, scheduler: AnimationScheduler?) {
+        // Drag auto-scroll: drive ONE tick against the PREVIOUS frame's zones
+        // and region rects — before `beginRenderPass()` clears the dispatcher's
+        // regions and before the tree re-registers this frame's zones. The drag
+        // cursor is current, so a scroll near an edge shows in the frame we're
+        // about to render, with no visible lag. This must precede
+        // `beginRenderPass()`: that call empties `mouseEventDispatcher.regions`,
+        // and `driveAutoScroll` resolves each zone's on-screen rect through the
+        // dispatcher — run it after, and every `regionRect` lookup is nil and the
+        // viewport never scrolls. While engaged the loop must keep ticking even
+        // if the cursor holds still, so request a lattice at the auto-scroll cadence.
+        //
+        // Sourced from `tuiContext` (not `environment`, which the render has not
+        // built yet) — the same session either way (see ServiceEnvironment).
+        if tuiContext.dragAndDropSession.driveAutoScroll(
+            nowNanos: UInt64(bitPattern: nowNanos))
+        {
+            scheduler?.request("drag-autoscroll", .dragAutoScroll)
+        }
+
+        // Spring loading, at the same point and for the same reason: the pause
+        // is over what the LAST frame drew. A control the pause activates shows
+        // its effect in this frame; one still pending asks for a frame at the
+        // instant the pause will have lasted the delay, since a pointer resting
+        // still sends nothing that would ask for one.
+        if let deadline = tuiContext.dragAndDropSession.driveSpringLoading(
+            nowNanos: UInt64(bitPattern: nowNanos))
+        {
+            scheduler?.requestWake("drag-spring-loading", at: Int64(bitPattern: deadline))
+        }
+
+        driveDragFlights(nowNanos: nowNanos, scheduler: scheduler)
+
+        // The gestures' clocks — a long press's minimum duration, a tap's wait
+        // for its next click — run to this frame's instant before the tree
+        // renders, so what a timed end changes is drawn in this frame. Before
+        // `beginRenderPass()` as well: a control a gesture was holding back is
+        // handed its press here, against the handlers of the frame it was
+        // pressed on.
+        tuiContext.mouseEventDispatcher.advanceGestures(nowNanos: nowNanos)
+        if let deadline = tuiContext.mouseEventDispatcher.gestureDeadline {
+            scheduler?.requestWake("gestures", at: deadline)
+        }
     }
 
     /// Advances the two drag flights and keeps the frames coming while either
