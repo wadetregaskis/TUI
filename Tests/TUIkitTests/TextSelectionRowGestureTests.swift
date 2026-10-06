@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkit
@@ -177,5 +178,158 @@ struct TextSelectionRowGestureTests {
         try #require(!harness.shows("Page Action"))
         harness.click((name.x + 1, name.y), ctrl: true)
         #expect(harness.shows("Page Action"))
+    }
+}
+
+/// A drag that starts on a draggable or movable row's selectable text.
+@MainActor
+@Suite("textSelection(_:) on rows: drags")
+struct TextSelectionRowDragTests {
+    typealias Item = TextSelectionRowGestureTests.Item
+    static let items = TextSelectionRowGestureTests.items
+
+    enum Shape {
+        /// A List whose rows' selectable Text is `.draggable`.
+        case draggableList
+        /// The same rows with no `.textSelection`: the control.
+        case draggableListUnselectable
+        /// A List whose rows' selectable Text vends an item provider.
+        case itemProviderList
+        /// A Table whose rows are `TableRow.draggable`, its cell's Text selectable.
+        case draggableTable
+        /// A List of a ForEach with `.onMove`, its rows' Text selectable.
+        case movableList
+    }
+
+    struct Page: View {
+        let shape: Shape
+        let moves: TextSelectionRowGestureTests.Box<[String]>
+        var body: some View {
+            switch shape {
+            case .draggableList:
+                AnyView(
+                    List(TextSelectionRowDragTests.items) { item in
+                        Text(item.name).textSelection(.enabled).draggable(item.name)
+                    }
+                    .frame(height: 9))
+            case .draggableListUnselectable:
+                AnyView(
+                    List(TextSelectionRowDragTests.items) { item in
+                        Text(item.name).draggable(item.name)
+                    }
+                    .frame(height: 9))
+            case .itemProviderList:
+                AnyView(
+                    List(TextSelectionRowDragTests.items) { item in
+                        Text(item.name).textSelection(.enabled)
+                            .itemProvider { NSItemProvider(object: item.name as NSString) }
+                    }
+                    .frame(height: 9))
+            case .draggableTable:
+                AnyView(
+                    Table(of: Item.self) {
+                        TableColumn("Name") { item in Text(item.name).textSelection(.enabled) }
+                    } rows: {
+                        ForEach(TextSelectionRowDragTests.items) { item in TableRow(item).draggable(item.name) }
+                    }
+                    .frame(height: 9))
+            case .movableList:
+                AnyView(
+                    List {
+                        ForEach(TextSelectionRowDragTests.items) { item in
+                            Text(item.name).textSelection(.enabled)
+                        }
+                        .onMove { from, to in moves.value.append("\(Array(from)) -> \(to)") }
+                    }
+                    .frame(height: 9))
+            }
+        }
+    }
+
+    struct PageApp: App {
+        let page: Page
+        init() { page = Page(shape: .draggableList, moves: .init([])) }
+        init(page: Page) { self.page = page }
+        var body: some Scene {
+            WindowGroup { page }.mouseSupport(.full)
+        }
+    }
+
+    /// What a drag from `from` to `to` did: the text it selected, whether a
+    /// drag session ran while it moved, and the moves the list made.
+    struct Outcome {
+        var selected: String?
+        var dragged: Bool
+        var moves: [String]
+    }
+
+    func drag(_ shape: Shape, onText: Bool) throws -> Outcome {
+        let page = Page(shape: shape, moves: .init([]))
+        let app = HeadlessApp(PageApp(page: page), width: 40, height: 14)
+        var now: Int64 = 0
+        func frame() {
+            now += 16_666_667
+            app.frame(atNanos: now)
+        }
+        frame()
+        frame()
+        let y = try #require(app.screen.firstIndex { $0.stripped.contains("name 1") })
+        let line = app.screen[y].stripped
+        let start = line.distance(from: line.startIndex, to: try #require(line.range(of: "name 1")).lowerBound)
+        let x = onText ? start : start + 25
+        var dragged = false
+        app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        frame()
+        for step in 1...3 {
+            app.send(MouseEvent(button: .left, phase: .dragged, x: x + step, y: y + (step == 3 ? 2 : 0)))
+            frame()
+            dragged = dragged || app.services.dragAndDropSession.active != nil
+        }
+        app.send(MouseEvent(button: .left, phase: .released, x: x + 3, y: y + 2))
+        frame()
+        return Outcome(
+            selected: app.services.screenSelection.current?.text, dragged: dragged, moves: page.moves.value)
+    }
+
+    /// Measured on macOS 15.8.1 (decisions D4X, B-D4X-7): a drag that starts
+    /// on a draggable row's selectable text selects the text, and the row is
+    /// not dragged. TUIkit's drag handle took the press ahead of the text.
+    @Test("A drag from a draggable List row's selectable text selects it and drags no row")
+    func draggableListRowText() throws {
+        let outcome = try drag(.draggableList, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+    }
+
+    @Test("A drag from an item-provider List row's selectable text selects it and drags no row")
+    func itemProviderListRowText() throws {
+        let outcome = try drag(.itemProviderList, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+    }
+
+    @Test("A drag from a draggable Table row's selectable cell text selects it and drags no row")
+    func draggableTableRowText() throws {
+        let outcome = try drag(.draggableTable, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+    }
+
+    @Test("A drag from a movable List row's selectable text selects it and moves no row")
+    func movableListRowText() throws {
+        let outcome = try drag(.movableList, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+        #expect(outcome.moves.isEmpty)
+    }
+
+    /// The rows still drag from where there is no selectable text: their
+    /// blank cells, and text no `.textSelection(.enabled)` made selectable.
+    @Test("A draggable row still drags from its blank cells, and from text that is not selectable")
+    func rowsStillDrag() throws {
+        #expect(try drag(.draggableTable, onText: false).dragged)
+        let unselectable = try drag(.draggableListUnselectable, onText: true)
+        #expect(unselectable.dragged)
+        #expect(unselectable.selected == nil)
     }
 }

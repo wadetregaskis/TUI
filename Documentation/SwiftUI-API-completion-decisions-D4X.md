@@ -116,6 +116,23 @@ blank cells; it no longer starts a selection. (Synthesised Control-clicks
 open no menu on a SwiftUI row in the probe, the plain control list included,
 so macOS's Control-click is read as its right-click, which it is.)
 
+**A drag on a draggable or movable row's text** (measured, the same probe,
+asked by the owner 2026-10-06, who expected the row to drag): in a SwiftUI
+`List` whose rows are `.onMove`, `.draggable` or `.itemProvider`, and a
+`Table` whose rows are `TableRow(…).draggable` or `.itemProvider`, a drag
+that starts on the row's selectable text selects the text — the text view
+takes the press and becomes the first responder, the copy reads what the drag
+crossed — and the row is neither moved nor selected; a press on the plain
+control list's text goes to the list instead. (The probe cannot see a row
+drag begin even from blank cells — synthesised drags start no AppKit drag
+session — so the evidence is that the text, not the row, received the
+press and tracked the drag.) TUIkit matches: a drag handle under selectable
+text gives a press on the text to the selection (`PressRole.dragSource`), and
+the row still drags from its blank cells and from text no `.enabled` made
+selectable. The alternative, the owner's expectation — the row drags, and
+selecting its text needs a modifier or a long press — is an hour (the
+handle simply keeps the press), but it is not what a Mac does.
+
 **The fuller version:** the `Table` files its columns' geometry with its rows
 (`PressRole.rows`), and a selection keeps to the cell. About two hours. D2,
 held, would make every `Text` exact.
@@ -258,7 +275,9 @@ the scope's among them, and draws the rest of the row as text, keeping no
 rectangle of it. Inside an outer `.textSelection(.disabled)` the cell's
 `.enabled` still wins on its own text, the innermost modifier winning as in a
 `List` (review 2 read it the other way; `innermostWinsInRows` pins it); the
-row's other text is under the outer scope alone, and selects nothing.
+row's other text is under the outer scope alone, and selects nothing. A
+`TableRow(…).draggable` row's selectable text, too, is selected by a drag
+that starts on it, as on macOS, and the row drags from elsewhere (B-D4X-7).
 
 **The fuller version:** the table remembers which columns' cells filed an
 enabled scope and files the columns' geometry with its rows, so only those

@@ -280,6 +280,13 @@ enum _DragHandle {
             }
         }
         scratch.handlerID = id
+        // Where text selection is enabled — around this handle, or by a scope
+        // already filed this walk (one inside its content, a table's cells) —
+        // a press on selectable text passes the handle over (`PressRole.dragSource`).
+        // One read elsewhere.
+        if context.environment.textSelectionAllowed == true || dispatcher.hasEnabledSelectionScope {
+            dispatcher.filePressRole(.dragSource, for: id, in: context)
+        }
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,

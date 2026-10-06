@@ -56,6 +56,20 @@ enum PressRole {
     /// as under an enabled one. A `List`'s rows keep their regions, so a
     /// row's own scope is found under the press, and it passes `false`.
     case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?, cellsSelectText: Bool)
+
+    /// A drag handle — a `.draggable` or `.itemProvider` view, a `Table`
+    /// row's `TableRow.draggable` — filed only where text selection is
+    /// enabled somewhere in the frame. Not a click-only region: elsewhere it
+    /// is offered the press as any control is, and takes it. But where its
+    /// press lands on TEXT that is selectable there — under an enabled
+    /// ``View/textSelection(_:)`` scope, or on a row a `.rows` region keeps
+    /// for its cells' text — it is passed over, and the press goes on to
+    /// what holds it for a selection: a drag that starts on the text selects
+    /// it, and drags no row. Measured on macOS 15.8.1 (decisions D4X,
+    /// B-D4X-7): in a SwiftUI `List` and `Table` whose rows are `.onMove`,
+    /// `.draggable` or `.itemProvider` and whose text is selectable, a drag
+    /// starting on the text selects the text; the row is not dragged.
+    case dragSource
 }
 
 extension MouseEventDispatcher {
@@ -134,6 +148,17 @@ extension MouseEventDispatcher {
             return false
         }
         let point = ScreenSelection.Point(x: event.x, y: event.y)
+        // Whether text under the press is selectable: an enabled scope, or a
+        // table's rows that keep their cells' text selectable with none. Asked
+        // only of a press that reaches a drag handle.
+        func selectsText() -> Bool {
+            guard tier == true || tier == nil && matching.contains(where: { region in
+                if case .rows(_, true) = pressRoles[region.handlerID] { return true }
+                return false
+            })
+            else { return false }
+            return screenSelection?.isText(at: point) == true
+        }
         // The pane a selection keeps to, inside an enabled scope's rectangle.
         func within(_ pane: ScreenSelection.Rect) -> ScreenSelection.Rect {
             guard let scope else { return pane }
@@ -163,6 +188,10 @@ extension MouseEventDispatcher {
                             return true
                         }
                     }
+                case .dragSource:
+                    // A drag that starts on selectable text selects it, as
+                    // macOS's rows do; the regions behind hold it for that.
+                    if selectsText() { continue }
                 }
             }
             if offer(event, to: region) != .declined { return true }

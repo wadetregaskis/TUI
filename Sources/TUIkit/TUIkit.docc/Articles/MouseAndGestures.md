@@ -266,7 +266,10 @@ TUIkit selects by itself, as a terminal would:
   either extends by words or rows. **Option-drag** selects a rectangle (iTerm2
   reports ⌘ the same way).
 - **A drag that starts on a control is the control's**: a button, a field, a
-  slider, a `.draggable` view, a list row.
+  slider, a `.draggable` view, a list row — except that a drag starting on
+  text `.textSelection(.enabled)` made selectable selects it, even on a row
+  that is `.draggable`, `.itemProvider` or `.onMove`, as macOS's rows do
+  (measured on macOS 15.8); such a row drags from its blank cells.
 - **⌘C — Ctrl-C under the default `commandKey`** — copies the selection while
   it is drawn, ahead of everything else, the focused text field included.
   ⌘C itself never reaches the app: the terminal takes it for its own,
