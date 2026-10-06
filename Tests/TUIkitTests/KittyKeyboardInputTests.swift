@@ -104,6 +104,20 @@ struct KittyKeyboardInputTests {
         ])
     }
 
+    /// The stall watchdog pops the flags while the loop is stalled
+    /// (`StallWatchdog`), and the terminal sends keys in its legacy encoding
+    /// until the loop pushes them back — while the parser still reads the
+    /// protocol's grammar. Whatever was typed across the pop has to read
+    /// right: reports from before it and legacy bytes from after it.
+    @Test("Reports from before a pop and legacy bytes from after it both decode under the protocol's grammar")
+    func legacyAfterAStallPopDecodes() {
+        #expect(events(terminal("\u{1B}[98u" + "c" + "\u{1B}[A" + "\u{1B}x" + "\u{1C}" + "\u{01}\r")) == [
+            .key(KeyEvent(character: "b")), .key(KeyEvent(character: "c")), .key(KeyEvent(key: .up)),
+            .key(KeyEvent(key: .character("x"), alt: true)), .key(KeyEvent(key: .character("\\"), ctrl: true)),
+            .key(KeyEvent(key: .character("a"), ctrl: true)), .key(KeyEvent(key: .enter)),
+        ])
+    }
+
     // MARK: - The input chain
 
     @Test("A release reaches no layer but the key-press handlers: a button acts once")

@@ -49,6 +49,13 @@ that answers the startup exchange, and checks:
      key; with a ⌃\\ shortcut of the app's, the report runs it and quits
      nothing (8b).
 
+  10. The stall watchdog, under the kitty protocol: a hung app with no key
+     pressed pops nothing; the report of ⌃\ left unread pops the flags
+     within about two seconds, and the driver's byte then quits it as in 4.
+     A slow frame (IdleProbe's stall key) pops them too, the loop pushes
+     them back, and a report sent before the pop and a byte after it both
+     read. With a ⌃\ binding, which masks the quit key, nothing is popped.
+
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
 core files (RLIMIT_CORE 0 in the child).
@@ -450,6 +457,58 @@ app.pump(3.0)
 os.write(app.master, b"\x1b[92;5u")
 app.pump(1.0)
 check(b"key ran ctrl-\\" in app.out and running(app), "kitty, ⌃\\ bound: the report runs the binding, and quits nothing")
+app.finish()
+
+# 10. The stall watchdog: under the kitty protocol ⌃\ is a report only a
+# running loop reads, so a thread pops the flags when input waits unread.
+app = App(env={"IDLE_PROBE_MODE": "hang"}, kitty=True)
+app.pump(3.5)
+check(app.stack == [31] and b"\x1b[<u" not in app.out and running(app),
+      "kitty, hung, no key pressed: nothing popped")
+mark = len(app.out)
+os.write(app.master, b"\x1b[92;5u")
+app.pump(2.5)
+check(b"\x1b[<u" in app.out[mark:] and app.stack == [] and running(app),
+      "kitty, hung: input left unread pops the flags, and the report alone quits nothing")
+mark = len(app.out)
+os.write(app.master, b"\x1c")
+check_quit(app, mark, "kitty, hung, then ⌃\\ as the driver's byte")
+app.finish()
+
+# A slow frame trips it too; the loop pushes the flags back, and the keys
+# sent between, in both encodings, read right.
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_STALL_KEY": "s"}, kitty=True)
+app.pump(3.0)
+mark = len(app.out)
+os.write(app.master, b"s")
+app.pump(0.3)
+os.write(app.master, b"\x1b[98u")
+app.pump(2.2)
+popped_at = app.out.find(b"\x1b[<u", mark)
+check(popped_at >= 0 and app.stack == [], "kitty, a slow frame: input left unread pops the flags")
+os.write(app.master, b"c")
+app.pump(3.0)
+check(popped_at >= 0 and b"\x1b[>31u" in app.out[popped_at:] and app.stack == [31],
+      "kitty, a slow frame: the loop pushes them back when it reads again")
+check(b"key b" in app.out and b"key c" in app.out and running(app),
+      "kitty, a slow frame: a report from before the pop and a byte from after it both read")
+os.write(app.master, b"q")
+status = app.wait_for_exit(5.0)
+check(status is not None and os.WIFEXITED(status) and app.stack == [] and app.termios_now() == app.before,
+      "kitty, a slow frame: q quits, the flags popped once, the termios exact")
+app.finish()
+
+# Masked for a ⌃\ binding of the app's, the driver could not quit on the byte:
+# the watchdog stays disarmed, and the flags stay pushed through a stall.
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_STALL_KEY": "s", "IDLE_PROBE_SHORTCUTS": "\\"}, kitty=True)
+app.pump(3.0)
+mark = len(app.out)
+os.write(app.master, b"s")
+app.pump(0.3)
+os.write(app.master, b"\x1b[98u")
+app.pump(4.0)
+check(b"\x1b[<u" not in app.out[mark:] and app.stack == [31] and b"key b" in app.out,
+      "kitty, ⌃\\ bound: a stall pops nothing")
 app.finish()
 
 if failures:

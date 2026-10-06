@@ -7,7 +7,7 @@ decisions-doc items: the `StdinArrivalNotifierTests` flake and a single tap
 lost after a failed double tap. 2026-10-05.*
 
 - **A. Needs your decision.** None open; A-F2-1 is decided (below).
-- **B. Shipped the safe option.** Four.
+- **B. Shipped the safe option.** Four (B-F2-4 now ships the fuller version).
 - **C. Declined without asking.** None.
 
 ## A. Needs your decision
@@ -204,7 +204,7 @@ cases no probe has measured:
 matters in practice, drop the arena's closures early by giving a departed
 gesture up at a keyboard event too, which is itself unmeasured on macOS.
 
-### B-F2-4. Under the kitty keyboard protocol, ⌃\\ does not quit a hung app
+### B-F2-4. Under the kitty keyboard protocol, a hung app quits at the second ⌃\\
 
 *The owner's request of 2026-10-05: ⌃\\ quits, as a real `SIGQUIT`, even when
 the app hangs.*
@@ -213,26 +213,51 @@ Raw mode leaves the line discipline one signal character, the user's quit
 key, so the driver raises `SIGQUIT` for ⌃\\ before the app reads a byte,
 hung or not, over ssh too. But where the terminal speaks the kitty keyboard
 protocol, TUIkit pushes its "disambiguate" flag (with the other four, for the
-keys they deliver), under which the terminal sends ⌃\\ as the report
-`CSI 92;5u` instead of 0x1C. No byte reaches the line discipline, so no
-signal. Which hosts: those that answer the protocol's query (kitty, Ghostty,
-WezTerm, foot, iTerm2 and others, per the specification; unmeasured).
+keys they deliver: flags 31), under which the terminal sends ⌃\\ as the
+report `CSI 92;5u` instead of 0x1C. No byte reaches the line discipline, so
+no signal. Which hosts: those that answer the protocol's query (kitty,
+Ghostty, WezTerm, foot, iTerm2 and others, per the specification;
+unmeasured). The input chain quits on the report (after the app's bindings,
+A-F2-1), which takes a loop that reads its input.
 
-**Shipped:** the input chain takes the report of the user's quit key ahead
-of every layer and raises `SIGQUIT` itself (`InputHandler.quitKey`), so ⌃\\
-quits there too, and leaves the terminal as a quit does, the flags popped.
-It takes the app's input loop to read the report: on those terminals a
-hung app does not quit by ⌃\\. Closing the tab, or `kill -QUIT` from another
-shell, still ends it cleanly.
+**Shipped (2026-10-06, the reviewer's watchdog, on the coordinator's
+recommendation; yours to veto):** a thread of its own, the stall watchdog
+(`StallWatchdog`, umbrella module, POSIX), sleeps in `poll` on standard
+input; when input has waited unread for 1.5 s with the loop draining
+nothing, it writes `CSI < u`. The terminal then sends keys in the legacy
+encoding, and the next ⌃\\ is 0x1C, which the driver quits on, hung or not.
+The main loop pushes the flags back at its next drain if it was only slow;
+the parser reads both encodings meanwhile. The pop is written under the one
+lock every terminal write takes, so never inside a frame. Armed only while it
+can help: flags pushed, the quit key live and not masked for a binding (the
+same mask as the legacy encoding), not during a suspend; stopped at the
+teardown. Cost to a running app: a counter stored per loop iteration, an
+uncontended lock per terminal write, and, while input arrives, a wake of the
+thread per key burst (looked at four times a second for as long as it waits
+unread).
 
-**The fuller version, if wanted:** a watchdog that notices the main loop has
-not drained stdin for a while (say two seconds with bytes pending) and reads
-stdin on a thread of its own, looking for the quit report, handing every
-other byte back to the loop in order should it recover. About half a day
-with tests; it adds a thread and a second reader of the terminal, which is
-the cost to weigh. Not pushing "disambiguate" would give the byte back to
-the driver, but loses Escape without a timeout and the five C0 chords as
-themselves (decisions A4), so it is not offered.
+**The residual:**
+
+- The report that trips it is never read: a hung app quits at the SECOND
+  ⌃\\, about two seconds after the first. Nothing is popped for a hung app
+  nobody types at — there is no way to tell a hang from an idle loop without
+  a heartbeat that would wake an idle app.
+- A main thread hung INSIDE a write (a terminal that stopped reading its
+  output) holds the lock: the watchdog waits behind it and pops nothing.
+  Writing over a frame half sent would corrupt it, and that terminal would
+  not read the pop either.
+- A frame slower than 1.5 s with keys pending pops and pushes the flags back:
+  harmless, but each modifier the decoder thought held is released (as at
+  any pop), and a key's release in that window is not reported.
+- With a binding that masks the quit key the watchdog stays disarmed, and a
+  hung app does not quit by ⌃\\ (A-F2-1's trade).
+- The quit's debt pops again after the watchdog's pop: on the alternate
+  screen, where TUIkit pushed, a pop of an empty stack is harmless.
+- Measured against the PTY smoke's terminal only; real hosts unmeasured.
+
+**To veto:** delete `StallWatchdog` and its three call sites (the run loop,
+`Terminal.refreshStallWatch`, the write gate around writes); a hung app under
+the protocol then does not quit by ⌃\\ again, as before.
 
 ## For the main decisions doc
 

@@ -4417,11 +4417,32 @@ owner's rule of 2026-10-06, that an app's own ⌃\\ overrides the quit; until
 then the report was taken ahead of every layer — and where none takes it sends
 `SIGQUIT` where the driver would have, to the app's whole process group, so a
 child the app started ends with it (`QuitKeyReport`); a release quits
-nothing, and with the quit key turned off the report is an ordinary key. That needs the app to read its input, so **on a
-terminal that speaks the protocol, ⌃\\ does not quit an app whose main thread
-has hung** (decisions B-F2-4); there, closing the tab, or `kill -QUIT` from
-another shell, still does. The smoke checks the report too, against a PTY
+nothing, and with the quit key turned off the report is an ordinary key. The smoke checks the report too, against a PTY
 that plays a terminal speaking the protocol.
+
+**A hung app under the protocol: the stall watchdog** (2026-10-06, decisions
+B-F2-4). The report needs the app to read its input, and a hung app reads
+none, so a thread of its own (`StallWatchdog`) sleeps in `poll` on standard
+input and, when input has waited unread for 1.5 s with the loop draining
+nothing, writes `CSI < u`: the terminal sends keys in the legacy encoding
+from then on, and the next ⌃\\ is 0x1C, which the driver quits on. The
+report that tripped it stays unread, so a hung app quits at the second ⌃\\,
+about two seconds after the first. A loop that was only slow pushes the
+flags back at its next drain (`Terminal.recoverFromStall`); meanwhile the
+parser still reads the protocol's grammar, which decodes the legacy bytes
+sent after the pop as well. The pop is written under the lock every terminal
+write takes (`TerminalWriteGate`), so it never lands inside a frame; a main
+thread hung INSIDE a write — the terminal not reading its output — leaves
+the watchdog waiting behind it, and nothing is popped. Armed only while the
+flags are pushed and the quit key is live in the driver: not with the key
+turned off or masked for a binding (where the byte would not quit), nor
+during a suspend. The quit's own debt pops the flags again; on the alternate
+screen a pop of an empty stack is harmless. The smoke (case 10): a hung
+IdleProbe pops nothing with no key pressed, pops within 2.5 s of an unread
+report, and the byte then quits it; a slow frame pops and pushes back, a
+report sent before the pop and a byte after both read; with a ⌃\\ binding
+nothing is popped. Against the smoke's terminal, not a real one: Ghostty,
+kitty, WezTerm and foot are unmeasured.
 
 #### ⌘ shortcuts meet the text controls' Emacs chords (recorded 2026-09-24)
 
@@ -4684,6 +4705,9 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   `CSI u` report the line discipline never turns into `SIGQUIT`, so the input
   chain raises the signal for it where none of the app's bindings takes it
   ("The quit key, ⌃\\").
+- **Pops its flags when the app stalls**: input left unread for 1.5 s has the
+  stall watchdog pop them, so a hung app's next ⌃\\ is the byte the driver
+  quits on; a loop that recovers pushes them back ("The quit key, ⌃\\").
 - **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
   so an app can tell which of SwiftUI's keyboard features work here.
 - **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out

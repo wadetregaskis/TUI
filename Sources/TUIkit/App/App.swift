@@ -432,15 +432,15 @@ extension AppRunner {
                 renderer: renderer,
                 cursorTimer: cursorTimer,
                 scheduler: animationScheduler)
-            // The bindings this frame registered decide whether the driver
-            // keeps the user's quit key: masked while the app declares one on
-            // a chord its byte could be for (`Terminal.maskQuitKey`). The
-            // line discipline is set only when that changes.
-            self.terminal.maskQuitKey(
-                inputHandler.quitKeyNeedsMasking(
-                    byte: self.terminal.quitKeyByte, aliasing: inputHandler.quitByteAliasing()))
+            self.maskQuitKeyForBindings(of: inputHandler)
             return frame
         }
+
+        // Under the kitty keyboard protocol ⌃\ is a report only a running
+        // loop reads: should the loop stall with input waiting, a thread of
+        // its own pops the protocol's flags so the next ⌃\ is the byte the
+        // driver quits on.
+        let stopStallWatchdog = startStallWatchdog()
 
         // Initial render
         pacer.render(renderOneFrame)
@@ -547,6 +547,8 @@ extension AppRunner {
 
         // Stop the animation clock before cleanup
         cursorTimer.stop()
+        // And the watchdog, before the teardown writes and pops for itself.
+        stopStallWatchdog()
 
         // Cleanup
         cleanup(renderer: renderer)
@@ -556,6 +558,30 @@ extension AppRunner {
 // MARK: - Private Helpers
 
 extension AppRunner {
+    /// Masks the user's quit key in the driver while the bindings the frame
+    /// just registered declare one on a chord its byte could be for, and
+    /// gives it back otherwise (`Terminal.maskQuitKey`): asked after every
+    /// frame, the line discipline set only when the answer changes.
+    private func maskQuitKeyForBindings(of inputHandler: InputHandler) {
+        terminal.maskQuitKey(
+            inputHandler.quitKeyNeedsMasking(byte: terminal.quitKeyByte, aliasing: inputHandler.quitByteAliasing()))
+    }
+
+    /// Starts the stall watchdog (`StallWatchdog`), which pops the kitty
+    /// keyboard protocol's flags while the loop is stalled with input
+    /// waiting, armed only while that can help
+    /// (`Terminal.refreshStallWatch()`). Returns what stops it. wasip1 has
+    /// no driver to hand ⌃\ back to, and no watchdog.
+    private func startStallWatchdog() -> () -> Void {
+        #if canImport(WASILibc)
+            return {}
+        #else
+            let watchdog = StallWatchdog(gate: terminal.writeGate)
+            watchdog.start()
+            return watchdog.stop
+        #endif
+    }
+
     /// Folds this iteration's reasons to render into one flag.
     ///
     /// A state change always needs a frame. An animation tick usually does not:
@@ -801,6 +827,12 @@ extension AppRunner {
         renderer: RenderLoop<A>,
         cursorTimer: CursorTimer
     ) {
+        // The loop is reading its input: what tells the stall watchdog it is
+        // not stalled. If it popped the kitty flags while the loop was, push
+        // them back before reading what came in meanwhile.
+        #if !canImport(WASILibc)
+            if terminal.writeGate.noteDrain() { terminal.recoverFromStall() }
+        #endif
         var eventsProcessed = 0
         let maxEventsPerFrame = 128
         while eventsProcessed < maxEventsPerFrame, let input = terminal.readEvent() {

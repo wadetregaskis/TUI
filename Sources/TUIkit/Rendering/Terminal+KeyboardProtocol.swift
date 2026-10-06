@@ -242,6 +242,31 @@ extension Terminal {
             queuedInputs.append(released)
         }
         armSignalRestore()
+        // This pop supersedes one the stall watchdog made while the loop was
+        // stalled: nothing is to be pushed again on its account.
+        #if !canImport(WASILibc)
+            writeGate.forgetWatchdogPop()
+        #endif
+        refreshStallWatch()
+    }
+
+    /// Pushes the flags again after the stall watchdog popped them while the
+    /// main loop was stalled (`StallWatchdog`): the loop's first drain after
+    /// it, when `TerminalWriteGate.noteDrain()` says so.
+    ///
+    /// The parser went on reading the protocol's grammar meanwhile — the
+    /// flags were pushed as far as it knew — and that grammar decodes the
+    /// legacy keys the terminal sent after the pop as well, so what was typed
+    /// in between reads right. The decoder's memory of held modifiers is let
+    /// go as for any pop (``KittyKeyDecoder/protocolPopped(memory:)``): a
+    /// release in the legacy encoding is never reported.
+    func recoverFromStall() {
+        guard keyboardFlagsPushed, let negotiatedKeyboardFlags else { return }
+        if let released = KittyKeyDecoder.protocolPopped(memory: &keyboardMemory) {
+            queuedInputs.append(released)
+        }
+        writeImmediate(KeyboardProtocolQuery.push(negotiatedKeyboardFlags.pushed))
+        refreshStallWatch()
     }
 
     /// The bookkeeping of a push: the parser reads the terminal's keys in the
@@ -250,5 +275,6 @@ extension Terminal {
         keyboardFlagsPushed = true
         keyboardEnhancement = negotiatedKeyboardFlags?.granted ?? []
         armSignalRestore()
+        refreshStallWatch()
     }
 }

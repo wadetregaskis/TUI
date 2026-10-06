@@ -42,7 +42,8 @@ import TUIkit
 // smallest app for a different question — what the terminal driver does with
 // the Control keys while TUIkit runs: `keys` shows each key the app hears,
 // and `hang` blocks its main thread once on screen; in `keys`,
-// `IDLE_PROBE_SHORTCUTS` binds Control shortcuts (`KeyEcho`). So does
+// `IDLE_PROBE_SHORTCUTS` binds Control shortcuts and `IDLE_PROBE_STALL_KEY`
+// names a key that stalls the main thread for three seconds (`KeyEcho`). So does
 // `IDLE_PROBE_CHILD_PIDFILE`, in any mode: a child in the app's process group
 // (bottom of this file).
 
@@ -157,9 +158,18 @@ private struct KeyEcho: View {
                 name = "\(event.key)"
             }
             heard.append((event.ctrl ? "ctrl-" : "") + name)
+            // A slow frame, not a hang: the loop stops reading for three
+            // seconds, then carries on (`IDLE_PROBE_STALL_KEY`).
+            if event.key == .character(Self.stallKey ?? "\u{0}"), event.phase == .press {
+                Thread.sleep(forTimeInterval: 3)
+            }
             return false
         }
     }
+
+    /// The key that stalls the main thread for three seconds once heard, from
+    /// `IDLE_PROBE_STALL_KEY`: what the stall watchdog has to tell from a hang.
+    private static let stallKey = ProcessInfo.processInfo.environment["IDLE_PROBE_STALL_KEY"]?.first
 }
 
 // MARK: - A child in the app's process group

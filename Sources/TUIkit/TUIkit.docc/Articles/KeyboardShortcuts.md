@@ -455,8 +455,10 @@ A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key report
 rather than the byte the driver acts on. TUIkit offers that report to your
 bindings first, as any key — a ⌃\\ shortcut or handler of yours takes it —
 and where none does, sends `SIGQUIT` itself, to the app's process group as
-the driver would, so ⌃\\ quits there too — but only while the app reads its
-input: under the protocol, a hung app does not quit by ⌃\\. There ⌃4 and ⌃|
+the driver would, so ⌃\\ quits there too. A hung app reads no report, so
+TUIkit's stall watchdog pops the protocol's flags once input has waited
+unread for 1.5 s: the next ⌃\\ reaches the driver as its byte and quits, so
+under the protocol a hung app quits at the second ⌃\\. There ⌃4 and ⌃|
 arrive as themselves, and a shortcut on them fires.
 
 ### Overriding `q` in a local view context

@@ -267,6 +267,14 @@ final class Terminal: TerminalProtocol {
     /// is made with too.
     private(set) var quitKeyMasked = false
 
+    #if !canImport(WASILibc)
+        /// The lock every write to standard output takes, shared with the
+        /// stall watchdog (`StallWatchdog`), which pops the kitty keyboard
+        /// protocol's flags under it while the main loop is stalled — never
+        /// in the middle of a frame.
+        let writeGate = TerminalWriteGate()
+    #endif
+
     /// What a quit writes ahead of the hand-back, kept current for a
     /// `SIGQUIT`, which skips the teardown: a delete for each image the app
     /// put in the terminal (`TerminalImageStore.farewell(fitting:)`), which
@@ -557,6 +565,7 @@ extension Terminal {
         // Should the process die of a signal from here on, the modes just
         // turned on and the shell's termios are owed back.
         armSignalRestore()
+        refreshStallWatch()
 
         // Mouse tracking is now managed dynamically by
         // ``applyMouseSupport(_:)`` — see ``MouseSupport`` for the
@@ -584,9 +593,22 @@ extension Terminal {
     func maskQuitKey(_ masked: Bool) {
         guard masked != quitKeyMasked else { return }
         quitKeyMasked = masked
+        refreshStallWatch()
         #if !canImport(WASILibc)
             guard isRawMode, let lineDiscipline, let original = originalTermios else { return }
             lineDiscipline.set(Self.rawModeAttributes(from: original, maskingQuitKey: masked), TCSANOW)
+        #endif
+    }
+
+    /// Arms the stall watchdog while it can do some good, and disarms it
+    /// otherwise: armed while raw mode is on, the kitty keyboard protocol's
+    /// flags are pushed, and the user's quit key is live in the driver — not
+    /// turned off by the user, not masked for a binding of the app's
+    /// (``maskQuitKey(_:)``), where popping the flags could not make ⌃\
+    /// quit. Called at each of those changes.
+    func refreshStallWatch() {
+        #if !canImport(WASILibc)
+            writeGate.setArmed(isRawMode && keyboardFlagsPushed && quitKeyByte != nil && !quitKeyMasked)
         #endif
     }
 
@@ -642,6 +664,7 @@ extension Terminal {
             }
         #endif
         isRawMode = false
+        refreshStallWatch()
         // Torn down in order: a signal from here on owes the terminal nothing.
         if exchangeTransport == nil { FatalSignalTerminalRestore.disarm() }
     }
@@ -1356,8 +1379,10 @@ extension Terminal {
                 exchangeTransport.send(String(bytes: frameBuffer[part], encoding: .utf8) ?? "")
             }
         } else {
-            frameBuffer.withUnsafeBufferPointer { buffer in
-                Self.writeFrame(buffer, omitting: omitted, holdsDisplay: holdingDisplay)
+            withWriteGate {
+                frameBuffer.withUnsafeBufferPointer { buffer in
+                    Self.writeFrame(buffer, omitting: omitted, holdsDisplay: holdingDisplay)
+                }
             }
         }
         frameBuffer.removeAll(keepingCapacity: true)
@@ -1379,8 +1404,18 @@ extension Terminal {
             let count = buffer.count - 1
             guard count >= 1, let baseAddress = buffer.baseAddress else { return }
             baseAddress.withMemoryRebound(to: UInt8.self, capacity: count) { pointer in
-                _ = Self.writeAll(pointer, count)
+                withWriteGate { _ = Self.writeAll(pointer, count) }
             }
         }
+    }
+
+    /// Runs `body`, a write to standard output, holding ``writeGate``, so the
+    /// stall watchdog's pop never lands inside it. wasip1 has no watchdog.
+    fileprivate func withWriteGate(_ body: () -> Void) {
+        #if canImport(WASILibc)
+            body()
+        #else
+            writeGate.withWriteLock(body)
+        #endif
     }
 }
