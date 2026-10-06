@@ -137,6 +137,53 @@ private struct NestedSubtitlesApp: App {
     }
 }
 
+/// A titled view with a subtitle of its own beside a titled view with none —
+/// a detail and its inspector.
+private struct SiblingTitledSubtitleApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            HStack {
+                Text("DETAIL").navigationTitle("INBOX").navigationSubtitle("UNREAD")
+                Text("INSPECTOR").navigationTitle("INFO")
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+/// A subtitle round a sibling's title — a sidebar whose subtitle is on the
+/// view round its titled list — beside a titled view with none.
+private struct SiblingRoundSubtitleApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            HStack {
+                VStack { Text("SIDEBAR").navigationTitle("MAIL") }.navigationSubtitle("ACCOUNTS")
+                Text("DETAIL").navigationTitle("INFO")
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+/// A subtitle round the title, and a later sibling with one of its own.
+private struct RoundAndBesideSubtitleApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            HStack {
+                VStack { Text("H").navigationTitle("NOTES") }.navigationSubtitle("THREE-NOTES")
+                Text("FOOTER").navigationSubtitle("SYNCED")
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
 /// Two titled views side by side, the second one wrapped or not.
 private struct SiblingTitlesApp: App {
     var wrapped = false
@@ -247,6 +294,28 @@ struct WindowTitleTests {
         let bar = topBar(NestedSubtitlesApp())
         #expect(bar.last?.contains("OUTER-SUB") == true, "\(bar)")
         #expect(!bar.contains { $0.contains("INNER-SUB") }, "\(bar)")
+    }
+
+    @Test("A subtitle another titled view declared is that view's, not the window title's")
+    func siblingTitlesSubtitleIsItsOwn() {
+        let bar = topBar(SiblingTitledSubtitleApp())
+        #expect(bar.first?.contains("INFO") == true, "the later title stands: \(bar)")
+        #expect(!bar.contains { $0.contains("UNREAD") }, "the inbox's subtitle, not the inspector's: \(bar)")
+    }
+
+    @Test("A subtitle round another titled view is that view's, not the window title's")
+    func subtitleRoundASiblingTitleIsItsOwn() {
+        let bar = topBar(SiblingRoundSubtitleApp())
+        #expect(bar.first?.contains("INFO") == true, "\(bar)")
+        #expect(!bar.contains { $0.contains("ACCOUNTS") }, "the sidebar's subtitle: \(bar)")
+    }
+
+    @Test("A subtitle round the title stands over a later sibling's")
+    func subtitleRoundTheTitleBeatsASiblings() {
+        let bar = topBar(RoundAndBesideSubtitleApp())
+        #expect(bar.first?.contains("NOTES") == true, "\(bar)")
+        #expect(bar.last?.contains("THREE-NOTES") == true, "the enclosing view's: \(bar)")
+        #expect(!bar.contains { $0.contains("SYNCED") }, "\(bar)")
     }
 
     @Test("Of two titles side by side, the same one stands however each is wrapped", arguments: [false, true])

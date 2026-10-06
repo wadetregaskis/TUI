@@ -238,12 +238,17 @@ final class WindowChromeState: @unchecked Sendable {
     ///   the title, the outermost subtitle could belong to another view
     ///   entirely — a page's "Demo" under the "Planets" of a stack inside it,
     ///   where the stack's root said "9 planets".
-    /// - Where the title has none, the subtitle is the one that stands by the
-    ///   titles' own reduction — the outermost, and of several side by side
-    ///   the last — wherever it was declared: round the title, or BESIDE it, as
-    ///   SwiftUI combines a sibling's preference upward.
+    /// - Where the title has none, the subtitle of a view round it: the
+    ///   outermost of those, as for titles.
+    /// - Where nothing round it has one either, a subtitle BESIDE it, as
+    ///   SwiftUI combines a sibling's preference upward — the one that stands
+    ///   by the titles' own reduction (the outermost, and of several side by
+    ///   side the last) among those no other title would take: not one
+    ///   declared on another titled view, inside one, or round one.
     ///   `VStack { Text("H").navigationTitle("Notes"); List(…).navigationSubtitle("3 notes") }`
-    ///   shows both. With no title, the same.
+    ///   shows both; `HStack { Detail().navigationTitle("Inbox").navigationSubtitle("42 unread"); Inspector().navigationTitle("Info") }`
+    ///   shows "Info" alone, the unread count being the inbox's. With no
+    ///   title, the subtitle that stands among them all.
     ///
     /// An empty title is no title.
     func offer(_ text: String, as line: TitleLine, at identity: ViewIdentity) {
@@ -263,14 +268,34 @@ final class WindowChromeState: @unchecked Sendable {
         return chosen
     }
 
-    /// Chooses the title and its subtitle from this walk's offers.
+    /// Chooses the title and its subtitle from this walk's offers: the title's
+    /// own subtitle, else the outermost round it, else the one standing among
+    /// those beside it that no other title would take.
     private func chooseTitles() -> (title: String, subtitle: String) {
-        let standing = Self.outermost(subtitleOffers)?.text ?? ""
-        guard let title = Self.outermost(titleOffers) else { return ("", standing) }
-        let own = subtitleOffers.filter {
-            $0.identity == title.identity || title.identity.isAncestor(of: $0.identity)
+        guard let title = Self.outermost(titleOffers) else {
+            return ("", Self.outermost(subtitleOffers)?.text ?? "")
         }
-        return (title.text, Self.outermost(own)?.text ?? standing)
+        if let own = Self.outermost(subtitleOffers.filter({ Self.encloses(title, $0) })) {
+            return (title.text, own.text)
+        }
+        if let round = Self.outermost(subtitleOffers.filter({ $0.identity.isAncestor(of: title.identity) })) {
+            return (title.text, round.text)
+        }
+        // Beside the title: a subtitle no other title would show — one
+        // declared on another titled view or inside it, or round one, is that
+        // title's. Without this the window put "Info" over the "42 unread" of
+        // the "Inbox" beside it, and a footer's "synced" displaced the
+        // "3 notes" round the title.
+        let others = titleOffers.filter { $0.identity != title.identity }
+        let beside = subtitleOffers.filter { subtitle in
+            !others.contains { Self.encloses($0, subtitle) || subtitle.identity.isAncestor(of: $0.identity) }
+        }
+        return (title.text, Self.outermost(beside)?.text ?? "")
+    }
+
+    /// Whether `inner` was declared on `outer`'s view or inside it.
+    private static func encloses(_ outer: TitleOffer, _ inner: TitleOffer) -> Bool {
+        outer.identity == inner.identity || outer.identity.isAncestor(of: inner.identity)
     }
 
     /// The offer that stands among `offers`, in declaration order: each one

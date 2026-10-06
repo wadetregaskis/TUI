@@ -584,11 +584,13 @@ never displaces it, nor does the inner of two stacked on one view
 outer preference writer overrides its content), and of two side by side the
 later one stands, however each is wrapped. Its subtitle is the title's own — a
 `.navigationSubtitle` on the titled view or inside it, never an outer view's
-while the title has its own — and otherwise the one that stands as a title
-does: the outermost, the later of two side by side, whether it is on a view
-round the title or beside it, as SwiftUI combines a sibling's preference
-upward (`VStack { Text("H").navigationTitle("Notes"); List(…).navigationSubtitle("3 notes") }`
-shows both). TUIkit's rule; SwiftUI's window
+while the title has its own — else the outermost on a view round the title,
+else one beside it, as SwiftUI combines a sibling's preference upward
+(`VStack { Text("H").navigationTitle("Notes"); List(…).navigationSubtitle("3 notes") }`
+shows both): the one that stands as a title does, the later of two side by
+side, among those no other title would take — not one on another titled view,
+inside one or round one (`HStack { Detail().navigationTitle("Inbox").navigationSubtitle("42 unread"); Inspector().navigationTitle("Info") }`
+shows Info alone). TUIkit's rule; SwiftUI's window
 title has no published one to measure against. It is shown in the top bar's
 title slot when there is a top bar; a title alone draws no bar. An item is drawn
 in the environment of the view that declared it (a `.disabled` above
