@@ -138,6 +138,15 @@ extension ModalPresentationModifier: Renderable {
         // Kept for the presentation's life, its question cleared each frame —
         // see `presentationDismissalGate(context:propertyIndex:)`.
         let gate = presentationDismissalGate(context: context, propertyIndex: StateIndex.dismissalGate)
+        // The reader's ways out go through the gate, so content with a
+        // `dismissalConfirmationDialog` can ask first — and Escape is the
+        // content's cancel button where it drew one, as on macOS
+        // (`DismissalGate.escape`).
+        let isPresented = self.isPresented
+        let escape = { gate.escape { isPresented.wrappedValue = false } }
+        // The ESC item's registration, named again once the content has
+        // drawn (below).
+        var escapeItemRegistration: Int?
 
         // Register the modal focus section and activate it FIRST — so the page
         // rendered beneath registers its controls in the now-inactive page
@@ -190,22 +199,9 @@ extension ModalPresentationModifier: Renderable {
             // …unless the content asked not to be dismissed by hand, in which
             // case the item is not published at all: no key binding, and
             // nothing on the status bar offering a way out that does not work.
-            let isPresented = self.isPresented
-            // The reader's ways out go through the gate, so content with a
-            // `dismissalConfirmationDialog` can ask first — and Escape is the
-            // content's cancel button where it drew one, as on macOS
-            // (`DismissalGate.escape`).
-            let escape = { gate.escape { isPresented.wrappedValue = false } }
             if !dismissIsDisabled {
-                let dismissItem = StatusBarItem(
-                    shortcut: Shortcut.escape,
-                    label: LocalizationService.shared.string(
-                        for: LocalizationKey.StatusBar.dismiss)
-                ) {
-                    escape()
-                }
-                context.environment.statusBar?.registerSectionItems(
-                    sectionID: sectionID, items: [dismissItem], composition: .merge)
+                escapeItemRegistration = context.environment.statusBar?.registerSectionItems(
+                    sectionID: sectionID, items: [escapeItem(gate: gate, escape: escape)], composition: .merge)
                 // The same dismissal as a layer-2 key handler, the way the
                 // alert and popover presenters register theirs. The item alone
                 // was unreachable from a pushed NavigationStack screen: its bar
@@ -306,6 +302,14 @@ extension ModalPresentationModifier: Renderable {
         var modalBuffer = gate.drawingContent(context: context) {
             renderModal(context: context, modalContext: modalContext, overlayHeight: overlayHeight)
         }
+        // Registered before the content drew, so that the content's own items
+        // in this section replace it, the ESC item is named for what Escape
+        // does now it has: "cancel" where it presses the content's cancel
+        // button, which may keep the sheet up — not "dismiss".
+        if let escapeItemRegistration, gate.escapePressesCancelButton {
+            context.environment.statusBar?.replaceSectionItems(
+                registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
+        }
 
         guard !modalBuffer.isEmpty else { return baseBuffer }
 
@@ -328,6 +332,14 @@ extension ModalPresentationModifier: Renderable {
                 offsetX: dragOffset.x, offsetY: dragOffset.y, content: modalBuffer,
                 level: .modal, centered: true, dimsBackground: style == .sheet))
         return baseBuffer
+    }
+
+    /// The presentation's ESC item on the status bar: `escape`, named for
+    /// what it does this frame (``DismissalGate/escapeLabel(dismissal:)``).
+    private func escapeItem(gate: DismissalGate, escape: @escaping () -> Void) -> StatusBarItem {
+        StatusBarItem(shortcut: Shortcut.escape, label: gate.escapeLabel(dismissal: .dismiss)) {
+            escape()
+        }
     }
 
     /// Renders the presented content at the size its style gives it: a sheet

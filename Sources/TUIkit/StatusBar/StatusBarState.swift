@@ -86,7 +86,13 @@ public final class StatusBarState: @unchecked Sendable {
     ///
     /// Each entry maps a section ID to its declared items and composition strategy.
     /// Rebuilt every render pass by ``StatusBarItemsModifier``.
-    private var sectionItems: [(sectionID: String, items: [any StatusBarItemProtocol], composition: StatusBarItemComposition)] = []
+    private var sectionItems:
+        [(sectionID: String, items: [any StatusBarItemProtocol], composition: StatusBarItemComposition, serial: Int)] =
+            []
+
+    /// How many section registrations have been made, ever: each one's
+    /// `serial`, which ``replaceSectionItems(registeredAs:with:)`` finds it by.
+    private var sectionRegistrations = 0
 
     /// The focus manager used to determine the active section.
     ///
@@ -562,13 +568,31 @@ extension StatusBarState {
     }
 
     /// Registers status bar items for a focus section.
+    ///
+    /// - Returns: The registration's serial, for
+    ///   ``replaceSectionItems(registeredAs:with:)``.
+    @discardableResult
     func registerSectionItems(
         sectionID: String,
         items: [any StatusBarItemProtocol],
         composition: StatusBarItemComposition
-    ) {
+    ) -> Int {
+        sectionRegistrations += 1
         sectionItems.removeAll { $0.sectionID == sectionID }
-        sectionItems.append((sectionID, items, composition))
+        sectionItems.append((sectionID, items, composition, sectionRegistrations))
+        return sectionRegistrations
+    }
+
+    /// Replaces the items of the registration `serial` names, if it is still
+    /// its section's — a later registration into the section has replaced it
+    /// otherwise, and stands.
+    ///
+    /// For a presenter, which registers its item before its content renders
+    /// (so the content's own items into its section replace it) and knows
+    /// only afterwards what its Escape does this frame.
+    func replaceSectionItems(registeredAs serial: Int, with items: [any StatusBarItemProtocol]) {
+        guard let index = sectionItems.firstIndex(where: { $0.serial == serial }) else { return }
+        sectionItems[index].items = items
     }
 
     /// Drops everything the view tree declared last pass, at the start of the

@@ -205,9 +205,11 @@ extension PopoverPresentationModifier: Renderable {
         if presentationPreventsTermination(of: popover) {
             context.environment.statusBar?.preventQuit()
         }
+        // The popover's name for its Escape, until the content has drawn
+        // (below).
+        let closeLabel = gate.escapeLabel(dismissal: .closePopover)
         if !dismissIsDisabled {
-            context.environment.statusBar?.escapeLabelOverride =
-                LocalizationService.shared.string(for: LocalizationKey.StatusBar.closePopover)
+            context.environment.statusBar?.escapeLabelOverride = closeLabel
             context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
                 guard event.key == .escape else { return false }
                 // The content's cancel button where it drew one, as on macOS
@@ -243,6 +245,15 @@ extension PopoverPresentationModifier: Renderable {
             renderPresentedDialog(
                 panelView(context: context), context: popoverContext,
                 capHeight: context.environment.overlayContentHeight)
+        }
+        // Named for what Escape does, now the content has drawn: "cancel"
+        // where it presses the content's cancel button, which may keep the
+        // popover up. Unless the content claimed Escape for itself, whose
+        // name stands.
+        if !dismissIsDisabled, gate.escapePressesCancelButton,
+            let statusBar = context.environment.statusBar, statusBar.escapeLabelOverride == closeLabel
+        {
+            statusBar.escapeLabelOverride = gate.escapeLabel(dismissal: .closePopover)
         }
         guard !panel.isEmpty else { return baseBuffer }
 

@@ -202,11 +202,26 @@ final class DismissalGate: Equatable {
     /// run, so a press would lose the unsaved changes before the question the
     /// app put in the way of closing was asked.
     func escape(_ proceed: @escaping () -> Void) {
-        if interceptor == nil, let cancelAction {
+        if escapePressesCancelButton, let cancelAction {
             cancelAction()
         } else {
             dismiss(proceed)
         }
+    }
+
+    /// Whether the presenter's Escape presses the content's cancel button
+    /// this frame (``escape(_:)``), rather than dismissing: what the status
+    /// bar calls it by — "cancel", not "dismiss", for a Cancel that may keep
+    /// the presentation up.
+    var escapePressesCancelButton: Bool {
+        interceptor == nil && cancelAction != nil
+    }
+
+    /// What the status bar calls the presenter's Escape: `dismissal`, the
+    /// presenter's own name for it, unless Escape presses the content's
+    /// cancel button.
+    func escapeLabel(dismissal: LocalizationKey.StatusBar) -> String {
+        LocalizationService.shared.string(for: escapePressesCancelButton ? .cancel : dismissal)
     }
 
     /// Draws the presented content with `render`, and takes the cancel button

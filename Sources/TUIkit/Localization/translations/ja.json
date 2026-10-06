@@ -103,6 +103,7 @@
   "statusbar.showColumn": "列を表示",
   "statusbar.hideColumn": "列を隠す",
   "statusbar.dismiss": "閉じる",
+  "statusbar.cancel": "キャンセル",
   "statusbar.goBack": "戻る",
   "statusbar.closePopover": "ポップオーバーを閉じる",
   "statusbar.closeSuggestions": "候補を閉じる",

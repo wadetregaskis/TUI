@@ -103,6 +103,7 @@
   "statusbar.showColumn": "show column",
   "statusbar.hideColumn": "hide column",
   "statusbar.dismiss": "dismiss",
+  "statusbar.cancel": "cancel",
   "statusbar.goBack": "go back",
   "statusbar.closePopover": "close popover",
   "statusbar.closeSuggestions": "close suggestions",

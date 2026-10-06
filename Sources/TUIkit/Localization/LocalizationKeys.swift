@@ -219,6 +219,10 @@ public enum LocalizationKey {
 
         /// A modal or an alert.
         case dismiss = "statusbar.dismiss"
+        /// A sheet's, cover's or popover's cancel button, which Escape presses
+        /// in place of the presentation's own dismissal
+        /// (`DismissalGate.escapePressesCancelButton`).
+        case cancel = "statusbar.cancel"
         /// A pushed `NavigationStack` destination.
         case goBack = "statusbar.goBack"
         case closePopover = "statusbar.closePopover"

@@ -103,6 +103,7 @@
   "statusbar.showColumn": "显示列",
   "statusbar.hideColumn": "隐藏列",
   "statusbar.dismiss": "关闭",
+  "statusbar.cancel": "取消",
   "statusbar.goBack": "返回",
   "statusbar.closePopover": "关闭弹出框",
   "statusbar.closeSuggestions": "关闭建议",

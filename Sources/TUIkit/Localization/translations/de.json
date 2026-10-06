@@ -103,6 +103,7 @@
   "statusbar.showColumn": "Spalte einblenden",
   "statusbar.hideColumn": "Spalte ausblenden",
   "statusbar.dismiss": "schließen",
+  "statusbar.cancel": "abbrechen",
   "statusbar.goBack": "zurück",
   "statusbar.closePopover": "Popover schließen",
   "statusbar.closeSuggestions": "Vorschläge schließen",
