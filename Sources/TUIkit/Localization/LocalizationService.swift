@@ -267,7 +267,7 @@ public final class LocalizationService: @unchecked Sendable {
     /// for the bundle, and then the key itself. See "Where a key is looked
     /// up" on ``LocalizationService``.
     ///
-    /// The typed keys — ``string(for:)-(LocalizationKey.Button)`` and the
+    /// The typed keys — `string(for: LocalizationKey.Button.ok)` and the
     /// rest — ask for TUIkit's own word instead, which an app's
     /// `Localizable` table does not change.
     ///
