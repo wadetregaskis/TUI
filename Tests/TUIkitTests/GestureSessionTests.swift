@@ -78,6 +78,53 @@ struct GestureSessionTests {
         #expect(log.entries == ["single at 1,0"], "the second click runs no single tap of its own")
     }
 
+    /// A sibling whose gesture a quick click fails at its release.
+    enum FailingSibling: String, CaseIterable, Sendable, CustomTestStringConvertible {
+        case longPress
+        case drag
+
+        var testDescription: String { rawValue }
+    }
+
+    /// A double tap and `sibling` side by side, inside a single tap that
+    /// reports where.
+    private func doubleBeside(_ sibling: FailingSibling, _ log: GestureRecord) -> some View {
+        let second: AnyView =
+            switch sibling {
+            case .longPress: AnyView(box.onLongPressGesture { log("long") })
+            case .drag: AnyView(box.gesture(DragGesture().onEnded { _ in log("drag ended") }))
+            }
+        return HStack(spacing: 2) {
+            box.onTapGesture(count: 2) { log("a") }
+            second
+        }
+        .onTapGesture(coordinateSpace: .global) { log("single at \($0.x),\($0.y)") }
+        .frame(width: 40, height: 12, alignment: .topLeading)
+    }
+
+    /// Measured on macOS 15.8, with a long press or a drag beside the double
+    /// tap in place of the second: a click on the double tap, then a quick
+    /// click on the sibling, runs the single tap around both once, for the
+    /// first click, 0.35 s after the FIRST release — the sibling's gesture
+    /// failed at its release, and the first double tap still waited. Given up
+    /// at the press, the double tap let the single tap run at once.
+    @Test("A click on a sibling long press or drag: the single tap around both runs once, for the first click", arguments: FailingSibling.allCases)
+    func siblingFailsAtRelease(_ sibling: FailingSibling) {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = { doubleBeside(sibling, log) }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        frame(harness, at: 100, view)
+        harness.click(7, 0, view)
+        frame(harness, at: 300, view)
+        #expect(log.entries.isEmpty, "the double tap still waits")
+        frame(harness, at: 360, view)
+        #expect(log.entries == ["single at 1,0"], "the double tap gave up: the single tap, for the first click")
+        frame(harness, at: 2_000, view)
+        #expect(log.entries == ["single at 1,0"], "the second click runs no single tap of its own")
+    }
+
     @Test("A click, then a double click on a sibling: its double tap alone")
     func siblingDoubleClick() {
         let log = GestureRecord()
