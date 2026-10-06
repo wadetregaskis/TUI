@@ -97,6 +97,72 @@ struct GestureArenaLifetimeTests {
         #expect(log.entries == ["seq", "outer", "outer", "seq"])
     }
 
+    // MARK: - A recognized gesture still under way
+
+    /// A gesture on the first box, and the second box plain, inside a tap.
+    private func besidePlain(_ gesture: some Gesture, _ log: GestureRecord) -> some View {
+        HStack(spacing: 2) {
+            box.gesture(gesture)
+            box
+        }
+        .onTapGesture { log("outer") }
+        .frame(width: 40, height: 12, alignment: .topLeading)
+    }
+
+    /// Measured on macOS 15.8: a tap and a double tap together, beside a
+    /// plain box inside a tap. Clicked once, the pair has recognized — its
+    /// tap ended — and waits for the double tap's interval; a click on the
+    /// box meanwhile runs nothing, the outer tap having been cancelled by the
+    /// pair, and one after it the outer tap. Pinned because the arena's wait
+    /// looks like a bug here: counting only an undecided gesture as waiting,
+    /// the click on the box would have run the outer tap.
+    @Test("A recognized simultaneous gesture still waiting holds the tap around it off a click beside it")
+    func recognizedSimultaneousWaits() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            besidePlain(
+                TapGesture().simultaneously(with: TapGesture(count: 2))
+                    .onEnded { log("sim \($0.first != nil) \($0.second != nil)") },
+                log)
+        }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        frame(harness, at: 100, view)
+        harness.click(7, 0, view)
+        frame(harness, at: 360, view)
+        #expect(log.entries == ["sim true false"], "the box's click runs nothing; the pair ends with its interval")
+        frame(harness, at: 1_000, view)
+        harness.click(7, 0, view)
+        #expect(log.entries == ["sim true false", "outer"])
+    }
+
+    /// Measured on macOS 15.8: a double tap or a tap, before a tap, beside a
+    /// plain box inside a tap. A click ends the first part on its clock, the
+    /// button up, and the sequence waits for its second tap with no limit:
+    /// clicks on the box a second and two later run nothing, and a click on
+    /// the sequence after them ends it — the outer tap does not run. The
+    /// next click on the sequence starts it over, and ends nothing.
+    @Test("A sequence waiting for its second gesture holds the tap around it off every click beside it")
+    func sequenceWaitsWithoutLimit() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            besidePlain(
+                TapGesture(count: 2).exclusively(before: TapGesture()).sequenced(before: TapGesture())
+                    .onEnded { _ in log("seq") },
+                log)
+        }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        for (millis, column) in [(1_000, 7), (2_000, 7), (3_000, 1), (4_000, 1)] {
+            frame(harness, at: Int64(millis), view)
+            harness.click(column, 0, view)
+        }
+        frame(harness, at: 5_000, view)
+        #expect(log.entries == ["seq"])
+    }
+
     // MARK: - A press whose release was lost
 
     /// A press whose release never came — a terminal that dropped it, a

@@ -37,8 +37,11 @@ import TUIkitCore
 /// has failed, and the rest of the gesture through the dispatcher's ordinary
 /// capture.
 ///
-/// The arena outlives the release while a gesture is undecided — a double tap
-/// waiting for its second click — and a clock tick settles it.
+/// The arena outlives the release while a gesture is under way: undecided, a
+/// double tap waiting for its second click, which a clock tick settles; or
+/// recognized and not yet ended, a tap and a double tap together waiting out
+/// the double tap's interval, or a sequence waiting for its second gesture,
+/// which nothing but that gesture settles (all measured on macOS 15.8).
 ///
 /// A press that comes while a ranked gesture still waits does not settle it:
 /// both arenas live on (the dispatcher's ``MouseEventDispatcher/gestureArenas``),
@@ -147,14 +150,23 @@ final class GestureArena {
 
     // MARK: A press while an arena waits
 
-    /// Whether a ranked gesture is still undecided — a double tap waiting for
-    /// its next click — so that a press now continues what this arena began
-    /// instead of starting its gestures afresh. A simultaneous gesture alone
-    /// does not count: once the ranked gestures have decided, macOS starts
-    /// them over at the next press (measured on macOS 15.8: a single tap that
-    /// ran, beside a simultaneous double tap, runs again for the second click
-    /// of a double click; a drag that failed at the first click drags at the
-    /// second).
+    /// Whether a ranked gesture is still under way — a double tap waiting for
+    /// its next click, or one that has recognized and not yet ended — so that
+    /// a press now continues what this arena began instead of starting its
+    /// gestures afresh.
+    ///
+    /// Recognized counts as much as undecided. Measured on macOS 15.8: a
+    /// `TapGesture().simultaneously(with: TapGesture(count: 2))` clicked
+    /// once, and a sequence waiting for its second gesture, each keep the tap
+    /// around them, which they cancelled, off a click on a plain view beside
+    /// them: the first until the double tap's interval is out, the second
+    /// until the sequence ends, with no limit.
+    ///
+    /// A gesture attached with `simultaneousGesture` does not count: once the
+    /// ranked gestures have decided, macOS starts them over at the next press
+    /// (measured on macOS 15.8: a single tap that ran, beside a simultaneous
+    /// double tap, runs again for the second click of a double click; a drag
+    /// that failed at the first click drags at the second).
     ///
     /// An arena whose button is still down at the next press waits on
     /// nothing: its release was lost, and the new press supersedes it, as it
