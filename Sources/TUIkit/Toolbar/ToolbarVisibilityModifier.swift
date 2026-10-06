@@ -80,3 +80,12 @@ struct _ToolbarVisibilityModifier<Content: View>: View, Renderable, Layoutable {
         measureChild(content, proposal: proposal, context: context)
     }
 }
+
+// MARK: - Seeing Through the Wrapper (the READ direction)
+
+/// Names its content so a z-index or a container value (a `.tag`) written
+/// inside it still reaches the container around it — see `_ToolbarModifier`'s
+/// conformance. Read-only: not ``ContentRewrapping``.
+extension _ToolbarVisibilityModifier: SingleContentWrapper {
+    var wrappedContent: Content { content }
+}

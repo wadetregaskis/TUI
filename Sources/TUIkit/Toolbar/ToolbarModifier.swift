@@ -115,3 +115,16 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
 
 /// The identity step a toolbar item takes under the view that declared it.
 enum _ToolbarItemSlot {}
+
+// MARK: - Seeing Through the Wrapper (the READ direction)
+
+/// Names its content so a container asking for a z-index or a container value
+/// — a `.tag` among them, as a `Layout` or `ForEach(subviews:)` reads it — can
+/// look through this wrapper instead of stopping at it: `.zIndex(1).toolbar {
+/// … }` still orders a `ZStack`, as in SwiftUI, where a container value "is
+/// unaffected by views that aren't containers". Read-only: it does NOT conform to
+/// ``ContentRewrapping``, so its declaration is not multiplied across the
+/// members of multi-view content.
+extension _ToolbarModifier: SingleContentWrapper {
+    var wrappedContent: Content { content }
+}
