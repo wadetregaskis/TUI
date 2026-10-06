@@ -35,7 +35,12 @@ extension OffsetView: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let rendered = TUIkit.renderToBuffer(content, context: context)
+        // The content is drawn displaced, and the carried geometry origin is
+        // moved with it: a view under an offset is where it is drawn (as in
+        // SwiftUI, whose offset moves a view's frame in every space). The ramp
+        // a gradient spans stays where the layout put it.
+        let rendered = TUIkit.renderToBuffer(
+            content, context: context.isMeasuring ? context : context.placingChild(gradient: nil, x: x, y: y))
         guard !context.isMeasuring else { return rendered }
 
         // Paint NOTHING at the natural position (the terminal has no

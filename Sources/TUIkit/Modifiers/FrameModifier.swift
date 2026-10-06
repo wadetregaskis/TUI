@@ -247,6 +247,13 @@ extension FlexibleFrameView: Renderable {
             contentContext.hasExplicitHeight = true
         }
 
+        // Where the frame will align the content, for a ramp spanning the frame
+        // and the carried geometry origin — worked out only when one of them
+        // will be read.
+        if contentContext.placesChildren, !context.isMeasuring {
+            contentContext = placingContent(in: contentContext, frame: context)
+        }
+
         // Render content
         let buffer = TUIkit.renderToBuffer(content, context: contentContext)
 
@@ -277,6 +284,30 @@ extension FlexibleFrameView: Renderable {
         // Otherwise, align content within the frame
         return alignBuffer(
             buffer, toWidth: finalWidth, height: finalHeight, contentContext: contentContext)
+    }
+
+    /// `contentContext` with the content placed where ``alignBuffer`` will put
+    /// it: from the content's MEASURED size, which is the rendered one wherever
+    /// measure and render agree (a disagreement moves a colour, or costs a
+    /// reader's owner one correction — never a wrong drawing). The sizes are
+    /// worked out as `renderToBuffer` works them out from the buffer.
+    private func placingContent(in contentContext: RenderContext, frame context: RenderContext) -> RenderContext {
+        let size = measureChild(
+            content,
+            proposal: ProposedSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
+            context: contentContext)
+        var finalWidth = max(size.width, minWidth ?? 0)
+        var finalHeight = max(size.height, minHeight ?? 0)
+        if let maximumWidth = maxWidth, case .infinity = maximumWidth {
+            finalWidth = max(finalWidth, context.availableWidth)
+        }
+        if let maximumHeight = maxHeight, case .infinity = maximumHeight {
+            finalHeight = max(finalHeight, context.availableHeight)
+        }
+        return contentContext.placingChild(
+            gradient: contentContext.gradientFrame,
+            x: alignment.horizontal.childOffset(childWidth: size.width, in: finalWidth),
+            y: alignment.vertical.childOffset(childHeight: size.height, in: finalHeight))
     }
 
     /// Aligns buffer content within the target frame size.

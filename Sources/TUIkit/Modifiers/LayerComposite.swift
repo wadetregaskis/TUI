@@ -77,6 +77,20 @@ private func placeLayer<Layer: View>(
     var framedContext = overlayContext
     if baseBuffer.width > 0 { framedContext.availableWidth = baseBuffer.width }
     if baseBuffer.height > 0 { framedContext.availableHeight = baseBuffer.height }
+    // Where the alignment will put the layer, for a ramp spanning the base and
+    // the carried geometry origin — from the layer's MEASURED size, worked out
+    // only when one of them will be read. A layer that fills the base (a
+    // `GeometryReader`) lands at its origin for every alignment.
+    if framedContext.placesChildren, !framedContext.isMeasuring {
+        let measured = measureChild(
+            layer,
+            proposal: ProposedSize(width: framedContext.availableWidth, height: framedContext.availableHeight),
+            context: framedContext)
+        framedContext = framedContext.placingChild(
+            gradient: framedContext.gradientFrame,
+            x: alignment.horizontal.childOffset(childWidth: measured.width, in: baseBuffer.width),
+            y: alignment.vertical.childOffset(childHeight: measured.height, in: baseBuffer.height))
+    }
     let overlayBuffer = TUIkit.renderToBuffer(layer, context: framedContext)
 
     if overlayBuffer.isEmpty, overlayBuffer.overlays.isEmpty,

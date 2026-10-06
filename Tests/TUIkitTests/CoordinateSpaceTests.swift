@@ -257,7 +257,7 @@ struct CoordinateSpaceTests {
     func rootCorrection() {
         let seen = Seen()
         let harness = InputChainHarness()
-        let view = { (top: Int) in reader(seen, in: .global).padding(.top, top) }
+        let view = { (top: Int) in UnconvertedContainer(rows: top) { reader(seen, in: .global) } }
         harness.frame(view(1))
         #expect(seen.frame?.y == 1)
         #expect(harness.geometryCorrections.root == 1)

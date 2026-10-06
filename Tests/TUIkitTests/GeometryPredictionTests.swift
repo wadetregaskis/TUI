@@ -1,9 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  GeometryPredictionTests.swift
 //
-//  The carried origin (design study A2 §10 step 5, rung 1): a reader is told
-//  where the containers above it will place it before it is drawn, so its
-//  owner finds it where it was told and draws nothing again. Each test's
+//  The carried origin (design study A2 §10 steps 5 and 7, rungs 1 and 3): a
+//  reader is told where the containers above it will place it before it is
+//  drawn, so its owner finds it where it was told and draws nothing again. Each test's
 //  oracle is the marker — the owner's finding — compared with the prediction
 //  by the owner itself: no correction means they agreed.
 //
@@ -146,31 +146,95 @@ struct GeometryPredictionTests {
         #expect(harness.geometryCorrections.named == 0)
     }
 
-    @Test("An unconverted ZStack's centring is a constant the residual carries after one correction")
-    func residualAbsorbsAZStack() {
+    @Test("A container the prediction does not follow is a constant the residual carries after one correction")
+    func residualAbsorbsAnUnconvertedOffset() {
         let told = Told()
         let harness = InputChainHarness()
         let view = { (label: String) in
             VStack(alignment: .leading, spacing: 0) {
                 Text(label)
-                ZStack {
-                    Text("wide text")
-                    reader(told, in: .named("s"))
-                }
+                UnconvertedContainer(rows: 2) { reader(told, in: .named("s")) }
             }
             .coordinateSpace(.named("s"))
         }
         harness.frame(view("a"))
-        // Centred in nine cells: two in. The stack above it said row 1.
-        #expect(told.frames.last == CellRect(x: 2, y: 1, width: 4, height: 1))
+        // Two rows into the container, which the stack said was at row 1.
+        #expect(told.frames.last == CellRect(x: 0, y: 3, width: 4, height: 1))
         #expect(harness.geometryCorrections.named == 1)
         harness.frame(view("a"))
-        // A row above it grows: the stack moves the ZStack, the prediction
-        // follows, and the ZStack's centring is the same — no correction.
+        // A row above it grows: the stack moves the container, the prediction
+        // follows, and the container's shift is the same — no correction.
         harness.frame(view("a\nb"))
-        #expect(told.frames.last == CellRect(x: 2, y: 2, width: 4, height: 1))
+        #expect(told.frames.last == CellRect(x: 0, y: 4, width: 4, height: 1))
         #expect(harness.geometryCorrections.named == 1)
         #expect(harness.geometryCorrections.residual == 0)
+    }
+
+    /// A reader four cells wide and one row tall, in each of the composers rung
+    /// 3 converts, and where SwiftUI's layout puts it there.
+    private static func composers(_ told: Told) -> [(name: String, view: AnyView, frame: CellRect)] {
+        [
+            (
+                "padding", AnyView(reader(told, in: .named("s")).padding(.leading, 2).padding(.top, 1)),
+                CellRect(x: 2, y: 1, width: 4, height: 1)
+            ),
+            // Inside the wall, and the cell of padding a border keeps.
+            ("border", AnyView(reader(told, in: .named("s")).border()), CellRect(x: 2, y: 1, width: 4, height: 1)),
+            (
+                "titled borderless container",
+                AnyView(
+                    ContainerView(title: "T", style: ContainerStyle(hasBorder: false)) {
+                        reader(told, in: .named("s"))
+                    }),
+                CellRect(x: 1, y: 1, width: 4, height: 1)
+            ),
+            (
+                "frame alignment",
+                AnyView(reader(told, in: .named("s")).frame(width: 10, height: 3, alignment: .bottomTrailing)),
+                CellRect(x: 6, y: 2, width: 4, height: 1)
+            ),
+            (
+                "overlay",
+                AnyView(Text(verbatim: "0123456789").overlay(alignment: .trailing) { reader(told, in: .named("s")) }),
+                CellRect(x: 6, y: 0, width: 4, height: 1)
+            ),
+            (
+                "background",
+                AnyView(
+                    Text(verbatim: "0123456789").background(alignment: .center) { reader(told, in: .named("s")) }),
+                CellRect(x: 3, y: 0, width: 4, height: 1)
+            ),
+            (
+                "ZStack",
+                AnyView(
+                    ZStack(alignment: .bottomTrailing) {
+                        VStack(spacing: 0) {
+                            Text(verbatim: "0123456789")
+                            Text(verbatim: "x")
+                            Text(verbatim: "y")
+                        }
+                        reader(told, in: .named("s"))
+                    }),
+                CellRect(x: 6, y: 2, width: 4, height: 1)
+            ),
+            ("offset", AnyView(reader(told, in: .named("s")).offset(x: 3, y: 2)), CellRect(x: 3, y: 2, width: 4, height: 1)),
+            (
+                "position", AnyView(reader(told, in: .named("s")).position(x: 10, y: 5)),
+                CellRect(x: 8, y: 5, width: 4, height: 1)
+            ),
+        ]
+    }
+
+    @Test("Through the generic composers: padding, borders, frames, overlays, ZStack, offset, position")
+    func composersPredict() {
+        for index in Self.composers(Told()).indices {
+            let told = Told()
+            let shape = Self.composers(told)[index]
+            let harness = InputChainHarness()
+            harness.frame(VStack(alignment: .leading, spacing: 0) { shape.view }.coordinateSpace(.named("s")))
+            #expect(told.frames == [shape.frame], "\(shape.name)")
+            #expect(harness.geometryCorrections.total == 0, "\(shape.name)")
+        }
     }
 
     @Test("No reader above, no carried origin: a tree that asks nothing carries nothing")

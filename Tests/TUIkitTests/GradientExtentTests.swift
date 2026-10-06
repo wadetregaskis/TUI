@@ -84,6 +84,67 @@ struct GradientExtentTests {
         #expect(Set(rows.compactMap { $0 }).count == 4, "rows repeat: \(rows)")
     }
 
+    /// The ink of the `MMMM` row when it sits under `wrap` — a wrapper three
+    /// rows tall, second in a five-row ramp — and when it sits on the same row
+    /// bare: a composer that moves its content must move it in the ramp too
+    /// (design study A2 rung 3).
+    private func inkUnder(
+        _ wrap: (Text) -> some View, contentRow: Int, lines: Int = 5
+    ) -> (wrapped: String?, bare: String?) {
+        let wrapped = renderToBuffer(
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: "AAAA")
+                wrap(Text(verbatim: "MMMM"))
+                ForEach(0..<max(0, lines - 4), id: \.self) { _ in Text(verbatim: "ZZZZ") }
+            }
+            .foregroundStyle(vertical())
+            .gradientExtent(.subtree),
+            context: context()
+        ).lines
+        let bare = renderToBuffer(
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<contentRow, id: \.self) { _ in Text(verbatim: "AAAA") }
+                Text(verbatim: "MMMM")
+                ForEach(0..<max(0, lines - contentRow - 1), id: \.self) { _ in Text(verbatim: "ZZZZ") }
+            }
+            .foregroundStyle(vertical())
+            .gradientExtent(.subtree),
+            context: context()
+        ).lines
+        // The first M's ink — past a border's wall, which is the palette's.
+        let row = { (lines: [String]) -> String? in
+            guard let index = lines.firstIndex(where: { $0.stripped.contains("MMMM") }),
+                let column = lines[index].stripped.firstIndex(of: "M")
+            else { return nil }
+            return self.ink(lines[index], atColumn: lines[index].stripped.distance(
+                from: lines[index].stripped.startIndex, to: column))
+        }
+        return (row(wrapped), row(bare))
+    }
+
+    @Test("A padded row's content takes the ramp's colour where it is drawn, below the padding")
+    func paddingMovesTheRamp() {
+        let inks = inkUnder({ $0.padding(.top, 2) }, contentRow: 3)
+        #expect(inks.wrapped != nil)
+        #expect(inks.wrapped == inks.bare)
+    }
+
+    @Test("A bordered row's content takes the ramp's colour where it is drawn, inside the border")
+    func borderMovesTheRamp() {
+        // The border's top row is row 1; the content is on row 2, and the
+        // bottom border on row 3.
+        let inks = inkUnder({ $0.border() }, contentRow: 2)
+        #expect(inks.wrapped != nil)
+        #expect(inks.wrapped == inks.bare)
+    }
+
+    @Test("A framed row's content takes the ramp's colour where the frame aligns it")
+    func frameMovesTheRamp() {
+        let inks = inkUnder({ $0.frame(height: 3, alignment: .bottom) }, contentRow: 3)
+        #expect(inks.wrapped != nil)
+        #expect(inks.wrapped == inks.bare)
+    }
+
     /// Without the modifier the same tree is SwiftUI's meaning: every leaf runs
     /// the whole ramp inside itself, so a one-row leaf takes the midpoint and
     /// they all look alike.

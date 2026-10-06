@@ -187,3 +187,32 @@ rows' regions, and owns `.scrollView` for its rows as the scroll view does —
 a day, on the list's hot path, so with the `table`, `tables-scroll` and
 `session/inbox` A/Bs.
 
+### B-D5G-10. The prediction's third rung converts seven composers; the root's centring and five more containers are left to the residual
+
+*Where a reader inside them is told it is before it draws (the correction
+rate only — never the answer)*
+
+Converted (design study A2 §10 step 7, the owner's answer 6): `.padding`, a
+bordered or titled box (`.border()`, `ContainerView` and what is built on
+it), `.frame`'s alignment, `.overlay`/`.background` and the preference
+layers, `ZStack`, `.offset` and `.position` — each places its content before
+drawing it, measuring the content where it aligns by size (memo hits: the
+same measures its own `sizeThatFits` took). The ones that align by size also
+move a `.gradientExtent(.subtree)` ramp, which they did not before; `.offset`
+and `.position` move only the geometry origin, keeping the colour where the
+layout put the view (the extent is TUIkit's own, so SwiftUI has no answer
+to measure; this keeps today's colours under an offset).
+
+Left to the residual: the scene root's centring of content smaller than the
+screen, `safeAreaInset`, content margins, `TabView`, `NavigationSplitView`
+and `SplitView`, a `List`'s rows (B-D5G-9). Each adds an offset that is the
+same frame after frame for a given layout, so a reader under it costs one
+correction on its first frame and none after, until that container's own
+layout changes.
+
+**Fuller version:** the root, by measuring the scene before drawing it on
+frames with readers — a measure of the whole tree per frame, which on the
+deep and fanout shapes is a cost a reader somewhere should not impose on
+everything; the other five as the List is priced (a day, with their own
+A/Bs), when the Stress counter shows a shape paying for them.
+

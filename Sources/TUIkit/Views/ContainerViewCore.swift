@@ -320,8 +320,13 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             footerContext: footerInner)
         let footerHeight = measuredFooter?.height ?? 0
 
-        // Render the body into the space the chrome and footer leave.
-        var bodyContext = bodyInner
+        // Render the body into the space the chrome and footer leave — inside
+        // the wall and below the top border, or below a borderless title's own
+        // row (`renderBorderless`), which is where a ramp spanning the box and
+        // the carried geometry origin place it (`placingChild`).
+        // (The identity when neither is in force.)
+        var bodyContext = bodyInner.placingChild(
+            gradient: bodyInner.gradientFrame, x: hasBorder ? 1 : 0, y: hasBorder || title != nil ? 1 : 0)
         bodyContext.availableHeight = bodyAvailableHeight
         var bodyBuffer =
             style.scrollsOverflowingBody

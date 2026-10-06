@@ -7,8 +7,9 @@
 //  a reviewed change to these numbers. Under G1 (step 3) the same shape made,
 //  per scroll step, a scroll view AND a named-space correction, and one named
 //  correction per insertion; rung 1 (step 5) takes both named ones to zero,
-//  and rung 2 (step 6, the scroll view placing its content at minus its
-//  offset) the scroll view's. The Stress `geometry` scenario prints
+//  rung 2 (step 6, the scroll view placing its content at minus its offset)
+//  the scroll view's, and rung 3 (step 7, `.offset` and the other generic
+//  composers) the root's under a moving offset. The Stress `geometry` scenario prints
 //  the same counter for a bench on a quiet machine.
 //
 //  Created by Wade Tregaskis
@@ -81,8 +82,8 @@ struct GeometryCorrectionRateTests {
         return made
     }
 
-    @Test("Rung 2 (stacks and scroll views predict): none at rest, scrolling or inserting; one per offset step")
-    func correctionsUnderRung2() {
+    @Test("Rung 3 (stacks, scroll views and composers predict): after the first frame, none at all")
+    func correctionsUnderRung3() {
         let harness = InputChainHarness()
         var position = ScrollPosition()
         let binding = Binding(get: { position }, set: { position = $0 })
@@ -126,12 +127,12 @@ struct GeometryCorrectionRateTests {
         rows += 1
         expect(corrections(harness, frame))
 
-        // The offset above the global reader moves it every step, and no
-        // container the prediction follows put it there: the root corrects
-        // (step 7's offset conversion takes it to zero).
+        // The offset above the global reader moves it every step, and the
+        // offset moves the carried origin with it: predicted, where G1 and
+        // rungs 1 and 2 corrected the root every step.
         for step in 1...3 {
             offset = step
-            expect(corrections(harness, frame), root: 1)
+            expect(corrections(harness, frame))
         }
     }
 

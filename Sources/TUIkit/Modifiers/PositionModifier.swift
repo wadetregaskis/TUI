@@ -82,7 +82,7 @@ extension PositionView: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let rendered = TUIkit.renderToBuffer(content, context: context)
+        let rendered = TUIkit.renderToBuffer(content, context: placedContent(context))
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         guard !context.isMeasuring else { return rendered }
@@ -106,6 +106,20 @@ extension PositionView: Renderable, Layoutable {
                 // ``OverlayLayer/isOpaque``.
                 isOpaque: false))
         return placeholder
+    }
+}
+
+extension PositionView {
+    /// `context` with the content's carried geometry origin moved to where
+    /// its centre lands on the position — from its MEASURED size, worked out
+    /// only when an origin is carried. The ramp a gradient spans stays put, as
+    /// for `.offset`.
+    func placedContent(_ context: RenderContext) -> RenderContext {
+        guard context.carriesGeometryOrigin, !context.isMeasuring else { return context }
+        let size = measureChild(
+            content, proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+            context: context)
+        return context.placingChild(gradient: nil, x: x - size.width / 2, y: y - size.height / 2)
     }
 }
 

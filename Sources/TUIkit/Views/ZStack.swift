@@ -99,9 +99,11 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // a ZStack is as wide/tall as its widest/tallest child). Spacers have
         // no visual box in a ZStack.
         let drawn = ordered.filter { !$0.isSpacer }
-        let buffers = drawn.map {
-            $0.render(
-                width: context.availableWidth, height: context.availableHeight, context: context)
+        let placed = childContexts(drawn, context: context)
+        let buffers = drawn.indices.map { index in
+            drawn[index].render(
+                width: context.availableWidth, height: context.availableHeight,
+                context: placed?[index] ?? context)
         }
         // Explicit guides on either axis, when any layer set one. They can grow
         // the frame past the largest layer — a layer hanging off the alignment
@@ -171,6 +173,33 @@ private struct _ZStackCore<Content: View>: View, Renderable {
                 forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
         }
         return result
+    }
+}
+
+// MARK: - Placing the Layers
+
+extension _ZStackCore {
+    /// Each layer's context, placed where the alignment will put it — for a
+    /// ramp spanning the stack and the carried geometry origin — or `nil` when
+    /// neither will be read, which is almost always.
+    ///
+    /// From the layers' MEASURED sizes (the stack's own `sizeThatFits` took the
+    /// same measures, so they are memo hits): the rendered ones are a pass
+    /// later. Exact wherever measure and render agree; explicit alignment
+    /// guides are left to the residual (`GeometryAsk`).
+    func childContexts(_ drawn: [ChildView], context: RenderContext) -> [RenderContext]? {
+        guard context.placesChildren, !context.isMeasuring else { return nil }
+        let proposal = ProposedSize(width: context.availableWidth, height: context.availableHeight)
+        let sizes = drawn.map { $0.measure(proposal: proposal, context: context) }
+        let frameWidth = sizes.map(\.width).max() ?? 0
+        let frameHeight = sizes.map(\.height).max() ?? 0
+        let gradientFrame = context.gradientContentFrame(width: frameWidth, height: frameHeight)
+        return sizes.map { size in
+            context.placingChild(
+                gradient: gradientFrame,
+                x: alignment.horizontal.childOffset(childWidth: size.width, in: frameWidth),
+                y: alignment.vertical.childOffset(childHeight: size.height, in: frameHeight))
+        }
     }
 }
 

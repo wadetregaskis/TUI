@@ -145,7 +145,19 @@ public struct PaddingModifier: BufferModifier {
             context.availableWidth, less: insets.leading + insets.trailing)
         adjusted.availableHeight = Self.remaining(
             context.availableHeight, less: insets.top + insets.bottom)
-        return adjusted
+        // Where the content sits in the padded view — past the leading and top
+        // insets `modify` draws for content that is not empty — for a ramp
+        // spanning the view and the carried geometry origin
+        // (`RenderContext.placingChild(gradient:x:y:)`). Worked out only when
+        // one of them will be read.
+        guard context.placesChildren else { return adjusted }
+        let leading = Self.drawnInsets(
+            insets.leading, insets.trailing, in: context.availableWidth, contentIsEmpty: false
+        ).before
+        let top = Self.drawnInsets(
+            insets.top, insets.bottom, in: context.availableHeight, contentIsEmpty: false
+        ).before
+        return adjusted.placingChild(gradient: adjusted.gradientFrame, x: leading, y: top)
     }
 
     /// `available` less `taken`, but never below one cell while `available` has

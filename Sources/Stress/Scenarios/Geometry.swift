@@ -30,8 +30,9 @@ import TUIkit
 /// named space's every frame, an insertion the named space's, the offset the
 /// root; with the stacks predicting (rung 1) the named space corrects
 /// nothing, with the scroll view placing its content at minus its offset
-/// (rung 2) nor does the scroll view, and what is left — the header's
-/// `.offset` — is what rung 3 converts. `--bench geometry` prints the
+/// (rung 2) nor does the scroll view, and with `.offset` moving the carried
+/// origin (rung 3) nor does the root — past each reader's first frame, the
+/// counter should read zero. `--bench geometry` prints the
 /// corrections per frame by owner kind, the acceptance metric of the rungs
 /// (§10 steps 5–7).
 enum GeometryScenario {

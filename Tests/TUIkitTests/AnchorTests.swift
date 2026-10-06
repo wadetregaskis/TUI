@@ -68,7 +68,7 @@ struct AnchorTests {
         #expect(harness.geometryCorrections.layer == 0)
     }
 
-    @Test("L2: relative to the reader's own origin; a reader off the layer's origin is corrected once")
+    @Test("L2: relative to the reader's own origin; a reader padded inside the layer is predicted, no correction")
     func probeL2() {
         let harness = InputChainHarness()
         let seen = Resolved<CellRect>()
@@ -87,12 +87,14 @@ struct AnchorTests {
                 .padding(1)
             }
         harness.frame(view)
-        // SwiftUI's (2, 2, 49, 36) for a reader padded 5 over a view at 7.
+        // SwiftUI's (2, 2, 49, 36) for a reader padded 5 over a view at 7. The
+        // padding places the reader before it draws (design study A2 rung 3),
+        // so the layer is right the first time, as in probe L1.
         #expect(seen.value == CellRect(x: 0, y: 0, width: 9, height: 5))
-        #expect(harness.geometryCorrections.layer == 1)
+        #expect(harness.geometryCorrections.layer == 0)
         harness.frame(view)
         #expect(seen.value == CellRect(x: 0, y: 0, width: 9, height: 5))
-        #expect(harness.geometryCorrections.layer == 1)
+        #expect(harness.geometryCorrections.layer == 0)
         #expect(harness.geometryCorrections.residual == 0)
     }
 
@@ -108,12 +110,13 @@ struct AnchorTests {
             Text("hello")
                 .anchorPreference(key: BoundsKey.self, value: .bounds) { $0 }
                 .overlayPreferenceValue(BoundsKey.self) { anchor in
-                    GeometryReader { proxy in
-                        if let anchor {
-                            Text("\(proxy[anchor].x)")
+                    UnconvertedContainer {
+                        GeometryReader { proxy in
+                            if let anchor {
+                                Text("\(proxy[anchor].x)")
+                            }
                         }
                     }
-                    .padding(.leading, 1)
                     .preference(key: CountKey.self, value: 1)
                 }
         }
