@@ -31,6 +31,10 @@ private final class Produce {
     var flexibleHeader = false
     /// The vegetables' header says when it is drawn over a raised background.
     var prominenceHeader = false
+    /// The vegetables' header is three lines.
+    var tallHeader = false
+    /// The table draws a scrollbar.
+    var scrollbar = false
     var rows = 4
     var menuSets: [[Int]] = []
 }
@@ -65,6 +69,14 @@ private struct ProducePage: View {
     }
 
     var body: some View {
+        if produce.scrollbar {
+            table.scrollIndicators(.visible)
+        } else {
+            table
+        }
+    }
+
+    private var table: some View {
         Table(of: Item.self, selection: Bindable(produce).selection) {
             TableColumn("Name", value: \.name)
             TableColumn("Code") { item in Text(verbatim: "#\(item.id)") }
@@ -89,6 +101,8 @@ private struct ProducePage: View {
                 } header: {
                     if produce.prominenceHeader {
                         ProminenceProbe()
+                    } else if produce.tallHeader {
+                        Text(verbatim: "Veg\nmore\nlines")
                     } else if produce.flexibleHeader {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(verbatim: "Vegetables")
@@ -292,6 +306,22 @@ struct TableSectionTests {
         for _ in 0..<4 { harness.key(KeyEvent(key: .down)) }
         #expect(harness.line(of: "Vegetables") != nil, "\(harness.screen)")
         #expect(harness.line(of: "Vegetables raised") == nil, "\(harness.screen)")
+    }
+
+    @Test("A header that changes height, and not number, moves the scrollbar's extent")
+    func headerHeightMovesTheExtent() throws {
+        let changed = Harness {
+            $0.rows = 12
+            $0.scrollbar = true
+        }
+        changed.produce.tallHeader = true
+        changed.frame()
+        let fresh = Harness {
+            $0.rows = 12
+            $0.scrollbar = true
+            $0.tallHeader = true
+        }
+        #expect(changed.screen == fresh.screen, "\(changed.screen)\n--- fresh:\n\(fresh.screen)")
     }
 
     @Test("Scrolled, the headers scroll with their rows and the clicks still land on the rows")

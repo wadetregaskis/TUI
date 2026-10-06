@@ -1749,7 +1749,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             showsScrollbar
             ? multiLineScrollbarCells(
                 window: window, contentHeight: contentHeight,
-                height: heightOf, handler: handler, columnWidths: columnWidths,
+                height: heightOf, handler: handler, columnWidths: columnWidths, headers: headers,
                 context: context, palette: palette)
             : ClaimingColumn()
         let composed = composeMultiLineRows(
@@ -1824,14 +1824,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         height: (Int) -> Int,
         handler: ItemListHandler<Value.ID>,
         columnWidths: [Int],
+        headers: [Int],
         context: RenderContext,
         palette: any Palette
     ) -> ClaimingColumn {
         // Everything that shapes a row's wrapped height, so a stale mean
-        // cannot outlive the layout that produced it (see `extentProfileCache`).
+        // cannot outlive the layout that produced it (see `extentProfileCache`)
+        // — the section headers' heights too, which are lines of the rows
+        // carrying them: a header that changed height and not number left the
+        // kept extent stale.
         var hasher = Hasher()
         hasher.combine(data.count)
-        hasher.combine(sectionHeaders.count)
+        hasher.combine(headers)
         hasher.combine(context.environment.scrollExtentPrecision)
         for (column, width) in zip(columns, columnWidths) {
             hasher.combine(width)
