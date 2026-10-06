@@ -4561,15 +4561,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// cell clips and wraps as the column says.
     ///
     /// And no carried geometry origin. The cell is composed as text, and the
-    /// markers it drew are left behind with it (``_TableRowPayload`` carries
-    /// its click regions and layers, not those), so no owner of a space finds
-    /// a view in it (decisions D5G, B-D5G-2): a reader there is told what one
-    /// no owner finds is told, the origin, as an `onGeometryChange` there is.
-    /// Carried, the table's own origin reached every cell — no row or column
-    /// placed — and was told to each reader from its second frame on as
-    /// though it were where the reader was, never checked; and every container
-    /// in a cell worked out placements nothing would read. A space declared
-    /// inside the cell starts an origin of its own, and is answered exactly.
+    /// markers it drew come up with its regions (``_TableRowPayload``), so the
+    /// frame's owners find a view in it where the row draws it (decisions D5G,
+    /// B-D5G-2): a reader there predicts the origin and is corrected on its
+    /// first frame, then reads what was found. Carried, the table's own
+    /// origin reached every cell — no row or column placed — and every
+    /// container in a cell worked out placements no better than the origin.
+    /// A space declared inside the cell starts an origin of its own, and is
+    /// answered exactly.
     private func cellContext(
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> RenderContext {

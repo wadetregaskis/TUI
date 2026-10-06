@@ -40,54 +40,48 @@ whether a windowing container still retains the identity
 windowed-out row as SwiftUI's destroyed one does, which leaves an app that
 stopped a player on `false` playing it off screen. Nothing to price.
 
-### B-D5G-2. A view inside a `Table` cell, or where its marker reaches no owner, is not located
+### B-D5G-2. A view whose marker reaches no owner is not located; a `Table` cell's now does
 
 *`GeometryReader` asking any space but its own, `onScrollVisibilityChange`,
-`onGeometryChange` with a non-local space, anchors — inside a `TableColumn`'s
-cell view*
+`onGeometryChange` with a non-local space, anchors — under a container that
+drops its content's hit-test regions; inside a `TableColumn`'s cell view
+until 2026-10-06*
 
-A `Table` composes each row's cells as text (`rowCells(for:columnWidths:context:)`
-returns strings), which drops every hit-test region a cell view drew — buttons
-as well as the geometry markers these read. So a view in a cell is answered as
-though no owner found it: a reader with the origin `(0, 0)`, on every frame; an
-`onGeometryChange` asking another space likewise, still called once the frame
-is done (its first report included); a scroll visibility observer never
-measured, nor reported (a registration whose marker reached no owner and not
-the frame counts as none). `List` rows, eager and lazy stacks, grids, custom
-layouts, `.offset`, scroll views and presentations all carry markers
-(`GeometryMarkerTests`).
+**A `Table` cell (changed 2026-10-06, the tables lane's follow-up).** A
+`Table` composes each row's cells as text, and carries a view cell's regions
+up with the row (`_TableRowPayload`, B46) — its geometry markers among them
+now, which it used to leave behind. So a view in a cell is found where its row
+draws it: a reader there is answered exactly, and an `onGeometryChange`
+reports that place, its first report included (`CoordinateSpaceTests`). A
+cell still carries no geometry origin (`Table.cellContext`), so a reader's
+own prediction there is the origin: the frame it first shows costs the root a
+second walk of the scene, after which it reads what was found (one correction
+on its first frame, none after, in the test's static table; a frame its row
+moves on, unmeasured, would cost another). Before, nothing found the cell, and
+a reader there was told the origin on every frame. A space declared inside a
+cell starts an origin of its own and is answered exactly, as before. A
+`ScrollView` inside a cell has no origin carried to it either, so it does not
+predict for its own `.scrollView` readers: they are corrected — the scroll
+view's subtree drawn a second time — on every frame they move. An open menu's
+content in a cell (a layer, not a region) still leaves its markers behind: it
+is found where the menu is drawn, not the cell.
 
-A cell carries no geometry origin (`Table.cellContext`), which is what makes a
-reader's answer the origin. Carried into the cells, the table's own top-left —
-no row or column placed — was the reader's prediction, told to every cell from
-the reader's second frame (the first frame carries no origin) and never
-checked, since nothing finds the cell: a value that reads as a measurement,
-the same for every row and column and right for none, and that moved once
-with nothing having moved. The origin is what a reporter in the same cell is
-told, the same on every frame, and plainly no place in particular; and the
-containers in a cell no longer work out placements nothing reads. A space
-declared inside a cell still starts an origin of its own and is answered
-exactly. A `ScrollView` inside a cell has no origin carried to it either, so
-it no longer predicts for its own `.scrollView` readers: they are corrected —
-the scroll view's subtree drawn a second time — on every frame they move.
+**Elsewhere:** a marker reaches an owner only through the buffers its
+ancestors draw, so a view is not located under any container that redraws its
+content's lines into a new buffer without the hit-test regions in them, which
+carry the markers (a bare `FrameBuffer(lines:)`, in an app's own `Renderable`
+as in the framework; `ContainerPayloadAudit` guards the framework's
+containers for regions). Such content carries an origin down as any content
+does, so a reader there is told where the containers above it would place it,
+and nothing checks it; a reporter is told the origin, and a pointer converts
+in the global space (B-D5G-7). A window bar's content is located: the bars are
+rows of the frame the scene root reads (A28), so a reader in a `.toolbar` item
+is found and corrected as a reader on the page is (`GeometryWindowChromeTests`).
 
-Not only a table: a marker reaches an owner only through the buffers its
-ancestors draw, so a view is not located either under any container that
-redraws its content's lines into a new buffer without the hit-test regions in
-them, which carry the markers (a bare `FrameBuffer(lines:)`, in an app's own
-`Renderable` as in the framework; `ContainerPayloadAudit` guards the
-framework's containers for regions). Such content carries an origin down as
-any content does, so a reader there is told where the containers above it
-would place it, and nothing checks it; a reporter is told the origin, and a
-pointer converts in the global space (B-D5G-7). A window bar's content is
-located: the bars are rows of the frame the scene root reads (A28), so a
-reader in a `.toolbar` item is found and corrected as a reader on the page is
-(`GeometryWindowChromeTests`).
-
-**Fuller version:** carry each cell's markers (and its regions) through the row
-composition at the cell's column — a `[HitTestRegion]` beside the row's claims
-in `renderRowUncached`. About half a day, on `Table`'s hot path, so with the
-`table`/`tables-scroll` A/Bs.
+**Fuller version, for a cell:** carry each cell's origin down to it (the
+row's line and the column's start), so a reader there predicts exactly and
+the first frame needs no second walk. About half a day, on `Table`'s hot path,
+so with the `table`/`tables-scroll` A/Bs.
 
 ### B-D5G-3. A reader inside a presented surface asking `.global` costs the scene a second walk on the frame the surface shows or moves
 
@@ -226,8 +220,8 @@ static list costs a correction on a reader's first frame, and scrolling a
 list with readers in its rows costs its owner one more drawing per frame —
 G1's rate, never a wrong answer. `.scrollView` inside a `List` row is
 answered by the nearest `ScrollView` around the list (or the global space),
-where SwiftUI's list is itself the scroll view. A `Table`'s cells are not
-located at all (B-D5G-2).
+where SwiftUI's list is itself the scroll view. A `Table`'s cells are
+located, from their first frame's correction on (B-D5G-2).
 
 **Fuller version:** the list places each drawn row at `contentTop + (line −
 drawn offset)` in its window, as `attachRowPayloads` already does for the

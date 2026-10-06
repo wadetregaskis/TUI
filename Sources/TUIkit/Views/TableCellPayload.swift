@@ -79,14 +79,13 @@ struct _TableRowPayload {
         }
         let columns = x..<(x + max(0, width))
         let rows = 0..<max(0, lines)
-        // The cell's geometry markers stay behind, in its regions and in its
-        // layers: a table cell is not located (decisions D5G, B-D5G-2), so a
-        // reader in one is told the origin on every frame. Not because a
-        // marker would take a click — it has no area, and none lands on it —
-        // but because carried, it is found: a reader in a cell is then
-        // answered exactly from its first frame, which is that decision's to
-        // change, with its docs and tests.
-        for region in cell.hitTestRegions where !region.isGeometryMarker {
+        // The cell's geometry markers come with its regions: a marker is a
+        // point, not an area (it rides through the clip below unchanged), so
+        // it takes no click, and carried, the frame's owners find the views
+        // in the cell — a reader there is answered where it is drawn
+        // (decisions D5G, B-D5G-2). A layer's markers stay behind: an open
+        // menu's content is found where the menu is drawn, not the cell.
+        for region in cell.hitTestRegions {
             if let placed = region.shifted(byX: lineStart(region.offsetY), y: 0)
                 .clipped(toColumns: columns, rows: rows)
             {
@@ -130,13 +129,14 @@ struct _TableRowPayload {
 
 extension FrameBuffer {
     /// Removes every geometry marker this buffer carries, in its regions and in
-    /// every layer's content — what a table cell leaves behind
-    /// (``_TableRowPayload/absorb(_:atColumn:width:lines:alignment:)``).
+    /// every layer's content — what a table cell's LAYERS leave behind
+    /// (``_TableRowPayload/absorb(_:atColumn:width:lines:alignment:)``); the
+    /// cell's own regions' markers come up with the row, where it is drawn.
     ///
     /// Every layer, not only those ``forEachGeometryMarker(offsetX:offsetY:_:)``
     /// reads: a surface's markers (a cell's open menu) are found by the screen
     /// root once it composites the surface, which would locate the cell's view
-    /// too. Copies nothing that holds no marker.
+    /// a second time, where the menu is. Copies nothing that holds no marker.
     fileprivate mutating func removeGeometryMarkers() {
         if hitTestRegions.contains(where: \.isGeometryMarker) {
             hitTestRegions.removeAll(where: \.isGeometryMarker)

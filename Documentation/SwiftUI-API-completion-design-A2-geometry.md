@@ -608,7 +608,8 @@ A2 and A7 entries are left for the coordinator to retire):
   reference (`GeometryOwnerScope.startsReference`);
 - not converted: a `List`'s rows and its `.scrollView` (B-D5G-9), the root's
   centring, `safeAreaInset`, content margins, `TabView`, `NavigationSplitView`,
-  `SplitView` (B-D5G-10); `Table` cells are not located at all (B-D5G-2);
+  `SplitView` (B-D5G-10); `Table` cells carry no origin, so a reader there is
+  corrected on its first frame (B-D5G-2);
 - `scrollTransition`'s default threshold is unmeasured and taken as `.visible`
   (B-D5G-8).
 

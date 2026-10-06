@@ -184,8 +184,9 @@ extension GeometryCoordinator {
     ///
     /// A reporter no owner found is called too, its proxy answering as
     /// though none had — what was found for it last, else the origin: one
-    /// whose marker a container dropped (a `Table` composes its cells as
-    /// text, decisions D5G B-D5G-2). Its first report is the one
+    /// whose marker a container dropped (a bare `FrameBuffer(lines:)` that
+    /// leaves its content's regions behind, decisions D5G B-D5G-2). Its first
+    /// report is the one
     /// `onGeometryChange` always makes, as it made it when it reported from
     /// its render.
     ///

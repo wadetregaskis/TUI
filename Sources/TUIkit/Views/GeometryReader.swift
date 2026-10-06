@@ -37,14 +37,13 @@ import TUIkitView
 /// What reaches the screen is drawn from where the reader really is — in a
 /// presented surface (a sheet, a popover) and in a window bar's content
 /// (`.toolbar` items) too, since the scene root reads the whole screen with
-/// the window's layers composited into it (B-D5G-3) — except where no owner
-/// finds it once the frame is drawn (decisions D5G): a view inside a `Table`
-/// cell is not found at all, the table composing its cells as text, so a
-/// reader there is told the origin, `(0, 0)`, on every frame (B-D5G-2); and
-/// nor is a view under a container that redraws its content's lines into a
-/// new buffer without the hit-test regions in them, which carry the markers:
-/// a reader there is told where the containers above it would place it, and
-/// nothing checks it (B-D5G-2).
+/// the window's layers composited into it (B-D5G-3), and inside a `Table`
+/// cell, which carries no origin down and so is corrected on a reader's first
+/// frame (B-D5G-2) — except where no owner finds it once the frame is drawn
+/// (decisions D5G): a view under a container that redraws its content's lines
+/// into a new buffer without the hit-test regions in them, which carry the
+/// markers, is not found, and a reader there is told where the containers
+/// above it would place it, and nothing checks it (B-D5G-2).
 ///
 /// ## What this deliberately does not have
 ///

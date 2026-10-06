@@ -520,8 +520,8 @@ struct CoordinateSpaceTests {
         #expect(origins == [CellPoint(x: 5, y: 2)])
     }
 
-    @Test("onGeometryChange asking another space still fires where no owner finds its marker: a Table cell")
-    func onGeometryChangeUnfound() {
+    @Test("onGeometryChange asking another space in a Table cell reports where its row is drawn")
+    func onGeometryChangeInTableCell() {
         struct Row: Identifiable {
             let id: Int
         }
@@ -537,16 +537,17 @@ struct CoordinateSpaceTests {
             .width(12)
         }
         harness.frame(table)
-        // A table composes its cells as text, dropping the markers they drew
-        // (decisions D5G, B-D5G-2): nothing finds them, and each is answered
-        // as though nothing had — the initial report still made, as it was
-        // before the frame learnt to ask again at its end.
-        #expect(reports == ["0: 0→0", "1: 0→0"])
+        // A table carries the markers its view cells drew up with their
+        // regions (decisions D5G, B-D5G-2), so the frame finds each where its
+        // row is drawn — below the header and its rule — and the initial
+        // report is that place. Until 2026-10-06 they were left behind, and
+        // each was told the origin.
+        #expect(reports == ["0: 2→2", "1: 3→3"])
         harness.frame(table)
-        #expect(reports == ["0: 0→0", "1: 0→0"])
+        #expect(reports == ["0: 2→2", "1: 3→3"])
     }
 
-    @Test("A reader in a Table cell is told the origin on every frame, as a reporter there is: no owner finds it")
+    @Test("A reader in a Table cell is told where it is drawn: one correction on its first frame, exact after")
     func readerInTableCell() {
         struct Row: Identifiable {
             let id: Int
@@ -573,17 +574,20 @@ struct CoordinateSpaceTests {
                 .width(12)
             }
         }
-        // A table composes its cells as text, dropping the markers they drew
-        // (decisions D5G, B-D5G-2): nothing finds a reader there, so it is
-        // told what one no owner finds is told — the origin — on its first
-        // frame and every frame after, not the table's own place from its
-        // second (the same for every row, and never checked). A space
-        // declared inside the cell finds its reader before the table drops
-        // the marker, and answers it exactly.
+        // A table carries the markers its view cells drew up with their
+        // regions (decisions D5G, B-D5G-2), so the root finds a reader in a
+        // cell where its row is drawn: two text rows, the header and its rule
+        // above the first. A cell carries no geometry origin, so the reader's
+        // first frame predicts wrong and the root draws the frame again,
+        // exact — and every frame after reads what was found, with no
+        // correction. A space declared inside the cell answers its reader
+        // exactly, as before.
         for frame in 1...3 {
             drawn = [:]
             harness.frame(page)
-            #expect(drawn == [0: 0, 1: 0, 10: 2, 11: 2], "frame \(frame)")
+            #expect(drawn == [0: 4, 1: 5, 10: 2, 11: 2], "frame \(frame)")
+            #expect(harness.geometryCorrections.total == 1, "frame \(frame)")
+            #expect(harness.geometryCorrections.residual == 0, "frame \(frame)")
         }
     }
 
