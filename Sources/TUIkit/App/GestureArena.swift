@@ -56,55 +56,6 @@ import TUIkitCore
 /// waits — the next press starts every gesture under it afresh.
 @MainActor
 final class GestureArena {
-    /// A gesture contending in the arena, or in several: one under a press
-    /// that came while an earlier arena still waited is that arena's
-    /// contender, carried on.
-    final class Contender {
-        let participant: GestureParticipant
-
-        /// Its region, as of the latest press it is contending for.
-        var region: HitTestRegion
-
-        /// Out of the running: it failed or was cancelled, so it holds nothing
-        /// up.
-        var isOut = false
-
-        /// Held back on an earlier input, so it owes a flush once released.
-        var isHeldBack = false
-
-        /// How many arenas hold it back: it may report only at none.
-        var holdCount = 0
-
-        /// The arena that feeds it, the latest it contends in, so that one
-        /// under two presses hears each input once. Weak: an arena keeps its
-        /// contenders, not the other way round.
-        weak var feeder: GestureArena?
-
-        init(participant: GestureParticipant, region: HitTestRegion) {
-            self.participant = participant
-            self.region = region
-        }
-    }
-
-    /// One place in the ranking.
-    enum Entry {
-        case gesture(Contender)
-        case control(HitTestRegion)
-
-        var handlerID: HitTestRegion.HandlerID {
-            switch self {
-            case .gesture(let contender): contender.region.handlerID
-            case .control(let region): region.handlerID
-            }
-        }
-
-        /// The gesture in this place, if it is one.
-        var contender: Contender? {
-            if case .gesture(let contender) = self { return contender }
-            return nil
-        }
-    }
-
     /// What the arena is fed.
     enum Input {
         case pointer(MouseEvent, timeNanos: Int64)
