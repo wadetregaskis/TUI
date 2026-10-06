@@ -117,6 +117,7 @@
   "statusbar.notCopiedNoClipboard": "Non copié : aucun presse-papiers accessible d'ici",
   "statusbar.notCopiedHelperFailed": "Non copié : l'outil du presse-papiers a échoué",
   "statusbar.pasteWithTerminal": "Rien à coller ici : utilisez le collage du terminal",
+  "statusbar.pastedAppCopy": "Dernière copie de l'app collée : pour votre presse-papiers, utilisez le collage du terminal",
   "statusbar.menu.open": "ouvrir %@",
   "statusbar.menu.close": "fermer %@",
   "statusbar.menu.dropDown": "menu déroulant",

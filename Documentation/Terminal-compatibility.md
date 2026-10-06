@@ -5245,21 +5245,36 @@ takes ONE route per copy, in this order:
    is at this machine** (`ClipboardLocality`): no `SSH_CONNECTION`,
    `SSH_CLIENT` or `SSH_TTY`; this process's parents reach the root without
    passing `sshd` (or `sshd-session`), `mosh-server`, `dropbear`, `telnetd`,
-   `etserver`, `ttyd` or `gotty`; and inside tmux, at least one client is
-   attached and every client's parents pass the same test (the pane's own
-   chain ends at the tmux server, which says nothing of who is watching).
-   Every other session keeper — GNU `screen`, `zellij`, `dtach`, `abduco`,
-   `shpool`, in the chain or by its variable (`STY`, `ZELLIJ`,
-   `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`, `SHPOOL_SESSION_NAME`) — answers
-   "not here": its server is detached from the terminal that started it, so
-   a session begun at the desk may be attached over ssh with nothing in this
-   process to say so, and none can be asked for its clients as tmux can. A
-   chain that cannot be read to the root is not evidence. The helper is
+   `etserver` (or `etterminal`), `ttyd` or `gotty`; and inside tmux, at
+   least one client is attached and every client's parents pass the same
+   test (the pane's own chain ends at the tmux server, which says nothing of
+   who is watching) — a tmux above the client itself in its chain, a tmux
+   run inside another tmux's pane, counting as a keeper. The other session
+   keepers TUIkit knows — GNU `screen`, `zellij`, `dtach`, `abduco`,
+   `shpool`, `tmate`, WezTerm's `wezterm-mux-server`, in the chain or by
+   their variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
+   `SHPOOL_SESSION_NAME`) — answer "not here": a keeper's server is detached
+   from the terminal that started it, so a session begun at the desk may be
+   attached over ssh with nothing in this process to say so, and none can be
+   asked for its clients as tmux can. A keeper not on that list passes as a
+   plain parent. A chain that cannot be read to the root is not evidence.
+   At the desk this costs: a copy under a keeper goes by OSC 52 only where
+   the outer terminal is named and takes it, and a paste chord pastes the
+   app's own last copy, not the desk's clipboard (below). The helper is
    `pbcopy` on macOS; on Linux `wl-copy` with `WAYLAND_DISPLAY`, then `xclip`
    or `xsel` with `DISPLAY`, and none without a display.
 3. **OSC 52, where the terminal MAY write it**: iTerm2 (a setting decides),
    tmux with `set-clipboard on`, and a terminal whose DA1 lists `52`.
 4. **Nothing**, said so.
+
+**Inside GNU screen (`STY`), no OSC 52 at all**, whatever terminal the
+environment names: screen passes an application's OSC 52 on only inside its
+own DCS passthrough (`ESC P … ESC \`), which TUIkit does not send, so rungs 1
+and 3 would report a write screen drops ("Copied" in Ghostty, "Sent" in
+iTerm2), and the name itself is inherited from wherever screen was started.
+Under screen every copy is "Not copied", at the desk too (screen is a keeper,
+so rung 2 does not apply). Unmeasured on a host; the passthrough is the
+fuller version (decisions D4X, B-D4X-13).
 
 The status bar says what became of a copy for three seconds, in place of the
 items of the line of key hints (`StatusBar()`, where the app places it) and
@@ -5283,7 +5298,9 @@ itself made, whatever became of it, so a field's Ctrl-C pastes into another
 field and a `copyable` value into a `PasteButton`, as the server's pasteboard
 used to carry them (and as tmux's buffer or vim's register does). With no such
 copy they find nothing, and the status bar says "Nothing to paste here: use
-the terminal's paste" for three seconds. The terminal's own paste — ⌘V,
+the terminal's paste" for three seconds; with one, it says "Pasted this app's
+last copy: for your clipboard, use the terminal's paste", since that copy may
+be older than what the user last copied on their machine. The terminal's own paste — ⌘V,
 bracketed, from the user's machine — brings in what was copied there, and
 works everywhere. Inside tmux each chord asks tmux for its clients, as a copy
 does.

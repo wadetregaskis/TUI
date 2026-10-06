@@ -237,12 +237,20 @@ final class ClipboardWriter: @unchecked Sendable {
     /// `copyable` view and a `PasteButton` — as the server's pasteboard used
     /// to carry it, and as tmux's buffer or vim's register does. Text copied
     /// on the user's machine comes in through the terminal's own paste,
-    /// bracketed, which works everywhere; with no copy of the app's to give,
-    /// the status bar says to use it. Never OSC 52's `?`: a read prompts the
-    /// user on Ghostty, and its reply would arrive in the input stream.
+    /// bracketed, which works everywhere, and the status bar says so either
+    /// way: that what was pasted is the app's own last copy, which may be
+    /// older than what the user last copied on their machine — under a
+    /// session keeper at the desk too, where the desk's clipboard is no
+    /// longer read — or, with none to give, to use the terminal's paste.
+    /// Never OSC 52's `?`: a read prompts the user on Ghostty, and its reply
+    /// would arrive in the input stream.
     @MainActor func read() -> String? {
         if hasSystemHelper, isLocal() { return systemRead() }
-        if let lastCopy { return lastCopy }
+        if let lastCopy {
+            note = (.pastedAppCopy, nowNanos())
+            requestFrame()
+            return lastCopy
+        }
         note = (.pasteWithTerminal, nowNanos())
         requestFrame()
         return nil

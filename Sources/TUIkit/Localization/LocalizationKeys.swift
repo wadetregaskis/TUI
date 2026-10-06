@@ -260,6 +260,10 @@ public enum LocalizationKey {
         /// user's) nor a copy of the app's own: the terminal's paste is the
         /// way in.
         case pasteWithTerminal = "statusbar.pasteWithTerminal"
+        /// A paste chord found not this machine's clipboard (it is not known
+        /// to be the user's) but the app's own latest copy, and pasted that:
+        /// the user's own clipboard is the terminal's paste.
+        case pastedAppCopy = "statusbar.pastedAppCopy"
 
         // MARK: The menu pair
 

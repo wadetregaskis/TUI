@@ -117,6 +117,7 @@
   "statusbar.notCopiedNoClipboard": "No copiado: no hay portapapeles accesible desde aquí",
   "statusbar.notCopiedHelperFailed": "No copiado: falló el asistente del portapapeles",
   "statusbar.pasteWithTerminal": "Nada que pegar aquí: usa el pegado del terminal",
+  "statusbar.pastedAppCopy": "Pegada la última copia de la app: para tu portapapeles, usa el pegado del terminal",
   "statusbar.menu.open": "abrir %@",
   "statusbar.menu.close": "cerrar %@",
   "statusbar.menu.dropDown": "menú desplegable",

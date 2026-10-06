@@ -56,6 +56,7 @@ extension TerminalClient {
     /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference) |
     /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default |
     /// | tmux | only with `set-clipboard on` | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on (measured, 3.7c) |
+    /// | GNU screen | no | it passes an application's OSC 52 on only inside its own DCS passthrough, which TUIkit does not send; recognised by `STY`, whatever terminal is named (unmeasured) |
     /// | Apple Terminal | no | no OSC 52 anywhere in the app |
     /// | Warp | not known | unmeasured |
     /// | unidentified | no | unless its Device Attributes list `52` (see ``clipboardWrites``) |
@@ -97,8 +98,9 @@ extension TerminalClient {
     /// How far the terminal painting this app's output can be trusted with an
     /// OSC 52 write.
     ///
-    /// In order: ``clipboardWriteSupport``; then `TUIKIT_OSC52`; then, in a
-    /// tmux pane, tmux's `set-clipboard` (`on` is
+    /// In order: ``clipboardWriteSupport``; then `TUIKIT_OSC52`; then, inside
+    /// GNU screen (`STY`), unsupported, as screen drops an application's
+    /// OSC 52; then, in a tmux pane, tmux's `set-clipboard` (`on` is
     /// ``ClipboardWriteSupport/unconfirmed``, anything else unsupported); then
     /// the table at ``honoursClipboardWrites(_:)``, with kitty, WezTerm and
     /// foot recognised by their variables. Last, a terminal the environment
@@ -131,15 +133,25 @@ extension TerminalClient {
     /// asked without a terminal.
     ///
     /// 1. `TUIKIT_OSC52`: `1` honoured, `0` unsupported.
-    /// 2. tmux: `set-clipboard on` is ``ClipboardWriteSupport/unconfirmed`` —
+    /// 2. GNU screen (`STY` set, the session is somewhere inside one):
+    ///    unsupported. screen does not pass an application's OSC 52 on unless
+    ///    it is wrapped in screen's own DCS passthrough, which TUIkit does not
+    ///    send, so the terminal's name — inherited from wherever screen was
+    ///    started, and stale once it is attached from elsewhere — says
+    ///    nothing. Under screen a copy is "Not copied" (at the desk too: a
+    ///    keeper is never local, ``ClipboardLocality``), where the terminal's
+    ///    rung said "Sent" (iTerm2) or "Copied" (Ghostty) of a write screen
+    ///    dropped. (screen 4's sequence handling, as review 2 of the D4X lane
+    ///    read it; unmeasured on a host, and screen 5 unmeasured.)
+    /// 3. tmux: `set-clipboard on` is ``ClipboardWriteSupport/unconfirmed`` —
     ///    tmux keeps the write as a buffer and passes it on only to a client
     ///    that can take it — and anything else, the default `external`
     ///    included, is unsupported, because tmux then ignores an application's
     ///    write. tmux's own variables are checked before the ones below,
     ///    which inside a pane may be stale leftovers of whichever terminal
     ///    started the server.
-    /// 3. The table, and the three terminals recognised by their variables.
-    /// 4. A Primary Device Attributes reply carrying `52` raises an
+    /// 4. The table, and the three terminals recognised by their variables.
+    /// 5. A Primary Device Attributes reply carrying `52` raises an
     ///    unsupported answer to unconfirmed. It can only ADD a terminal: a
     ///    terminal that writes by default need not say so (Ghostty's
     ///    `ESC[?62;22c` does not), so the table, not DA1, is the main rung.
@@ -154,6 +166,7 @@ extension TerminalClient {
         case "0": return .unsupported
         default: break
         }
+        if environment["STY"]?.isEmpty == false { return .unsupported }
         if program == .tmux {
             return tmuxSetClipboard == "on" ? .unconfirmed : .unsupported
         }

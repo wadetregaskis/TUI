@@ -137,6 +137,22 @@ struct ClipboardTerminalSupportTests {
                 name: "tmux ignores a kitty variable left over from the server's start",
                 environment: ["KITTY_WINDOW_ID": "1"], program: .tmux, deviceAttributes: nil,
                 tmuxSetClipboard: "external", expected: .unsupported),
+            // GNU screen drops an application's OSC 52; the terminal its
+            // environment names (inherited, and stale once reattached) wrote
+            // "Sent" (iTerm2) or "Copied" (Ghostty) of a write screen dropped.
+            Self(
+                name: "Inside GNU screen, in iTerm2", environment: ["STY": "4242.pts-0.desk", "TERM_PROGRAM": "iTerm.app"],
+                program: .iTerm2, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unsupported),
+            Self(
+                name: "Inside GNU screen, in Ghostty", environment: ["STY": "4242.pts-0.desk"], program: .ghostty,
+                deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unsupported),
+            Self(
+                name: "Inside GNU screen, in kitty by TERM", environment: ["STY": "4242.pts-0.desk", "TERM": "xterm-kitty"],
+                program: .unidentified, deviceAttributes: "\u{1B}[?64;52c", tmuxSetClipboard: nil,
+                expected: .unsupported),
+            Self(
+                name: "TUIKIT_OSC52=1 outranks screen", environment: ["TUIKIT_OSC52": "1", "STY": "4242.pts-0.desk"],
+                program: .appleTerminal, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured),
             Self(
                 name: "TUIKIT_OSC52=1 turns it on", environment: ["TUIKIT_OSC52": "1"],
                 program: .appleTerminal, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured),
@@ -342,6 +358,21 @@ struct ClipboardWriterTests {
         let here = ClipboardWriter.stated(terminal: .honoured, isLocal: true, log: log)
         here.write("mine", announcingSuccess: false)
         #expect(here.read() == "someone else's")
+    }
+
+    /// Away from this machine — over ssh, or under a session keeper at the
+    /// desk, where the desk's clipboard is no longer read — the app's own copy
+    /// may be older than what the user last copied on their machine: the
+    /// status bar says which it was, and where theirs is.
+    @Test("A paste chord that finds the app's own copy says so")
+    func pasteOfTheAppsCopySaysSo() {
+        let writer = ClipboardWriter.stated(terminal: .honoured, isLocal: false)
+        writer.write("mine", announcingSuccess: false)
+        #expect(writer.statusNote(atNanos: 0) == nil)
+        #expect(writer.read() == "mine")
+        #expect(
+            writer.statusNote(atNanos: 0)?.text
+                == LocalizationService.shared.string(for: LocalizationKey.StatusBar.pastedAppCopy))
     }
 
     @Test("A paste chord that finds nothing says to use the terminal's paste")

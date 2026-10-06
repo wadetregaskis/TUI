@@ -191,22 +191,52 @@ by default.
 **The fuller version:** a toggle beside the editor, with its label in the
 Example's seven languages. Half a day.
 
-### B-D4X-13. A session under screen, zellij, dtach, abduco or shpool is never "at this machine"
+### B-D4X-13. A session under a session keeper is never "at this machine", and under GNU screen no OSC 52 is sent
 
-*The clipboard rule's locality (`ClipboardLocality`)*
+*The clipboard rule's locality (`ClipboardLocality`) and the writer's ladder
+(`TerminalClient.clipboardWrites`)*
 
-**Shipped:** a session keeper other than tmux, in the process's chain or by
-its variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
+**Shipped:** a session keeper TUIkit knows — GNU screen, zellij, dtach,
+abduco, shpool, tmate, WezTerm's mux server, and a tmux above a tmux client
+in its chain (a tmux run inside another tmux's pane) — in the process's chain
+or by its variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
 `SHPOOL_SESSION_NAME`), answers "not local" even at the desk: its server is
 detached from the terminal that started it, so a session begun at the desk
 can be attached over ssh with nothing in the process to say so, and none of
-them can be asked for its clients as tmux is. Such a session copies by OSC 52
-where the terminal takes it, and otherwise says it could not.
+them can be asked for its clients as tmux is. Eternal Terminal's
+`etterminal` joins `etserver` as a remote-session daemon. A keeper TUIkit
+does not know passes as a plain parent: the list is what has been found, not
+everything there is. (Review 2 found nested tmux, `wezterm-mux-server` and
+`tmate` missing; the first is the one that put text on a server Mac's
+pasteboard.)
 
-**The fuller version:** ask each keeper for its clients where it can be asked
-— zellij's and screen's session sockets, as `list-clients` is asked of tmux —
-and walk each client's chain as tmux's are. Half a day per keeper, and only
-where the keeper answers at all (dtach and abduco keep no client list).
+Under a keeper a copy goes by OSC 52 where the terminal's rung takes it, and
+is "Not copied", said so, where none does — and under GNU screen always:
+screen passes an application's OSC 52 on only inside its own DCS passthrough,
+so the ladder answers unsupported inside screen (`STY`) whatever terminal the
+inherited environment names, where it used to report "Sent" (iTerm2) or
+"Copied" (Ghostty) of a write screen dropped. A paste chord under a keeper,
+as anywhere away from the machine, pastes the app's own last copy and says
+so, or says to use the terminal's paste (B-D4X-14).
+
+**The cost at the desk** (review 2: unpriced): a session at the desk inside
+any of these keepers no longer reaches the desk's clipboard. Copies go by
+OSC 52 only where the outer terminal is named and takes it — Ghostty, kitty,
+WezTerm, foot by default, iTerm2 as a maybe — and under screen nowhere: an
+iTerm2 → screen copy that `pbcopy` used to make is now "Not copied". Ctrl-V
+and a `PasteButton` there no longer read the desk's clipboard: text copied in
+Safari comes in by the terminal's ⌘V, and Ctrl-V pastes the app's own last
+copy (said so) or says to use ⌘V. The terminal's own selection and paste work
+throughout. `TUIKIT_OSC52=1` still forces OSC 52, screen or not.
+
+**The fuller version:** (a) screen's DCS passthrough — the OSC 52 wrapped as
+`ESC P ESC ] 52 ; c ; … BEL ESC \`, chunked under screen's string limit —
+would carry copies through screen to the terminal: half a day and a probe
+row, unmeasured. (b) Ask each keeper for its clients where it can be asked —
+zellij's and screen's session sockets, an outer tmux's `list-clients` (its
+socket from the outer server's environment) — and walk each client's chain
+as tmux's are: half a day per keeper, and only where the keeper answers at
+all (dtach and abduco keep no client list).
 
 ### B-D4X-14. Away from this machine, a paste chord pastes the app's own latest copy
 
@@ -215,7 +245,10 @@ where the keeper answers at all (dtach and abduco keep no client list).
 app made, whatever became of it, so the in-app round trip the server's
 pasteboard used to carry over ssh still works (a field's Ctrl-C into another
 field; a `copyable` value into a `PasteButton`, as itself). With no such copy
-the status bar says "Nothing to paste here: use the terminal's paste".
+the status bar says "Nothing to paste here: use the terminal's paste"; with
+one, it says "Pasted this app's last copy: for your clipboard, use the
+terminal's paste", because the copy may be older than what the user last
+copied on their own machine (review 2: that paste was silent).
 
 **The alternative:** paste nothing away from the machine, with the same line
 — the user's own clipboard is never stale then, but nothing the app copied
