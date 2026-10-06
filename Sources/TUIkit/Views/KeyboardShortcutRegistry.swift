@@ -124,12 +124,18 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// The app's shortcut on `trigger` that fires while the focus is in
     /// `activePane` (`nil`: on the page): the pane's own; else, for anything
     /// but Return and Escape, the page's — see the type's discussion.
-    private func appEntry(for trigger: KeyboardShortcut.Trigger, activePane: String?) -> Entry? {
+    ///
+    /// Not the page's while `reachesPage` is false: a modal presented from
+    /// inside the pane — an alert over a live sheet — holds the keyboard, and
+    /// the page behind it, live as it is, must not fire from under it.
+    private func appEntry(
+        for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool = true
+    ) -> Entry? {
         guard let activePane else { return actions[trigger] }
         if let entry = paneActions[activePane]?[trigger] { return entry }
         switch trigger {
         case .defaultAction, .cancelAction: return nil
-        case .key: return actions[trigger]
+        case .key: return reachesPage ? actions[trigger] : nil
         }
     }
 
@@ -157,11 +163,14 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// on Ctrl-Q. The event → trigger rule itself is
     /// ``KeyboardShortcut/trigger(for:)``, shared with the row-shortcut table.
     ///
-    /// - Parameter activePane: The pane the focus is in
-    ///   (`FocusManager.activePaneID`), or `nil` on the page.
-    func trigger(for event: KeyEvent, activePane: String? = nil) -> Bool {
+    /// - Parameters:
+    ///   - activePane: The pane the focus is in (`FocusManager.activePaneID`),
+    ///     or `nil` on the page.
+    ///   - reachesPage: Whether a key equivalent the pane does not bind may
+    ///     reach the page's: not while a modal section holds the focus.
+    func trigger(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
-        let entry = appEntry(for: trigger, activePane: activePane)
+        let entry = appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage)
         if event.phase == .repeat, let entry, !entry.repeats { return true }
         guard let action = entry?.action ?? defaults[trigger]?.action else { return false }
         action()
@@ -178,9 +187,9 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// one of its editing chords. An app shortcut on the chord takes the key
     /// instead; see
     /// ``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``.
-    func hasAppShortcut(for event: KeyEvent, activePane: String? = nil) -> Bool {
+    func hasAppShortcut(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
-        return appEntry(for: trigger, activePane: activePane) != nil
+        return appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage) != nil
     }
 }
 

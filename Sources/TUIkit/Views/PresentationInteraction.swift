@@ -6,12 +6,10 @@
 //
 //  The content interaction decides what the wheel does over a detented sheet
 //  with a grabber: scroll its content, resize it first, or resize it once its
-//  content can scroll no further. The background interaction, so far, only in
-//  the values that describe what a presentation does — the page behind it is
-//  inert — and returns the view unchanged; interacting with the page behind a
-//  sheet is left out, so asking for it fails to compile. (See
-//  `MediumGuaranteedModifiers.swift` for the line between a guarantee kept and
-//  a request dropped, and decisions A19 for what the rest would take.)
+//  content can scroll no further. The background interaction decides whether
+//  the page behind a detented sheet stays live: the sheet docks at the bottom
+//  of the content area and the page is laid out in the rows above it, a pane
+//  beside the sheet (decisions A19, design C).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -22,24 +20,68 @@ import TUIkitView
 // MARK: - PresentationBackgroundInteraction
 
 /// The kinds of interaction available to views behind a presentation. Mirrors
-/// SwiftUI's `PresentationBackgroundInteraction`, in the values a terminal
-/// honours.
+/// SwiftUI's `PresentationBackgroundInteraction`.
 ///
-/// SwiftUI's `.enabled` and `.enabled(upThrough:)` are absent: the page behind
-/// a presentation is drawn as an inert, dimmed backdrop, so they would be
-/// requests nothing could act on.
+/// A terminal has no room to draw a live page UNDER a sheet — whatever the
+/// sheet hid, Tab and the arrow keys could still reach — so where the page
+/// behind a detented sheet is live, the sheet docks at the bottom of the
+/// content area and the page is laid out in the rows above it: a pane beside
+/// the sheet, as the panes of a ``VSplitView`` are (decisions A19).
 public struct PresentationBackgroundInteraction: Sendable {
-    private enum Kind: Sendable {
+    enum Kind: Sendable {
         case automatic, disabled
+        /// Live, at detents no taller than `upThrough`'s; at every detent when
+        /// `nil`.
+        case enabled(upThrough: PresentationDetent?)
     }
 
-    private let kind: Kind
+    let kind: Kind
 
     /// The default background interaction for the presentation: none.
     public static var automatic: Self { Self(kind: .automatic) }
 
     /// People can't interact with the view behind a presentation.
     public static var disabled: Self { Self(kind: .disabled) }
+
+    /// People can interact with the view behind a presentation.
+    ///
+    /// A sheet with detents docks at the bottom of the content area, and the
+    /// page is laid out in the rows above it, live: the focus moves between
+    /// the two with Tab, and each has its own keys. A sheet without detents —
+    /// whose height only its content knows — stays a modal dialog over the
+    /// page, as an undetented sheet covers the page on a phone.
+    public static var enabled: Self { Self(kind: .enabled(upThrough: nil)) }
+
+    /// People can interact with the view behind a presentation up through a
+    /// specified detent.
+    ///
+    /// At detents larger than the one you specify, the sheet is a modal again:
+    /// the page behind it is dimmed and inert, and the sheet takes the focus.
+    /// Compared by height, in the rows the detents come to in this terminal.
+    ///
+    /// - Parameter detent: The largest detent at which people can interact
+    ///   with the view behind the presentation.
+    public static func enabled(upThrough detent: PresentationDetent) -> Self {
+        Self(kind: .enabled(upThrough: detent))
+    }
+
+    /// Whether the page behind a sheet resting `height` rows tall, in a
+    /// content area `extent` rows tall, stays live.
+    ///
+    /// `upThrough` is compared by the height it comes to, as SwiftUI words it
+    /// ("at detents larger than…"); a custom detent that is not available
+    /// there lets nothing through.
+    @MainActor
+    func letsThePageThrough(atHeight height: Int, extent: Int, environment: EnvironmentValues) -> Bool {
+        switch kind {
+        case .automatic, .disabled:
+            return false
+        case .enabled(let upThrough):
+            guard let upThrough else { return true }
+            guard let limit = upThrough.resolved(in: extent, environment: environment) else { return false }
+            return height <= limit
+        }
+    }
 }
 
 // MARK: - PresentationContentInteraction
@@ -88,16 +130,28 @@ extension View {
     /// Controls whether people can interact with the view behind a
     /// presentation. Mirrors SwiftUI's `presentationBackgroundInteraction(_:)`.
     ///
-    /// Both values here say what a presentation already does: the page behind
-    /// a sheet, cover or popover is inert while it is up.
+    /// Apply it to the sheet's **content**, with its detents. With
+    /// ``PresentationBackgroundInteraction/enabled`` the sheet docks at the
+    /// bottom of the content area and the page is laid out in the rows above
+    /// it — shorter by the sheet's height, as a terminal resize would make it
+    /// — and stays live: Tab moves the focus between the page and the sheet,
+    /// a click on the page reaches it, and the keys are the pane's the focus
+    /// is in (Escape on the page is the page's). The page is never drawn under
+    /// the sheet, so nothing the focus can reach is hidden.
+    ///
+    /// The sheet is a modal again — over a dimmed, inert page — at a detent
+    /// taller than ``PresentationBackgroundInteraction/enabled(upThrough:)``
+    /// allows, when the page would keep fewer than three rows, when the sheet
+    /// would be fewer than three, and for a sheet without detents. A cover has
+    /// nothing behind it and a popover is already beside a live page; both
+    /// ignore it.
     ///
     /// - Parameter interaction: How people can interact with the view behind
     ///   the presentation.
-    /// - Returns: This view, unchanged.
     public func presentationBackgroundInteraction(
         _ interaction: PresentationBackgroundInteraction
     ) -> some View {
-        self
+        _PresentationBackgroundInteractionView(content: self, backgroundInteraction: interaction)
     }
 
     /// Configures the behavior of swipe gestures on a presentation. Mirrors
@@ -172,3 +226,51 @@ extension _PresentationContentInteractionView: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _PresentationContentInteractionView: DrawsContentUnchanged {}
+
+// MARK: - The background interaction, as a trait
+
+/// Content that has said whether the page behind its sheet stays live.
+@MainActor
+protocol PresentationBackgroundInteractionProviding {
+    /// The interaction the content asked for.
+    var backgroundInteraction: PresentationBackgroundInteraction { get }
+}
+
+/// The wrapper ``View/presentationBackgroundInteraction(_:)`` produces. Renders
+/// and measures as its content; carrying the interaction is its whole job.
+struct _PresentationBackgroundInteractionView<Content: View>: View, PresentationBackgroundInteractionProviding {
+    let content: Content
+    let backgroundInteraction: PresentationBackgroundInteraction
+
+    var body: Never {
+        fatalError("_PresentationBackgroundInteractionView renders via Renderable")
+    }
+}
+
+extension _PresentationBackgroundInteractionView: Renderable {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        TUIkit.renderToBuffer(content, context: context)
+    }
+}
+
+extension _PresentationBackgroundInteractionView: Layoutable {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+}
+
+extension _PresentationBackgroundInteractionView: PresentationTraitWrapper {
+    var presentationTraitContent: any View { content }
+}
+
+/// Names its content so a container asking for a z-index or an alignment guide
+/// can look through this wrapper instead of stopping at it. Read-only: it does
+/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
+/// the members of multi-view content.
+extension _PresentationBackgroundInteractionView: SingleContentWrapper {
+    var wrappedContent: Content { content }
+}
+
+/// Draws its content unchanged, at its own identity, so a removal transition
+/// written inside it plays — see `DrawsContentUnchanged`.
+extension _PresentationBackgroundInteractionView: DrawsContentUnchanged {}

@@ -107,6 +107,15 @@ extension ModalPresentationModifier: Renderable {
         // tokens are stable across presentation.
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
+        // A sheet whose content lets the page through posts the rows it docks
+        // every frame, presented or not, for the root to lay the page out by
+        // before the walk (`postDock`).
+        let backgroundInteraction =
+            style == .sheet
+            ? presentationTrait(PresentationBackgroundInteractionProviding.self, of: modal)?.backgroundInteraction
+            : nil
+        if let backgroundInteraction { postDock(backgroundInteraction, sectionID: sectionID, context: context) }
+
         // If not presented, just return base content.
         guard isPresented.wrappedValue else {
             // Tear down the modal focus section if it's still active (the modal
@@ -127,6 +136,8 @@ extension ModalPresentationModifier: Renderable {
                 // And the detent the reader moved it to: it opens again at the
                 // bound detent, or the smallest, as a new sheet does.
                 existingDetentState(context: context)?.chosen = nil
+                // Presented again, a live sheet takes the focus again.
+                existingPresentationEntry(context: context)?.hasEntered = false
             }
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
@@ -147,6 +158,42 @@ extension ModalPresentationModifier: Renderable {
         // (`DismissalGate.escape`).
         let isPresented = self.isPresented
         let escape = { (isRepeat: Bool) in gate.escape(isRepeat: isRepeat) { isPresented.wrappedValue = false } }
+
+        // The content's context: the content area's height, the modal's
+        // section, and the presentation's ways out (`presentedContext`).
+        let overlayHeight = context.environment.overlayContentHeight
+        let modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
+
+        // A detent, if the content named one, decides the height instead of the
+        // content's own. It has to be read BEFORE the render — it is the height
+        // being rendered into — which is why it rides a static conformance
+        // rather than a preference (see ``PresentationDetentsProviding``). A
+        // cover is the whole content area and takes none.
+        let detents =
+            style == .sheet
+            ? PresentedDetents(
+                of: modal, extent: overlayHeight, environment: modalContext.environment,
+                state: detentState(context: context))
+            : nil
+        // The grabber's rule is the sheet's top row, so the content is drawn a
+        // row short of the detent — and at least one row tall.
+        let isGrabbed = SheetGrabber.isShown(
+            detents, visibility: presentationTrait(PresentationDragIndicatorProviding.self, of: modal)?
+                .dragIndicatorVisibility)
+        // Live, where the content lets the page through at this detent and
+        // there is room for both: docked under the page, a pane beside it
+        // (ModalPresentationModifier+Live.swift). A modal otherwise.
+        if let backgroundInteraction,
+            LiveSheet.dock(
+                detents: detents, interaction: backgroundInteraction, extent: overlayHeight,
+                environment: modalContext.environment) != nil
+        {
+            return renderLive(
+                LiveSheet.Presented(
+                    sectionID: sectionID, modalContext: modalContext, detents: detents, isGrabbed: isGrabbed,
+                    gate: gate, escape: escape, dismissIsDisabled: dismissIsDisabled),
+                contentContext: contentContext, context: context)
+        }
 
         // Register the modal focus section and activate it FIRST — so the page
         // rendered beneath registers its controls in the now-inactive page
@@ -211,27 +258,6 @@ extension ModalPresentationModifier: Renderable {
             baseBuffer.animatedCells = []
         }
 
-        // The content's context: the content area's height, the modal's
-        // section, and the presentation's ways out (`presentedContext`).
-        let overlayHeight = context.environment.overlayContentHeight
-        let modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
-
-        // A detent, if the content named one, decides the height instead of the
-        // content's own. It has to be read BEFORE the render — it is the height
-        // being rendered into — which is why it rides a static conformance
-        // rather than a preference (see ``PresentationDetentsProviding``). A
-        // cover is the whole content area and takes none.
-        let detents =
-            style == .sheet
-            ? PresentedDetents(
-                of: modal, extent: overlayHeight, environment: modalContext.environment,
-                state: detentState(context: context))
-            : nil
-        // The grabber's rule is the sheet's top row, so the content is drawn a
-        // row short of the detent — and at least one row tall.
-        let isGrabbed = SheetGrabber.isShown(
-            detents, visibility: presentationTrait(PresentationDragIndicatorProviding.self, of: modal)?
-                .dragIndicatorVisibility)
         var modalBuffer = drawSheet(
             modalContext: modalContext, detents: detents, isGrabbed: isGrabbed, gate: gate, escape: escape,
             escapeItemRegistration: escapeItemRegistration, sectionID: sectionID, context: context)
@@ -324,6 +350,9 @@ extension ModalPresentationModifier: Renderable {
         // activation took it back from that surface on every frame — see
         // `FocusManager.activatePresentedSection(id:)`.
         focusManager?.activatePresentedSection(id: sectionID)
+        // Entered: shrunk to a detent that docks it live, the sheet keeps the
+        // focus where it is (`renderLive`).
+        if focusManager?.isBackdrop == false { presentationEntry(context: context).hasEntered = true }
         // Mark this section input-grabbing so the app's global default key
         // bindings (appearance/theme) don't fire behind the modal.
         focusManager?.markSectionModal(id: sectionID)
@@ -398,6 +427,9 @@ private enum StateIndex {
     /// The grabber's focus id and its handler (`SheetGrabber`).
     static let grabberFocusID = 4
     static let grabber = 5
+    /// Whether the sheet has taken the focus since it was presented
+    /// (`PresentationEntry`): a live sheet takes it on entry only.
+    static let entry = 6
 }
 
 extension ModalPresentationModifier {
@@ -432,10 +464,27 @@ extension ModalPresentationModifier {
 
     /// The same record, if the sheet was ever presented: emptied on a closed
     /// frame, as ``existingKeptSheetSize(context:)`` is, and for its reason.
-    private func existingDetentState(context: RenderContext) -> SheetDetentState? {
+    func existingDetentState(context: RenderContext) -> SheetDetentState? {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.detentState))
             as StateBox<SheetDetentState>?)?.value
+    }
+
+    /// The presenter's record of whether the sheet has taken the focus since
+    /// it was presented.
+    func presentationEntry(context: RenderContext) -> PresentationEntry {
+        context.stateStorage?.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.entry),
+            default: PresentationEntry()
+        ).value ?? PresentationEntry()
+    }
+
+    /// The same record, if the sheet was ever presented: emptied on a closed
+    /// frame, as ``existingDetentState(context:)`` is.
+    private func existingPresentationEntry(context: RenderContext) -> PresentationEntry? {
+        (context.stateStorage?.existingStorage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.entry))
+            as StateBox<PresentationEntry>?)?.value
     }
 }
 

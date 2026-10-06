@@ -116,7 +116,7 @@ extension FocusManager {
 /// presentation binding, the detent the sheet rests at — when it is called,
 /// not when it was posted: a key that moves the sheet between two frames is
 /// answered by last frame's resolver already, and never draws late.
-typealias PresentationDockResolver = (_ contentHeight: Int) -> Int?
+typealias PresentationDockResolver = @MainActor (_ contentHeight: Int) -> Int?
 
 extension FocusManager {
     /// Posts how many rows the sheet presented in section `id` docks at the
@@ -142,6 +142,7 @@ extension FocusManager {
     ///
     /// The most any one sheet asks for: two docked sheets overlap on the bottom
     /// edge, and the taller decides how much of the page is covered.
+    @MainActor
     func presentationDock(in contentHeight: Int) -> Int {
         Self.dock(panes.previousDocks, in: contentHeight)
     }
@@ -154,10 +155,12 @@ extension FocusManager {
     /// until it opened — and that frame was laid out at the old dock, the
     /// sheet drawn over the page's bottom rows. The root then asks for the
     /// next frame, which settles: one frame late, not a discarded walk.
+    @MainActor
     func postedPresentationDock(in contentHeight: Int) -> Int {
         Self.dock(panes.docks, in: contentHeight)
     }
 
+    @MainActor
     private static func dock(_ resolvers: [String: PresentationDockResolver], in contentHeight: Int) -> Int {
         // The common frame: no live sheet anywhere.
         guard !resolvers.isEmpty, contentHeight > 0 else { return 0 }

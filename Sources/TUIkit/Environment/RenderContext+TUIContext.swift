@@ -67,13 +67,13 @@ extension RenderContext {
     /// gives focus to nothing) and `KeyEventDispatcher`:
     ///
     /// - **focus isolation** stops the background's controls from registering
-    ///   into the live `FocusManager`. Crucially, the modal has already
-    ///   `activateSection`'d its own section before the page renders, so a
-    ///   background control registering with no explicit section would resolve to
-    ///   `activeSectionID` — the *modal's* section — and the first one would
-    ///   auto-focus there (see `FocusManager.register`), stealing the focus the
-    ///   modal's own controls should receive and leaving the background live to
-    ///   hotkeys. A throwaway manager keeps the real one seeing only the modal.
+    ///   into the live `FocusManager`, which keeps it seeing only the modal. (A
+    ///   background control with no explicit section is filed in the stable
+    ///   default section — `FocusManager.register` — not, as it once was, in
+    ///   the momentarily active section, the modal's, where the first one
+    ///   auto-focused and stole the focus the modal's own controls should
+    ///   receive.) A live sheet's page, which IS meant to be reachable, is
+    ///   drawn without this: `ModalPresentationModifier.renderLive`.
     /// - **no auto-focus** within that throwaway manager either
     ///   (`suppressesAutoFocus`). Without it the backdrop's first control was
     ///   focused, `onFocusReceived` fired, and a `ScrollView`'s scroll-to-reveal

@@ -259,7 +259,9 @@ extension InputHandler {
         // Button firing itself all consumed it earlier (macOS responder-
         // chain semantics); a TextField without `onSubmit` deliberately
         // lets Return through so the dialog's default button fires.
-        if keyboardShortcuts.trigger(for: event, activePane: focusManager.activePaneID) {
+        if keyboardShortcuts.trigger(
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+        {
             return true
         }
 
@@ -354,7 +356,8 @@ extension InputHandler {
             !selecting.isTypeSelecting, !event.ctrl, !event.alt,
             case .character(let character) = event.key
         else { return false }
-        if keyboardShortcuts.hasAppShortcut(for: event, activePane: focusManager.activePaneID)
+        if keyboardShortcuts.hasAppShortcut(
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
             || statusBar.quitShortcut.matches(event)
         {
             return true
@@ -407,7 +410,8 @@ extension InputHandler {
         guard let input = focusManager.currentFocused as? any TextInputFocusHandler,
             input.givesWayToKeyboardShortcut(event)
         else { return false }
-        return keyboardShortcuts.hasAppShortcut(for: event, activePane: focusManager.activePaneID)
+        return keyboardShortcuts.hasAppShortcut(
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
     }
 
     /// The tail of layer 4: the global appearance/theme cycling shortcuts.

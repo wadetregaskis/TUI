@@ -147,6 +147,58 @@ every detent; the ticks in between are spent on the sheet, and do not scroll
 the content either. (SwiftUI's `.automatic` on a phone grows a resizable sheet
 before its content scrolls; ask for `.resizes` for that order.)
 
+### A live page beside the sheet
+
+A detented sheet whose content says
+``View/presentationBackgroundInteraction(_:)`` with `.enabled` leaves the
+page behind it live. A terminal cannot draw a live page *under* a sheet —
+whatever the sheet hid, Tab and the arrow keys could still reach — so the
+sheet docks at the bottom of the content area and the page is laid out in the
+rows above it, as the two panes of a ``VSplitView`` are:
+
+```swift
+List(notes, selection: $selected) { note in Text(note.title) }
+    .sheet(isPresented: $showingDetail) {
+        NoteDetail(note: selected)
+            .presentationDetents([.height(8), .medium, .large])
+            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+```
+
+- **The page is shorter.** It is laid out in the rows the sheet leaves, as a
+  terminal resize would lay it out: a `GeometryReader` or
+  `containerRelativeFrame` sees the shorter height, a list scrolls in it, and
+  a lazy stack's rows come and go (`onAppear`, `onDisappear`) as the sheet
+  changes height. On a phone the page keeps its height under the sheet.
+- **The focus moves between them with Tab.** Presenting moves the focus into
+  the sheet, as every sheet does; Tab and Shift-Tab carry it to the page and
+  back, and a click on the page focuses what it lands on. The sheet keeps
+  nothing hidden: no row of the page is ever under it.
+- **Each keeps its own keys.** A `.keyboardShortcut` in the sheet fires while
+  the focus is in the sheet, and the page's while it is on the page. A key
+  equivalent the sheet does not bind still reaches the page's, but Return and
+  Escape — the default and cancel buttons — are the sheet's alone while the
+  focus is there. Escape dismisses the sheet only with the focus in it; with
+  the focus on the page, Escape is the page's (a `NavigationStack` there goes
+  back). An `onKeyEvent` handler is not focus-scoped, in either pane: it
+  hears keys wherever the focus is, as it does beside a `.focusSection()`.
+- **A modal again, when it must be.** At a detent taller than
+  `.enabled(upThrough:)` allows the sheet is a modal: the page is dimmed and
+  inert, and the sheet takes the focus — shrunk back, it leaves the focus
+  where it is. It is a modal as well where the page would keep fewer than
+  three rows or the sheet would have fewer than three, so on a short terminal
+  the feature comes to an ordinary sheet; and a sheet without detents, whose
+  height only its content knows, stays a modal dialog, as an undetented sheet
+  covers the page on a phone.
+- **The page's pop-ups open over it.** A page's drop-down, menu or tooltip
+  opens over the sheet as it opens over anything else on the page.
+
+The height the page is laid out at is known before the page is drawn — from
+the sheet's detent, read as the frame begins — so moving the sheet relayouts
+the page once, on the same frame. A `sheet(item:)` that opens is drawn one
+frame over the page's bottom rows before the page makes room: its content is
+not known until the item is.
+
 ## Alerts
 
 Use `alert(_:isPresented:actions:message:)` for a titled alert with an

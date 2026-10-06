@@ -2,10 +2,11 @@
 //  PresentationInteractionTests.swift
 //
 //  `presentationBackgroundInteraction(_:)` and
-//  `presentationContentInteraction(_:)` return the view unchanged; these
-//  assert the guarantees their values describe instead — the page behind a
-//  sheet cannot be reached, and an over-tall sheet scrolls inside its height
-//  rather than growing.
+//  `presentationContentInteraction(_:)` in the values that describe what a
+//  presentation does by default: the page behind a sheet cannot be reached,
+//  and an over-tall sheet scrolls inside its height rather than growing. The
+//  live page's twin of the first is LiveSheetTests.backgroundIsLive; the
+//  wheel's resizing is SheetWheelResizeTests'.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
