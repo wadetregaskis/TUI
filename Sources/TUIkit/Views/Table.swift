@@ -2614,7 +2614,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 return true
             },
             isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns,
-            contentLines: contentLines, opened: opened, dispatcher: dispatcher)
+            contentLines: contentLines, opened: opened)
     }
 
     /// Draws the open row menu over the table — anchored at the press, or
@@ -3731,7 +3731,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// gap it crossed, measured from a press the gap never took; with a frame
     /// between, the menu's backdrop took it instead, so the outcome came down
     /// to timing. The row menu asks the gesture the same way
-    /// (``RowContextMenuHost/preflight(_:wheel:menu:row:)``).
+    /// (``RowContextMenuHost/preflight(_:wheel:menu:dispatcher:row:)``).
     @MainActor
     private static func belongsToAMenu(_ event: MouseEvent, dispatcher: MouseEventDispatcher) -> Bool {
         (event.phase == .dragged || event.phase == .released) && dispatcher.gestureOpenedPopup
@@ -4268,7 +4268,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // goes on to a menu around the table, and a Ctrl-click with
             // nothing to open is still a click.
             let spent = RowContextMenuHost.preflight(
-                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, row: { rowAt(y: event.y) })
+                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, dispatcher: dispatcher, row: { rowAt(y: event.y) })
             if let spent { return spent }
 
             if event.button == .left {

@@ -145,10 +145,6 @@ enum RowContextMenuHost {
 
         /// What a press that opened the menu does besides: focus the container.
         let opened: @MainActor () -> Void
-
-        /// The dispatcher the press was handed to, which knows whether the
-        /// gesture in flight opened a menu (``MouseEventDispatcher/gestureOpenedPopup``).
-        let dispatcher: MouseEventDispatcher
     }
 
     /// The events a container's mouse handler answers before its own clicks:
@@ -159,6 +155,9 @@ enum RowContextMenuHost {
     ///   - wheel: The container's wheel handling, answering whether it took
     ///     the event.
     ///   - menu: The container's row menu, or `nil` when it has none.
+    ///   - dispatcher: The dispatcher the event came through, which knows
+    ///     whether the gesture in flight opened a menu
+    ///     (``MouseEventDispatcher/gestureOpenedPopup``).
     ///   - row: The row under the event, asked only for a press that opens.
     /// - Returns: `true` when the event is spent — scrolled, a press that
     ///   opened a menu, or the rest of a gesture whose press did; `false` for a
@@ -167,7 +166,8 @@ enum RowContextMenuHost {
     ///   answers — any other, and a Ctrl-click with nothing to open, which is
     ///   still a click.
     static func preflight(
-        _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?, row: () -> Int?
+        _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?,
+        dispatcher: MouseEventDispatcher, row: () -> Int?
     ) -> Bool? {
         if wheel(event) { return true }
         guard let menu else { return nil }
@@ -179,7 +179,7 @@ enum RowContextMenuHost {
         // when a frame fell between press and release, so a quick click and a
         // slow one did different things. Nor is it a secondary click by its
         // modifiers alone, for the same reason.
-        if event.phase != .pressed, menu.dispatcher.gestureOpenedPopup { return true }
+        if event.phase != .pressed, dispatcher.gestureOpenedPopup { return true }
         guard isSecondary(event) else { return nil }
         if event.phase == .pressed, menu.contentColumns.contains(event.x),
             menu.contentLines.contains(event.y), menu.open(row(), event.x, event.y)
