@@ -3843,6 +3843,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// and per column; the cell's rectangle as the space on offer; and the
     /// column's line limit and truncation as the environment's, so a `Text`
     /// cell clips and wraps as the column says.
+    ///
+    /// And no carried geometry origin. The cell is composed as text, which
+    /// drops the markers it drew, so no owner of a space finds a view in it
+    /// (decisions D5G, B-D5G-2): a reader there is told what one no owner
+    /// finds is told, the origin, as an `onGeometryChange` there is. Carried,
+    /// the table's own origin reached every cell — no row or column placed —
+    /// and was told to each reader from its second frame on as though it were
+    /// where the reader was, never checked; and every container in a cell
+    /// worked out placements nothing would read. A space declared inside the
+    /// cell starts an origin of its own, and is answered exactly.
     private func cellContext(
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> RenderContext {
@@ -3854,6 +3864,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             .withAvailableSize(width: max(1, width), height: column.lineLimit)
         cellContext.environment.lineLimit = .lines(column.lineLimit)
         cellContext.environment.truncationMode = column.truncationMode
+        if cellContext.carriesGeometryOrigin { cellContext.geometryOrigin = nil }
         return cellContext
     }
 

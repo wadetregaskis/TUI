@@ -546,6 +546,52 @@ struct CoordinateSpaceTests {
         #expect(reports == ["0: 0→0", "1: 0→0"])
     }
 
+    @Test("A reader in a Table cell is told the origin on every frame, as a reporter there is: no owner finds it")
+    func readerInTableCell() {
+        struct Row: Identifiable {
+            let id: Int
+        }
+        let harness = InputChainHarness()
+        var drawn: [Int: Int] = [:]
+        let page = VStack(alignment: .leading, spacing: 0) {
+            Text("a")
+            Text("b")
+            Table([Row(id: 0), Row(id: 1)]) {
+                TableColumn("Y") { (row: Row) in
+                    GeometryReader { proxy in
+                        Text("y \(Self.note(proxy.frame(in: .global).minY, as: row.id, in: &drawn))")
+                    }
+                }
+                .width(12)
+                TableColumn("X") { (row: Row) in
+                    GeometryReader { proxy in
+                        Text("x \(Self.note(proxy.frame(in: .named("cell")).minX, as: 10 + row.id, in: &drawn))")
+                    }
+                    .padding(.leading, 2)
+                    .coordinateSpace(.named("cell"))
+                }
+                .width(12)
+            }
+        }
+        // A table composes its cells as text, dropping the markers they drew
+        // (decisions D5G, B-D5G-2): nothing finds a reader there, so it is
+        // told what one no owner finds is told — the origin — on its first
+        // frame and every frame after, not the table's own place from its
+        // second (the same for every row, and never checked). A space
+        // declared inside the cell finds its reader before the table drops
+        // the marker, and answers it exactly.
+        for frame in 1...3 {
+            drawn = [:]
+            harness.frame(page)
+            #expect(drawn == [0: 0, 1: 0, 10: 2, 11: 2], "frame \(frame)")
+        }
+    }
+
+    private static func note(_ value: Int, as row: Int, in drawn: inout [Int: Int]) -> Int {
+        drawn[row] = value
+        return value
+    }
+
     // MARK: - Pointer locations
 
     @Test("A tap located in a named space reports the cell in that space")

@@ -39,7 +39,8 @@ import TUIkitView
 /// sheet, a popover) asking `.global` is placed only when the surface is
 /// composited, after the scene's correction, so it is right from the frame
 /// after (decisions D5G, B-D5G-3); and a view inside a `Table` cell is not
-/// found at all, the table composing its cells as text (B-D5G-2).
+/// found at all, the table composing its cells as text, so a reader there is
+/// told the origin, `(0, 0)`, on every frame (B-D5G-2).
 ///
 /// ## What this deliberately does not have
 ///
