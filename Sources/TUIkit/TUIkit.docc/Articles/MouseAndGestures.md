@@ -291,11 +291,13 @@ List(invite.recipients) { recipient in
 A selection reads characters, not views: a wide character once, each row's
 trailing blanks dropped, rows joined with line breaks. Its text is fixed when
 the drag ends, and the highlight goes as soon as the cells under it change —
-a log that scrolls on, a list that moves. A selection that is not drawn takes
-no keys: ⌘C and Escape are the app's again. The highlight and its keys come
-back if the text is drawn there again, as when a status-bar tooltip that moved
-the page by a row goes away. It reads the page, not the layers over it: a menu
-or a popover draws over the highlight.
+a log that scrolls on, a list that moves, a spinner that turns — for good: an
+equal line drawn there later is not the selection come back. A selection that
+is not drawn takes no keys: ⌘C and Escape are the app's again. Only where the
+page itself moved under it — a status-bar tooltip or a copy's line taking a
+row from a centred page — do the highlight and its keys come back, when the
+page does. It reads the page, not the layers over it: a menu or a popover
+draws over the highlight.
 
 Nothing is copied until the user asks, as on a Mac. A scene can copy every
 selection at the release instead, as tmux and iTerm2 do:

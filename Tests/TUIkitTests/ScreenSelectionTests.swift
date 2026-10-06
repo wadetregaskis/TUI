@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkit
@@ -241,8 +242,12 @@ struct ScreenSelectionGestureTests {
         #expect(log.writes.isEmpty)
     }
 
-    @Test("When the cells read the text again, the highlight and its keys come back")
-    func highlightReturns() throws {
+    /// The cells changed under the selection, the page did not move: the
+    /// highlight is gone for good, and an equal text drawn there later is not
+    /// the selection come back. Reviving it took Ctrl-C and Escape ahead of
+    /// every layer again.
+    @Test("When the cells change under it, the highlight and its keys are gone for good")
+    func highlightGoesForGood() throws {
         let log = SystemClipboardLog()
         let first = Box("alpha beta gamma")
         let page = Page(first: first)
@@ -254,9 +259,100 @@ struct ScreenSelectionGestureTests {
         #expect(harness.tui.screenSelection.current?.isHighlighted == false)
         first.value = "alpha beta gamma"
         harness.frame(page)
-        #expect(harness.tui.screenSelection.current?.isHighlighted == true)
-        #expect(harness.press(KeyEvent(key: .character("c"), ctrl: true)))
-        #expect(log.writes == ["alpha"])
+        #expect(harness.tui.screenSelection.current?.isHighlighted == false)
+        #expect(harness.tui.screenSelection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) == nil)
+        #expect(log.writes.isEmpty)
+    }
+
+    struct Log: View {
+        let lines: Box
+        var body: some View {
+            VStack(alignment: .leading) {
+                ForEach(Array(lines.value.split(separator: "\n").enumerated()), id: \.offset) { entry in
+                    Text(String(entry.element))
+                }
+            }
+        }
+    }
+
+    /// The review's log: a line selected, the log scrolling on, and another
+    /// "OK" landing on the same cells two lines later.
+    @Test("An equal line scrolling onto a selection's cells does not bring it back")
+    func scrollingLogDoesNotRevive() throws {
+        let entries = (0..<12).map { $0.isMultiple(of: 2) ? "OK" : "step \($0)" }
+        let lines = Box(entries[0..<6].joined(separator: "\n"))
+        let page = Log(lines: lines)
+        let harness = InputChainHarness(width: 40, height: 8)
+        harness.frame(page)
+        let rows = harness.frame(page).lines.map(\.stripped)
+        let row = try #require(rows.firstIndex { $0.hasPrefix("OK") })
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 0, y: row))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 1, y: row))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 1, y: row))
+        harness.frame(page)
+        let selection = harness.tui.screenSelection
+        try #require(selection.current?.text == "OK")
+        var highlighted: [Bool] = []
+        for shift in 1...4 {
+            lines.value = entries[shift..<(shift + 6)].joined(separator: "\n")
+            let drawn = harness.frame(page).lines.map(\.stripped)
+            try #require(drawn[row].hasPrefix(shift.isMultiple(of: 2) ? "OK" : "step"))
+            highlighted.append(selection.current?.isHighlighted ?? false)
+        }
+        #expect(highlighted == [false, false, false, false])
+        #expect(selection.handleKey(KeyEvent(key: .escape)) == nil)
+    }
+
+    struct SpinnerPage: View {
+        var body: some View {
+            VStack(alignment: .leading) {
+                TimelineView(.periodic(from: Date(timeIntervalSinceReferenceDate: 0), by: 0.25)) { context in
+                    Text(
+                        ["|", "/", "-", "\\"][Int(context.date.timeIntervalSinceReferenceDate * 4) % 4]
+                            + " Building")
+                }
+                Button("Press") {}
+            }
+        }
+    }
+
+    /// The review's spinner: a line that comes back to the selected text every
+    /// fourth tick. The highlight blinked with it, and Ctrl-C went to the
+    /// selection on those ticks and to the focused control on the others.
+    @Test("Over a cycling line the highlight goes once, and the keys stay the app's")
+    func cyclingLineDoesNotStrobe() throws {
+        let page = SpinnerPage()
+        let harness = InputChainHarness(width: 40, height: 8)
+        var seconds = 1_000.0
+        func frame() -> [String] {
+            harness.tui.renderCache.frameDate = Date(timeIntervalSinceReferenceDate: seconds)
+            return harness.frame(page).lines.map(\.stripped)
+        }
+        _ = frame()
+        let rows = frame()
+        let row = try #require(rows.firstIndex { $0.contains("| Building") })
+        let x = rows[row].distance(from: rows[row].startIndex, to: try #require(rows[row].firstIndex(of: "|")))
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
+        _ = frame()
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: x + 9, y: row))
+        _ = frame()
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x + 9, y: row))
+        _ = frame()
+        let selection = harness.tui.screenSelection
+        try #require(selection.current?.text == "| Building")
+        var highlighted: [Bool] = []
+        var owned: [Bool] = []
+        for _ in 0..<8 {
+            seconds += 0.25
+            _ = frame()
+            highlighted.append(selection.current?.isHighlighted ?? false)
+            owned.append(selection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) != nil)
+        }
+        try #require(frame()[row].contains("| Building"), "precondition: the line came back round")
+        #expect(highlighted == Array(repeating: false, count: 8))
+        #expect(owned == Array(repeating: false, count: 8))
     }
 
     struct CopyablePage: View {

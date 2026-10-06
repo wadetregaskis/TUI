@@ -193,19 +193,27 @@ the status bar says "Nothing to paste here: use the terminal's paste".
 can be pasted back into it without the terminal's paste. Free either way;
 this follows tmux's buffer and vim's register.
 
-### B-D4X-15. A screen selection whose highlight has gone stands aside, and comes back with its text
+### B-D4X-15. A screen selection whose highlight has gone stands aside, and comes back only with its page
 
 **Shipped:** the highlight is drawn while the cells under it read the
-selected text. While it is not — a log scrolled on, a page moved by a
-status-bar tooltip's row — the selection takes no keys (Ctrl-C and Escape are
-the app's), and when the cells read the text again the highlight, its keys
-and its Copy menu come back.
+selected text. When they stop, the selection takes no keys (Ctrl-C and Escape
+are the app's). If the content area is where the highlight was last drawn,
+the cells themselves changed — a log scrolled on, a spinner turned — and the
+highlight is gone for good. If the content area moved — a status-bar
+tooltip's row, a copy's line, taking a row from a centred page — the page
+moved under it, and the highlight, its keys and its Copy menu come back when
+the area is back and the cells read the text again. (Review 2: coming back on
+any match made it blink over a line that cycles back to the text, its keys
+flipping with it, and revived a selection when an equal log line scrolled
+onto its cells.)
 
 **The alternatives:** keep the invisible selection's keys, so Ctrl-C copies a
 log line that has scrolled away (the design study's reading; it took the
 focused view's Ctrl-C and an `onExitCommand`'s Escape); or clear the
 selection the moment its highlight goes (a tooltip would then lose it for
-good). Free either way.
+good). Free either way. A move of the page's content inside the area — a
+scroll view the tooltip's row shortened — is a change of the cells, and loses
+it.
 
 ### B-D4X-16. Upstream, a caret moved onto a wrapped row lands after its first character
 

@@ -26,7 +26,7 @@ import TUIkitCore
 /// wide characters once, trailing blanks dropped, rows joined with line
 /// breaks. The text is fixed when the drag ends; the highlight goes as soon as
 /// the cells under it no longer read that text, and with it the selection's
-/// keys, and both come back if the cells read it again.
+/// keys — for good, unless the page itself moved, when both come back with it.
 ///
 /// **Copying** is Ctrl-C — the app's ⌘C, resolved through `commandKey` — while
 /// a selection is drawn, through the app's ``ClipboardWriter``, whose status-bar
@@ -106,6 +106,10 @@ final class ScreenSelection: @unchecked Sendable {
         /// Whether the highlight is drawn: while the cells under it read
         /// ``text``.
         var isHighlighted = true
+        /// The content area the highlight was last drawn in, the screen's —
+        /// what a highlight that went may come back in; `nil` once it is gone
+        /// for good (``ScreenSelection/takeFrame(_:width:palette:top:underPresentation:)``).
+        var shownIn: Rect?
         /// Whether a drag is still making it.
         var isMaking = true
     }
@@ -179,7 +183,8 @@ extension ScreenSelection {
         let point = onPage(point)
         clip.y -= frameTop
         current = Selection(
-            anchor: point, head: point, clip: clip, shape: shape, unit: unit, text: "")
+            anchor: point, head: point, clip: clip, shape: shape, unit: unit, text: "",
+            shownIn: contentArea)
         refreshText()
     }
 
@@ -283,10 +288,16 @@ extension ScreenSelection {
     ///   width says so; the content area's height also moves with the status
     ///   bar's rows, which is no reason to lose a selection.
     /// - A selection being made follows the screen, as a terminal's does.
-    /// - A finished one keeps its text, and its highlight goes while the cells
-    ///   under it do not read that text — the selection a log scrolled away —
-    ///   and comes back, keys and all, when they read it again: the page a
-    ///   status-bar tooltip moved by a row for as long as it showed.
+    /// - A finished one keeps its text, and its highlight goes when the cells
+    ///   under it no longer read that text. Where the content area is where
+    ///   the highlight was last drawn, the cells themselves changed — a log
+    ///   scrolled on, a spinner turned — and it is gone for good: a highlight
+    ///   that came back whenever they read the text again blinked over a
+    ///   cycling line, its keys with it, and an equal line scrolling into
+    ///   place revived a selection long gone. Where the content area moved —
+    ///   a status-bar tooltip's row, a copy's line, taking a row from a
+    ///   centred page — the page moved under it, and it comes back, keys and
+    ///   all, when the area is back and the cells read the text again.
     /// - A presentation over the page — a sheet, an alert, an open menu —
     ///   clears it too: what is under a modal's backdrop is not the user's to
     ///   copy, and its keys are the presentation's. The selection's own menu
@@ -309,10 +320,19 @@ extension ScreenSelection {
             return buffer
         }
         let drawn = Self.text(of: selection, in: frameLines)
+        let area = contentArea
         if selection.isMaking {
             selection.text = drawn
-        } else {
-            selection.isHighlighted = drawn == selection.text
+            selection.shownIn = area
+        } else if let shownIn = selection.shownIn {
+            if drawn == selection.text, selection.isHighlighted || area == shownIn {
+                selection.isHighlighted = true
+                selection.shownIn = area
+            } else {
+                selection.isHighlighted = false
+                // The page did not move: the cells changed under it.
+                if area == shownIn { selection.shownIn = nil }
+            }
         }
         current = selection
         guard selection.isHighlighted else { return buffer }
