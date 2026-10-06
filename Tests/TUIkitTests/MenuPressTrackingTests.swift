@@ -524,6 +524,34 @@ struct MenuPressTrackingTests {
         #expect(chosen == "Delete", "the row under the pointer at the release, not at the press")
     }
 
+    /// The backdrop answers for every cell outside the menu, so a held drag
+    /// there is the menu's gesture, tracking away from its rows — not a drag
+    /// on what the backdrop covers, which never saw a press. Passed on, a
+    /// `.draggable` under it began a drag-and-drop session that the release —
+    /// eaten by the backdrop — never ended.
+    @Test("A held drag outside an open menu reaches nothing under its backdrop")
+    func dragOutsideTheMenuReachesNothingBeneath() throws {
+        let (tui, context) = harness()
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Text("drag me").draggable("payload")
+            actionsMenu()
+        }
+        tui.dragAndDropSession.beginFrame()
+
+        renderArmed(view, tui: tui, context: context)
+        press(tui, context, x: 2, y: 1)
+        let opened = renderArmed(view, tui: tui, context: context)
+        #expect(!opened.overlays.isEmpty, "the menu is up")
+        drag(tui, x: 2, y: 0)
+        #expect(tui.dragAndDropSession.active == nil, "the drag began a drag-and-drop session")
+        renderArmed(view, tui: tui, context: context)
+        release(tui, x: 2, y: 0)
+        #expect(tui.dragAndDropSession.active == nil)
+        #expect(
+            renderArmed(view, tui: tui, context: context).overlays.isEmpty,
+            "a hold let go away from the menu closes it")
+    }
+
     // MARK: - `Picker` drop-down
 
     @Test("A picker's drop-down opens on the press and its release picks an option")

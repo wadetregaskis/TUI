@@ -986,11 +986,11 @@ extension MouseEventDispatcher {
         // yet — the press and they came in one input batch — and whatever is
         // under them got a gesture it was never pressed for: a `Toggle` acting
         // on the release toggled, a text field selected to the drag, a row was
-        // clicked. With a frame between, the pop-up's backdrop takes the
-        // release. So until then the dispatcher spends them itself, as the
-        // backdrop would:
-        // a held release closes the pop-up (the `dispatch` defer, through
-        // ``pressOpenedPopup(closing:)``), a click's release leaves it up.
+        // clicked. With a frame between, the pop-up's backdrop takes them.
+        // So until then the dispatcher spends them itself, as the backdrop
+        // would: a held release closes the pop-up (the `dispatch` defer,
+        // through ``pressOpenedPopup(closing:)``), a click's release leaves it
+        // up.
         if event.phase == .dragged || event.phase == .released, pressOpenedPopupMenu, !renderedSincePress,
             handedOffPresses.contains(event.button)
         {

@@ -293,7 +293,8 @@ enum DropdownMenu {
     }
 
     /// Inserts the screen-covering region that dismisses an open menu on a press
-    /// anywhere outside it.
+    /// anywhere outside it, and spends the drags and release of a held gesture
+    /// tracking outside it — closing the menu on that release.
     ///
     /// Inserted FIRST, so every region of the menu itself (rows, scrollbar) wins
     /// over it, while overlay regions composite after the page's, so it still
@@ -325,6 +326,15 @@ enum DropdownMenu {
             case .pressed where !event.button.isWheel:
                 // A LEFT click is spent entirely on closing the menu.
                 onDismiss()
+                return true
+            case .dragged where !event.button.isWheel:
+                // A press-and-HOLD tracking outside the menu: the gesture is
+                // the menu's — every press the page took is captured, so a
+                // drag that is hit-tested at all was handed off by the press
+                // that opened the menu. Passed on, it reached whatever lies
+                // under the backdrop, which never saw a press: a `.draggable`
+                // began a drag-and-drop session that the release, eaten
+                // below, never ended.
                 return true
             case .released where !event.button.isWheel:
                 // The end of a press-and-HOLD, away from every row: the user
