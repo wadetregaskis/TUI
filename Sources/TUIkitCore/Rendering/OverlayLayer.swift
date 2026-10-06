@@ -299,14 +299,34 @@ public struct OverlayLayer: Sendable, Equatable {
     }
 
     /// The post-centre delta of a layer ``dockedAtBottom(content:level:zIndex:dimsBackground:)``:
-    /// more than any area's half height, so the clamp always takes it to the
-    /// bottom edge, and small enough that adding a centre to it cannot
-    /// overflow.
-    package static let bottomEdgeDelta = Int(Int32.max)
+    /// the most an `Int` holds, so the clamp takes it to the bottom edge of
+    /// any area.
+    ///
+    /// Not a number "small enough to add a centre to": ``placed(maxWidth:maxHeight:)``
+    /// bounds every centred layer's delta by the area BEFORE it adds the
+    /// centre (``centredOrigin(extent:within:delta:)``), so no delta
+    /// overflows. The delta was `Int32.max`, which is `Int.max` where `Int` is
+    /// 32 bits (WebAssembly's wasm32): a docked sheet shorter than the area
+    /// trapped there on its first frame. At `Int.max` the 64-bit build runs
+    /// the same arithmetic, so a test on any machine catches it.
+    package static let bottomEdgeDelta = Int.max
 
     /// Whether this layer rests on the bottom edge
     /// (``dockedAtBottom(content:level:zIndex:dimsBackground:)``).
     package var isDockedAtBottom: Bool { centered && offsetY == Self.bottomEdgeDelta }
+
+    /// Where a centred layer `extent` cells long starts in an area `available`
+    /// cells long, moved `delta` from the centre and clamped wholly inside it.
+    ///
+    /// The delta is bounded by the area before the centre is added to it: a
+    /// delta past `available` either way lands on the same edge as the
+    /// unbounded one would, and bounded, none can overflow — not a dialog
+    /// dragged far off, nor ``bottomEdgeDelta``.
+    private static func centredOrigin(extent: Int, within available: Int, delta: Int) -> Int {
+        let room = max(0, available - extent)
+        let bounded = min(max(delta, -available), available)
+        return min(max(0, (available - extent) / 2 + bounded), room)
+    }
 
     /// Whether an overhanging layer is moved back on screen (`true`, the
     /// pop-over policy) or CLIPPED where it is (`false`).
@@ -369,10 +389,8 @@ public struct OverlayLayer: Sendable, Equatable {
         // the whole dialog always stays on screen (never partly off, unlike a
         // typical GUI).
         if centered {
-            let centeredX = (maxWidth - width) / 2 + offsetX
-            let centeredY = (maxHeight - height) / 2 + offsetY
-            let x = min(max(0, centeredX), max(0, maxWidth - width))
-            let y = min(max(0, centeredY), max(0, maxHeight - height))
+            let x = Self.centredOrigin(extent: width, within: maxWidth, delta: offsetX)
+            let y = Self.centredOrigin(extent: height, within: maxHeight, delta: offsetY)
             return (clamped, x, y)
         }
 

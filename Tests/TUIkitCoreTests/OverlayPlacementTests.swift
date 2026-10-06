@@ -98,6 +98,28 @@ struct OverlayPlacementTests {
         #expect(pinned.y == 0)
     }
 
+    /// A docked sheet's delta (`OverlayLayer.bottomEdgeDelta`) was `Int32.max`,
+    /// and the centre was added to it before the clamp: on wasm32, where `Int`
+    /// is 32 bits, every docked sheet shorter than its area trapped. The delta
+    /// is `Int.max` now, so this machine's `Int` meets the same arithmetic; in
+    /// a child process, because a trap would end the whole run.
+    @Test("A centred overlay's offset never overflows, however far it reaches, and lands on the edge")
+    func centredOffsetNeverOverflows() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let content = FrameBuffer(lines: Array(repeating: String(repeating: "x", count: 10), count: 4))
+                for (delta, edge) in [(Int.max, (x: 30, y: 16)), (Int.min, (x: 0, y: 0))] {
+                    let layer = OverlayLayer(
+                        offsetX: delta, offsetY: delta, content: content, level: .modal, centered: true)
+                    let placed = layer.placed(maxWidth: 40, maxHeight: 20)
+                    precondition(placed.x == edge.x && placed.y == edge.y, "\(delta) placed at \(placed.x),\(placed.y)")
+                }
+                let docked = OverlayLayer.dockedAtBottom(content: content, level: .modal, dimsBackground: true)
+                precondition(docked.placed(maxWidth: 40, maxHeight: 20).y == 16, "not on the bottom edge")
+            }
+        }
+    }
+
     /// The cut at the screen edge moves the CELLS, and everything riding on the
     /// buffer has to move with them. A dragged card's spinner left three
     /// columns behind replays over the cells beside the preview while the
