@@ -30,6 +30,8 @@ private final class Columns {
     var toggles = false
     /// The entries whose toggle is on.
     var flags: Set<Int> = []
+    /// Whether the table carries a row menu that builds nothing.
+    var emptyRowMenu = false
 }
 
 private struct Entry: Identifiable, Equatable {
@@ -61,24 +63,12 @@ private struct ColumnsPage: View {
     private let entries = (1...3).map(Entry.init)
 
     var body: some View {
-        if columns.toggles {
+        if columns.emptyRowMenu {
+            boundTable.contextMenu(forSelectionType: Int.self) { _ in }
+        } else if columns.toggles {
             toggleTable
         } else if columns.bound {
-            Table(
-                entries, selection: Bindable(columns).selection, sortOrder: Bindable(columns).sortOrder,
-                columnCustomization: Bindable(columns).customization
-            ) {
-                TableColumn("Alpha", value: \.alpha)
-                    .width(min: 4, ideal: 8, max: 30).customizationID("alpha")
-                TableColumn("Beta", value: \.beta)
-                    .width(min: 4, ideal: 8, max: 30).customizationID("beta")
-                TableColumn("Gamma", value: \.gamma)
-                    .width(min: 4, ideal: 8, max: 30).customizationID("gamma")
-                    .disabledCustomizationBehavior([.resize, .reorder])
-                TableColumn("Delta") { (entry: Entry) in Text(verbatim: "d\(entry.id)") }
-                    .width(6)
-            }
-            .frame(height: 9)
+            boundTable
         } else {
             Table(entries, sortOrder: Bindable(columns).sortOrder) {
                 TableColumn("Alpha", value: \.alpha).customizationID("alpha")
@@ -86,6 +76,24 @@ private struct ColumnsPage: View {
             }
             .frame(height: 9)
         }
+    }
+
+    private var boundTable: some View {
+        Table(
+            entries, selection: Bindable(columns).selection, sortOrder: Bindable(columns).sortOrder,
+            columnCustomization: Bindable(columns).customization
+        ) {
+            TableColumn("Alpha", value: \.alpha)
+                .width(min: 4, ideal: 8, max: 30).customizationID("alpha")
+            TableColumn("Beta", value: \.beta)
+                .width(min: 4, ideal: 8, max: 30).customizationID("beta")
+            TableColumn("Gamma", value: \.gamma)
+                .width(min: 4, ideal: 8, max: 30).customizationID("gamma")
+                .disabledCustomizationBehavior([.resize, .reorder])
+            TableColumn("Delta") { (entry: Entry) in Text(verbatim: "d\(entry.id)") }
+                .width(6)
+        }
+        .frame(height: 9)
     }
 }
 
@@ -119,9 +127,10 @@ private final class Harness {
     let app: HeadlessApp<ColumnsApp>
     private var now: Int64 = 0
 
-    init(bound: Bool = true, toggles: Bool = false) {
+    init(bound: Bool = true, toggles: Bool = false, emptyRowMenu: Bool = false) {
         columns.bound = bound
         columns.toggles = toggles
+        columns.emptyRowMenu = emptyRowMenu
         app = HeadlessApp(ColumnsApp(columns), width: 60, height: 14)
         frame()
         frame()
@@ -457,6 +466,29 @@ struct TableColumnGestureTests {
         harness.frame()
         #expect(harness.columns.flags == [1], "the release toggled a2:\n\(harness.screen)")
         #expect(harness.shows("Hide “Beta”"), "a click's release closed the menu:\n\(harness.screen)")
+    }
+
+    @Test("A drag after a press that opened a row menu which built nothing resizes no column")
+    func emptyRowMenuPressSpendsItsDrag() throws {
+        // A row menu that builds nothing closes on the frame after its press
+        // without having drawn a backdrop, so after that frame the drag is
+        // hit-tested against the table: here, the gap before Beta, which
+        // never saw a press and resized Alpha from the gesture state it was
+        // left with.
+        let harness = Harness(emptyRowMenu: true)
+        let y = try #require(harness.headerY, "\(harness.screen)")
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        let row = try #require(harness.lines.firstIndex { $0.contains("a1") }, "\(harness.screen)")
+        let rowX = try #require(harness.column(of: "a1", on: row))
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: rowX, y: row, ctrl: true))
+        harness.frame()
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta - 1, y: y))
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta + 3, y: y))
+        harness.frame()
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: beta + 3, y: y))
+        harness.frame()
+        #expect(harness.columns.customization[width: "alpha"] == nil, "the drag resized Alpha:\n\(harness.screen)")
+        #expect(harness.columns.selection.isEmpty, "\(harness.screen)")
     }
 
     @Test("Without a customization binding, a Ctrl-click on a sortable title sorts, as a click does")
