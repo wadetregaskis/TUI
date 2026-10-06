@@ -22,7 +22,7 @@ extension _ScrollViewCore {
     /// request from the same one still sitting in the binding. Without that,
     /// scrolling away by hand would be undone on the very next frame.
     func positionSeek(handler: ScrollViewHandler, context: RenderContext) -> ScrollToRequest? {
-        guard let box = context.environment.scrollPositionBinding else { return nil }
+        guard let box = pageScrollPosition(context.environment) else { return nil }
         let position = box.binding.wrappedValue
         guard let target = position.target else { return nil }
 
@@ -64,7 +64,7 @@ extension _ScrollViewCore {
     /// does not scroll horizontally that extent fits, so it lands on 0, which
     /// is SwiftUI's clamp to the content.
     func applyPositionOffset(handler: ScrollViewHandler, context: RenderContext) {
-        guard let box = context.environment.scrollPositionBinding else { return }
+        guard let box = pageScrollPosition(context.environment) else { return }
         let position = box.binding.wrappedValue
         guard let target = position.target,
             handler.lastAppliedPositionToken != position.requestToken, position.requestToken > 0
@@ -97,7 +97,7 @@ extension _ScrollViewCore {
     /// would invalidate its own subtree every frame and never settle — the
     /// same discipline `onPreferenceChange` follows, and for the same reason.
     func reportVisibleID(_ id: AnyHashable, handler: ScrollViewHandler, context: RenderContext) {
-        guard let box = context.environment.scrollPositionBinding,
+        guard let box = pageScrollPosition(context.environment),
             handler.lastReportedPositionID != id
         else { return }
         handler.lastReportedPositionID = id
@@ -117,7 +117,7 @@ extension _ScrollViewCore {
     func settleUserPositioning(handler: ScrollViewHandler, context: RenderContext) {
         guard handler.userScrolledSinceRender, !context.isMeasuring else { return }
         handler.userScrolledSinceRender = false
-        guard let box = context.environment.scrollPositionBinding, box.tracksUserPositioning
+        guard let box = pageScrollPosition(context.environment), box.tracksUserPositioning
         else { return }
         var position = box.binding.wrappedValue
         guard position.target != nil || !position.isPositionedByUser else { return }

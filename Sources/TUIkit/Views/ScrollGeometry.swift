@@ -283,7 +283,7 @@ extension _ScrollViewCore {
     func reportScrollGeometry(
         handler: ScrollViewHandler, contentWidth: Int, viewportHeight: Int, context: RenderContext
     ) {
-        let observers = context.environment.scrollObservers.geometry
+        let observers = pageScrollObservers(context.environment).geometry
         guard !observers.isEmpty, !context.isMeasuring else { return }
         // A comparison a stored picture cannot make: see `OnGeometryChangeModifier`.
         context.environment.volatileReadTracker?.recordRenderSideEffect()

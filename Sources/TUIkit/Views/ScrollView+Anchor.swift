@@ -14,8 +14,56 @@
 //  And the third role, `ScrollAnchorRole.alignment`: where content shorter
 //  than the viewport is drawn in it — see `alignmentShift`.
 //
+//  And what a framework scroller leaves to the page: the anchors, a bound
+//  `.scrollPosition` and the scroll observers are the app's, for its own
+//  scroll views — see `pageAnchorPosition(_:)` and its siblings.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
+
+// MARK: - What a framework scroller leaves to the page
+
+extension _ScrollViewCore {
+    /// The settings an app states for ITS scroll views, as this view takes
+    /// them: from the environment, or — for a framework scroller
+    /// (``ScrollView/asChrome()``: a tall inline menu's column, a sheet's, a
+    /// dialog body's) — none.
+    ///
+    /// They reach a framework scroller because nothing between the page and
+    /// it resets them: a `.defaultScrollAnchor(.bottom)` or an
+    /// `.anchorPosition($anchor)` on a page held a tall inline menu's column at
+    /// its last item and wrote the menu's anchor into the app's binding; a
+    /// `.scrollPosition($position)` sought the menu to the app's row; and an
+    /// `onScrollGeometryChange` / `onScrollPhaseChange` on the page heard
+    /// whichever scroller drew first claim it, a menu's included (scroll lane
+    /// review 3, the class of e85278da0). The framework scroller reads none of
+    /// them and passes them on untouched, so its content still reads them for
+    /// its own scrollables, as the other settings ``ScrollView/asChrome()``
+    /// lists. One accessor per setting, so every site that reads one asks
+    /// this view rather than the environment.
+    func pageAnchorPosition(_ environment: EnvironmentValues) -> AnchorPositionBinding? {
+        isChrome ? nil : environment.anchorPosition
+    }
+
+    /// See ``pageAnchorPosition(_:)``: the declared `defaultScrollAnchor`
+    /// modes, or none (`.window`, the default) for a framework scroller.
+    func pageDeclaredAnchorModes(
+        _ environment: EnvironmentValues
+    ) -> (standing: ScrollAnchorMode, opening: ScrollAnchorMode?) {
+        isChrome ? (.window, .window) : environment.declaredAnchorModes
+    }
+
+    /// See ``pageAnchorPosition(_:)``: the `.scrollPosition` binding.
+    func pageScrollPosition(_ environment: EnvironmentValues) -> ScrollPositionBinding? {
+        isChrome ? nil : environment.scrollPositionBinding
+    }
+
+    /// See ``pageAnchorPosition(_:)``: the scroll observers this view may
+    /// claim.
+    func pageScrollObservers(_ environment: EnvironmentValues) -> ScrollObservers {
+        isChrome ? ScrollObservers() : environment.scrollObservers
+    }
+}
 
 extension _ScrollViewCore {
 
@@ -57,12 +105,12 @@ extension _ScrollViewCore {
         // The OPENING frame consults the `.initialOffset` anchor and every
         // frame after it the `.sizeChanges` one — the same value for any view
         // that used the unlabelled modifier. See `ScrollAnchorMode.governing`.
-        let modes = context.environment.declaredAnchorModes
+        let modes = pageDeclaredAnchorModes(context.environment)
         let declared = ScrollAnchorMode.governing(
             opening: modes.opening, standing: modes.standing, hasOpened: handler.hasOpened)
         let followsBottom = !context.isMeasuring
             && ScrollAnchorMode.effective(
-                boundAnchor: context.environment.anchorPosition?.wrappedValue,
+                boundAnchor: pageAnchorPosition(context.environment)?.wrappedValue,
                 declared: declared) == .bottom
         // A pending scrollTo supersedes the glue this frame: the explicit
         // programmatic scroll is exactly the "scrolling away releases the
@@ -91,7 +139,7 @@ extension _ScrollViewCore {
     /// the real tail instead of a pre-render estimate of it.
     func adoptWrittenAnchor(handler: ScrollViewHandler, context: RenderContext) {
         guard !context.isMeasuring else { return }
-        let bound = context.environment.anchorPosition?.wrappedValue
+        let bound = pageAnchorPosition(context.environment)?.wrappedValue
         guard handler.lastBoundAnchor != .some(bound) else { return }
         let isFirstSighting = handler.lastBoundAnchor == nil
         handler.lastBoundAnchor = .some(bound)
@@ -130,7 +178,7 @@ extension _ScrollViewCore {
         // The room first: content that overflows — most of what a scroll view
         // holds — pays no environment read.
         let room = viewportHeight - handler.contentHeight
-        guard room > 0, axes.contains(.vertical),
+        guard room > 0, axes.contains(.vertical), !isChrome,
             let anchor = context.environment.scrollAnchor(for: .alignment), anchor.y > 0
         else { return 0 }
         return min(room, Int((anchor.y * Double(room)).rounded(.down)))

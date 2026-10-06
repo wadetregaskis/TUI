@@ -197,7 +197,14 @@ extension ScrollView {
     ///   belongs inside the surface it scrolls in, not over the page;
     /// - `contentMargins` — it keeps no margins: it is
     ///   there only while its content is too tall, and the content lays out as
-    ///   it would without it.
+    ///   it would without it;
+    /// - ``TUIkit/View/defaultScrollAnchor(_:)`` and
+    ///   ``TUIkit/View/anchorPosition(_:)`` — it opens at its top and follows
+    ///   nothing, and writes no binding of the app's;
+    /// - ``TUIkit/View/scrollPosition(_:anchor:)`` — the app's position is its
+    ///   own scroll view's, not a menu's;
+    /// - `onScrollGeometryChange` and `onScrollPhaseChange` — it claims
+    ///   neither, and leaves them for the app's scroll views.
     ///
     /// The content inside it still reads them, for its own scrollables.
     func asChrome() -> ScrollView<Content> {
@@ -363,9 +370,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
         // Captured at render so a USER scroll can release a bound anchor to
         // `.window` at event time (the environment is out of reach there).
-        handler.anchorPositionBinding = context.environment.anchorPosition?.binding
+        handler.anchorPositionBinding = pageAnchorPosition(context.environment)?.binding
         (handler.declaredAnchorMode, handler.declaredOpeningAnchorMode) =
-            context.environment.declaredAnchorModes
+            pageDeclaredAnchorModes(context.environment)
         handler.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
         handler.horizontal.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
         // Both axes: `.scrollDisabled` pins the view, not one direction of it.

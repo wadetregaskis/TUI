@@ -171,7 +171,7 @@ extension _ScrollViewCore {
     /// only with an observer: without one the phase is never read, and a view
     /// left `.interacting` costs nothing.
     func reportScrollPhase(geometry: () -> ScrollGeometry, handler: ScrollViewHandler, context: RenderContext) {
-        let observers = context.environment.scrollObservers.phase
+        let observers = pageScrollObservers(context.environment).phase
         guard !observers.isEmpty, !context.isMeasuring else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         settlePhase(handler: handler, context: context)

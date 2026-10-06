@@ -80,8 +80,9 @@ extension _ScrollViewCore {
         if !isChrome, !contentContext.environment.safeAreaContentMargins.isZero {
             contentContext.environment.safeAreaContentMargins = EdgeInsets()
         }
-        // So are the scroll observers: only the first scroll view reports.
-        if !contentContext.environment.scrollObservers.isEmpty {
+        // So are the scroll observers: only the first scroll view reports. A
+        // framework scroller claims none, and leaves them to its content's.
+        if !isChrome, !contentContext.environment.scrollObservers.isEmpty {
             contentContext.environment.scrollObservers = ScrollObservers()
         }
         // And a scroll target layout mark: one stated around this scroll view's
@@ -356,7 +357,7 @@ extension _ScrollViewCore {
             reply: contentReply, edgeInset: edgeInset,
             // Only sample when someone is bound to hear it.
             reportsIDAt: context.isMeasuring
-                ? nil : context.environment.scrollPositionBinding?.anchor,
+                ? nil : pageScrollPosition(context.environment)?.anchor,
             // A seek names a ROW, so it rides the window exactly when there are
             // rows to name — whenever the VERTICAL axis scrolls, and not merely
             // when the horizontal one does not. One boolean used to gate both
