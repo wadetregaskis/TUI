@@ -36,17 +36,36 @@ extension PreferenceModifier: Renderable {
         if !context.isMeasuring {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             context.environment.preferenceStorage!.setValue(value, forKey: K.self)
-        } else if context.environment.seedsWindowChrome, K.self is any WindowChromePreferenceKey.Type {
+            offerToWindowChrome(context: context)
+        } else if context.environment.seedsWindowChrome {
             // Except what the window's chrome reads, on the first frame's
             // seeding walk — a measurement whose one job is to find the chrome
-            // (`EnvironmentValues.seedsWindowChrome`). The walk's preferences
-            // are its own, emptied before the drawn walk, so nothing else sees
-            // them; and a title read twice is read the same.
-            context.environment.preferenceStorage?.setValue(value, forKey: K.self)
+            // (`EnvironmentValues.seedsWindowChrome`): the top bar's rows
+            // depend on whether there is a title, and a subtitle under it.
+            offerToWindowChrome(context: context)
         }
 
         // Render content
         return TUIkit.renderToBuffer(content, context: context)
+    }
+}
+
+extension PreferenceModifier {
+    /// Offers a title or subtitle to the window's chrome, which shows the
+    /// outermost one drawn (``WindowChromeState/offerTitle(_:atDepth:)``) —
+    /// unless this is presented content: a sheet's title is the sheet's, and
+    /// one in a sheet's content was the window's while the sheet was up.
+    ///
+    /// The window reads it here, as it is declared, rather than from the
+    /// published preference, which keeps the LAST value and so the deepest
+    /// view's.
+    private func offerToWindowChrome(context: RenderContext) {
+        guard let chrome = context.environment.windowChrome,
+            !context.environment.presentationHostsToolbar,
+            let key = K.self as? any WindowChromePreferenceKey.Type,
+            let text = value as? String
+        else { return }
+        key.offer(text, atDepth: context.identity.depth, to: chrome)
     }
 }
 
@@ -201,15 +220,28 @@ struct NavigationSubtitleKey: PreferenceKey {
     static let defaultValue: String = ""
 }
 
-/// A preference the window's chrome reads — the title and subtitle its top bar
-/// shows — and so one published on the first frame's seeding walk too, which
-/// measures: the bar's rows are seeded from that walk, and they depend on
-/// whether there is a title, and a subtitle under it.
-protocol WindowChromePreferenceKey {}
+/// A preference the window's chrome takes from the views that declare it — the
+/// title and subtitle its top bar shows — offered as they are declared, on the
+/// drawn walk and on the first frame's seeding walk, which measures: the bar's
+/// rows are seeded from that walk, and they depend on whether there is a
+/// title, and a subtitle under it.
+protocol WindowChromePreferenceKey {
+    /// Offers `text`, declared `depth` deep, to the window's chrome.
+    @MainActor
+    static func offer(_ text: String, atDepth depth: Int, to chrome: WindowChromeState)
+}
 
-extension NavigationTitleKey: WindowChromePreferenceKey {}
+extension NavigationTitleKey: WindowChromePreferenceKey {
+    static func offer(_ text: String, atDepth depth: Int, to chrome: WindowChromeState) {
+        chrome.offerTitle(text, atDepth: depth)
+    }
+}
 
-extension NavigationSubtitleKey: WindowChromePreferenceKey {}
+extension NavigationSubtitleKey: WindowChromePreferenceKey {
+    static func offer(_ text: String, atDepth depth: Int, to chrome: WindowChromeState) {
+        chrome.offerSubtitle(text, atDepth: depth)
+    }
+}
 
 /// A preference key for whether a pushed screen hides its Back control.
 ///

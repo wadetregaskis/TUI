@@ -27,6 +27,10 @@ extension EnvironmentValues {
     /// on a sheet's content — was a dead button in the window's top bar:
     /// unreachable by key, click or Tab, and the bar appeared a frame after the
     /// sheet did and went a frame after it closed.
+    ///
+    /// Its `.navigationTitle` is not the window's either
+    /// (`PreferenceModifier`'s offer to the window chrome): a sheet's title is
+    /// the sheet's.
     var presentationHostsToolbar: Bool {
         get { self[PresentationHostsToolbarKey.self] }
         set { self[PresentationHostsToolbarKey.self] = newValue }

@@ -157,15 +157,48 @@ final class WindowChromeState: @unchecked Sendable {
         for region in buffer.hitTestRegions { appLineHandlerIDs.insert(region.handlerID) }
     }
 
-    /// The window's title: the root `.navigationTitle`, as the last frame's
-    /// content published it.
+    /// The window's title: the OUTERMOST `.navigationTitle` the window's
+    /// content declared this walk (see ``offerTitle(_:atDepth:)``) — kept
+    /// until the next walk begins.
     ///
     /// Scene-level data: the top bar shows it in its title slot, and it is
     /// what a terminal window title (OSC 2) would be set from.
-    var title = ""
+    private(set) var title = ""
 
-    /// The window's subtitle: the root `.navigationSubtitle`.
-    var subtitle = ""
+    /// The window's subtitle: the outermost `.navigationSubtitle`, found the
+    /// same way.
+    private(set) var subtitle = ""
+
+    /// How deep in the tree ``title`` and ``subtitle`` were declared: an
+    /// offer from a shallower view replaces them, a deeper one does not.
+    private var titleDepth = Int.max
+    private var subtitleDepth = Int.max
+
+    /// Offers a `.navigationTitle` declared at an identity `depth` deep; the
+    /// shallowest stands, and of several at one depth the last.
+    ///
+    /// The window's title is the page's own, not whatever was declared last.
+    /// The navigation-title preference is last-wins — the deepest view's title
+    /// is the one a navigation stack wants for the screen it shows — and the
+    /// window read it: a page titled "Navigation" that holds a navigation stack
+    /// showed its stack's root ("Planets") over its own subtitle. Declared by
+    /// the views that are drawn — a stack's covered root and presented content
+    /// offer nothing (`PreferenceModifier`) — so a pushed screen's title is the
+    /// window's when nothing outside the stack has one, and a sheet's never is.
+    /// An empty title is no title.
+    func offerTitle(_ text: String, atDepth depth: Int) {
+        guard !text.isEmpty, depth <= titleDepth else { return }
+        title = text
+        titleDepth = depth
+    }
+
+    /// Offers a `.navigationSubtitle`, as ``offerTitle(_:atDepth:)`` does a
+    /// title.
+    func offerSubtitle(_ text: String, atDepth depth: Int) {
+        guard !text.isEmpty, depth <= subtitleDepth else { return }
+        subtitle = text
+        subtitleDepth = depth
+    }
 
     /// Frames begun, counted by ``beginFrame()``.
     private(set) var frame = 0
@@ -195,6 +228,10 @@ final class WindowChromeState: @unchecked Sendable {
         declaredVisibility.removeAll(keepingCapacity: true)
         appLineHandlerIDs.removeAll(keepingCapacity: true)
         openDeclarations.removeAll(keepingCapacity: true)
+        title = ""
+        subtitle = ""
+        titleDepth = .max
+        subtitleDepth = .max
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a

@@ -93,17 +93,12 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         // the full terminal height, which would shave their bottom rows off
         // against the bottom bar.
         contentContext.environment.overlayContentHeight = contentHeight
-        var published: PreferenceValues?
-        var page = placeContent(context: contentContext, rowsAbove: rows.top, published: &published)
-        let seeds = context.isMeasuring && context.environment.seedsWindowChrome
-        // The title before the seed, which sizes the top bar by it: the seeding
-        // walk publishes it although it measures (`WindowChromePreferenceKey`).
-        if let chrome, !context.isMeasuring || seeds {
-            chrome.title = published?[NavigationTitleKey.self] ?? ""
-            chrome.subtitle = published?[NavigationSubtitleKey.self] ?? ""
-        }
+        // The content offers the window its title as it draws — on the seeding
+        // walk too, although it measures, since the title sizes the top bar
+        // (`WindowChromePreferenceKey`).
+        var page = placeContent(context: contentContext, rowsAbove: rows.top)
         guard !context.isMeasuring else {
-            if let chrome, seeds {
+            if let chrome, context.environment.seedsWindowChrome {
                 for edge in WindowChromeState.Edge.allCases {
                     chrome.seed(edge, rows: toolbarContentRows(edge, chrome: chrome, width: width, context: context))
                 }
@@ -212,9 +207,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
     /// The content, drawn into the area the bars leave and centred in it — over
     /// the window background, when the content set one — with the drag preview
     /// riding above it.
-    private func placeContent(
-        context: RenderContext, rowsAbove: Int, published: inout PreferenceValues?
-    ) -> FrameBuffer {
+    private func placeContent(context: RenderContext, rowsAbove: Int) -> FrameBuffer {
         // Drop targets re-register as the tree renders (like focus), so the
         // drag session's per-frame registry resets here, before the pass.
         let dragSession = context.environment.dragAndDropSession
@@ -230,8 +223,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
             content,
             context: context.publishingContainerSize(
                 CellSize(width: max(0, context.availableWidth), height: max(0, context.availableHeight))))
-        published = preferences?.pop()
-        let background = published?[ContainerBackgroundKey.self]
+        let background = preferences?.pop()[ContainerBackgroundKey.self]
 
         var centered =
             if let background {

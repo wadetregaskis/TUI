@@ -576,8 +576,11 @@ appearance and the theme, are opt-in with their items,
 `statusBarSystemItems(theme:appearance:)`.) There is no `.appHeader`: what it
 held is a `.navigationTitle` and `.toolbar` items.
 
-A root `.navigationTitle` (and `.navigationSubtitle`) is shown in the top bar's
-title slot when there is a top bar; a title alone draws no bar. An item is drawn
+The window's title is the outermost `.navigationTitle` drawn (and its subtitle
+the outermost `.navigationSubtitle`): the page's own over a navigation stack's
+inside it, a pushed screen's when the stack is the page, never a sheet's. It is
+shown in the top bar's title slot when there is a top bar; a title alone draws
+no bar. An item is drawn
 in the environment of the view that declared it (a `.disabled` above
 `.toolbar` disables it), keeps its `@State` from frame to frame — at its place
 in the declaration, as a view in a `ViewBuilder` does, so an `if` before it

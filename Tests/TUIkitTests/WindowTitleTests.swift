@@ -1,0 +1,115 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  WindowTitleTests.swift
+//
+//  The window's title — what the top bar's title slot shows — is the
+//  outermost `.navigationTitle` among the views drawn: the page's own over a
+//  navigation stack's inside it, a pushed screen's when nothing outside the
+//  stack has one, and never a sheet's.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkit
+@testable import TUIkitCore
+
+/// A titled page under a sheet whose content is titled too.
+private struct SheetTitleApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .navigationTitle("PAGE-TITLE")
+                .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+                .sheet(isPresented: .constant(true)) {
+                    Text("SHEET").navigationTitle("SHEET-TITLE").navigationSubtitle("SHEET-SUB")
+                }
+        }
+    }
+}
+
+/// A titled page that holds a navigation stack with a titled root — the
+/// Example's Navigation page, in small.
+private struct NestedStackApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Text("INTRO")
+                NavigationStack {
+                    Text("ROOT").navigationTitle("ROOT-TITLE")
+                }
+            }
+            .navigationTitle("PAGE-TITLE")
+            .navigationSubtitle("PAGE-SUB")
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+/// A navigation stack at the window's root, a screen pushed or not.
+private struct RootStackApp: App {
+    nonisolated(unsafe) static var path: [Int] = []
+
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            NavigationStack(path: .constant(Self.path)) {
+                Text("ROOT")
+                    .navigationTitle("ROOT-TITLE")
+                    .navigationDestination(for: Int.self) { Text("DETAIL \($0)").navigationTitle("DETAIL-TITLE") }
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+@MainActor
+@Suite("The window's title", .serialized)
+struct WindowTitleTests {
+
+    /// The top bar's rows, escapes stripped, two frames in: one to declare,
+    /// one to draw. The bar is boxed, so its rows lie between the first two
+    /// border rows.
+    private func topBar(_ app: some App, width: Int = 60, height: Int = 16) -> [String] {
+        let headless = HeadlessApp(app, width: width, height: height)
+        headless.frame(atNanos: 0)
+        headless.frame(atNanos: 20_000_000)
+        let rows = headless.screen.map(\.stripped)
+        guard rows.first?.hasPrefix("╭") == true,
+            let bottom = rows.dropFirst().firstIndex(where: { $0.hasPrefix("╰") })
+        else { return [] }
+        return Array(rows[1..<bottom])
+    }
+
+    @Test("A sheet's title is not the window's")
+    func sheetTitleIsNotTheWindows() {
+        let bar = topBar(SheetTitleApp())
+        #expect(bar.first?.contains("PAGE-TITLE") == true, "\(bar)")
+        #expect(!bar.contains { $0.contains("SHEET-TITLE") || $0.contains("SHEET-SUB") }, "\(bar)")
+    }
+
+    @Test("A page's own title, and its subtitle, stand over a navigation stack's inside it")
+    func pageTitleOverANestedStack() {
+        let bar = topBar(NestedStackApp())
+        #expect(bar.count == 2, "a title and a subtitle: \(bar)")
+        #expect(bar.first?.contains("PAGE-TITLE") == true, "\(bar)")
+        #expect(bar.last?.contains("PAGE-SUB") == true, "\(bar)")
+        #expect(!bar.contains { $0.contains("ROOT-TITLE") }, "\(bar)")
+    }
+
+    @Test("A stack at the window's root titles it: its root's title, and a pushed screen's while it is shown")
+    func rootStackTitlesTheWindow() {
+        RootStackApp.path = []
+        #expect(topBar(RootStackApp()).first?.contains("ROOT-TITLE") == true)
+        RootStackApp.path = [1]
+        let pushed = topBar(RootStackApp())
+        #expect(pushed.first?.contains("DETAIL-TITLE") == true, "\(pushed)")
+        #expect(!pushed.contains { $0.contains("ROOT-TITLE") }, "the covered root is not drawn: \(pushed)")
+        RootStackApp.path = []
+    }
+}
