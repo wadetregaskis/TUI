@@ -4316,7 +4316,8 @@ options.
 not a capture): the C0 unit separator, `^_`, which most terminals also send for
 Ctrl-_ (Ctrl-Shift-minus) and Ctrl-/, so the three cannot be told apart in a
 legacy encoding. `KeyEvent.parse` reads it as Ctrl-minus, the key undo is on
-(see "Undo and redo"); before then 0x1F, like 0x1C–0x1E, was dropped. Under the
+(see "Undo and redo"); before then 0x1F, like 0x1D and 0x1E still are, was
+dropped (0x1C is read as ⌃\\ since 2026-10-06). Under the
 kitty keyboard protocol the three arrive apart.
 
 **Ctrl-6 sends nothing in Apple Terminal; Ctrl-Shift-6 sends 0x1E** (`^^`, the
@@ -4353,8 +4354,9 @@ all set to `_POSIX_VDISABLE`, asked of the system with `fpathconf` (0xFF on
 Darwin and the BSDs, NUL on Linux; a guess by C library would make NUL a live
 signal character on a BSD). `VQUIT` is left as inherited: ⌃\\ (0x1C) by default, so the driver raises `SIGQUIT` before the app
 reads a byte, and over ssh the remote pseudo-terminal's line discipline does
-the same. A user's `stty quit undef` stays undefined (0x1C then arrives as a
-byte, which `KeyEvent.parse` drops), a moved quit key stays moved, and
+the same. A user's `stty quit undef` stays undefined (0x1C then arrives as
+⌃\\, a key an app can bind; until 2026-10-06 `KeyEvent.parse` dropped it), a
+moved quit key stays moved, and
 `stty -isig` stays off. The teardown, a suspend and the fatal-signal handler
 put the user's termios back exactly. `SIGQUIT` then leaves the terminal as a
 quit does (`FatalSignalTerminalRestore`). The driver reads every byte of input,

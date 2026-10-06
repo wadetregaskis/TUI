@@ -211,6 +211,10 @@ private enum ASCIIByte {
     static let ctrlRangeEnd: UInt8 = 0x1A
     static let ctrlToLowerOffset: UInt8 = 0x60
 
+    // Ctrl-\: the C0 file separator, "^\", the user's quit key's byte
+    // unless they moved it.
+    static let fileSeparator: UInt8 = 0x1C
+
     // Ctrl-minus (and Ctrl-_ and Ctrl-/, which most terminals cannot tell
     // from it): the C0 unit separator, "^_".
     static let unitSeparator: UInt8 = 0x1F
@@ -339,6 +343,14 @@ extension KeyEvent {
         case ASCIIByte.ctrlRangeStart...ASCIIByte.ctrlRangeEnd:
             let char = Character(UnicodeScalar(byte + ASCIIByte.ctrlToLowerOffset))
             return KeyEvent(key: .character(char), ctrl: true)
+        case ASCIIByte.fileSeparator:
+            // 0x1C, "^\", is Ctrl-\: the user's quit key, which the terminal
+            // driver turns into SIGQUIT while TUIkit's raw mode leaves it live,
+            // so it arrives as a byte only where the driver lets it — the
+            // user turned the quit key off or moved it. Some terminals send
+            // it for Ctrl-4 and Ctrl-| as well; Ctrl-\ is the canonical
+            // reading, as Backspace is 0x08's.
+            return KeyEvent(key: .character("\\"), ctrl: true)
         case ASCIIByte.unitSeparator:
             // 0x1F, "^_", is what most terminals send for Ctrl-minus, and for
             // Ctrl-_ and Ctrl-/ as well: the legacy encodings cannot tell the

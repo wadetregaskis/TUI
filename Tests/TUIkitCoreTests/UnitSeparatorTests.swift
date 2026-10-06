@@ -22,9 +22,19 @@ struct UnitSeparatorTests {
         #expect(KeyEvent.parse([0x1B, 0x1F]) == KeyEvent(key: .character("-"), ctrl: true, alt: true))
     }
 
-    @Test("The rest of the range above Ctrl-Z stays undelivered")
+    /// 0x1C reaches the parser only where the driver lets it — the user's
+    /// quit key turned off or moved — and then it is a chord an app can
+    /// bind. Until 2026-10-06 it was dropped, so a ⌃\ binding could never
+    /// fire.
+    @Test("0x1C, the quit key's byte, is Ctrl-\\; behind ESC, Option-Ctrl-\\")
+    func fileSeparatorIsControlBackslash() {
+        #expect(KeyEvent.parse([0x1C]) == KeyEvent(key: .character("\\"), ctrl: true))
+        #expect(KeyEvent.parse([0x1B, 0x1C]) == KeyEvent(key: .character("\\"), ctrl: true, alt: true))
+    }
+
+    @Test("0x1D and 0x1E stay undelivered")
     func otherSeparatorsStayDropped() {
-        for byte: UInt8 in [0x1C, 0x1D, 0x1E] {
+        for byte: UInt8 in [0x1D, 0x1E] {
             #expect(KeyEvent.parse([byte]) == nil, "\(byte)")
         }
     }

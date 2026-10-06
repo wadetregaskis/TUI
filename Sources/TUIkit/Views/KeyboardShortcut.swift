@@ -304,7 +304,8 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// terminal driver turns it into SIGQUIT before the app reads it — which
     /// is what lets it quit an app that has hung — and the app ends as a quit
     /// ends. Where the user turned it off (`stty quit undef`), its byte, 0x1C,
-    /// is no key either.
+    /// arrives as ⌃\ like any other key — but that is the user's terminal,
+    /// not every terminal.
     ///
     /// Nor are the chords that share its byte: xterm, VTE (GNOME Terminal and
     /// its kin), Konsole and the Linux console send 0x1C for Ctrl-4 and for

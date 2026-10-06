@@ -31,8 +31,8 @@ that answers the startup exchange, and checks:
      it ends the app as ⌃\\ does, as it would a shell.
   5. A hung main thread: ⌃\\ still ends it, the same way.
   6. A user who turned the quit key off (`stty quit undef`) before the
-     launch: ⌃\\ ends nothing; `q` quits, and the termios comes back exactly,
-     the quit key still off.
+     launch: ⌃\\ ends nothing and arrives as a key; `q` quits, and the
+     termios comes back exactly, the quit key still off.
   7. A suspend (SIGTSTP) and resume (SIGCONT): the termios while stopped is
      the one from before the launch, raw again after the resume, and ⌃\\
      then quits as in 4.
@@ -356,7 +356,7 @@ app = App(env={"IDLE_PROBE_MODE": "keys"}, setup=quit_undefined)
 app.pump(2.0)
 os.write(app.master, b"\x1c")
 app.pump(1.5)
-check(running(app), "stty quit undef: ⌃\\ ends nothing")
+check(running(app) and b"key ctrl-\\" in app.out, "stty quit undef: ⌃\\ ends nothing, and arrives as a key")
 os.write(app.master, b"q")
 status = app.wait_for_exit(5.0)
 check(status is not None and os.WIFEXITED(status), "stty quit undef: q quits")
