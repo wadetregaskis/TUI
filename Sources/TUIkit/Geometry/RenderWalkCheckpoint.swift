@@ -33,6 +33,12 @@ import TUIkitView
 /// correction re-render had until the window's chrome was adopted a frame
 /// late (`RenderPassScopeTests`), scoped to the subtree, and made only as
 /// often as a reader's answer moves.
+///
+/// A scroll view drawing its content again for a reason of its own — a band
+/// that does not cover the offset the frame settled on — puts the walk back
+/// too (``rewind(context:)``), or a row drawn twice would come out under a
+/// second marker id, and its scroll visibility observer would be told it
+/// appeared and that its first id vanished, every such frame.
 struct RenderWalkCheckpoint {
     private let identity: ViewIdentity
     private let handlerSlots: Int?
@@ -54,8 +60,20 @@ struct RenderWalkCheckpoint {
     }
 
     /// Puts the registrations back to where they stood, for the subtree to be
-    /// drawn again.
+    /// drawn again with something in it corrected.
     func rollBack(context: RenderContext) {
+        rewind(context: context)
+        // What the first drawing stored below here was drawn from the answers
+        // the correction exists to replace, and a reader notes its answers once
+        // a pass, so the second drawing would be served the first's.
+        context.renderCache?.clearAffected(by: identity)
+    }
+
+    /// Puts the registrations back to where they stood, for the subtree to be
+    /// drawn again from the same inputs — so the second drawing takes the
+    /// first one's ids and indices, and what the first stored in the render
+    /// cache may serve it.
+    func rewind(context: RenderContext) {
         if let dispatcher = context.environment.mouseEventDispatcher {
             dispatcher.handlerIDs.rewind(at: identity, to: handlerSlots)
             dispatcher.geometryMarkerIDs.rewind(at: identity, to: markerSlots)
@@ -63,9 +81,5 @@ struct RenderWalkCheckpoint {
         context.stateStorage?.rewindOnChangeCounters(at: identity, to: onChangeCount)
         if let keyMark { context.environment.keyEventDispatcher?.rollBack(to: keyMark) }
         if let preferences { context.environment.preferenceStorage?.current = preferences }
-        // What the first drawing stored below here was drawn from the answers
-        // the correction exists to replace, and a reader notes its answers once
-        // a pass, so the second drawing would be served the first's.
-        context.renderCache?.clearAffected(by: identity)
     }
 }

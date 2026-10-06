@@ -554,8 +554,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // draw landed its row one line down.
         let pendingSeek = consumedSeek(
             handler: handler, edgeInset: chrome.edgeInset, context: context)
-        // Where the walk stood before the content rendered, for a correction of
-        // a reader asking this view's space (`ownScrollSpace`).
+        // Where the walk stood before the content rendered, for every drawing
+        // of it after the first: a band that does not cover the offset the
+        // frame settles on (`coverSnappedViewport`), and a correction of a
+        // reader asking this view's space (`ownScrollSpace`).
         let checkpoint = context.isMeasuring ? nil : RenderWalkCheckpoint(context: context)
         // This view's space, open to the readers its content draws while it does.
         let scrollSpace = enterScrollSpace(
@@ -564,7 +566,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             contentWidth: contentWidth, viewportHeight: contentViewportHeight,
             horizontal: wantsHorizontal, verticalScrollOffset: handler.scrollOffset,
             seek: pendingSeek, edgeInset: chrome.edgeInset,
-            handler: handler, context: context, settledExtents: settledExtents)
+            handler: handler, checkpoint: checkpoint, context: context, settledExtents: settledExtents)
         let (seekOffset, contentExtent) = (firstDrawing.seekOffset, firstDrawing.extents)
         var drawing = ScrollContentDrawing(
             buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines)
@@ -626,11 +628,13 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             context: context)
         coverSnappedViewport(
             handler: handler, drawing: &drawing, contentWidth: contentWidth,
-            viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, context: context)
+            viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, checkpoint: checkpoint,
+            context: context)
         if wasGluedToBottom, seekOffset == nil {
             reglueToRefinedTail(
                 handler: handler, drawing: &drawing, contentWidth: contentWidth,
-                viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, context: context)
+                viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, checkpoint: checkpoint,
+                context: context)
         }
         // Settle the pursuit AFTER coverage/re-glue, when the frame's offset
         // is final — see the helper.

@@ -276,10 +276,12 @@ extension _ScrollViewCore {
     ///   (tests, and the non-`.automatic` scrollbar path) get.
     /// - Parameter remeasured: Whether this is the render again after a render
     ///   that refuted the content's measure (below), which is not repeated.
+    /// - Parameter checkpoint: Where the walk stood before the content's first
+    ///   drawing this frame, put back before the content is drawn again here.
     func renderedContent(
         contentWidth: Int, viewportHeight: Int, horizontal: Bool,
         verticalScrollOffset: Int, seek: ScrollToRequest? = nil, edgeInset: Int = 0,
-        handler: ScrollViewHandler? = nil,
+        handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
         context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
         remeasured: Bool = false
     ) -> (
@@ -369,12 +371,15 @@ extension _ScrollViewCore {
             // is spent — the frame shows the row it asked for. Once in a
             // stack's life: the refutation is for good. The scrollbars keep
             // this frame's answer, which the refuted height could only make
-            // wrong for content it had fit within the viewport.
+            // wrong for content it had fit within the viewport. The walk is
+            // put back first, so the second drawing takes the first's ids.
+            checkpoint?.rewind(context: context)
             var redrawn = renderedContent(
                 contentWidth: contentWidth, viewportHeight: viewportHeight,
                 horizontal: horizontal,
                 verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
-                edgeInset: edgeInset, handler: handler, context: context, remeasured: true)
+                edgeInset: edgeInset, handler: handler, checkpoint: checkpoint, context: context,
+                remeasured: true)
             redrawn.seekOffset = contentReply.seekResolvedOffset
             return redrawn
         }

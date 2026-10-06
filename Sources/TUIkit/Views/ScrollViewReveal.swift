@@ -281,13 +281,14 @@ extension _ScrollViewCore {
     /// stops after one pass because its band already covered the tail.
     func reglueToRefinedTail(
         handler: ScrollViewHandler, drawing: inout ScrollContentDrawing, contentWidth: Int,
-        viewportHeight: Int, horizontal: Bool, context: RenderContext
+        viewportHeight: Int, horizontal: Bool, checkpoint: RenderWalkCheckpoint?, context: RenderContext
     ) {
         for _ in 0..<Self.reglueLimit {
             handler.scrollOffset = handler.maxOffset
             coverSnappedViewport(
                 handler: handler, drawing: &drawing, contentWidth: contentWidth,
-                viewportHeight: viewportHeight, horizontal: horizontal, context: context)
+                viewportHeight: viewportHeight, horizontal: horizontal, checkpoint: checkpoint,
+                context: context)
             if handler.scrollOffset >= handler.maxOffset { return }
         }
     }
@@ -357,17 +358,23 @@ extension _ScrollViewCore {
         handler.settle(between)
     }
 
+    ///
+    /// The walk is put back first (`checkpoint`, noted before the content's
+    /// first drawing), so the rows drawn again take the ids and indices the
+    /// first drawing gave them: a scroll visibility observer's marker, a
+    /// control's mouse handler, an `onChange` slot.
     func coverSnappedViewport(
         handler: ScrollViewHandler, drawing: inout ScrollContentDrawing, contentWidth: Int,
-        viewportHeight: Int, horizontal: Bool, context: RenderContext
+        viewportHeight: Int, horizontal: Bool, checkpoint: RenderWalkCheckpoint?, context: RenderContext
     ) {
         guard !context.isMeasuring, let band = drawing.band else { return }
         let visibleEnd = min(handler.scrollOffset + viewportHeight, handler.contentHeight)
         guard handler.scrollOffset < band.lowerBound || visibleEnd > band.upperBound else { return }
+        checkpoint?.rewind(context: context)
         let recovered = renderedContent(
             contentWidth: contentWidth, viewportHeight: viewportHeight,
             horizontal: horizontal, verticalScrollOffset: handler.scrollOffset,
-            context: context)
+            checkpoint: checkpoint, context: context)
         drawing = ScrollContentDrawing(
             buffer: recovered.buffer, slice: recovered.slice, drawnLines: recovered.drawnLines)
         handler.contentHeight = drawing.slice?.totalHeight ?? drawing.buffer.height

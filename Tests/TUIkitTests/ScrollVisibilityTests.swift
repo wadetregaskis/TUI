@@ -294,6 +294,36 @@ struct ScrollVisibilityTests {
         frames.render(page(2), height: 8)
         #expect(log.take().isEmpty)
     }
+
+    @Test("A row a glued scroll view draws twice in one frame keeps its marker: no false report for a row on screen")
+    func redrawnBandKeepsMarkers() {
+        let frames = Frames()
+        var playing: [Int: Bool] = [:]
+        let page = { (count: Int) in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<count, id: \.self) { index in
+                        // An `onChange` keeps the row out of the memos, so every
+                        // drawing of it is a fresh one, claiming its marker anew.
+                        Text("row \(index)")
+                            .onScrollVisibilityChange { playing[index] = $0 }
+                            .onChange(of: count) {}
+                    }
+                }
+            }
+            .defaultScrollAnchor(.bottom)
+        }
+        frames.render(page(30), height: 20)
+        frames.render(page(30), height: 20)
+        #expect((10..<30).allSatisfy { playing[$0] == true })
+        // Three rows arrive at once: the tail moves past the band's margin,
+        // and the scroll view draws its content again at the new tail.
+        frames.render(page(33), height: 20)
+        #expect((13..<33).allSatisfy { playing[$0] == true })
+        #expect((10..<13).allSatisfy { playing[$0] == false })
+        frames.render(page(33), height: 20)
+        #expect((13..<33).allSatisfy { playing[$0] == true })
+    }
 }
 
 /// Renders its content twice into one walk, as a container correcting itself
