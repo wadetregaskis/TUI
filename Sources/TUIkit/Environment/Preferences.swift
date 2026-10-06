@@ -69,7 +69,7 @@ extension PreferenceModifier {
     }
 
     /// Offers a title or subtitle to the window's chrome, which shows the
-    /// outermost one drawn (``WindowChromeState/offer(_:as:atDepth:)``) —
+    /// outermost one drawn (``WindowChromeState/offer(_:as:at:)``) —
     /// unless this is presented content: a sheet's title is the sheet's, and
     /// one in a sheet's content was the window's while the sheet was up.
     ///
@@ -83,7 +83,7 @@ extension PreferenceModifier {
             !context.environment.presentationHostsToolbar,
             let text = value as? String
         else { return }
-        chrome.offer(text, as: line, atDepth: context.identity.depth)
+        chrome.offer(text, as: line, at: context.identity)
     }
 }
 

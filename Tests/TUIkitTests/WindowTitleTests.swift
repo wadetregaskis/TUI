@@ -68,6 +68,64 @@ private struct RootStackApp: App {
     }
 }
 
+/// A page whose subtitle is its own, holding a stack whose root has a title
+/// and a subtitle of its own — the page itself has no title.
+private struct SubtitledPageApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                NavigationStack {
+                    Text("ROOT").navigationTitle("PLANETS").navigationSubtitle("NINE-PLANETS")
+                }
+            }
+            .navigationSubtitle("DEMO")
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+/// A page whose title is on a view inside it and whose subtitle is on the
+/// page.
+private struct SubtitleAroundTheTitleApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Text("HEADER").navigationTitle("NOTES")
+                Text("BODY")
+            }
+            .navigationSubtitle("THREE-NOTES")
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+/// Two titled views side by side, the second one wrapped or not.
+private struct SiblingTitlesApp: App {
+    var wrapped = false
+
+    init() {}
+
+    init(wrapped: Bool) { self.wrapped = wrapped }
+
+    var body: some Scene {
+        WindowGroup {
+            HStack {
+                Text("A").navigationTitle("MAIL")
+                if wrapped {
+                    VStack { Text("B").navigationTitle("INBOX") }
+                } else {
+                    Text("B").navigationTitle("INBOX")
+                }
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
 @MainActor
 @Suite("The window's title", .serialized)
 struct WindowTitleTests {
@@ -100,6 +158,28 @@ struct WindowTitleTests {
         #expect(bar.first?.contains("PAGE-TITLE") == true, "\(bar)")
         #expect(bar.last?.contains("PAGE-SUB") == true, "\(bar)")
         #expect(!bar.contains { $0.contains("ROOT-TITLE") }, "\(bar)")
+    }
+
+    @Test("The subtitle is the title's own, not an outer view's")
+    func subtitleIsTheTitles() {
+        let bar = topBar(SubtitledPageApp())
+        #expect(bar.first?.contains("PLANETS") == true, "\(bar)")
+        #expect(bar.last?.contains("NINE-PLANETS") == true, "the root's own subtitle: \(bar)")
+        #expect(!bar.contains { $0.contains("DEMO") }, "not the page's, under another view's title: \(bar)")
+    }
+
+    @Test("With none of its own, the title takes the subtitle of the nearest view round it")
+    func subtitleFromAroundTheTitle() {
+        let bar = topBar(SubtitleAroundTheTitleApp())
+        #expect(bar.first?.contains("NOTES") == true, "\(bar)")
+        #expect(bar.last?.contains("THREE-NOTES") == true, "\(bar)")
+    }
+
+    @Test("Of two titles side by side, the same one stands however each is wrapped", arguments: [false, true])
+    func siblingTitlesIgnoreWrappers(wrapped: Bool) {
+        let bar = topBar(SiblingTitlesApp(wrapped: wrapped))
+        #expect(bar.first?.contains("INBOX") == true, "the later one, as the preference has it: \(bar)")
+        #expect(!bar.contains { $0.contains("MAIL") }, "\(bar)")
     }
 
     @Test("A stack at the window's root titles it: its root's title, and a pushed screen's while it is shown")

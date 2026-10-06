@@ -576,11 +576,15 @@ appearance and the theme, are opt-in with their items,
 `statusBarSystemItems(theme:appearance:)`.) There is no `.appHeader`: what it
 held is a `.navigationTitle` and `.toolbar` items.
 
-The window's title is the outermost `.navigationTitle` drawn (and its subtitle
-the outermost `.navigationSubtitle`): the page's own over a navigation stack's
-inside it, a pushed screen's when the stack is the page, never a sheet's. It is
-shown in the top bar's title slot when there is a top bar; a title alone draws
-no bar. An item is drawn
+The window's title is the outermost `.navigationTitle` drawn: the page's own
+over a navigation stack's inside it, a pushed screen's when the stack is the
+page, never a sheet's. Outermost by ancestry — a title inside another's view
+never displaces it, and of two side by side the later one stands, however each
+is wrapped. Its subtitle is the title's own: a `.navigationSubtitle` on the
+titled view or inside it, else the nearest view round it that has one — never
+an outer view's while the title has its own. TUIkit's rule; SwiftUI's window
+title has no published one to measure against. It is shown in the top bar's
+title slot when there is a top bar; a title alone draws no bar. An item is drawn
 in the environment of the view that declared it (a `.disabled` above
 `.toolbar` disables it), keeps its `@State` from frame to frame — at its place
 in the declaration, as a view in a `ViewBuilder` does, so an `if` before it

@@ -160,21 +160,16 @@ final class WindowChromeState: @unchecked Sendable {
     }
 
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
-    /// content declared this walk (see ``offer(_:as:atDepth:)``) — kept
-    /// until the next walk begins.
+    /// content declared this walk (see ``offer(_:as:at:)``) — kept until the
+    /// next walk begins.
     ///
     /// Scene-level data: the top bar shows it in its title slot, and it is
     /// what a terminal window title (OSC 2) would be set from.
-    private(set) var title = ""
+    var title: String { titles.title }
 
-    /// The window's subtitle: the outermost `.navigationSubtitle`, found the
-    /// same way.
-    private(set) var subtitle = ""
-
-    /// How deep in the tree ``title`` and ``subtitle`` were declared: an
-    /// offer from a shallower view replaces them, a deeper one does not.
-    private var titleDepth = Int.max
-    private var subtitleDepth = Int.max
+    /// The window's subtitle: the title's own `.navigationSubtitle` (see
+    /// ``offer(_:as:at:)``).
+    var subtitle: String { titles.subtitle }
 
     /// The lines of the top bar's title slot, which the window's chrome takes
     /// from the views that declare them (`PreferenceModifier`).
@@ -185,17 +180,25 @@ final class WindowChromeState: @unchecked Sendable {
         case subtitle
     }
 
-    /// Offers a `.navigationTitle` or `.navigationSubtitle` declared at an
-    /// identity `depth` deep.
-    func offer(_ text: String, as line: TitleLine, atDepth depth: Int) {
-        switch line {
-        case .title: offerTitle(text, atDepth: depth)
-        case .subtitle: offerSubtitle(text, atDepth: depth)
-        }
+    /// A `.navigationTitle` or `.navigationSubtitle` a walk declared, and the
+    /// identity of the view it was declared on.
+    private struct TitleOffer {
+        let text: String
+        let identity: ViewIdentity
     }
 
-    /// Offers a `.navigationTitle` declared at an identity `depth` deep; the
-    /// shallowest stands, and of several at one depth the last.
+    /// The titles this walk declared, in the order it declared them.
+    private var titleOffers: [TitleOffer] = []
+
+    /// The subtitles this walk declared, in the order it declared them.
+    private var subtitleOffers: [TitleOffer] = []
+
+    /// ``title`` and ``subtitle``, chosen from the offers the first time they
+    /// are asked for after one.
+    private var chosenTitles: (title: String, subtitle: String)?
+
+    /// Offers a `.navigationTitle` or `.navigationSubtitle` declared on the
+    /// view at `identity`.
     ///
     /// The window's title is the page's own, not whatever was declared last.
     /// The navigation-title preference is last-wins — the deepest view's title
@@ -205,19 +208,71 @@ final class WindowChromeState: @unchecked Sendable {
     /// the views that are drawn — a stack's covered root and presented content
     /// offer nothing (`PreferenceModifier`) — so a pushed screen's title is the
     /// window's when nothing outside the stack has one, and a sheet's never is.
+    ///
+    /// - The title is the outermost: one declared inside another's view never
+    ///   displaces it, and of titles neither of which is inside the other, the
+    ///   last declared stands, as the preference's own reduction has it. By
+    ///   ANCESTRY, not by depth: compared by how deep they were declared, which
+    ///   of two side by side won depended on the wrappers around each — a
+    ///   `VStack` round one sibling handed the window to the other.
+    /// - The subtitle is the title's: one declared on the title's view or
+    ///   inside it, the outermost of those; else the nearest view round the
+    ///   title that has one. Chosen apart from the title, the outermost
+    ///   subtitle could belong to another view entirely — a page's "Demo" under
+    ///   the "Planets" of a stack inside it, where the stack's root said "9
+    ///   planets". With no title, the outermost subtitle.
+    ///
     /// An empty title is no title.
-    func offerTitle(_ text: String, atDepth depth: Int) {
-        guard !text.isEmpty, depth <= titleDepth else { return }
-        title = text
-        titleDepth = depth
+    func offer(_ text: String, as line: TitleLine, at identity: ViewIdentity) {
+        guard !text.isEmpty else { return }
+        switch line {
+        case .title: titleOffers.append(TitleOffer(text: text, identity: identity))
+        case .subtitle: subtitleOffers.append(TitleOffer(text: text, identity: identity))
+        }
+        chosenTitles = nil
     }
 
-    /// Offers a `.navigationSubtitle`, as ``offerTitle(_:atDepth:)`` does a
-    /// title.
-    func offerSubtitle(_ text: String, atDepth depth: Int) {
-        guard !text.isEmpty, depth <= subtitleDepth else { return }
-        subtitle = text
-        subtitleDepth = depth
+    /// ``title`` and ``subtitle``, as ``offer(_:as:at:)`` chooses them.
+    private var titles: (title: String, subtitle: String) {
+        if let chosenTitles { return chosenTitles }
+        let chosen = chooseTitles()
+        chosenTitles = chosen
+        return chosen
+    }
+
+    /// Chooses the title and its subtitle from this walk's offers.
+    private func chooseTitles() -> (title: String, subtitle: String) {
+        guard let title = Self.outermost(titleOffers) else {
+            return ("", Self.outermost(subtitleOffers)?.text ?? "")
+        }
+        let own = subtitleOffers.filter {
+            $0.identity == title.identity || title.identity.isAncestor(of: $0.identity)
+        }
+        if let subtitle = Self.outermost(own) { return (title.text, subtitle.text) }
+        // The nearest view round the title with a subtitle: the deepest of
+        // those that enclose it, and of several on one view the last.
+        var around: TitleOffer?
+        for offer in subtitleOffers where offer.identity.isAncestor(of: title.identity) {
+            if let nearest = around, offer.identity.depth < nearest.identity.depth { continue }
+            around = offer
+        }
+        return (title.text, around?.text ?? "")
+    }
+
+    /// The offer that stands among `offers`, in declaration order: each one
+    /// replaces the one standing unless that one's view encloses it.
+    ///
+    /// A view declares before its content renders, and a subtree renders
+    /// whole before its next sibling, so an enclosing view's offer always
+    /// comes first and is never replaced from inside; a later sibling's
+    /// replaces it.
+    private static func outermost(_ offers: [TitleOffer]) -> TitleOffer? {
+        var standing: TitleOffer?
+        for offer in offers {
+            if let held = standing, held.identity.isAncestor(of: offer.identity) { continue }
+            standing = offer
+        }
+        return standing
     }
 
     /// Frames begun, counted by ``beginFrame()``.
@@ -247,10 +302,9 @@ final class WindowChromeState: @unchecked Sendable {
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
         appLineHandlerIDs.removeAll(keepingCapacity: true)
-        title = ""
-        subtitle = ""
-        titleDepth = .max
-        subtitleDepth = .max
+        titleOffers.removeAll(keepingCapacity: true)
+        subtitleOffers.removeAll(keepingCapacity: true)
+        chosenTitles = nil
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a
