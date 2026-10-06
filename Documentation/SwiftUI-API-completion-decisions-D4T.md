@@ -83,7 +83,9 @@ menu's state, and the next frame — finding nothing to draw — closes it
 without having shown it or taken the keyboard.
 
 **Shipped:** that. The press is spent (it does not go on to a menu around the
-container), and `.onMenuOpen(_:)` hears an opening for a menu nobody saw.
+container), and so is the rest of its gesture — its release is not a click on
+the row under it, whether or not a frame closed the menu in between — and
+`.onMenuOpen(_:)` hears an opening for a menu nobody saw.
 
 **The fuller version:** build the menu for the set at the press, in the
 container's last render context kept for the purpose, and decline the press

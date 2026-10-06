@@ -41,6 +41,11 @@ private final class Rows {
         /// A list with a selection menu, a section header, and rows whose
         /// views carry a `.contextMenu`.
         case list
+        /// A table whose selection menu builds nothing, kept for its primary
+        /// action — the shape that replaced `onRowActivate`.
+        case emptyMenuTable
+        /// The same, on a list.
+        case emptyMenuList
     }
 }
 
@@ -75,6 +80,8 @@ private struct RowsPage: View {
         case .wrongType: wrongTypeTable.contextMenu { Button("outer") { rows.ran.append("outer") } }
         case .emptyForNone: emptyForNoneTable
         case .list: list
+        case .emptyMenuTable: emptyMenuTable
+        case .emptyMenuList: emptyMenuList
         }
     }
 
@@ -161,6 +168,28 @@ private struct RowsPage: View {
         }
         .frame(height: 10)
     }
+
+    private var emptyMenuTable: some View {
+        Table(items, selection: Bindable(rows).selection) {
+            TableColumn("Name", value: \.name)
+        }
+        .contextMenu(forSelectionType: Int.self) { _ in
+        } primaryAction: { ids in
+            rows.opened.append(ids.sorted())
+        }
+        .frame(height: 9)
+    }
+
+    private var emptyMenuList: some View {
+        List(selection: Bindable(rows).selection) {
+            ForEach(items) { item in Text(item.name) }
+        }
+        .contextMenu(forSelectionType: Int.self) { _ in
+        } primaryAction: { ids in
+            rows.opened.append(ids.sorted())
+        }
+        .frame(height: 9)
+    }
 }
 
 @MainActor
@@ -197,6 +226,17 @@ private final class Harness {
         let button: MouseButton = ctrl ? .left : .right
         app.send(MouseEvent(button: button, phase: .pressed, x: point.x, y: point.y, ctrl: ctrl))
         app.send(MouseEvent(button: button, phase: .released, x: point.x, y: point.y, ctrl: ctrl))
+        frame()
+    }
+
+    /// A Ctrl-click with a frame between its press and its release — the
+    /// frame on which a menu that built nothing closes. `ctrlHeldOnRelease`
+    /// false lets Ctrl go before the button.
+    func ctrlClickAcrossAFrame(_ point: (x: Int, y: Int), ctrlHeldOnRelease: Bool = true) {
+        app.send(MouseEvent(button: .left, phase: .pressed, x: point.x, y: point.y, ctrl: true))
+        frame()
+        app.send(
+            MouseEvent(button: .left, phase: .released, x: point.x, y: point.y, ctrl: ctrlHeldOnRelease))
         frame()
     }
 
@@ -348,5 +388,22 @@ struct RowContextMenuTests {
         harness.key(KeyEvent(key: .down))
         harness.key(KeyEvent(key: .enter))
         #expect(harness.rows.opened.count == 1, "\(harness.rows.opened)")
+    }
+
+    @Test(
+        "A Ctrl-click on a menu that builds nothing is spent, though the menu closed before the release",
+        arguments: [false, true])
+    func emptyMenuCtrlClickIsSpent(onList: Bool) throws {
+        let harness = Harness(onList ? .emptyMenuList : .emptyMenuTable)
+        harness.ctrlClickAcrossAFrame(try harness.position(of: "item1"))
+        #expect(harness.rows.selection == [2, 3], "the release toggled the row:\n\(harness.screen)")
+        harness.ctrlClickAcrossAFrame(try harness.position(of: "item4"), ctrlHeldOnRelease: false)
+        #expect(harness.rows.selection == [2, 3], "the release selected the row:\n\(harness.screen)")
+        // An Option-click still toggles: the menu has the Ctrl-click only.
+        let row = try harness.position(of: "item1")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: row.x, y: row.y, meta: true))
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: row.x, y: row.y, meta: true))
+        harness.frame()
+        #expect(harness.rows.selection == [1, 2, 3], "\(harness.screen)")
     }
 }

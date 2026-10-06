@@ -155,7 +155,8 @@ extension View {
     /// or table with a menu, Ctrl-click is the menu's, as on macOS; Option-click
     /// still toggles a row's selection. From the keyboard, **Shift+F10** opens
     /// the menu on the cursor row by the same rule. A menu that builds nothing
-    /// for a set does not open.
+    /// for a set does not open, and the click that asked for it is spent all
+    /// the same — its release selects nothing.
     ///
     /// While the container has this menu, it answers every secondary click on
     /// its rows: a `.contextMenu` on a row's view, or a `TableRow`'s own,

@@ -59,7 +59,8 @@ extension _ListCore {
                     x: x, y: y, dispatcher: dispatcher, onOpen: onOpen)
                 return true
             },
-            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns, opened: opened)
+            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns, opened: opened,
+            dispatcher: dispatcher)
     }
 
     /// Draws the open selection menu over the list — anchored at the press,

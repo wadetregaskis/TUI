@@ -2606,7 +2606,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     box, target: target, x: x, y: y, dispatcher: dispatcher, onOpen: onOpen)
                 return true
             },
-            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns, opened: opened)
+            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns, opened: opened,
+            dispatcher: dispatcher)
     }
 
     /// Draws the open row menu over the table — anchored at the press, or

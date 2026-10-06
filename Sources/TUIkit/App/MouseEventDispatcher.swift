@@ -639,6 +639,13 @@ extension MouseEventDispatcher {
         pressOpenedPopupMenu = true
     }
 
+    /// Whether the press of the gesture in flight opened a pop-up menu
+    /// (``pressOpenedPopup()``) — true for its drags and its release too, and
+    /// whether or not the menu is still up when they arrive. A menu that
+    /// builds nothing closes on the frame after the press; the rest of the
+    /// gesture is still the menu's, not a click on what is under it.
+    var gestureOpenedPopup: Bool { pressOpenedPopupMenu }
+
     /// Whether `event` is a button-release that ends a press-and-**hold** rather
     /// than one that merely completes a click.
     ///
