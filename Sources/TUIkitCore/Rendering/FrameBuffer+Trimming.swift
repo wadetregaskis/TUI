@@ -16,11 +16,23 @@ extension FrameBuffer {
     /// Lines are left ragged, which ``FrameBuffer`` supports (see
     /// ``linesAreUniformWidth``) and ``composited(with:at:)`` honours line by
     /// line — so a multi-line preview keeps its own silhouette.
+    ///
+    /// A blank cell an animated run repaints is kept too, as the overflow's
+    /// painted columns keep it (`paintedColumnsByLine()`): a caret blinking on
+    /// a trailing blank of a dragged row, or of a row a transition slides, is
+    /// drawn there whatever the line holds under it, and trimmed it lost its
+    /// cell — and the caret with it — for the length of the drag.
     public func trimmingTrailingBlankCells() -> FrameBuffer {
         var trimmed = lines
         var changed = false
+        // Where each line's last run ends: nothing to look up, and nothing
+        // allocated, for the buffer with no runs, which is nearly every one.
+        var runEnds: [Int: Int] = [:]
+        for run in animatedCells where run.width > 0 {
+            runEnds[run.offsetY] = max(runEnds[run.offsetY] ?? 0, run.offsetX + run.width)
+        }
         for index in trimmed.indices {
-            let keep = trimmed[index].visibleWidthBeforeTrailingBlanks()
+            let keep = max(trimmed[index].visibleWidthBeforeTrailingBlanks(), runEnds[index] ?? 0)
             let lineWidth = trimmed[index].strippedLength
             guard keep < lineWidth else { continue }
             trimmed[index] = trimmed[index].ansiAwarePrefix(

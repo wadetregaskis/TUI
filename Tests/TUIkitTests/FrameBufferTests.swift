@@ -332,6 +332,20 @@ struct OverlayTests {
 
     /// Ragged is fine: each line keeps its own silhouette, and `composited`
     /// already writes line by line.
+    /// The overflow's painted columns already kept such a cell
+    /// (`paintedColumnsByLine()`); the trim of a drag preview or a floating
+    /// transition copy dropped it, and the caret with it.
+    @Test("A trailing blank an animated run repaints is kept, and the blanks past it are not")
+    func trimmingKeepsRunCells() {
+        var buffer = FrameBuffer(lines: ["ab        ", "cd        "])
+        buffer.animatedCells = [
+            AnimatedCellRun(offsetX: 3, offsetY: 0, width: 1, frames: ["\u{1B}[7m \u{1B}[0m", " "], clock: .content)
+        ]
+        let trimmed = buffer.trimmingTrailingBlankCells()
+        #expect(trimmed.lines.map(\.strippedLength) == [4, 2], "the caret's cell was trimmed away")
+        #expect(trimmed.animatedCells.count == 1)
+    }
+
     @Test("A multi-line preview trims each line independently")
     func trimmingIsPerLine() {
         let buffer = FrameBuffer(lines: ["one   ", "t     ", "three "])
