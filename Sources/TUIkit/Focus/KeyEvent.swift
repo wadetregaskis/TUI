@@ -232,6 +232,21 @@ extension KeyEventDispatcher {
         }
     }
 
+    /// Offers `event` to the `onKeyPress` handlers on the path to the focused
+    /// view that are declared for it — those
+    /// ``declaresFocusPathBinding(forAnyOf:focusedIdentity:)`` counts —
+    /// outermost first, as ``dispatchFocusPath(_:focusedIdentity:stage:)``
+    /// asks every one. For a key only a declared binding is offered: a ⌃\\
+    /// nothing took, gone round again as the ⌃4, ⌃| or ⌃⇧\\ it may have been
+    /// (`InputHandler.dispatchToDeclaredBindings(_:)`).
+    ///
+    /// - Returns: Whether one of them took it.
+    func dispatchDeclaredFocusPath(_ event: KeyEvent, focusedIdentity: ViewIdentity) -> Bool {
+        firstHandling(
+            event, focusedIdentity: focusedIdentity, stage: .keyPress,
+            in: focusPathHandlers.lazy.filter { $0.declares?(event) == true })
+    }
+
     /// Whether one of `entries` of `stage`, scoped over `focusedIdentity` and
     /// not silenced by an input grab, took `event` — asked in the order given.
     private func firstHandling(

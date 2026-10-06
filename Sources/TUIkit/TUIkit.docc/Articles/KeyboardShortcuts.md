@@ -430,8 +430,10 @@ The shell then reports `Quit: 3`. A user who turned the quit key off with
 `stty quit undef` keeps it off.
 
 Your own binding on ⌃\\ wins. While your app declares one — a
-`.keyboardShortcut`, an `onKeyPress` on the key on the path to the focused
-view, the status bar's quit key or an item, an undo key — TUIkit masks the
+`.keyboardShortcut` (a live sheet's too, whichever pane holds the focus,
+though it fires, as any shortcut, only from its own), an `onKeyPress` on the
+key on the path to the focused view, the status bar's quit key or an item,
+an undo key — TUIkit masks the
 driver's quit, so the key reaches the input chain, and your binding has it
 first. A ⌃\\ none of your bindings takes still quits:
 TUIkit sends `SIGQUIT` itself, as the driver would have. The same goes for
@@ -440,7 +442,8 @@ TUIkit sends `SIGQUIT` itself, as the driver would have. The same goes for
 terminal is assumed to until one is measured not to): with a ⌘4 shortcut on
 screen — ⌃4 under `.commandKey(.control)` — the quit is masked, the byte
 arrives as ⌃\\, and where nothing takes ⌃\\ it is offered as ⌃4, ⌃| and ⌃⇧\\
-in turn, so your ⌘4 fires. Bind both ⌃\\ and ⌃4 and the byte is ⌃\\'s: it
+in turn to the bindings declared for them, so your ⌘4 fires — a handler that
+hears every key hears the byte once, as ⌃\\. Bind both ⌃\\ and ⌃4 and the byte is ⌃\\'s: it
 cannot be told apart. So ``KeyboardShortcut/isDeliverableInTerminal`` is
 `true` for ⌃\\ and `false` for the other three.
 

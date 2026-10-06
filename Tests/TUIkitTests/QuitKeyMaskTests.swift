@@ -189,6 +189,56 @@ struct QuitKeyMaskTests {
         }
     }
 
+    // MARK: - The retry, for the bindings that count
+
+    /// Where the byte reaches the chain — masked for another binding, or the
+    /// quit key turned off and on again — an unclaimed ⌃\ goes round as ⌃4,
+    /// ⌃| and ⌃⇧\ to the bindings declared for them, and to nothing else. A
+    /// number field's digits heard it once, as ⌃\, which is no digit: offered
+    /// it again as ⌃4 (the whole chain, as before round 6), they typed a 4
+    /// for the user's quit key, and the app did not quit.
+    @Test("A focused field's digits are not offered ⌃\\ again as ⌃4: the unclaimed ⌃\\ quits, and nothing is typed")
+    func digitsAreNotOfferedTheRetry() {
+        let harness = MaskHarness()
+        let typed = Typed()
+        harness.render(
+            TextField("Number", text: .constant(""))
+                .onKeyPress(characters: .decimalDigits) { press in
+                    typed.characters.append(press.characters)
+                    return .handled
+                })
+        var quits = 0
+        harness.handler.quitKey = { 0x1C }
+        harness.handler.quitByteAliasing = { true }
+        harness.handler.onQuitKey = { quits += 1 }
+        #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
+        #expect(typed.characters.isEmpty && quits == 1)
+    }
+
+    /// And a binding declared for ⌃4 — an `onKeyPress` on the key, on the
+    /// focus path — is offered it, and takes it.
+    @Test("A focused view's onKeyPress(\"4\") takes the ⌃\\ the retry offers as ⌃4")
+    func declaredKeyTakesTheRetry() {
+        let harness = MaskHarness()
+        let typed = Typed()
+        harness.render(
+            Button("Focused") {}.onKeyPress("4") {
+                typed.characters.append("4")
+                return .handled
+            })
+        var quits = 0
+        harness.handler.quitKey = { 0x1C }
+        harness.handler.quitByteAliasing = { true }
+        harness.handler.onQuitKey = { quits += 1 }
+        #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
+        #expect(typed.characters == ["4"] && quits == 0)
+    }
+
+    /// What a handler took.
+    private final class Typed {
+        var characters: [String] = []
+    }
+
     @Test("The status bar's quit key and the scene's undo keys count too")
     func statusBarAndUndoKeys() {
         let quit = MaskHarness()

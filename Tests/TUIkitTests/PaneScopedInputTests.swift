@@ -198,4 +198,32 @@ struct PaneScopedInputTests {
         #expect(!harness.tui.keyboardShortcuts.hasAppShortcut(for: quitChord), "precondition: the page binds none")
         #expect(harness.handler.declaresBinding(forAnyOf: [quitChord]), "the pane's binding is declared")
     }
+
+    /// An unclaimed ⌃\\ that may be ⌃4 goes round again to the bindings
+    /// declared for ⌃4 by the rule ordinary dispatch follows: a pane's
+    /// shortcut only with the focus in the pane. Asked of the page's table
+    /// alone, the retry never reached a live sheet's ⌘4.
+    @Test("An unclaimed ⌃\\ offered again as ⌃4 reaches a pane's ⌘4 only with the focus in the pane")
+    func quitKeyRetryFollowsThePanes() {
+        let harness = InputChainHarness(width: 60, height: 20)
+        let fired = Fired()
+        let four = KeyEvent(key: .character("4"), ctrl: true)
+        func page() -> some View {
+            VStack {
+                Button("Page") {}
+                PaneHost(id: "pane") {
+                    Button("Four") { fired.paneChord += 1 }.keyboardShortcut("4", modifiers: .control)
+                }
+            }
+        }
+        harness.frame(page())
+        harness.frame(page())
+        #expect(!harness.handler.dispatchToDeclaredBindings(four), "from the page")
+        #expect(fired.paneChord == 0)
+
+        tab(into: "pane", harness) { page() }
+        #expect(harness.focusManager.activePaneID == "pane", "precondition: Tab reached the pane")
+        #expect(harness.handler.dispatchToDeclaredBindings(four), "from the pane")
+        #expect(fired.paneChord == 1)
+    }
 }

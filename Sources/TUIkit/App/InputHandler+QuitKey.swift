@@ -105,6 +105,40 @@ extension InputHandler {
         }
         return false
     }
+
+    /// Offers `event` to the bindings the app declared for it and to nothing
+    /// else — those ``declaresBinding(forAnyOf:)`` counts, in the chain's
+    /// order: the focus path's `onKeyPress` on keys, the status bar's items,
+    /// the app's shortcuts, the status bar's quit key, the undo keys. The
+    /// shortcuts by the pane rule layer 3.5 fires them by: a pane's — a live
+    /// sheet's — only with the focus in it, and the page's from a pane only
+    /// where it does not bind the key and no modal section holds the focus
+    /// (`KeyboardShortcutRegistry.trigger(for:activePane:reachesPage:)`).
+    ///
+    /// What a ⌃\\ nothing took goes round as, where it may have been ⌃4, ⌃|
+    /// or ⌃⇧\\ (``handle(_:)``): only a binding on one of those can have
+    /// meant it. Everything else in the chain heard the key once already, as
+    /// ⌃\\ — a handler that hears every key (`onKeyEvent`,
+    /// `onKeyPress(phases:action:)`) and one on a set of characters among
+    /// them — and offered it again as ⌃4, a number field's `.decimalDigits`
+    /// would type a 4 for the user's quit key (the coordinator's ruling,
+    /// round 6).
+    ///
+    /// - Returns: Whether one of them took it.
+    func dispatchToDeclaredBindings(_ event: KeyEvent) -> Bool {
+        if focusPathHearsKeys, let focused = focusManager.focusedIdentity,
+            keyEventDispatcher.dispatchDeclaredFocusPath(event, focusedIdentity: focused)
+        {
+            return true
+        }
+        if statusBar.handleKeyEvent(event)
+            || keyboardShortcuts.trigger(
+                for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+        {
+            return true
+        }
+        return runQuitShortcut(event) || runUndoKey(event)
+    }
 }
 
 // MARK: - The quit key's chords

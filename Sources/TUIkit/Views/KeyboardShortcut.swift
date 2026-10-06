@@ -314,8 +314,9 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// Ctrl-4 and Ctrl-| (Ctrl-Shift-\) too, by their tables of the legacy
     /// encoding (not measured). There nothing in the byte says which key sent
     /// it, as nothing tells Ctrl-H from Backspace. TUIkit reads it as ⌃\,
-    /// and offers it as Ctrl-4, Ctrl-| and Ctrl-Shift-\ in turn where no
-    /// binding takes ⌃\, so a ⌘4 shortcut under `.commandKey(.control)`
+    /// and offers it as Ctrl-4, Ctrl-| and Ctrl-Shift-\ in turn, to the
+    /// bindings declared for them, where no binding takes ⌃\, so a ⌘4
+    /// shortcut under `.commandKey(.control)`
     /// DOES fire on those terminals — unless the app binds ⌃\ too, which then
     /// wins. Under the kitty keyboard protocol, and on a terminal measured to
     /// send them apart (none yet), the chords arrive as themselves and fire.

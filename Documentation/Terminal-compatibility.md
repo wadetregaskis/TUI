@@ -4305,11 +4305,15 @@ Terminal composes accented characters unless "Use Option as Meta key" is on.
 
 **Where 0x1C reaches the app** — the driver's quit masked because the app
 binds a chord it could be (below), or the user's quit key turned off or
-moved — the parser reads it as ⌃\\, and a ⌃\\ no binding takes goes round the
-input chain once more as ⌃4, ⌃| and ⌃⇧\\ in turn, on a terminal in its legacy
-encoding not measured to send them apart (`TerminalClient.mayAliasQuitByte`;
-no terminal measured yet, 2026-10-06), as an unbound Ctrl-H goes round as
-Backspace. A binding on ⌃\\ wins over one on ⌃4: the bytes are the same.
+moved — the parser reads it as ⌃\\, and a ⌃\\ no binding takes is offered
+once more as ⌃4, ⌃| and ⌃⇧\\ in turn, on a terminal in its legacy encoding not
+measured to send them apart (`TerminalClient.mayAliasQuitByte`; no terminal
+measured yet, 2026-10-06), as an unbound Ctrl-H goes round as Backspace —
+but only to the bindings the app declares for them (those that mask the
+quit, below), not round the whole chain: a handler that hears every key, or
+a field's `.decimalDigits`, hears the byte once, as ⌃\\, and never types a 4
+for it (the coordinator's ruling, round 6). A binding on ⌃\\ wins over one
+on ⌃4: the bytes are the same.
 Where none of the four is taken and 0x1C is the user's quit key, the chain
 raises `SIGQUIT`, as the driver would have.
 

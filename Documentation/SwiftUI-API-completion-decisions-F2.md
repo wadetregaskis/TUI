@@ -48,8 +48,11 @@ masked, then let's do that."
   status-bar items and the status bar's quit key, the scene's undo keys.
   Recomputed after every frame; `tcsetattr` only when it changes; the
   user's termios restored on every exit as before.
-- With the quit masked, 0x1C arrives as ⌃\; unclaimed, it goes round the
-  chain as ⌃4, ⌃| and ⌃⇧\\ (the alias retry, as for Ctrl-H); still
+- With the quit masked, 0x1C arrives as ⌃\\; unclaimed, it is offered as
+  ⌃4, ⌃| and ⌃⇧\\ (the alias retry, as for Ctrl-H) to the bindings declared
+  for them alone — not round the whole chain, so a handler that hears every
+  key, or a field's `.decimalDigits`, hears the byte once, as ⌃\\ (the
+  coordinator's ruling, round 6); still
   unclaimed, the chain raises `SIGQUIT` (`kill(0, …)`), so ⌃\\ quits a
   responsive app.
 - Aliasing cannot be read from the byte: every terminal is assumed to alias

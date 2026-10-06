@@ -188,9 +188,12 @@ extension InputHandler {
         // ⌃\ in a legacy encoding is the byte 0x1C, which some terminals
         // send for ⌃4, ⌃| and ⌃⇧\ as well. Nothing in the byte says which,
         // so ⌃\ is asked first (a binding on it wins), and an unbound one
-        // goes round once more as each of the others: a ⌃4 shortcut fires.
+        // goes round once more as each of the others — to the bindings the
+        // app declared for them alone, so a ⌃4 shortcut fires, while a
+        // handler that hears every key, or a field's digits, hears the byte
+        // once, as ⌃\ (`dispatchToDeclaredBindings(_:)`).
         if quitByteAliasing() {
-            for alias in event.quitByteAliases where dispatchPress(alias) { return true }
+            for alias in event.quitByteAliases where dispatchToDeclaredBindings(alias) { return true }
         }
 
         // The user's quit key, where nothing took it: what the driver would
