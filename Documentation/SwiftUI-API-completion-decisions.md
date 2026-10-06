@@ -1158,12 +1158,12 @@ What the probes established, and what now holds here too:
 | `.highPriorityGesture(TapGesture())` on that button | the tap; no action |
 | `.simultaneousGesture(TapGesture())` on it | both, the tap first |
 | `.highPriorityGesture(DragGesture())` on it | a click is the button's; a drag is the drag's |
-| A tap's slop, hold and double-tap interval | 40 points (45 fails); 0.75 s; 0.35 s from release to next press |
+| A tap's slop, hold and double-tap interval | 40 points (45 fails); 0.75 s; the next click released within 0.35 s of the last release (a press in time but held past that gives the tap up then, button still down) |
 | `onTapGesture(count: 2)` inside `onTapGesture` | a double-click runs only the double; a single click runs the single 0.35 s after its release |
 | `LongPressGesture`'s defaults | 0.5 s, 10 points (Euclidean; 11 fails); `true` from the press; ends at the deadline with the button down |
 | `onLongPressGesture`'s pressing callback | `true` on the press; `false` just before the action |
 | `DragGesture`'s start | at `minimumDistance` (≥), the press kept as `startLocation`; a drag that never starts does not end |
-| A sequence's `onEnded` | when its second gesture ends; the second takes the first event after the first ends as its start |
+| A sequence's `onEnded` | when its second gesture ends; the event that ends the first gesture is the second's first (a tap before a tap ends at one click); only a first gesture that ends on its clock leaves the second to the next event. A release is a press already over: a tap before a drag or a long press fails at the tap's release, and a tap before a zero-duration long press ends there, `false`, with no `onChanged` |
 | `@GestureState`'s reset | on end, failure or cancellation, before `onEnded` |
 | `modifiers(_:)` | read at the press; more keys than asked for satisfy it |
 
@@ -3560,8 +3560,9 @@ kept apart. An hour, with the harness's clocks joined.
 `View.onTapGesture(count:perform:)`; and, for comparison,
 `List`/`Table` `onRowActivate(_:)`, `MouseEvent.clickCount`*
 
-A tap counts its own clicks, as measured: the next press within 0.35 s of the
-release. The dispatcher's `clickCount`, which rows open on, counts presses
+A tap counts its own clicks, as measured: the next click released within
+0.35 s of the last release (a press in time but held past that gives the tap
+up then, with the button still down). The dispatcher's `clickCount`, which rows open on, counts presses
 within 400 ms of each other (macOS's `NSEvent.doubleClickInterval` is 0.5 s,
 and `NSTableView` uses it). **Shipped:** both, each matching its macOS
 counterpart's kind.
@@ -3584,7 +3585,9 @@ or `LongPressGesture` it is on macOS, attached with `gesture`, so:
   a `Button` no longer takes its click;
 - a release off the view, past the slop, or after 0.75 s is no tap;
 - `.onTapGesture(count: 2)` inside `.onTapGesture` delays the single tap until
-  the double one has given up, and a double-click runs only the double;
+  the double one has given up, and a double-click runs only the double; a
+  click on another view meanwhile does not give the double tap up, and the
+  single tap still runs for the first click when it does;
 - `onPressingChanged(false)` comes just before the action.
 
 **The alternative** kept the old behaviour, which no SwiftUI app expects.
