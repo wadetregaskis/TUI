@@ -44,7 +44,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
 
     /// How many app shortcuts this frame has registered so far: a mark a
     /// presenter takes before its content renders, and hands back to
-    /// ``action(for:registeredAfter:)`` once it has.
+    /// ``entry(for:registeredAfter:)`` once it has.
     private(set) var registrationCount = 0
 
     /// A framework default, and whether the view that registered it held the
