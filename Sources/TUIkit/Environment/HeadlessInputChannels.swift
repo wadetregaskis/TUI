@@ -35,10 +35,16 @@ package final class HeadlessInputChannels {
     package init() {}
 
     /// Wires the channels into `environment`.
+    ///
+    /// The status bar is the app's as well (`appStatusBar`), as the render loop
+    /// publishes it: a `StatusBar()` drawn in a backdrop — whose isolation swaps
+    /// `statusBar` for a throwaway — reads the app's line from it, so a bench
+    /// draws the line the app draws there, not an empty one.
     package func install(into environment: inout EnvironmentValues) {
         environment.keyEventDispatcher = keyEventDispatcher
         environment.keyboardShortcutRegistry = keyboardShortcuts
         environment.statusBar = statusBar
+        environment.appStatusBar = statusBar
         environment.mouseEventDispatcher = mouseEventDispatcher
     }
 
