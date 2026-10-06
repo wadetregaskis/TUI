@@ -25,9 +25,15 @@ final class MenuPopupState {
 
     /// The menu, as the press that opens it hands it to the dispatcher for the
     /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``).
-    var openedPopup: MouseEventDispatcher.OpenedPopup {
-        MouseEventDispatcher.OpenedPopup(isOpen: { self.isOpen }, close: { self.close() })
-    }
+    ///
+    /// Built once, on first use, rather than on every read: the trigger button
+    /// carries it on every frame (``Button/menuTrigger(_:)``), and one object
+    /// for the menu's life keeps that button's value the same from frame to
+    /// frame. Weak, because this state holds it: a strong capture would be a
+    /// cycle, and the dispatcher may hold it past the menu's removal.
+    private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
+        isOpen: { [weak self] in self?.isOpen ?? false },
+        close: { [weak self] in self?.close() })
 }
 
 /// The body of ``DefaultMenuStyle``: a collapsed label that opens the items as

@@ -38,9 +38,10 @@ final class ContextMenuState {
 
     /// The menu, as the press that opens it hands it to the dispatcher for the
     /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``).
-    var openedPopup: MouseEventDispatcher.OpenedPopup {
-        MouseEventDispatcher.OpenedPopup(isOpen: { self.isOpen }, close: { self.close() })
-    }
+    /// Built once, weakly, as ``MenuPopupState/openedPopup`` is.
+    private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
+        isOpen: { [weak self] in self?.isOpen ?? false },
+        close: { [weak self] in self?.close() })
 }
 
 // MARK: - Context menu modifier

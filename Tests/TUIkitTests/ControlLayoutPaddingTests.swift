@@ -7,13 +7,14 @@
 import Testing
 
 @testable import TUIkit
+@testable import TUIkitView
 
-/// Two controls whose stored properties left padding — bytes the per-pass
+/// Three controls whose stored properties left padding — bytes the per-pass
 /// memos' value hash read undefined then, and skips now — declared so their
 /// common shapes have none, and are smaller (and plain words to the hash) for it. A generic field can still leave a gap
 /// for other type arguments, which the value hash itself must skip.
 @MainActor
-@Suite("Toggle and ProgressView leave no bytes undefined in their common shapes")
+@Suite("Toggle, ProgressView and Button leave no bytes undefined in their common shapes")
 struct ControlLayoutPaddingTests {
     /// 195 since `Toggle(configuration)` (2026-10-03): its one-byte proxy flags
     /// go last, after the binding, so they add a byte and no padding. 197 since
@@ -37,5 +38,31 @@ struct ControlLayoutPaddingTests {
         typealias Bare = ProgressView<EmptyView, EmptyView>
         #expect(interiorPadding(of: Bare.self).isEmpty, "\(interiorPadding(of: Bare.self))")
         #expect(MemoryLayout<Bare>.size == 106)
+    }
+
+    /// 144 when a menu trigger's opener was a struct of two closures
+    /// (2026-10-06): its optional four words, after seven bytes of padding
+    /// behind the disabled flag, and a typed step in every button's measure
+    /// hash. Now a reference, ahead of the flag: one word, which a plain
+    /// button's `nil` writes whole, so the hash reads it as plain bytes. (106
+    /// when it was a `Bool` beside the flag, before the opener was kept.)
+    @Test("A Button and its core: no padding, 144 → 113 bytes, and its menu opener hashed as bytes")
+    func button() {
+        func check<T>(_: T) {
+            #expect(interiorPadding(of: T.self).isEmpty, "\(T.self): \(interiorPadding(of: T.self))")
+            #expect(MemoryLayout<T>.size == 113, "\(T.self)")
+            // The plan's runs and steps are the table's memory: it has to
+            // outlive the reads, which a `let` alone does not promise.
+            let plans = ValueHashPlans()
+            withExtendedLifetime(plans) {
+                let steps = plans.plan(for: T.self).pointee.stepDescriptions
+                #expect(!steps.contains { $0.contains("OpenedPopup") }, "\(T.self): \(steps)")
+            }
+        }
+        let button = Button("x") {}
+        check(button)
+        // `_ButtonCore`, which is what the memo measures: private, so reached
+        // through the body that builds it.
+        check(button.body)
     }
 }

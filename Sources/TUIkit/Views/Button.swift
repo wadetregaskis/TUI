@@ -132,17 +132,20 @@ public struct Button: View {
     /// Use the `.focusID()` modifier to override.
     var focusID: String?
 
-    /// Whether the button is disabled.
-    ///
-    /// Set with the ``disabled(_:)`` modifier.
-    var isDisabled: Bool
-
     /// The pop-up menu this button triggers, or `nil` for an ordinary button.
     /// A trigger runs its action on the PRESS rather than the release — see
     /// ``menuTrigger(_:)``.
     ///
     /// Internal: the only thing that wants it is a menu's own collapsed control.
+    /// One word (a reference), and ahead of ``isDisabled`` so the one-byte flag
+    /// ends the struct rather than leaving seven bytes of padding before it —
+    /// `ControlLayoutPaddingTests` pins both.
     var triggeredMenu: MouseEventDispatcher.OpenedPopup?
+
+    /// Whether the button is disabled.
+    ///
+    /// Set with the ``disabled(_:)`` modifier.
+    var isDisabled: Bool
 
     /// Creates a button with a localized label and an action.
     ///
@@ -318,8 +321,8 @@ public struct Button: View {
             action: action,
             role: role,
             focusID: focusID,
-            isDisabled: isDisabled,
-            triggeredMenu: triggeredMenu
+            triggeredMenu: triggeredMenu,
+            isDisabled: isDisabled
         )
     }
 }
@@ -337,10 +340,10 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     let action: () -> Void
     let role: ButtonRole?
     let focusID: String?
-    let isDisabled: Bool
     /// The menu this button triggers, or `nil` for an ordinary button — see
-    /// ``Button/menuTrigger(_:)``.
-    var triggeredMenu: MouseEventDispatcher.OpenedPopup?
+    /// ``Button/menuTrigger(_:)``. Ahead of `isDisabled`, as on `Button`.
+    let triggeredMenu: MouseEventDispatcher.OpenedPopup?
+    let isDisabled: Bool
 
     /// Whether this button is a pop-up menu's trigger.
     private var isMenuTrigger: Bool { triggeredMenu != nil }

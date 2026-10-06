@@ -647,7 +647,15 @@ extension MouseEventDispatcher {
 
     /// A pop-up a press opened, as the dispatcher holds it for the rest of
     /// that press's gesture — see ``pressOpenedPopup(_:)``.
-    struct OpenedPopup {
+    ///
+    /// A class, not a struct of its two closures, for the menu trigger that
+    /// carries one (``Button/menuTrigger(_:)``): every `Button` stores the
+    /// optional, and an optional reference is one word, `nil` for a plain
+    /// button and read by the measure memo's value hash as plain bytes — where
+    /// the closures' optional was four words and a typed step in every
+    /// button's hash. The pop-up states that hand one out build it once
+    /// (``MenuPopupState/openedPopup``).
+    final class OpenedPopup {
         /// Whether the pop-up is still open — which the dispatcher takes to
         /// mean drawn, once a render pass has begun since it opened, so an
         /// opener must never say open while it draws nothing (a `Picker` with
@@ -659,6 +667,11 @@ extension MouseEventDispatcher {
 
         /// Closes the pop-up, without choosing anything. Idempotent.
         let close: () -> Void
+
+        init(isOpen: @escaping () -> Bool, close: @escaping () -> Void) {
+            self.isOpen = isOpen
+            self.close = close
+        }
     }
 
     /// Called by a handler *while it is consuming a press* to say that press
