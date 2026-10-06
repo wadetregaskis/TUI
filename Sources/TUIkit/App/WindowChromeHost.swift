@@ -95,7 +95,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         contentContext.environment.overlayContentHeight = contentHeight
         // The content offers the window its title as it draws — on the seeding
         // walk too, although it measures, since the title sizes the top bar
-        // (`WindowChromePreferenceKey`).
+        // (`PreferenceModifier.offerToWindowChrome`).
         var page = placeContent(context: contentContext, rowsAbove: rows.top)
         guard !context.isMeasuring else {
             if let chrome, context.environment.seedsWindowChrome {

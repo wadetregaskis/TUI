@@ -160,7 +160,7 @@ final class WindowChromeState: @unchecked Sendable {
     }
 
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
-    /// content declared this walk (see ``offerTitle(_:atDepth:)``) — kept
+    /// content declared this walk (see ``offer(_:as:atDepth:)``) — kept
     /// until the next walk begins.
     ///
     /// Scene-level data: the top bar shows it in its title slot, and it is
@@ -175,6 +175,24 @@ final class WindowChromeState: @unchecked Sendable {
     /// offer from a shallower view replaces them, a deeper one does not.
     private var titleDepth = Int.max
     private var subtitleDepth = Int.max
+
+    /// The lines of the top bar's title slot, which the window's chrome takes
+    /// from the views that declare them (`PreferenceModifier`).
+    enum TitleLine {
+        /// The `.navigationTitle`.
+        case title
+        /// The `.navigationSubtitle`, under it.
+        case subtitle
+    }
+
+    /// Offers a `.navigationTitle` or `.navigationSubtitle` declared at an
+    /// identity `depth` deep.
+    func offer(_ text: String, as line: TitleLine, atDepth depth: Int) {
+        switch line {
+        case .title: offerTitle(text, atDepth: depth)
+        case .subtitle: offerSubtitle(text, atDepth: depth)
+        }
+    }
 
     /// Offers a `.navigationTitle` declared at an identity `depth` deep; the
     /// shallowest stands, and of several at one depth the last.
@@ -370,7 +388,11 @@ private struct SeedsWindowChromeKey: EnvironmentKey {
 extension EnvironmentValues {
     /// Whether this walk is the first frame's measuring walk, which seeds the
     /// window's chrome: a `.toolbar` declares its items there although the walk
-    /// measures, and nowhere else that measures. Read by `.toolbar` alone.
+    /// measures, and nowhere else that measures. Read by the chrome host, which
+    /// seeds the bars' rows from what that walk found, and by what declares
+    /// what those rows depend on: `.toolbar`, `.toolbarVisibility(_:for:)`, and
+    /// `.navigationTitle` / `.navigationSubtitle` (`PreferenceModifier`), whose
+    /// title and subtitle are the top bar's rows.
     var seedsWindowChrome: Bool {
         get { self[SeedsWindowChromeKey.self] }
         set { self[SeedsWindowChromeKey.self] = newValue }

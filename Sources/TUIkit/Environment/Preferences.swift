@@ -36,13 +36,13 @@ extension PreferenceModifier: Renderable {
         if !context.isMeasuring {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             context.environment.preferenceStorage!.setValue(value, forKey: K.self)
-            offerToWindowChrome(context: context)
-        } else if context.environment.seedsWindowChrome {
+            if let line = Self.windowTitleLine { offerToWindowChrome(line, context: context) }
+        } else if let line = Self.windowTitleLine, context.environment.seedsWindowChrome {
             // Except what the window's chrome reads, on the first frame's
             // seeding walk — a measurement whose one job is to find the chrome
             // (`EnvironmentValues.seedsWindowChrome`): the top bar's rows
             // depend on whether there is a title, and a subtitle under it.
-            offerToWindowChrome(context: context)
+            offerToWindowChrome(line, context: context)
         }
 
         // Render content
@@ -51,21 +51,39 @@ extension PreferenceModifier: Renderable {
 }
 
 extension PreferenceModifier {
+    /// The line of the window's title slot `K` fills, if any: the
+    /// navigation title or subtitle, which the window's chrome takes from the
+    /// views that declare them.
+    ///
+    /// Decided by `K` alone, before anything is read from the environment:
+    /// every `.preference(key:value:)` and every view that publishes one
+    /// renders through here, every frame, and the window's chrome wants two
+    /// keys of them. Asked in the other order, every one of them paid two
+    /// environment lookups (each a dictionary probe and a cast from `Any`)
+    /// and a dynamic cast of `K` to a protocol before finding out; now it is
+    /// two comparisons of a metatype.
+    private static var windowTitleLine: WindowChromeState.TitleLine? {
+        if K.self == NavigationTitleKey.self { return .title }
+        if K.self == NavigationSubtitleKey.self { return .subtitle }
+        return nil
+    }
+
     /// Offers a title or subtitle to the window's chrome, which shows the
-    /// outermost one drawn (``WindowChromeState/offerTitle(_:atDepth:)``) —
+    /// outermost one drawn (``WindowChromeState/offer(_:as:atDepth:)``) —
     /// unless this is presented content: a sheet's title is the sheet's, and
     /// one in a sheet's content was the window's while the sheet was up.
     ///
     /// The window reads it here, as it is declared, rather than from the
     /// published preference, which keeps the LAST value and so the deepest
-    /// view's.
-    private func offerToWindowChrome(context: RenderContext) {
+    /// view's. On the drawn walk and on the first frame's seeding walk, which
+    /// measures: the top bar's rows are seeded from that walk, and they depend
+    /// on whether there is a title, and a subtitle under it.
+    private func offerToWindowChrome(_ line: WindowChromeState.TitleLine, context: RenderContext) {
         guard let chrome = context.environment.windowChrome,
             !context.environment.presentationHostsToolbar,
-            let key = K.self as? any WindowChromePreferenceKey.Type,
             let text = value as? String
         else { return }
-        key.offer(text, atDepth: context.identity.depth, to: chrome)
+        chrome.offer(text, as: line, atDepth: context.identity.depth)
     }
 }
 
@@ -218,29 +236,6 @@ public struct NavigationTitleKey: PreferenceKey {
 /// title.
 struct NavigationSubtitleKey: PreferenceKey {
     static let defaultValue: String = ""
-}
-
-/// A preference the window's chrome takes from the views that declare it — the
-/// title and subtitle its top bar shows — offered as they are declared, on the
-/// drawn walk and on the first frame's seeding walk, which measures: the bar's
-/// rows are seeded from that walk, and they depend on whether there is a
-/// title, and a subtitle under it.
-protocol WindowChromePreferenceKey {
-    /// Offers `text`, declared `depth` deep, to the window's chrome.
-    @MainActor
-    static func offer(_ text: String, atDepth depth: Int, to chrome: WindowChromeState)
-}
-
-extension NavigationTitleKey: WindowChromePreferenceKey {
-    static func offer(_ text: String, atDepth depth: Int, to chrome: WindowChromeState) {
-        chrome.offerTitle(text, atDepth: depth)
-    }
-}
-
-extension NavigationSubtitleKey: WindowChromePreferenceKey {
-    static func offer(_ text: String, atDepth depth: Int, to chrome: WindowChromeState) {
-        chrome.offerSubtitle(text, atDepth: depth)
-    }
 }
 
 /// A preference key for whether a pushed screen hides its Back control.
