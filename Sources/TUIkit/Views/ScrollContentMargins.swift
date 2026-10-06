@@ -272,8 +272,18 @@ extension _ScrollViewCore {
     /// sized against the viewport, ten-line pages in an eight-line window
     /// stopped two lines further into each page at every step.
     ///
-    /// The pair is asked as though no horizontal bar is drawn, which is not
-    /// known yet; with one, a view three lines tall reserves nothing, and its
+    /// A horizontal bar's row (and its indicator margin) comes off it too
+    /// where the bar is known before anything is measured: a view that
+    /// scrolls across with the bar `.visible`, which draws it always. The step
+    /// takes the row off the window, so a page sized against the whole
+    /// viewport was a line taller than the step and each stop showed a line
+    /// more of the page before (scroll lane review 3). Under `.automatic` the
+    /// bar comes with overflow, decided by measuring the content after its
+    /// container is published, so the container is the viewport's height and
+    /// such a pager's container-sized pages drift by the bar's row at each
+    /// stop: give it `.scrollIndicators(.visible, axes: .horizontal)`, or pages
+    /// of a fixed height. The pair is asked with the bar as known here; with
+    /// an `.automatic` one, a view three lines tall reserves nothing, and its
     /// container is two lines short.
     func containerSize(viewport: CellSize, context: RenderContext) -> CellSize {
         containerSize(
@@ -286,10 +296,17 @@ extension _ScrollViewCore {
         viewport: CellSize, textLines: TextIndicatorLines, context: RenderContext
     ) -> CellSize {
         let container = unreservedContainerSize(viewport: viewport, context: context)
-        guard textLines.fitted(viewportHeight: viewport.height, horizontalBar: false).reserved else {
-            return container
-        }
-        return CellSize(width: container.width, height: max(0, container.height - 2))
+        // The bar known without a measure, as `resolveScrollbars` takes it: a
+        // horizontal view's `.visible` one. Asked of a vertical view's axes
+        // first, which spares it the environment read.
+        let bar = axes.contains(.horizontal) && context.environment.horizontalScrollIndicatorVisibility == .visible
+        // The bar's indicator margin, which it moves in by, comes off with it,
+        // as `resolveChrome` takes them.
+        let barMargin = bar ? indicatorMargins(context).bottom : 0
+        let text = textLines.fitted(viewportHeight: viewport.height - barMargin, horizontalBar: bar)
+        let taken = (bar ? 1 + barMargin : 0) + (text.reserved ? 2 : 0)
+        guard taken > 0 else { return container }
+        return CellSize(width: container.width, height: max(0, container.height - taken))
     }
 
     /// The container with nothing reserved out of it: the viewport less the
