@@ -20,8 +20,8 @@ enum QuitKeyBindings: Equatable {
     case unbound
 
     /// ⌃4, ⌃| or ⌃⇧\ (with or without Option), on a host that may send
-    /// ⌃\\'s byte for them in its legacy encoding, and not the quit key's own
-    /// chord. The quit is masked in the legacy encoding, where the byte may
+    /// ⌃\\'s byte for the chord in its legacy encoding, and not the quit key's
+    /// own chord. The quit is masked in the legacy encoding, where the byte may
     /// be one of them; not under the kitty keyboard protocol, where each
     /// arrives as itself and ⌃\ is a report the driver never sees. But a pop
     /// of the protocol's flags puts the terminal in its legacy encoding,
@@ -54,8 +54,8 @@ extension InputHandler {
     ///
     /// The owner's rule (2026-10-06): ⌃\ is a hung app's way out, and stays
     /// the driver's unless the app binds it — or binds ⌃4, ⌃| or ⌃⇧\ where
-    /// the terminal may send ⌃\\'s byte for them (`hostAliases`). With the
-    /// byte, the chords count with Option too: a legacy encoding sends
+    /// the terminal may send ⌃\\'s byte for that chord (`hostAliases`). With
+    /// the byte, the chords count with Option too: a legacy encoding sends
     /// Option as an ESC before the byte, which the driver still acts on.
     ///
     /// Answered for the terminal's legacy encoding whatever the terminal
@@ -71,14 +71,15 @@ extension InputHandler {
     /// - Parameters:
     ///   - byte: The user's quit key's byte (`Terminal.quitKeyByte`), or
     ///     `nil` where there is none: then nothing is bound to it.
-    ///   - hostAliases: Whether the host may send ⌃\\'s byte for ⌃4, ⌃| and
-    ///     ⌃⇧\ in its legacy encoding: one not measured to send them apart
-    ///     (`TerminalClient.mayAliasQuitByte(_:)`).
-    func quitKeyBindings(byte: UInt8?, hostAliases: Bool) -> QuitKeyBindings {
+    ///   - hostAliases: The chords the host may send ⌃\\'s byte for in its
+    ///     legacy encoding, as measured of it or assumed of one not measured
+    ///     (`TerminalClient.quitByteAliases(_:)`).
+    func quitKeyBindings(byte: UInt8?, hostAliases: TerminalClient.QuitByteAliases) -> QuitKeyBindings {
         guard let byte, let chords = QuitKeyChords.of(byte) else { return .unbound }
         if declaresBinding(forAnyOf: chords.own) { return .ownChord }
-        guard hostAliases, !chords.aliases.isEmpty else { return .unbound }
-        return declaresBinding(forAnyOf: chords.aliases) ? .aliasOnly : .unbound
+        let aliases = chords.aliases(on: hostAliases)
+        guard !aliases.isEmpty else { return .unbound }
+        return declaresBinding(forAnyOf: aliases) ? .aliasOnly : .unbound
     }
 
     /// Whether a binding the app declared takes one of `events` — what the
@@ -144,19 +145,27 @@ extension InputHandler {
 /// The chords the user's quit key's byte could be, which
 /// `InputHandler.quitKeyBindings(byte:hostAliases:)` asks the app's bindings
 /// about after every frame: the byte's own Control chord, and for ⌃\\'s 0x1C
-/// the chords some terminals send it for too, each with and without Option
+/// the chords the host may send it for too, each with and without Option
 /// (the byte after an ESC, which the driver still acts on).
 ///
-/// Made once for each byte and kept, rather than after every frame: the
-/// byte is the user's, from the termios raw mode was made from, so it does
-/// not change while the app runs.
+/// Made once for each byte — and each set of chords a host may alias — and
+/// kept, rather than after every frame: the byte is the user's, from the
+/// termios raw mode was made from, so it does not change while the app runs.
 struct QuitKeyChords {
     /// The byte's own chord, and with Option.
     let own: [KeyEvent]
 
-    /// ⌃4, ⌃| and ⌃⇧\\ for ⌃\\'s byte (``KeyEvent/quitByteAliases``), and
-    /// with Option; empty for any other.
-    let aliases: [KeyEvent]
+    /// For each set of chords a host may send ⌃\\'s byte for, by its raw
+    /// value: those of ⌃4, ⌃| and ⌃⇧\\ (``KeyEvent/quitByteAliases(on:)``),
+    /// and with Option; all empty for any other byte.
+    private let aliasesByHost: [[KeyEvent]]
+
+    /// The chords the byte could be on a host that may send ⌃\\'s byte for
+    /// `host`'s, and with Option: ⌃4, ⌃| and ⌃⇧\\ for ⌃\\'s byte where the
+    /// host may alias them all; empty for any other byte.
+    func aliases(on host: TerminalClient.QuitByteAliases) -> [KeyEvent] {
+        aliasesByHost[Int(host.rawValue)]
+    }
 
     /// The chords for `byte`, or `nil` for one no Control chord sends.
     static func of(_ byte: UInt8) -> Self? {
@@ -166,7 +175,11 @@ struct QuitKeyChords {
     /// Every C0 byte's chords, made at first use.
     private static let table: [Self?] = (0...0x1F).map { byte in
         KeyEvent.controlChord(sending: UInt8(byte)).map { chord in
-            Self(own: withOption([chord]), aliases: withOption(chord.quitByteAliases))
+            Self(
+                own: withOption([chord]),
+                aliasesByHost: TerminalClient.QuitByteAliases.everySet.map {
+                    withOption(chord.quitByteAliases(on: $0))
+                })
         }
     }
 
@@ -193,21 +206,25 @@ extension KeyEvent {
     }
 
     /// The chords a terminal in its legacy encoding may have meant by this
-    /// ⌃\\: ⌃4, ⌃| and ⌃⇧\\, for which xterm, VTE (GNOME Terminal and its
-    /// kin), Konsole and the Linux console send ⌃\\'s 0x1C too, by their tables
-    /// of the encoding (not measured). Option kept, as the ESC before the
+    /// ⌃\\, of those `host` may send ⌃\\'s 0x1C for
+    /// (`TerminalClient.quitByteAliases(_:)`): ⌃4, and ⌃| and ⌃⇧\\ — one chord
+    /// on a US layout — in that order. Option kept, as the ESC before the
     /// byte keeps it; empty for any other event.
     ///
     /// ⌃\ is the reading the parser gives the byte, so it is the one a
     /// binding on both gets: on a terminal that aliases them they cannot be
     /// told apart.
-    var quitByteAliases: [KeyEvent] {
+    func quitByteAliases(on host: TerminalClient.QuitByteAliases) -> [KeyEvent] {
         guard ctrl, !shift, key == .character("\\") else { return [] }
-        return [
-            KeyEvent(key: .character("4"), ctrl: true, alt: alt, phase: phase),
-            KeyEvent(key: .character("|"), ctrl: true, alt: alt, phase: phase),
-            KeyEvent(key: .character("\\"), ctrl: true, alt: alt, shift: true, phase: phase),
-        ]
+        var aliases: [KeyEvent] = []
+        if host.contains(.controlFour) {
+            aliases.append(KeyEvent(key: .character("4"), ctrl: true, alt: alt, phase: phase))
+        }
+        if host.contains(.controlShiftBackslash) {
+            aliases.append(KeyEvent(key: .character("|"), ctrl: true, alt: alt, phase: phase))
+            aliases.append(KeyEvent(key: .character("\\"), ctrl: true, alt: alt, shift: true, phase: phase))
+        }
+        return aliases
     }
 
     /// The Control chord a legacy encoding sends `byte` for — Ctrl with `@`,

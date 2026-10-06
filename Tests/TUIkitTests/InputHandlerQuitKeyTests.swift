@@ -44,8 +44,9 @@ struct InputHandlerQuitKeyTests {
 
     /// An `InputHandler` over fresh collaborators, the user's quit key
     /// `quitKey` (`nil`: none, as after `stty quit undef`), on a terminal
-    /// that does (`aliasing`) or does not send ⌃\'s byte for ⌃4, ⌃| and ⌃⇧\.
-    private func makeFixture(quitKey: UInt8? = 0x1C, aliasing: Bool = false) -> Fixture {
+    /// that may send ⌃\'s byte for the chords in `aliasing` — of ⌃4, and ⌃|
+    /// and ⌃⇧\ — and sends the rest apart.
+    private func makeFixture(quitKey: UInt8? = 0x1C, aliasing: TerminalClient.QuitByteAliases = []) -> Fixture {
         let statusBar = StatusBarState()
         let dispatcher = KeyEventDispatcher()
         let shortcuts = KeyboardShortcutRegistry()
@@ -130,24 +131,24 @@ struct InputHandlerQuitKeyTests {
     @Test("An unclaimed ⌃\\ that may be ⌃4, ⌃| or ⌃⇧\\ goes round as each, then quits")
     func aliasesAfterBackslash() {
         for (key, name) in [("4", "⌃4"), ("|", "⌃|")] as [(KeyEquivalent, String)] {
-            let fixture = makeFixture(aliasing: true)
+            let fixture = makeFixture(aliasing: .all)
             bind(fixture, key, as: name)
             #expect(fixture.handler.handle(Self.control("\\")))
             #expect(fixture.probe.fired == [name] && fixture.probe.quits == 0, "\(name)")
         }
 
-        let optioned = makeFixture(aliasing: true)
+        let optioned = makeFixture(aliasing: .all)
         optioned.shortcuts.register(KeyboardShortcut("4", modifiers: [.control, .option])) {
             optioned.probe.fired.append("⌃⌥4")
         }
         #expect(optioned.handler.handle(Self.control("\\", alt: true)))
         #expect(optioned.probe.fired == ["⌃⌥4"], "Option kept, as the ESC before the byte keeps it")
 
-        let unbound = makeFixture(aliasing: true)
+        let unbound = makeFixture(aliasing: .all)
         #expect(unbound.handler.handle(Self.control("\\")))
         #expect(unbound.probe.quits == 1, "none of the four bound: the quit")
 
-        let apart = makeFixture(aliasing: false)
+        let apart = makeFixture(aliasing: [])
         bind(apart, "4", as: "⌃4")
         #expect(apart.handler.handle(Self.control("\\")))
         #expect(apart.probe.fired.isEmpty && apart.probe.quits == 1, "keys sent apart: ⌃\\ is ⌃\\")
@@ -161,7 +162,7 @@ struct InputHandlerQuitKeyTests {
     /// looking at Shift kept the user's quit key from quitting.
     @Test("The retry is the declared bindings' alone: a handler that hears every key hears one ⌃\\, once")
     func catchAllHearsTheByteOnce() {
-        let fixture = makeFixture(aliasing: true)
+        let fixture = makeFixture(aliasing: .all)
         let heard = Heard()
         fixture.dispatcher.addHandler { event in
             heard.events.append(event)
@@ -172,7 +173,7 @@ struct InputHandlerQuitKeyTests {
         #expect(heard.events == [Self.control("\\")], "once, as ⌃\\")
         #expect(fixture.probe.fired == ["⌃4"] && fixture.probe.quits == 0, "and ⌘4 fires")
 
-        let shifted = makeFixture(aliasing: true)
+        let shifted = makeFixture(aliasing: .all)
         shifted.dispatcher.addHandler { event in
             guard event.shift, event.ctrl, event.key == .character("\\") else { return false }
             shifted.probe.fired.append("⌃⇧\\")
@@ -191,12 +192,32 @@ struct InputHandlerQuitKeyTests {
     /// parser's reading, ⌃\ (the coordinator's call, decisions F2 A-F2-1).
     @Test("With both ⌃\\ and ⌃4 bound, an aliasing terminal's ⌃\\ runs ⌃\\'s")
     func backslashWinsTheAmbiguity() {
-        let fixture = makeFixture(aliasing: true)
+        let fixture = makeFixture(aliasing: .all)
         bind(fixture, "\\", as: "⌃\\")
         bind(fixture, "4", as: "⌃4")
         #expect(fixture.handler.handle(Self.control("\\")))
         #expect(fixture.probe.fired == ["⌃\\"] && fixture.probe.quits == 0)
         #expect(fixture.handler.handle(Self.control("4")), "⌃4 reported as itself still runs ⌃4's")
         #expect(fixture.probe.fired == ["⌃\\", "⌃4"])
+    }
+
+    /// The retry offers ⌃\ only as the chords the host may send its byte
+    /// for (the owner's readings, 2026-10-06): on Apple Terminal, which sends
+    /// nothing for ⌃4, an unclaimed ⌃\ is never a ⌘4 shortcut's but is a ⌃|
+    /// one's; on Ghostty, which sends ⌃⇧\ apart, it is ⌘4's and never ⌃|'s.
+    @Test("An unclaimed ⌃\\ goes round only as the chords the host may send its byte for")
+    func aliasesFollowTheHost() {
+        for (host, key, name, fires) in [
+            (TerminalClient.Program.appleTerminal, "4", "⌃4", false),
+            (.appleTerminal, "|", "⌃|", true),
+            (.ghostty, "4", "⌃4", true),
+            (.ghostty, "|", "⌃|", false),
+        ] as [(TerminalClient.Program, KeyEquivalent, String, Bool)] {
+            let fixture = makeFixture(aliasing: TerminalClient.quitByteAliases(host))
+            bind(fixture, key, as: name)
+            #expect(fixture.handler.handle(Self.control("\\")))
+            #expect(fixture.probe.fired == (fires ? [name] : []), "\(name) on \(host)")
+            #expect(fixture.probe.quits == (fires ? 0 : 1), "\(name) on \(host): unclaimed, the quit")
+        }
     }
 }

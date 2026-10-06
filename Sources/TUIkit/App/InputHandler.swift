@@ -132,12 +132,13 @@ internal struct InputHandler {
     /// group, as the driver does for the byte (`QuitKeyReport`).
     var onQuitKey: () -> Void = {}
 
-    /// Whether a key that arrives as ⌃\ may be ⌃4, ⌃| or ⌃⇧\ instead: the
-    /// terminal is in its legacy encoding, where some terminals send ⌃\\'s
-    /// 0x1C for all four, and is not one measured to keep them apart
-    /// (`TerminalClient.mayAliasQuitByte(_:)`). Asked for a ⌃\ nothing took.
-    /// Defaulted, as ``quitKey`` is.
-    var quitByteAliasing: () -> Bool = { false }
+    /// Which chords a key that arrives as ⌃\ may be instead — ⌃4, and ⌃|
+    /// and ⌃⇧\: those the host may send ⌃\\'s 0x1C for in its legacy
+    /// encoding, as measured of it or assumed of one not measured
+    /// (`TerminalClient.quitByteAliases(_:)`), while the terminal is in that
+    /// encoding; none under the kitty keyboard protocol. Asked for a ⌃\
+    /// nothing took. Defaulted, as ``quitKey`` is.
+    var quitByteAliasing: () -> TerminalClient.QuitByteAliases = { [] }
 }
 
 // MARK: - Internal API
@@ -188,12 +189,12 @@ extension InputHandler {
         // ⌃\ in a legacy encoding is the byte 0x1C, which some terminals
         // send for ⌃4, ⌃| and ⌃⇧\ as well. Nothing in the byte says which,
         // so ⌃\ is asked first (a binding on it wins), and an unbound one
-        // goes round once more as each of the others — to the bindings the
-        // app declared for them alone, so a ⌃4 shortcut fires, while a
-        // handler that hears every key, or a field's digits, hears the byte
-        // once, as ⌃\ (`dispatchToDeclaredBindings(_:)`).
-        if quitByteAliasing() {
-            for alias in event.quitByteAliases where dispatchToDeclaredBindings(alias) { return true }
+        // goes round once more as each of the others the host may send it
+        // for — to the bindings the app declared for them alone, so a ⌃4
+        // shortcut fires, while a handler that hears every key, or a field's
+        // digits, hears the byte once, as ⌃\ (`dispatchToDeclaredBindings(_:)`).
+        for alias in event.quitByteAliases(on: quitByteAliasing()) where dispatchToDeclaredBindings(alias) {
+            return true
         }
 
         // The user's quit key, where nothing took it: what the driver would

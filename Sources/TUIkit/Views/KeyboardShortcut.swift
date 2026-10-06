@@ -309,17 +309,21 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// kitty keyboard protocol it arrives as a report, with the same result.
     /// The price: while the app binds it, a HUNG app does not quit by ⌃\\.
     ///
-    /// Not so the chords some terminals send its byte, 0x1C, for: xterm, VTE
-    /// (GNOME Terminal and its kin), Konsole and the Linux console send it for
-    /// Ctrl-4 and Ctrl-| (Ctrl-Shift-\\) too, by their tables of the legacy
-    /// encoding (not measured). There nothing in the byte says which key sent
-    /// it, as nothing tells Ctrl-H from Backspace. TUIkit reads it as ⌃\\,
+    /// Not so the chords some terminals send its byte, 0x1C, for: Ctrl-4 and
+    /// Ctrl-| (Ctrl-Shift-\\). iTerm2 and Warp send it for both, Ghostty for
+    /// Ctrl-4 and Apple Terminal for Ctrl-Shift-\\ (the owner's readings,
+    /// 2026-10-06; Apple Terminal sends nothing at all for Ctrl-4), and xterm,
+    /// VTE (GNOME Terminal and its kin), Konsole and the Linux console for
+    /// both by their tables of the legacy encoding (not measured). There
+    /// nothing in the byte says which key sent it, as nothing tells Ctrl-H
+    /// from Backspace. TUIkit reads it as ⌃\\,
     /// and offers it as Ctrl-4, Ctrl-| and Ctrl-Shift-\ in turn, to the
     /// bindings declared for them, where no binding takes ⌃\\, so a ⌘4
     /// shortcut under `.commandKey(.control)`
     /// DOES fire on those terminals — unless the app binds ⌃\ too, which then
     /// wins. Under the kitty keyboard protocol, and on a terminal measured to
-    /// send them apart (none yet), the chords arrive as themselves and fire.
+    /// send the chord apart (Ghostty's Ctrl-Shift-\\), it arrives as itself
+    /// and fires.
     /// Since that holds only some of the time, these answer `false`.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }

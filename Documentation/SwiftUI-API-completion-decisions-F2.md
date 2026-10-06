@@ -60,9 +60,12 @@ masked, then let's do that."
   unclaimed, the chain raises `SIGQUIT` (`kill(0, …)`), so ⌃\\ quits a
   responsive app.
 - Aliasing cannot be read from the byte: every terminal is assumed to alias
-  in its legacy encoding until measured not to
-  (`TerminalClient.keepsQuitByteChordsApart`, empty — Apple Terminal, iTerm2
-  and Warp are to be measured).
+  in its legacy encoding until measured not to — per chord, by the owner's
+  `cat -v` readings of 2026-10-06 (`TerminalClient.quitByteAliases`): Apple
+  Terminal 2.14 ⌃⇧\\ only (⌃4 sends nothing), iTerm2 3.7.3 and Warp
+  0.2026.09.30 both, Ghostty 1.3.1 ⌃4 only (⌃⇧\\ is `CSI 124;5u`); tmux and
+  unidentified hosts both (Terminal-compatibility.md, "Which hosts send 0x1C
+  for which chord").
 
 **The ambiguity rule (the coordinator's call):** on an aliasing terminal an
 app that binds BOTH ⌃\\ and ⌃4 gets ⌃\\'s binding for either key — the bytes

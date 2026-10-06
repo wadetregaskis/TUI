@@ -109,10 +109,11 @@ internal final class AppRunner<A: App> {
     let tuiContext: TUIContext
     private var isRunning = false
 
-    /// Whether the host may send ⌃\\'s byte for ⌃4, ⌃| and ⌃⇧\\
-    /// (`TerminalClient.mayAliasQuitByte(_:)`): settled once the host is
-    /// identified, at startup; until then, as for any host not measured, yes.
-    private var hostAliasesQuitByte = true
+    /// Which of ⌃4, ⌃| and ⌃⇧\\ the host may send ⌃\\'s byte for in its
+    /// legacy encoding (`TerminalClient.quitByteAliases(_:)`): settled once
+    /// the host is identified, at startup; until then, as for any host not
+    /// measured, all of them.
+    private var hostQuitByteAliases: TerminalClient.QuitByteAliases = .all
     private let signals = SignalManager()
 
     /// - Parameters:
@@ -194,7 +195,7 @@ extension AppRunner {
             // ⌃\ may be ⌃4, ⌃| or ⌃⇧\ only in the legacy encoding: under the
             // kitty keyboard protocol each arrives as itself.
             quitByteAliasing: { [weak self, terminal] in
-                terminal.keyboardEnhancement.isEmpty && (self?.hostAliasesQuitByte ?? true)
+                terminal.keyboardEnhancement.isEmpty ? (self?.hostQuitByteAliases ?? .all) : []
             }
         )
     }
@@ -323,9 +324,9 @@ extension AppRunner {
         // protects is frozen into `FrameDiffWriter` at construction.
         terminal.pinGraphemeClusteringIfNeeded()
 
-        // Whether the host may send ⌃\'s byte for other chords, now that it
+        // Which other chords the host may send ⌃\'s byte for, now that it
         // is named.
-        hostAliasesQuitByte = TerminalClient.mayAliasQuitByte(TerminalClient.current.program)
+        hostQuitByteAliases = TerminalClient.quitByteAliases(TerminalClient.current.program)
 
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.
@@ -564,7 +565,7 @@ extension AppRunner {
     /// every frame, the line discipline set only when the answer changes.
     private func maskQuitKeyForBindings(of inputHandler: InputHandler) {
         terminal.maskQuitKey(
-            for: inputHandler.quitKeyBindings(byte: terminal.quitKeyByte, hostAliases: hostAliasesQuitByte))
+            for: inputHandler.quitKeyBindings(byte: terminal.quitKeyByte, hostAliases: hostQuitByteAliases))
     }
 
     /// Starts the stall watchdog (`StallWatchdog`), which pops the kitty

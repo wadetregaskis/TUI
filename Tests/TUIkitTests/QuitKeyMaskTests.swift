@@ -78,9 +78,9 @@ private final class MaskHarness {
     }
 
     /// Whether the user's quit key, ⌃\'s 0x1C, needs masking for what was
-    /// rendered, in the legacy encoding of a terminal that may (`aliasing`)
-    /// send its byte for ⌃4, ⌃| and ⌃⇧\.
-    func masks(aliasing: Bool = true, byte: UInt8? = 0x1C) -> Bool {
+    /// rendered, in the legacy encoding of a terminal that may send its byte
+    /// for the chords in `aliasing` (of ⌃4, and ⌃| and ⌃⇧\).
+    func masks(aliasing: TerminalClient.QuitByteAliases = .all, byte: UInt8? = 0x1C) -> Bool {
         handler.quitKeyBindings(byte: byte, hostAliases: aliasing).masksQuitKey(inLegacyEncoding: true)
     }
 }
@@ -122,7 +122,7 @@ struct QuitKeyMaskTests {
         for modifiers: EventModifiers in [.control, [.control, .option]] {
             let harness = MaskHarness()
             harness.render(Button("Mine") {}.keyboardShortcut("\\", modifiers: modifiers))
-            #expect(harness.masks(aliasing: true) && harness.masks(aliasing: false), "\(modifiers)")
+            #expect(harness.masks(aliasing: .all) && harness.masks(aliasing: []), "\(modifiers)")
         }
     }
 
@@ -140,8 +140,8 @@ struct QuitKeyMaskTests {
         for (name, page) in pages {
             let harness = MaskHarness()
             harness.render(page)
-            #expect(harness.masks(aliasing: true), "\(name), aliasing")
-            #expect(!harness.masks(aliasing: false), "\(name), apart")
+            #expect(harness.masks(aliasing: .all), "\(name), aliasing")
+            #expect(!harness.masks(aliasing: []), "\(name), apart")
         }
         let option = MaskHarness()
         option.render(Button("Four") {}.keyboardShortcut("4").commandKey(.option))
@@ -155,12 +155,12 @@ struct QuitKeyMaskTests {
     func onKeyPressOnTheFocusPath() {
         let onKey = MaskHarness()
         onKey.render(Button("Focused") {}.onKeyPress("\\") { .handled })
-        #expect(onKey.masks(aliasing: false), "onKeyPress(\"\\\\\") hears ⌃\\")
+        #expect(onKey.masks(aliasing: []), "onKeyPress(\"\\\\\") hears ⌃\\")
 
         let bar = MaskHarness()
         bar.render(Button("Focused") {}.onKeyPress("|") { .handled })
-        #expect(bar.masks(aliasing: true), "onKeyPress(\"|\") hears ⌃|")
-        #expect(!bar.masks(aliasing: false), "…only where ⌃| may be ⌃\\'s byte")
+        #expect(bar.masks(aliasing: .all), "onKeyPress(\"|\") hears ⌃|")
+        #expect(!bar.masks(aliasing: []), "…only where ⌃| may be ⌃\\'s byte")
 
         let elsewhere = MaskHarness()
         elsewhere.render(
@@ -190,7 +190,7 @@ struct QuitKeyMaskTests {
                             ("alphanumerics", .alphanumerics), ("symbols", .symbols)] {
             let harness = MaskHarness()
             harness.render(Button("Focused") {}.onKeyPress(characters: set) { _ in .handled })
-            #expect(!harness.masks(aliasing: true), "\(name)")
+            #expect(!harness.masks(aliasing: .all), "\(name)")
         }
     }
 
@@ -207,10 +207,10 @@ struct QuitKeyMaskTests {
         }
         let first = QuitKeyChords.of(0x1C)
         let second = QuitKeyChords.of(0x1C)
-        #expect(first?.own.count == 2 && first?.aliases.count == 6, "⌃\\ and ⌃⌥\\; ⌃4, ⌃| and ⌃⇧\\, with and without ⌥")
-        #expect(storage(first?.own) == storage(second?.own) && storage(first?.aliases) == storage(second?.aliases))
+        #expect(first?.own.count == 2 && first?.aliases(on: .all).count == 6, "⌃\\ and ⌃⌥\\; ⌃4, ⌃| and ⌃⇧\\, with and without ⌥")
+        #expect(storage(first?.own) == storage(second?.own) && storage(first?.aliases(on: .all)) == storage(second?.aliases(on: .all)))
         #expect(QuitKeyChords.of(0x18)?.own.first == KeyEvent(key: .character("x"), ctrl: true))
-        #expect(QuitKeyChords.of(0x18)?.aliases.isEmpty == true, "only ⌃\\'s byte is sent for other chords")
+        #expect(QuitKeyChords.of(0x18)?.aliases(on: .all).isEmpty == true, "only ⌃\\'s byte is sent for other chords")
         #expect(QuitKeyChords.of(0x7F) == nil && QuitKeyChords.of(0x41) == nil, "no Control chord sends them")
     }
 
@@ -227,7 +227,7 @@ struct QuitKeyMaskTests {
         let probe = MatchProbe()
         harness.statusBar.setItemsSilently([probe])
         #expect(harness.statusBar.currentItems.contains { $0.id == probe.id }, "on the bar")
-        #expect(!harness.masks(aliasing: true))
+        #expect(!harness.masks(aliasing: .all))
         #expect(probe.asked == 0, "never asked whether it takes one")
         #expect(!harness.statusBar.handleKeyEvent(KeyEvent(key: .character("p"))) && probe.asked == 1, "a bare key is")
     }
@@ -266,7 +266,7 @@ struct QuitKeyMaskTests {
                 })
         var quits = 0
         harness.handler.quitKey = { 0x1C }
-        harness.handler.quitByteAliasing = { true }
+        harness.handler.quitByteAliasing = { .all }
         harness.handler.onQuitKey = { quits += 1 }
         #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
         #expect(typed.characters.isEmpty && quits == 1)
@@ -285,7 +285,7 @@ struct QuitKeyMaskTests {
             })
         var quits = 0
         harness.handler.quitKey = { 0x1C }
-        harness.handler.quitByteAliasing = { true }
+        harness.handler.quitByteAliasing = { .all }
         harness.handler.onQuitKey = { quits += 1 }
         #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
         #expect(typed.characters == ["|"] && quits == 0)
@@ -307,11 +307,11 @@ struct QuitKeyMaskTests {
                     typed.characters.append(press.characters)
                     return .handled
                 })
-        #expect(!harness.masks(aliasing: true), "a digit names no Control chord")
+        #expect(!harness.masks(aliasing: .all), "a digit names no Control chord")
 
         var quits = 0
         harness.handler.quitKey = { 0x1C }
-        harness.handler.quitByteAliasing = { true }
+        harness.handler.quitByteAliasing = { .all }
         harness.handler.onQuitKey = { quits += 1 }
         #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
         #expect(typed.characters.isEmpty && quits == 1, "the unclaimed ⌃\\ quits, and nothing is typed")
@@ -423,9 +423,9 @@ struct QuitKeyMaskTests {
     func aliasUnderTheProtocol() {
         let harness = MaskHarness()
         harness.render(Button("Four") {}.keyboardShortcut("4"))
-        let bindings = harness.handler.quitKeyBindings(byte: 0x1C, hostAliases: true)
+        let bindings = harness.handler.quitKeyBindings(byte: 0x1C, hostAliases: .all)
         #expect(bindings == .aliasOnly)
-        #expect(harness.handler.quitKeyBindings(byte: 0x1C, hostAliases: false) == .unbound, "a host that keeps ⌃4 apart")
+        #expect(harness.handler.quitKeyBindings(byte: 0x1C, hostAliases: []) == .unbound, "a host that keeps ⌃4 apart")
 
         let (terminal, _) = ScriptedTerminalOutput.terminal()
         let line = FakeLineDiscipline()
@@ -445,6 +445,49 @@ struct QuitKeyMaskTests {
         terminal.maskQuitKey(for: .unbound)
         #expect(!terminal.quitKeyMasked && terminal.writeGate.isArmed)
         terminal.disableRawMode()
+    }
+
+    // MARK: - Which hosts send ⌃\'s byte for which chords
+
+    /// The owner's `cat -v` readings of 2026-10-06 (Terminal-compatibility.md,
+    /// "The three that share ⌃\'s 0x1C"): Apple Terminal 2.14 sends the quit
+    /// byte for ⌃⇧\ (⌃| on a US layout) and nothing for ⌃4; iTerm2 3.7.3 and
+    /// Warp 0.2026.09.30 send it for both; Ghostty 1.3.1, in its legacy
+    /// encoding, for ⌃4, while ⌃⇧\ is `CSI 124;5u`. Hosts not measured may
+    /// alias both. Until then every host was taken to alias every chord.
+    @Test("Each measured host aliases only the chords it was measured to send ⌃\\'s byte for")
+    func measuredHostAliases() {
+        #expect(TerminalClient.quitByteAliases(.appleTerminal) == [.controlShiftBackslash])
+        #expect(TerminalClient.quitByteAliases(.iTerm2) == [.controlFour, .controlShiftBackslash])
+        #expect(TerminalClient.quitByteAliases(.warp) == [.controlFour, .controlShiftBackslash])
+        #expect(TerminalClient.quitByteAliases(.ghostty) == [.controlFour])
+        #expect(TerminalClient.quitByteAliases(.tmux) == .all, "not measured: may alias both")
+        #expect(TerminalClient.quitByteAliases(.unidentified) == .all, "not measured: may alias both")
+    }
+
+    /// So a ⌘4 shortcut masks the quit key on iTerm2, Warp and Ghostty and
+    /// not on Apple Terminal, where ⌃4 sends nothing — no byte of the quit
+    /// key's to take for it — and a ⌃| one, a shortcut's or an `onKeyPress`'s,
+    /// on Apple Terminal, iTerm2 and Warp and not on Ghostty, which sends the
+    /// chord (typed as ⌃⇧\) apart.
+    @Test("A ⌘4 binding masks the quit key only on a host that sends ⌃\\'s byte for ⌃4; a ⌃| one only where ⌃⇧\\ does")
+    func masksPerChordAndHost() {
+        let hosts: [TerminalClient.Program] = [.appleTerminal, .iTerm2, .warp, .ghostty, .tmux]
+        let pages: [(String, AnyView, Set<TerminalClient.Program>)] = [
+            ("⌘4", AnyView(Button("Four") {}.keyboardShortcut("4")), [.iTerm2, .warp, .ghostty, .tmux]),
+            ("⌃|", AnyView(Button("Bar") {}.keyboardShortcut("|", modifiers: .control)),
+             [.appleTerminal, .iTerm2, .warp, .tmux]),
+            ("onKeyPress(\"|\")", AnyView(Button("Bar") {}.onKeyPress("|") { .handled }),
+             [.appleTerminal, .iTerm2, .warp, .tmux]),
+        ]
+        for (name, page, masking) in pages {
+            let harness = MaskHarness()
+            harness.render(page)
+            for host in hosts {
+                let masks = harness.masks(aliasing: TerminalClient.quitByteAliases(host))
+                #expect(masks == masking.contains(host), "\(name) on \(host)")
+            }
+        }
     }
 }
 

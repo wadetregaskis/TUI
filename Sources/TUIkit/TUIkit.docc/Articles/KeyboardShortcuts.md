@@ -437,9 +437,11 @@ an undo key — TUIkit masks the
 driver's quit, so the key reaches the input chain, and your binding has it
 first. A ⌃\\ none of your bindings takes still quits:
 TUIkit sends `SIGQUIT` itself, as the driver would have. The same goes for
-⌃4, ⌃| and ⌃⇧\\, for which xterm, VTE, Konsole and the Linux console send
-⌃\\'s byte in their legacy encoding (by their tables; not measured, so every
-terminal is assumed to until one is measured not to): with a ⌘4 shortcut on
+⌃4, ⌃| and ⌃⇧\\, for which some terminals send ⌃\\'s byte in their legacy
+encoding — iTerm2 and Warp for both, Ghostty for ⌃4, Apple Terminal for ⌃⇧\\
+(measured 2026-10-06; Apple Terminal sends nothing for ⌃4), and xterm, VTE,
+Konsole and the Linux console for both by their tables (not measured; a
+terminal not measured is assumed to) — where the terminal may: with a ⌘4 shortcut on
 screen — ⌃4 under `.commandKey(.control)` — the quit is masked, the byte
 arrives as ⌃\\, and where nothing takes ⌃\\ it is offered as ⌃4, ⌃| and ⌃⇧\\
 in turn to the bindings declared for them, so your ⌘4 fires — a handler that

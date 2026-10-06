@@ -4291,7 +4291,7 @@ not already spent:
 | Ctrl-M | Enter | 0x0D is CR |
 | Ctrl-[ | Escape | 0x1B, outside the 0x01–0x1A range |
 | Ctrl-\\ | `SIGQUIT`: the app quits — unless it binds the chord | 0x1C is the user's quit key, which the driver turns into the signal; masked while the app binds it, and then a key (see "The quit key, ⌃\\" below) |
-| Ctrl-4, Ctrl-\| (Ctrl-Shift-\\) | Ctrl-\\ | xterm, VTE, Konsole and the Linux console send 0x1C for them too — *from the terminals' tables of the legacy encoding, not measured* (2026-10-06); tried as these where no Ctrl-\\ binding takes it (below) |
+| Ctrl-4, Ctrl-\| (Ctrl-Shift-\\) | Ctrl-\\, on some terminals | Measured per chord (the owner's `cat -v` readings, 2026-10-06; table below): iTerm2 3.7.3 and Warp 0.2026.09.30 send 0x1C for both; Ghostty 1.3.1 for Ctrl-4 only (Ctrl-Shift-\\ is `CSI 124;5u`); Apple Terminal 2.14 for Ctrl-Shift-\\ only, and nothing at all for Ctrl-4. xterm, VTE, Konsole and the Linux console send it for both *by their tables of the legacy encoding, not measured*. Tried as these where no Ctrl-\\ binding takes it, on a host that may send it for them (below) |
 
 These cannot be delivered under `.commandKey(.control)` reliably in
 the legacy encodings (Ctrl-\\ can, since 2026-10-06); under the kitty keyboard protocol's "disambiguate"
@@ -4306,9 +4306,10 @@ Terminal composes accented characters unless "Use Option as Meta key" is on.
 **Where 0x1C reaches the app** — the driver's quit masked because the app
 binds a chord it could be (below), or the user's quit key turned off or
 moved — the parser reads it as ⌃\\, and a ⌃\\ no binding takes is offered
-once more as ⌃4, ⌃| and ⌃⇧\\ in turn, on a terminal in its legacy encoding not
-measured to send them apart (`TerminalClient.mayAliasQuitByte`; no terminal
-measured yet, 2026-10-06), as an unbound Ctrl-H goes round as Backspace —
+once more as ⌃4, ⌃| and ⌃⇧\\ in turn — each only on a terminal in its legacy
+encoding that may send 0x1C for that chord: measured to, or not measured at
+all (`TerminalClient.quitByteAliases`, per host and chord; the readings
+below) — as an unbound Ctrl-H goes round as Backspace —
 but only to the bindings the app declares for them (those that mask the
 quit, below), not round the whole chain: a handler that hears every key, or
 a field's `.decimalDigits`, hears the byte once, as ⌃\\, and never types a 4
@@ -4328,6 +4329,29 @@ does, so the byte reaches the chain and the retry above fires it. Nothing in
 the byte says which key sent it, so `isDeliverableInTerminal` stays `false`
 for them. Under the kitty keyboard protocol ⌃4 and ⌃| arrive as themselves
 and fire.
+
+**Which hosts send 0x1C for which chord — the owner's measurement**
+(2026-10-06, `cat -v` in a cooked tty, so "quits" means the terminal sent
+0x1C and the driver raised `SIGQUIT`; versions read from the app bundles that
+day; a US keyboard, where ⌃⇧\\ is ⌃|; Ghostty's column is its legacy
+encoding, since `cat` pushes no kitty flags):
+
+| Chord | Apple Terminal 2.14 | iTerm2 3.7.3 | Warp 0.2026.09.30 | Ghostty 1.3.1 |
+|---|---|---|---|---|
+| ⌃4 | nothing | 0x1C | 0x1C | 0x1C |
+| ⌃⇧\\ (⌃\| on US) | 0x1C | 0x1C | 0x1C | `CSI 124;5u` |
+| ⌃, | not reported | `,` (Control dropped) | `,` (Control dropped) | `CSI 44;5u` |
+
+Plain ⌃\\ was not separately reported for any of the four (Apple Terminal's
+"none do anything except ⌃⇧\\" may cover it; to confirm). TUIkit acts on the
+first two rows: `TerminalClient.quitByteAliases` has Apple Terminal alias
+⌃⇧\\ (and ⌃|) only, iTerm2 and Warp both, and Ghostty ⌃4 only; tmux and an
+unidentified host, not measured, may alias both. So on Apple Terminal a ⌘4
+shortcut (⌃4 under `.control`) neither masks the quit nor is offered an
+unclaimed ⌃\\ — the chord sends nothing there, so it cannot fire at all —
+and on Ghostty in its legacy encoding a ⌃| or ⌃⇧\\ binding leaves the quit
+live, the chord arriving as itself. The ⌃, row is recorded only; nothing in
+TUIkit depends on it yet.
 
 **Ctrl-minus arrives as 0x1F** (2026-10-04, from the encodings' definitions,
 not a capture): the C0 unit separator, `^_`, which most terminals also send for
@@ -4398,7 +4422,10 @@ every key (`onKeyEvent`, `onKeyPress(phases:action:)`) masks nothing: only
 running it would say what it takes. While masked, a hung app does not quit by
 ⌃\\ — the backup the binding trades away. A moved quit key is masked for its
 own chord (`stty quit ^X` and a ⌘X under `.control`); the alias retry is
-⌃\\'s alone. The PTY smoke checks it (case 9): ⌃4 or ⌃\\ bound, `VQUIT` off
+⌃\\'s alone. Which of ⌃4, ⌃| and ⌃⇧\\ count depends on the host, by the
+owner's measurement of 2026-10-06 ("Which hosts send 0x1C for which chord",
+above): ⌃4 not on Apple Terminal, ⌃| and ⌃⇧\\ not on Ghostty, both on iTerm2,
+Warp and any host not measured. The PTY smoke checks it (case 9): ⌃4 or ⌃\\ bound, `VQUIT` off
 while the app runs and 0x1C runs the binding; ⌃⌥\\ bound, the unclaimed 0x1C
 quits by `SIGQUIT`. The driver reads every byte of input,
 a bracketed paste's included, so pasted text holding a 0x1C quits the app, as
