@@ -170,7 +170,7 @@ If the focused control let the key fall through, an app's `.keyboardShortcut` fi
 
 Built-in key bindings that apply when no handler consumed the event:
 
-One key never reaches the chain at all: **⌃\\ quits, always, even when the app hangs.** It cannot be bound — the terminal driver takes it before the app sees it. Raw mode keeps the line discipline's signals on with every signal character turned off but the quit key, so ⌃C and ⌃Z are keys while ⌃\\ is still `SIGQUIT`, as in a shell; the signal then leaves the terminal as a quit does (see Signal Handling above). A user who turned the quit key off (`stty quit undef`) or moved it keeps their setting.
+One key never reaches the chain at all: **⌃\\ quits, always, even when the app hangs.** It cannot be bound — the terminal driver takes it before the app sees it. Raw mode keeps the line discipline's signals on with every signal character turned off but the quit key, so ⌃C and ⌃Z are keys while ⌃\\ is still `SIGQUIT`, as in a shell; the signal then leaves the terminal as a quit does (see Signal Handling above). A user who turned the quit key off (`stty quit undef`) or moved it keeps their setting. Where the terminal speaks the kitty keyboard protocol it sends ⌃\\ as a key report instead of the byte the driver acts on; the input chain then raises the signal itself, ahead of every layer — which takes an app that still reads its input, so there a hung app does not quit by ⌃\\.
 
 | Key | Action | Condition |
 |-----|--------|-----------|

@@ -530,6 +530,23 @@ extension Terminal {
         // is requested.
     }
 
+    /// The user's quit key, as the byte a legacy encoding sends for it: what
+    /// the driver turns into `SIGQUIT` while raw mode is on
+    /// (``rawModeAttributes(from:)``) — ⌃\'s 0x1C unless the user moved it —
+    /// or `nil` where there is none: turned off, signals off, or no line
+    /// discipline (a scripted terminal, wasip1). Read from the termios raw
+    /// mode was made from, so `nil` until raw mode is first on. Where the
+    /// terminal speaks the kitty keyboard protocol the key arrives as a
+    /// report instead, which the input chain turns into the signal
+    /// (`InputHandler.quitKey`).
+    var quitKeyByte: UInt8? {
+        #if canImport(WASILibc)
+            return nil
+        #else
+            return originalTermios.flatMap(Self.quitKeyByte(of:))
+        #endif
+    }
+
     /// Disables raw mode and restores normal terminal operation.
     func disableRawMode() {
         guard isRawMode else { return }

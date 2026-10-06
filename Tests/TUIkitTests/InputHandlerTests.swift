@@ -220,6 +220,61 @@ struct InputHandlerTests {
         #expect(fixture.probe.suspendCount == 0, "an empty history let Ctrl-Z through to suspend")
     }
 
+    // MARK: - The user's quit key
+
+    /// The fixture's handler, given the user's quit key `byte` (`nil`: none,
+    /// as after `stty quit undef`), counting the quits it raises.
+    private func withQuitKey(_ fixture: Fixture, _ byte: UInt8?) -> (InputHandler, () -> Int) {
+        var handler = fixture.handler
+        var raised = 0
+        handler.quitKey = { byte }
+        handler.onQuitKey = { raised += 1 }
+        return (handler, { raised })
+    }
+
+    /// Under the kitty keyboard protocol the terminal sends ⌃\ as a report
+    /// (`CSI 92;5u`), not as the 0x1C the driver turns into SIGQUIT, so
+    /// without this the user's quit key quit nothing there, and an app could
+    /// bind it. It raises the signal ahead of every layer instead; its
+    /// release and repeats are swallowed with it.
+    @Test("The user's quit key, reported as a key, raises the quit ahead of every layer")
+    func quitKeyReportQuits() {
+        let fixture = makeFixture()
+        fixture.statusBar.setItemsSilently([
+            StatusBarItem(shortcut: "\\", label: "X", action: { fixture.probe.statusBarRan = true })
+        ])
+        fixture.dispatcher.addHandler { _ in fixture.probe.dispatcherRan = true; return true }
+        let focusable = focusConsumer(fixture.focus)
+        let (handler, raised) = withQuitKey(fixture, 0x1C)
+
+        #expect(handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
+        #expect(raised() == 1)
+        #expect(handler.handle(KeyEvent(key: .character("\\"), ctrl: true, alt: true)), "Option adds only an ESC")
+        #expect(raised() == 2)
+        #expect(handler.handle(KeyEvent(key: .character("\\"), ctrl: true, phase: .repeat)))
+        #expect(handler.handle(KeyEvent(key: .character("\\"), ctrl: true, phase: .release)))
+        #expect(raised() == 2, "a repeat or a release raises nothing more")
+        #expect(!fixture.probe.statusBarRan && !fixture.probe.dispatcherRan && !focusable.sawEvent)
+        #expect(fixture.probe.quitCount == 0, "the signal, not the app's own quit")
+    }
+
+    @Test("A quit key the user turned off is no quit, and one they moved quits from where they put it")
+    func quitKeyFollowsTheUsersStty() {
+        let fixture = makeFixture()
+        fixture.dispatcher.addHandler { _ in fixture.probe.dispatcherRan = true; return true }
+        let (undefined, undefinedRaised) = withQuitKey(fixture, nil)
+        #expect(undefined.handle(KeyEvent(key: .character("\\"), ctrl: true)))
+        #expect(undefinedRaised() == 0 && fixture.probe.dispatcherRan, "an ordinary key, the app's to bind")
+
+        let (moved, movedRaised) = withQuitKey(fixture, 0x18)
+        moved.handle(KeyEvent(key: .character("\\"), ctrl: true))
+        #expect(movedRaised() == 0)
+        moved.handle(KeyEvent(key: .character("x"), ctrl: true))
+        #expect(movedRaised() == 1, "stty quit ^X")
+        moved.handle(KeyEvent(key: .character("X"), ctrl: true, shift: true))
+        #expect(movedRaised() == 1, "Shift makes another chord")
+    }
+
     /// Raw mode turns ^C off as a signal character too, so it is a key and
     /// not SIGINT —
     /// and, unlike Ctrl-Z, nothing gives it a meaning of its own. It falls

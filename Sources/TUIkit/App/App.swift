@@ -174,7 +174,17 @@ extension AppRunner {
             },
             undoManager: tuiContext.undoManager,
             undoKeys: tuiContext.undoKeys,
-            screenSelection: tuiContext.screenSelection
+            screenSelection: tuiContext.screenSelection,
+            quitKey: { [terminal] in terminal.quitKeyByte },
+            // The user's quit key, reported by the kitty keyboard protocol
+            // rather than sent as the byte the driver acts on: the signal the
+            // byte would have raised, which leaves the terminal as a quit does
+            // (`FatalSignalTerminalRestore`).
+            onQuitKey: {
+                #if !canImport(WASILibc)
+                    raise(SIGQUIT)
+                #endif
+            }
         )
     }
 

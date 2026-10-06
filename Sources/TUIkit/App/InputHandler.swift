@@ -111,6 +111,21 @@ internal struct InputHandler {
     /// come before every layer while a selection is drawn. Optional and
     /// defaulted, as ``tooltipState`` is.
     var screenSelection: ScreenSelection?
+
+    /// The user's quit key, as the byte a legacy encoding sends for it
+    /// (`Terminal.quitKeyByte`: ⌃\'s 0x1C unless they moved it), asked when
+    /// a Control chord arrives; `nil` where there is none. Defaulted, as
+    /// ``undoManager`` is, for a test harness that does not exercise it.
+    ///
+    /// The driver turns the byte into `SIGQUIT` before the app reads it, so
+    /// the chord reaches the chain only as a kitty keyboard protocol report,
+    /// which the terminal sends in its place; ``handle(_:)`` then does what
+    /// the driver would have, ahead of every layer (``onQuitKey``).
+    var quitKey: () -> UInt8? = { nil }
+
+    /// Invoked when the user's quit key arrives as a key report: the runner
+    /// raises `SIGQUIT`, as the driver does for the byte.
+    var onQuitKey: () -> Void = {}
 }
 
 // MARK: - Internal API
@@ -132,6 +147,17 @@ extension InputHandler {
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
     func handle(_ event: KeyEvent) -> Bool {
+        // The user's quit key, before anything else hears it: no layer may
+        // bind it, as none can where the driver takes its byte. It arrives
+        // here only as a kitty keyboard protocol report — under the protocol
+        // the terminal sends ⌃\ as `CSI 92;5u`, which the driver never
+        // turns into a signal — so raise the signal the byte would have been.
+        // Its release and repeats are swallowed with it.
+        if let byte = event.legacyControlByte, byte == quitKey() {
+            if event.phase == .press { onQuitKey() }
+            return true
+        }
+
         // A release goes to the focus path's key-press handlers and nowhere
         // else. Every other layer acts on a key going down, and a release
         // offered to them would act a second time for one keystroke. Only a
@@ -456,6 +482,25 @@ extension InputHandler {
 
         default:
             return false
+        }
+    }
+}
+
+// MARK: - The quit key
+
+extension KeyEvent {
+    /// The C0 byte a legacy encoding sends for this Control chord — Ctrl with
+    /// `@`, a letter, `[`, `\`, `]`, `^` or `_` — or `nil` for any other
+    /// event. Option does not change it (a legacy encoding sends the byte
+    /// after an ESC, and the driver acts on the byte); Shift does.
+    fileprivate var legacyControlByte: UInt8? {
+        guard ctrl, !shift, case .character(let character) = key, let ascii = character.asciiValue else {
+            return nil
+        }
+        switch ascii {
+        case 0x61...0x7A: return ascii - 0x60  // a–z: 0x01–0x1A
+        case 0x40, 0x5B...0x5F: return ascii - 0x40  // @ [ \ ] ^ _: 0x00, 0x1B–0x1F
+        default: return nil
         }
     }
 }

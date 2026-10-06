@@ -4359,6 +4359,20 @@ on its ordinary path rather than its raw-mode fast path, a cost per byte of
 input only. The PTY smoke `Tools/Smoke/quit_key_smoke.py` checks all of this
 against `IdleProbe`, a hung one included (CI runs it).
 
+**Under the kitty keyboard protocol the driver never sees ⌃\\.** Its
+"disambiguate" flag has the terminal send every Control chord on an ASCII key
+as a report — ⌃\\ as `CSI 92;5u`, not 0x1C — so no byte reaches the line
+discipline to raise the signal (from the specification; the hosts are
+unmeasured, like the rest of that section). `InputHandler` therefore takes the
+report of the user's quit key (the chord whose legacy byte is the inherited
+`VQUIT`, `Terminal.quitKeyByte`) ahead of every layer and raises `SIGQUIT`
+itself, its repeats and release swallowed; with the quit key turned off the
+report is an ordinary key. That needs the app to read its input, so **on a
+terminal that speaks the protocol, ⌃\\ does not quit an app whose main thread
+has hung** (decisions B-F2-4); there, closing the tab, or `kill -QUIT` from
+another shell, still does. The smoke checks the report too, against a PTY
+that plays a terminal speaking the protocol.
+
 #### ⌘ shortcuts meet the text controls' Emacs chords (recorded 2026-09-24)
 
 A framework rule rather than a terminal measurement, recorded here because it
@@ -4616,6 +4630,9 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   `kill -HUP` left the flags pushed and the line discipline raw. The specification keeps a separate
   flag stack per screen and TUIkit pushes on the alternate one, so the shell's
   own screen is never changed.
+- **Quits on ⌃\\'s report**: under the protocol the user's quit key is a
+  `CSI u` report the line discipline never turns into `SIGQUIT`, so the input
+  chain raises the signal for it ("The quit key, ⌃\\").
 - **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
   so an app can tell which of SwiftUI's keyboard features work here.
 - **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out

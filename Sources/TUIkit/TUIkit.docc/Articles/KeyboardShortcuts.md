@@ -427,6 +427,12 @@ discipline back. The shell then reports `Quit: 3`. No shortcut can take
 ⌃\\ (``KeyboardShortcut/isDeliverableInTerminal`` is `false` for it), and a
 user who turned the quit key off with `stty quit undef` keeps it off.
 
+A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key report
+rather than the byte the driver acts on. TUIkit raises `SIGQUIT` for that
+report itself, before any layer sees it, so ⌃\\ quits there too — but only
+while the app reads its input: under the protocol, a hung app does not quit
+by ⌃\\.
+
 ### Overriding `q` in a local view context
 
 A user-defined status bar item with shortcut `q` and an action intercepts the key before the default quit binding runs:

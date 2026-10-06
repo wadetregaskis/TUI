@@ -34,6 +34,10 @@ that answers the startup exchange, and checks:
   7. A suspend (SIGTSTP) and resume (SIGCONT): the termios while stopped is
      the one from before the launch, raw again after the resume, and ⌃\\
      then quits as in 4.
+  8. A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key
+     report (`CSI 92;5u`), never as the byte the driver acts on: the app
+     raises SIGQUIT itself, and quits as in 4, the flags popped on the way.
+     With the quit key turned off, the report is an ordinary key.
 
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
@@ -77,7 +81,9 @@ class App:
     discipline can be read before the launch and after the exit; and a
     terminal's answers to the startup exchange."""
 
-    def __init__(self, env=None, setup=None):
+    def __init__(self, env=None, setup=None, kitty=False):
+        self.kitty = kitty
+        self.stack = []
         self.master, self.slave = os.openpty()
         fcntl.ioctl(self.slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
         if setup:
@@ -136,6 +142,12 @@ class App:
                 os.write(self.master, b"\x1b[0n")
             elif sequence == b"\x1b[c":
                 os.write(self.master, b"\x1b[?62;22c")
+            elif self.kitty and sequence == b"\x1b[?u":
+                os.write(self.master, b"\x1b[?%du" % (self.stack[-1] if self.stack else 0))
+            elif self.kitty and re.fullmatch(rb"\x1b\[>[0-9]+u", sequence):
+                self.stack.append(int(sequence[3:-1]))
+            elif self.kitty and sequence == b"\x1b[<u" and self.stack:
+                self.stack.pop()
 
     def wait_for_exit(self, seconds):
         """The wait status once the process has ended, or None."""
@@ -272,6 +284,23 @@ check(is_raw(app.termios_now()) and running(app), "resume: raw again, the quit k
 mark = len(app.out)
 os.write(app.master, b"\x1c")
 check_quit(app, mark, "after a resume, ⌃\\")
+app.finish()
+
+# 8. The kitty keyboard protocol.
+app = App(env={"IDLE_PROBE_MODE": "keys"}, kitty=True)
+app.pump(3.0)
+check(app.stack == [31], "kitty: the flags are pushed")
+mark = len(app.out)
+os.write(app.master, b"\x1b[92;5u")
+check_quit(app, mark, "kitty, ⌃\\ as a report")
+check(b"\x1b[<u" in app.out[mark:] and app.stack == [], "kitty, ⌃\\ as a report: the flags popped")
+app.finish()
+
+app = App(env={"IDLE_PROBE_MODE": "keys"}, kitty=True, setup=quit_undefined)
+app.pump(3.0)
+os.write(app.master, b"\x1b[92;5u")
+app.pump(1.0)
+check(b"key ctrl-\\" in app.out and running(app), "kitty, stty quit undef: the report is an ordinary key")
 app.finish()
 
 if failures:

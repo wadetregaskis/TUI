@@ -7,7 +7,7 @@ decisions-doc items: the `StdinArrivalNotifierTests` flake and a single tap
 lost after a failed double tap. 2026-10-05.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Three.
+- **B. Shipped the safe option.** Four.
 - **C. Declined without asking.** None.
 
 ## B. Shipped the safe option
@@ -140,6 +140,36 @@ cases no probe has measured:
 (about an hour) and match what they show; if a long-lived departed arena
 matters in practice, drop the arena's closures early by giving a departed
 gesture up at a keyboard event too, which is itself unmeasured on macOS.
+
+### B-F2-4. Under the kitty keyboard protocol, ⌃\\ does not quit a hung app
+
+*The owner's request of 2026-10-05: ⌃\\ quits, as a real `SIGQUIT`, even when
+the app hangs.*
+
+Raw mode leaves the line discipline one signal character, the user's quit
+key, so the driver raises `SIGQUIT` for ⌃\\ before the app reads a byte,
+hung or not, over ssh too. But where the terminal speaks the kitty keyboard
+protocol, TUIkit pushes its "disambiguate" flag (with the other four, for the
+keys they deliver), under which the terminal sends ⌃\\ as the report
+`CSI 92;5u` instead of 0x1C. No byte reaches the line discipline, so no
+signal. Which hosts: those that answer the protocol's query (kitty, Ghostty,
+WezTerm, foot, iTerm2 and others, per the specification; unmeasured).
+
+**Shipped:** the input chain takes the report of the user's quit key ahead
+of every layer and raises `SIGQUIT` itself (`InputHandler.quitKey`), so ⌃\\
+quits there too, and leaves the terminal as a quit does, the flags popped.
+It takes the app's input loop to read the report: on those terminals a
+hung app does not quit by ⌃\\. Closing the tab, or `kill -QUIT` from another
+shell, still ends it cleanly.
+
+**The fuller version, if wanted:** a watchdog that notices the main loop has
+not drained stdin for a while (say two seconds with bytes pending) and reads
+stdin on a thread of its own, looking for the quit report, handing every
+other byte back to the loop in order should it recover. About half a day
+with tests; it adds a thread and a second reader of the terminal, which is
+the cost to weigh. Not pushing "disambiguate" would give the byte back to
+the driver, but loses Escape without a timeout and the five C0 chords as
+themselves (decisions A4), so it is not offered.
 
 ## For the main decisions doc
 
