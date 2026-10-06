@@ -49,6 +49,8 @@ private final class Rows {
         /// A list with no selection binding, a selection menu around it and a
         /// `.contextMenu` around that.
         case selectionlessList
+        /// The selection-menu table, inside a view with a `.contextMenu`.
+        case selectionMenuInMenu
     }
 }
 
@@ -86,6 +88,8 @@ private struct RowsPage: View {
         case .emptyMenuTable: emptyMenuTable
         case .emptyMenuList: emptyMenuList
         case .selectionlessList: selectionlessList.contextMenu { Button("outer") { rows.ran.append("outer") } }
+        case .selectionMenuInMenu:
+            selectionMenuTable.contextMenu { Button("outer") { rows.ran.append("outer") } }
         }
     }
 
@@ -455,5 +459,18 @@ struct RowContextMenuTests {
             harness.frame()
         }
         #expect(harness.rows.opened.isEmpty, "\(harness.rows.opened)")
+    }
+
+    @Test("A right-click on a table's column header opens no row menu: it goes on to the menu around the table")
+    func headerIsNotEmptySpace() throws {
+        let harness = Harness(.selectionMenuInMenu)
+        harness.secondaryClick(try harness.position(of: "Name"))
+        #expect(!harness.shows("sel ["), "\(harness.screen)")
+        #expect(harness.shows("outer"), "\(harness.screen)")
+        harness.escape()
+        // Below the rows is still the table's empty space.
+        let below = try harness.position(of: "item4")
+        harness.secondaryClick((below.x, below.y + 2))
+        #expect(harness.shows("sel []"), "\(harness.screen)")
     }
 }

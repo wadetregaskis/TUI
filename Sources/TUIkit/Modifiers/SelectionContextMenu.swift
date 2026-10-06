@@ -149,6 +149,8 @@ extension View {
     /// - on a row that is **not** selected: that row alone, the selection
     ///   untouched;
     /// - on the container's **empty** space: no rows, whatever is selected.
+    ///   A table's column header is not its empty space: a right-click there
+    ///   goes on to a menu around the table, as on macOS.
     ///
     /// A secondary click is a right-click, or a Ctrl-click where the terminal
     /// takes the right button for itself (iTerm2 does by default) — on a list

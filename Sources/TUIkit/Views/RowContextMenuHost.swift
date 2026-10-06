@@ -137,6 +137,12 @@ enum RowContextMenuHost {
         /// The columns the rows occupy: a press on the border opens nothing.
         let contentColumns: Range<Int>
 
+        /// The lines the rows occupy: a press on a table's column header opens
+        /// nothing — measured on macOS 15.8, SwiftUI's header takes no menu of
+        /// the table's, and a right-click there goes on to a menu around the
+        /// table. Every line, for a list, which has no header.
+        var contentLines: Range<Int> = 0..<Int.max
+
         /// What a press that opened the menu does besides: focus the container.
         let opened: @MainActor () -> Void
 
@@ -176,7 +182,7 @@ enum RowContextMenuHost {
         if event.phase != .pressed, menu.dispatcher.gestureOpenedPopup { return true }
         guard isSecondary(event) else { return nil }
         if event.phase == .pressed, menu.contentColumns.contains(event.x),
-            menu.open(row(), event.x, event.y)
+            menu.contentLines.contains(event.y), menu.open(row(), event.x, event.y)
         {
             menu.opened()
             return true

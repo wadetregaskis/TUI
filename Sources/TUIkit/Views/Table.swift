@@ -2592,7 +2592,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// press. `nil` for a table with no menu.
     private func pointerMenu(
         handler: ItemListHandler<Value.ID>, context: RenderContext,
-        dispatcher: MouseEventDispatcher, contentColumns: Range<Int>,
+        dispatcher: MouseEventDispatcher, contentColumns: Range<Int>, contentLines: Range<Int>,
         opened: @escaping @MainActor () -> Void
     ) -> RowContextMenuHost.PointerMenu? {
         let selection = selectionMenu(context.environment)
@@ -2606,8 +2606,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     box, target: target, x: x, y: y, dispatcher: dispatcher, onOpen: onOpen)
                 return true
             },
-            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns, opened: opened,
-            dispatcher: dispatcher)
+            isOpen: { box.value.menu.isOpen }, contentColumns: contentColumns,
+            contentLines: contentLines, opened: opened, dispatcher: dispatcher)
     }
 
     /// Draws the open row menu over the table — anchored at the press, or
@@ -3950,8 +3950,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 context: context,
                 focusManager: focusManager,
                 dispatcher: mouseDispatcher,
-                interiorTopY: interiorTopY,
                 contentColumns: contentColumns,
+                // The rows' lines: below the header, above the bottom border.
+                contentLines: interiorTopY..<max(interiorTopY, buffer.height - border),
                 rowContentLeft: rowContentLeft,
                 previewLine: previewLine
             )
@@ -4120,11 +4121,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         context: RenderContext,
         focusManager: FocusManager?,
         dispatcher: MouseEventDispatcher,
-        interiorTopY: Int,
         contentColumns: Range<Int>,
+        contentLines: Range<Int>,
         rowContentLeft: Int,
         previewLine: @escaping @MainActor (Int) -> [String]?
     ) -> @MainActor (MouseEvent) -> Bool {
+        // The rows start on the interior's first line, below the header.
+        let interiorTopY = contentLines.lowerBound
         let captureHandler = state.handler
         let captureFocusID = state.focusID
         // The press frame's geometry, captured: a press and its release
@@ -4142,7 +4145,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // the focus for the table, so the keyboard reaches the menu's rows.
         let menu = pointerMenu(
             handler: captureHandler, context: context, dispatcher: dispatcher,
-            contentColumns: contentColumns, opened: { focusManager?.focus(id: captureFocusID) })
+            contentColumns: contentColumns, contentLines: contentLines,
+            opened: { focusManager?.focus(id: captureFocusID) })
         let triangleHit = outlineTriangleHit(
             columnWidths: state.columnWidths,
             firstColumnLeft: rowContentLeft + selectionGutter(context.environment),
@@ -4178,10 +4182,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // matching comment in _ListCore for the model, routed through the
             // shared ScrollableOffsetState helper so the math lives in one
             // place. A secondary click opens the row menu: on the row under
-            // it, or on none for the table's empty space (the border is
-            // neither); a right press with nothing to open goes on to a menu
-            // around the table, and a Ctrl-click with nothing to open is still
-            // a click.
+            // it, or on none for the table's empty space (the border and the
+            // column header are neither); a right press with nothing to open
+            // goes on to a menu around the table, and a Ctrl-click with
+            // nothing to open is still a click.
             let spent = RowContextMenuHost.preflight(
                 event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, row: { rowAt(y: event.y) })
             if let spent { return spent }
