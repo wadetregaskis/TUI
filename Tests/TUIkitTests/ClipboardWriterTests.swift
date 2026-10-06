@@ -573,6 +573,24 @@ struct ClipboardWriterAppTests {
         #expect(harness.terminal.allOutput.contains(line))
     }
 
+    /// e7ce4b0f7's question, answered (decisions D4X, "Review 2"): Ctrl-Z
+    /// draws one frame at `.background` before the terminal is handed back
+    /// (`renderOutsidePacer`, then `suspendUntilContinued`), and that frame
+    /// writes a copy still queued, as every frame does.
+    @Test("The frame drawn at .background before a suspend writes a queued copy")
+    func backgroundFrameSendsTheQueue() {
+        let tui = TUIContext()
+        tui.clipboardWriter = ClipboardWriter.stated(terminal: .honoured, isLocal: false, now: { 0 })
+        let harness = RenderLoopHarness(tuiContext: tui)
+        let loop = harness.loop(Page())
+        loop.render(frameNowNanos: 0)
+        tui.clipboardWriter.write("hi", announcingSuccess: false)
+        tui.scenePhase = .background
+        loop.render(frameNowNanos: 1)
+        #expect(harness.terminal.allOutput.contains("\u{1B}]52;c;aGk=\u{1B}\\"))
+        #expect(tui.clipboardWriter.takePendingSequences().isEmpty)
+    }
+
     /// The same page filling the window down to a last row, with the line of
     /// key hints in the bottom bar: a row the bar gains moves the last row up.
     struct HintedPage: App {

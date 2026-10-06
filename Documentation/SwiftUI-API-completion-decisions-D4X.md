@@ -9,7 +9,10 @@ and `Ghostty-VT-adoption.md` C1. 2026-10-05.*
 - **A. Needs your decision.** None.
 - **B. Shipped the safe option.** Seventeen, each with its fuller version and
   price. B-D4X-13 to 17 came out of the lane's review (round 1), which also
-  found defects that are fixed rather than recorded here.
+  found defects that are fixed rather than recorded here. Review 2's
+  follow-ups (2026-10-06) changed B-D4X-7, 13, 14, 15, 16 and 17; what it
+  asked that needed an answer rather than a change, and what is still open,
+  is at the end.
 - **C. Declined without asking.** None.
 
 Not built, as instructed: the mouse hand-off key (D0, you are choosing the
@@ -316,3 +319,62 @@ that starts on it, as on macOS, and the row drags from elsewhere (B-D4X-7).
 enabled scope and files the columns' geometry with its rows, so only those
 cells' text selects and a selection keeps to the cell. About half a day;
 it is B-D4X-7's fuller version with one more input.
+
+## Review 2: answers, and what remains
+
+### e7ce4b0f7's suspend flush — not an issue, now pinned
+
+The question: does Ctrl-Z (suspend) flush an OSC 52 write still queued — a
+copy made between the last frame and the key? Yes. The run loop handles the
+suspend flag by setting the scene phase to `.background` and drawing one more
+frame (`App.swift`, `renderOutsidePacer`) before `suspendUntilContinued` hands
+the terminal back. That frame is an ordinary `RenderLoop.render`, which has
+no early return before `writeFrame`, and `writeFrame` writes
+`clipboardWriter.takePendingSequences()` right after `beginFrame`, ahead of
+every cell — so the copy reaches the terminal while it is still the app's.
+Quitting has its own drain (`cleanup`), as before.
+`ClipboardWriterTests` pins the frame half: a copy queued for a terminal that
+writes OSC 52, then a frame drawn at `.background`, leaves the queue empty and
+the bytes written. The signal half (that the suspend path draws that frame)
+is read from the code; it needs a real stop to test.
+
+### Still open after the follow-ups
+
+- **Clipboard locality** (B-D4X-13): a session keeper TUIkit does not know
+  passes as a plain parent; a nested tmux at the desk is "not local" (its
+  outer server is not asked for its clients); under GNU screen nothing is
+  copied (no DCS passthrough), and screen 5 is unmeasured; nothing on a host
+  is measured yet (`clipboard_probe.py` is owed its runs).
+- **Paste away from the machine** (B-D4X-14): Ctrl-V pastes the app's own
+  last copy, which may be older than the user's — said so now, still pasted.
+- **The screen selection** (B-D4X-15): content moved inside an unchanged
+  content area — a scroll view shortened by a tooltip's row — loses the
+  selection for good; a change of the terminal's height leaves one displaced
+  (no highlight, no keys) until the height comes back.
+- **Upstream affinity** (B-D4X-16): one affinity per view, not per caret;
+  downstream, a drag to a wrapped row's margin stops before its hanging
+  space.
+- **Right-press hand-off** (review 2 of 9873ddc07): drags that arrive in the
+  same read as a menu-opening right press, before the menu's first frame,
+  are hit-tested against page controls, and `TextEditor`'s `.dragged` arm
+  does not check the button, so a fast right-drag on a highlight over an
+  editor can move the editor's selection. Not fixed here.
+- **`textSelection` on multi-member content** (review 2 of b61f80177): on a
+  `ForEach` or a `Group` each member files its own scope, so a drag keeps to
+  the member it began on (SwiftUI's per-`Text` behaviour); the modifier's
+  doc still says a drag inside an enabled container "may cross from one Text
+  into the next", true only of a container that is one view. Not fixed here.
+- **The wrap cache** (review 2 of f543a9c2d): a frame that asks more than
+  eight widths evicts its own first width.
+- **Drag sources** (B-D4X-7): a `.draggable` view outside a list whose text
+  is `.enabled` follows the rows' rule — a drag on its text selects — which
+  is unmeasured on macOS for a view outside a list.
+- **Table cell readers** (B-D5G-2): located now, but a cell carries no
+  origin, so a reader's first frame costs a second walk of the scene.
+- **The probe** (148a07f5d): with no helper to read the clipboard (over ssh
+  without `--manual`), the leak check runs only with `--clobber`, since its
+  write cannot be put back.
+- **The A/B note on 2b3295280**: the `text-editor*` Stress variants now sit
+  in a conditional, so an A/B of f543a9c2d must hold the Stress sources
+  fixed across both builds.
+
