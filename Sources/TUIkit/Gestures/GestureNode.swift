@@ -70,11 +70,18 @@ struct GesturePointer {
     /// Whether the pointer is over the view.
     var isInside: Bool
 
+    /// Whether this press is already over: the press ``asDown`` makes of a
+    /// release. A long press reads it as not pressing.
+    var isOver = false
+
     /// This report, standing in for a press: how the second gesture of a
-    /// sequence takes the first event after the first one ends.
+    /// sequence takes the event that ended the first, or the first event
+    /// after a first that ended on its clock. A release makes a press that
+    /// is already over (``isOver``).
     var asDown: Self {
         var down = self
         down.kind = .down
+        down.isOver = kind == .up
         return down
     }
 

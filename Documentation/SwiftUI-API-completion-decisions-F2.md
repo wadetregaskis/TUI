@@ -74,4 +74,9 @@ which this lane does not edit:
   starts with the event that ended the first": the event that ends the first
   gesture is the second's first, so a tap before a tap ends at one click and
   a drag after a zero-duration long press starts at the press; only a first
-  gesture that ends on its clock leaves the second to the next event.
+  gesture that ends on its clock leaves the second to the next event. And,
+  by the commit "A sequence's second gesture started by a release reports
+  only how it ends": a release is a press already over, so a tap before a
+  drag or a long press fails at the tap's release and never ends, while a
+  tap before a zero-duration long press ends there, `false`, with no
+  `onChanged`.

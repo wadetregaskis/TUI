@@ -142,6 +142,136 @@ struct CompositeGestureTests {
         }
     }
 
+    /// Measured on macOS 15.8: a tap before a drag, or before a long press,
+    /// never ends. The tap's release is the second gesture's press, already
+    /// over, at which a drag that has not moved and a long press short of
+    /// its minimum duration both fail, and the sequence with them; the next
+    /// press starts the sequence over at the tap, and a drag of seven
+    /// columns (past a tap's five) or a press held 0.8 s is no tap. The
+    /// inner tap's `onEnded` runs at every click, and the second gesture's
+    /// callbacks never run. Fed the release as a live press, the long press
+    /// ran `onChanged(true)` at every click; and before the commit "A
+    /// sequence's second gesture starts with the event that ended the
+    /// first", the press after the click began the drag or the long press,
+    /// and the sequence ended.
+    @Test("A tap before a drag or a long press fails at the tap's release", arguments: [false, true])
+    func tapBeforeDragOrLongPress(_ longPress: Bool) {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let tap = TapGesture().onEnded { log("tap") }
+        let view = {
+            longPress
+                ? AnyView(
+                    box(
+                        tap.sequenced(
+                            before: LongPressGesture()
+                                .onChanged { log("long \($0)") }
+                                .onEnded { log("long ended \($0)") }
+                        )
+                        .onEnded { _ in log("seq") }))
+                : AnyView(
+                    box(
+                        tap.sequenced(
+                            before: DragGesture()
+                                .onChanged { log("drag \($0.translation.width)") }
+                                .onEnded { log("drag ended \($0.translation.width)") }
+                        )
+                        .onEnded { _ in log("seq") }))
+        }
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == ["tap"])
+        harness.now = 500 * gestureMillisecond
+        harness.frame(view())
+        if longPress {
+            harness.pointer([(.pressed, 1, 1)], view)
+            harness.now = 1_300 * gestureMillisecond
+            harness.frame(view())
+            harness.pointer([(.released, 1, 1)], view)
+        } else {
+            harness.pointer([(.pressed, 1, 1), (.dragged, 4, 1), (.dragged, 8, 1), (.released, 8, 1)], view)
+        }
+        #expect(log.entries == ["tap"], "a drag or a long hold is no tap, and nothing waits for it")
+        harness.now = 2_000 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == ["tap", "tap"])
+    }
+
+    /// Measured on macOS 15.8: after a tap, a long press with no minimum
+    /// duration, or a drag with no minimum distance, ends at the tap's
+    /// release, which it takes as a press already over: it reports its end
+    /// alone, never to `onChanged` — the long press `false`, the button
+    /// being up, the drag a translation of nothing — and the sequence ends
+    /// with it, at every click. Fed the release as a live press, the long
+    /// press ran `onChanged(true)` and ended `true`, and the drag ran
+    /// `onChanged` with its start.
+    @Test("A tap before a zero-duration long press or a zero-distance drag ends at the tap's release", arguments: [false, true])
+    func tapBeforeInstantSecond(_ longPress: Bool) {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let tap = TapGesture().onEnded { log("tap") }
+        let view = {
+            longPress
+                ? AnyView(
+                    box(
+                        tap.sequenced(
+                            before: LongPressGesture(minimumDuration: 0)
+                                .onChanged { log("long \($0)") }
+                                .onEnded { log("long ended \($0)") }
+                        )
+                        .onEnded { value in
+                            if case .second(_, let pressed) = value { log("seq \(pressed.map { "\($0)" } ?? "nil")") }
+                        }))
+                : AnyView(
+                    box(
+                        tap.sequenced(
+                            before: DragGesture(minimumDistance: 0)
+                                .onChanged { log("drag \($0.translation.width)") }
+                                .onEnded { log("drag ended \($0.translation.width)") }
+                        )
+                        .onEnded { value in
+                            if case .second(_, let drag) = value {
+                                log("seq \(drag.map { "\($0.translation.width)" } ?? "nil")")
+                            }
+                        }))
+        }
+        let click = longPress ? ["tap", "long ended false", "seq false"] : ["tap", "drag ended 0", "seq 0"]
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == click)
+        harness.now = 600 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == click + click)
+    }
+
+    /// Measured on macOS 15.8: a drag before a tap ends at the drag's
+    /// release — the drag's end, then the tap's, then the sequence's — and
+    /// a click after it, which is no drag, ends nothing.
+    @Test("A drag before a tap ends at the drag's release")
+    func dragBeforeTap() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            box(
+                DragGesture().onEnded { log("drag ended \($0.translation.width)") }
+                    .sequenced(before: TapGesture().onEnded { log("tap") })
+                    .onEnded { value in
+                        if case .second(let drag, let tap) = value {
+                            log("seq \(drag.translation.width) \(tap != nil)")
+                        }
+                    })
+        }
+        harness.frame(view())
+        harness.pointer([(.pressed, 1, 1), (.dragged, 4, 1), (.dragged, 8, 1), (.released, 8, 1)], view)
+        #expect(log.entries == ["drag ended 7", "tap", "seq 7 true"])
+        harness.now = 600 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == ["drag ended 7", "tap", "seq 7 true"])
+    }
+
     /// Measured on macOS 15.8: a click on a long press with no minimum
     /// duration before a drag with none either ends the sequence at the
     /// release, a drag of nothing — the drag started at the press.

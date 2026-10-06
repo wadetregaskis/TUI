@@ -32,9 +32,13 @@ extension Gesture {
     /// an event did: a tap's release is a following tap's press and release,
     /// so `TapGesture().sequenced(before: TapGesture())` ends at one click,
     /// and a long press with no minimum duration hands a following drag its
-    /// press. A long press that ends on its clock, the button still down,
-    /// hands a following drag the next move as its start. The sequence ends
-    /// when the second gesture does (all measured on macOS 15.8).
+    /// press. A release is a press already over, of which the second gesture
+    /// reports only how it ends: after a tap, a drag or a long press fails
+    /// at once, so `TapGesture().sequenced(before: DragGesture())` never
+    /// ends, while a long press with no minimum duration ends there, `false`.
+    /// A long press that ends on its clock, the button still down, hands a
+    /// following drag the next move as its start. The sequence ends when the
+    /// second gesture does (all measured on macOS 15.8).
     ///
     /// - Parameter other: A gesture you want to combine with another gesture
     ///   to create a new, sequenced gesture.
@@ -291,15 +295,23 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
     }
 
     /// Feeds the second part, which takes its first pointer event as its
-    /// press: a move becomes its start, a release its start and end. A tick
-    /// before that is not its to hear.
+    /// press: a move becomes its start; a release, a press already over
+    /// (``GesturePointer/isOver``), heard with the release, of which the
+    /// second part reports only how it ends. Measured on macOS 15.8, after
+    /// a tap: a long press runs no `onChanged` and fails, or with no
+    /// minimum duration ends `false`; a drag with no minimum distance ends
+    /// without an `onChanged`. Fed as a press and then a release, the long
+    /// press ran `onChanged(true)` and ended `true`, and the drag reported
+    /// its start. A tick before the first pointer event is not the second
+    /// part's to hear.
     private func feedSecond(_ input: GestureInput, deliver: Bool) {
         if secondStarted {
             second.receive(input, deliver: deliver)
         } else if case .pointer(let pointer) = input {
             secondStarted = true
-            second.receive(.pointer(pointer.asDown), deliver: deliver)
-            if pointer.kind == .up { second.receive(input, deliver: deliver) }
+            let isRelease = pointer.kind == .up
+            second.receive(.pointer(pointer.asDown), deliver: deliver && !isRelease)
+            if isRelease { second.receive(input, deliver: deliver) }
         }
     }
 

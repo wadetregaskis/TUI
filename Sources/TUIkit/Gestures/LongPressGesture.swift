@@ -42,7 +42,10 @@ import TUIkitCore
 /// down — `onChanged` and `updating(_:body:)` hear it then — and it ends,
 /// still `true`, once the button has been held for `minimumDuration`, without
 /// waiting for the release. Letting go first, or moving further than
-/// `maximumDistance`, fails it.
+/// `maximumDistance`, fails it. Second in a sequence, started by the release
+/// that ended the first gesture, it is a press already over: it reports
+/// nothing and fails, or, with no minimum duration, ends `false` (measured
+/// on macOS 15.8).
 ///
 /// The end lands on a frame the run loop wakes for at the deadline, so it is
 /// as punctual as the frame clock.
@@ -110,13 +113,16 @@ final class LongPressGestureNode: GestureNode<Bool> {
         switch pointer.kind {
         case .down:
             origin = pointer.globalLocation
+            // A press already over — the release a sequence's second
+            // gesture starts with — is not pressing.
+            let pressing = !pointer.isOver
             if minimumDuration <= 0 {
                 phase = .ended
-                report(true)
+                report(pressing)
             } else {
                 phase = .possible
                 timer.arm(seconds: minimumDuration)
-                report(true)
+                report(pressing)
             }
         case .moved:
             guard phase == .possible else { return }
