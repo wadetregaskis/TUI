@@ -429,6 +429,10 @@ does: the alternate screen left, the cursor shown, the shell's line
 discipline back. The shell then reports `Quit: 3`. No shortcut can take
 ⌃\\ (``KeyboardShortcut/isDeliverableInTerminal`` is `false` for it), and a
 user who turned the quit key off with `stty quit undef` keeps it off.
+xterm, VTE, Konsole and the Linux console send ⌃\\'s byte for ⌃4 and ⌃| too
+(by their tables of the legacy encoding; not measured), so there those chords
+quit as well, and a ⌘4 shortcut, ⌃4 under `.commandKey(.control)`, is
+undeliverable: it quits the app rather than firing.
 
 A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key report
 rather than the byte the driver acts on. TUIkit raises `SIGQUIT` for that

@@ -6,9 +6,53 @@ in its format. The lane fixed two bugs the owner asked for, which are not
 decisions-doc items: the `StdinArrivalNotifierTests` flake and a single tap
 lost after a failed double tap. 2026-10-05.*
 
-- **A. Needs your decision.** None.
+- **A. Needs your decision.** One.
 - **B. Shipped the safe option.** Four.
 - **C. Declined without asking.** None.
+
+## A. Needs your decision
+
+### A-F2-1. ⌃4, ⌃| and ⌃⇧\\ quit the app on terminals that send ⌃\\'s byte for them
+
+*`KeyboardShortcut.isDeliverableInTerminal`; any `.keyboardShortcut("4")`
+(SwiftUI's ⌘4, ⌃4 under the default `.commandKey(.control)`), and a Control
+shortcut on `|`.*
+
+Raw mode keeps the user's quit key live (2026-10-06, the owner's request), so
+the driver raises `SIGQUIT` for 0x1C. xterm, VTE (GNOME Terminal and its
+kin), Konsole and the Linux console send that same 0x1C for ⌃4 and for ⌃|
+(⌃⇧\\) in their legacy encodings — from those terminals' tables, not
+measured here; Apple Terminal, iTerm2 and Ghostty were not checked either.
+So on those terminals pressing an app's ⌘4 shortcut ends the app with
+"Quit: 3". Before 2026-10-06 the byte was dropped (`KeyEvent.parse` reads no
+key from 0x1C), so the shortcut never fired there either: what changed is
+that an undeliverable chord now quits instead of doing nothing. Under the
+kitty keyboard protocol the three arrive as themselves and fire.
+
+**Shipped (option 1):** kept. `isDeliverableInTerminal` reports ⌃4, ⌃| and
+⌃⇧\\ undeliverable, as it reports Ctrl-H (Backspace), and the C0-collision
+table in `Terminal-compatibility.md` lists them, marked unmeasured.
+
+**Options:**
+
+1. **Keep** (shipped; recommended). The quit key stays the driver's on every
+   host, which is what makes it quit a hung app; an app is told the chord is
+   undeliverable. Price: nothing more.
+2. **Turn the quit key off on hosts known to alias it**, recognised from the
+   environment (`XTERM_VERSION`, `VTE_VERSION`, `KONSOLE_VERSION`,
+   `TERM=linux`). ⌃4 then does nothing again — it still cannot fire, since
+   the byte cannot be told from ⌃\\ — and ⌃\\ quits nothing there, hung or
+   not. Over ssh the variables do not arrive, so a remote app would still
+   quit. About an hour with tests. It trades the backup quit for an
+   undeliverable shortcut doing nothing rather than quitting.
+3. **Ask xterm to send Ctrl-digits apart** (`modifyOtherKeys`, `CSI > 4 ; 1 m`)
+   while ⌃\\ keeps its 0x1C. Unmeasured: whether mode 1 changes the Ctrl-digit
+   aliases at all, and VTE, Konsole and the Linux console would be unchanged.
+   About an hour to measure on xterm (not installed here), then an hour to
+   ship if it works.
+4. **Read the aliases as the chord in the input chain instead**: not
+   possible — the driver takes 0x1C before the app reads a byte, which is the
+   point of the quit key.
 
 ## B. Shipped the safe option
 

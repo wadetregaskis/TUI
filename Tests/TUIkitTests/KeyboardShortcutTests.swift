@@ -483,7 +483,8 @@ struct CommandKeySubstitutionTests {
     /// raw mode turns them off as signal characters, so they arrive as keys
     /// (and `InputHandlerTests` fires a ⌘C shortcut on one). `Ctrl-\` is: it
     /// is the user's quit key, which the driver turns into SIGQUIT before
-    /// the app sees it, and a legacy 0x1C is no key either.
+    /// the app sees it, and a legacy 0x1C is no key either — and so are the
+    /// chords some terminals send the same 0x1C for, Ctrl-4 and Ctrl-|.
     @Test("The C0 collisions are reported, not silently dead")
     func c0CollisionsAreQueryable() {
         // Ctrl-H is Backspace: `KeyEvent.parse` reads 0x08 before the
@@ -497,6 +498,16 @@ struct CommandKeySubstitutionTests {
         // Ctrl-\ is the user's quit key: the driver's, never a shortcut's.
         #expect(KeyboardShortcut("\\", modifiers: .control).isDeliverableInTerminal == false)
         #expect(KeyboardShortcut("\\").resolved(commandKey: .control)?.isDeliverableInTerminal == false)
+        // And the chords xterm, VTE, Konsole and the Linux console send its
+        // 0x1C for: Ctrl-4 (an app's ⌘4 under `.control`), Ctrl-| and
+        // Ctrl-Shift-\. They quit there rather than fire.
+        #expect(KeyboardShortcut("4").resolved(commandKey: .control)?.isDeliverableInTerminal == false)
+        #expect(KeyboardShortcut("4", modifiers: .control).isDeliverableInTerminal == false)
+        #expect(KeyboardShortcut("|", modifiers: .control).isDeliverableInTerminal == false)
+        #expect(KeyboardShortcut("\\", modifiers: [.control, .shift]).isDeliverableInTerminal == false)
+        // The digit alone, or under Option, has no C0 byte to share.
+        #expect(KeyboardShortcut("4").resolved(commandKey: .option)?.isDeliverableInTerminal == true)
+        #expect(KeyboardShortcut("4", modifiers: []).isDeliverableInTerminal == true)
         for key: KeyEquivalent in ["s", "o", "n", "1", "c", "z"] {
             let resolved = KeyboardShortcut(key).resolved(commandKey: .control)
             #expect(resolved?.isDeliverableInTerminal == true)

@@ -4290,8 +4290,10 @@ not already spent:
 | Ctrl-J | Enter | 0x0A is LF |
 | Ctrl-M | Enter | 0x0D is CR |
 | Ctrl-[ | Escape | 0x1B, outside the 0x01–0x1A range |
+| Ctrl-\\ | `SIGQUIT`: the app quits | 0x1C is the user's quit key, which the driver turns into the signal (see "The quit key, ⌃\\" below) |
+| Ctrl-4, Ctrl-\| (Ctrl-Shift-\\) | `SIGQUIT`: the app quits | xterm, VTE, Konsole and the Linux console send 0x1C for them too — *from the terminals' tables of the legacy encoding, not measured* (2026-10-06) |
 
-These five cannot be delivered under `.commandKey(.control)` by any means in
+These cannot be delivered under `.commandKey(.control)` by any means in
 the legacy encodings; under the kitty keyboard protocol's "disambiguate"
 enhancement they arrive as themselves (see "The kitty keyboard protocol"), and
 one that nothing binds goes round the input chain again as the key it would
@@ -4300,6 +4302,15 @@ have been, so Ctrl-[ still leaves and Ctrl-H still rubs out (Ctrl-H added 2026-0
 rather than wondering why one menu item is dead. `.commandKey(.option)` has no
 such collision, at the cost of Option itself being less reliable: Apple
 Terminal composes accented characters unless "Use Option as Meta key" is on.
+
+**The three that share ⌃\\'s 0x1C quit rather than fire** (2026-10-06).
+Before the quit key was the driver's, a legacy 0x1C was dropped, so a ⌘4
+shortcut (⌃4 under `.control`) simply never fired on those terminals; now the
+driver raises `SIGQUIT` for it, and pressing it ends the app ("Quit: 3"), as
+⌃\\ does. Nothing in the byte says which key sent it. Under the kitty keyboard
+protocol ⌃4 and ⌃| arrive as themselves and fire, and ⌃\\'s report still
+quits. Whether to keep this is the owner's call: decisions A-F2-1, with the
+options.
 
 **Ctrl-minus arrives as 0x1F** (2026-10-04, from the encodings' definitions,
 not a capture): the C0 unit separator, `^_`, which most terminals also send for

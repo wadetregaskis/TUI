@@ -305,12 +305,26 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// is what lets it quit an app that has hung — and the app ends as a quit
     /// ends. Where the user turned it off (`stty quit undef`), its byte, 0x1C,
     /// is no key either.
+    ///
+    /// Nor are the chords that share its byte: xterm, VTE (GNOME Terminal and
+    /// its kin), Konsole and the Linux console send 0x1C for Ctrl-4 and for
+    /// Ctrl-| (Ctrl-Shift-\) too, by their tables of the legacy encoding (not
+    /// measured). There such a chord QUITS the app rather than firing, as ⌃\
+    /// does, and nothing in the bytes tells them apart, as nothing tells
+    /// Ctrl-H from Backspace. So a ⌘4 shortcut under `.commandKey(.control)`
+    /// is undeliverable; under the kitty keyboard protocol the chords arrive
+    /// apart, and it fires.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }
         guard modifiers.isDisjoint(with: Self.unreportedModifiers) else { return false }
         guard modifiers.contains(.control) else { return true }
-        return !"hijm[\\".contains(key.character)
+        return !Self.controlCollisions.contains(key.character)
     }
+
+    /// The keys whose Control chord a legacy encoding sends as another key's
+    /// byte: H, I, J, M and `[` (Backspace, Tab, newline, Return and Escape),
+    /// and `\`, `|` and `4`, whose 0x1C is the user's quit key.
+    private static let controlCollisions: Set<Character> = ["h", "i", "j", "m", "[", "\\", "|", "4"]
 
     /// The modifiers a shortcut that needs one can never fire on: ⌘, which no
     /// terminal reports with a key, and the two states shortcuts ignore.
