@@ -112,8 +112,14 @@ is a focus stop after the sheet's own controls:
 |---|---|
 | ↑ | the next larger detent |
 | ↓ | the next smaller detent |
-| ↖ ↘ (Home, End) | the smallest, the largest |
+| ↖ ↘ (Home, End) | the smallest, the largest — where the terminal sends them (below) |
 | ↩ or Space | the next, round to the smallest after the largest |
+
+↑ and ↓ reach the app in every terminal measured. Whether every terminal's
+default profile sends a bare ↖ and ↘ to the app, rather than keeping them to
+scroll its own buffer, is not yet measured (`Terminal-compatibility.md`, "Keys
+a sheet's grabber uses"), so they are a convenience where they arrive, and ↑
+and ↓ the route that always works.
 
 A mouse drags the rule, and the sheet snaps to the nearest detent as the
 pointer moves. Bind `selection:` to see where the reader put it, or to move it

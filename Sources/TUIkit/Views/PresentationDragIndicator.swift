@@ -31,8 +31,11 @@ extension View {
     /// with a handle in the middle — the divider of a `VSplitView`, between the
     /// sheet and the page. It is a focus stop after the sheet's own controls:
     /// ↑ moves the sheet to its next larger detent and ↓ to its next smaller,
-    /// ↖ and ↘ (Home and End) to the smallest and the largest, and ↩ or Space
-    /// to the next, round to the smallest after the largest. A mouse drags it,
+    /// ↖ and ↘ (Home and End) to the smallest and the largest — where the
+    /// terminal sends them to the app, which is not yet measured for every
+    /// terminal's default profile, so ↑ and ↓ are the route that always
+    /// works — and ↩ or Space to the next, round to the smallest after the
+    /// largest. A mouse drags it,
     /// snapping from detent to detent as it goes. The detent it moves to is
     /// written to the `selection:` binding of
     /// ``View/presentationDetents(_:selection:)`` when there is one.
