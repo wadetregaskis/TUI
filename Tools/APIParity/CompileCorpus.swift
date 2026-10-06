@@ -2191,6 +2191,40 @@ private struct D2CPresentationSizing: View {
             }
     }
 }
+// MARK: - Resizable sheets and a live page behind them (lane D7S, A19)
+
+/// SwiftUI's documentation examples for `presentationDragIndicator(_:)`,
+/// `presentationContentInteraction(_:)` and
+/// `presentationBackgroundInteraction(_:)`.
+@MainActor
+private struct D7SResizableSheets: View {
+    @State private var showSettings = true
+    @State private var showDetail = false
+    @State private var settingsDetent = PresentationDetent.medium
+
+    var body: some View {
+        Text("page")
+            .sheet(isPresented: $showSettings) {
+                Text("Settings")
+                    .presentationDetents([.medium, .large], selection: $settingsDetent)
+                    .presentationDragIndicator(.visible)
+                    .presentationContentInteraction(.resizes)
+            }
+            .sheet(isPresented: $showDetail) {
+                Text("Detail")
+                    .presentationDetents([.height(120), .medium, .large])
+                    .presentationBackgroundInteraction(.enabled(upThrough: .height(120)))
+                    .presentationContentInteraction(.scrolls)
+            }
+            .sheet(isPresented: .constant(false)) {
+                Text("Live")
+                    .presentationDetents([.medium])
+                    .presentationBackgroundInteraction(.enabled)
+                    .presentationDragIndicator(.hidden)
+            }
+    }
+}
+
 // MARK: - Scroll anchor roles (lane D2S)
 
 /// SwiftUI's own example for the roles — the unlabelled anchor for every case,
