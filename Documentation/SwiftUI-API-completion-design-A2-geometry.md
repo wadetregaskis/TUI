@@ -612,6 +612,18 @@ A2 and A7 entries are left for the coordinator to retire):
 - `scrollTransition`'s default threshold is unmeasured and taken as `.visible`
   (B-D5G-8).
 
+**Merged onto A28's window chrome (2026-10-06).** The header correction the
+root's correction was merged into (question 2) is gone: the window's bars are
+rows of the scene, adopted the frame after. The root's correction is now a
+second walk of the scene of its own, made only when a `.global` reader's
+prediction missed, with the bars laid out against the rows the first walk was
+(`RenderLoop.renderContent`) — the only walk a frame after the first ever
+repeats. The frame the root reads is the screen, bars and composited layers
+included, so `.global` is the screen's cells, the window's chrome host places
+the content's carried origin below the top bar, and a reader in a presented
+surface or in a bar's `.toolbar` item is found and corrected in the frame that
+draws it (B-D5G-3, B-D5G-2).
+
 The Stress counter's shape (`GeometryCorrectionRateTests`), corrections per
 frame by owner after each rung:
 

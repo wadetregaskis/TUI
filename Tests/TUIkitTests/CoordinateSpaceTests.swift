@@ -668,8 +668,8 @@ struct CoordinateSpaceTests {
 }
 
 /// Draws its content and drops the geometry markers in it, keeping every hit
-/// target — as the app header's content reaches the dispatcher with its
-/// regions while no owner of a space reads it.
+/// target — a view whose handlers reach the dispatcher while its marker
+/// reaches no owner of a space.
 private struct DroppingMarkers<Content: View>: View, Renderable, Layoutable {
     let content: Content
 

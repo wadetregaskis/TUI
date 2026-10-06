@@ -67,45 +67,50 @@ with nothing having moved. The origin is what a reporter in the same cell is
 told, the same on every frame, and plainly no place in particular; and the
 containers in a cell no longer work out placements nothing reads. A space
 declared inside a cell still starts an origin of its own and is answered
-exactly.
+exactly. A `ScrollView` inside a cell has no origin carried to it either, so
+it no longer predicts for its own `.scrollView` readers: they are corrected —
+the scroll view's subtree drawn a second time — on every frame they move.
 
 Not only a table: a marker reaches an owner only through the buffers its
-ancestors draw, so a view is not located either when it is drawn outside the
-content area the scene root reads — the app header's content (`.appHeader {}`),
-which the window draws in its bar — or under any container that redraws its
-content's lines into a new buffer without the hit-test regions in them, which
-carry the markers (a bare `FrameBuffer(lines:)`, in an app's own `Renderable`
-as in the framework; `ContainerPayloadAudit` guards the framework's containers
-for regions). Such content carries an origin down as any content does, so a
-reader there is told where the containers above it would place it — in the
-header, the place of the view `.appHeader` is applied to, not the bar's — and
-nothing checks it; a reporter is told the origin, and a pointer converts in
-the global space (B-D5G-7).
+ancestors draw, so a view is not located either under any container that
+redraws its content's lines into a new buffer without the hit-test regions in
+them, which carry the markers (a bare `FrameBuffer(lines:)`, in an app's own
+`Renderable` as in the framework; `ContainerPayloadAudit` guards the
+framework's containers for regions). Such content carries an origin down as
+any content does, so a reader there is told where the containers above it
+would place it, and nothing checks it; a reporter is told the origin, and a
+pointer converts in the global space (B-D5G-7). A window bar's content is
+located: the bars are rows of the frame the scene root reads (A28), so a
+reader in a `.toolbar` item is found and corrected as a reader on the page is
+(`GeometryWindowChromeTests`).
 
 **Fuller version:** carry each cell's markers (and its regions) through the row
 composition at the cell's column — a `[HitTestRegion]` beside the row's claims
 in `renderRowUncached`. About half a day, on `Table`'s hot path, so with the
-`table`/`tables-scroll` A/Bs. For the header, have the root read its bar
-too, or drop the carried origin from the bar's content as a cell does (an
-hour either way, once the window's bars settle).
+`table`/`tables-scroll` A/Bs.
 
-### B-D5G-3. A reader inside a presented surface asking `.global` is told the right answer from the next frame
+### B-D5G-3. A reader inside a presented surface asking `.global` costs the scene a second walk on the frame the surface shows or moves
 
 *`GeometryProxy.frame(in: .global)` (and any name nothing declared) inside a
 sheet, popover, menu or alert*
 
 A presentation's surface is placed by the compositor — centred, flipped above
-its anchor, clamped on screen — after the scene has rendered and the root has
-corrected its readers. Its readers are answered from the composited frame, and
-when one was told something else the render loop asks for another frame
-(`RenderLoop.render`, `resolveRemaining` after the composite), so the surface's
-first frame, or the frame it moves, draws its readers from where they were.
-Named spaces declared inside the surface are exact in the same frame; a name
+its anchor, clamped on screen — which the window runs inside the scene's walk
+(A28's chrome host composites the content's layers between its bars), so the
+frame the scene root reads has every surface in place. A reader in one is
+found with the page's readers and corrected the same way: the prediction does
+not follow the compositor's placement, so the surface's first frame, or the
+frame it moves, walks the scene again (`RenderLoop.renderContent`) — and draws
+its readers from where they are (`GeometryWindowChromeTests`). Named spaces
+declared inside the surface are exact in the same frame without it; a name
 declared on the page does not reach into a presentation (nor does SwiftUI's).
 
-**Fuller version:** place each layer as the compositor will before the root's
-correction, so the correction covers them; that is the compositor's placement
-run twice per frame with readers inside a surface. About a day.
+(Before the window's chrome moved into the scene, the composite ran after the
+root's correction, and such a reader was right only from the frame after.)
+
+**Fuller version:** carry the compositor's placement down as an origin, so a
+reader in a surface is predicted and the scene is not walked again; the
+compositor's placement run before the surface's content draws. About a day.
 
 ### B-D5G-4. Side effects inside a corrected subtree run for both drawings
 
@@ -126,14 +131,19 @@ the first drawing DID cannot be put back: an `onChange` that fired runs again
 against the first drawing's value — on a reader's first frame, an
 `.onChange(of: proxy.frame(in: …).minY)` fires once from the guess to the
 answer, where SwiftUI fires nothing (pinned as a known issue,
-`CoordinateSpaceTests.correctedSubtreeSideEffects`). It is the app header's
-correction's known issue (`RenderPassScopeTests`), scoped to the subtree, and
-made only as often as a reader's answer moves — which the prediction rungs
-(design study §10 steps 5–7) exist to make rarely.
+`CoordinateSpaceTests.correctedSubtreeSideEffects`). It is the known issue the
+app header's correction re-render had (`RenderPassScopeTests`) until the
+window's chrome was adopted a frame late, scoped to the subtree, and made only
+as often as a reader's answer moves — which the prediction rungs (design study
+§10 steps 5–7) exist to make rarely. The scene root's correction is not scoped:
+it walks the whole scene again (`RenderLoop.renderContent`, the per-walk
+registries reset as for any walk, the window's bars laid out against the rows
+the first walk was), so on a frame a `.global` reader's prediction misses,
+every effect in the scene runs for both walks — the one walk of the scene a
+frame after the first ever repeats.
 
 **Fuller version:** stage a walk's side effects and adopt only the last
-drawing's — the design the header correction is waiting on too. Days, across
-every side-effecting modifier.
+drawing's. Days, across every side-effecting modifier.
 
 ### B-D5G-5. `CellRect` gains `minX`, `minY`, `origin` and `size` — and still no `midX`/`midY`
 
@@ -172,8 +182,8 @@ frame the user was looking at. A view handling the pointer in a named space
 stamps a marker each frame and so declines the memos above it (its conversion
 is made per frame); in `.local` and `.global` nothing changes. A name nothing
 declares converts in the global space, as SwiftUI's does — and so does a name
-no owner found the view in (its marker dropped on the way up: the app header's
-content, a `Table` cell), for a hover or mouse handler as for a gesture.
+no owner found the view in (its marker dropped on the way up: a `Table` cell),
+for a hover or mouse handler as for a gesture.
 
 ### B-D5G-8. Scroll transitions: the default threshold is taken as `.visible`, unmeasured
 

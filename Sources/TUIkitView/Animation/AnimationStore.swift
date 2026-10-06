@@ -223,7 +223,8 @@ extension AnimationStore {
 
         if let appeared = record.appeared, appeared.pass == pass, appeared.walk != walk {
             // Changed since a first sight in an earlier walk of THIS pass —
-            // one the pass then walked again (the app header's correction; a
+            // one the pass then walked again (the scene root's geometry
+            // correction, which walks the whole scene again; a
             // geometry owner drawing a reader again with where it really is,
             // ``beginWalk()``), whose drawing is never shown. So this is still
             // the appearance, and does not animate either: animated, it slid

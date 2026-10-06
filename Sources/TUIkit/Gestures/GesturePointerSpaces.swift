@@ -111,7 +111,7 @@ extension Optional: PointerSpaceReporting where Wrapped: Gesture {
 /// view's geometry marker (`GeometryAsk`, role `.pointer`). A name nothing
 /// declared around the view is answered in the global space, as SwiftUI's is
 /// — and so is a name no owner has found the view in, its marker dropped on
-/// the way up (the app header's content, a `Table` cell): the global space,
+/// the way up (a `Table` cell): the global space,
 /// for hover and mouse handlers as for a gesture (`GesturePointer`), never the
 /// view's own.
 final class PointerSpaceOrigin: @unchecked Sendable {

@@ -556,7 +556,7 @@
     },
     "GlobalCoordinateSpace": {
       "tuikit": "CoordinateSpace.global",
-      "why": "`CoordinateSpace.global`, the content area's top-left cell (the space pointer locations are reported in). SwiftUI spells the protocol form as a struct; TUIkit has the struct too, and the tool sees the enum case it resolves to. Exact on the frame that draws it: the scene root finds the reader once it has drawn and corrects it in the same frame (decisions A2)."
+      "why": "`CoordinateSpace.global`, the terminal's top-left cell: the screen, the window's bars included (the space pointer locations are reported in). SwiftUI spells the protocol form as a struct; TUIkit has the struct too, and the tool sees the enum case it resolves to. Exact on the frame that draws it: the scene root finds the reader once it has drawn and corrects it in the same frame (decisions A2)."
     },
     "ImageRenderer": {
       "tuikit": "renderToBuffer(_:context:)",
