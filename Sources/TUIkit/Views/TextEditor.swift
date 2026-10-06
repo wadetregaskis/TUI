@@ -940,14 +940,23 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         // so translate through the clicked line's tab layout (a click anywhere
         // in a tab's span puts the caret on the tab).
         let tabWidth = context.environment.tabWidth
-        func placeCursor(at event: MouseEvent) {
+        //
+        // `asSelectionEnd`: the event ends a selection — a drag's head, a
+        // Shift-click — whose end may be a wrapped row's first character
+        // under `.upstream`, where a caret cannot be.
+        func placeCursor(at event: MouseEvent, asSelectionEnd: Bool = false) {
             let row = max(0, min(event.y, height - 1))
             // Wrapping, a click lands in a ROW: on the character whose cells
             // hold it, or past the row's text on its last caret position.
             if let rows = handler.wrappedRows() {
-                let position = handler.position(
-                    atScreenRow: row, column: max(0, min(event.x, contentWidth - 1)), in: rows)
-                handler.moveCursor(toLine: position.line, column: position.column)
+                let column = max(0, min(event.x, contentWidth - 1))
+                if asSelectionEnd {
+                    let position = handler.selectionPosition(atScreenRow: row, column: column, in: rows)
+                    handler.moveCursor(toLine: position.line, column: position.column)
+                } else {
+                    let position = handler.position(atScreenRow: row, column: column, in: rows)
+                    handler.moveCursor(toLine: position.line, column: position.column)
+                }
                 return
             }
             // Valid content columns are 0..<contentWidth: clamping to
@@ -972,21 +981,29 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             case .pressed where event.button == .left:
                 focusManager?.focus(id: focusID)
                 if event.shift {
+                    handler.pressAnchor = nil
                     handler.startOrExtendSelection()
-                    placeCursor(at: event)
+                    placeCursor(at: event, asSelectionEnd: true)
                 } else {
                     // Plain click: place the caret and drop any selection. Do
                     // NOT anchor here — a collapsed anchor (anchor == cursor)
                     // shows no highlight but survives into a phantom one-char
                     // selection on the next arrow key. A drag anchors itself on
-                    // its first .dragged event (startOrExtendSelection below).
+                    // its first .dragged event (startOrExtendSelection below),
+                    // where the press landed as a selection's end: wrapping,
+                    // that can be a row's first character the caret is not on.
                     placeCursor(at: event)
                     handler.clearSelection()
+                    handler.pressAnchor = handler.wrappedRows().map { rows in
+                        handler.selectionPosition(
+                            atScreenRow: max(0, min(event.y, height - 1)),
+                            column: max(0, min(event.x, contentWidth - 1)), in: rows)
+                    }
                 }
                 return true
             case .dragged:
-                handler.startOrExtendSelection()
-                placeCursor(at: event)
+                handler.startOrExtendSelection(from: handler.pressAnchor)
+                placeCursor(at: event, asSelectionEnd: true)
                 return true
             case .released where event.button == .left:
                 return true

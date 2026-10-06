@@ -269,6 +269,22 @@ struct VerticalTextFieldTests {
         #expect(model.text == "abc\ndeXfgh")
     }
 
+    /// Upstream a caret cannot be on a wrapped row's first character, but a
+    /// selection's end can: a drag from that cell takes the character.
+    @Test("Upstream, a drag from a wrapped row's first cell selects its first character")
+    func upstreamDragFromRowStart() {
+        let harness = InputChainHarness(width: 7)
+        let model = Model("aaaa bbbb cccc")
+        let view = { field(model).textSelectionAffinity(.upstream) }
+        harness.frame(view())
+        harness.frame(view())
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 0, y: 1))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 4, y: 1))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 4, y: 1))
+        harness.play([key("X")]) { view() }
+        #expect(model.text == "aaaa X cccc")
+    }
+
     @Test("With suggestions, Down moves a row until the caret is on the last, and opens them there")
     func suggestionsOpenFromTheLastRow() {
         let harness = InputChainHarness(width: 20)

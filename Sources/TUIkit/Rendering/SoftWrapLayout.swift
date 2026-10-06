@@ -239,8 +239,27 @@ struct SoftWrapLayout: Equatable {
     /// there drew the caret back on the row it came from: every later Down
     /// came back to it.
     func offset(inRow row: Int, atColumn column: Int, affinity: TextSelectionAffinity) -> Int {
-        let first = firstCaretOffset(inRow: row, affinity: affinity)
-        let last = lastCaretOffset(inRow: row, affinity: affinity)
+        offset(
+            inRow: row, atColumn: column, first: firstCaretOffset(inRow: row, affinity: affinity),
+            last: lastCaretOffset(inRow: row, affinity: affinity))
+    }
+
+    /// The offset a selection's end takes at `column` of `row` — where a drag
+    /// starts or reaches, or a Shift-click extends to: as
+    /// ``offset(inRow:atColumn:affinity:)``, except that a row's first
+    /// character is always reachable. A selection's end is drawn as the edge
+    /// of a range, never as a caret, so `.upstream`'s lean has nothing to say
+    /// about it: under it a drag starting on a wrapped row's first cell could
+    /// not take that row's first character, "bbbb" selecting as "bbb".
+    func selectionOffset(inRow row: Int, atColumn column: Int, affinity: TextSelectionAffinity) -> Int {
+        offset(
+            inRow: row, atColumn: column, first: rows[row].start,
+            last: lastCaretOffset(inRow: row, affinity: affinity))
+    }
+
+    /// The offset before the character whose cells hold `column`, held to
+    /// `first...last`, or `last` past the row's text.
+    private func offset(inRow row: Int, atColumn column: Int, first: Int, last: Int) -> Int {
         var cellX = 0
         for offset in rows[row].start..<rows[row].end {
             let next = cellX + cellWidths[offset]

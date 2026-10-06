@@ -35,8 +35,12 @@ extension TextEditorHandler {
     /// Moves the caret `delta` rows, keeping the column it was asked to keep
     /// through short rows, as an `NSTextView` does (measured on macOS 15.8):
     /// Up from the first row goes to the start of the text, Down from the last
-    /// to its end. A row it lands on that wrapped keeps the caret before its
-    /// last character, whose end is drawn on the next row.
+    /// to its end. The caret lands on an offset the editor's affinity draws on
+    /// the row it moved to (``SoftWrapLayout/offset(inRow:atColumn:affinity:)``):
+    /// downstream, a row that wrapped keeps it before its last character,
+    /// whose end is drawn on the next row; upstream, a row that continues a
+    /// paragraph keeps it after its first, whose start is drawn on the row
+    /// before.
     ///
     /// - Parameter pastTheEnds: Whether a motion past the first or last row
     ///   goes to the text's start or end — the arrows' and Ctrl-P's and N's,
@@ -92,5 +96,16 @@ extension TextEditorHandler {
     func position(atScreenRow row: Int, column: Int, in rows: WrappedRows) -> (line: Int, column: Int) {
         let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
         return (line, rows.lines[line].offset(inRow: rowInLine, atColumn: column, affinity: selectionAffinity))
+    }
+
+    /// The position a selection's end takes at `column` of the on-screen
+    /// `row` — a drag's start and its head, a Shift-click's end: as
+    /// ``position(atScreenRow:column:in:)``, but a wrapped row's first
+    /// character is reachable under `.upstream` too
+    /// (``SoftWrapLayout/selectionOffset(inRow:atColumn:affinity:)``).
+    func selectionPosition(atScreenRow row: Int, column: Int, in rows: WrappedRows) -> TextEditorPosition {
+        let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
+        let offset = rows.lines[line].selectionOffset(inRow: rowInLine, atColumn: column, affinity: selectionAffinity)
+        return TextEditorPosition(line: line, column: offset)
     }
 }

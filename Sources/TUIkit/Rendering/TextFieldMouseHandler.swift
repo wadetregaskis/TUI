@@ -82,6 +82,11 @@ enum TextFieldMouseHandler {
     ///     toggles the suggestions menu instead of moving the caret.
     ///   - caretOffset: The character offset a press or drag at the event's
     ///     buffer-local cell puts the caret at.
+    ///   - selectionOffset: The offset the event's cell is as a selection's
+    ///     end — a drag's start and head, a Shift-click's end — where that
+    ///     differs from the caret's: a vertical field's wrapped row's first
+    ///     character under `.upstream`, where no caret is drawn. `nil` for a
+    ///     field on one line, whose two are the same.
     @MainActor
     static func register(
         buffer: inout FrameBuffer,
@@ -90,7 +95,8 @@ enum TextFieldMouseHandler {
         persistedFocusID: String,
         hoverBox: StateBox<Bool>,
         isDisclosure: @escaping (MouseEvent) -> Bool,
-        caretOffset: @escaping (MouseEvent) -> Int
+        caretOffset: @escaping (MouseEvent) -> Int,
+        selectionOffset: ((MouseEvent) -> Int)? = nil
     ) {
         guard !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
@@ -137,23 +143,26 @@ enum TextFieldMouseHandler {
                 }
                 if event.shift {
                     // Shift-click: keep the anchor, extend to the clicked column.
+                    handler.pressAnchor = nil
                     handler.startOrExtendSelection()
-                    handler.cursorPosition = caretOffset(event)
+                    handler.cursorPosition = (selectionOffset ?? caretOffset)(event)
                 } else {
                     // Plain click: caret to the column and drop any selection.
                     // Don't anchor here — a drag anchors on its first .dragged
                     // event; anchoring on the press would leave a collapsed
                     // anchor that a later arrow key turns into a phantom
-                    // selection.
+                    // selection. The drag anchors where the press landed as a
+                    // selection's end, where that is not the caret's place.
                     handler.cursorPosition = caretOffset(event)
                     handler.clearSelection()
+                    handler.pressAnchor = selectionOffset?(event)
                 }
                 return true
             case .dragged:
                 // The press was claimed, so this drag is bound to us: extend the
-                // selection to the dragged column, anchor unchanged.
-                handler.startOrExtendSelection()
-                handler.cursorPosition = caretOffset(event)
+                // selection to the dragged column, anchored at the press.
+                handler.startOrExtendSelection(from: handler.pressAnchor)
+                handler.cursorPosition = (selectionOffset ?? caretOffset)(event)
                 return true
             case .released where event.button == .left:
                 return true

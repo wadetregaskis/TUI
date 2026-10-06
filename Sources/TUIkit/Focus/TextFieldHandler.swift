@@ -149,6 +149,12 @@ final class TextFieldHandler: PersistedFocusable {
     /// When set, the selection spans from `selectionAnchor` to `cursorPosition`.
     var selectionAnchor: Int?
 
+    /// Where the last plain press landed as a selection's end, for the drag
+    /// that may follow it to anchor at — a vertical field's wrapped row's
+    /// first character included, which the caret the press placed cannot be
+    /// on under `.upstream`. `nil` anchors a drag at the caret.
+    var pressAnchor: Int?
+
     /// The app's selection binding — `TextField(…selection:)`,
     /// `TextEditor(text:selection:)` — or `nil` for none. See
     /// ``_TextSelectionChannel``.
@@ -307,11 +313,12 @@ extension TextFieldHandler {
 
     /// Starts or extends a selection from the current cursor position.
     ///
-    /// If no selection exists, sets the anchor at the current cursor position.
-    /// If a selection exists, the anchor stays where it is.
-    func startOrExtendSelection() {
+    /// If no selection exists, sets the anchor at `start` — a drag's press
+    /// (``pressAnchor``) — or else at the current cursor position. If a
+    /// selection exists, the anchor stays where it is.
+    func startOrExtendSelection(from start: Int? = nil) {
         if selectionAnchor == nil {
-            selectionAnchor = cursorPosition
+            selectionAnchor = start.map { min(max(0, $0), text.wrappedValue.count) } ?? cursorPosition
         }
     }
 

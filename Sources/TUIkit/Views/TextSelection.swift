@@ -19,7 +19,9 @@
 /// which TUIkit does not track). Up and Down, and a click past a wrapped row's
 /// end, keep to the row the affinity picks: under `.upstream` the start of a
 /// wrapped row is the end of the row before it, so a caret moved or clicked
-/// onto that row lands after its first character. A wrapping ``TextEditor``
+/// onto that row lands after its first character. A selection's ends are not
+/// carets, so a drag or a Shift-click still starts or ends one before that
+/// character, taking it in. A wrapping ``TextEditor``
 /// draws its caret the same way; one that scrolls sideways
 /// (``View/textEditorWrapsLines(_:)``) has no shared positions, and only
 /// reports the affinity.

@@ -210,17 +210,22 @@ extension _TextFieldCore {
         drawn: (leading: Int, firstRow: Int, rowCount: Int), disclosure: Range<Int>?
     ) {
         let (leading, firstRow, rowCount) = drawn
+        // The live text, laid out as the field's keys lay it out: the event may
+        // arrive frames after this render. A selection's end may be a wrapped
+        // row's first character, where an upstream caret is not drawn.
+        func offset(at event: MouseEvent, asSelectionEnd: Bool) -> Int {
+            guard let layout = handler.softWrapLayout() else { return handler.cursorPosition }
+            let row = min(firstRow + max(0, min(event.y, rowCount - 1)), layout.rows.count - 1)
+            let column = max(0, min(event.x - leading, layout.width - 1))
+            return asSelectionEnd
+                ? layout.selectionOffset(inRow: row, atColumn: column, affinity: handler.selectionAffinity)
+                : layout.offset(inRow: row, atColumn: column, affinity: handler.selectionAffinity)
+        }
         TextFieldMouseHandler.register(
             buffer: &buffer, context: context, handler: handler, persistedFocusID: persistedFocusID,
             hoverBox: hoverBox,
             isDisclosure: { event in event.y == 0 && (disclosure?.contains(event.x) ?? false) },
-            caretOffset: { event in
-                // The live text, laid out as the field's keys lay it out: the
-                // event may arrive frames after this render.
-                guard let layout = handler.softWrapLayout() else { return handler.cursorPosition }
-                let row = min(firstRow + max(0, min(event.y, rowCount - 1)), layout.rows.count - 1)
-                let column = max(0, min(event.x - leading, layout.width - 1))
-                return layout.offset(inRow: row, atColumn: column, affinity: handler.selectionAffinity)
-            })
+            caretOffset: { event in offset(at: event, asSelectionEnd: false) },
+            selectionOffset: { event in offset(at: event, asSelectionEnd: true) })
     }
 }

@@ -31,6 +31,13 @@ final class TextEditorHandler: PersistedFocusable {
     /// mouse handler and consumed/cleared by the next keystroke.
     var selectionAnchor: TextEditorPosition?
 
+    /// Where the last plain press landed as a selection's end, for the drag
+    /// that may follow it to anchor at
+    /// (``selectionPosition(atScreenRow:column:in:)``): a wrapped row's first
+    /// character included, which the caret the press placed cannot be on
+    /// under `.upstream`. `nil` anchors a drag at the caret.
+    var pressAnchor: TextEditorPosition?
+
     /// The app's selection binding — `TextField(…selection:)`,
     /// `TextEditor(text:selection:)` — or `nil` for none. See
     /// ``_TextSelectionChannel``.
@@ -756,12 +763,18 @@ extension TextEditorHandler {
         selectionAnchor = nil
     }
 
-    /// Anchors a selection at the current cursor if none exists (drag /
-    /// Shift-click), leaving an existing anchor in place.
-    func startOrExtendSelection() {
-        if selectionAnchor == nil {
+    /// Anchors a selection at `start` — a drag's press (``pressAnchor``) — or
+    /// at the cursor if none exists (drag / Shift-click), leaving an existing
+    /// anchor in place.
+    func startOrExtendSelection(from start: TextEditorPosition? = nil) {
+        guard selectionAnchor == nil else { return }
+        guard let start else {
             selectionAnchor = cursor
+            return
         }
+        let lines = readLines()
+        let line = min(max(0, start.line), lines.count - 1)
+        selectionAnchor = TextEditorPosition(line: line, column: min(max(0, start.column), lines[line].count))
     }
 
     /// Positions the cursor at a clicked point, clamped into the text. Used by

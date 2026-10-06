@@ -109,6 +109,32 @@ struct TextEditorWrapTests {
         #expect(handler.caretRow(in: try #require(handler.wrappedRows())) == 1)
     }
 
+    /// Upstream a caret cannot be on a wrapped row's first character — its
+    /// start is drawn at the end of the row before — but a selection's end
+    /// can: a drag that starts or ends on that cell takes the character.
+    @Test("Upstream, a drag from or to a wrapped row's first cell selects its first character")
+    func upstreamDragAtRowStart() throws {
+        let (harness, page, handler) = try editor("aaaa bbbb cccc", width: 6, affinity: .upstream)
+        let rowY = try #require(harness.frame(page).lines.firstIndex { $0.stripped.hasPrefix("bbbb") })
+        func drag(from: Int, to: Int) throws -> String {
+            harness.mouse(MouseEvent(button: .left, phase: .pressed, x: from, y: rowY))
+            harness.frame(page)
+            harness.mouse(MouseEvent(button: .left, phase: .dragged, x: to, y: rowY))
+            harness.frame(page)
+            harness.mouse(MouseEvent(button: .left, phase: .released, x: to, y: rowY))
+            harness.frame(page)
+            return handler.selectedText(try #require(handler.selectionRange))
+        }
+        #expect(try drag(from: 0, to: 4) == "bbbb")
+        #expect(try drag(from: 4, to: 0) == "bbbb")
+        // A plain click there still puts the caret on the row, after the
+        // character (B-D4X-16).
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 0, y: rowY))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: rowY))
+        harness.frame(page)
+        #expect(caret(handler) == [0, 6])
+    }
+
     @Test("Up from the first row goes to the start, and Down from the last to the end")
     func pastTheEnds() throws {
         let (harness, page, handler) = try editor()

@@ -220,14 +220,20 @@ it.
 **Shipped:** under `.textSelectionAffinity(.upstream)` the start of a wrapped
 row is drawn at the end of the row before it, so Up, Down and a click put a
 caret on a wrapped row at its first upstream position, after its first
-character, in a vertical `TextField` and a wrapping `TextEditor` alike. The
-affinity is the view's, one for every caret.
+character, in a vertical `TextField` and a wrapping `TextEditor` alike. A
+selection's ends are not carets: a drag that starts or ends on a wrapped
+row's first cell, and a Shift-click there, take that character in ("aaaa
+bbbb cccc" at width 6, dragged across "bbbb" from its first cell, selects
+"bbbb"; review 2 found it selecting "bbb" once the caret rule fed the drag).
+The affinity is the view's, one for every caret.
 
 **The fuller version:** an affinity per caret, as the macOS text system keeps
 — a caret an arrow key moved to a row's start leans downstream and is drawn
 there, one typed or clicked to the end of a row leans upstream — with the
 view's affinity as the default. Half a day in `SoftWrapLayout` and the two
-handlers.
+handlers. Downstream, the mirror case is unchanged from before the rule: a
+drag ending on a wrapped row's trailing margin stops before its hanging
+space, which a drag onto the next row takes.
 
 ### B-D4X-17. `.textSelection(.enabled)` on a Table cell's Text makes the row's text selectable
 
