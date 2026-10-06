@@ -34,7 +34,7 @@
 final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// An app shortcut's action, whether a held key's repeats run it again,
     /// and when in the frame it was registered (``registrationCount``).
-    private struct Entry {
+    struct Entry {
         let repeats: Bool
         let action: () -> Void
         let serial: Int
@@ -78,16 +78,16 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
         actions[shortcut.trigger] = Entry(repeats: repeats, action: action, serial: registrationCount)
     }
 
-    /// The action `shortcut` runs, if its registration — the last this frame
-    /// on its trigger — came after `mark`, a ``registrationCount`` taken
-    /// earlier in the frame: a shortcut registered by whatever rendered in
-    /// between, and not since overridden.
+    /// What `shortcut` runs, and whether a held key repeats it, if its
+    /// registration — the last this frame on its trigger — came after `mark`,
+    /// a ``registrationCount`` taken earlier in the frame: a shortcut
+    /// registered by whatever rendered in between, and not since overridden.
     ///
     /// How a presenter finds its content's cancel button
-    /// (``DismissalGate/cancelAction``).
-    func action(for shortcut: KeyboardShortcut, registeredAfter mark: Int) -> (() -> Void)? {
+    /// (``DismissalGate/cancelButton``).
+    func entry(for shortcut: KeyboardShortcut, registeredAfter mark: Int) -> Entry? {
         guard let entry = actions[shortcut.trigger], entry.serial > mark else { return nil }
-        return entry.action
+        return entry
     }
 
     /// Registers a framework default for `shortcut`, which fires only when no

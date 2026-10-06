@@ -168,12 +168,13 @@ final class DismissalGate: Equatable {
     /// yes.
     var interceptor: ((@escaping () -> Void) -> Void)?
 
-    /// The action of the cancel button the content drew last frame — a
-    /// button with `.keyboardShortcut(.cancelAction)`, as a
-    /// `.cancellationAction` toolbar item's is — which the presenter's Escape
-    /// runs in place of its own dismissal while nothing asks first
-    /// (``escape(_:)``). `nil` when the content drew none.
-    var cancelAction: (() -> Void)?
+    /// The cancel button the content drew last frame — a button with
+    /// `.keyboardShortcut(.cancelAction)`, as a `.cancellationAction` toolbar
+    /// item's is: its action, which the presenter's Escape runs in place of
+    /// its own dismissal while nothing asks first, and whether a held
+    /// Escape's repeats run it again (``escape(isRepeat:_:)``). `nil` when the
+    /// content drew none.
+    var cancelButton: KeyboardShortcutRegistry.Entry?
 
     /// Dismisses through the interceptor, if one asked to be asked.
     func dismiss(_ proceed: @escaping () -> Void) {
@@ -201,20 +202,35 @@ final class DismissalGate: Equatable {
     /// then calls `dismiss()`, which asks too — but only once the action has
     /// run, so a press would lose the unsaved changes before the question the
     /// app put in the way of closing was asked.
-    func escape(_ proceed: @escaping () -> Void) {
-        if escapePressesCancelButton, let cancelAction {
-            cancelAction()
-        } else {
+    ///
+    /// A held Escape's repeat (`isRepeat`, which only a terminal speaking the
+    /// kitty keyboard protocol tells from a press) presses the button again
+    /// only if the button repeats — `.buttonRepeatBehavior(.enabled)` — as
+    /// its own `.keyboardShortcut` would: otherwise it is taken and runs
+    /// nothing, so a Cancel that keeps the sheet up runs once per press, not
+    /// once per repeat.
+    func escape(isRepeat: Bool, _ proceed: @escaping () -> Void) {
+        guard escapePressesCancelButton, let cancelButton else {
             dismiss(proceed)
+            return
         }
+        if isRepeat, !cancelButton.repeats { return }
+        cancelButton.action()
     }
 
     /// Whether the presenter's Escape presses the content's cancel button
-    /// this frame (``escape(_:)``), rather than dismissing: what the status
-    /// bar calls it by — "cancel", not "dismiss", for a Cancel that may keep
-    /// the presentation up.
+    /// this frame (``escape(isRepeat:_:)``), rather than dismissing: what the
+    /// status bar calls it by — "cancel", not "dismiss", for a Cancel that may
+    /// keep the presentation up.
     var escapePressesCancelButton: Bool {
-        interceptor == nil && cancelAction != nil
+        interceptor == nil && cancelButton != nil
+    }
+
+    /// Whether a held Escape's repeats do what its press did: not while it
+    /// presses a cancel button that does not repeat (``escape(isRepeat:_:)``).
+    var escapeRepeats: Bool {
+        guard escapePressesCancelButton, let cancelButton else { return true }
+        return cancelButton.repeats
     }
 
     /// What the status bar calls the presenter's Escape: `dismissal`, the
@@ -225,15 +241,15 @@ final class DismissalGate: Equatable {
     }
 
     /// Draws the presented content with `render`, and takes the cancel button
-    /// it registered, if any, for ``escape(_:)``. A measurement registers
-    /// nothing, and takes nothing.
+    /// it registered, if any, for ``escape(isRepeat:_:)``. A measurement
+    /// registers nothing, and takes nothing.
     func drawingContent<Result>(context: RenderContext, _ render: () -> Result) -> Result {
         guard !context.isMeasuring, let registry = context.environment.keyboardShortcutRegistry else {
             return render()
         }
         let mark = registry.registrationCount
         let result = render()
-        cancelAction = registry.action(for: .cancelAction, registeredAfter: mark)
+        cancelButton = registry.entry(for: .cancelAction, registeredAfter: mark)
         return result
     }
 
@@ -262,7 +278,7 @@ func presentationDismissalGate(context: RenderContext, propertyIndex: Int) -> Di
     let gate: StateBox<DismissalGate>? = context.stateStorage?.storage(for: key, default: DismissalGate())
     let resolved = gate?.value ?? DismissalGate()
     resolved.interceptor = nil
-    resolved.cancelAction = nil
+    resolved.cancelButton = nil
     return resolved
 }
 

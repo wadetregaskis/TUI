@@ -143,7 +143,7 @@ extension ModalPresentationModifier: Renderable {
         // content's cancel button where it drew one, as on macOS
         // (`DismissalGate.escape`).
         let isPresented = self.isPresented
-        let escape = { gate.escape { isPresented.wrappedValue = false } }
+        let escape = { (isRepeat: Bool) in gate.escape(isRepeat: isRepeat) { isPresented.wrappedValue = false } }
         // The ESC item's registration, named again once the content has
         // drawn (below).
         var escapeItemRegistration: Int?
@@ -214,7 +214,7 @@ extension ModalPresentationModifier: Renderable {
                     sectionID: sectionID
                 ) { event in
                     guard event.key == .escape else { return false }
-                    escape()
+                    escape(event.phase == .repeat)
                     return true
                 }
             }
@@ -305,7 +305,8 @@ extension ModalPresentationModifier: Renderable {
         // Registered before the content drew, so that the content's own items
         // in this section replace it, the ESC item is named for what Escape
         // does now it has: "cancel" where it presses the content's cancel
-        // button, which may keep the sheet up — not "dismiss".
+        // button, which may keep the sheet up — not "dismiss" — and repeating
+        // only if that button does.
         if let escapeItemRegistration, gate.escapePressesCancelButton {
             context.environment.statusBar?.replaceSectionItems(
                 registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
@@ -335,11 +336,15 @@ extension ModalPresentationModifier: Renderable {
     }
 
     /// The presentation's ESC item on the status bar: `escape`, named for
-    /// what it does this frame (``DismissalGate/escapeLabel(dismissal:)``).
-    private func escapeItem(gate: DismissalGate, escape: @escaping () -> Void) -> StatusBarItem {
-        StatusBarItem(shortcut: Shortcut.escape, label: gate.escapeLabel(dismissal: .dismiss)) {
-            escape()
+    /// what it does this frame (``DismissalGate/escapeLabel(dismissal:)``),
+    /// and taking a held Escape's repeats as that does
+    /// (``DismissalGate/escapeRepeats``). A click is a press.
+    private func escapeItem(gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void) -> StatusBarItem {
+        var item = StatusBarItem(shortcut: Shortcut.escape, label: gate.escapeLabel(dismissal: .dismiss)) {
+            escape(false)
         }
+        item.repeats = gate.escapeRepeats
+        return item
     }
 
     /// Renders the presented content at the size its style gives it: a sheet

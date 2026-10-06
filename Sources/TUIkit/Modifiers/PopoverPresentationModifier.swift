@@ -214,7 +214,7 @@ extension PopoverPresentationModifier: Renderable {
                 guard event.key == .escape else { return false }
                 // The content's cancel button where it drew one, as on macOS
                 // (`DismissalGate.escape`); an outside click still dismisses.
-                gate.escape { isPresented.wrappedValue = false }
+                gate.escape(isRepeat: event.phase == .repeat) { isPresented.wrappedValue = false }
                 return true
             }
         }

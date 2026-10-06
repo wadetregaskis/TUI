@@ -550,6 +550,10 @@ extension StatusBarState {
             }
             if let statusBarItem = item as? StatusBarItem {
                 if statusBarItem.hasAction {
+                    // A held key's repeat, for an item that does not repeat,
+                    // runs nothing and is still taken: it reaches nothing
+                    // below either (`KeyboardShortcutRegistry.trigger(for:)`).
+                    if event.phase == .repeat, !statusBarItem.repeats { return true }
                     statusBarItem.execute()
                     return true
                 }

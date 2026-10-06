@@ -3,7 +3,8 @@
 //
 //  Escape on a sheet or a popover whose content draws a cancel button presses
 //  that button: the status bar names the key for it, "cancel" rather than the
-//  presentation's own "dismiss" or "close popover".
+//  presentation's own "dismiss" or "close popover", and a held Escape's
+//  repeats press it again only if the button repeats.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -28,11 +29,12 @@ struct PresentationCancelButtonTests {
 
     /// The content of a sheet with a `.cancellationAction` item, and a
     /// dismissal confirmation that asks while `model.unsaved`.
-    private func draft(_ model: Model) -> some View {
+    private func draft(_ model: Model, repeats: Bool = false) -> some View {
         Text("draft")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Revert") { model.cancels += 1 }
+                        .buttonRepeatBehavior(repeats ? .enabled : .automatic)
                 }
             }
             .dismissalConfirmationDialog("Discard?", shouldPresent: model.unsaved) {
@@ -40,18 +42,41 @@ struct PresentationCancelButtonTests {
             }
     }
 
-    private func sheet(_ model: Model) -> some View {
-        Text("page").sheet(isPresented: model.binding) { draft(model) }
+    private func sheet(_ model: Model, repeats: Bool = false) -> some View {
+        Text("page").sheet(isPresented: model.binding) { draft(model, repeats: repeats) }
+    }
+
+    /// A sheet whose content puts items of its own in the sheet's section,
+    /// which replace its ESC item: Escape reaches the sheet's key handler.
+    private func sheetWithItems(_ model: Model) -> some View {
+        Text("page").sheet(isPresented: model.binding) {
+            draft(model).statusBarItems([StatusBarItem(shortcut: "r", label: "reload")])
+        }
     }
 
     private func plainSheet(_ model: Model) -> some View {
         Text("page").sheet(isPresented: model.binding) { Text("draft") }
     }
 
-    private func popover(_ model: Model) -> some View {
+    private func popover(_ model: Model, repeats: Bool = false) -> some View {
         Text("page").popover(isPresented: model.binding) {
-            Button("Revert") { model.cancels += 1 }.keyboardShortcut(.cancelAction)
+            Button("Revert") { model.cancels += 1 }
+                .keyboardShortcut(.cancelAction)
+                .buttonRepeatBehavior(repeats ? .enabled : .automatic)
         }
+    }
+
+    /// Escape, then two of its repeats, a frame after each, into the view
+    /// `build` makes: how many times the cancel button ran, and whether each
+    /// key was taken.
+    private func holdEscape(_ model: Model, _ build: () -> some View) -> (cancels: Int, taken: [Bool]) {
+        let harness = InputChainHarness(width: 60, height: 20)
+        let taken = harness.play(
+            [
+                KeyEvent(key: .escape), KeyEvent(key: .escape, phase: .repeat),
+                KeyEvent(key: .escape, phase: .repeat),
+            ], build)
+        return (model.cancels, taken)
     }
 
     private func plainPopover(_ model: Model) -> some View {
@@ -98,5 +123,36 @@ struct PresentationCancelButtonTests {
         plain.frame(plainPopover(model))
         plain.frame(plainPopover(model))
         #expect(plain.statusBar.escapeLabelOverride == "close popover")
+    }
+
+    @Test("A held Escape presses a sheet's cancel button once, unless the button repeats")
+    func sheetCancelButtonRepeatsOnlyIfItDoes() {
+        let model = Model()
+        let held = holdEscape(model) { sheet(model) }
+        #expect(held.cancels == 1, "the press, not the repeats")
+        #expect(held.taken == [true, true, true], "the repeats are taken, and reach nothing else")
+        #expect(model.presented)
+
+        let repeating = Model()
+        #expect(holdEscape(repeating) { sheet(repeating, repeats: true) }.cancels == 3)
+    }
+
+    @Test("So does a held Escape that reaches the sheet's key handler, with no ESC item on the bar")
+    func sheetHandlerRepeatsOnlyIfTheButtonDoes() {
+        let model = Model()
+        let held = holdEscape(model) { sheetWithItems(model) }
+        #expect(held.cancels == 1)
+        #expect(held.taken == [true, true, true])
+    }
+
+    @Test("A held Escape presses a popover's cancel button once, unless the button repeats")
+    func popoverCancelButtonRepeatsOnlyIfItDoes() {
+        let model = Model()
+        let held = holdEscape(model) { popover(model) }
+        #expect(held.cancels == 1)
+        #expect(held.taken == [true, true, true])
+
+        let repeating = Model()
+        #expect(holdEscape(repeating) { popover(repeating, repeats: true) }.cancels == 3)
     }
 }

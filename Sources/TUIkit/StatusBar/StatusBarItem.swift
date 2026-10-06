@@ -225,6 +225,13 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
     /// made through the public initializers.
     let matchesKeys: Bool
 
+    /// Whether a held key's repeats run the action again: `true` unless the
+    /// framework says otherwise — a presentation's ESC item while Escape
+    /// presses a cancel button that does not repeat
+    /// (`DismissalGate.escapeRepeats`). A repeat that does not run it is
+    /// still taken, as the keyboard-shortcut registry takes one.
+    var repeats = true
+
     /// Creates a status bar item with a localized label and an action.
     ///
     /// A string **literal** binds here, so it is a lookup key — see
