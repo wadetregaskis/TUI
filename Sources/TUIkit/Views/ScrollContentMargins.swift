@@ -296,17 +296,22 @@ extension _ScrollViewCore {
         viewport: CellSize, textLines: TextIndicatorLines, context: RenderContext
     ) -> CellSize {
         let container = unreservedContainerSize(viewport: viewport, context: context)
-        // The bar known without a measure, as `resolveScrollbars` takes it: a
-        // horizontal view's `.visible` one. Asked of a vertical view's axes
-        // first, which spares it the environment read.
-        let bar = axes.contains(.horizontal) && context.environment.horizontalScrollIndicatorVisibility == .visible
-        // The bar's indicator margin, which it moves in by, comes off with it,
-        // as `resolveChrome` takes them.
-        let barMargin = bar ? indicatorMargins(context).bottom : 0
+        let (bar, barMargin) = knownHorizontalBar(context)
         let text = textLines.fitted(viewportHeight: viewport.height - barMargin, horizontalBar: bar)
         let taken = (bar ? 1 + barMargin : 0) + (text.reserved ? 2 : 0)
         guard taken > 0 else { return container }
         return CellSize(width: container.width, height: max(0, container.height - taken))
+    }
+
+    /// The horizontal bar known without a measure, as `resolveScrollbars`
+    /// takes it — a horizontal view's `.visible` one — and the indicator
+    /// margin it moves in by, which comes off the window with it, as
+    /// `resolveChrome` takes them. Asked of a vertical view's axes first,
+    /// which spares it the environment read.
+    private func knownHorizontalBar(_ context: RenderContext) -> (drawn: Bool, margin: Int) {
+        guard axes.contains(.horizontal), context.environment.horizontalScrollIndicatorVisibility == .visible
+        else { return (false, 0) }
+        return (true, indicatorMargins(context).bottom)
     }
 
     /// The container with nothing reserved out of it: the viewport less the
