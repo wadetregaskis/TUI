@@ -661,17 +661,11 @@ extension MouseEventDispatcher {
         closeUndrawnPopup = closing
     }
 
-    /// Whether the press of the gesture in flight opened a pop-up menu
-    /// (``pressOpenedPopup(closing:)``) — true for its drags and its release
-    /// too, and whether or not the menu is still up when they arrive. A menu
-    /// that builds nothing closes on the frame after the press; the rest of
-    /// the gesture is still the menu's, not a click on what is under it.
-    var gestureOpenedPopup: Bool { pressOpenedPopupMenu }
-
     /// Whether `event` is a drag or the release of a gesture whose press
     /// opened a pop-up menu (``pressOpenedPopup(closing:)``): the rest of that
     /// gesture, which is the menu's, whether or not the menu is still up when
-    /// it arrives, and never a click on what lies under it.
+    /// it arrives, and never a click on what lies under it. (A menu that
+    /// builds nothing closes on the frame after the press.)
     ///
     /// Only those two phases. The record of the press can outlive its
     /// gesture — a release the terminal lost, or a press the gesture arena
@@ -814,7 +808,7 @@ extension MouseEventDispatcher {
         defer {
             if event.phase == .released {
                 // After routing, so whatever the release landed on has asked
-                // the gesture (``gestureOpenedPopup``) and spent it.
+                // the gesture (``followsPopupOpeningPress(_:)``) and spent it.
                 if !renderedSincePress, endsHeldGesture(event) { closeUndrawnPopup?() }
                 pressOrigin = nil
                 pointerMovedSincePress = false

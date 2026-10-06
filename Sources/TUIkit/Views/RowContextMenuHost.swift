@@ -157,14 +157,14 @@ enum RowContextMenuHost {
     ///   - menu: The container's row menu, or `nil` when it has none.
     ///   - dispatcher: The dispatcher the event came through, which knows
     ///     whether the gesture in flight opened a menu
-    ///     (``MouseEventDispatcher/gestureOpenedPopup``).
+    ///     (``MouseEventDispatcher/followsPopupOpeningPress(_:)``).
     ///   - row: The row under the event, asked only for a press that opens.
     /// - Returns: `true` when the event is spent — scrolled, a press that
-    ///   opened a menu, or the rest of a gesture whose press opened any
-    ///   pop-up; `false` for a right press with nothing to open, which then
-    ///   goes on to a menu around the container; `nil` for an event the
-    ///   container's own handling answers — any other, and a Ctrl-click with
-    ///   nothing to open, which is still a click.
+    ///   opened a menu, or a drag or the release of a gesture whose press
+    ///   opened any pop-up; `false` for a right press with nothing to open,
+    ///   which then goes on to a menu around the container; `nil` for an
+    ///   event the container's own handling answers — any other, and a
+    ///   Ctrl-click with nothing to open, which is still a click.
     static func preflight(
         _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?,
         dispatcher: MouseEventDispatcher, row: () -> Int?
@@ -186,7 +186,13 @@ enum RowContextMenuHost {
         // land on them. A release there was a click on a row, carrying its
         // press's Ctrl, where with a frame between the menu's backdrop took
         // it.
-        if event.phase != .pressed, dispatcher.gestureOpenedPopup { return true }
+        //
+        // Its drags and its release only: the record of that press stands
+        // until the next one, and the motion, wheel and hover between are
+        // nobody's gesture. Spent here, every move over the rows was a render
+        // and a wheel the rows could not scroll never reached a scroller
+        // around them.
+        if dispatcher.followsPopupOpeningPress(event) { return true }
         guard let menu, isSecondary(event) else { return nil }
         if event.phase == .pressed, menu.contentColumns.contains(event.x),
             menu.contentLines.contains(event.y), menu.open(row(), event.x, event.y)

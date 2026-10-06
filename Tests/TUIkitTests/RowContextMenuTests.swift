@@ -56,6 +56,10 @@ private final class Rows {
         /// A list with a selection binding and no menu of its own, under a
         /// text with a `.contextMenu`.
         case listUnderMenu
+        /// A pull-down `Menu` above a scroll view holding a list with no menu
+        /// of its own and its scrolling disabled, with lines below it to
+        /// scroll to.
+        case menuAboveList
     }
 }
 
@@ -75,6 +79,8 @@ private struct RowsApp: App {
         WindowGroup {
             if let rows { RowsPage(rows: rows) }
         }
+        // Motion too, for the hover a list hears.
+        .mouseSupport(.full)
     }
 }
 
@@ -97,6 +103,7 @@ private struct RowsPage: View {
         case .selectionMenuInMenu:
             selectionMenuTable.contextMenu { Button("outer") { rows.ran.append("outer") } }
         case .listUnderMenu: listUnderMenu
+        case .menuAboveList: menuAboveList
         }
     }
 
@@ -232,6 +239,23 @@ private struct RowsPage: View {
                 ForEach(items) { item in Text(item.name) }
             }
             .frame(height: 8)
+        }
+    }
+
+    private var menuAboveList: some View {
+        VStack {
+            Menu("pull") { Button("pulled") { rows.ran.append("pulled") } }
+            ScrollView {
+                VStack {
+                    List(selection: Bindable(rows).selection) {
+                        ForEach(items) { item in Text(item.name) }
+                    }
+                    .scrollDisabled(true)
+                    .frame(height: 6)
+                    ForEach(1...12, id: \.self) { Text(verbatim: "below\($0)") }
+                }
+            }
+            .frame(height: 9)
         }
     }
 
@@ -548,6 +572,35 @@ struct RowContextMenuTests {
         harness.frame()
         #expect(harness.rows.selection == [2, 3], "the release toggled the row:\n\(harness.screen)")
         #expect(harness.shows("outer"), "a click's release closed the menu:\n\(harness.screen)")
+    }
+
+    @Test("A menu's press that outlived its gesture leaves a list's motion and wheel alone")
+    func staleMenuPressLeavesMotionAndWheel() throws {
+        // The press opens the menu and its release never comes — lost — so the
+        // record that the press opened a pop-up stands until the next press.
+        // Motion and the wheel over a list in that time are nobody's gesture.
+        let harness = Harness(.menuAboveList)
+        let pull = try harness.position(of: "pull")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: pull.x, y: pull.y))
+        harness.frame()
+        #expect(harness.shows("pulled"), "\(harness.screen)")
+        harness.escape()
+        #expect(!harness.shows("pulled"), "\(harness.screen)")
+        let row = try harness.position(of: "item2")
+        harness.app.send(MouseEvent(button: .none, phase: .moved, x: row.x, y: row.y))
+        harness.frame()
+        // A move within the row changes nothing, and asks for no render.
+        #expect(
+            !harness.app.send(MouseEvent(button: .none, phase: .moved, x: row.x + 1, y: row.y)),
+            "the list spent the move")
+        // The list cannot scroll, so the wheel goes on to the scroll view
+        // around it.
+        let below = try harness.position(of: "below1")
+        harness.app.send(MouseEvent(button: .scrollDown, phase: .scrolled, x: row.x + 1, y: row.y))
+        harness.frame()
+        let scrolled = try harness.position(of: "below1")
+        #expect(scrolled.y < below.y, "the list ate the wheel:\n\(harness.screen)")
+        #expect(harness.rows.ran.isEmpty && harness.rows.selection == [2, 3])
     }
 
     @Test(
