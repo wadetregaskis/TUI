@@ -582,7 +582,7 @@ extension StatusBarState {
     /// Whether an item would run for one of `events` — ``handleKeyEvent(_:)``'s
     /// rule, without running anything, the items gathered once for all of
     /// them. For the user's quit key, asked after every frame
-    /// (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
+    /// (`InputHandler.quitKeyBindings(byte:hostAliases:)`).
     func takesAny(of events: [KeyEvent]) -> Bool {
         guard !itemActionsSuppressed else { return false }
         let items = currentItems

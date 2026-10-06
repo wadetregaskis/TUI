@@ -75,7 +75,7 @@ extension Terminal {
     ///   - original: The user's termios.
     ///   - maskingQuitKey: Whether the quit key is turned off too, for an app
     ///     that declares a binding its byte could be for
-    ///     (``maskQuitKey(_:)``): its byte then arrives as a key, which the
+    ///     (``maskQuitKey(for:)``): its byte then arrives as a key, which the
     ///     input chain offers the app first and quits on itself where nothing
     ///     takes it.
     nonisolated static func rawModeAttributes(from original: termios, maskingQuitKey: Bool = false) -> termios {

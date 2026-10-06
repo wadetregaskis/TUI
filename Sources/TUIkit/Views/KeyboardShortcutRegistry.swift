@@ -238,7 +238,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// framework default: what ``trigger(for:)`` would match, without
     /// running anything. For the user's quit key, which the driver keeps
     /// unless a binding the framework can see is on a chord its byte could be
-    /// for (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
+    /// for (`InputHandler.quitKeyBindings(byte:hostAliases:)`).
     ///
     /// On the page or in any pane, wherever the focus is: the driver's quit
     /// is set once a frame, for the whole screen, so a pane's binding masks it

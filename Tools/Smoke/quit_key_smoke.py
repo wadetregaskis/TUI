@@ -511,6 +511,22 @@ check(b"\x1b[<u" not in app.out[mark:] and app.stack == [31] and b"key b" in app
       "kitty, ⌃\\ bound: a stall pops nothing")
 app.finish()
 
+# Bound to ⌃4, the driver keeps the quit under the protocol, where ⌃4 arrives
+# as itself; but a pop would put the terminal in its legacy encoding, where
+# ⌃4 may be ⌃\'s 0x1C, and the driver would quit the app on the binding's key
+# during a slow frame. So no watchdog: the flags stay pushed through a stall.
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_STALL_KEY": "s", "IDLE_PROBE_SHORTCUTS": "4"}, kitty=True)
+app.pump(3.0)
+check(quit_key_of(app.termios_now()) == 0x1C, "kitty, ⌃4 bound: the driver keeps the quit key")
+mark = len(app.out)
+os.write(app.master, b"s")
+app.pump(0.3)
+os.write(app.master, b"\x1b[52;5u")
+app.pump(4.0)
+check(b"\x1b[<u" not in app.out[mark:] and app.stack == [31] and b"key ran ctrl-4" in app.out and running(app),
+      "kitty, ⌃4 bound: a stall pops nothing, and the report runs the binding")
+app.finish()
+
 if failures:
     print(f"\n{len(failures)} failure(s)")
     sys.exit(1)

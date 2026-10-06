@@ -78,10 +78,10 @@ private final class MaskHarness {
     }
 
     /// Whether the user's quit key, ⌃\'s 0x1C, needs masking for what was
-    /// rendered, on a terminal that may (`aliasing`) send its byte for ⌃4,
-    /// ⌃| and ⌃⇧\.
+    /// rendered, in the legacy encoding of a terminal that may (`aliasing`)
+    /// send its byte for ⌃4, ⌃| and ⌃⇧\.
     func masks(aliasing: Bool = true, byte: UInt8? = 0x1C) -> Bool {
-        handler.quitKeyNeedsMasking(byte: byte, aliasing: aliasing)
+        handler.quitKeyBindings(byte: byte, hostAliases: aliasing).masksQuitKey(inLegacyEncoding: true)
     }
 }
 
@@ -224,13 +224,13 @@ struct QuitKeyMaskTests {
         #expect(line.lastQuitKey == 0x1C, "raw mode keeps the quit key live")
         #expect(terminal.quitKeyByte == 0x1C)
 
-        terminal.maskQuitKey(false)
+        terminal.maskQuitKey(for: .unbound)
         #expect(line.sets.count == 1, "unchanged: nothing set")
-        terminal.maskQuitKey(true)
+        terminal.maskQuitKey(for: .ownChord)
         #expect(line.sets.count == 2 && line.sets.last?.when == TCSANOW)
         #expect(line.lastQuitKey == Self.off)
-        terminal.maskQuitKey(true)
-        terminal.maskQuitKey(true)
+        terminal.maskQuitKey(for: .ownChord)
+        terminal.maskQuitKey(for: .ownChord)
         #expect(line.sets.count == 2, "unchanged: nothing set")
         #expect(terminal.quitKeyByte == 0x1C, "the user's quit key is still ⌃\\, masked or not")
 
@@ -241,7 +241,7 @@ struct QuitKeyMaskTests {
         terminal.enableRawMode()
         #expect(line.sets.count == 4 && line.lastQuitKey == Self.off)
 
-        terminal.maskQuitKey(false)
+        terminal.maskQuitKey(for: .unbound)
         #expect(line.sets.count == 5 && line.sets.last?.when == TCSANOW && line.lastQuitKey == 0x1C)
         terminal.disableRawMode()
     }
@@ -251,10 +251,48 @@ struct QuitKeyMaskTests {
         let (terminal, _) = ScriptedTerminalOutput.terminal()
         let line = FakeLineDiscipline()
         terminal.scriptedLineDiscipline = line.discipline
-        terminal.maskQuitKey(true)
+        terminal.maskQuitKey(for: .ownChord)
         #expect(line.sets.isEmpty)
         terminal.enableRawMode()
         #expect(line.sets.count == 1 && line.lastQuitKey == Self.off, "raw mode is made masked")
+        terminal.disableRawMode()
+    }
+
+    // MARK: - Under the kitty keyboard protocol
+
+    /// Under the kitty keyboard protocol ⌃4 arrives as itself, so a ⌘4
+    /// shortcut (⌃4 under `.commandKey(.control)`) leaves the driver's quit
+    /// live. But the stall watchdog's pop would put the terminal back in its
+    /// legacy encoding, where kitty, Ghostty, WezTerm and foot send ⌃\'s 0x1C
+    /// for ⌃4: the user's ⌃4 during a slow frame would be the driver's quit,
+    /// and end the app. So while one is on screen there is no watchdog — as
+    /// in the legacy encoding, where the quit is masked for it (round 6: it
+    /// was armed on the protocol's mask, which ignores ⌃4).
+    @Test("A ⌘4 shortcut leaves the quit live under the kitty protocol, with no stall watchdog; masked without it")
+    func aliasUnderTheProtocol() {
+        let harness = MaskHarness()
+        harness.render(Button("Four") {}.keyboardShortcut("4"))
+        let bindings = harness.handler.quitKeyBindings(byte: 0x1C, hostAliases: true)
+        #expect(bindings == .aliasOnly)
+        #expect(harness.handler.quitKeyBindings(byte: 0x1C, hostAliases: false) == .unbound, "a host that keeps ⌃4 apart")
+
+        let (terminal, _) = ScriptedTerminalOutput.terminal()
+        let line = FakeLineDiscipline()
+        terminal.scriptedLineDiscipline = line.discipline
+        terminal.enableRawMode()
+        terminal.maskQuitKey(for: bindings)
+        #expect(terminal.quitKeyMasked && line.lastQuitKey == Self.off, "the legacy encoding: ⌃4 is the byte")
+
+        terminal.maskQuitKey(for: .unbound)
+        terminal.negotiateKeyboardEnhancement(firstAnswer: .requested, timeout: 0.01)
+        #expect(terminal.writeGate.isArmed, "nothing bound: armed")
+        terminal.maskQuitKey(for: bindings)
+        #expect(!terminal.quitKeyMasked && line.lastQuitKey == 0x1C, "under the protocol ⌃4 is no 0x1C")
+        #expect(!terminal.writeGate.isArmed, "after a pop it would be: no watchdog")
+        terminal.maskQuitKey(for: .ownChord)
+        #expect(terminal.quitKeyMasked && !terminal.writeGate.isArmed)
+        terminal.maskQuitKey(for: .unbound)
+        #expect(!terminal.quitKeyMasked && terminal.writeGate.isArmed)
         terminal.disableRawMode()
     }
 }

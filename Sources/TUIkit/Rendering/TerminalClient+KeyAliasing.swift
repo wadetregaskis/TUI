@@ -20,7 +20,7 @@ extension TerminalClient {
     /// assumption covers them. Where a host is wrongly taken to alias, the
     /// cost is small: a ⌃\ nothing took is offered as ⌃4, ⌃| and ⌃⇧\ before
     /// it quits, and a binding on one of those masks the driver's quit
-    /// (`Terminal.maskQuitKey`).
+    /// (`Terminal.maskQuitKey(for:)`).
     static let keepsQuitByteChordsApart: Set<Program> = []
 
     /// Whether `program` may send ⌃\'s byte, 0x1C, for ⌃4, ⌃| and ⌃⇧\ in its

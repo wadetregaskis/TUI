@@ -560,11 +560,11 @@ extension AppRunner {
 extension AppRunner {
     /// Masks the user's quit key in the driver while the bindings the frame
     /// just registered declare one on a chord its byte could be for, and
-    /// gives it back otherwise (`Terminal.maskQuitKey`): asked after every
-    /// frame, the line discipline set only when the answer changes.
+    /// gives it back otherwise (`Terminal.maskQuitKey(for:)`): asked after
+    /// every frame, the line discipline set only when the answer changes.
     private func maskQuitKeyForBindings(of inputHandler: InputHandler) {
         terminal.maskQuitKey(
-            inputHandler.quitKeyNeedsMasking(byte: terminal.quitKeyByte, aliasing: inputHandler.quitByteAliasing()))
+            for: inputHandler.quitKeyBindings(byte: terminal.quitKeyByte, hostAliases: hostAliasesQuitByte))
     }
 
     /// Starts the stall watchdog (`StallWatchdog`), which pops the kitty

@@ -122,9 +122,9 @@ internal struct InputHandler {
     /// before the app reads it, so the chord reaches the chain as a kitty
     /// keyboard protocol report, which the terminal sends in its place, or
     /// as the byte where the driver's quit is masked because the app binds
-    /// a chord it could be (`Terminal.maskQuitKey`). The app's bindings are
-    /// offered it first, as any key, and ``handle(_:)`` does what the driver
-    /// would have only if none takes it (``onQuitKey``).
+    /// a chord it could be (`Terminal.maskQuitKey(for:)`). The app's
+    /// bindings are offered it first, as any key, and ``handle(_:)`` does
+    /// what the driver would have only if none takes it (``onQuitKey``).
     var quitKey: () -> UInt8? = { nil }
 
     /// Invoked when the user's quit key reaches the end of the chain with
@@ -197,9 +197,10 @@ extension InputHandler {
         // have done had it had the byte — `SIGQUIT`. It gets here as a kitty
         // keyboard protocol report, which the driver never sees, or as the
         // byte itself where the driver's quit is masked because the app
-        // declares a binding the byte could be for (`Terminal.maskQuitKey`).
-        // A binding on the chord takes it first, as it takes any key: the
-        // owner's rule (2026-10-06), that an app's own ⌃\ overrides the quit.
+        // declares a binding the byte could be for
+        // (`Terminal.maskQuitKey(for:)`). A binding on the chord takes it
+        // first, as it takes any key: the owner's rule (2026-10-06), that an
+        // app's own ⌃\ overrides the quit.
         if let byte = event.legacyControlByte, byte == quitKey() {
             onQuitKey()
             return true

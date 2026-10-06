@@ -459,7 +459,12 @@ the driver would, so ⌃\\ quits there too. A hung app reads no report, so
 TUIkit's stall watchdog pops the protocol's flags once input has waited
 unread for 1.5 s: the next ⌃\\ reaches the driver as its byte and quits, so
 under the protocol a hung app quits at the second ⌃\\. There ⌃4 and ⌃|
-arrive as themselves, and a shortcut on them fires.
+arrive as themselves, and a shortcut on them fires without masking the
+driver's quit. But the watchdog's pop puts the terminal back in its legacy
+encoding, where ⌃4 may be ⌃\\'s byte again, and the driver would quit your
+app on the user's ⌃4 during a slow frame — so while a binding on ⌃4, ⌃| or
+⌃⇧\\ is on screen there is no watchdog, and a hung app does not quit by ⌃\\
+under the protocol either.
 
 ### Overriding `q` in a local view context
 

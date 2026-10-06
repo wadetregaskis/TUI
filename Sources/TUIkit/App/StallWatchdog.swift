@@ -44,8 +44,8 @@ final class TerminalWriteGate: @unchecked Sendable {
     fileprivate let condition = NSCondition()
 
     /// Whether the watchdog may pop the flags: they are pushed, the user's
-    /// quit key is live in the driver, and no suspend or teardown is under
-    /// way (`Terminal.refreshStallWatch()`).
+    /// quit key is live in the driver and would stay so after the pop, and
+    /// no suspend or teardown is under way (`Terminal.refreshStallWatch()`).
     fileprivate var armed = false
 
     /// Whether the watchdog popped the flags and the main loop has not yet
@@ -90,13 +90,28 @@ final class TerminalWriteGate: @unchecked Sendable {
         condition.broadcast()
     }
 
-    /// Forgets a pop of the watchdog's the loop has not heard of: the main
-    /// thread has popped the flags itself (a suspend, the teardown), so there
-    /// is nothing to push again on its behalf.
-    func forgetWatchdogPop() {
+    /// Disarms the watchdog and takes back a pop of its the loop has not heard
+    /// of, in one step: the main thread is about to pop the flags itself (a
+    /// suspend, the teardown), so there is nothing to push again on the
+    /// watchdog's behalf, and from here the watchdog pops nothing.
+    ///
+    /// One step, under the lock the watchdog pops under, so no pop of its can
+    /// fall between the two: one that did would be left for the loop's next
+    /// drain to push back, after a resume that has pushed already.
+    ///
+    /// - Returns: Whether the watchdog had popped the flags: then the main
+    ///   thread's pop would be a second one, of an entry this process never
+    ///   pushed, and is not to be written.
+    func disarmForPop() -> Bool {
         condition.lock()
         defer { condition.unlock() }
+        let wasPopped = popped
         popped = false
+        if armed {
+            armed = false
+            condition.broadcast()
+        }
+        return wasPopped
     }
 
     /// Whether the watchdog may pop, for tests.
@@ -129,9 +144,11 @@ final class TerminalWriteGate: @unchecked Sendable {
 ///
 /// Costs nothing while input is read: the thread sleeps in `poll` until
 /// input arrives, looks at it on a timer (every quarter second) for as long
-/// as it waits unread, and goes back to sleep once it is read. Disarmed — the flags not pushed, the quit key masked
-/// (`Terminal.maskQuitKey`), a suspend — it waits for arming without
-/// watching at all. A terminal that hangs up ends it.
+/// as it waits unread, and goes back to sleep once it is read. Disarmed —
+/// the flags not pushed, a suspend, or a binding of the app's on a chord the
+/// quit key's byte could be once popped (`Terminal.refreshStallWatch()`) —
+/// it waits for arming without watching at all. A terminal that hangs up
+/// ends it.
 final class StallWatchdog: @unchecked Sendable {
     /// How long input may wait unread before the flags are popped.
     let grace: TimeInterval
@@ -252,8 +269,11 @@ final class StallWatchdog: @unchecked Sendable {
                 drainsSeen = gate.drains
                 waitingSince = Date()
             } else if Date() >= waitingSince.addingTimeInterval(grace) {
-                // Stalled: pop, holding the lock, so no frame is mid-write.
-                writePop()
+                // Stalled: pop, holding the lock, so no frame is mid-write —
+                // and only a pop the terminal was sent whole counts as one.
+                // One it could not take stays armed, and is tried again a
+                // grace later.
+                guard writePop() else { return false }
                 gate.popped = true
                 gate.armed = false
                 return false
@@ -302,23 +322,38 @@ final class StallWatchdog: @unchecked Sendable {
             && !StdinArrivalNotifier.isAtEndOfInput(input)
     }
 
-    /// Writes the pop: all of it, retrying an interrupted write; a full or
-    /// failed descriptor gives up — the main thread is not writing (the lock
-    /// is held), so a terminal that takes nothing now is not reading.
-    private func writePop() {
-        Self.pop.withUnsafeBufferPointer { bytes in
-            guard let base = bytes.baseAddress else { return }
+    /// Writes the pop whole, or not at all.
+    ///
+    /// Not at all where the terminal has no room for it — standard output
+    /// left non-blocking by another program (`Terminal.writeAll`) and full:
+    /// the main thread is not writing (the lock is held), so a terminal that
+    /// takes nothing now is not reading. Nothing has gone, and the watchdog
+    /// tries again a grace later. Whole once the first byte has gone, waiting
+    /// for room as a blocking write would (`Terminal.waitForRoom`): the
+    /// sequence's head without its tail would run into the next frame's
+    /// bytes, and the terminal would read them as the rest of it.
+    ///
+    /// - Returns: Whether the terminal was sent the whole of it: only then
+    ///   are the flags popped.
+    private func writePop() -> Bool {
+        var room = pollfd(fd: output, events: Int16(POLLOUT), revents: 0)
+        guard poll(&room, 1, 0) > 0, room.revents & Int16(POLLOUT) != 0 else { return false }
+        return Self.pop.withUnsafeBufferPointer { bytes in
+            guard let base = bytes.baseAddress else { return false }
             var written = 0
             while written < bytes.count {
                 let result = write(output, base + written, bytes.count - written)
                 if result > 0 {
                     written += result
-                } else if result < 0, errno == EINTR {
                     continue
-                } else {
-                    return
                 }
+                // `errno` is thread-local and transient: read it first.
+                let error = result < 0 ? errno : 0
+                if error == EINTR { continue }
+                let full = error == EAGAIN || error == EWOULDBLOCK
+                guard full, written > 0, Terminal.waitForRoom(on: output) else { return false }
             }
+            return true
         }
     }
 }

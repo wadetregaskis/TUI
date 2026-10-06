@@ -228,10 +228,17 @@ nothing, it writes `CSI < u`. The terminal then sends keys in the legacy
 encoding, and the next ⌃\\ is 0x1C, which the driver quits on, hung or not.
 The main loop pushes the flags back at its next drain if it was only slow;
 the parser reads both encodings meanwhile. The pop is written under the one
-lock every terminal write takes, so never inside a frame. Armed only while it
-can help: flags pushed, the quit key live and not masked for a binding (the
-same mask as the legacy encoding), not during a suspend; stopped at the
-teardown. Cost to a running app: a counter stored per loop iteration, an
+lock every terminal write takes, so never inside a frame, and counts only
+when the terminal was sent it whole (none at all where a non-blocking
+standard output is full; tried again a grace later). Armed only while it can
+help: flags pushed, the quit key live, and no binding that the LEGACY
+encoding — where the pop puts the terminal — would mask it for: ⌃\\, and on
+a host that may alias, ⌃4, ⌃| and ⌃⇧\\, though under the protocol those
+three leave the driver's quit live (round-6 fix: armed on the protocol's
+mask, a ⌘4 shortcut's ⌃4 pressed during a slow frame was the driver's 0x1C
+after the pop, and quit the app). Not during a suspend, whose own pop
+disarms it and takes back a pop of the watchdog's in one step; stopped at
+the teardown. Cost to a running app: a counter stored per loop iteration, an
 uncontended lock per terminal write, and, while input arrives, a wake of the
 thread per key burst (looked at four times a second for as long as it waits
 unread).
@@ -250,7 +257,9 @@ unread).
   harmless, but each modifier the decoder thought held is released (as at
   any pop), and a key's release in that window is not reported.
 - With a binding that masks the quit key the watchdog stays disarmed, and a
-  hung app does not quit by ⌃\\ (A-F2-1's trade).
+  hung app does not quit by ⌃\\ (A-F2-1's trade) — under the protocol too
+  for a binding on ⌃4, ⌃| or ⌃⇧\\ on a host that may alias, where the
+  driver's quit is live but a pop would make the binding's key quit.
 - The quit's debt pops again after the watchdog's pop: on the alternate
   screen, where TUIkit pushed, a pop of an empty stack is harmless.
 - Measured against the PTY smoke's terminal only; real hosts unmeasured.

@@ -4379,8 +4379,8 @@ the driver ignores), and in the legacy encoding ⌃4, ⌃| and ⌃⇧\\ — coun
 what can be read without running the app's code: `.keyboardShortcut`s (menu
 items' too) and framework defaults, `onKeyPress` on keys or characters on the
 path to the focused view, the status bar's items and quit key, the scene's
-undo keys (`InputHandler.quitKeyNeedsMasking`). While one is, `VQUIT` is
-`_POSIX_VDISABLE` too (`Terminal.maskQuitKey`), set with `TCSANOW` — no
+undo keys (`InputHandler.quitKeyBindings`). While one is, `VQUIT` is
+`_POSIX_VDISABLE` too (`Terminal.maskQuitKey(for:)`), set with `TCSANOW` — no
 typed-ahead input thrown away — and only when the answer changes; a resume's
 raw mode is made with it, and the teardown puts the user's termios back
 whole. The byte then reaches the chain as ⌃\\ (above). A handler that hears
@@ -4433,11 +4433,19 @@ parser still reads the protocol's grammar, which decodes the legacy bytes
 sent after the pop as well. The pop is written under the lock every terminal
 write takes (`TerminalWriteGate`), so it never lands inside a frame; a main
 thread hung INSIDE a write — the terminal not reading its output — leaves
-the watchdog waiting behind it, and nothing is popped. Armed only while the
-flags are pushed and the quit key is live in the driver: not with the key
-turned off or masked for a binding (where the byte would not quit), nor
-during a suspend. The quit's own debt pops the flags again; on the alternate
-screen a pop of an empty stack is harmless. The smoke (case 10): a hung
+the watchdog waiting behind it, and nothing is popped. A pop counts only
+when the terminal was sent it whole: none at all where a non-blocking
+standard output is full (tried again a grace later), and once begun it is
+finished, as a blocking write would. Armed only while the flags are pushed
+and the quit key is live in the driver and would stay so after the pop: not
+with the key turned off, nor while a binding would mask it in the legacy
+encoding the pop puts the terminal in — ⌃\\ itself, or on a host that may
+alias ⌃4, ⌃| or ⌃⇧\\, which under the protocol leave the driver's quit live
+but after a pop would be its 0x1C, and quit the app on the binding's key —
+nor during a suspend, whose own pop disarms it and takes back a pop of the
+watchdog's in one step (a pop it made is not written twice). The quit's own
+debt pops the flags again; on the alternate screen a pop of an empty stack is
+harmless. The smoke (case 10): a hung
 IdleProbe pops nothing with no key pressed, pops within 2.5 s of an unread
 report, and the byte then quits it; a slow frame pops and pushes back, a
 report sent before the pop and a byte after both read; with a ⌃\\ binding

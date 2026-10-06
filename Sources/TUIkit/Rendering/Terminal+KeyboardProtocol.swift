@@ -235,18 +235,25 @@ extension Terminal {
     /// (``KittyKeyDecoder/protocolPopped(memory:)``).
     func popKeyboardFlags() {
         guard keyboardFlagsPushed else { return }
-        writeImmediate(KeyboardProtocolQuery.pop)
+        // The stall watchdog disarmed first, and told of a pop it made while
+        // the loop was stalled, in one step under its lock: from here it pops
+        // nothing, so no pop of its can land between this one and the
+        // bookkeeping and be pushed back after a resume as well as the
+        // resume's own push. A pop it already made took this process's entry
+        // off the terminal's stack, and stands for this one: a second would
+        // take an entry this process never pushed.
+        #if !canImport(WASILibc)
+            let poppedByWatchdog = writeGate.disarmForPop()
+        #else
+            let poppedByWatchdog = false
+        #endif
+        if !poppedByWatchdog { writeImmediate(KeyboardProtocolQuery.pop) }
         keyboardFlagsPushed = false
         keyboardEnhancement = []
         if let released = KittyKeyDecoder.protocolPopped(memory: &keyboardMemory) {
             queuedInputs.append(released)
         }
         armSignalRestore()
-        // This pop supersedes one the stall watchdog made while the loop was
-        // stalled: nothing is to be pushed again on its account.
-        #if !canImport(WASILibc)
-            writeGate.forgetWatchdogPop()
-        #endif
         refreshStallWatch()
     }
 

@@ -177,7 +177,7 @@ extension KeyEventDispatcher {
     /// say whether it takes the key. Silenced handlers, as for a dispatch,
     /// do not count.
     ///
-    /// For the user's quit key (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
+    /// For the user's quit key (`InputHandler.quitKeyBindings(byte:hostAliases:)`).
     ///
     /// - Parameters:
     ///   - events: The keys asked about: whether a handler is declared for

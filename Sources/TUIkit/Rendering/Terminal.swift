@@ -263,9 +263,14 @@ final class Terminal: TerminalProtocol {
     #endif
 
     /// Whether the user's quit key is masked in the driver
-    /// (``maskQuitKey(_:)``): the last state set, which a resume's raw mode
+    /// (``maskQuitKey(for:)``): the last state set, which a resume's raw mode
     /// is made with too.
     private(set) var quitKeyMasked = false
+
+    /// The app's bindings on the chords the quit key's byte could be, as
+    /// last handed to ``maskQuitKey(for:)``: what the mask follows, and what
+    /// arms the stall watchdog (``refreshStallWatch()``).
+    private(set) var quitKeyBindings = QuitKeyBindings.unbound
 
     #if !canImport(WASILibc)
         /// The lock every write to standard output takes, shared with the
@@ -574,28 +579,36 @@ extension Terminal {
         // is requested.
     }
 
-    /// Masks the user's quit key in the driver, or gives it back: `masked`
-    /// while the app declares a binding on a chord the quit key's byte could
-    /// be for (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`), asked
-    /// after every frame.
+    /// Masks the user's quit key in the driver, or gives it back, for the
+    /// app's declared `bindings` on the chords its byte could be
+    /// (`InputHandler.quitKeyBindings(byte:hostAliases:)`), asked after
+    /// every frame: masked for a binding on the quit key's own chord, and for
+    /// one on ⌃4, ⌃| or ⌃⇧\ only in the legacy encoding, where they may be
+    /// its byte (``QuitKeyBindings/masksQuitKey(inLegacyEncoding:)``).
     ///
     /// The owner's rule (2026-10-06): the driver's quit is the backup that
     /// ends a hung app, and stays live unless the app binds the key — ⌃\
     /// itself, or ⌃4, ⌃| or ⌃⇧\ where the terminal may send ⌃\'s byte for
     /// them — and then the byte arrives as a key, which the app's bindings
     /// hear first and which quits where none takes it (`InputHandler`). What
-    /// that costs: while masked, a HUNG app does not quit by the key.
+    /// that costs: while masked, a HUNG app does not quit by the key. Nor,
+    /// under the kitty keyboard protocol, while a binding on ⌃4, ⌃| or ⌃⇧\
+    /// is on screen, though the driver's quit is live there: the stall
+    /// watchdog is not armed for it (``refreshStallWatch()``).
     ///
     /// Sets the line discipline only when the mask changes, and at once
     /// (`TCSANOW`: unlike raw mode's own `TCSAFLUSH`, no typed-ahead input is
     /// thrown away). Kept across a suspend: the resume's raw mode is made
     /// with it. The teardown puts the user's termios back whole, as ever.
-    func maskQuitKey(_ masked: Bool) {
-        guard masked != quitKeyMasked else { return }
+    func maskQuitKey(for bindings: QuitKeyBindings) {
+        let masked = bindings.masksQuitKey(inLegacyEncoding: keyboardEnhancement.isEmpty)
+        guard bindings != quitKeyBindings || masked != quitKeyMasked else { return }
+        quitKeyBindings = bindings
+        let maskChanged = masked != quitKeyMasked
         quitKeyMasked = masked
         refreshStallWatch()
         #if !canImport(WASILibc)
-            guard isRawMode, let lineDiscipline, let original = originalTermios else { return }
+            guard maskChanged, isRawMode, let lineDiscipline, let original = originalTermios else { return }
             lineDiscipline.set(Self.rawModeAttributes(from: original, maskingQuitKey: masked), TCSANOW)
         #endif
     }
@@ -603,12 +616,23 @@ extension Terminal {
     /// Arms the stall watchdog while it can do some good, and disarms it
     /// otherwise: armed while raw mode is on, the kitty keyboard protocol's
     /// flags are pushed, and the user's quit key is live in the driver — not
-    /// turned off by the user, not masked for a binding of the app's
-    /// (``maskQuitKey(_:)``), where popping the flags could not make ⌃\
-    /// quit. Called at each of those changes.
+    /// turned off by the user — and would stay live after the watchdog's
+    /// pop: the app declares no binding on a chord its byte could be in the
+    /// legacy encoding the pop puts the terminal in (``quitKeyBindings``).
+    /// Called at each of those changes.
+    ///
+    /// The legacy encoding's answer, not the protocol's: under the protocol
+    /// a ⌘4 shortcut (⌃4) leaves the driver's quit live, since ⌃4 arrives
+    /// as itself — but after a pop the terminal may send ⌃\'s 0x1C for ⌃4
+    /// (kitty, Ghostty, WezTerm and foot do, by the protocol's table of the
+    /// legacy encoding), and the driver, never told to mask it, would quit
+    /// the app on the user's ⌃4 during a slow frame. So with one on screen a
+    /// hung app does not quit by ⌃\ under the protocol either, as it does
+    /// not where the quit is masked.
     func refreshStallWatch() {
         #if !canImport(WASILibc)
-            writeGate.setArmed(isRawMode && keyboardFlagsPushed && quitKeyByte != nil && !quitKeyMasked)
+            writeGate.setArmed(
+                isRawMode && keyboardFlagsPushed && quitKeyByte != nil && quitKeyBindings == .unbound)
         #endif
     }
 
@@ -622,7 +646,7 @@ extension Terminal {
     /// report instead, which the input chain offers the app's bindings and
     /// turns into the signal where none takes it (`InputHandler.quitKey`).
     /// The user's key whether or not the driver's quit is masked
-    /// (``maskQuitKey(_:)``).
+    /// (``maskQuitKey(for:)``).
     var quitKeyByte: UInt8? {
         #if canImport(WASILibc)
             return nil

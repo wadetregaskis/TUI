@@ -145,7 +145,7 @@ extension View {
     ///   its keys or characters — so the framework may ask it which keys the
     ///   handler is for without running `action`. Not for the catch-all,
     ///   which declares none: only the action says which keys it takes. What
-    ///   asks is the user's quit key (`Terminal.maskQuitKey`).
+    ///   asks is the user's quit key (`Terminal.maskQuitKey(for:)`).
     private func onKeyPress(
         phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool, declared: Bool = true,
         action: @escaping (KeyPress) -> KeyPress.Result

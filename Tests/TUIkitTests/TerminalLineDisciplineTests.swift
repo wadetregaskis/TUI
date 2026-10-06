@@ -93,7 +93,7 @@ struct TerminalLineDisciplineTests {
     }
 
     /// An app that binds the quit key's chord has it masked: the byte then
-    /// arrives as a key (`Terminal.maskQuitKey`). Signals stay on, so a
+    /// arrives as a key (`Terminal.maskQuitKey(for:)`). Signals stay on, so a
     /// mask lifted is the driver's quit again, and the rest is raw mode's.
     @Test("Masking the quit key turns it off too, signals still on")
     func maskedQuitKey() {
