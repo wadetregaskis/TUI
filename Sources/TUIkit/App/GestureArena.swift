@@ -53,6 +53,22 @@ import TUIkitCore
 /// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``, decisions
 /// B-F2-2).
 ///
+/// So a departed gesture, and the arena it is in, live until that event —
+/// in a session driven by the keyboard alone, for as long as it runs. Until
+/// then the arena keeps the participant and its gesture's closures, and what
+/// it holds back with theirs; and every rendered frame, the first arena input
+/// after it rebuilds the set of participants the frame filed
+/// (``markDeparted(filed:)``) and ticks the arena, a cost in the gestures on
+/// screen. Nothing asks the run loop for a wake on its behalf: it has no
+/// deadline. What counts as departed is whatever the last walk did not file,
+/// which takes in more than the measured removal and `.disabled`: a gesture
+/// turned off by `gesture(_:isEnabled: false)` or its mask (filed with no
+/// participant), one under a background a modal renders isolated, and one
+/// on a row a scroll view windows out — all unmeasured on macOS. A gesture
+/// whose view comes back before that event — disabled, then enabled again —
+/// is filed again and carries on where it was, as a removed one never is;
+/// macOS is unmeasured there too (decisions B-F2-3).
+///
 /// A press that comes while a ranked gesture still waits does not settle it:
 /// both arenas live on (the dispatcher's ``MouseEventDispatcher/gestureArenas``),
 /// as macOS 15.8 keeps a waiting gesture through a click elsewhere. A gesture

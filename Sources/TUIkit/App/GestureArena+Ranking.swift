@@ -50,10 +50,14 @@ extension GestureArena {
         var isHeldBack = false
 
         /// Its view has gone — the frame on screen did not file it: removed
-        /// from the tree, or disabled. It hears nothing and reports nothing,
-        /// and what it holds back stays held, until the next event of the
-        /// left button, once decided, gives it up
-        /// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``).
+        /// from the tree or disabled (both measured on macOS 15.8, B-F2-2),
+        /// or, unmeasured, turned off by `isEnabled: false` or its mask, under
+        /// a background a modal renders isolated, or on a row a scroll view
+        /// windows out. It hears nothing and reports nothing, and what it
+        /// holds back stays held, until the next event of the left button,
+        /// once decided, gives it up
+        /// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``). Filed
+        /// again before then, it is no longer departed, and carries on.
         var isDeparted = false
 
         /// How many arenas hold it back: it may report only at none.

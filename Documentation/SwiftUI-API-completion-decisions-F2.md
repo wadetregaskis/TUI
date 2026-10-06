@@ -7,7 +7,7 @@ decisions-doc items: the `StdinArrivalNotifierTests` flake and a single tap
 lost after a failed double tap. 2026-10-05.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Two.
+- **B. Shipped the safe option.** Three.
 - **C. Declined without asking.** None.
 
 ## B. Shipped the safe option
@@ -96,6 +96,50 @@ ask the run loop for one more frame when a disable released something, so
 it runs at the disable rather than at the next tick. About three hours with
 tests. Per frame it costs a lookup per disabled gesture attachment, and only
 while an arena exists.
+
+### B-F2-3. A gesture whose view has gone lives until the next left-button event
+
+*Every attached gesture: `gesture`, `highPriorityGesture`,
+`simultaneousGesture`, `onTapGesture`, `onLongPressGesture`.*
+
+A gesture whose view the frame on screen did not file is frozen, not dropped:
+it hears no clock and no event, reports nothing and keeps what it holds back
+held, until the next left-button event (a press anywhere, or the move or
+release of a drag under way) has been decided as if it were still there.
+That is what macOS 15.8 does for a removed view (B-F2-2 has the probes), and
+a frame-time give-up made a click's outcome depend on whether a frame came
+first. Its cost is the lifetime:
+
+- the departed contender and its arena live until that event, which in a
+  session driven by the keyboard alone may be never: the participant, its
+  gesture's closures and whatever they capture, and whatever it holds back
+  (the tap around it, a control owed a click) with theirs;
+- while the arena lives, every rendered frame rebuilds the set of
+  participants the frame filed and ticks the arena: work in the gestures on
+  screen, where the earlier frame-time give-up dropped the arena at the next
+  frame;
+- no wake: a departed gesture has no deadline, so it never keeps the run
+  loop awake.
+
+What counts as departed is what the last walk did not file, which takes in
+cases no probe has measured:
+
+- a gesture turned off by `gesture(_:isEnabled: false)` (or the
+  `name:isEnabled:` forms) or by its mask, which files its role with no
+  participant;
+- a gesture under a background a modal renders isolated;
+- a gesture on a row a scroll view windows out of its viewport;
+- a gesture whose view is disabled and then enabled again before the next
+  left-button event: it is filed again, so it is no longer departed, and
+  carries on where it was, as a removed one never does.
+
+**Shipped:** as above, documented on `GestureArena` and
+`GestureArena.Contender.isDeparted`.
+
+**The fuller version:** measure the four unmeasured cases with the probe
+(about an hour) and match what they show; if a long-lived departed arena
+matters in practice, drop the arena's closures early by giving a departed
+gesture up at a keyboard event too, which is itself unmeasured on macOS.
 
 ## For the main decisions doc
 
