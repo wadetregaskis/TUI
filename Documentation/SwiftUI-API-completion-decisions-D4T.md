@@ -31,8 +31,11 @@ selected cursor row; a double-click, whose first click selects), and where
 they cannot it acts on the row the cursor marks rather than on rows elsewhere
 on the page, which matters when the action is "Delete". The same rule is what
 Shift+F10 opens the menu on, so the menu and Return agree about a row. A table
-or list with no selection binding acts on the cursor row, where macOS's Return
-does nothing (its cursor not being a row apart from the selection).
+with no selection binding acts on the cursor row, where macOS's Return does
+nothing (its cursor not being a row apart from the selection). A list with no
+selection binding takes no selection menu, and so runs no primary action, on
+Return or a double-click — as SwiftUI's takes neither, measured on macOS 15.8
+(see the modifier's documentation).
 
 **The alternative:** A30's wording, literally — the selection whenever it is
 non-empty. One line in `RowContextMenuHost.activation(for:selection:)`.

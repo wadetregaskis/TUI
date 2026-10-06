@@ -49,6 +49,8 @@ private final class Rows {
         /// A list with no selection binding, a selection menu around it and a
         /// `.contextMenu` around that.
         case selectionlessList
+        /// A table with no selection binding and a selection menu around it.
+        case selectionlessTable
         /// The selection-menu table, inside a view with a `.contextMenu`.
         case selectionMenuInMenu
     }
@@ -88,6 +90,7 @@ private struct RowsPage: View {
         case .emptyMenuTable: emptyMenuTable
         case .emptyMenuList: emptyMenuList
         case .selectionlessList: selectionlessList.contextMenu { Button("outer") { rows.ran.append("outer") } }
+        case .selectionlessTable: selectionlessTable
         case .selectionMenuInMenu:
             selectionMenuTable.contextMenu { Button("outer") { rows.ran.append("outer") } }
         }
@@ -216,6 +219,18 @@ private struct RowsPage: View {
                 rows.opened.append(ids.sorted())
             }
             .frame(height: 9)
+    }
+
+    private var selectionlessTable: some View {
+        Table(items) {
+            TableColumn("Name", value: \.name)
+        }
+        .contextMenu(forSelectionType: Int.self) { ids in
+            menu(ids)
+        } primaryAction: { ids in
+            rows.opened.append(ids.sorted())
+        }
+        .frame(height: 9)
     }
 }
 
@@ -468,6 +483,26 @@ struct RowContextMenuTests {
             harness.frame()
         }
         #expect(harness.rows.opened.isEmpty, "\(harness.rows.opened)")
+    }
+
+    @Test("A table with no selection binding takes the menu and the primary action, per row: Return on the cursor row")
+    func selectionlessTableActsPerRow() throws {
+        // B-D4T-1: where macOS's Return does nothing, TUIkit's acts on the
+        // cursor row; a double-click and a right-click act on the row clicked,
+        // as macOS's do.
+        let harness = Harness(.selectionlessTable)
+        harness.key(KeyEvent(key: .down))
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.rows.opened == [[2]], "\(harness.rows.opened)")
+        let row = try harness.position(of: "item3")
+        for _ in 0..<2 {
+            harness.app.send(MouseEvent(button: .left, phase: .pressed, x: row.x, y: row.y))
+            harness.app.send(MouseEvent(button: .left, phase: .released, x: row.x, y: row.y))
+            harness.frame()
+        }
+        #expect(harness.rows.opened == [[2], [3]], "\(harness.rows.opened)")
+        harness.secondaryClick(try harness.position(of: "item4"))
+        #expect(harness.shows("sel [4]"), "\(harness.screen)")
     }
 
     @Test("A right-click on a table's column header opens no row menu: it goes on to the menu around the table")
