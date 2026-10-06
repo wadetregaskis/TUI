@@ -563,10 +563,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         let scrollSpace = enterScrollSpace(
             viewport: CellSize(width: contentWidth, height: contentViewportHeight), context: context)
         let firstDrawing = renderedContent(
-            contentWidth: contentWidth, viewportHeight: contentViewportHeight,
-            horizontal: wantsHorizontal, verticalScrollOffset: handler.scrollOffset,
-            horizontalScrollOffset: handler.horizontal.scrollOffset, seek: pendingSeek, edgeInset: chrome.edgeInset,
-            handler: handler, checkpoint: checkpoint, context: context, settledExtents: settledExtents)
+            contentWidth: contentWidth, viewportHeight: contentViewportHeight, horizontal: wantsHorizontal,
+            verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
+            slide: contentSlide(handler: handler, viewportHeight: contentViewportHeight, context: context),
+            seek: pendingSeek, edgeInset: chrome.edgeInset, handler: handler, checkpoint: checkpoint,
+            context: context, settledExtents: settledExtents)
         let (seekOffset, contentExtent) = (firstDrawing.seekOffset, firstDrawing.extents)
         var drawing = ScrollContentDrawing(
             buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines,
@@ -628,14 +629,12 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             suppressed: seekOffset != nil,
             context: context)
         coverSnappedViewport(
-            handler: handler, drawing: &drawing, contentWidth: contentWidth,
-            viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, checkpoint: checkpoint,
-            context: context)
+            handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
+            horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)
         if wasGluedToBottom, seekOffset == nil {
             reglueToRefinedTail(
-                handler: handler, drawing: &drawing, contentWidth: contentWidth,
-                viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, checkpoint: checkpoint,
-                context: context)
+                handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
+                horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)
         }
         // Settle the pursuit AFTER coverage/re-glue, when the frame's offset
         // is final — see the helper.
@@ -764,9 +763,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     private func applyOverscroll(
         to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int, clips: Bool, context: RenderContext
     ) -> FrameBuffer {
-        let excursion =
-            handler.overscrollState.excursion
-            - alignmentShift(handler: handler, viewportHeight: buffer.lines.count, context: context)
+        let excursion = contentSlide(handler: handler, viewportHeight: buffer.lines.count, context: context)
         guard excursion != 0, !buffer.lines.isEmpty else { return buffer }
         let blank = String(repeating: " ", count: max(0, width))
         let gap = min(abs(excursion), buffer.lines.count)

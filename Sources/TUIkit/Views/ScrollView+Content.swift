@@ -287,9 +287,13 @@ extension _ScrollViewCore {
     /// - Parameter horizontalScrollOffset: The horizontal offset the drawing is
     ///   made at, which places the content for its readers (the vertical one
     ///   is `verticalScrollOffset`).
+    /// - Parameter slide: How far the window will be slid up over the
+    ///   content past the offset — the overscroll excursion less the alignment
+    ///   anchor's shift (``contentSlide(handler:viewportHeight:context:)``) —
+    ///   which places the content for its readers too.
     func renderedContent(
         contentWidth: Int, viewportHeight: Int, horizontal: Bool,
-        verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, seek: ScrollToRequest? = nil,
+        verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, slide: Int = 0, seek: ScrollToRequest? = nil,
         edgeInset: Int = 0, handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
         context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
         remeasured: Bool = false
@@ -371,7 +375,7 @@ extension _ScrollViewCore {
         // the carried origin of everything below moves as the content does
         // (design study A2, rung 2). The ramp a gradient runs down the content
         // stays put — it spans the content, not the viewport.
-        let placement = CellPoint(x: horizontal ? -horizontalScrollOffset : 0, y: -verticalScrollOffset)
+        let placement = CellPoint(x: horizontal ? -horizontalScrollOffset : 0, y: -verticalScrollOffset - slide)
         measureContext = measureContext.placingChild(gradient: nil, x: placement.x, y: placement.y)
         let buffer = TUIkit.renderToBuffer(content, context: measureContext)
         if contentReply.measureWentStale, !remeasured, !context.isMeasuring {
@@ -390,8 +394,8 @@ extension _ScrollViewCore {
                 contentWidth: contentWidth, viewportHeight: viewportHeight,
                 horizontal: horizontal,
                 verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
-                horizontalScrollOffset: horizontalScrollOffset, edgeInset: edgeInset, handler: handler,
-                checkpoint: checkpoint, context: context, remeasured: true)
+                horizontalScrollOffset: horizontalScrollOffset, slide: slide, edgeInset: edgeInset,
+                handler: handler, checkpoint: checkpoint, context: context, remeasured: true)
             redrawn.seekOffset = contentReply.seekResolvedOffset
             return redrawn
         }

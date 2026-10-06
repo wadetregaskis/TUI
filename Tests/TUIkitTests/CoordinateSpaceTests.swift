@@ -206,6 +206,37 @@ struct CoordinateSpaceTests {
         #expect(harness.geometryCorrections.residual == 0)
     }
 
+    @Test("A push past the scroll view's edge is predicted: the reader moves with the content, uncorrected")
+    func overscrollPushIsPredicted() {
+        let harness = InputChainHarness()
+        let seen = Seen()
+        let page = {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    reader(seen, in: .scrollView, width: 10, height: 1)
+                    ForEach(0..<30, id: \.self) { Text("line \($0)") }
+                }
+            }
+            .scrollOverscroll(top: .rows(6))
+            .scrollIndicators(.never)
+            .frame(width: 20, height: 8)
+        }
+        harness.frame(page())
+        harness.frame(page())
+        #expect(seen.frame?.y == 0)
+        let settled = harness.geometryCorrections
+        // At the top already: each tick up opens the allowance a wheel step
+        // more, sliding the content — and the reader — down the viewport, and
+        // a tick down closes it again.
+        let ticks: [(MouseButton, Int)] = [(.scrollUp, 3), (.scrollUp, 6), (.scrollDown, 3), (.scrollDown, 0)]
+        for (button, slid) in ticks {
+            harness.mouse(MouseEvent(button: button, phase: .scrolled, x: 2, y: 2))
+            harness.frame(page())
+            #expect(seen.frame?.y == slid)
+        }
+        #expect(harness.geometryCorrections == settled)
+    }
+
     @Test(".scrollView is the innermost scroll view; .scrollView(axis:) the innermost along that axis")
     func nestedScrollViews() {
         let inner = Seen()

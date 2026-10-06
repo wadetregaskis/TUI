@@ -27,11 +27,14 @@ extension _ScrollViewCore {
     /// a scroll view predicts, it does not start the carried origin.
     ///
     /// The viewport's origin is taken as this view's own; the content is
-    /// placed at minus the offsets (`renderedContent`). The "N more" line a
-    /// reserved indicator puts above the window, and an overscroll excursion,
-    /// move the window within the view by a constant the readers' residuals
-    /// carry — and change nothing in `.scrollView` itself, which is measured
-    /// from the window.
+    /// placed at minus the offsets, slid as the window will slide it — the
+    /// overscroll excursion, the alignment anchor's shift
+    /// (``contentSlide(handler:viewportHeight:context:)``) — so a push past an
+    /// edge moves a reader in `.scrollView` and every space around it as the
+    /// content moves, with no correction. The "N more" line a reserved
+    /// indicator puts above the window moves the window within the view by a
+    /// constant the readers' residuals carry, and changes nothing in
+    /// `.scrollView` itself, which is measured from the window.
     func enterScrollSpace(viewport: CellSize, context: RenderContext) -> GeometryOwnerScope? {
         guard !context.isMeasuring, context.carriesGeometryOrigin, let geometry = context.geometryCoordinator
         else { return nil }
@@ -62,7 +65,7 @@ extension _ScrollViewCore {
         chrome: ScrollChrome, viewport: CellSize, horizontal: Bool, context: RenderContext
     ) -> FrameBuffer {
         let (width, height) = (viewport.width, viewport.height)
-        settlePlacement(of: drawing, handler: handler, horizontal: horizontal, context: context)
+        settlePlacement(of: drawing, handler: handler, viewport: viewport, horizontal: horizontal, context: context)
         var window = drawnViewport(
             full: drawing.buffer, sliceOriginY: drawing.slice?.originY ?? 0, handler: handler, chrome: chrome,
             width: width, height: height, horizontal: horizontal, context: context)
@@ -71,7 +74,7 @@ extension _ScrollViewCore {
             let redrawn = renderedContent(
                 contentWidth: width, viewportHeight: height, horizontal: horizontal,
                 verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
-                context: context)
+                slide: contentSlide(handler: handler, viewportHeight: height, context: context), context: context)
             handler.contentHeight = redrawn.slice?.totalHeight ?? redrawn.buffer.height
             handler.contentHeightIsEstimate = redrawn.slice?.totalIsEstimate ?? false
             handler.clampScrollOffset()
@@ -79,7 +82,7 @@ extension _ScrollViewCore {
                 of: ScrollContentDrawing(
                     buffer: redrawn.buffer, slice: redrawn.slice, drawnLines: redrawn.drawnLines,
                     placement: redrawn.placement),
-                handler: handler, horizontal: horizontal, context: context)
+                handler: handler, viewport: viewport, horizontal: horizontal, context: context)
             window = drawnViewport(
                 full: redrawn.buffer, sliceOriginY: redrawn.slice?.originY ?? 0, handler: handler,
                 chrome: chrome, width: width, height: height, horizontal: horizontal, context: context)
@@ -89,10 +92,24 @@ extension _ScrollViewCore {
         return window
     }
 
+    /// How far the window is slid up over the content past the vertical
+    /// offset, as drawn (`applyOverscroll`): the overscroll excursion —
+    /// negative past the top, the content pushed down — less the alignment
+    /// anchor's shift of content shorter than the viewport.
+    func contentSlide(handler: ScrollViewHandler, viewportHeight: Int, context: RenderContext) -> Int {
+        handler.overscrollState.excursion
+            - alignmentShift(handler: handler, viewportHeight: viewportHeight, context: context)
+    }
+
     /// Where the frame shows the content's top-left in the viewport: minus
-    /// the offsets it settled on.
-    func settledPlacement(handler: ScrollViewHandler, horizontal: Bool) -> CellPoint {
-        CellPoint(x: horizontal ? -handler.horizontal.scrollOffset : 0, y: -handler.scrollOffset)
+    /// the offsets it settled on, slid as the window is
+    /// (``contentSlide(handler:viewportHeight:context:)``).
+    func settledPlacement(
+        handler: ScrollViewHandler, viewportHeight: Int, horizontal: Bool, context: RenderContext
+    ) -> CellPoint {
+        CellPoint(
+            x: horizontal ? -handler.horizontal.scrollOffset : 0,
+            y: -handler.scrollOffset - contentSlide(handler: handler, viewportHeight: viewportHeight, context: context))
     }
 
     /// Moves what the readers `drawing` drew were predicted, for the spaces no
@@ -100,8 +117,8 @@ extension _ScrollViewCore {
     ///
     /// The content is drawn at the offset the frame began with (or a band's
     /// redraw at its own), and the offset can move after: the glue to a tail
-    /// that grew, a seek the content resolved, the clamp, the focus snap over
-    /// eager content. The readers were told where they would be at the offset
+    /// that grew, a seek the content resolved (which drops an excursion too),
+    /// the clamp, the focus snap over eager content. The readers were told where they would be at the offset
     /// they were drawn at, and are found where they are at the one the frame
     /// settled on. That is a wrong answer, and an owner corrects it; but the
     /// prediction is what the next prediction is corrected by (the residual,
@@ -110,11 +127,15 @@ extension _ScrollViewCore {
     /// drawing, at the settled offset, would add it once more and draw every
     /// reader off by it.
     func settlePlacement(
-        of drawing: ScrollContentDrawing, handler: ScrollViewHandler, horizontal: Bool, context: RenderContext
+        of drawing: ScrollContentDrawing, handler: ScrollViewHandler, viewport: CellSize, horizontal: Bool,
+        context: RenderContext
     ) {
-        let settled = settledPlacement(handler: handler, horizontal: horizontal)
-        guard settled != drawing.placement, !context.isMeasuring, let geometry = context.geometryCoordinator
-        else { return }
+        guard !context.isMeasuring, let geometry = context.geometryCoordinator, geometry.unansweredTotal > 0 else {
+            return
+        }
+        let settled = settledPlacement(
+            handler: handler, viewportHeight: viewport.height, horizontal: horizontal, context: context)
+        guard settled != drawing.placement else { return }
         geometry.movePredictions(
             in: drawing.buffer,
             by: CellPoint(x: settled.x - drawing.placement.x, y: settled.y - drawing.placement.y))
