@@ -29,7 +29,7 @@ import Testing
 private final class Rig {
     let gate = TerminalWriteGate()
     let watchdog: StallWatchdog
-    private let input: [Int32]
+    private var input: [Int32]
     private let output: [Int32]
 
     init(grace: TimeInterval = 0.3) {
@@ -47,6 +47,13 @@ private final class Rig {
     func type() {
         var byte = UInt8(ascii: "k")
         _ = write(input[1], &byte, 1)
+    }
+
+    /// The terminal goes: the input's writing end closes.
+    func hangUp() {
+        close(input[1])
+        // Never closed twice: by then the number may be another test's.
+        input[1] = -1
     }
 
     /// The loop reads it, as `drainTerminalEvents` does.
@@ -67,7 +74,7 @@ private final class Rig {
 
     func finish() {
         watchdog.stop()
-        for descriptor in input + output { close(descriptor) }
+        for descriptor in input + output where descriptor >= 0 { close(descriptor) }
     }
 }
 
@@ -110,6 +117,19 @@ struct StallWatchdogTests {
         #expect(rig.written(within: 1.2).isEmpty)
         rig.gate.setArmed(true)
         #expect(rig.written(within: 10) == "\u{1B}[<u")
+    }
+
+    /// A terminal gone: its input reports a hang-up, or reads as at its end —
+    /// readable for ever, with nothing to read, as a pipe with no writer
+    /// left does. Taken for input, that would pop, be pushed back, and pop
+    /// again every grace for as long as the app went on running.
+    @Test("A terminal that hangs up ends the watch; nothing is popped")
+    func hangUpEndsIt() {
+        let rig = Rig()
+        defer { rig.finish() }
+        rig.gate.setArmed(true)
+        rig.hangUp()
+        #expect(rig.written(within: 1.2).isEmpty)
     }
 
     /// It is armed only while popping can help: raw mode on, the flags

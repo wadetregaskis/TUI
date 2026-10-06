@@ -280,16 +280,26 @@ final class StallWatchdog: @unchecked Sendable {
                 return .hangUp
             }
             if targets[1].revents != 0 { return .stop }
-            if targets[0].revents & Int16(POLLIN) != 0 { return .input }
-            if targets[0].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { return .hangUp }
+            // A hang-up first, and an end of file is one: a terminal gone is
+            // readable for ever, with nothing to read
+            // (`StdinArrivalNotifier.isAtEndOfInput(_:)`, the loop's own test).
+            if targets[0].revents & Self.gone != 0 { return .hangUp }
+            if targets[0].revents & Int16(POLLIN) != 0 {
+                return StdinArrivalNotifier.isAtEndOfInput(input) ? .hangUp : .input
+            }
         }
     }
+
+    /// What `poll` reports for a descriptor with no terminal behind it any
+    /// more.
+    private static let gone = Int16(POLLHUP | POLLERR | POLLNVAL)
 
     /// Whether ``input`` still has bytes waiting — a drain by something
     /// other than the loop (a startup exchange) takes them too.
     private func inputIsWaiting() -> Bool {
         var target = pollfd(fd: input, events: Int16(POLLIN), revents: 0)
-        return poll(&target, 1, 0) > 0 && target.revents & Int16(POLLIN) != 0
+        return poll(&target, 1, 0) > 0 && target.revents & Self.gone == 0 && target.revents & Int16(POLLIN) != 0
+            && !StdinArrivalNotifier.isAtEndOfInput(input)
     }
 
     /// Writes the pop: all of it, retrying an interrupted write; a full or
