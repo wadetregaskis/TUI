@@ -683,21 +683,6 @@ extension MouseEventDispatcher {
         renderedSincePress && pressPopup?.isOpen() != false
     }
 
-    /// Whether `event` is a drag or the release of a gesture whose press
-    /// opened a pop-up menu (``pressOpenedPopup(_:)``): the rest of that
-    /// gesture, which is the menu's, whether or not the menu is still up when
-    /// it arrives, and never a click on what lies under it. (A menu that
-    /// builds nothing closes on the frame after the press.)
-    ///
-    /// Only those two phases. The record of the press can outlive its
-    /// gesture — a release the terminal lost, or a press the gesture arena
-    /// hands an opener on a clock tick after the release — and stands until
-    /// the next press; the motion, wheel and hover events in between are
-    /// nobody's gesture, and a handler that spent them for the menu ate them.
-    func followsPopupOpeningPress(_ event: MouseEvent) -> Bool {
-        (event.phase == .dragged || event.phase == .released) && pressPopup != nil
-    }
-
     /// Whether `event` is a button-release that ends a press-and-**hold** rather
     /// than one that merely completes a click.
     ///
@@ -828,8 +813,9 @@ extension MouseEventDispatcher {
         trackHeldGesture(event)
         defer {
             if event.phase == .released {
-                // After routing, so whatever the release landed on has asked
-                // the gesture (``followsPopupOpeningPress(_:)``) and spent it.
+                // After routing, so whatever the release landed on could ask
+                // about the gesture (``endsHeldGesture(_:)``,
+                // ``endsPopupOpeningClick(_:)``).
                 pressOrigin = nil
                 pointerMovedSincePress = false
                 pressPopup = nil

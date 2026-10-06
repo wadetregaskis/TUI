@@ -155,43 +155,21 @@ enum RowContextMenuHost {
     ///   - wheel: The container's wheel handling, answering whether it took
     ///     the event.
     ///   - menu: The container's row menu, or `nil` when it has none.
-    ///   - dispatcher: The dispatcher the event came through, which knows
-    ///     whether the gesture in flight opened a menu
-    ///     (``MouseEventDispatcher/followsPopupOpeningPress(_:)``).
     ///   - row: The row under the event, asked only for a press that opens.
-    /// - Returns: `true` when the event is spent — scrolled, a press that
-    ///   opened a menu, or a drag or the release of a gesture whose press
-    ///   opened any pop-up; `false` for a right press with nothing to open,
-    ///   which then goes on to a menu around the container; `nil` for an
-    ///   event the container's own handling answers — any other, and a
-    ///   Ctrl-click with nothing to open, which is still a click.
+    /// - Returns: `true` when the event is spent — scrolled, or a press that
+    ///   opened a menu; `false` for a right press with nothing to open, which
+    ///   then goes on to a menu around the container; `nil` for an event the
+    ///   container's own handling answers — any other, and a Ctrl-click with
+    ///   nothing to open, which is still a click.
     static func preflight(
-        _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?,
-        dispatcher: MouseEventDispatcher, row: () -> Int?
+        _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?, row: () -> Int?
     ) -> Bool? {
         if wheel(event) { return true }
-        // The rest of a gesture whose press opened a menu is the menu's — asked
-        // of the gesture, not of the menu. A menu that builds nothing closes on
-        // the frame after the press, and its release, asked "is the menu
-        // open?", became a click on the row under it: a toggle for a
-        // Ctrl-click, a plain selection if Ctrl was let go first — but only
-        // when a frame fell between press and release, so a quick click and a
-        // slow one did different things. Nor is it a secondary click by its
-        // modifiers alone, for the same reason.
-        //
-        // Until a frame has drawn the pop-up, the dispatcher spends the drags
-        // and release it was handed (``MouseEventDispatcher/handOffGesture()``)
-        // itself; this is for after one, when a pop-up that drew nothing is
-        // gone and they land on the rows. Asked before whether this container
-        // has a menu at all, since the pop-up may be another's — a
-        // `.contextMenu` beside the list.
-        //
-        // Its drags and its release only: the record of that press stands
-        // until the next one, and the motion, wheel and hover between are
-        // nobody's gesture. Spent here, every move over the rows was a render
-        // and a wheel the rows could not scroll never reached a scroller
-        // around them.
-        if dispatcher.followsPopupOpeningPress(event) { return true }
+        // The drags and the release of a gesture whose press opened a pop-up —
+        // this container's menu or another's — never get here while the
+        // pop-up is not on screen to take them: the dispatcher spends them
+        // (``MouseEventDispatcher/pressOpenedPopup(_:)``), the quick click and
+        // the slow one alike.
         guard let menu, isSecondary(event) else { return nil }
         if event.phase == .pressed, menu.contentColumns.contains(event.x),
             menu.contentLines.contains(event.y), menu.open(row(), event.x, event.y)

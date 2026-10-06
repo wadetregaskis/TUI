@@ -3131,7 +3131,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // list's empty space and its section headers (the border is
             // neither). The rest of the gesture is the menu's.
             let spent = RowContextMenuHost.preflight(
-                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, dispatcher: dispatcher,
+                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu,
                 row: { Self.contentRow(rowAt(event.x, event.y)) })
             if let spent { return spent }
 

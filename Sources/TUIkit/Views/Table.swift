@@ -3612,7 +3612,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let handlerID = mouseDispatcher.register(in: context) { event in
                 headerTitleEvent(
                     event, column: column, at: xRange.lowerBound, y: headerY, sortable: sortable,
-                    handler: state.handler, gesture: gesture, dispatcher: mouseDispatcher)
+                    handler: state.handler, gesture: gesture)
             }
             buffer.hitTestRegions.insert(
                 HitTestRegion(
@@ -3629,8 +3629,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let width = xRange.count
             let gapID = mouseDispatcher.register(in: context) { event in
                 headerGapEvent(
-                    event, column: id, width: width, bounds: bounds, at: xRange.upperBound, gesture: gesture,
-                    dispatcher: mouseDispatcher)
+                    event, column: id, width: width, bounds: bounds, at: xRange.upperBound, gesture: gesture)
             }
             buffer.hitTestRegions.insert(
                 HitTestRegion(
@@ -3647,9 +3646,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     @MainActor
     private func headerTitleEvent(
         _ event: MouseEvent, column: _TableColumnSpec<Value>, at originX: Int, y: Int, sortable: Bool,
-        handler: ItemListHandler<Value.ID>, gesture: _TableHeaderGesture, dispatcher: MouseEventDispatcher
+        handler: ItemListHandler<Value.ID>, gesture: _TableHeaderGesture
     ) -> Bool {
-        if dispatcher.followsPopupOpeningPress(event) { return true }
         let x = originX + event.x
         // A secondary click is the column menu's — on a table that has one.
         // Without one, Ctrl-click is a click and sorts, as it did before
@@ -3778,21 +3776,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     @MainActor
     private func headerGapEvent(
         _ event: MouseEvent, column id: String, width: Int, bounds: ClosedRange<Int>, at originX: Int,
-        gesture: _TableHeaderGesture, dispatcher: MouseEventDispatcher
+        gesture: _TableHeaderGesture
     ) -> Bool {
-        // The rest of a gesture whose press opened a menu — the column menu,
-        // from a secondary press on a title, or any other pop-up — is the
-        // menu's. A menu-opening press hands its gesture off
-        // (``MouseEventDispatcher/handOffGesture()``), so what follows it is
-        // hit-tested live: the dispatcher spends it until a frame has drawn
-        // the menu, and the drawn menu's backdrop after that, but a pop-up
-        // that drew nothing is not there to. Asked of the event alone, a drag
-        // here after a Ctrl-press whose Ctrl was let go — a drag does not
-        // carry its press's modifiers, as the release does — was a resize on
-        // the gap it crossed, measured from a press the gap never took. The title, and the row menu
-        // (``RowContextMenuHost/preflight(_:wheel:menu:dispatcher:row:)``),
-        // ask the gesture the same way.
-        if dispatcher.followsPopupOpeningPress(event) { return true }
         guard event.button == .left, !event.ctrl, let binding = columnCustomization else { return false }
         let x = originX + event.x
         switch event.phase {
@@ -4261,7 +4246,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // goes on to a menu around the table, and a Ctrl-click with
             // nothing to open is still a click.
             let spent = RowContextMenuHost.preflight(
-                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, dispatcher: dispatcher, row: { rowAt(y: event.y) })
+                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, row: { rowAt(y: event.y) })
             if let spent { return spent }
 
             if event.button == .left {
