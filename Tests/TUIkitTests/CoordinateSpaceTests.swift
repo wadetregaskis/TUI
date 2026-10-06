@@ -434,6 +434,32 @@ struct CoordinateSpaceTests {
         #expect(origins == [CellPoint(x: 5, y: 2)])
     }
 
+    @Test("onGeometryChange asking another space still fires where no owner finds its marker: a Table cell")
+    func onGeometryChangeUnfound() {
+        struct Row: Identifiable {
+            let id: Int
+        }
+        let harness = InputChainHarness()
+        var reports: [String] = []
+        let table = Table([Row(id: 0), Row(id: 1)]) {
+            TableColumn("Name") { (row: Row) in
+                Text("row \(row.id)")
+                    .onGeometryChange(for: Int.self) { $0.frame(in: .global).minY } action: { old, new in
+                        reports.append("\(row.id): \(old)→\(new)")
+                    }
+            }
+            .width(12)
+        }
+        harness.frame(table)
+        // A table composes its cells as text, dropping the markers they drew
+        // (decisions D5G, B-D5G-2): nothing finds them, and each is answered
+        // as though nothing had — the initial report still made, as it was
+        // before the frame learnt to ask again at its end.
+        #expect(reports == ["0: 0→0", "1: 0→0"])
+        harness.frame(table)
+        #expect(reports == ["0: 0→0", "1: 0→0"])
+    }
+
     // MARK: - Pointer locations
 
     @Test("A tap located in a named space reports the cell in that space")

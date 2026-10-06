@@ -48,11 +48,14 @@ cell view*
 
 A `Table` composes each row's cells as text (`rowCells(for:columnWidths:context:)`
 returns strings), which drops every hit-test region a cell view drew — buttons
-as well as the geometry markers these read. So a reader in a cell is answered
-as though no owner found it: `frame(in: .named(…))` in the global space as last
-known, an observer never measured. `List` rows, eager and lazy stacks, grids,
-custom layouts, `.offset`, scroll views and presentations all carry markers
-(`GeometryMarkerTests`).
+as well as the geometry markers these read. So a view in a cell is answered as
+though no owner found it: a reader with what was last found for it, which is
+the origin `(0, 0)` until something does; an `onGeometryChange` asking another
+space likewise, still called once the frame is done (its first report
+included); a scroll visibility observer never measured, nor reported (a
+registration whose marker reached no owner and not the frame counts as none).
+`List` rows, eager and lazy stacks, grids, custom layouts, `.offset`, scroll
+views and presentations all carry markers (`GeometryMarkerTests`).
 
 **Fuller version:** carry each cell's markers (and its regions) through the row
 composition at the cell's column — a `[HitTestRegion]` beside the row's claims

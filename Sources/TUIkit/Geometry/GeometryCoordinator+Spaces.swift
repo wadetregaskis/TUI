@@ -179,8 +179,16 @@ extension GeometryCoordinator {
 // MARK: - Ending the Frame
 
 extension GeometryCoordinator {
-    /// Calls each reporter that was drawn, with a proxy answering what was
-    /// found; then lets go of what was kept for views that have gone.
+    /// Calls each reporter that registered this walk, with a proxy answering
+    /// what was found; then lets go of what was kept for views that have gone.
+    ///
+    /// A reporter no owner found is called too, its proxy answering as
+    /// though none had — what was found for it last, else the origin: one
+    /// whose marker a container dropped (a `Table` composes its cells as
+    /// text, decisions D5G B-D5G-2), or that was drawn outside the frame the
+    /// owners read (the app header). Its first report is the one
+    /// `onGeometryChange` always makes, as it made it when it reported from
+    /// its render.
     ///
     /// A view that asked last frame and drew nothing this one keeps what was
     /// kept for it while a lazy container still holds it — windowed out, its
@@ -190,7 +198,7 @@ extension GeometryCoordinator {
         guard !kept.isEmpty || !asks.isEmpty else { return }
         var reports: [(report: (GeometryProxy) -> Void, proxy: GeometryProxy)] = []
         for id in askOrder {
-            guard let report = reporters[id], let ask = asks[id], !ask.found.isEmpty else { continue }
+            guard let report = reporters[id], let ask = asks[id] else { continue }
             reports.append((report, GeometryProxy(width: ask.size.width, height: ask.size.height, ask: ask)))
         }
         if kept.count > asks.count {

@@ -37,7 +37,10 @@ extension View {
     /// declared with ``View/coordinateSpace(_:)``, `.scrollView` — is run again
     /// once the frame is done, against where that space's owner found the
     /// view, and the action fires then: the view's position is only known once
-    /// its ancestors have placed it (decisions A2, the owner's answer 7).
+    /// its ancestors have placed it (decisions A2, the owner's answer 7). A
+    /// view no owner can find — inside a `Table` cell, which composes its
+    /// cells as text — is answered with where it was last found, or the
+    /// origin, and still fires.
     ///
     /// - Parameters:
     ///   - type: The type of the derived value, stated so the closure's return
