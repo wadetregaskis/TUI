@@ -54,9 +54,7 @@ extension InputHandler {
     /// - the scene's undo and redo keys.
     func declaresBinding(forAnyOf events: [KeyEvent]) -> Bool {
         if events.contains(where: keyboardShortcuts.hasShortcut(for:)) { return true }
-        if events.contains(where: { statusBar.item(taking: $0) != nil || statusBar.quitShortcut.matches($0) }) {
-            return true
-        }
+        if statusBar.takesAny(of: events) || events.contains(where: statusBar.quitShortcut.matches) { return true }
         if undoManager != nil, events.contains(where: { undoKeys.command(for: $0) != nil }) { return true }
         if focusPathHearsKeys, let focused = focusManager.focusedIdentity {
             return keyEventDispatcher.declaresFocusPathBinding(forAnyOf: events, focusedIdentity: focused)

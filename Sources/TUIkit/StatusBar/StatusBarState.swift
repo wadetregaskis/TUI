@@ -579,10 +579,18 @@ extension StatusBarState {
         return true
     }
 
-    /// The item ``handleKeyEvent(_:)`` would run for `event`, without running
-    /// it: Layer 1's rule, which the user's quit key asks too
+    /// Whether an item would run for one of `events` — ``handleKeyEvent(_:)``'s
+    /// rule, without running anything, the items gathered once for all of
+    /// them. For the user's quit key, asked after every frame
     /// (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
-    func item(taking event: KeyEvent) -> StatusBarItem? {
+    func takesAny(of events: [KeyEvent]) -> Bool {
+        guard !itemActionsSuppressed else { return false }
+        let items = currentItems
+        return events.contains { item(taking: $0, among: items) != nil }
+    }
+
+    /// The item ``handleKeyEvent(_:)`` runs for `event`: Layer 1's rule.
+    private func item(taking event: KeyEvent, among items: [any StatusBarItemProtocol]? = nil) -> StatusBarItem? {
         // An open sectionless surface holds the keyboard: nothing on the bar
         // is its own, so nothing on the bar may fire. See
         // ``itemActionsSuppressed``; ESC still works via the pre-route.
@@ -596,7 +604,7 @@ extension StatusBarState {
         // match.
         let escapeIsClaimedByModal = escapeLabelOverride != nil && event.key == .escape
 
-        for item in currentItems where item.matches(event) {
+        for item in items ?? currentItems where item.matches(event) {
             // Any item matching an Escape event IS an Escape binding —
             // whatever its display string. This used to compare the display
             // glyph (`item.shortcut == "⎋"`), so an item spelled differently
