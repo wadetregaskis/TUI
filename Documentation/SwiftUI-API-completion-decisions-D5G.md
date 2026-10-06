@@ -40,7 +40,7 @@ whether a windowing container still retains the identity
 windowed-out row as SwiftUI's destroyed one does, which leaves an app that
 stopped a player on `false` playing it off screen. Nothing to price.
 
-### B-D5G-2. A view inside a `Table` cell is not located
+### B-D5G-2. A view inside a `Table` cell, or where its marker reaches no owner, is not located
 
 *`GeometryReader` asking any space but its own, `onScrollVisibilityChange`,
 `onGeometryChange` with a non-local space, anchors — inside a `TableColumn`'s
@@ -69,10 +69,25 @@ containers in a cell no longer work out placements nothing reads. A space
 declared inside a cell still starts an origin of its own and is answered
 exactly.
 
+Not only a table: a marker reaches an owner only through the buffers its
+ancestors draw, so a view is not located either when it is drawn outside the
+content area the scene root reads — the app header's content (`.appHeader {}`),
+which the window draws in its bar — or under any container that redraws its
+content's lines into a new buffer without the hit-test regions in them, which
+carry the markers (a bare `FrameBuffer(lines:)`, in an app's own `Renderable`
+as in the framework; `ContainerPayloadAudit` guards the framework's containers
+for regions). Such content carries an origin down as any content does, so a
+reader there is told where the containers above it would place it — in the
+header, the place of the view `.appHeader` is applied to, not the bar's — and
+nothing checks it; a reporter is told the origin, and a pointer converts in
+the global space (B-D5G-7).
+
 **Fuller version:** carry each cell's markers (and its regions) through the row
 composition at the cell's column — a `[HitTestRegion]` beside the row's claims
 in `renderRowUncached`. About half a day, on `Table`'s hot path, so with the
-`table`/`tables-scroll` A/Bs.
+`table`/`tables-scroll` A/Bs. For the header, have the root read its bar
+too, or drop the carried origin from the bar's content as a cell does (an
+hour either way, once the window's bars settle).
 
 ### B-D5G-3. A reader inside a presented surface asking `.global` is told the right answer from the next frame
 
