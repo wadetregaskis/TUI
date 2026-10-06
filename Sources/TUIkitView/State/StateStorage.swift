@@ -401,6 +401,9 @@ extension StateStorage {
     /// walks the tree twice.
     public func beginSceneRender() {
         onChangeCounters.removeAll(keepingCapacity: true)
+        // A value first seen by an earlier walk of this pass, seen differently
+        // now, appears rather than animates: that walk's drawing is never shown.
+        animations.beginWalk()
     }
 
     /// Ends a render pass by removing state for views no longer in the tree.

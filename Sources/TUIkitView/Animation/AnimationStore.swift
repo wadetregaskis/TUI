@@ -92,6 +92,11 @@ public final class AnimationStore: @unchecked Sendable {
 
         /// The pass this record was last asked about. See ``pass``.
         var lastPass: UInt64 = 0
+
+        /// The pass and walk a first sight stored this record in — `nil` once
+        /// anything has stored over it. See
+        /// ``value(for:target:animation:nowNanos:isMeasuring:)``.
+        var appeared: (pass: UInt64, walk: UInt64)?
     }
 
     private var records: [Key: Record] = [:]
@@ -124,6 +129,9 @@ public final class AnimationStore: @unchecked Sendable {
     /// key into a second table is the kind of cost that only shows up on a tree
     /// deep enough to measure it twice.
     private var pass: UInt64 = 0
+
+    /// Which walk of the pass is being rendered — see ``beginWalk()``.
+    private var walk: UInt64 = 0
 
     /// Whether anything declared itself served by runs last pass, so the clear
     /// sweep can be skipped entirely when nothing did.
@@ -183,8 +191,7 @@ extension AnimationStore {
             // does not animate — a view that faded in from nothing every time it
             // scrolled into view would be a distraction, not an animation, and
             // SwiftUI does not do it either.
-            store(Record(from: target, target: target, animation: nil, startNanos: nowNanos),
-                for: key, isMeasuring: isMeasuring)
+            store(appearance(of: target, at: nowNanos), for: key, isMeasuring: isMeasuring)
             return target
         }
         // The re-declaration, on an entry already in hand.
@@ -212,6 +219,17 @@ extension AnimationStore {
                     for: key, isMeasuring: isMeasuring)
             }
             return presented
+        }
+
+        if let appeared = record.appeared, appeared.pass == pass, appeared.walk != walk {
+            // Changed since a first sight in an earlier walk of THIS pass —
+            // one the pass then walked again (the app header's correction; a
+            // geometry owner drawing a reader again with where it really is,
+            // ``beginWalk()``), whose drawing is never shown. So this is still
+            // the appearance, and does not animate either: animated, it slid
+            // from the first walk's value, a motion nothing on screen made.
+            store(appearance(of: target, at: nowNanos), for: key, isMeasuring: isMeasuring)
+            return target
         }
 
         guard let animation else {
@@ -349,6 +367,24 @@ extension AnimationStore {
     public func noteServedByRuns(_ key: Key) {
         records[key]?.servedByRuns = true
         servedAnyByRuns = true
+    }
+
+    /// Starts another walk of the tree within the pass — the drawing a walk
+    /// makes after this replaces what the walks before it drew, so a value
+    /// first seen by one of those and seen differently now has still not
+    /// been shown, and appears rather than animates.
+    ///
+    /// Called from ``StateStorage/beginSceneRender()`` (every walk of the
+    /// scene, the first one included), and by a view that draws its subtree
+    /// again within one walk (a geometry owner's correction, a scroll view's
+    /// band drawn again at a new offset).
+    public func beginWalk() {
+        walk &+= 1
+    }
+
+    /// A record of `target` first seen now: settled at it, nothing running.
+    private func appearance<D>(of target: D, at nowNanos: Int64) -> Record {
+        Record(from: target, target: target, animation: nil, startNanos: nowNanos, appeared: (pass, walk))
     }
 
     /// Starts a pass: nothing has been asked about yet, and nothing has been

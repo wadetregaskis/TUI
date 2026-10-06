@@ -81,5 +81,9 @@ struct RenderWalkCheckpoint {
         context.stateStorage?.rewindOnChangeCounters(at: identity, to: onChangeCount)
         if let keyMark { context.environment.keyEventDispatcher?.rollBack(to: keyMark) }
         if let preferences { context.environment.preferenceStorage?.current = preferences }
+        // A value the first drawing saw for the first time, and the second sees
+        // differently, appears at the second's: the first is never shown, so
+        // there is nothing for it to animate from (`AnimationStore.beginWalk()`).
+        context.stateStorage?.animations.beginWalk()
     }
 }

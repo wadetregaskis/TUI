@@ -180,4 +180,27 @@ struct VisualEffectTests {
         // so the residual kept for it is kept, and it is predicted.
         #expect(harness.geometryCorrections == settled)
     }
+
+    @Test("An effect drawn from its place on its first frame, under an animation, is not slid there from a guess")
+    func firstFrameUnderAnimationDoesNotSlide() {
+        let harness = InputChainHarness { environment in
+            environment.canAnimate = true
+            environment.transaction = Transaction(animation: .linear(duration: 1))
+        }
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Text("a")
+            Text("b")
+            Text("c")
+            Text("row").visualEffect { content, proxy in
+                content.offset(x: proxy.frame(in: .global).origin.y)
+            }
+        }
+        // The first drawing is told nothing (the root starts no origin before
+        // it has a reader) and offsets by 0; the root's correction tells it 3.
+        // An appearance does not animate, and the first drawing was never
+        // shown: the frame draws the row three cells right, not on its way.
+        #expect(picture(harness.frame(view))[3] == "   row")
+        harness.now += 500_000_000
+        #expect(picture(harness.frame(view))[3] == "   row")
+    }
 }
