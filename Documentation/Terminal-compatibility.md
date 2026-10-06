@@ -4301,6 +4301,13 @@ legacy encoding. `KeyEvent.parse` reads it as Ctrl-minus, the key undo is on
 (see "Undo and redo"); before then 0x1F, like 0x1C–0x1E, was dropped. Under the
 kitty keyboard protocol the three arrive apart.
 
+**Ctrl-6 sends nothing in Apple Terminal; Ctrl-Shift-6 sends 0x1E** (`^^`, the
+C0 record separator) — the owner's `cat -v` reading, 2026-10-05, Apple Terminal
+(version not recorded). Many terminals send 0x1E for Ctrl-6 itself; on Apple
+Terminal only the shifted chord reaches the app. `KeyEvent.parse` drops 0x1E,
+and nothing in TUIkit is bound to it (it was weighed, and declined as too
+obscure, for the mouse hand-off key: decisions A13).
+
 **Ctrl-C and Ctrl-Z do arrive** (corrected 2026-09-24; this table used to list
 them as "taken by the shell's job control"). That is true of a cooked terminal,
 not of TUIkit's: `Terminal.enableRawMode()` clears `ISIG`, so the driver sends
