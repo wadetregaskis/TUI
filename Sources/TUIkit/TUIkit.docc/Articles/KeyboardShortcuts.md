@@ -435,10 +435,12 @@ quit as well, and a ⌘4 shortcut, ⌃4 under `.commandKey(.control)`, is
 undeliverable: it quits the app rather than firing.
 
 A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key report
-rather than the byte the driver acts on. TUIkit sends `SIGQUIT` for that
-report itself, to the app's process group as the driver would, before any
-layer sees it, so ⌃\\ quits there too — but only while the app reads its
-input: under the protocol, a hung app does not quit by ⌃\\.
+rather than the byte the driver acts on. TUIkit offers that report to your
+bindings first, as any key — a ⌃\\ shortcut or handler of yours takes it —
+and where none does, sends `SIGQUIT` itself, to the app's process group as
+the driver would, so ⌃\\ quits there too — but only while the app reads its
+input: under the protocol, a hung app does not quit by ⌃\\. There ⌃4 and ⌃|
+arrive as themselves, and a shortcut on them fires.
 
 ### Overriding `q` in a local view context
 

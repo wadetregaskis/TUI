@@ -108,6 +108,11 @@ internal final class AppRunner<A: App> {
     /// the loop holds (see `terminalFocusChanged(isFocused:cursorTimer:)`).
     let tuiContext: TUIContext
     private var isRunning = false
+
+    /// Whether the host may send ⌃\'s byte for ⌃4, ⌃| and ⌃⇧\
+    /// (`TerminalClient.mayAliasQuitByte(_:)`): settled once the host is
+    /// identified, at startup; until then, as for any host not measured, yes.
+    private var hostAliasesQuitByte = true
     private let signals = SignalManager()
 
     /// - Parameters:
@@ -185,6 +190,11 @@ extension AppRunner {
                 #if !canImport(WASILibc)
                     QuitKeyReport.quit()
                 #endif
+            },
+            // ⌃\ may be ⌃4, ⌃| or ⌃⇧\ only in the legacy encoding: under the
+            // kitty keyboard protocol each arrives as itself.
+            quitByteAliasing: { [weak self, terminal] in
+                terminal.keyboardEnhancement.isEmpty && (self?.hostAliasesQuitByte ?? true)
             }
         )
     }
@@ -312,6 +322,10 @@ extension AppRunner {
         // for the same reason identification is — the advance model this
         // protects is frozen into `FrameDiffWriter` at construction.
         terminal.pinGraphemeClusteringIfNeeded()
+
+        // Whether the host may send ⌃\'s byte for other chords, now that it
+        // is named.
+        hostAliasesQuitByte = TerminalClient.mayAliasQuitByte(TerminalClient.current.program)
 
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.

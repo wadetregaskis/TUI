@@ -41,7 +41,8 @@ that answers the startup exchange, and checks:
      raises SIGQUIT itself, and quits as in 4, the flags popped on the way,
      and a child in its process group ends with it, as the driver's ⌃\\
      ends one in 4. With the quit key turned off, the report is an ordinary
-     key.
+     key; with a ⌃\\ shortcut of the app's, the report runs it and quits
+     nothing (8b).
 
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
@@ -404,6 +405,14 @@ app.pump(3.0)
 os.write(app.master, b"\x1b[92;5u")
 app.pump(1.0)
 check(b"key ctrl-\\" in app.out and running(app), "kitty, stty quit undef: the report is an ordinary key")
+app.finish()
+
+# 8b. The app's own ⌃\ wins over the quit (the owner's rule, 2026-10-06).
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_SHORTCUTS": "\\"}, kitty=True)
+app.pump(3.0)
+os.write(app.master, b"\x1b[92;5u")
+app.pump(1.0)
+check(b"key ran ctrl-\\" in app.out and running(app), "kitty, ⌃\\ bound: the report runs the binding, and quits nothing")
 app.finish()
 
 if failures:

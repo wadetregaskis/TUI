@@ -114,19 +114,29 @@ internal struct InputHandler {
 
     /// The user's quit key, as the byte a legacy encoding sends for it
     /// (`Terminal.quitKeyByte`: ⌃\'s 0x1C unless they moved it), asked when
-    /// a Control chord arrives; `nil` where there is none. Defaulted, as
-    /// ``undoManager`` is, for a test harness that does not exercise it.
+    /// a Control chord nothing took arrives; `nil` where there is none.
+    /// Defaulted, as ``undoManager`` is, for a test harness that does not
+    /// exercise it.
     ///
-    /// The driver turns the byte into `SIGQUIT` before the app reads it, so
-    /// the chord reaches the chain only as a kitty keyboard protocol report,
-    /// which the terminal sends in its place; ``handle(_:)`` then does what
-    /// the driver would have, ahead of every layer (``onQuitKey``).
+    /// While the quit key is live the driver turns the byte into `SIGQUIT`
+    /// before the app reads it, so the chord reaches the chain as a kitty
+    /// keyboard protocol report, which the terminal sends in its place. The
+    /// app's bindings are offered it first, as any key, and ``handle(_:)``
+    /// does what the driver would have only if none takes it
+    /// (``onQuitKey``).
     var quitKey: () -> UInt8? = { nil }
 
-    /// Invoked when the user's quit key arrives as a key report: the runner
-    /// sends `SIGQUIT` to the app's process group, as the driver does for the
-    /// byte (`QuitKeyReport`).
+    /// Invoked when the user's quit key reaches the end of the chain with
+    /// nothing taking it: the runner sends `SIGQUIT` to the app's process
+    /// group, as the driver does for the byte (`QuitKeyReport`).
     var onQuitKey: () -> Void = {}
+
+    /// Whether a key that arrives as ⌃\ may be ⌃4, ⌃| or ⌃⇧\ instead: the
+    /// terminal is in its legacy encoding, where some terminals send ⌃\'s
+    /// 0x1C for all four, and is not one measured to keep them apart
+    /// (`TerminalClient.mayAliasQuitByte(_:)`). Asked for a ⌃\ nothing took.
+    /// Defaulted, as ``quitKey`` is.
+    var quitByteAliasing: () -> Bool = { false }
 }
 
 // MARK: - Internal API
@@ -148,17 +158,6 @@ extension InputHandler {
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
     func handle(_ event: KeyEvent) -> Bool {
-        // The user's quit key, before anything else hears it: no layer may
-        // bind it, as none can where the driver takes its byte. It arrives
-        // here only as a kitty keyboard protocol report — under the protocol
-        // the terminal sends ⌃\ as `CSI 92;5u`, which the driver never
-        // turns into a signal — so raise the signal the byte would have been.
-        // Its release and repeats are swallowed with it.
-        if let byte = event.legacyControlByte, byte == quitKey() {
-            if event.phase == .press { onQuitKey() }
-            return true
-        }
-
         // A release goes to the focus path's key-press handlers and nowhere
         // else. Every other layer acts on a key going down, and a release
         // offered to them would act a second time for one keystroke. Only a
@@ -183,6 +182,26 @@ extension InputHandler {
         // wins, and an unbound one does what it always did.
         if let legacy = event.legacyControlEquivalent {
             return dispatchPress(legacy)
+        }
+
+        // ⌃\ in a legacy encoding is the byte 0x1C, which some terminals
+        // send for ⌃4, ⌃| and ⌃⇧\ as well. Nothing in the byte says which,
+        // so ⌃\ is asked first (a binding on it wins), and an unbound one
+        // goes round once more as each of the others: a ⌃4 shortcut fires.
+        if quitByteAliasing() {
+            for alias in event.quitByteAliases where dispatchPress(alias) { return true }
+        }
+
+        // The user's quit key, where nothing took it: what the driver would
+        // have done had it had the byte — `SIGQUIT`. It gets here as a kitty
+        // keyboard protocol report, which the driver never sees, or as the
+        // byte itself where the driver's quit is masked because the app
+        // declares a binding the byte could be for (`Terminal.maskQuitKey`).
+        // A binding on the chord takes it first, as it takes any key: the
+        // owner's rule (2026-10-06), that an app's own ⌃\ overrides the quit.
+        if let byte = event.legacyControlByte, byte == quitKey() {
+            onQuitKey()
+            return true
         }
         return false
     }

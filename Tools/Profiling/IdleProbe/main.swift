@@ -41,7 +41,8 @@ import TUIkit
 // Two modes serve `Tools/Smoke/quit_key_smoke.py` instead, which wants the
 // smallest app for a different question — what the terminal driver does with
 // the Control keys while TUIkit runs: `keys` shows each key the app hears,
-// and `hang` blocks its main thread once on screen. So does
+// and `hang` blocks its main thread once on screen; in `keys`,
+// `IDLE_PROBE_SHORTCUTS` binds Control shortcuts (`KeyEcho`). So does
 // `IDLE_PROBE_CHILD_PIDFILE`, in any mode: a child in the app's process group
 // (bottom of this file).
 
@@ -117,12 +118,23 @@ private struct ProbeContent: View {
 /// The `keys` mode: every key the app hears, in order, from the top-left
 /// corner down, so a row once drawn never moves and each new one is written
 /// whole — what a PTY reading the bytes needs to find `key ctrl-y`.
+///
+/// With `IDLE_PROBE_SHORTCUTS` set, a Control `.keyboardShortcut` for each of
+/// its characters (`\4` binds ⌃\ and ⌃4), each adding `key ran ctrl-…` when
+/// it runs: what an app's own binding on the quit key's chord does.
 private struct KeyEcho: View {
     @State private var heard: [String] = []
+
+    /// The characters `IDLE_PROBE_SHORTCUTS` binds with Control.
+    private static let shortcuts = Array(ProcessInfo.processInfo.environment["IDLE_PROBE_SHORTCUTS"] ?? "")
 
     var body: some View {
         VStack(alignment: .leading) {
             Text("idle probe — keys")
+            ForEach(Self.shortcuts, id: \.self) { character in
+                Button("bound ctrl-\(character)") { heard.append("ran ctrl-\(character)") }
+                    .keyboardShortcut(KeyEquivalent(character), modifiers: .control)
+            }
             ForEach(heard.indices, id: \.self) { index in
                 Text("key \(heard[index])")
             }

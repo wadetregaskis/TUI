@@ -4303,6 +4303,13 @@ rather than wondering why one menu item is dead. `.commandKey(.option)` has no
 such collision, at the cost of Option itself being less reliable: Apple
 Terminal composes accented characters unless "Use Option as Meta key" is on.
 
+**Where 0x1C reaches the app** — the user's quit key turned off or moved —
+the parser reads it as ⌃\\, and a ⌃\\ no binding takes goes round the input
+chain once more as ⌃4, ⌃| and ⌃⇧\\ in turn, on a terminal in its legacy
+encoding not measured to send them apart (`TerminalClient.mayAliasQuitByte`;
+no terminal measured yet, 2026-10-06), as an unbound Ctrl-H goes round as
+Backspace. A binding on ⌃\\ wins over one on ⌃4: the bytes are the same.
+
 **The three that share ⌃\\'s 0x1C quit rather than fire** (2026-10-06).
 Before the quit key was the driver's, a legacy 0x1C was dropped, so a ⌘4
 shortcut (⌃4 under `.control`) simply never fired on those terminals; now the
@@ -4379,12 +4386,14 @@ against `IdleProbe`, a hung one included (CI runs it).
 "disambiguate" flag has the terminal send every Control chord on an ASCII key
 as a report — ⌃\\ as `CSI 92;5u`, not 0x1C — so no byte reaches the line
 discipline to raise the signal (from the specification; the hosts are
-unmeasured, like the rest of that section). `InputHandler` therefore takes the
-report of the user's quit key (the chord whose legacy byte is the inherited
-`VQUIT`, `Terminal.quitKeyByte`) ahead of every layer and sends `SIGQUIT`
-where the driver would have, to the app's whole process group, so a child the
-app started ends with it (`QuitKeyReport`); its repeats and release are
-swallowed, and with the quit key turned off the report is an ordinary key. That needs the app to read its input, so **on a
+unmeasured, like the rest of that section). `InputHandler` therefore offers
+the report of the user's quit key (the chord whose legacy byte is the inherited
+`VQUIT`, `Terminal.quitKeyByte`) to the app's bindings as any key — the
+owner's rule of 2026-10-06, that an app's own ⌃\\ overrides the quit; until
+then the report was taken ahead of every layer — and where none takes it sends
+`SIGQUIT` where the driver would have, to the app's whole process group, so a
+child the app started ends with it (`QuitKeyReport`); a release quits
+nothing, and with the quit key turned off the report is an ordinary key. That needs the app to read its input, so **on a
 terminal that speaks the protocol, ⌃\\ does not quit an app whose main thread
 has hung** (decisions B-F2-4); there, closing the tab, or `kill -QUIT` from
 another shell, still does. The smoke checks the report too, against a PTY
@@ -4649,7 +4658,8 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   own screen is never changed.
 - **Quits on ⌃\\'s report**: under the protocol the user's quit key is a
   `CSI u` report the line discipline never turns into `SIGQUIT`, so the input
-  chain raises the signal for it ("The quit key, ⌃\\").
+  chain raises the signal for it where none of the app's bindings takes it
+  ("The quit key, ⌃\\").
 - **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
   so an app can tell which of SwiftUI's keyboard features work here.
 - **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out
