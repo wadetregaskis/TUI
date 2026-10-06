@@ -239,67 +239,10 @@ public struct RenderContext {
     /// compares `generationIgnoringIdealWidth`.
     public var measureGeneration: UInt8 = 0
 
-    /// The depth of the innermost enclosing `ScrollView`'s content identity,
-    /// plus one; `0` outside any scroll content. Set by the scroll view for
-    /// every ask it makes of its content, and cleared for a subtree drawn
-    /// somewhere else (a sheet, a popover, a menu presented from inside it).
-    ///
-    /// A lazy stack asks it at MEASURE time whether its render will band it or
-    /// draw it whole: a stack reached from the content by single-child steps
-    /// is the one the scroll window is consumed by, and its measure may be an
-    /// estimate only the scrollbar reads; any other stack below the content is
-    /// drawn whole, into the height its measure claimed, and must measure what
-    /// it will draw. A measure has no window to ask — the scroll view publishes
-    /// one only for its render — hence this.
-    ///
-    /// A field and not an environment value because an environment value cost
-    /// more than the question is worth: one more entry in every scroll view's
-    /// content environment, copied by every environment write beneath it,
-    /// measured **+2.0% on `session/editor`**, which has no nested stack at
-    /// all. A depth rather than the identity because the identity is a class
-    /// reference, and eight more bytes would move this struct past its 104-byte
-    /// stride (see ``measureGeneration``); two bytes land in padding that is
-    /// already there, after the flags. The lineage the depth leaves out is
-    /// implied: every identity a context carries descends from the one it was
-    /// given, and the canvas is cleared where a context is lent to a subtree
-    /// drawn elsewhere.
-    ///
-    /// `belowScrollContentOrigin` below a view that sits at the origin and
-    /// keeps it for itself: the rows of a windowed stack
-    /// (`leaveScrollOrigin()`). Single-child steps lead there all the same — a
-    /// lone lazy stack in an outer one, a custom view whose body is the stack
-    /// — and the depth alone read that stack as the one the window bands, so
-    /// it estimated itself and was drawn whole into the estimate.
-    package var scrollContentOriginDepth: UInt16 = 0
-
     /// `scrollContentOriginDepth` for a subtree inside scroll content but
     /// below its origin, where nothing is the stack the window is consumed by.
     /// No real depth: the scroll view marks none this deep.
     package static let belowScrollContentOrigin = UInt16.max
-
-    /// Which `Section`s the provider walk this context is handed to hands its
-    /// container WHOLE, as one child, rather than taking them apart into their
-    /// header's, content's and footer's views
-    /// (``ChildViewProvider/staysWhole(in:)``) — see ``SectionWholeness``.
-    ///
-    /// A `Section` is its parts in every container, as SwiftUI's is, except
-    /// those that read sections as sections: a `List`, and the section APIs
-    /// (`Group(sections:)`, `ForEach(sections:)`), which keep every section
-    /// whole on the context they RESOLVE their content with and on no other —
-    /// the views they then draw are drawn in their ordinary context — and a
-    /// lazy stack, which keeps its own sections whole to pin them, or to stay
-    /// lazy over a loop of them, and sets it for its walks and its rows alike.
-    /// The next container down clears it — a stack as it publishes its axis, a
-    /// `ZStack` or a `Layout` with no axis as it resolves its own children
-    /// (``takingSectionsApart()``). So it reaches every provider in the walk
-    /// (a `Group`, an `if`, a `ForEach` of sections) and no container below a
-    /// row.
-    ///
-    /// One byte among the flags, in padding that was already there, for the
-    /// reason ``measureGeneration`` gives: this struct's stride is load-bearing.
-    /// Folded into the per-pass child memo's key, since one content value can
-    /// be resolved more than one way at one identity.
-    package var sectionWholeness: SectionWholeness = .apart
 
     /// Whether the walk keeps EVERY section whole (``sectionWholeness``): a
     /// `List`'s, the section APIs' or a pinned lazy stack's.
@@ -396,6 +339,64 @@ public struct RenderContext {
     /// that ``renderCache`` and ``stateStorage`` were both hoisted out of it.
     /// Unused, it costs one nil check.
     public var gradientFrame: GradientFrame?
+
+    /// Which `Section`s the provider walk this context is handed to hands its
+    /// container WHOLE, as one child, rather than taking them apart into their
+    /// header's, content's and footer's views
+    /// (``ChildViewProvider/staysWhole(in:)``) — see ``SectionWholeness``.
+    ///
+    /// A `Section` is its parts in every container, as SwiftUI's is, except
+    /// those that read sections as sections: a `List`, and the section APIs
+    /// (`Group(sections:)`, `ForEach(sections:)`), which keep every section
+    /// whole on the context they RESOLVE their content with and on no other —
+    /// the views they then draw are drawn in their ordinary context — and a
+    /// lazy stack, which keeps its own sections whole to pin them, or to stay
+    /// lazy over a loop of them, and sets it for its walks and its rows alike.
+    /// The next container down clears it — a stack as it publishes its axis, a
+    /// `ZStack` or a `Layout` with no axis as it resolves its own children
+    /// (``takingSectionsApart()``). So it reaches every provider in the walk
+    /// (a `Group`, an `if`, a `ForEach` of sections) and no container below a
+    /// row.
+    ///
+    /// One byte, after ``gradientFrame``, in padding that was already there,
+    /// for the reason ``measureGeneration`` gives: this struct's stride is
+    /// load-bearing.
+    /// Folded into the per-pass child memo's key, since one content value can
+    /// be resolved more than one way at one identity.
+    package var sectionWholeness: SectionWholeness = .apart
+
+    /// The depth of the innermost enclosing `ScrollView`'s content identity,
+    /// plus one; `0` outside any scroll content. Set by the scroll view for
+    /// every ask it makes of its content, and cleared for a subtree drawn
+    /// somewhere else (a sheet, a popover, a menu presented from inside it).
+    ///
+    /// A lazy stack asks it at MEASURE time whether its render will band it or
+    /// draw it whole: a stack reached from the content by single-child steps
+    /// is the one the scroll window is consumed by, and its measure may be an
+    /// estimate only the scrollbar reads; any other stack below the content is
+    /// drawn whole, into the height its measure claimed, and must measure what
+    /// it will draw. A measure has no window to ask — the scroll view publishes
+    /// one only for its render — hence this.
+    ///
+    /// A field and not an environment value because an environment value cost
+    /// more than the question is worth: one more entry in every scroll view's
+    /// content environment, copied by every environment write beneath it,
+    /// measured **+2.0% on `session/editor`**, which has no nested stack at
+    /// all. A depth rather than the identity because the identity is a class
+    /// reference, and eight more bytes would move this struct past its 104-byte
+    /// stride (see ``measureGeneration``); two bytes land in padding that is
+    /// already there, after ``gradientFrame``. The lineage the depth leaves out is
+    /// implied: every identity a context carries descends from the one it was
+    /// given, and the canvas is cleared where a context is lent to a subtree
+    /// drawn elsewhere.
+    ///
+    /// `belowScrollContentOrigin` below a view that sits at the origin and
+    /// keeps it for itself: the rows of a windowed stack
+    /// (`leaveScrollOrigin()`). Single-child steps lead there all the same — a
+    /// lone lazy stack in an outer one, a custom view whose body is the stack
+    /// — and the depth alone read that stack as the one the window bands, so
+    /// it estimated itself and was drawn whole into the estimate.
+    package var scrollContentOriginDepth: UInt16 = 0
 
     /// The frame a container publishes to its children: this one, with the
     /// content size the container has just worked out standing in for the
