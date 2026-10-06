@@ -481,10 +481,12 @@ struct CommandKeySubstitutionTests {
     /// Ctrl-C and Ctrl-Z are not among them. They used to be reported as
     /// "taken by job control", which is what a cooked terminal does with them;
     /// raw mode turns them off as signal characters, so they arrive as keys
-    /// (and `InputHandlerTests` fires a ⌘C shortcut on one). `Ctrl-\` is: it
-    /// is the user's quit key, which the driver turns into SIGQUIT before
-    /// the app sees it, and a legacy 0x1C is no key either — and so are the
-    /// chords some terminals send the same 0x1C for, Ctrl-4 and Ctrl-|.
+    /// (and `InputHandlerTests` fires a ⌘C shortcut on one). Nor is `Ctrl-\`,
+    /// the user's quit key, since 2026-10-06: the driver's quit is masked
+    /// while the app binds it (`QuitKeyMaskTests`). The chords some terminals
+    /// send its 0x1C for, Ctrl-4, Ctrl-| and Ctrl-Shift-\, are: they fire
+    /// only where no ⌃\ binding takes the byte first, or where they arrive
+    /// apart.
     @Test("The C0 collisions are reported, not silently dead")
     func c0CollisionsAreQueryable() {
         // Ctrl-H is Backspace: `KeyEvent.parse` reads 0x08 before the
@@ -495,12 +497,14 @@ struct CommandKeySubstitutionTests {
                 resolved?.isDeliverableInTerminal == false,
                 "Ctrl-\(key.character) is spoken for by the C0 range")
         }
-        // Ctrl-\ is the user's quit key: the driver's, never a shortcut's.
-        #expect(KeyboardShortcut("\\", modifiers: .control).isDeliverableInTerminal == false)
-        #expect(KeyboardShortcut("\\").resolved(commandKey: .control)?.isDeliverableInTerminal == false)
-        // And the chords xterm, VTE, Konsole and the Linux console send its
+        // Ctrl-\ is the user's quit key, which a binding of the app's takes
+        // from the driver.
+        #expect(KeyboardShortcut("\\", modifiers: .control).isDeliverableInTerminal == true)
+        #expect(KeyboardShortcut("\\").resolved(commandKey: .control)?.isDeliverableInTerminal == true)
+        #expect(KeyboardShortcut("\\", modifiers: [.control, .option]).isDeliverableInTerminal == true)
+        // Not the chords xterm, VTE, Konsole and the Linux console send its
         // 0x1C for: Ctrl-4 (an app's ⌘4 under `.control`), Ctrl-| and
-        // Ctrl-Shift-\. They quit there rather than fire.
+        // Ctrl-Shift-\. They fire there only where no ⌃\ binding takes it.
         #expect(KeyboardShortcut("4").resolved(commandKey: .control)?.isDeliverableInTerminal == false)
         #expect(KeyboardShortcut("4", modifiers: .control).isDeliverableInTerminal == false)
         #expect(KeyboardShortcut("|", modifiers: .control).isDeliverableInTerminal == false)

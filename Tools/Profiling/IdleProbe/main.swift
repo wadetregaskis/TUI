@@ -120,20 +120,29 @@ private struct ProbeContent: View {
 /// whole — what a PTY reading the bytes needs to find `key ctrl-y`.
 ///
 /// With `IDLE_PROBE_SHORTCUTS` set, a Control `.keyboardShortcut` for each of
-/// its characters (`\4` binds ⌃\ and ⌃4), each adding `key ran ctrl-…` when
-/// it runs: what an app's own binding on the quit key's chord does.
+/// its space-separated keys (`\ 4` binds ⌃\ and ⌃4; `M-\` binds ⌃⌥\), each
+/// adding `key ran ctrl-…` when it runs: what an app's own binding on the
+/// quit key's chord does.
 private struct KeyEcho: View {
     @State private var heard: [String] = []
 
-    /// The characters `IDLE_PROBE_SHORTCUTS` binds with Control.
-    private static let shortcuts = Array(ProcessInfo.processInfo.environment["IDLE_PROBE_SHORTCUTS"] ?? "")
+    /// The keys `IDLE_PROBE_SHORTCUTS` binds with Control, and whether with
+    /// Option too.
+    private static let shortcuts: [(key: Character, option: Bool)] =
+        (ProcessInfo.processInfo.environment["IDLE_PROBE_SHORTCUTS"] ?? "")
+        .split(separator: " ").compactMap { word in
+            let option = word.hasPrefix("M-")
+            return word.dropFirst(option ? 2 : 0).first.map { ($0, option) }
+        }
 
     var body: some View {
         VStack(alignment: .leading) {
             Text("idle probe — keys")
-            ForEach(Self.shortcuts, id: \.self) { character in
-                Button("bound ctrl-\(character)") { heard.append("ran ctrl-\(character)") }
-                    .keyboardShortcut(KeyEquivalent(character), modifiers: .control)
+            ForEach(Self.shortcuts.indices, id: \.self) { index in
+                let (character, option) = Self.shortcuts[index]
+                let name = (option ? "ctrl-alt-" : "ctrl-") + String(character)
+                Button("bound \(name)") { heard.append("ran \(name)") }
+                    .keyboardShortcut(KeyEquivalent(character), modifiers: option ? [.control, .option] : .control)
             }
             ForEach(heard.indices, id: \.self) { index in
                 Text("key \(heard[index])")

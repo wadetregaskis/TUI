@@ -570,10 +570,23 @@ extension StatusBarState {
     /// Handles a key event, checking if any current item matches.
     @discardableResult
     public func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        guard let item = item(taking: event) else { return false }
+        // A held key's repeat, for an item that does not repeat, runs nothing
+        // and is still taken: it reaches nothing below either
+        // (`KeyboardShortcutRegistry.trigger(for:)`).
+        if event.phase == .repeat, !item.repeats { return true }
+        item.execute()
+        return true
+    }
+
+    /// The item ``handleKeyEvent(_:)`` would run for `event`, without running
+    /// it: Layer 1's rule, which the user's quit key asks too
+    /// (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
+    func item(taking event: KeyEvent) -> StatusBarItem? {
         // An open sectionless surface holds the keyboard: nothing on the bar
         // is its own, so nothing on the bar may fire. See
         // ``itemActionsSuppressed``; ESC still works via the pre-route.
-        guard !itemActionsSuppressed else { return false }
+        guard !itemActionsSuppressed else { return nil }
         // While a modal surface (open Picker drop-down, etc.) has claimed
         // ESC via ``escapeLabelOverride``, leave that key to the focus
         // dispatch chain so the surface's own handler actually fires —
@@ -592,18 +605,11 @@ extension StatusBarState {
             if escapeIsClaimedByModal {
                 continue
             }
-            if let statusBarItem = item as? StatusBarItem {
-                if statusBarItem.hasAction {
-                    // A held key's repeat, for an item that does not repeat,
-                    // runs nothing and is still taken: it reaches nothing
-                    // below either (`KeyboardShortcutRegistry.trigger(for:)`).
-                    if event.phase == .repeat, !statusBarItem.repeats { return true }
-                    statusBarItem.execute()
-                    return true
-                }
+            if let statusBarItem = item as? StatusBarItem, statusBarItem.hasAction {
+                return statusBarItem
             }
         }
-        return false
+        return nil
     }
 }
 

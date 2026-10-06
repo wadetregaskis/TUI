@@ -131,7 +131,7 @@ extension View {
     public func onKeyPress(
         phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        onKeyPress(phases: phases, where: { _ in true }, action: action)
+        onKeyPress(phases: phases, where: { _ in true }, declared: false, action: action)
     }
 
     /// The focus-path modifier every `onKeyPress` is: a handler on the
@@ -140,11 +140,21 @@ extension View {
     /// Whether a press may be a repeat is the terminal's to say
     /// (``KeyboardReporting/reportsRepeats``), read where the handler is made:
     /// the environment is out of reach by the time a key arrives.
+    ///
+    /// - Parameter declared: Whether `matches` is the handler's declaration —
+    ///   its keys or characters — so the framework may ask it which keys the
+    ///   handler is for without running `action`. Not for the catch-all,
+    ///   which declares none: only the action says which keys it takes. What
+    ///   asks is the user's quit key (`Terminal.maskQuitKey`).
     private func onKeyPress(
-        phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool,
+        phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool, declared: Bool = true,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> FocusPathModifier<Self> {
-        FocusPathModifier(content: self, stage: .keyPress) { context in
+        let declares: ((KeyEvent) -> Bool)? =
+            declared
+            ? { event in phases.hears(event.phase, repeatsReported: false) && KeyPress(event).map(matches) == true }
+            : nil
+        return FocusPathModifier(content: self, stage: .keyPress, declares: declares) { context in
             let repeatsReported = context.environment.keyboardReporting.reportsRepeats
             return { event in
                 guard phases.hears(event.phase, repeatsReported: repeatsReported),

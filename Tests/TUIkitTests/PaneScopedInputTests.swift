@@ -173,4 +173,29 @@ struct PaneScopedInputTests {
         #expect(fired.path.isEmpty, "Escape in the pane did not go back")
         #expect(fired.pageCancel == 1)
     }
+
+    // MARK: - The user's quit key
+
+    /// The driver's quit on ⌃\ is set once a frame, for the whole screen
+    /// (`Terminal.maskQuitKey(for:)`), so a binding on the chord in a pane — a
+    /// live sheet's — masks it as one on the page does, wherever the focus is.
+    /// Which of them the key then reaches is the pane rule's.
+    @Test("A ⌃\\ shortcut in a pane masks the user's quit key with the focus on the page too")
+    func paneBindingMasksTheQuitKey() {
+        let harness = InputChainHarness(width: 60, height: 20)
+        let quitChord = KeyEvent(key: .character("\\"), ctrl: true)
+        func page() -> some View {
+            VStack {
+                Button("Page") {}
+                PaneHost(id: "pane") {
+                    Button("Mine") {}.keyboardShortcut("\\", modifiers: .control)
+                }
+            }
+        }
+        harness.frame(page())
+        harness.frame(page())
+        #expect(harness.focusManager.activePaneID == nil, "precondition: the focus starts on the page")
+        #expect(!harness.tui.keyboardShortcuts.hasAppShortcut(for: quitChord), "precondition: the page binds none")
+        #expect(harness.handler.declaresBinding(forAnyOf: [quitChord]), "the pane's binding is declared")
+    }
 }

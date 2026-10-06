@@ -346,8 +346,8 @@ Layer 4 provides six built-in key bindings, but only quit, undo and redo, and he
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
-One more key quits, and is no binding at all: ⌃\\, which the terminal driver
-takes before any layer (see "⌃\\ quits, always" below).
+One more key quits: ⌃\\, which the terminal driver takes before any layer
+unless you bind it (see "⌃\\ quits, unless you bind it" below).
 
 ### The help key, and the one place it cannot reach
 
@@ -417,22 +417,39 @@ selected there: then ⌃C copies it. Nor does it quit while something on the
 screen is selected with the mouse: then ⌃C copies that, ahead of every
 layer (see <doc:MouseAndGestures>, "Selecting Text").
 
-### ⌃\\ quits, always
+### ⌃\\ quits, unless you bind it
 
 Whatever the quit binding, ⌃\\ quits — the backup for when `q` or a
-⌃C your app binds cannot: when the app has hung. It is not a binding. Raw mode
-leaves the terminal's line discipline one signal character, the user's quit
-key, ⌃\\ unless they changed it; ⌃C and ⌃Z are turned off as signals and
-arrive as keys. So the terminal driver turns ⌃\\ into `SIGQUIT` before the
-app reads a byte, over ssh too, and the app leaves the terminal as a quit
-does: the alternate screen left, the cursor shown, the shell's line
-discipline back. The shell then reports `Quit: 3`. No shortcut can take
-⌃\\ (``KeyboardShortcut/isDeliverableInTerminal`` is `false` for it), and a
-user who turned the quit key off with `stty quit undef` keeps it off.
-xterm, VTE, Konsole and the Linux console send ⌃\\'s byte for ⌃4 and ⌃| too
-(by their tables of the legacy encoding; not measured), so there those chords
-quit as well, and a ⌘4 shortcut, ⌃4 under `.commandKey(.control)`, is
-undeliverable: it quits the app rather than firing.
+⌃C your app binds cannot: when the app has hung. Raw mode leaves the
+terminal's line discipline one signal character, the user's quit key, ⌃\\
+unless they changed it; ⌃C and ⌃Z are turned off as signals and arrive as
+keys. So the terminal driver turns ⌃\\ into `SIGQUIT` before the app reads a
+byte, over ssh too, and the app leaves the terminal as a quit does: the
+alternate screen left, the cursor shown, the shell's line discipline back.
+The shell then reports `Quit: 3`. A user who turned the quit key off with
+`stty quit undef` keeps it off.
+
+Your own binding on ⌃\\ wins. While your app declares one — a
+`.keyboardShortcut`, an `onKeyPress` on the key or its characters on the
+path to the focused view, the status bar's quit key or an item, an undo key
+— TUIkit masks the driver's quit, so the key reaches the input chain, and
+your binding has it first. A ⌃\\ none of your bindings takes still quits:
+TUIkit sends `SIGQUIT` itself, as the driver would have. The same goes for
+⌃4, ⌃| and ⌃⇧\\, for which xterm, VTE, Konsole and the Linux console send
+⌃\\'s byte in their legacy encoding (by their tables; not measured, so every
+terminal is assumed to until one is measured not to): with a ⌘4 shortcut on
+screen — ⌃4 under `.commandKey(.control)` — the quit is masked, the byte
+arrives as ⌃\\, and where nothing takes ⌃\\ it is offered as ⌃4, ⌃| and ⌃⇧\\
+in turn, so your ⌘4 fires. Bind both ⌃\\ and ⌃4 and the byte is ⌃\\'s: it
+cannot be told apart. So ``KeyboardShortcut/isDeliverableInTerminal`` is
+`true` for ⌃\\ and `false` for the other three.
+
+Two things to know. A handler that hears every key — `onKeyEvent`,
+`onKeyPress(phases:action:)` — cannot be read without running it, so it does
+not mask the quit, and does not see ⌃\\ while the driver has it. And while
+such a binding is on screen, a hung app does not quit by ⌃\\: that is the
+backup your binding traded away. `kill -QUIT` from another shell still ends
+it.
 
 A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key report
 rather than the byte the driver acts on. TUIkit offers that report to your

@@ -70,7 +70,15 @@ extension Terminal {
     ///   the app can never bind, as in a shell. A user who turned it off
     ///   (`stty quit undef`), or `ISIG` with it (`stty -isig`), keeps it off;
     ///   one who moved it keeps theirs.
-    nonisolated static func rawModeAttributes(from original: termios) -> termios {
+    ///
+    /// - Parameters:
+    ///   - original: The user's termios.
+    ///   - maskingQuitKey: Whether the quit key is turned off too, for an app
+    ///     that declares a binding its byte could be for
+    ///     (``maskQuitKey(_:)``): its byte then arrives as a key, which the
+    ///     input chain offers the app first and quits on itself where nothing
+    ///     takes it.
+    nonisolated static func rawModeAttributes(from original: termios, maskingQuitKey: Bool = false) -> termios {
         var raw = original
         raw.c_lflag &= ~tcflag_t(ECHO | ICANON | IEXTEN)
         raw.c_iflag &= ~tcflag_t(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
@@ -84,6 +92,7 @@ extension Terminal {
                 buffer[Int(VTIME)] = 0
                 buffer[Int(VINTR)] = disabledControlCharacter
                 buffer[Int(VSUSP)] = disabledControlCharacter
+                if maskingQuitKey { buffer[Int(VQUIT)] = disabledControlCharacter }
                 #if canImport(Darwin)
                     buffer[Int(VDSUSP)] = disabledControlCharacter
                     buffer[Int(VSTATUS)] = disabledControlCharacter
@@ -102,6 +111,36 @@ extension Terminal {
         var copy = attributes
         let quit = withUnsafeBytes(of: &copy.c_cc) { $0[Int(VQUIT)] }
         return quit == disabledControlCharacter ? nil : quit
+    }
+}
+
+// MARK: - Reaching the line discipline
+
+/// The line discipline raw mode sets: reading it and setting it, which on a
+/// terminal are `tcgetattr` and `tcsetattr` on standard input.
+///
+/// A seam for tests, which hand a scripted terminal one of their own
+/// (`Terminal.scriptedLineDiscipline`): the process's own is whatever runs
+/// the tests', and no test may change it.
+struct LineDiscipline {
+    /// The current attributes, or `nil` where there are none to read.
+    let get: () -> termios?
+
+    /// Sets the attributes, `when` as `tcsetattr` has it: `TCSANOW`, or
+    /// `TCSAFLUSH` to throw away input not yet read.
+    let set: (termios, Int32) -> Void
+
+    /// Standard input's.
+    static var standardInput: Self {
+        Self(
+            get: {
+                var attributes = termios()
+                return tcgetattr(STDIN_FILENO, &attributes) == 0 ? attributes : nil
+            },
+            set: { attributes, when in
+                var attributes = attributes
+                _ = tcsetattr(STDIN_FILENO, when, &attributes)
+            })
     }
 }
 

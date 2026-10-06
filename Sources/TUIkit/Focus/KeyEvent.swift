@@ -33,6 +33,9 @@ final class KeyEventDispatcher: @unchecked Sendable {
         let scope: ViewIdentity
         let stage: FocusPathStage
         let sectionID: String?
+        /// Which keys the handler is declared for — an `onKeyPress` on keys
+        /// or characters — or `nil` where only running it would say.
+        let declares: ((KeyEvent) -> Bool)?
         let handler: (KeyEvent) -> Bool
     }
 
@@ -154,14 +157,40 @@ extension KeyEventDispatcher {
     ///   - stage: When it is asked; see ``FocusPathStage``.
     ///   - sectionID: As for ``addHandler(sectionID:_:)``: a handler outside
     ///     the section holding the keyboard is silenced.
+    ///   - declares: Which keys the handler is declared for, where its
+    ///     declaration says (``declaresFocusPathBinding(forAnyOf:focusedIdentity:)``);
+    ///     `nil` for one that hears every key.
     ///   - handler: Answers whether it took the key. It does its own matching
     ///     of keys, characters and phases.
     func addFocusPathHandler(
         scope: ViewIdentity, stage: FocusPathStage, sectionID: String?,
-        _ handler: @escaping (KeyEvent) -> Bool
+        declares: ((KeyEvent) -> Bool)? = nil, _ handler: @escaping (KeyEvent) -> Bool
     ) {
         focusPathHandlers.append(
-            FocusPathEntry(scope: scope, stage: stage, sectionID: sectionID, handler: handler))
+            FocusPathEntry(scope: scope, stage: stage, sectionID: sectionID, declares: declares, handler: handler))
+    }
+
+    /// Whether an `onKeyPress` on the path to the focused view is declared
+    /// for one of `events` — on its key or its characters, which can be known
+    /// without running the app's action. One that hears every key
+    /// (`onKeyPress(phases:action:)`) declares nothing: only running it would
+    /// say whether it takes the key. Silenced handlers, as for a dispatch,
+    /// do not count.
+    ///
+    /// For the user's quit key (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
+    ///
+    /// - Parameters:
+    ///   - events: The keys asked about: whether a handler is declared for
+    ///     any of them. One walk of the handlers for all of them.
+    ///   - focusedIdentity: Where the focused control rendered.
+    func declaresFocusPathBinding(forAnyOf events: [KeyEvent], focusedIdentity: ViewIdentity) -> Bool {
+        focusPathHandlers.contains { entry in
+            guard entry.stage == .keyPress, let declares = entry.declares,
+                grabbingSectionID == nil || entry.sectionID == grabbingSectionID,
+                entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity)
+            else { return false }
+            return events.contains(where: declares)
+        }
     }
 
     /// The number of focus-path handlers registered this frame, for tests.

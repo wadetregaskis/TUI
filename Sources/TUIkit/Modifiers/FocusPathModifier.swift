@@ -37,6 +37,12 @@ struct FocusPathModifier<Content: View>: View {
     /// When the handler is asked.
     let stage: FocusPathStage
 
+    /// Which keys the handler is declared for — an `onKeyPress` on keys or
+    /// characters — answered without running the app's action; `nil` for a
+    /// handler only running it would answer for. See
+    /// `KeyEventDispatcher.declaresFocusPathBinding(forAnyOf:focusedIdentity:)`.
+    var declares: ((KeyEvent) -> Bool)?
+
     /// Makes the handler for a render, from that render's context — for the
     /// handlers whose keys depend on the environment, such as a command chord
     /// resolved through ``EnvironmentValues/commandKey``. The handler does its
@@ -73,16 +79,18 @@ extension FocusPathModifier: Renderable {
         let scope = context.identity
         let handler = bind(context)
         FocusPathRegistrar.register(
-            scope: scope, stage: stage, handler: handler, sectionID: sectionID, context: context)
+            scope: scope, stage: stage, declares: declares, handler: handler, sectionID: sectionID,
+            context: context)
         if let journal = context.recordingEffectJournal {
             // The scope and section are captured, not looked up: the replay
             // context is the memo root's, whose identity is not this view's.
             journal.append(
                 EffectJournal.Entry(
                     kind: FocusPathRegistrar.kind, channelToken: context.environment.keyChannelToken
-                ) { [stage, handler] replay in
+                ) { [stage, declares, handler] replay in
                     FocusPathRegistrar.register(
-                        scope: scope, stage: stage, handler: handler, sectionID: sectionID, context: replay)
+                        scope: scope, stage: stage, declares: declares, handler: handler, sectionID: sectionID,
+                        context: replay)
                 })
         }
 
@@ -101,11 +109,11 @@ enum FocusPathRegistrar {
     /// Adds `handler` for the subtree at `scope` to `context`'s key dispatcher.
     @MainActor
     static func register(
-        scope: ViewIdentity, stage: FocusPathStage, handler: @escaping (KeyEvent) -> Bool,
-        sectionID: String?, context: RenderContext
+        scope: ViewIdentity, stage: FocusPathStage, declares: ((KeyEvent) -> Bool)?,
+        handler: @escaping (KeyEvent) -> Bool, sectionID: String?, context: RenderContext
     ) {
         context.environment.keyEventDispatcher?.addFocusPathHandler(
-            scope: scope, stage: stage, sectionID: sectionID, handler)
+            scope: scope, stage: stage, sectionID: sectionID, declares: declares, handler)
     }
 }
 

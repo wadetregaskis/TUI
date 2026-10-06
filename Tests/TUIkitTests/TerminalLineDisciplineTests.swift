@@ -23,11 +23,11 @@ import Testing
 
 @Suite("Raw mode's line discipline")
 struct TerminalLineDisciplineTests {
-    private static let off = Terminal.disabledControlCharacter
+    static let off = Terminal.disabledControlCharacter
 
     /// A shell's cooked termios: echo, canonical input, signals and the
     /// extensions on; the usual control characters.
-    private static func cooked(quit: cc_t = 0x1C, signals: Bool = true) -> termios {
+    static func cooked(quit: cc_t = 0x1C, signals: Bool = true) -> termios {
         var attributes = termios()
         attributes.c_lflag = tcflag_t(ECHO | ECHOE | ICANON | IEXTEN) | (signals ? tcflag_t(ISIG) : 0)
         attributes.c_iflag = tcflag_t(ICRNL | IXON | BRKINT)
@@ -41,7 +41,7 @@ struct TerminalLineDisciplineTests {
         return attributes
     }
 
-    private static func set(_ attributes: inout termios, _ values: [(Int32, cc_t)]) {
+    static func set(_ attributes: inout termios, _ values: [(Int32, cc_t)]) {
         withUnsafeMutablePointer(to: &attributes.c_cc) { pointer in
             pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
                 for (index, value) in values { buffer[Int(index)] = value }
@@ -49,7 +49,7 @@ struct TerminalLineDisciplineTests {
         }
     }
 
-    private static func character(_ attributes: termios, _ index: Int32) -> cc_t {
+    static func character(_ attributes: termios, _ index: Int32) -> cc_t {
         var copy = attributes
         return withUnsafeBytes(of: &copy.c_cc) { $0[Int(index)] }
     }
@@ -90,6 +90,29 @@ struct TerminalLineDisciplineTests {
         #expect(Self.character(moved, VQUIT) == 0x18, "stty quit ^X")
         let noSignals = Terminal.rawModeAttributes(from: Self.cooked(signals: false))
         #expect(!Self.has(noSignals, ISIG), "stty -isig")
+    }
+
+    /// An app that binds the quit key's chord has it masked: the byte then
+    /// arrives as a key (`Terminal.maskQuitKey`). Signals stay on, so a
+    /// mask lifted is the driver's quit again, and the rest is raw mode's.
+    @Test("Masking the quit key turns it off too, signals still on")
+    func maskedQuitKey() {
+        let masked = Terminal.rawModeAttributes(from: Self.cooked(), maskingQuitKey: true)
+        #expect(Self.character(masked, VQUIT) == Self.off)
+        #expect(Self.has(masked, ISIG))
+        var unmasked = Terminal.rawModeAttributes(from: Self.cooked())
+        Self.set(&unmasked, [(VQUIT, Self.off)])
+        #expect(Self.same(masked, unmasked), "nothing else differs")
+    }
+
+    /// Whether two termios hold the same flags, characters and speeds —
+    /// field by field, never the struct's bytes, whose padding is not
+    /// initialised.
+    static func same(_ lhs: termios, _ rhs: termios) -> Bool {
+        lhs.c_iflag == rhs.c_iflag && lhs.c_oflag == rhs.c_oflag && lhs.c_cflag == rhs.c_cflag
+            && lhs.c_lflag == rhs.c_lflag && cfgetispeed([lhs]) == cfgetispeed([rhs])
+            && cfgetospeed([lhs]) == cfgetospeed([rhs])
+            && (0..<Int32(NCCS)).allSatisfy { character(lhs, $0) == character(rhs, $0) }
     }
 
     /// `_POSIX_VDISABLE` differs by system, not by C library: a BSD's is

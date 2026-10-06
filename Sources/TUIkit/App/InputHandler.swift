@@ -120,10 +120,11 @@ internal struct InputHandler {
     ///
     /// While the quit key is live the driver turns the byte into `SIGQUIT`
     /// before the app reads it, so the chord reaches the chain as a kitty
-    /// keyboard protocol report, which the terminal sends in its place. The
-    /// app's bindings are offered it first, as any key, and ``handle(_:)``
-    /// does what the driver would have only if none takes it
-    /// (``onQuitKey``).
+    /// keyboard protocol report, which the terminal sends in its place, or
+    /// as the byte where the driver's quit is masked because the app binds
+    /// a chord it could be (`Terminal.maskQuitKey`). The app's bindings are
+    /// offered it first, as any key, and ``handle(_:)`` does what the driver
+    /// would have only if none takes it (``onQuitKey``).
     var quitKey: () -> UInt8? = { nil }
 
     /// Invoked when the user's quit key reaches the end of the chain with
@@ -435,7 +436,7 @@ extension InputHandler {
     /// it, and the drop-down's own keys are the focus system's. Nor while a
     /// pointer drag is in flight, whose arrow and paging keys belong to the
     /// navigators at Layer 0.5.
-    private var focusPathHearsKeys: Bool {
+    var focusPathHearsKeys: Bool {
         if statusBar.escapeLabelOverride != nil, statusBar.escapeClaimGrabsInput { return false }
         if let session = dragAndDropSession, session.active != nil || session.autoScrollArmed { return false }
         return true

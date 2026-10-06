@@ -233,6 +233,23 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
         return appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage) != nil
     }
+
+    /// Whether any shortcut is registered for `event`, the app's or a
+    /// framework default: what ``trigger(for:)`` would match, without
+    /// running anything. For the user's quit key, which the driver keeps
+    /// unless a binding the framework can see is on a chord its byte could be
+    /// for (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`).
+    ///
+    /// On the page or in any pane, wherever the focus is: the driver's quit
+    /// is set once a frame, for the whole screen, so a pane's binding masks it
+    /// as the page's does. Which of them the key then reaches is the pane
+    /// rule's (``trigger(for:activePane:reachesPage:)``).
+    func hasShortcut(for event: KeyEvent) -> Bool {
+        guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
+        return actions[trigger] != nil || defaults[trigger] != nil
+            || paneActions.values.contains { $0[trigger] != nil }
+            || paneDefaults.values.contains { $0[trigger] != nil }
+    }
 }
 
 // MARK: - Assignment

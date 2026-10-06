@@ -36,6 +36,11 @@ that answers the startup exchange, and checks:
   7. A suspend (SIGTSTP) and resume (SIGCONT): the termios while stopped is
      the one from before the launch, raw again after the resume, and ⌃\\
      then quits as in 4.
+  9. (run before 8) An app that binds ⌃4, which some terminals send ⌃\\'s
+     byte for, or ⌃\\ itself: the driver's quit is masked while it
+     runs, signals still on, and 0x1C runs the binding; the termios comes
+     back exactly at the quit. One that binds ⌃⌥\\, which masks it without
+     taking 0x1C: the unclaimed byte quits by SIGQUIT, as in 4.
   8. A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key
      report (`CSI 92;5u`), never as the byte the driver acts on: the app
      raises SIGQUIT itself, and quits as in 4, the flags popped on the way,
@@ -383,6 +388,38 @@ check(is_raw(app.termios_now()) and running(app), "resume: raw again, the quit k
 mark = len(app.out)
 os.write(app.master, b"\x1c")
 check_quit(app, mark, "after a resume, ⌃\\")
+app.finish()
+
+# 9. The app binds a chord the quit key's byte could be (the owner's rule,
+# 2026-10-06): the driver's quit is masked, so the byte reaches the app.
+def quit_key_of(attrs):
+    return cc(attrs, termios.VQUIT)
+
+
+for bound, ran in (("4", b"key ran ctrl-4"), ("\\", b"key ran ctrl-\\")):
+    name = "⌃" + bound + " bound"
+    app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_SHORTCUTS": bound})
+    app.pump(2.0)
+    running_attrs = app.termios_now()
+    check(quit_key_of(running_attrs) == DISABLED and bool(running_attrs[3] & termios.ISIG),
+          name + ": the quit key masked, signals still on")
+    os.write(app.master, b"\x1c")
+    app.pump(1.0)
+    check(ran in app.out and running(app), name + ": 0x1C runs the binding, and quits nothing")
+    os.write(app.master, b"q")
+    status = app.wait_for_exit(5.0)
+    check(status is not None and os.WIFEXITED(status) and app.termios_now() == app.before,
+          name + ": q quits, and the termios comes back exactly, the quit key live")
+    app.finish()
+
+# A binding that masks the quit key and does not take the byte itself (⌃⌥\):
+# the unclaimed byte quits by SIGQUIT, as the driver's would have.
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_SHORTCUTS": "M-\\"})
+app.pump(2.0)
+check(quit_key_of(app.termios_now()) == DISABLED, "⌃⌥\\ bound: the quit key masked")
+mark = len(app.out)
+os.write(app.master, b"\x1c")
+check_quit(app, mark, "⌃⌥\\ bound, unclaimed 0x1C")
 app.finish()
 
 # 8. The kitty keyboard protocol.

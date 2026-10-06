@@ -299,33 +299,40 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// Ctrl-Z as SIGTSTP only when nothing before it claimed the key and the
     /// app's undo keys leave it out.
     ///
-    /// `Ctrl-\` (`⌃\`) is not, and no shortcut can take it: it is the user's
-    /// quit key, the one signal character raw mode leaves live, so the
-    /// terminal driver turns it into SIGQUIT before the app reads it — which
-    /// is what lets it quit an app that has hung — and the app ends as a quit
-    /// ends. Where the user turned it off (`stty quit undef`), its byte, 0x1C,
-    /// arrives as ⌃\ like any other key — but that is the user's terminal,
-    /// not every terminal.
+    /// `Ctrl-\` (`⌃\`) is deliverable, though it is the user's quit key, the
+    /// one signal character raw mode leaves live, which the terminal driver
+    /// turns into SIGQUIT before the app reads it — what lets it quit an app
+    /// that has hung. While the app registers a shortcut on it (or a key
+    /// handler declared for it) the driver's quit is masked, so the key
+    /// arrives and fires; a ⌃\ nothing takes still quits, by the signal
+    /// the driver would have raised (the owner's rule, 2026-10-06). Under the
+    /// kitty keyboard protocol it arrives as a report, with the same result.
+    /// The price: while the app binds it, a HUNG app does not quit by ⌃\.
     ///
-    /// Nor are the chords that share its byte: xterm, VTE (GNOME Terminal and
-    /// its kin), Konsole and the Linux console send 0x1C for Ctrl-4 and for
-    /// Ctrl-| (Ctrl-Shift-\) too, by their tables of the legacy encoding (not
-    /// measured). There such a chord QUITS the app rather than firing, as ⌃\
-    /// does, and nothing in the bytes tells them apart, as nothing tells
-    /// Ctrl-H from Backspace. So a ⌘4 shortcut under `.commandKey(.control)`
-    /// is undeliverable; under the kitty keyboard protocol the chords arrive
-    /// apart, and it fires.
+    /// Not so the chords some terminals send its byte, 0x1C, for: xterm, VTE
+    /// (GNOME Terminal and its kin), Konsole and the Linux console send it for
+    /// Ctrl-4 and Ctrl-| (Ctrl-Shift-\) too, by their tables of the legacy
+    /// encoding (not measured). There nothing in the byte says which key sent
+    /// it, as nothing tells Ctrl-H from Backspace. TUIkit reads it as ⌃\,
+    /// and offers it as Ctrl-4, Ctrl-| and Ctrl-Shift-\ in turn where no
+    /// binding takes ⌃\, so a ⌘4 shortcut under `.commandKey(.control)`
+    /// DOES fire on those terminals — unless the app binds ⌃\ too, which then
+    /// wins. Under the kitty keyboard protocol, and on a terminal measured to
+    /// send them apart (none yet), the chords arrive as themselves and fire.
+    /// Since that holds only some of the time, these answer `false`.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }
         guard modifiers.isDisjoint(with: Self.unreportedModifiers) else { return false }
         guard modifiers.contains(.control) else { return true }
+        // ⌃\ arrives; ⌃⇧\ is one of the chords that share its byte.
+        if key.character == "\\" { return !modifiers.contains(.shift) }
         return !Self.controlCollisions.contains(key.character)
     }
 
     /// The keys whose Control chord a legacy encoding sends as another key's
     /// byte: H, I, J, M and `[` (Backspace, Tab, newline, Return and Escape),
-    /// and `\`, `|` and `4`, whose 0x1C is the user's quit key.
-    private static let controlCollisions: Set<Character> = ["h", "i", "j", "m", "[", "\\", "|", "4"]
+    /// and `|` and `4`, which some terminals send as ⌃\'s 0x1C.
+    private static let controlCollisions: Set<Character> = ["h", "i", "j", "m", "[", "|", "4"]
 
     /// The modifiers a shortcut that needs one can never fire on: ⌘, which no
     /// terminal reports with a key, and the two states shortcuts ignore.

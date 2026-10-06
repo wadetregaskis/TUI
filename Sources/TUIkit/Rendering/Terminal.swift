@@ -249,7 +249,23 @@ final class Terminal: TerminalProtocol {
     /// every platform alike.
     #if !canImport(WASILibc)
         private var originalTermios: termios?
+
+        /// The line discipline a scripted terminal (``exchangeTransport``)
+        /// sets instead of standard input's, which belongs to whatever runs
+        /// the tests: none, unless a test hands one in.
+        var scriptedLineDiscipline: LineDiscipline?
+
+        /// The line discipline raw mode sets: standard input's, or for a
+        /// scripted terminal ``scriptedLineDiscipline``.
+        var lineDiscipline: LineDiscipline? {
+            exchangeTransport == nil ? .standardInput : scriptedLineDiscipline
+        }
     #endif
+
+    /// Whether the user's quit key is masked in the driver
+    /// (``maskQuitKey(_:)``): the last state set, which a resume's raw mode
+    /// is made with too.
+    private(set) var quitKeyMasked = false
 
     /// What a quit writes ahead of the hand-back, kept current for a
     /// `SIGQUIT`, which skips the teardown: a delete for each image the app
@@ -468,15 +484,14 @@ extension Terminal {
     func enableRawMode() {
         guard !isRawMode else { return }
 
-        // A scripted terminal (``exchangeTransport``) has no line discipline,
-        // and the one on stdin then belongs to whatever runs the tests.
+        // A scripted terminal (``exchangeTransport``) has no line discipline
+        // of its own, and the one on stdin then belongs to whatever runs the
+        // tests (``lineDiscipline``).
         #if !canImport(WASILibc)
-            if exchangeTransport == nil {
-                var original = termios()
-                tcgetattr(STDIN_FILENO, &original)
+            if let lineDiscipline, let original = lineDiscipline.get() {
                 originalTermios = original
-                var raw = Self.rawModeAttributes(from: original)
-                tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
+                lineDiscipline.set(
+                    Self.rawModeAttributes(from: original, maskingQuitKey: quitKeyMasked), TCSAFLUSH)
             }
         #endif
         isRawMode = true
@@ -550,6 +565,31 @@ extension Terminal {
         // is requested.
     }
 
+    /// Masks the user's quit key in the driver, or gives it back: `masked`
+    /// while the app declares a binding on a chord the quit key's byte could
+    /// be for (`InputHandler.quitKeyNeedsMasking(byte:aliasing:)`), asked
+    /// after every frame.
+    ///
+    /// The owner's rule (2026-10-06): the driver's quit is the backup that
+    /// ends a hung app, and stays live unless the app binds the key — ⌃\
+    /// itself, or ⌃4, ⌃| or ⌃⇧\ where the terminal may send ⌃\'s byte for
+    /// them — and then the byte arrives as a key, which the app's bindings
+    /// hear first and which quits where none takes it (`InputHandler`). What
+    /// that costs: while masked, a HUNG app does not quit by the key.
+    ///
+    /// Sets the line discipline only when the mask changes, and at once
+    /// (`TCSANOW`: unlike raw mode's own `TCSAFLUSH`, no typed-ahead input is
+    /// thrown away). Kept across a suspend: the resume's raw mode is made
+    /// with it. The teardown puts the user's termios back whole, as ever.
+    func maskQuitKey(_ masked: Bool) {
+        guard masked != quitKeyMasked else { return }
+        quitKeyMasked = masked
+        #if !canImport(WASILibc)
+            guard isRawMode, let lineDiscipline, let original = originalTermios else { return }
+            lineDiscipline.set(Self.rawModeAttributes(from: original, maskingQuitKey: masked), TCSANOW)
+        #endif
+    }
+
     /// The user's quit key, as the byte a legacy encoding sends for it: what
     /// the driver turns into `SIGQUIT` while raw mode is on
     /// (``rawModeAttributes(from:)``) — ⌃\'s 0x1C unless the user moved it —
@@ -557,8 +597,10 @@ extension Terminal {
     /// discipline (a scripted terminal, wasip1). Read from the termios raw
     /// mode was made from, so `nil` until raw mode is first on. Where the
     /// terminal speaks the kitty keyboard protocol the key arrives as a
-    /// report instead, which the input chain turns into the signal
-    /// (`InputHandler.quitKey`).
+    /// report instead, which the input chain offers the app's bindings and
+    /// turns into the signal where none takes it (`InputHandler.quitKey`).
+    /// The user's key whether or not the driver's quit is masked
+    /// (``maskQuitKey(_:)``).
     var quitKeyByte: UInt8? {
         #if canImport(WASILibc)
             return nil
@@ -595,8 +637,8 @@ extension Terminal {
         // Absent only where ``enableRawMode()`` left the termios alone: a
         // scripted terminal's.
         #if !canImport(WASILibc)
-            if var original = originalTermios {
-                tcsetattr(STDIN_FILENO, TCSAFLUSH, &original)
+            if let original = originalTermios {
+                lineDiscipline?.set(original, TCSAFLUSH)
             }
         #endif
         isRawMode = false

@@ -347,9 +347,11 @@ extension KeyEvent {
             // 0x1C, "^\", is Ctrl-\: the user's quit key, which the terminal
             // driver turns into SIGQUIT while TUIkit's raw mode leaves it live,
             // so it arrives as a byte only where the driver lets it — the
-            // user turned the quit key off or moved it. Some terminals send
-            // it for Ctrl-4 and Ctrl-| as well; Ctrl-\ is the canonical
-            // reading, as Backspace is 0x08's.
+            // user turned the quit key off or moved it, or the app binds a
+            // chord it could be and the umbrella module masked the driver's
+            // quit. Some terminals send it for Ctrl-4 and Ctrl-| as well;
+            // Ctrl-\ is the canonical reading, as Backspace is 0x08's, and
+            // the input chain tries the others after it.
             return KeyEvent(key: .character("\\"), ctrl: true)
         case ASCIIByte.unitSeparator:
             // 0x1F, "^_", is what most terminals send for Ctrl-minus, and for

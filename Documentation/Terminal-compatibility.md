@@ -4290,11 +4290,11 @@ not already spent:
 | Ctrl-J | Enter | 0x0A is LF |
 | Ctrl-M | Enter | 0x0D is CR |
 | Ctrl-[ | Escape | 0x1B, outside the 0x01–0x1A range |
-| Ctrl-\\ | `SIGQUIT`: the app quits | 0x1C is the user's quit key, which the driver turns into the signal (see "The quit key, ⌃\\" below) |
-| Ctrl-4, Ctrl-\| (Ctrl-Shift-\\) | `SIGQUIT`: the app quits | xterm, VTE, Konsole and the Linux console send 0x1C for them too — *from the terminals' tables of the legacy encoding, not measured* (2026-10-06) |
+| Ctrl-\\ | `SIGQUIT`: the app quits — unless it binds the chord | 0x1C is the user's quit key, which the driver turns into the signal; masked while the app binds it, and then a key (see "The quit key, ⌃\\" below) |
+| Ctrl-4, Ctrl-\| (Ctrl-Shift-\\) | Ctrl-\\ | xterm, VTE, Konsole and the Linux console send 0x1C for them too — *from the terminals' tables of the legacy encoding, not measured* (2026-10-06); tried as these where no Ctrl-\\ binding takes it (below) |
 
-These cannot be delivered under `.commandKey(.control)` by any means in
-the legacy encodings; under the kitty keyboard protocol's "disambiguate"
+These cannot be delivered under `.commandKey(.control)` reliably in
+the legacy encodings (Ctrl-\\ can, since 2026-10-06); under the kitty keyboard protocol's "disambiguate"
 enhancement they arrive as themselves (see "The kitty keyboard protocol"), and
 one that nothing binds goes round the input chain again as the key it would
 have been, so Ctrl-[ still leaves and Ctrl-H still rubs out (Ctrl-H added 2026-09-24: `isDeliverableInTerminal` used to call it deliverable, though a ⌘H button could never fire). Ask
@@ -4303,21 +4303,25 @@ rather than wondering why one menu item is dead. `.commandKey(.option)` has no
 such collision, at the cost of Option itself being less reliable: Apple
 Terminal composes accented characters unless "Use Option as Meta key" is on.
 
-**Where 0x1C reaches the app** — the user's quit key turned off or moved —
-the parser reads it as ⌃\\, and a ⌃\\ no binding takes goes round the input
-chain once more as ⌃4, ⌃| and ⌃⇧\\ in turn, on a terminal in its legacy
+**Where 0x1C reaches the app** — the driver's quit masked because the app
+binds a chord it could be (below), or the user's quit key turned off or
+moved — the parser reads it as ⌃\\, and a ⌃\\ no binding takes goes round the
+input chain once more as ⌃4, ⌃| and ⌃⇧\\ in turn, on a terminal in its legacy
 encoding not measured to send them apart (`TerminalClient.mayAliasQuitByte`;
 no terminal measured yet, 2026-10-06), as an unbound Ctrl-H goes round as
 Backspace. A binding on ⌃\\ wins over one on ⌃4: the bytes are the same.
+Where none of the four is taken and 0x1C is the user's quit key, the chain
+raises `SIGQUIT`, as the driver would have.
 
-**The three that share ⌃\\'s 0x1C quit rather than fire** (2026-10-06).
-Before the quit key was the driver's, a legacy 0x1C was dropped, so a ⌘4
-shortcut (⌃4 under `.control`) simply never fired on those terminals; now the
-driver raises `SIGQUIT` for it, and pressing it ends the app ("Quit: 3"), as
-⌃\\ does. Nothing in the byte says which key sent it. Under the kitty keyboard
-protocol ⌃4 and ⌃| arrive as themselves and fire, and ⌃\\'s report still
-quits. Whether to keep this is the owner's call: decisions A-F2-1, with the
-options.
+**The three that share ⌃\\'s 0x1C** (2026-10-06). Before the quit key was
+the driver's, a legacy 0x1C was dropped, so a ⌘4 shortcut (⌃4 under
+`.control`) never fired on those terminals; for a few hours of 2026-10-06 the
+driver raised `SIGQUIT` for it instead. The owner's decision (decisions F2
+A-F2-1): a binding on ⌃4, ⌃| or ⌃⇧\\ masks the driver's quit, as one on ⌃\\
+does, so the byte reaches the chain and the retry above fires it. Nothing in
+the byte says which key sent it, so `isDeliverableInTerminal` stays `false`
+for them. Under the kitty keyboard protocol ⌃4 and ⌃| arrive as themselves
+and fire.
 
 **Ctrl-minus arrives as 0x1F** (2026-10-04, from the encodings' definitions,
 not a capture): the C0 unit separator, `^_`, which most terminals also send for
@@ -4366,7 +4370,27 @@ the same. A user's `stty quit undef` stays undefined (0x1C then arrives as
 moved quit key stays moved, and
 `stty -isig` stays off. The teardown, a suspend and the fatal-signal handler
 put the user's termios back exactly. `SIGQUIT` then leaves the terminal as a
-quit does (`FatalSignalTerminalRestore`). The driver reads every byte of input,
+quit does (`FatalSignalTerminalRestore`).
+
+**An app's own binding masks it** (the owner's decision, 2026-10-06). After
+every frame the run loop asks whether the app declares a binding on a chord
+the quit key's byte could be — ⌃\\ itself (with or without Option, whose ESC
+the driver ignores), and in the legacy encoding ⌃4, ⌃| and ⌃⇧\\ — counting
+what can be read without running the app's code: `.keyboardShortcut`s (menu
+items' too) and framework defaults, `onKeyPress` on keys or characters on the
+path to the focused view, the status bar's items and quit key, the scene's
+undo keys (`InputHandler.quitKeyNeedsMasking`). While one is, `VQUIT` is
+`_POSIX_VDISABLE` too (`Terminal.maskQuitKey`), set with `TCSANOW` — no
+typed-ahead input thrown away — and only when the answer changes; a resume's
+raw mode is made with it, and the teardown puts the user's termios back
+whole. The byte then reaches the chain as ⌃\\ (above). A handler that hears
+every key (`onKeyEvent`, `onKeyPress(phases:action:)`) masks nothing: only
+running it would say what it takes. While masked, a hung app does not quit by
+⌃\\ — the backup the binding trades away. A moved quit key is masked for its
+own chord (`stty quit ^X` and a ⌘X under `.control`); the alias retry is
+⌃\\'s alone. The PTY smoke checks it (case 9): ⌃4 or ⌃\\ bound, `VQUIT` off
+while the app runs and 0x1C runs the binding; ⌃⌥\\ bound, the unclaimed 0x1C
+quits by `SIGQUIT`. The driver reads every byte of input,
 a bracketed paste's included, so pasted text holding a 0x1C quits the app, as
 it would a shell.
 

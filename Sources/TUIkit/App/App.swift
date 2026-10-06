@@ -428,10 +428,18 @@ extension AppRunner {
             maxFrameRate: app.maxFrameRate,
             startedAtNanos: MonotonicClock.nowNanoseconds)
         let renderOneFrame = {
-            self.renderFrame(
+            let frame = self.renderFrame(
                 renderer: renderer,
                 cursorTimer: cursorTimer,
                 scheduler: animationScheduler)
+            // The bindings this frame registered decide whether the driver
+            // keeps the user's quit key: masked while the app declares one on
+            // a chord its byte could be for (`Terminal.maskQuitKey`). The
+            // line discipline is set only when that changes.
+            self.terminal.maskQuitKey(
+                inputHandler.quitKeyNeedsMasking(
+                    byte: self.terminal.quitKeyByte, aliasing: inputHandler.quitByteAliasing()))
+            return frame
         }
 
         // Initial render
