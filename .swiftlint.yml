@@ -244,8 +244,10 @@ identifier_name:
     - _erased
     # `TransactionKey`'s comparison of two values, SwiftUI's own witness name.
     - _valuesEqual
-    # A `VisualEffect` applied to the buffer its view drew.
+    # A `VisualEffect` applied to the buffer its view drew, and the same
+    # effect with its offsets held at their end under reduce motion.
     - _applied
+    - _holdingMotion
     # Keyframes' and keyframe track content's resolution, SwiftUI's witness name.
     - _resolve
     # The value hash's typed reader (`_ValueHashing`), the same convention for

@@ -36,6 +36,18 @@ func resolvingAnimation<V: View>(
     V._animated(view, context: context, isMeasuring: isMeasuring)
 }
 
+/// An ``Animatable`` kind whose data is where something is drawn or how much
+/// room it takes — an offset, a position, a fixed frame, a padding — so that
+/// animating it moves things in X and Y.
+///
+/// Under ``EnvironmentValues/accessibilityReduceMotion`` a change to one of
+/// these jumps to its end value instead of animating: reduce motion means
+/// spatial motion (owner decision A-D3M-1, 2026-10-05). A colour, an opacity,
+/// a breath, a spinner or a caret is not motion here, and animates as before;
+/// so does an ``Animatable`` view of the app's own, which reads the flag
+/// itself if it moves things, as in SwiftUI.
+package protocol SpatialAnimatable: Animatable {}
+
 extension View where Self: Animatable {
     /// An ``Animatable`` view nominates something continuous about itself, so
     /// the render and measure walks must ask the animation store what to draw
@@ -93,7 +105,15 @@ package func animatedValue<A: Animatable>(
     // `isSettled` return above, which is where it has to stay: hoisting it
     // would charge every settled view for an animation it is not running.
     let frame = context.environment.animationFrame
-    let animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
+    var animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
+    // Reduce motion holds still what moves in X and Y (owner decision
+    // A-D3M-1): a geometry value's change jumps to its end. Asked only of a
+    // change that would animate, so a settled or unanimated value — every one
+    // but the few changing this frame — pays nothing for it; a colour or an
+    // opacity is not motion and is never asked.
+    if animation != nil, A.self is any SpatialAnimatable.Type, context.environment.accessibilityReduceMotion {
+        animation = nil
+    }
     let drawn = storage.animations.value(
         for: key, target: target, animation: animation,
         nowNanos: frame.nowNanos, isMeasuring: isMeasuring)

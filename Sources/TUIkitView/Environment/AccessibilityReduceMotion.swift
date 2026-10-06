@@ -25,6 +25,17 @@ extension EnvironmentValues {
     /// ``TransitionProperties/hasMotion``) plays as `.opacity` instead, as
     /// SwiftUI's does.
     ///
+    /// TUIkit also holds still what would move in X and Y: an animated change
+    /// of ``View/offset(x:y:)``, ``View/position(x:y:)``, padding or a fixed
+    /// frame — and an offset in a ``View/visualEffect(_:)`` — jumps to its end
+    /// value. Motion here means spatial motion: colour and opacity
+    /// animations, the focus breath, the caret's blink, spinners, progress
+    /// indicators and symbol effects each say something, and keep moving.
+    /// Scrolling is never animated in a terminal, so it moves at once either
+    /// way. An ``Animatable`` view of the app's own, a keyframe animator's
+    /// tracks and a custom layout's data animate as they did; read this value
+    /// to hold them still too, as in SwiftUI.
+    ///
     /// SwiftUI reads the system's Reduce Motion preference. TUIkit does not,
     /// because the machine an app runs on need not be the one its user sits at
     /// — over ssh, the preference would be the server's. Instead it is `true`

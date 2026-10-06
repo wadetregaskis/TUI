@@ -111,7 +111,9 @@ extension View {
 
 extension OffsetView: Animatable {
     /// The displacement is what moves, so a change to it inside
-    /// ``withAnimation(_:_:)`` slides rather than jumps.
+    /// ``withAnimation(_:_:)`` slides rather than jumps — except where
+    /// ``EnvironmentValues/accessibilityReduceMotion`` is on, where it jumps:
+    /// an offset is motion.
     ///
     /// The cheapest kind of animated geometry here: an offset does not change
     /// layout — the view keeps its natural place for sizing — so a frame of
@@ -124,6 +126,10 @@ extension OffsetView: Animatable {
         }
     }
 }
+
+/// Motion: under reduce motion an animated change of offset jumps to its end
+/// (owner decision A-D3M-1).
+extension OffsetView: SpatialAnimatable {}
 
 // MARK: - Seeing Through the Wrapper
 

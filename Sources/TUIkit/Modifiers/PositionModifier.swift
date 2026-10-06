@@ -60,7 +60,9 @@ public struct PositionView<Content: View>: View {
 
 extension PositionView: Animatable {
     /// The point is what moves, so a change to it inside
-    /// ``withAnimation(_:_:)`` glides rather than jumps.
+    /// ``withAnimation(_:_:)`` glides rather than jumps — except where
+    /// ``EnvironmentValues/accessibilityReduceMotion`` is on, where it jumps:
+    /// a position is motion.
     public var animatableData: AnimatablePair<Double, Double> {
         get { AnimatablePair(Double(x), Double(y)) }
         set {
@@ -69,6 +71,10 @@ extension PositionView: Animatable {
         }
     }
 }
+
+/// Motion: under reduce motion an animated change of position jumps to its
+/// end (owner decision A-D3M-1).
+extension PositionView: SpatialAnimatable {}
 
 extension PositionView: Renderable, Layoutable {
     /// Fills what it is offered: a positioned view's own size says nothing

@@ -271,7 +271,9 @@ public struct PaddingModifier: BufferModifier {
 
 extension PaddingModifier: Animatable {
     /// The insets are what moves, so a change to them inside
-    /// ``withAnimation(_:_:)`` opens or closes the gap rather than jumping it.
+    /// ``withAnimation(_:_:)`` opens or closes the gap rather than jumping it
+    /// — except where ``EnvironmentValues/accessibilityReduceMotion`` is on,
+    /// where it jumps: padding moves the content.
     ///
     /// Padding is a *layout* change, so this is the expensive shape: the
     /// subtree is re-measured and re-laid-out on every frame of the animation.
@@ -282,3 +284,7 @@ extension PaddingModifier: Animatable {
         set { insets.animatableData = newValue }
     }
 }
+
+/// Motion: an animated padding moves its content, so under reduce motion it
+/// jumps to its end (owner decision A-D3M-1).
+extension PaddingModifier: SpatialAnimatable {}

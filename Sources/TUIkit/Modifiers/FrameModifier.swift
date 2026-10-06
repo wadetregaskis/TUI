@@ -654,7 +654,9 @@ extension FlexibleFrameView: Layoutable {
 extension FlexibleFrameView: Animatable {
     /// A **fixed** frame's width and height — what `.frame(width:height:)`
     /// pins — so growing or shrinking a box inside ``withAnimation(_:_:)``
-    /// is a resize rather than a jump.
+    /// is a resize rather than a jump — except where
+    /// ``EnvironmentValues/accessibilityReduceMotion`` is on, where it jumps:
+    /// a resize moves what is in it and beside it.
     ///
     /// Only the fixed case. SwiftUI draws the same line by having two types
     /// (`_FrameLayout` is `Animatable`, `_FlexFrameLayout` is not); TUIkit has
@@ -699,6 +701,10 @@ extension FlexibleFrameView: Animatable {
         max = .fixed(cells)
     }
 }
+
+/// Motion: a frame that grows or shrinks moves its content and what is beside
+/// it, so under reduce motion it jumps to its end (owner decision A-D3M-1).
+extension FlexibleFrameView: SpatialAnimatable {}
 
 // MARK: - Seeing Through the Wrapper
 

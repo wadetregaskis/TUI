@@ -38,11 +38,23 @@ import TUIkitView
 /// pixels; none of them is offered, so asking for one fails to compile.
 ///
 /// An effect is ``Animatable``: a change to one under an animated transaction
-/// moves through every frame between the two, as a modifier's does.
+/// moves through every frame between the two, as a modifier's does — except
+/// its offsets where ``EnvironmentValues/accessibilityReduceMotion`` is on:
+/// those jump to their end, while its opacity and colours still animate.
 public protocol VisualEffect: Sendable, Animatable {
     /// `buffer` — the view as drawn — with this effect applied. Not to be
     /// implemented by hand: effects are made by the modifier functions.
     func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer
+
+    /// This effect part-way through an animation, with its motion — every
+    /// offset in it — at `target`'s instead, and the rest as it is: what it
+    /// draws under reduce motion. Not to be implemented by hand.
+    func _holdingMotion(at target: Self) -> Self
+}
+
+extension VisualEffect {
+    /// An effect with no offset in it holds nothing still.
+    public func _holdingMotion(at target: Self) -> Self { self }
 }
 
 /// The base visual effect that you apply additional effect to.
@@ -127,7 +139,11 @@ extension _VisualEffectView: Renderable, Layoutable {
         if let animated = animatedValue(
             of: applied, owner: Self.self, context: context, isMeasuring: context.isMeasuring)
         {
-            applied = animated
+            // Under reduce motion an offset is at its end at once and the
+            // colours and opacity still move (owner decision A-D3M-1): one
+            // animation runs for the whole chain, and its motion is read from
+            // the target. Asked only while the effect is changing.
+            applied = context.environment.accessibilityReduceMotion ? animated._holdingMotion(at: applied) : animated
         }
         var drawn = applied._applied(to: buffer, context: context)
         // An effect that asked another space stamps where the view is laid out
@@ -255,6 +271,10 @@ struct _OffsetEffect<Base: VisualEffect>: VisualEffect {
         }
     }
 
+    func _holdingMotion(at target: Self) -> Self {
+        Self(base: base._holdingMotion(at: target.base), x: target.x, y: target.y)
+    }
+
     func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         let inner = base._applied(to: buffer, context: context)
         let (columns, rows) = (Int(x.rounded()), Int(y.rounded()))
@@ -275,6 +295,10 @@ struct _OpacityEffect<Base: VisualEffect>: VisualEffect {
             base.animatableData = newValue.first
             opacity = newValue.second
         }
+    }
+
+    func _holdingMotion(at target: Self) -> Self {
+        Self(base: base._holdingMotion(at: target.base), opacity: opacity)
     }
 
     func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
@@ -304,6 +328,10 @@ struct _ColorVisualEffect<Base: VisualEffect>: VisualEffect {
             base.animatableData = newValue.first
             amount = newValue.second
         }
+    }
+
+    func _holdingMotion(at target: Self) -> Self {
+        Self(base: base._holdingMotion(at: target.base), kind: kind, amount: amount)
     }
 
     func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
