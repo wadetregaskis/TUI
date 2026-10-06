@@ -75,15 +75,10 @@ extension InputHandler {
     ///     ⌃⇧\ in its legacy encoding: one not measured to send them apart
     ///     (`TerminalClient.mayAliasQuitByte(_:)`).
     func quitKeyBindings(byte: UInt8?, hostAliases: Bool) -> QuitKeyBindings {
-        guard let byte, let chord = KeyEvent.controlChord(sending: byte) else { return .unbound }
-        if declaresBinding(forAnyOf: Self.withOption([chord])) { return .ownChord }
-        let aliases = hostAliases ? chord.quitByteAliases : []
-        return !aliases.isEmpty && declaresBinding(forAnyOf: Self.withOption(aliases)) ? .aliasOnly : .unbound
-    }
-
-    /// `chords`, and each with Option: the byte after an ESC.
-    private static func withOption(_ chords: [KeyEvent]) -> [KeyEvent] {
-        chords + chords.map { KeyEvent(key: $0.key, ctrl: $0.ctrl, alt: true, shift: $0.shift) }
+        guard let byte, let chords = QuitKeyChords.of(byte) else { return .unbound }
+        if declaresBinding(forAnyOf: chords.own) { return .ownChord }
+        guard hostAliases, !chords.aliases.isEmpty else { return .unbound }
+        return declaresBinding(forAnyOf: chords.aliases) ? .aliasOnly : .unbound
     }
 
     /// Whether a binding the app declared takes one of `events` — what the
@@ -142,6 +137,41 @@ extension InputHandler {
 }
 
 // MARK: - The quit key's chords
+
+/// The chords the user's quit key's byte could be, which
+/// `InputHandler.quitKeyBindings(byte:hostAliases:)` asks the app's bindings
+/// about after every frame: the byte's own Control chord, and for ⌃\\'s 0x1C
+/// the chords some terminals send it for too, each with and without Option
+/// (the byte after an ESC, which the driver still acts on).
+///
+/// Made once for each byte and kept, rather than after every frame: the
+/// byte is the user's, from the termios raw mode was made from, so it does
+/// not change while the app runs.
+struct QuitKeyChords {
+    /// The byte's own chord, and with Option.
+    let own: [KeyEvent]
+
+    /// ⌃4, ⌃| and ⌃⇧\\ for ⌃\\'s byte (``KeyEvent/quitByteAliases``), and
+    /// with Option; empty for any other.
+    let aliases: [KeyEvent]
+
+    /// The chords for `byte`, or `nil` for one no Control chord sends.
+    static func of(_ byte: UInt8) -> Self? {
+        Int(byte) < table.count ? table[Int(byte)] : nil
+    }
+
+    /// Every C0 byte's chords, made at first use.
+    private static let table: [Self?] = (0...0x1F).map { byte in
+        KeyEvent.controlChord(sending: UInt8(byte)).map { chord in
+            Self(own: withOption([chord]), aliases: withOption(chord.quitByteAliases))
+        }
+    }
+
+    /// `chords`, and each with Option.
+    private static func withOption(_ chords: [KeyEvent]) -> [KeyEvent] {
+        chords + chords.map { KeyEvent(key: $0.key, ctrl: $0.ctrl, alt: true, shift: $0.shift) }
+    }
+}
 
 extension KeyEvent {
     /// The C0 byte a legacy encoding sends for this Control chord — Ctrl with

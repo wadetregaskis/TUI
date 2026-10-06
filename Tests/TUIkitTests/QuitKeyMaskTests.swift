@@ -189,6 +189,26 @@ struct QuitKeyMaskTests {
         }
     }
 
+    // MARK: - What it costs a frame
+
+    /// Asked after every frame, the question used to make its candidate
+    /// chords each time: five arrays a frame for every app. The byte is the
+    /// user's, fixed while the app runs, so they are made once a byte and
+    /// kept (round 6) — the same storage every time it is asked.
+    @Test("The quit key's candidate chords are made once, not after every frame")
+    func candidateChordsAreMadeOnce() {
+        func storage(_ chords: [KeyEvent]?) -> UnsafePointer<KeyEvent>? {
+            chords?.withUnsafeBufferPointer { $0.baseAddress }
+        }
+        let first = QuitKeyChords.of(0x1C)
+        let second = QuitKeyChords.of(0x1C)
+        #expect(first?.own.count == 2 && first?.aliases.count == 6, "⌃\\ and ⌃⌥\\; ⌃4, ⌃| and ⌃⇧\\, with and without ⌥")
+        #expect(storage(first?.own) == storage(second?.own) && storage(first?.aliases) == storage(second?.aliases))
+        #expect(QuitKeyChords.of(0x18)?.own.first == KeyEvent(key: .character("x"), ctrl: true))
+        #expect(QuitKeyChords.of(0x18)?.aliases.isEmpty == true, "only ⌃\\'s byte is sent for other chords")
+        #expect(QuitKeyChords.of(0x7F) == nil && QuitKeyChords.of(0x41) == nil, "no Control chord sends them")
+    }
+
     // MARK: - The retry, for the bindings that count
 
     /// Where the byte reaches the chain — masked for another binding, or the
