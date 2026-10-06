@@ -107,6 +107,12 @@ extension ModalPresentationModifier: Renderable {
         // tokens are stable across presentation.
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
+        // Presented for another item than it was, it is a new sheet — before
+        // anything reads what the presenter keeps for it.
+        if !context.isMeasuring, isPresented.wrappedValue, let itemKey {
+            startOver(forItem: itemKey, context: context)
+        }
+
         // A sheet whose content lets the page through posts the rows it docks
         // every frame, presented or not, for the root to lay the page out by
         // before the walk (`postDock`).
@@ -133,8 +139,6 @@ extension ModalPresentationModifier: Renderable {
             }
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
-        // So is one presented for another item.
-        if !context.isMeasuring, let itemKey { startOver(forItem: itemKey, context: context) }
 
         // Whether the content forbade interactive dismissal. Read BEFORE the
         // status-bar item below, which is why it rides a static conformance

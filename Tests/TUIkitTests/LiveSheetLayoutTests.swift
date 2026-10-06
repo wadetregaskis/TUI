@@ -134,6 +134,36 @@ private struct RowSheetApp: App {
     }
 }
 
+/// What the row-hosted `item:` sheet is presented for.
+@MainActor
+private final class RowItemModel {
+    var note: LiveNote?
+    var binding: Binding<LiveNote?> { Binding(get: { self.note }, set: { self.note = $0 }) }
+}
+
+/// `RowSheetApp`, with the sheet presented for an item.
+private struct RowItemSheetApp: App {
+    let model: RowItemModel
+
+    init() { model = RowItemModel() }
+
+    init(model: RowItemModel) { self.model = model }
+
+    var body: some Scene {
+        WindowGroup {
+            List(0..<30, id: \.self) { index in
+                Text("row \(index)")
+                    .sheet(item: index == 15 ? model.binding : .constant(nil)) { note in
+                        Panel("Note \(note.id)") { Text("x") }
+                            .presentationDetents([.height(8), .large])
+                            .presentationDragIndicator(.hidden)
+                            .presentationBackgroundInteraction(.enabled)
+                    }
+            }
+        }
+    }
+}
+
 @MainActor
 @Suite("A live sheet's page is laid out above it", .rendersEnglishUI)
 struct LiveSheetLayoutTests {
@@ -269,6 +299,34 @@ struct LiveSheetLayoutTests {
         settle()
         screen = rows(app)
         #expect(screen.contains { $0.contains("page height 18") }, "\(screen)")
+    }
+
+    /// The presenter starts a sheet for another item over; doing it after
+    /// posting the dock undid the hold off the dock that the frame had just
+    /// set, and the row and the sheet went round once more.
+    @Test("A row-hosted live sheet switched to another item as it comes back stays off the dock")
+    func rowHostedItemSwitchKeepsTheSheetOffTheDock() {
+        let model = RowItemModel()
+        let app = HeadlessApp(RowItemSheetApp(model: model), width: 40, height: 20)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: Self.frameNanos)
+        model.note = LiveNote(id: 1)
+        app.frame(atNanos: 2 * Self.frameNanos)
+        #expect(rows(app).contains { $0.contains("Note 1") }, "precondition: drawn docked, learnt late")
+        app.frame(atNanos: 3 * Self.frameNanos)
+        #expect(!rows(app).contains { $0.contains("Note 1") }, "precondition: the dock took its row away")
+        model.note = LiveNote(id: 2)
+        var now = 4 * Self.frameNanos
+        app.frame(atNanos: now)
+        var drawn = [rows(app).contains { $0.contains("Note 2") }]
+        for _ in 0..<6 {
+            guard let wake = app.nextWake(after: now) else { break }
+            now = max(wake, now + 1)
+            app.frame(atNanos: now)
+            drawn.append(rows(app).contains { $0.contains("Note 2") })
+        }
+        #expect(drawn.allSatisfy { $0 }, "the second item's sheet went round the dock again: \(drawn)")
+        #expect(app.nextWake(after: now) == nil)
     }
 
     @Test("A terminal too short to leave the page three rows presents the sheet as a modal")
