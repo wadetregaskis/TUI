@@ -206,6 +206,13 @@ struct CompositeGestureTests {
     /// with it, at every click. Fed the release as a live press, the long
     /// press ran `onChanged(true)` and ended `true`, and the drag ran
     /// `onChanged` with its start.
+    ///
+    /// The drag's sequence ends AT the release, every click: 22 clicks on
+    /// fresh views (F2 probe review4e). The one end the first probe saw
+    /// 0.43 s after its release (review3d) was the probe's own: its log line
+    /// described the drag's value, and a value's first description is slow
+    /// and is built before the line takes its timestamp (review4f: 13 ms
+    /// then, and none for a line logged before describing).
     @Test("A tap before a zero-duration long press or a zero-distance drag ends at the tap's release", arguments: [false, true])
     func tapBeforeInstantSecond(_ longPress: Bool) {
         let log = GestureRecord()
