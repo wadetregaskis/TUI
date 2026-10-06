@@ -453,7 +453,23 @@ extension StatusBarItem {
     // the doc comment attached to the declaration.
     // swiftlint:disable cyclomatic_complexity
     /// Maps common shortcut symbols to Key values.
-    fileprivate static func keyFromShortcut(_ shortcut: String) -> Key? {
+    ///
+    /// The space bar's name is a word in the app's language (``Shortcut/space``),
+    /// so telling it apart is a lookup in the localization tables, under their
+    /// lock — and every item is built afresh each frame. So it is asked last,
+    /// of a shortcut no fixed spelling claimed, and never of one printable
+    /// ASCII character, which is that key whatever the space bar is called:
+    /// the framework's own items (`q`, `a`, `t`, `⎋`, `↩`) and an app's
+    /// one-key items never ask. In the switch, it was asked of every item that
+    /// was not Escape, Return, Tab or a delete key.
+    ///
+    /// - Parameters:
+    ///   - shortcut: What the item shows.
+    ///   - spaceBarName: The space bar's name; a parameter so a test can see
+    ///     whether it was asked.
+    static func keyFromShortcut(
+        _ shortcut: String, spaceBarName: () -> String = { KeySymbols.spaceBar }
+    ) -> Key? {
         switch shortcut {
         // Special keys
         case Shortcut.escape, "esc", "escape":
@@ -466,7 +482,7 @@ extension StatusBarItem {
             return .backspace
         case Shortcut.delete:
             return .delete
-        case Shortcut.space, "space":
+        case "space":
             return .space
 
         // Arrow keys
@@ -516,8 +532,12 @@ extension StatusBarItem {
             return .f12
 
         default:
+            break
+        }
+        if shortcut.utf8.count == 1, let byte = shortcut.utf8.first, (0x21...0x7E).contains(byte) {
             return nil
         }
+        return shortcut == spaceBarName() ? .space : nil
     }
     // swiftlint:enable cyclomatic_complexity
 }

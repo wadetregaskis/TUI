@@ -66,6 +66,38 @@ struct ShortcutTests {
         }
     }
 
+    /// The space bar's name is a localization lookup, under the service's
+    /// lock, and items are rebuilt every frame — the quit item on every read
+    /// of the bar's system items. So only a shortcut that could BE the name
+    /// asks for it: not one printable ASCII character, and not one a fixed
+    /// spelling claims first.
+    @Test("Only a shortcut that could be the space bar's name asks for it")
+    func spaceBarNameIsAskedOnlyWhenItCouldMatch() {
+        var asked = 0
+        let leertaste = {
+            asked += 1
+            return "Leertaste"
+        }
+        let neverTheSpaceBar = [
+            "q", "a", "t", "1", "?", "N", "esc", "space",
+            Shortcut.escape, Shortcut.enter, Shortcut.tab, Shortcut.backspace, Shortcut.delete,
+            Shortcut.arrowUp, Shortcut.home, Shortcut.pageDown, Shortcut.f1, Shortcut.f12,
+        ]
+        for shortcut in neverTheSpaceBar {
+            _ = StatusBarItem.keyFromShortcut(shortcut, spaceBarName: leertaste)
+        }
+        #expect(asked == 0, "a fixed spelling or a lone ASCII key never asks")
+
+        #expect(StatusBarItem.keyFromShortcut("Leertaste", spaceBarName: leertaste) == .space)
+        #expect(StatusBarItem.keyFromShortcut("c|C", spaceBarName: leertaste) == nil)
+        #expect(asked == 2)
+        // A lone ASCII character is its own key, whatever the space bar is
+        // called: an app's "q" item is q.
+        #expect(StatusBarItem.keyFromShortcut("q", spaceBarName: { "q" }) == nil)
+        // A name one character long that is not ASCII is still the space bar.
+        #expect(StatusBarItem.keyFromShortcut("␣", spaceBarName: { "␣" }) == .space)
+    }
+
     @Test("Range helper creates range string")
     func rangeHelper() {
         let result = Shortcut.range("1", "9")
