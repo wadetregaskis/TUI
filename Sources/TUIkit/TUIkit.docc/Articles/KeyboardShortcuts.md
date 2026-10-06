@@ -468,7 +468,9 @@ them, the user sets `TUIKIT_KEY_SYMBOLS=0`, or the app asks with
 `.keyNotation(.spelledOut)` on its scene, and the status bar and a menu's
 shortcut column write the keys' names instead: `Ctrl-Shift-Z`, `Esc`,
 `Shift-Tab` (see ``KeyNotation``). Text of your own that names a key follows
-the same choice through ``KeyNotation/spelling(_:)``:
+the same choice through ``KeyNotation/spelling(_:)``, which keeps a joiner
+the text already has — `⇧-click` is `Shift-click`, `⌃+C` is `Ctrl+C` — and
+joins a minus that is the key like any other key: `⌃-` is `Ctrl--`.
 
 ```swift
 @Environment(\.keyNotation) private var keyNotation

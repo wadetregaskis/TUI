@@ -39,6 +39,23 @@ struct KeyNotationTests {
         #expect(notation.spelling("⇧ more") == "Shift more")
     }
 
+    /// Text that already joins a modifier to its key keeps its own joiner:
+    /// a hyphen of ours after it read `Shift--click` and `Ctrl-+C`. A `-` or
+    /// `+` that ends the chord is the key itself, and is joined as any key is.
+    @Test("A modifier the text already joins to its key keeps that joiner, and minus or plus as the key is joined")
+    func modifierWithItsOwnJoiner() {
+        let notation = KeyNotation.spelledOut
+        #expect(notation.spelling("⇧-click") == "Shift-click")
+        #expect(notation.spelling("⌘-click to open") == "Cmd-click to open")
+        #expect(notation.spelling("⌃+C") == "Ctrl+C")
+        #expect(notation.spelling("⌃⇧-Z") == "Ctrl-Shift-Z")
+        // Control-minus and Control-plus: the key is the - or the +.
+        #expect(notation.spelling("⌃-") == "Ctrl--")
+        #expect(notation.spelling("⌃+") == "Ctrl-+")
+        #expect(notation.spelling("⌃- smaller") == "Ctrl-- smaller")
+        #expect(notation.spelling("⌃⇧-") == "Ctrl-Shift--")
+    }
+
     @Test("What names no key reads the same in both notations")
     func otherTextIsUntouched() {
         for text in ["q", "1-9", "c|C", "+|-", "↑↓", "F12", "Space", ""] {

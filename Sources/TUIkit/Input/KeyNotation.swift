@@ -40,7 +40,9 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
     ///
     /// Under ``symbols`` it is `text`. Under ``spelledOut`` each symbol becomes
     /// its name, and a modifier's name is joined to what follows it by a
-    /// hyphen: `⌃⇧Z` is `Ctrl-Shift-Z`, `⎋` is `Esc`, `⌥↑` is `Alt-↑`.
+    /// hyphen: `⌃⇧Z` is `Ctrl-Shift-Z`, `⎋` is `Esc`, `⌥↑` is `Alt-↑` — unless
+    /// the text joins them itself, so `⇧-click` is `Shift-click` and `⌃+C` is
+    /// `Ctrl+C`, while `⌃-`, whose key is the minus, is `Ctrl--`.
     /// Anything that is not a key symbol stays as it is, so a status bar
     /// item's `1-9` or `c|C` reads the same in both.
     ///
@@ -71,11 +73,24 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
             result += name
             // A modifier is joined to what it modifies; one on its own (a
             // status bar's lone ⇧) is just its name.
-            if modifierSymbols.contains(character), let next = rest.first, !next.isWhitespace {
+            if modifierSymbols.contains(character), let next = rest.first, !next.isWhitespace,
+                !isJoiner(next, before: rest.dropFirst().first)
+            {
                 result += "-"
             }
         }
         return result
+    }
+
+    /// Whether `character`, just after a modifier symbol, is a joiner the text
+    /// already has, rather than the key: a `-` or `+` with more of the chord
+    /// after it, as in `⇧-click` or `⌃+C`. Those keep the text's own joiner —
+    /// `Shift-click`, `Ctrl+C` — where a hyphen of ours would double it
+    /// (`Shift--click`). A `-` or `+` that ends the chord IS its key, and gets
+    /// the hyphen any key does: `⌃-` is `Ctrl--`, Control-minus.
+    private static func isJoiner(_ character: Character, before following: Character?) -> Bool {
+        guard character == "-" || character == "+", let following else { return false }
+        return !following.isWhitespace
     }
 
     /// Every symbol ``spelledOut`` names, with its name: the modifiers and the
