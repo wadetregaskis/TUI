@@ -59,7 +59,9 @@ extension _ScrollViewCore {
     /// As the owner of that space, this finds the readers asking about it in
     /// the window, and when one drew from where this view had it last frame
     /// draws the content once more, at the offset the frame settled on — the
-    /// walk put back first (`checkpoint`), so nothing in it registers twice.
+    /// walk put back first (`checkpoint`), so nothing in it registers twice;
+    /// and put back again should that drawing refute the content's measure
+    /// and be drawn once more (`renderedContent`), or the ids would move.
     func ownedContentWindow(
         drawing: ScrollContentDrawing, checkpoint: RenderWalkCheckpoint?, handler: ScrollViewHandler,
         chrome: ScrollChrome, viewport: CellSize, horizontal: Bool, context: RenderContext
@@ -74,7 +76,8 @@ extension _ScrollViewCore {
             let redrawn = renderedContent(
                 contentWidth: width, viewportHeight: height, horizontal: horizontal,
                 verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
-                slide: contentSlide(handler: handler, viewportHeight: height, context: context), context: context)
+                slide: contentSlide(handler: handler, viewportHeight: height, context: context),
+                checkpoint: checkpoint, context: context)
             handler.contentHeight = redrawn.slice?.totalHeight ?? redrawn.buffer.height
             handler.contentHeightIsEstimate = redrawn.slice?.totalIsEstimate ?? false
             handler.clampScrollOffset()

@@ -206,6 +206,45 @@ struct CoordinateSpaceTests {
         #expect(harness.geometryCorrections.residual == 0)
     }
 
+    @Test("A scroll view whose correction refutes its content's measure puts the walk back before drawing it again")
+    func correctionRedrawKeepsMarkers() {
+        let harness = InputChainHarness()
+        let seen = Seen()
+        let drawings = Drawings()
+        var shown: [Int: Bool] = [:]
+        let page = {
+            ScrollView {
+                RefutingMeasure(drawings: drawings) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(0..<3, id: \.self) { index in
+                            // An `onChange` keeps the row out of the memos, so
+                            // every drawing of it claims its marker anew.
+                            Text("row \(index)")
+                                .onScrollVisibilityChange { shown[index] = $0 }
+                                .onChange(of: index) {}
+                        }
+                        reader(seen, in: .scrollView, width: 10, height: 1)
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .frame(width: 20, height: 6)
+        }
+        // The reader's first frame, with nothing to predict it from: the
+        // scroll view draws its content again, and that second drawing
+        // refutes the content's measure, so it is drawn a third time.
+        drawings.refuting = 2
+        harness.frame(page())
+        #expect(drawings.count == 3)
+        #expect(harness.geometryCorrections.scrollView == 1)
+        #expect(seen.frame?.y == 3)
+        // The third drawing took the ids the others did: the rows on screen
+        // keep the markers they were reported under, and stay shown.
+        harness.frame(page())
+        #expect(shown == [0: true, 1: true, 2: true])
+        #expect(seen.frame?.y == 3)
+    }
+
     @Test("A push past the scroll view's edge is predicted: the reader moves with the content, uncorrected")
     func overscrollPushIsPredicted() {
         let harness = InputChainHarness()
@@ -586,5 +625,44 @@ private struct DroppingMarkers<Content: View>: View, Renderable, Layoutable {
         var buffer = TUIkit.renderToBuffer(content, context: context)
         buffer.hitTestRegions.removeAll(where: \.isGeometryMarker)
         return buffer
+    }
+}
+
+/// How many times a ``RefutingMeasure`` drew in a render pass, and which
+/// drawing refutes its scroll view's measure.
+@MainActor
+private final class Drawings {
+    var count = 0
+    var refuting: Int?
+}
+
+/// Draws its content, telling its scroll view on the drawing
+/// ``Drawings/refuting`` names that the drawing refuted the measure the canvas
+/// was sized by — as a uniform lazy stack does on reaching a row of another
+/// height (`ScrollContentReply.measureWentStale`) — so the scroll view
+/// measures again and draws the content once more.
+private struct RefutingMeasure<Content: View>: View, Renderable, Layoutable {
+    let drawings: Drawings
+    let content: Content
+
+    init(drawings: Drawings, @ViewBuilder content: () -> Content) {
+        self.drawings = drawings
+        self.content = content()
+    }
+
+    var body: Never { fatalError("RefutingMeasure renders via Renderable") }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if !context.isMeasuring {
+            drawings.count += 1
+            if drawings.count == drawings.refuting {
+                context.environment.scrollContentWindow?.reply?.measureWentStale = true
+            }
+        }
+        return TUIkit.renderToBuffer(content, context: context)
     }
 }
