@@ -1,0 +1,65 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  LocalizationService+Files.swift
+//
+//  The files a LocalizationService reads: TUIkit's own translations, and the
+//  language a user chose, where it was stored.
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+
+extension LocalizationService {
+    /// Loads translations from bundled JSON file.
+    func loadTranslationsFromBundle(language: String) -> [String: String]? {
+        guard
+            let url = moduleResourceURL(
+                named: language, extension: "json", subdirectory: "translations")
+        else {
+            return nil
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            return try JSONSerialization.jsonObject(
+                with: data,
+                options: .fragmentsAllowed
+            ) as? [String: String]
+        } catch {
+            return nil
+        }
+    }
+
+    /// Loads stored language preference from the default config file.
+    static func loadLanguagePreference() -> Language? {
+        loadLanguagePreference(from: defaultConfigDirectoryPath())
+    }
+
+    /// Loads stored language preference from a specific config directory.
+    static func loadLanguagePreference(from configDirectory: String) -> Language? {
+        let path = (configDirectory as NSString).appendingPathComponent("language")
+        guard FileManager.default.fileExists(atPath: path) else {
+            return nil
+        }
+
+        do {
+            let content = try String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            return Language(rawValue: content)
+        } catch {
+            return nil
+        }
+    }
+
+    /// The default config directory for the language preference.
+    ///
+    /// This is the app-specific, platform-idiomatic directory shared with
+    /// `@AppStorage` (see `appConfigDirectory()`): `~/Library/Application
+    /// Support/<App>` on macOS, `$XDG_CONFIG_HOME/<App>` (else `~/.config/<App>`)
+    /// elsewhere. Per-app, so the language preference lives alongside the app's
+    /// other settings and no longer leaks between TUIkit apps.
+    static func defaultConfigDirectoryPath() -> String {
+        appConfigDirectory().path
+    }
+}

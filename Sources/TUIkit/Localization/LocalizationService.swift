@@ -13,40 +13,6 @@ import Foundation
 /// Loads translations from JSON files, resolves localized strings using
 /// dot-notation keys, and persists language preference to disk.
 public final class LocalizationService: @unchecked Sendable {
-    /// Supported languages
-    public enum Language: String, Codable, CaseIterable {
-        case english = "en"
-        case german = "de"
-        case french = "fr"
-        case italian = "it"
-        case spanish = "es"
-        case simplifiedChinese = "zh"
-        case japanese = "ja"
-
-        /// Human-readable name (in the language itself).
-        public var displayName: String {
-            switch self {
-            case .english: "English"
-            case .german: "Deutsch"
-            case .french: "Français"
-            case .italian: "Italiano"
-            case .spanish: "Español"
-            case .simplifiedChinese: "简体中文"
-            case .japanese: "日本語"
-            }
-        }
-
-        /// The `Locale` this language formats numbers, dates, and the like
-        /// in — the app's chosen language drives its number grouping, so a
-        /// German app groups "12.000" and a French one "12 000" while the
-        /// UI text is already in that language. Derived from the language
-        /// code; a bare-code locale carries the correct grouping / decimal
-        /// separators without pinning a region.
-        public var locale: Locale {
-            Locale(identifier: rawValue)
-        }
-    }
-
     /// The shared localization service instance.
     public static let shared = LocalizationService()
 
@@ -359,48 +325,6 @@ public final class LocalizationService: @unchecked Sendable {
         return _translations(for: language)[key]
     }
 
-    /// Loads translations from bundled JSON file.
-    private func loadTranslationsFromBundle(language: String) -> [String: String]? {
-        guard
-            let url = moduleResourceURL(
-                named: language, extension: "json", subdirectory: "translations")
-        else {
-            return nil
-        }
-
-        do {
-            let data = try Data(contentsOf: url)
-            return try JSONSerialization.jsonObject(
-                with: data,
-                options: .fragmentsAllowed
-            ) as? [String: String]
-        } catch {
-            return nil
-        }
-    }
-
-    /// Loads stored language preference from the default config file.
-    private static func loadLanguagePreference() -> Language? {
-        loadLanguagePreference(from: defaultConfigDirectoryPath())
-    }
-
-    /// Loads stored language preference from a specific config directory.
-    private static func loadLanguagePreference(from configDirectory: String) -> Language? {
-        let path = (configDirectory as NSString).appendingPathComponent("language")
-        guard FileManager.default.fileExists(atPath: path) else {
-            return nil
-        }
-
-        do {
-            let content = try String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            return Language(rawValue: content)
-        } catch {
-            return nil
-        }
-    }
-
     /// Saves language preference to config file.
     private func saveLanguagePreference(_ language: Language) {
         let path = configFilePath()
@@ -443,16 +367,5 @@ public final class LocalizationService: @unchecked Sendable {
     private func configFilePath() -> String {
         let dir = lock.withLock { configDirectoryOverride } ?? Self.defaultConfigDirectoryPath()
         return (dir as NSString).appendingPathComponent("language")
-    }
-
-    /// The default config directory for the language preference.
-    ///
-    /// This is the app-specific, platform-idiomatic directory shared with
-    /// `@AppStorage` (see `appConfigDirectory()`): `~/Library/Application
-    /// Support/<App>` on macOS, `$XDG_CONFIG_HOME/<App>` (else `~/.config/<App>`)
-    /// elsewhere. Per-app, so the language preference lives alongside the app's
-    /// other settings and no longer leaks between TUIkit apps.
-    static func defaultConfigDirectoryPath() -> String {
-        appConfigDirectory().path
     }
 }
