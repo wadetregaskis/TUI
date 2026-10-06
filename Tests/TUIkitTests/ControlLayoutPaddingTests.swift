@@ -55,7 +55,11 @@ struct ControlLayoutPaddingTests {
             // outlive the reads, which a `let` alone does not promise.
             let plans = ValueHashPlans()
             withExtendedLifetime(plans) {
-                let steps = plans.plan(for: T.self).pointee.stepDescriptions
+                let plan = plans.plan(for: T.self).pointee
+                // A plan that bypasses has no steps at all, so the next check
+                // alone would pass for a button its memo no longer hashes.
+                #expect(plan.shape != .bypass, "\(T.self) bypasses: \(plan.bypassReason ?? "")")
+                let steps = plan.stepDescriptions
                 #expect(!steps.contains { $0.contains("OpenedPopup") }, "\(T.self): \(steps)")
             }
         }
