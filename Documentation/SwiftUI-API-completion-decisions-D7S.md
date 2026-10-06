@@ -140,4 +140,3 @@ presenting row stays above the dock (as it reveals the focused row), and the
 sheet docked. About a day: the container has to know which of its rows
 presents, before the walk that lays it out at the docked height, and a row the
 reader then scrolls away would still take the sheet with it.
-
