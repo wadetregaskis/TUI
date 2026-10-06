@@ -3649,7 +3649,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ event: MouseEvent, column: _TableColumnSpec<Value>, at originX: Int, y: Int, sortable: Bool,
         handler: ItemListHandler<Value.ID>, gesture: _TableHeaderGesture, dispatcher: MouseEventDispatcher
     ) -> Bool {
-        if Self.belongsToAMenu(event, dispatcher: dispatcher) { return true }
+        if dispatcher.followsPopupOpeningPress(event) { return true }
         let x = originX + event.x
         // A secondary click is the column menu's — on a table that has one.
         // Without one, Ctrl-click is a click and sorts, as it did before
@@ -3718,25 +3718,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             for: id, in: context)
     }
 
-    /// Whether `event` is a drag or the release of a gesture whose press opened
-    /// a menu — the column menu, from a secondary press on a title, or any
-    /// other pop-up — which the header spends as the menu's.
-    ///
-    /// A menu-opening press hands its gesture off
-    /// (``MouseEventDispatcher/handOffGesture()``), so what follows it is
-    /// hit-tested live, and until a frame draws the menu over the header the
-    /// header's own regions are what it lands on. Asked of the event alone, a
-    /// drag there after a Ctrl-press whose Ctrl was let go — a drag does not
-    /// carry its press's modifiers, as the release does — was a resize on the
-    /// gap it crossed, measured from a press the gap never took; with a frame
-    /// between, the menu's backdrop took it instead, so the outcome came down
-    /// to timing. The row menu asks the gesture the same way
-    /// (``RowContextMenuHost/preflight(_:wheel:menu:dispatcher:row:)``).
-    @MainActor
-    private static func belongsToAMenu(_ event: MouseEvent, dispatcher: MouseEventDispatcher) -> Bool {
-        (event.phase == .dragged || event.phase == .released) && dispatcher.gestureOpenedPopup
-    }
-
     /// The column a header dragged to `x` takes the place of, or `nil` while
     /// it stays where it is — over itself, over a column that may not move,
     /// or short of the point past which the swap would put the pointer back
@@ -3799,7 +3780,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ event: MouseEvent, column id: String, width: Int, bounds: ClosedRange<Int>, at originX: Int,
         gesture: _TableHeaderGesture, dispatcher: MouseEventDispatcher
     ) -> Bool {
-        if Self.belongsToAMenu(event, dispatcher: dispatcher) { return true }
+        // The rest of a gesture whose press opened a menu — the column menu,
+        // from a secondary press on a title, or any other pop-up — is the
+        // menu's. A menu-opening press hands its gesture off
+        // (``MouseEventDispatcher/handOffGesture()``), so what follows it is
+        // hit-tested live, and until a frame draws the menu over the header
+        // the header's own regions are what it lands on. Asked of the
+        // event alone, a drag there after a Ctrl-press whose Ctrl was let go —
+        // a drag does not carry its press's modifiers, as the release does —
+        // was a resize on the gap it crossed, measured from a press the gap
+        // never took. The title, and the row menu
+        // (``RowContextMenuHost/preflight(_:wheel:menu:dispatcher:row:)``),
+        // ask the gesture the same way.
+        if dispatcher.followsPopupOpeningPress(event) { return true }
         guard event.button == .left, !event.ctrl, let binding = columnCustomization else { return false }
         let x = originX + event.x
         switch event.phase {

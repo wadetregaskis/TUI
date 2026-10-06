@@ -668,6 +668,20 @@ extension MouseEventDispatcher {
     /// the gesture is still the menu's, not a click on what is under it.
     var gestureOpenedPopup: Bool { pressOpenedPopupMenu }
 
+    /// Whether `event` is a drag or the release of a gesture whose press
+    /// opened a pop-up menu (``pressOpenedPopup(closing:)``): the rest of that
+    /// gesture, which is the menu's, whether or not the menu is still up when
+    /// it arrives, and never a click on what lies under it.
+    ///
+    /// Only those two phases. The record of the press can outlive its
+    /// gesture — a release the terminal lost, or a press the gesture arena
+    /// hands an opener on a clock tick after the release — and stands until
+    /// the next press; the motion, wheel and hover events in between are
+    /// nobody's gesture, and a handler that spent them for the menu ate them.
+    func followsPopupOpeningPress(_ event: MouseEvent) -> Bool {
+        (event.phase == .dragged || event.phase == .released) && pressOpenedPopupMenu
+    }
+
     /// Whether `event` is a button-release that ends a press-and-**hold** rather
     /// than one that merely completes a click.
     ///
