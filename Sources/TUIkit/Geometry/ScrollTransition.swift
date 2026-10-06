@@ -105,11 +105,16 @@ struct _ScrollTransitionView<Content: View, Effect: VisualEffect>: View {
 
 extension _ScrollTransitionView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // Claimed BEFORE the content renders, as every marker slot is (see
+        // `ScrollVisibilityModifier`): content at this identity that stamps a
+        // marker one frame and not the next would otherwise move this one's
+        // id, and lose what was found for it. `nil` in a measure, which sizes
+        // the view — no effect changes that — and must not claim the marker
+        // the render will.
+        let ask = context.makeGeometryAsk(role: .reader)
         let buffer = TUIkit.renderToBuffer(content, context: context)
-        // A measure sizes the view, which no effect changes; and it must not
-        // claim the marker the render will (`makeGeometryAsk`).
         guard !context.isMeasuring else { return buffer }
-        guard let ask = context.makeGeometryAsk(role: .reader) else {
+        guard let ask else {
             // Nowhere to ask where the view is: the identity phase.
             return effect(at: nil, context: context)._applied(to: buffer, context: context)
         }

@@ -109,11 +109,17 @@ struct _VisualEffectView<Content: View, Effect: VisualEffect>: View {
 
 extension _VisualEffectView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let buffer = TUIkit.renderToBuffer(content, context: context)
         // What the effect asks about the spaces around the view goes through
         // this, and is held to by the spaces' owners, as a reader's is — the
         // effect is built from the answer (`GeometryAsk.Role.reader`).
+        // Claimed BEFORE the content renders, for the reason
+        // `OnGeometryChangeModifier` claims first: the marker's id is the
+        // ordinal of this claim at this identity, and content drawn at the
+        // same identity (an `AnyView`, an `if`) that stamps a marker of its
+        // own one frame and not the next would move a claim made after it —
+        // and with it what was found for this view.
         let ask = context.makeGeometryAsk(role: .reader)
+        let buffer = TUIkit.renderToBuffer(content, context: context)
         var applied = effect(
             EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask))
         // The effect animates as an animatable modifier does: keyed by this

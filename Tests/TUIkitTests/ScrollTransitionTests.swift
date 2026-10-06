@@ -215,6 +215,46 @@ struct ScrollTransitionTests {
         #expect(harness.geometryCorrections.residual == 0)
     }
 
+    @Test("A transition keeps its marker when its content stops stamping one: no correction for it")
+    func markerSlotIgnoresContent() {
+        let harness = InputChainHarness()
+        let phases = Phases()
+        let page = { (observed: Bool) in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("above")
+                    // A row down that the prediction does not follow: the
+                    // transition's residual carries it from frame to frame.
+                    UnconvertedContainer {
+                        // An `AnyView` draws at the transition's own identity,
+                        // so an observer in it claims a marker slot there too.
+                        AnyView(
+                            observed
+                                ? AnyView(Text("row").onScrollVisibilityChange { _ in })
+                                : AnyView(Text("row"))
+                        )
+                        .scrollTransition(.animated) { effect, phase in
+                            // swiftlint:disable:next redundant_discardable_let
+                            let _ = (phases.byRow[1] = phase)
+                            return effect
+                        }
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .frame(width: 20, height: 7)
+        }
+        harness.frame(page(true))
+        harness.frame(page(true))
+        let settled = harness.geometryCorrections
+        harness.frame(page(false))
+        harness.frame(page(true))
+        // The transition's marker is the same marker whatever its content
+        // draws, so the residual kept for it is kept, and it is predicted.
+        #expect(harness.geometryCorrections == settled)
+        #expect(phases.byRow[1] == .identity)
+    }
+
     @Test("A view in no scroll view is drawn in the identity phase")
     func noScrollViewIsIdentity() {
         let harness = InputChainHarness()

@@ -150,4 +150,34 @@ struct VisualEffectTests {
         let local = harness.frame(Text("abc").visualEffect { content, proxy in content.offset(x: proxy.size.width) })
         #expect(!local.carriesGeometryMarkers)
     }
+
+    @Test("An effect keeps its marker when its content stops stamping one: no correction for it")
+    func markerSlotIgnoresContent() {
+        let harness = InputChainHarness()
+        let page = { (observed: Bool) in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("a")
+                // A row down that the prediction does not follow: the effect's
+                // residual carries it from frame to frame.
+                UnconvertedContainer {
+                    // An `AnyView` draws at the effect's own identity, so an
+                    // observer in it claims a marker slot there too.
+                    AnyView(
+                        observed
+                            ? AnyView(Text("row").onScrollVisibilityChange { _ in })
+                            : AnyView(Text("row"))
+                    )
+                    .visualEffect { content, proxy in content.offset(x: proxy.frame(in: .global).origin.y) }
+                }
+            }
+        }
+        harness.frame(page(true))
+        harness.frame(page(true))
+        let settled = harness.geometryCorrections
+        #expect(picture(harness.frame(page(false)))[2] == "  row")
+        #expect(picture(harness.frame(page(true)))[2] == "  row")
+        // The effect's marker is the same marker whatever its content draws,
+        // so the residual kept for it is kept, and it is predicted.
+        #expect(harness.geometryCorrections == settled)
+    }
 }
