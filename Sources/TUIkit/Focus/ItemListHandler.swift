@@ -414,10 +414,13 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     var columnEditing: TableColumnEditing?
 
     /// Where a `Table`'s header drew each column on the last frame, by its
-    /// customization identifier — what a header drag that began on an earlier
-    /// frame finds the columns by, and what the column keys measure a width
-    /// from.
-    var headerColumns: [(id: String?, x: Range<Int>)] = []
+    /// customization identifier and its place among the declared columns —
+    /// what a header drag that began on an earlier frame lays the columns out
+    /// from, and what the column keys measure a width from. The last frame's
+    /// only: a move or a resize earlier in the same batch of input has changed
+    /// the customization and not this, so a reader lays the columns out again
+    /// from the customization (the table's `liveHeaderColumns`).
+    var headerColumns: [(id: String?, declaration: Int, x: Range<Int>)] = []
 
     /// The widest a `Table`'s column may be made, on the last frame: its row
     /// content's width.

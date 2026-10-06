@@ -297,4 +297,58 @@ struct TableColumnGestureTests {
         harness.key(KeyEvent(key: .character(">")))
         #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "\(harness.screen)")
     }
+
+    // MARK: A batch of input between two frames
+
+    @Test("Two drag reports in one batch move a title once, not there and back")
+    func dragReportsInOneBatch() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let alpha = try #require(harness.column(of: "Alpha", on: y))
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.send(MouseEvent(button: .left, phase: .pressed, x: alpha + 1, y: y))
+        // Over Beta far enough to swap, and a cell further, with no frame
+        // between: the second report must see the swap the first made.
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta + 6, y: y))
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta + 7, y: y))
+        harness.frame()
+        harness.send(MouseEvent(button: .left, phase: .released, x: beta + 7, y: y))
+        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+    }
+
+    @Test("Column keys in one batch each act on what the one before left")
+    func columnKeysInOneBatch() throws {
+        let harness = Harness()
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        // `>` then `<`: back where it started.
+        harness.app.send(KeyEvent(key: .character(">")))
+        harness.app.send(KeyEvent(key: .character("<")))
+        harness.frame()
+        #expect(harness.headerOrder == ["Alpha", "Beta", "Gamma", "Delta"], "\(harness.screen)")
+        // `+` twice: two cells wider.
+        let y = try #require(harness.headerY)
+        let width = try #require(harness.column(of: "Beta", on: y)) - 2
+            - (try #require(harness.column(of: "Alpha", on: y)))
+        harness.app.send(KeyEvent(key: .character("+")))
+        harness.app.send(KeyEvent(key: .character("+")))
+        harness.frame()
+        #expect(harness.columns.customization[width: "alpha"] == width + 2, "\(harness.screen)")
+    }
+
+    @Test("A column key in the batch that hid the picked column picks another, and goes no further")
+    func columnKeyAfterHidingInOneBatch() throws {
+        let harness = Harness()
+        harness.columns.selection = [2]
+        harness.frame()
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        // Hidden behind the keys' back, then Return and Escape before a frame.
+        harness.columns.customization[visibility: "alpha"] = .hidden
+        harness.app.send(KeyEvent(key: .enter))
+        harness.app.send(KeyEvent(key: .escape))
+        harness.frame()
+        #expect(!harness.shows("Hide “"), "Return opened a menu on a column the user had not seen picked")
+        #expect(harness.columns.selection == [2], "a column key went on to the rows")
+        harness.key(KeyEvent(key: .character(">")))
+        #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "the mode outlived Escape:\n\(harness.screen)")
+    }
 }

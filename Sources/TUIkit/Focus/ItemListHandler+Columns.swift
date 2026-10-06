@@ -16,8 +16,13 @@
 /// showing.
 struct TableColumnEditing {
     /// The shown columns a user may customize, by identifier, in the order
-    /// they are shown.
-    let columns: [String]
+    /// they are shown — as they stand now, asked of the customization: a key
+    /// earlier in the same batch of input may have moved or hidden one since
+    /// the frame was drawn.
+    var columns: [String] { currentColumns() }
+
+    /// Lists ``columns``.
+    let currentColumns: () -> [String]
 
     /// Moves a column one place among the shown ones — `-1` left, `+1` right —
     /// when it and its neighbour may move.

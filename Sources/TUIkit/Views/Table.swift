@@ -3595,7 +3595,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // on an earlier one: a live reorder moves them under the pointer.
         if !context.isMeasuring {
             state.handler.headerColumns = ranges.compactMap { index, range in
-                columns.indices.contains(index) ? (columns[index].customizationID, range) : nil
+                columns.indices.contains(index)
+                    ? (columns[index].customizationID, columns[index].declarationIndex, range) : nil
             }
             state.handler.headerColumnsWidest = max(1, state.rowContentWidth)
         }
@@ -3718,10 +3719,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func reorderTarget(
         for column: _TableColumnSpec<Value>, atX x: Int, handler: ItemListHandler<Value.ID>
     ) -> String? {
-        guard columnCustomization != nil, column.allows(.reorder), let id = column.customizationID,
-            let own = handler.headerColumns.first(where: { $0.id == id })?.x,
+        guard columnCustomization != nil, column.allows(.reorder), let id = column.customizationID
+        else { return nil }
+        let shown = liveHeaderColumns(handler)
+        guard let own = shown.first(where: { $0.id == id })?.x,
             !own.contains(x),
-            let over = handler.headerColumns.first(where: { $0.x.contains(x) }),
+            let over = shown.first(where: { $0.x.contains(x) }),
             let target = over.id, target != id,
             declaredColumns.first(where: { $0.customizationID == target })?.allows(.reorder) == true
         else { return nil }
@@ -3730,6 +3733,37 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let movingRight = over.x.lowerBound > own.lowerBound
         let swapped = movingRight ? (over.x.upperBound - own.count)..<over.x.upperBound : over.x.lowerBound..<(over.x.lowerBound + own.count)
         return swapped.contains(x) ? target : nil
+    }
+
+    /// Where the shown columns' titles are now: laid out from where the last
+    /// frame drew the first, in the order and at the widths the customization
+    /// holds at this moment.
+    ///
+    /// Input is read between frames, a batch at a time (`App` drains up to 128
+    /// events a frame), so a move or a resize earlier in the batch has changed
+    /// the customization and not the frame's geometry
+    /// (``ItemListHandler/headerColumns``). Read from the frame, a second drag
+    /// report in the batch found the dragged column back where it started and
+    /// swapped it back — whether a move survived came down to how many reports
+    /// a frame happened to carry.
+    ///
+    /// A width the user set is the width drawn — a resized column is laid out
+    /// at it, fixed — and any other is the last frame's. A column shown since
+    /// that frame has no width to go by and takes one cell until the next.
+    private func liveHeaderColumns(_ handler: ItemListHandler<Value.ID>) -> [(id: String?, x: Range<Int>)] {
+        let drawn = handler.headerColumns
+        guard let binding = columnCustomization, let first = drawn.first else {
+            return drawn.map { ($0.id, $0.x) }
+        }
+        let widths = Dictionary(drawn.map { ($0.declaration, $0.x.count) }, uniquingKeysWith: { first, _ in first })
+        var laidOut: [(id: String?, x: Range<Int>)] = []
+        var x = first.x.lowerBound
+        for column in binding.wrappedValue.shownColumns(declaredColumns) {
+            let width = column.resizedWidth ?? widths[column.declarationIndex] ?? 1
+            laidOut.append((column.customizationID, x..<(x + width)))
+            x += width + columnSpacing
+        }
+        return laidOut
     }
 
     /// A press on the gap after a column's title: a drag resizes the column,
@@ -3795,25 +3829,37 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func columnEditing(
         _ handler: ItemListHandler<Value.ID>, context: RenderContext
     ) -> TableColumnEditing? {
-        guard let binding = columnCustomization, headerLines(context.environment) > 0 else { return nil }
-        let ids = columns.compactMap(\.customizationID)
-        guard !ids.isEmpty else { return nil }
+        guard let binding = columnCustomization, headerLines(context.environment) > 0,
+            columns.contains(where: { $0.customizationID != nil })
+        else { return nil }
         let declared = declaredColumns.compactMap(\.customizationID)
         let specs = Dictionary(
-            columns.compactMap { column in column.customizationID.map { ($0, column) } },
+            declaredColumns.compactMap { column in column.customizationID.map { ($0, column) } },
             uniquingKeysWith: { first, _ in first })
+        // Each key asks the customization as it stands, not this frame's
+        // columns: a key earlier in the same batch may have moved, resized or
+        // hidden one (see ``liveHeaderColumns(_:)``). Two `>` in one batch
+        // cancelled out, and `++` grew a column by one.
+        let shownIDs = { [declaredColumns] in
+            binding.wrappedValue.shownColumns(declaredColumns).compactMap(\.customizationID)
+        }
         let box = columnMenuBox(context)
         let onOpen = context.environment.menuOpenAction
         return TableColumnEditing(
-            columns: ids,
+            currentColumns: shownIDs,
             move: { id, delta in
+                let ids = shownIDs()
                 guard let position = ids.firstIndex(of: id), ids.indices.contains(position + delta),
                     specs[id]?.allows(.reorder) == true, specs[ids[position + delta]]?.allows(.reorder) == true
                 else { return }
                 binding.wrappedValue.move(id, toPlaceOf: ids[position + delta], declared: declared)
             },
             resize: { [weak handler] id, delta in
-                guard let handler, let current = handler.headerColumns.first(where: { $0.id == id })?.x.count,
+                // A width the user set is the width drawn; any other, the last
+                // frame's.
+                guard let handler,
+                    let current = binding.wrappedValue[width: id]
+                        ?? handler.headerColumns.first(where: { $0.id == id })?.x.count,
                     let bounds = specs[id]?.resizeBounds(upTo: max(1, handler.headerColumnsWidest))
                 else { return }
                 binding.wrappedValue[width: id] = min(bounds.upperBound, max(bounds.lowerBound, current + delta))
