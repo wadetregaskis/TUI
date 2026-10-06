@@ -105,7 +105,8 @@ enum TextFieldMouseHandler {
         let captureFocusID = persistedFocusID
         let captureHoverBox = hoverBox
 
-        let mouseHandlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { event in
+        // Weak: the dispatcher holds this handler (see `Button`'s).
+        let mouseHandlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { [weak mouseDispatcher] event in
             defer { handler.publishSelection() }
             switch event.phase {
             case .pressed where event.button == .left:
@@ -118,13 +119,13 @@ enum TextFieldMouseHandler {
                         // Opened — so the drag and release that follow belong to
                         // the menu, not to the field. Click-and-hold, drag down
                         // the suggestions, release on one to choose it.
-                        mouseDispatcher.handOffGesture()
+                        mouseDispatcher?.handOffGesture()
                         // Open as the menu draws, focus and all
                         // (`TextFieldSuggestions.prepare`): a field the press
                         // could not focus — out of the focus ring — draws no
                         // menu, and one taken for drawn had the rest of the
                         // gesture hit-tested live beneath it.
-                        mouseDispatcher.pressOpenedPopup(
+                        mouseDispatcher?.pressOpenedPopup(
                             MouseEventDispatcher.OpenedPopup(
                                 isOpen: {
                                     handler.suggestionsActive

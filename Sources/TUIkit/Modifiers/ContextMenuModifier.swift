@@ -346,7 +346,8 @@ enum ContextMenuPresentation {
         let state = stateBox.value
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
         let onOpen = context.environment.menuOpenAction
-        let handlerID = dispatcher.register(in: context) { event in
+        // Weak: the dispatcher holds this handler (see `Button`'s).
+        let handlerID = dispatcher.register(in: context) { [weak dispatcher] event in
             // Secondary click = right button, or Ctrl + left (the fallback where a
             // terminal claims right-click for itself, e.g. iTerm2 by default).
             let isSecondary =
@@ -362,8 +363,8 @@ enum ContextMenuPresentation {
                 state.controller.opened(withSelection: false)
                 stateBox.value = state
                 onOpen?()
-                dispatcher.handOffGesture()
-                dispatcher.pressOpenedPopup(state.openedPopup)
+                dispatcher?.handOffGesture()
+                dispatcher?.pressOpenedPopup(state.openedPopup)
                 return true
             case .released:
                 // Spent on the press, and the release is the menu's: its
@@ -400,9 +401,13 @@ private enum ContextMenuKeyRegistrar {
         stateBox: StateBox<ContextMenuState>, focusID: String, onOpen: MenuOpenAction?, sectionID: String?,
         context: RenderContext
     ) {
-        context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
-            guard event.opensContextMenu,
-                FocusRegistration.isFocused(context: context, focusID: focusID)
+        // The focus manager, weakly, and not the context: the key dispatcher
+        // holds this handler, and the context holds the key dispatcher — kept
+        // here, it kept the app's state, cache, managers and dispatchers alive
+        // after its loop (scroll lane review 3).
+        let focusManager = context.environment.focusManager
+        context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { [weak focusManager] event in
+            guard event.opensContextMenu, focusManager?.isFocused(id: focusID) == true
             else { return false }
             // Opened from the keyboard, which has no other way to point at a
             // row: on the first item, written back through the box (see

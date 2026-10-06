@@ -690,7 +690,10 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             let captureHoverBox = hoverBox
             let capturePressBox = pressBox
             let repeatTimer = isMenuTrigger ? nil : repeatTimer(context: context)
-            let handlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { event in
+            // Weak: the dispatcher holds this handler, so a strong capture is a
+            // cycle, and the dispatcher kept every other handler's objects —
+            // the focus manager, the status bar — alive after the app's loop.
+            let handlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { [weak mouseDispatcher] event in
                 switch event.phase {
                 case .pressed where event.button == .left:
                     guard isMenuTrigger else {
@@ -727,8 +730,8 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     // set, so this path leaves `capturePressBox` alone.
                     focusManager?.focus(id: captureFocusID)
                     captureAction()
-                    mouseDispatcher.handOffGesture()
-                    if let triggeredMenu { mouseDispatcher.pressOpenedPopup(triggeredMenu) }
+                    mouseDispatcher?.handOffGesture()
+                    if let triggeredMenu { mouseDispatcher?.pressOpenedPopup(triggeredMenu) }
                     return true
                 case .released where event.button == .left:
                     // The trigger already fired on the press, and its release is

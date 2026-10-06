@@ -168,7 +168,8 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
             // `.menuIndicator(.hidden)` takes the caret away; the Down arrow
             // still opens the menu.
             if indicator != .hidden {
-                Button {
+                // Weak: see `menuTrigger`.
+                Button { [weak focusManager] in
                     toggleOpen(state, focusManager: focusManager, onOpen: onOpen)
                 } label: {
                     Text(state.isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret)
@@ -184,7 +185,10 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
         _ state: MenuPopupState, focusManager: FocusManager?, onOpen: MenuOpenAction?,
         indicator: Visibility
     ) -> some View {
-        Button {
+        // Weak: the button's action is registered with the focus manager, so a
+        // strong capture is a cycle, and it kept the focus manager alive after
+        // the app's loop (scroll lane review 3).
+        Button { [weak focusManager] in
             toggleOpen(state, focusManager: focusManager, onOpen: onOpen)
         } label: {
             HStack(spacing: 1) {

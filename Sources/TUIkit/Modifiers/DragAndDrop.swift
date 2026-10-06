@@ -209,7 +209,8 @@ enum _DragHandle {
         }
 
         let scratch = DragScratch()
-        let id = dispatcher.register(in: context) { event in
+        // Weak: the dispatcher holds this handler (see `Button`'s).
+        let id = dispatcher.register(in: context) { [weak dispatcher] event in
             // Hover transitions land here (the handle's region is the
             // innermost); ride them through to the children so they keep
             // their hover affordance. STATELESSLY: the hover-on re-render
@@ -271,7 +272,7 @@ enum _DragHandle {
                     // row of plain `Text` has no child to forward to, so a
                     // list of `.draggable` rows swallowed every click and
                     // could only be selected from the keyboard.
-                    dispatcher.passClickThrough(from: handlerID, event: event)
+                    dispatcher?.passClickThrough(from: handlerID, event: event)
                 }
                 return true
             default:

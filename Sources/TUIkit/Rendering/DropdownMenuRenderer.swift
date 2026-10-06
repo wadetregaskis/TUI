@@ -311,7 +311,8 @@ enum DropdownMenu {
         to buffer: inout FrameBuffer, context: RenderContext, onDismiss: @escaping () -> Void
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
-        let dismissID = dispatcher.register(in: context) { event in
+        // Weak: the dispatcher holds this handler (see `Button`'s).
+        let dismissID = dispatcher.register(in: context) { [weak dispatcher] event in
             switch event.phase {
             case .pressed where event.button == .right:
                 // macOS: a right-click outside an open menu closes it AND is
@@ -341,7 +342,7 @@ enum DropdownMenu {
                 // tracked out of the menu and let go, which is how a Mac menu is
                 // dismissed without choosing. A release that did not move is the
                 // sticky click's — the menu stays up to be picked from.
-                if dispatcher.endsHeldGesture(event) { onDismiss() }
+                if dispatcher?.endsHeldGesture(event) == true { onDismiss() }
                 // Eaten either way: a context menu opens on the PRESS, so by the
                 // time its release arrives the gesture is spent, and letting it
                 // bubble would deliver a release nobody pressed for to the page
@@ -375,7 +376,8 @@ enum DropdownMenu {
         onActivate: @escaping (Int) -> Void,
         onDismiss: @escaping () -> Void
     ) -> HitTestRegion.HandlerID {
-        mouseDispatcher.register(in: context) { event in
+        // Weak: the dispatcher holds this handler (see `Button`'s).
+        mouseDispatcher.register(in: context) { [weak mouseDispatcher] event in
             if onWheel(event) { return true }
             switch event.phase {
             case .entered:
@@ -400,7 +402,7 @@ enum DropdownMenu {
                 // let go on; drag capture would send every later event back
                 // to the row you started on, so sliding off the menu
                 // entirely would still have run it.
-                mouseDispatcher.handOffGesture()
+                mouseDispatcher?.handOffGesture()
                 return true
             case .released where tracks(event.button):
                 // Not every release over a row is a choice. A menu tall
@@ -409,8 +411,8 @@ enum DropdownMenu {
                 // release ending the opening click lands on a row it was
                 // never aimed at. That click is spent on opening the menu;
                 // consumed here, it leaves the menu up to be picked from.
-                guard !mouseDispatcher.endsPopupOpeningClick(event) else { return true }
-                let endsHold = mouseDispatcher.endsHeldGesture(event)
+                guard mouseDispatcher?.endsPopupOpeningClick(event) != true else { return true }
+                let endsHold = mouseDispatcher?.endsHeldGesture(event) ?? false
                 onActivate(index)
                 // A press-and-HOLD ends here whatever the item's
                 // `.menuActionDismissBehavior` says. That modifier keeps a
@@ -729,14 +731,15 @@ enum DropdownMenu {
         //
         // Left clicks on chrome/empty area are consumed so they don't fall
         // through.
-        let wheelID = mouseDispatcher.register(in: context) { event in
+        // Weak: the dispatcher holds this handler (see `Button`'s).
+        let wheelID = mouseDispatcher.register(in: context) { [weak mouseDispatcher] event in
             if scroll.handleWheelEvent(event) { return true }
             // The popup's own chrome — its frame, its padding, a divider — is
             // not a row, so a held gesture ending here ends the way it would
             // over the page behind: no choice, menu closed. The backdrop cannot
             // answer for these cells; they are inside the popup, where its
             // regions win.
-            if mouseDispatcher.endsHeldGesture(event) {
+            if mouseDispatcher?.endsHeldGesture(event) == true {
                 onDismiss()
                 return true
             }

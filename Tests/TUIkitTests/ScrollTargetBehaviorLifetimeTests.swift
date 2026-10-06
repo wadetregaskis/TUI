@@ -31,10 +31,10 @@ private struct PagingScrollApp: App {
 /// environment: a navigation stack (its `dismiss`, which holds the stack's
 /// coordinator) and a presented sheet (its own `dismiss`).
 ///
-/// No `Menu` or `Button`: a single `Button` in an app keeps the focus manager,
-/// the status bar and the mouse dispatcher alive after its loop, with or
-/// without a behaviour (measured beside these probes) — a leak of its own,
-/// reported apart from this suite's question.
+/// No `Menu` or `Button`: whether those go with the loop is
+/// `ControlLifetimeTests`' question (a `Button` used to keep the focus
+/// manager, the status bar and the mouse dispatcher alive, with or without a
+/// behaviour), apart from this suite's.
 private struct PagingInPresentationsApp: App {
     var body: some Scene {
         WindowGroup {
