@@ -168,9 +168,7 @@ If the focused control let the key fall through, an app's `.keyboardShortcut` fi
 
 ### Layer 4: Default Bindings
 
-Built-in key bindings that apply when no handler consumed the event:
-
-One key never reaches the chain at all: **⌃\\ quits, always, even when the app hangs.** It cannot be bound — the terminal driver takes it before the app sees it. Raw mode keeps the line discipline's signals on with every signal character turned off but the quit key, so ⌃C and ⌃Z are keys while ⌃\\ is still `SIGQUIT`, as in a shell; the signal then leaves the terminal as a quit does (see Signal Handling above). A user who turned the quit key off (`stty quit undef`) or moved it keeps their setting. Where the terminal speaks the kitty keyboard protocol it sends ⌃\\ as a key report instead of the byte the driver acts on; the input chain then raises the signal itself, ahead of every layer — which takes an app that still reads its input, so there a hung app does not quit by ⌃\\.
+Built-in key bindings that apply when no handler consumed the event, and the one key no layer sees:
 
 | Key | Action | Condition |
 |-----|--------|-----------|
@@ -179,6 +177,9 @@ One key never reaches the chain at all: **⌃\\ quits, always, even when the app
 | ⌃Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode turns `^Z` off as a signal character, so the driver never turns it into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
 | `t` / `T` | Cycle to next palette | `statusBar.showThemeItem`, and no transient surface has grabbed input |
 | `a` / `A` | Cycle to next appearance | No transient surface has grabbed input — otherwise `a` would restyle the app from behind a modal the user cannot see the controls for |
+| ⌃\\ | Quit, always — even when the app hangs | Not a binding, and none can take it: the terminal driver turns it into `SIGQUIT` before the app sees it (below) |
+
+**⌃\\ quits, always, even when the app hangs.** It never reaches the chain: the terminal driver takes it before the app sees it. Raw mode keeps the line discipline's signals on with every signal character turned off but the quit key, so ⌃C and ⌃Z are keys while ⌃\\ is still `SIGQUIT`, as in a shell; the signal then leaves the terminal as a quit does (see Signal Handling above). A user who turned the quit key off (`stty quit undef`) or moved it keeps their setting. Where the terminal speaks the kitty keyboard protocol it sends ⌃\\ as a key report instead of the byte the driver acts on; the input chain then raises the signal itself, ahead of every layer — which takes an app that still reads its input, so there a hung app does not quit by ⌃\\.
 
 ## Render Pipeline
 

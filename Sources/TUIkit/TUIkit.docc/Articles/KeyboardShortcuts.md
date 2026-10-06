@@ -346,6 +346,9 @@ Layer 4 provides six built-in key bindings, but only quit, undo and redo, and he
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
+One more key quits, and is no binding at all: ⌃\\, which the terminal driver
+takes before any layer (see "⌃\\ quits, always" below).
+
 ### The help key, and the one place it cannot reach
 
 `?` toggles the tooltip for whatever holds the focus. It is settable —
