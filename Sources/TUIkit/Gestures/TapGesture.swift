@@ -51,6 +51,9 @@ import TUIkitCore
 /// up: it waits out its interval, and the single tap runs for the first click
 /// then — or, if that click left a gesture of its own waiting ahead of the
 /// single tap, a second double tap inside it, once that one has given up too.
+/// A view that leaves meanwhile, removed or disabled, takes both taps with
+/// it: neither hears the interval out, and the next click gives them up with
+/// the single tap unrun — as on macOS.
 public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int

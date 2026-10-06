@@ -291,6 +291,12 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// press's while its button is down.
     var gestureArenas: [GestureArena] = []
 
+    /// Whether a walk has filed gestures since the arenas last asked which
+    /// of theirs the frame on screen still files: set as a walk begins, and
+    /// cleared by the first arena input after it, so the question is asked
+    /// once per walk, and only while an arena exists.
+    var gestureFilingsUnread = false
+
     /// The maximum gap between successive clicks for them to count as one
     /// multi-click sequence (400 ms — a common desktop double-click threshold).
     private static let multiClickWindowNanos: UInt64 = 400_000_000
@@ -325,6 +331,7 @@ extension MouseEventDispatcher {
         pressRoles.removeAll(keepingCapacity: true)
         selectionScopes.removeAll(keepingCapacity: true)
         enabledSelectionScopeCount = 0
+        gestureFilingsUnread = true
         regions.removeAll(keepingCapacity: true)
         // The interned ids survive this: only the per-identity slot counters
         // restart, because this runs once per WALK of the scene.

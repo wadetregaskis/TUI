@@ -165,25 +165,43 @@ struct GestureArenaLifetimeTests {
 
     // MARK: - A view that leaves
 
-    /// A row, a 4×1 box with a double tap and a single tap, and beside it a
-    /// button that removes it when `removes`.
-    private struct RemovableRow: View {
+    /// How a view leaves: taken out of the tree, or disabled.
+    enum Leaving: CaseIterable, Sendable {
+        case removed, disabled
+    }
+
+    /// A press and its release at one cell, with no frame between or after
+    /// them: as a live app drains a click before its next frame.
+    private func clickUnframed(_ harness: InputChainHarness, _ x: Int, _ y: Int) {
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: y))
+    }
+
+    /// A row, a 4×1 box with a double tap and a single tap, beside a plain
+    /// box inside a tap; below them a button that makes the row leave as
+    /// `leaving` says, or, given `nil`, keeps it.
+    private struct LeavingRow: View {
         let log: GestureRecord
-        let removes: Bool
-        @State private var shown = true
+        let leaving: Leaving?
+        @State private var gone = false
 
         var body: some View {
-            HStack(spacing: 2) {
-                if shown {
-                    Text("").frame(width: 4, height: 1)
-                        .onTapGesture(count: 2) { log("open") }
-                        .onTapGesture { log("select") }
-                } else {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 2) {
+                    if gone, leaving == .removed {
+                        Text("").frame(width: 4, height: 1)
+                    } else {
+                        Text("").frame(width: 4, height: 1)
+                            .onTapGesture(count: 2) { log("open") }
+                            .onTapGesture { log("select") }
+                            .disabled(gone && leaving == .disabled)
+                    }
                     Text("").frame(width: 4, height: 1)
                 }
+                .onTapGesture { log("outer") }
                 Button("Hide") {
                     log("hide")
-                    if removes { shown = false }
+                    gone = true
                 }
             }
             .frame(width: 40, height: 12, alignment: .topLeading)
@@ -191,29 +209,176 @@ struct GestureArenaLifetimeTests {
     }
 
     /// Measured on macOS 15.8: a click on the row, then 0.1 s later on a
-    /// button that removes it, runs the button and nothing else; with a
-    /// button that leaves the row, the single tap runs 0.35 s after the
-    /// row's release. Kept in the arena, the removed row's gestures waited
-    /// out the double tap's interval and ran the single tap for a view no
-    /// longer on screen, and the arena kept them, and their closures, alive
-    /// until then.
-    @Test("A gesture whose view leaves is given up: a removed row's single tap does not run", arguments: [true, false])
-    func departedViewsGestureGivesUp(_ removes: Bool) {
+    /// button that removes or disables it, runs the button and nothing else
+    /// — not the single tap when the double tap's interval is out, nor the
+    /// outer tap behind them. The next click, on the plain box a second
+    /// later, runs the outer tap at its press, for the row's click, and
+    /// nothing at its release; the click after it runs the outer tap as
+    /// usual. With the row kept, the single tap runs 0.35 s after the row's
+    /// release, and each click on the box runs the outer tap. Given up at
+    /// the next frame, the row's gestures let the outer tap run then, and
+    /// the click on the box ran it a second time; kept in the arena, they
+    /// waited out the double tap's interval and ran the single tap for a
+    /// view no longer on screen.
+    @Test(
+        "A row that leaves while its double tap waits runs nothing until the next click gives it up",
+        arguments: [nil, Leaving.removed, .disabled])
+    func leavingRow(_ leaving: Leaving?) {
         let log = GestureRecord()
         let harness = makeHarness()
-        let view = { RemovableRow(log: log, removes: removes) }
+        let dispatcher = harness.tui.mouseEventDispatcher
+        let view = { LeavingRow(log: log, leaving: leaving) }
         harness.frame(view())
         harness.click(1, 0, view)
         frame(harness, at: 100, view)
-        harness.click(6, 0, view)
-        frame(harness, at: 200, view)
-        #expect(log.entries == ["hide"])
-        if removes {
-            #expect(harness.tui.mouseEventDispatcher.gestureArenas.isEmpty, "the removed row's gestures are given up")
-        }
+        harness.click(1, 1, view)
         frame(harness, at: 360, view)
         frame(harness, at: 1_000, view)
-        #expect(log.entries == (removes ? ["hide"] : ["hide", "select"]))
+        guard leaving != nil else {
+            #expect(log.entries == ["hide", "select"])
+            harness.click(7, 0, view)
+            #expect(log.entries == ["hide", "select", "outer"])
+            return
+        }
+        #expect(log.entries == ["hide"], "the row's gestures hear no clock once it has gone, nor run what they hold")
+        #expect(dispatcher.gestureDeadline == nil, "nor ask for a wake")
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 7, y: 0))
+        #expect(log.entries == ["hide", "outer"], "the press gives the row's gestures up: the outer tap runs its click")
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 7, y: 0))
+        frame(harness, at: 1_100, view)
+        #expect(log.entries == ["hide", "outer"], "the click was the outer tap's, already over")
+        #expect(dispatcher.gestureArenas.isEmpty)
+        frame(harness, at: 2_000, view)
+        harness.click(7, 0, view)
+        #expect(log.entries == ["hide", "outer", "outer"])
+    }
+
+    /// A sequence that waits for its second tap once clicked, on a 4×1 box
+    /// beside a plain one inside a tap; below them a button that makes the
+    /// sequence leave as `leaving` says; and below that a box with a tap of
+    /// its own.
+    private struct LeavingSequence: View {
+        let log: GestureRecord
+        let leaving: Leaving
+        @State private var gone = false
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 2) {
+                    if gone, leaving == .removed {
+                        Text("").frame(width: 4, height: 1)
+                    } else {
+                        Text("").frame(width: 4, height: 1)
+                            .gesture(
+                                TapGesture(count: 2).exclusively(before: TapGesture())
+                                    .sequenced(before: TapGesture())
+                                    .onEnded { _ in log("seq") })
+                            .disabled(gone)
+                    }
+                    Text("").frame(width: 4, height: 1)
+                }
+                .onTapGesture { log("outer") }
+                Button("Hide") {
+                    log("hide")
+                    gone = true
+                }
+                Text("").frame(width: 4, height: 1).onTapGesture { log("other") }
+            }
+            .frame(width: 40, height: 12, alignment: .topLeading)
+        }
+    }
+
+    /// Where the first click after the sequence leaves lands: the plain box
+    /// beside it, the button again, or the box with a tap of its own.
+    enum NextClick: CaseIterable, Sendable {
+        case besideIt, button, otherTap
+    }
+
+    /// Measured on macOS 15.8: the sequence clicked once waits for its second
+    /// tap, having cancelled the outer tap; a button then removes or
+    /// disables it. The first click after that, wherever it lands, gives the
+    /// sequence up — after it has been decided against it, so on the plain
+    /// box beside it the click runs nothing, as it would have with the
+    /// sequence still there, while on the button or on the other box it runs
+    /// what it lands on. The click on the box after that runs the outer tap.
+    /// Each whether or not a frame comes between the button and the next
+    /// click, and with no frame between the clicks. Given up at the next
+    /// frame instead, the sequence let the click beside it run the outer tap
+    /// when a frame came first, and, when none came, kept the outer tap off
+    /// every click until one did.
+    @Test(
+        "The first click after a waiting sequence leaves is decided against it, then gives it up",
+        arguments: Leaving.allCases, NextClick.allCases)
+    func leavingSequence(_ leaving: Leaving, _ next: NextClick) {
+        let (x, y, ran): (Int, Int, [String]) =
+            switch next {
+            case .besideIt: (7, 0, [])
+            case .button: (1, 1, ["hide"])
+            case .otherTap: (1, 2, ["other"])
+            }
+        for framed in [false, true] {
+            let log = GestureRecord()
+            let harness = makeHarness()
+            let view = { LeavingSequence(log: log, leaving: leaving) }
+            harness.frame(view())
+            harness.click(1, 0, view)
+            frame(harness, at: 1_000, view)
+            harness.click(1, 1, view)
+            if framed { frame(harness, at: 1_500, view) }
+            harness.now = 2_000 * gestureMillisecond
+            clickUnframed(harness, x, y)
+            #expect(log.entries == ["hide"] + ran, "framed: \(framed)")
+            harness.now = 3_000 * gestureMillisecond
+            clickUnframed(harness, 7, 0)
+            #expect(log.entries == ["hide"] + ran + ["outer"], "framed: \(framed)")
+        }
+    }
+
+    /// A reference the view builder reads, so a test can change the view
+    /// between frames as a model would.
+    private final class Gone {
+        var value = false
+    }
+
+    /// Measured on macOS 15.8: a drag beside a plain box inside a tap,
+    /// removed or disabled mid-drag, reports nothing more — no change at the
+    /// next move, no end at the release — and a click on the box after the
+    /// release runs the outer tap. Fed the move and the release before the
+    /// next frame gave it up, the drag reported both for a view no longer
+    /// on screen.
+    @Test("A drag whose view leaves mid-drag reports nothing more", arguments: Leaving.allCases)
+    func leavingDrag(_ leaving: Leaving) {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let gone = Gone()
+        let view = {
+            HStack(spacing: 2) {
+                if gone.value, leaving == .removed {
+                    box
+                } else {
+                    box.gesture(
+                        DragGesture()
+                            .onChanged { log("changed \($0.translation.width)") }
+                            .onEnded { log("ended \($0.translation.width)") }
+                    )
+                    .disabled(gone.value)
+                }
+                box
+            }
+            .onTapGesture { log("outer") }
+            .frame(width: 40, height: 12, alignment: .topLeading)
+        }
+        harness.frame(view())
+        harness.pointer([(.pressed, 0, 0), (.dragged, 1, 0), (.dragged, 2, 0)], view)
+        #expect(log.entries == ["changed 1", "changed 2"])
+        gone.value = true
+        harness.frame(view())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 3, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 3, y: 0))
+        harness.frame(view())
+        #expect(log.entries == ["changed 1", "changed 2"])
+        harness.click(7, 0, view)
+        #expect(log.entries == ["changed 1", "changed 2", "outer"])
     }
 
     // MARK: - A press whose release was lost

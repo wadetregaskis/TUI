@@ -49,6 +49,13 @@ extension GestureArena {
         /// Held back on an earlier input, so it owes a flush once released.
         var isHeldBack = false
 
+        /// Its view has gone — the frame on screen did not file it: removed
+        /// from the tree, or disabled. It hears nothing and reports nothing,
+        /// and what it holds back stays held, until the next event of the
+        /// left button, once decided, gives it up
+        /// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``).
+        var isDeparted = false
+
         /// How many arenas hold it back: it may report only at none.
         var holdCount = 0
 

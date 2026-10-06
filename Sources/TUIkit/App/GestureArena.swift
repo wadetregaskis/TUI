@@ -41,7 +41,15 @@ import TUIkitCore
 /// double tap waiting for its second click, which a clock tick settles; or
 /// recognized and not yet ended, a tap and a double tap together waiting out
 /// the double tap's interval, or a sequence waiting for its second gesture,
-/// which nothing but that gesture settles (all measured on macOS 15.8).
+/// which nothing but that gesture settles (all measured on macOS 15.8) — or
+/// its view leaving.
+///
+/// A gesture whose view has gone, removed from the tree or disabled, hears
+/// nothing more — no clock, no event — and reports nothing, and what it holds
+/// back stays held, until the next event of the left button has been decided:
+/// then it is given up, which releases what it held. That event is decided
+/// as if it were still there. All measured on macOS 15.8
+/// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``).
 ///
 /// A press that comes while a ranked gesture still waits does not settle it:
 /// both arenas live on (the dispatcher's ``MouseEventDispatcher/gestureArenas``),
@@ -111,7 +119,8 @@ final class GestureArena {
     /// once, and a sequence waiting for its second gesture, each keep the tap
     /// around them, which they cancelled, off a click on a plain view beside
     /// them: the first until the double tap's interval is out, the second
-    /// until the sequence ends, with no limit.
+    /// until the sequence ends, with no limit — or, its view gone, through
+    /// the first click after, which gives it up.
     ///
     /// A gesture attached with `simultaneousGesture` does not count: once the
     /// ranked gestures have decided, macOS starts them over at the next press
@@ -261,7 +270,7 @@ final class GestureArena {
     /// - Returns: Whether any of them is under way.
     private func feedSimultaneous(_ input: Input?) -> Bool {
         var engaged = false
-        for contender in simultaneous where !contender.isOut {
+        for contender in simultaneous where !contender.isOut && !contender.isDeparted {
             if let input, contender.feeder === self { feed(contender, input, deliver: true) }
             if isEngaged(contender) { engaged = true } else { contender.isOut = isFinished(contender) }
         }
@@ -286,6 +295,8 @@ final class GestureArena {
     ///   has given up.
     private func advance(_ contender: Contender, at index: Int, by input: Input?, releasedHere: Bool) -> Step {
         guard !contender.isOut, let root = contender.participant.root else { return .passed }
+        // Its view gone, it waits to be given up, holding what it held.
+        if contender.isDeparted { return .holding }
         if heldHere[index] == releasedHere {
             heldHere[index] = !releasedHere
             contender.holdCount += releasedHere ? -1 : 1
@@ -382,7 +393,7 @@ final class GestureArena {
 
     /// The earliest instant a contender needs to hear the clock.
     var deadline: Int64? {
-        contenders.lazy.filter { !$0.isOut }.compactMap { $0.participant.deadline }.min()
+        contenders.lazy.filter { !$0.isOut && !$0.isDeparted }.compactMap { $0.participant.deadline }.min()
     }
 
     // MARK: Helpers
@@ -437,6 +448,25 @@ final class GestureArena {
         for contender in contenders where !kept.contains(ObjectIdentifier(contender.participant)) {
             cancel(contender)
         }
+    }
+
+    /// Marks each gesture here whose participant is not in `filed` as
+    /// departed (``Contender/isDeparted``), and the rest as not.
+    func markDeparted(filed: Set<ObjectIdentifier>) {
+        for contender in contenders {
+            contender.isDeparted = !filed.contains(ObjectIdentifier(contender.participant))
+        }
+    }
+
+    /// Gives up on every departed gesture still in the running, and says
+    /// whether there was one.
+    func cancelDeparted() -> Bool {
+        var gaveUp = false
+        for contender in contenders where contender.isDeparted && !contender.isOut {
+            cancel(contender)
+            gaveUp = true
+        }
+        return gaveUp
     }
 
     private func cancel(_ contender: Contender) {

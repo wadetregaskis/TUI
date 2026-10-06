@@ -71,21 +71,43 @@ extension MouseEventDispatcher {
     /// tables are cleared, so a control a gesture was holding back is given its
     /// press against the frame it was pressed on.
     ///
-    /// First, every gesture the last frame did not file is given up: its
-    /// view left the tree, or was disabled. Measured on macOS 15.8: a row
-    /// clicked, then removed by a button 0.1 s later, runs no single tap
-    /// behind its double tap; with the row kept, it runs when the double tap
-    /// gives up. Nothing else reaches a gesture once its view has gone, so it
-    /// waited out its interval and ran the single tap for a row no longer on
-    /// screen. Asked of the participant rather than of its region's id: an
-    /// id is interned by its place among its identity's registrations, and
-    /// one that moved would give up a gesture still on screen.
+    /// A gesture whose view has gone hears no clock, and what it holds back
+    /// stays held (``GestureArena/Contender/isDeparted``). Measured on macOS
+    /// 15.8: a row with a double tap and a single tap, clicked, then removed
+    /// or disabled by a button 0.1 s later, runs neither the single tap when
+    /// the double tap's interval is out nor, inside a tap, that tap; the
+    /// next click gives them up (``routeThroughGestures(_:matching:)``).
     @MainActor
     func advanceGestures(nowNanos now: Int64) {
         guard !gestureArenas.isEmpty else { return }
-        let filed = Set(gestureRoles.values.lazy.compactMap { $0.participant.map(ObjectIdentifier.init) })
-        for arena in gestureArenas { arena.cancel(allBut: filed) }
+        markDepartedGestures()
         for arena in gestureArenas { arena.process(.tick(now), dispatcher: self) }
+        settleGestureArenas()
+    }
+
+    /// Marks the arenas' gestures the frame on screen no longer files —
+    /// their view left the tree, or was disabled — as departed, and the rest
+    /// as not, once per walk: by the first arena input after it.
+    ///
+    /// Asked of the participant rather than of its region's id: an id is
+    /// interned by its place among its identity's registrations, and one
+    /// that moved would mark a gesture still on screen.
+    @MainActor
+    private func markDepartedGestures() {
+        guard gestureFilingsUnread, !gestureArenas.isEmpty else { return }
+        gestureFilingsUnread = false
+        let filed = Set(gestureRoles.values.lazy.compactMap { $0.participant.map(ObjectIdentifier.init) })
+        for arena in gestureArenas { arena.markDeparted(filed: filed) }
+    }
+
+    /// Gives up every gesture whose view has gone, and settles what that
+    /// released, as a tick of the clock would.
+    @MainActor
+    private func giveUpDepartedGestures() {
+        var gaveUp = false
+        for arena in gestureArenas { gaveUp = arena.cancelDeparted() || gaveUp }
+        guard gaveUp else { return }
+        for arena in gestureArenas { arena.process(nil, dispatcher: self) }
         settleGestureArenas()
     }
 
@@ -98,6 +120,20 @@ extension MouseEventDispatcher {
     /// Routes a left-button event through the gesture arena, when one is
     /// involved.
     ///
+    /// Once the event is decided, every gesture whose view has gone is given
+    /// up, which releases what it held back — after, so the event is decided
+    /// as if the gesture were still there. Measured on macOS 15.8, a
+    /// sequence waiting for its second tap, beside a plain box inside a tap,
+    /// then removed or disabled: the first click on the box runs nothing, as
+    /// with the sequence there (the sequence had cancelled the tap around
+    /// it), and the next runs that tap; a first click on a button or another
+    /// view's tap runs it. A row removed while its double tap waits lets the
+    /// tap around it run the row's click at the next press, and that press
+    /// starts nothing of its own. A drag removed mid-drag reports nothing at
+    /// its next move or its release. Given up at the next frame instead,
+    /// such a gesture made what a click did depend on whether a frame came
+    /// first.
+    ///
     /// - Parameter matching: The regions under the event, innermost first;
     ///   asked for only for a press.
     /// - Returns: The dispatch result when gestures decided the event's fate,
@@ -109,6 +145,8 @@ extension MouseEventDispatcher {
         let time = Int64(bitPattern: nowNanos())
         let regions = event.phase == .pressed ? matching() : []
         return MainActor.assumeIsolated {
+            markDepartedGestures()
+            defer { giveUpDepartedGestures() }
             switch event.phase {
             case .pressed:
                 return beginGestureArena(event, matching: regions, time: time)
