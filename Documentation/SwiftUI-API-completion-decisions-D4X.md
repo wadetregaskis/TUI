@@ -255,7 +255,10 @@ it makes the whole row's text selectable, kept to the row — as the modifier
 around the table does (B-D4X-7) — but for a press on that cell's own text,
 which is kept to the cell: the table carries a view cell's regions up (B46),
 the scope's among them, and draws the rest of the row as text, keeping no
-rectangle of it.
+rectangle of it. Inside an outer `.textSelection(.disabled)` the cell's
+`.enabled` still wins on its own text, the innermost modifier winning as in a
+`List` (review 2 read it the other way; `innermostWinsInRows` pins it); the
+row's other text is under the outer scope alone, and selects nothing.
 
 **The fuller version:** the table remembers which columns' cells filed an
 enabled scope and files the columns' geometry with its rows, so only those

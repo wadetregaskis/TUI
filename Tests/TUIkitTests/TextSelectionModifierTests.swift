@@ -250,6 +250,52 @@ struct TextSelectionModifierTests {
         #expect(harness.tui.screenSelection.current?.text.hasPrefix("item 1 name") == true)
     }
 
+    struct DisabledTablePage: View {
+        var body: some View {
+            Table((0..<4).map { Item(id: $0, name: "item \($0) name") }) {
+                TableColumn("Name") { item in Text(item.name).textSelection(.enabled) }
+                TableColumn("Other") { item in Text("other \(item.id)") }
+            }
+            .textSelection(.disabled)
+            .frame(height: 9)
+        }
+    }
+
+    struct DisabledListPage: View {
+        var body: some View {
+            List((0..<4).map { Item(id: $0, name: "item \($0) name") }) { item in
+                Text(item.name).textSelection(.enabled)
+            }
+            .textSelection(.disabled)
+            .frame(height: 9)
+        }
+    }
+
+    /// Review 2 of 01d0647cb: inside an outer `.disabled`, a cell's `.enabled`
+    /// was said to lose to it, unlike a List row's. The table carries a view
+    /// cell's regions up, its scope's among them, so the cell's scope is the
+    /// innermost under a press on its text, and wins; the row's other text is
+    /// under the outer scope alone, and selects nothing.
+    @Test("Inside a disabled Table or List, a row's .enabled Text still selects: the innermost modifier wins")
+    func innermostWinsInRows() throws {
+        let table = DisabledTablePage()
+        let harness = InputChainHarness(width: 60, height: 10)
+        harness.frame(table)
+        harness.frame(table)
+        let name = try find("item 1", in: harness, table)
+        drag(harness, table, from: (name.x + 5, name.y), to: (name.x + 40, name.y))
+        #expect(harness.tui.screenSelection.current?.text == "1 name")
+        let other = try find("other 2", in: harness, table)
+        drag(harness, table, from: (other.x, other.y), to: (other.x + 6, other.y))
+        #expect(harness.tui.screenSelection.current == nil)
+
+        let list = DisabledListPage()
+        let listHarness = self.harness(list)
+        let row = try find("item 2", in: listHarness, list)
+        drag(listHarness, list, from: (row.x + 5, row.y), to: (row.x + 40, row.y))
+        #expect(listHarness.tui.screenSelection.current?.text == "2 name")
+    }
+
     // MARK: - Seen through by containers
 
     struct LoopPage: View {
