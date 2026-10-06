@@ -909,7 +909,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 in: buffer,
                 viewport: CellRect(x: 0, y: contentTop, width: buffer.width, height: targetContentHeight))
             presentRowMenu(
-                over: &buffer, cursorRow: cursorRowLines(state, contentTop: contentTop),
+                over: &buffer, cursorRow: { cursorRowLines(state, contentTop: contentTop) },
                 context: context)
         }
         return buffer

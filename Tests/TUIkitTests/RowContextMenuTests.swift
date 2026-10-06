@@ -473,4 +473,15 @@ struct RowContextMenuTests {
         harness.secondaryClick((below.x, below.y + 2))
         #expect(harness.shows("sel []"), "\(harness.screen)")
     }
+
+    @Test("Shift+F10 on a list hangs the menu under the cursor row")
+    func listKeyboardMenuHangsUnderTheCursorRow() throws {
+        let harness = Harness(.list)
+        harness.key(KeyEvent(key: .down))
+        harness.key(KeyEvent(key: .down))
+        let row = try harness.position(of: "item3")
+        harness.key(KeyEvent(key: .f10, shift: true))
+        let menu = try harness.position(of: "sel [")
+        #expect(menu.y > row.y && menu.y <= row.y + 2, "\(harness.screen)")
+    }
 }

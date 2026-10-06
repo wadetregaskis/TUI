@@ -89,9 +89,11 @@ extension _ListCore {
     /// section a closed one left.
     ///
     /// - Parameter cursorRow: Where the cursor row is drawn in the list's
-    ///   buffer — its top line and height — or `nil` when it is not.
+    ///   buffer — its top line and height — or `nil` when it is not. Asked
+    ///   only of an open menu the keyboard opened, which is the one it hangs:
+    ///   it walks the drawn rows, and every list renders through here.
     func presentRowMenu(
-        over buffer: inout FrameBuffer, cursorRow: (y: Int, height: Int)?, context: RenderContext
+        over buffer: inout FrameBuffer, cursorRow: () -> (y: Int, height: Int)?, context: RenderContext
     ) {
         guard !context.isMeasuring, let selection = selectionMenu(context.environment),
             let box = rowMenuBox(context)
@@ -100,7 +102,10 @@ extension _ListCore {
         // Where a row's own content starts — the column the container's mouse
         // handler measures a grab from too.
         let rowLeft = (style.showsBorder ? 1 : 0) + style.rowPadding.leading + 1
-        let anchor = cursorRow.map { (x: rowLeft, y: $0.y, height: max(1, $0.height)) }
+        let menu = box.value.menu
+        let anchor =
+            menu.isOpen && menu.openedByKeyboard
+            ? cursorRow().map { (x: rowLeft, y: $0.y, height: max(1, $0.height)) } : nil
         let items: AnyView?
         if case .selection(let ids) = box.value.target {
             items = selection.menu(for: ids)
