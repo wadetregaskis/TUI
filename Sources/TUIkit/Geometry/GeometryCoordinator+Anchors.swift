@@ -22,7 +22,8 @@ import TUIkitView
 /// built: a reader in the layer resolves an anchor against where the anchored
 /// view really is in the same frame, with no correction (design study A2, probe
 /// L1). What remains is where the READER is in the layer, which its owner (the
-/// layer) finds once it has composited, as any named space's owner does.
+/// layer) predicts from the carried origin and finds once it has composited,
+/// as any named space's owner does.
 final class AnchorLayerScope {
     /// The space a reader in the layer is found in: the base's frame.
     let space: CoordinateSpace
@@ -34,26 +35,13 @@ final class AnchorLayerScope {
     /// The layer being built around this one, if any.
     let parent: AnchorLayerScope?
 
-    /// The base's size, which is the layer's space's.
-    let size: CellSize
-
     init(
         space: CoordinateSpace, sites: [HitTestRegion.HandlerID: (origin: CellPoint, size: CellSize)],
-        parent: AnchorLayerScope?, size: CellSize
+        parent: AnchorLayerScope?
     ) {
         self.space = space
         self.sites = sites
         self.parent = parent
-        self.size = size
-    }
-
-    /// What a reader in the layer is told before the layer has found it: at
-    /// the layer's origin, which is where a reader filling the layer — the
-    /// overwhelmingly common shape, `overlayPreferenceValue(K.self) {
-    /// GeometryReader { … } }` — is. So that reader is right on its first
-    /// frame, and only one placed elsewhere in the layer is corrected.
-    var firstGuess: GeometryObservation {
-        GeometryObservation(origin: CellPoint(x: 0, y: 0), spaceSize: size)
     }
 }
 
@@ -94,8 +82,7 @@ extension GeometryCoordinator {
         }
         guard !sites.isEmpty else { return nil }
         return AnchorLayerScope(
-            space: .named(AnchorLayerSpaceName(layer: identity)), sites: sites, parent: anchorScope,
-            size: base.cellSize)
+            space: .named(AnchorLayerSpaceName(layer: identity)), sites: sites, parent: anchorScope)
     }
 
     /// Opens `scope` while its layer is built: readers made until

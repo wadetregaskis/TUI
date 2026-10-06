@@ -853,8 +853,8 @@ extension _VStackCore {
             // however far the scroll view moved over it.
             var rendered = frame.child(at: ordinal).render(
                 width: width, height: rowHeight,
-                context: context.placingGradientChild(
-                    gradientFrame,
+                context: context.placingChild(
+                    gradient: gradientFrame,
                     x: Self.gradientX(
                         childWidth: frame.measuredWidth(of: ordinal) ?? width,
                         extent: width, alignment: alignment),
@@ -914,8 +914,8 @@ extension _VStackCore {
             graftOffBandRow(
                 frame.child(at: ordinal), into: &result, bandLocalY: bandLocalY,
                 width: width, viewportHeight: window.viewportHeight,
-                context: context.placingGradientChild(
-                    gradientFrame,
+                context: context.placingChild(
+                    gradient: gradientFrame,
                     x: Self.gradientX(
                         childWidth: frame.measuredWidth(of: ordinal) ?? width,
                         extent: width, alignment: alignment),

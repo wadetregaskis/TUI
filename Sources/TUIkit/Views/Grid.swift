@@ -449,7 +449,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                 let rowAlignment = row.alignment
                 let columnGuide = row.spansFullWidth ? nil : lattice.columnAlignment[index]
                 var childContext = context
-                if let gradientFrame {
+                if context.placesChildren {
                     // Where the cell will land, from its MEASURED size — the
                     // rendered one is a pass later, and the modifier's contract
                     // is that measure and render agree. The measure is the one
@@ -460,8 +460,8 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                     let seat = placement(
                         width: measured.width, height: measured.height, in: box, cell: cell,
                         rowAlignment: rowAlignment, columnAlignment: columnGuide)
-                    childContext = context.placingGradientChild(
-                        gradientFrame, x: seat.x, y: rowTops[rowIndex] + seat.y)
+                    childContext = context.placingChild(
+                        gradient: gradientFrame, x: seat.x, y: rowTops[rowIndex] + seat.y)
                 }
                 let rendered = cell.render(
                     width: max(0, boxWidth), height: max(1, rowHeight), context: childContext)

@@ -783,7 +783,9 @@ four-row red→blue ramp under `.gradientExtent(.subtree)`.
 So the answer to "how many containers?" is: every one that places children,
 and there are seven places that do it. The two calls each one makes —
 `RenderContext.gradientContentFrame(width:height:)` then
-`placingGradientChild(_:x:y:)` — are the whole of the participation.
+`placingGradientChild(_:x:y:)` — are the whole of the participation. (Since
+2026-10-05 the second is `placingChild(gradient:x:y:)`, which moves the carried
+geometry origin of the A2 coordinate spaces onto the child in the same call.)
 
 Two corrections to the record while measuring this:
 

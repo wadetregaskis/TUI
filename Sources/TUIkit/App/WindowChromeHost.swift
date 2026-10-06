@@ -86,7 +86,9 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         let contentHeight = contentAreaHeight(
             terminalHeight: height, statusBarHeight: rows.bottom, headerHeight: rows.top)
 
-        var contentContext = context
+        // Placed below the top bar's rows, which a reader in the content is
+        // told (the carried geometry origin, `RenderContext.placingChild`).
+        var contentContext = context.placingChild(gradient: nil, x: 0, y: rows.top)
         contentContext.availableHeight = contentHeight
         // Anchored overlays (a Picker drop-down) size to the area the
         // compositor will clamp them to — between the bars — rather than to

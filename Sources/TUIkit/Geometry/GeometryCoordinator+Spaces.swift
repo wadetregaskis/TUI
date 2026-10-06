@@ -19,6 +19,15 @@ extension GeometryCoordinator {
         kept[id]?.bySpace[space]
     }
 
+    /// ``keptObservation(for:in:)``, with what the view was predicted to be at
+    /// when it was found there — `nil` where no prediction was made.
+    func keptEntry(
+        for id: HitTestRegion.HandlerID, in space: CoordinateSpace
+    ) -> (observation: GeometryObservation, predicted: CellPoint?)? {
+        guard let entry = kept[id], let observation = entry.bySpace[space] else { return nil }
+        return (observation, entry.predicted[space])
+    }
+
     /// Notes that the view whose marker is `id` asked about `space` after its
     /// render, so it is found there from its next render on — an action that
     /// asks a proxy where its view is, the first time it does.
@@ -84,6 +93,7 @@ extension GeometryCoordinator {
         ask.found[space] = observation
         decrementUnanswered(space)
         kept[ask.id, default: KeptObservations(identity: ask.identity)].bySpace[space] = observation
+        kept[ask.id]?.predicted[space] = ask.predictions[space]
     }
 }
 
@@ -199,7 +209,7 @@ extension RenderContext {
         let geometry = dispatcher.geometry
         let ask = GeometryAsk(
             id: id, identity: identity, role: role, coordinator: geometry,
-            tracker: environment.volatileReadTracker)
+            tracker: environment.volatileReadTracker, origin: geometryOrigin)
         for space in geometry.lateAsks[id] ?? [] { ask.want(space) }
         return ask
     }

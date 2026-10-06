@@ -73,7 +73,7 @@ extension _VStackCore {
     func windowGradientPlacement(
         _ children: [ChildView], context: RenderContext
     ) -> (frame: GradientFrame?, offsets: [(x: Int, y: Int)]) {
-        guard context.gradientFrame != nil else { return (nil, []) }
+        guard context.placesChildren else { return (nil, []) }
 
         // Spacers take what the fixed rows leave, so their share is only known
         // once every fixed row has been measured — the same order the render
@@ -160,7 +160,7 @@ extension _HStackCore {
     func windowGradientPlacement(
         _ children: [ChildView], context: RenderContext
     ) -> (frame: GradientFrame?, offsets: [(x: Int, y: Int)]) {
-        guard context.gradientFrame != nil else { return (nil, []) }
+        guard context.placesChildren else { return (nil, []) }
 
         let sizes = children.map { child in
             child.isSpacer

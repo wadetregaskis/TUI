@@ -547,8 +547,8 @@ extension _VStackCore {
     ) -> (Int, Int) -> RenderContext {
         let frame = context.gradientContentFrame(width: width, height: totalHeight)
         return { ordinal, rowWidth in
-            context.placingGradientChild(
-                frame,
+            context.placingChild(
+                gradient: frame,
                 x: Self.gradientX(childWidth: rowWidth, extent: width, alignment: alignment),
                 y: ordinal * pitch)
         }

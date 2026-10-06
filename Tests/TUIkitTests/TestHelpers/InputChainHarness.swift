@@ -114,6 +114,9 @@ final class InputChainHarness {
         var frameContext = context
         frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
         frameContext.environment.frameNowNanos = now
+        // The global space's origin, carried down when there are readers, as
+        // `RenderLoop.renderContent` carries it.
+        frameContext = frameContext.carryingGeometryRootOrigin()
         var buffer = renderToBuffer(view, context: frameContext)
         for _ in 1..<max(1, walks) {
             beginSceneRender()

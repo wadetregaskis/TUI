@@ -286,6 +286,9 @@ enum Headless {
         _ view: AnyView, context: RenderContext, channels: HeadlessInputChannels, cols: Int, rows: Int
     ) -> FrameBuffer {
         let storage = context.environment.stateStorage
+        // The global space's origin, carried down when there are readers, as
+        // `RenderLoop` carries it.
+        let context = context.carryingGeometryRootOrigin()
         let buffer = channels.settleRootGeometry(
             renderToBuffer(view, context: context), width: cols, height: rows, stateStorage: storage
         ) { renderToBuffer(view, context: context) }

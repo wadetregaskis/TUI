@@ -22,12 +22,16 @@ import TUIkit
 /// every tenth tick, the selection moves, the header's offset moves, and the
 /// frame narrows and widens.
 ///
-/// Under G1 (markers and a correction, no prediction) a reader whose space
-/// moved is drawn from last frame's answer and then corrected: scrolling
-/// corrects the scroll view's subtree every frame, an insertion the named
-/// space's, the offset the root. `--bench geometry` prints the corrections
-/// per frame by owner kind — the acceptance metric of the prediction rungs
-/// (§10 steps 5–7), which exist to take those to zero.
+/// A reader is told where the containers above it will place it (the carried
+/// origin, design study A2 G4), corrected by what its owner found last frame;
+/// an owner draws its subtree again only when that prediction missed. Under
+/// G1 (no prediction) scrolling corrected the scroll view's subtree and the
+/// named space's every frame, an insertion the named space's, the offset the
+/// root; with the stacks predicting (rung 1) the named space corrects
+/// nothing, and what is left — the scroll view's offset, the header's
+/// `.offset` — is what the later rungs convert. `--bench geometry` prints the
+/// corrections per frame by owner kind, the acceptance metric of the rungs
+/// (§10 steps 5–7).
 enum GeometryScenario {
     @MainActor
     static let descriptor = Scenario(

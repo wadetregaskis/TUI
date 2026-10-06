@@ -3394,8 +3394,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             let measured = measureChild(
                 content, proposal: ProposedSize(width: context.availableWidth, height: nil),
                 context: context)
-            rowRenderContext = context.placingGradientChild(
-                context.gradientContentFrame(
+            rowRenderContext = context.placingChild(
+                gradient: context.gradientContentFrame(
                     width: context.availableWidth, height: max(1, measured.height)),
                 x: 0, y: 0)
         }
@@ -3472,8 +3472,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // contributes several rows, so the two stopped being the same number
         // the moment sections could be spliced.
         for (childIndex, child) in children.enumerated() {
-            let childContext = context.placingGradientChild(
-                gradientFrame, x: 0,
+            let childContext = context.placingChild(
+                gradient: gradientFrame, x: 0,
                 y: childIndex < gradientTops.count ? gradientTops[childIndex] : 0)
 
             // A `Section` beside other children is not one row: its header, its

@@ -93,6 +93,11 @@ final class GeometryCoordinator: @unchecked Sendable {
     struct KeptObservations {
         let identity: ViewIdentity
         var bySpace: [CoordinateSpace: GeometryObservation] = [:]
+        /// What the view was predicted to be at in each space when it was
+        /// found there — absent where no prediction was made. The difference
+        /// is the residual the next frame's prediction is corrected by
+        /// (``GeometryAsk``).
+        var predicted: [CoordinateSpace: CellPoint] = [:]
         /// Whether the view asked this walk — a view that did not is pruned
         /// unless a lazy container still holds it (``endSpacesFrame(isRetained:)``).
         var askedThisWalk = true
@@ -134,6 +139,12 @@ final class GeometryCoordinator: @unchecked Sendable {
     /// The innermost preference layer being built, while it is.
     var anchorScope: AnchorLayerScope?
 
+    // MARK: - Owners (state; GeometryCoordinator+Owners.swift)
+
+    /// The innermost owner of a space whose subtree is being drawn, while it
+    /// is: what a reader's prediction measures its carried origin against.
+    var ownerScope: GeometryOwnerScope?
+
     /// Where each anchored view was in the global space when the last frame
     /// was drawn — what an anchor read outside its layer resolves against.
     var globalAnchorSites: [HitTestRegion.HandlerID: (origin: CellPoint, size: CellSize)] = [:]
@@ -154,6 +165,7 @@ final class GeometryCoordinator: @unchecked Sendable {
         }
         if !anchorSiteSizes.isEmpty { anchorSiteSizes.removeAll(keepingCapacity: true) }
         anchorScope = nil
+        ownerScope = nil
     }
 
     /// Counts a correction an owner of `kind` made.

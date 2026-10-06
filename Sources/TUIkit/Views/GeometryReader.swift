@@ -21,14 +21,17 @@ import TUIkitView
 ///
 /// TUIkit draws bottom-up: a container renders a child, then places it, so a
 /// reader does not know where it sits while its content is being built — which
-/// is when it asks. It is answered with where the owner of the space found it
-/// LAST frame; the owner (the named view, the scroll view, the scene root)
-/// finds it again once it has drawn, and when the two differ — the first frame,
-/// or a frame on which something above the reader moved it — draws its subtree
-/// once more with the right answer, in the same frame. What reaches the screen
-/// is always drawn from where the reader really is. (Design study A2, G1; a
-/// reader is greedy, so its own content can never move it, and one more
-/// drawing always settles it.)
+/// is when it asks. It is answered with a prediction: the containers above it
+/// that know where they will place a child before drawing it (the stacks,
+/// `Grid`, a custom `Layout`) carry the reader's origin down, and what the
+/// others add — usually the same every frame — is taken from where the owner
+/// of the space found it last frame. The owner (the named view, the scroll
+/// view, the scene root) finds it again once it has drawn, and when the answer
+/// was wrong — the first frame, or one on which something the prediction does
+/// not follow moved it — draws its subtree once more with the right answer, in
+/// the same frame. What reaches the screen is always drawn from where the
+/// reader really is. (Design study A2, G4; a reader is greedy, so its own
+/// content can never move it, and one more drawing always settles it.)
 ///
 /// ## What this deliberately does not have
 ///
@@ -95,7 +98,7 @@ public struct GeometryProxy: Equatable, Sendable {
     /// - Parameter coordinateSpace: The space whose bounds to convert.
     /// - Returns: The space's rectangle, measured from the container's origin.
     public func bounds(of coordinateSpace: NamedCoordinateSpace) -> CellRect? {
-        guard let observation = ask?.observation(in: coordinateSpace.coordinateSpace),
+        guard let observation = ask?.observation(in: coordinateSpace.coordinateSpace, needsSize: true),
             let spaceSize = observation.spaceSize
         else { return nil }
         return CellRect(

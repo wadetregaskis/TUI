@@ -466,12 +466,16 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
                     occupiedChildren: finalHeights.count { $0 > 0 }, spacing: spacing))
         let gradientFrame = context.gradientContentFrame(
             width: contentWidth, height: contentHeight)
-        let gradientPlacement = gradientFrame.map { _ in
-            Self.gradientOffsets(
+        // Where each child sits, for the ramp and for the carried geometry
+        // origin alike (`RenderContext.placingChild(gradient:x:y:)`): worked
+        // out only when one of them will be read.
+        let gradientPlacement =
+            context.placesChildren
+            ? Self.gradientOffsets(
                 heights: finalHeights, spacing: spacing, sizes: childSizes,
                 alignment: alignment,
                 extentWidth: fillsWidth ? context.availableWidth : nil)
-        }
+            : nil
         var buffers: [FrameBuffer?] = []
         buffers.reserveCapacity(children.count)
         var maxChildWidth = 0
@@ -481,8 +485,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             } else {
                 var childContext = context
                 if let placement = gradientPlacement {
-                    childContext = context.placingGradientChild(
-                        gradientFrame, x: placement[index].x, y: placement[index].y)
+                    childContext = context.placingChild(
+                        gradient: gradientFrame, x: placement[index].x, y: placement[index].y)
                 }
                 let buffer = child.render(
                     width: context.availableWidth, height: finalHeights[index],
@@ -621,8 +625,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         let (gradientFrame, gradientOffsets) = windowGradientPlacement(children, context: rowsContext)
         func rowContext(_ index: Int) -> RenderContext {
             guard index < gradientOffsets.count else { return rowsContext }
-            return rowsContext.placingGradientChild(
-                gradientFrame, x: gradientOffsets[index].x, y: gradientOffsets[index].y)
+            return rowsContext.placingChild(
+                gradient: gradientFrame, x: gradientOffsets[index].x, y: gradientOffsets[index].y)
         }
 
         // Spacer distribution (same as VStack) needs every non-spacer child's
@@ -987,8 +991,8 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             // empty rows the content height and scrollbar accounted for).
             let rendered = child.render(
                 width: width, height: slot.height,
-                context: childContext.placingGradientChild(
-                    gradientFrame,
+                context: childContext.placingChild(
+                    gradient: gradientFrame,
                     x: guideRun.map { $0.offsets[index] }
                         ?? Self.gradientX(
                             childWidth: slot.width, extent: width, alignment: alignment),

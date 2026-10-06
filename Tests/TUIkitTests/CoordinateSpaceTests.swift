@@ -175,29 +175,51 @@ struct CoordinateSpaceTests {
 
     // MARK: - The correction
 
-    @Test("A reader is drawn right on its first frame — one correction — and the frames after need none")
+    @Test("A reader predicted wrong is drawn right on its first frame — one correction — and the frames after need none")
     func correctsOnceThenSteady() {
         let seen = Seen()
         let harness = InputChainHarness()
+        // The stack says where it puts the reader's container; the container
+        // does not say it draws the reader a row further down.
         let view = VStack(alignment: .leading, spacing: 0) {
             Text("a")
-            reader(seen, in: .named("s"))
+            UnconvertedContainer { reader(seen, in: .named("s")) }
         }
         .coordinateSpace(.named("s"))
         let drawn = harness.frame(view)
         // The reader's content is what it was told: drawn with the answer
-        // found, not with the first guess.
-        #expect(seen.frame?.y == 1)
+        // found, not with the prediction that missed.
+        #expect(seen.frame?.y == 2)
         #expect(harness.geometryCorrections.named == 1)
-        #expect(drawn.lines.count >= 2)
+        #expect(drawn.lines.count >= 3)
+        // The miss is a constant the residual carries from here on.
         harness.frame(view)
         harness.frame(view)
+        #expect(seen.frame?.y == 2)
         #expect(harness.geometryCorrections.named == 1)
         #expect(harness.geometryCorrections.residual == 0)
     }
 
-    @Test("A row inserted above a reader moves it: one correction, the same frame")
-    func insertionAboveCorrects() {
+    @Test("A reader the stacks place is predicted exactly: drawn right on its first frame, no correction")
+    func stackPlacedReaderIsPredicted() {
+        let seen = Seen()
+        let harness = InputChainHarness()
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Text("a")
+            HStack(spacing: 1) {
+                Text("bc")
+                reader(seen, in: .named("s"))
+            }
+        }
+        .coordinateSpace(.named("s"))
+        harness.frame(view)
+        #expect(seen.frame == CellRect(x: 3, y: 1, width: 10, height: 2))
+        #expect(seen.builds == 1)
+        #expect(harness.geometryCorrections.total == 0)
+    }
+
+    @Test("A row inserted above a reader moves it, and the stack's prediction follows: no correction")
+    func insertionAboveIsPredicted() {
         let seen = Seen()
         let harness = InputChainHarness()
         let view = { (rows: Int) in
@@ -206,6 +228,21 @@ struct CoordinateSpaceTests {
                 reader(seen, in: .named("s"))
             }
             .coordinateSpace(.named("s"))
+        }
+        harness.frame(view(1))
+        harness.frame(view(1))
+        harness.frame(view(3))
+        #expect(seen.frame?.y == 3)
+        #expect(harness.geometryCorrections.total == 0)
+    }
+
+    @Test("A row inserted inside a container the prediction does not follow: one correction, the same frame")
+    func insertionInsideUnconvertedCorrects() {
+        let seen = Seen()
+        let harness = InputChainHarness()
+        let view = { (rows: Int) in
+            UnconvertedContainer(rows: rows) { reader(seen, in: .named("s")) }
+                .coordinateSpace(.named("s"))
         }
         harness.frame(view(1))
         harness.frame(view(1))
@@ -258,9 +295,11 @@ struct CoordinateSpaceTests {
         var counted: [Int] = []
         let view = VStack(alignment: .leading, spacing: 0) {
             Text("a")
-            reader(seen, in: .named("s"))
-                .onKeyEvent { _ in false }
-                .preference(key: Count.self, value: 1)
+            UnconvertedContainer {
+                reader(seen, in: .named("s"))
+                    .onKeyEvent { _ in false }
+                    .preference(key: Count.self, value: 1)
+            }
         }
         .coordinateSpace(.named("s"))
         .onPreferenceChange(Count.self) { counted.append($0) }
@@ -276,16 +315,18 @@ struct CoordinateSpaceTests {
         let harness = InputChainHarness()
         let view = VStack(alignment: .leading, spacing: 0) {
             Text("a")
-            GeometryReader { proxy in
-                let y = proxy.frame(in: .named("s")).minY
-                Text("R").onChange(of: y) { old, new in seen.changes.append("\(old)→\(new)") }
+            UnconvertedContainer {
+                GeometryReader { proxy in
+                    let y = proxy.frame(in: .named("s")).minY
+                    Text("R").onChange(of: y) { old, new in seen.changes.append("\(old)→\(new)") }
+                }
+                .frame(width: 4, height: 1)
             }
-            .frame(width: 4, height: 1)
         }
         .coordinateSpace(.named("s"))
         harness.frame(view)
         // SwiftUI fires nothing on a first appearance. The corrected frame's
-        // first drawing stored the guess, which the second drawing's value
+        // first drawing stored the prediction, which the second drawing's value
         // differs from — the known issue the app header's correction had
         // (`RenderWalkCheckpoint`), scoped to the subtree.
         withKnownIssue("a correction re-runs the subtree's onChange against the first drawing") {

@@ -73,15 +73,25 @@ extension PreferenceLayerModifier: Renderable {
             return composite(value, over: baseBuffer, context)
         }
         let checkpoint = RenderWalkCheckpoint(context: layerContext)
+        // The layer's space is the base's frame, whose origin is this view's:
+        // carried for the layer (started here when nothing above has), so a
+        // reader is told where it is in the layer before it is drawn — at the
+        // origin for a reader filling the layer, which is exact.
+        let carried = context.carryingGeometryOrigin()
+        let owner = geometry.enterOwner(
+            of: [scope.space], from: context, in: carried, size: baseBuffer.cellSize)
         geometry.enterAnchorLayer(scope)
-        var drawn = composite(value, over: baseBuffer, context)
+        var drawn = composite(value, over: baseBuffer, carried)
         geometry.leaveAnchorLayer(scope)
+        geometry.leaveOwner(owner)
         guard geometry.resolve([scope.space], in: drawn, size: baseBuffer.cellSize) else { return drawn }
         geometry.noteCorrection(.layer)
         checkpoint.rollBack(context: layerContext)
+        geometry.reenterOwner(owner)
         geometry.enterAnchorLayer(scope)
-        drawn = composite(value, over: baseBuffer, context)
+        drawn = composite(value, over: baseBuffer, carried)
         geometry.leaveAnchorLayer(scope)
+        geometry.leaveOwner(owner)
         if geometry.resolve([scope.space], in: drawn, size: baseBuffer.cellSize) { geometry.noteResidual() }
         return drawn
     }

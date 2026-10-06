@@ -4,7 +4,9 @@
 //  How often the coordinate-space owners draw a subtree again, on the
 //  shapes the design study's correction table names (A2 §6): the acceptance
 //  metric of the prediction rungs, pinned here so each rung's effect on it is
-//  a reviewed change to these numbers. The Stress `geometry` scenario prints
+//  a reviewed change to these numbers. Under G1 (step 3) the same shape made,
+//  per scroll step, a scroll view AND a named-space correction, and one named
+//  correction per insertion; rung 1 (step 5) takes both named ones to zero. The Stress `geometry` scenario prints
 //  the same counter for a bench on a quiet machine.
 //
 //  Created by Wade Tregaskis
@@ -77,51 +79,56 @@ struct GeometryCorrectionRateTests {
         return made
     }
 
-    @Test("Under G1: none at rest; per scroll step two; one per insertion; one per offset step; no layer's")
-    func correctionsUnderG1() {
+    @Test("Rung 1 (stacks predict): none at rest; one per scroll step; none per insertion; one per offset step")
+    func correctionsUnderRung1() {
         let harness = InputChainHarness()
         var position = ScrollPosition()
         let binding = Binding(get: { position }, set: { position = $0 })
         var rows = 40
         var offset = 0
         let frame = { _ = harness.frame(page(rows: rows, offset: offset, position: binding)) }
+        func expect(_ made: GeometryCorrections, named: Int = 0, scrollView: Int = 0, root: Int = 0) {
+            #expect(made.named == named)
+            #expect(made.scrollView == scrollView)
+            #expect(made.root == root)
+            #expect(made.layer == 0)
+            #expect(made.residual == 0)
+        }
 
-        // The first frame finds every reader somewhere it was not told: each
-        // owner corrects once.
-        let first = corrections(harness, frame)
-        #expect(first.named == 1 && first.scrollView == 1 && first.root == 1)
+        // The first frame: the list's readers are where the stack placed them
+        // in its space — predicted, no correction. Nothing predicts the scroll
+        // view's space yet (step 6), nor the global reader's place: there is
+        // no carried origin above the list until the root has a reader to
+        // carry one for, so each of those owners corrects once.
+        expect(corrections(harness, frame), scrollView: 1, root: 1)
 
-        // At rest, nothing moves and nothing is corrected.
-        for _ in 0..<3 { #expect(corrections(harness, frame).total == 0) }
+        // At rest, nothing moves and nothing is corrected — including the
+        // frame on which the root starts carrying an origin, whose readers
+        // are told what was found for them last frame.
+        for _ in 0..<3 { expect(corrections(harness, frame)) }
 
-        // Scrolling moves every row through the viewport: the scroll view
-        // corrects every frame. And each step brings a row into the lazy
-        // stack's band for the first time, asking where it is in the list's
-        // space with nothing found for it yet: the named space corrects too.
-        // (Steps 5 and 6 predict both, and take both to zero.)
+        // Scrolling moves every row through the viewport, which nothing
+        // predicts until the scroll view translates its content's origin (step
+        // 6): it corrects every frame. A row entering the lazy stack's band
+        // for the first time is placed by the stack, in the list's space:
+        // predicted, where G1 corrected the named space every step.
         for step in 1...5 {
             position.scrollTo(y: step)
-            let made = corrections(harness, frame)
-            #expect(made.scrollView == 1)
-            #expect(made.named == 1)
+            expect(corrections(harness, frame), scrollView: 1)
         }
 
-        // A row inserted above moves every row in the list's space — and in
-        // the viewport (step 5's stack prediction takes both to zero).
+        // A row inserted above moves every row down, in the list's space and
+        // in the viewport alike — and the stack's placement moves the
+        // prediction with them: no correction (G1 corrected the named space).
         rows += 1
-        let inserted = corrections(harness, frame)
-        #expect(inserted.named == 1)
+        expect(corrections(harness, frame))
 
-        // The offset above the global reader moves it every step: the root
-        // corrects (step 7's offset conversion takes it to zero).
+        // The offset above the global reader moves it every step, and no
+        // container the prediction follows put it there: the root corrects
+        // (step 7's offset conversion takes it to zero).
         for step in 1...3 {
             offset = step
-            #expect(corrections(harness, frame).root == 1)
+            expect(corrections(harness, frame), root: 1)
         }
-        // The marker following the selected row resolves its anchor in the
-        // frame that draws it, from a reader filling the layer: never a layer
-        // correction, however the rows move.
-        #expect(harness.geometryCorrections.layer == 0)
-        #expect(harness.geometryCorrections.residual == 0)
     }
 }

@@ -239,6 +239,29 @@ public struct RenderContext {
     /// compares `generationIgnoringIdealWidth`.
     public var measureGeneration: UInt8 = 0
 
+    /// The column this view's top-left is PREDICTED to sit at, in the frame of
+    /// reference the nearest geometry owner above started — or
+    /// ``inactiveGeometryOrigin`` when nothing above asked for a prediction,
+    /// which is almost always.
+    ///
+    /// The carried origin of the A2 design study's G4 (coordinate spaces,
+    /// `GeometryProxy.frame(in:)`): a container that knows where it will place
+    /// a child before rendering it adds that offset for the child
+    /// (``placingChild(gradient:x:y:)``), so a reader can be told where it is
+    /// in a space as it builds its content — the difference between its origin
+    /// and the space owner's. A container that does not know leaves it as it
+    /// is, and what that costs is a constant the reader's residual absorbs.
+    /// It is a prediction only: the owner still finds the view where it was
+    /// drawn and corrects a wrong answer.
+    ///
+    /// Two `Int32`s rather than a pair of `Int`s, and declared apart, because
+    /// this struct's 104-byte stride is load-bearing (``measureGeneration``):
+    /// the X half takes the four bytes after the flags, the Y half the last
+    /// four of the stride, after ``gradientFrame``, ``sectionWholeness`` and
+    /// ``scrollContentOriginDepth`` — padding that was already there.
+    /// `GeometryPredictionTests.renderContextStride` pins the stride.
+    @usableFromInline package var geometryOriginX: Int32 = Self.inactiveGeometryOrigin
+
     /// `scrollContentOriginDepth` for a subtree inside scroll content but
     /// below its origin, where nothing is the stack the window is consumed by.
     /// No real depth: the scroll view marks none this deep.
@@ -385,7 +408,8 @@ public struct RenderContext {
     /// all. A depth rather than the identity because the identity is a class
     /// reference, and eight more bytes would move this struct past its 104-byte
     /// stride (see ``measureGeneration``); two bytes land in padding that is
-    /// already there, after ``gradientFrame``. The lineage the depth leaves out is
+    /// already there, after ``gradientFrame`` (see ``geometryOriginX`` for the
+    /// order the fields are declared in). The lineage the depth leaves out is
     /// implied: every identity a context carries descends from the one it was
     /// given, and the canvas is cleared where a context is lent to a subtree
     /// drawn elsewhere.
@@ -398,11 +422,50 @@ public struct RenderContext {
     /// it estimated itself and was drawn whole into the estimate.
     package var scrollContentOriginDepth: UInt16 = 0
 
+    /// The row half of the carried origin — see ``geometryOriginX``.
+    package var geometryOriginY: Int32 = Self.inactiveGeometryOrigin
+
+    /// ``geometryOriginX`` and ``geometryOriginY`` when no geometry owner above
+    /// asked for a prediction.
+    @usableFromInline package static let inactiveGeometryOrigin = Int32.min
+
+    /// Whether a carried origin is in force — see ``geometryOriginX``.
+    @inlinable
+    package var carriesGeometryOrigin: Bool { geometryOriginX != Self.inactiveGeometryOrigin }
+
+    /// The carried origin, or `nil` when none is in force — see
+    /// ``geometryOriginX``.
+    package var geometryOrigin: (x: Int, y: Int)? {
+        get {
+            carriesGeometryOrigin ? (Int(geometryOriginX), Int(geometryOriginY)) : nil
+        }
+        set {
+            guard let newValue else {
+                geometryOriginX = Self.inactiveGeometryOrigin
+                geometryOriginY = Self.inactiveGeometryOrigin
+                return
+            }
+            geometryOriginX = Int32(clamping: newValue.x)
+            geometryOriginY = Int32(clamping: newValue.y)
+        }
+    }
+
+    /// This context with a carried origin in force: its own where one already
+    /// is, else one starting here at `(0, 0)` — what a geometry owner hands
+    /// its content, so the views below can be told where they are relative
+    /// to it (``geometryOriginX``).
+    package func carryingGeometryOrigin() -> Self {
+        guard !carriesGeometryOrigin else { return self }
+        var copy = self
+        copy.geometryOrigin = (0, 0)
+        return copy
+    }
+
     /// The frame a container publishes to its children: this one, with the
     /// content size the container has just worked out standing in for the
     /// modifier's provisional guess.
     ///
-    /// Call once per container, then ``placingGradientChild(_:x:y:)`` per
+    /// Call once per container, then ``placingChild(gradient:x:y:)`` per
     /// child. Both are `nil`-cheap: with no `.gradientExtent(.subtree)` above,
     /// this returns `nil` and the placement is the identity.
     ///
@@ -415,21 +478,39 @@ public struct RenderContext {
         gradientFrame?.resolvingExtent(width: width, height: height)
     }
 
-    /// This context as seen by a child the container places at `(x, y)` inside
-    /// the content `frame` describes.
+    /// This context as seen by a child the container places at `(x, y)`: the
+    /// gradient `frame` anchored on the child, and the carried geometry origin
+    /// (``geometryOriginX``) moved onto it.
+    ///
+    /// Both carriers want the same number — where the child will sit, worked
+    /// out before it renders — so a container places a child for both in one
+    /// call, and one that learns to translate either carries the other with
+    /// it. The identity when neither is in force, which is almost always: a
+    /// container computes its children's offsets only when
+    /// ``placesChildren`` says one of them will be read.
     ///
     /// - Parameters:
     ///   - frame: The container's settled frame, from
     ///     ``gradientContentFrame(width:height:)``.
     ///   - x: The child's left edge, relative to the container's content.
     ///   - y: The child's top edge, likewise.
-    /// - Returns: A context whose ``gradientFrame`` is anchored on the child.
-    public func placingGradientChild(_ frame: GradientFrame?, x: Int, y: Int) -> Self {
-        guard let frame else { return self }
+    /// - Returns: A context whose ``gradientFrame`` is anchored on the child
+    ///   and whose carried origin is the child's.
+    public func placingChild(gradient frame: GradientFrame?, x: Int, y: Int) -> Self {
+        guard frame != nil || carriesGeometryOrigin else { return self }
         var placed = self
-        placed.gradientFrame = frame.offset(byX: x, y: y)
+        if let frame { placed.gradientFrame = frame.offset(byX: x, y: y) }
+        if carriesGeometryOrigin {
+            placed.geometryOriginX &+= Int32(truncatingIfNeeded: x)
+            placed.geometryOriginY &+= Int32(truncatingIfNeeded: y)
+        }
         return placed
     }
+
+    /// Whether a container must work out where its children sit before it
+    /// renders them: a `.gradientExtent(.subtree)` ramp spans it, or a
+    /// geometry owner above carries an origin (``geometryOriginX``).
+    public var placesChildren: Bool { gradientFrame != nil || carriesGeometryOrigin }
 
     /// Creates a new RenderContext.
     ///

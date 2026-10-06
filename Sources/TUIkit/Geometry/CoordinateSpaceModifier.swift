@@ -63,16 +63,27 @@ extension CoordinateSpaceModifier: Renderable {
         // Noted before the content renders, so a correction can put the walk
         // back to here and draw the content again as if for the first time.
         let checkpoint = RenderWalkCheckpoint(context: context)
-        var drawn = TUIkit.renderToBuffer(content, context: context)
+        // A declaration exists to be read, so it always carries an origin for
+        // its content (starting one here when nothing above has), and opens
+        // itself as the owner a reader's prediction is measured against.
+        let contentContext = context.carryingGeometryOrigin()
+        let owner = geometry.enterOwner(
+            of: [space], from: context, in: contentContext,
+            size: CellSize(width: context.availableWidth, height: context.availableHeight))
+        var drawn = TUIkit.renderToBuffer(content, context: contentContext)
+        geometry.leaveOwner(owner)
         var placed = contentPlacement(of: drawn, context: context)
         guard geometry.resolve([space], in: drawn, size: placed.size, shift: placed.shift) else { return drawn }
-        // A reader inside drew from where it was last frame, and is somewhere
-        // else now — the first frame it asks, or one on which something moved
-        // it. Draw it again with the answer just found; a reader cannot move
-        // itself, so one more drawing settles it.
+        // A reader inside drew from an answer that turned out wrong — its
+        // first frame with nothing to predict from, or one on which something
+        // the prediction does not follow moved it. Draw it again with the
+        // answer just found; a reader cannot move itself, so one more drawing
+        // settles it.
         geometry.noteCorrection(.named)
         checkpoint.rollBack(context: context)
-        drawn = TUIkit.renderToBuffer(content, context: context)
+        geometry.reenterOwner(owner)
+        drawn = TUIkit.renderToBuffer(content, context: contentContext)
+        geometry.leaveOwner(owner)
         placed = contentPlacement(of: drawn, context: context)
         if geometry.resolve([space], in: drawn, size: placed.size, shift: placed.shift) { geometry.noteResidual() }
         return drawn

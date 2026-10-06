@@ -36,6 +36,19 @@ struct GeometryObservation: Equatable, Sendable {
 /// (``GeometryCoordinator``). Asked after its render — from an action, a
 /// gesture, the end of the frame — it answers from what the owners found.
 ///
+/// ## What a reader is told
+///
+/// A reader (``Role/reader``) whose context carries an origin
+/// (`RenderContext.geometryOriginX`) is told a PREDICTION: its carried origin
+/// less the space owner's, plus its residual — what the owner found last
+/// frame less what was predicted then (design study A2, G4). The containers
+/// that place a child before rendering it move the carried origin, so motion
+/// they cause is in the prediction; an offset one of the others adds is
+/// usually the same from frame to frame, and the residual carries it. A
+/// reader with no carried origin, or none last frame, is told what its owner
+/// found last frame (G1). Either way the owner checks the answer against the
+/// marker, so a wrong prediction costs a correction, never a wrong drawing.
+///
 /// A reference, because the proxy is a value that can be copied into a
 /// closure and asked later; the answer it gives then is the latest found.
 /// `@unchecked Sendable` on the coordinator's terms: render path and
@@ -71,6 +84,15 @@ final class GeometryAsk: @unchecked Sendable {
     /// `GeometryProxy.subscript(_:)`.
     let anchorScope: AnchorLayerScope?
 
+    /// The view's carried origin (`RenderContext.geometryOriginX`), or `nil`
+    /// where none was carried — and for any role but ``Role/reader``, which
+    /// alone is told a prediction.
+    private let origin: CellPoint?
+
+    /// The innermost owner of a space around the view as it renders, whose
+    /// origins the view's is measured against (``GeometryOwnerScope``).
+    private let owners: GeometryOwnerScope?
+
     /// Where a reader declares that what it draws depends on something no
     /// memo keys on — see ``observation(in:)``.
     private let tracker: VolatileReadTracker?
@@ -78,9 +100,24 @@ final class GeometryAsk: @unchecked Sendable {
     /// Whether the view is rendering, and so whether what it asks is recorded.
     private(set) var isRecording: Bool
 
-    /// What each space was answered with while recording: `nil` for a space
-    /// asked before any owner had found the view.
-    private(set) var told: [CoordinateSpace: GeometryObservation?] = [:]
+    /// What the view was told about one space while recording, and how much
+    /// of it it used.
+    struct Told {
+        /// The answer: `nil` for a space asked before any owner had found the
+        /// view and with nothing to predict it from.
+        let observation: GeometryObservation?
+        /// Whether the view asked the space's size (`bounds(of:)`) as well as
+        /// where it is in it — so a wrong size misled it too.
+        var usedSize: Bool
+    }
+
+    /// What each space was answered with while recording.
+    private(set) var told: [CoordinateSpace: Told] = [:]
+
+    /// The prediction made for each space while recording — what the space's
+    /// owner keeps beside what it finds, so the next frame's answer can add
+    /// the difference (the residual) to its own prediction.
+    private(set) var predictions: [CoordinateSpace: CellPoint] = [:]
 
     /// The spaces to find this view in: those it was told about, and those it
     /// asked after an earlier render (``GeometryCoordinator/noteLateAsk(id:space:)``).
@@ -94,7 +131,7 @@ final class GeometryAsk: @unchecked Sendable {
 
     init(
         id: HitTestRegion.HandlerID, identity: ViewIdentity, role: Role, coordinator: GeometryCoordinator,
-        tracker: VolatileReadTracker?
+        tracker: VolatileReadTracker?, origin: (x: Int, y: Int)? = nil
     ) {
         self.id = id
         self.identity = identity
@@ -102,46 +139,93 @@ final class GeometryAsk: @unchecked Sendable {
         self.coordinator = coordinator
         self.tracker = tracker
         self.anchorScope = coordinator.anchorScope
+        self.owners = coordinator.ownerScope
+        self.origin = role == .reader ? origin.map { CellPoint(x: $0.x, y: $0.y) } : nil
         self.isRecording = true
     }
 
     /// Where the view is in `space`, as far as is known: what this walk's
-    /// owner found, else what an owner found last frame, else nothing.
+    /// owner found; else, while recording, the prediction and residual (see
+    /// the type's discussion); else what an owner found last frame; else
+    /// nothing.
     ///
     /// While recording, the first answer for each space is noted — what an
     /// owner will hold the view to — and a reader's first question beyond its
     /// own space declares an unkeyed read: what it draws now follows where it
     /// is, which no memo above it keys on, so none may store it (decisions A2,
     /// the owner's answer 4; the precedent is a preference writer's).
-    func observation(in space: CoordinateSpace) -> GeometryObservation? {
-        let known = found[space] ?? coordinator?.keptObservation(for: id, in: space) ?? firstGuess(in: space)
+    ///
+    /// - Parameters:
+    ///   - space: The space asked about.
+    ///   - needsSize: Whether the asker uses the space's size as well
+    ///     (`GeometryProxy.bounds(of:)`), so a wrong size misleads it too.
+    func observation(in space: CoordinateSpace, needsSize: Bool = false) -> GeometryObservation? {
+        if let found = found[space] {
+            if isRecording { note(found, in: space, needsSize: needsSize) }
+            return found
+        }
         guard isRecording else {
-            if found[space] == nil { coordinator?.noteLateAsk(id: id, space: space) }
-            return known
+            coordinator?.noteLateAsk(id: id, space: space)
+            return coordinator?.keptObservation(for: id, in: space)
         }
-        if told.index(forKey: space) == nil {
-            if told.isEmpty, role == .reader { tracker?.recordUnkeyedRead() }
-            told.updateValue(known, forKey: space)
-            wanted.append(space)
+        if let known = told[space] {
+            if needsSize { told[space]?.usedSize = true }
+            return known.observation
         }
-        return known
+        let answer = predictedAnswer(in: space) ?? coordinator?.keptObservation(for: id, in: space)
+        note(answer, in: space, needsSize: needsSize)
+        return answer
+    }
+
+    /// Notes what the view was told about `space` the first time it asked.
+    private func note(_ answer: GeometryObservation?, in space: CoordinateSpace, needsSize: Bool) {
+        if let known = told[space] {
+            if needsSize, !known.usedSize { told[space]?.usedSize = true }
+            return
+        }
+        if told.isEmpty, role == .reader { tracker?.recordUnkeyedRead() }
+        told[space] = Told(observation: answer, usedSize: needsSize)
+        wanted.append(space)
+    }
+
+    /// Where the view is predicted to be in `space`, corrected by last frame's
+    /// residual — `nil` when there is no prediction to make (no carried
+    /// origin), and last frame's answer as it stands when last frame made
+    /// none to take a residual from.
+    private func predictedAnswer(in space: CoordinateSpace) -> GeometryObservation? {
+        guard let origin, space != .local else { return nil }
+        // The owner of the space is the nearest scope around the view that
+        // declares it; past them all, the scene root, which answers `.global`
+        // and every name nothing declared at the frame of reference's origin —
+        // if the root started it (`GeometryOwnerScope.startsReference`).
+        var ownerOrigin = CellPoint(x: 0, y: 0)
+        var ownerSize: CellSize?
+        var scope = owners
+        while let owner = scope {
+            if owner.spaces.contains(space) {
+                ownerOrigin = owner.origin
+                ownerSize = owner.size
+                break
+            }
+            if owner.startsReference { return nil }
+            scope = owner.parent
+        }
+        let predicted = CellPoint(x: origin.x - ownerOrigin.x, y: origin.y - ownerOrigin.y)
+        predictions[space] = predicted
+        guard let kept = coordinator?.keptEntry(for: id, in: space) else {
+            return GeometryObservation(origin: predicted, spaceSize: ownerSize)
+        }
+        guard let then = kept.predicted else { return kept.observation }
+        return GeometryObservation(
+            origin: CellPoint(
+                x: predicted.x + kept.observation.origin.x - then.x,
+                y: predicted.y + kept.observation.origin.y - then.y),
+            spaceSize: kept.observation.spaceSize)
     }
 
     /// What the view was told while recording, in the order it asked.
     var toldAnswers: [GeometryObservation?] {
-        wanted.compactMap { space in told.index(forKey: space).map { told.values[$0] } }
-    }
-
-    /// What to tell the view about `space` before any owner has found it: the
-    /// origin of a preference layer it is being built in
-    /// (``AnchorLayerScope/firstGuess``), else nothing.
-    private func firstGuess(in space: CoordinateSpace) -> GeometryObservation? {
-        var scope = anchorScope
-        while let layer = scope {
-            if layer.space == space { return layer.firstGuess }
-            scope = layer.parent
-        }
-        return nil
+        wanted.compactMap { space in told[space].map(\.observation) }
     }
 
     /// Adds a space to find the view in without telling it anything — one it
@@ -159,9 +243,10 @@ final class GeometryAsk: @unchecked Sendable {
 
     /// Whether what this view was told about `space` is not what was found —
     /// a reader drew something wrong. A space it was never told about cannot
-    /// be wrong.
+    /// be wrong, and nor can a size it never asked.
     func wasMisled(about space: CoordinateSpace, by observation: GeometryObservation) -> Bool {
         guard role == .reader, let answer = told[space] else { return false }
-        return answer != observation
+        guard let given = answer.observation else { return true }
+        return given.origin != observation.origin || (answer.usedSize && given.spaceSize != observation.spaceSize)
     }
 }

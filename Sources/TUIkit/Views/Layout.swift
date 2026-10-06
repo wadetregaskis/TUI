@@ -425,7 +425,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
             let rendered = child.render(
                 width: entry.proposal.width ?? childSize.width,
                 height: entry.proposal.height ?? childSize.height,
-                context: context.placingGradientChild(gradientFrame, x: entry.x, y: entry.y))
+                context: context.placingChild(gradient: gradientFrame, x: entry.x, y: entry.y))
             // In place: `composited` rebuilds every line of the canvas per
             // call, so folding n children through it is n × canvas even though
             // each child covers a couple of rows.

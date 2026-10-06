@@ -511,7 +511,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             var childContext = context
             // A spacer renders nothing and takes no ramp position: its context
             // is never used, so nothing is measured or built for it.
-            if gradientFrame != nil, !child.isSpacer {
+            if context.placesChildren, !child.isSpacer {
                 // The height the child will stand in the row at. For a rigid
                 // child it is the height `resolvedLayout` already measured —
                 // at the width the child is about to be rendered at — because
@@ -537,7 +537,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                     case .bottom: slack
                     default: slack / 2
                     }
-                childContext = context.placingGradientChild(gradientFrame, x: gradientX, y: y)
+                childContext = context.placingChild(gradient: gradientFrame, x: gradientX, y: y)
             }
             buffers.append(
                 child.isSpacer
@@ -607,8 +607,8 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         let (gradientFrame, gradientOffsets) = windowGradientPlacement(children, context: context)
         func columnContext(_ index: Int) -> RenderContext {
             guard index < gradientOffsets.count else { return context }
-            return context.placingGradientChild(
-                gradientFrame, x: gradientOffsets[index].x, y: gradientOffsets[index].y)
+            return context.placingChild(
+                gradient: gradientFrame, x: gradientOffsets[index].x, y: gradientOffsets[index].y)
         }
 
         // Spacer distribution (same as HStack) needs every non-spacer child's

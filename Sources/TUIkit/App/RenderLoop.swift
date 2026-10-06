@@ -652,6 +652,9 @@ extension RenderLoop {
 
         context.hasExplicitWidth = true
         context.hasExplicitHeight = true
+        // The global space's origin, carried down for readers to be told where
+        // they are before anything is drawn — when there are readers.
+        context = context.carryingGeometryRootOrigin()
         let reservation = windowChrome.reservation
         var frame = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
 
