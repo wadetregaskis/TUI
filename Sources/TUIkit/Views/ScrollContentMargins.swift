@@ -245,14 +245,20 @@ extension _ScrollViewCore {
         return stated.adding(environment.safeAreaContentMargins)
     }
 
-    /// The viewport a render draws into — what it was given — and the context
-    /// with it published as the content's `containerRelativeFrame` container.
-    func viewport(_ context: RenderContext) -> (context: RenderContext, width: Int, height: Int) {
+    /// The viewport a render draws into — what it was given — the context
+    /// with it published as the content's `containerRelativeFrame` container,
+    /// and the "N more" pair at it, which the container was decided by and the
+    /// render's chrome is decided by too (`resolveChrome`): asked once, so a
+    /// scroll target behaviour's overflow measure is too.
+    func viewport(
+        _ context: RenderContext
+    ) -> (context: RenderContext, width: Int, height: Int, textLines: TextIndicatorLines) {
         let width = context.availableWidth
         let height = max(0, context.availableHeight)
-        let container = containerSize(
-            viewport: CellSize(width: max(0, width), height: height), context: context)
-        return (context.publishingContainerSize(container), width, height)
+        let size = CellSize(width: max(0, width), height: height)
+        let textLines = textIndicatorLines(context, viewport: size)
+        let container = containerSize(viewport: size, textLines: textLines, context: context)
+        return (context.publishingContainerSize(container), width, height, textLines)
     }
 
     /// The container size a `containerRelativeFrame` in the content sizes
@@ -270,11 +276,19 @@ extension _ScrollViewCore {
     /// known yet; with one, a view three lines tall reserves nothing, and its
     /// container is two lines short.
     func containerSize(viewport: CellSize, context: RenderContext) -> CellSize {
+        containerSize(
+            viewport: viewport, textLines: textIndicatorLines(context, viewport: viewport), context: context)
+    }
+
+    /// ``containerSize(viewport:context:)`` with the pair at `viewport` already
+    /// in hand.
+    private func containerSize(
+        viewport: CellSize, textLines: TextIndicatorLines, context: RenderContext
+    ) -> CellSize {
         let container = unreservedContainerSize(viewport: viewport, context: context)
-        guard
-            textIndicatorLines(context, viewport: viewport)
-                .fitted(viewportHeight: viewport.height, horizontalBar: false).reserved
-        else { return container }
+        guard textLines.fitted(viewportHeight: viewport.height, horizontalBar: false).reserved else {
+            return container
+        }
         return CellSize(width: container.width, height: max(0, container.height - 2))
     }
 

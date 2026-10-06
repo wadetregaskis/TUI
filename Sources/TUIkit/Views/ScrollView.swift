@@ -416,14 +416,14 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// `.viewport` picture, measured two lines taller and so wider than it was
     /// drawn, was given a horizontal bar for columns it never had.
     struct TextIndicatorLines {
-        /// This view's vertical indicator before the floor — whether the pair
-        /// is the indicator at all. Asked at `overflowing: true`: the pair
-        /// gates itself on whether there IS content above or below, so this
-        /// decides only which indicator this view uses, and deciding it must
-        /// not trigger the content measure `.automatic` would otherwise need.
-        /// It is also the reason a `.hidden` scroll view draws nothing at all
+        /// Whether the pair is this view's vertical indicator at all, before
+        /// the floor. Asked as though the content overflows: the pair gates
+        /// itself on whether there IS content above or below, so this decides
+        /// only which indicator this view uses, and deciding it must not
+        /// trigger the content measure `.automatic` would otherwise need. It
+        /// is also the reason a `.hidden` scroll view draws nothing at all
         /// rather than falling back to the pair.
-        let indicators: ResolvedScrollIndicators
+        let text: Bool
         /// Drawn at every offset, and so reserved out of the content window,
         /// whatever the content: ``EnvironmentValues/alwaysShowsVerticalTextIndicators``.
         let alwaysShown: Bool
@@ -438,10 +438,24 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         /// `overflows` whether the content is taller than the window; each is
         /// asked only where its answer can change the reservation — the text
         /// form, not `.visible` — and `overflows` only after a yes.
+        ///
+        /// The style is read first: the bar style — the default, and so almost
+        /// every scroll view — has no pair, and answers in that one read.
+        /// Asked on every measure and render of every scroll view, this read
+        /// the visibility first and the style after it: two environment
+        /// lookups for an answer the second of them decides
+        /// (`verticalScrollIndicators(overflowing:)` asks them in the other
+        /// order, because there the visibility decides).
         init(_ environment: EnvironmentValues, landsScrollTargets: () -> Bool, overflows: () -> Bool) {
-            indicators = environment.verticalScrollIndicators(overflowing: true)
-            alwaysShown = indicators.text && environment.alwaysShowsVerticalTextIndicators
-            reservedForTargets = indicators.text && !alwaysShown && landsScrollTargets() && overflows()
+            guard environment.scrollIndicatorStyle == .text else {
+                (text, alwaysShown, reservedForTargets) = (false, false, false)
+                return
+            }
+            let visibility = environment.verticalScrollIndicatorVisibility
+            text = visibility.showsIndicator(overflowing: true)
+            // `alwaysShowsVerticalTextIndicators`, from the two reads in hand.
+            alwaysShown = visibility == .visible
+            reservedForTargets = text && !alwaysShown && landsScrollTargets() && overflows()
         }
 
         /// Whether the pair is drawn, whether it is reserved rather than written
@@ -450,7 +464,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             viewportHeight: Int, horizontalBar: Bool
         ) -> (drawn: Bool, reserved: Bool, contentHeight: Int) {
             let area = viewportHeight - (horizontalBar ? 1 : 0)
-            let drawn = indicators.fitting(contentHeight: area).text
+            // `ResolvedScrollIndicators.fitting(contentHeight:)`'s floor.
+            let drawn = text && area >= ResolvedScrollIndicators.minimumTextHeight
             let reserved = drawn && (alwaysShown || reservedForTargets)
             return (drawn, reserved, max(1, area - (reserved ? 2 : 0)))
         }
@@ -488,7 +503,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if let margined = margined(context: context) { return margined.renderToBuffer(context: context) }
         // The viewport is its content's `containerRelativeFrame` container.
-        let (context, viewportWidth, viewportHeight) = viewport(context)
+        let (context, viewportWidth, viewportHeight, textLines) = viewport(context)
 
         // Resolve the persistent focus ID and the handler.
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -522,7 +537,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // reserve-bar → content-fits → drop-bar → overflows → … oscillation).
         let (chrome, contentWidth, contentViewportHeight, settledExtents) = resolveChrome(
             viewportWidth: viewportWidth, viewportHeight: viewportHeight,
-            wantsHorizontal: wantsHorizontal, handler: handler, context: context)
+            wantsHorizontal: wantsHorizontal, textLines: textLines, handler: handler, context: context)
         // §1.5: how far past its edges this view may be pushed. Re-resolved every
         // frame because a `.viewport`-relative allowance moves with the terminal,
         // and an existing excursion is pulled back inside a shrunken one.
@@ -840,14 +855,15 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// column, a horizontal bar takes a row, and — under `.visible` — the two
     /// "N more" lines take a row each.
     private func resolveChrome(
-        viewportWidth: Int, viewportHeight: Int, wantsHorizontal: Bool,
+        viewportWidth: Int, viewportHeight: Int, wantsHorizontal: Bool, textLines: TextIndicatorLines,
         handler: ScrollViewHandler, context: RenderContext
     ) -> (
         chrome: ScrollChrome, contentWidth: Int, contentViewportHeight: Int,
         settled: (width: Int, height: Int)?
     ) {
-        let textLines = textIndicatorLines(
-            context, viewport: CellSize(width: max(0, viewportWidth), height: viewportHeight))
+        // `textLines` is the pair at this viewport, as `viewport(_:)` decided
+        // the content's container by it.
+        //
         // Read around the measures that decide the bars, which are the ones the
         // hint is for: see `ScrollViewHandler.contentWalksNestedStacks`.
         let nestedWalksBefore = context.renderCache?.nestedStackWalks
