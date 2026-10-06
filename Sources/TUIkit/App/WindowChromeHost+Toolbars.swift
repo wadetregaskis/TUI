@@ -45,6 +45,11 @@ extension _WindowChromeHost {
     /// `contentRows` it reserved — with the bottom bar's tooltip rows above
     /// its items — or `nil` when there is nothing to draw.
     ///
+    /// Its items are laid out in the first `itemRows` of those rows: all of
+    /// them, unless the terminal is too short to show the whole bar, when
+    /// they are the rows it shows (`itemRowsShown`), and with none
+    /// the bar is drawn with no items in it.
+    ///
     /// Its items are in an optional focus section of their own, after the
     /// page's, so Tab reaches them last and they never take the initial focus.
     /// While a modal holds the input the bar is drawn inert — on throwaway
@@ -52,21 +57,25 @@ extension _WindowChromeHost {
     /// the line of key hints, where a click still does what the key would, as
     /// a press of the key does behind a modal (see `_ToolbarEntryView`).
     func toolbarBuffer(
-        _ edge: WindowChromeState.Edge, chrome: WindowChromeState, contentRows: Int,
+        _ edge: WindowChromeState.Edge, chrome: WindowChromeState, contentRows: Int, itemRows: Int,
         tooltip: [String] = [], width: Int, isModal: Bool, context: RenderContext
     ) -> FrameBuffer? {
         // A bar the page no longer declares anything for keeps its reserved
         // rows for the frame, blank: the caller pads them with its background.
         let entries = chrome.toolbarEntries(for: edge)
-        let drawsItems = contentRows > 0 && !entries.isEmpty
-        guard drawsItems || !tooltip.isEmpty else { return nil }
+        let hasItems = contentRows > 0 && !entries.isEmpty
+        guard hasItems || !tooltip.isEmpty else { return nil }
         let style = chrome.style(edge)
         var row = FrameBuffer()
         if !tooltip.isEmpty {
             row.appendVertically(tooltipRows(tooltip, width: style.barContentWidth(width), context: context))
         }
-        if drawsItems {
-            var barContext = barContext(edge, width: width, rows: contentRows, style: style, context: context)
+        if hasItems, itemRows <= 0 {
+            // Framed, but empty: the frame shows none of the bar's rows.
+            row.appendVertically(
+                FrameBuffer().fittedAsChrome(toRows: contentRows, width: style.barContentWidth(width), background: ""))
+        } else if hasItems {
+            var barContext = barContext(edge, width: width, rows: itemRows, style: style, context: context)
             let sectionID = Self.toolbarSectionID(edge)
             if isModal {
                 barContext = barContext.isolatedForBackground()
@@ -78,7 +87,9 @@ extension _WindowChromeHost {
             row.appendVertically(
                 TUIkit.renderToBuffer(
                     _ToolbarBarRow(entries: entries, title: title, subtitle: subtitle), context: barContext
-                ).fittedAsChrome(toRows: contentRows, width: style.barContentWidth(width), background: ""))
+                )
+                .fittedAsChrome(toRows: itemRows, width: style.barContentWidth(width), background: "")
+                .fittedAsChrome(toRows: contentRows, width: style.barContentWidth(width), background: ""))
         }
         let palette = context.environment.palette
         let backgrounds = RenderBackgroundCodes(palette: palette)
@@ -91,9 +102,10 @@ extension _WindowChromeHost {
     }
 
     /// Keeps the `@State` of the items a walk declared but did not draw: those
-    /// of a bar `.toolbarVisibility(.hidden, for:)` hides, and of a bar
-    /// declared on a frame laid out with no rows for it — the frame before a
-    /// bar is adopted, whether it is new or coming back.
+    /// of a bar `.toolbarVisibility(.hidden, for:)` hides, of a bar declared
+    /// on a frame laid out with no rows for it — the frame before a bar is
+    /// adopted, whether it is new or coming back — and of a bar the terminal
+    /// is too short to show a row of (`itemRows` 0).
     ///
     /// An item's state is kept at the identity it was declared at, and state
     /// whose view did not render is collected at the end of the pass, so
@@ -103,9 +115,10 @@ extension _WindowChromeHost {
     /// are still there; ``StateStorage/retainSubtree(_:)`` says it to the
     /// state, as a collapsed `DisclosureGroup` does for its content. Per walk,
     /// so an item that stops being declared is collected the pass after.
-    func retainUndrawnItems(_ chrome: WindowChromeState, context: RenderContext) {
+    func retainUndrawnItems(_ chrome: WindowChromeState, itemRows: Rows, context: RenderContext) {
         guard let storage = context.stateStorage else { return }
-        for edge in WindowChromeState.Edge.allCases where chrome.isHidden(edge) || chrome.rows(edge) == 0 {
+        for edge in WindowChromeState.Edge.allCases
+        where chrome.isHidden(edge) || (edge == .top ? itemRows.top : itemRows.bottom) <= 0 {
             for entry in chrome.declaredEntries(for: edge) {
                 storage.markActive(entry.identity)
                 storage.retainSubtree(entry.identity)
@@ -136,6 +149,16 @@ extension _WindowChromeHost {
         barContext.hasExplicitWidth = true
         barContext.hasExplicitHeight = false
         return barContext
+    }
+
+    /// How many rows ``framed(_:style:ruleAbove:width:context:)`` draws above
+    /// the bar's content: a box's top wall, or the rule of a bar ruled above.
+    static func framedRowsAbove(style: ChromeStyle, ruleAbove: Bool) -> Int {
+        switch style {
+        case .bordered: 1
+        case .rule: ruleAbove ? 1 : 0
+        case .compact: 0
+        }
     }
 
     /// `row` framed in `style`: boxed with a column of air inside each wall,

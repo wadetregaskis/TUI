@@ -596,7 +596,11 @@ line of key hints, which shows the modal's keys and answers a click as the key;
 an item declared inside a `.dimmed()` subtree is drawn inert likewise. A view
 nobody sees declares nothing: a `NavigationStack`'s root, while a screen is
 pushed over it, has no items in the bars and hides no bar — and its items keep
-their `@State` meanwhile, as the root does, to come back to.
+their `@State` meanwhile, as the root does, to come back to. In a terminal too
+short for both bars the bottom bar stays whole and the top bar gives way, cut
+from its end; a cut bar lays its items out in the rows of it that show, and one
+that shows none of them draws no item — none is in the Tab ring or on its key
+while nobody can see it — keeping their `@State` for when the terminal grows.
 
 **In a sheet** (and a full-screen cover, and a popover) the window's bars are
 inert while it holds the input, so a `.toolbar` in its content draws its items

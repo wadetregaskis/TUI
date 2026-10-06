@@ -86,6 +86,42 @@ private struct HintsUnderSheetApp: App {
     }
 }
 
+/// What the cut bar's button did, reachable from an `App`.
+private final class CutBarProbe: @unchecked Sendable {
+    static let shared = CutBarProbe()
+    var deletes = 0
+}
+
+/// A toolbar item whose own `@State` counts its presses.
+private struct TallyItem: View {
+    @State private var count = 0
+
+    var body: some View {
+        Button("TALLY \(count)") { count += 1 }
+            .keyboardShortcut("c", modifiers: [])
+    }
+}
+
+/// A top bar with a button and a counter in it, over a boxed line of key
+/// hints: in a terminal of three rows the bottom bar takes them all.
+private struct CutTopBarApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { TallyItem() }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("DEL") { CutBarProbe.shared.deletes += 1 }
+                            .keyboardShortcut("d", modifiers: [])
+                    }
+                    ToolbarItem(placement: .bottomBar) { StatusBar() }
+                }
+        }
+    }
+}
+
 @MainActor
 @Suite("Chrome is opt-in", .serialized)
 struct OptInChromeTests {
@@ -143,6 +179,63 @@ struct OptInChromeTests {
         #expect(rows[1].hasPrefix("╭"), "the bottom bar's top border: \(rows)")
         #expect(rows[2].contains("q quit"), "the line of key hints is on the screen: \(rows)")
         #expect(rows[3].hasPrefix("╰"), "and the bar is closed: \(rows)")
+    }
+
+    @Test(
+        "A bar the terminal shows none of the rows of has no live item: no shortcut, no Tab stop",
+        arguments: [3, 4])
+    func cutBarHasNoLiveItem(height: Int) {
+        CutBarProbe.shared.deletes = 0
+        let app = HeadlessApp(CutTopBarApp(), width: 40, height: height)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        let rows = app.screen.map(\.stripped)
+        #expect(rows.contains { $0.contains("q quit") }, "sanity: the bottom bar is whole: \(rows)")
+        #expect(!rows.contains { $0.contains("DEL") }, "sanity: the top bar's item row is cut off: \(rows)")
+        app.send(KeyEvent(key: .character("d")))
+        #expect(CutBarProbe.shared.deletes == 0, "the button nobody can see is not on its key")
+        app.send(KeyEvent(key: .tab))
+        app.frame(atNanos: 40_000_000)
+        app.send(KeyEvent(key: .enter))
+        #expect(CutBarProbe.shared.deletes == 0, "nor reached by Tab and Return")
+    }
+
+    @Test("A bar cut short but showing its item row keeps its items live")
+    func cutBarShowingItsItemsIsLive() {
+        CutBarProbe.shared.deletes = 0
+        let app = HeadlessApp(CutTopBarApp(), width: 40, height: 5)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        let rows = app.screen.map(\.stripped)
+        #expect(rows[1].contains("DEL"), "the top bar's wall and its item row: \(rows)")
+        app.send(KeyEvent(key: .character("d")))
+        #expect(CutBarProbe.shared.deletes == 1)
+    }
+
+    @Test("A bar cut off by a short terminal keeps its items' @State for when the terminal grows")
+    func cutBarKeepsItsItemsState() {
+        let app = HeadlessApp(CutTopBarApp(), width: 40, height: 10)
+        var now: Int64 = 0
+        func frame() {
+            app.frame(atNanos: now)
+            now += 20_000_000
+        }
+        frame()
+        frame()
+        app.send(KeyEvent(key: .character("c")))
+        frame()
+        app.send(KeyEvent(key: .character("c")))
+        frame()
+        #expect(app.screen.contains { $0.stripped.contains("TALLY 2") }, "sanity: \(app.screen.map(\.stripped))")
+        app.resize(width: 40, height: 3)
+        frame()
+        frame()
+        #expect(!app.screen.contains { $0.stripped.contains("TALLY") }, "sanity: cut off")
+        app.resize(width: 40, height: 10)
+        frame()
+        frame()
+        let rows = app.screen.map(\.stripped)
+        #expect(rows.contains { $0.contains("TALLY 2") }, "\(rows)")
     }
 
     @Test("Under a sheet, StatusBar() is the app's line — the sheet's keys — and a click on one does what it says")

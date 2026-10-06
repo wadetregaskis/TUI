@@ -110,16 +110,20 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         let isModal = context.environment.focusManager?.activeSectionIsModal == true
         // The toolbars, after the content, so their sections follow the page's
         // in the Tab ring. Their anchored layers (a `Menu`'s drop-down) go onto
-        // the page, to be composited with its own.
+        // the page, to be composited with its own. Their items are laid out in
+        // the rows of each bar the frame shows (`itemRowsShown`).
+        let itemRows = chrome.map { itemRowsShown($0, in: rows, tooltipRows: tooltip.count) } ?? Rows()
         var top = chrome.flatMap {
-            toolbarBuffer(.top, chrome: $0, contentRows: $0.rows(.top), width: width, isModal: isModal, context: context)
+            toolbarBuffer(
+                .top, chrome: $0, contentRows: $0.rows(.top), itemRows: itemRows.top, width: width,
+                isModal: isModal, context: context)
         }
         var bottom = chrome.flatMap {
             toolbarBuffer(
-                .bottom, chrome: $0, contentRows: $0.rows(.bottom), tooltip: tooltip, width: width,
-                isModal: isModal, context: context)
+                .bottom, chrome: $0, contentRows: $0.rows(.bottom), itemRows: itemRows.bottom, tooltip: tooltip,
+                width: width, isModal: isModal, context: context)
         }
-        if let chrome { retainUndrawnItems(chrome, context: context) }
+        if let chrome { retainUndrawnItems(chrome, itemRows: itemRows, context: context) }
         top = top?.liftingOverlays(shiftingBy: -rows.top, onto: &page)
         bottom = bottom?.liftingOverlays(shiftingBy: contentHeight, onto: &page)
         // The screen selection reads the page and draws its highlight on it,
@@ -186,6 +190,28 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
             height, Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.style))
         let top = min(height - bottom, Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style))
         return Rows(top: top, bottom: bottom)
+    }
+
+    /// How many rows of each bar's content its items are laid out in: all of
+    /// them, or, in a terminal too short to show the whole bar
+    /// (``reservedRows(_:tooltipRows:height:)`` cuts it from its end), as
+    /// many as the frame `shown` shows — none, if it shows only the bar's
+    /// frame.
+    ///
+    /// An item on a row the frame cut off was still drawn, live: in the Tab
+    /// ring, its shortcut firing, a button nobody could see. Laid out in the
+    /// rows that show, every item drawn is one the person can see, and a bar
+    /// that shows none of its rows draws no item (keeping their `@State`, as
+    /// a hidden bar's).
+    private func itemRowsShown(_ chrome: WindowChromeState, in shown: Rows, tooltipRows: Int) -> Rows {
+        func rows(_ edge: WindowChromeState.Edge, shown: Int, before: Int) -> Int {
+            let style = chrome.style(edge)
+            let above = Self.framedRowsAbove(style: style, ruleAbove: edge == .bottom) + before
+            return min(chrome.rows(edge), max(0, shown - above))
+        }
+        return Rows(
+            top: rows(.top, shown: shown.top, before: 0),
+            bottom: rows(.bottom, shown: shown.bottom, before: tooltipRows))
     }
 
     /// Asks for the frame a settlement owes: the next one, through the
