@@ -30,13 +30,30 @@ import Musl
 /// process group, which is the app's while it has the terminal; a child the
 /// app started (a helper, a pager it waits on) is in it, and ends with it.
 /// `raise` would signal only this process and leave the children running.
+///
+/// One thing first that the driver's quit cannot do: the settings an app
+/// stored are flushed to disk. Here the app is still running its input loop,
+/// so it can, and a value stored a moment before the key — saved on a queue,
+/// asynchronously — would otherwise go with the process. The signal's handler
+/// cannot: a flush is no async-signal-safe call. So by the byte (a terminal
+/// without the protocol, or a hung app) such a value can be lost, as it can by
+/// `kill -QUIT`.
 enum QuitKeyReport {
 
-    /// Quits as the driver would: `SIGQUIT` to the process group.
+    /// Quits as the driver would, the settings saved first: `SIGQUIT` to the
+    /// process group.
     ///
-    /// - Parameter signal: `kill(2)`, unless a test hands in another that
-    ///   records what it was asked.
-    static func quit(signal: (pid_t, Int32) -> Int32 = { kill($0, $1) }) {
+    /// - Parameters:
+    ///   - synchronize: Flushes stored settings to disk:
+    ///     `StorageDefaults.backend.synchronize()`, unless a test hands in
+    ///     another.
+    ///   - signal: `kill(2)`, unless a test hands in another that records
+    ///     what it was asked.
+    static func quit(
+        synchronize: () -> Void = { StorageDefaults.backend.synchronize() },
+        signal: (pid_t, Int32) -> Int32 = { kill($0, $1) }
+    ) {
+        synchronize()
         // Process ID 0: every process in the caller's process group.
         _ = signal(0, SIGQUIT)
     }
