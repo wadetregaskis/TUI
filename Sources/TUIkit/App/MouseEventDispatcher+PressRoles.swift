@@ -123,13 +123,7 @@ extension MouseEventDispatcher {
     /// (The selection's own Copy menu, on its highlight, was offered it
     /// first: ``MouseEventDispatcher/dispatch(_:)``.)
     func dispatchLeftPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
-        if event.ctrl {
-            for region in matching {
-                if case .background = pressRoles[region.handlerID] { continue }
-                if offer(event, to: region) != .declined { return true }
-            }
-            return false
-        }
+        if event.ctrl { return dispatchSecondaryPress(event, matching: matching) }
         // The innermost `textSelection(_:)` under the press: `false` turns the
         // selection off here — every region hears its press at once, as before
         // there was one — and `true` keeps it to that scope.
@@ -176,6 +170,17 @@ extension MouseEventDispatcher {
         guard let selection = screenSelection, selection.contentArea.contains(point) else { return false }
         hold(event, for: nil, pane: within(selection.contentArea))
         return true
+    }
+
+    /// A Control-press, the secondary click: offered to the regions at once,
+    /// innermost first, passing over a pane's background, which acts only on
+    /// a click (``dispatchLeftPress(_:matching:)``).
+    private func dispatchSecondaryPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
+        for region in matching {
+            if case .background = pressRoles[region.handlerID] { continue }
+            if offer(event, to: region) != .declined { return true }
+        }
+        return false
     }
 
     /// The cells a region covers on screen.
