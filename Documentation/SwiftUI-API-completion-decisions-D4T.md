@@ -219,8 +219,10 @@ path — and not with a second column beside the `Group` either, nor in a
 premise was not.
 
 The probe, to re-check it on a later SDK — `swiftc -typecheck` of this file
-fails with "cannot infer key path type from context" at `\.email`, and
-compiles with `\Person.email`:
+fails with "cannot infer key path type from context" at each `\.email`, once
+per shape, and compiles with `\Person.email` in all three. The same file
+importing TUIkit in place of SwiftUI gives the same answers (measured
+2026-10-05, against this lane's build):
 
 ```swift
 import SwiftUI
@@ -252,6 +254,20 @@ struct Two: View {
                 TableColumn("Label", value: \.email)
             }
         }
+    }
+}
+
+// The third: the Group in a @TableColumnBuilder property, the same again.
+struct Three: View {
+    @State var people: [Person] = []
+    @TableColumnBuilder<Person, Never>
+    var columns: some TableColumnContent<Person, Never> {
+        Group {
+            TableColumn("Label", value: \.email)
+        }
+    }
+    var body: some View {
+        Table(people) { columns }
     }
 }
 ```
