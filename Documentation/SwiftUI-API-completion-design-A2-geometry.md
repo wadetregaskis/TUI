@@ -296,7 +296,12 @@ render; no markers, no correction.
   an app's own view type unless every body forwards (`Body._providesAlignmentGuide`
   — measured-risk on `fanout`/`deep`), and readers live inside app views. It has
   to be dynamic: an owner activates when it had readers last frame, a
-  `.coordinateSpace` declaration always (it exists to be read).
+  `.coordinateSpace` declaration always (it exists to be read). *As built:
+  "readers" means views told a prediction — a `GeometryReader`, a visual
+  effect, a scroll transition — not an `onGeometryChange` reporter or a
+  pointer converting at event time, which are asked after the frame; and a
+  declaration carries one while there are readers or before anything has
+  asked, so one read only by gestures stops carrying it on its second frame.*
 
 **Costs.**
 - Work: carrier + the 13 sites (1 day); ScrollView/List/Table (1–1.5); the ~10

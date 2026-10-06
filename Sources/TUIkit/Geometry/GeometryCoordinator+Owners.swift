@@ -105,10 +105,26 @@ extension GeometryCoordinator {
         ownerScope = scope.parent
     }
 
-    /// Whether any view has been found somewhere it asked about — so a reader
-    /// is likely to ask again, and the scene root starts a carried origin
-    /// for it (``RenderContext/carryingGeometryRootOrigin()``).
-    var hasReaders: Bool { !kept.isEmpty }
+    /// Whether a reader — a view whose content is built from where it is
+    /// (``GeometryAsk/Role/reader``) — is among the views asking, so the
+    /// scene root starts a carried origin to predict for it
+    /// (``RenderContext/carryingGeometryRootOrigin()``).
+    ///
+    /// Readers only: an `onGeometryChange` reporter is asked again once the
+    /// frame is done, and a pointer converts at event time, and neither is
+    /// told a prediction (`GeometryAsk.origin` is `nil` for them). Counting
+    /// them made one such view anywhere carry an origin through the whole
+    /// tree on every frame, and every container below compute the
+    /// placements that feed it, for nothing.
+    var hasReaders: Bool { keepsReaders }
+
+    /// Whether a `coordinateSpace(_:)` declaration with nothing above it
+    /// carrying an origin should start one for its content: while there are
+    /// readers to predict for, and while no view has asked anything yet — so
+    /// a reader's first frame under a declaration is predicted, as it is
+    /// drawn before anything is known — but not once the only views asking
+    /// are pointers and reporters, which never read a prediction.
+    var declarationsCarryOrigin: Bool { keepsReaders || kept.isEmpty }
 }
 
 // MARK: - The Root

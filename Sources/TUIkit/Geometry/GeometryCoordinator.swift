@@ -92,6 +92,9 @@ final class GeometryCoordinator: @unchecked Sendable {
     /// told while it renders next.
     struct KeptObservations {
         let identity: ViewIdentity
+        /// Whether the view asked as a reader (``GeometryAsk/Role/reader``)
+        /// when it last asked — the one role a prediction is made for.
+        var isReader: Bool
         var bySpace: [CoordinateSpace: GeometryObservation] = [:]
         /// What the view was predicted to be at in each space when it was
         /// found there — absent where no prediction was made. The difference
@@ -118,6 +121,12 @@ final class GeometryCoordinator: @unchecked Sendable {
 
     /// What owners found, across frames, by marker id.
     var kept: [HitTestRegion.HandlerID: KeptObservations] = [:]
+
+    /// Whether a reader is among the views ``kept`` holds — set when one
+    /// registers, and settled at the end of each frame from what is kept
+    /// (``endSpacesFrame(isRetained:)``). What decides whether a carried
+    /// origin is worth starting (`hasReaders`).
+    var keepsReaders = false
 
     /// Spaces a view asked about after its render — from an action, at the end
     /// of a frame — which it is found in from its next render on.

@@ -61,11 +61,14 @@ extension GeometryCoordinator {
             unanswered[space, default: 0] += 1
             unansweredTotal += 1
         }
+        let isReader = ask.role == .reader
         if kept[ask.id] == nil {
-            kept[ask.id] = KeptObservations(identity: ask.identity)
+            kept[ask.id] = KeptObservations(identity: ask.identity, isReader: isReader)
         } else {
             kept[ask.id]?.askedThisWalk = true
+            kept[ask.id]?.isReader = isReader
         }
+        if isReader { keepsReaders = true }
         return true
     }
 
@@ -101,7 +104,8 @@ extension GeometryCoordinator {
     private func answer(_ ask: GeometryAsk, in space: CoordinateSpace, with observation: GeometryObservation) {
         ask.found[space] = observation
         decrementUnanswered(space)
-        kept[ask.id, default: KeptObservations(identity: ask.identity)].bySpace[space] = observation
+        kept[ask.id, default: KeptObservations(identity: ask.identity, isReader: ask.role == .reader)]
+            .bySpace[space] = observation
         kept[ask.id]?.predicted[space] = ask.predictions[space]
     }
 }
@@ -201,7 +205,12 @@ extension GeometryCoordinator {
         if lateAsks.count > kept.count {
             for id in Array(lateAsks.keys) where kept[id] == nil { lateAsks.removeValue(forKey: id) }
         }
-        for id in kept.keys { kept[id]?.askedThisWalk = false }
+        var keepsReaders = false
+        for id in kept.keys {
+            kept[id]?.askedThisWalk = false
+            if kept[id]?.isReader == true { keepsReaders = true }
+        }
+        self.keepsReaders = keepsReaders
         for (report, proxy) in reports { report(proxy) }
     }
 }

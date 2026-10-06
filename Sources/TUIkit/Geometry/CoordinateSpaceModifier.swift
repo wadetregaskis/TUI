@@ -63,10 +63,13 @@ extension CoordinateSpaceModifier: Renderable {
         // Noted before the content renders, so a correction can put the walk
         // back to here and draw the content again as if for the first time.
         let checkpoint = RenderWalkCheckpoint(context: context)
-        // A declaration exists to be read, so it always carries an origin for
-        // its content (starting one here when nothing above has), and opens
-        // itself as the owner a reader's prediction is measured against.
-        let contentContext = context.carryingGeometryOrigin()
+        // A declaration exists to be read, so it carries an origin for its
+        // content (starting one here when nothing above has) while there may
+        // be a reader to predict for — not for a subtree whose only askers
+        // are gestures and reporters, which never read a prediction — and
+        // opens itself as the owner a reader's prediction is measured against.
+        let contentContext =
+            geometry.declarationsCarryOrigin ? context.carryingGeometryOrigin() : context
         let owner = geometry.enterOwner(
             of: [space], from: context, in: contentContext,
             size: CellSize(width: context.availableWidth, height: context.availableHeight))

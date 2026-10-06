@@ -247,7 +247,8 @@ struct GeometryPredictionTests {
                 OriginProbe { seen = $0 }
             })
         #expect(seen == false)
-        // A declaration carries one for its content, always.
+        // A declaration carries one for its content while a reader may be
+        // drawn in it — here, before anything has asked.
         harness.frame(
             VStack {
                 Text("a")
@@ -255,6 +256,61 @@ struct GeometryPredictionTests {
             }
             .coordinateSpace(.named("s")))
         #expect(seen == true)
+    }
+
+    @Test("Reporters and pointers start no carried origin: only a reader does")
+    func onlyReadersCarryAnOrigin() {
+        let harness = InputChainHarness()
+        var carried: [Bool] = []
+        let page = VStack(alignment: .leading, spacing: 0) {
+            OriginProbe { carried.append($0) }
+            Text("reported")
+                .onGeometryChange(for: Int.self) { $0.frame(in: .global).minY } action: { _, _ in }
+            Text("dragged")
+                .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { _ in })
+        }
+        harness.frame(page)
+        harness.frame(page)
+        harness.frame(page)
+        // An `onGeometryChange` asking `.global` and a drag located in a name
+        // nothing declares are asked again at the end, or at event time:
+        // nothing is told a prediction, so the root carries no origin.
+        #expect(carried == [false, false, false])
+
+        carried = []
+        let told = Told()
+        let withReader = VStack(alignment: .leading, spacing: 0) {
+            OriginProbe { carried.append($0) }
+            GeometryReader { proxy in
+                // swiftlint:disable:next redundant_discardable_let
+                let _ = told.frames.append(proxy.frame(in: .global))
+                Text("R")
+            }
+            .frame(width: 4, height: 1)
+        }
+        harness.frame(withReader)
+        harness.frame(withReader)
+        // A reader does, from the walk after it first asks.
+        #expect(carried.last == true)
+    }
+
+    @Test("A declaration whose only askers are gestures stops carrying an origin once it knows")
+    func declarationForGesturesStopsCarrying() {
+        let harness = InputChainHarness()
+        var carried: [Bool] = []
+        let page = VStack(alignment: .leading, spacing: 0) {
+            OriginProbe { carried.append($0) }
+            Text("dragged")
+                .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { _ in })
+        }
+        .coordinateSpace(.named("box"))
+        harness.frame(page)
+        harness.frame(page)
+        harness.frame(page)
+        // The first frame knows of no asker yet, and carries one in case a
+        // reader is drawn; from then on, a drag converting at event time is
+        // all there is.
+        #expect(carried == [true, false, false])
     }
 
     @Test("RenderContext's stride stays 104 bytes with the carried origin in it")
