@@ -4357,7 +4357,9 @@ the same. A user's `stty quit undef` stays undefined (0x1C then arrives as a
 byte, which `KeyEvent.parse` drops), a moved quit key stays moved, and
 `stty -isig` stays off. The teardown, a suspend and the fatal-signal handler
 put the user's termios back exactly. `SIGQUIT` then leaves the terminal as a
-quit does (`FatalSignalTerminalRestore`).
+quit does (`FatalSignalTerminalRestore`). The driver reads every byte of input,
+a bracketed paste's included, so pasted text holding a 0x1C quits the app, as
+it would a shell.
 
 Measured on Darwin 24.6 (macOS 15.8), on a pseudo-terminal with `ECHO`,
 `ICANON` and `IEXTEN` off, `ISIG` on and `VINTR`/`VSUSP` off: ⌃T and ⌃Y arrive as

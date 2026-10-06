@@ -27,6 +27,8 @@ that answers the startup exchange, and checks:
   3. ⌃C, ⌃Z, ⌃Y and ⌃T arrive as KEYS: the app shows each, and is neither
      stopped nor ended.
   4. ⌃\\ ends it by SIGQUIT, as `kill -QUIT` does (the checks of 1).
+  4b. A bracketed paste holding 0x1C: the driver reads pasted bytes too, so
+     it ends the app as ⌃\\ does, as it would a shell.
   5. A hung main thread: ⌃\\ still ends it, the same way.
   6. A user who turned the quit key off (`stty quit undef`) before the
      launch: ⌃\\ ends nothing; `q` quits, and the termios comes back exactly,
@@ -325,6 +327,14 @@ mark = len(app.out)
 os.write(app.master, b"\x1c")
 check_quit(app, mark, "⌃\\")
 check(child is not None and child_ends(child, 3.0), "⌃\\: the driver ends the app's child with it")
+app.finish()
+
+# 4b. A paste holding the quit key's byte.
+app = App(env={"IDLE_PROBE_MODE": "keys"})
+app.pump(2.0)
+mark = len(app.out)
+os.write(app.master, b"\x1b[200~pasted \x1c text\x1b[201~")
+check_quit(app, mark, "a paste holding 0x1C")
 app.finish()
 
 # 5. A hung main thread.
