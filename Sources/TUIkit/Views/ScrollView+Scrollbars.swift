@@ -83,10 +83,22 @@ extension _ScrollViewCore {
         // exactly the offer is what a clamp at the extra row looks like, so it
         // is the clamp at the available height; a report past the offer was
         // never clamped, and stands.
-        let content = (
+        var content = (
             width: measured.width,
             height: overflows && measured.height == contentContext.availableHeight
                 ? context.availableHeight : measured.height)
+        // The "N more" pair, where it is reserved at every offset whatever the
+        // content (`.visible`), is two lines of this view's own height: a parent
+        // that sizes to it (a `Dialog`, a `TabView`, `.fixedSize()`) otherwise
+        // gives the rows two lines too few, and they scroll. Under a scroll
+        // target behaviour it is reserved only for content that overflows the
+        // view, which takes all the height it is offered anyway.
+        if proposal.height == nil,
+            TextIndicatorLines(environment, landsScrollTargets: { false }, overflows: { false })
+                .fitted(viewportHeight: content.height + 2, horizontalBar: false).reserved
+        {
+            content.height = min(content.height + 2, context.availableHeight)
+        }
         let widens =
             proposal.width == nil && mayDrawVerticalBar && content.width < context.availableWidth
         let heightens =
@@ -108,7 +120,10 @@ extension _ScrollViewCore {
         if wantsHorizontal {
             let resolved = resolveScrollbars(
                 viewportWidth: viewportWidth, viewportHeight: viewportHeight,
-                horizontal: true, textLines: textIndicatorLines(environment), context: context)
+                horizontal: true,
+                textLines: textIndicatorLines(
+                    context, viewport: CellSize(width: max(0, viewportWidth), height: viewportHeight)),
+                context: context)
             bars = (resolved.vertical, resolved.horizontal)
         } else {
             // Only `widens` reaches here, so the content is `content.width`

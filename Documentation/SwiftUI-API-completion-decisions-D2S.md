@@ -143,9 +143,15 @@ SwiftUI's paging idiom — since those pages were sized against the whole
 viewport.
 
 Shipped: a `ScrollView` under any behaviour but the default reserves the pair
-at every offset, as `.visible` does, and reserved lines come off the
-`containerRelativeFrame` container (under `.visible` too, with or without a
-behaviour). The content window is then one size at every stop: it is the page
+at every offset, as `.visible` does, wherever its content overflows the
+viewport — decided once per layout, on the content's height in the whole
+viewport, so it is the same at every stop; content that fits has nowhere to
+step and reserves nothing (scroll lane review 3: five rows in a dialog drew
+three between "▲ 0 more" and "▼ 2 more", and scrolled). Reserved lines come
+off the `containerRelativeFrame` container (under `.visible` too, with or
+without a behaviour), and count in the view's ideal height wherever they are
+reserved whatever the content (`.visible`), so a parent that sizes to it gives
+them room. The content window is then one size at every stop: it is the page
 `.paging` steps, the container a page is sized against, and `ScrollGeometry`'s
 container. Every line is read at some stop, every container-sized page lands
 whole between the two lines, and `.viewAligned` lands a row on the first line

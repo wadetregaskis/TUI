@@ -51,7 +51,9 @@ extension ScrollViewHandler {
     /// The visible area is the content window, every line of which can be
     /// read: under a behaviour the "N more" lines are reserved out of it at
     /// every offset, as under `.visible`, rather than drawn over its first and
-    /// last line (``_ScrollViewCore/textIndicatorLines(_:)``). So the window is
+    /// last line, wherever the content overflows (content that fits has none,
+    /// and nowhere to step) — see ``_ScrollViewCore/textIndicatorLines(_:viewport:)``.
+    /// So the window is
     /// the same at every stop — the container a page is sized against, and the
     /// page `.paging` steps — and a row `.viewAligned` lands on is read whole.
     func targetedOffsets(proposedX: Int, proposedY: Int, velocity: CellVector) -> (x: Int, y: Int)? {
@@ -174,7 +176,7 @@ extension _ScrollViewCore {
     /// `nil`: none stated (the free one, the default), or a framework scroller,
     /// which takes none (``captureScrollTargeting(handler:context:)``). One
     /// predicate, because the "N more" lines are reserved under exactly the
-    /// behaviours the steps are landed by (``textIndicatorLines(_:)``).
+    /// behaviours the steps are landed by (``textIndicatorLines(_:viewport:)``).
     func scrollTargetBehaviorInForce(_ environment: EnvironmentValues) -> (any ScrollTargetBehavior)? {
         guard !isChrome else { return nil }
         let behavior = environment.scrollTargetBehavior

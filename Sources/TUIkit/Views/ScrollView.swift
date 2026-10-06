@@ -424,19 +424,24 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         /// It is also the reason a `.hidden` scroll view draws nothing at all
         /// rather than falling back to the pair.
         let indicators: ResolvedScrollIndicators
-        /// Drawn at every offset, and so reserved out of the content window —
-        /// ``EnvironmentValues/alwaysShowsVerticalTextIndicators``, or a view
-        /// that lands its steps under a scroll target behaviour
-        /// (``_ScrollViewCore/textIndicatorLines(_:)``).
+        /// Drawn at every offset, and so reserved out of the content window,
+        /// whatever the content: ``EnvironmentValues/alwaysShowsVerticalTextIndicators``.
         let alwaysShown: Bool
+        /// Reserved out of the content window too, at every offset, because a
+        /// scroll target behaviour lands this view's steps AND its content
+        /// overflows the window — see
+        /// ``_ScrollViewCore/textIndicatorLines(_:viewport:)``.
+        let reservedForTargets: Bool
 
-        /// The pair as `environment` states it; `landsScrollTargets`, asked
-        /// only of the text form, says whether a scroll target behaviour lands
-        /// this view's steps.
-        init(_ environment: EnvironmentValues, landsScrollTargets: () -> Bool) {
+        /// The pair as `environment` states it. `landsScrollTargets` says
+        /// whether a scroll target behaviour lands this view's steps and
+        /// `overflows` whether the content is taller than the window; each is
+        /// asked only where its answer can change the reservation — the text
+        /// form, not `.visible` — and `overflows` only after a yes.
+        init(_ environment: EnvironmentValues, landsScrollTargets: () -> Bool, overflows: () -> Bool) {
             indicators = environment.verticalScrollIndicators(overflowing: true)
-            alwaysShown =
-                indicators.text && (environment.alwaysShowsVerticalTextIndicators || landsScrollTargets())
+            alwaysShown = indicators.text && environment.alwaysShowsVerticalTextIndicators
+            reservedForTargets = indicators.text && !alwaysShown && landsScrollTargets() && overflows()
         }
 
         /// Whether the pair is drawn, whether it is reserved rather than written
@@ -446,24 +451,37 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         ) -> (drawn: Bool, reserved: Bool, contentHeight: Int) {
             let area = viewportHeight - (horizontalBar ? 1 : 0)
             let drawn = indicators.fitting(contentHeight: area).text
-            let reserved = drawn && alwaysShown
+            let reserved = drawn && (alwaysShown || reservedForTargets)
             return (drawn, reserved, max(1, area - (reserved ? 2 : 0)))
         }
     }
 
-    /// This view's "N more" pair. Under a scroll target behaviour it is
-    /// reserved, drawn at every offset as under `.visible`: a behaviour lands
-    /// pages and views in the content window, and drawn over the window's
-    /// first and last line the pair made the window a line shorter at each end
-    /// wherever it showed — so `.paging` either left those lines unread at
-    /// every stop or, stepping the lines between them, stopped off every page a
-    /// `containerRelativeFrame` sized against the viewport.
+    /// This view's "N more" pair at `viewport`. Under a scroll target
+    /// behaviour, for content that overflows, it is reserved, drawn at every
+    /// offset as under `.visible`: a behaviour lands pages and views in the
+    /// content window, and drawn over the window's first and last line the
+    /// pair made the window a line shorter at each end wherever it showed — so
+    /// `.paging` either left those lines unread at every stop or, stepping the
+    /// lines between them, stopped off every page a `containerRelativeFrame`
+    /// sized against the viewport.
+    ///
+    /// Only for content that overflows (scroll lane review 3): content that
+    /// fits has nowhere to scroll and nothing to land, and reserved there the
+    /// pair drew "▲ 0 more lines above" over content it then pushed out of
+    /// sight — five rows in a dialog drew three, and scrolled. Decided once per
+    /// layout, on the content's height in the whole window
+    /// (``contentOverflowsWindow(viewport:context:)``), so it is the same at
+    /// every stop: content sized against the container — pages a
+    /// `containerRelativeFrame` makes — that overflows the whole window still
+    /// overflows the window less the pair.
     ///
     /// Only for a view that scrolls down: the pair counts rows, and a
     /// horizontal pager reserved two lines that had nothing to count.
-    func textIndicatorLines(_ environment: EnvironmentValues) -> TextIndicatorLines {
-        TextIndicatorLines(environment) {
-            axes.contains(.vertical) && scrollTargetBehaviorInForce(environment) != nil
+    func textIndicatorLines(_ context: RenderContext, viewport: CellSize) -> TextIndicatorLines {
+        TextIndicatorLines(context.environment) {
+            axes.contains(.vertical) && scrollTargetBehaviorInForce(context.environment) != nil
+        } overflows: {
+            contentOverflowsWindow(viewport: viewport, context: context)
         }
     }
 
@@ -828,7 +846,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         chrome: ScrollChrome, contentWidth: Int, contentViewportHeight: Int,
         settled: (width: Int, height: Int)?
     ) {
-        let textLines = textIndicatorLines(context.environment)
+        let textLines = textIndicatorLines(
+            context, viewport: CellSize(width: max(0, viewportWidth), height: viewportHeight))
         // Read around the measures that decide the bars, which are the ones the
         // hint is for: see `ScrollViewHandler.contentWalksNestedStacks`.
         let nestedWalksBefore = context.renderCache?.nestedStackWalks

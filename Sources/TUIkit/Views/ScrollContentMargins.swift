@@ -270,16 +270,50 @@ extension _ScrollViewCore {
     /// known yet; with one, a view three lines tall reserves nothing, and its
     /// container is two lines short.
     func containerSize(viewport: CellSize, context: RenderContext) -> CellSize {
-        let reserved =
-            textIndicatorLines(context.environment)
-            .fitted(viewportHeight: viewport.height, horizontalBar: false).reserved ? 2 : 0
-        guard appliesContentMargins else {
-            return reserved == 0 ? viewport : CellSize(width: viewport.width, height: max(0, viewport.height - reserved))
-        }
+        let container = unreservedContainerSize(viewport: viewport, context: context)
+        guard
+            textIndicatorLines(context, viewport: viewport)
+                .fitted(viewportHeight: viewport.height, horizontalBar: false).reserved
+        else { return container }
+        return CellSize(width: container.width, height: max(0, container.height - 2))
+    }
+
+    /// The container with nothing reserved out of it: the viewport less the
+    /// content's margins.
+    private func unreservedContainerSize(viewport: CellSize, context: RenderContext) -> CellSize {
+        guard appliesContentMargins else { return viewport }
         let margins = resolvedContentMargins(context.environment)
         return CellSize(
             width: max(0, viewport.width - margins.leading - margins.trailing),
-            height: max(0, viewport.height - reserved - margins.top - margins.bottom))
+            height: max(0, viewport.height - margins.top - margins.bottom))
+    }
+
+    /// Whether the content is taller than `viewport` seen whole — nothing
+    /// reserved out of it, and the content's pages sized against that
+    /// unreserved container: whether a scroll target behaviour reserves the
+    /// "N more" pair (``textIndicatorLines(_:viewport:)``).
+    ///
+    /// On the content's height alone, never the offset, so the answer is the
+    /// same at every stop; and on the whole window, so content sized against
+    /// the container answers as it will be drawn — pages as tall as the whole
+    /// window that overflow it overflow the window less the pair as well, and
+    /// one page that fits it is drawn unreserved and fits. Asked as though no
+    /// horizontal bar is drawn, as ``containerSize(viewport:context:)`` asks.
+    ///
+    /// A measure of the content, paid only by a text-style view under a
+    /// behaviour (the free one, the default, asks nothing), and asked again
+    /// by the render at the same proposal, which the pass's measure memo
+    /// serves.
+    func contentOverflowsWindow(viewport: CellSize, context: RenderContext) -> Bool {
+        let probe = context.publishingContainerSize(
+            unreservedContainerSize(viewport: viewport, context: context), noting: false)
+        let width = max(1, viewport.width)
+        guard axes.contains(.horizontal) else {
+            return contentOverflowsCanvas(contentWidth: width, viewportHeight: viewport.height, context: probe)
+        }
+        return contentExtents(
+            contentWidth: width, viewportHeight: viewport.height, horizontal: true, context: probe
+        ).height > viewport.height
     }
 }
 
