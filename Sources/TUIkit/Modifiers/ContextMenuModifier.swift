@@ -35,6 +35,12 @@ final class ContextMenuState {
         isOpen = false
         controller.closed()
     }
+
+    /// The menu, as the press that opens it hands it to the dispatcher for the
+    /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``).
+    var openedPopup: MouseEventDispatcher.OpenedPopup {
+        MouseEventDispatcher.OpenedPopup(isOpen: { self.isOpen }, close: { self.close() })
+    }
 }
 
 // MARK: - Context menu modifier
@@ -319,7 +325,7 @@ enum ContextMenuPresentation {
     /// menu answers: press and hold, drag down the rows, release on one to run
     /// it. The press hands the rest of the gesture back to live hit-testing
     /// (``MouseEventDispatcher/handOffGesture()``) so the drag and release reach
-    /// the menu rather than routing back here — see ``Button/menuTrigger(closing:)``,
+    /// the menu rather than routing back here — see ``Button/menuTrigger(_:)``,
     /// which is the same move for a pull-down.
     ///
     /// The region carries the focus stop's id (`ContextMenuModifier`'s keyboard trigger),
@@ -356,13 +362,14 @@ enum ContextMenuPresentation {
                 stateBox.value = state
                 onOpen?()
                 dispatcher.handOffGesture()
-                dispatcher.pressOpenedPopup(closing: { state.close() })
+                dispatcher.pressOpenedPopup(state.openedPopup)
                 return true
             case .released:
-                // Spent on the press. Only reached when no menu is drawn to
-                // take the release — one with nothing in it. (Before a frame
-                // has drawn the menu, the dispatcher spends the release itself:
-                // ``MouseEventDispatcher/pressOpenedPopup(closing:)``.)
+                // Spent on the press, and the release is the menu's: its
+                // backdrop takes it once drawn, and while the menu is not on
+                // screen the dispatcher spends it itself
+                // (``MouseEventDispatcher/pressOpenedPopup(_:)``). Should one
+                // arrive anyway, it is consumed.
                 return true
             default:
                 return false

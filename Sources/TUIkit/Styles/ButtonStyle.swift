@@ -68,7 +68,7 @@ public struct ButtonStyleConfiguration {
     ///   from a plain click elsewhere. A **keyboard** activation (Enter,
     ///   Space) has no such gesture — a terminal reports a key press, not a
     ///   down-then-up pair — so this stays `false` for those, as does a
-    ///   `.menuTrigger(closing:)` button's opening press, which fires its action and
+    ///   `.menuTrigger(_:)` button's opening press, which fires its action and
     ///   hands the gesture off in the same instant rather than holding.
     public let isPressed: Bool
 

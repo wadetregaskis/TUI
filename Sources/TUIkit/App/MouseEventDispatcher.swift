@@ -244,19 +244,13 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// currently in flight. See ``endsHeldGesture(_:)``.
     private var pointerMovedSincePress = false
 
-    /// Whether the press in flight opened a pop-up menu — see
-    /// ``pressOpenedPopup(closing:)``. Unlike ``gestureHandedOff`` this stands
-    /// for the whole gesture, not for one handler call, because the question
-    /// it answers is asked by a *different* handler on the release.
-    private var pressOpenedPopupMenu = false
+    /// The pop-up menu the press in flight opened, or `nil` when it opened
+    /// none — see ``pressOpenedPopup(_:)``. Unlike ``gestureHandedOff`` this
+    /// stands for the whole gesture, not for one handler call, because the
+    /// question it answers is asked by a *different* handler on the release.
+    private var pressPopup: OpenedPopup?
 
-    /// How to close the pop-up the press in flight opened, should its gesture
-    /// end in a held release before any frame has drawn it — see
-    /// ``pressOpenedPopup(closing:)``.
-    private var closeUndrawnPopup: (() -> Void)?
-
-    /// Whether a render pass has begun since the press in flight: whether a
-    /// pop-up it opened is on screen, its regions over what it covers.
+    /// Whether a render pass has begun since the press in flight.
     private var renderedSincePress = false
 
     /// Buttons whose press was handed back to live hit-testing rather than
@@ -640,37 +634,57 @@ extension MouseEventDispatcher {
     /// press a button, slide off it, and release to cancel.
     ///
     /// A press that hands off says too that it opened a pop-up
-    /// (``pressOpenedPopup(closing:)``), and until a frame has drawn the
-    /// pop-up there is nothing of it on screen to hit-test against: the
-    /// dispatcher spends those drags and that release itself.
+    /// (``pressOpenedPopup(_:)``), and until a frame has drawn the pop-up, or
+    /// once it has closed, there is nothing of it on screen to hit-test
+    /// against: the dispatcher spends those drags and that release itself.
     func handOffGesture() {
         gestureHandedOff = true
+    }
+
+    /// A pop-up a press opened, as the dispatcher holds it for the rest of
+    /// that press's gesture — see ``pressOpenedPopup(_:)``.
+    struct OpenedPopup {
+        /// Whether the pop-up is still open. One that closed — a row menu that
+        /// built nothing does on the frame after its press, Escape closes any
+        /// with the button still held — is not on screen to take the rest of
+        /// the gesture, though a frame has gone by.
+        let isOpen: () -> Bool
+
+        /// Closes the pop-up, without choosing anything. Idempotent.
+        let close: () -> Void
     }
 
     /// Called by a handler *while it is consuming a press* to say that press
     /// OPENED a pop-up menu, so the release ending the same click is already
     /// spoken for. See ``endsPopupOpeningClick(_:)``.
     ///
-    /// Until a frame has drawn the pop-up, the dispatcher spends the drags and
-    /// the release of the gesture itself (``routeAgainstItsPress(_:)``):
-    /// hit-tested live, they would land on the screen as the last frame left
-    /// it, where nothing of the pop-up's is yet.
+    /// Until a frame has drawn the pop-up, and once it has closed, the
+    /// dispatcher spends the drags and the release of the gesture itself
+    /// (``routeAgainstItsPress(_:)``): hit-tested live, they would land on
+    /// whatever lies where the pop-up is not — on a control that never saw a
+    /// press.
     ///
-    /// - Parameter closing: How to close the pop-up if the gesture ends in a
-    ///   held release (``endsHeldGesture(_:)``) before any frame has drawn it.
-    ///   Drawn, a pop-up closes on such a release itself, wherever it lands:
-    ///   the dismiss backdrop closes it, its chrome does, and a row it lands
-    ///   on runs and closes it. Undrawn — the press and its release came in
-    ///   one input batch — the dispatcher spends the release and runs this,
-    ///   which closes it without choosing anything: the user let go before the
-    ///   menu was there to see. `nil` leaves an undrawn pop-up up.
-    func pressOpenedPopup(closing: (() -> Void)? = nil) {
-        pressOpenedPopupMenu = true
-        closeUndrawnPopup = closing
+    /// - Parameter popup: The pop-up: whether it is open, and how to close it
+    ///   if the gesture ends in a held release (``endsHeldGesture(_:)``)
+    ///   while it is not on screen. Drawn, a pop-up closes on such a release
+    ///   itself, wherever it lands: the dismiss backdrop closes it, its chrome
+    ///   does, and a row it lands on runs and closes it. Undrawn — the press
+    ///   and its release came in one input batch — the dispatcher spends the
+    ///   release and closes it, without choosing anything: the user let go
+    ///   before the menu was there to see.
+    func pressOpenedPopup(_ popup: OpenedPopup) {
+        pressPopup = popup
+    }
+
+    /// Whether the pop-up the press in flight opened is on screen to take the
+    /// rest of its gesture: a frame has drawn it since the press, and it is
+    /// still open.
+    private var pressPopupIsOnScreen: Bool {
+        renderedSincePress && pressPopup?.isOpen() != false
     }
 
     /// Whether `event` is a drag or the release of a gesture whose press
-    /// opened a pop-up menu (``pressOpenedPopup(closing:)``): the rest of that
+    /// opened a pop-up menu (``pressOpenedPopup(_:)``): the rest of that
     /// gesture, which is the menu's, whether or not the menu is still up when
     /// it arrives, and never a click on what lies under it. (A menu that
     /// builds nothing closes on the frame after the press.)
@@ -681,7 +695,7 @@ extension MouseEventDispatcher {
     /// the next press; the motion, wheel and hover events in between are
     /// nobody's gesture, and a handler that spent them for the menu ate them.
     func followsPopupOpeningPress(_ event: MouseEvent) -> Bool {
-        (event.phase == .dragged || event.phase == .released) && pressOpenedPopupMenu
+        (event.phase == .dragged || event.phase == .released) && pressPopup != nil
     }
 
     /// Whether `event` is a button-release that ends a press-and-**hold** rather
@@ -723,12 +737,12 @@ extension MouseEventDispatcher {
     /// user answering the menu they were just shown.
     ///
     /// - Precondition: the opening handler said so, via
-    ///   ``pressOpenedPopup(closing:)``. Without that this cannot be
+    ///   ``pressOpenedPopup(_:)``. Without that this cannot be
     ///   distinguished from an ordinary click on a row of a menu that was
     ///   already open, which of course *does* choose it.
     func endsPopupOpeningClick(_ event: MouseEvent) -> Bool {
         event.phase == .released && !event.button.isWheel
-            && pressOpenedPopupMenu && !pointerMovedSincePress
+            && pressPopup != nil && !pointerMovedSincePress
     }
 
     /// Updates the press-and-hold bookkeeping ``endsHeldGesture(_:)`` reads.
@@ -742,9 +756,8 @@ extension MouseEventDispatcher {
             pressOrigin = (event.x, event.y)
             pointerMovedSincePress = false
             // Cleared before the press is routed, so the handler about to
-            // consume it can set it (see ``pressOpenedPopup(closing:)``).
-            pressOpenedPopupMenu = false
-            closeUndrawnPopup = nil
+            // consume it can set it (see ``pressOpenedPopup(_:)``).
+            pressPopup = nil
             renderedSincePress = false
             // A new press supersedes any record of the last one, whose release
             // evidently never arrived (a lost release, a mouse-mode change
@@ -817,11 +830,9 @@ extension MouseEventDispatcher {
             if event.phase == .released {
                 // After routing, so whatever the release landed on has asked
                 // the gesture (``followsPopupOpeningPress(_:)``) and spent it.
-                if !renderedSincePress, endsHeldGesture(event) { closeUndrawnPopup?() }
                 pressOrigin = nil
                 pointerMovedSincePress = false
-                pressOpenedPopupMenu = false
-                closeUndrawnPopup = nil
+                pressPopup = nil
             }
         }
 
@@ -875,16 +886,18 @@ extension MouseEventDispatcher {
         // right button — on the highlight opens the selection's own menu
         // (Copy); anywhere else it is the app's, as always.
         if event.phase == .pressed, event.button == .right || (event.button == .left && event.ctrl),
-            screenSelection?.openMenu(at: ScreenSelection.Point(x: event.x, y: event.y)) == true
+            let selection = screenSelection,
+            selection.openMenu(at: ScreenSelection.Point(x: event.x, y: event.y))
         {
             // The bookkeeping `.contextMenu`'s opening press does through
-            // `handOffGesture()` and `pressOpenedPopup()`: the held drag and
-            // the release are the menu's, hit-tested live against its rows,
-            // and the release ending a plain click leaves it up. Without it a
-            // held drag had nothing captured and was dropped, so the menu's
-            // highlight never followed the pointer.
+            // `handOffGesture()` and `pressOpenedPopup(_:)`: the held drag and
+            // the release are the menu's — hit-tested live against its rows
+            // once a frame has drawn it, spent here until then — and the
+            // release ending a plain click leaves it up. Without it a held drag
+            // had nothing captured and was dropped, so the menu's highlight
+            // never followed the pointer.
             handedOffPresses.insert(event.button)
-            pressOpenedPopup(closing: { [weak screenSelection] in screenSelection?.closeMenu() })
+            pressOpenedPopup(selection.openedPopup)
             return true
         }
         if event.phase == .pressed, event.button == .left {
@@ -964,7 +977,7 @@ extension MouseEventDispatcher {
     ///
     /// - Returns: the dispatch result when the press itself decides the
     ///   event's fate — routed to a live capture, to the legacy-release
-    ///   fallback, spent for a pop-up no frame has drawn yet, or dropped for
+    ///   fallback, spent for a pop-up that is not on screen, or dropped for
     ///   having no press behind it at all — and `nil` when the event should go
     ///   on to ordinary live hit-testing.
     func routeAgainstItsPress(_ event: MouseEvent) -> Bool? {
@@ -980,21 +993,23 @@ extension MouseEventDispatcher {
             return true
         }
 
-        // The drags and the release a pop-up-opening press handed off, before
-        // any frame has drawn the pop-up. Hit-tested live they land on the
-        // screen as the last frame left it, where nothing of the pop-up's is
-        // yet — the press and they came in one input batch — and whatever is
-        // under them got a gesture it was never pressed for: a `Toggle` acting
-        // on the release toggled, a text field selected to the drag, a row was
-        // clicked. With a frame between, the pop-up's backdrop takes them.
-        // So until then the dispatcher spends them itself, as the backdrop
-        // would: a held release closes the pop-up (the `dispatch` defer,
-        // through ``pressOpenedPopup(closing:)``), a click's release leaves it
-        // up.
-        if event.phase == .dragged || event.phase == .released, pressOpenedPopupMenu, !renderedSincePress,
+        // The drags and the release a pop-up-opening press handed off, while
+        // the pop-up is not on screen: before any frame has drawn it — the
+        // press and they came in one input batch — or once it has closed, as
+        // a row menu that built nothing does on the frame after its press.
+        // Hit-tested live they land on whatever lies where the pop-up is not,
+        // which got a gesture it was never pressed for: a `Toggle` acting on
+        // the release toggled, a text field selected to the drag, a row was
+        // clicked. Drawn, the pop-up's backdrop takes them. So otherwise the
+        // dispatcher spends them itself, as the backdrop would: a held release
+        // closes the pop-up, a click's release leaves it up.
+        if event.phase == .dragged || event.phase == .released, let pressPopup, !pressPopupIsOnScreen,
             handedOffPresses.contains(event.button)
         {
-            if event.phase == .released { handedOffPresses.remove(event.button) }
+            if event.phase == .released {
+                handedOffPresses.remove(event.button)
+                if endsHeldGesture(event) { pressPopup.close() }
+            }
             return true
         }
 

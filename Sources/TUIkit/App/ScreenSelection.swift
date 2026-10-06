@@ -144,6 +144,15 @@ final class ScreenSelection: @unchecked Sendable {
     /// Whether the menu presented since its section was last taken down.
     var menuNeedsTeardown = false
 
+    /// The menu, as the press that opens it hands it to the dispatcher for the
+    /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``):
+    /// open while it is anchored, which is while the window draws it, and
+    /// closed as Escape and its backdrop close it. Built once, weakly, as
+    /// ``MenuPopupState/openedPopup`` is.
+    private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
+        isOpen: { [weak self] in self?.menuAnchor != nil },
+        close: { [weak self] in self?.closeMenu() })
+
     /// Copies text: the app's ``ClipboardWriter``, announcing the result.
     var copy: (String) -> Void = { _ in }
 

@@ -63,7 +63,9 @@ private struct ColumnsPage: View {
     private let entries = (1...3).map(Entry.init)
 
     var body: some View {
-        if columns.emptyRowMenu {
+        if columns.emptyRowMenu, columns.toggles {
+            toggleTable.contextMenu(forSelectionType: Int.self) { _ in }
+        } else if columns.emptyRowMenu {
             boundTable.contextMenu(forSelectionType: Int.self) { _ in }
         } else if columns.toggles {
             toggleTable
@@ -488,6 +490,27 @@ struct TableColumnGestureTests {
         harness.app.send(MouseEvent(button: .left, phase: .released, x: beta + 3, y: y))
         harness.frame()
         #expect(harness.columns.customization[width: "alpha"] == nil, "the drag resized Alpha:\n\(harness.screen)")
+        #expect(harness.columns.selection.isEmpty, "\(harness.screen)")
+    }
+
+    @Test("The release of a press that opened a row menu which built nothing toggles no Toggle a frame later")
+    func emptyRowMenuPressSpendsItsReleaseOnAControl() throws {
+        // The menu closed undrawn on the frame after the press, so nothing of
+        // it takes the release; the rows' own check never hears a release on
+        // a cell's control, which wins over the rows' region.
+        let harness = Harness(toggles: true, emptyRowMenu: true)
+        let y = try #require(harness.headerY, "\(harness.screen)")
+        let delta = try #require(harness.column(of: "Delta", on: y))
+        let first = try #require(harness.lines.firstIndex { $0.contains("a1") }, "\(harness.screen)")
+        let second = try #require(harness.lines.firstIndex { $0.contains("a2") })
+        let alpha = try #require(harness.column(of: "a1", on: first))
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: alpha, y: first, ctrl: true))
+        harness.frame()
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: delta + 1, y: second))
+        harness.frame()
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: delta + 1, y: second))
+        harness.frame()
+        #expect(harness.columns.flags.isEmpty, "the release toggled a2:\n\(harness.screen)")
         #expect(harness.columns.selection.isEmpty, "\(harness.screen)")
     }
 

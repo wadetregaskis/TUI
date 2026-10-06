@@ -209,7 +209,7 @@ enum RowContextMenuHost {
     /// press, drag down the rows, release on one to run it. A gesture that
     /// moves and lets go before a frame has drawn the menu closes it, as it
     /// would have closed the drawn menu wherever it let go
-    /// (``MouseEventDispatcher/pressOpenedPopup(closing:)``).
+    /// (``MouseEventDispatcher/pressOpenedPopup(_:)``).
     static func openByPointer(
         _ stateBox: StateBox<RowMenuState>, target: RowMenuTarget, x: Int, y: Int,
         dispatcher: MouseEventDispatcher, onOpen: MenuOpenAction?
@@ -224,7 +224,7 @@ enum RowContextMenuHost {
         stateBox.value = state
         onOpen?()
         dispatcher.handOffGesture()
-        dispatcher.pressOpenedPopup(closing: { state.menu.close() })
+        dispatcher.pressOpenedPopup(state.menu.openedPopup)
     }
 
     /// Opens the menu from the keyboard: on its first item, anchored under the

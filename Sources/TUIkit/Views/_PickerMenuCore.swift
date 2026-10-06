@@ -348,14 +348,16 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                     // already spent on opening (the menu may well be placed over
                     // this very control, and must not read the release as a pick).
                     mouseDispatcher.handOffGesture()
-                    mouseDispatcher.pressOpenedPopup(closing: { handler.isOpen = false })
+                    mouseDispatcher.pressOpenedPopup(
+                        MouseEventDispatcher.OpenedPopup(
+                            isOpen: { handler.isOpen }, close: { handler.isOpen = false }))
                 }
                 return true
             case .released where event.button == .left:
-                // Already acted on, on the press. Only reached when no drop-down
-                // is drawn to take the release (before a frame has drawn it, the
-                // dispatcher spends the release itself) — consumed, never a
-                // second toggle.
+                // Already acted on, on the press, and the release is the
+                // drop-down's: its backdrop takes it once drawn, and while it is
+                // not on screen the dispatcher spends it itself. Should one
+                // arrive anyway — consumed, never a second toggle.
                 return true
             default: return false
             }

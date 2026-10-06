@@ -195,4 +195,23 @@ struct UndrawnPopupGestureTests {
         harness.frame()
         #expect(harness.shows(open.shows), "a click closed the pop-up:\n\(harness.screen)")
     }
+
+    @Test("The release of a press whose menu was closed while the button was held acts on no control")
+    func releaseAfterTheMenuClosedActsOnNoControl() throws {
+        // Escape closes the menu with the button still down; the rest of the
+        // gesture is still the menu's, though nothing of it is on screen.
+        let harness = Harness()
+        let flag = try harness.position(of: "flag")
+        let pull = try harness.position(of: "pull")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: pull.x, y: pull.y))
+        harness.frame()
+        #expect(harness.shows("pulled"), "\(harness.screen)")
+        harness.app.send(KeyEvent(key: .escape))
+        harness.frame()
+        #expect(!harness.shows("pulled"), "\(harness.screen)")
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: flag.x, y: flag.y))
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: flag.x, y: flag.y))
+        harness.frame()
+        #expect(!harness.model.on, "the release toggled the toggle:\n\(harness.screen)")
+    }
 }

@@ -22,6 +22,12 @@ final class MenuPopupState {
         isOpen = false
         controller.closed()
     }
+
+    /// The menu, as the press that opens it hands it to the dispatcher for the
+    /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``).
+    var openedPopup: MouseEventDispatcher.OpenedPopup {
+        MouseEventDispatcher.OpenedPopup(isOpen: { self.isOpen }, close: { self.close() })
+    }
 }
 
 /// The body of ``DefaultMenuStyle``: a collapsed label that opens the items as
@@ -161,7 +167,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
                 } label: {
                     Text(state.isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret)
                 }
-                .menuTrigger(closing: { state.close() })
+                .menuTrigger(state.openedPopup)
                 .focusable(false)
             }
         }
@@ -188,7 +194,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
         // menu — click-and-hold, drag down the rows, release on one to choose
         // it, exactly as a Mac pull-down button behaves. A plain click still
         // works: the menu simply stays up until the next click.
-        .menuTrigger(closing: { state.close() })
+        .menuTrigger(state.openedPopup)
     }
 
     private func triggerContext(_ context: RenderContext) -> RenderContext {

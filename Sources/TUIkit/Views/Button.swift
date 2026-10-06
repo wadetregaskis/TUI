@@ -137,12 +137,12 @@ public struct Button: View {
     /// Set with the ``disabled(_:)`` modifier.
     var isDisabled: Bool
 
-    /// How to close the pop-up menu this button triggers, or `nil` for an
-    /// ordinary button. A trigger runs its action on the PRESS rather than the
-    /// release — see ``menuTrigger(closing:)``.
+    /// The pop-up menu this button triggers, or `nil` for an ordinary button.
+    /// A trigger runs its action on the PRESS rather than the release — see
+    /// ``menuTrigger(_:)``.
     ///
     /// Internal: the only thing that wants it is a menu's own collapsed control.
-    var closeMenu: (() -> Void)?
+    var triggeredMenu: MouseEventDispatcher.OpenedPopup?
 
     /// Creates a button with a localized label and an action.
     ///
@@ -319,7 +319,7 @@ public struct Button: View {
             role: role,
             focusID: focusID,
             isDisabled: isDisabled,
-            closeMenu: closeMenu
+            triggeredMenu: triggeredMenu
         )
     }
 }
@@ -338,12 +338,12 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     let role: ButtonRole?
     let focusID: String?
     let isDisabled: Bool
-    /// How to close the menu this button triggers, or `nil` for an ordinary
-    /// button — see ``Button/menuTrigger(closing:)``.
-    var closeMenu: (() -> Void)?
+    /// The menu this button triggers, or `nil` for an ordinary button — see
+    /// ``Button/menuTrigger(_:)``.
+    var triggeredMenu: MouseEventDispatcher.OpenedPopup?
 
     /// Whether this button is a pop-up menu's trigger.
-    private var isMenuTrigger: Bool { closeMenu != nil }
+    private var isMenuTrigger: Bool { triggeredMenu != nil }
 
     var body: Never {
         fatalError("_ButtonCore renders via Renderable")
@@ -725,14 +725,15 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     focusManager?.focus(id: captureFocusID)
                     captureAction()
                     mouseDispatcher.handOffGesture()
-                    mouseDispatcher.pressOpenedPopup(closing: closeMenu)
+                    if let triggeredMenu { mouseDispatcher.pressOpenedPopup(triggeredMenu) }
                     return true
                 case .released where event.button == .left:
-                    // The trigger already fired on the press. This release only
-                    // arrives when no menu is drawn to take it — one with nothing
-                    // in it; before a frame has drawn the menu, the dispatcher
-                    // spends the release itself — consumed, but never a second
-                    // activation, which would toggle the menu straight shut.
+                    // The trigger already fired on the press, and its release is
+                    // the menu's: the drawn menu's backdrop covers this button,
+                    // and while the menu is not on screen the dispatcher spends
+                    // the release itself. Should one arrive anyway, it is
+                    // consumed, but never a second activation, which would toggle
+                    // the menu straight shut.
                     guard !isMenuTrigger else { return true }
                     capturePressBox.value = false
                     // A repeating button already acted while held.
@@ -892,14 +893,15 @@ extension Button {
     /// button keeps firing on release, so you can still slide off one to change
     /// your mind.
     ///
-    /// - Parameter closing: Closes the menu — for a press that opened it and
-    ///   whose gesture ends in a held release before any frame has drawn it,
-    ///   which closes it as the drawn menu's backdrop would have
-    ///   (``MouseEventDispatcher/pressOpenedPopup(closing:)``).
+    /// - Parameter menu: The menu: whether it is open, and how to close it,
+    ///   for the rest of the gesture of a press that opened it — the
+    ///   dispatcher spends that gesture while the menu is not on screen, and
+    ///   closes it on a held release, as the drawn menu's backdrop would have
+    ///   (``MouseEventDispatcher/pressOpenedPopup(_:)``).
     /// - Returns: A button that opens its menu on the press.
-    func menuTrigger(closing: @escaping () -> Void) -> Button {
+    func menuTrigger(_ menu: MouseEventDispatcher.OpenedPopup) -> Button {
         var copy = self
-        copy.closeMenu = closing
+        copy.triggeredMenu = menu
         return copy
     }
 
