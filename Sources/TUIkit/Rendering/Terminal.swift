@@ -721,11 +721,11 @@ extension Terminal {
     }
 
     /// What the terminal is owed should the process die of `SIGQUIT`, the
-    /// user's quit key: what a quit writes, in a quit's order — the styling
-    /// reset (`RenderLoop.restoreTerminalStyling()`), ``signalDebt``, which is
-    /// raw mode's teardown and the cursor shown, and the alternate screen
-    /// left (``isOnAlternateScreen``). Unlike a crash, a quit has no report
-    /// to keep on the screen.
+    /// user's quit key: what a quit writes (``handBack(farewell:restoringStyling:)``),
+    /// in a quit's order — the styling reset (`RenderLoop.restoreTerminalStyling()`),
+    /// ``signalDebt``, which is raw mode's teardown and the cursor shown, and
+    /// the alternate screen left (``isOnAlternateScreen``). Unlike a crash, a
+    /// quit has no report to keep on the screen.
     var quitDebt: String {
         ANSIRenderer.reset + signalDebt + (isOnAlternateScreen ? ANSIRenderer.exitAlternateScreen : "")
     }
@@ -949,6 +949,29 @@ extension Terminal {
         write(ANSIRenderer.exitAlternateScreen)
         isOnAlternateScreen = false
         armSignalRestore()
+    }
+
+    /// Hands the terminal back to the shell: what a quit and a suspend write
+    /// on the way out, in their order — `farewell` (a quit's, or nothing),
+    /// the styling the last frame left in force reset (`restoreStyling`),
+    /// raw mode off (``disableRawMode()``), the cursor shown and the
+    /// alternate screen left. ``quitDebt`` is these bytes for a `SIGQUIT`,
+    /// which skips the teardown, and a test holds the two to each other.
+    ///
+    /// - Parameters:
+    ///   - farewell: What the app owes the terminal before it lets go: a
+    ///     quit's image deletes (`TerminalImageStore.releaseAll()`) and the
+    ///     clipboard copies no frame has written yet
+    ///     (`ClipboardWriter.takePendingSequences()`).
+    ///   - restoreStyling: Resets the styling a frame left in force, which
+    ///     leaving the alternate screen does not:
+    ///     `RenderLoop.restoreTerminalStyling()`.
+    func handBack(farewell: String = "", restoringStyling restoreStyling: () -> Void) {
+        if !farewell.isEmpty { write(farewell) }
+        restoreStyling()
+        disableRawMode()
+        showCursor()
+        exitAlternateScreen()
     }
 
     /// Removes `n` bytes from the front of the buffer and, if the

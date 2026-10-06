@@ -132,10 +132,11 @@ extension TerminalOutputTests {
             let owed = terminal.quitDebt
             #expect(!terminal.signalDebt.contains(ANSIRenderer.exitAlternateScreen), "a crash keeps its report up")
             output.clear()
-            terminal.write(ANSIRenderer.reset)
-            terminal.disableRawMode()
-            terminal.showCursor()
-            terminal.exitAlternateScreen()
+            // What `AppRunner.cleanup` writes: its hand-back, with the styling
+            // reset by a diff writer that cannot know the terminal is in the
+            // default styling — the reset a SIGQUIT has to pay.
+            let diffWriter = FrameDiffWriter()
+            terminal.handBack(restoringStyling: { diffWriter.restoreDefaultStyling(on: terminal) })
             #expect(owed == output.bytes, "pushed: \(pushed), pinned: \(pinned)")
             #expect(!terminal.quitDebt.hasSuffix(ANSIRenderer.exitAlternateScreen), "off the alternate screen, nothing to leave")
         }

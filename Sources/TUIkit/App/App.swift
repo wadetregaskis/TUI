@@ -691,12 +691,9 @@ extension AppRunner {
     /// diff-cache invalidation — restores whatever mode the scene wants.
     fileprivate func suspendUntilContinued(renderer: RenderLoop<A>) {
         terminal.applyMouseSupport(.disabled)
-        // Before the screen goes back: a frame may have ended with styling in
+        // The styling reset first: a frame may have ended with styling in
         // force, and leaving the alternate screen does not restore SGR.
-        renderer.restoreTerminalStyling()
-        terminal.disableRawMode()
-        terminal.showCursor()
-        terminal.exitAlternateScreen()
+        terminal.handBack(restoringStyling: renderer.restoreTerminalStyling)
         // The shell's screen is back, so held soft-trap reports can be read there.
         SoftTrap.terminalRestored()
         // Our own resume delivers a SIGCONT too; the repaint is already
@@ -858,18 +855,14 @@ extension AppRunner {
         // nobody can see. Written directly rather than queued: there is no
         // further frame to drain it.
         tuiContext.terminalImageStore.releaseAll()
-        let farewell = tuiContext.terminalImageStore.takePending()
-        if !farewell.isEmpty { terminal.write(farewell) }
-        // And a copy made in the last moments — a Ctrl-C and then `q` before a
-        // frame drew — which is still owed to the terminal's clipboard.
-        let copies = tuiContext.clipboardWriter.takePendingSequences()
-        if !copies.isEmpty { terminal.write(copies) }
-
-        // See the twin in `suspendUntilContinued`.
-        renderer.restoreTerminalStyling()
-        terminal.disableRawMode()
-        terminal.showCursor()
-        terminal.exitAlternateScreen()
+        // The same hand-back as `suspendUntilContinued`'s, with the farewell:
+        // the image deletes, and then a copy made in the last moments — a
+        // Ctrl-C and then `q` before a frame drew — which is still owed to the
+        // terminal's clipboard.
+        terminal.handBack(
+            farewell: tuiContext.terminalImageStore.takePending()
+                + tuiContext.clipboardWriter.takePendingSequences(),
+            restoringStyling: renderer.restoreTerminalStyling)
         SoftTrap.terminalRestored()
         signals.stop()
         appState.clearObservers()
