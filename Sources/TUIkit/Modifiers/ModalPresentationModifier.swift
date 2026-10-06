@@ -211,38 +211,10 @@ extension ModalPresentationModifier: Renderable {
             baseBuffer.animatedCells = []
         }
 
-        // Render the modal content against the CONTENT AREA (screen minus app
-        // header and status bar), not the full terminal height, in the modal
-        // section so its focusables register there. The compositor clamps
-        // overlays to that same content area (top-biased), so a dialog built
-        // against the full height would have its bottom rows — the footer with
-        // Done/Cancel and the bottom border — sliced off, reading as "sliding
-        // under the status bar". Building against `overlayContentHeight` makes
-        // the container reserve its footer within the visible area instead. Width
-        // is still the full terminal width (the horizontal clamp already works).
+        // The content's context: the content area's height, the modal's
+        // section, and the presentation's ways out (`presentedContext`).
         let overlayHeight = context.environment.overlayContentHeight
-        // The item's id IS the identity, for the `item:` forms. Presenting for
-        // one row and then another handed the second row's content the first
-        // row's `@State` — a half-typed draft, a scroll position, a selection —
-        // because index 1 is the same slot whatever the sheet is about. That is
-        // exactly what `ForEach` keys its rows by their element's id to avoid,
-        // so this is the same `.keyed` step, for the same reason. The
-        // `isPresented:` forms keep the positional slot: nothing about them
-        // varies, and re-keying a presentation that is about nothing would only
-        // throw its state away.
-        var modalContext =
-            (itemKey.map { context.withChildIdentity(erasedType: Modal.self, key: $0) }
-            ?? context.withChildIdentity(type: Modal.self, index: 1))
-            .withAvailableWidth(context.environment.terminalWidth)
-            .withAvailableHeight(overlayHeight)
-        modalContext.environment.activeFocusSectionID = sectionID
-        // Its `.toolbar`s draw their items themselves, in the sheet: the
-        // window's bars are inert while it is up.
-        modalContext.environment.presentationHostsToolbar = true
-        modalContext.leaveScrollCanvas()
-        modalContext.environment.dismiss = dismissAction()
-        modalContext.environment.isPresented = true
-        modalContext.environment.dismissalGate = gate
+        let modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
 
         // A detent, if the content named one, decides the height instead of the
         // content's own. It has to be read BEFORE the render — it is the height
@@ -260,21 +232,9 @@ extension ModalPresentationModifier: Renderable {
         let isGrabbed = SheetGrabber.isShown(
             detents, visibility: presentationTrait(PresentationDragIndicatorProviding.self, of: modal)?
                 .dragIndicatorVisibility)
-        var modalBuffer = gate.drawingContent(context: context) {
-            renderModal(
-                context: context, modalContext: modalContext, overlayHeight: overlayHeight,
-                detentHeight: detents?.height.map { isGrabbed ? max(1, $0 - 1) : $0 })
-        }
-        // Registered before the content drew, so that the content's own items
-        // in this section replace it, the ESC item is named for what Escape
-        // does now it has: "cancel" where it presses the content's cancel
-        // button, which may keep the sheet up — not "dismiss" — and repeating
-        // only if that button does.
-        if let escapeItemRegistration, gate.escapePressesCancelButton {
-            context.environment.statusBar?.replaceSectionItems(
-                registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
-        }
-
+        var modalBuffer = drawSheet(
+            modalContext: modalContext, detents: detents, isGrabbed: isGrabbed, gate: gate, escape: escape,
+            escapeItemRegistration: escapeItemRegistration, sectionID: sectionID, context: context)
         guard !modalBuffer.isEmpty else { return baseBuffer }
 
         // A detented sheet rests on the bottom edge, as a sheet with detents
@@ -282,13 +242,6 @@ extension ModalPresentationModifier: Renderable {
         // it grows from stays put. Not draggable, as a cover is not: its
         // place is the edge. Its grabber is what moves it.
         if let detents, detents.height != nil {
-            if isGrabbed {
-                let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
-                modalBuffer = SheetGrabber.attach(
-                    to: modalBuffer, detents: detents, contentInteraction: interaction?.contentInteraction ?? .automatic,
-                    sectionID: sectionID, focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber,
-                    context: context)
-            }
             baseBuffer.overlays.append(.dockedAtBottom(content: modalBuffer, level: .modal, dimsBackground: true))
             return baseBuffer
         }
@@ -312,6 +265,38 @@ extension ModalPresentationModifier: Renderable {
                 offsetX: dragOffset.x, offsetY: dragOffset.y, content: modalBuffer,
                 level: .modal, centered: true, dimsBackground: style == .sheet))
         return baseBuffer
+    }
+
+    /// The presented content, drawn — a row short of its detent under a
+    /// grabber — with what is attached once it has drawn: the ESC item named
+    /// for what Escape does now (`escapeItemRegistration`), and the grabber
+    /// on a detented sheet's top edge.
+    func drawSheet(
+        modalContext: RenderContext, detents: PresentedDetents?, isGrabbed: Bool, gate: DismissalGate,
+        escape: @escaping (_ isRepeat: Bool) -> Void, escapeItemRegistration: Int?, sectionID: String,
+        context: RenderContext
+    ) -> FrameBuffer {
+        let modalBuffer = gate.drawingContent(context: context) {
+            renderModal(
+                context: context, modalContext: modalContext,
+                overlayHeight: context.environment.overlayContentHeight,
+                detentHeight: detents?.height.map { isGrabbed ? max(1, $0 - 1) : $0 })
+        }
+        // Registered before the content drew, so that the content's own items
+        // in this section replace it, the ESC item is named for what Escape
+        // does now it has: "cancel" where it presses the content's cancel
+        // button, which may keep the sheet up — not "dismiss" — and repeating
+        // only if that button does.
+        if let escapeItemRegistration, gate.escapePressesCancelButton {
+            context.environment.statusBar?.replaceSectionItems(
+                registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
+        }
+        guard !modalBuffer.isEmpty, isGrabbed, let detents, detents.height != nil else { return modalBuffer }
+        let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
+        return SheetGrabber.attach(
+            to: modalBuffer, detents: detents, contentInteraction: interaction?.contentInteraction ?? .automatic,
+            sectionID: sectionID, focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber,
+            context: context)
     }
 
     /// Makes the presented sheet the keyboard's for this frame: its focus
@@ -395,106 +380,6 @@ extension ModalPresentationModifier: Renderable {
         }
         return registration
     }
-
-    /// The presentation's ESC item on the status bar: `escape`, named for
-    /// what it does this frame (``DismissalGate/escapeLabel(dismissal:)``),
-    /// and taking a held Escape's repeats as that does
-    /// (``DismissalGate/escapeRepeats``). A click is a press.
-    private func escapeItem(gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void) -> StatusBarItem {
-        var item = StatusBarItem(shortcut: Shortcut.escape, label: gate.escapeLabel(dismissal: .dismiss)) {
-            escape(false)
-        }
-        item.repeats = gate.escapeRepeats
-        return item
-    }
-
-    /// Renders the presented content at the size its style gives it: a sheet
-    /// at its own height or its detent's (`detentHeight`), a cover over the
-    /// whole content area.
-    private func renderModal(
-        context: RenderContext, modalContext: RenderContext, overlayHeight: Int, detentHeight: Int?
-    ) -> FrameBuffer {
-        // A `presentationBackground` the content named fills the presentation —
-        // the sheet's box, or the cover's whole area — so it goes around what
-        // is presented here, where that size is known.
-        let background = presentationTrait(PresentationBackgroundProviding.self, of: modal)
-
-        switch style {
-        case .sheet:
-            var sheetContext = modalContext
-            var capHeight = overlayHeight
-            // A sizing the content named proposes the sheet's size, and its box
-            // takes it — the height as a detent's, the width likewise (see
-            // ``EnvironmentValues/sheetProposedWidth``). A detent's height wins.
-            if let sizing = presentationTrait(PresentationSizingProviding.self, of: modal)?.sizing,
-                let proposedHeight = applyPresentationSizing(
-                    sizing, of: modal, to: &sheetContext, hasDetent: detentHeight != nil,
-                    kept: keptSheetSize(context: context)?.presenting(itemKey))
-            {
-                capHeight = proposedHeight
-            }
-            if let detentHeight {
-                // The height goes to the sheet's own box, via the environment
-                // (``EnvironmentValues/sheetDetentHeight``) — NOT as a frame
-                // around it. A fixed frame is top-aligned and a `Dialog` sizes
-                // to its content, so wrapping left the leftover rows as blank,
-                // unstyled, opaque overlay lines: a hole punched through the
-                // page below the dialog, belonging to nothing.
-                sheetContext.availableHeight = detentHeight
-                sheetContext.environment.sheetDetentHeight = detentHeight
-                capHeight = detentHeight
-            }
-            if let background {
-                return renderPresentedDialog(
-                    background.presentationBackground(behind: modal), context: sheetContext,
-                    capHeight: capHeight)
-            }
-            return renderPresentedDialog(modal, context: sheetContext, capHeight: capHeight)
-        case .fullScreen:
-            // The cover IS the screen: full width and the whole content area,
-            // so there is nothing of the page left to show through and nothing
-            // to dim.
-            //
-            // Centred, explicitly. `frame(width:height:)` defaults to
-            // `.topLeading` — deliberately, because a fixed frame is usually a
-            // left-aligned column — but a cover is the opposite case: content
-            // smaller than the screen, with the whole screen as its stage, and
-            // SwiftUI centres it. Left at the default, a three-line message
-            // huddles in the top-left corner of an otherwise empty terminal.
-            let cover = modal.frame(
-                width: context.environment.terminalWidth, height: overlayHeight, alignment: .center)
-            if let background {
-                return renderPresentedDialog(
-                    background.presentationBackground(behind: cover), context: modalContext,
-                    capHeight: overlayHeight)
-            }
-            return renderPresentedDialog(cover, context: modalContext, capHeight: overlayHeight)
-        }
-    }
-}
-
-/// Renders presented dialog `content` into a buffer, embedding it in an
-/// otherwise-invisible `ScrollView` capped to `capHeight` when its natural
-/// height exceeds the visible area — so an over-tall dialog (a big colour
-/// picker, a long form) stays fully reachable by scrolling instead of having
-/// its footer/buttons clipped under the status bar. When the content fits it is
-/// rendered as-is: no ScrollView, no scrollbar, no extra focus stop — nothing
-/// to detect. The wrapping ScrollView follows the focused control (the reveal
-/// system), so Tabbing through the dialog scrolls it into view, and the wheel
-/// scrolls it too.
-@MainActor
-func renderPresentedDialog<V: View>(
-    _ content: V, context: RenderContext, capHeight: Int
-) -> FrameBuffer {
-    let naturalHeight = measureChild(
-        content, proposal: ProposedSize(width: context.availableWidth, height: nil),
-        context: context
-    ).height
-    if capHeight > 0, naturalHeight > capHeight {
-        let scrolled = ScrollView(.vertical) { content }.asChrome().frame(height: capHeight)
-        return TUIkit.renderToBuffer(scrolled, context: context)
-    }
-    return TUIkit.renderToBuffer(content, context: context)
 }
 
 /// StateStorage property indices for ``ModalPresentationModifier``. A free enum
@@ -517,7 +402,7 @@ private enum StateIndex {
 
 extension ModalPresentationModifier {
     /// The presenter's record of the largest size a sticky sizing has kept.
-    fileprivate func keptSheetSize(context: RenderContext) -> KeptSheetSize? {
+    func keptSheetSize(context: RenderContext) -> KeptSheetSize? {
         context.stateStorage?.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.keptSheetSize),
             default: KeptSheetSize()
@@ -538,7 +423,7 @@ extension ModalPresentationModifier {
     }
 
     /// The presenter's record of the detent the reader moved the sheet to.
-    fileprivate func detentState(context: RenderContext) -> SheetDetentState {
+    func detentState(context: RenderContext) -> SheetDetentState {
         context.stateStorage?.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.detentState),
             default: SheetDetentState()

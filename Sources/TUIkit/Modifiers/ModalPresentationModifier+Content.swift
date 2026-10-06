@@ -1,0 +1,149 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ModalPresentationModifier+Content.swift
+//
+//  The presented content of a sheet or cover: the context it renders in, its
+//  ESC item, and its drawing at the size its style and detent give it.
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+extension ModalPresentationModifier {
+    /// The context the presented content renders in.
+    func presentedContext(
+        sectionID: String, gate: DismissalGate, overlayHeight: Int, context: RenderContext
+    ) -> RenderContext {
+        // Render the modal content against the CONTENT AREA (screen minus app
+        // header and status bar), not the full terminal height, in the modal
+        // section so its focusables register there. The compositor clamps
+        // overlays to that same content area (top-biased), so a dialog built
+        // against the full height would have its bottom rows — the footer with
+        // Done/Cancel and the bottom border — sliced off, reading as "sliding
+        // under the status bar". Building against `overlayContentHeight` makes
+        // the container reserve its footer within the visible area instead. Width
+        // is still the full terminal width (the horizontal clamp already works).
+        //
+        // The item's id IS the identity, for the `item:` forms. Presenting for
+        // one row and then another handed the second row's content the first
+        // row's `@State` — a half-typed draft, a scroll position, a selection —
+        // because index 1 is the same slot whatever the sheet is about. That is
+        // exactly what `ForEach` keys its rows by their element's id to avoid,
+        // so this is the same `.keyed` step, for the same reason. The
+        // `isPresented:` forms keep the positional slot: nothing about them
+        // varies, and re-keying a presentation that is about nothing would only
+        // throw its state away.
+        var modalContext =
+            (itemKey.map { context.withChildIdentity(erasedType: Modal.self, key: $0) }
+            ?? context.withChildIdentity(type: Modal.self, index: 1))
+            .withAvailableWidth(context.environment.terminalWidth)
+            .withAvailableHeight(overlayHeight)
+        modalContext.environment.activeFocusSectionID = sectionID
+        // Its `.toolbar`s draw their items themselves, in the sheet: the
+        // window's bars are inert while it is up.
+        modalContext.environment.presentationHostsToolbar = true
+        modalContext.leaveScrollCanvas()
+        modalContext.environment.dismiss = dismissAction()
+        modalContext.environment.isPresented = true
+        modalContext.environment.dismissalGate = gate
+        return modalContext
+    }
+
+    /// The presentation's ESC item on the status bar: `escape`, named for
+    /// what it does this frame (``DismissalGate/escapeLabel(dismissal:)``),
+    /// and taking a held Escape's repeats as that does
+    /// (``DismissalGate/escapeRepeats``). A click is a press.
+    func escapeItem(gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void) -> StatusBarItem {
+        var item = StatusBarItem(shortcut: Shortcut.escape, label: gate.escapeLabel(dismissal: .dismiss)) {
+            escape(false)
+        }
+        item.repeats = gate.escapeRepeats
+        return item
+    }
+
+    /// Renders the presented content at the size its style gives it: a sheet
+    /// at its own height or its detent's (`detentHeight`), a cover over the
+    /// whole content area.
+    func renderModal(
+        context: RenderContext, modalContext: RenderContext, overlayHeight: Int, detentHeight: Int?
+    ) -> FrameBuffer {
+        // A `presentationBackground` the content named fills the presentation —
+        // the sheet's box, or the cover's whole area — so it goes around what
+        // is presented here, where that size is known.
+        let background = presentationTrait(PresentationBackgroundProviding.self, of: modal)
+
+        switch style {
+        case .sheet:
+            var sheetContext = modalContext
+            var capHeight = overlayHeight
+            // A sizing the content named proposes the sheet's size, and its box
+            // takes it — the height as a detent's, the width likewise (see
+            // ``EnvironmentValues/sheetProposedWidth``). A detent's height wins.
+            if let sizing = presentationTrait(PresentationSizingProviding.self, of: modal)?.sizing,
+                let proposedHeight = applyPresentationSizing(
+                    sizing, of: modal, to: &sheetContext, hasDetent: detentHeight != nil,
+                    kept: keptSheetSize(context: context)?.presenting(itemKey))
+            {
+                capHeight = proposedHeight
+            }
+            if let detentHeight {
+                // The height goes to the sheet's own box, via the environment
+                // (``EnvironmentValues/sheetDetentHeight``) — NOT as a frame
+                // around it. A fixed frame is top-aligned and a `Dialog` sizes
+                // to its content, so wrapping left the leftover rows as blank,
+                // unstyled, opaque overlay lines: a hole punched through the
+                // page below the dialog, belonging to nothing.
+                sheetContext.availableHeight = detentHeight
+                sheetContext.environment.sheetDetentHeight = detentHeight
+                capHeight = detentHeight
+            }
+            if let background {
+                return renderPresentedDialog(
+                    background.presentationBackground(behind: modal), context: sheetContext,
+                    capHeight: capHeight)
+            }
+            return renderPresentedDialog(modal, context: sheetContext, capHeight: capHeight)
+        case .fullScreen:
+            // The cover IS the screen: full width and the whole content area,
+            // so there is nothing of the page left to show through and nothing
+            // to dim.
+            //
+            // Centred, explicitly. `frame(width:height:)` defaults to
+            // `.topLeading` — deliberately, because a fixed frame is usually a
+            // left-aligned column — but a cover is the opposite case: content
+            // smaller than the screen, with the whole screen as its stage, and
+            // SwiftUI centres it. Left at the default, a three-line message
+            // huddles in the top-left corner of an otherwise empty terminal.
+            let cover = modal.frame(
+                width: context.environment.terminalWidth, height: overlayHeight, alignment: .center)
+            if let background {
+                return renderPresentedDialog(
+                    background.presentationBackground(behind: cover), context: modalContext,
+                    capHeight: overlayHeight)
+            }
+            return renderPresentedDialog(cover, context: modalContext, capHeight: overlayHeight)
+        }
+    }
+}
+
+/// Renders presented dialog `content` into a buffer, embedding it in an
+/// otherwise-invisible `ScrollView` capped to `capHeight` when its natural
+/// height exceeds the visible area — so an over-tall dialog (a big colour
+/// picker, a long form) stays fully reachable by scrolling instead of having
+/// its footer/buttons clipped under the status bar. When the content fits it is
+/// rendered as-is: no ScrollView, no scrollbar, no extra focus stop — nothing
+/// to detect. The wrapping ScrollView follows the focused control (the reveal
+/// system), so Tabbing through the dialog scrolls it into view, and the wheel
+/// scrolls it too.
+@MainActor
+func renderPresentedDialog<V: View>(
+    _ content: V, context: RenderContext, capHeight: Int
+) -> FrameBuffer {
+    let naturalHeight = measureChild(
+        content, proposal: ProposedSize(width: context.availableWidth, height: nil),
+        context: context
+    ).height
+    if capHeight > 0, naturalHeight > capHeight {
+        let scrolled = ScrollView(.vertical) { content }.asChrome().frame(height: capHeight)
+        return TUIkit.renderToBuffer(scrolled, context: context)
+    }
+    return TUIkit.renderToBuffer(content, context: context)
+}
