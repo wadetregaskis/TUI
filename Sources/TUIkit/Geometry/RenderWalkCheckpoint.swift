@@ -25,7 +25,11 @@ import TUIkitView
 ///   compare against an empty slot and fire as though for the first time;
 /// - key handlers append, and a duplicate that declines with a side effect
 ///   runs it twice;
-/// - preferences reduce, so an accumulating key would count the subtree twice.
+/// - preferences reduce, so an accumulating key would count the subtree twice;
+/// - a memo recording around the subtree (`EffectJournal`) would keep what
+///   both drawings registered, and make the first drawing's registrations
+///   again on every frame it serves — the handlers of rows the frame never
+///   showed.
 ///
 /// ``rollBack(context:)`` puts those back. What it cannot put back is what the
 /// first drawing DID: an `onChange` that fired, a task that started. Those
@@ -33,6 +37,15 @@ import TUIkitView
 /// correction re-render had until the window's chrome was adopted a frame
 /// late (`RenderPassScopeTests`), scoped to the subtree, and made only as
 /// often as a reader's answer moves.
+///
+/// Nor does it put back the live registrations that are not numbered by
+/// position: a control's place in the focus ring, a keyboard shortcut, a
+/// status-bar item, a drop target. Those registries take a second
+/// registration of the same thing as one, so a view drawn in both drawings is
+/// registered once; but a view drawn only in the first — a row of a band the
+/// scroll view replaced — stays registered for the frame, in the first
+/// drawing's order (the bug class `RenderLoop.beginSceneRender()` describes,
+/// for the whole scene). What a memo records of them is put back, above.
 ///
 /// A scroll view drawing its content again for a reason of its own — a band
 /// that does not cover the offset the frame settled on — puts the walk back
@@ -46,6 +59,9 @@ struct RenderWalkCheckpoint {
     private let onChangeCount: Int?
     private let keyMark: KeyEventDispatcher.Mark?
     private let preferences: PreferenceValues?
+    /// How many entries the recording memo's journal held, or `nil` when no
+    /// memo records here.
+    private let journalCount: Int?
 
     /// Notes where the walk stands, before the subtree at `context.identity`
     /// renders.
@@ -57,6 +73,7 @@ struct RenderWalkCheckpoint {
         onChangeCount = context.stateStorage?.onChangeCount(at: identity)
         keyMark = context.environment.keyEventDispatcher?.mark
         preferences = context.environment.preferenceStorage?.current
+        journalCount = context.recordingEffectJournal?.count
     }
 
     /// Puts the registrations back to where they stood, for the subtree to be
@@ -81,6 +98,7 @@ struct RenderWalkCheckpoint {
         context.stateStorage?.rewindOnChangeCounters(at: identity, to: onChangeCount)
         if let keyMark { context.environment.keyEventDispatcher?.rollBack(to: keyMark) }
         if let preferences { context.environment.preferenceStorage?.current = preferences }
+        if let journalCount { context.renderCache?.effectJournal.truncate(to: journalCount) }
         // A value the first drawing saw for the first time, and the second sees
         // differently, appears at the second's: the first is never shown, so
         // there is nothing for it to animate from (`AnimationStore.beginWalk()`).

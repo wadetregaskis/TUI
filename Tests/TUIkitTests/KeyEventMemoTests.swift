@@ -122,6 +122,30 @@ private struct Board: View, @MainActor Equatable {
     }
 }
 
+/// A log following its tail, whose rows each log their index and decline the
+/// key, equal to another of the same length: a memo stores it whenever it
+/// draws it.
+private struct GluedLog: View, @MainActor Equatable {
+    let count: Int
+    let log: KeyLog
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.count == rhs.count && lhs.log === rhs.log }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<count, id: \.self) { [log] index in
+                    Text("row \(index)").onKeyEvent { _ in
+                        log.entries.append("\(index)")
+                        return false
+                    }
+                }
+            }
+        }
+        .defaultScrollAnchor(.bottom)
+    }
+}
+
 /// A leaf that registers a key handler or not, while comparing equal either
 /// way: the kind of lie the render-memo verifier exists to catch.
 private struct FlagLeaf: View, @MainActor Equatable {
@@ -252,6 +276,40 @@ struct KeyEventMemoTests {
         #expect(orders[0] == ["after", "r2", "r1", "before", "outer"])
         #expect(orders[1] == orders[0], "the first served frame dispatched in another order")
         #expect(orders[2] == orders[0], "the second served frame dispatched in another order")
+    }
+
+    @Test("A memo recording a frame on which a scroll view draws its band again replays only the band it shows")
+    func bandRedrawUnderRecordingMemo() {
+        let harness = InputChainHarness(width: 20, height: 8)
+        let log = KeyLog()
+        func page(_ count: Int) -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                // Holds the focus, so the scroll view's registration is one a
+                // memo makes again.
+                Button("top") {}
+                GluedLog(count: count, log: log).equatable().frame(height: 5)
+            }
+        }
+        func press() -> [String] {
+            log.entries = []
+            _ = harness.tui.keyEventDispatcher.dispatch(KeyEvent(character: "x"))
+            return log.entries
+        }
+        harness.frame(page(30))
+        harness.frame(page(30))
+        // Three rows arrive at once: the tail moves past the band's margin, and
+        // the scroll view draws its content again at the new tail, while the
+        // memo around it records what the content registers.
+        harness.frame(page(33))
+        let live = press()
+        #expect(live.contains("32"), "\(live)")
+        #expect(!live.contains("24"), "\(live)")
+        let missesBefore = harness.tui.renderCache.stats.misses
+        harness.frame(page(33))
+        #expect(harness.tui.renderCache.stats.misses == missesBefore, "the log was not served")
+        // Served, it registers what the frame that drew it registered — not the
+        // rows of the band that frame drew first and threw away as well.
+        #expect(press() == live)
     }
 
     @Test("The same memoized subtree under a different focus section registers in the new section")

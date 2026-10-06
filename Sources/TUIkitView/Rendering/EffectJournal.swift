@@ -140,6 +140,16 @@ package final class EffectJournal {
     package func entries(since start: Int) -> ArraySlice<Entry> {
         entries[start...]
     }
+
+    /// Drops the entries appended since ``count`` was `count`, for a walk put
+    /// back to where it stood then (`RenderWalkCheckpoint`): what the subtree
+    /// registered in a drawing the frame throws away is registered again by
+    /// the drawing that replaces it, and kept, a memo would make both on every
+    /// hit.
+    package func truncate(to count: Int) {
+        guard entries.count > count else { return }
+        entries.removeSubrange(count...)
+    }
 }
 
 extension RenderContext {

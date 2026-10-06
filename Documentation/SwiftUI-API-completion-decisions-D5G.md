@@ -87,8 +87,14 @@ run twice per frame with readers inside a surface. About a day.
 A correction draws the owner's subtree once more in the same walk. The
 registrations the first drawing made are put back first
 (`RenderWalkCheckpoint`: mouse and marker ids, `onChange` indices, key
-handlers, preferences, and the render cache below the owner), so the second
-drawing takes the same ids and indices and nothing is registered twice. What
+handlers, preferences, what a memo recording around the owner kept of them,
+and the render cache below the owner), so the second drawing takes the same
+ids and indices and nothing is registered twice. A scroll view that draws its
+band again at the offset the frame settled on puts the same things back but
+the cache. The registries that take a second registration of the same thing
+as one — the focus ring, keyboard shortcuts, status-bar items, drop targets
+— are not put back: a view only the first drawing drew (a row of a band the
+scroll view replaced) stays registered for that frame. What
 the first drawing DID cannot be put back: an `onChange` that fired runs again
 against the first drawing's value — on a reader's first frame, an
 `.onChange(of: proxy.frame(in: …).minY)` fires once from the guess to the
