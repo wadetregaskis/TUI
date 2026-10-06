@@ -96,7 +96,8 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                 chrome.declare(
                     WindowChromeState.ToolbarEntry(
                         placement: item.placement, view: item.view, environment: context.environment,
-                        identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity))
+                        identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity,
+                        isFlexibleSpace: item.isFlexibleSpace))
             }
             return TUIkit.renderToBuffer(content, context: context)
         }

@@ -157,10 +157,14 @@ public struct ToolbarSpacer: ToolbarContent {
 }
 
 extension ToolbarSpacer: _ToolbarContentPrimitive {
+    /// A fixed spacer is a column of space, drawn as an item; a flexible one is
+    /// marked, and the bar lays it out as a `Spacer` of its own — wrapped in an
+    /// item it was no spacer to the bar's stack, which tells spacers by type,
+    /// and the items either side of it stayed together.
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         let view =
             sizing.isFlexible
             ? AnyView(Spacer(minLength: 0)) : AnyView(Text(" "))
-        items.append(placement: placement, view: view)
+        items.append(placement: placement, view: view, isFlexibleSpace: sizing.isFlexible)
     }
 }

@@ -78,7 +78,8 @@ extension _ToolbarModifier {
                 }
             let entry = WindowChromeState.ToolbarEntry(
                 placement: item.placement, view: view, environment: context.environment,
-                identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity)
+                identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity,
+                isFlexibleSpace: item.isFlexibleSpace)
             if item.placement.isPresentationButtonRow {
                 bottom.append(entry)
             } else {

@@ -68,6 +68,8 @@ final class WindowChromeState: @unchecked Sendable {
         let environment: EnvironmentValues
         /// The identity it was declared at.
         let identity: ViewIdentity
+        /// Whether it is a flexible ``ToolbarSpacer``: laid out as a `Spacer`.
+        var isFlexibleSpace = false
     }
 
     /// One bar's reservation and the history its oscillation guard reads.

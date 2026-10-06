@@ -39,9 +39,7 @@ struct _ToolbarBarRow: View {
             entries.filter { region(of: $0) == .secondary }
             + inButtonRowOrder(entries.filter { region(of: $0) == .trailing })
         HStack(spacing: 1) {
-            ForEach(leading.indices, id: \.self) { index in
-                _ToolbarEntryView(entry: leading[index])
-            }
+            _ToolbarItemRun(entries: leading)
             if principal.isEmpty, !title.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(verbatim: title).bold()
@@ -52,14 +50,10 @@ struct _ToolbarBarRow: View {
             }
             Spacer(minLength: 0)
             if !principal.isEmpty {
-                ForEach(principal.indices, id: \.self) { index in
-                    _ToolbarEntryView(entry: principal[index])
-                }
+                _ToolbarItemRun(entries: principal)
                 Spacer(minLength: 0)
             }
-            ForEach(trailing.indices, id: \.self) { index in
-                _ToolbarEntryView(entry: trailing[index])
-            }
+            _ToolbarItemRun(entries: trailing)
         }
     }
 }
@@ -85,6 +79,38 @@ extension _ToolbarBarRow {
         return entries.enumerated()
             .sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
             .map(\.element)
+    }
+}
+
+// MARK: - A Run of Items
+
+/// One region's items, handed to the row's stack one child per item: a
+/// flexible ``ToolbarSpacer`` as a `Spacer`, which the stack shares its spare
+/// room with, and anything else as the item drawn where it was declared
+/// (``_ToolbarEntryView``).
+///
+/// A provider, because a stack tells a spacer by its child's TYPE. Drawn
+/// inside an item, a spacer was an item of no width, and the items either side
+/// of it stayed together; chosen by an `if` in a `ForEach` row it was the same,
+/// since a stack flattens a conditional only where it is the stack's own
+/// child. Each child here is built as the type it is.
+struct _ToolbarItemRun: View, Renderable, ChildViewProvider {
+    /// The region's items, in order.
+    let entries: [WindowChromeState.ToolbarEntry]
+
+    var body: Never { fatalError("_ToolbarItemRun renders via Renderable") }
+
+    func childViews(context: RenderContext) -> [ChildView] {
+        entries.indices.map { index in
+            entries[index].isFlexibleSpace
+                ? ChildView(Spacer(minLength: 0), childIndex: index)
+                : ChildView(_ToolbarEntryView(entry: entries[index]), childIndex: index)
+        }
+    }
+
+    /// Outside a stack — where the row never puts it — the items side by side.
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        TUIkit.renderToBuffer(HStack(spacing: 1) { self }, context: context)
     }
 }
 

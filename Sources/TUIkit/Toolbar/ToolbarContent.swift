@@ -54,6 +54,10 @@ struct _ToolbarItemSpec {
     /// identity in the bar, so its `@State` follows it rather than its place.
     let id: String?
 
+    /// Whether the item is a flexible ``ToolbarSpacer``, which the bar lays out
+    /// as a `Spacer` of its own row (see ``_ToolbarBarRow``).
+    var isFlexibleSpace = false
+
     /// Where the item sits in the content that declared it: the member of each
     /// block it is in, and the branch of each `if`/`else` — its structural
     /// identity, as a view's in a `ViewBuilder` is.
@@ -80,8 +84,11 @@ struct _ToolbarItemCollector {
     private var path: [Int] = []
 
     /// Adds an item at the current place.
-    mutating func append(placement: ToolbarItemPlacement, view: AnyView, id: String? = nil) {
-        items.append(_ToolbarItemSpec(placement: placement, view: view, id: id, path: path))
+    mutating func append(
+        placement: ToolbarItemPlacement, view: AnyView, id: String? = nil, isFlexibleSpace: Bool = false
+    ) {
+        items.append(
+            _ToolbarItemSpec(placement: placement, view: view, id: id, isFlexibleSpace: isFlexibleSpace, path: path))
     }
 
     /// Adds items collected elsewhere, at their places under the current one.
