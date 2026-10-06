@@ -47,7 +47,9 @@ import TUIkitCore
 /// double-click runs only the double tap — as on macOS. When it is the second
 /// click that gives the double tap up, held too long or strayed, the single
 /// tap runs once, for the first click, and not again for the second — as on
-/// macOS too.
+/// macOS too. A click on another view meanwhile does not give the double tap
+/// up: it waits out its interval, and the single tap runs for the first click
+/// then.
 public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int

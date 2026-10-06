@@ -283,10 +283,13 @@ final class MouseEventDispatcher: @unchecked Sendable {
         if allowsSelection { enabledSelectionScopeCount += 1 }
     }
 
-    /// The gestures contending for the left button: built at a press that
-    /// lands on a gesture, kept until every one of them has decided — which
-    /// can be after the release, for a tap waiting on its next click.
-    var gestureArena: GestureArena?
+    /// The gestures contending for the left button, an arena per press,
+    /// oldest first: built at a press that lands on a gesture, kept until
+    /// every one of them has decided — which can be after the release, for a
+    /// tap waiting on its next click, and after later presses, which do not
+    /// give a waiting gesture up (``GestureArena``). The last is the current
+    /// press's while its button is down.
+    var gestureArenas: [GestureArena] = []
 
     /// The maximum gap between successive clicks for them to count as one
     /// multi-click sequence (400 ms — a common desktop double-click threshold).
@@ -874,6 +877,16 @@ extension MouseEventDispatcher {
             regionOffsetY: region.localOriginY
         )
         return .captured
+    }
+
+    /// Runs `body` — a click given whole, its press and its release, to a
+    /// control a gesture arena held back until after the button came up —
+    /// with the left button's capture set aside, so that a press under way
+    /// meanwhile keeps the control that took it.
+    func settingCaptureAside<T>(_ body: () -> T) -> T {
+        let underWay = pressedHandlers.removeValue(forKey: .left)
+        defer { if let underWay { pressedHandlers[.left] = underWay } }
+        return body()
     }
 
     /// Settles a drag or release against the press that began the gesture.

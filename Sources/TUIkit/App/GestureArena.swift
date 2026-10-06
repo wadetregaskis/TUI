@@ -38,14 +38,29 @@ import TUIkitCore
 /// capture.
 ///
 /// The arena outlives the release while a gesture is undecided — a double tap
-/// waiting for its second click — and a clock tick or the next press settles
-/// it.
+/// waiting for its second click — and a clock tick settles it.
+///
+/// A press that comes while a ranked gesture still waits does not settle it:
+/// both arenas live on (the dispatcher's ``MouseEventDispatcher/gestureArenas``),
+/// as macOS 15.8 keeps a waiting gesture through a click elsewhere. A gesture
+/// under both presses is one contender in both, carried on where it is: one
+/// still waiting hears the new press — a double tap's second click — and one
+/// that finished, ended or failed, stays finished and hears nothing of it.
+/// A gesture not under the new press hears only the clock. A gesture in both
+/// may report only once neither arena holds it back, and a control the
+/// earlier arena still owes its click is no control of the new press. Once
+/// the ranked gestures have all decided — only a simultaneous one still
+/// waits — the next press starts every gesture under it afresh.
 @MainActor
 final class GestureArena {
-    /// A gesture contending in the arena.
+    /// A gesture contending in the arena, or in several: one under a press
+    /// that came while an earlier arena still waited is that arena's
+    /// contender, carried on.
     final class Contender {
         let participant: GestureParticipant
-        let region: HitTestRegion
+
+        /// Its region, as of the latest press it is contending for.
+        var region: HitTestRegion
 
         /// Out of the running: it failed or was cancelled, so it holds nothing
         /// up.
@@ -53,6 +68,14 @@ final class GestureArena {
 
         /// Held back on an earlier input, so it owes a flush once released.
         var isHeldBack = false
+
+        /// How many arenas hold it back: it may report only at none.
+        var holdCount = 0
+
+        /// The arena that feeds it, the latest it contends in, so that one
+        /// under two presses hears each input once. Weak: an arena keeps its
+        /// contenders, not the other way round.
+        weak var feeder: GestureArena?
 
         init(participant: GestureParticipant, region: HitTestRegion) {
             self.participant = participant
@@ -71,6 +94,12 @@ final class GestureArena {
             case .control(let region): region.handlerID
             }
         }
+
+        /// The gesture in this place, if it is one.
+        var contender: Contender? {
+            if case .gesture(let contender) = self { return contender }
+            return nil
+        }
     }
 
     /// What the arena is fed.
@@ -79,8 +108,12 @@ final class GestureArena {
         case tick(Int64)
     }
 
-    private let ranked: [Entry]
-    private let simultaneous: [Contender]
+    private var ranked: [Entry]
+    private var simultaneous: [Contender]
+
+    /// Which ranked gestures this arena holds back, by their place in
+    /// ``ranked``: each counted once in its contender's ``Contender/holdCount``.
+    private var heldHere: [Bool]
 
     /// Controls that declined the press, or were ranked after a gesture that
     /// recognized: out of the running, by their place in ``ranked``.
@@ -102,22 +135,109 @@ final class GestureArena {
     init(ranked: [Entry], simultaneous: [Contender], press: MouseEvent) {
         self.ranked = ranked
         self.simultaneous = simultaneous
+        self.heldHere = Array(repeating: false, count: ranked.count)
         self.press = press
+        for contender in contenders { contender.feeder = self }
     }
 
-    /// Takes over from `previous`, an arena still waiting on a gesture when
-    /// this press came: the gestures in both carry on — a double tap's second
-    /// press finds the recognizer its first left waiting — and the rest of
-    /// `previous` is given up on, which may release what it held back.
-    func inherit(from previous: GestureArena, dispatcher: MouseEventDispatcher) {
-        let carried = Dictionary(
-            previous.contenders.map { (ObjectIdentifier($0.participant), $0.isHeldBack) },
-            uniquingKeysWith: { first, _ in first })
-        for contender in contenders where carried[ObjectIdentifier(contender.participant)] == true {
-            contender.isHeldBack = true
+    /// The participants contending here.
+    var participants: Set<ObjectIdentifier> {
+        Set(contenders.lazy.map { ObjectIdentifier($0.participant) })
+    }
+
+    // MARK: A press while an arena waits
+
+    /// Whether a ranked gesture is still undecided — a double tap waiting for
+    /// its next click — so that a press now continues what this arena began
+    /// instead of starting its gestures afresh. A simultaneous gesture alone
+    /// does not count: once the ranked gestures have decided, macOS starts
+    /// them over at the next press (measured on macOS 15.8: a single tap that
+    /// ran, beside a simultaneous double tap, runs again for the second click
+    /// of a double click; a drag that failed at the first click drags at the
+    /// second).
+    ///
+    /// An arena whose button is still down at the next press waits on
+    /// nothing: its release was lost, and the new press supersedes it, as it
+    /// does the dispatcher's own record of a press. Kept waiting, a drag
+    /// under way in it never heard a release and held up what came after it
+    /// for good.
+    var waitsOnRankedGesture: Bool {
+        guard !isButtonDown else { return false }
+        return ranked.contains { entry in
+            guard let contender = entry.contender else { return false }
+            return !contender.isOut && isEngaged(contender)
         }
-        previous.cancel(allBut: Set(carried.keys).intersection(contenders.map { ObjectIdentifier($0.participant) }))
-        previous.process(nil, dispatcher: dispatcher)
+    }
+
+    /// Takes over the contenders this press shares with `waiting`, the
+    /// arenas still waiting on a ranked gesture, oldest first: each carries on
+    /// where it is, fed from now on by this arena. A control one of them still
+    /// owes its click is out of this press: as measured on macOS 15.8, a
+    /// button behind a double tap that a second press gives up runs once, for
+    /// the first click, and not at the second release.
+    func adopt(from waiting: [GestureArena]) {
+        guard !waiting.isEmpty else { return }
+        var carried: [ObjectIdentifier: Contender] = [:]
+        for arena in waiting {
+            for contender in arena.contenders { carried[ObjectIdentifier(contender.participant)] = contender }
+        }
+        func carry(_ fresh: Contender) -> Contender {
+            guard let kept = carried[ObjectIdentifier(fresh.participant)] else { return fresh }
+            kept.region = fresh.region
+            kept.feeder = self
+            return kept
+        }
+        for index in ranked.indices {
+            switch ranked[index] {
+            case .gesture(let fresh):
+                ranked[index] = .gesture(carry(fresh))
+            case .control(let region):
+                if waiting.contains(where: { $0.owesClick(to: region.handlerID) }) { controlsOut.insert(index) }
+            }
+        }
+        simultaneous = simultaneous.map(carry)
+    }
+
+    /// Whether a control with this handler id is still waiting for the
+    /// gestures ahead of it to give up, owed this arena's press and release.
+    private func owesClick(to handlerID: HitTestRegion.HandlerID) -> Bool {
+        ranked.indices.contains { index in
+            guard owesClick(at: index), case .control(let region) = ranked[index] else { return false }
+            return region.handlerID == handlerID
+        }
+    }
+
+    /// Whether `successor` has taken over everything this arena still has a
+    /// say in — every gesture still in the running, and no control waiting —
+    /// so it can go: what it held back, `successor` holds back too, ranked
+    /// the same way.
+    func isTakenOver(by successor: GestureArena) -> Bool {
+        guard !ranked.indices.contains(where: { owesClick(at: $0) }) else { return false }
+        return contenders.allSatisfy { $0.isOut || $0.feeder === successor }
+    }
+
+    /// Whether the control at `index` still waits for this arena's press.
+    private func owesClick(at index: Int) -> Bool {
+        guard case .control = ranked[index], !controlTookPress, !handedOff else { return false }
+        return !controlsOut.contains(index)
+    }
+
+    /// Lets go of every gesture this arena holds back, and of every one it
+    /// feeds, as it is dropped.
+    func leave() {
+        for index in ranked.indices where heldHere[index] {
+            heldHere[index] = false
+            ranked[index].contender?.holdCount -= 1
+        }
+        for contender in contenders where contender.feeder === self { contender.feeder = nil }
+    }
+
+    /// Feeds, from now on, the gestures here that no arena feeds — ones an
+    /// arena dropped at a press fed while this one still waits. Unfed, such a
+    /// gesture never heard the clock that gives it up, and its deadline, once
+    /// past, asked the run loop for a wake on every turn.
+    func feedOrphans() {
+        for contender in contenders where contender.feeder == nil { contender.feeder = self }
     }
 
     // MARK: Feeding
@@ -138,7 +258,7 @@ final class GestureArena {
             let step =
                 switch ranked[index] {
                 case .gesture(let contender):
-                    advance(contender, at: index, by: input, released: released)
+                    advance(contender, at: index, by: input, releasedHere: released)
                 case .control(let region):
                     advance(region, at: index, by: input, released: released, dispatcher: dispatcher)
                 }
@@ -179,7 +299,7 @@ final class GestureArena {
     private func feedSimultaneous(_ input: Input?) -> Bool {
         var engaged = false
         for contender in simultaneous where !contender.isOut {
-            if let input { feed(contender, input, deliver: true) }
+            if let input, contender.feeder === self { feed(contender, input, deliver: true) }
             if isEngaged(contender) { engaged = true } else { contender.isOut = isFinished(contender) }
         }
         return engaged
@@ -195,8 +315,20 @@ final class GestureArena {
     /// long, or strayed), and does not run again for that second click: what
     /// macOS 15.8 does. Fed the second press, it started over, and the click
     /// it had recognized was lost.
-    private func advance(_ contender: Contender, at index: Int, by input: Input?, released: Bool) -> Step {
+    ///
+    /// A gesture in several arenas is released once none of them holds it
+    /// back, and only the latest feeds it.
+    ///
+    /// - Parameter releasedHere: Whether everything ahead of it in this arena
+    ///   has given up.
+    private func advance(_ contender: Contender, at index: Int, by input: Input?, releasedHere: Bool) -> Step {
         guard !contender.isOut, let root = contender.participant.root else { return .passed }
+        if heldHere[index] == releasedHere {
+            heldHere[index] = !releasedHere
+            contender.holdCount += releasedHere ? -1 : 1
+        }
+        let released = contender.holdCount == 0
+        let input = contender.feeder === self ? input : nil
         let holdsEnd = contender.isHeldBack && root.phase == .ended
         if released, holdsEnd {
             // The end came before this input, so it is reported first; the
@@ -232,6 +364,21 @@ final class GestureArena {
         if controlTookPress { return .holding }
         if controlsOut.contains(index) { return .passed }
         guard released else { return .waiting }
+        // Released without an event of its own — by a clock tick or a
+        // cancellation — after the button came up: the release it missed is
+        // still owed, so the click is given whole. Another press may be under
+        // way by then, its capture set aside meanwhile. (Released by a drag or
+        // a release, the dispatcher routes that event to it next.)
+        if !isPointer(input), let release {
+            return dispatcher.settingCaptureAside { give(region, at: index, release: release, dispatcher: dispatcher) }
+        }
+        return give(region, at: index, release: nil, dispatcher: dispatcher)
+    }
+
+    /// Offers the press to a control, and the release after it if given.
+    private func give(
+        _ region: HitTestRegion, at index: Int, release: MouseEvent?, dispatcher: MouseEventDispatcher
+    ) -> Step {
         switch dispatcher.offer(press, to: region) {
         case .declined:
             controlsOut.insert(index)
@@ -239,11 +386,7 @@ final class GestureArena {
         case .captured:
             controlTookPress = true
             cancel(after: index)
-            // Released without an event of its own — by a clock tick or a
-            // cancellation — after the button came up: the release it missed
-            // is still owed. (Released by a drag or a release, the dispatcher
-            // routes that event to it next.)
-            if !isPointer(input), let release { _ = dispatcher.routeAgainstItsPress(release) }
+            if let release { _ = dispatcher.routeAgainstItsPress(release) }
             return .decided
         case .handedOff:
             // A menu-opening press: the rest of the gesture belongs to the
@@ -259,11 +402,10 @@ final class GestureArena {
     var isSettled: Bool {
         if handedOff { return true }
         guard release != nil else { return false }
-        for contender in contenders where !contender.isOut && isEngaged(contender) {
-            if let phase = contender.participant.root?.phase, phase == .possible || phase == .active {
-                return false
-            }
-        }
+        // Still owing a held-back end counts as undecided: in one arena that
+        // means something ahead of it is, but with another press's arena
+        // holding it back, this one stays to decide what comes after it.
+        if contenders.contains(where: { !$0.isOut && (isEngaged($0) || $0.isHeldBack) }) { return false }
         if controlTookPress { return true }
         return !ranked.indices.contains { index in
             if case .control = ranked[index] { return !controlsOut.contains(index) }
@@ -283,10 +425,7 @@ final class GestureArena {
     // MARK: Helpers
 
     private var contenders: [Contender] {
-        ranked.compactMap {
-            if case .gesture(let contender) = $0 { return contender }
-            return nil
-        } + simultaneous
+        ranked.compactMap(\.contender) + simultaneous
     }
 
     private func isEngaged(_ contender: Contender) -> Bool {

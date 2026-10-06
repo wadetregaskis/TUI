@@ -87,7 +87,7 @@ struct LongPressAndDragGestureTests {
         let view = { longPress(log) }
         harness.frame(view())
         harness.pointer([(.pressed, 2, 1)], view)
-        #expect(harness.tui.mouseEventDispatcher.gestureArena?.deadline == 500 * gestureMillisecond)
+        #expect(harness.tui.mouseEventDispatcher.gestureDeadline == 500 * gestureMillisecond)
     }
 
     // MARK: Drag

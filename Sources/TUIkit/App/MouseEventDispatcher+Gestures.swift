@@ -72,16 +72,16 @@ extension MouseEventDispatcher {
     /// press against the frame it was pressed on.
     @MainActor
     func advanceGestures(nowNanos now: Int64) {
-        guard let arena = gestureArena else { return }
-        arena.process(.tick(now), dispatcher: self)
-        if arena.isSettled { gestureArena = nil }
+        guard !gestureArenas.isEmpty else { return }
+        for arena in gestureArenas { arena.process(.tick(now), dispatcher: self) }
+        settleGestureArenas()
     }
 
     /// When the gestures next have to hear the clock, if any is waiting on it
     /// — what the run loop asks a wake for, so a long press ends on time with
     /// nothing else moving.
     @MainActor
-    var gestureDeadline: Int64? { gestureArena?.deadline }
+    var gestureDeadline: Int64? { gestureArenas.lazy.compactMap(\.deadline).min() }
 
     /// Routes a left-button event through the gesture arena, when one is
     /// involved.
@@ -89,10 +89,11 @@ extension MouseEventDispatcher {
     /// - Parameter matching: The regions under the event, innermost first;
     ///   asked for only for a press.
     /// - Returns: The dispatch result when gestures decided the event's fate,
-    ///   and `nil` when it should go on through ordinary dispatch — no gesture
-    ///   under the press, and no arena under way.
+    ///   and `nil` when it should go on through ordinary dispatch — a press
+    ///   with no gesture under it (an arena still waiting goes on waiting),
+    ///   and the drags and release of a press no arena took.
     func routeThroughGestures(_ event: MouseEvent, matching: () -> [HitTestRegion]) -> Bool? {
-        guard event.button == .left, !gestureRoles.isEmpty || gestureArena != nil else { return nil }
+        guard event.button == .left, !gestureRoles.isEmpty || !gestureArenas.isEmpty else { return nil }
         let time = Int64(bitPattern: nowNanos())
         let regions = event.phase == .pressed ? matching() : []
         return MainActor.assumeIsolated {
@@ -100,12 +101,12 @@ extension MouseEventDispatcher {
             case .pressed:
                 return beginGestureArena(event, matching: regions, time: time)
             case .dragged, .released:
-                guard let arena = gestureArena, arena.isButtonDown else { return nil }
+                guard let arena = gestureArenas.last, arena.isButtonDown else { return nil }
                 var routed = arena.process(.pointer(event, timeNanos: time), dispatcher: self)
                 if arena.controlTookPress, let settled = routeAgainstItsPress(event) {
                     routed = routed || settled
                 }
-                if event.phase == .released, arena.isSettled { gestureArena = nil }
+                settleGestureArenas()
                 return routed
             default:
                 return nil
@@ -115,22 +116,81 @@ extension MouseEventDispatcher {
 
     @MainActor
     private func beginGestureArena(_ event: MouseEvent, matching: [HitTestRegion], time: Int64) -> Bool? {
-        let previous = gestureArena
-        guard let (ranked, simultaneous) = GestureArena.rank(matching, roles: gestureRoles) else {
-            // No gesture under this press: whatever was waiting is given up on,
-            // and the press goes through ordinary dispatch.
-            if let previous {
-                previous.cancel(allBut: [])
-                previous.process(nil, dispatcher: self)
-            }
-            gestureArena = nil
-            return nil
+        let ranking = GestureArena.rank(matching, roles: gestureRoles)
+        // An arena still waiting on a ranked gesture — a double tap waiting
+        // for its next click — lives on through this press, as on macOS 15.8:
+        // what this press shares with it carries on where it is, the rest
+        // goes on hearing the clock. One whose ranked gestures have all
+        // decided is done: what is not under this press, or carried on by an
+        // arena that waits, is given up on, which may release what it held
+        // back.
+        // Sorted once, before any is given up on: giving one up may release
+        // what another holds.
+        var waiting: [GestureArena] = []
+        var done: [GestureArena] = []
+        for arena in gestureArenas {
+            if arena.waitsOnRankedGesture { waiting.append(arena) } else { done.append(arena) }
         }
+        if !done.isEmpty {
+            var kept = waiting.reduce(into: Set<ObjectIdentifier>()) { $0.formUnion($1.participants) }
+            if let ranking {
+                for contender in ranking.ranked.compactMap(\.contender) + ranking.simultaneous {
+                    kept.insert(ObjectIdentifier(contender.participant))
+                }
+            }
+            for arena in done {
+                arena.cancel(allBut: kept)
+                arena.process(nil, dispatcher: self)
+                arena.leave()
+            }
+            gestureArenas = waiting
+            feedOrphanedGestures()
+        }
+        // No gesture under this press: it goes through ordinary dispatch.
+        guard let (ranked, simultaneous) = ranking else { return nil }
         let arena = GestureArena(ranked: ranked, simultaneous: simultaneous, press: event)
-        if let previous { arena.inherit(from: previous, dispatcher: self) }
-        gestureArena = arena
+        arena.adopt(from: gestureArenas)
+        gestureArenas.removeAll { previous in
+            guard previous.isTakenOver(by: arena) else { return false }
+            previous.leave()
+            return true
+        }
+        gestureArenas.append(arena)
         let engaged = arena.process(.pointer(event, timeNanos: time), dispatcher: self)
-        if arena.handedOff { gestureArena = nil }
+        settleGestureArenas()
         return engaged
+    }
+
+    /// Lets what one arena decided reach the others, and drops the arenas
+    /// with nothing left to decide.
+    ///
+    /// A gesture under two presses is in both their arenas, and may report
+    /// only once neither holds it back; whichever releases it last reports
+    /// its end, and a decision in one — a double tap that recognized ahead of
+    /// a held single tap — cancels what comes after it in each. Every arena
+    /// is settled again without new input once per arena, so a decision
+    /// travels the whole chain. With one arena, the usual case, there is
+    /// nothing to pass on.
+    @MainActor
+    private func settleGestureArenas() {
+        if gestureArenas.count > 1 {
+            for _ in 1..<gestureArenas.count {
+                for arena in gestureArenas { arena.process(nil, dispatcher: self) }
+            }
+        }
+        let before = gestureArenas.count
+        gestureArenas.removeAll { arena in
+            guard arena.isSettled else { return false }
+            arena.leave()
+            return true
+        }
+        if gestureArenas.count < before { feedOrphanedGestures() }
+    }
+
+    /// Hands each gesture a dropped arena fed to the newest arena left that
+    /// holds it, so that it goes on hearing the clock.
+    @MainActor
+    private func feedOrphanedGestures() {
+        for arena in gestureArenas.reversed() { arena.feedOrphans() }
     }
 }
