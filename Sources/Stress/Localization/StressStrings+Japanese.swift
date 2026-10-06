@@ -114,7 +114,7 @@ extension StressStrings {
         "stress.scenario.preferences.heading": "{0} 行 · {1} 件発行",
         "stress.scenario.geometry.title": "ジオメトリ",
         "stress.scenario.geometry.blurb": "スクロール中に、名前付き空間とスクロールビューの空間での自分の位置を読む遅延行。",
-        "stress.scenario.geometry.stresses": "ジオメトリマーカー · 座標空間の所有者 · 補正の再描画 · スクロール可視性",
+        "stress.scenario.geometry.stresses": "ジオメトリマーカー · 座標空間の所有者 · 補正の再描画 · スクロール可視性 · アンカー",
         "stress.scenario.geometry.heading": "{0} 行 · {1} 件表示",
         "stress.scenario.geometry.global": "グローバル x {0}",
 

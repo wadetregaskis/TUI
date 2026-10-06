@@ -127,7 +127,7 @@ extension StressStrings {
         "stress.scenario.preferences.heading": "{0} rows · {1} published",
         "stress.scenario.geometry.title": "Geometry",
         "stress.scenario.geometry.blurb": "Lazy rows reading their place in a named space and the scroll view's, while it scrolls.",
-        "stress.scenario.geometry.stresses": "geometry markers · coordinate-space owners · correction re-renders · scroll visibility",
+        "stress.scenario.geometry.stresses": "geometry markers · coordinate-space owners · correction re-renders · scroll visibility · anchors",
         "stress.scenario.geometry.heading": "{0} rows · {1} shown",
         "stress.scenario.geometry.global": "global x {0}",
 

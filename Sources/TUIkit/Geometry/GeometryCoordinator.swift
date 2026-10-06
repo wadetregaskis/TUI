@@ -126,6 +126,18 @@ final class GeometryCoordinator: @unchecked Sendable {
     /// ``GeometryCorrections``.
     private(set) var corrections = GeometryCorrections()
 
+    // MARK: - Anchors (state; GeometryCoordinator+Anchors.swift)
+
+    /// The anchored views this walk drew, by marker id, and their sizes.
+    var anchorSiteSizes: [HitTestRegion.HandlerID: CellSize] = [:]
+
+    /// The innermost preference layer being built, while it is.
+    var anchorScope: AnchorLayerScope?
+
+    /// Where each anchored view was in the global space when the last frame
+    /// was drawn — what an anchor read outside its layer resolves against.
+    var globalAnchorSites: [HitTestRegion.HandlerID: (origin: CellPoint, size: CellSize)] = [:]
+
     /// Clears the walk's registrations — see ``MouseEventDispatcher/beginRenderPass()``.
     func beginWalk() {
         if !observers.isEmpty {
@@ -140,6 +152,8 @@ final class GeometryCoordinator: @unchecked Sendable {
             unansweredTotal = 0
             reporters.removeAll(keepingCapacity: true)
         }
+        if !anchorSiteSizes.isEmpty { anchorSiteSizes.removeAll(keepingCapacity: true) }
+        anchorScope = nil
     }
 
     /// Counts a correction an owner of `kind` made.
@@ -165,6 +179,7 @@ final class GeometryCoordinator: @unchecked Sendable {
     ///   - isRetained: Whether an identity that drew nothing this frame is
     ///     still in the tree (`StateStorage.retainedSubtrees()`).
     func endFrame(frame: FrameBuffer, isRetained: (ViewIdentity) -> Bool) {
+        endAnchorFrame(frame: frame)
         endSpacesFrame(isRetained: isRetained)
         endVisibilityFrame(frame: frame, isRetained: isRetained)
     }

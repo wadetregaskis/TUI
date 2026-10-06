@@ -951,10 +951,6 @@
       "how": "FocusState / @FocusState",
       "why": "SwiftUI needs a second focus-state wrapper because VoiceOver's cursor moves independently of keyboard focus. A terminal has one focus, which `@FocusState` with `focused(_:)` and `focused(_:equals:)` binds (`Sources/TUIkit/Focus/FocusState.swift`)."
     },
-    "Anchor": {
-      "how": "PopoverAttachmentRect (+ PopoverAttachmentAnchor)",
-      "why": "The general `Anchor<Value>` is absent; it waits with the anchor preferences on decisions A2. Its one consumer that shipped, a popover's attachment anchor, takes `PopoverAttachmentAnchor`: `.rect(.bounds)` or `.point(_:)`."
-    },
     "Canvas": {
       "how": "Renderable + FrameBuffer",
       "why": "The immediate-mode drawing surface is a conformance: `Renderable`'s `renderToBuffer(context:) -> FrameBuffer`, with FrameBuffer's public initialisers to build the cells. A SwiftUI-shaped `Canvas` over a `GraphicsContext` waits on shapes (O0 of the refusal review), as the review's D3 note says."

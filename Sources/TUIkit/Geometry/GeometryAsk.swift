@@ -64,7 +64,12 @@ final class GeometryAsk: @unchecked Sendable {
 
     let role: Role
 
-    private weak var coordinator: GeometryCoordinator?
+    private(set) weak var coordinator: GeometryCoordinator?
+
+    /// The innermost preference layer being built where this view renders,
+    /// whose base's anchors it resolves against — see
+    /// `GeometryProxy.subscript(_:)`.
+    let anchorScope: AnchorLayerScope?
 
     /// Where a reader declares that what it draws depends on something no
     /// memo keys on — see ``observation(in:)``.
@@ -96,6 +101,7 @@ final class GeometryAsk: @unchecked Sendable {
         self.role = role
         self.coordinator = coordinator
         self.tracker = tracker
+        self.anchorScope = coordinator.anchorScope
         self.isRecording = true
     }
 
@@ -108,7 +114,7 @@ final class GeometryAsk: @unchecked Sendable {
     /// is, which no memo above it keys on, so none may store it (decisions A2,
     /// the owner's answer 4; the precedent is a preference writer's).
     func observation(in space: CoordinateSpace) -> GeometryObservation? {
-        let known = found[space] ?? coordinator?.keptObservation(for: id, in: space)
+        let known = found[space] ?? coordinator?.keptObservation(for: id, in: space) ?? firstGuess(in: space)
         guard isRecording else {
             if found[space] == nil { coordinator?.noteLateAsk(id: id, space: space) }
             return known
@@ -124,6 +130,18 @@ final class GeometryAsk: @unchecked Sendable {
     /// What the view was told while recording, in the order it asked.
     var toldAnswers: [GeometryObservation?] {
         wanted.compactMap { space in told.index(forKey: space).map { told.values[$0] } }
+    }
+
+    /// What to tell the view about `space` before any owner has found it: the
+    /// origin of a preference layer it is being built in
+    /// (``AnchorLayerScope/firstGuess``), else nothing.
+    private func firstGuess(in space: CoordinateSpace) -> GeometryObservation? {
+        var scope = anchorScope
+        while let layer = scope {
+            if layer.space == space { return layer.firstGuess }
+            scope = layer.parent
+        }
+        return nil
     }
 
     /// Adds a space to find the view in without telling it anything — one it

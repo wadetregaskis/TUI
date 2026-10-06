@@ -2499,3 +2499,70 @@ private func coordinateSpaceValues() -> Bool {
     let resolved = NamedCoordinateSpace.scrollView.coordinateSpace
     return named != resolved && CoordinateSpace.global.isGlobal
 }
+
+// MARK: - Anchors (lane D5G)
+
+private struct SelectionBoundsKey: PreferenceKey {
+    static var defaultValue: Anchor<CellRect>? { nil }
+    static func reduce(value: inout Anchor<CellRect>?, nextValue: () -> Anchor<CellRect>?) {
+        value = value ?? nextValue()
+    }
+}
+
+private struct RowBoundsKey: PreferenceKey {
+    static var defaultValue: [Int: Anchor<CellRect>] { [:] }
+    static func reduce(value: inout [Int: Anchor<CellRect>], nextValue: () -> [Int: Anchor<CellRect>]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
+/// The shapes SwiftUI code writes with anchors: a highlight following the
+/// selected row, drawn by a reader in a preference layer, and a background
+/// sized to one view's bounds.
+@MainActor
+private struct AnchorShapes: View {
+    @State private var selected = 0
+
+    var body: some View {
+        VStack {
+            ForEach(0..<3, id: \.self) { index in
+                Text("Row \(index)")
+                    .anchorPreference(key: RowBoundsKey.self, value: .bounds) { [index: $0] }
+            }
+            Text("Badge")
+                .anchorPreference(key: SelectionBoundsKey.self, value: .bounds) { $0 }
+                .transformAnchorPreference(key: RowBoundsKey.self, value: .bounds) { value, anchor in
+                    value[99] = anchor
+                }
+        }
+        .overlayPreferenceValue(RowBoundsKey.self) { anchors in
+            GeometryReader { proxy in
+                if let anchor = anchors[selected] {
+                    let rect = proxy[anchor]
+                    Text("^").offset(x: rect.minX, y: rect.minY)
+                }
+            }
+        }
+        .backgroundPreferenceValue(SelectionBoundsKey.self) { anchor in
+            GeometryReader { proxy in
+                if let anchor {
+                    Color.blue.frame(width: proxy[anchor].width, height: proxy[anchor].height)
+                }
+            }
+        }
+    }
+}
+
+private func anchorSources() -> [Anchor<CellPoint>.Source] {
+    [
+        .center, .topLeading, .top, .topTrailing, .leading, .trailing, .bottomLeading, .bottom,
+        .bottomTrailing, .unitPoint(UnitPoint(x: 0.25, y: 0.75)), .point(CellPoint(x: 1, y: 2)),
+    ]
+}
+
+private func compositeAnchorSources() -> (Anchor<[CellRect]>.Source, Anchor<CellRect?>.Source) {
+    (
+        Anchor<[CellRect]>.Source([.bounds, .rect(CellRect(x: 0, y: 0, width: 2, height: 1))]),
+        Anchor<CellRect?>.Source(Anchor<CellRect>.Source.bounds)
+    )
+}

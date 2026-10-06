@@ -116,7 +116,7 @@ extension StressStrings {
         "stress.scenario.preferences.heading": "{0} Zeilen · {1} gemeldet",
         "stress.scenario.geometry.title": "Geometrie",
         "stress.scenario.geometry.blurb": "Lazy-Zeilen, die ihre Lage in einem benannten Raum und in dem der Scroll-Ansicht lesen, während sie scrollt.",
-        "stress.scenario.geometry.stresses": "Geometrie-Markierungen · Besitzer von Koordinatenräumen · Korrektur-Renderings · Scroll-Sichtbarkeit",
+        "stress.scenario.geometry.stresses": "Geometrie-Markierungen · Besitzer von Koordinatenräumen · Korrektur-Renderings · Scroll-Sichtbarkeit · Anker",
         "stress.scenario.geometry.heading": "{0} Zeilen · {1} sichtbar",
         "stress.scenario.geometry.global": "globales x {0}",
 

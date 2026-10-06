@@ -19,10 +19,20 @@ import Testing
 @Suite("Geometry correction rate")
 struct GeometryCorrectionRateTests {
 
+    /// The selected row's bounds.
+    private struct SelectionKey: PreferenceKey {
+        static var defaultValue: Anchor<CellRect>? { nil }
+        static func reduce(value: inout Anchor<CellRect>?, nextValue: () -> Anchor<CellRect>?) {
+            value = value ?? nextValue()
+        }
+    }
+
     /// A list of rows each reading where it is in the list's named space and
-    /// in the scroll view's; and above it, under an offset, a reader of the
-    /// global space.
-    private func page(rows: Int, offset: Int, position: Binding<ScrollPosition>) -> some View {
+    /// in the scroll view's, a marker following the selected row from its
+    /// anchor; and above it, under an offset, a reader of the global space.
+    private func page(
+        rows: Int, offset: Int, position: Binding<ScrollPosition>, selected: Int = 2
+    ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             GeometryReader { proxy in Text("g \(proxy.frame(in: .global).minX)") }
                 .frame(height: 1)
@@ -36,12 +46,18 @@ struct GeometryCorrectionRateTests {
                                     Text("\(proxy.frame(in: .named("list")).minY)/\(proxy.frame(in: .scrollView).minY)")
                                 }
                             }
+                            .anchorPreference(key: SelectionKey.self, value: .bounds) { index == selected ? $0 : nil }
                     }
                 }
                 .coordinateSpace(.named("list"))
             }
             .scrollPosition(position)
             .frame(height: 8)
+            .overlayPreferenceValue(SelectionKey.self, alignment: .topLeading) { anchor in
+                GeometryReader { proxy in
+                    if let anchor { Text(">").offset(x: 0, y: proxy[anchor].minY) }
+                }
+            }
         }
     }
 
@@ -61,7 +77,7 @@ struct GeometryCorrectionRateTests {
         return made
     }
 
-    @Test("Under G1: none at rest; per scroll step two; one per insertion; one per offset step")
+    @Test("Under G1: none at rest; per scroll step two; one per insertion; one per offset step; no layer's")
     func correctionsUnderG1() {
         let harness = InputChainHarness()
         var position = ScrollPosition()
@@ -102,6 +118,10 @@ struct GeometryCorrectionRateTests {
             offset = step
             #expect(corrections(harness, frame).root == 1)
         }
+        // The marker following the selected row resolves its anchor in the
+        // frame that draws it, from a reader filling the layer: never a layer
+        // correction, however the rows move.
+        #expect(harness.geometryCorrections.layer == 0)
         #expect(harness.geometryCorrections.residual == 0)
     }
 }

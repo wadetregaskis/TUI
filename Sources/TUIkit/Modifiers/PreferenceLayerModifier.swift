@@ -50,13 +50,45 @@ extension PreferenceLayerModifier: Renderable {
         let prefs = context.environment.preferenceStorage!
         prefs.push()
         let baseBuffer = TUIkit.renderToBuffer(base, context: context)
-        let layer = transform(prefs.pop()[K.self])
+        let value = prefs.pop()[K.self]
 
         // The base's size on every axis, which is what the measure promised:
         // with no frame on an axis there is nowhere to lay the layer, and
         // `.overlay`'s escape — drawing it whole — would draw a view the
         // measure never saw.
         guard baseBuffer.width > 0, baseBuffer.height > 0 else { return baseBuffer }
+        guard let geometry = context.geometryCoordinator, geometry.hasAnchorSites else {
+            return composite(value, over: baseBuffer, context)
+        }
+
+        // The anchors the base made are where its markers are, in the base's
+        // cells — which are the layer's — before the layer is built: a reader
+        // in it resolves them exactly, in this frame (`AnchorLayerScope`).
+        // Where the reader itself is in the layer is found once the layer has
+        // composited, and a reader that drew from a wrong answer — one not at
+        // the layer's own origin, on its first frame — has the layer drawn once
+        // more. The base is never drawn again: its anchors came from it.
+        let layerContext = layerContext(context, modifierType: Self.self)
+        guard let scope = geometry.anchorLayer(over: baseBuffer, layer: layerContext.identity) else {
+            return composite(value, over: baseBuffer, context)
+        }
+        let checkpoint = RenderWalkCheckpoint(context: layerContext)
+        geometry.enterAnchorLayer(scope)
+        var drawn = composite(value, over: baseBuffer, context)
+        geometry.leaveAnchorLayer(scope)
+        guard geometry.resolve([scope.space], in: drawn, size: baseBuffer.cellSize) else { return drawn }
+        geometry.noteCorrection(.layer)
+        checkpoint.rollBack(context: layerContext)
+        geometry.enterAnchorLayer(scope)
+        drawn = composite(value, over: baseBuffer, context)
+        geometry.leaveAnchorLayer(scope)
+        if geometry.resolve([scope.space], in: drawn, size: baseBuffer.cellSize) { geometry.noteResidual() }
+        return drawn
+    }
+
+    /// The layer built from `value`, laid over (or under) `baseBuffer`.
+    private func composite(_ value: K.Value, over baseBuffer: FrameBuffer, _ context: RenderContext) -> FrameBuffer {
+        let layer = transform(value)
         return isBackground
             ? compositeLayer(
                 layer, under: baseBuffer, alignment: alignment, context: context, modifierType: Self.self)
