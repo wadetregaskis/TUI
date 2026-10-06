@@ -37,6 +37,9 @@ private final class Model {
     var surface = PopupSurface.pullDown
     var choice = 1
     var text = ""
+    /// Whether the pull-down menu carries a tap gesture, which ranks ahead of
+    /// it and so holds its press in the gesture arena.
+    var tapOnMenu = false
 }
 
 private struct PopupApp: App {
@@ -65,7 +68,16 @@ private struct PopupPage: View {
             case .contextMenu:
                 Text("ctx").contextMenu { Button("ctxitem") {} }
             case .pullDown:
-                Menu("pull") { Button("pulled") {} }
+                if model.tapOnMenu {
+                    // Beyond a tap's slop from the toggle, so a drag there
+                    // fails the tap.
+                    Text("gap")
+                    Text("gap")
+                    Menu("pull") { Button("pulled") {} }
+                        .highPriorityGesture(TapGesture().onEnded {})
+                } else {
+                    Menu("pull") { Button("pulled") {} }
+                }
             case .picker:
                 Picker("pick", selection: Bindable(model).choice) {
                     Text("one").tag(1)
@@ -91,8 +103,9 @@ private final class Harness {
     let app: HeadlessApp<PopupApp>
     private var now: Int64 = 0
 
-    init(_ surface: PopupSurface = .pullDown) {
+    init(_ surface: PopupSurface = .pullDown, tapOnMenu: Bool = false) {
         model.surface = surface
+        model.tapOnMenu = tapOnMenu
         app = HeadlessApp(PopupApp(model), width: 40, height: 12)
         frame()
         frame()
@@ -213,5 +226,25 @@ struct UndrawnPopupGestureTests {
         harness.app.send(MouseEvent(button: .left, phase: .released, x: flag.x, y: flag.y))
         harness.frame()
         #expect(!harness.model.on, "the release toggled the toggle:\n\(harness.screen)")
+    }
+
+    @Test("The release of a press the gesture arena hands a menu partway through its drag acts on no control")
+    func pressHandedToTheMenuByTheArena() throws {
+        // The menu's tap ranks ahead of it, so the press waits in the arena and
+        // a frame goes by. The drag past the tap's slop fails the tap, and the
+        // arena hands the press to the menu, which opens then — after that
+        // frame, so nothing of it is drawn when the rest of the batch arrives.
+        let harness = Harness(tapOnMenu: true)
+        let flag = try harness.position(of: "flag")
+        let pull = try harness.position(of: "pull")
+        #expect(pull.y - flag.y > TapGesture.slopRows, "\(harness.screen)")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: pull.x, y: pull.y))
+        harness.frame()
+        #expect(!harness.shows("pulled"), "the tap held nothing back:\n\(harness.screen)")
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: flag.x, y: flag.y))
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: flag.x, y: flag.y))
+        harness.frame()
+        #expect(!harness.model.on, "the release toggled the toggle:\n\(harness.screen)")
+        #expect(!harness.shows("pulled"), "letting go left the menu up:\n\(harness.screen)")
     }
 }

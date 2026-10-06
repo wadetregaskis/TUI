@@ -168,8 +168,8 @@ enum RowContextMenuHost {
         // The drags and the release of a gesture whose press opened a pop-up —
         // this container's menu or another's — never get here. Drawn, the
         // pop-up's backdrop covers the screen and takes them; not drawn —
-        // before a frame has drawn it, or once its opener says it is closed —
-        // the dispatcher spends them
+        // before a render pass has begun since it opened, or once its opener
+        // says it is closed — the dispatcher spends them
         // (``MouseEventDispatcher/pressOpenedPopup(_:)``), the quick click and
         // the slow one alike. That leaves no gap only because every opener's
         // "open" means drawn: a `Picker` with no options was open and drew
