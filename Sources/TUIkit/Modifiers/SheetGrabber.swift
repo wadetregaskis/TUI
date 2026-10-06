@@ -50,16 +50,21 @@ final class _SheetGrabberHandler: PersistedFocusable {
     /// Moves the sheet one detent for the wheel — `step` is +1 to grow, -1 to
     /// shrink — reporting whether the wheel's tick is taken.
     ///
-    /// A tick the sheet cannot move by is declined, so it reaches what is
-    /// behind it: the content's scroll view, under ``PresentationContentInteraction/resizes``
-    /// at the largest detent. A tick within ``wheelStepNanos`` of the last
-    /// step is taken and moves nothing: the rest of a burst is spent on the
-    /// sheet, not passed to the content to scroll it as well.
+    /// A tick within ``wheelStepNanos`` of the last step is taken and moves
+    /// nothing: the rest of a burst is spent on the sheet, not passed to the
+    /// content to scroll it as well — asked FIRST, so that holds for the
+    /// burst whose first tick reached the largest detent, whose rest the
+    /// sheet can no longer move by. Asked after, they reached the content
+    /// and scrolled it by the rest of the burst.
+    ///
+    /// Any other tick the sheet cannot move by is declined, so it reaches
+    /// what is behind it: the content's scroll view, under
+    /// ``PresentationContentInteraction/resizes`` at the largest detent.
     func wheelStep(by step: Int, nowNanos: UInt64) -> Bool {
+        if let last = lastWheelStepNanos, nowNanos >= last, nowNanos - last < Self.wheelStepNanos { return true }
         guard var detents, let index = detents.index, detents.stops.indices.contains(index + step) else {
             return false
         }
-        if let last = lastWheelStepNanos, nowNanos >= last, nowNanos - last < Self.wheelStepNanos { return true }
         lastWheelStepNanos = nowNanos
         detents.select(index + step)
         self.detents = detents

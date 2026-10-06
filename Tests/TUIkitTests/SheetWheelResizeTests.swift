@@ -19,6 +19,8 @@ private struct WheelSheet: View {
     var interaction: PresentationContentInteraction
     var scrolls = true
     var pressed: PressCount?
+    /// How many rows the content scrolls through.
+    var rows = 12
 
     var body: some View {
         Text("PAGE").sheet(isPresented: .constant(true)) {
@@ -32,7 +34,7 @@ private struct WheelSheet: View {
         if scrolls {
             ScrollView {
                 VStack(spacing: 0) {
-                    ForEach(0..<12, id: \.self) { Text("row \($0)") }
+                    ForEach(0..<rows, id: \.self) { Text("row \($0)") }
                 }
             }
             // The wheel chains to the sheet the moment the content is at its
@@ -146,6 +148,25 @@ struct SheetWheelResizeTests {
         // A quarter of a second later, the next detent.
         harness.now += 250_000_000
         #expect(wheel(.scrollDown, harness, view, sameInstant: true) == 20)
+    }
+
+    /// The burst's first tick reaches the largest detent, and the sheet can
+    /// go no further: the rest of it was declined, and scrolled the content
+    /// by seven ticks, where the docs promise the ticks in between are spent.
+    @Test("A burst that reaches the largest detent spends the rest of itself on the sheet, not the content")
+    func burstIntoTheLargestDoesNotScroll() throws {
+        let harness = harness()
+        let view = WheelSheet(interaction: .resizes, rows: 60)
+        #expect(frame(harness, view) == 6)
+        #expect(wheel(.scrollDown, harness, view) == 10)
+        harness.now += 300_000_000
+        var height = 0
+        for _ in 0..<8 { height = wheel(.scrollDown, harness, view, sameInstant: true) }
+        #expect(height == 20)
+        let screen = harness.frame(view).compositingOverlays(
+            maxWidth: Self.width, maxHeight: Self.height, palette: harness.context.environment.palette)
+        let rows = screen.lines.map(\.stripped)
+        #expect(rows.contains { $0.contains("row 0 ") }, "the content scrolled: \(rows)")
     }
 
     @Test("The wheel's regions take nothing else: the hover and a click in a .resizes sheet reach its button")
