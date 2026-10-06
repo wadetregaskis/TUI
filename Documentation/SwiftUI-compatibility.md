@@ -579,8 +579,10 @@ held is a `.navigationTitle` and `.toolbar` items.
 The window's title is the outermost `.navigationTitle` drawn: the page's own
 over a navigation stack's inside it, a pushed screen's when the stack is the
 page, never a sheet's. Outermost by ancestry — a title inside another's view
-never displaces it, and of two side by side the later one stands, however each
-is wrapped. Its subtitle is the title's own: a `.navigationSubtitle` on the
+never displaces it, nor does the inner of two stacked on one view
+(`.navigationTitle("Inner").navigationTitle("Outer")` shows Outer, as SwiftUI's
+outer preference writer overrides its content), and of two side by side the
+later one stands, however each is wrapped. Its subtitle is the title's own: a `.navigationSubtitle` on the
 titled view or inside it, else the nearest view round it that has one — never
 an outer view's while the title has its own. TUIkit's rule; SwiftUI's window
 title has no published one to measure against. It is shown in the top bar's

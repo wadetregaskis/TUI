@@ -214,7 +214,12 @@ final class WindowChromeState: @unchecked Sendable {
     ///   last declared stands, as the preference's own reduction has it. By
     ///   ANCESTRY, not by depth: compared by how deep they were declared, which
     ///   of two side by side won depended on the wrappers around each — a
-    ///   `VStack` round one sibling handed the window to the other.
+    ///   `VStack` round one sibling handed the window to the other. Two
+    ///   stacked on one view — `.navigationTitle("Inner")
+    ///   .navigationTitle("Outer")`, with or without a `.padding()` between —
+    ///   are declared at the SAME identity (a modifier renders its content at
+    ///   its own), so there the first declared is the outer one, and stands,
+    ///   as SwiftUI's outer preference writer overrides its content.
     /// - The subtitle is the title's: one declared on the title's view or
     ///   inside it, the outermost of those; else the nearest view round the
     ///   title that has one. Chosen apart from the title, the outermost
@@ -265,11 +270,17 @@ final class WindowChromeState: @unchecked Sendable {
     /// A view declares before its content renders, and a subtree renders
     /// whole before its next sibling, so an enclosing view's offer always
     /// comes first and is never replaced from inside; a later sibling's
-    /// replaces it.
+    /// replaces it. Encloses: declared at an ancestor's identity, or at the
+    /// SAME one — a modifier renders its content at its own identity, so two
+    /// stacked on one view (`.navigationTitle("Inner").navigationTitle("Outer")`)
+    /// offer at one identity, the outer first. `isAncestor(of:)` is strict,
+    /// and alone it let the inner one displace the outer.
     private static func outermost(_ offers: [TitleOffer]) -> TitleOffer? {
         var standing: TitleOffer?
         for offer in offers {
-            if let held = standing, held.identity.isAncestor(of: offer.identity) { continue }
+            if let held = standing, held.identity == offer.identity || held.identity.isAncestor(of: offer.identity) {
+                continue
+            }
             standing = offer
         }
         return standing

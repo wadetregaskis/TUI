@@ -126,6 +126,31 @@ private struct SiblingTitlesApp: App {
     }
 }
 
+/// A title and a subtitle stacked over another pair on one view, with a
+/// `.padding()` between them or not.
+private struct StackedTitlesApp: App {
+    var padded = false
+
+    init() {}
+
+    init(padded: Bool) { self.padded = padded }
+
+    var body: some Scene {
+        WindowGroup {
+            Group {
+                if padded {
+                    Text("R").navigationTitle("INNER").navigationSubtitle("INNER-SUB").padding()
+                        .navigationTitle("OUTER").navigationSubtitle("OUTER-SUB")
+                } else {
+                    Text("R").navigationTitle("INNER").navigationSubtitle("INNER-SUB")
+                        .navigationTitle("OUTER").navigationSubtitle("OUTER-SUB")
+                }
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
 @MainActor
 @Suite("The window's title", .serialized)
 struct WindowTitleTests {
@@ -180,6 +205,14 @@ struct WindowTitleTests {
         let bar = topBar(SiblingTitlesApp(wrapped: wrapped))
         #expect(bar.first?.contains("INBOX") == true, "the later one, as the preference has it: \(bar)")
         #expect(!bar.contains { $0.contains("MAIL") }, "\(bar)")
+    }
+
+    @Test("Of two titles stacked on one view the outer stands, and so does the outer subtitle", arguments: [false, true])
+    func stackedTitlesOuterStands(padded: Bool) {
+        let bar = topBar(StackedTitlesApp(padded: padded))
+        #expect(bar.first?.contains("OUTER") == true, "the outer writer overrides its content: \(bar)")
+        #expect(bar.last?.contains("OUTER-SUB") == true, "\(bar)")
+        #expect(!bar.contains { $0.contains("INNER") }, "\(bar)")
     }
 
     @Test("A stack at the window's root titles it: its root's title, and a pushed screen's while it is shown")
