@@ -43,8 +43,8 @@ entry has the options and their prices.
 - **A2 — anchors and named coordinate spaces.** Markers stamped where a reader
   or anchor sits (G1). A7, scroll visibility, builds on the same markers.
 - **A13 — text selection.** Shipped 2026-10-05: drag-select of what is drawn,
-  `textSelection(_:)`, OSC 52 copies, opt-in copy on release. Open: the mouse
-  hand-off key (A13.2; ⌃] declined). A25 waits on it.
+  `textSelection(_:)`, OSC 52 copies, opt-in copy on release. The mouse
+  hand-off (A13.2) is deferred, with no key. A25 waits on A13.
 
 **Looks and defaults.**
 
@@ -65,8 +65,6 @@ entry has the options and their prices.
   decide with B3 and O8.
 - A27 — pixel effects: decline the transforms, a cell-coverage `mask`,
   `drawingGroup` as `compositingGroup`.
-- A28 — toolbars: host `.toolbar` content in the chrome TUIkit draws,
-  reversing the compatibility doc's §2.6.
 - A30, A31 — table context menus and section rows: both menus, with
   `primaryAction` replacing `onRowActivate`; header rows.
 - A33 — a colour's spoken name: decline.
@@ -273,10 +271,12 @@ when a drag lands on nothing that uses it (Option-drag for a rectangle),
 `textSelection(_:)` scopes it, ⌘C / the copy chord and a right-click Copy
 copy it by OSC 52 or, only when the user is at this machine, the system
 clipboard; copy on release is opt-in (`Scene.textSelectionCopiesOnRelease`);
-no copy mode. **Still open:** the mouse hand-off key (A13.2) — the owner
-declined ⌃] (a partner of ⌃[ worth keeping); candidates ⌃\\, ⌥M / ⎋ M, an
-F-key, or none by default. Exact per-`Text` selection (A13.5) is remembered,
-not built. The lane's own calls are in
+no copy mode. **Deferred (2026-10-05):** the mouse hand-off (A13.2), and with
+it any key for it. Every candidate was declined: ⌃] (a partner of ⌃[), ⌃\\
+(the shell's quit, kept as the backup to ⌃C), ⌥M (types µ), ⎋ M (Escape must
+answer at once), the F-keys (prime, and unreliable where the OS takes them), and
+⌃^ (too obscure; Apple Terminal sends nothing for ⌃6 and `^^` for ⌃⇧6).
+Exact per-`Text` selection (A13.5) is remembered, not built. The lane's own calls are in
 `SwiftUI-API-completion-decisions-D4X.md`.
 
 *`View.textSelection(_:)`, `TextSelectability`, `EnabledTextSelectability`,
@@ -590,47 +590,6 @@ blend does not do.
 
 **Recommendation:** transforms (1); mask, the cell-coverage rule; drawingGroup
 (1), since nearly every use is the argument-free performance hint.
-
-### A28. Toolbars (Wave 15)
-
-*44 symbols: `View.toolbar(content:)`, `toolbar(id:content:)`, `ToolbarItemGroup`,
-`ToolbarSpacer`, `ToolbarTitleMenu`/`toolbarTitleMenu(content:)`,
-`toolbarRole(_:)`/`ToolbarRole`, `toolbarTitleDisplayMode(_:)`,
-`toolbarBackground(_:for:)`, `toolbarBackgroundVisibility(_:for:)`,
-`toolbarColorScheme(_:for:)`, `toolbarVisibility(_:for:)`, `toolbarItemHidden(_:)`,
-`ToolbarLabelStyle` and `\.toolbarLabelStyle`, `contentToolbar(for:content:)`,
-`ContentToolbarPlacement`, `LabeledToolbarItemGroupContent`, the customization
-family (`CustomizableToolbarContent`, `ToolbarCustomizationBehavior`,
-`ToolbarCustomizationOptions`), `SpacerSizing` (for `ToolbarSpacer`),
-`tabBarMinimizeBehavior(_:)`, and the window toolbar styles
-(`DefaultWindowToolbarStyle`, `ExpandedWindowToolbarStyle`,
-`UnifiedWindowToolbarStyle`, `UnifiedCompactWindowToolbarStyle`), which style
-a window's toolbar the terminal owns and follow option 1 whatever is chosen*
-
-The compatibility doc (§2.6) makes the toolbar a deliberate divergence. A
-terminal's chrome is the one-line status bar, and the map renames
-`ToolbarItem` to `StatusBarItem`. That leaves the commonest SwiftUI idiom,
-`.toolbar { ToolbarItem(placement: .primaryAction) { Button(…) } }`, failing to
-compile in every ported app.
-
-**Options.**
-
-1. **Keep §2.6.** Decline the 44 with the `Commands` family's reason. Free.
-2. **Host toolbar content in the chrome TUIkit already draws.** Navigation,
-   principal and primary-action placements become buttons on
-   `NavigationStack`'s bar row (its root, which has no bar today, would gain
-   one when it has items), or on the app header outside a stack. Status and
-   bottom-bar placements go to the status bar row. The buttons are a focus
-   section. Visibility, background and title-menu modifiers act on that row.
-   `toolbar(id:)` customisation and `ToolbarLabelStyle` are declined.
-   Three to four days, most of it the root bar and focus.
-3. **Option 2 with customisation:** a sheet that reorders and hides items,
-   saved by the `id:`. Another two days.
-
-**Recommendation:** 2. It reverses §2.6's "should NOT change", which is why
-it is yours. `StatusBarItem` stays as the terminal-native complement.
-`ToolbarTitleDisplayMode` and `tabBarMinimizeBehavior` follow O8, and the
-toolbar's `.title`/`.search` items follow O17.
 
 *Wave 8a's entries (A29–A31, B44–B47, C10): SwiftUI's behaviour was measured on macOS 15.8, built against the macOS 26.2 SDK, with an offscreen `NSHostingView`; the probes are in the session notes, `w08a/probe`.*
 
