@@ -153,9 +153,8 @@ final class _SplitPaneDividerHandler: PersistedFocusable {
     let index: Int
     let panes: SplitPaneSizes
 
-    /// The sizes when the current drag began, which every drag event moves the
-    /// divider relative to; `nil` when no drag is under way.
-    var dragStart: [Int]?
+    /// The pointer's gesture, from the sizes when it began.
+    var drag = DividerDrag<[Int]>()
 
     init(focusID: String, axis: Axis, index: Int, panes: SplitPaneSizes) {
         self.focusID = focusID
@@ -379,13 +378,8 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         let isFocused = context.indicatesFocus(FocusRegistration.isFocused(context: context, focusID: focusID))
 
         let palette = context.environment.palette
-        let glyph = axis == .horizontal ? "│" : "─"
-        let painted = ANSIRenderer.colorize(
-            glyph, foreground: (isFocused ? palette.accent : palette.border).opaqueSpelling)
-        var buffer =
-            axis == .horizontal
-            ? FrameBuffer(lines: Array(repeating: painted, count: length))
-            : FrameBuffer(lines: [String(repeating: painted, count: length)])
+        var buffer = DividerRule.buffer(
+            across: axis, length: length, colour: isFocused ? palette.accent : palette.border)
 
         if context.environment.isEnabled, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher
@@ -393,23 +387,13 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
             let focusManager = context.environment.focusManager
             let axis = self.axis
             let handlerID = dispatcher.register(in: context) { event in
-                guard event.button == .left else { return false }
-                switch event.phase {
-                case .pressed:
-                    focusManager?.focus(id: focusID)
-                    handler.dragStart = handler.panes.sizes
-                    return true
-                case .dragged, .released:
-                    // Localised to the press, so the coordinate along the
-                    // split is the signed distance moved.
-                    if let start = handler.dragStart {
-                        handler.move(by: axis == .horizontal ? event.x : event.y, from: start)
-                    }
-                    if event.phase == .released { handler.dragStart = nil }
-                    return true
-                default:
-                    return false
-                }
+                handler.drag.handle(
+                    event, along: axis,
+                    press: {
+                        focusManager?.focus(id: focusID)
+                        return handler.panes.sizes
+                    },
+                    move: { delta, start in handler.move(by: delta, from: start) })
             }
             buffer.hitTestRegions.append(
                 HitTestRegion(
