@@ -209,11 +209,49 @@ compiles it, and the owner asked for the Group initializer that captures the
 type-checker to be found and disfavoured.
 
 **Measured** (the macOS 26.2 SDK, Swift 6.2.4, `swiftc -typecheck` of SwiftUI
-source; the probes are in the session notes, `D4T/probe/b47`): SwiftUI does
-not compile it either — the same error, at the same key path — and not with a
-second column beside the `Group` either, nor in a `@TableColumnBuilder`
-property. The compile corpus's existing comment ("SwiftUI cannot infer a key
-path's root here either") was right, and B47's premise was not.
+source): SwiftUI does not compile it either — the same error, at the same key
+path — and not with a second column beside the `Group` either, nor in a
+`@TableColumnBuilder` property. The compile corpus's existing comment
+("SwiftUI cannot infer a key path's root here either") was right, and B47's
+premise was not.
+
+The probe, to re-check it on a later SDK — `swiftc -typecheck` of this file
+fails with "cannot infer key path type from context" at `\.email`, and
+compiles with `\Person.email`:
+
+```swift
+import SwiftUI
+
+struct Person: Identifiable {
+    let id: Int
+    var email: String
+    var name: String
+}
+
+struct One: View {
+    @State var people: [Person] = []
+    var body: some View {
+        Table(people) {
+            Group {
+                TableColumn("Label", value: \.email)
+            }
+        }
+    }
+}
+
+// The second shape: a column beside the Group fails the same way.
+struct Two: View {
+    @State var people: [Person] = []
+    var body: some View {
+        Table(people) {
+            TableColumn("Name", value: \.name)
+            Group {
+                TableColumn("Label", value: \.email)
+            }
+        }
+    }
+}
+```
 
 The solver's reason is the same on both sides: the `Group`'s row type is
 `Content.TableRowValue`, and the outer builder states it only through
