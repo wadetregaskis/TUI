@@ -103,6 +103,40 @@ private struct SubtitleAroundTheTitleApp: App {
     }
 }
 
+/// A titled view beside one with a subtitle: SwiftUI's `VStack { header;
+/// list }` with the count on the list.
+private struct SiblingSubtitleApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Text("HEADER").navigationTitle("NOTES")
+                Text("LIST").navigationSubtitle("THREE-NOTES")
+            }
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
+/// A titled view inside two views with subtitles, one round the other.
+private struct NestedSubtitlesApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                VStack {
+                    Text("HEADER").navigationTitle("NOTES")
+                }
+                .navigationSubtitle("INNER-SUB")
+            }
+            .navigationSubtitle("OUTER-SUB")
+            .toolbar { ToolbarItem(placement: .primaryAction) { Text("ITEM") } }
+        }
+    }
+}
+
 /// Two titled views side by side, the second one wrapped or not.
 private struct SiblingTitlesApp: App {
     var wrapped = false
@@ -193,11 +227,26 @@ struct WindowTitleTests {
         #expect(!bar.contains { $0.contains("DEMO") }, "not the page's, under another view's title: \(bar)")
     }
 
-    @Test("With none of its own, the title takes the subtitle of the nearest view round it")
+    @Test("With none of its own, the title takes the subtitle of a view round it")
     func subtitleFromAroundTheTitle() {
         let bar = topBar(SubtitleAroundTheTitleApp())
         #expect(bar.first?.contains("NOTES") == true, "\(bar)")
         #expect(bar.last?.contains("THREE-NOTES") == true, "\(bar)")
+    }
+
+    @Test("With none of its own, the title takes the subtitle of a view beside it, as the preference combines siblings")
+    func subtitleFromBesideTheTitle() {
+        let bar = topBar(SiblingSubtitleApp())
+        #expect(bar.count == 2, "a title and a subtitle: \(bar)")
+        #expect(bar.first?.contains("NOTES") == true, "\(bar)")
+        #expect(bar.last?.contains("THREE-NOTES") == true, "\(bar)")
+    }
+
+    @Test("Of subtitles round the title, the outermost stands, as a title's does")
+    func outermostSubtitleRoundTheTitle() {
+        let bar = topBar(NestedSubtitlesApp())
+        #expect(bar.last?.contains("OUTER-SUB") == true, "\(bar)")
+        #expect(!bar.contains { $0.contains("INNER-SUB") }, "\(bar)")
     }
 
     @Test("Of two titles side by side, the same one stands however each is wrapped", arguments: [false, true])

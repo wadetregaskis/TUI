@@ -167,8 +167,8 @@ final class WindowChromeState: @unchecked Sendable {
     /// what a terminal window title (OSC 2) would be set from.
     var title: String { titles.title }
 
-    /// The window's subtitle: the title's own `.navigationSubtitle` (see
-    /// ``offer(_:as:at:)``).
+    /// The window's subtitle: the title's own `.navigationSubtitle`, else the
+    /// one that stands as a title does (see ``offer(_:as:at:)``).
     var subtitle: String { titles.subtitle }
 
     /// The lines of the top bar's title slot, which the window's chrome takes
@@ -220,12 +220,17 @@ final class WindowChromeState: @unchecked Sendable {
     ///   are declared at the SAME identity (a modifier renders its content at
     ///   its own), so there the first declared is the outer one, and stands,
     ///   as SwiftUI's outer preference writer overrides its content.
-    /// - The subtitle is the title's: one declared on the title's view or
-    ///   inside it, the outermost of those; else the nearest view round the
-    ///   title that has one. Chosen apart from the title, the outermost
-    ///   subtitle could belong to another view entirely — a page's "Demo" under
-    ///   the "Planets" of a stack inside it, where the stack's root said "9
-    ///   planets". With no title, the outermost subtitle.
+    /// - The subtitle is the title's own where it has one: declared on the
+    ///   title's view or inside it, the outermost of those. Chosen apart from
+    ///   the title, the outermost subtitle could belong to another view
+    ///   entirely — a page's "Demo" under the "Planets" of a stack inside it,
+    ///   where the stack's root said "9 planets".
+    /// - Where the title has none, the subtitle is the one that stands by the
+    ///   titles' own reduction — the outermost, and of several side by side
+    ///   the last — wherever it was declared: round the title, or BESIDE it, as
+    ///   SwiftUI combines a sibling's preference upward.
+    ///   `VStack { Text("H").navigationTitle("Notes"); List(…).navigationSubtitle("3 notes") }`
+    ///   shows both. With no title, the same.
     ///
     /// An empty title is no title.
     func offer(_ text: String, as line: TitleLine, at identity: ViewIdentity) {
@@ -247,21 +252,12 @@ final class WindowChromeState: @unchecked Sendable {
 
     /// Chooses the title and its subtitle from this walk's offers.
     private func chooseTitles() -> (title: String, subtitle: String) {
-        guard let title = Self.outermost(titleOffers) else {
-            return ("", Self.outermost(subtitleOffers)?.text ?? "")
-        }
+        let standing = Self.outermost(subtitleOffers)?.text ?? ""
+        guard let title = Self.outermost(titleOffers) else { return ("", standing) }
         let own = subtitleOffers.filter {
             $0.identity == title.identity || title.identity.isAncestor(of: $0.identity)
         }
-        if let subtitle = Self.outermost(own) { return (title.text, subtitle.text) }
-        // The nearest view round the title with a subtitle: the deepest of
-        // those that enclose it, and of several on one view the last.
-        var around: TitleOffer?
-        for offer in subtitleOffers where offer.identity.isAncestor(of: title.identity) {
-            if let nearest = around, offer.identity.depth < nearest.identity.depth { continue }
-            around = offer
-        }
-        return (title.text, around?.text ?? "")
+        return (title.text, Self.outermost(own)?.text ?? standing)
     }
 
     /// The offer that stands among `offers`, in declaration order: each one
