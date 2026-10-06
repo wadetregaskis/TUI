@@ -38,10 +38,17 @@ import Musl
 /// cannot: a flush is no async-signal-safe call. So by the byte (a terminal
 /// without the protocol, or a hung app) such a value can be lost, as it can by
 /// `kill -QUIT`.
+///
+/// And one thing after that the driver's quit needs no help with: nothing more
+/// of the app runs on this thread (``awaitTheQuit()``). `kill` sends a signal
+/// to processes, not to the calling thread as `raise` did, so its handler may
+/// run on another thread after `kill` has returned — on Linux the main actor
+/// need not run on the main thread.
 enum QuitKeyReport {
 
     /// Quits as the driver would, the settings saved first: `SIGQUIT` to the
-    /// process group.
+    /// process group, and then nothing more on this thread until it ends the
+    /// process.
     ///
     /// - Parameters:
     ///   - synchronize: Flushes stored settings to disk:
@@ -49,13 +56,41 @@ enum QuitKeyReport {
     ///     another.
     ///   - signal: `kill(2)`, unless a test hands in another that records
     ///     what it was asked.
+    ///   - awaitTheEnd: Holds this thread until the signal ends the process:
+    ///     ``awaitTheQuit()``, unless a test hands in another — the real one
+    ///     would hold the test for ever, the signal not having been sent.
     static func quit(
         synchronize: () -> Void = { StorageDefaults.backend.synchronize() },
-        signal: (pid_t, Int32) -> Int32 = { kill($0, $1) }
+        signal: (pid_t, Int32) -> Int32 = { kill($0, $1) },
+        awaitTheEnd: () -> Void = { Self.awaitTheQuit() }
     ) {
         synchronize()
         // Process ID 0: every process in the caller's process group.
-        _ = signal(0, SIGQUIT)
+        guard signal(0, SIGQUIT) == 0 else { return }
+        awaitTheEnd()
+    }
+
+    /// Holds the calling thread until the `SIGQUIT` just sent ends the
+    /// process, where it will (`FatalSignalTerminalRestore.quitEndsTheProcess()`);
+    /// returns at once where it will not — ignored, or a handler of the app's
+    /// own — and the input loop goes on, as after the driver's ⌃\ there.
+    ///
+    /// Why hold it: the kernel may hand the signal to any thread that does not
+    /// block it, and the handler run there after `kill` returned. Until then
+    /// this thread would go on — dispatching the rest of the batch of input
+    /// the report came in (up to 128 events: a Return typed after the ⌃\
+    /// would run its action), and maybe writing a frame, which after the
+    /// handler's exit from the alternate screen lands on the shell's screen.
+    /// Held, nothing more of the app runs here, and the handler ends the
+    /// process wherever it runs: here, if no other thread takes the signal
+    /// first, for it is unblocked for the wait. Another signal's handler
+    /// ends a wait, not the hold.
+    static func awaitTheQuit() {
+        guard FatalSignalTerminalRestore.quitEndsTheProcess() else { return }
+        var waiting = sigset_t()
+        pthread_sigmask(SIG_SETMASK, nil, &waiting)
+        sigdelset(&waiting, SIGQUIT)
+        while true { sigsuspend(&waiting) }
     }
 }
 

@@ -437,9 +437,13 @@ check(app.stack == [31], "kitty: the flags are pushed")
 probe, child = child_of(child_file, app)
 check_child_in_group(probe, child, app, "kitty")
 mark = len(app.out)
-os.write(app.master, b"\x1b[92;5u")
+# A key in the same read as the report: the thread that sent the signal goes
+# no further (on Linux the handler may run on another thread after `kill`
+# returns, and the batch would go on), so the key after it is never shown.
+os.write(app.master, b"\x1b[92;5u\x1b[98u")
 check_quit(app, mark, "kitty, ⌃\\ as a report")
 check(b"\x1b[<u" in app.out[mark:] and app.stack == [], "kitty, ⌃\\ as a report: the flags popped")
+check(b"key b" not in app.out[mark:], "kitty, ⌃\\ as a report: a key read with it does nothing more")
 check(child is not None and child_ends(child, 3.0),
       "kitty, ⌃\\ as a report: the app's child ends with it, as the driver's ⌃\\ ends it")
 app.finish()

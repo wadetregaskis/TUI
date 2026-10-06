@@ -203,21 +203,33 @@ enum FatalSignalTerminalRestore {
     /// Whether `action` is the default disposition, `SIG_DFL` — a null
     /// handler in every C library's union.
     private static func isDefault(_ action: sigaction) -> Bool {
+        handlerAddress(of: action) == 0
+    }
+
+    /// `action`'s handler, as an address, through each C library's spelling
+    /// of the union that holds it: 0 for `SIG_DFL`, 1 for `SIG_IGN`.
+    private static func handlerAddress(of action: sigaction) -> Int {
         #if canImport(Darwin)
-            unsafeBitCast(action.__sigaction_u, to: Int.self) == 0
+            unsafeBitCast(action.__sigaction_u, to: Int.self)
         #elseif canImport(Glibc)
-            unsafeBitCast(action.__sigaction_handler, to: Int.self) == 0
+            unsafeBitCast(action.__sigaction_handler, to: Int.self)
         #elseif canImport(Musl)
-            unsafeBitCast(action.__sa_handler, to: Int.self) == 0
+            unsafeBitCast(action.__sa_handler, to: Int.self)
         #endif
     }
+
+    /// The handler ``setHandler(_:)`` installs, a C function that calls
+    /// ``handle(_:)``.
+    private static let handler: @convention(c) (Int32) -> Void = { signal in
+        Self.handle(signal)
+    }
+
+    /// ``handler``'s address, as ``handlerAddress(of:)`` reads one.
+    static var handlerAddress: Int { unsafeBitCast(handler, to: Int.self) }
 
     /// Sets `action`'s handler to ``handle(_:)``, through each C library's
     /// spelling of the union that holds it.
     private static func setHandler(_ action: inout sigaction) {
-        let handler: @convention(c) (Int32) -> Void = { signal in
-            Self.handle(signal)
-        }
         #if canImport(Darwin)
             action.__sigaction_u = __sigaction_u(__sa_handler: handler)
         #elseif canImport(Glibc)
@@ -225,6 +237,25 @@ enum FatalSignalTerminalRestore {
         #elseif canImport(Musl)
             action.__sa_handler = .init(sa_handler: handler)
         #endif
+    }
+
+    /// Whether a `SIGQUIT` sent now ends the process: whether its disposition
+    /// is this handler, which pays the debt and ends by the default action,
+    /// or the default action itself. Not where the app ignores the signal, or
+    /// installed a handler of its own after TUIkit's: what that does is the
+    /// app's. Asked by the quit key's report before it waits for its signal
+    /// to end the process (`QuitKeyReport`), which it would otherwise wait
+    /// for for ever.
+    static func quitEndsTheProcess() -> Bool {
+        var current = sigaction()
+        guard sigaction(SIGQUIT, nil, &current) == 0 else { return false }
+        return endsTheProcess(handlerAddress: handlerAddress(of: current))
+    }
+
+    /// ``quitEndsTheProcess()``'s rule, for a disposition's handler
+    /// address: the default's (0), or ``handlerAddress``.
+    static func endsTheProcess(handlerAddress address: Int) -> Bool {
+        address == 0 || address == handlerAddress
     }
 
     /// The handler: pay, restore, re-raise — a `SIGQUIT` to its default

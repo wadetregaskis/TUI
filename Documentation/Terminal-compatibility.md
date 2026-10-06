@@ -4417,8 +4417,16 @@ owner's rule of 2026-10-06, that an app's own ⌃\\ overrides the quit; until
 then the report was taken ahead of every layer — and where none takes it sends
 `SIGQUIT` where the driver would have, to the app's whole process group, so a
 child the app started ends with it (`QuitKeyReport`); a release quits
-nothing, and with the quit key turned off the report is an ordinary key. The smoke checks the report too, against a PTY
-that plays a terminal speaking the protocol.
+nothing, and with the quit key turned off the report is an ordinary key.
+Signalling processes, not the thread as `raise` did, the handler may run on
+another thread after `kill` returns (on Linux the main actor need not be the
+main thread), so the sending thread then waits in `sigsuspend` for the signal
+to end the process, and runs nothing more of the batch the report came in:
+no key read after it acts, no frame lands on the shell's screen after the
+handler left the alternate one. Where `SIGQUIT` would end nothing — ignored,
+or a handler of the app's own — it does not wait. The smoke checks the report
+too, against a PTY that plays a terminal speaking the protocol, with a key in
+the same read that must not show.
 
 **A hung app under the protocol: the stall watchdog** (2026-10-06, decisions
 B-F2-4). The report needs the app to read its input, and a hung app reads
