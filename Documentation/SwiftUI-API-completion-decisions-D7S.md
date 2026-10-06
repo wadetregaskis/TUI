@@ -64,3 +64,24 @@ no pane is active — a page's app-wide chords dead whenever the reader is in
 the sheet. One line in `KeyboardShortcutRegistry.appEntry(for:activePane:)`;
 held back because a docked sheet is meant to be a pane BESIDE a live page,
 and macOS fires a window's key equivalents from whichever pane has the focus.
+
+### B-D7S-3. A live sheet is a band at every detent, and `.automatic` sizing does not make it a card
+
+*`presentationBackgroundInteraction(.enabled)` with `presentationSizing(_:)`
+(decisions A19 owner Q3, A20)*
+
+**Shipped:** a detented sheet whose content enables background interaction
+spans the content area — its box takes the whole width, through A20's
+`sheetProposedWidth` — at EVERY detent, including the ones past
+`upThrough` where it is a modal again, so it does not narrow at the
+threshold. A sizing the content names sizes it as it sizes any sheet
+(`.fitted`: a card centred where the band would be, as the owner's Q3 answer
+says); `.automatic`, named explicitly, is treated as naming none — it is the
+sizing every sheet has, and "the band" is what a live sheet's automatic size
+is. A detented sheet that does not let the page through keeps its content's
+width, as before.
+
+**The alternative:** a band only while docked, the content's width while a
+modal — a sheet that jumps narrower as the reader grows it past
+`upThrough`. Free to switch (`isBand(sizing:hasDetent:)` reads the dock
+decision instead of the trait).

@@ -165,6 +165,11 @@ List(notes, selection: $selected) { note in Text(note.title) }
     }
 ```
 
+- **The sheet is a band.** It spans the content area, as a split view's pane
+  does: its box — a `Dialog`, `Panel`, `Card` or `.border()` — takes the
+  whole width, at every detent. A ``View/presentationSizing(_:)`` the content
+  names still sizes it (`.fitted` is a card centred where the band would be),
+  and content with no box keeps its own width.
 - **The page is shorter.** It is laid out in the rows the sheet leaves, as a
   terminal resize would lay it out: a `GeometryReader` or
   `containerRelativeFrame` sees the shorter height, a list scrolls in it, and

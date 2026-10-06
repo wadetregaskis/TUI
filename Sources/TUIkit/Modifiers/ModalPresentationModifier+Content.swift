@@ -59,6 +59,20 @@ extension ModalPresentationModifier {
         return item
     }
 
+    /// Whether the presented sheet is a band across the content area: a
+    /// detented sheet whose content lets the page through
+    /// (``View/presentationBackgroundInteraction(_:)``), and names no sizing
+    /// of its own — `.automatic` aside. One that does is sized by it, as any
+    /// sheet is: `.fitted`, a card centred where the band would be.
+    private func isBand(sizing: (any PresentationSizing)?, hasDetent: Bool) -> Bool {
+        guard hasDetent, sizing == nil || sizing is AutomaticPresentationSizing,
+            let interaction = presentationTrait(PresentationBackgroundInteractionProviding.self, of: modal)?
+                .backgroundInteraction,
+            case .enabled = interaction.kind
+        else { return false }
+        return true
+    }
+
     /// Renders the presented content at the size its style gives it: a sheet
     /// at its own height or its detent's (`detentHeight`), a cover over the
     /// whole content area.
@@ -77,7 +91,14 @@ extension ModalPresentationModifier {
             // A sizing the content named proposes the sheet's size, and its box
             // takes it — the height as a detent's, the width likewise (see
             // ``EnvironmentValues/sheetProposedWidth``). A detent's height wins.
-            if let sizing = presentationTrait(PresentationSizingProviding.self, of: modal)?.sizing,
+            let sizing = presentationTrait(PresentationSizingProviding.self, of: modal)?.sizing
+            if isBand(sizing: sizing, hasDetent: detentHeight != nil) {
+                // A sheet beside a live page is a band across the whole
+                // content area, as a `VSplitView`'s pane is (owner Q3) — at
+                // every detent, so it does not narrow as it turns modal past
+                // its `upThrough`. Its box takes the width.
+                sheetContext.environment.sheetProposedWidth = sheetContext.availableWidth
+            } else if let sizing,
                 let proposedHeight = applyPresentationSizing(
                     sizing, of: modal, to: &sheetContext, hasDetent: detentHeight != nil,
                     kept: keptSheetSize(context: context)?.presenting(itemKey))
