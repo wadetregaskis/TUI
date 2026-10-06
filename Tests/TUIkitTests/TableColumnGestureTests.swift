@@ -24,6 +24,7 @@ private final class Columns {
     var customization = TableColumnCustomization<Entry>()
     var bound = true
     var sortOrder = [KeyPathComparator(\Entry.alpha)]
+    var selection: Set<Int> = []
 }
 
 private struct Entry: Identifiable, Equatable {
@@ -42,7 +43,10 @@ private struct ColumnsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if let columns { ColumnsPage(columns: columns) }
+            // The line of key hints, where the column mode says how to leave
+            // it: a bare WindowGroup draws none.
+            Group { if let columns { ColumnsPage(columns: columns) } }
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
         }
     }
 }
@@ -54,7 +58,7 @@ private struct ColumnsPage: View {
     var body: some View {
         if columns.bound {
             Table(
-                entries, sortOrder: Bindable(columns).sortOrder,
+                entries, selection: Bindable(columns).selection, sortOrder: Bindable(columns).sortOrder,
                 columnCustomization: Bindable(columns).customization
             ) {
                 TableColumn("Alpha", value: \.alpha)
@@ -102,8 +106,8 @@ private final class Harness {
 
     func shows(_ text: String) -> Bool { lines.contains { $0.contains(text) } }
 
-    /// The header line, found by two titles on it.
-    var headerY: Int? { lines.firstIndex { $0.contains("Alpha") && $0.contains("Delta") } }
+    /// The header line, found by two titles on it — Alpha may be hidden.
+    var headerY: Int? { lines.firstIndex { $0.contains("Beta") && $0.contains("Delta") } }
 
     func column(of text: String, on y: Int) -> Int? {
         lines[y].range(of: text).map { lines[y].distance(from: lines[y].startIndex, to: $0.lowerBound) }
@@ -258,10 +262,39 @@ struct TableColumnGestureTests {
         #expect(harness.shows("Hide “Gamma”"), "\(harness.screen)")
         harness.key(KeyEvent(key: .escape))
         #expect(!harness.shows("Hide “Gamma”"))
+        // The menu was the mode's own: back at the table, ← picks Alpha and
+        // `<` moves it back.
+        harness.frame()
+        #expect(harness.shows("stop editing columns"), "\(harness.screen)")
+        harness.key(KeyEvent(key: .left))
+        harness.key(KeyEvent(key: .character("<")))
+        #expect(harness.headerOrder == ["Alpha", "Beta", "Gamma", "Delta"], "\(harness.screen)")
         // Escape lets the column go: ">" moves nothing now.
         harness.key(KeyEvent(key: .escape))
         harness.key(KeyEvent(key: .character(">")))
-        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == ["Alpha", "Beta", "Gamma", "Delta"], "\(harness.screen)")
         _ = beta
+    }
+
+    @Test("Escape lets go of a picked column the menu hid, and goes no further")
+    func escapeAfterHidingThePickedColumn() throws {
+        let harness = Harness()
+        harness.columns.selection = [2]
+        harness.frame()
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        // Return opens the menu on Alpha, picked; its first row hides it.
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.shows("Hide “Alpha”"), "\(harness.screen)")
+        harness.key(KeyEvent(key: .enter))
+        #expect(harness.columns.customization[visibility: "alpha"] == .hidden, "\(harness.screen)")
+        // Back at the table (the status bar a frame behind the menu's
+        // closing), the mode goes on, on the first column left.
+        harness.frame()
+        #expect(harness.shows("stop editing columns"), "\(harness.screen)")
+        harness.key(KeyEvent(key: .escape))
+        #expect(harness.columns.selection == [2], "Escape went on to the rows and cleared the selection")
+        // And the mode is off: `>` moves nothing.
+        harness.key(KeyEvent(key: .character(">")))
+        #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "\(harness.screen)")
     }
 }

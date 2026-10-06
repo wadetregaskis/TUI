@@ -1361,8 +1361,13 @@ extension ItemListHandler {
         // with the focus, so put it back rather than leaving it stranded.
         if isKeyboardMove { cancelKeyboardMove() }
 
-        // …and so is a picked column: the keys that move it went too.
-        columnFocus = nil
+        // …and so is a picked column: the keys that move it went too — unless
+        // the focus went to the column menu, which Return opened on the
+        // picked column and which hands the focus back when it closes. That
+        // menu is the mode's own: ending the mode there left the user, back
+        // at the table, in a mode they had not left, and Escape — still meant
+        // to let the column go — clearing the selection instead.
+        if columnEditing?.menuIsOpen() != true { columnFocus = nil }
 
         // When focus is lost, reset focused index to the first selected item
         // (if any) so that when focus returns, the user sees the selection.

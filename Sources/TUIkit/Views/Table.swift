@@ -2519,6 +2519,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.onMove = moveAction
         handler.onSort = sortKeyAction
         handler.columnEditing = columnEditing(handler, context: context)
+        // A picked column that has gone — hidden from its own menu — hands
+        // the pick to the first column left, before the header draws it, so
+        // the mode the status bar still advertises has a column on screen.
+        if !context.isMeasuring, let focus = handler.columnFocus {
+            let shown = handler.columnEditing?.columns ?? []
+            if !shown.contains(focus) { handler.columnFocus = shown.first }
+        }
     }
 
     // MARK: - Row menus
@@ -3814,7 +3821,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             openMenu: { id in
                 guard let box else { return }
                 RowContextMenuHost.openByKeyboard(box, target: .row(AnyHashable(id)), onOpen: onOpen)
-            })
+            },
+            menuIsOpen: { box?.value.menu.isOpen ?? false })
     }
 
     /// Draws the open column menu over the table — anchored at the press, or

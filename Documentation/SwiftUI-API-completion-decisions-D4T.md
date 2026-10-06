@@ -175,7 +175,9 @@ declared widths back. The last shown column cannot be hidden from the menu.
 From the keyboard the gestures are a mode rather than six chords: **Ctrl-K**
 picks a column (drawn in the selected-row fill in the header); while one is
 picked, ←/→ pick another, `<`/`>` (or Shift-←/→) move it, `-`/`+` resize it,
-Return opens the column menu on it, and Escape (or Ctrl-K) lets it go — the
+Return opens the column menu on it (the mode's own: closing it returns to
+the mode, and hiding the picked column picks the first one left), and
+Escape (or Ctrl-K) lets it go — the
 shape of Ctrl-R's row move, for the same reason: a column has to be chosen
 before anything can be done to it, and keys inside a mode need no modifier a
 terminal might not send. Only Ctrl-K is a rebindable `RowAction`; free Ctrl

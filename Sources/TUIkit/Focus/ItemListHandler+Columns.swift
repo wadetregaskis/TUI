@@ -29,6 +29,10 @@ struct TableColumnEditing {
 
     /// Opens the column menu on a column, under its header.
     let openMenu: (_ id: String) -> Void
+
+    /// Whether the column menu is open — the mode's own menu, which takes
+    /// the focus without ending the mode.
+    let menuIsOpen: () -> Bool
 }
 
 // MARK: - The keys
@@ -52,11 +56,23 @@ extension ItemListHandler {
             return true
         }
         guard let focus = columnFocus else { return nil }
+        // Escape lets the column go whatever has become of it: the mode owns
+        // the key while it is on (the status bar says so), so it must never
+        // fall through to the rows — which clear the selection on it, or with
+        // none hand it to the page.
+        if event.key == .escape {
+            columnFocus = nil
+            return true
+        }
         // A column that has gone — hidden from its own menu, say — hands the
-        // pick to the first one left.
+        // pick to the first one left (the table does the same when it draws,
+        // so this is only met before a frame has). A mode key is spent on
+        // that, not acted on for a column the user has not seen picked; any
+        // other key goes on to the rows, as it would have anyway.
         guard let position = editing.columns.firstIndex(of: focus) else {
+            guard Self.isColumnModeKey(event) else { return nil }
             columnFocus = editing.columns.first
-            return nil
+            return true
         }
         switch event.key {
         case .left where !event.shift, .right where !event.shift:
@@ -72,11 +88,23 @@ extension ItemListHandler {
             editing.resize(focus, 1)
         case .enter:
             editing.openMenu(focus)
-        case .escape:
-            columnFocus = nil
         default:
             return nil
         }
         return true
+    }
+
+    /// Whether `event` is one of the keys the column mode acts on, besides
+    /// Escape: the arrows that pick and move, `<`/`>`, `-`/`+` and their
+    /// unshifted twins, and Return.
+    private static func isColumnModeKey(_ event: KeyEvent) -> Bool {
+        switch event.key {
+        case .left, .right, .enter,
+            .character("<"), .character(">"), .character("-"), .character("_"),
+            .character("+"), .character("="):
+            return true
+        default:
+            return false
+        }
     }
 }
