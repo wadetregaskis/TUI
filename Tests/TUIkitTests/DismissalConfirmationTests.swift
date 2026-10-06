@@ -35,6 +35,7 @@ struct DismissalConfirmationTests {
         var unsaved = true
         var saved = 0
         var discarded = 0
+        var cancelled = 0
         var binding: Binding<Bool> { Binding(get: { self.presented }, set: { self.presented = $0 }) }
     }
 
@@ -50,6 +51,26 @@ struct DismissalConfirmationTests {
 
     private func sheet(_ model: Model) -> some View {
         Text("page").sheet(isPresented: model.binding) { editor(model) }
+    }
+
+    /// The editor with a Cancel that dismisses, as a `.cancellationAction`
+    /// toolbar item usually is — the sheet's cancel button.
+    private func cancellableSheet(_ model: Model) -> some View {
+        Text("page").sheet(isPresented: model.binding) {
+            Text("draft")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            model.cancelled += 1
+                            model.presented = false
+                        }
+                    }
+                }
+                .dismissalConfirmationDialog("Save this draft?", shouldPresent: model.unsaved) {
+                    Button("Save") { model.saved += 1 }
+                    Button("Don't Save", role: .destructive) { model.discarded += 1 }
+                }
+        }
     }
 
     private func shows(_ buffer: FrameBuffer, _ text: String) -> Bool {
@@ -101,6 +122,29 @@ struct DismissalConfirmationTests {
         harness.press(escape)
         harness.frame(sheet(model))
         #expect(!model.presented)
+    }
+
+    @Test("Escape asks before it presses a sheet's cancel button, and presses it with nothing to lose")
+    func escapeAsksBeforeTheCancelButton() {
+        let harness = InputChainHarness(width: 60, height: 20)
+        let model = Model()
+        harness.frame(cancellableSheet(model))
+        harness.frame(cancellableSheet(model))
+        harness.press(escape)
+        let asking = harness.frame(cancellableSheet(model))
+        #expect(model.cancelled == 0, "the cancel button's dismiss() would not have asked")
+        #expect(model.presented, "the sheet stays while the question is open")
+        #expect(shows(asking, "Save this draft?"))
+
+        let plain = InputChainHarness(width: 60, height: 20)
+        let saved = Model()
+        saved.unsaved = false
+        plain.frame(cancellableSheet(saved))
+        plain.frame(cancellableSheet(saved))
+        plain.press(escape)
+        plain.frame(cancellableSheet(saved))
+        #expect(saved.cancelled == 1, "with nothing to lose, Escape is the cancel button")
+        #expect(!saved.presented)
     }
 
     @Test("At the top level the quit key asks first, and quits on an answer")

@@ -21,7 +21,9 @@ extension View {
     /// top-level content. While `shouldPresent` is `true`, every way out asks
     /// first: Escape and an outside click on a presentation, the quit key at
     /// the top level, and the content's own `@Environment(\.dismiss)` call
-    /// wherever it is.
+    /// wherever it is. Escape asks even where the content draws a cancel
+    /// button, which it presses otherwise: the question comes before the
+    /// button's action runs, not after it, when its own `dismiss()` would ask.
     ///
     /// ```swift
     /// MessageEditor(message: $message)
@@ -169,8 +171,8 @@ final class DismissalGate: Equatable {
     /// The action of the cancel button the content drew last frame — a
     /// button with `.keyboardShortcut(.cancelAction)`, as a
     /// `.cancellationAction` toolbar item's is — which the presenter's Escape
-    /// runs in place of its own dismissal (``escape(_:)``). `nil` when the
-    /// content drew none.
+    /// runs in place of its own dismissal while nothing asks first
+    /// (``escape(_:)``). `nil` when the content drew none.
     var cancelAction: (() -> Void)?
 
     /// Dismisses through the interceptor, if one asked to be asked.
@@ -193,8 +195,14 @@ final class DismissalGate: Equatable {
     /// pressed or not: without it a sheet's
     /// `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { model.discardDraft(); dismiss() } }`
     /// was dismissed on Escape with the draft kept.
+    ///
+    /// Except while a `dismissalConfirmationDialog` would ask (``interceptor``):
+    /// then Escape asks, and the button waits. Its usual action discards and
+    /// then calls `dismiss()`, which asks too — but only once the action has
+    /// run, so a press would lose the unsaved changes before the question the
+    /// app put in the way of closing was asked.
     func escape(_ proceed: @escaping () -> Void) {
-        if let cancelAction {
+        if interceptor == nil, let cancelAction {
             cancelAction()
         } else {
             dismiss(proceed)

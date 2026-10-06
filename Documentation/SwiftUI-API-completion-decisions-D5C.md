@@ -89,7 +89,10 @@ What differs from macOS: the rows hang off the view the modifier is on, so a
 bottom edge. Escape presses the cancel button, as on macOS: the sheet's own
 Escape — and a popover's — runs the cancel button's action in place of
 dismissing (`DismissalGate.escape`), which it did not when this first
-shipped, so a Cancel that discarded a draft was skipped.
+shipped, so a Cancel that discarded a draft was skipped. While a
+`dismissalConfirmationDialog` would ask, Escape asks first and the button
+waits: pressed, its action ran before anything asked, so a Cancel that
+discarded the draft had discarded it by the time its `dismiss()` asked.
 
 **The fuller version** has the sheet host the items itself, at its edges
 wherever they are declared — the window chrome host's P2 reservation applied
