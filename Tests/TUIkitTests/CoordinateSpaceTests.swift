@@ -483,6 +483,33 @@ struct CoordinateSpaceTests {
         #expect(taps == [CellPoint(x: 6, y: 1)])
     }
 
+    @Test("A pointer in a named space no owner finds the view in is in the global space, for hover as for a drag")
+    func unfoundNameIsGlobalForEveryPointer() {
+        let harness = InputChainHarness()
+        var hovered: [HoverPhase] = []
+        var dragged: [CellPoint] = []
+        let page = {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("top")
+                DroppingMarkers {
+                    Text("point here")
+                        .onContinuousHover(coordinateSpace: .named("box")) { hovered.append($0) }
+                        .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { dragged.append($0.location) })
+                        .padding(.leading, 3)
+                }
+            }
+            .coordinateSpace(.named("box"))
+        }
+        harness.hover([(x: 5, y: 1)], page)
+        // (5, 1) on screen, two cells into the view: the box is the screen
+        // here, and nothing found the view in it.
+        #expect(hovered.last == .active(CellPoint(x: 5, y: 1)))
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 5, y: 1))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 8, y: 1))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 8, y: 1))
+        #expect(dragged.last == CellPoint(x: 8, y: 1))
+    }
+
     @Test("A drag located in a named space, and a name nothing declared answering in the global space")
     func dragInNamedSpace() {
         let harness = InputChainHarness()
@@ -505,5 +532,28 @@ struct CoordinateSpaceTests {
         // The box starts one row down: (6, 2) on screen is (6, 1) in it.
         #expect(named.last == CellPoint(x: 6, y: 1))
         #expect(unknown.last == CellPoint(x: 6, y: 2))
+    }
+}
+
+/// Draws its content and drops the geometry markers in it, keeping every hit
+/// target — as the app header's content reaches the dispatcher with its
+/// regions while no owner of a space reads it.
+private struct DroppingMarkers<Content: View>: View, Renderable, Layoutable {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: Never { fatalError("DroppingMarkers renders via Renderable") }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = TUIkit.renderToBuffer(content, context: context)
+        buffer.hitTestRegions.removeAll(where: \.isGeometryMarker)
+        return buffer
     }
 }

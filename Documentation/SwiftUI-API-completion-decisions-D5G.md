@@ -138,7 +138,9 @@ frame is drawn, and an event between two frames is converted with it — the
 frame the user was looking at. A view handling the pointer in a named space
 stamps a marker each frame and so declines the memos above it (its conversion
 is made per frame); in `.local` and `.global` nothing changes. A name nothing
-declares converts in the global space, as SwiftUI's does.
+declares converts in the global space, as SwiftUI's does — and so does a name
+no owner found the view in (its marker dropped on the way up: the app header's
+content, a `Table` cell), for a hover or mouse handler as for a gesture.
 
 ### B-D5G-8. Scroll transitions: the default threshold is taken as `.visible`, unmeasured
 

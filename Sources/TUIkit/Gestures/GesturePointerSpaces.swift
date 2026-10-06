@@ -109,7 +109,11 @@ extension Optional: PointerSpaceReporting where Wrapped: Gesture {
 /// in: nothing for `.local`; the region's composited origin for `.global`
 /// (`RegionOrigin`); for a named space, where the space's owner found the
 /// view's geometry marker (`GeometryAsk`, role `.pointer`). A name nothing
-/// declared around the view is answered in the global space, as SwiftUI's is.
+/// declared around the view is answered in the global space, as SwiftUI's is
+/// — and so is a name no owner has found the view in, its marker dropped on
+/// the way up (the app header's content, a `Table` cell): the global space,
+/// for hover and mouse handlers as for a gesture (`GesturePointer`), never the
+/// view's own.
 final class PointerSpaceOrigin: @unchecked Sendable {
     private let region: RegionOrigin?
     private let ask: GeometryAsk?
@@ -121,7 +125,10 @@ final class PointerSpaceOrigin: @unchecked Sendable {
         guard let dispatcher = context.environment.mouseEventDispatcher, global || !spaces.isEmpty else {
             return nil
         }
-        region = global ? RegionOrigin(dispatcher: dispatcher) : nil
+        // For `.global`, and for a named space's fallback to it — which a
+        // handler that says where its region is (`handlerID`) can answer; a
+        // gesture's locations fall back through `GesturePointer` instead.
+        region = global || !spaces.isEmpty ? RegionOrigin(dispatcher: dispatcher) : nil
         if !spaces.isEmpty, let ask = context.makeGeometryAsk(role: .pointer) {
             for space in spaces { ask.want(space) }
             self.ask = ask
@@ -151,25 +158,33 @@ final class PointerSpaceOrigin: @unchecked Sendable {
     }
 
     /// What to add to a point measured from the view's top-left to measure it
-    /// in `space` instead — `nil` when the view was not found there, which
-    /// for a named space is before any frame has drawn it.
+    /// in `space` instead — for a named space no owner found the view in, the
+    /// global space's, when the handler said which region is the view's —
+    /// and `nil` when nothing says.
     func offset(in space: CoordinateSpace) -> CellPoint? {
         switch space {
         case .local:
             return CellPoint(x: 0, y: 0)
         case .global:
-            guard let region else { return nil }
-            let origin = region.offset
-            return CellPoint(x: origin.x, y: origin.y)
+            return globalOffset
         case .named:
-            return ask?.observation(in: space)?.origin
+            return ask?.observation(in: space)?.origin ?? globalOffset
         }
+    }
+
+    /// The region's composited origin, once a handler has said which region
+    /// is the view's.
+    private var globalOffset: CellPoint? {
+        guard let region, region.handlerID != nil else { return nil }
+        let origin = region.offset
+        return CellPoint(x: origin.x, y: origin.y)
     }
 }
 
 /// Where `event`, measured from its region's top-left, is in `space`: moved by
-/// where `origin` found the region's view there — or left where it is when the
-/// view has not been found yet, before any frame has drawn it.
+/// where `origin` found the region's view there (the global space for a name
+/// no owner found it in) — or left where it is when nothing says, a handler
+/// with no region to measure from.
 func pointerCell(of event: MouseEvent, in space: CoordinateSpace, origin: PointerSpaceOrigin?) -> CellPoint {
     guard space != .local, let offset = origin?.offset(in: space) else {
         return CellPoint(x: event.x, y: event.y)
