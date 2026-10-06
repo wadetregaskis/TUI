@@ -139,7 +139,10 @@ a drag-and-drop preview flying back home.
 **Shipped:** under reduce motion, an animated change of `.offset`,
 `.position`, padding or a fixed `.frame` (and an offset in a
 `visualEffect`, whose colours and opacity still animate) jumps to its end
-value. Transitions with motion already played as fades. Not affected: the
+value; a drag-and-drop preview does not travel — no lift out of its row,
+no fly-back when a drop is cancelled or refused, no settling morph — and
+the row is back in place at once. Transitions with motion already played
+as fades. Not affected: the
 focus breath, the caret's blink, spinners, progress indicators, opacity and
 colour animations, symbol effects. Scrolling is never animated in TUIkit, so
 it already moved at once. An app's own `Animatable` view, a keyframe

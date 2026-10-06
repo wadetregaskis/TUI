@@ -42,6 +42,10 @@ extension RenderLoop {
         // The screen selection's copy key and the scene's copy-on-release.
         tuiContext.screenSelection.adopt(
             commandKey: environment.commandKey, copiesOnRelease: environment.textSelectionCopiesOnRelease)
+        // Whether a drag's preview may travel — its lift and its flight home —
+        // for the drags the input between this frame and the next begins and
+        // ends. The scene's own `.reduceMotion(_:)` is in `environment` by now.
+        tuiContext.dragAndDropSession.reducesMotion = environment.accessibilityReduceMotion
     }
 
     /// Adopts a scene-level `.windowToolbarStyle(_:)` for this frame.

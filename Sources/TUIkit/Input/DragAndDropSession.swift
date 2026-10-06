@@ -268,6 +268,17 @@ final class DragAndDropSession: @unchecked Sendable {
     /// The dispatcher whose composited regions supply target geometry.
     weak var dispatcher: MouseEventDispatcher?
 
+    /// Whether the app's root environment reduces motion
+    /// (``EnvironmentValues/accessibilityReduceMotion``), written by the render
+    /// loop every frame once the scene has applied its own setting.
+    ///
+    /// Under it the preview does not travel (owner decision A-D3M-1, 2026-10-05):
+    /// a drag's picture is under the cursor from its first frame instead of
+    /// lifting out of the row, and a cancelled or refused drop does not fly
+    /// home — the picture goes where it is and the row draws again in its
+    /// place.
+    var reducesMotion = false
+
     /// Where a change of what ``isDragSource(_:)`` answers is reported: the
     /// app's render cache's link, wired by `TUIContext` — held strongly, as a
     /// `@State` box holds it, since a weak reference to the cache would put
@@ -496,6 +507,8 @@ final class DragAndDropSession: @unchecked Sendable {
             active?.originX = home.x
             active?.originY = home.y
         }
+        // Reduce motion: the lift is already over (see `reducesMotion`).
+        if reducesMotion { active?.liftPhase = 1 }
         dragMoved()
     }
 
@@ -732,7 +745,9 @@ final class DragAndDropSession: @unchecked Sendable {
     ///
     /// For a refused drop and for `Escape`: in both the answer is "nothing
     /// happened", and a row that disappears mid-air says that far less clearly
-    /// than one that walks home.
+    /// than one that walks home. Under reduce motion it does not walk: the
+    /// picture goes where it is, and the row is back in place at once (see
+    /// ``reducesMotion``).
     func cancelReturningToOrigin() {
         guard let drag = active else {
             end()
@@ -750,7 +765,8 @@ final class DragAndDropSession: @unchecked Sendable {
     /// pointer, so the rows land exactly where the picture already is. Aiming
     /// the flight anywhere else could only ever be a way of turning a geometry
     /// bug into a fifth of a second of visible motion. What moves here is the
-    /// CELLS, which is the whole difference between a carried row and a row.
+    /// CELLS, which is the whole difference between a carried row and a row
+    /// — and under reduce motion they do not (see ``reducesMotion``).
     func settlePreviewInPlace() {
         guard let drag = active, !drag.morph.isEmpty, let frame = previewFrame() else {
             end()
@@ -763,7 +779,8 @@ final class DragAndDropSession: @unchecked Sendable {
     /// travel backward on the way — a row again by the time it lands.
     private func flyPreview(to destination: (x: Int, y: Int)) {
         returnFlightFrame = nil
-        if let drag = active, let frame = previewFrame(),
+        // Reduce motion: no flight (see `reducesMotion`).
+        if !reducesMotion, let drag = active, let frame = previewFrame(),
             frame.x != destination.x || frame.y != destination.y || !drag.morph.isEmpty
         {
             returnFlight = ReturnFlight(
