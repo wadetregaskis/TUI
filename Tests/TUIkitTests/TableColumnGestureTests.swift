@@ -352,6 +352,29 @@ struct TableColumnGestureTests {
         #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "the mode outlived Escape:\n\(harness.screen)")
     }
 
+    @Test("A drag after the press that opened the column menu resizes nothing, though no frame has drawn the menu")
+    func menuOpeningPressSpendsItsDrag() throws {
+        // A Ctrl-press on Beta's title opens the menu and hands the gesture to
+        // it; until a frame draws the menu over the header, its drag — Ctrl let
+        // go — lands on the header's own regions, here the gap before Beta.
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta - 1, y: y))
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: beta - 1, y: y))
+        harness.frame()
+        #expect(harness.shows("Hide “Beta”"), "\(harness.screen)")
+        #expect(harness.columns.customization[width: "alpha"] == nil, "the drag resized Alpha:\n\(harness.screen)")
+        // Its release is the menu's too, and sorts nothing — Ctrl let go or
+        // not, since the release takes its press's modifiers (`stampClickCount`).
+        let sort = Harness()
+        sort.app.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
+        sort.app.send(MouseEvent(button: .left, phase: .released, x: beta + 1, y: y))
+        sort.frame()
+        #expect(sort.columns.sortOrder == [KeyPathComparator(\Entry.alpha)], "the release sorted")
+    }
+
     @Test("Without a customization binding, a Ctrl-click on a sortable title sorts, as a click does")
     func ctrlClickSortsWithoutAMenu() throws {
         let harness = Harness(bound: false)
