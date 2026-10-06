@@ -70,9 +70,21 @@ extension MouseEventDispatcher {
     /// timed end changes is drawn in that frame — and before the dispatcher's
     /// tables are cleared, so a control a gesture was holding back is given its
     /// press against the frame it was pressed on.
+    ///
+    /// First, every gesture the last frame did not file is given up: its
+    /// view left the tree, or was disabled. Measured on macOS 15.8: a row
+    /// clicked, then removed by a button 0.1 s later, runs no single tap
+    /// behind its double tap; with the row kept, it runs when the double tap
+    /// gives up. Nothing else reaches a gesture once its view has gone, so it
+    /// waited out its interval and ran the single tap for a row no longer on
+    /// screen. Asked of the participant rather than of its region's id: an
+    /// id is interned by its place among its identity's registrations, and
+    /// one that moved would give up a gesture still on screen.
     @MainActor
     func advanceGestures(nowNanos now: Int64) {
         guard !gestureArenas.isEmpty else { return }
+        let filed = Set(gestureRoles.values.lazy.compactMap { $0.participant.map(ObjectIdentifier.init) })
+        for arena in gestureArenas { arena.cancel(allBut: filed) }
         for arena in gestureArenas { arena.process(.tick(now), dispatcher: self) }
         settleGestureArenas()
     }

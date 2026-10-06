@@ -163,6 +163,59 @@ struct GestureArenaLifetimeTests {
         #expect(log.entries == ["seq"])
     }
 
+    // MARK: - A view that leaves
+
+    /// A row, a 4×1 box with a double tap and a single tap, and beside it a
+    /// button that removes it when `removes`.
+    private struct RemovableRow: View {
+        let log: GestureRecord
+        let removes: Bool
+        @State private var shown = true
+
+        var body: some View {
+            HStack(spacing: 2) {
+                if shown {
+                    Text("").frame(width: 4, height: 1)
+                        .onTapGesture(count: 2) { log("open") }
+                        .onTapGesture { log("select") }
+                } else {
+                    Text("").frame(width: 4, height: 1)
+                }
+                Button("Hide") {
+                    log("hide")
+                    if removes { shown = false }
+                }
+            }
+            .frame(width: 40, height: 12, alignment: .topLeading)
+        }
+    }
+
+    /// Measured on macOS 15.8: a click on the row, then 0.1 s later on a
+    /// button that removes it, runs the button and nothing else; with a
+    /// button that leaves the row, the single tap runs 0.35 s after the
+    /// row's release. Kept in the arena, the removed row's gestures waited
+    /// out the double tap's interval and ran the single tap for a view no
+    /// longer on screen, and the arena kept them, and their closures, alive
+    /// until then.
+    @Test("A gesture whose view leaves is given up: a removed row's single tap does not run", arguments: [true, false])
+    func departedViewsGestureGivesUp(_ removes: Bool) {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = { RemovableRow(log: log, removes: removes) }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        frame(harness, at: 100, view)
+        harness.click(6, 0, view)
+        frame(harness, at: 200, view)
+        #expect(log.entries == ["hide"])
+        if removes {
+            #expect(harness.tui.mouseEventDispatcher.gestureArenas.isEmpty, "the removed row's gestures are given up")
+        }
+        frame(harness, at: 360, view)
+        frame(harness, at: 1_000, view)
+        #expect(log.entries == (removes ? ["hide"] : ["hide", "select"]))
+    }
+
     // MARK: - A press whose release was lost
 
     /// A press whose release never came — a terminal that dropped it, a
