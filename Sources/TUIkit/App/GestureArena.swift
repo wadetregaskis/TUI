@@ -48,8 +48,10 @@ import TUIkitCore
 /// nothing more — no clock, no event — and reports nothing, and what it holds
 /// back stays held, until the next event of the left button has been decided:
 /// then it is given up, which releases what it held. That event is decided
-/// as if it were still there. All measured on macOS 15.8
-/// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``).
+/// as if it were still there. Measured on macOS 15.8 for a removed view; a
+/// disabled one macOS gives up at the disable, releasing what it held then
+/// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``, decisions
+/// B-F2-2).
 ///
 /// A press that comes while a ranked gesture still waits does not settle it:
 /// both arenas live on (the dispatcher's ``MouseEventDispatcher/gestureArenas``),

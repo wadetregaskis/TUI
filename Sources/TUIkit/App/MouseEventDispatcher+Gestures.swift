@@ -74,9 +74,12 @@ extension MouseEventDispatcher {
     /// A gesture whose view has gone hears no clock, and what it holds back
     /// stays held (``GestureArena/Contender/isDeparted``). Measured on macOS
     /// 15.8: a row with a double tap and a single tap, clicked, then removed
-    /// or disabled by a button 0.1 s later, runs neither the single tap when
-    /// the double tap's interval is out nor, inside a tap, that tap; the
-    /// next click gives them up (``routeThroughGestures(_:matching:)``).
+    /// by a button 0.1 s later, runs neither the single tap when the double
+    /// tap's interval is out nor, inside a tap, that tap; the next press
+    /// gives them up (``routeThroughGestures(_:matching:)``). Disabled
+    /// instead, the row runs no single tap either, but macOS runs the tap
+    /// around it at the disable; TUIkit gives a disabled view's gestures up
+    /// as it does a removed view's (decisions B-F2-2).
     @MainActor
     func advanceGestures(nowNanos now: Int64) {
         guard !gestureArenas.isEmpty else { return }
@@ -128,11 +131,21 @@ extension MouseEventDispatcher {
     /// with the sequence there (the sequence had cancelled the tap around
     /// it), and the next runs that tap; a first click on a button or another
     /// view's tap runs it. A row removed while its double tap waits lets the
-    /// tap around it run the row's click at the next press, and that press
-    /// starts nothing of its own. A drag removed mid-drag reports nothing at
-    /// its next move or its release. Given up at the next frame instead,
-    /// such a gesture made what a click did depend on whether a frame came
-    /// first.
+    /// tap around it run the row's click at the next press, wherever that
+    /// lands: on a plain box beside the row, inside the tap, the press starts
+    /// nothing of its own; on a button or another view's tap, outside it, it
+    /// runs that at its release. A drag removed or disabled mid-drag reports
+    /// nothing at its next move or its release. Given up at the next frame
+    /// instead, such a gesture made what a click did depend on whether a
+    /// frame came first.
+    ///
+    /// A disabled view is given up the same way, which macOS does not quite
+    /// do: it gives a disabled view's gestures up at the disable — a
+    /// `@GestureState` resets then, and the tap around a row disabled while
+    /// its double tap waits runs the row's click then, the next click
+    /// running as usual — though the click after a disabled waiting sequence
+    /// still runs nothing beside it (all measured on macOS 15.8; decisions
+    /// B-F2-2).
     ///
     /// - Parameter matching: The regions under the event, innermost first;
     ///   asked for only for a press.

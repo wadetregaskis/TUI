@@ -7,7 +7,7 @@ decisions-doc items: the `StdinArrivalNotifierTests` flake and a single tap
 lost after a failed double tap. 2026-10-05.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** One.
+- **B. Shipped the safe option.** Two.
 - **C. Declined without asking.** None.
 
 ## B. Shipped the safe option
@@ -51,6 +51,51 @@ every test that clicks a timed gesture without `syncEventClock()` would read
 real monotonic time against `harness.now`. So that half needs the harness's
 clocks joined, which is B92's fuller version. About two hours with B92's hour.
 It adds a branch to the press path only, not to frames.
+
+### B-F2-2. A disabled view's gestures are given up at the next press, as a removed view's are
+
+*`View.disabled(_:)` over a view with a gesture that is under way or waiting:
+a double tap waiting for its next click, a sequence waiting for its second
+gesture, a drag mid-drag.*
+
+TUIkit gives up a gesture whose view the frame on screen no longer files —
+removed or disabled alike — once the next left-button event has been decided
+as if it were still there (the commit "A gesture whose view has gone waits
+for the next click"). For a removed view that is what macOS 15.8 does
+(F2 probes review3b, review3c, review4: R1–R5, R8–R12, R15r). For a disabled
+one macOS gives the gestures up at the disable (probes review4b, review4c,
+review4d):
+
+- a `@GestureState` a disabled drag or waiting sequence updated resets at the
+  disable (S1, S3), where TUIkit resets it at the next left-button event;
+- a row with a double and a single tap, clicked and disabled 0.1 s later
+  inside an `.onTapGesture`, runs no single tap, but the tap around it runs
+  the row's click at the disable, by a button or by a timer with no click
+  after (R11d, R12d, R14d, R15d, R15d'), and the next click, beside the row
+  too, runs as usual. TUIkit runs that tap at the next press, and a press
+  beside the row then runs nothing of its own;
+- a waiting sequence disabled still keeps the tap around it, which it had
+  cancelled, off the next click beside it (R6, R16d), as TUIkit does. So
+  macOS does not simply cancel at the disable either: a gesture that has won
+  the press (a sequence waiting, a drag under way) still holds the next
+  left-button event, while one that has not (a double tap waiting, a tap held
+  back behind it) lets go at once.
+
+**Shipped:** the removed-view rule for both. What differs is when the
+gestures around a disabled row run (at the next press, not at the disable)
+and when a `@GestureState` resets. `GestureArenaLifetimeTests.disabledRow`
+pins macOS's results under `withKnownIssue`.
+
+**The fuller version:** file a disabled gesture attachment's participant
+(looked up, never created) as disabled rather than not at all; at the first
+arena input after the walk, cancel a disabled contender (its
+`@GestureState` resets), take one that has not won out of the running and
+process its arena so what it held runs, and keep one that has won holding
+the arena, as a departed one does, until the next left-button event; and
+ask the run loop for one more frame when a disable released something, so
+it runs at the disable rather than at the next tick. About three hours with
+tests. Per frame it costs a lookup per disabled gesture attachment, and only
+while an arena exists.
 
 ## For the main decisions doc
 

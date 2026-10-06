@@ -52,8 +52,11 @@ import TUIkitCore
 /// then — or, if that click left a gesture of its own waiting ahead of the
 /// single tap, a second double tap inside it, once that one has given up too.
 /// A view that leaves meanwhile, removed or disabled, takes both taps with
-/// it: neither hears the interval out, and the next click gives them up with
-/// the single tap unrun — as on macOS.
+/// it: neither hears the interval out, and the single tap never runs — as on
+/// macOS. A gesture around the view is released when they are given up: at
+/// the next press for a removed view, as on macOS; for a disabled one macOS
+/// gives them up at once, and TUIkit at the next press, as for a removed one
+/// (`Documentation/SwiftUI-API-completion-decisions-F2.md`, B-F2-2).
 public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int

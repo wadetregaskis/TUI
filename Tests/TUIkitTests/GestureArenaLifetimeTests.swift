@@ -181,7 +181,9 @@ struct GestureArenaLifetimeTests {
 
     /// A row, a 4×1 box with a double tap and a single tap, beside a plain
     /// box inside a tap; below them a button that makes the row leave as
-    /// `leaving` says, or, given `nil`, keeps it.
+    /// `leaving` says, or, given `nil`, keeps it; and below that a box with a
+    /// tap of its own. The button and that box are outside the tap around
+    /// the row.
     private struct LeavingRow: View {
         let log: GestureRecord
         let leaving: Leaving?
@@ -205,54 +207,127 @@ struct GestureArenaLifetimeTests {
                     log("hide")
                     gone = true
                 }
+                Text("").frame(width: 4, height: 1).onTapGesture { log("other") }
             }
             .frame(width: 40, height: 12, alignment: .topLeading)
         }
     }
 
-    /// Measured on macOS 15.8: a click on the row, then 0.1 s later on a
-    /// button that removes or disables it, runs the button and nothing else
-    /// — not the single tap when the double tap's interval is out, nor the
-    /// outer tap behind them. The next click, on the plain box a second
-    /// later, runs the outer tap at its press, for the row's click, and
-    /// nothing at its release; the click after it runs the outer tap as
-    /// usual. With the row kept, the single tap runs 0.35 s after the row's
-    /// release, and each click on the box runs the outer tap. Given up at
-    /// the next frame, the row's gestures let the outer tap run then, and
-    /// the click on the box ran it a second time; kept in the arena, they
-    /// waited out the double tap's interval and ran the single tap for a
-    /// view no longer on screen.
-    @Test(
-        "A row that leaves while its double tap waits runs nothing until the next click gives it up",
-        arguments: [nil, Leaving.removed, .disabled])
-    func leavingRow(_ leaving: Leaving?) {
+    /// Where `next` lands, and what that click runs of its own.
+    private func target(_ next: NextClick) -> (x: Int, y: Int, own: [String]) {
+        switch next {
+        case .besideIt: (7, 0, ["outer"])
+        case .button: (1, 1, ["hide"])
+        case .otherTap: (1, 2, ["other"])
+        }
+    }
+
+    /// Measured on macOS 15.8: with the row kept, a click on it, then 0.1 s
+    /// later on the button, runs the button and the single tap 0.35 s after
+    /// the row's release; each click on the box runs the outer tap.
+    @Test("A row kept while its double tap waits runs its single tap at the interval")
+    func keptRow() {
         let log = GestureRecord()
         let harness = makeHarness()
-        let dispatcher = harness.tui.mouseEventDispatcher
-        let view = { LeavingRow(log: log, leaving: leaving) }
+        let view = { LeavingRow(log: log, leaving: nil) }
         harness.frame(view())
         harness.click(1, 0, view)
         frame(harness, at: 100, view)
         harness.click(1, 1, view)
         frame(harness, at: 360, view)
         frame(harness, at: 1_000, view)
-        guard leaving != nil else {
-            #expect(log.entries == ["hide", "select"])
-            harness.click(7, 0, view)
-            #expect(log.entries == ["hide", "select", "outer"])
-            return
-        }
+        #expect(log.entries == ["hide", "select"])
+        harness.click(7, 0, view)
+        #expect(log.entries == ["hide", "select", "outer"])
+    }
+
+    /// Measured on macOS 15.8 (F2 probes review3b R4, review4 R11 and R12):
+    /// a click on the row, then 0.1 s later on a button that removes it,
+    /// runs the button and nothing else — not the single tap when the double
+    /// tap's interval is out, nor the outer tap behind them. The next press,
+    /// wherever it lands, runs the outer tap for the row's click, at the
+    /// press: on the plain box beside the row, inside the outer tap, that
+    /// click runs nothing of its own; on the button again or on the box with
+    /// a tap of its own, outside the outer tap, it runs what it lands on, at
+    /// its release. The next click on the box runs the outer tap as usual.
+    /// Given up at the next frame, the row's gestures let the outer tap run
+    /// then, and the click on the box ran it a second time; kept in the
+    /// arena, they waited out the double tap's interval and ran the single
+    /// tap for a view no longer on screen.
+    @Test(
+        "A row removed while its double tap waits runs nothing until the next press, which runs the tap around it",
+        arguments: NextClick.allCases)
+    func removedRow(_ next: NextClick) {
+        let (x, y, own) = target(next)
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let dispatcher = harness.tui.mouseEventDispatcher
+        let view = { LeavingRow(log: log, leaving: .removed) }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        frame(harness, at: 100, view)
+        harness.click(1, 1, view)
+        frame(harness, at: 360, view)
+        frame(harness, at: 1_000, view)
         #expect(log.entries == ["hide"], "the row's gestures hear no clock once it has gone, nor run what they hold")
         #expect(dispatcher.gestureDeadline == nil, "nor ask for a wake")
-        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 7, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
         #expect(log.entries == ["hide", "outer"], "the press gives the row's gestures up: the outer tap runs its click")
-        harness.mouse(MouseEvent(button: .left, phase: .released, x: 7, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: y))
         frame(harness, at: 1_100, view)
-        #expect(log.entries == ["hide", "outer"], "the click was the outer tap's, already over")
+        let ran = ["hide", "outer"] + (next == .besideIt ? [] : own)
+        #expect(log.entries == ran, "beside the row the click was the outer tap's, already over")
         #expect(dispatcher.gestureArenas.isEmpty)
         frame(harness, at: 2_000, view)
         harness.click(7, 0, view)
-        #expect(log.entries == ["hide", "outer", "outer"])
+        #expect(log.entries == ran + ["outer"])
+    }
+
+    /// Measured on macOS 15.8 (F2 probes review4b R11d and R12d, review4c
+    /// R14d, R15d and R17d): a row DISABLED while its double tap waits is
+    /// given up at the disable, as a removed one is not. The outer tap runs
+    /// the row's click then — 0.1 s after the row's release, by the button
+    /// or by a timer, with no click after it — and the next click runs what
+    /// it lands on as usual, the box beside the row included. TUIkit treats
+    /// a disabled view as one that has gone (decisions B-F2-2): the outer
+    /// tap runs at the next press, and that press, beside the row, runs
+    /// nothing of its own.
+    @Test(
+        "A row disabled while its double tap waits lets the tap around it run the row's click at once",
+        arguments: NextClick.allCases)
+    func disabledRow(_ next: NextClick) {
+        let (x, y, own) = target(next)
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = { LeavingRow(log: log, leaving: .disabled) }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        frame(harness, at: 100, view)
+        harness.click(1, 1, view)
+        frame(harness, at: 200, view)
+        frame(harness, at: 1_000, view)
+        withKnownIssue("B-F2-2: a disabled view's gestures wait for the next press, as a removed view's do") {
+            #expect(log.entries == ["hide", "outer"], "the outer tap runs the row's click at the disable")
+        }
+        harness.click(x, y, view)
+        frame(harness, at: 1_100, view)
+        let ran = ["hide", "outer"] + own
+        if next == .besideIt {
+            withKnownIssue("B-F2-2: TUIkit's press beside the row is the outer tap's held click") {
+                #expect(log.entries == ran)
+            }
+        } else {
+            #expect(log.entries == ran)
+        }
+        frame(harness, at: 2_000, view)
+        harness.click(7, 0, view)
+        if next == .besideIt {
+            withKnownIssue("B-F2-2: TUIkit's press beside the row is the outer tap's held click") {
+                #expect(log.entries == ran + ["outer"])
+            }
+        } else {
+            #expect(log.entries == ran + ["outer"])
+        }
     }
 
     /// A sequence that waits for its second tap once clicked, on a 4×1 box
