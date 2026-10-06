@@ -19,7 +19,7 @@ import Musl
 
 /// Writes what the terminal is owed when the process dies of a signal nothing
 /// else handles — a trap, a bad access, an abort, a `kill -HUP`, the user's
-/// ⌃\ — puts the shell's line discipline back, and then lets the signal do
+/// `⌃\` — puts the shell's line discipline back, and then lets the signal do
 /// what it would have done.
 ///
 /// The debt is every input mode `Terminal.enableRawMode` and the startup
@@ -42,7 +42,7 @@ import Musl
 /// take the report off the screen with it. With the input modes and termios
 /// back, `reset` or `tput rmcup` can be typed to clear it.
 ///
-/// `SIGQUIT` is the exception. It is the user's quit key, ⌃\, which the
+/// `SIGQUIT` is the exception. It is the user's quit key, `⌃\`, which the
 /// terminal driver turns into the signal (raw mode keeps only that one signal
 /// character live), and a quit is not a crash: there is no report to keep,
 /// and the user asked to leave. So it pays what a normal quit writes — the
@@ -59,7 +59,7 @@ import Musl
 ///   there before — the Swift runtime's crash reporter keeps its
 ///   `SA_SIGINFO` handler and its alternate stack.
 /// - **The quit** (`SIGQUIT`): always taken, and ended by the default action
-///   (above). An app that wants ⌃\ for itself has no way to: the driver
+///   (above). An app that wants `⌃\` for itself has no way to: the driver
 ///   takes the key before the app could see it, as a shell's does.
 /// - **The quiet terminations** (`SIGHUP`, `SIGUSR1`, `SIGUSR2`, `SIGALRM`,
 ///   `SIGVTALRM`, `SIGPROF`, `SIGXCPU`, `SIGXFSZ`): catchable, they end the

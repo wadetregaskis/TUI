@@ -4,7 +4,8 @@
 Drives a TUIkit app (default: the debug Example) in a PTY and verifies the
 suspend round trip:
 
-  0. Ctrl-Z (0x1A — raw mode clears ISIG, so it arrives as a KEY) is the
+  0. Ctrl-Z (0x1A — raw mode turns ^Z off as a signal character, so it
+     arrives as a KEY) is the
      app's undo by default (`UndoCommand.defaultShortcuts`), and with nothing
      to undo it does nothing: the process does not stop.
   1. SIGTSTP — what an app that takes Ctrl-Z out of its undo keys

@@ -292,8 +292,10 @@ extension InputHandler {
         }
 
         // Ctrl-Z: job-control suspend, where neither undo nor redo binds it.
-        // Raw mode clears ISIG, so the terminal driver never turns ^Z into
-        // SIGTSTP — it arrives here as an ordinary key event. Reaching THIS
+        // Raw mode turns ^Z off as a signal character (only the quit key, ^\,
+        // stays one: `Terminal.rawModeAttributes(from:)`), so the terminal
+        // driver never turns it into SIGTSTP — it arrives here as an
+        // ordinary key event. Reaching THIS
         // layer means no view claimed it (a text editor binding Ctrl-Z to undo
         // wins, exactly as it should) and the app's undo keys do not include
         // it, so give it its shell meaning: re-raise it as the signal, which

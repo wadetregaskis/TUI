@@ -31,6 +31,11 @@ import TUIkit
 //
 // TUIKIT_CONFIG_DIR matters: without it a PTY probe writes to the real
 // preferences directory. $HOME does not isolate it on macOS.
+//
+// Two modes serve `Tools/Smoke/quit_key_smoke.py` instead, which wants the
+// smallest app for a different question — what the terminal driver does with
+// the Control keys while TUIkit runs: `keys` shows each key the app hears,
+// and `hang` blocks its main thread once on screen.
 
 // MARK: - Mode
 
@@ -49,6 +54,14 @@ enum ProbeMode: String {
     /// notices activity at all. A reading of ~0 here means the measurement is
     /// broken, not that the app is efficient.
     case spinner
+    /// Each key the app hears, one row per key (`key ctrl-c`), so a PTY can
+    /// tell a key that arrived from one the driver turned into a signal. The
+    /// keys go on down the input chain, so `q` still quits.
+    case keys
+    /// A main thread that never returns once the first frame is up, as an
+    /// app stuck in a loop or a blocking call: what the user's quit key, `⌃\`,
+    /// has to end anyway.
+    case hang
 
     static var current: ProbeMode {
         ProcessInfo.processInfo.environment["IDLE_PROBE_MODE"]
@@ -79,6 +92,43 @@ private struct ProbeContent: View {
                 .frame(width: 40, height: 20)
         case .spinner:
             Spinner()
+        case .keys:
+            KeyEcho()
+        case .hang:
+            Text("idle probe — hanging")
+                .onAppear {
+                    // After the frame is drawn, not during it.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        while true { Thread.sleep(forTimeInterval: 1) }
+                    }
+                }
+        }
+    }
+}
+
+/// The `keys` mode: every key the app hears, in order, from the top-left
+/// corner down, so a row once drawn never moves and each new one is written
+/// whole — what a PTY reading the bytes needs to find `key ctrl-y`.
+private struct KeyEcho: View {
+    @State private var heard: [String] = []
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("idle probe — keys")
+            ForEach(heard.indices, id: \.self) { index in
+                Text("key \(heard[index])")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onKeyEvent { event in
+            let name: String
+            if case .character(let character) = event.key {
+                name = String(character)
+            } else {
+                name = "\(event.key)"
+            }
+            heard.append((event.ctrl ? "ctrl-" : "") + name)
+            return false
         }
     }
 }

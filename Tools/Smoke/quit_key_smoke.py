@@ -1,21 +1,39 @@
 #!/usr/bin/env python3
-"""Does SIGQUIT end a TUIkit app the way a quit does?
+"""Does the user's quit key, ⌃\\, end a TUIkit app the way a quit does —
+even when the app hangs — while ⌃C, ⌃Z, ⌃Y and ⌃T stay keys?
 
-SIGQUIT is the user's quit key's signal (⌃\\ in a cooked terminal). TUIkit's
-signal handler pays it as a QUIT, not as a crash: it writes what a normal quit
-writes — the styling reset, every mode the app turned on turned off, the
-cursor shown, and the alternate screen LEFT — puts the shell's termios back,
-and ends the process by the signal's default action (the shell's "Quit: 3").
-Never through the Swift runtime's crash reporter, which would print a
-backtrace on the alternate screen and wait half a minute for a key.
+Raw mode keeps the line discipline's signals on with every signal character
+but the quit key turned off (`Terminal.rawModeAttributes(from:)`), so the
+DRIVER turns ⌃\\ (0x1C) into SIGQUIT before the app reads a byte, as in a
+shell. TUIkit's signal handler pays SIGQUIT as a QUIT, not as a crash: it
+writes what a normal quit writes — the styling reset, every mode the app
+turned on turned off, the cursor shown, and the alternate screen LEFT — puts
+the shell's termios back, and ends the process by the signal's default action
+(the shell's "Quit: 3"). Never through the Swift runtime's crash reporter,
+which would print a backtrace on the alternate screen and wait half a minute
+for a key.
 
-Runs `IdleProbe` (the smallest TUIkit app) under a PTY that answers the
-startup exchange, and checks:
+Runs `IdleProbe` (the smallest TUIkit app; its `keys` mode shows every key it
+hears, its `hang` mode blocks its main thread once on screen) under a PTY
+that answers the startup exchange, and checks:
 
   1. `kill -QUIT`: the process ends by SIGQUIT within seconds; after the
      signal the terminal is sent the input modes off, the cursor shown and
      the alternate screen left, in that order, and no crash report; and the
      PTY's termios is exactly what it was before the launch.
+  2. While it runs, the PTY's termios: signals on, canonical input, echo and
+     the extensions off, ⌃C and ⌃Z (and on Darwin ⌃Y and ⌃T) turned off as
+     signal characters, the quit key ⌃\\.
+  3. ⌃C, ⌃Z, ⌃Y and ⌃T arrive as KEYS: the app shows each, and is neither
+     stopped nor ended.
+  4. ⌃\\ ends it by SIGQUIT, as `kill -QUIT` does (the checks of 1).
+  5. A hung main thread: ⌃\\ still ends it, the same way.
+  6. A user who turned the quit key off (`stty quit undef`) before the
+     launch: ⌃\\ ends nothing; `q` quits, and the termios comes back exactly,
+     the quit key still off.
+  7. A suspend (SIGTSTP) and resume (SIGCONT): the termios while stopped is
+     the one from before the launch, raw again after the resume, and ⌃\\
+     then quits as in 4.
 
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
@@ -144,6 +162,33 @@ class App:
         os.close(self.slave)
 
 
+# `_POSIX_VDISABLE` for a terminal, and Darwin's two extra signal characters
+# (Python's termios module has no names for them).
+DISABLED = None
+DARWIN = sys.platform == "darwin"
+VDSUSP, VSTATUS = 11, 18
+
+
+def cc(attrs, index):
+    value = attrs[6][index]
+    return value[0] if isinstance(value, bytes) else value
+
+
+def is_raw(attrs):
+    lflag = attrs[3]
+    ok = bool(lflag & termios.ISIG) and not lflag & (termios.ICANON | termios.ECHO | termios.IEXTEN)
+    ok = ok and cc(attrs, termios.VINTR) == DISABLED and cc(attrs, termios.VSUSP) == DISABLED
+    if DARWIN:
+        ok = ok and cc(attrs, VDSUSP) == DISABLED and cc(attrs, VSTATUS) == DISABLED
+    return ok and cc(attrs, termios.VQUIT) == 0x1C
+
+
+def running(app):
+    """Neither stopped nor ended."""
+    done, _ = os.waitpid(app.pid, os.WNOHANG | os.WUNTRACED)
+    return done == 0
+
+
 def ended_by_sigquit(status):
     return status is not None and os.WIFSIGNALED(status) and os.WTERMSIG(status) == signal.SIGQUIT
 
@@ -166,6 +211,67 @@ app.pump(2.0)
 mark = len(app.out)
 os.kill(app.pid, signal.SIGQUIT)
 check_quit(app, mark, "kill -QUIT")
+app.finish()
+
+# 2–4. The termios, the keys, and ⌃\.
+app = App(env={"IDLE_PROBE_MODE": "keys"})
+DISABLED = os.fpathconf(app.slave, "PC_VDISABLE")
+app.pump(2.0)
+check(is_raw(app.termios_now()), "running: signals on with only the quit key, ⌃\\, live")
+for byte, name in ((b"\x03", "ctrl-c"), (b"\x1a", "ctrl-z"), (b"\x19", "ctrl-y"), (b"\x14", "ctrl-t")):
+    os.write(app.master, byte)
+    app.pump(0.6)
+    check(("key " + name).encode() in app.out and running(app), name + " arrives as a key, and raises no signal")
+mark = len(app.out)
+os.write(app.master, b"\x1c")
+check_quit(app, mark, "⌃\\")
+app.finish()
+
+# 5. A hung main thread.
+app = App(env={"IDLE_PROBE_MODE": "hang"})
+app.pump(2.5)
+check(b"hanging" in app.out and running(app), "hang: on screen, and hung")
+mark = len(app.out)
+os.write(app.master, b"\x1c")
+check_quit(app, mark, "hung, ⌃\\")
+app.finish()
+
+
+# 6. The user's own stty: quit undefined.
+def quit_undefined(attrs):
+    attrs[6][termios.VQUIT] = bytes([DISABLED])
+
+
+app = App(env={"IDLE_PROBE_MODE": "keys"}, setup=quit_undefined)
+app.pump(2.0)
+os.write(app.master, b"\x1c")
+app.pump(1.5)
+check(running(app), "stty quit undef: ⌃\\ ends nothing")
+os.write(app.master, b"q")
+status = app.wait_for_exit(5.0)
+check(status is not None and os.WIFEXITED(status), "stty quit undef: q quits")
+check(app.termios_now() == app.before and cc(app.before, termios.VQUIT) == DISABLED,
+      "stty quit undef: the termios comes back exactly, the quit key still off")
+app.finish()
+
+# 7. A suspend and resume.
+app = App(env={"IDLE_PROBE_MODE": "keys"})
+app.pump(2.0)
+os.kill(app.pid, signal.SIGTSTP)
+stopped = False
+deadline = time.time() + 5.0
+while time.time() < deadline and not stopped:
+    app.pump(0.1)
+    done, status = os.waitpid(app.pid, os.WNOHANG | os.WUNTRACED)
+    stopped = done == app.pid and os.WIFSTOPPED(status)
+check(stopped, "suspend: SIGTSTP stops it")
+check(app.termios_now() == app.before, "suspend: the termios while stopped is the one from before the launch")
+os.kill(app.pid, signal.SIGCONT)
+app.pump(1.5)
+check(is_raw(app.termios_now()) and running(app), "resume: raw again, the quit key live")
+mark = len(app.out)
+os.write(app.master, b"\x1c")
+check_quit(app, mark, "after a resume, ⌃\\")
 app.finish()
 
 if failures:

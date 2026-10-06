@@ -17,16 +17,6 @@ import Foundation
     import WASILibc
 #endif
 
-/// Platform-specific type for `termios` flag fields.
-///
-/// Darwin uses `UInt` (64-bit), Linux uses `tcflag_t` (`UInt32`).
-/// This typealias ensures flag bitmask operations compile on both.
-#if os(Linux)
-    private typealias TermFlag = UInt32
-#else
-    private typealias TermFlag = UInt
-#endif
-
 /// Represents the terminal and controls input and output.
 ///
 /// `Terminal` is the central interface to the terminal. It provides:
@@ -452,7 +442,9 @@ extension Terminal {
     /// In raw mode:
     /// - Each keystroke is reported immediately (without Enter)
     /// - Echo is disabled
-    /// - Signals like Ctrl+C are not automatically processed
+    /// - Ctrl+C and Ctrl+Z arrive as keys, not as signals, while the user's
+    ///   quit key (`⌃\`) still quits, by `SIGQUIT`
+    ///   (``rawModeAttributes(from:)``)
     func enableRawMode() {
         guard !isRawMode else { return }
 
@@ -460,23 +452,10 @@ extension Terminal {
         // and the one on stdin then belongs to whatever runs the tests.
         #if !canImport(WASILibc)
             if exchangeTransport == nil {
-                var raw = termios()
-                tcgetattr(STDIN_FILENO, &raw)
-                originalTermios = raw
-
-                raw.c_lflag &= ~TermFlag(ECHO | ICANON | ISIG | IEXTEN)
-                raw.c_iflag &= ~TermFlag(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
-                raw.c_oflag &= ~TermFlag(OPOST)
-                raw.c_cflag |= TermFlag(CS8)
-
-                // Safe: termios.c_cc is a fixed-size array; rebinding to cc_t is valid.
-                withUnsafeMutablePointer(to: &raw.c_cc) { pointer in
-                    pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
-                        buffer[Int(VMIN)] = 0
-                        buffer[Int(VTIME)] = 0
-                    }
-                }
-
+                var original = termios()
+                tcgetattr(STDIN_FILENO, &original)
+                originalTermios = original
+                var raw = Self.rawModeAttributes(from: original)
                 tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
             }
         #endif

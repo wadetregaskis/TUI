@@ -4317,9 +4317,10 @@ obscure, for the mouse hand-off key: decisions A13).
 
 **Ctrl-C and Ctrl-Z do arrive** (corrected 2026-09-24; this table used to list
 them as "taken by the shell's job control"). That is true of a cooked terminal,
-not of TUIkit's: `Terminal.enableRawMode()` clears `ISIG`, so the driver sends
-0x03 and 0x1A as bytes instead of raising SIGINT and SIGTSTP, and they decode as
-`.character("c")` and `.character("z")` with `ctrl`. What becomes of them is the
+not of TUIkit's: `Terminal.enableRawMode()` turns `VINTR` and `VSUSP` off (until
+2026-10-06 it cleared `ISIG` altogether; see "The quit key, ⌃\\" below), so
+the driver sends 0x03 and 0x1A as bytes instead of raising SIGINT and SIGTSTP,
+and they decode as `.character("c")` and `.character("z")` with `ctrl`. What becomes of them is the
 input chain's business. Nothing binds Ctrl-C unless the app does — an app's
 ⌘C under `.control`, or `QuitShortcut.ctrlC` — so by default it does nothing at
 all. Ctrl-Z is the app's undo by default (2026-10-04, the owner's choice; see
@@ -4329,6 +4330,34 @@ which re-raises it as SIGTSTP, as it always did. A shortcut on ⌃Z (an app's
 ⌘Z under `.control`) comes before either, for as long as it is on screen.
 SIGINT itself still shuts the app down; it comes from `kill -INT`, not from
 the keyboard.
+
+#### The quit key, ⌃\\ — the driver's, since 2026-10-06
+
+The owner's request: ⌃\\ is the backup to ⌃C, which TUIkit hands the app as a
+key, and it has to work when the app has HUNG. So it is the kernel's, not the
+app's. `Terminal.rawModeAttributes(from:)` keeps `ISIG` as the user had it and
+turns every signal character off but `VQUIT`: `VINTR` (⌃C) and `VSUSP` (⌃Z),
+and on Darwin `VDSUSP` (⌃Y, the delayed suspend) and `VSTATUS` (⌃T, `SIGINFO`),
+all set to `_POSIX_VDISABLE` (0xFF on Darwin, NUL on Linux). `VQUIT` is left as
+inherited: ⌃\\ (0x1C) by default, so the driver raises `SIGQUIT` before the app
+reads a byte, and over ssh the remote pseudo-terminal's line discipline does
+the same. A user's `stty quit undef` stays undefined (0x1C then arrives as a
+byte, which `KeyEvent.parse` drops), a moved quit key stays moved, and
+`stty -isig` stays off. The teardown, a suspend and the fatal-signal handler
+put the user's termios back exactly. `SIGQUIT` then leaves the terminal as a
+quit does (`FatalSignalTerminalRestore`).
+
+Measured on Darwin 24.6 (macOS 15.8), on a pseudo-terminal with `ECHO`,
+`ICANON` and `IEXTEN` off, `ISIG` on and `VINTR`/`VSUSP` off: ⌃T and ⌃Y arrive as
+bytes and raise nothing whether `VSTATUS` and `VDSUSP` are left as inherited
+(0x14, 0x19) or turned off — Darwin's tty driver checks `VSTATUS` only in
+canonical mode with `IEXTEN`, and `VDSUSP` only with `IEXTEN` — and 0x1C raises
+`SIGQUIT`. TUIkit turns the two off anyway, so nothing rests on that. On Linux,
+`n_tty` never treats NUL as a signal character (`__DISABLED_CHAR` is cleared
+from its map), so a ⌃Space (NUL) is still a key; with `ISIG` on it reads input
+on its ordinary path rather than its raw-mode fast path, a cost per byte of
+input only. The PTY smoke `Tools/Smoke/quit_key_smoke.py` checks all of this
+against `IdleProbe`, a hung one included (CI runs it).
 
 #### ⌘ shortcuts meet the text controls' Emacs chords (recorded 2026-09-24)
 

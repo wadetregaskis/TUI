@@ -167,7 +167,8 @@ struct InputHandlerTests {
         #expect(fixture.probe.quitCount == 1)
     }
 
-    /// Raw mode clears ISIG, so Ctrl-Z arrives as a KEY, not a SIGTSTP — and
+    /// Raw mode turns ^Z off as a signal character, so Ctrl-Z arrives as a
+    /// KEY, not a SIGTSTP — and
     /// its shell meaning (suspend) applies only when no view claimed it.
     @Test("Layer 4: an unconsumed Ctrl-Z requests suspension")
     func unconsumedCtrlZSuspends() {
@@ -219,7 +220,8 @@ struct InputHandlerTests {
         #expect(fixture.probe.suspendCount == 0, "an empty history let Ctrl-Z through to suspend")
     }
 
-    /// Raw mode clears ISIG for Ctrl-C too, so it is a key and not SIGINT —
+    /// Raw mode turns ^C off as a signal character too, so it is a key and
+    /// not SIGINT —
     /// and, unlike Ctrl-Z, nothing gives it a meaning of its own. It falls
     /// through every layer, quits nothing, and is reported unconsumed.
     @Test("An unclaimed Ctrl-C is an ordinary key that nothing binds")

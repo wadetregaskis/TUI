@@ -292,16 +292,24 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// Control one and can collide.
     ///
     /// Ctrl-C and Ctrl-Z are deliverable. A cooked terminal turns them into
-    /// SIGINT and SIGTSTP, but TUIkit's raw mode clears `ISIG`, so they arrive
-    /// as keys like any other Control letter. Ctrl-Z is the app's undo by
-    /// default (``UndoCommand/defaultShortcuts``), and a shortcut of the app's
-    /// on it comes before that; layer 4 re-raises Ctrl-Z as SIGTSTP only when
-    /// nothing before it claimed the key and the app's undo keys leave it out.
+    /// SIGINT and SIGTSTP, but TUIkit's raw mode turns both off as signal
+    /// characters, so they arrive as keys like any other Control letter.
+    /// Ctrl-Z is the app's undo by default (``UndoCommand/defaultShortcuts``),
+    /// and a shortcut of the app's on it comes before that; layer 4 re-raises
+    /// Ctrl-Z as SIGTSTP only when nothing before it claimed the key and the
+    /// app's undo keys leave it out.
+    ///
+    /// `Ctrl-\` (`⌃\`) is not, and no shortcut can take it: it is the user's
+    /// quit key, the one signal character raw mode leaves live, so the
+    /// terminal driver turns it into SIGQUIT before the app reads it — which
+    /// is what lets it quit an app that has hung — and the app ends as a quit
+    /// ends. Where the user turned it off (`stty quit undef`), its byte, 0x1C,
+    /// is no key either.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }
         guard modifiers.isDisjoint(with: Self.unreportedModifiers) else { return false }
         guard modifiers.contains(.control) else { return true }
-        return !"hijm[".contains(key.character)
+        return !"hijm[\\".contains(key.character)
     }
 
     /// The modifiers a shortcut that needs one can never fire on: ⌘, which no

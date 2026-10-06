@@ -414,6 +414,19 @@ selected there: then ⌃C copies it. Nor does it quit while something on the
 screen is selected with the mouse: then ⌃C copies that, ahead of every
 layer (see <doc:MouseAndGestures>, "Selecting Text").
 
+### ⌃\\ quits, always
+
+Whatever the quit binding, ⌃\\ quits — the backup for when `q` or a
+⌃C your app binds cannot: when the app has hung. It is not a binding. Raw mode
+leaves the terminal's line discipline one signal character, the user's quit
+key, ⌃\\ unless they changed it; ⌃C and ⌃Z are turned off as signals and
+arrive as keys. So the terminal driver turns ⌃\\ into `SIGQUIT` before the
+app reads a byte, over ssh too, and the app leaves the terminal as a quit
+does: the alternate screen left, the cursor shown, the shell's line
+discipline back. The shell then reports `Quit: 3`. No shortcut can take
+⌃\\ (``KeyboardShortcut/isDeliverableInTerminal`` is `false` for it), and a
+user who turned the quit key off with `stty quit undef` keeps it off.
+
 ### Overriding `q` in a local view context
 
 A user-defined status bar item with shortcut `q` and an action intercepts the key before the default quit binding runs:

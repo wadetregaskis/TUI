@@ -107,7 +107,7 @@ The rest set boolean flags and wake the loop; the actual rendering always happen
 
 These are not C signal handlers, and that is the point: libdispatch delivers each signal as an ordinary queued event on the main queue, so each handler is normal main-actor code that sets a plain stored property and wakes the loop. No async-signal-safe restriction, no self-pipe, and no `nonisolated(unsafe)` flags to read torn. The main loop drains the flags each iteration and acts accordingly.
 
-The signals that end the process with nothing run on the way out are the exception, because a queued event would never be read: a crash (`SIGSEGV`, `SIGABRT` and the rest), the terminations nothing handles (`SIGHUP`, `SIGUSR1`, …), and `SIGQUIT`. `FatalSignalTerminalRestore` takes them with a C handler that writes what the terminal is owed from a buffer filled in advance, puts the shell's termios back, and lets the signal do what it does. A crash leaves the alternate screen up, with its report on it. `SIGQUIT` (`kill -QUIT`) is the user's quit, not a crash: it leaves the terminal as a quit does — the alternate screen left, the cursor shown, every mode off — and ends by its default action, the shell's `Quit: 3`, without the Swift runtime's crash report.
+The signals that end the process with nothing run on the way out are the exception, because a queued event would never be read: a crash (`SIGSEGV`, `SIGABRT` and the rest), the terminations nothing handles (`SIGHUP`, `SIGUSR1`, …), and `SIGQUIT` — ⌃\\, which the terminal driver raises even while the main thread is stuck. `FatalSignalTerminalRestore` takes them with a C handler that writes what the terminal is owed from a buffer filled in advance, puts the shell's termios back, and lets the signal do what it does. A crash leaves the alternate screen up, with its report on it. `SIGQUIT` (⌃\\, or `kill -QUIT`) is the user's quit, not a crash: it leaves the terminal as a quit does — the alternate screen left, the cursor shown, every mode off — and ends by its default action, the shell's `Quit: 3`, without the Swift runtime's crash report.
 
 ## Programmatic Exit
 
@@ -170,11 +170,13 @@ If the focused control let the key fall through, an app's `.keyboardShortcut` fi
 
 Built-in key bindings that apply when no handler consumed the event:
 
+One key never reaches the chain at all: **⌃\\ quits, always, even when the app hangs.** It cannot be bound — the terminal driver takes it before the app sees it. Raw mode keeps the line discipline's signals on with every signal character turned off but the quit key, so ⌃C and ⌃Z are keys while ⌃\\ is still `SIGQUIT`, as in a shell; the signal then leaves the terminal as a quit does (see Signal Handling above). A user who turned the quit key off (`stty quit undef`) or moved it keeps their setting.
+
 | Key | Action | Condition |
 |-----|--------|-----------|
 | `q` / `Q` | Quit application | `statusBar.isQuitAllowed` — offered even behind a modal, as its escape hatch |
 | Undo, redo | The app's undo manager's undo and redo, on the scene's `UndoShortcuts`: by default ⌃Z, ⌃- and ⌃/ undo, ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after the app's own shortcuts; a bound key is taken whether or not there is a step |
-| ⌃Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode clears `ISIG`, so the driver never turns `^Z` into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
+| ⌃Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode turns `^Z` off as a signal character, so the driver never turns it into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
 | `t` / `T` | Cycle to next palette | `statusBar.showThemeItem`, and no transient surface has grabbed input |
 | `a` / `A` | Cycle to next appearance | No transient surface has grabbed input — otherwise `a` would restyle the app from behind a modal the user cannot see the controls for |
 

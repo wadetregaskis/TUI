@@ -480,8 +480,10 @@ struct CommandKeySubstitutionTests {
     ///
     /// Ctrl-C and Ctrl-Z are not among them. They used to be reported as
     /// "taken by job control", which is what a cooked terminal does with them;
-    /// raw mode clears `ISIG`, so they arrive as keys (and
-    /// `InputHandlerTests` fires a ⌘C shortcut on one).
+    /// raw mode turns them off as signal characters, so they arrive as keys
+    /// (and `InputHandlerTests` fires a ⌘C shortcut on one). `Ctrl-\` is: it
+    /// is the user's quit key, which the driver turns into SIGQUIT before
+    /// the app sees it, and a legacy 0x1C is no key either.
     @Test("The C0 collisions are reported, not silently dead")
     func c0CollisionsAreQueryable() {
         // Ctrl-H is Backspace: `KeyEvent.parse` reads 0x08 before the
@@ -492,6 +494,9 @@ struct CommandKeySubstitutionTests {
                 resolved?.isDeliverableInTerminal == false,
                 "Ctrl-\(key.character) is spoken for by the C0 range")
         }
+        // Ctrl-\ is the user's quit key: the driver's, never a shortcut's.
+        #expect(KeyboardShortcut("\\", modifiers: .control).isDeliverableInTerminal == false)
+        #expect(KeyboardShortcut("\\").resolved(commandKey: .control)?.isDeliverableInTerminal == false)
         for key: KeyEquivalent in ["s", "o", "n", "1", "c", "z"] {
             let resolved = KeyboardShortcut(key).resolved(commandKey: .control)
             #expect(resolved?.isDeliverableInTerminal == true)
