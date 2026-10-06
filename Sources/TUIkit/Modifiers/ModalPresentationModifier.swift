@@ -147,81 +147,20 @@ extension ModalPresentationModifier: Renderable {
         // (`DismissalGate.escape`).
         let isPresented = self.isPresented
         let escape = { (isRepeat: Bool) in gate.escape(isRepeat: isRepeat) { isPresented.wrappedValue = false } }
-        // The ESC item's registration, named again once the content has
-        // drawn (below).
-        var escapeItemRegistration: Int?
 
         // Register the modal focus section and activate it FIRST — so the page
         // rendered beneath registers its controls in the now-inactive page
         // section (and can't steal focus or auto-scroll), while the modal's own
         // controls auto-focus. The active section means Tab/arrows navigate only
         // within the modal. (Skipped while measuring — a measure mustn't mutate
-        // focus or the status bar.)
-        if !context.isMeasuring {
-            // Section registration/activation + the status-bar item are
-            // per-frame render side effects: a memoised replay of this subtree
-            // would skip them, leaving a modal that no longer grabs focus.
-            // Declare them so value/measure memos decline caching.
-            context.environment.volatileReadTracker?.recordRenderSideEffect()
-            let focusManager = context.environment.focusManager
-            focusManager?.registerSection(id: sectionID)
-            // As a PRESENTED section: an alert or popover opened from inside
-            // this modal holds the active section on top of it, and plain
-            // activation took it back from that surface on every frame — see
-            // `FocusManager.activatePresentedSection(id:)`.
-            focusManager?.activatePresentedSection(id: sectionID)
-            // Mark this section input-grabbing so the app's global default key
-            // bindings (appearance/theme) don't fire behind the modal.
-            focusManager?.markSectionModal(id: sectionID)
-            // …and take the keyboard, so only handlers rendered inside the
-            // modal run. Isolation already covers the page BENEATH; this
-            // also covers a sibling elsewhere in the tree.
-            context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
-            // Content that asked to stop the quit key does, for as long as it
-            // is drawn.
-            if presentationPreventsTermination(of: modal) {
-                context.environment.statusBar?.preventQuit()
-            }
-
-            // While the modal is on screen ESC should close it. Publish an
-            // ESC=dismiss item on the status bar tied to the modal section,
-            // flipping the presentation binding back to false. Section items
-            // are cleared each render pass, so closing the modal naturally
-            // drops the override and restores the page's own items.
-            //
-            // `.merge` no longer merges anything OF THE PAGE'S: the backdrop
-            // render publishes into a throwaway status bar now
-            // (`isolatedForBackground`), because items that merely showed were
-            // also still firing — `n` behind a dialog ran the page's "new".
-            // What is left to merge with is whatever the app declares outside
-            // the presented subtree, which is live and should show. The bar
-            // therefore reads "⎋ dismiss   q quit" over a dialog, rather than
-            // also advertising the page's own keys, which do nothing while it
-            // is up.
-            //
-            // …unless the content asked not to be dismissed by hand, in which
-            // case the item is not published at all: no key binding, and
-            // nothing on the status bar offering a way out that does not work.
-            if !dismissIsDisabled {
-                escapeItemRegistration = context.environment.statusBar?.registerSectionItems(
-                    sectionID: sectionID, items: [escapeItem(gate: gate, escape: escape)], composition: .merge)
-                // The same dismissal as a layer-2 key handler, the way the
-                // alert and popover presenters register theirs. The item alone
-                // was unreachable from a pushed NavigationStack screen: its bar
-                // claims the ESC label ("go back") every frame, and the status
-                // bar skips EVERY escape item while a claim stands — so ESC
-                // could not dismiss a sheet presented from a pushed screen.
-                // The handler rides the modal's own grabbed section, so it
-                // runs precisely while the modal holds the keyboard.
-                context.environment.keyEventDispatcher!.addHandler(
-                    sectionID: sectionID
-                ) { event in
-                    guard event.key == .escape else { return false }
-                    escape(event.phase == .repeat)
-                    return true
-                }
-            }
-        }
+        // focus or the status bar.) The ESC item's registration comes back,
+        // to be named again once the content has drawn (below).
+        let escapeItemRegistration =
+            context.isMeasuring
+            ? nil
+            : takeKeyboard(
+                sectionID: sectionID, gate: gate, escape: escape, dismissIsDisabled: dismissIsDisabled,
+                context: context)
 
         // The drag-offset handler is a MANUAL box at this identity, and
         // nothing else hydrates it — endRenderPass would prune it every
@@ -373,6 +312,85 @@ extension ModalPresentationModifier: Renderable {
                 offsetX: dragOffset.x, offsetY: dragOffset.y, content: modalBuffer,
                 level: .modal, centered: true, dimsBackground: style == .sheet))
         return baseBuffer
+    }
+
+    /// Makes the presented sheet the keyboard's for this frame: its focus
+    /// section registered, activated as a presented one and marked modal, the
+    /// input grabbed for it, the quit key stopped if its content asked, and —
+    /// unless its content forbade interactive dismissal — Escape bound to
+    /// `escape`, on the status bar and as a key handler.
+    ///
+    /// - Returns: The ESC item's registration, for naming it again once the
+    ///   content has drawn, or `nil` when none was published.
+    private func takeKeyboard(
+        sectionID: String, gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void,
+        dismissIsDisabled: Bool, context: RenderContext
+    ) -> Int? {
+        var registration: Int?
+        // Section registration/activation + the status-bar item are
+        // per-frame render side effects: a memoised replay of this subtree
+        // would skip them, leaving a modal that no longer grabs focus.
+        // Declare them so value/measure memos decline caching.
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        let focusManager = context.environment.focusManager
+        focusManager?.registerSection(id: sectionID)
+        // As a PRESENTED section: an alert or popover opened from inside
+        // this modal holds the active section on top of it, and plain
+        // activation took it back from that surface on every frame — see
+        // `FocusManager.activatePresentedSection(id:)`.
+        focusManager?.activatePresentedSection(id: sectionID)
+        // Mark this section input-grabbing so the app's global default key
+        // bindings (appearance/theme) don't fire behind the modal.
+        focusManager?.markSectionModal(id: sectionID)
+        // …and take the keyboard, so only handlers rendered inside the
+        // modal run. Isolation already covers the page BENEATH; this
+        // also covers a sibling elsewhere in the tree.
+        context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+        // Content that asked to stop the quit key does, for as long as it
+        // is drawn.
+        if presentationPreventsTermination(of: modal) {
+            context.environment.statusBar?.preventQuit()
+        }
+
+        // While the modal is on screen ESC should close it. Publish an
+        // ESC=dismiss item on the status bar tied to the modal section,
+        // flipping the presentation binding back to false. Section items
+        // are cleared each render pass, so closing the modal naturally
+        // drops the override and restores the page's own items.
+        //
+        // `.merge` no longer merges anything OF THE PAGE'S: the backdrop
+        // render publishes into a throwaway status bar now
+        // (`isolatedForBackground`), because items that merely showed were
+        // also still firing — `n` behind a dialog ran the page's "new".
+        // What is left to merge with is whatever the app declares outside
+        // the presented subtree, which is live and should show. The bar
+        // therefore reads "⎋ dismiss   q quit" over a dialog, rather than
+        // also advertising the page's own keys, which do nothing while it
+        // is up.
+        //
+        // …unless the content asked not to be dismissed by hand, in which
+        // case the item is not published at all: no key binding, and
+        // nothing on the status bar offering a way out that does not work.
+        if !dismissIsDisabled {
+            registration = context.environment.statusBar?.registerSectionItems(
+                sectionID: sectionID, items: [escapeItem(gate: gate, escape: escape)], composition: .merge)
+            // The same dismissal as a layer-2 key handler, the way the
+            // alert and popover presenters register theirs. The item alone
+            // was unreachable from a pushed NavigationStack screen: its bar
+            // claims the ESC label ("go back") every frame, and the status
+            // bar skips EVERY escape item while a claim stands — so ESC
+            // could not dismiss a sheet presented from a pushed screen.
+            // The handler rides the modal's own grabbed section, so it
+            // runs precisely while the modal holds the keyboard.
+            context.environment.keyEventDispatcher!.addHandler(
+                sectionID: sectionID
+            ) { event in
+                guard event.key == .escape else { return false }
+                escape(event.phase == .repeat)
+                return true
+            }
+        }
+        return registration
     }
 
     /// The presentation's ESC item on the status bar: `escape`, named for
