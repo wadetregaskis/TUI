@@ -24,6 +24,9 @@ private final class Ledger {
     var pressed: [String] = []
     /// Whether the table's cells are two lines tall.
     var tall = false
+    /// The truncation of a column whose view is wider than it, when the table
+    /// is that one.
+    var overflow: TruncationMode?
 }
 
 private struct Entry: Identifiable, Equatable {
@@ -50,7 +53,22 @@ private struct LedgerPage: View {
     private let entries = (0..<4).map(Entry.init)
 
     var body: some View {
-        if ledger.tall {
+        if let overflow = ledger.overflow {
+            // Twelve cells of view — a label that will not shrink, then a
+            // button — in an eight-cell column.
+            Table(entries, selection: Bindable(ledger).selection) {
+                TableColumn("Name", value: \.name)
+                TableColumn("Wide") { entry in
+                    HStack(spacing: 0) {
+                        Text(verbatim: "pad\(entry.id)xxxx")
+                        Button("G\(entry.id)") { ledger.pressed.append("go \(entry.id)") }
+                    }
+                    .fixedSize()
+                }
+                .width(8)
+                .truncationMode(overflow)
+            }
+        } else if ledger.tall {
             Table(entries, selection: Bindable(ledger).selection) {
                 TableColumn("Name", value: \.name)
                 TableColumn("Actions") { entry in
@@ -90,8 +108,9 @@ private final class Harness {
     let app: HeadlessApp<LedgerApp>
     private var now: Int64 = 0
 
-    init(tall: Bool = false) {
+    init(tall: Bool = false, overflow: TruncationMode? = nil) {
         ledger.tall = tall
+        ledger.overflow = overflow
         app = HeadlessApp(LedgerApp(ledger), width: 70, height: 20)
         frame()
         frame()
@@ -187,5 +206,27 @@ struct TableViewCellPointerTests {
         #expect(harness.ledger.selection == nil)
         harness.click(try harness.position(of: "row 2"))
         #expect(harness.ledger.selection == 2)
+    }
+
+    /// What the payload's placement rests on: a view cell is rendered at its
+    /// column's width, and every rendered buffer is clamped to the width it
+    /// was offered, so a cell's line is never wider than its column and the
+    /// column's truncation never moves what the line draws. A region is placed
+    /// by the line's alignment alone, which would be wrong for a line that
+    /// `.head` truncation had cut at the front — had one ever reached it.
+    @Test(
+        "A view wider than its column is cut at the column, whatever its truncation, so its controls stay put",
+        arguments: [TruncationMode.head, .middle, .tail])
+    func overflowingViewIsCutNotTruncated(mode: TruncationMode) throws {
+        let harness = Harness(overflow: mode)
+        // Its first eight cells, as drawn — no ellipsis, nothing moved.
+        let cell = try harness.position(of: "pad1xxxx")
+        #expect(!harness.shows("…"), "\(harness.app.screen.map(\.stripped).joined(separator: "\n"))")
+        // The button, past the cut, is not drawn and takes no click there.
+        #expect(!harness.shows("G1"))
+        harness.click((cell.x + 7, cell.y))
+        #expect(harness.ledger.selection == 1)
+        harness.click((cell.x + 9, cell.y))
+        #expect(harness.ledger.pressed.isEmpty, "pressed \(harness.ledger.pressed)")
     }
 }

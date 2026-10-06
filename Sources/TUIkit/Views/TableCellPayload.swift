@@ -48,6 +48,11 @@ struct _TableRowPayload {
     /// Each line of a cell is aligned into its column on its own (see
     /// `Table.appendAligned`), so a region moves right by the gap its own top
     /// line was given: a `.trailing` column's button sits where its label is.
+    /// That gap is all that moves it: a view cell is rendered at its column's
+    /// width and clamped there, as every rendered buffer is, so its line is
+    /// never wider than the column and the column's truncation — which would
+    /// cut a `.head`-truncated line at the front — never applies to it
+    /// (pinned by `TableViewCellPointerTests`).
     /// A region is trimmed to the cell — `width` columns from `x`, `lines` lines
     /// — because the cell's lines are clipped there: a region past the column
     /// would take clicks on the next column's cells. Overlays float free of the
