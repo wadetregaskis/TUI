@@ -35,7 +35,9 @@ extension Gesture {
     /// press. A release is a press already over, of which the second gesture
     /// reports only how it ends: after a tap, a drag or a long press fails
     /// at once, so `TapGesture().sequenced(before: DragGesture())` never
-    /// ends, while a long press with no minimum duration ends there, `false`.
+    /// ends, and holds nothing back — inside `.onTapGesture`, every click
+    /// runs both taps — while a long press with no minimum duration ends
+    /// there, `false`.
     /// A second gesture that is itself a sequence hands its own second that
     /// press, still over: after a tap, two zero-duration long presses in
     /// sequence both end `false`, the first's `onEnded` before the second's.

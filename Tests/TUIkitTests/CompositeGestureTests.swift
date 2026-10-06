@@ -285,6 +285,49 @@ struct CompositeGestureTests {
         #expect(log.entries == click + click)
     }
 
+    /// Measured on macOS 15.8 (F2 probe review4, S): a tap before a drag, or
+    /// before a long press, inside an `.onTapGesture` — around it and a
+    /// plain box beside it, or on the same view after it. The sequence fails
+    /// at the tap's release, so it holds nothing back: every click on it runs
+    /// the inner tap's `onEnded` and then the tap around it, and a click on
+    /// the box beside it runs that tap alone. Pinned because it follows from
+    /// the commit "A sequence's second gesture starts with the event that
+    /// ended the first" and was unmeasured: before it, the sequence went on
+    /// to wait for its second gesture and kept the tap around it off every
+    /// click.
+    @Test(
+        "A tap before a drag or a long press, inside a tap, runs both taps at every click",
+        arguments: [false, true], [false, true])
+    func tapBeforeDragOrLongPressInsideATap(_ longPress: Bool, _ around: Bool) {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let tap = TapGesture().onEnded { log("tap") }
+        let sequence =
+            longPress
+            ? AnyGesture(tap.sequenced(before: LongPressGesture()).map { _ in () })
+            : AnyGesture(tap.sequenced(before: DragGesture()).map { _ in () })
+        let seqBox = Text("").frame(width: 4, height: 1).gesture(sequence.onEnded { log("seq") })
+        let view = {
+            around
+                ? AnyView(
+                    HStack(spacing: 2) { seqBox; Text("").frame(width: 4, height: 1) }
+                        .onTapGesture { log("outer") }
+                        .frame(width: 40, height: 12, alignment: .topLeading))
+                : AnyView(seqBox.onTapGesture { log("outer") }.frame(width: 40, height: 12, alignment: .topLeading))
+        }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        #expect(log.entries == ["tap", "outer"])
+        harness.now = 600 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 0, view)
+        #expect(log.entries == ["tap", "outer", "tap", "outer"])
+        harness.now = 1_200 * gestureMillisecond
+        harness.frame(view())
+        harness.click(7, 0, view)
+        #expect(log.entries == ["tap", "outer", "tap", "outer"] + (around ? ["outer"] : []))
+    }
+
     /// Measured on macOS 15.8: a drag before a tap ends at the drag's
     /// release — the drag's end, then the tap's, then the sequence's — and
     /// a click after it, which is no drag, ends nothing.
