@@ -146,6 +146,75 @@ struct ScrollTransitionTests {
         #expect(drawn.values[15] == 0)
     }
 
+    /// A seven-row log of `count` rows, each transitioned, glued to its tail.
+    private func gluedLog(count: Int, phases: Phases) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<count, id: \.self) { index in
+                    Text("line \(index)")
+                        .scrollTransition(.animated) { effect, phase in
+                            // swiftlint:disable:next redundant_discardable_let
+                            let _ = (phases.byRow[index] = phase)
+                            return effect
+                        }
+                }
+            }
+        }
+        .scrollIndicators(.never)
+        .defaultScrollAnchor(.bottom)
+        .frame(width: 20, height: 7)
+    }
+
+    @Test("A glued log's rows are drawn from where the frame settles: a row arriving dims no row on screen")
+    func gluedLogDrawsFromTheSettledOffset() {
+        let harness = InputChainHarness()
+        let phases = Phases()
+        harness.frame(gluedLog(count: 20, phases: phases))
+        harness.frame(gluedLog(count: 20, phases: phases))
+        for count in 21...24 {
+            // The content draws at the tail it had; the glue then moves the
+            // offset a row down, past what the rows were told.
+            harness.frame(gluedLog(count: count, phases: phases))
+            for row in (count - 7)..<count { #expect(phases.byRow[row] == .identity, "row \(row) of \(count)") }
+            #expect(phases.byRow[count - 8] == .topLeading)
+        }
+        #expect(harness.geometryCorrections.residual == 0)
+    }
+
+    @Test("A jump to a row draws the rows from where the jump lands, in the same frame")
+    func seekDrawsFromWhereItLands() {
+        let harness = InputChainHarness()
+        let phases = Phases()
+        final class Box { var proxy: ScrollViewProxy? }
+        let box = Box()
+        let page = {
+            ScrollViewReader { proxy in
+                // swiftlint:disable:next redundant_discardable_let
+                let _ = (box.proxy = proxy)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(0..<60, id: \.self) { index in
+                            Text("row \(index)")
+                                .scrollTransition(.animated) { effect, phase in
+                                    // swiftlint:disable:next redundant_discardable_let
+                                    let _ = (phases.byRow[index] = phase)
+                                    return effect
+                                }
+                        }
+                    }
+                }
+                .scrollIndicators(.never)
+                .frame(width: 20, height: 7)
+            }
+        }
+        harness.frame(page())
+        harness.frame(page())
+        box.proxy?.scrollTo(30, anchor: .top)
+        harness.frame(page())
+        for row in 30..<37 { #expect(phases.byRow[row] == .identity, "row \(row)") }
+        #expect(harness.geometryCorrections.residual == 0)
+    }
+
     @Test("A view in no scroll view is drawn in the identity phase")
     func noScrollViewIsIdentity() {
         let harness = InputChainHarness()

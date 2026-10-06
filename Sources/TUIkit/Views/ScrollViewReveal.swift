@@ -374,9 +374,10 @@ extension _ScrollViewCore {
         let recovered = renderedContent(
             contentWidth: contentWidth, viewportHeight: viewportHeight,
             horizontal: horizontal, verticalScrollOffset: handler.scrollOffset,
-            checkpoint: checkpoint, context: context)
+            horizontalScrollOffset: handler.horizontal.scrollOffset, checkpoint: checkpoint, context: context)
         drawing = ScrollContentDrawing(
-            buffer: recovered.buffer, slice: recovered.slice, drawnLines: recovered.drawnLines)
+            buffer: recovered.buffer, slice: recovered.slice, drawnLines: recovered.drawnLines,
+            placement: recovered.placement)
         handler.contentHeight = drawing.slice?.totalHeight ?? drawing.buffer.height
         handler.contentHeightIsEstimate = drawing.slice?.totalIsEstimate ?? false
         handler.clampScrollOffset()

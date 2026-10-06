@@ -230,6 +230,16 @@ final class GeometryAsk: @unchecked Sendable {
             spaceSize: kept.observation.spaceSize, scrollAxis: kept.observation.scrollAxis)
     }
 
+    /// Moves the predictions for the spaces no owner has found the view in
+    /// yet by `delta` — the view was drawn somewhere its owner then moved
+    /// (``GeometryCoordinator/movePredictions(in:by:)``). What it was TOLD is
+    /// left as it was: that is what it drew.
+    func movePredictions(by delta: CellPoint) {
+        for (space, predicted) in predictions where found[space] == nil {
+            predictions[space] = CellPoint(x: predicted.x + delta.x, y: predicted.y + delta.y)
+        }
+    }
+
     /// What the view was told while recording, in the order it asked.
     var toldAnswers: [GeometryObservation?] {
         wanted.compactMap { space in told[space].map(\.observation) }

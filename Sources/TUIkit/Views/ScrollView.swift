@@ -565,11 +565,12 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         let firstDrawing = renderedContent(
             contentWidth: contentWidth, viewportHeight: contentViewportHeight,
             horizontal: wantsHorizontal, verticalScrollOffset: handler.scrollOffset,
-            seek: pendingSeek, edgeInset: chrome.edgeInset,
+            horizontalScrollOffset: handler.horizontal.scrollOffset, seek: pendingSeek, edgeInset: chrome.edgeInset,
             handler: handler, checkpoint: checkpoint, context: context, settledExtents: settledExtents)
         let (seekOffset, contentExtent) = (firstDrawing.seekOffset, firstDrawing.extents)
         var drawing = ScrollContentDrawing(
-            buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines)
+            buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines,
+            placement: firstDrawing.placement)
         if !context.isMeasuring { handler.pendingScrollTo = nil }
         // A sliced reply (Stage 6): the buffer holds only the rendered band;
         // the content height comes from the metadata (estimated suffixes and

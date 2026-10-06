@@ -88,6 +88,15 @@ extension GeometryCoordinator {
         return spaces.contains { unanswered[$0, default: 0] > 0 }
     }
 
+    /// Moves the predictions made for the views whose markers `drawn` carries
+    /// by `delta`, for every space no owner has answered for them yet — what
+    /// a scroll view does when its offset moved after its content was drawn
+    /// (`_ScrollViewCore.settlePlacement`).
+    func movePredictions(in drawn: FrameBuffer, by delta: CellPoint) {
+        guard unansweredTotal > 0 else { return }
+        drawn.forEachGeometryMarker { id, _, _ in asks[id]?.movePredictions(by: delta) }
+    }
+
     /// Records that `ask`'s view is at `observation` in `space`.
     private func answer(_ ask: GeometryAsk, in space: CoordinateSpace, with observation: GeometryObservation) {
         ask.found[space] = observation

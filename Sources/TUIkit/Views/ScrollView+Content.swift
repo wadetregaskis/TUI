@@ -34,6 +34,12 @@ struct ScrollContentDrawing {
     /// every line it holds is drawn.
     var drawnLines: Range<Int>?
 
+    /// Where the content's top-left was placed in the viewport for the readers
+    /// it drew: minus the offsets the drawing was made at. When the frame's
+    /// offset settles elsewhere, what they were predicted is moved by the
+    /// difference (`_ScrollViewCore.settlePlacement`).
+    var placement: CellPoint
+
     /// The content lines this drawing really drew — the slice's band, or the
     /// drawn lines of a full-height canvas — or `nil` for eager content, all of
     /// which is drawn.
@@ -278,10 +284,13 @@ extension _ScrollViewCore {
     ///   that refuted the content's measure (below), which is not repeated.
     /// - Parameter checkpoint: Where the walk stood before the content's first
     ///   drawing this frame, put back before the content is drawn again here.
+    /// - Parameter horizontalScrollOffset: The horizontal offset the drawing is
+    ///   made at, which places the content for its readers (the vertical one
+    ///   is `verticalScrollOffset`).
     func renderedContent(
         contentWidth: Int, viewportHeight: Int, horizontal: Bool,
-        verticalScrollOffset: Int, seek: ScrollToRequest? = nil, edgeInset: Int = 0,
-        handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
+        verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, seek: ScrollToRequest? = nil,
+        edgeInset: Int = 0, handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
         context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
         remeasured: Bool = false
     ) -> (
@@ -298,7 +307,10 @@ extension _ScrollViewCore {
         /// The lines of a full-height buffer that hold real rows, when it holds
         /// placeholders elsewhere (``ScrollContentReply/drawnLines``); `nil`
         /// when every line it holds is drawn — a slice, or eager content.
-        drawnLines: Range<Int>?
+        drawnLines: Range<Int>?,
+        /// Where the content was placed in the viewport for the readers it
+        /// drew (``ScrollContentDrawing/placement``).
+        placement: CellPoint
     ) {
         let extents =
             settledExtents
@@ -359,8 +371,8 @@ extension _ScrollViewCore {
         // the carried origin of everything below moves as the content does
         // (design study A2, rung 2). The ramp a gradient runs down the content
         // stays put — it spans the content, not the viewport.
-        measureContext = measureContext.placingChild(
-            gradient: nil, x: -(horizontal ? handler?.horizontal.scrollOffset ?? 0 : 0), y: -verticalScrollOffset)
+        let placement = CellPoint(x: horizontal ? -horizontalScrollOffset : 0, y: -verticalScrollOffset)
+        measureContext = measureContext.placingChild(gradient: nil, x: placement.x, y: placement.y)
         let buffer = TUIkit.renderToBuffer(content, context: measureContext)
         if contentReply.measureWentStale, !remeasured, !context.isMeasuring {
             // The canvas was the height of a measure this render refuted, so
@@ -378,8 +390,8 @@ extension _ScrollViewCore {
                 contentWidth: contentWidth, viewportHeight: viewportHeight,
                 horizontal: horizontal,
                 verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
-                edgeInset: edgeInset, handler: handler, checkpoint: checkpoint, context: context,
-                remeasured: true)
+                horizontalScrollOffset: horizontalScrollOffset, edgeInset: edgeInset, handler: handler,
+                checkpoint: checkpoint, context: context, remeasured: true)
             redrawn.seekOffset = contentReply.seekResolvedOffset
             return redrawn
         }
@@ -397,9 +409,9 @@ extension _ScrollViewCore {
         if let reply, let origin = reply.sliceOriginY, let total = reply.sliceTotalHeight {
             return (
                 buffer, (origin, total, reply.sliceTotalIsEstimate), reply.seekResolvedOffset,
-                extents, nil)
+                extents, nil, placement)
         }
-        return (buffer, nil, reply?.seekResolvedOffset, extents, reply?.drawnLines)
+        return (buffer, nil, reply?.seekResolvedOffset, extents, reply?.drawnLines, placement)
     }
 
     // MARK: Windowing

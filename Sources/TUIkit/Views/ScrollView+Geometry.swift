@@ -62,17 +62,24 @@ extension _ScrollViewCore {
         chrome: ScrollChrome, viewport: CellSize, horizontal: Bool, context: RenderContext
     ) -> FrameBuffer {
         let (width, height) = (viewport.width, viewport.height)
+        settlePlacement(of: drawing, handler: handler, horizontal: horizontal, context: context)
         var window = drawnViewport(
             full: drawing.buffer, sliceOriginY: drawing.slice?.originY ?? 0, handler: handler, chrome: chrome,
             width: width, height: height, horizontal: horizontal, context: context)
         if let checkpoint, ownScrollSpace(in: window, viewport: viewport, context: context) {
             checkpoint.rollBack(context: context)
             let redrawn = renderedContent(
-                contentWidth: width, viewportHeight: height,
-                horizontal: horizontal, verticalScrollOffset: handler.scrollOffset, context: context)
+                contentWidth: width, viewportHeight: height, horizontal: horizontal,
+                verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
+                context: context)
             handler.contentHeight = redrawn.slice?.totalHeight ?? redrawn.buffer.height
             handler.contentHeightIsEstimate = redrawn.slice?.totalIsEstimate ?? false
             handler.clampScrollOffset()
+            settlePlacement(
+                of: ScrollContentDrawing(
+                    buffer: redrawn.buffer, slice: redrawn.slice, drawnLines: redrawn.drawnLines,
+                    placement: redrawn.placement),
+                handler: handler, horizontal: horizontal, context: context)
             window = drawnViewport(
                 full: redrawn.buffer, sliceOriginY: redrawn.slice?.originY ?? 0, handler: handler,
                 chrome: chrome, width: width, height: height, horizontal: horizontal, context: context)
@@ -80,6 +87,37 @@ extension _ScrollViewCore {
         }
         context.measureScrollVisibility(in: window, viewport: CellRect(x: 0, y: 0, width: width, height: height))
         return window
+    }
+
+    /// Where the frame shows the content's top-left in the viewport: minus
+    /// the offsets it settled on.
+    func settledPlacement(handler: ScrollViewHandler, horizontal: Bool) -> CellPoint {
+        CellPoint(x: horizontal ? -handler.horizontal.scrollOffset : 0, y: -handler.scrollOffset)
+    }
+
+    /// Moves what the readers `drawing` drew were predicted, for the spaces no
+    /// owner has answered yet, by how far the content moved after it was drawn.
+    ///
+    /// The content is drawn at the offset the frame began with (or a band's
+    /// redraw at its own), and the offset can move after: the glue to a tail
+    /// that grew, a seek the content resolved, the clamp, the focus snap over
+    /// eager content. The readers were told where they would be at the offset
+    /// they were drawn at, and are found where they are at the one the frame
+    /// settled on. That is a wrong answer, and an owner corrects it; but the
+    /// prediction is what the next prediction is corrected by (the residual,
+    /// ``GeometryAsk``), so it is moved to the settled offset first — kept as
+    /// made, the residual would carry the move, and the correction's own
+    /// drawing, at the settled offset, would add it once more and draw every
+    /// reader off by it.
+    func settlePlacement(
+        of drawing: ScrollContentDrawing, handler: ScrollViewHandler, horizontal: Bool, context: RenderContext
+    ) {
+        let settled = settledPlacement(handler: handler, horizontal: horizontal)
+        guard settled != drawing.placement, !context.isMeasuring, let geometry = context.geometryCoordinator
+        else { return }
+        geometry.movePredictions(
+            in: drawing.buffer,
+            by: CellPoint(x: settled.x - drawing.placement.x, y: settled.y - drawing.placement.y))
     }
 
     /// Finds the views asking this scroll view's space in the content window

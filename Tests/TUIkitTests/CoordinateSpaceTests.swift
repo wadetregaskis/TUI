@@ -147,6 +147,65 @@ struct CoordinateSpaceTests {
         #expect(wrongAxis.bounds == .some(nil))
     }
 
+    @Test("A glued scroll view's offset tracker reads where the frame settles, through a name on the scroll view")
+    func gluedOffsetTrackerThroughName() {
+        let harness = InputChainHarness()
+        let seen = Seen()
+        let page = { (count: Int) in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<count, id: \.self) { Text("line \($0)") }
+                    reader(seen, in: .named("scroll"), width: 10, height: 1)
+                }
+            }
+            .coordinateSpace(.named("scroll"))
+            .scrollIndicators(.never)
+            .defaultScrollAnchor(.bottom)
+            .frame(width: 20, height: 6)
+        }
+        harness.frame(page(20))
+        harness.frame(page(20))
+        #expect(seen.frame?.y == 5)
+        for count in 21...23 {
+            // The reader is the last row, on the viewport's last line, after
+            // every append: the glue moves the offset after the content drew.
+            harness.frame(page(count))
+            #expect(seen.frame?.y == 5, "\(count) lines")
+        }
+        #expect(harness.geometryCorrections.residual == 0)
+    }
+
+    @Test("A two-axis scroll view scrolled across draws a corrected reader at its horizontal offset too")
+    func correctedReaderKeepsHorizontalOffset() {
+        let harness = InputChainHarness()
+        let seen = Seen()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+        let page = { (count: Int) in
+            ScrollView([.horizontal, .vertical]) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<count, id: \.self) { Text("line \($0) " + String(repeating: "-", count: 40)) }
+                    reader(seen, in: .scrollView, width: 10, height: 1)
+                }
+            }
+            .scrollPosition(binding)
+            .scrollIndicators(.never)
+            .defaultScrollAnchor(.bottom)
+            .frame(width: 20, height: 6)
+        }
+        harness.frame(page(20))
+        position.scrollTo(x: 5)
+        harness.frame(page(20))
+        harness.frame(page(20))
+        #expect(seen.frame?.x == -5)
+        // A line arriving moves the vertical offset after the content drew,
+        // and the scroll view draws the reader again: at the horizontal offset
+        // it is shown at, not at the left edge.
+        harness.frame(page(21))
+        #expect(seen.frame == CellRect(x: -5, y: 5, width: 10, height: 1))
+        #expect(harness.geometryCorrections.residual == 0)
+    }
+
     @Test(".scrollView is the innermost scroll view; .scrollView(axis:) the innermost along that axis")
     func nestedScrollViews() {
         let inner = Seen()
