@@ -133,7 +133,7 @@ extension FocusManager {
     /// (``presentationDock(in:)``) — one walk, at a height known in advance.
     /// The same current-and-previous shape as ``notePresentation(id:dismiss:)``.
     func notePresentationDock(id: String, resolver: @escaping PresentationDockResolver) {
-        presentationDocks[id] = resolver
+        panes.docks[id] = resolver
     }
 
     /// The rows a content area `contentHeight` rows tall gives up at its
@@ -143,7 +143,7 @@ extension FocusManager {
     /// The most any one sheet asks for: two docked sheets overlap on the bottom
     /// edge, and the taller decides how much of the page is covered.
     func presentationDock(in contentHeight: Int) -> Int {
-        Self.dock(previousPresentationDocks, in: contentHeight)
+        Self.dock(panes.previousDocks, in: contentHeight)
     }
 
     /// The same, by the resolvers posted THIS frame: what the root compares
@@ -155,7 +155,7 @@ extension FocusManager {
     /// sheet drawn over the page's bottom rows. The root then asks for the
     /// next frame, which settles: one frame late, not a discarded walk.
     func postedPresentationDock(in contentHeight: Int) -> Int {
-        Self.dock(presentationDocks, in: contentHeight)
+        Self.dock(panes.docks, in: contentHeight)
     }
 
     private static func dock(_ resolvers: [String: PresentationDockResolver], in contentHeight: Int) -> Int {
