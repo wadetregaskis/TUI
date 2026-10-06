@@ -116,7 +116,6 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
             }
             return page
         }
-        if let focusManager { settleDock(dock, focusManager: focusManager, contentHeight: contentHeight, context: context) }
         // The dock's rows, blank under the sheet composited onto them.
         if dock > 0 { page = page.placedVertically(inHeight: contentHeight, topPadding: 0) }
 
@@ -138,6 +137,9 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
                 width: width, isModal: isModal, context: context)
         }
         if let chrome { retainUndrawnItems(chrome, itemRows: itemRows, context: context) }
+        // After the toolbars, whose items present sheets too: a dock one of
+        // them posts is compared with the page's like any other.
+        if let focusManager { settleDock(dock, focusManager: focusManager, contentHeight: contentHeight, context: context) }
         top = top?.liftingOverlays(shiftingBy: -rows.top, onto: &page)
         bottom = bottom?.liftingOverlays(shiftingBy: contentHeight, onto: &page)
         // The screen selection reads the page and draws its highlight on it,

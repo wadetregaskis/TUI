@@ -49,12 +49,47 @@ private struct DockedApp: App {
     }
 }
 
+/// What the window toolbar's live sheet is presented for, by reference so the
+/// binding a frame built reaches it.
+@MainActor
+private final class ToolbarSheetModel {
+    var note: LiveNote?
+    var binding: Binding<LiveNote?> { Binding(get: { self.note }, set: { self.note = $0 }) }
+}
+
+/// A page under a window toolbar whose item presents a live `item:` sheet —
+/// nothing in it takes the focus, so nothing breathes and asks for frames.
+private struct ToolbarDockApp: App {
+    let model: ToolbarSheetModel
+
+    init() { model = ToolbarSheetModel() }
+
+    init(model: ToolbarSheetModel) { self.model = model }
+
+    var body: some Scene {
+        WindowGroup {
+            GeometryReader { proxy in
+                Text("page height \(proxy.size.height)")
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Text("tools").sheet(item: model.binding) { note in
+                        Text("note \(note.id)").border()
+                            .presentationDetents([.height(6)])
+                            .presentationBackgroundInteraction(.enabled)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @MainActor
 @Suite("A live sheet's page is laid out above it", .rendersEnglishUI)
 struct LiveSheetLayoutTests {
     private static let frameNanos: Int64 = 16_666_667
 
-    private func rows(_ app: HeadlessApp<DockedApp>) -> [String] {
+    private func rows(_ app: HeadlessApp<some App>) -> [String] {
         app.screen.map(\.stripped)
     }
 
@@ -104,6 +139,29 @@ struct LiveSheetLayoutTests {
         app.frame(atNanos: 2 * Self.frameNanos)
         #expect(!rows(app).contains { $0.contains("page height 14") }, "the grown sheet is still docked")
         #expect(rows(app)[0].contains("─"), "the grown sheet does not cover the content area: \(rows(app))")
+    }
+
+    /// The window's toolbars are drawn after the root compares the dock it
+    /// laid the page out by with the docks the walk posted, so a sheet
+    /// presented from a toolbar item posted its dock too late to be compared:
+    /// learnt late — an `item:` sheet's content is unknown until it opens —
+    /// it asked for no frame, and the page stayed at its full height under
+    /// the sheet until something else drew one.
+    @Test("A live sheet learnt late from a window toolbar item asks for the frame that docks it")
+    func toolbarSheetLearntLateSettles() throws {
+        let model = ToolbarSheetModel()
+        let app = HeadlessApp(ToolbarDockApp(model: model), width: 40, height: 20)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: Self.frameNanos)
+        let full = try #require(rows(app).first { $0.contains("page height") }, "\(rows(app))")
+        #expect(app.nextWake(after: Self.frameNanos) == nil, "precondition: an idle page")
+        model.note = LiveNote(id: 1)
+        app.frame(atNanos: 2 * Self.frameNanos)
+        #expect(rows(app).contains { $0.contains("note 1") }, "precondition: the sheet is drawn")
+        let wake = try #require(app.nextWake(after: 2 * Self.frameNanos), "the late dock asked for no frame")
+        app.frame(atNanos: wake)
+        let docked = try #require(rows(app).first { $0.contains("page height") })
+        #expect(docked != full, "the page was not laid out above the sheet: \(rows(app))")
     }
 
     @Test("A terminal too short to leave the page three rows presents the sheet as a modal")
