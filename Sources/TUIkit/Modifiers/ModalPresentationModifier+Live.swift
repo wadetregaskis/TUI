@@ -34,12 +34,20 @@ enum LiveSheet {
     /// above it have ``minimumRows``. A sheet without detents is a modal: its
     /// height is its content's, known only once the content has drawn — and
     /// the page's height has to be known before.
+    ///
+    /// So is one presented from inside a presentation that holds the keyboard
+    /// (`environment.isInModalPresentation`): what is behind it is that
+    /// presentation, not a page that could share the keyboard with it. Docked
+    /// there, it reflowed the dimmed page under both, and the presentation
+    /// around it took the focus back every frame and kept the input grabbed,
+    /// so nothing in it could be reached from the keyboard.
     @MainActor
     static func dock(
         detents: PresentedDetents?, interaction: PresentationBackgroundInteraction, extent: Int,
         environment: EnvironmentValues
     ) -> Int? {
-        guard let height = detents?.height, height >= minimumRows, extent - height >= minimumRows,
+        guard !environment.isInModalPresentation, let height = detents?.height, height >= minimumRows,
+            extent - height >= minimumRows,
             interaction.letsThePageThrough(atHeight: height, extent: extent, environment: environment)
         else { return nil }
         return height
@@ -55,6 +63,27 @@ enum LiveSheet {
         let gate: DismissalGate
         let escape: (_ isRepeat: Bool) -> Void
         let dismissIsDisabled: Bool
+    }
+}
+
+// MARK: - Inside a modal presentation
+
+/// Environment key for the content of a presentation that holds the keyboard.
+private struct InModalPresentationKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether this subtree is the content of a presentation that holds the
+    /// keyboard — a modal sheet, a full-screen cover, a popover — so that a
+    /// sheet presented from it is a modal too, whatever its background
+    /// interaction (`LiveSheet.dock`).
+    ///
+    /// Set by those presenters for the content they present; a live sheet's
+    /// content shares the keyboard with its page, and does not set it.
+    var isInModalPresentation: Bool {
+        get { self[InModalPresentationKey.self] }
+        set { self[InModalPresentationKey.self] = newValue }
     }
 }
 

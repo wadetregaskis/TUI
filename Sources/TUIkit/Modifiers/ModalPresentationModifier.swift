@@ -156,7 +156,7 @@ extension ModalPresentationModifier: Renderable {
         // The content's context: the content area's height, the modal's
         // section, and the presentation's ways out (`presentedContext`).
         let overlayHeight = context.environment.overlayContentHeight
-        let modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
+        var modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
 
         // A detent, if the content named one, decides the height instead of the
         // content's own. It has to be read BEFORE the render — it is the height
@@ -188,6 +188,10 @@ extension ModalPresentationModifier: Renderable {
                     gate: gate, escape: escape, dismissIsDisabled: dismissIsDisabled),
                 contentContext: contentContext, context: context)
         }
+
+        // Modal: what it presents is presented from inside a presentation
+        // that holds the keyboard (`LiveSheet.dock`).
+        modalContext.environment.isInModalPresentation = true
 
         // Register the modal focus section and activate it FIRST — so the page
         // rendered beneath registers its controls in the now-inactive page

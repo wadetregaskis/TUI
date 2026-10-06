@@ -232,6 +232,9 @@ extension PopoverPresentationModifier: Renderable {
         // Its `.toolbar`s draw their items themselves, in the popover: the
         // window's bars are inert while it is up.
         popoverContext.environment.presentationHostsToolbar = true
+        // It holds the keyboard, so a sheet presented from it is a modal
+        // (`LiveSheet.dock`).
+        popoverContext.environment.isInModalPresentation = true
         popoverContext.leaveScrollCanvas()
         // `@Environment(\.dismiss)` inside the popover closes the POPOVER — the
         // same act as its Escape handler above. Left unset it would mean the

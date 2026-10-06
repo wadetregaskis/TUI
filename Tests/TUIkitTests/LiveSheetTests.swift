@@ -298,6 +298,67 @@ struct LiveSheetTests {
         #expect(harness.focusManager.activeSectionIdentifier == inSheet, "the focus did not return to the sheet")
     }
 
+    /// The review of 0b2d764f1's failing input: the inner sheet docked — the
+    /// dimmed page under both reflowed — and the outer modal took the focus
+    /// back every frame and kept the input, so nothing in the inner sheet
+    /// could be reached from the keyboard.
+    @Test("A sheet that lets the page through, presented from inside a modal sheet, is a modal over it")
+    func liveSheetInsideAModalIsAModal() {
+        let harness = harness()
+        let model = LiveSheetModel()
+        model.presented = false
+        let view = Text("page").sheet(isPresented: .constant(true)) {
+            Panel("Outer") {
+                Button("More") {}.focusID("outer-more")
+                    .sheet(isPresented: model.presentedBinding) {
+                        Panel("Inner") { Button("OK") { model.sheetPresses += 1 }.focusID("inner-ok") }
+                            .presentationDetents([.height(6), .large])
+                            .presentationBackgroundInteraction(.enabled)
+                    }
+            }
+        }
+        open(harness, view)
+        model.presented = true
+        for _ in 0..<3 { frame(harness, view) }
+        #expect(harness.focusManager.postedPresentationDock(in: Self.height) == 0, "the inner sheet docked")
+        #expect(harness.focusManager.currentFocusedID == "inner-ok", "the inner sheet does not hold the focus")
+        harness.press(KeyEvent(key: .tab))
+        frame(harness, view)
+        #expect(
+            harness.focusManager.currentFocusedID?.hasPrefix("sheet-grabber") == true,
+            "Tab left the inner sheet: \(harness.focusManager.currentFocusedID ?? "nil")")
+        harness.press(KeyEvent(key: .tab))
+        frame(harness, view)
+        harness.press(KeyEvent(key: .enter))
+        frame(harness, view)
+        #expect(model.sheetPresses == 1, "the inner sheet's button is out of the keyboard's reach")
+        harness.press(KeyEvent(key: .escape))
+        frame(harness, view)
+        frame(harness, view)
+        #expect(!model.presented, "Escape did not close the inner sheet")
+        #expect(harness.focusManager.currentFocusedID == "outer-more", "the focus did not go back to the outer sheet")
+    }
+
+    @Test("A sheet that lets the page through, presented from inside a popover, is a modal over it")
+    func liveSheetInsideAPopoverIsAModal() {
+        let harness = harness()
+        let model = LiveSheetModel()
+        model.presented = false
+        let view = Text("page").popover(isPresented: .constant(true)) {
+            Button("More") {}.focusID("popover-more")
+                .sheet(isPresented: model.presentedBinding) {
+                    Panel("Inner") { Button("OK") {}.focusID("inner-ok") }
+                        .presentationDetents([.height(6), .large])
+                        .presentationBackgroundInteraction(.enabled)
+                }
+        }
+        open(harness, view)
+        model.presented = true
+        for _ in 0..<3 { frame(harness, view) }
+        #expect(harness.focusManager.postedPresentationDock(in: Self.height) == 0, "the sheet docked")
+        #expect(harness.focusManager.currentFocusedID == "inner-ok", "the sheet does not hold the focus")
+    }
+
     @Test("A page drop-down opens over the sheet")
     func pageDropDownDrawsOverTheSheet() {
         let harness = InputChainHarness(width: Self.width, height: 12) { environment in

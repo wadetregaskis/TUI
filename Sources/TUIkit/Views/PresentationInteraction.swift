@@ -152,9 +152,11 @@ extension View {
     /// The sheet is a modal again — over a dimmed, inert page — at a detent
     /// taller than ``PresentationBackgroundInteraction/enabled(upThrough:)``
     /// allows, when the page would keep fewer than three rows, when the sheet
-    /// would be fewer than three, and for a sheet without detents. A cover has
-    /// nothing behind it and a popover is already beside a live page; both
-    /// ignore it.
+    /// would be fewer than three, for a sheet without detents, and for a sheet
+    /// presented from inside a modal sheet, a cover or a popover — what is
+    /// behind it there holds the keyboard, and is not a page it could share
+    /// it with. A cover has nothing behind it and a popover is already beside
+    /// a live page; both ignore it.
     ///
     /// - Parameter interaction: How people can interact with the view behind
     ///   the presentation.

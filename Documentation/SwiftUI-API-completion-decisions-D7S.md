@@ -85,3 +85,30 @@ width, as before.
 modal — a sheet that jumps narrower as the reader grows it past
 `upThrough`. Free to switch (`isBand(sizing:hasDetent:)` reads the dock
 decision instead of the trait).
+
+### B-D7S-4. A live sheet presented from inside a modal presentation is a modal
+
+*`presentationBackgroundInteraction(.enabled)` on a sheet presented from a
+modal sheet, a full-screen cover or a popover (decisions A19, design C; review
+of 0b2d764f1)*
+
+**Shipped:** such a sheet is a modal over the presentation it was presented
+from, whatever its background interaction says: it takes the focus and the
+input, Tab stays inside it, and Escape closes it and gives the focus back to
+the presentation under it. Docked, it reflowed the dimmed page under both
+(which nobody could use), and the presentation around it — which re-activates
+its own section every frame and holds the input grab — took the focus back
+from it every frame, so nothing in it could be reached from the keyboard. The
+presenters of modal sheets, covers and popovers mark their content
+(`EnvironmentValues.isInModalPresentation`), and `LiveSheet.dock` declines
+there.
+
+**The fuller version, and its price:** iOS lets a sheet presented from a sheet
+leave the outer sheet live. Here that means the outer presentation becoming
+the inner sheet's page: the outer sheet laid out short in the rows above the
+inner one (a dock ledger per presentation rather than per content area), the
+two sharing the keyboard as panes inside the outer's section — the outer's
+per-frame re-activation and its grab made pane-aware — and the modal page under
+both staying inert. About two days, with the presented-section and grab
+machinery the riskiest part.
+

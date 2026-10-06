@@ -212,7 +212,9 @@ List(notes, selection: $selected) { note in Text(note.title) }
   three rows or the sheet would have fewer than three, so on a short terminal
   the feature comes to an ordinary sheet; and a sheet without detents, whose
   height only its content knows, stays a modal dialog, as an undetented sheet
-  covers the page on a phone.
+  covers the page on a phone. A sheet presented from inside a modal sheet, a
+  full-screen cover or a popover is a modal too: what is behind it holds the
+  keyboard, and is not a page the two could share.
 - **The page's pop-ups open over it.** A page's drop-down, menu or tooltip
   opens over the sheet as it opens over anything else on the page.
 
