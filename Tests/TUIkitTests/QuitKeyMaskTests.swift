@@ -209,6 +209,38 @@ struct QuitKeyMaskTests {
         #expect(QuitKeyChords.of(0x7F) == nil && QuitKeyChords.of(0x41) == nil, "no Control chord sends them")
     }
 
+    /// The status bar's items are bindings that count, but none takes a
+    /// Control or Option chord — the shortcut vocabulary spells none — and
+    /// the quit key's chords are all Control chords. So the question asked
+    /// after every frame does not gather the items, which sets, sorts and
+    /// filters every one of them (round 6: gathered once a frame, for an
+    /// answer that could only be no).
+    @Test("Asking about the quit key's chords does not gather the status bar's items")
+    func statusBarItemsAreNotGathered() {
+        let harness = MaskHarness()
+        harness.render(Text("Page"))
+        let probe = MatchProbe()
+        harness.statusBar.setItemsSilently([probe])
+        #expect(harness.statusBar.currentItems.contains { $0.id == probe.id }, "on the bar")
+        #expect(!harness.masks(aliasing: true))
+        #expect(probe.asked == 0, "never asked whether it takes one")
+        #expect(!harness.statusBar.handleKeyEvent(KeyEvent(key: .character("p"))) && probe.asked == 1, "a bare key is")
+    }
+
+    /// An item that counts the keys it is asked about.
+    private final class MatchProbe: StatusBarItemProtocol, @unchecked Sendable {
+        let id = "probe"
+        let shortcut = "p"
+        let label = "probe"
+        var triggerKey: Key? { .character("p") }
+        private(set) var asked = 0
+
+        func matches(_ event: KeyEvent) -> Bool {
+            asked += 1
+            return false
+        }
+    }
+
     // MARK: - The retry, for the bindings that count
 
     /// Where the byte reaches the chain — masked for another binding, or the

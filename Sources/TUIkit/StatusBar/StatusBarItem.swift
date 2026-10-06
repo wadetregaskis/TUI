@@ -427,7 +427,7 @@ extension StatusBarItem {
     /// An item that only names a key bound elsewhere — the app's undo and
     /// redo — matches none.
     public func matches(_ event: KeyEvent) -> Bool {
-        guard matchesKeys, !event.ctrl, !event.alt else { return false }
+        guard matchesKeys, Self.mayMatch(event) else { return false }
 
         // Handle arrow key combinations like "↑↓"
         if !event.shift {
@@ -449,6 +449,19 @@ extension StatusBarItem {
         }
 
         return event.key == trigger && !event.shift
+    }
+}
+
+// MARK: - Internal API
+
+extension StatusBarItem {
+    /// Whether an item could match `event` at all: a bare key, or one with
+    /// Shift. The shortcut vocabulary spells no Control or Option chord
+    /// (``matches(_:)``), so no item takes one, and a question asked only
+    /// about such chords — the user's quit key's — need not gather the items
+    /// (`StatusBarState.takesAny(of:)`).
+    static func mayMatch(_ event: KeyEvent) -> Bool {
+        !event.ctrl && !event.alt
     }
 }
 

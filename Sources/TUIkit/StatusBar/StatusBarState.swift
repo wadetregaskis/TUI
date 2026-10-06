@@ -583,8 +583,15 @@ extension StatusBarState {
     /// rule, without running anything, the items gathered once for all of
     /// them. For the user's quit key, asked after every frame
     /// (`InputHandler.quitKeyBindings(byte:hostAliases:)`).
+    ///
+    /// Asked only about the quit key's Control chords, it does not gather
+    /// the items at all: only a ``StatusBarItem`` runs (``item(taking:among:)``),
+    /// and none takes a Control or Option chord
+    /// (``StatusBarItem/mayMatch(_:)``). Gathering them — sets, sorts and
+    /// filters of every item — after every frame cost each app something for
+    /// an answer that could only be no.
     func takesAny(of events: [KeyEvent]) -> Bool {
-        guard !itemActionsSuppressed else { return false }
+        guard !itemActionsSuppressed, events.contains(where: StatusBarItem.mayMatch) else { return false }
         let items = currentItems
         return events.contains { item(taking: $0, among: items) != nil }
     }
