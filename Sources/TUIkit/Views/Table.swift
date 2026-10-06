@@ -3648,8 +3648,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler: ItemListHandler<Value.ID>, gesture: _TableHeaderGesture
     ) -> Bool {
         let x = originX + event.x
-        if RowContextMenuHost.isSecondary(event) {
-            guard let openMenu = gesture.openMenu else { return false }
+        // A secondary click is the column menu's — on a table that has one.
+        // Without one, Ctrl-click is a click and sorts, as it did before
+        // there was a menu; a right-click goes on to whatever is around.
+        if RowContextMenuHost.isSecondary(event), let openMenu = gesture.openMenu {
             // The rest of the gesture is the menu's, as `.contextMenu`'s is.
             if event.phase == .pressed { openMenu(column.customizationID, x, y + 1) }
             return true
@@ -3670,7 +3672,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return true
         case .released:
             // A press that moved a column was a drag, not a click: it sorts
-            // nothing. Sliding off the title before letting go still cancels.
+            // nothing. Any other release sorts, wherever it lands — the press
+            // captured the gesture, and like a `Button`'s, this click does not
+            // cancel for sliding off before letting go.
             if !gesture.moved, sortable { toggleSort(column: column) }
             gesture.moved = false
             gesture.focus()

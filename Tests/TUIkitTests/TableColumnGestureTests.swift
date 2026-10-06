@@ -73,7 +73,7 @@ private struct ColumnsPage: View {
             }
             .frame(height: 9)
         } else {
-            Table(entries) {
+            Table(entries, sortOrder: Bindable(columns).sortOrder) {
                 TableColumn("Alpha", value: \.alpha).customizationID("alpha")
                 TableColumn("Beta", value: \.beta).customizationID("beta")
             }
@@ -350,5 +350,15 @@ struct TableColumnGestureTests {
         #expect(harness.columns.selection == [2], "a column key went on to the rows")
         harness.key(KeyEvent(key: .character(">")))
         #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "the mode outlived Escape:\n\(harness.screen)")
+    }
+
+    @Test("Without a customization binding, a Ctrl-click on a sortable title sorts, as a click does")
+    func ctrlClickSortsWithoutAMenu() throws {
+        let harness = Harness(bound: false)
+        let y = try #require(harness.lines.firstIndex { $0.contains("Alpha") && $0.contains("Beta") })
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
+        harness.send(MouseEvent(button: .left, phase: .released, x: beta + 1, y: y, ctrl: true))
+        #expect(harness.columns.sortOrder.first == KeyPathComparator(\Entry.beta), "\(harness.screen)")
     }
 }
