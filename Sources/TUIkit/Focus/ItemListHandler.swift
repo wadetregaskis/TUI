@@ -1373,8 +1373,13 @@ extension ItemListHandler {
         // to let the column go — clearing the selection instead.
         if columnEditing?.menuIsOpen() != true { columnFocus = nil }
 
-        // When focus is lost, reset focused index to the first selected item
-        // (if any) so that when focus returns, the user sees the selection.
+        // When focus is lost, put the cursor on the selection (if any) so that
+        // when focus returns, the user sees it: on the selected row, or for a
+        // multi-selection on the first selected row in the rows' order —
+        // unless the cursor is on a selected row already, which shows it as
+        // well as any. Not the first of the selection `Set`: a `Set`'s order
+        // is the process's hash seed, so which of several selected rows the
+        // cursor came back to differed from one run to the next.
         switch selectionMode {
         case .single:
             if let selection = singleSelection?.wrappedValue,
@@ -1383,10 +1388,9 @@ extension ItemListHandler {
                 focusedIndex = index
             }
         case .multi:
-            if let selection = multiSelection?.wrappedValue,
-                let firstSelected = selection.first,
-                let index = index(of: firstSelected)
-            {
+            guard let selection = multiSelection?.wrappedValue, !selection.isEmpty else { break }
+            func selected(_ index: Int) -> Bool { id(at: index).map(selection.contains) ?? false }
+            if !selected(focusedIndex), let index = (0..<itemCount).first(where: selected) {
                 focusedIndex = index
             }
         }

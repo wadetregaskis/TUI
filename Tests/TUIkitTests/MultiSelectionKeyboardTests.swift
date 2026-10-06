@@ -264,6 +264,28 @@ struct MultiSelectionKeyboardTests {
         handler.onFocusLost()
         #expect(!handler.isExtendingSelection, "focus loss ends the mode")
     }
+
+    @Test("Focus loss puts the cursor on the first selected row in the rows' order, not the selection Set's")
+    func focusLossCursorFollowsTheRows() {
+        let ids = (0..<40).map { "r\($0)" }
+        // Several selections: a cursor put where a `Set`'s order leaves it
+        // lands on the first row of each only by chance, one time in six.
+        for rows in [[5, 9, 2, 31, 17, 3], [30, 12, 8, 21, 39, 14], [1, 4, 7, 10, 13, 16], [38, 25, 11, 6, 19, 33]] {
+            let box = SelectionBox()
+            let handler = makeHandler(box, ids: ids)
+            box.selection = Set(rows.map { ids[$0] })
+            handler.focusedIndex = 0
+            handler.onFocusLost()
+            #expect(handler.focusedIndex == rows.min(), "\(rows)")
+        }
+        // A cursor on a selected row already stays there.
+        let box = SelectionBox()
+        let handler = makeHandler(box, ids: ids)
+        box.selection = ["r3", "r9", "r20"]
+        handler.focusedIndex = 9
+        handler.onFocusLost()
+        #expect(handler.focusedIndex == 9)
+    }
 }
 
 // MARK: - Render-pass claim publication
