@@ -501,7 +501,9 @@ enum TextFieldSuggestions {
         // can jump at event time, when the environment is out of reach.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
 
-        let isOpen = isFocused && handler.suggestionsOpen && !choices.isEmpty
+        // What the field's `▾` press tells the dispatcher too, so the two agree
+        // on whether the menu is on screen (`TextFieldMouseHandler.register`).
+        let isOpen = isFocused && handler.suggestionsActive
         if isOpen, !context.isMeasuring {
             // The menu's Escape (close) takes precedence over any page-level
             // ESC handler while open — surface that in the status bar, as the

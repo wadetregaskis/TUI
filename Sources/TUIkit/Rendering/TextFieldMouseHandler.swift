@@ -119,9 +119,17 @@ enum TextFieldMouseHandler {
                         // the menu, not to the field. Click-and-hold, drag down
                         // the suggestions, release on one to choose it.
                         mouseDispatcher.handOffGesture()
+                        // Open as the menu draws, focus and all
+                        // (`TextFieldSuggestions.prepare`): a field the press
+                        // could not focus — out of the focus ring — draws no
+                        // menu, and one taken for drawn had the rest of the
+                        // gesture hit-tested live beneath it.
                         mouseDispatcher.pressOpenedPopup(
                             MouseEventDispatcher.OpenedPopup(
-                                isOpen: { handler.suggestionsActive },
+                                isOpen: {
+                                    handler.suggestionsActive
+                                        && focusManager?.isFocused(id: captureFocusID) == true
+                                },
                                 close: { handler.suggestionsOpen = false }))
                     }
                     return true

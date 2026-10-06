@@ -2,7 +2,8 @@
 //  DrawnNothingPopupGestureTests.swift
 //
 //  A press on a control that opens a pop-up which then draws nothing: a menu
-//  `Picker` with no options. The dispatcher spends the drags and release
+//  `Picker` with no options, a text field's suggestions while the field cannot
+//  hold the focus they draw under. The dispatcher spends the drags and release
 //  of a pop-up-opening press while the pop-up is not on screen — before a
 //  frame has drawn it, or once it is no longer open — and asks the opener
 //  which. An opener whose "open" outlived its drawing let a frame go by and
@@ -23,12 +24,13 @@ import Testing
 @Observable
 @MainActor
 private final class Model {
-    enum Shape { case pickerOverList, pickerOverTable }
+    enum Shape { case pickerOverList, pickerOverTable, suggestionsOverList }
 
     var shape = Shape.pickerOverList
     var choice = 0
     /// The picker's options: none, unless a test gives it some.
     var options: [Int] = []
+    var text = ""
     var selection: Set<Int> = []
     var customization = TableColumnCustomization<Row>()
     var sortOrder = [KeyPathComparator(\Row.alpha)]
@@ -67,6 +69,17 @@ private struct PopupPage: View {
             case .pickerOverTable:
                 picker
                 table
+            case .suggestionsOverList:
+                // Taken out of the focus ring, so it never holds the focus its
+                // suggestions draw under.
+                TextField("field", text: Bindable(model).text)
+                    .textInputSuggestions {
+                        Text("apricot")
+                        Text("blackberry")
+                    }
+                    .frame(width: 24)
+                    .focusable(false)
+                list
             }
         }
     }
@@ -179,6 +192,16 @@ struct DrawnNothingPopupGestureTests {
         let beta = try harness.position(of: "Beta", below: picker.y + 1)
         harness.pressFrameDragRelease(at: picker, to: (beta.x + 1, beta.y))
         #expect(harness.model.sortOrder == [KeyPathComparator(\Row.alpha)], "the release sorted:\n\(harness.screen)")
+    }
+
+    @Test("A press on the suggestions of a field that cannot hold the focus, let go on a list's row, selects nothing")
+    func unfocusableSuggestionsOverAList() throws {
+        let harness = Harness(.suggestionsOverList)
+        let disclosure = try harness.position(of: DropdownMenu.closedCaret)
+        let row = try harness.position(of: "a2", below: disclosure.y + 1)
+        harness.pressFrameDragRelease(at: disclosure, to: row)
+        #expect(!harness.screen.contains("blackberry"), "\(harness.screen)")
+        #expect(harness.model.selection.isEmpty, "the release selected a row:\n\(harness.screen)")
     }
 
     @Test("A menu Picker whose options all go while it is open closes, and does not come back open with them")
