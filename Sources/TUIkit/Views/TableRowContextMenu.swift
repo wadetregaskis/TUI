@@ -56,8 +56,8 @@ extension TableRowContent {
     ///
     /// A secondary click on the row opens it at the click — a right-click, or
     /// a Ctrl-click where the terminal keeps the right button for itself —
-    /// and **Shift+F10** opens it on the cursor row while the table has the
-    /// focus. Choosing an item runs it and closes the menu; Escape or a click
+    /// and **Shift+F10** (or the Menu key, where the terminal reports it)
+    /// opens it on the cursor row while the table has the focus. Choosing an item runs it and closes the menu; Escape or a click
     /// elsewhere closes it. A row without a menu leaves a right-click to
     /// whatever is around the table.
     ///

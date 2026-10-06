@@ -469,6 +469,8 @@ package enum KittyKeyDecoder {
     /// has no `Key` for.
     private static func functionalKey(_ code: Int) -> (key: Key?, isKeypad: Bool)? {
         switch code {
+        case 57_363:  // MENU
+            return (.menu, false)
         case 57_376...57_383:  // F13…F20
             let keys: [Key] = [.f13, .f14, .f15, .f16, .f17, .f18, .f19, .f20]
             return (keys[code - 57_376], false)
@@ -484,8 +486,8 @@ package enum KittyKeyDecoder {
             return (keypad[code - 57_409], true)
         case privateUseStart...privateUseEnd:
             // The lock keys are modifier keys, above; the rest are keys this
-            // framework has no `Key` for: Print Screen, Pause, Menu, F21 and
-            // up, the media keys.
+            // framework has no `Key` for: Print Screen, Pause, F21 and up,
+            // the media keys.
             return (nil, false)
         default:
             return nil

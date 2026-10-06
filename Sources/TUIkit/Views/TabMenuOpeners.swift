@@ -103,7 +103,7 @@ struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
         let selection = self.selection
         let keyed = FocusPathModifier(content: content, stage: .command) { _ in
             { event in
-                guard event.key == .f10, event.shift else { return false }
+                guard event.opensContextMenu else { return false }
                 return openers.open(selection.wrappedValue)
             }
         }

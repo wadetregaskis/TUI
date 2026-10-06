@@ -4653,8 +4653,14 @@ the keypad.
   pressed again. The first fix reported Caps Lock off at the pop too, so an
   app watching it heard it go off at every resume and on again at the first
   key (the third review).
+- The PC keyboard's Menu key (functional key 57363) decodes as `Key.menu`
+  (added 2026-10-05), which opens a context menu wherever Shift+F10 does — a
+  `.contextMenu`, a list's or table's row menu, a tab's. The legacy encodings
+  send nothing for it that tells it from another key, so it arrives only
+  here. Which terminals report it, and under which flags, is unmeasured: the
+  specification lists it among the functional keys.
 - Keys TUIkit has no `Key` for are dropped: Insert, the keypad's Begin, Print
-  Screen, Pause, Menu, F21 and up, the media keys.
+  Screen, Pause, F21 and up, the media keys.
 
 ### Which terminals — documented
 

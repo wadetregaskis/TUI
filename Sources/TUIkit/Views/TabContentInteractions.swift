@@ -49,8 +49,8 @@ extension TabContent {
     /// A right-click — or Ctrl-click, where the terminal keeps the right
     /// button for itself — on the tab opens it at the click, in a strip on the
     /// tab's chip and in a `.sidebarAdaptable` sidebar on its row; Shift+F10
-    /// opens the selected tab's under it while the tab bar or the sidebar has
-    /// the focus. Compose the menu from `Button`, `Toggle` and `Picker`, with
+    /// (or the Menu key, where the terminal reports it) opens the selected
+    /// tab's under it while the tab bar or the sidebar has the focus. Compose the menu from `Button`, `Toggle` and `Picker`, with
     /// `Menu` for a submenu and `Section` or `Divider` to group.
     ///
     /// - Parameter menuItems: A closure that produces the menu's contents. You

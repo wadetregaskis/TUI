@@ -189,6 +189,15 @@ struct TabContentInteractionsTests {
         #expect(!overlayText(harness.frame(tabs(log, look))).contains("Pin"), "choosing did not close the menu")
     }
 
+    @Test("The Menu key opens the selected tab's menu, as Shift+F10 does", arguments: TabInteractionsLook.allCases)
+    func menuKeyOpensTheSelectedTabsMenu(look: TabInteractionsLook) {
+        let log = Log()
+        log.selected = 2
+        let harness = InputChainHarness(width: 50, height: 14)
+        harness.play([KeyEvent(key: .menu)]) { tabs(log, look) }
+        #expect(overlayText(harness.frame(tabs(log, look))).contains("Pin"), "the Menu key opened nothing")
+    }
+
     @Test("Shift+F10 on a tab with no menu opens nothing", arguments: [TabInteractionsLook.compact, .sidebar])
     func shiftF10WithoutAMenu(look: TabInteractionsLook) {
         let log = Log()

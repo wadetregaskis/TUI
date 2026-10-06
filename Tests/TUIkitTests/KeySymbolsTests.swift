@@ -117,6 +117,8 @@ struct KeySymbolsTests {
         #expect(KeySymbols.key(.f12) == "F12")
         #expect(KeySymbols.key(.f20) == "F20")
         #expect(KeyEvent(key: .f5, shift: true).displayString == "⇧F5")
+        // The PC keyboard's Menu key, which a Mac's has no symbol for.
+        #expect(KeySymbols.key(.menu) == "Menu")
     }
 
     // MARK: - One table

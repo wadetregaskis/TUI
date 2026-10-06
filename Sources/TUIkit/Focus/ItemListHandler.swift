@@ -403,9 +403,10 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// keeps the original behaviour: Enter and Space both toggle selection.
     var primaryAction: ((SelectionValue) -> Void)?
 
-    /// Opens the container's row menu on the cursor row — Shift+F10 — and
-    /// answers whether one opened. `nil` where the container has no menu, so
-    /// the chord falls through.
+    /// Opens the container's row menu on the cursor row — Shift+F10 or the
+    /// Menu key (``KeyEvent/opensContextMenu``) — and answers whether one
+    /// opened. `nil` where the container has no menu, so the key falls
+    /// through.
     var openContextMenu: (() -> Bool)?
 
     /// What a `Table`'s column keys reach — set each frame by a table a user

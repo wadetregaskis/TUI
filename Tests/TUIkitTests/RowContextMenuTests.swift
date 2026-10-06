@@ -307,7 +307,7 @@ struct RowContextMenuTests {
         #expect(!harness.shows("sel [4]"))
     }
 
-    @Test("Shift+F10 opens the menu on the cursor row, by the same rule")
+    @Test("Shift+F10, and the Menu key, open the menu on the cursor row by the same rule")
     func keyboardOpens() throws {
         // The cursor starts on row 0 (item1), which is not selected.
         let first = Harness(.selectionMenu)
@@ -317,6 +317,15 @@ struct RowContextMenuTests {
         second.key(KeyEvent(key: .down))
         second.key(KeyEvent(key: .f10, shift: true))
         #expect(second.shows("sel [2, 3]"), "\(second.screen)")
+        // The Menu key, where the terminal reports it, is the same key; on a
+        // list too.
+        let third = Harness(.selectionMenu)
+        third.key(KeyEvent(key: .menu))
+        #expect(third.shows("sel [1]"), "\(third.screen)")
+        let list = Harness(.list)
+        list.key(KeyEvent(key: .down))
+        list.key(KeyEvent(key: .menu))
+        #expect(list.shows("sel ["), "\(list.screen)")
     }
 
     @Test("primaryAction: Return on a selected cursor row acts on the selection, on another on that row; a double-click on its row")

@@ -155,8 +155,9 @@ extension View {
     /// A secondary click is a right-click, or a Ctrl-click where the terminal
     /// takes the right button for itself (iTerm2 does by default) — on a list
     /// or table with a menu, Ctrl-click is the menu's, as on macOS; Option-click
-    /// still toggles a row's selection. From the keyboard, **Shift+F10** opens
-    /// the menu on the cursor row by the same rule. A menu that builds nothing
+    /// still toggles a row's selection. From the keyboard, **Shift+F10** (or
+    /// the Menu key, where the terminal reports it) opens the menu on the
+    /// cursor row by the same rule. A menu that builds nothing
     /// for a set does not open, and the click that asked for it is spent all
     /// the same — its release selects nothing.
     ///

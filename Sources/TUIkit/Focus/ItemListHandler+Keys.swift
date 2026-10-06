@@ -17,10 +17,10 @@ extension ItemListHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         guard itemCount > 0 else { return false }
 
-        // The row menu, on the cursor row — the binding `.contextMenu` uses
-        // for a focused view, and the keyboard's only way to a menu a
-        // right-click opens.
-        if event.key == .f10, event.shift, !event.ctrl, !event.alt, let openContextMenu {
+        // The row menu, on the cursor row — Shift+F10 or the Menu key, the
+        // binding `.contextMenu` uses for a focused view, and the keyboard's
+        // only way to a menu a right-click opens.
+        if event.opensContextMenu, !event.ctrl, !event.alt, let openContextMenu {
             return openContextMenu()
         }
 

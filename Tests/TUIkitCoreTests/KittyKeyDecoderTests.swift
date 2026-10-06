@@ -255,9 +255,10 @@ struct KittyKeyDecoderTests {
         #expect(decode("57419u") == key(KeyEvent(key: .up, numericPad: true)))
     }
 
-    @Test("F13 to F20 by their private-use numbers; keys TUIkit has no key for are dropped")
+    @Test("F13 to F20 and Menu by their private-use numbers; keys TUIkit has no key for are dropped")
     func privateUseKeys() {
         #expect(decode("57376u") == key(KeyEvent(key: .f13)))
+        #expect(decode("57363u") == key(KeyEvent(key: .menu)))
         #expect(decode("57361u")?.isEmpty == true)  // Print Screen
         #expect(decode("57430u")?.isEmpty == true)  // Play/Pause
     }

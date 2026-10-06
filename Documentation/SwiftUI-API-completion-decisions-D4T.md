@@ -55,21 +55,29 @@ is still a toggle. A list or table with no menu at all is unchanged.
 right button alone, which strands iTerm2's default configuration without a
 pointer route to the menu. Free.
 
-### B-D4T-3. Shift+F10 only; the Menu key has no `Key`
+### B-D4T-3. Shift+F10, and the Menu key where the terminal reports it
 
 *`View.contextMenu(forSelectionType:menu:primaryAction:)`,
 `TableRowContent.contextMenu(menuItems:)` (decisions A30)*
 
 **Shipped:** Shift+F10 opens a list's or table's menu on the cursor row, the
-binding `.contextMenu` already uses for a focused view. The PC keyboard's Menu
-key is not read: the kitty keyboard protocol reports it as a private-use code
-(57363) TUIkit decodes to no key, and legacy terminals send nothing of their
-own for it.
+binding `.contextMenu` already uses for a focused view; and the PC
+keyboard's Menu key does the same, as a new `Key.menu`. Only the kitty
+keyboard protocol reports that key (functional key 57363); the legacy
+encodings send nothing TUIkit could tell from another key, so elsewhere
+Shift+F10 is the route. Both go through one test (`KeyEvent.opensContextMenu`),
+honoured by every menu Shift+F10 opens and closes: `.contextMenu`, a list's
+or table's row menu, a tab's context menu in the strip and the sidebar.
 
-**The fuller version:** a `Key.menu` case, decoded from the kitty report and
-honoured wherever Shift+F10 is (lists, tables, `.contextMenu`, tab context
-menus). Adding a case to the public `Key` enum breaks every exhaustive switch
-over it, in TUIkit and in apps; an hour, most of it the switches.
+The first cut shipped Shift+F10 alone, on the reasoning that a new `Key`
+case breaks exhaustive switches over `Key`, in TUIkit and in apps. The
+lane's review set that beside the new `RowAction.customizeColumns`
+(B-D4T-7), which breaks exhaustive switches over `RowAction` just the same —
+and `RowAction`'s own documentation already says that cases will be added
+and that this is "a semantic-version event, not a reason to avoid switching
+over this exhaustively". The same holds for `Key`, which gained F13…F20
+before; so the two calls now agree, and the Menu key shipped. In TUIkit the
+cost was one switch (the Example's key names).
 
 ### B-D4T-4. A menu that builds nothing still takes the press, and reports an opening
 

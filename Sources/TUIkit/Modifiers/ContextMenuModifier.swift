@@ -150,7 +150,9 @@ extension ContextMenuModifier: Renderable {
     /// It arrives as `ESC[21;2~` in iTerm2, Ghostty, Warp and xterm. Apple
     /// Terminal has no modifier encoding for function keys and sends `ESC[32~`
     /// (its alias for F18) instead; `Terminal.finalize` normalises that back to
-    /// Shift+F10 — see `Documentation/Terminal-compatibility.md`.
+    /// Shift+F10 — see `Documentation/Terminal-compatibility.md`. A PC
+    /// keyboard's Menu key does the same where the terminal reports it
+    /// (``Key/menu``: under the kitty keyboard protocol only).
     ///
     /// The focus stop is the price of the feature: you cannot key a menu open on
     /// a view you cannot reach. It consumes no keys of its own
@@ -191,6 +193,17 @@ extension ContextMenuModifier: Renderable {
         }
         return focusID
     }
+}
+
+// MARK: - The keyboard's way to a menu
+
+extension KeyEvent {
+    /// Whether this is the key that opens a context menu on what holds the
+    /// focus — Shift+F10, which every desktop shares, or the PC keyboard's
+    /// Menu key where the terminal reports it (``Key/menu``) — and closes an
+    /// open one. One test for every menu that answers it: `.contextMenu`, a
+    /// list's or table's row menu, a tab's.
+    var opensContextMenu: Bool { (key == .f10 && shift) || key == .menu }
 }
 
 // MARK: - Presenting
@@ -278,7 +291,7 @@ enum ContextMenuPresentation {
         guard !context.isMeasuring, let dispatcher = context.environment.keyEventDispatcher
         else { return }
         dispatcher.addHandler(sectionID: sectionID) { event in
-            guard event.key == .f10, event.shift else { return false }
+            guard event.opensContextMenu else { return false }
             state.isOpen = false
             state.controller.closed()
             return true
@@ -376,7 +389,7 @@ private enum ContextMenuKeyRegistrar {
         context: RenderContext
     ) {
         context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
-            guard event.key == .f10, event.shift,
+            guard event.opensContextMenu,
                 FocusRegistration.isFocused(context: context, focusID: focusID)
             else { return false }
             // Opened from the keyboard, which has no other way to point at a
@@ -437,7 +450,8 @@ extension View {
     /// From the keyboard: the modified view becomes a focus stop, and
     /// **Shift+F10** opens the menu while it is focused — the binding every
     /// platform that has a keyboard context-menu route agrees on (macOS has
-    /// none of its own, and Mac keyboards have no Menu key). TUI-specific: it
+    /// none of its own, and Mac keyboards have no Menu key) — as does a PC
+    /// keyboard's Menu key where the terminal reports it. TUI-specific: it
     /// is the reason a `.contextMenu` adds a Tab stop, which SwiftUI's does
     /// not, because a menu reachable only by mouse is not reachable at all.
     ///

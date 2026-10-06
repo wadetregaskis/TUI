@@ -106,6 +106,8 @@ public struct KeyPress: Sendable, CustomDebugStringConvertible {
             .backspace: .delete, .delete: .deleteForward,
             .up: .upArrow, .down: .downArrow, .left: .leftArrow, .right: .rightArrow,
             .home: .home, .end: .end, .pageUp: .pageUp, .pageDown: .pageDown,
+            // AppKit's `NSMenuFunctionKey`.
+            .menu: KeyEquivalent("\u{F735}"),
         ]
         let functionKeys: [Key] = [
             .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10,

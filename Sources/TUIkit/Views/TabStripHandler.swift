@@ -74,9 +74,10 @@ final class TabStripHandler: PersistedFocusable {
         case .right: move(by: 1); return true
         case .up: return moveVertically(-1)
         case .down: return moveVertically(1)
-        case .f10 where event.shift:
+        case _ where event.opensContextMenu:
             // The selected tab's context menu, under its chip — the keyboard's
-            // way to one, as Shift+F10 is to every `.contextMenu`.
+            // way to one, as Shift+F10 (or the Menu key) is to every
+            // `.contextMenu`.
             // `AnyHashable` is not `Sendable`, but this never leaves the thread
             // it arrived on: `assumeIsolated` runs the closure here,
             // synchronously, as `TableOutline` does.

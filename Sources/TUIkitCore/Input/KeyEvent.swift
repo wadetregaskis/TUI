@@ -170,6 +170,15 @@ public enum Key: Hashable, Sendable {
     /// `Documentation/Terminal-compatibility.md`.
     case f13, f14, f15, f16, f17, f18, f19, f20
 
+    /// The PC keyboard's Menu key (also called the Application key), which
+    /// opens a context menu on what has the focus, as Shift+F10 does.
+    ///
+    /// Reported only by a terminal speaking the kitty keyboard protocol, as
+    /// its functional key 57363; the legacy encodings send nothing for it
+    /// that tells it from another key, so there it never arrives. A Mac's own
+    /// keyboard has no such key.
+    case menu
+
     // Character key
     case character(Character)
 

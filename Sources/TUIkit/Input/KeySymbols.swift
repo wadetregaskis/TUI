@@ -35,7 +35,8 @@ import TUIkitCore
 ///   ⇤. The function keys are words, `F1`…`F20`, and so is the space bar,
 ///   in the app's language: `Space`, `Leertaste`, `Espace`, `Barra
 ///   spaziatrice`, `Espacio`, `空格键` — and `Space` in Japanese, as macOS
-///   has it.
+///   has it. A PC keyboard's Menu key, which a Mac's keyboard does not have
+///   and macOS draws no symbol for, is the word `Menu`.
 ///
 /// Every symbol claims one cell by TUIkit's width tables, the East Asian
 /// Ambiguous ones (⇧, the arrows, ↖ and ↘) included, as the box drawing does.
@@ -82,8 +83,8 @@ enum KeySymbols {
         }
     }
 
-    /// Escape, Return, Tab, the two deletes and the function keys: the rest of
-    /// ``key(_:)``, apart so neither switch outgrows the other.
+    /// Escape, Return, Tab, the two deletes, Menu and the function keys: the
+    /// rest of ``key(_:)``, apart so neither switch outgrows the other.
     private static func editingOrFunctionKey(_ key: Key) -> String {
         switch key {
         case .escape: "⎋"
@@ -91,6 +92,7 @@ enum KeySymbols {
         case .tab: "⇥"
         case .backspace: "⌫"
         case .delete: "⌦"
+        case .menu: "Menu"
         default:
             // F1…F20 — and pasted text, which is not a key and has no name.
             functionKeys.firstIndex(of: key).map { "F\($0 + 1)" } ?? ""
