@@ -9,26 +9,27 @@ import TUIkitView
 
 // MARK: - PopoverAttachmentAnchor
 
-/// Where a popover attaches to the view presenting it. Matches SwiftUI's type
-/// of the same name for the two spellings that mean something in a terminal.
-///
-/// > Note: SwiftUI's `.rect(_:)` takes an `Anchor<CGRect>.Source`, which is
-///   bitmap geometry TUIkit does not model (see `SwiftUI-compatibility.md` §4b).
-///   ``PopoverAttachmentRect/bounds`` — the only source that has a cell-grid
-///   meaning, and SwiftUI's own default — is spelled the same way, so
-///   `.rect(.bounds)` compiles unchanged.
+/// Where a popover attaches to the view presenting it — SwiftUI's type of the
+/// same name.
 public enum PopoverAttachmentAnchor: Sendable, Equatable {
-    /// Attach to the presenting view's frame, centring the popover on it.
-    case rect(PopoverAttachmentRect)
+    /// Attach to a rectangle of the presenting view: `.rect(.bounds)`, the
+    /// default, is the view's own frame, and `.rect(.rect(_:))` a rectangle in
+    /// its cells. The popover is centred along the rectangle's edge that
+    /// `arrowEdge` names, and flips around the rectangle when there is no room.
+    case rect(Anchor<CellRect>.Source)
 
     /// Attach at a point within the presenting view's frame.
     case point(UnitPoint)
-}
 
-/// The rectangle a popover attaches to.
-public enum PopoverAttachmentRect: Sendable, Equatable {
-    /// The presenting view's own frame.
-    case bounds
+    /// Two anchors attach a popover to the same place. Written out because
+    /// `Anchor.Source` is not `Equatable` — SwiftUI's is not.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.rect(let left), .rect(let right)): left.geometry == right.geometry
+        case (.point(let left), .point(let right)): left == right
+        default: false
+        }
+    }
 }
 
 // MARK: - popover(…)
@@ -339,17 +340,22 @@ extension PopoverPresentationModifier: Renderable {
     private func placement(
         panel: (width: Int, height: Int), over base: (width: Int, height: Int)
     ) -> (x: Int, y: Int, anchorHeight: Int) {
-        // The unit point resolves against the presenting view once, floored
-        // once: the layout-parity rule, since a fraction of an extent is the one
-        // place a fractional value belongs.
+        // The rectangle the popover attaches to, in the presenting view's
+        // cells, and the point on it the popover lines up with. A unit point
+        // resolves against the presenting view once, floored once: the
+        // layout-parity rule, since a fraction of an extent is the one place a
+        // fractional value belongs.
+        let area: CellRect
         let point: (x: Int, y: Int)
         switch attachmentAnchor {
-        case .rect(.bounds):
-            // Centre on the view, as a keyboard-opened menu does — the popover
-            // reads as belonging to it rather than as something that landed in
-            // the corner.
-            point = (max(0, (base.width - panel.width) / 2), 0)
+        case .rect(let source):
+            area = source.value(origin: CellPoint(x: 0, y: 0), size: CellSize(width: base.width, height: base.height))
+            // Centre on the rectangle, as a keyboard-opened menu centres on its
+            // control — the popover reads as belonging to it rather than as
+            // something that landed in the corner.
+            point = (max(0, area.x + (area.width - panel.width) / 2), area.y)
         case .point(let unit):
+            area = CellRect(x: 0, y: 0, width: base.width, height: base.height)
             point = (
                 Int((unit.x * Double(base.width)).rounded(.down)),
                 Int((unit.y * Double(base.height)).rounded(.down))
@@ -358,13 +364,13 @@ extension PopoverPresentationModifier: Renderable {
 
         switch arrowEdge {
         case .bottom:
-            return (point.x, base.height, base.height)
+            return (point.x, area.maxY, area.height)
         case .top:
-            return (point.x, -panel.height, 0)
+            return (point.x, area.y - panel.height, 0)
         case .leading:
-            return (-panel.width, point.y, 0)
+            return (area.x - panel.width, point.y, 0)
         case .trailing:
-            return (base.width, point.y, 0)
+            return (area.maxX, point.y, 0)
         }
     }
 }

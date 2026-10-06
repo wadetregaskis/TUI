@@ -71,6 +71,41 @@ struct PresentationVariantsTests {
         #expect(offset(.trailing).x > 0)
     }
 
+    @Test("attachmentAnchor .rect(.rect(_:)) centres the popover on that rectangle and flips around it")
+    func popoverAttachesToARectangle() {
+        func overlay(_ anchor: PopoverAttachmentAnchor, _ edge: Edge = .bottom) -> OverlayLayer? {
+            renderToBuffer(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("first line, wider")
+                    Text("second")
+                }
+                .popover(isPresented: .constant(true), attachmentAnchor: anchor, arrowEdge: edge) { Text("d") },
+                context: context()
+            ).overlays.first
+        }
+        // The panel is seven wide.
+        let source = Anchor<CellRect>.Source.rect(CellRect(x: 2, y: 1, width: 9, height: 1))
+        let below = overlay(.rect(source))
+        #expect(below?.content.width == 7)
+        #expect(below?.offsetX == 3)
+        #expect(below?.offsetY == 2)
+        // Flipped, it goes above the rectangle, not above the view.
+        #expect(below?.anchorHeight == 1)
+        #expect(overlay(.rect(source), .top)?.offsetY == 1 - (below?.content.height ?? 0))
+        #expect(overlay(.rect(source), .leading)?.offsetX == -5)
+        let trailing = overlay(.rect(source), .trailing)
+        #expect(trailing?.offsetX == 11)
+        #expect(trailing?.offsetY == 1)
+        // The view's bounds, as before: centred on the whole view, flipping
+        // around both its rows.
+        let bounds = overlay(.rect(.bounds))
+        #expect(bounds?.offsetX == 5)
+        #expect(bounds?.offsetY == 2)
+        #expect(bounds?.anchorHeight == 2)
+        #expect(PopoverAttachmentAnchor.rect(source) == .rect(source))
+        #expect(PopoverAttachmentAnchor.rect(source) != .rect(.bounds))
+    }
+
     @Test("A dismissed popover adds no overlay")
     func dismissedPopoverIsInert() {
         let buffer = renderToBuffer(

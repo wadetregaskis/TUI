@@ -36,8 +36,10 @@ Button("Details") { showing = true }
 `arrowEdge` decides which side it sits on — a terminal draws no arrow, but the
 edge still means something: `.bottom` (the default) puts it below the view,
 `.top` above, `.leading` / `.trailing` beside. `attachmentAnchor` decides where
-along that edge: `.rect(.bounds)` centres it on the view, `.point(_:)` puts it
-at a unit point within it.
+along that edge: `.rect(.bounds)` centres it on the view, `.rect(.rect(_:))` on
+a rectangle in the view's cells (an `Anchor<CellRect>.Source`, as SwiftUI's
+takes an `Anchor<CGRect>.Source`), and `.point(_:)` puts it at a unit point
+within it.
 
 ## Full-screen covers
 
@@ -254,7 +256,6 @@ navigation between screens.
 
 - ``PresentationDetent``
 - ``PopoverAttachmentAnchor``
-- ``PopoverAttachmentRect``
 
 ### Notifications
 

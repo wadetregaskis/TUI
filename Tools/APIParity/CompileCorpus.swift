@@ -2566,3 +2566,21 @@ private func compositeAnchorSources() -> (Anchor<[CellRect]>.Source, Anchor<Cell
         Anchor<CellRect?>.Source(Anchor<CellRect>.Source.bounds)
     )
 }
+
+/// A popover attached to part of the view that presents it.
+@MainActor
+private struct PopoverRectAttachment: View {
+    @State private var showing = false
+
+    var body: some View {
+        Text("Details")
+            .popover(
+                isPresented: $showing,
+                attachmentAnchor: .rect(.rect(CellRect(x: 0, y: 0, width: 3, height: 1))),
+                arrowEdge: .bottom
+            ) {
+                Text("Ganymede")
+            }
+            .popover(isPresented: $showing, attachmentAnchor: .rect(.bounds)) { Text("Callisto") }
+    }
+}

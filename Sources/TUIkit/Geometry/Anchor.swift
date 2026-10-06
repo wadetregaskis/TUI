@@ -68,14 +68,20 @@ public struct Anchor<Value>: Equatable, Hashable, Sendable {
     /// attached to.
     public struct Source: Sendable {
         let geometry: AnchorGeometry
+
+        /// The value this source names for a view whose top-left is at
+        /// `origin` and that is `size` big.
+        func value(origin: CellPoint, size: CellSize) -> Value {
+            // The cast cannot fail: each `Source` is made by a static that
+            // fixes `Value` to the type its geometry resolves to.
+            geometry.resolve(origin: origin, size: size) as! Value  // swiftlint:disable:this force_cast
+        }
     }
 
     /// The value in a coordinate space where the anchored view's top-left is
     /// at `origin` and it is `size` big.
     func value(origin: CellPoint, size: CellSize) -> Value {
-        // The cast cannot fail: each `Source` is made by a static that fixes
-        // `Value` to the type its geometry resolves to.
-        geometry.resolve(origin: origin, size: size) as! Value  // swiftlint:disable:this force_cast
+        Source(geometry: geometry).value(origin: origin, size: size)
     }
 }
 
