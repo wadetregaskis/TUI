@@ -36,7 +36,8 @@
 /// reaches the page's, as a key goes up a responder chain, but Return and
 /// Escape — the default and cancel actions — are the pane's alone: a field in
 /// the sheet that lets Return through must not press the page's default
-/// button. Where no pane is drawn, nothing here changes.
+/// button. A framework default is its pane's by the same rule. Where no pane
+/// is drawn, nothing here changes.
 ///
 /// `@unchecked Sendable` like its sibling per-frame services
 /// (`MouseEventDispatcher`, `KeyEventDispatcher`): touched only from the
@@ -73,9 +74,12 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
         let action: () -> Void
     }
 
-    /// The framework defaults, consulted only when no app shortcut has the
-    /// trigger.
+    /// The framework defaults registered outside every pane, consulted only
+    /// when no app shortcut has the trigger.
     private var defaults: [KeyboardShortcut.Trigger: Default] = [:]
+
+    /// The framework defaults registered inside each pane, by the pane.
+    private var paneDefaults: [String: [KeyboardShortcut.Trigger: Default]] = [:]
 
     /// Clears the frame's registrations (called from the render loop).
     func beginRenderPass() {
@@ -83,6 +87,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
         if !paneActions.isEmpty { paneActions.removeAll() }
         currentPane = nil
         defaults.removeAll(keepingCapacity: true)
+        if !paneDefaults.isEmpty { paneDefaults.removeAll() }
         registrationCount = 0
     }
 
@@ -131,11 +136,35 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     private func appEntry(
         for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool = true
     ) -> Entry? {
-        guard let activePane else { return actions[trigger] }
-        if let entry = paneActions[activePane]?[trigger] { return entry }
+        Self.paneScoped(trigger, page: actions, panes: paneActions, activePane: activePane, reachesPage: reachesPage)
+    }
+
+    /// The framework default on `trigger` that fires while the focus is in
+    /// `activePane`, by the rule an app shortcut fires by (``appEntry``).
+    ///
+    /// The page's, from inside a pane, only where the page's app shortcuts
+    /// reach: a split view on the page registers its sidebar chord as a
+    /// default, and an alert opened in a live sheet must hold it as it holds
+    /// the page's own ⌃N.
+    private func defaultEntry(
+        for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool
+    ) -> Default? {
+        Self.paneScoped(trigger, page: defaults, panes: paneDefaults, activePane: activePane, reachesPage: reachesPage)
+    }
+
+    /// What fires on `trigger` with the focus in `activePane` (`nil`: on the
+    /// page), of what was registered on the `page` and in the `panes`: the
+    /// pane's own; else, for anything but Return and Escape, the page's,
+    /// where `reachesPage`.
+    private static func paneScoped<Value>(
+        _ trigger: KeyboardShortcut.Trigger, page: [KeyboardShortcut.Trigger: Value],
+        panes: [String: [KeyboardShortcut.Trigger: Value]], activePane: String?, reachesPage: Bool
+    ) -> Value? {
+        guard let activePane else { return page[trigger] }
+        if let value = panes[activePane]?[trigger] { return value }
         switch trigger {
         case .defaultAction, .cancelAction: return nil
-        case .key: return reachesPage ? actions[trigger] : nil
+        case .key: return reachesPage ? page[trigger] : nil
         }
     }
 
@@ -148,11 +177,21 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// framework control registering after its content has rendered finishes
     /// after anything nested inside it: the innermost of several nested
     /// focus-holding views registers first.
+    ///
+    /// Like an app shortcut, a default registered inside a pane is the pane's
+    /// (``currentPane``).
     func registerDefault(
         _ shortcut: KeyboardShortcut, holdsFocus: Bool = false, action: @escaping () -> Void
     ) {
-        if let existing = defaults[shortcut.trigger], existing.holdsFocus || !holdsFocus { return }
-        defaults[shortcut.trigger] = Default(holdsFocus: holdsFocus, action: action)
+        let trigger = shortcut.trigger
+        let existing = currentPane.map { paneDefaults[$0]?[trigger] } ?? defaults[trigger]
+        if let existing, existing.holdsFocus || !holdsFocus { return }
+        let entry = Default(holdsFocus: holdsFocus, action: action)
+        if let currentPane {
+            paneDefaults[currentPane, default: [:]][trigger] = entry
+        } else {
+            defaults[trigger] = entry
+        }
     }
 
     /// Runs the action matching a fallen-through key event, if any.
@@ -172,7 +211,10 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
         let entry = appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage)
         if event.phase == .repeat, let entry, !entry.repeats { return true }
-        guard let action = entry?.action ?? defaults[trigger]?.action else { return false }
+        guard
+            let action = entry?.action
+                ?? defaultEntry(for: trigger, activePane: activePane, reachesPage: reachesPage)?.action
+        else { return false }
         action()
         return true
     }

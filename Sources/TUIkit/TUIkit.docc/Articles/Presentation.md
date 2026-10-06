@@ -204,9 +204,11 @@ List(notes, selection: $selected) { note in Text(note.title) }
   the focus is in the sheet, and the page's while it is on the page. A key
   equivalent the sheet does not bind still reaches the page's, but Return and
   Escape — the default and cancel buttons — are the sheet's alone while the
-  focus is there. Escape dismisses the sheet only with the focus in it; with
-  the focus on the page, Escape is the page's (a `NavigationStack` there goes
-  back). An `onKeyEvent` handler is not focus-scoped, in either pane: it
+  focus is there, and an alert opened in the sheet holds the page's keys as
+  any alert does. The framework's own chords, such as a split view's ⌃S for
+  its sidebar, follow the same rule. Escape dismisses the sheet only with the
+  focus in it; with the focus on the page, Escape is the page's (a
+  `NavigationStack` there goes back). An `onKeyEvent` handler is not focus-scoped, in either pane: it
   hears keys wherever the focus is, as it does beside a `.focusSection()`.
 - **A modal again, when it must be.** At a detent taller than
   `.enabled(upThrough:)` allows the sheet is a modal: the page is dimmed and

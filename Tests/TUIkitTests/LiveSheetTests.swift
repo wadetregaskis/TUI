@@ -21,12 +21,16 @@ final class LiveSheetModel {
     var presented = true
     var detent: PresentationDetent = .height(6)
     var alerting = false
+    var sidebar: NavigationSplitViewVisibility = .all
     var pagePresses = 0
     var pageChords = 0
     var sheetPresses = 0
     var presentedBinding: Binding<Bool> { Binding(get: { self.presented }, set: { self.presented = $0 }) }
     var detentBinding: Binding<PresentationDetent> { Binding(get: { self.detent }, set: { self.detent = $0 }) }
     var alertBinding: Binding<Bool> { Binding(get: { self.alerting }, set: { self.alerting = $0 }) }
+    var sidebarBinding: Binding<NavigationSplitViewVisibility> {
+        Binding(get: { self.sidebar }, set: { self.sidebar = $0 })
+    }
 }
 
 /// What a live `item:` sheet is presented for.
@@ -357,6 +361,42 @@ struct LiveSheetTests {
         for _ in 0..<3 { frame(harness, view) }
         #expect(harness.focusManager.postedPresentationDock(in: Self.height) == 0, "the sheet docked")
         #expect(harness.focusManager.currentFocusedID == "inner-ok", "the sheet does not hold the focus")
+    }
+
+    /// A split view registers its sidebar chord as a framework default, and
+    /// defaults were consulted past the rule that holds the page's chords
+    /// under a modal in the sheet: ⌃S hid the page's sidebar from under the
+    /// alert.
+    @Test("An alert in a live sheet holds the page's framework defaults too: the split view's sidebar chord")
+    func alertHoldsThePagesDefaults() {
+        let harness = harness()
+        let model = LiveSheetModel()
+        let view = NavigationSplitView(columnVisibility: model.sidebarBinding) {
+            Text("side")
+        } detail: {
+            Text("detail")
+        }
+        .sheet(isPresented: model.presentedBinding) {
+            Panel("Sheet") {
+                Button("Inside") {}
+                    .alert("Sure?", isPresented: model.alertBinding) { Button("OK") {} }
+            }
+            .presentationDetents([.height(6), .large])
+            .presentationBackgroundInteraction(.enabled)
+        }
+        open(harness, view)
+        let chord = KeyEvent(key: .character("s"), ctrl: true)
+        harness.press(chord)
+        frame(harness, view)
+        #expect(model.sidebar != .all, "precondition: the chord reaches the page's split from the sheet")
+        model.sidebar = .all
+        model.alerting = true
+        frame(harness, view)
+        frame(harness, view)
+        #expect(harness.focusManager.activeSectionIsModal, "precondition: the alert holds the focus")
+        harness.press(chord)
+        frame(harness, view)
+        #expect(model.sidebar == .all, "the page's sidebar chord fired from under the alert")
     }
 
     @Test("A page drop-down opens over the sheet")

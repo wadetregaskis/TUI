@@ -112,6 +112,30 @@ struct PaneScopedInputTests {
         #expect(fired.paneChord == 1)
     }
 
+    /// A framework default — a split view's sidebar chord — fell back past
+    /// the pane rule: with an alert opened inside a live sheet holding the
+    /// keyboard, the page's app chords were held and its defaults fired.
+    @Test("A framework default is its pane's, and the page's reaches a pane only where the page's chords do")
+    func defaultsArePaneScoped() {
+        let registry = KeyboardShortcutRegistry()
+        var page = 0
+        var pane = 0
+        registry.registerDefault(KeyboardShortcut("s", modifiers: .control)) { page += 1 }
+        registry.currentPane = "sheet"
+        registry.registerDefault(KeyboardShortcut("d", modifiers: .control)) { pane += 1 }
+        registry.currentPane = nil
+        let pageChord = KeyEvent(key: .character("s"), ctrl: true)
+        let paneChord = KeyEvent(key: .character("d"), ctrl: true)
+        #expect(!registry.trigger(for: pageChord, activePane: "sheet", reachesPage: false))
+        #expect(page == 0, "the page's default fired from under a modal in the pane")
+        #expect(registry.trigger(for: pageChord, activePane: "sheet"))
+        #expect(page == 1, "the page's default did not reach the pane")
+        #expect(!registry.trigger(for: paneChord, activePane: nil))
+        #expect(pane == 0, "the pane's default fired with the focus on the page")
+        #expect(registry.trigger(for: paneChord, activePane: "sheet"))
+        #expect(pane == 1)
+    }
+
     /// A page with a cancel button, and a pane holding a stack with a screen
     /// pushed, whose bar claims Escape as going back.
     private func stackInPane(_ fired: Fired) -> some View {

@@ -57,7 +57,10 @@ sheet's alone: a field in the sheet that lets Return through must not press
 the page's default button, which was the study's motivating defect. With the
 focus on the page, only the page's fire; the sheet's never do. Escape claims
 follow the same panes (a `NavigationStack` in the sheet claims Escape, and
-pops, only while the focus is in the sheet — owner Q6).
+pops, only while the focus is in the sheet — owner Q6), and so do the
+framework's own defaults (a split view's sidebar chord): a modal opened inside
+the sheet — an alert — holds the page's defaults as it holds the page's
+chords (review of 0b2d764f1).
 
 **The study's rule, and its price:** page registrations eligible only while
 no pane is active — a page's app-wide chords dead whenever the reader is in
