@@ -160,17 +160,16 @@ enum RowContextMenuHost {
     ///     (``MouseEventDispatcher/gestureOpenedPopup``).
     ///   - row: The row under the event, asked only for a press that opens.
     /// - Returns: `true` when the event is spent — scrolled, a press that
-    ///   opened a menu, or the rest of a gesture whose press did; `false` for a
-    ///   right press with nothing to open, which then goes on to a menu around
-    ///   the container; `nil` for an event the container's own handling
-    ///   answers — any other, and a Ctrl-click with nothing to open, which is
-    ///   still a click.
+    ///   opened a menu, or the rest of a gesture whose press opened any
+    ///   pop-up; `false` for a right press with nothing to open, which then
+    ///   goes on to a menu around the container; `nil` for an event the
+    ///   container's own handling answers — any other, and a Ctrl-click with
+    ///   nothing to open, which is still a click.
     static func preflight(
         _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?,
         dispatcher: MouseEventDispatcher, row: () -> Int?
     ) -> Bool? {
         if wheel(event) { return true }
-        guard let menu else { return nil }
         // The rest of a gesture whose press opened a menu is the menu's — asked
         // of the gesture, not of the menu. A menu that builds nothing closes on
         // the frame after the press, and its release, asked "is the menu
@@ -179,8 +178,16 @@ enum RowContextMenuHost {
         // when a frame fell between press and release, so a quick click and a
         // slow one did different things. Nor is it a secondary click by its
         // modifiers alone, for the same reason.
+        //
+        // Asked before whether this container has a menu at all: the pop-up
+        // may be another's — a table's column menu, a `.contextMenu` beside
+        // the list — and until a frame draws it over the rows, the drags and
+        // release it was handed (``MouseEventDispatcher/handOffGesture()``)
+        // land on them. A release there was a click on a row, carrying its
+        // press's Ctrl, where with a frame between the menu's backdrop took
+        // it.
         if event.phase != .pressed, dispatcher.gestureOpenedPopup { return true }
-        guard isSecondary(event) else { return nil }
+        guard let menu, isSecondary(event) else { return nil }
         if event.phase == .pressed, menu.contentColumns.contains(event.x),
             menu.contentLines.contains(event.y), menu.open(row(), event.x, event.y)
         {

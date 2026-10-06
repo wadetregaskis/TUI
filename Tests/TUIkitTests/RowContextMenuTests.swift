@@ -53,6 +53,9 @@ private final class Rows {
         case selectionlessTable
         /// The selection-menu table, inside a view with a `.contextMenu`.
         case selectionMenuInMenu
+        /// A list with a selection binding and no menu of its own, under a
+        /// text with a `.contextMenu`.
+        case listUnderMenu
     }
 }
 
@@ -93,6 +96,7 @@ private struct RowsPage: View {
         case .selectionlessTable: selectionlessTable
         case .selectionMenuInMenu:
             selectionMenuTable.contextMenu { Button("outer") { rows.ran.append("outer") } }
+        case .listUnderMenu: listUnderMenu
         }
     }
 
@@ -219,6 +223,16 @@ private struct RowsPage: View {
                 rows.opened.append(ids.sorted())
             }
             .frame(height: 9)
+    }
+
+    private var listUnderMenu: some View {
+        VStack {
+            Text("trigger").contextMenu { Button("outer") { rows.ran.append("outer") } }
+            List(selection: Bindable(rows).selection) {
+                ForEach(items) { item in Text(item.name) }
+            }
+            .frame(height: 8)
+        }
     }
 
     private var selectionlessTable: some View {
@@ -516,6 +530,24 @@ struct RowContextMenuTests {
         let below = try harness.position(of: "item4")
         harness.secondaryClick((below.x, below.y + 2))
         #expect(harness.shows("sel []"), "\(harness.screen)")
+    }
+
+    @Test(
+        "The release of a press that opened a menu elsewhere selects no row of a list without one, with or without a frame between",
+        arguments: [false, true])
+    func menuOpeningPressSpendsItsReleaseOnAList(frameBetween: Bool) throws {
+        // The list has no selection menu, so its handler had none to ask about
+        // the gesture: a release that reached a row before a frame drew the
+        // `.contextMenu` was a click there, carrying the press's Ctrl.
+        let harness = Harness(.listUnderMenu)
+        let trigger = try harness.position(of: "trigger")
+        let row = try harness.position(of: "item1")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: trigger.x, y: trigger.y, ctrl: true))
+        if frameBetween { harness.frame() }
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: row.x, y: row.y))
+        harness.frame()
+        #expect(harness.rows.selection == [2, 3], "the release toggled the row:\n\(harness.screen)")
+        #expect(harness.shows("outer"), "a click's release closed the menu:\n\(harness.screen)")
     }
 
     @Test("Shift+F10 on a list hangs the menu under the cursor row")

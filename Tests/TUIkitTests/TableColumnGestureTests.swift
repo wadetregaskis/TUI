@@ -375,6 +375,26 @@ struct TableColumnGestureTests {
         #expect(sort.columns.sortOrder == [KeyPathComparator(\Entry.alpha)], "the release sorted")
     }
 
+    @Test(
+        "The release of the press that opened the column menu selects no row, with or without a frame between",
+        arguments: [false, true])
+    func menuOpeningPressSpendsItsReleaseOnARow(frameBetween: Bool) throws {
+        // The table has no row menu, so its rows' handler had no menu to ask
+        // about the gesture: a release that reached a row before a frame drew
+        // the menu was a click there, carrying the press's Ctrl — a toggle.
+        let harness = Harness()
+        let y = try #require(harness.headerY)
+        let alpha = try #require(harness.column(of: "Alpha", on: y))
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        let row = try #require(harness.lines.firstIndex { $0.contains("a2") }, "\(harness.screen)")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
+        if frameBetween { harness.frame() }
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: alpha, y: row))
+        harness.frame()
+        #expect(harness.columns.selection.isEmpty, "the release selected a row:\n\(harness.screen)")
+        #expect(harness.shows("Hide “Beta”"), "a click's release closed the menu:\n\(harness.screen)")
+    }
+
     @Test("Without a customization binding, a Ctrl-click on a sortable title sorts, as a click does")
     func ctrlClickSortsWithoutAMenu() throws {
         let harness = Harness(bound: false)
