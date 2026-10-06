@@ -561,7 +561,7 @@ exists while something is placed in it:
 | Placement | Where |
 |---|---|
 | `.navigation` (`.topBarLeading`) | top bar, leading |
-| `.principal` | top bar, centre, in place of the title |
+| `.principal` | top bar, centre, in place of the title — iOS's reading; macOS centres it and says nothing of the title |
 | `.automatic`, `.primaryAction` (`.topBarTrailing`) | top bar, trailing |
 | `.secondaryAction` | top bar, trailing, before the primary items |
 | `.confirmationAction`, `.cancellationAction`, `.destructiveAction` | top bar, trailing (macOS's reading outside a sheet) |

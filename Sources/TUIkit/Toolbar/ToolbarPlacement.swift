@@ -26,6 +26,9 @@
 ///
 /// ``status`` takes iOS's reading, the bottom bar, where macOS centres it in
 /// the window toolbar: the bottom bar is where a terminal app's status lives.
+/// ``principal`` takes iOS's reading too, the title's place, where macOS
+/// centres it in the toolbar and says nothing of the title — as the A28
+/// design study decided (§3.2, §3.6).
 ///
 /// In presented content — a sheet, a full-screen cover, a popover — the
 /// window's bars are inert, and a `.toolbar` draws its items itself, round the
