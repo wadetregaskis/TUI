@@ -78,6 +78,18 @@ final class BundleStringTables {
     /// asks it, so it is found without hashing anything.
     private var defaultTable: Table?
 
+    /// The main bundle's `TUIkit` table (``frameworkTableName``): every one of
+    /// TUIkit's own words asks it, so it is found without hashing too.
+    private var frameworkTable: Table?
+
+    /// The name of the default table, as SwiftUI names it.
+    static let defaultTableName = "Localizable"
+
+    /// The name of the table an app writes to change TUIkit's own words:
+    /// `TUIkit.strings` in its `.lproj` folders. See
+    /// `LocalizationService.frameworkString(for:)`.
+    static let frameworkTableName = "TUIkit"
+
     /// The bundle a key with no bundle of its own is looked up in.
     let defaultBundle: Bundle
 
@@ -174,9 +186,17 @@ final class BundleStringTables {
         return answer
     }
 
+    /// Whether `tableName` of `bundle` is the default table — the default
+    /// bundle's `Localizable` — however it is spelt: `nil` and `nil`, or
+    /// either written out (`tableName: "Localizable"`, `bundle: .main`), which
+    /// SwiftUI reads as the same call.
+    func isDefaultTable(_ tableName: String?, in bundle: Bundle?) -> Bool {
+        (tableName == nil || tableName == Self.defaultTableName) && (bundle == nil || bundle === defaultBundle)
+    }
+
     /// How many answers the tables keep, in all — for the tests of the bound.
     var keptAnswerCount: Int {
-        let tables = Array(tables.values) + (defaultTable.map { [$0] } ?? [])
+        let tables = Array(tables.values) + [defaultTable, frameworkTable].compactMap { $0 }
         return tables.reduce(0) { total, table in
             total + table.fallbackAnswers.count + table.answers.values.reduce(0) { $0 + $1.count }
         }
@@ -189,14 +209,22 @@ final class BundleStringTables {
     /// The table named `tableName` of `bundle`, `nil` meaning `Localizable`
     /// and the default bundle: made once and kept.
     private func table(named tableName: String?, in bundle: Bundle?) -> Table {
-        if tableName == nil, bundle == nil || bundle === defaultBundle {
-            if let defaultTable { return defaultTable }
-            let table = Table(bundle: defaultBundle, name: "Localizable")
-            defaultTable = table
-            return table
+        if bundle == nil || bundle === defaultBundle {
+            if tableName == nil || tableName == Self.defaultTableName {
+                if let defaultTable { return defaultTable }
+                let table = Table(bundle: defaultBundle, name: Self.defaultTableName)
+                defaultTable = table
+                return table
+            }
+            if tableName == Self.frameworkTableName {
+                if let frameworkTable { return frameworkTable }
+                let table = Table(bundle: defaultBundle, name: Self.frameworkTableName)
+                frameworkTable = table
+                return table
+            }
         }
         let bundle = bundle ?? defaultBundle
-        let name = tableName ?? "Localizable"
+        let name = tableName ?? Self.defaultTableName
         let tableKey = Key(bundle: ObjectIdentifier(bundle), table: name)
         if let found = tables[tableKey] { return found }
         let table = Table(bundle: bundle, name: name)

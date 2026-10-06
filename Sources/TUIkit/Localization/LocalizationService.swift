@@ -12,11 +12,44 @@ import Foundation
 ///
 /// Loads translations from JSON files, resolves localized strings using
 /// dot-notation keys, and persists language preference to disk.
+///
+/// ## Where a key is looked up
+///
+/// Two kinds of key are looked up, each in its own order, and both language
+/// by language: in the languages the user asked for, most preferred first,
+/// and then in English.
+///
+/// - **The app's own keys** — ``Text/init(_:tableName:bundle:comment:)``,
+///   ``string(for:)-(String)``, `LocalizedString("…")` — read, in each
+///   language: the table the call names (if it names one), the strings the app
+///   registered (``register(translations:)``), the app's `Localizable` table,
+///   and then TUIkit's own strings, so an app can borrow TUIkit's translations.
+/// - **TUIkit's own words** — its controls' labels and the typed keys
+///   (``LocalizationKey``) — read, in each language: the strings the app
+///   registered, a table the app names `TUIkit` (`TUIkit.strings` in its
+///   `.lproj` folders), and TUIkit's own translation. The app's `Localizable`
+///   table does not change them: an app that happens to spell `button.ok` in
+///   it has not asked for TUIkit's OK to change. Only where TUIkit has no
+///   translation of the key in that language is the app's `Localizable` read
+///   for it, so that a language TUIkit does not ship gets the app's words
+///   rather than English.
+///
+/// "The languages the user asked for" are the language set with
+/// ``setLanguage(_:)`` (or stored by it), or else the environment's: every
+/// language it lists up to and including the first TUIkit ships, which is
+/// ``currentLanguage``. So under `LANG=pt_BR.UTF-8` the app's Portuguese
+/// strings are read first, and TUIkit's words fall back to English only for
+/// what the app does not spell in Portuguese.
 public final class LocalizationService: @unchecked Sendable {
     /// The shared localization service instance.
     public static let shared = LocalizationService()
 
-    /// Currently active language.
+    /// Currently active language: the one TUIkit's own words are in, where it
+    /// has a translation of them.
+    ///
+    /// Always one of the languages TUIkit ships. The environment may ask for
+    /// another first — Portuguese, say — and the app's own strings are read in
+    /// that one before this; see "Where a key is looked up" above.
     ///
     /// No `didSet` doing work: the persistence and the re-render belong to
     /// ``setLanguage(_:)``, OUTSIDE its lock. Run from an observer they ran
@@ -24,6 +57,12 @@ public final class LocalizationService: @unchecked Sendable {
     /// synchronously to the app's handler — a handler that localizes its own
     /// message re-entered `string(for:)`, and the lock is not recursive.
     public private(set) var currentLanguage: Language
+
+    /// The language codes a key is looked up in, most preferred first, ending
+    /// in English: ``currentLanguage``'s code, after any the environment asked
+    /// for ahead of it that TUIkit has no translations of, and then `"en"`.
+    /// Moved with ``currentLanguage``, under `lock`.
+    private var lookupCodes: [String]
 
     /// Cached translations: [languageCode: [dotPath: localizedString]]
     private var translationCache: [String: [String: String]] = [:]
@@ -34,8 +73,8 @@ public final class LocalizationService: @unchecked Sendable {
     /// own keys and override framework defaults.
     private var appTranslations: [String: [String: String]] = [:]
 
-    /// The app's own string tables, read for a key the dictionaries above do
-    /// not hold — see ``BundleStringTables``. Used under `lock`.
+    /// The app's own string tables — see ``BundleStringTables``. Used under
+    /// `lock`.
     private let bundleTables: BundleStringTables
 
     /// Lock for thread-safe access
@@ -58,20 +97,14 @@ public final class LocalizationService: @unchecked Sendable {
         self.configDirectoryOverride = nil
         self.bundleTables = BundleStringTables()
 
-        // Compute initial language before assignment to avoid didSet side effects.
-        let initial: Language
-        if let stored = Self.loadLanguagePreference() {
-            initial = stored
-        } else if let systemLocale = Self.systemPreferredLanguage() {
-            initial = systemLocale
-        } else {
-            initial = .english
-        }
-        self.currentLanguage = initial
+        let initial = Self.initialLanguage(
+            stored: Self.loadLanguagePreference(), asked: Self.systemPreferredLanguageCodes())
+        self.currentLanguage = initial.language
+        self.lookupCodes = initial.codes
 
         // Preload current language translations
         lock.lock()
-        _ = _translations(for: currentLanguage)
+        _ = _translations(for: currentLanguage.rawValue)
         lock.unlock()
     }
 
@@ -79,20 +112,21 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// Used for testing to isolate file system access, and to read string
     /// tables from a bundle of the test's own in place of the main bundle.
-    init(configDirectoryPath: String, defaultBundle: Bundle = .main) {
+    /// The language is the stored one, else the one `environment` asks for
+    /// (its POSIX variables alone — never the machine's preferred languages),
+    /// else English.
+    init(configDirectoryPath: String, defaultBundle: Bundle = .main, environment: [String: String] = [:]) {
         self.configDirectoryOverride = configDirectoryPath
         self.bundleTables = BundleStringTables(defaultBundle: defaultBundle)
 
-        let initial: Language
-        if let stored = Self.loadLanguagePreference(from: configDirectoryPath) {
-            initial = stored
-        } else {
-            initial = .english
-        }
-        self.currentLanguage = initial
+        let initial = Self.initialLanguage(
+            stored: Self.loadLanguagePreference(from: configDirectoryPath),
+            asked: Self.systemPreferredLanguageCodes(environment: environment, preferredLanguages: []))
+        self.currentLanguage = initial.language
+        self.lookupCodes = initial.codes
 
         lock.lock()
-        _ = _translations(for: currentLanguage)
+        _ = _translations(for: currentLanguage.rawValue)
         lock.unlock()
     }
 
@@ -102,6 +136,7 @@ public final class LocalizationService: @unchecked Sendable {
     public func setLanguage(_ language: Language) {
         lock.lock()
         currentLanguage = language
+        lookupCodes = Self.lookupCodes(asked: [], language: language)
         lock.unlock()
         // After the lock, deliberately — see `currentLanguage`.
         saveLanguagePreference(language)
@@ -162,7 +197,33 @@ public final class LocalizationService: @unchecked Sendable {
     func pinLanguageForTesting(_ language: Language) {
         lock.lock()
         currentLanguage = language
+        lookupCodes = Self.lookupCodes(asked: [], language: language)
         lock.unlock()
+    }
+
+    /// The language a service starts in, and the codes it looks keys up in:
+    /// the `stored` choice alone, else the languages the environment `asked`
+    /// for, else English.
+    private static func initialLanguage(stored: Language?, asked: [String]) -> (language: Language, codes: [String]) {
+        if let stored {
+            return (stored, lookupCodes(asked: [], language: stored))
+        }
+        let language = asked.last.flatMap(Language.init(rawValue:)) ?? .english
+        return (language, lookupCodes(asked: asked, language: language))
+    }
+
+    /// `asked`, then `language`'s code, then English's, each once.
+    private static func lookupCodes(asked: [String], language: Language) -> [String] {
+        var codes = asked
+        for code in [language.rawValue, Language.english.rawValue] where !codes.contains(code) {
+            codes.append(code)
+        }
+        return codes
+    }
+
+    /// The language codes keys are looked up in, in order — for the tests.
+    var lookupLanguageCodes: [String] {
+        lock.withLock { lookupCodes }
     }
 
     /// Registers additional translations supplied by the host application.
@@ -195,13 +256,20 @@ public final class LocalizationService: @unchecked Sendable {
         AppState.shared.setNeedsRenderWithCacheClear()
     }
 
-    /// Resolves a localized string using a dot-notation key.
+    /// Resolves a localized string using a dot-notation key, as the app's
+    /// own text is resolved.
     ///
-    /// Looked up in the current language, then in English: in each, the
-    /// strings the app registered, then the main bundle's `Localizable`
-    /// string table in that language's `.lproj`, as SwiftUI looks a key up
-    /// (see `BundleStringTables`), then TUIkit's own strings. Last, the table
-    /// as Foundation picks it for the bundle, and then the key itself.
+    /// Looked up language by language — the languages the user asked for,
+    /// then English — and in each: the strings the app registered, then the
+    /// main bundle's `Localizable` string table in that language's `.lproj`,
+    /// as SwiftUI looks a key up, then TUIkit's own strings, so an app can
+    /// borrow TUIkit's translations. Last, the table as Foundation picks it
+    /// for the bundle, and then the key itself. See "Where a key is looked
+    /// up" on ``LocalizationService``.
+    ///
+    /// The typed keys — ``string(for:)-(LocalizationKey.Button)`` and the
+    /// rest — ask for TUIkit's own word instead, which an app's
+    /// `Localizable` table does not change.
     ///
     /// - Parameter key: Dot-notation path (e.g., "button.ok", "error.invalid_input")
     /// - Returns: The localized string, or the key if not found.
@@ -213,46 +281,70 @@ public final class LocalizationService: @unchecked Sendable {
     /// `tableName` of `bundle` — `Localizable` and the main bundle where
     /// `nil`, as SwiftUI's `Text(_:tableName:bundle:comment:)` reads them.
     ///
-    /// The app's own strings come before TUIkit's, and the current language
-    /// before English, whichever kind holds them: a key an app registered in
-    /// English and translated in `de.lproj` reads the German. A table named
-    /// explicitly (either argument given) is asked before the registered
-    /// strings too, since the call says where the key is.
+    /// A table named explicitly is asked first in each language, ahead of the
+    /// registered strings, since the call says where the key is; then the
+    /// rest as ``string(for:)``. The default table written out —
+    /// `tableName: "Localizable"`, `bundle: .main` — is not "named": it reads
+    /// exactly as leaving them off does, as in SwiftUI.
     func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
         lock.lock()
         defer { lock.unlock() }
 
-        let namesTable = tableName != nil || bundle != nil
-        var language = currentLanguage
-        while true {
+        let namesTable = !bundleTables.isDefaultTable(tableName, in: bundle)
+        for code in lookupCodes {
             if namesTable,
-                let value = bundleTables.string(
-                    for: key, tableName: tableName, bundle: bundle, language: language.rawValue)
+                let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: code)
             {
                 return value
             }
-            if let value = appTranslations[language.rawValue]?[key] {
+            if let value = appTranslations[code]?[key] {
                 return value
             }
             // The app's table costs a stored Bool for an app that ships none.
-            if !namesTable,
-                let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: language.rawValue)
-            {
+            if let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: code) {
                 return value
             }
-            if let value = _translations(for: language)[key] {
+            if let value = _tuikitValue(key, in: code) {
                 return value
             }
-            guard language != .english else { break }
-            language = .english
         }
 
-        if let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
+        if namesTable, let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
             return value
         }
+        return bundleTables.fallbackString(for: key, tableName: nil, bundle: nil) ?? key
+    }
 
-        // Return key as last resort
-        return key
+    /// TUIkit's own word for one of its own keys — the lookup TUIkit's
+    /// controls make, and the typed keys (``LocalizationKey``).
+    ///
+    /// An app changes these only on purpose, never by spelling the same key
+    /// in its own `Localizable` table by accident. Language by language —
+    /// the languages the user asked for, then English — and in each:
+    ///
+    /// 1. the strings the app registered (``register(translations:)``);
+    /// 2. the app's `TUIkit` table — `TUIkit.strings` in that language's
+    ///    `.lproj` of the main bundle;
+    /// 3. TUIkit's own translation;
+    /// 4. only where TUIkit has no translation of the key in that language —
+    ///    a language it does not ship, or a key it lacks — the app's
+    ///    `Localizable` table, so that some of an app's words are better than
+    ///    none.
+    ///
+    /// Last, the two tables as Foundation picks them for the bundle, and then
+    /// the key itself.
+    ///
+    /// - Parameter key: One of TUIkit's keys (`LocalizationKey`'s raw values).
+    /// - Returns: The localized string, or the key if not found.
+    func frameworkString(for key: String) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        for code in lookupCodes {
+            if let value = _frameworkValue(key, in: code) {
+                return value
+            }
+        }
+        return _frameworkFallback(key)
     }
 
     /// How many table answers the service keeps — for the tests of their
@@ -271,8 +363,9 @@ public final class LocalizationService: @unchecked Sendable {
         return bundleTables.foundationReads
     }
 
-    /// Resolves a key in `language`, whatever the current language is —
-    /// falling back to English, then to the key, as ``string(for:)`` does.
+    /// Resolves one of TUIkit's own keys in `language`, whatever the current
+    /// language is — falling back to English, then to the key, as
+    /// ``frameworkString(for:)`` does.
     ///
     /// For text whose language is the locale's rather than the app's: a span
     /// spelt from the tables (`TimeSpan.tableUnitList`) follows the locale it
@@ -280,49 +373,69 @@ public final class LocalizationService: @unchecked Sendable {
     func string(for key: String, in language: Language) -> String {
         lock.lock()
         defer { lock.unlock() }
-        if let value = _translationValue(key, in: language) {
+        if let value = _frameworkValue(key, in: language.rawValue) {
             return value
         }
-        if language != .english, let value = _translationValue(key, in: .english) {
+        if language != .english, let value = _frameworkValue(key, in: Language.english.rawValue) {
             return value
         }
-        return key
+        return _frameworkFallback(key)
     }
 
     // MARK: - Private Helpers (caller MUST hold lock)
 
-    /// Gets translations dictionary for a language, loading from JSON if needed.
+    /// TUIkit's own translations in the language `code`, loaded from its JSON
+    /// the first time they are asked for; empty for a language TUIkit ships
+    /// none of, which is remembered too.
     ///
     /// - Important: Caller must hold `lock`.
-    private func _translations(for language: Language) -> [String: String] {
-        let code = language.rawValue
-
-        // Return cached if available
+    private func _translations(for code: String) -> [String: String] {
         if let cached = translationCache[code] {
             return cached
         }
-
-        // Load from bundled JSON
-        if let loaded = loadTranslationsFromBundle(language: code) {
-            translationCache[code] = loaded
-            return loaded
-        }
-
-        // No translations available, return empty
-        return [:]
+        let loaded = loadTranslationsFromBundle(language: code) ?? [:]
+        translationCache[code] = loaded
+        return loaded
     }
 
-    /// Retrieves a value from translations using dot-notation path.
-    ///
-    /// App-registered translations (``register(translations:)``) win over the
-    /// bundled framework strings for the same key.
+    /// TUIkit's word for `key` in the language `code`, as the app has set it:
+    /// the app's `TUIkit` table, then TUIkit's own translation.
     ///
     /// - Important: Caller must hold `lock`.
-    private func _translationValue(_ key: String, in language: Language) -> String? {
-        if let appValue = appTranslations[language.rawValue]?[key] {
-            return appValue
+    private func _tuikitValue(_ key: String, in code: String) -> String? {
+        // The table costs a stored Bool for an app that ships none.
+        if let value = bundleTables.string(
+            for: key, tableName: BundleStringTables.frameworkTableName, bundle: nil, language: code)
+        {
+            return value
         }
-        return _translations(for: language)[key]
+        return _translations(for: code)[key]
+    }
+
+    /// One language's step of ``frameworkString(for:)``: registered, the
+    /// app's `TUIkit` table, TUIkit's own translation, and — only where TUIkit
+    /// has none — the app's `Localizable` table.
+    ///
+    /// - Important: Caller must hold `lock`.
+    private func _frameworkValue(_ key: String, in code: String) -> String? {
+        if let value = appTranslations[code]?[key] {
+            return value
+        }
+        if let value = _tuikitValue(key, in: code) {
+            return value
+        }
+        return bundleTables.string(for: key, tableName: nil, bundle: nil, language: code)
+    }
+
+    /// The last step of ``frameworkString(for:)``: the app's `TUIkit` table,
+    /// then its `Localizable` one, as Foundation picks them for the bundle,
+    /// then the key itself.
+    ///
+    /// - Important: Caller must hold `lock`.
+    private func _frameworkFallback(_ key: String) -> String {
+        bundleTables.fallbackString(for: key, tableName: BundleStringTables.frameworkTableName, bundle: nil)
+            ?? bundleTables.fallbackString(for: key, tableName: nil, bundle: nil)
+            ?? key
     }
 
     /// Saves language preference to config file.

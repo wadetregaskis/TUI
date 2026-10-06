@@ -37,6 +37,26 @@
 // ``LocalizedStringKey`` to be built out of and the forwarding call can only
 // land on the generic overload.
 
+extension LocalizedStringKey {
+    /// A preset's title key, resolved: TUIkit's own word when it is the
+    /// preset's default key — so an app's `Localizable` table does not change
+    /// a preset's title by spelling the same key (see
+    /// ``LocalizationService``) — and the app's lookup of any other key.
+    ///
+    /// Compared by key because a default argument is just a value: nothing
+    /// tells the default apart from the same key passed by the app, and that
+    /// key names TUIkit's word either way.
+    ///
+    /// `service` is the shared one but for tests, which read an app's tables
+    /// from a bundle of their own.
+    func localizedTitle(
+        defaultingTo label: LocalizationKey.Label, service: LocalizationService = .shared
+    ) -> String {
+        key == label.rawValue && arguments.isEmpty
+            ? service.frameworkString(for: key) : resolved(with: service)
+    }
+}
+
 extension Alert {
     /// Creates a warning-style alert with palette warning colors.
     ///
@@ -57,7 +77,7 @@ extension Alert {
         @ViewBuilder actions: () -> Actions
     ) -> Alert {
         warning(
-            title: titleKey.localized, message: messageKey.localized, actions: actions)
+            title: titleKey.localizedTitle(defaultingTo: .warning), message: messageKey.localized, actions: actions)
     }
 
     /// Creates a warning-style alert with text displayed as written.
@@ -122,7 +142,7 @@ extension Alert {
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
     ) -> Alert {
-        error(title: titleKey.localized, message: messageKey.localized, actions: actions)
+        error(title: titleKey.localizedTitle(defaultingTo: .error), message: messageKey.localized, actions: actions)
     }
 
     /// Creates an error-style alert with text displayed as written.
@@ -184,7 +204,7 @@ extension Alert {
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
     ) -> Alert {
-        info(title: titleKey.localized, message: messageKey.localized, actions: actions)
+        info(title: titleKey.localizedTitle(defaultingTo: .info), message: messageKey.localized, actions: actions)
     }
 
     /// Creates an info-style alert with text displayed as written.
@@ -246,7 +266,7 @@ extension Alert {
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
     ) -> Alert {
-        success(title: titleKey.localized, message: messageKey.localized, actions: actions)
+        success(title: titleKey.localizedTitle(defaultingTo: .success), message: messageKey.localized, actions: actions)
     }
 
     /// Creates a success-style alert with text displayed as written.
@@ -304,7 +324,7 @@ extension Alert where Actions == EmptyView {
             LocalizationKey.Label.warning.rawValue),
         message messageKey: LocalizedStringKey
     ) -> Alert<EmptyView> {
-        warning(title: titleKey.localized, message: messageKey.localized)
+        warning(title: titleKey.localizedTitle(defaultingTo: .warning), message: messageKey.localized)
     }
 
     /// Creates a warning-style alert without actions, shown as written.
@@ -330,7 +350,7 @@ extension Alert where Actions == EmptyView {
             LocalizationKey.Label.error.rawValue),
         message messageKey: LocalizedStringKey
     ) -> Alert<EmptyView> {
-        error(title: titleKey.localized, message: messageKey.localized)
+        error(title: titleKey.localizedTitle(defaultingTo: .error), message: messageKey.localized)
     }
 
     /// Creates an error-style alert without actions, shown as written.
@@ -356,7 +376,7 @@ extension Alert where Actions == EmptyView {
             LocalizationKey.Label.info.rawValue),
         message messageKey: LocalizedStringKey
     ) -> Alert<EmptyView> {
-        info(title: titleKey.localized, message: messageKey.localized)
+        info(title: titleKey.localizedTitle(defaultingTo: .info), message: messageKey.localized)
     }
 
     /// Creates an info-style alert without actions, shown as written.
@@ -382,7 +402,7 @@ extension Alert where Actions == EmptyView {
             LocalizationKey.Label.success.rawValue),
         message messageKey: LocalizedStringKey
     ) -> Alert<EmptyView> {
-        success(title: titleKey.localized, message: messageKey.localized)
+        success(title: titleKey.localizedTitle(defaultingTo: .success), message: messageKey.localized)
     }
 
     /// Creates a success-style alert without actions, shown as written.

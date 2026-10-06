@@ -61,11 +61,12 @@ extension Appearance {
     ///
     /// Here rather than on ``Appearance`` itself because the type lives in
     /// `TUIkitStyling`, below the localization service; this module can see
-    /// both. Falls back to ``name`` for an appearance an app added, which has
-    /// no key to look up.
+    /// both. Falls back to ``name`` for an appearance an app added, unless the
+    /// app's own strings name it: TUIkit has no translation of its key, so the
+    /// app's are read (see ``LocalizationService``).
     public var localizedName: String {
         let key = "appearance.\(rawId.rawValue)"
-        let localized = LocalizationService.shared.string(for: key)
+        let localized = LocalizationService.shared.frameworkString(for: key)
         return localized == key ? name : localized
     }
 }

@@ -124,10 +124,12 @@ public struct Text: View, Equatable {
     /// otherwise, as SwiftUI reads them — beside the dictionaries
     /// ``LocalizationService`` holds: any strings the app registered, and
     /// TUIkit's own. In the app's language first, then in English, and in
-    /// each the app's strings before TUIkit's: the registered ones, then the
-    /// table's `.lproj` for that language (a table named here comes first of
-    /// all). So a key the app registered in English and ships in
-    /// `de.lproj/Localizable.strings` reads in German when the app is.
+    /// each the app's strings before TUIkit's: a table named here, then the
+    /// registered strings, then `Localizable`'s `.lproj` for that language,
+    /// then TUIkit's own strings. So a key the app registered in English and
+    /// ships in `de.lproj/Localizable.strings` reads in German when the app
+    /// is. Naming the default (`tableName: "Localizable"`, `bundle: .main`)
+    /// reads exactly as leaving it off.
     ///
     /// ```swift
     /// Text("greeting", tableName: "Onboarding", bundle: .module)

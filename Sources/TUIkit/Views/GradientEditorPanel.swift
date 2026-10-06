@@ -214,7 +214,7 @@ public struct GradientEditorPanel: View {
     /// that could disagree with the stops.
     private var modeSwitch: some View {
         Toggle(
-            LocalizedStringKey(LocalizationKey.Label.gradient.rawValue),
+            LocalizationService.shared.string(for: LocalizationKey.Label.gradient),
             isOn: Binding(
                 get: { isGradient },
                 set: { wantsGradient in

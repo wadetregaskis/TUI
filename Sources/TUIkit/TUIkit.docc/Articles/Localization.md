@@ -326,15 +326,38 @@ sets to say which language they want, and because off Darwin it is the only
 real source: Foundation there reports a fixed `en-001` rather than any user
 preference, so a `LANG=de_DE.UTF-8` machine used to start in English.
 
+The language set is the first one listed that TUIkit ships. Any listed ahead
+of it that TUIkit does not ship — `LANG=pt_BR.UTF-8` — are still the user's
+first choice: the app's own strings are read in them first (see below), so a
+Portuguese app speaks Portuguese, and TUIkit's words fall back to English only
+where the app does not spell them in Portuguese.
+
 ### Fallback Behavior
 
-String resolution uses a fallback chain:
+String resolution goes language by language: the languages the user asked for,
+then English, and last the key itself as-is. This ensures the UI always has
+something to display, even with incomplete translations.
 
-1. Try to find the key in the active language
-2. If not found, fall back to English
-3. If still not found, return the key itself as-is
+Within each language, who is asking decides the order:
 
-This ensures the UI always has something to display, even with incomplete translations.
+- **Your keys** — `Text("greeting")`, `LocalizedString("greeting")`,
+  ``LocalizationService/string(for:)-(String)`` — read the table the call
+  names (`Text(_:tableName:bundle:comment:)`), the strings you registered,
+  your `Localizable.strings` in that language's `.lproj`, and then TUIkit's own
+  strings, so you can borrow TUIkit's translations. Writing out the default
+  (`tableName: "Localizable"`, `bundle: .main`) is the same as leaving it off.
+- **TUIkit's own words** — its controls' labels, and the typed keys such as
+  `LocalizedString(LocalizationKey.Button.ok)` — read the strings you
+  registered, a table you name `TUIkit` (`TUIkit.strings` in your `.lproj`
+  folders), and TUIkit's translation. Your `Localizable.strings` does not
+  change them: a `button.ok` there is your key, not a request to change
+  TUIkit's OK. To change one of TUIkit's words, register it or put it in
+  `TUIkit.strings`.
+
+The one exception is a word TUIkit has no translation of in that language — a
+language TUIkit does not ship, such as Portuguese, or a key missing from one
+it does: then your `Localizable.strings` is read for it before falling back to
+English, because some of your words are better than none.
 
 ## Direct Access
 

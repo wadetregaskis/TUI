@@ -15,6 +15,11 @@
 ///
 /// If the key is missing, falls back to English, then to the key itself.
 ///
+/// A string key is the app's, looked up as ``LocalizationService/string(for:)-(String)``
+/// looks it up; a typed key (`LocalizedString(LocalizationKey.Button.ok)`)
+/// shows TUIkit's own word, which the app's `Localizable` table does not
+/// change — see ``LocalizationService``.
+///
 /// # Example
 ///
 /// ```swift
@@ -28,6 +33,10 @@
 public struct LocalizedString: View {
     /// The dot-notation key for the string to display.
     private let key: String
+
+    /// Whether the key is one of TUIkit's own, from a typed key, and so is
+    /// looked up as TUIkit's controls look theirs up.
+    private let isFrameworkKey: Bool
 
     /// The service that resolves the key, taken from the environment.
     ///
@@ -45,10 +54,17 @@ public struct LocalizedString: View {
     /// - Parameter key: The dot-notation key (e.g., "button.ok", "error.invalid_input")
     public init(_ key: String) {
         self.key = key
+        self.isFrameworkKey = false
+    }
+
+    /// A view of one of TUIkit's own keys — what the typed initialisers make.
+    init(frameworkKey key: String) {
+        self.key = key
+        self.isFrameworkKey = true
     }
 
     public var body: some View {
-        Text(service.string(for: key))
+        Text(verbatim: isFrameworkKey ? service.frameworkString(for: key) : service.string(for: key))
     }
 }
 

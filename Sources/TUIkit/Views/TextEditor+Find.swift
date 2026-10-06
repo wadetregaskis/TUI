@@ -67,7 +67,7 @@ struct _FindBar: View {
     @FocusState private var isQueryFocused: Bool
 
     private func string(_ key: String) -> String {
-        LocalizationService.shared.string(for: key)
+        LocalizationService.shared.frameworkString(for: key)
     }
 
     var body: some View {

@@ -16,7 +16,7 @@ import Testing
 @testable import TUIkit
 
 /// A bundle of `.lproj` folders in a temporary directory, removed with it.
-private final class TableBundle {
+final class TableBundle {
     let path: String
     let bundle: Bundle
 

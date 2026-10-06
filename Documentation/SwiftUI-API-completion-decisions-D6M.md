@@ -84,3 +84,31 @@ that a TUIkit-only client never resolves it. That is a release-process cost
 (versioning two packages together) for the owner to weigh; nothing in the
 code would change.
 
+
+## Decided
+
+### A14's lookup order — decided 2026-10-05
+
+*`LocalizationService`, `Text(_:tableName:bundle:comment:)`, TUIkit's own
+controls' strings*
+
+The first order (60296e574) read an app's `Localizable` table ahead of
+TUIkit's own strings for every key, so an app that happened to spell
+`button.ok` in it changed TUIkit's OK by accident. The owner accepted the
+recommendation, with one rule added: "if there are no built-in TUIkit
+translations for the active language, … automatically try the app's strings.
+Better to get some of them, even if imperfect, than none at all."
+
+**Shipped:** both orders go language by language — the languages the user
+asked for, including any ahead of the first TUIkit ships (`LANG=pt_BR`), then
+English.
+
+- **TUIkit's own words** (its controls and the typed `LocalizationKey`s, which
+  name TUIkit through `frameworkString(for:)`): registered strings, a
+  `TUIkit.strings` table the app ships, TUIkit's translation, and — only where
+  TUIkit has no translation of the key in that language — the app's
+  `Localizable`, before English.
+- **The app's keys:** the table the call names, registered strings,
+  `Localizable`, then TUIkit's strings (so an app can borrow them).
+- Writing out the default table (`tableName: "Localizable"`, `bundle: .main`)
+  reads exactly as leaving it off.

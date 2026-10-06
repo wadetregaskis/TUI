@@ -435,7 +435,7 @@ struct _ColorPickerBody: View {
         // and so always shows the role's live colour.
         let concrete = color.resolve(with: palette)
         let isSelected = selection.wrappedValue.resolve(with: palette) == concrete
-        let name = LocalizationService.shared.string(for: name)
+        let name = LocalizationService.shared.frameworkString(for: name)
         HStack(spacing: 1) {
             Text("██").foregroundStyle(color)
             if isSelected {
