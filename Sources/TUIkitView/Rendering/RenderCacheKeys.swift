@@ -311,19 +311,21 @@ extension RenderCache {
         /// (`RenderContext.keepsSectionsWhole`), which resolves the same content
         /// at the same identity to different children. An arbitrary odd
         /// constant; a structural hash that differs from another by exactly it
-        /// is the collision the hash-only key already accepts.
-        package static let sectionsWholeSalt = 0x5EC7_10E5_A5ED_0001
+        /// is the collision the hash-only key already accepts. Written as a
+        /// `UInt64` truncated to `Int`: the literal overflows a 32-bit `Int`
+        /// (wasm32), where the three salts keep their distinct odd low words.
+        package static let sectionsWholeSalt = Int(truncatingIfNeeded: 0x5EC7_10E5_A5ED_0001 as UInt64)
 
         /// Mixed into ``identityHash`` for a walk that keeps only a loop's
         /// section rows whole (`SectionWholeness.loopRows`), for the same
         /// reason; another arbitrary odd constant.
-        package static let loopedSectionsWholeSalt = 0x5EC7_10E5_100F_0003
+        package static let loopedSectionsWholeSalt = Int(truncatingIfNeeded: 0x5EC7_10E5_100F_0003 as UInt64)
 
         /// Mixed into ``identityHash`` for a pinned lazy stack's walk
         /// (`SectionWholeness.pinned`), which keeps every section whole as a
         /// `List`'s does but resolves a loop of sections of the app's own to
         /// different children; another arbitrary odd constant.
-        package static let pinnedSectionsWholeSalt = 0x5EC7_10E5_917E_0005
+        package static let pinnedSectionsWholeSalt = Int(truncatingIfNeeded: 0x5EC7_10E5_917E_0005 as UInt64)
 
         public init(identityHash: Int, viewType: ObjectIdentifier, valueHash: Int) {
             self.identityHash = identityHash
