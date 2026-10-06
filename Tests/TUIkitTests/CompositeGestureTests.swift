@@ -2,7 +2,8 @@
 //  CompositeGestureTests.swift
 //
 //  The gesture algebra as measured on macOS 15.8's SwiftUI: a sequence hands
-//  its second gesture the first event after the first succeeds; an exclusive
+//  its second gesture the event that ended the first, or the next one after
+//  a first that ended on its clock; an exclusive
 //  gesture holds its second back until the first fails; a simultaneous one
 //  drops a part that failed and ends once neither is undecided.
 //
@@ -43,7 +44,7 @@ struct CompositeGestureTests {
         }
     }
 
-    @Test("A sequence hands its second gesture the first event after the first succeeds")
+    @Test("A sequence whose first gesture ends on its clock hands its second the next event")
     func sequenceHandsOn() {
         let log = GestureRecord()
         let harness = makeHarness()
@@ -99,6 +100,9 @@ struct CompositeGestureTests {
     /// The same with a long press that ends at the press: the second press
     /// ended the sequence on the spot, with the first drag's value, before
     /// its own drag ended it again at the release — three ends for two drags.
+    /// Measured on macOS 15.8: one end per drag, at the release, its
+    /// translation the whole drag's — the drag starts at the press that
+    /// ended the long press.
     @Test("A sequence after a long press with no minimum duration ends once per drag, at the release")
     func zeroDurationSequenceRunTwice() {
         let log = GestureRecord()
@@ -110,13 +114,54 @@ struct CompositeGestureTests {
         }
         harness.frame(view())
         harness.pointer([(.pressed, 1, 1), (.dragged, 3, 1), (.dragged, 6, 1), (.released, 6, 1)], view)
-        #expect(log.entries == ["ended second(true, 3)"])
+        #expect(log.entries == ["ended second(true, 5)"])
         harness.now = 600 * gestureMillisecond
         harness.frame(view())
         harness.pointer([(.pressed, 1, 1)], view)
-        #expect(log.entries == ["ended second(true, 3)"], "the second press ends nothing")
+        #expect(log.entries == ["ended second(true, 5)"], "the second press ends nothing")
         harness.pointer([(.dragged, 3, 1), (.dragged, 6, 1), (.released, 6, 1)], view)
-        #expect(log.entries == ["ended second(true, 3)", "ended second(true, 3)"])
+        #expect(log.entries == ["ended second(true, 5)", "ended second(true, 5)"])
+    }
+
+    /// Measured on macOS 15.8: a tap before a tap ends at every click — the
+    /// release that ends the first tap is the second's press and release —
+    /// clicks a second apart and five apart alike. Fed only the events after
+    /// the first tap's end, the sequence waited for another click, with no
+    /// limit, and ended at every second click.
+    @Test("A tap before a tap ends at every click")
+    func tapBeforeTap() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = { box(TapGesture().sequenced(before: TapGesture()).onEnded { _ in log("seq") }) }
+        harness.frame(view())
+        for (index, start) in [0, 1_000, 2_000, 7_000].enumerated() {
+            harness.now = Int64(start) * gestureMillisecond
+            harness.frame(view())
+            harness.click(1, 1, view)
+            #expect(log.entries.count == index + 1, "click \(index + 1)")
+        }
+    }
+
+    /// Measured on macOS 15.8: a click on a long press with no minimum
+    /// duration before a drag with none either ends the sequence at the
+    /// release, a drag of nothing — the drag started at the press.
+    @Test("A click on a zero-duration long press before a zero-distance drag ends it at the release")
+    func zeroDurationThenZeroDistanceClick() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            box(
+                LongPressGesture(minimumDuration: 0).sequenced(before: DragGesture(minimumDistance: 0))
+                    .onEnded { log("ended \(Self.describe($0))") })
+        }
+        harness.frame(view())
+        harness.pointer([(.pressed, 1, 1)], view)
+        #expect(log.entries.isEmpty)
+        harness.pointer([(.released, 1, 1)], view)
+        harness.now = 600 * gestureMillisecond
+        harness.frame(view())
+        harness.click(1, 1, view)
+        #expect(log.entries == ["ended second(true, 0)", "ended second(true, 0)"])
     }
 
     // MARK: Exclusive

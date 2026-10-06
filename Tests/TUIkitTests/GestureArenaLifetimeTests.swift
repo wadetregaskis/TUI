@@ -64,6 +64,39 @@ struct GestureArenaLifetimeTests {
         #expect(harness.tui.mouseEventDispatcher.gestureArenas.isEmpty)
     }
 
+    // MARK: - A sequence beside a plain view
+
+    /// Measured on macOS 15.8, the review of a0fd0e4e4's case: a tap before
+    /// a tap beside a plain box, inside a tap, ends at one click, so clicks
+    /// on the box a second and two seconds later run the outer tap, and one
+    /// on the sequence after them runs it again. Fed only the events after
+    /// its first tap's end, the sequence waited for a second click with
+    /// nothing to limit the wait, and held the outer tap off the box until
+    /// the sequence was clicked again.
+    @Test("A tap before a tap ends at one click, so a click beside it runs the tap around both")
+    func tapSequenceBesideAPlainBox() {
+        let log = GestureRecord()
+        let harness = makeHarness()
+        let view = {
+            HStack(spacing: 2) {
+                box.gesture(TapGesture().sequenced(before: TapGesture()).onEnded { _ in log("seq") })
+                box
+            }
+            .onTapGesture { log("outer") }
+            .frame(width: 40, height: 12, alignment: .topLeading)
+        }
+        harness.frame(view())
+        harness.click(1, 0, view)
+        frame(harness, at: 1_000, view)
+        harness.click(7, 0, view)
+        frame(harness, at: 2_000, view)
+        harness.click(7, 0, view)
+        frame(harness, at: 3_000, view)
+        harness.click(1, 0, view)
+        frame(harness, at: 4_000, view)
+        #expect(log.entries == ["seq", "outer", "outer", "seq"])
+    }
+
     // MARK: - A press whose release was lost
 
     /// A press whose release never came — a terminal that dropped it, a

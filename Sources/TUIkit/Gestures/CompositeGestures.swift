@@ -28,10 +28,13 @@ extension Gesture {
     /// results in the second gesture only receiving events after the first
     /// gesture succeeds.
     ///
-    /// The second gesture's first event is the first one after the first
-    /// gesture succeeded — a long press that succeeds with the button still
-    /// down hands a following drag the next move as its start. The sequence
-    /// ends when the second gesture does (measured on macOS 15.8).
+    /// The second gesture starts with the event that ended the first, when
+    /// an event did: a tap's release is a following tap's press and release,
+    /// so `TapGesture().sequenced(before: TapGesture())` ends at one click,
+    /// and a long press with no minimum duration hands a following drag its
+    /// press. A long press that ends on its clock, the button still down,
+    /// hands a following drag the next move as its start. The sequence ends
+    /// when the second gesture does (all measured on macOS 15.8).
     ///
     /// - Parameter other: A gesture you want to combine with another gesture
     ///   to create a new, sequenced gesture.
@@ -273,21 +276,31 @@ final class SequenceGestureNode<First: Gesture, Second: Gesture>: GestureNode<Se
             feedSecond(input, deliver: deliver)
         } else {
             first.receive(input, deliver: deliver)
-            if first.phase == .ended { onSecond = true }
+            if first.phase == .ended {
+                onSecond = true
+                // The event that ended the first part is the second's first,
+                // as on macOS 15.8: fed only the events after it, a tap
+                // before a tap waited for a second click, and a drag after a
+                // long press with no minimum duration started at the first
+                // move, not at the press. A first part that ended on a tick
+                // leaves the second to the next event.
+                feedSecond(input, deliver: deliver)
+            }
         }
         recompute()
     }
 
-    /// The second part takes the first event after the first part succeeded as
-    /// its press: a move becomes its start, a release its start and end.
+    /// Feeds the second part, which takes its first pointer event as its
+    /// press: a move becomes its start, a release its start and end. A tick
+    /// before that is not its to hear.
     private func feedSecond(_ input: GestureInput, deliver: Bool) {
-        guard case .pointer(let pointer) = input, !secondStarted else {
+        if secondStarted {
             second.receive(input, deliver: deliver)
-            return
+        } else if case .pointer(let pointer) = input {
+            secondStarted = true
+            second.receive(.pointer(pointer.asDown), deliver: deliver)
+            if pointer.kind == .up { second.receive(input, deliver: deliver) }
         }
-        secondStarted = true
-        second.receive(.pointer(pointer.asDown), deliver: deliver)
-        if pointer.kind == .up { second.receive(input, deliver: deliver) }
     }
 
     override func flush() {
