@@ -222,6 +222,18 @@ struct GeometryReaderTests {
         #expect(proxy.bounds(of: .scrollView) == nil)
     }
 
+    @Test("A proxy is not Equatable, as SwiftUI's is not: proxies from two frames have no value to compare")
+    func proxyIsNotEquatable() {
+        // SwiftUI's `GeometryProxy` conforms to nothing (and to `Sendable`
+        // explicitly not). TUIkit's compared the walk's ask by identity, so
+        // `onChange(of: proxy)` fired, and an `Equatable` view holding one
+        // re-rendered, on every frame; now neither compiles, as in SwiftUI.
+        // Its `Sendable` conformance is marked unavailable, which only a
+        // compiler can check.
+        let proxy: Any = GeometryProxy(width: 20, height: 5)
+        #expect(!(proxy is any Equatable))
+    }
+
     @Test("The protocol spaces answer as the enum cases they resolve to")
     func protocolSpaces() {
         let proxy = GeometryProxy(width: 20, height: 5)

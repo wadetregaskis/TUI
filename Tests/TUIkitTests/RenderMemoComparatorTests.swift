@@ -239,7 +239,7 @@ struct RenderMemoComparatorTests {
 
     // MARK: - Leaves with configuration
 
-    @Test("ProgressView and GeometryProxy compare every stored property")
+    @Test("ProgressView compares every stored property")
     func valueViews() {
         let base = ProgressView(
             fractionCompleted: 0, style: .block, label: Text("l"),
@@ -300,21 +300,8 @@ struct RenderMemoComparatorTests {
                 ),
             ])
 
-        expectDistinguishes(
-            "GeometryProxy", GeometryProxy(width: 4, height: 5),
-            identical: GeometryProxy(width: 4, height: 5),
-            variants: [
-                ("size", GeometryProxy(width: 6, height: 5)),
-                (
-                    "ask",
-                    GeometryProxy(
-                        width: 4, height: 5,
-                        ask: GeometryAsk(
-                            id: HitTestRegion.HandlerID(HitTestRegion.HandlerID.geometryMarkerBit),
-                            identity: ViewIdentity(path: "reader"), role: .reader,
-                            coordinator: GeometryCoordinator(), tracker: nil))
-                ),
-            ])
+        // `GeometryProxy` is not `Equatable` (as SwiftUI's is not), so a view
+        // holding one has no `==` to pin; `GeometryReaderTests` pins that.
     }
 
     // MARK: - Modifier wrappers

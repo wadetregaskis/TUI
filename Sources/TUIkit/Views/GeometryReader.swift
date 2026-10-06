@@ -41,19 +41,19 @@ import TUIkitView
 /// status bar) has already been subtracted from what a view is offered —
 /// so answering it with a constant would be answering a question the caller
 /// should not be asking.
-public struct GeometryProxy: Equatable, Sendable {
+///
+/// Nor is it `Equatable` or `Sendable`, as SwiftUI's is not (its `Sendable`
+/// conformance is explicitly unavailable). A proxy answers from the walk that
+/// made it — what the owners of its spaces found, frame by frame — so two
+/// proxies have no value to compare, and one sent off the main actor would
+/// be read while the render path writes it.
+public struct GeometryProxy {
     /// The container's size in cells.
     public let size: CellSize
 
     /// Where the container asks about the spaces around it, or `nil` for a
     /// proxy that can only answer its own: one made by hand, or in a measure.
     let ask: GeometryAsk?
-
-    /// Two proxies are the same proxy: the same size, asking through the same
-    /// walk's ask.
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.size == rhs.size && lhs.ask === rhs.ask
-    }
 
     init(width: Int, height: Int, ask: GeometryAsk? = nil) {
         self.size = CellSize(width: width, height: height)
@@ -107,6 +107,11 @@ public struct GeometryProxy: Equatable, Sendable {
             width: spaceSize.width, height: spaceSize.height)
     }
 }
+
+/// Not `Sendable`: see ``GeometryProxy``. Spelled as SwiftUI spells it, so
+/// sending a proxy to another isolation fails to compile rather than racing.
+@available(*, unavailable)
+extension GeometryProxy: Sendable {}
 
 /// A size in whole terminal cells.
 ///
