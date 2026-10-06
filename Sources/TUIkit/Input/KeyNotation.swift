@@ -42,7 +42,8 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
     /// its name, and a modifier's name is joined to what follows it by a
     /// hyphen: `⌃⇧Z` is `Ctrl-Shift-Z`, `⎋` is `Esc`, `⌥↑` is `Alt-↑` — unless
     /// the text joins them itself, so `⇧-click` is `Shift-click` and `⌃+C` is
-    /// `Ctrl+C`, while `⌃-`, whose key is the minus, is `Ctrl--`.
+    /// `Ctrl+C`, while `⌃-` and `⌃+/⌃-`, whose keys are the minus and the
+    /// plus, are `Ctrl--` and `Ctrl-+/Ctrl--`.
     /// Anything that is not a key symbol stays as it is, so a status bar
     /// item's `1-9` or `c|C` reads the same in both.
     ///
@@ -83,15 +84,21 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
     }
 
     /// Whether `character`, just after a modifier symbol, is a joiner the text
-    /// already has, rather than the key: a `-` or `+` with more of the chord
-    /// after it, as in `⇧-click` or `⌃+C`. Those keep the text's own joiner —
-    /// `Shift-click`, `Ctrl+C` — where a hyphen of ours would double it
-    /// (`Shift--click`). A `-` or `+` that ends the chord IS its key, and gets
-    /// the hyphen any key does: `⌃-` is `Ctrl--`, Control-minus.
+    /// already has, rather than the key: a `-` or `+` with a key after it — a
+    /// letter, a digit or a key symbol — as in `⇧-click`, `⌃+C` or `⌥-↑`.
+    /// Those keep the text's own joiner — `Shift-click`, `Ctrl+C` — where a
+    /// hyphen of ours would double it (`Shift--click`). A `-` or `+` followed
+    /// by anything else, or by nothing, IS the key, and gets the hyphen any
+    /// key does: `⌃-` is `Ctrl--`, Control-minus, and in `⌃+/⌃-` the `/`
+    /// separates two chords, `Ctrl-+/Ctrl--`.
     private static func isJoiner(_ character: Character, before following: Character?) -> Bool {
         guard character == "-" || character == "+", let following else { return false }
-        return !following.isWhitespace
+        return following.isLetter || following.isNumber || names[following] != nil
+            || arrows.contains(following)
     }
+
+    /// The arrow keys' symbols, which stay symbols in both notations.
+    private static let arrows: Set<Character> = ["←", "↑", "→", "↓"]
 
     /// Every symbol ``spelledOut`` names, with its name: the modifiers and the
     /// keys `KeySymbols` draws a symbol for. The arrows are not here, being

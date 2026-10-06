@@ -56,6 +56,20 @@ struct KeyNotationTests {
         #expect(notation.spelling("⌃⇧-") == "Ctrl-Shift--")
     }
 
+    /// The `-` or `+` is a joiner only when a key follows it. Before
+    /// punctuation it is the key: `⌃+/⌃-` names Control-plus and
+    /// Control-minus, and read as a joiner it came out `Ctrl+/Ctrl--`.
+    @Test("A minus or plus before punctuation is the key, and a key symbol after one is joined")
+    func minusOrPlusBeforePunctuationIsTheKey() {
+        let notation = KeyNotation.spelledOut
+        #expect(notation.spelling("⌃+/⌃-") == "Ctrl-+/Ctrl--")
+        #expect(notation.spelling("⌃-|⌃+") == "Ctrl--|Ctrl-+")
+        #expect(notation.spelling("⌃+,") == "Ctrl-+,")
+        #expect(notation.spelling("⌥-↑") == "Alt-↑")
+        #expect(notation.spelling("⌃+⎋") == "Ctrl+Esc")
+        #expect(notation.spelling("⌃+1") == "Ctrl+1")
+    }
+
     @Test("What names no key reads the same in both notations")
     func otherTextIsUntouched() {
         for text in ["q", "1-9", "c|C", "+|-", "↑↓", "F12", "Space", ""] {
