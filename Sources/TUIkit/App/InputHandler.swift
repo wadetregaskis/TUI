@@ -124,7 +124,8 @@ internal struct InputHandler {
     var quitKey: () -> UInt8? = { nil }
 
     /// Invoked when the user's quit key arrives as a key report: the runner
-    /// raises `SIGQUIT`, as the driver does for the byte.
+    /// sends `SIGQUIT` to the app's process group, as the driver does for the
+    /// byte (`QuitKeyReport`).
     var onQuitKey: () -> Void = {}
 }
 

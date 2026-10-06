@@ -36,8 +36,10 @@ that answers the startup exchange, and checks:
      then quits as in 4.
   8. A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key
      report (`CSI 92;5u`), never as the byte the driver acts on: the app
-     raises SIGQUIT itself, and quits as in 4, the flags popped on the way.
-     With the quit key turned off, the report is an ordinary key.
+     raises SIGQUIT itself, and quits as in 4, the flags popped on the way,
+     and a child in its process group ends with it, as the driver's ⌃\\
+     ends one in 4. With the quit key turned off, the report is an ordinary
+     key.
 
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
@@ -81,7 +83,7 @@ class App:
     discipline can be read before the launch and after the exit; and a
     terminal's answers to the startup exchange."""
 
-    def __init__(self, env=None, setup=None, kitty=False):
+    def __init__(self, env=None, setup=None, kitty=False, job=False):
         self.kitty = kitty
         self.stack = []
         self.master, self.slave = os.openpty()
@@ -105,13 +107,45 @@ class App:
             os.close(self.master)
             os.setsid()
             fcntl.ioctl(self.slave, termios.TIOCSCTTY, 0)
+            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+            if job:
+                self.run_as_job(child_env)
             for fd in (0, 1, 2):
                 os.dup2(self.slave, fd)
             if self.slave > 2:
                 os.close(self.slave)
-            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
             os.execve(BINARY, [BINARY], child_env)
         self.status = None
+
+    def run_as_job(self, child_env):
+        """In the forked child: be the session leader a shell is, and run the
+        app as a job in a process group of its own, the terminal's foreground
+        group, so the app is not the session leader. When a session leader
+        exits, the kernel hangs up its terminal's foreground group, which
+        would end a child the app started whatever the quit key signalled.
+        Like a shell, take the foreground back once the job ends, then end as
+        it did. Never returns."""
+        signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+        app = os.fork()
+        if app == 0:
+            os.setpgid(0, 0)
+            os.tcsetpgrp(self.slave, os.getpid())
+            signal.signal(signal.SIGTTOU, signal.SIG_DFL)
+            for fd in (0, 1, 2):
+                os.dup2(self.slave, fd)
+            if self.slave > 2:
+                os.close(self.slave)
+            os.execve(BINARY, [BINARY], child_env)
+        try:
+            os.setpgid(app, app)
+        except OSError:
+            pass  # the job got there first
+        _, status = os.waitpid(app, 0)
+        os.tcsetpgrp(self.slave, os.getpgrp())
+        if os.WIFSIGNALED(status):
+            signal.signal(os.WTERMSIG(status), signal.SIG_DFL)
+            os.kill(os.getpid(), os.WTERMSIG(status))
+        os._exit(os.WEXITSTATUS(status) if os.WIFEXITED(status) else 1)
 
     def pump(self, seconds):
         until = time.time() + seconds
@@ -217,6 +251,56 @@ def check_quit(app, mark, name):
     check(app.termios_now() == app.before, name + ": the termios is exactly what it was before the launch")
 
 
+def spawn_child_file():
+    """A path for IdleProbe to write its child's process ID to."""
+    handle, path = tempfile.mkstemp(prefix="tuikit-quit-smoke-child-")
+    os.close(handle)
+    os.unlink(path)
+    return path
+
+
+def child_of(path, app):
+    """IdleProbe's process ID and its child's, once it has written them, or
+    (None, None)."""
+    deadline = time.time() + 3.0
+    while time.time() < deadline:
+        try:
+            with open(path) as handle:
+                fields = handle.read().split()
+            if len(fields) == 2:
+                return int(fields[0]), int(fields[1])
+        except (OSError, ValueError):
+            pass
+        app.pump(0.1)
+    return None, None
+
+
+def child_ends(pid, seconds):
+    """Whether process `pid` is gone within `seconds`; killed if it is not."""
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        time.sleep(0.05)
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return True
+    return False
+
+
+def check_child_in_group(probe, child, app, name):
+    """The child shares the app's process group, which is a job's: not the
+    session leader's, whose exit would hang the child up anyway."""
+    try:
+        ok = os.getpgid(child) == os.getpgid(probe) == probe and os.getpgid(app.pid) != probe
+    except (OSError, TypeError):
+        ok = False
+    check(ok, name + ": the app runs as a job, its child in its process group")
+
+
 # 1. kill -QUIT.
 app = App()
 app.pump(2.0)
@@ -226,9 +310,12 @@ check_quit(app, mark, "kill -QUIT")
 app.finish()
 
 # 2–4. The termios, the keys, and ⌃\.
-app = App(env={"IDLE_PROBE_MODE": "keys"})
+child_file = spawn_child_file()
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_CHILD_PIDFILE": child_file}, job=True)
 DISABLED = os.fpathconf(app.slave, "PC_VDISABLE")
 app.pump(2.0)
+probe, child = child_of(child_file, app)
+check_child_in_group(probe, child, app, "⌃\\")
 check(is_raw(app.termios_now()), "running: signals on with only the quit key, ⌃\\, live")
 for byte, name in ((b"\x03", "ctrl-c"), (b"\x1a", "ctrl-z"), (b"\x19", "ctrl-y"), (b"\x14", "ctrl-t")):
     os.write(app.master, byte)
@@ -237,6 +324,7 @@ for byte, name in ((b"\x03", "ctrl-c"), (b"\x1a", "ctrl-z"), (b"\x19", "ctrl-y")
 mark = len(app.out)
 os.write(app.master, b"\x1c")
 check_quit(app, mark, "⌃\\")
+check(child is not None and child_ends(child, 3.0), "⌃\\: the driver ends the app's child with it")
 app.finish()
 
 # 5. A hung main thread.
@@ -287,13 +375,18 @@ check_quit(app, mark, "after a resume, ⌃\\")
 app.finish()
 
 # 8. The kitty keyboard protocol.
-app = App(env={"IDLE_PROBE_MODE": "keys"}, kitty=True)
+child_file = spawn_child_file()
+app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_CHILD_PIDFILE": child_file}, kitty=True, job=True)
 app.pump(3.0)
 check(app.stack == [31], "kitty: the flags are pushed")
+probe, child = child_of(child_file, app)
+check_child_in_group(probe, child, app, "kitty")
 mark = len(app.out)
 os.write(app.master, b"\x1b[92;5u")
 check_quit(app, mark, "kitty, ⌃\\ as a report")
 check(b"\x1b[<u" in app.out[mark:] and app.stack == [], "kitty, ⌃\\ as a report: the flags popped")
+check(child is not None and child_ends(child, 3.0),
+      "kitty, ⌃\\ as a report: the app's child ends with it, as the driver's ⌃\\ ends it")
 app.finish()
 
 app = App(env={"IDLE_PROBE_MODE": "keys"}, kitty=True, setup=quit_undefined)

@@ -4376,9 +4376,10 @@ as a report — ⌃\\ as `CSI 92;5u`, not 0x1C — so no byte reaches the line
 discipline to raise the signal (from the specification; the hosts are
 unmeasured, like the rest of that section). `InputHandler` therefore takes the
 report of the user's quit key (the chord whose legacy byte is the inherited
-`VQUIT`, `Terminal.quitKeyByte`) ahead of every layer and raises `SIGQUIT`
-itself, its repeats and release swallowed; with the quit key turned off the
-report is an ordinary key. That needs the app to read its input, so **on a
+`VQUIT`, `Terminal.quitKeyByte`) ahead of every layer and sends `SIGQUIT`
+where the driver would have, to the app's whole process group, so a child the
+app started ends with it (`QuitKeyReport`); its repeats and release are
+swallowed, and with the quit key turned off the report is an ordinary key. That needs the app to read its input, so **on a
 terminal that speaks the protocol, ⌃\\ does not quit an app whose main thread
 has hung** (decisions B-F2-4); there, closing the tab, or `kill -QUIT` from
 another shell, still does. The smoke checks the report too, against a PTY

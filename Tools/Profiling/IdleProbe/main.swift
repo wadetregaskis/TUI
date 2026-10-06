@@ -7,6 +7,12 @@
 import Foundation
 import TUIkit
 
+#if canImport(Glibc)
+    import Glibc
+#elseif canImport(Musl)
+    import Musl
+#endif
+
 // MARK: - Why this exists
 //
 // `idle_cpu.py` answers "does a static screen cost anything?", but only if the
@@ -35,7 +41,9 @@ import TUIkit
 // Two modes serve `Tools/Smoke/quit_key_smoke.py` instead, which wants the
 // smallest app for a different question — what the terminal driver does with
 // the Control keys while TUIkit runs: `keys` shows each key the app hears,
-// and `hang` blocks its main thread once on screen.
+// and `hang` blocks its main thread once on screen. So does
+// `IDLE_PROBE_CHILD_PIDFILE`, in any mode: a child in the app's process group
+// (bottom of this file).
 
 // MARK: - Mode
 
@@ -131,6 +139,22 @@ private struct KeyEcho: View {
             return false
         }
     }
+}
+
+// MARK: - A child in the app's process group
+//
+// `quit_key_smoke.py` asks whether the quit key ends the app's children as the
+// terminal driver's ⌃\ does: with `IDLE_PROBE_CHILD_PIDFILE` set, the probe
+// starts `sleep` in its own process group, as an app starts a helper, and
+// writes its own process ID and the child's to that file.
+if let path = ProcessInfo.processInfo.environment["IDLE_PROBE_CHILD_PIDFILE"] {
+    var child: pid_t = 0
+    let arguments: [UnsafeMutablePointer<CChar>?] = [strdup("/bin/sleep"), strdup("120"), nil]
+    let environment: [UnsafeMutablePointer<CChar>?] = [nil]
+    if posix_spawn(&child, "/bin/sleep", nil, nil, arguments, environment) == 0 {
+        try? "\(getpid()) \(child)".write(toFile: path, atomically: true, encoding: .utf8)
+    }
+    arguments.forEach { free($0) }
 }
 
 await IdleProbeApp.main()

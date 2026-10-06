@@ -178,11 +178,12 @@ extension AppRunner {
             quitKey: { [terminal] in terminal.quitKeyByte },
             // The user's quit key, reported by the kitty keyboard protocol
             // rather than sent as the byte the driver acts on: the signal the
-            // byte would have raised, which leaves the terminal as a quit does
-            // (`FatalSignalTerminalRestore`).
+            // byte would have raised, to the process group the driver would
+            // have raised it in (`QuitKeyReport`), which leaves the terminal
+            // as a quit does (`FatalSignalTerminalRestore`).
             onQuitKey: {
                 #if !canImport(WASILibc)
-                    raise(SIGQUIT)
+                    QuitKeyReport.quit()
                 #endif
             }
         )
