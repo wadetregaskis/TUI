@@ -94,13 +94,15 @@ struct SynchronizedOutputTests {
     }
 
     #if !canImport(WASILibc)
-    @Test("The longest debt fits the buffer a signal handler writes from")
+    @Test("The longest debts fit the buffers a signal handler writes from")
     func debtFits() {
         let (terminal, _) = ScriptedTerminalOutput.terminal()
+        terminal.enterAlternateScreen()
         terminal.enableRawMode()
         terminal.keyboardFlagsPushed = true
         terminal.pinnedGraphemeClustering = true
         #expect(terminal.signalDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
+        #expect(terminal.quitDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
         terminal.keyboardFlagsPushed = false
     }
     #endif

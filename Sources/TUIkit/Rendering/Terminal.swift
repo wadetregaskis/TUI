@@ -267,6 +267,10 @@ final class Terminal: TerminalProtocol {
     /// writing to `STDOUT_FILENO` immediately.
     private var isBuffering = false
 
+    /// Whether the alternate screen is up: entered and not yet left. What a
+    /// `SIGQUIT` leaves (``quitDebt``).
+    private(set) var isOnAlternateScreen = false
+
     /// Collects all output bytes during a buffered frame.
     ///
     /// Starts empty, grows via ``write(_:)`` calls, flushed by ``endFrame()``.
@@ -720,17 +724,28 @@ extension Terminal {
         return owed
     }
 
-    /// Owes the terminal ``signalDebt``, and the shell's termios, should the
-    /// process die of a signal now; see ``FatalSignalTerminalRestore``. Called
-    /// whenever the debt changes while raw mode is on: raw mode itself, a push
-    /// or pop of the kitty flags, a pin.
+    /// What the terminal is owed should the process die of `SIGQUIT`, the
+    /// user's quit key: what a quit writes, in a quit's order — the styling
+    /// reset (`RenderLoop.restoreTerminalStyling()`), ``signalDebt``, which is
+    /// raw mode's teardown and the cursor shown, and the alternate screen
+    /// left (``isOnAlternateScreen``). Unlike a crash, a quit has no report
+    /// to keep on the screen.
+    var quitDebt: String {
+        ANSIRenderer.reset + signalDebt + (isOnAlternateScreen ? ANSIRenderer.exitAlternateScreen : "")
+    }
+
+    /// Owes the terminal ``signalDebt``, or ``quitDebt`` for a `SIGQUIT`, and
+    /// the shell's termios, should the process die of a signal now; see
+    /// ``FatalSignalTerminalRestore``. Called whenever the debt changes while
+    /// raw mode is on: raw mode itself, a push or pop of the kitty flags, a
+    /// pin, the alternate screen entered or left.
     ///
     /// A scripted terminal is a test's, and the process's signal handlers are
     /// not its to install.
     func armSignalRestore() {
         #if !canImport(WASILibc)
             guard isRawMode, exchangeTransport == nil else { return }
-            FatalSignalTerminalRestore.arm(owing: signalDebt, restoring: originalTermios)
+            FatalSignalTerminalRestore.arm(owing: signalDebt, onQuit: quitDebt, restoring: originalTermios)
         #endif
     }
 
@@ -929,11 +944,15 @@ extension Terminal {
     /// Switches to the alternate screen buffer.
     func enterAlternateScreen() {
         write(ANSIRenderer.enterAlternateScreen)
+        isOnAlternateScreen = true
+        armSignalRestore()
     }
 
     /// Exits the alternate screen buffer.
     func exitAlternateScreen() {
         write(ANSIRenderer.exitAlternateScreen)
+        isOnAlternateScreen = false
+        armSignalRestore()
     }
 
     /// Removes `n` bytes from the front of the buffer and, if the

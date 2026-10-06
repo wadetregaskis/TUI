@@ -122,6 +122,14 @@ echo "── mode 2027: pinned when needed, and only then ──"
 echo "── kitty keyboard protocol: pushed where spoken, popped on every exit ──"
 "$VENV/bin/python" "$HERE/keyboard_protocol_smoke.py" "$REPO/$BUILD_DIR/Example"
 
+# SIGQUIT is the user's quit, not a crash: the handler leaves the alternate
+# screen and every mode as a quit does, puts the termios back exactly, and ends
+# by the signal's default action, never through the Swift runtime's crash
+# reporter (which printed a backtrace on the alternate screen and waited half
+# a minute for a key). Against IdleProbe, the smallest app. A few seconds.
+echo "── SIGQUIT: a quit, not a crash ──"
+"$VENV/bin/python" "$HERE/quit_key_smoke.py" "$REPO/$BUILD_DIR/IdleProbe"
+
 # The same class, for the colour exchange: the terminal's colours are asked
 # once, with the request its host needs, and published before RenderLoop draws
 # its first frame (under tmux the sixteen slots follow that frame, once, rather

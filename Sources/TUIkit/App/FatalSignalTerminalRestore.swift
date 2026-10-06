@@ -18,9 +18,9 @@ import Musl
 // MARK: - Paying the terminal back on a signal
 
 /// Writes what the terminal is owed when the process dies of a signal nothing
-/// else handles — a trap, a bad access, an abort, a `kill -HUP` — puts the
-/// shell's line discipline back, and then lets the signal do what it would
-/// have done.
+/// else handles — a trap, a bad access, an abort, a `kill -HUP`, the user's
+/// ⌃\ — puts the shell's line discipline back, and then lets the signal do
+/// what it would have done.
 ///
 /// The debt is every input mode `Terminal.enableRawMode` and the startup
 /// negotiation turned on: the kitty keyboard protocol's pushed flags, mouse
@@ -42,12 +42,25 @@ import Musl
 /// take the report off the screen with it. With the input modes and termios
 /// back, `reset` or `tput rmcup` can be typed to clear it.
 ///
+/// `SIGQUIT` is the exception. It is the user's quit key, ⌃\, which the
+/// terminal driver turns into the signal (raw mode keeps only that one signal
+/// character live), and a quit is not a crash: there is no report to keep,
+/// and the user asked to leave. So it pays what a normal quit writes — the
+/// styling reset, the debt above, and the alternate screen left
+/// (`Terminal.quitDebt`) — and then ends by the signal's default action, the
+/// shell's "Quit: 3", never through the handler that was there before: that
+/// is the Swift runtime's crash reporter, which would print a backtrace,
+/// call it a crash, and on a terminal wait half a minute for a key.
+///
 /// ## Which signals
 ///
 /// - **The crashes** (`SIGSEGV`, `SIGBUS`, `SIGILL`, `SIGTRAP`, `SIGABRT`,
-///   `SIGFPE`, `SIGQUIT`, `SIGSYS`): always taken, handing on to the handler
-///   that was there before — the Swift runtime's crash reporter keeps its
+///   `SIGFPE`, `SIGSYS`): always taken, handing on to the handler that was
+///   there before — the Swift runtime's crash reporter keeps its
 ///   `SA_SIGINFO` handler and its alternate stack.
+/// - **The quit** (`SIGQUIT`): always taken, and ended by the default action
+///   (above). An app that wants ⌃\ for itself has no way to: the driver
+///   takes the key before the app could see it, as a shell's does.
 /// - **The quiet terminations** (`SIGHUP`, `SIGUSR1`, `SIGUSR2`, `SIGALRM`,
 ///   `SIGVTALRM`, `SIGPROF`, `SIGXCPU`, `SIGXFSZ`): catchable, they end the
 ///   process by default, and TUIkit handles none of them. Taken only where
@@ -73,8 +86,9 @@ import Musl
 ///
 /// Only async-signal-safe calls: `write(2)` the owed bytes, `tcsetattr(3)`
 /// the saved termios, put back the handler that was there before
-/// (`sigaction`), and `raise(2)` the signal again, which is delivered to that
-/// handler — or the default action — as soon as this one returns. Installed
+/// (`sigaction`) — for `SIGQUIT`, the default (`signal(3)`) — and `raise(2)`
+/// the signal again, which is delivered to that handler, or the default
+/// action, as soon as this one returns. Installed
 /// with `SA_ONSTACK`, so on a stack overflow it runs on whatever alternate
 /// stack the thread has rather than on the stack that overflowed.
 enum FatalSignalTerminalRestore {
@@ -82,8 +96,12 @@ enum FatalSignalTerminalRestore {
     /// The signals that end the process with nothing run on the way out:
     /// always taken, chained to the handler before.
     private static let crashSignals: [Int32] = [
-        SIGSEGV, SIGBUS, SIGILL, SIGTRAP, SIGABRT, SIGFPE, SIGQUIT, SIGSYS,
+        SIGSEGV, SIGBUS, SIGILL, SIGTRAP, SIGABRT, SIGFPE, SIGSYS,
     ]
+
+    /// The user's quit key's signal: always taken, paid as a quit
+    /// (``owedOnQuit``) and ended by its default action.
+    private static let quitSignals: [Int32] = [SIGQUIT]
 
     /// The signals that end the process quietly by default, and that nothing
     /// in TUIkit handles: taken only where their disposition is still the
@@ -92,18 +110,27 @@ enum FatalSignalTerminalRestore {
         SIGHUP, SIGUSR1, SIGUSR2, SIGALRM, SIGVTALRM, SIGPROF, SIGXCPU, SIGXFSZ,
     ]
 
-    /// Both lists, in the order ``previous`` and ``taken`` are indexed.
-    private static let signals = crashSignals + terminatingSignals
+    /// Every list, in the order ``previous`` and ``taken`` are indexed: the
+    /// ones always taken first.
+    private static let signals = crashSignals + quitSignals + terminatingSignals
+
+    /// How many of ``signals`` are always taken.
+    private static let alwaysTaken = crashSignals.count + quitSignals.count
 
     /// The most bytes a debt can be. Not private so a test can check that the
-    /// longest debt `Terminal.signalDebt` spells fits: ``arm(owing:restoring:)``
-    /// would cut off the rest.
+    /// longest debts `Terminal.signalDebt` and `Terminal.quitDebt` spell fit:
+    /// ``arm(owing:onQuit:restoring:)`` would cut off the rest.
     static let capacity = 256
 
     /// The owed bytes, and how many of them are owed: zero when nothing is.
     /// Written only on the main actor, read only by the handler.
     nonisolated(unsafe) private static let owed = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
     nonisolated(unsafe) private static var owedCount = 0
+
+    /// What a `SIGQUIT` pays instead: what a quit writes, the alternate screen
+    /// left with the rest.
+    nonisolated(unsafe) private static let owedOnQuit = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+    nonisolated(unsafe) private static var owedOnQuitCount = 0
 
     /// The termios the shell had, put back by the handler while
     /// ``owesTermios`` is set.
@@ -118,25 +145,31 @@ enum FatalSignalTerminalRestore {
     nonisolated(unsafe) private static let taken = UnsafeMutablePointer<Bool>.allocate(capacity: signals.count)
     nonisolated(unsafe) private static var installed = false
 
-    /// Owes the terminal `sequence`, and `termios` if there is one, should the
-    /// process die of a signal, installing the handlers the first time.
+    /// Owes the terminal `sequence`, or `quitSequence` for a `SIGQUIT`, and
+    /// `termios` if there is one, should the process die of a signal,
+    /// installing the handlers the first time.
     @MainActor
-    static func arm(owing sequence: String, restoring termios: termios?) {
+    static func arm(owing sequence: String, onQuit quitSequence: String, restoring termios: termios?) {
         let bytes = Array(sequence.utf8.prefix(capacity))
+        let quitBytes = Array(quitSequence.utf8.prefix(capacity))
         owedCount = 0
+        owedOnQuitCount = 0
         owesTermios = false
         for (index, byte) in bytes.enumerated() { owed[index] = byte }
+        for (index, byte) in quitBytes.enumerated() { owedOnQuit[index] = byte }
         if let termios { savedTermios.pointee = termios }
         owedCount = bytes.count
+        owedOnQuitCount = quitBytes.count
         owesTermios = termios != nil
         installIfNeeded()
     }
 
     /// Owes the terminal nothing. The handlers stay installed and pass every
-    /// signal straight on.
+    /// signal straight on, a `SIGQUIT` to its default action.
     @MainActor
     static func disarm() {
         owedCount = 0
+        owedOnQuitCount = 0
         owesTermios = false
     }
 
@@ -146,7 +179,7 @@ enum FatalSignalTerminalRestore {
         installed = true
         for (index, signal) in signals.enumerated() {
             taken[index] = false
-            if index >= crashSignals.count {
+            if index >= alwaysTaken {
                 var current = sigaction()
                 guard sigaction(signal, nil, &current) == 0, isDefault(current) else { continue }
             }
@@ -185,20 +218,31 @@ enum FatalSignalTerminalRestore {
         #endif
     }
 
-    /// The handler: pay, restore, re-raise.
+    /// The handler: pay, restore, re-raise — a `SIGQUIT` to its default
+    /// action.
     private static func handle(_ signal: Int32) {
-        if owedCount > 0 {
-            _ = write(STDOUT_FILENO, owed, owedCount)
-            owedCount = 0
-        }
+        let quitting = signal == SIGQUIT
+        let count = quitting ? owedOnQuitCount : owedCount
+        if count > 0 { _ = write(STDOUT_FILENO, quitting ? owedOnQuit : owed, count) }
+        owedCount = 0
+        owedOnQuitCount = 0
         if owesTermios {
             _ = tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
             owesTermios = false
         }
-        if let index = signals.firstIndex(of: signal), taken[index] {
+        if quitting {
+            restoreDefault(signal)
+        } else if let index = signals.firstIndex(of: signal), taken[index] {
             sigaction(signal, previous + index, nil)
         }
         raise(signal)
+    }
+
+    /// Puts the default action back for `number`. `signal(3)` is
+    /// async-signal-safe. Apart from ``handle(_:)``, whose parameter's name
+    /// hides the function's.
+    private static func restoreDefault(_ number: Int32) {
+        _ = signal(number, SIG_DFL)
     }
 }
 

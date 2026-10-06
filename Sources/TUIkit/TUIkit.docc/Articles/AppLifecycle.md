@@ -107,6 +107,8 @@ The rest set boolean flags and wake the loop; the actual rendering always happen
 
 These are not C signal handlers, and that is the point: libdispatch delivers each signal as an ordinary queued event on the main queue, so each handler is normal main-actor code that sets a plain stored property and wakes the loop. No async-signal-safe restriction, no self-pipe, and no `nonisolated(unsafe)` flags to read torn. The main loop drains the flags each iteration and acts accordingly.
 
+The signals that end the process with nothing run on the way out are the exception, because a queued event would never be read: a crash (`SIGSEGV`, `SIGABRT` and the rest), the terminations nothing handles (`SIGHUP`, `SIGUSR1`, …), and `SIGQUIT`. `FatalSignalTerminalRestore` takes them with a C handler that writes what the terminal is owed from a buffer filled in advance, puts the shell's termios back, and lets the signal do what it does. A crash leaves the alternate screen up, with its report on it. `SIGQUIT` (`kill -QUIT`) is the user's quit, not a crash: it leaves the terminal as a quit does — the alternate screen left, the cursor shown, every mode off — and ends by its default action, the shell's `Quit: 3`, without the Swift runtime's crash report.
+
 ## Programmatic Exit
 
 A view can exit the application from inside its event handlers by calling

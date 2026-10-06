@@ -4578,7 +4578,11 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   again** on resume without asking. On those signals the handler also turns
   off every other input mode the app turned on and puts the shell's termios
   back, so the shell echoes and reads lines again; it leaves the alternate
-  screen up, with a crash's report on it (`FatalSignalTerminalRestore`).
+  screen up, with a crash's report on it (`FatalSignalTerminalRestore`) —
+  except on `SIGQUIT`, the user's quit, which since 2026-10-05 leaves it as
+  a quit does and ends by its default action, never through the Swift
+  runtime's crash reporter (until then a `kill -QUIT` printed a backtrace on
+  the alternate screen and waited half a minute for a key).
   Until 2026-10-04's review only the crash signals were taken, and a
   `kill -HUP` left the flags pushed and the line discipline raw. The specification keeps a separate
   flag stack per screen and TUIkit pushes on the alternate one, so the shell's

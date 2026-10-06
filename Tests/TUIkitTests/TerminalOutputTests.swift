@@ -115,6 +115,32 @@ extension TerminalOutputTests {
             + "\u{1B}[?2004h" + "\u{1B}[?1004h" + "\u{1B}[?2031h" + "\u{1B}[>1;2m")
     }
 
+    /// SIGQUIT is the user's quit key's signal, and it leaves the terminal as
+    /// a quit does: its debt is the bytes the run loop's teardown writes
+    /// (`AppRunner.cleanup`: the styling reset, raw mode off, the cursor
+    /// shown, the alternate screen left), in that order, whatever the
+    /// teardown owes — the kitty flags, a pinned grapheme mode. A crash's
+    /// debt leaves the alternate screen up, for the report on it.
+    @Test("A SIGQUIT's debt is the bytes a quit's teardown writes, the alternate screen left with them")
+    func quitDebtIsTheTeardown() {
+        for (pushed, pinned) in [(false, false), (true, true)] {
+            let (terminal, output) = ScriptedTerminalOutput.terminal()
+            terminal.enterAlternateScreen()
+            terminal.enableRawMode()
+            terminal.keyboardFlagsPushed = pushed
+            terminal.pinnedGraphemeClustering = pinned
+            let owed = terminal.quitDebt
+            #expect(!terminal.signalDebt.contains(ANSIRenderer.exitAlternateScreen), "a crash keeps its report up")
+            output.clear()
+            terminal.write(ANSIRenderer.reset)
+            terminal.disableRawMode()
+            terminal.showCursor()
+            terminal.exitAlternateScreen()
+            #expect(owed == output.bytes, "pushed: \(pushed), pinned: \(pinned)")
+            #expect(!terminal.quitDebt.hasSuffix(ANSIRenderer.exitAlternateScreen), "off the alternate screen, nothing to leave")
+        }
+    }
+
     /// K3 in `Documentation/Ghostty-VT-adoption.md`: a host that advances a
     /// cluster further than TUIkit counted wrapped the row into the next one,
     /// and on the bottom row scrolled the screen. Off while the app runs; on
