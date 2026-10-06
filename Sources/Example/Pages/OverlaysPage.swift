@@ -156,6 +156,7 @@ struct OverlaysPage: View {
     @State private var showCover = false
     @State private var showDetented = false
     @State private var detent: PresentationDetent = .medium
+    @State private var showLive = false
 
     /// Callback to navigate back to the main menu.
     let onBack: () -> Void
@@ -206,6 +207,10 @@ struct OverlaysPage: View {
     /// backdrop isolation — which drops the items a presented page declares
     /// *inside* the presentation — does not reach these. The page has to
     /// withdraw them itself.
+    ///
+    /// Not the live sheet: the page beside it stays live, its "⎋ back" with
+    /// it while the focus is on the page. With the focus in the sheet, the
+    /// sheet's own "⎋ dismiss" — an item of its section — stands in its place.
     private var isPresenting: Bool {
         showOverlay || showConfirm || showPopover || showCover || showDetented
     }
@@ -303,13 +308,8 @@ struct OverlaysPage: View {
                         Button("page.overlays.variants.cover") { showCover = true }
 
                         Button("page.overlays.variants.sheet") { showDetented = true }
-                    }
-                    // The terminal's stand-in for dragging a sheet's grabber:
-                    // the bound selection, moved by a control the app owns.
-                    Picker("page.overlays.variants.detent", selection: $detent) {
-                        Text("page.overlays.variants.detentMedium").tag(PresentationDetent.medium)
-                        Text("page.overlays.variants.detentLarge").tag(PresentationDetent.large)
-                        Text("8").tag(PresentationDetent.height(8))
+
+                        Button("page.overlays.variants.liveSheet") { showLive = true }
                     }
                 }
             }
@@ -331,8 +331,8 @@ struct OverlaysPage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        // The cover and the detented sheet are attached at the PAGE, not at
-        // their buttons: both present over the whole screen, so hanging them
+        // The cover and the detented sheets are attached at the PAGE, not at
+        // their buttons: they present over the whole screen, so hanging them
         // off a button inside a scroll view would only make the attachment
         // point harder to reason about. (A popover is the opposite — it
         // belongs to its button, and is attached there.)
@@ -357,6 +357,22 @@ struct OverlaysPage: View {
                 }
             }
             .presentationDetents([.medium, .large, .height(8)], selection: $detent)
+            .presentationDragIndicator(.visible)
+        }
+        // A sheet beside the page rather than over it: docked at the bottom,
+        // with the page laid out in the rows above and still live — up to
+        // `.medium`; grown past it, the sheet is a modal again.
+        .sheet(isPresented: $showLive) {
+            Panel("page.overlays.variants.liveSheetTitle") {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("page.overlays.variants.liveSheetBody")
+                    Button("button.close") { showLive = false }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+            .presentationDetents([.height(8), .medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         }
         .navigationTitle("menu.item.overlays")
     }
