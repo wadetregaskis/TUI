@@ -14,7 +14,8 @@ import TUIkit
 ///
 /// Each row of a lazy list carries a `.background(GeometryReader…)` that draws
 /// where the row is in the list's named space and in the scroll view's — the
-/// scroll-offset idiom, row by row — and watches its scroll visibility. A
+/// scroll-offset idiom, row by row — watches its scroll visibility, and fades
+/// in and out at the viewport's edges (`scrollTransition`). A
 /// reader in the header asks `.global` under an offset that moves. A marker
 /// follows the selected row, drawn by a reader in an `overlayPreferenceValue`
 /// layer from the row's anchor (probe L1's shape: exact with no correction).
@@ -28,8 +29,9 @@ import TUIkit
 /// G1 (no prediction) scrolling corrected the scroll view's subtree and the
 /// named space's every frame, an insertion the named space's, the offset the
 /// root; with the stacks predicting (rung 1) the named space corrects
-/// nothing, and what is left — the scroll view's offset, the header's
-/// `.offset` — is what the later rungs convert. `--bench geometry` prints the
+/// nothing, with the scroll view placing its content at minus its offset
+/// (rung 2) nor does the scroll view, and what is left — the header's
+/// `.offset` — is what rung 3 converts. `--bench geometry` prints the
 /// corrections per frame by owner kind, the acceptance metric of the rungs
 /// (§10 steps 5–7).
 enum GeometryScenario {
@@ -76,6 +78,7 @@ private struct GeometryView: View {
                                 }
                             }
                             .onScrollVisibilityChange { visible in shown += visible ? 1 : -1 }
+                            .scrollTransition { content, phase in content.opacity(phase.isIdentity ? 1 : 0.6) }
                             .anchorPreference(key: GeometrySelectionKey.self, value: .bounds) {
                                 index == selected ? $0 : nil
                             }

@@ -136,3 +136,54 @@ frame the user was looking at. A view handling the pointer in a named space
 stamps a marker each frame and so declines the memos above it (its conversion
 is made per frame); in `.local` and `.global` nothing changes. A name nothing
 declares converts in the global space, as SwiftUI's does.
+
+### B-D5G-8. Scroll transitions: the default threshold is taken as `.visible`, unmeasured
+
+*`View.scrollTransition(_:axis:transition:)`,
+`scrollTransition(topLeading:bottomTrailing:axis:transition:)`,
+`ScrollTransitionConfiguration` (`.interactive`, `.animated`)*
+
+What ships: a view's phase follows where it is in its scroll view's viewport
+— the edge it is nearer (`.topLeading` above the middle, `.bottomTrailing`
+below) until it is in as far as the configuration's threshold, then
+`.identity`. `.interactive` interpolates the EFFECT between the edge phase's
+and the identity phase's by how far in the view is (measured: SwiftUI calls
+the closure for all three phases and does the same), paced by the curve;
+`.animated` switches at the threshold and animates with its animation;
+`.identity` never changes. Thresholds are depths into the viewport in cells
+(`.visible(a)` is `a` of the view, `.centered` is the view's middle at the
+viewport's, `inset(by:)` moves one towards the middle). The position is the
+owner's answer 5: predicted, and corrected by the scroll view when wrong.
+
+Not measured: the threshold SwiftUI uses when none is set. A pixel probe of
+an offscreen `NSHostingView` (session notes, `D5G/probe/st2.swift`) did not
+agree with itself — the band it found partly faded did not move with the
+scroll offset it was given — so the default is taken as `.visible`, the point
+the documentation of `threshold(_:)` calls "fully visible".
+
+**Fuller version:** a probe that reads the effect without pixels — an effect
+whose `animatableData` is observable — to settle the default; an hour, and a
+one-line change if it differs.
+
+### B-D5G-9. A `List`'s rows are not placed by the prediction, and a `List` does not own `.scrollView`
+
+*`GeometryReader` (or `scrollTransition`) in a `List` row asking `.scrollView`,
+a named space, or `.global`*
+
+The prediction rungs convert the stacks, grids, layouts and the scroll view
+(design study A2, rungs 1 and 2). A `List` renders its rows on demand into a
+window under its chrome, and its rows are told the list's own origin: what
+the window and the chrome add is carried by each reader's residual, so a
+static list costs a correction on a reader's first frame, and scrolling a
+list with readers in its rows costs its owner one more drawing per frame —
+G1's rate, never a wrong answer. `.scrollView` inside a `List` row is
+answered by the nearest `ScrollView` around the list (or the global space),
+where SwiftUI's list is itself the scroll view. A `Table`'s cells are not
+located at all (B-D5G-2).
+
+**Fuller version:** the list places each drawn row at `contentTop + (line −
+drawn offset)` in its window, as `attachRowPayloads` already does for the
+rows' regions, and owns `.scrollView` for its rows as the scroll view does —
+a day, on the list's hot path, so with the `table`, `tables-scroll` and
+`session/inbox` A/Bs.
+

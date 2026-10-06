@@ -557,6 +557,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // Where the walk stood before the content rendered, for a correction of
         // a reader asking this view's space (`ownScrollSpace`).
         let checkpoint = context.isMeasuring ? nil : RenderWalkCheckpoint(context: context)
+        // This view's space, open to the readers its content draws while it does.
+        let scrollSpace = enterScrollSpace(
+            viewport: CellSize(width: contentWidth, height: contentViewportHeight), context: context)
         var (fullBuffer, contentSlice, seekOffset, contentExtent, drawnLines) = renderedContent(
             contentWidth: contentWidth, viewportHeight: contentViewportHeight,
             horizontal: wantsHorizontal, verticalScrollOffset: handler.scrollOffset,
@@ -636,6 +639,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             full: fullBuffer, slice: contentSlice, checkpoint: checkpoint, handler: handler, chrome: chrome,
             viewport: CellSize(width: contentWidth, height: contentViewportHeight),
             horizontal: wantsHorizontal, context: context)
+        leaveScrollSpace(scrollSpace, context: context)
 
         decideTabStop(
             handler: handler, contentWidth: contentWidth,

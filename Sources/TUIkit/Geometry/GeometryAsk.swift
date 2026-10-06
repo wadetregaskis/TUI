@@ -21,6 +21,11 @@ struct GeometryObservation: Equatable, Sendable {
     /// The space's own size, or `nil` where no owner enclosed the view —
     /// which is when `GeometryProxy.bounds(of:)` answers `nil`.
     var spaceSize: CellSize?
+
+    /// For a scroll view's space, the axis it scrolls along — `.vertical`
+    /// when it scrolls both ways — which a scroll transition naming no axis
+    /// follows; `nil` for any other owner's.
+    var scrollAxis: Axis?
 }
 
 // MARK: - Ask
@@ -200,11 +205,13 @@ final class GeometryAsk: @unchecked Sendable {
         // if the root started it (`GeometryOwnerScope.startsReference`).
         var ownerOrigin = CellPoint(x: 0, y: 0)
         var ownerSize: CellSize?
+        var ownerAxis: Axis?
         var scope = owners
         while let owner = scope {
             if owner.spaces.contains(space) {
                 ownerOrigin = owner.origin
                 ownerSize = owner.size
+                ownerAxis = owner.scrollAxis
                 break
             }
             if owner.startsReference { return nil }
@@ -213,14 +220,14 @@ final class GeometryAsk: @unchecked Sendable {
         let predicted = CellPoint(x: origin.x - ownerOrigin.x, y: origin.y - ownerOrigin.y)
         predictions[space] = predicted
         guard let kept = coordinator?.keptEntry(for: id, in: space) else {
-            return GeometryObservation(origin: predicted, spaceSize: ownerSize)
+            return GeometryObservation(origin: predicted, spaceSize: ownerSize, scrollAxis: ownerAxis)
         }
         guard let then = kept.predicted else { return kept.observation }
         return GeometryObservation(
             origin: CellPoint(
                 x: predicted.x + kept.observation.origin.x - then.x,
                 y: predicted.y + kept.observation.origin.y - then.y),
-            spaceSize: kept.observation.spaceSize)
+            spaceSize: kept.observation.spaceSize, scrollAxis: kept.observation.scrollAxis)
     }
 
     /// What the view was told while recording, in the order it asked.

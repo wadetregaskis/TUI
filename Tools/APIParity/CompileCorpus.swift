@@ -2584,3 +2584,44 @@ private struct PopoverRectAttachment: View {
             .popover(isPresented: $showing, attachmentAnchor: .rect(.bounds)) { Text("Callisto") }
     }
 }
+
+// MARK: - Scroll transitions (lane D5G)
+
+/// SwiftUI's shapes for `scrollTransition`: a fade and slide as rows come in,
+/// each edge configured on its own, and the configuration spellings.
+@MainActor
+private struct ScrollTransitionShapes: View {
+    var body: some View {
+        ScrollView {
+            LazyVStack {
+                ForEach(0..<20, id: \.self) { index in
+                    Text("Row \(index)")
+                        .scrollTransition { content, phase in
+                            content
+                                .opacity(phase.isIdentity ? 1 : 0.3)
+                                .offset(x: Int(phase.value * 4))
+                        }
+                    Text("Edge \(index)")
+                        .scrollTransition(
+                            topLeading: .interactive(timingCurve: .easeIn),
+                            bottomTrailing: .animated(.spring).threshold(.visible(0.9)),
+                            axis: .vertical
+                        ) { content, phase in
+                            content.brightness(phase.value * 0.2)
+                        }
+                    Text("Animated \(index)")
+                        .scrollTransition(.animated.threshold(.centered.inset(by: 2))) { content, phase in
+                            content.grayscale(phase.isIdentity ? 0 : 1)
+                        }
+                }
+            }
+        }
+    }
+}
+
+private func scrollTransitionConfigurations() -> [ScrollTransitionConfiguration] {
+    [
+        .identity, .interactive, .animated,
+        .interactive.animation(.easeOut).threshold(.hidden.interpolated(towards: .visible, amount: 0.5)),
+    ]
+}

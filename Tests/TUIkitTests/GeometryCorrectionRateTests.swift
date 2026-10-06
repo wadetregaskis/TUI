@@ -6,7 +6,9 @@
 //  metric of the prediction rungs, pinned here so each rung's effect on it is
 //  a reviewed change to these numbers. Under G1 (step 3) the same shape made,
 //  per scroll step, a scroll view AND a named-space correction, and one named
-//  correction per insertion; rung 1 (step 5) takes both named ones to zero. The Stress `geometry` scenario prints
+//  correction per insertion; rung 1 (step 5) takes both named ones to zero,
+//  and rung 2 (step 6, the scroll view placing its content at minus its
+//  offset) the scroll view's. The Stress `geometry` scenario prints
 //  the same counter for a bench on a quiet machine.
 //
 //  Created by Wade Tregaskis
@@ -79,8 +81,8 @@ struct GeometryCorrectionRateTests {
         return made
     }
 
-    @Test("Rung 1 (stacks predict): none at rest; one per scroll step; none per insertion; one per offset step")
-    func correctionsUnderRung1() {
+    @Test("Rung 2 (stacks and scroll views predict): none at rest, scrolling or inserting; one per offset step")
+    func correctionsUnderRung2() {
         let harness = InputChainHarness()
         var position = ScrollPosition()
         let binding = Binding(get: { position }, set: { position = $0 })
@@ -107,14 +109,15 @@ struct GeometryCorrectionRateTests {
         // are told what was found for them last frame.
         for _ in 0..<3 { expect(corrections(harness, frame)) }
 
-        // Scrolling moves every row through the viewport, which nothing
-        // predicts until the scroll view translates its content's origin (step
-        // 6): it corrects every frame. A row entering the lazy stack's band
-        // for the first time is placed by the stack, in the list's space:
-        // predicted, where G1 corrected the named space every step.
+        // Scrolling moves every row through the viewport, and the scroll view
+        // places its content at minus the offset it draws at: predicted, where
+        // G1 and rung 1 corrected the scroll view's subtree every step. A row
+        // entering the lazy stack's band for the first time is placed by the
+        // stack, in the list's space: predicted, where G1 corrected the named
+        // space every step.
         for step in 1...5 {
             position.scrollTo(y: step)
-            expect(corrections(harness, frame), scrollView: 1)
+            expect(corrections(harness, frame))
         }
 
         // A row inserted above moves every row down, in the list's space and
@@ -130,5 +133,38 @@ struct GeometryCorrectionRateTests {
             offset = step
             expect(corrections(harness, frame), root: 1)
         }
+    }
+
+    @Test("The scroll-offset tracker: a reader of its place in the scroll view scrolls 100 frames uncorrected")
+    func trackerScrollsUncorrected() {
+        let harness = InputChainHarness()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+        var seen = 0
+        let page = {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    GeometryReader { proxy in
+                        // swiftlint:disable:next redundant_discardable_let
+                        let _ = (seen = proxy.frame(in: .named("scroll")).minY)
+                        Text("offset \(-proxy.frame(in: .scrollView).minY)")
+                    }
+                    .frame(height: 1)
+                    ForEach(0..<150, id: \.self) { Text("row \($0)") }
+                }
+            }
+            .coordinateSpace(.named("scroll"))
+            .scrollPosition(binding)
+            .frame(height: 10)
+        }
+        harness.frame(page())
+        harness.frame(page())
+        let before = harness.geometryCorrections
+        for step in 1...100 {
+            position.scrollTo(y: step)
+            harness.frame(page())
+        }
+        #expect(seen == -100)
+        #expect(harness.geometryCorrections == before)
     }
 }

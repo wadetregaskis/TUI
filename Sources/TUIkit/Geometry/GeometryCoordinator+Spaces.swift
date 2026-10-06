@@ -115,17 +115,20 @@ extension GeometryCoordinator {
     ///   - size: The space's size, for `GeometryProxy.bounds(of:)`.
     ///   - shift: Where `drawn`'s top-left is in the space — not at its origin
     ///     when the owner drew only a band of a longer content.
+    ///   - scrollAxis: For a scroll view, its axis
+    ///     (``GeometryObservation/scrollAxis``).
     /// - Returns: Whether a reader must be drawn again.
     func resolve(
         _ spaces: [CoordinateSpace], in drawn: FrameBuffer, size: CellSize,
-        shift: CellPoint = CellPoint(x: 0, y: 0)
+        shift: CellPoint = CellPoint(x: 0, y: 0), scrollAxis: Axis? = nil
     ) -> Bool {
         guard isWaiting(in: spaces) else { return false }
         var misled = false
         drawn.forEachGeometryMarker(offsetX: shift.x, offsetY: shift.y) { id, x, y in
             guard let ask = asks[id] else { return }
             for space in spaces where ask.found[space] == nil && ask.wanted.contains(space) {
-                let observation = GeometryObservation(origin: CellPoint(x: x, y: y), spaceSize: size)
+                let observation = GeometryObservation(
+                    origin: CellPoint(x: x, y: y), spaceSize: size, scrollAxis: scrollAxis)
                 answer(ask, in: space, with: observation)
                 if ask.wasMisled(about: space, by: observation) { misled = true }
             }

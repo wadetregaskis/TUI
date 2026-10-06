@@ -44,6 +44,10 @@ final class GeometryOwnerScope {
     /// a named space, the viewport for a scroll view.
     let size: CellSize?
 
+    /// For a scroll view, the axis a scroll transition naming none follows —
+    /// see ``GeometryObservation/scrollAxis``.
+    let scrollAxis: Axis?
+
     /// Whether this owner started the carried origin its content measures
     /// from, nothing above it carrying one — so no space owned further out
     /// can be measured in the same frame of reference.
@@ -53,12 +57,13 @@ final class GeometryOwnerScope {
     let parent: GeometryOwnerScope?
 
     init(
-        spaces: [CoordinateSpace], origin: CellPoint, size: CellSize?, startsReference: Bool,
+        spaces: [CoordinateSpace], origin: CellPoint, size: CellSize?, scrollAxis: Axis?, startsReference: Bool,
         parent: GeometryOwnerScope?
     ) {
         self.spaces = spaces
         self.origin = origin
         self.size = size
+        self.scrollAxis = scrollAxis
         self.startsReference = startsReference
         self.parent = parent
     }
@@ -76,14 +81,15 @@ extension GeometryCoordinator {
     ///   - contentContext: The context its content renders in, whose carried
     ///     origin is the owner's own.
     ///   - size: The space's size as far as is known before it is drawn.
+    ///   - scrollAxis: For a scroll view, its axis (``GeometryObservation/scrollAxis``).
     /// - Returns: The scope, to close.
     func enterOwner(
         of spaces: [CoordinateSpace], from context: RenderContext, in contentContext: RenderContext,
-        size: CellSize?
+        size: CellSize?, scrollAxis: Axis? = nil
     ) -> GeometryOwnerScope {
         let origin = contentContext.geometryOrigin ?? (0, 0)
         let scope = GeometryOwnerScope(
-            spaces: spaces, origin: CellPoint(x: origin.x, y: origin.y), size: size,
+            spaces: spaces, origin: CellPoint(x: origin.x, y: origin.y), size: size, scrollAxis: scrollAxis,
             startsReference: !context.carriesGeometryOrigin, parent: ownerScope)
         ownerScope = scope
         return scope

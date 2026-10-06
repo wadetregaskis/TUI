@@ -323,6 +323,14 @@ extension _ScrollViewCore {
             reportsTargetLayout: handler?.scrollTargeting != nil)
         measureContext.availableWidth = extents.width
         measureContext.availableHeight = extents.height
+        // The content is placed at minus the offsets this drawing is made at,
+        // in the viewport: so a reader is told where it is in the viewport
+        // (`.scrollView`) before it is drawn, at whatever offset that is, and
+        // the carried origin of everything below moves as the content does
+        // (design study A2, rung 2). The ramp a gradient runs down the content
+        // stays put — it spans the content, not the viewport.
+        measureContext = measureContext.placingChild(
+            gradient: nil, x: -(horizontal ? handler?.horizontal.scrollOffset ?? 0 : 0), y: -verticalScrollOffset)
         let buffer = TUIkit.renderToBuffer(content, context: measureContext)
         if contentReply.measureWentStale, !remeasured, !context.isMeasuring {
             // The canvas was the height of a measure this render refuted, so
