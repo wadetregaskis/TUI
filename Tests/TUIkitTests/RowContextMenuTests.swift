@@ -550,6 +550,36 @@ struct RowContextMenuTests {
         #expect(harness.shows("outer"), "a click's release closed the menu:\n\(harness.screen)")
     }
 
+    @Test(
+        "A row menu let go of away from it closes, with or without a frame between press and release",
+        arguments: [false, true], [false, true])
+    func heldRowMenuLetGoCloses(onList: Bool, frameBetween: Bool) throws {
+        // A Ctrl-press on item3 opens the menu at the press, hanging below it;
+        // a drag up to item1 and a release there is a hold let go away from
+        // the menu. Drawn, the menu's backdrop takes that release and closes
+        // the menu; in one input batch, before any frame has drawn it, the
+        // release lands on the rows — and closes it all the same, running
+        // nothing.
+        let harness = Harness(onList ? .list : .selectionMenu)
+        let press = try harness.position(of: "item3")
+        let away = try harness.position(of: "item1")
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: press.x, y: press.y, ctrl: true))
+        if frameBetween { harness.frame() }
+        harness.app.send(MouseEvent(button: .left, phase: .dragged, x: away.x, y: away.y))
+        if frameBetween { harness.frame() }
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: away.x, y: away.y))
+        harness.frame()
+        #expect(!harness.shows("sel ["), "letting go left the menu up:\n\(harness.screen)")
+        #expect(harness.rows.ran.isEmpty, "\(harness.rows.ran)")
+        #expect(harness.rows.selection == [2, 3], "\(harness.screen)")
+        // A press that never moved is a click, and leaves the menu up either way.
+        harness.app.send(MouseEvent(button: .left, phase: .pressed, x: press.x, y: press.y, ctrl: true))
+        if frameBetween { harness.frame() }
+        harness.app.send(MouseEvent(button: .left, phase: .released, x: press.x, y: press.y))
+        harness.frame()
+        #expect(harness.shows("sel [2, 3]"), "a click closed the menu:\n\(harness.screen)")
+    }
+
     @Test("Shift+F10 on a list hangs the menu under the cursor row")
     func listKeyboardMenuHangsUnderTheCursorRow() throws {
         let harness = Harness(.list)

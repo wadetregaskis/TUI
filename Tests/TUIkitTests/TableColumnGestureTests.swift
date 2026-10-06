@@ -352,19 +352,26 @@ struct TableColumnGestureTests {
         #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "the mode outlived Escape:\n\(harness.screen)")
     }
 
-    @Test("A drag after the press that opened the column menu resizes nothing, though no frame has drawn the menu")
-    func menuOpeningPressSpendsItsDrag() throws {
+    @Test(
+        "A drag after the press that opened the column menu resizes nothing, and letting go closes the menu, with or without a frame between",
+        arguments: [false, true])
+    func menuOpeningPressSpendsItsDrag(frameBetween: Bool) throws {
         // A Ctrl-press on Beta's title opens the menu and hands the gesture to
         // it; until a frame draws the menu over the header, its drag — Ctrl let
         // go — lands on the header's own regions, here the gap before Beta.
+        // Drawn, the menu's backdrop takes the drag there, and the release —
+        // the pointer moved, so a hold let go away from the menu — closes it.
+        // Undrawn, the same release closes it too.
         let harness = Harness()
         let y = try #require(harness.headerY)
         let beta = try #require(harness.column(of: "Beta", on: y))
         harness.app.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
+        if frameBetween { harness.frame() }
         harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta - 1, y: y))
+        if frameBetween { harness.frame() }
         harness.app.send(MouseEvent(button: .left, phase: .released, x: beta - 1, y: y))
         harness.frame()
-        #expect(harness.shows("Hide “Beta”"), "\(harness.screen)")
+        #expect(!harness.shows("Hide “Beta”"), "letting go left the menu up:\n\(harness.screen)")
         #expect(harness.columns.customization[width: "alpha"] == nil, "the drag resized Alpha:\n\(harness.screen)")
         // Its release is the menu's too, and sorts nothing — Ctrl let go or
         // not, since the release takes its press's modifiers (`stampClickCount`).

@@ -201,7 +201,10 @@ enum RowContextMenuHost {
     /// Opens the menu at a secondary press, at the press's cell.
     ///
     /// The rest of the gesture belongs to the menu, as `.contextMenu`'s does:
-    /// press, drag down the rows, release on one to run it.
+    /// press, drag down the rows, release on one to run it. A gesture that
+    /// moves and lets go before a frame has drawn the menu closes it, as it
+    /// would have closed the drawn menu wherever it let go
+    /// (``MouseEventDispatcher/pressOpenedPopup(closing:)``).
     static func openByPointer(
         _ stateBox: StateBox<RowMenuState>, target: RowMenuTarget, x: Int, y: Int,
         dispatcher: MouseEventDispatcher, onOpen: MenuOpenAction?
@@ -216,7 +219,7 @@ enum RowContextMenuHost {
         stateBox.value = state
         onOpen?()
         dispatcher.handOffGesture()
-        dispatcher.pressOpenedPopup()
+        dispatcher.pressOpenedPopup(closing: { close(state) })
     }
 
     /// Opens the menu from the keyboard: on its first item, anchored under the
@@ -265,10 +268,7 @@ enum RowContextMenuHost {
             }
             return
         }
-        let dismiss = {
-            state.menu.isOpen = false
-            state.menu.controller.closed()
-        }
+        let dismiss = { close(state) }
         guard let menuItems = items(), drawsAnything(menuItems, context: context) else {
             dismiss()
             return
@@ -289,6 +289,12 @@ enum RowContextMenuHost {
             dismiss: dismiss, context: context)
         ContextMenuPresentation.attachKeyboardCloser(
             state: state.menu, sectionID: sectionID, context: context)
+    }
+
+    /// Closes the menu `state` holds — chosen from, dismissed, or let go of.
+    private static func close(_ state: RowMenuState) {
+        state.menu.isOpen = false
+        state.menu.controller.closed()
     }
 
     /// Whether `items` draws anything at all — a menu closure that returned
