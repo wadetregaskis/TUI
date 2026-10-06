@@ -150,12 +150,18 @@ final class BundleStringTableTests {
     /// The flat cap's failure: a map emptied when it fills served nothing to
     /// a set of keys one larger than it, asked for round after round — every
     /// round filled it, emptied it at the last key and read every key again.
-    @Test("A set of keys just over the bound, asked for again and again, is still served from what was kept")
-    func aWorkingSetJustOverTheBoundStillHits() throws {
+    /// And the same failure moved (the follow-ups lane's review): with an
+    /// answer found in the previous generation copied back into the current
+    /// one, a set twice the limit read nearly every key again each round
+    /// (8,190 of 8,192), though two generations hold all of it.
+    @Test(
+        "A set of keys over one generation, asked for again and again, is still served from what was kept",
+        arguments: [BundleStringTables.answerLimit + 1, 2 * BundleStringTables.answerLimit])
+    func aWorkingSetOverAGenerationStillHits(count: Int) throws {
         let files = try tables()
         let service = LocalizationService(configDirectoryPath: configDir, defaultBundle: files.bundle)
         service.pinLanguageForTesting(.english)
-        let keys = (0...BundleStringTables.answerLimit).map { "row.\($0)" }
+        let keys = (0..<count).map { "row.\($0)" }
         for key in keys { _ = service.string(for: key) }
         let afterFirstRound = service.tableReadCount
         // English's .lproj and then the fallback, once each for every key.

@@ -115,23 +115,31 @@ final class BundleStringTables {
     /// TUIkit's has already lost to once (the text-wrap memo): a working set
     /// just over the limit — 4,097 keys a frame — filled the map, emptied it
     /// at the 4,097th key and refilled it, so every frame read every key from
-    /// Foundation again and nothing was ever served. Here a full generation
-    /// becomes the previous one and the one before it is forgotten, and an
-    /// answer found in the previous generation moves back into the current
-    /// one, so a set of keys asked for again and again stays kept whole up to
-    /// twice the limit, and only keys nobody has asked for in a whole
-    /// generation are forgotten.
+    /// Foundation again and nothing was ever served. Here only a key read
+    /// from Foundation is written, into the current generation; a full one
+    /// becomes the previous one and the one before it is forgotten. A set of
+    /// keys asked for again and again is therefore kept whole up to twice the
+    /// limit — the whole bound — and read again only past it.
+    ///
+    /// An answer found in the previous generation is NOT copied back into
+    /// the current one. That copy is what keeps an answer asked for once a
+    /// generation alive for ever, but every copy fills the current generation
+    /// towards its turnover, and the turnover forgets the previous answers
+    /// not yet copied: a set of 4,098 keys asked for in turn then read one key
+    /// from Foundation again each round, 6,144 keys 2,047 to 4,094, and 8,191
+    /// keys 8,187 — the flat cap's failure again, moved from just over the
+    /// limit to just under twice it. Without the copy, the price is a key
+    /// asked for often while a stream of others is read: it is forgotten
+    /// with its generation, so it is read again once a turnover at most — at
+    /// most once for every ``BundleStringTables/answerLimit`` other keys read.
     struct Answers {
         private var current: [String: String?] = [:]
         private var previous: [String: String?] = [:]
 
         /// The answer kept for `key` — `.some(nil)` for a key the table was
         /// found to lack — or `nil` where none is kept.
-        mutating func answer(for key: String) -> String?? {
-            if let kept = current[key] { return kept }
-            guard let kept = previous[key] else { return nil }
-            remember(kept, for: key)
-            return kept
+        func answer(for key: String) -> String?? {
+            current[key] ?? previous[key]
         }
 
         /// Keeps `answer` for `key`, starting a new generation first if the
@@ -161,7 +169,7 @@ final class BundleStringTables {
     func string(for key: String, tableName: String?, bundle: Bundle?, language: String) -> String? {
         let table = self.table(named: tableName, in: bundle)
         guard table.exists else { return nil }
-        if let answer = table.answers[language, default: Answers()].answer(for: key) { return answer }
+        if let answer = table.answers[language]?.answer(for: key) { return answer }
         var answer: String?
         if let source = localization(of: table, for: language) {
             foundationReads += 1
