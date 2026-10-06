@@ -467,7 +467,7 @@ coordinator to fill.** Each glyph was written after a carriage return and an
 erase-line on the primary screen, with a cursor-position report before and
 after it: `⌃ ⌥ ⇧ ⌘ ⎋ ↩ ⌤ ⇥ ⇤ ⌫ ⌦ ← ↑ → ↓ ↖ ↘ ⇞ ⇟ ⌧ ⇪ ␣`, and the chord
 `⌃⇧Z`. Every glyph advanced one cell and the chord three, on every host
-reached, the four the framework draws for the first time (`↩ ↖ ↘ ⇞ ⇟`)
+reached, the five the framework draws for the first time (`↩ ↖ ↘ ⇞ ⇟`)
 included. What a DSR cannot see is the INK — whether a glyph overhangs its
 cell, or is drawn at all (a font with no glyph for it draws a box, which also
 advances one): that needs `overhang_card.py` read by a person, or a
@@ -482,7 +482,15 @@ widens it.
 | Ghostty | — | UNMEASURED (not reached: the launch waited on a prompt) | — | UNMEASURED |
 | Warp | v0.2026.09.30.08.29 | 1 each | 3 | UNMEASURED |
 | kitty | — | UNMEASURED (did not launch) | — | UNMEASURED |
-| tmux | 3.7c | 1 each | 3 | UNMEASURED |
+| tmux, no outer terminal recorded | 3.7c | 1 each | 3 | UNMEASURED |
+
+The tmux row is tmux's own grid. Its stamp names no outer terminal: the
+pane's environment has `TERM_PROGRAM=tmux` and
+`__CFBundleIdentifier=com.anthropic.claudefordesktop`, which a pane inherits
+from the environment its server started in — the Claude desktop app's, not a
+terminal's. Whatever client was or was not attached, tmux answers a DSR itself,
+from its own cell model, so the row says what tmux counts, not what an outer
+terminal draws; tmux inside Ghostty or iTerm2 is a separate, UNMEASURED row.
 
 iTerm2 3.7.3 and Warp v0.2026.09.30 are newer than the versions the
 2026-09-04 card recorded; the ink of `⌃ ⌥ ⇧ ⌘ ⎋ ⇥ ⌫ ⌦ ↑ ↓ ← →` is that card's
