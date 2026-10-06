@@ -112,6 +112,71 @@ private final class Rig {
     }
 }
 
+/// A TCP socket listening on the loopback interface, for a descriptor
+/// `poll` calls readable while `FIONREAD` finds nothing in it: one with a
+/// connection pending.
+private struct LoopbackListener {
+    let descriptor: Int32
+    private let port: in_port_t
+
+    enum Failure: Error { case failed(String) }
+
+    #if canImport(Darwin)
+        private static let stream = SOCK_STREAM
+    #else
+        private static let stream = Int32(SOCK_STREAM.rawValue)
+    #endif
+
+    init() throws {
+        let listener = socket(AF_INET, Self.stream, 0)
+        guard listener >= 0 else { throw Failure.failed("socket") }
+        var address = Self.loopback(port: 0)
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let listening = withUnsafeMutablePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(listener, $0, length) == 0 && listen(listener, 4) == 0
+                    && getsockname(listener, $0, &length) == 0
+            }
+        }
+        guard listening else {
+            Foundation.close(listener)
+            throw Failure.failed("bind/listen")
+        }
+        descriptor = listener
+        port = address.sin_port
+    }
+
+    /// A connection to it, left pending: the listener is readable until it
+    /// is accepted.
+    func connect() throws -> Int32 {
+        let client = socket(AF_INET, Self.stream, 0)
+        var address = Self.loopback(port: port)
+        let connected = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Foundation.connect(client, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+            }
+        }
+        guard client >= 0, connected else {
+            if client >= 0 { Foundation.close(client) }
+            throw Failure.failed("connect")
+        }
+        return client
+    }
+
+    func close() { Foundation.close(descriptor) }
+
+    private static func loopback(port: in_port_t) -> sockaddr_in {
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_port = port
+        address.sin_addr.s_addr = UInt32(0x7F00_0001).bigEndian
+        #if canImport(Darwin)
+            address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        #endif
+        return address
+    }
+}
+
 @Suite("The stall watchdog")
 struct StallWatchdogTests {
 
@@ -128,7 +193,9 @@ struct StallWatchdogTests {
         #expect(!rig.gate.noteDrain(), "and only once")
     }
 
-    @Test("Input the loop reads pops nothing")
+    /// And it is still watching afterwards: a watchdog that had ended would
+    /// pop nothing too.
+    @Test("Input the loop reads pops nothing, and the watch goes on")
     func readInputPopsNothing() {
         let rig = Rig()
         defer { rig.finish() }
@@ -138,7 +205,38 @@ struct StallWatchdogTests {
             #expect(!rig.drain())
         }
         #expect(rig.written(within: 1.2).isEmpty)
-        #expect(rig.gate.isArmed)
+        #expect(rig.gate.isArmed && !rig.gate.isStopped)
+        rig.type()
+        #expect(rig.written(within: 10) == "\u{1B}[<u", "still watching: a key left unread pops")
+    }
+
+    /// What a read racing the watchdog's look makes of a keystroke: input
+    /// `poll` calls readable, whose count a moment later is 0 — the loop read
+    /// it in between. Stood in for, without the race, by a listening socket
+    /// with a connection pending: readable to `poll`, nothing to `FIONREAD`
+    /// (0 on Darwin, an error on Linux), and not at its end. That is no
+    /// hang-up: the watch goes on, popping nothing for it (round 6: taken
+    /// for an end of file, it ended the watch for good, silently).
+    @Test("Input readable to poll with nothing to count — a racing read — leaves it watching")
+    func racingReadIsNoHangUp() throws {
+        let listener = try LoopbackListener()
+        defer { listener.close() }
+        var output: [Int32] = [-1, -1]
+        _ = pipe(&output)
+        defer { for descriptor in output { close(descriptor) } }
+        let gate = TerminalWriteGate()
+        let watchdog = StallWatchdog(gate: gate, input: listener.descriptor, output: output[1], grace: 0.1)
+        watchdog.start()
+        defer { watchdog.stop() }
+        gate.setArmed(true)
+        let client = try listener.connect()
+        defer { Foundation.close(client) }
+        // Long enough for many looks: it checks four times a second.
+        Thread.sleep(forTimeInterval: 0.8)
+        #expect(!gate.isStopped, "no hang-up")
+        #expect(gate.isArmed, "nothing popped: there was nothing to read")
+        var target = pollfd(fd: output[0], events: Int16(POLLIN), revents: 0)
+        #expect(poll(&target, 1, 0) == 0)
     }
 
     /// Disarmed while the flags are not pushed, during a suspend, and while
@@ -164,6 +262,7 @@ struct StallWatchdogTests {
         rig.gate.setArmed(true)
         rig.hangUp()
         #expect(rig.written(within: 1.2).isEmpty)
+        #expect(rig.gate.isStopped, "the watch ended")
     }
 
     /// Standard output left non-blocking by another program (a crashed Node
