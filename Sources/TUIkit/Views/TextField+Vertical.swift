@@ -118,7 +118,10 @@ extension _TextFieldCore {
         let source = verticalSource
         let layout = verticalLayout(
             source.characters, contentWidth: contentWidth, hasDisclosure: suggestionMenu != nil)
-        handler.wrapWidth = layout.width
+        // The width Up and Down move by: the one drawn, never a measure's
+        // probe, which would leave the keys between frames moving by rows at
+        // a width nobody sees.
+        if !context.isMeasuring { handler.wrapWidth = layout.width }
         let rowCount = Self.verticalRowCount(
             textRows: layout.rows.count, limit: context.environment.lineLimit,
             available: context.availableHeight)

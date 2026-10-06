@@ -322,7 +322,11 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         handler.undoManager = context.environment.undoManager
         handler.departedUndoSteps = context.environment.departedUndoSteps
         if !context.isMeasuring { handler.forgetHistoryIfReplaced() }
-        handler.viewportHeight = height
+        // The height a page key steps by is the one drawn, never a measure's
+        // probe (as the wrap width and the scroll are, in `window`): a
+        // container that measures by rendering, after the editor's real
+        // render, left Page Down stepping by the probe's rows.
+        if !context.isMeasuring { handler.viewportHeight = height }
         // Synced each render so the handler's vertical motion preserves the
         // same *visual* column the renderer draws the caret at.
         let tabWidth = context.environment.tabWidth
@@ -330,7 +334,9 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         handler.clampCursor()
         handler.selectionChannel = selection
         handler.selectionAffinity = context.environment.textSelectionAffinity
-        handler.adoptSelectionFromApp()
+        // The app's selection is taken by the render that draws it: a measure
+        // moves no caret.
+        if !context.isMeasuring { handler.adoptSelectionFromApp() }
 
         FocusRegistration.register(
             context: context, handler: handler, focusID: persistedFocusID)

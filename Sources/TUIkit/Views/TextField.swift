@@ -910,10 +910,13 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         handler.selectionAffinity = context.environment.textSelectionAffinity
         // One line until a vertical field's render says otherwise, so a field
         // that changes axis between frames does not keep the old one's keys.
-        handler.wrapWidth = nil
+        // A drawing render's to say: a measure's probe width would leave the
+        // keys moving by rows nobody sees (`TextField+Vertical`).
+        if !context.isMeasuring { handler.wrapWidth = nil }
         handler.clampCursorPosition()
         handler.selectionChannel = selection
-        handler.adoptSelectionFromApp()
+        // The app's selection is taken by the render that draws it.
+        if !context.isMeasuring { handler.adoptSelectionFromApp() }
         return handler
     }
 }

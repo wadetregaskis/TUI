@@ -169,6 +169,37 @@ struct EditorLayoutTests {
         #expect(handler.wrapWidth == drawn)
     }
 
+    /// Page Down steps by the height the editor drew, so a measure that
+    /// renders — at a probe's height — must not change it either.
+    @Test("A measuring render leaves the height Page Down steps by alone")
+    func measureLeavesTheViewportHeight() throws {
+        let frames = Frames(width: 20, height: 20)
+        let document = (0..<60).map { "line \($0)" }.joined(separator: "\n")
+        let editor = TextEditor(text: .constant(document))
+        _ = frames.pass { renderToBuffer(editor, context: frames.context) }
+        let handler = try #require(frames.handler)
+        var probe = frames.context.withAvailableSize(width: 20, height: 3)
+        probe.isMeasuring = true
+        _ = frames.pass { renderToBuffer(editor, context: probe) }
+        #expect(handler.handleKeyEvent(KeyEvent(key: .pageDown)))
+        #expect(handler.cursorLine == 19)
+    }
+
+    /// A vertical field's Up and Down move by rows at the width it drew; a
+    /// measure that renders at a probe's width must leave that alone.
+    @Test("A measuring render leaves the width a vertical field's keys move by alone")
+    func measureLeavesTheVerticalFieldsWrapWidth() throws {
+        let frames = Frames(width: 20, height: 6)
+        let field = TextField("", text: .constant("aaaa bbbb cccc dddd eeee ffff"), axis: .vertical)
+        _ = frames.pass { renderToBuffer(field, context: frames.context) }
+        let handler = try #require(frames.focus.currentFocused as? TextFieldHandler)
+        let drawn = try #require(handler.wrapWidth)
+        var probe = frames.context.withAvailableSize(width: 9, height: 6)
+        probe.isMeasuring = true
+        _ = frames.pass { renderToBuffer(field, context: probe) }
+        #expect(handler.wrapWidth == drawn)
+    }
+
     @Test("An edit hands its lines over with its text")
     func editKeepsItsLines() {
         let box = Box("ab\ncd")
