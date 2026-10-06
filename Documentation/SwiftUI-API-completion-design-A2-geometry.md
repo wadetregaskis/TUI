@@ -628,6 +628,23 @@ frame by owner after each rung:
 The first frame's two are the frame before the root has a reader to carry an
 origin for.
 
+The residual row holds for that shape, whose scroll steps set the offset before
+the content draws. **Review follow-ups (same day):** a scroll view whose offset
+moved after its content drew — the glue to a tail that grew, a seek the content
+resolved, the clamp, the focus snap over eager content — kept the first
+drawing's prediction beside what it found, so its correction drew every reader
+one move off and counted a residual of 1 each such frame. Each drawing now
+says where it placed the content, and the predictions are moved to the offset
+the frame settled on before any owner looks (`settlePlacement`): those frames
+cost their owner one correction (the first drawing is still made at the old
+offset) and leave residual 0. The placement includes the overscroll slide, so a
+push past an edge costs nothing. Also from the review: rows a scroll view draws
+twice in a frame keep their marker and handler ids (`RenderWalkCheckpoint.rewind`);
+a value first seen in a walk the frame then draws again appears rather than
+animating from it; only readers start a carried origin (not reporters or
+pointers); `GeometryProxy` is neither `Equatable` nor `Sendable`, as SwiftUI's
+is not.
+
 ---
 
 ## 11. Risks and things to check while building

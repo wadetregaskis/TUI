@@ -26,13 +26,20 @@ import TUIkitView
 /// `Grid`, a custom `Layout`, a scroll view, `.padding`, borders, `.frame`,
 /// overlays, `ZStack`, `.offset`, `.position`) carry the reader's origin down,
 /// and what the others add — usually the same every frame — is taken from
-/// where the owner of the space found it last frame. The owner (the named view, the scroll
-/// view, the scene root) finds it again once it has drawn, and when the answer
-/// was wrong — the first frame, or one on which something the prediction does
-/// not follow moved it — draws its subtree once more with the right answer, in
-/// the same frame. What reaches the screen is always drawn from where the
-/// reader really is. (Design study A2, G4; a reader is greedy, so its own
-/// content can never move it, and one more drawing always settles it.)
+/// where the owner of the space found it last frame. The owner (the named
+/// view, the scroll view, the scene root) finds it again once it has drawn,
+/// and when the answer was wrong — the first frame, or one on which something
+/// the prediction does not follow moved it — draws its subtree once more with
+/// the right answer, in the same frame. (Design study A2, G4; a reader is
+/// greedy, so its own content can never move it, and one more drawing
+/// settles it.)
+///
+/// What reaches the screen is drawn from where the reader really is, with two
+/// exceptions the decisions record: a reader inside a presented surface (a
+/// sheet, a popover) asking `.global` is placed only when the surface is
+/// composited, after the scene's correction, so it is right from the frame
+/// after (decisions D5G, B-D5G-3); and a view inside a `Table` cell is not
+/// found at all, the table composing its cells as text (B-D5G-2).
 ///
 /// ## What this deliberately does not have
 ///

@@ -771,7 +771,7 @@ four-row red→blue ramp under `.gradientExtent(.subtree)`.
 | Container | Before | Note |
 |---|---|---|
 | `VStack`, `HStack` | ✅ ramps | Shipped in step 4 |
-| `ZStack` | ✅ ramps | Inherits: its children all sit at its own origin |
+| `ZStack` | ✅ ramps | Inherited, then: its children were all drawn at its own origin, whatever their alignment put them. Since 2026-10-05 it places each child where its alignment does, and the ramp with it (below) |
 | `ScrollView` | ✅ ramps | Inherits: it wraps one child and moves nothing |
 | `Form` | ✅ ramps | Inherits, being a stack underneath |
 | `LazyVStack`, `LazyHStack` | ❌ every row the ramp's first colour | Fixed |
@@ -781,11 +781,23 @@ four-row red→blue ramp under `.gradientExtent(.subtree)`.
 | `Table` | ⚠️ honoured a colour; collapsed a ramp to one | Fixed — it paints its own cells, so it paints the ramp too |
 
 So the answer to "how many containers?" is: every one that places children,
-and there are seven places that do it. The two calls each one makes —
-`RenderContext.gradientContentFrame(width:height:)` then
+and there were seven places that did it when this was measured. The two calls
+each one makes — `RenderContext.gradientContentFrame(width:height:)` then
 `placingGradientChild(_:x:y:)` — are the whole of the participation. (Since
 2026-10-05 the second is `placingChild(gradient:x:y:)`, which moves the carried
 geometry origin of the A2 coordinate spaces onto the child in the same call.)
+
+**Since 2026-10-05 the composers place their content too** (decisions A2,
+rung 3; `SwiftUI-API-completion-decisions-D5G.md` B-D5G-10): `.padding`, a
+border or box (`.border()`, `ContainerView` and what is built on it), `.frame`'s
+alignment, `.overlay`/`.background` and the preference layers, and `ZStack`
+each move the ramp onto their content where they draw it. Content under them
+takes the ramp's colour where it is drawn — content inset two rows by
+`.padding(.top, 2)` takes the colour two rows down the ramp, where it used to
+take the colour at the padding's top. `.offset` and `.position` move only the geometry origin, so
+content under them keeps the colour of where the layout put it. A ramp in
+force now makes each of those composers that aligns by size measure its
+content before drawing it, which a ramp did not cost them before.
 
 Two corrections to the record while measuring this:
 
