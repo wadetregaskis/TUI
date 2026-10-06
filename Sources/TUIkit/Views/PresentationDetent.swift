@@ -90,6 +90,24 @@ public struct PresentationDetent: Hashable, Sendable {
         return max(1, min(extent, raw))
     }
 
+    /// Whether this detent stands for a height before `other`, when the two
+    /// resolve to the same one: `.large`, then `.medium`, then fractions and
+    /// heights, larger first, then custom detents by their type's name. An
+    /// order, any fixed one, so the detent a sheet's step writes to its
+    /// selection does not hang on a `Set`'s order.
+    func precedes(_ other: Self) -> Bool {
+        func rank(_ kind: Kind) -> (Int, Double, String) {
+            switch kind {
+            case .large: (0, 0, "")
+            case .medium: (1, 0, "")
+            case .fraction(let fraction): (2, -fraction, "")
+            case .height(let rows): (3, -Double(rows), "")
+            case .custom(let custom): (4, 0, custom.name)
+            }
+        }
+        return rank(kind) < rank(other.kind)
+    }
+
     /// What a ``CustomPresentationDetent`` is given to decide its height.
     /// Mirrors SwiftUI's `PresentationDetent.Context`.
     ///
@@ -118,10 +136,13 @@ public struct PresentationDetent: Hashable, Sendable {
     private struct CustomDetent: Hashable, @unchecked Sendable {
         let type: ObjectIdentifier
         let height: (Context) -> Int?
+        /// The type's name, which orders two custom detents (``precedes(_:)``).
+        let name: String
 
         init<D: CustomPresentationDetent>(_ type: D.Type) {
             self.type = ObjectIdentifier(type)
             height = { D.height(in: $0) }
+            name = String(reflecting: type)
         }
 
         static func == (lhs: Self, rhs: Self) -> Bool { lhs.type == rhs.type }
@@ -176,25 +197,101 @@ protocol PresentationDetentsProviding {
 }
 
 extension PresentationDetentsProviding {
-    /// The height to present at, in `extent` rows.
+    /// The heights the sheet can rest at in `extent` rows: each DISTINCT
+    /// height once, smallest first, with the detent that names it.
     ///
-    /// With a selection binding, whatever it names. Without one, the SMALLEST
-    /// detent — SwiftUI's own initial state. A terminal has no drag-grabber to
-    /// move between them, so the binding is how a multi-detent sheet changes
-    /// size; that is written down in `SwiftUI-compatibility.md` rather than
-    /// left to be discovered.
+    /// Distinct, because a short terminal floors detents together — `.medium`
+    /// and `.height(5)` are both 5 rows of a 10-row content area — and a step
+    /// between two detents of one height would move nothing. Of detents that
+    /// collide, one stands for the height by a fixed order (``PresentationDetent/precedes(_:)``),
+    /// so which one a step writes to the selection does not depend on a
+    /// `Set`'s order.
     ///
-    /// A custom detent that answers `nil` is not available: it is neither
-    /// chosen by the selection nor counted for the smallest.
-    func resolvedHeight(in extent: Int, environment: EnvironmentValues) -> Int? {
-        guard !detents.isEmpty else { return nil }
-        if let selected = detentSelection?.wrappedValue, detents.contains(selected),
-            let height = selected.resolved(in: extent, environment: environment)
-        {
-            return height
+    /// A custom detent that answers `nil` is not available, and has no stop.
+    func stops(in extent: Int, environment: EnvironmentValues) -> [SheetDetentStop] {
+        var byHeight: [Int: PresentationDetent] = [:]
+        for detent in detents {
+            guard let height = detent.resolved(in: extent, environment: environment) else { continue }
+            if let held = byHeight[height], held.precedes(detent) { continue }
+            byHeight[height] = detent
         }
-        return detents.compactMap { $0.resolved(in: extent, environment: environment) }.min()
+        return byHeight.sorted { $0.key < $1.key }.map { SheetDetentStop(height: $0.key, detent: $0.value) }
     }
+
+    /// Where among `stops` the sheet rests: at the height of the detent the
+    /// selection binding names, else of the one the sheet keeps for itself
+    /// (`chosen`, when nothing binds it), else the SMALLEST — SwiftUI's own
+    /// initial state. A named detent that is not offered, or not available,
+    /// is passed over the same way.
+    func restingIndex(
+        among stops: [SheetDetentStop], chosen: PresentationDetent?, extent: Int, environment: EnvironmentValues
+    ) -> Int? {
+        guard !stops.isEmpty else { return nil }
+        let named = detentSelection?.wrappedValue ?? chosen
+        if let named, detents.contains(named), let height = named.resolved(in: extent, environment: environment),
+            let index = stops.firstIndex(where: { $0.height == height })
+        {
+            return index
+        }
+        return 0
+    }
+
+    /// The height to present at, in `extent` rows: the resting stop's (see
+    /// ``restingIndex(among:chosen:extent:environment:)``), or `nil` when no
+    /// detent is available.
+    func resolvedHeight(
+        in extent: Int, environment: EnvironmentValues, chosen: PresentationDetent? = nil
+    ) -> Int? {
+        let stops = stops(in: extent, environment: environment)
+        return restingIndex(among: stops, chosen: chosen, extent: extent, environment: environment)
+            .map { stops[$0].height }
+    }
+}
+
+/// A presented sheet's detents this frame: the heights it can rest at, and the
+/// one it rests at.
+@MainActor
+struct PresentedDetents {
+    /// The content's detents.
+    let provider: any PresentationDetentsProviding
+    /// Its distinct heights, smallest first.
+    let stops: [SheetDetentStop]
+    /// The one it rests at, or `nil` when no detent is available.
+    let index: Int?
+    /// Where the sheet keeps a detent the reader chose, when nothing binds it.
+    let state: SheetDetentState
+
+    /// The height the sheet rests at, or `nil` when no detent is available
+    /// and the sheet is its content's height.
+    var height: Int? { index.map { stops[$0].height } }
+
+    /// The detents `content` names, for a sheet presented in `extent` rows —
+    /// or `nil` when it names none.
+    init?(of content: any View, extent: Int, environment: EnvironmentValues, state: SheetDetentState) {
+        guard let provider = presentationTrait(PresentationDetentsProviding.self, of: content) else { return nil }
+        self.provider = provider
+        self.state = state
+        stops = provider.stops(in: extent, environment: environment)
+        index = provider.restingIndex(among: stops, chosen: state.chosen, extent: extent, environment: environment)
+    }
+}
+
+/// One height a detented sheet can rest at, and the detent that names it —
+/// see ``PresentationDetentsProviding/stops(in:environment:)``.
+struct SheetDetentStop: Equatable {
+    let height: Int
+    let detent: PresentationDetent
+}
+
+/// The detent a sheet with no selection binding rests at, kept by its
+/// presenter for as long as the sheet stays up: `nil` until the reader moves
+/// it, and again once it is dismissed, so it opens at the smallest.
+///
+/// A class, changed in place, as ``KeptSheetSize`` is: the sheet draws at the
+/// detent it records on the frame it records it.
+@MainActor
+final class SheetDetentState {
+    var chosen: PresentationDetent?
 }
 
 // MARK: - Carrying the resolved height to the sheet's box

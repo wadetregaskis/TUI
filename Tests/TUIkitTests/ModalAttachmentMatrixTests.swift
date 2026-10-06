@@ -246,6 +246,91 @@ struct ModalAttachmentMatrixTests {
         expectPresented(render(view), label: "box")
     }
 
+    // MARK: - Detented sheets (docked on the bottom edge)
+
+    /// Where a probe attaches its presentation.
+    enum Attachment: CaseIterable, Sendable {
+        case root, nestedChild, deepTall, hstackTrailing, scrollViewTop, listRow, tabViewTab, splitViewDetail, box
+    }
+
+    /// A detented sheet whose content is `dialog()` in a box, at two heights.
+    private func detentedSheet(on trigger: some View) -> some View {
+        trigger.sheet(isPresented: .constant(true)) {
+            Panel("SHEET") { dialog() }.presentationDetents([.height(7), .large])
+        }
+    }
+
+    /// The page for `attachment`, the detented sheet attached where it says.
+    @ViewBuilder
+    private func page(_ attachment: Attachment) -> some View {
+        switch attachment {
+        case .root:
+            detentedSheet(on: VStack { Text("Page line 1"); Button("Page") {}.focusID("page-button") })
+        case .nestedChild:
+            VStack {
+                Text("Row 0")
+                Text("Row 1")
+                detentedSheet(on: Text("Trigger"))
+                Button("Page") {}.focusID("page-button")
+            }
+        case .deepTall:
+            VStack(spacing: 0) {
+                ForEach(0..<15, id: \.self) { Text("Filler \($0)") }
+                detentedSheet(on: Text("Trigger"))
+            }
+        case .hstackTrailing:
+            HStack {
+                Text("Leading content, fairly wide")
+                detentedSheet(on: Text("Trigger"))
+            }
+        case .scrollViewTop:
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    detentedSheet(on: Text("Trigger"))
+                    ForEach(0..<30, id: \.self) { Text("Filler \($0)") }
+                }
+            }
+            .frame(height: 10)
+        case .listRow:
+            List(selection: .constant(String?.none)) {
+                ForEach(["alpha", "beta", "gamma"], id: \.self) { name in
+                    if name == "beta" { detentedSheet(on: Text(name)) } else { Text(name) }
+                }
+            }
+            .frame(height: 8)
+        case .tabViewTab:
+            TabView(selection: .constant(0)) {
+                Tab("First", value: 0) { detentedSheet(on: Text("Trigger")) }
+                Tab("Second", value: 1) { Text("Other") }
+            }
+        case .splitViewDetail:
+            NavigationSplitView {
+                VStack { Text("Sidebar"); Button("Item") {}.focusID("sidebar-item") }
+            } detail: {
+                detentedSheet(on: Text("Trigger"))
+            }
+        case .box:
+            Box { detentedSheet(on: Text("Trigger")) }
+        }
+    }
+
+    @Test("A detented sheet rests on the bottom edge wherever it is attached", arguments: Attachment.allCases)
+    func detentedSheetDocksAtTheBottom(attachment: Attachment) {
+        let result = render(page(attachment))
+        let layers = result.root.overlays.filter { $0.level == .modal }
+        #expect(layers.count == 1, "[\(attachment)] one sheet layer reaches the root")
+        #expect(layers.allSatisfy { $0.isDockedAtBottom && $0.dimsBackground }, "[\(attachment)]")
+        let screen = result.composited.lines.map(\.stripped)
+        // The smallest detent, seven rows, ending on the last row of the area.
+        let top = screen.firstIndex { $0.contains("SHEET") }
+        #expect(top == Self.height - 7, "[\(attachment)] the sheet's top row: \(screen)")
+        #expect(
+            screen.last?.trimmingCharacters(in: .whitespaces).hasPrefix("╰") == true
+                || screen.last?.trimmingCharacters(in: .whitespaces).hasPrefix("└") == true,
+            "[\(attachment)] the sheet's bottom border is the last row: \(screen)")
+        #expect(result.focus.currentFocusedID == "modal-ok", "[\(attachment)] the sheet's control is focused")
+    }
+
     // MARK: - Alerts (separate modifier, same contract)
 
     /// `.alert` renders its actions inside the alert layer — reuse the OK

@@ -124,6 +124,9 @@ extension ModalPresentationModifier: Renderable {
                 // And start a sticky sizing over: its largest size is kept for
                 // as long as the sheet stays presented, no longer.
                 existingKeptSheetSize(context: context)?.size = nil
+                // And the detent the reader moved it to: it opens again at the
+                // bound detent, or the smallest, as a new sheet does.
+                existingDetentState(context: context)?.chosen = nil
             }
             return TUIkit.renderToBuffer(content, context: contentContext)
         }
@@ -302,8 +305,21 @@ extension ModalPresentationModifier: Renderable {
         modalContext.environment.isPresented = true
         modalContext.environment.dismissalGate = gate
 
+        // A detent, if the content named one, decides the height instead of the
+        // content's own. It has to be read BEFORE the render — it is the height
+        // being rendered into — which is why it rides a static conformance
+        // rather than a preference (see ``PresentationDetentsProviding``). A
+        // cover is the whole content area and takes none.
+        let detents =
+            style == .sheet
+            ? PresentedDetents(
+                of: modal, extent: overlayHeight, environment: modalContext.environment,
+                state: detentState(context: context))
+            : nil
         var modalBuffer = gate.drawingContent(context: context) {
-            renderModal(context: context, modalContext: modalContext, overlayHeight: overlayHeight)
+            renderModal(
+                context: context, modalContext: modalContext, overlayHeight: overlayHeight,
+                detentHeight: detents?.height)
         }
         // Registered before the content drew, so that the content's own items
         // in this section replace it, the ESC item is named for what Escape
@@ -316,6 +332,15 @@ extension ModalPresentationModifier: Renderable {
         }
 
         guard !modalBuffer.isEmpty else { return baseBuffer }
+
+        // A detented sheet rests on the bottom edge, as a sheet with detents
+        // does on a phone: its height is the reader's to change, and the edge
+        // it grows from stays put. Not draggable, as a cover is not: its
+        // place is the edge.
+        if detents?.height != nil {
+            baseBuffer.overlays.append(.dockedAtBottom(content: modalBuffer, level: .modal, dimsBackground: true))
+            return baseBuffer
+        }
 
         // Make the dialog draggable by its title/border, and read back the offset
         // to place it at. The compositor clamps it fully on screen. A full-screen
@@ -351,16 +376,11 @@ extension ModalPresentationModifier: Renderable {
     }
 
     /// Renders the presented content at the size its style gives it: a sheet
-    /// at its own height or its detent's, a cover over the whole content area.
+    /// at its own height or its detent's (`detentHeight`), a cover over the
+    /// whole content area.
     private func renderModal(
-        context: RenderContext, modalContext: RenderContext, overlayHeight: Int
+        context: RenderContext, modalContext: RenderContext, overlayHeight: Int, detentHeight: Int?
     ) -> FrameBuffer {
-        // A detent, if the content named one, decides the height instead of the
-        // content's own. It has to be read BEFORE the render — it is the height
-        // being rendered into — which is why it rides a static conformance
-        // rather than a preference (see ``PresentationDetentsProviding``).
-        let detentHeight = presentationTrait(PresentationDetentsProviding.self, of: modal)?
-            .resolvedHeight(in: overlayHeight, environment: modalContext.environment)
         // A `presentationBackground` the content named fills the presentation —
         // the sheet's box, or the cover's whole area — so it goes around what
         // is presented here, where that size is known.
@@ -454,6 +474,9 @@ private enum StateIndex {
     /// closed, so presenting it again starts over — and, for the `item:`
     /// forms, when it is presented for another item (`KeptSheetSize`).
     static let keptSheetSize = 2
+    /// The detent a sheet with no selection binding rests at, once the reader
+    /// has moved it (`SheetDetentState`): emptied on the frames it is closed.
+    static let detentState = 3
 }
 
 extension ModalPresentationModifier {
@@ -476,6 +499,22 @@ extension ModalPresentationModifier {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.keptSheetSize))
             as StateBox<KeptSheetSize>?)?.value
+    }
+
+    /// The presenter's record of the detent the reader moved the sheet to.
+    fileprivate func detentState(context: RenderContext) -> SheetDetentState {
+        context.stateStorage?.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.detentState),
+            default: SheetDetentState()
+        ).value ?? SheetDetentState()
+    }
+
+    /// The same record, if the sheet was ever presented: emptied on a closed
+    /// frame, as ``existingKeptSheetSize(context:)`` is, and for its reason.
+    private func existingDetentState(context: RenderContext) -> SheetDetentState? {
+        (context.stateStorage?.existingStorage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.detentState))
+            as StateBox<SheetDetentState>?)?.value
     }
 }
 

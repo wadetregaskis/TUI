@@ -85,6 +85,13 @@ sees the detent as its available height. Content with no box has nothing to
 stretch, so it keeps its own size — a detent cannot make a bare `Text` taller,
 and does not try by painting blank rows under it.
 
+A sheet with detents rests on the **bottom edge** of the content area, centred
+across it, as a sheet with detents does on a phone: its height is what changes,
+and the edge it grows from stays put. Unlike a sheet without detents it is not
+dragged by its border — its place is the edge. On a short terminal two detents
+can come to the same number of rows (`.medium` and `.height(5)` of a 10-row
+content area); they are then one height.
+
 Two more things to know. It must be the content's **outermost** modifier — the
 detent is the height the content is rendered *into*, so it has to be readable
 before that render happens, which is why it rides the view's type rather than a

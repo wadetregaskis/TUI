@@ -280,6 +280,34 @@ public struct OverlayLayer: Sendable, Equatable {
         self.dimsBackground = dimsBackground
     }
 
+    /// A screen-level layer resting on the BOTTOM edge of the area it is
+    /// composited in, centred across it — a detented sheet.
+    ///
+    /// Not a new placement mode: it is a ``centered`` layer whose post-centre
+    /// delta is ``bottomEdgeDelta``, and ``placed(maxWidth:maxHeight:)``'s
+    /// clamp, which keeps a dragged dialog wholly on screen, lands it flush on
+    /// the bottom edge. So everything that treats a centred layer as a panel
+    /// over the screen (``isScreenLevel``: `.hidden()`, `.opacity()`,
+    /// `.allowsHitTesting(false)`, a `ScrollView`'s culling) treats this one
+    /// the same, and no combining operation shifts it.
+    package static func dockedAtBottom(
+        content: FrameBuffer, level: OverlayLevel, zIndex: Double = 0, dimsBackground: Bool
+    ) -> Self {
+        Self(
+            offsetX: 0, offsetY: bottomEdgeDelta, content: content, level: level, zIndex: zIndex,
+            centered: true, dimsBackground: dimsBackground)
+    }
+
+    /// The post-centre delta of a layer ``dockedAtBottom(content:level:zIndex:dimsBackground:)``:
+    /// more than any area's half height, so the clamp always takes it to the
+    /// bottom edge, and small enough that adding a centre to it cannot
+    /// overflow.
+    package static let bottomEdgeDelta = Int(Int32.max)
+
+    /// Whether this layer rests on the bottom edge
+    /// (``dockedAtBottom(content:level:zIndex:dimsBackground:)``).
+    package var isDockedAtBottom: Bool { centered && offsetY == Self.bottomEdgeDelta }
+
     /// Whether an overhanging layer is moved back on screen (`true`, the
     /// pop-over policy) or CLIPPED where it is (`false`).
     ///
