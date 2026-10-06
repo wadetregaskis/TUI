@@ -346,6 +346,8 @@ Within each language, who is asking decides the order:
   your `Localizable.strings` in that language's `.lproj`, and then TUIkit's own
   strings, so you can borrow TUIkit's translations. Writing out the default
   (`tableName: "Localizable"`, `bundle: .main`) is the same as leaving it off.
+  A key that the table the call names lacks still reads the rest of this
+  order, where SwiftUI shows the key itself: a deliberate difference.
 - **TUIkit's own words** — its controls' labels, and the typed keys such as
   `LocalizedString(LocalizationKey.Button.ok)` — read the strings you
   registered, a table you name `TUIkit` (`TUIkit.strings` in your `.lproj`
@@ -398,24 +400,30 @@ public enum LocalizationKey {
 }
 ```
 
-Then add convenient extensions:
+Then add convenient extensions. They look the key up as one of TUIkit's own
+words, through the framework's entry points (`LocalizedString(frameworkKey:)`
+and `LocalizationService.frameworkString(for:)`), and never by passing
+`key.rawValue` to an initialiser that takes a `String`: that looks it up as
+the app's key, so an app whose `Localizable.strings` happens to spell
+`button.my_new_button` would change TUIkit's word by accident (see Fallback
+Behavior, above).
 
 ```swift
 extension LocalizedString {
     public init(_ key: LocalizationKey.Button) {
-        self.init(key.rawValue)
+        self.init(frameworkKey: key.rawValue)
     }
 }
 
 extension Text {
     public init(localized key: LocalizationKey.Button) {
-        self.init(localized: key.rawValue)
+        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
     }
 }
 
 extension LocalizationService {
     public func string(for key: LocalizationKey.Button) -> String {
-        string(for: key.rawValue)
+        frameworkString(for: key.rawValue)
     }
 }
 ```

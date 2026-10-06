@@ -283,9 +283,11 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// A table named explicitly is asked first in each language, ahead of the
     /// registered strings, since the call says where the key is; then the
-    /// rest as ``string(for:)``. The default table written out —
-    /// `tableName: "Localizable"`, `bundle: .main` — is not "named": it reads
-    /// exactly as leaving them off does, as in SwiftUI.
+    /// rest as ``string(for:)`` — a deliberate deviation (owner decision A14):
+    /// where the named table lacks the key, SwiftUI shows the key itself, and
+    /// this goes on to the app's other strings and TUIkit's. The default
+    /// table written out — `tableName: "Localizable"`, `bundle: .main` — is
+    /// not "named": it reads exactly as leaving them off does, as in SwiftUI.
     func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
         lock.lock()
         defer { lock.unlock() }

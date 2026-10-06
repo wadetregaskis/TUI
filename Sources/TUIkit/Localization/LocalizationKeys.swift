@@ -14,9 +14,16 @@
 /// # Example
 ///
 /// ```swift
-/// Text(localized: LocalizationKey.Button.ok.rawValue)
-/// Text(localized: LocalizationKey.Error.notFound.rawValue)
+/// Text(localized: LocalizationKey.Button.ok)
+/// Text(localized: LocalizationKey.Error.notFound)
 /// ```
+///
+/// Pass the key itself, not its `rawValue`: the typed overloads read it as one
+/// of TUIkit's own words, which an app's `Localizable.strings` does not
+/// change, while a `String` is read as the app's own key — so
+/// `Text(localized: LocalizationKey.Button.ok.rawValue)` shows an app's
+/// `"button.ok"` from `Localizable.strings` where TUIkit's OK is meant (see
+/// ``LocalizationService``).
 public enum LocalizationKey {
     /// Button labels and actions
     public enum Button: String {

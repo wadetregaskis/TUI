@@ -109,6 +109,10 @@ English.
   TUIkit has no translation of the key in that language — the app's
   `Localizable`, before English.
 - **The app's keys:** the table the call names, registered strings,
-  `Localizable`, then TUIkit's strings (so an app can borrow them).
+  `Localizable`, then TUIkit's strings (so an app can borrow them). This is a
+  deviation from SwiftUI where the call names a table (or a bundle) that lacks
+  the key: SwiftUI's `Text("greeting", tableName: "Onboarding")` shows
+  `greeting`, and TUIkit goes on to the rest of the order. Kept as the owner's
+  order; the compatibility doc marks it.
 - Writing out the default table (`tableName: "Localizable"`, `bundle: .main`)
   reads exactly as leaving it off.
