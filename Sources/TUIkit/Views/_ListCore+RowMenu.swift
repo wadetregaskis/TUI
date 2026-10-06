@@ -12,9 +12,30 @@ import TUIkitCore
 import TUIkitView
 
 extension _ListCore {
-    /// The selection menu around this list, when it is this list's.
+    /// The selection menu around this list, when it is this list's — never for
+    /// a list with no selection binding. Measured on macOS 15.8: SwiftUI's
+    /// such list opens no selection menu on a right-click, on a row or off
+    /// one, and runs no primary action on a double-click, whatever type the
+    /// menu names. (A table with no binding does take both; that is the
+    /// table's, measured too.) It is also what keeps the menu honest here: a
+    /// list without a binding knows its rows by `Int` — their ids where those
+    /// are `Int`, their positions where they are not — so a menu naming the
+    /// rows' own id type (a `UUID`, say) never matched, and one naming `Int`
+    /// was handed positions as though they were ids.
     func selectionMenu(_ environment: EnvironmentValues) -> SelectionContextMenu? {
-        RowContextMenuHost.selectionMenu(in: environment, rowsIdentifiedBy: SelectionValue.self)
+        guard hasSelectionBinding else { return nil }
+        return RowContextMenuHost.selectionMenu(in: environment, rowsIdentifiedBy: SelectionValue.self)
+    }
+
+    /// Whether the list was given a selection binding, of either kind.
+    private var hasSelectionBinding: Bool { singleSelection != nil || multiSelection != nil }
+
+    /// The rows' environment under a selection menu — see
+    /// ``RowContextMenuHost/yieldSecondaryClicks(in:rowsIdentifiedBy:takesMenu:)``:
+    /// they yield their secondary clicks only to a menu this list takes.
+    func yieldRowSecondaryClicks(in environment: inout EnvironmentValues) {
+        RowContextMenuHost.yieldSecondaryClicks(
+            in: &environment, rowsIdentifiedBy: SelectionValue.self, takesMenu: hasSelectionBinding)
     }
 
     /// The row menu's state, at this list's identity.

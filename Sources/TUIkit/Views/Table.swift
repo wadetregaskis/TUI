@@ -4519,7 +4519,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellContext.environment.lineLimit = .lines(column.lineLimit)
         cellContext.environment.truncationMode = column.truncationMode
         if cellContext.carriesGeometryOrigin { cellContext.geometryOrigin = nil }
-        RowContextMenuHost.yieldSecondaryClicks(in: &cellContext.environment)
+        RowContextMenuHost.yieldSecondaryClicks(in: &cellContext.environment, rowsIdentifiedBy: Value.ID.self)
         return cellContext
     }
 

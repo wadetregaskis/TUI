@@ -46,6 +46,9 @@ private final class Rows {
         case emptyMenuTable
         /// The same, on a list.
         case emptyMenuList
+        /// A list with no selection binding, a selection menu around it and a
+        /// `.contextMenu` around that.
+        case selectionlessList
     }
 }
 
@@ -82,6 +85,7 @@ private struct RowsPage: View {
         case .list: list
         case .emptyMenuTable: emptyMenuTable
         case .emptyMenuList: emptyMenuList
+        case .selectionlessList: selectionlessList.contextMenu { Button("outer") { rows.ran.append("outer") } }
         }
     }
 
@@ -134,6 +138,9 @@ private struct RowsPage: View {
     private var wrongTypeTable: some View {
         Table(items, selection: Bindable(rows).selection) {
             TableColumn("Name", value: \.name)
+            TableColumn("View") { item in
+                Text(verbatim: "cell\(item.id)").contextMenu { Button("cellmenu \(item.id)") {} }
+            }
         }
         .contextMenu(forSelectionType: String.self) { ids in
             Button("wrong \(ids.count)") {}
@@ -189,6 +196,22 @@ private struct RowsPage: View {
             rows.opened.append(ids.sorted())
         }
         .frame(height: 9)
+    }
+
+    private var selectionlessList: some View {
+        List(items) { item in
+            if item.id <= 2 {
+                Text(item.name).contextMenu { Button("view \(item.id)") { rows.ran.append("view \(item.id)") } }
+            } else {
+                Text(item.name)
+            }
+        }
+            .contextMenu(forSelectionType: Int.self) { ids in
+                menu(ids)
+            } primaryAction: { ids in
+                rows.opened.append(ids.sorted())
+            }
+            .frame(height: 9)
     }
 }
 
@@ -355,6 +378,10 @@ struct RowContextMenuTests {
         #expect(!harness.shows("wrong"), "\(harness.screen)")
         #expect(harness.shows("outer"), "the click did not reach the menu around the table")
         harness.escape()
+        // The menu that never activates leaves a cell view's own menu be.
+        harness.secondaryClick(try harness.position(of: "cell2"))
+        #expect(harness.shows("cellmenu 2"), "\(harness.screen)")
+        harness.escape()
         harness.key(KeyEvent(key: .enter))
         #expect(!harness.rows.ran.contains("wrong primary"))
     }
@@ -405,5 +432,28 @@ struct RowContextMenuTests {
         harness.app.send(MouseEvent(button: .left, phase: .released, x: row.x, y: row.y, meta: true))
         harness.frame()
         #expect(harness.rows.selection == [1, 2, 3], "\(harness.screen)")
+    }
+
+    @Test("A list with no selection binding takes no selection menu and no primary action, as SwiftUI's")
+    func selectionlessListTakesNoMenu() throws {
+        let harness = Harness(.selectionlessList)
+        harness.secondaryClick(try harness.position(of: "item3"))
+        #expect(!harness.shows("sel ["), "\(harness.screen)")
+        #expect(harness.shows("outer"), "the click did not go on to the menu around the list:\n\(harness.screen)")
+        harness.escape()
+        // A row view's own menu is its own again.
+        harness.secondaryClick(try harness.position(of: "item2"))
+        #expect(harness.shows("view 2"), "\(harness.screen)")
+        #expect(!harness.shows("sel ["))
+        harness.escape()
+        harness.key(KeyEvent(key: .down))
+        harness.key(KeyEvent(key: .enter))
+        let row = try harness.position(of: "item3")
+        for _ in 0..<2 {
+            harness.app.send(MouseEvent(button: .left, phase: .pressed, x: row.x, y: row.y))
+            harness.app.send(MouseEvent(button: .left, phase: .released, x: row.x, y: row.y))
+            harness.frame()
+        }
+        #expect(harness.rows.opened.isEmpty, "\(harness.rows.opened)")
     }
 }

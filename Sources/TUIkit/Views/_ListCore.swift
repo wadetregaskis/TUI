@@ -780,7 +780,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if rowContext.environment.isSidebarListRow != isSidebar {
             rowContext.environment.isSidebarListRow = isSidebar
         }
-        RowContextMenuHost.yieldSecondaryClicks(in: &rowContext.environment)
+        yieldRowSecondaryClicks(in: &rowContext.environment)
         // The rows' `containerRelativeFrame` container: the width a row gets,
         // and the height inside the border.
         rowContext = rowContext.publishingContainerSize(

@@ -166,8 +166,9 @@ extension View {
     /// container focused, with the set the same rule gives for that row — the
     /// row double-clicked (its first click having selected it), or the cursor
     /// row. With a primary action, Return activates and Space still selects.
-    /// A container whose rows are not identified by `I` takes neither the
-    /// menu nor the action.
+    /// A container whose rows are not identified by `I`, and a `List` with no
+    /// selection binding (measured on macOS), take neither the menu nor the
+    /// action, and leave their rows' own menus be.
     ///
     /// - Parameters:
     ///   - itemType: The identifier type of the rows; it must match the

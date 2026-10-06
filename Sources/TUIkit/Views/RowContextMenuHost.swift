@@ -69,15 +69,21 @@ enum RowContextMenuHost {
             default: RowMenuState())
     }
 
-    /// Hands a container's rows the environment they render under while the
-    /// container has a selection menu: the menu answers every secondary click
-    /// on them, so a `.contextMenu` inside a row adds none of its own, and a
-    /// list inside a row does not take the outer menu for its own. Written
-    /// only where a menu is present, so a container without one pays one read.
-    static func yieldSecondaryClicks(in environment: inout EnvironmentValues) {
-        guard environment.selectionContextMenu != nil else { return }
+    /// Hands a container's rows the environment they render under while a
+    /// selection menu is around the container: a list inside a row does not
+    /// take the outer menu for its own, and — when the container takes it
+    /// (``selectionMenu(in:rowsIdentifiedBy:)``, and `takesMenu`) — the menu
+    /// answers every secondary click on the rows, so a `.contextMenu` inside a
+    /// row adds none of its own. A menu the container does not take, one for
+    /// another item type or around a list with no selection binding, never
+    /// activates, and leaves the rows' own menus be. Written only where a menu
+    /// is present, so a container without one pays one read.
+    static func yieldSecondaryClicks<ID>(
+        in environment: inout EnvironmentValues, rowsIdentifiedBy type: ID.Type, takesMenu: Bool = true
+    ) {
+        guard let reference = environment.selectionContextMenu else { return }
         environment.selectionContextMenu = nil
-        environment.rowsYieldSecondaryClick = true
+        if takesMenu, reference.menu.isFor(type) { environment.rowsYieldSecondaryClick = true }
     }
 
     /// What Return and a double-click do to a row: the selection menu's
