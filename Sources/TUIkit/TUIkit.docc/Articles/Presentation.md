@@ -149,6 +149,16 @@ every detent; the ticks in between are spent on the sheet, and do not scroll
 the content either. (SwiftUI's `.automatic` on a phone grows a resizable sheet
 before its content scrolls; ask for `.resizes` for that order.)
 
+Where the content scrolls, the sheet hears the wheel at the content's end only
+once the content passes it on, as any nested scroller passes the wheel to the
+one around it: the ticks that reach its end are held for
+``View/scrollChainingDelay(_:)`` — two seconds by default — so a flick that
+finishes scrolling the content does not go on to move the sheet. Under
+`.scrolls` the sheet grows once the wheel has pushed at the content's end for
+that long, and under either it shrinks once the wheel has pushed at the
+content's top. `.scrollChainingDelay(.zero)` on the content moves the sheet at
+once; content with nothing to scroll never holds the wheel.
+
 ### A live page beside the sheet
 
 A detented sheet whose content says

@@ -113,6 +113,14 @@ public struct PresentationContentInteraction: Equatable, Sendable {
     /// when swiping, rather than resizing the presentation: the wheel scrolls
     /// the content, and moves the sheet to its next detent only where the
     /// content can scroll no further that way — or has nothing to scroll.
+    ///
+    /// Content that scrolls passes the wheel on as any nested scroller does:
+    /// it holds the ticks that reach its end for
+    /// ``View/scrollChainingDelay(_:)`` — two seconds by default — so the
+    /// sheet moves once the wheel has pushed at the content's end for that
+    /// long, and a flick that finishes scrolling the content does not go on
+    /// to resize the sheet. `.scrollChainingDelay(.zero)` on the content
+    /// moves it at once.
     public static var scrolls: Self { Self(kind: .scrolls) }
 
     /// A behavior that prioritizes resizing a presentation when swiping,
@@ -120,7 +128,9 @@ public struct PresentationContentInteraction: Equatable, Sendable {
     /// pulled down grows the sheet to its next larger detent, and the content
     /// scrolls only once the sheet is at its largest. Pushed up, the wheel
     /// scrolls the content back first, and shrinks the sheet once the content
-    /// is at its top, as a swipe down does on a phone.
+    /// is at its top, as a swipe down does on a phone — once the content's
+    /// scroller passes the wheel on, after its ``View/scrollChainingDelay(_:)``,
+    /// as under ``scrolls``.
     public static var resizes: Self { Self(kind: .resizes) }
 }
 
