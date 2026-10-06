@@ -108,10 +108,15 @@ extension View {
         characters: CharacterSet, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
+        // A set of characters asks for what is typed, not for chords:
+        // Control is not looked at, so `.decimalDigits` would claim ⌃4 and
+        // `.punctuationCharacters` ⌃\. It declares no keys, as the
+        // catch-all declares none, so a field that takes digits does not
+        // mask the user's quit key (the coordinator's ruling, round 6).
         onKeyPress(
             phases: phases,
             where: { !$0.characters.isEmpty && $0.characters.unicodeScalars.allSatisfy(characters.contains) },
-            action: action)
+            declared: false, action: action)
     }
 
     /// Performs an action when any key is pressed while this view has the
@@ -142,10 +147,11 @@ extension View {
     /// the environment is out of reach by the time a key arrives.
     ///
     /// - Parameter declared: Whether `matches` is the handler's declaration —
-    ///   its keys or characters — so the framework may ask it which keys the
-    ///   handler is for without running `action`. Not for the catch-all,
-    ///   which declares none: only the action says which keys it takes. What
-    ///   asks is the user's quit key (`Terminal.maskQuitKey(for:)`).
+    ///   its keys — so the framework may ask it which keys the handler is
+    ///   for without running `action`. Not for the catch-all, which declares
+    ///   none (only the action says which keys it takes), nor for a set of
+    ///   characters, which asks for typed text, not chords. What asks is the
+    ///   user's quit key (`Terminal.maskQuitKey(for:)`).
     private func onKeyPress(
         phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool, declared: Bool = true,
         action: @escaping (KeyPress) -> KeyPress.Result

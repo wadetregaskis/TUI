@@ -33,8 +33,9 @@ final class KeyEventDispatcher: @unchecked Sendable {
         let scope: ViewIdentity
         let stage: FocusPathStage
         let sectionID: String?
-        /// Which keys the handler is declared for — an `onKeyPress` on keys
-        /// or characters — or `nil` where only running it would say.
+        /// Which keys the handler is declared for — an `onKeyPress` on keys —
+        /// or `nil` where only running it would say, or it asks for typed
+        /// characters rather than keys.
         let declares: ((KeyEvent) -> Bool)?
         let handler: (KeyEvent) -> Bool
     }
@@ -171,11 +172,12 @@ extension KeyEventDispatcher {
     }
 
     /// Whether an `onKeyPress` on the path to the focused view is declared
-    /// for one of `events` — on its key or its characters, which can be known
-    /// without running the app's action. One that hears every key
+    /// for one of `events` — on its keys, which can be known without running
+    /// the app's action. One that hears every key
     /// (`onKeyPress(phases:action:)`) declares nothing: only running it would
-    /// say whether it takes the key. Silenced handlers, as for a dispatch,
-    /// do not count.
+    /// say whether it takes the key. Nor does one on a set of characters
+    /// (`onKeyPress(characters:phases:action:)`), which asks for typed text,
+    /// not chords. Silenced handlers, as for a dispatch, do not count.
     ///
     /// For the user's quit key (`InputHandler.quitKeyBindings(byte:hostAliases:)`).
     ///

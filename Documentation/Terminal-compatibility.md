@@ -4377,10 +4377,11 @@ every frame the run loop asks whether the app declares a binding on a chord
 the quit key's byte could be — ⌃\\ itself (with or without Option, whose ESC
 the driver ignores), and in the legacy encoding ⌃4, ⌃| and ⌃⇧\\ — counting
 what can be read without running the app's code: `.keyboardShortcut`s (menu
-items' too) and framework defaults, `onKeyPress` on keys or characters on the
-path to the focused view, the status bar's items and quit key, the scene's
-undo keys (`InputHandler.quitKeyBindings`). While one is, `VQUIT` is
-`_POSIX_VDISABLE` too (`Terminal.maskQuitKey(for:)`), set with `TCSANOW` — no
+items' too) and framework defaults, `onKeyPress` on keys (not on a set of
+characters, which asks for typed text) on the path to the focused view, the
+status bar's items and quit key, the scene's undo keys
+(`InputHandler.quitKeyBindings`). While one is, `VQUIT` is `_POSIX_VDISABLE`
+too (`Terminal.maskQuitKey(for:)`), set with `TCSANOW` — no
 typed-ahead input thrown away — and only when the answer changes; a resume's
 raw mode is made with it, and the teardown puts the user's termios back
 whole. The byte then reaches the chain as ⌃\\ (above). A handler that hears

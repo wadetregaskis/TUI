@@ -148,18 +148,14 @@ struct QuitKeyMaskTests {
         #expect(!option.masks(), "⌘4 as ⌥4 shares no byte")
     }
 
-    /// An `onKeyPress` declares its keys or characters, so the framework can
-    /// ask it without running the app's action — but it hears a key only
-    /// with the focus on its view or inside it.
-    @Test("An onKeyPress on the key or its characters masks it while the focus is inside it")
+    /// An `onKeyPress` declares its keys, so the framework can ask it
+    /// without running the app's action — but it hears a key only with the
+    /// focus on its view or inside it.
+    @Test("An onKeyPress on the key masks it while the focus is inside it")
     func onKeyPressOnTheFocusPath() {
         let onKey = MaskHarness()
         onKey.render(Button("Focused") {}.onKeyPress("4") { .handled })
         #expect(onKey.masks(), "onKeyPress(\"4\") hears ⌃4")
-
-        let characters = MaskHarness()
-        characters.render(Button("Focused") {}.onKeyPress(characters: .punctuationCharacters) { _ in .handled })
-        #expect(characters.masks(), "\\ is punctuation")
 
         let elsewhere = MaskHarness()
         elsewhere.render(
@@ -176,6 +172,21 @@ struct QuitKeyMaskTests {
         let releases = MaskHarness()
         releases.render(Button("Focused") {}.onKeyPress("\\", phases: .up) { _ in .handled })
         #expect(!releases.masks(), "a handler for releases takes no press")
+    }
+
+    /// A set of characters asks for what is typed, not for chords: Control
+    /// is not looked at in its matching, so `.decimalDigits` would claim ⌃4
+    /// and `.punctuationCharacters` ⌃\\. Counted as declared, a number field
+    /// masked the user's quit key, and a hung app could not be quit by ⌃\\
+    /// while it was focused (the coordinator's ruling, round 6).
+    @Test("An onKeyPress on a set of characters does not mask it: it asks for typed text, not chords")
+    func characterSetsDeclareNoChord() {
+        for (name, set) in [("decimal digits", CharacterSet.decimalDigits), ("punctuation", .punctuationCharacters),
+                            ("alphanumerics", .alphanumerics), ("symbols", .symbols)] {
+            let harness = MaskHarness()
+            harness.render(Button("Focused") {}.onKeyPress(characters: set) { _ in .handled })
+            #expect(!harness.masks(aliasing: true), "\(name)")
+        }
     }
 
     @Test("The status bar's quit key and the scene's undo keys count too")

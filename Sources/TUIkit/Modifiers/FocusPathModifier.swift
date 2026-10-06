@@ -37,9 +37,9 @@ struct FocusPathModifier<Content: View>: View {
     /// When the handler is asked.
     let stage: FocusPathStage
 
-    /// Which keys the handler is declared for — an `onKeyPress` on keys or
-    /// characters — answered without running the app's action; `nil` for a
-    /// handler only running it would answer for. See
+    /// Which keys the handler is declared for — an `onKeyPress` on keys —
+    /// answered without running the app's action; `nil` for a handler only
+    /// running it would answer for, and for one on a set of characters. See
     /// `KeyEventDispatcher.declaresFocusPathBinding(forAnyOf:focusedIdentity:)`.
     var declares: ((KeyEvent) -> Bool)?
 

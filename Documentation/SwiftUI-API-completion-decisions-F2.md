@@ -42,7 +42,9 @@ masked, then let's do that."
   could be: ⌃\\, and ⌃4, ⌃| and ⌃⇧\\ (with or without Option). Declared is
   what the framework can read without running the app's code:
   `.keyboardShortcut` (resolved through `.commandKey`; menu items' too),
-  `onKeyPress` on keys or characters on the path to the focused view,
+  `onKeyPress` on keys on the path to the focused view (not on a set of
+  characters: it asks for typed text, not chords, and `.decimalDigits` would
+  claim ⌃4 — the coordinator's ruling, round 6),
   status-bar items and the status bar's quit key, the scene's undo keys.
   Recomputed after every frame; `tcsetattr` only when it changes; the
   user's termios restored on every exit as before.
@@ -65,7 +67,8 @@ saying when they do arrive.
 
 - A handler that hears every key (`onKeyEvent`, `onKeyPress(phases:action:)`)
   cannot be known without running it: it does not mask the quit, and does
-  not see ⌃\\ while the driver has it. Documented.
+  not see ⌃\\ while the driver has it. Nor does an `onKeyPress` on a set of
+  characters, by the ruling above. Documented.
 - While a masking binding is on screen, a hung app does not quit by ⌃\\
   (`kill -QUIT` still ends it) — the trade the rule makes.
 - The alias retry is 0x1C's only. xterm's other digit aliases (⌃2 NUL,

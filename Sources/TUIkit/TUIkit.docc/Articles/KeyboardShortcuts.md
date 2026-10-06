@@ -430,10 +430,10 @@ The shell then reports `Quit: 3`. A user who turned the quit key off with
 `stty quit undef` keeps it off.
 
 Your own binding on ⌃\\ wins. While your app declares one — a
-`.keyboardShortcut`, an `onKeyPress` on the key or its characters on the
-path to the focused view, the status bar's quit key or an item, an undo key
-— TUIkit masks the driver's quit, so the key reaches the input chain, and
-your binding has it first. A ⌃\\ none of your bindings takes still quits:
+`.keyboardShortcut`, an `onKeyPress` on the key on the path to the focused
+view, the status bar's quit key or an item, an undo key — TUIkit masks the
+driver's quit, so the key reaches the input chain, and your binding has it
+first. A ⌃\\ none of your bindings takes still quits:
 TUIkit sends `SIGQUIT` itself, as the driver would have. The same goes for
 ⌃4, ⌃| and ⌃⇧\\, for which xterm, VTE, Konsole and the Linux console send
 ⌃\\'s byte in their legacy encoding (by their tables; not measured, so every
@@ -446,7 +446,10 @@ cannot be told apart. So ``KeyboardShortcut/isDeliverableInTerminal`` is
 
 Two things to know. A handler that hears every key — `onKeyEvent`,
 `onKeyPress(phases:action:)` — cannot be read without running it, so it does
-not mask the quit, and does not see ⌃\\ while the driver has it. And while
+not mask the quit, and does not see ⌃\\ while the driver has it. Nor does an
+`onKeyPress` on a set of characters, which asks for typed text, not chords:
+Control is not looked at, so a field's `.decimalDigits` would otherwise
+claim ⌃4, and type a 4 for the user's ⌃\\. And while
 such a binding is on screen, a hung app does not quit by ⌃\\: that is the
 backup your binding traded away. `kill -QUIT` from another shell still ends
 it.

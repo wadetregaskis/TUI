@@ -91,8 +91,9 @@ extension InputHandler {
     ///
     /// - a `.keyboardShortcut` (resolved through `.commandKey`, as
     ///   registered), a menu item's among them, or a framework default;
-    /// - an `onKeyPress` on keys or characters, on the path to the focused
-    ///   view;
+    /// - an `onKeyPress` on keys, on the path to the focused view — not one on
+    ///   a set of characters, which asks for typed text, not chords (Control
+    ///   is not looked at, so `.decimalDigits` would claim ⌃4);
     /// - a status-bar item with an action, and the status bar's quit key;
     /// - the scene's undo and redo keys.
     func declaresBinding(forAnyOf events: [KeyEvent]) -> Bool {
