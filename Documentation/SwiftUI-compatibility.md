@@ -590,6 +590,16 @@ an item declared inside a `.dimmed()` subtree is drawn inert likewise. A view
 nobody sees declares nothing: a `NavigationStack`'s root, while a screen is
 pushed over it, has no items in the bars and hides no bar.
 
+**In a sheet** (and a full-screen cover, and a popover) the window's bars are
+inert while it holds the input, so a `.toolbar` in its content draws its items
+itself, round the view it is attached to, live in the sheet: the modal actions
+and the bottom bar's placements in a button row below that view —
+`.destructiveAction` leading, `.cancellationAction` then
+`.confirmationAction` trailing, the confirmation item the default button
+(Return) and the cancellation item the cancel button — and the other
+placements in a row above it. The sheet's own Escape still dismisses it, ahead
+of the cancel button, as it does without one (decisions D5C, B-D5C-3).
+
 **The one difference that follows from the medium:** the page is what declares
 the items, and a bar's rows have to be known before the page is laid out, so a
 bar that appears or goes does so **one frame after** the page that changed it

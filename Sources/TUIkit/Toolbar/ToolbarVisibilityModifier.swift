@@ -28,6 +28,12 @@ extension View {
     /// Hiding the bottom bar hides the line of key hints a `StatusBar()` there
     /// draws, not the keys: they still work.
     ///
+    /// In presented content — a sheet's, a full-screen cover's, a popover's —
+    /// it states nothing. The presentation draws its own `.toolbar` items (see
+    /// ``ToolbarItemPlacement``), and the window's bars are not its to hide: a
+    /// sheet that hid the bottom bar took away the line of key hints that says
+    /// how to close it.
+    ///
     /// - Parameters:
     ///   - visibility: The preferred visibility of the bar.
     ///   - bars: The bars to update: ``ToolbarPlacement/windowToolbar`` (or
@@ -52,7 +58,11 @@ struct _ToolbarVisibilityModifier<Content: View>: View, Renderable, Layoutable {
     var body: Never { fatalError("_ToolbarVisibilityModifier renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if let chrome = context.environment.windowChrome,
+        // Not from presented content: a sheet's toolbar is the sheet's
+        // (`ToolbarPresentationRows.swift`), and a sheet hiding the window's
+        // bottom bar took the line of key hints that says how to close it.
+        if !context.environment.presentationHostsToolbar,
+            let chrome = context.environment.windowChrome,
             !context.isMeasuring || context.environment.seedsWindowChrome
         {
             // Declared afresh by every walk: a memoised ancestor serving its

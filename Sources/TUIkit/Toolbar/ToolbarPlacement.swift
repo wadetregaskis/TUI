@@ -26,6 +26,14 @@
 ///
 /// ``status`` takes iOS's reading, the bottom bar, where macOS centres it in
 /// the window toolbar: the bottom bar is where a terminal app's status lives.
+///
+/// In presented content — a sheet, a full-screen cover, a popover — the
+/// window's bars are inert, and a `.toolbar` draws its items itself, round the
+/// view it is attached to: the modal actions and the bottom bar's placements
+/// in a button row below it (``destructiveAction`` leading,
+/// ``cancellationAction`` then ``confirmationAction`` trailing, the
+/// confirmation button the default button and the cancellation one the cancel
+/// button), every other placement in a row above it.
 public struct ToolbarItemPlacement: Sendable, Equatable {
     /// The roles a placement can have.
     enum Role: Sendable, Equatable {
@@ -69,13 +77,20 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// bottom bar.
     public static let status = Self(role: .status)
 
-    /// The item represents a confirmation action for a modal interface.
+    /// The item represents a confirmation action for a modal interface: in a
+    /// sheet, the trailing end of its button row, as its default button
+    /// (Return); elsewhere, the top bar's trailing end.
     public static let confirmationAction = Self(role: .confirmationAction)
 
-    /// The item represents a cancellation action for a modal interface.
+    /// The item represents a cancellation action for a modal interface: in a
+    /// sheet, its button row, before the confirmation items, as its cancel
+    /// button (Escape, where the sheet's own dismissal does not take it);
+    /// elsewhere, the top bar's trailing end.
     public static let cancellationAction = Self(role: .cancellationAction)
 
-    /// The item represents a destructive action for a modal interface.
+    /// The item represents a destructive action for a modal interface: in a
+    /// sheet, the leading end of its button row; elsewhere, the top bar's
+    /// trailing end.
     public static let destructiveAction = Self(role: .destructiveAction)
 
     /// Places the item in the bottom bar — SwiftUI's iOS spelling, here the bar

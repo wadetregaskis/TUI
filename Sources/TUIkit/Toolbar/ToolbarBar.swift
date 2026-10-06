@@ -27,12 +27,17 @@ struct _ToolbarBarRow: View {
     /// The window's subtitle, shown under the title.
     let subtitle: String
 
+    /// Whether this is a row of presented content's, where a modal interface's
+    /// actions lie as in a sheet's button row: the destructive ones leading,
+    /// the cancellation then the confirmation ones last.
+    var isPresentation = false
+
     var body: some View {
-        let leading = entries.filter { $0.placement.region == .leading }
-        let principal = entries.filter { $0.placement.region == .principal }
+        let leading = entries.filter { region(of: $0) == .leading }
+        let principal = entries.filter { region(of: $0) == .principal }
         let trailing =
-            entries.filter { $0.placement.region == .secondary }
-            + entries.filter { $0.placement.region == .trailing }
+            entries.filter { region(of: $0) == .secondary }
+            + inButtonRowOrder(entries.filter { region(of: $0) == .trailing })
         HStack(spacing: 1) {
             ForEach(leading.indices, id: \.self) { index in
                 _ToolbarEntryView(entry: leading[index])
@@ -56,6 +61,30 @@ struct _ToolbarBarRow: View {
                 _ToolbarEntryView(entry: trailing[index])
             }
         }
+    }
+}
+
+extension _ToolbarBarRow {
+    /// Where `entry` sits in this row.
+    private func region(of entry: WindowChromeState.ToolbarEntry) -> ToolbarItemPlacement.Region {
+        isPresentation && entry.placement.role == .destructiveAction ? .leading : entry.placement.region
+    }
+
+    /// `entries` in the order a sheet's button row lays them out — the rest,
+    /// then the cancellation items, then the confirmation items — in presented
+    /// content; as declared elsewhere.
+    private func inButtonRowOrder(_ entries: [WindowChromeState.ToolbarEntry]) -> [WindowChromeState.ToolbarEntry] {
+        guard isPresentation else { return entries }
+        func rank(_ entry: WindowChromeState.ToolbarEntry) -> Int {
+            switch entry.placement.role {
+            case .cancellationAction: 1
+            case .confirmationAction: 2
+            default: 0
+            }
+        }
+        return entries.enumerated()
+            .sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
+            .map(\.element)
     }
 }
 

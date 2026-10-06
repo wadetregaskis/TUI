@@ -293,6 +293,9 @@ extension ModalPresentationModifier: Renderable {
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(overlayHeight)
         modalContext.environment.activeFocusSectionID = sectionID
+        // Its `.toolbar`s draw their items themselves, in the sheet: the
+        // window's bars are inert while it is up.
+        modalContext.environment.presentationHostsToolbar = true
         modalContext.leaveScrollCanvas()
         modalContext.environment.dismiss = dismissAction()
         modalContext.environment.isPresented = true

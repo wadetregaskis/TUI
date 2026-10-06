@@ -72,6 +72,10 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
     var body: Never { fatalError("_ToolbarModifier renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // In a sheet, a cover or a popover the items are drawn here, round the
+        // content (`ToolbarPresentationRows.swift`): the window's bars are
+        // inert while the presentation holds the input.
+        if context.environment.presentationHostsToolbar { return renderInPresentation(context: context) }
         if let chrome = context.environment.windowChrome,
             !context.isMeasuring || context.environment.seedsWindowChrome
         {
@@ -99,9 +103,13 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
         return TUIkit.renderToBuffer(content, context: context)
     }
 
-    /// The items are drawn by the window's bars, so this measures as `content`.
+    /// The items are drawn by the window's bars, so this measures as `content`
+    /// — except in presented content, which draws them round it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+        if context.environment.presentationHostsToolbar {
+            return sizeInPresentation(proposal: proposal, context: context)
+        }
+        return measureChild(content, proposal: proposal, context: context)
     }
 }
 

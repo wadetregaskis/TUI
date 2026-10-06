@@ -58,3 +58,43 @@ threading "an event was delivered since the last frame" into the chrome
 state. About two hours. Worth it only if the once-a-second flicker of a
 genuinely oscillating page (reported on the diagnostic channel every time)
 turns out to matter.
+
+### B-D5C-3. A toolbar in a sheet draws its items round the view that declared it
+
+*`View.toolbar(content:)` in a sheet's, a full-screen cover's or a popover's
+content; `ToolbarItemPlacement.confirmationAction`, `.cancellationAction`,
+`.destructiveAction`*
+
+The window's bars are drawn inert while a presentation holds the input, so
+an item a sheet's content declared there — SwiftUI's common
+`.toolbar { ToolbarItem(placement: .confirmationAction) { Button("Save") { … } } }`
+— was a dead button in the window's top bar: no key, click or Tab reached it,
+and the bar appeared a frame after the sheet did. Step 7 of the design study
+(sheets as toolbar hosts) had not been reached; the review found the hole.
+
+**Shipped:** in presented content a `.toolbar` hosts its own items, in rows
+round the view it is attached to, inside the presentation and in its focus
+section: below it, a button row as macOS lays out a sheet's (destructive
+leading; the bottom bar's placements; cancellation, then confirmation,
+trailing), the confirmation button bound as the default button (Return, when
+the focused control lets it through) and the cancellation button as the
+cancel button; above it, every other placement. The rows are part of that
+view's layout, so they come and go with it in the same frame — no P2 lag. A
+`.toolbarVisibility` inside presented content no longer reaches the window's
+bars (it would have hidden the line of key hints that says how to close the
+sheet), and hides no row either.
+
+What differs from macOS: the rows hang off the view the modifier is on, so a
+`.toolbar` on an inner view puts its row there rather than at the sheet's
+bottom edge; and the sheet's own Escape still dismisses it first, so Escape
+does not run the cancel button's action unless the sheet disabled its
+interactive dismissal.
+
+**The fuller version** has the sheet host the items itself, at its edges
+wherever they are declared — the window chrome host's P2 reservation applied
+to a sheet, with the sheet's state keeping last frame's rows — lets a
+cancellation item take Escape in place of the sheet's own dismissal (the
+dismissal item stands down while one is declared), and honours
+`.toolbarVisibility` in a sheet for its rows. About a day; it touches the
+modal presenter, which another lane is changing for `presentationSizing`.
+
