@@ -75,7 +75,9 @@ struct SheetDetentTests {
             context: context())
         let layer = buffer.overlays[0]
         #expect(layer.isDockedAtBottom)
-        #expect(layer.content.hitTestRegions.isEmpty, "no drag regions on its border: \(layer.content.hitTestRegions)")
+        #expect(
+            layer.content.hitTestRegions.allSatisfy { $0.focusID?.hasPrefix("sheet-grabber") == true },
+            "no drag regions on its border, only its grabber: \(layer.content.hitTestRegions)")
         let placed = layer.placed(maxWidth: 40, maxHeight: 20)
         #expect(placed.y == 14, "flush on the bottom edge: \(placed.y)")
         #expect(placed.x == (40 - layer.content.width) / 2)

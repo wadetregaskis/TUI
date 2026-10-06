@@ -276,7 +276,7 @@ struct PresentationVariantsTests {
 
     @Test("A selection binding chooses among the detents")
     func selectionChoosesTheDetent() {
-        // The terminal's stand-in for dragging a grabber: a bound selection.
+        // A bound selection: what the grabber writes, and what moves the sheet.
         let buffer = renderToBuffer(
             Text("page").sheet(isPresented: .constant(true)) {
                 Panel("t") { Text("x") }

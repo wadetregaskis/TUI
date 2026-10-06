@@ -321,9 +321,11 @@ struct ModalAttachmentMatrixTests {
         #expect(layers.count == 1, "[\(attachment)] one sheet layer reaches the root")
         #expect(layers.allSatisfy { $0.isDockedAtBottom && $0.dimsBackground }, "[\(attachment)]")
         let screen = result.composited.lines.map(\.stripped)
-        // The smallest detent, seven rows, ending on the last row of the area.
-        let top = screen.firstIndex { $0.contains("SHEET") }
+        // The smallest detent, seven rows, ending on the last row of the area:
+        // the grabber's rule, then the panel.
+        let top = screen.firstIndex { $0.contains("═══") }
         #expect(top == Self.height - 7, "[\(attachment)] the sheet's top row: \(screen)")
+        #expect(screen.firstIndex { $0.contains("SHEET") } == Self.height - 6, "[\(attachment)] \(screen)")
         #expect(
             screen.last?.trimmingCharacters(in: .whitespaces).hasPrefix("╰") == true
                 || screen.last?.trimmingCharacters(in: .whitespaces).hasPrefix("└") == true,

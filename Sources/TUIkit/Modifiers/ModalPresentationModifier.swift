@@ -316,10 +316,15 @@ extension ModalPresentationModifier: Renderable {
                 of: modal, extent: overlayHeight, environment: modalContext.environment,
                 state: detentState(context: context))
             : nil
+        // The grabber's rule is the sheet's top row, so the content is drawn a
+        // row short of the detent — and at least one row tall.
+        let isGrabbed = SheetGrabber.isShown(
+            detents, visibility: presentationTrait(PresentationDragIndicatorProviding.self, of: modal)?
+                .dragIndicatorVisibility)
         var modalBuffer = gate.drawingContent(context: context) {
             renderModal(
                 context: context, modalContext: modalContext, overlayHeight: overlayHeight,
-                detentHeight: detents?.height)
+                detentHeight: detents?.height.map { isGrabbed ? max(1, $0 - 1) : $0 })
         }
         // Registered before the content drew, so that the content's own items
         // in this section replace it, the ESC item is named for what Escape
@@ -336,8 +341,13 @@ extension ModalPresentationModifier: Renderable {
         // A detented sheet rests on the bottom edge, as a sheet with detents
         // does on a phone: its height is the reader's to change, and the edge
         // it grows from stays put. Not draggable, as a cover is not: its
-        // place is the edge.
-        if detents?.height != nil {
+        // place is the edge. Its grabber is what moves it.
+        if let detents, detents.height != nil {
+            if isGrabbed {
+                modalBuffer = SheetGrabber.attach(
+                    to: modalBuffer, detents: detents, sectionID: sectionID,
+                    focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber, context: context)
+            }
             baseBuffer.overlays.append(.dockedAtBottom(content: modalBuffer, level: .modal, dimsBackground: true))
             return baseBuffer
         }
@@ -477,6 +487,9 @@ private enum StateIndex {
     /// The detent a sheet with no selection binding rests at, once the reader
     /// has moved it (`SheetDetentState`): emptied on the frames it is closed.
     static let detentState = 3
+    /// The grabber's focus id and its handler (`SheetGrabber`).
+    static let grabberFocusID = 4
+    static let grabber = 5
 }
 
 extension ModalPresentationModifier {

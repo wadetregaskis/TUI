@@ -250,14 +250,16 @@ extension PresentationDetentsProviding {
 
 /// A presented sheet's detents this frame: the heights it can rest at, and the
 /// one it rests at.
-@MainActor
+///
+/// Not main-actor isolated, as the content's detents are: the grabber steps
+/// it at event time, from a focus handler (`_SheetGrabberHandler`).
 struct PresentedDetents {
-    /// The content's detents.
-    let provider: any PresentationDetentsProviding
+    /// The content's selection binding, if it bound one.
+    let selection: Binding<PresentationDetent>?
     /// Its distinct heights, smallest first.
     let stops: [SheetDetentStop]
     /// The one it rests at, or `nil` when no detent is available.
-    let index: Int?
+    private(set) var index: Int?
     /// Where the sheet keeps a detent the reader chose, when nothing binds it.
     let state: SheetDetentState
 
@@ -267,12 +269,38 @@ struct PresentedDetents {
 
     /// The detents `content` names, for a sheet presented in `extent` rows —
     /// or `nil` when it names none.
+    @MainActor
     init?(of content: any View, extent: Int, environment: EnvironmentValues, state: SheetDetentState) {
         guard let provider = presentationTrait(PresentationDetentsProviding.self, of: content) else { return nil }
-        self.provider = provider
+        selection = provider.detentSelection
         self.state = state
         stops = provider.stops(in: extent, environment: environment)
         index = provider.restingIndex(among: stops, chosen: state.chosen, extent: extent, environment: environment)
+    }
+
+    /// Moves the sheet to stop `target`: through the selection binding when
+    /// there is one, as SwiftUI's drag writes it, else into the sheet's own
+    /// ``state``. Nothing is written for the stop it already rests at.
+    mutating func select(_ target: Int) {
+        guard stops.indices.contains(target), target != index else { return }
+        index = target
+        let detent = stops[target].detent
+        if let selection {
+            selection.wrappedValue = detent
+        } else {
+            state.chosen = detent
+        }
+    }
+
+    /// The stop whose height is nearest `height`, the one it rests at
+    /// winning a tie — where a pointer dragging the grabber to `height` rows
+    /// snaps the sheet.
+    func nearestIndex(toHeight height: Int) -> Int? {
+        guard let index else { return nil }
+        return stops.indices.min { lhs, rhs in
+            let (left, right) = (abs(stops[lhs].height - height), abs(stops[rhs].height - height))
+            return left != right ? left < right : lhs == index
+        }
     }
 }
 
@@ -288,8 +316,8 @@ struct SheetDetentStop: Equatable {
 /// it, and again once it is dismissed, so it opens at the smallest.
 ///
 /// A class, changed in place, as ``KeptSheetSize`` is: the sheet draws at the
-/// detent it records on the frame it records it.
-@MainActor
+/// detent it records on the frame it records it. Not main-actor isolated, for
+/// the reason ``PresentedDetents`` is not.
 final class SheetDetentState {
     var chosen: PresentationDetent?
 }
@@ -380,9 +408,11 @@ extension View {
     /// }
     /// ```
     ///
-    /// - Parameter detents: The heights the sheet may rest at. With more than
-    ///   one and no selection, the smallest is used — see
-    ///   ``presentationDetents(_:selection:)``.
+    /// With more than one, the sheet opens at the smallest and draws a
+    /// grabber on its top edge, which the reader drags — or moves with the
+    /// keys — between them (see ``presentationDragIndicator(_:)``).
+    ///
+    /// - Parameter detents: The heights the sheet may rest at.
     public func presentationDetents(_ detents: Set<PresentationDetent>) -> some View {
         _PresentationDetentsView(content: self, detents: detents, detentSelection: nil)
     }
@@ -390,8 +420,8 @@ extension View {
     /// Sets the available detents and binds the one in use. Matches SwiftUI's
     /// signature.
     ///
-    /// A terminal has no grabber to drag, so this binding is how a sheet moves
-    /// between its detents — set it from a button, a key, or anything else.
+    /// The binding is the detent the sheet rests at: the grabber writes it as
+    /// the reader moves the sheet, and setting it moves the sheet.
     ///
     /// - Parameters:
     ///   - detents: The heights the sheet may rest at.

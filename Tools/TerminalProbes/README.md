@@ -112,6 +112,15 @@ when unset), the visual/aspect probes print to the terminal.
   the flags are popped on the way out. Which keys to press is listed in
   Terminal-compatibility.md, "The kitty keyboard protocol" → "To measure, per
   host". NOT YET RUN on any host (2026-10-04).
+- `key_probe.py` — the LEGACY encoding (no keyboard protocol pushed): asks
+  for each key a sheet's grabber binds or its design rejected (↖ ↘ ⇞ ⇟, ↑ ↓,
+  ⌃↑ ⌃↓, ⇧↑, ⌥↑) in turn and records the bytes that arrived, decoded, or that
+  NOTHING did within `PROBE_WAIT` seconds (6) — a host that keeps a key for
+  its scrollback, or macOS taking ⌃↑ ⌃↓ for Mission Control. Run from the
+  host's default profile, on both screens (`PROBE_ALT=1`), and note by hand
+  whether the Mission Control shortcuts are on. JSON to `$PROBE_OUT`. See
+  Terminal-compatibility.md, "Keys a sheet's grabber uses". NOT YET RUN on
+  any host (2026-10-06).
 - `sync_probe.py` — synchronized output (DEC mode 2026), which TUIkit wraps
   every multi-row frame in. Checks that `CSI ? 2026 h` `CSI ? 2026 l` prints
   nothing (the cursor column before and after), asks DECRQM `?2026$p` of a

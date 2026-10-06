@@ -1,7 +1,8 @@
 # Drawers, sheets and slideover panes
 
-**Status: draft for decision.** Nothing here is implemented, though the grabber
-question §3 raises was answered elsewhere in the framework, as §3 now records.
+**Status: draft for decision.** Nothing here is implemented but §4c, the sheet
+grabber (shipped 2026-10-06, A19), though the grabber question §3 raises was
+answered elsewhere in the framework, as §3 now records.
 It exists because `.presentationDetents` shipped with a hole in it, and closing
 that hole properly means deciding what a "sheet that can be resized" *is* in a
 terminal — which is a design question, not an implementation detail.
@@ -210,6 +211,20 @@ Keep the SwiftUI API exactly as it is and give it the gesture:
 
 This is pure parity work: no new API, and the existing detent set finally means
 something.
+
+**Shipped 2026-10-06 (A19, design study §9 step 3), differently in one
+respect.** The grabber is not stamped onto the sheet's top border: it is a rule
+of its own across the sheet's top edge — a `VSplitView` divider (`DividerRule`,
+`DividerDrag`), the owner having framed a docked sheet as a split view, page
+above, sheet below — with `.userResizable`'s handle (`BorderGrip`) in its
+middle. One row, always, and known before the content renders, so the detent
+includes it; a titled border has nothing written over its title; and box-less
+content gets the same grabber as a `Dialog`. Detented sheets rest on the bottom
+edge. The grabber is a focus stop after the sheet's controls (↑ ↓ to the next
+detent, Home End to the ends, Return Space round them); a drag snaps between
+detents AS IT MOVES (owner Q4) rather than on release; `selection:` is written
+through. `presentationDragIndicator(.hidden)` removes the rule, the stop and
+the drag together.
 
 ---
 

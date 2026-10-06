@@ -321,6 +321,13 @@ with no VS-15. They are chosen because this reading has both advancing one cell
 with their ink contained on all four hosts; a glyph that overhung would paint
 into the neighbouring column's content.
 
+The resize grip (`BorderGrip`) — `.userResizable`'s edge and corner handles,
+and since 2026-10-06 a detented sheet's grabber, which draws the same handle on
+a `─` rule — is doubled Box Drawing (`═` `║` `╝`), heavy (`━` `┃` `┛`) against a
+double-line border. Those six are **not rows of the card**: they share the Box
+Drawing block with `─` and `│`, which are, and nobody has seen one misdraw, but
+neither their advance nor their ink has been measured on its own.
+
 **Chrome that is an emoji: a critical dialog's ⚠️ (2026-10-05).** An alert or
 confirmation dialog whose severity is critical starts its title, in the top
 border, with U+26A0 U+FE0F — the owner's direction of 2026-10-04 being that
@@ -4434,6 +4441,36 @@ still has not been measured.
 Terminal's "Use Option as Meta key" and iTerm2's per-profile Esc+/Meta/Normal
 choice may make ⌥⌃S send `ESC 0x13` or a high-bit byte, and Warp has its own
 setting. Record each terminal's version and setting with the reading.
+
+### Keys a sheet's grabber uses — since 2026-10-06; ↖ ↘ ⇞ ⇟ NOT yet measured
+
+A detented sheet's grabber (`presentationDragIndicator(_:)`, decisions A19) is a
+focus stop moved by **bare ↑ and ↓** (the next detent), **↖ ↘ Home and End**
+(the smallest, the largest) and ↩ or Space (round them). The bindings were
+chosen against what reaches an app:
+
+- **⌃↑ and ⌃↓ were rejected.** Apple Terminal strips every modifier from the
+  vertical arrows (Apple Terminal, "Input behaviour"), so they arrive as bare
+  ↑ and ↓ there. And **macOS takes ⌃↑ and ⌃↓ itself, in every terminal**: they
+  are Mission Control's and Application windows' default shortcuts (System
+  Settings → Keyboard → Keyboard Shortcuts → Mission Control), consumed by the
+  system before any terminal sees them, unless the user has turned them off.
+  Noted when the list's row moves gained ⌥↑ ⌥↓ beside ⌃↑ ⌃↓ (73e77659); not
+  recorded here until now, and not yet captured by a probe on each host.
+- **⇧↑ ⇧↓ and ⌥↑ ⌥↓** are stripped the same way in Apple Terminal.
+- **Bare ↑ and ↓** reach the app on every host measured; they are the split
+  view divider's keys, so a reader who has moved a divider knows these.
+- **Bare ↖ ↘ (Home, End) and ⇞ ⇟ (Page Up, Page Down): NOT YET MEASURED.** A
+  host's default profile may keep them for scrolling its own buffer — Apple
+  Terminal's is the doubt — and send the app nothing. `.userResizable` binds
+  Home and End already. Until measured, the grabber's ↑ and ↓ are its
+  documented route and Home and End a convenience; ⇞ ⇟ are bound to nothing.
+
+**To measure — `Tools/TerminalProbes/key_probe.py`**, run inside each host from
+its default profile, on both screens (`PROBE_ALT=1` is the one TUIkit draws on):
+it asks for each of the keys above in turn and records the bytes that arrived, or
+that NOTHING did, within six seconds. Record whether the Mission Control
+shortcuts are on.
 
 ### Shifted function keys are re-coded (Apple Terminal)
 

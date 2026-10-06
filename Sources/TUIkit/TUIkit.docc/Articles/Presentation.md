@@ -97,9 +97,25 @@ detent is the height the content is rendered *into*, so it has to be readable
 before that render happens, which is why it rides the view's type rather than a
 preference. (An `if` in the sheet's builder is fine; another presentation
 modifier such as ``View/interactiveDismissDisabled(_:)`` is fine either way
-round. Anything else you wrap it in is not.) And a terminal has no grabber to
-drag: with several detents and no `selection:` binding the smallest applies, so
-bind one if the sheet should be able to change size.
+round. Anything else you wrap it in is not.)
+
+### The grabber
+
+A sheet with two detents or more opens at the smallest and has a **grabber**: a
+rule across its top edge with a handle in the middle — the divider of a
+``VSplitView``, between the sheet and the page — inside the detent's height. It
+is a focus stop after the sheet's own controls:
+
+| Key | Moves the sheet to |
+|---|---|
+| ↑ | the next larger detent |
+| ↓ | the next smaller detent |
+| ↖ ↘ (Home, End) | the smallest, the largest |
+| ↩ or Space | the next, round to the smallest after the largest |
+
+A mouse drags the rule, and the sheet snaps to the nearest detent as the
+pointer moves. Bind `selection:` to see where the reader put it, or to move it
+yourself:
 
 ```swift
 @State private var detent: PresentationDetent = .medium
@@ -109,6 +125,11 @@ bind one if the sheet should be able to change size.
         .presentationDetents([.medium, .large], selection: $detent)
 }
 ```
+
+``View/presentationDragIndicator(_:)`` with `.hidden` takes the grabber away —
+its rule, its focus stop and its drag together — and the binding is then the
+only way the sheet changes height. A sheet with one detent has no grabber,
+whatever the indicator says: there is nowhere to drag it.
 
 ## Alerts
 
