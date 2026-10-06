@@ -121,7 +121,7 @@ struct ChromeOverhangTests {
 
     // MARK: - The claim, host by host
 
-    /// The matrix: 4 hosts × 29 rows, with 8 of the 116 cells claiming two.
+    /// The matrix: 4 hosts × 34 rows, with 8 of the 136 cells claiming two.
     @Test("A chrome glyph claims two cells exactly where its host was measured to smear it")
     func theClaimFollowsTheHost() {
         for host in Self.hosts {

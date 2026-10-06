@@ -12,10 +12,11 @@ extension TerminalWidthTraits {
     /// two cells while advancing the cursor one — the paint fact, not the
     /// cursor one.
     ///
-    /// This is NOT the advance question, which is measured and closed: all 29
-    /// chrome corpus rows (`chrome_key`, `chrome_glyph`) advance exactly one
-    /// cell on Ghostty 1.3.1, iTerm2 3.6.11, Apple Terminal 455.1 and Warp
-    /// v0.2026.09.02 — `ChromeGlyphAdvanceTests` reads those records. This is
+    /// This is NOT the advance question, which is measured and closed: the 29
+    /// chrome corpus rows of 2026-09-04 (`chrome_key`, `chrome_glyph`) advance
+    /// exactly one cell on Ghostty 1.3.1, iTerm2 3.6.11, Apple Terminal 455.1
+    /// and Warp v0.2026.09.02 — `ChromeGlyphAdvanceTests` reads those records,
+    /// and lists the five keyboard symbols added 2026-10-05 as awaiting. This is
     /// the question that measurement left open: `↵` (U+21B5) was reported in
     /// Ghostty to swallow the space the status bar puts between a shortcut and
     /// its label, so `↵ activate` reads as `↵activate` — the grid intact, the
@@ -74,6 +75,14 @@ extension TerminalWidthTraits {
         /// the original report named, on the host it named, and the only row
         /// Ghostty marked a flank for. The seven Warp overhangs do not: this
         /// set is not a subset of that one.
+        ///
+        /// Since 2026-10-05 the framework draws Return as `↩` U+21A9, macOS's
+        /// symbol, and `↵` only where an app writes it. `↩` is NOT in this set:
+        /// nobody has read its ink on Ghostty yet (its corpus row,
+        /// `key_return_hook`, is on the card for that), and the rule
+        /// ``contained`` states holds for a glyph as for a host — a claim
+        /// widened on no reading scatters blank cells after a glyph that may
+        /// fit. It is the first row to read there.
         case returnArrow
 
         /// The seven keyboard symbols `⎋ ⏎ ⌫ ⌦ ␣ ⌥ ⌘`. Warp v0.2026.09.02,

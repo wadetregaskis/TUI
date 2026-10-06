@@ -205,13 +205,13 @@ BATTERY.update({
     # decision no Unicode table predicts, and the only way to know which hosts
     # do it is to ask them.
     "key_escape": "\u238B",  # ⎋ Shortcut.escape
-    "key_return": "\u21B5",  # ↵ Shortcut.enter — reported 2 cells in Ghostty
-    "key_return_symbol": "\u23CE",  # ⏎ Shortcut.returnKey
+    "key_return": "\u21B5",  # ↵ Return until 2026-10-05, ↩ now — reported 2 cells in Ghostty
+    "key_return_symbol": "\u23CE",  # ⏎ an alternative Return, retired 2026-10-05
     "key_tab": "\u21E5",  # ⇥ Shortcut.tab
-    "key_backtab": "\u21E4",  # ⇤ Shortcut.shiftTab
+    "key_backtab": "\u21E4",  # ⇤ Shift-Tab until 2026-10-05, ⇧⇥ now
     "key_backspace": "\u232B",  # ⌫ Shortcut.backspace
     "key_delete": "\u2326",  # ⌦ Shortcut.delete
-    "key_space": "\u2423",  # ␣ Shortcut.space
+    "key_space": "\u2423",  # ␣ the space bar until 2026-10-05, a word now
     "key_arrow_up": "\u2191",  # ↑ Shortcut.arrowUp — EAW Ambiguous
     "key_arrow_down": "\u2193",  # ↓ Shortcut.arrowDown — EAW Ambiguous
     "key_arrow_left": "\u2190",  # ← Shortcut.arrowLeft — EAW Ambiguous
@@ -220,6 +220,15 @@ BATTERY.update({
     "key_control": "\u2303",  # ⌃ Shortcut.control
     "key_option": "\u2325",  # ⌥ Shortcut.option
     "key_command": "\u2318",  # ⌘ Shortcut.command
+    # Added 2026-10-05, when the keys took macOS's symbols (KeySymbols.swift):
+    # drawn for the first time, so no advance record from before then has
+    # them. ↩ is the one to read first on Ghostty, which smeared ↵, the Return
+    # before it.
+    "key_return_hook": "\u21A9",  # ↩ Shortcut.enter
+    "key_home": "\u2196",  # ↖ Shortcut.home — EAW Ambiguous
+    "key_end": "\u2198",  # ↘ Shortcut.end — EAW Ambiguous
+    "key_page_up": "\u21DE",  # ⇞ Shortcut.pageUp
+    "key_page_down": "\u21DF",  # ⇟ Shortcut.pageDown
     "chrome_left_tri": "\u25C0",  # ◀ TerminalSymbols.leftArrow — EAW Ambiguous
     "chrome_right_tri": "\u25B6",  # ▶ TerminalSymbols.rightArrow / disclosureCollapsed
     "chrome_down_tri": "\u25BC",  # ▼ TerminalSymbols.disclosureExpanded

@@ -2,9 +2,12 @@
 """Prints a card for chrome glyphs whose INK spills out of their cell.
 
 `advance_probe.py` settled the cursor question for the framework's own chrome
-on 2026-09-04: all 29 rows (`chrome_key`, `chrome_glyph`) advance exactly one
-cell on Ghostty, iTerm2, Apple Terminal and Warp. The claim is right and no row
-shifts. What it could not settle is the PAINT — `↵` (U+21B5) was reported in
+on 2026-09-04: all 29 rows (`chrome_key`, `chrome_glyph`) it had then advance
+exactly one cell on Ghostty, iTerm2, Apple Terminal and Warp. The claim is right
+and no row shifts. Five more keyboard symbols joined the corpus on 2026-10-05,
+when the keys took macOS's symbols — `↩ ↖ ↘ ⇞ ⇟`, drawn for the first time — and
+they are on this card UNREAD on every host; `↩`, the Return that replaced `↵`,
+is the one to read first on Ghostty. What it could not settle is the PAINT — `↵` (U+21B5) was reported in
 Ghostty to swallow the space the status bar puts between a shortcut and its
 label, so `↵ activate` reads as `↵activate`. A cursor report cannot see that,
 because nothing moved: the grid is intact and only the ink is over the line.
@@ -76,6 +79,9 @@ RESET = CSI + "0m"
 # a flank whose edge cannot be read. 201 is a pure corner of the 6x6x6 cube.
 FLANK = CSI + "48;5;201m" + "  " + RESET
 CHROME_CLASSES = ("chrome_key", "chrome_glyph")
+# The rows of those classes, as `ChromeGlyphAdvanceTests` counts them: the 29 of
+# 2026-09-04 and the five keyboard symbols of 2026-10-05.
+CHROME_ROWS = 34
 
 # Not part of the corpus: the rows that say whether this card is legible at all
 # on this host. `pad` is EXTRA cells after the cluster, and it is 0 everywhere:
@@ -113,8 +119,9 @@ def spacing_rows(rows):
 
 def main():
     clusters = [entry for entry in load_corpus() if entry["class"] in CHROME_CLASSES]
-    if len(clusters) != 29:
-        print("WARNING: %d chrome rows in the corpus, expected 29" % len(clusters),
+    if len(clusters) != CHROME_ROWS:
+        print("WARNING: %d chrome rows in the corpus, expected %d"
+              % (len(clusters), CHROME_ROWS),
               file=sys.stderr)
 
     keys = [(e["id"], e["text"], 0, "") for e in clusters if e["class"] == "chrome_key"]

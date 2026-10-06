@@ -207,6 +207,10 @@ struct TerminalLedgerConformanceTests {
         "chrome_radio_on", "chrome_radio_off", "chrome_radio_dis",
         "chrome_full_block", "chrome_left_half", "chrome_right_half", "chrome_shade",
         "chrome_box_h", "chrome_box_v",
+        // The keyboard symbols added 2026-10-05, when the keys took macOS's
+        // symbols. Not even their advance is in a record yet (see
+        // `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement`).
+        "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

@@ -62,7 +62,7 @@ when unset), the visual/aspect probes print to the terminal.
   in Ghostty (copy it to a temporary directory first): Ghostty has no access to
   that folder here, and the script's own open waits on a consent prompt.
 - `overhang_card.py` — does a chrome glyph's INK stay inside its cell? Each of
-  the 29 `chrome_key`/`chrome_glyph` corpus rows is drawn in ONE cell between
+  the 34 `chrome_key`/`chrome_glyph` corpus rows is drawn in ONE cell between
   two flanks of solid magenta; ink on a flank is overhang, and which flank says
   which way. The alignment cards cannot ask this — they measure where the next
   character lands, and an overhanging glyph moves nothing: the grid is intact
@@ -74,7 +74,10 @@ when unset), the visual/aspect probes print to the terminal.
   where the defect was seen. **READ on all four hosts 2026-09-04**, and the
   answer is per host: Ghostty smears `↵` alone, Warp smears `⎋ ⏎ ⌫ ⌦ ␣ ⌥ ⌘`
   and NOT `↵`, Apple Terminal and iTerm2 smear nothing, and no drawing glyph
-  smears anywhere. The mechanism it feeds is
+  smears anywhere. The five keyboard symbols added 2026-10-05 (`↩ ↖ ↘ ⇞ ⇟`,
+  the keys' macOS symbols, drawn for the first time) were not on that card and
+  are UNREAD on every host — `↩`, which replaced `↵` as Return, first on
+  Ghostty. The mechanism it feeds is
   `TerminalWidthTraits.chromeOverhang` with the sets in
   `Sources/TUIkitCore/Extensions/ChromeOverhang.swift`; the reading is written
   up in Terminal-compatibility.md, "The ink half". Record the FONT and its size

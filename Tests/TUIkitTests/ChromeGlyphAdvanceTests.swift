@@ -30,6 +30,12 @@ import Testing
 /// This reads the `advance_probe.py` records rather than restating their
 /// numbers, so re-running the probe on a new version of a host updates the test
 /// rather than dating it.
+///
+/// Five keyboard symbols joined the chrome rows on 2026-10-05, when the keys
+/// took macOS's symbols — `↩ ↖ ↘ ⇞ ⇟`, which the framework had never drawn.
+/// No record has them yet: they are listed per host in
+/// ``awaitingAdvanceMeasurement`` until the probe is re-run, so that "not
+/// measured" cannot read as "measured and fine".
 @Suite("Chrome glyph advance")
 struct ChromeGlyphAdvanceTests {
 
@@ -78,17 +84,63 @@ struct ChromeGlyphAdvanceTests {
 
     private static let chromeRows = WidthCorpus.clusters.filter { chromeClasses.contains($0.category) }
 
+    /// The chrome rows a host's record does not have yet, host by host: a row
+    /// whose advance no probe has taken is named here, and a row named here
+    /// that the record now has fails until it is removed — the rule
+    /// `TerminalLedgerConformanceTests.awaitingLandingMeasurement` follows.
+    ///
+    /// Per host because a re-run is: the first probe to read the five
+    /// 2026-10-05 symbols will be one host's, and the others still await it.
+    /// (The coordinator's hand-rolled DSR of 2026-10-05 read all five at one
+    /// cell on Apple Terminal 455.1, iTerm2 3.7.3, Warp v0.2026.09.30 and tmux
+    /// 3.7c; it is in `Documentation/Terminal-compatibility.md`, "Key symbols",
+    /// and not a record, so nothing here asserts it.)
+    private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
+        let newKeySymbols: Set<String> = [
+            "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
+        ]
+        return [
+            .ghostty: newKeySymbols, .iTerm2: newKeySymbols,
+            .appleTerminal: newKeySymbols, .warp: newKeySymbols,
+        ]
+    }()
+
     @Test("Every chrome glyph is a corpus row of one of the two chrome classes")
     func theSuiteHasSomethingToMeasure() {
-        #expect(Self.chromeRows.count == 29, "\(Self.chromeRows.count) chrome rows")
+        #expect(Self.chromeRows.count == 34, "\(Self.chromeRows.count) chrome rows")
+    }
+
+    /// The probes measure the corpus and nothing else (`advance_probe.py`'s
+    /// battery and `overhang_card.py` both draw its chrome rows), so a symbol
+    /// the formatter draws with no row is one no probe can be pointed at.
+    /// That is how `↩ ↖ ↘ ⇞ ⇟` shipped on 2026-10-05: drawn everywhere, and
+    /// measurable only by hand.
+    @Test("Every key symbol the framework draws is a keyboard-symbol row the probes measure")
+    func everyDrawnKeySymbolIsACorpusRow() {
+        let keys: [Key] = [
+            .escape, .enter, .tab, .backspace, .delete,
+            .up, .down, .left, .right, .home, .end, .pageUp, .pageDown,
+        ]
+        let modifiers: [EventModifiers] = [.control, .option, .shift, .command]
+        let drawn = keys.map(KeySymbols.key) + modifiers.map(KeySymbols.modifiers)
+        let rows = Set(WidthCorpus.clusters(in: "chrome_key").map(\.text))
+        for symbol in drawn {
+            #expect(rows.contains(symbol), "\(symbol) is drawn, and no chrome_key row measures it")
+        }
     }
 
     @Test("Every host advances one cell for every chrome glyph")
     func chromeAdvancesOneCellEverywhere() {
         for host in Self.records {
+            let awaiting = Self.awaitingAdvanceMeasurement[host.program] ?? []
+            for id in awaiting where host.advances[id] != nil {
+                Issue.record("\(host.name)/\(id) is measured now — remove it from awaitingAdvanceMeasurement")
+            }
             for row in Self.chromeRows {
                 guard let measured = host.advances[row.id] else {
-                    Issue.record("\(host.name)/\(row.id): the probe recorded no advance")
+                    if !awaiting.contains(row.id) {
+                        Issue.record("\(host.name)/\(row.id): the probe recorded no advance")
+                    }
                     continue
                 }
                 #expect(

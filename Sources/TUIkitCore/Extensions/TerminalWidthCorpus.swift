@@ -194,6 +194,13 @@ package enum TerminalWidthCorpus {
         Entry(id: "key_control", category: "chrome_key", text: "\u{2303}"),  // ⌃ Shortcut.control
         Entry(id: "key_option", category: "chrome_key", text: "\u{2325}"),  // ⌥ Shortcut.option
         Entry(id: "key_command", category: "chrome_key", text: "\u{2318}"),  // ⌘ Shortcut.command
+        // Added 2026-10-05, when the keys took macOS's symbols: drawn for the
+        // first time, and so measured by none of the records the rows above are.
+        Entry(id: "key_return_hook", category: "chrome_key", text: "\u{21A9}"),  // ↩ Shortcut.enter — Ghostty smeared ↵, the Return before it
+        Entry(id: "key_home", category: "chrome_key", text: "\u{2196}"),  // ↖ Shortcut.home — EAW Ambiguous
+        Entry(id: "key_end", category: "chrome_key", text: "\u{2198}"),  // ↘ Shortcut.end — EAW Ambiguous
+        Entry(id: "key_page_up", category: "chrome_key", text: "\u{21DE}"),  // ⇞ Shortcut.pageUp
+        Entry(id: "key_page_down", category: "chrome_key", text: "\u{21DF}"),  // ⇟ Shortcut.pageDown
         Entry(id: "chrome_left_tri", category: "chrome_glyph", text: "\u{25C0}"),  // ◀ TerminalSymbols.leftArrow — EAW Ambiguous
         Entry(id: "chrome_right_tri", category: "chrome_glyph", text: "\u{25B6}"),  // ▶ TerminalSymbols.rightArrow / disclosureCollapsed
         Entry(id: "chrome_down_tri", category: "chrome_glyph", text: "\u{25BC}"),  // ▼ TerminalSymbols.disclosureExpanded
@@ -292,7 +299,8 @@ package enum TerminalWidthCorpus {
                 + "a truncated emoji both leave), and the bidi marks alone. All zero-width "
                 + "extras: the cluster is its base, and a lone mark is nothing. UNMEASURED.",
         "chrome_key":
-            "The keyboard symbols the status bar draws — ⎋ ↵ ⇥ ⌫ ⌘ and the arrows. "
+            "The keyboard symbols the status bar and menus draw — ⎋ ↩ ⇥ ⌫ ⌘, the "
+                + "arrows, ↖ ↘ ⇞ ⇟ — and ↵ ⏎ ⇤ ␣, which they drew until 2026-10-05. "
                 + "The framework claims one cell for every one of them and had never "
                 + "measured any: half are East Asian AMBIGUOUS, which is a terminal "
                 + "SETTING rather than a property of the character, and ↵ (U+21B5, EAW "
@@ -300,7 +308,9 @@ package enum TerminalWidthCorpus {
                 + "which ate the space before the label beside it. ADVANCE measured "
                 + "2026-09-04: 1 on all four hosts, Ambiguous rows included. INK card-read "
                 + "the same day (`overhang_card.py`): ↵ overhangs on Ghostty, ⎋ ⏎ ⌫ ⌦ ␣ ⌥ ⌘ "
-                + "on Warp — disjoint sets, so the claim follows the host.",
+                + "on Warp — disjoint sets, so the claim follows the host. ↩ ↖ ↘ ⇞ ⇟, "
+                + "added 2026-10-05, are UNMEASURED by the probes: a hand-rolled DSR read "
+                + "advance 1 on four hosts, Ghostty not among them, and no ink is read.",
         "chrome_glyph":
             "The drawing glyphs the framework's own controls are made of — borders, "
                 + "track fills, field caps, radio indicators, disclosure and stepper "

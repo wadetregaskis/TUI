@@ -273,8 +273,9 @@ status bar's `Shortcut.enter` swallowing the space before its label, so
 `↵ activate` reads as `↵activate`. DSR cannot see it, because nothing moved.
 
 **Instrument:** `Tools/TerminalProbes/overhang_card.py`, run inside each host
-and **read by a person**. It draws each of the 29 `chrome_key`/`chrome_glyph`
-rows in ONE cell between two flanks of solid magenta; ink on a flank is
+and **read by a person**. It draws each `chrome_key`/`chrome_glyph` row (29
+on 2026-09-04, 34 since the keyboard symbols of 2026-10-05) in ONE cell
+between two flanks of solid magenta; ink on a flank is
 overhang, and which flank says which way. Two calibration rows (`█` must meet
 both flanks, `a` must clear them) say whether the card is legible on the host
 before any row under it is believed. This is a **paint** measurement of the
@@ -303,6 +304,14 @@ that mattered most, because a wide claim is never the remedy for a border. The
 CJK control `漢` claims two cells and overhangs neither flank on any host, and
 the calibration rows read as described everywhere, so the readings under them
 stand.
+
+**Not on that card:** the five keyboard symbols the corpus gained on
+2026-10-05, when the keys took macOS's symbols — `↩` (`key_return_hook`), `↖`
+(`key_home`), `↘` (`key_end`), `⇞` (`key_page_up`) and `⇟` (`key_page_down`),
+none of which the framework had drawn before (see "Key symbols" below). Their
+ink is **UNREAD on every host**. `↩` matters most: it replaced `↵` as the
+status bar's Return, and Ghostty's `returnArrow` claim covers `↵` alone, so
+it is the first row to read on Ghostty.
 
 Chrome glyph selection that rests on these rows: `NavigationSplitView`'s
 sidebar toggle (2026-09-13). The edge column, shown while a leading column is
@@ -390,7 +399,7 @@ into. Four consequences are worth naming because none of them is obvious:
   is a different glyph — chrome glyph selection — not a wider claim. The card
   measured all six contained on all four hosts.
 
-`ChromeOverhangTests` holds the matrix — four hosts against 29 rows — so a
+`ChromeOverhangTests` holds the matrix — four hosts against 34 rows — so a
 reading edited into one host's table cannot silently become every host's.
 
 ### Key symbols — macOS's spelling, adopted 2026-10-05
@@ -479,9 +488,18 @@ iTerm2 3.7.3 and Warp v0.2026.09.30 are newer than the versions the
 2026-09-04 card recorded; the ink of `⌃ ⌥ ⇧ ⌘ ⎋ ⇥ ⌫ ⌦ ↑ ↓ ← →` is that card's
 reading, on those older versions.
 
+That DSR was hand-rolled, not one of the committed probes, so it is recorded
+here in prose and in no file under `Tools/TerminalProbes/data/`. The five
+glyphs are corpus rows now (`key_return_hook`, `key_home`, `key_end`,
+`key_page_up`, `key_page_down`, class `chrome_key`), in `advance_probe.py`'s
+battery and on `overhang_card.py`, so a re-run of the committed probes records
+their advance and draws them for the ink reading. Until it does,
+`ChromeGlyphAdvanceTests` and `TerminalLedgerConformanceTests` list them as
+awaiting measurement on every host, and assert nothing about them.
+
 A glyph that overhangs on a host joins that host's table in
-`TerminalWidthTraits.ChromeOverhang` (and its corpus row the `chrome_key`
-class, with `ChromeGlyphAdvanceTests`' count). A host measured to have no
+`TerminalWidthTraits.ChromeOverhang`, whose rows must be corpus rows — which
+these five now are. A host measured to have no
 glyph for the symbols at all (a missing-glyph box) is a different case: it
 needs the keys' names spelled out instead, not a wider claim.
 
@@ -1344,6 +1362,12 @@ is deliberately NOT applied here — it would discard a correct rendering.
   and the ordinary `ECH(2)` + glyph + `CUF(1)` gives its ink the neighbouring
   cell. Warp smears seven other glyphs and not this one, which is why the claim
   is per host — see "The ink half" above.
+
+  Since 2026-10-05 the status bar's Return is `↩` (U+21A9), macOS's symbol,
+  and `↵` is drawn only where an app writes it. **`↩`'s ink here is UNREAD**,
+  and `returnArrow` does not cover it: a claim widened on no reading would put
+  a blank cell after a glyph that may fit. Its corpus row, `key_return_hook`,
+  is on `overhang_card.py` for that reading — see "Key symbols".
 
 ### Input behaviour
 

@@ -1184,6 +1184,46 @@
    ]
   },
   {
+   "id": "key_return_hook",
+   "class": "chrome_key",
+   "text": "↩",
+   "scalars": [
+    "U+21A9"
+   ]
+  },
+  {
+   "id": "key_home",
+   "class": "chrome_key",
+   "text": "↖",
+   "scalars": [
+    "U+2196"
+   ]
+  },
+  {
+   "id": "key_end",
+   "class": "chrome_key",
+   "text": "↘",
+   "scalars": [
+    "U+2198"
+   ]
+  },
+  {
+   "id": "key_page_up",
+   "class": "chrome_key",
+   "text": "⇞",
+   "scalars": [
+    "U+21DE"
+   ]
+  },
+  {
+   "id": "key_page_down",
+   "class": "chrome_key",
+   "text": "⇟",
+   "scalars": [
+    "U+21DF"
+   ]
+  },
+  {
    "id": "chrome_left_tri",
    "class": "chrome_glyph",
    "text": "◀",
