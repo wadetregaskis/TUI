@@ -431,7 +431,8 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         // from running. So a modal section holding the keyboard is a claim too;
         // with none written, the dialog's own item is what the bar shows and
         // what ESC fires. A presenter rendered AFTER the stack marks its section
-        // too late for this to see, and is not covered.
+        // too late for this to see; it withdraws this claim instead, as it
+        // takes the keyboard (`StatusBarState.withdrawEscapeClaim`).
         if !context.isMeasuring, barContext.environment.statusBar?.escapeLabelOverride == nil,
             barContext.environment.focusManager?.activeSectionIsModal != true
         {

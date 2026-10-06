@@ -141,6 +141,9 @@ extension AlertPresentationModifier: Renderable {
             // alert run. Isolation already covers the page BENEATH; this also
             // covers a sibling elsewhere in the tree.
             context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+            // A claim on Escape made before this, outside the alert, names a
+            // key the alert now holds (`StatusBarState.withdrawEscapeClaim`).
+            context.environment.statusBar?.withdrawEscapeClaim()
             // Whether the quit key works while the dialog is drawn: as
             // `.dialogPreventsAppTermination(_:)` outside this modifier says,
             // and by macOS's automatic rule where it says nothing.

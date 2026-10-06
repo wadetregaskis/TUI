@@ -207,10 +207,10 @@ extension PopoverPresentationModifier: Renderable {
             context.environment.statusBar?.preventQuit()
         }
         // The popover's name for its Escape, until the content has drawn
-        // (below).
-        let closeLabel = gate.escapeLabel(dismissal: .closePopover)
+        // (below): a claim, whose token names it as the popover's own.
+        var escapeClaim: Int?
         if !dismissIsDisabled {
-            context.environment.statusBar?.escapeLabelOverride = closeLabel
+            escapeClaim = context.environment.statusBar?.claimEscape(gate.escapeLabel(dismissal: .closePopover))
             context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
                 guard event.key == .escape else { return false }
                 // The content's cancel button where it drew one, as on macOS
@@ -250,11 +250,11 @@ extension PopoverPresentationModifier: Renderable {
         // Named for what Escape does, now the content has drawn: "cancel"
         // where it presses the content's cancel button, which may keep the
         // popover up. Unless the content claimed Escape for itself, whose
-        // name stands.
-        if !dismissIsDisabled, gate.escapePressesCancelButton,
-            let statusBar = context.environment.statusBar, statusBar.escapeLabelOverride == closeLabel
-        {
-            statusBar.escapeLabelOverride = gate.escapeLabel(dismissal: .closePopover)
+        // name stands — told by the claim's token, not its label: a popover
+        // presented inside this one claims with the same "close popover".
+        if let escapeClaim, gate.escapePressesCancelButton {
+            context.environment.statusBar?.renameEscapeClaim(
+                escapeClaim, to: gate.escapeLabel(dismissal: .closePopover))
         }
         guard !panel.isEmpty else { return baseBuffer }
 

@@ -243,22 +243,41 @@ public final class StatusBarState: @unchecked Sendable {
     /// up (`back`, `cancel`, …) but the user should be told that *right
     /// now* the key closes the transient surface.
     ///
-    /// Setting the property goes through this accessor so the active label
-    /// pulled by the renderer always reflects the most recent caller.
-    /// Clearing the modal (set to nil) restores the underlying item label.
-    public var escapeLabelOverride: String?
+    /// Setting it is a CLAIM on Escape for the frame, by whatever renders it
+    /// — the latest claim stands, and each is a new one, however it is
+    /// labelled (``claimEscape(_:)``). Clearing it (set to nil) withdraws the
+    /// claim and restores the underlying item label.
+    public var escapeLabelOverride: String? {
+        get { escapeClaim?.label }
+        set {
+            if let newValue { claimEscape(newValue) } else { withdrawEscapeClaim() }
+        }
+    }
 
     /// Whether the surface that claimed ESC (``escapeLabelOverride``) is an
     /// input-grabbing transient surface — an open drop-down menu, a
     /// suggestions pop-up — whose presence should also suppress the global
     /// app-chrome shortcuts (theme/appearance cycling), exactly like a modal.
     ///
-    /// `true` (the default, restored every frame) preserves that modal
+    /// `true` (the default, and every new claim's) preserves that modal
     /// behaviour. A lightweight claim — a multi-selection list offering ESC
-    /// to clear its selection — sets this `false` alongside the label: only
-    /// the ESC key itself is re-routed, everything else behaves normally.
-    /// Meaningless while ``escapeLabelOverride`` is `nil`.
-    public var escapeClaimGrabsInput = true
+    /// to clear its selection — sets this `false` after the label: only the
+    /// ESC key itself is re-routed, everything else behaves normally.
+    /// Meaningless while ``escapeLabelOverride`` is `nil`, and set then, it is
+    /// dropped.
+    public var escapeClaimGrabsInput: Bool {
+        get { escapeClaim?.grabsInput ?? true }
+        set { escapeClaim?.grabsInput = newValue }
+    }
+
+    /// The frame's claim on Escape, if anything has made one — see
+    /// ``EscapeClaim``.
+    var escapeClaim: EscapeClaim?
+
+    /// The token the next claim on Escape is made with. Never reused, so a
+    /// token kept from an earlier claim — or an earlier frame — names that
+    /// claim and no other.
+    var nextEscapeClaimToken = 0
 
     /// Whether item ACTIONS are suppressed for this frame — set, alongside
     /// ``escapeLabelOverride``, by an open transient surface that does NOT
@@ -626,8 +645,7 @@ extension StatusBarState {
         // never leaves its stale label behind on the next page. The
         // grabs-input flag travels with it (modal by default; a list's
         // lightweight selection claim lowers it each frame it applies).
-        escapeLabelOverride = nil
-        escapeClaimGrabsInput = true
+        escapeClaim = nil
         itemActionsSuppressed = false
         // Same contract for the Return verb: published by whichever control
         // holds the focus this frame, so its absence has to be the default or a

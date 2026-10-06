@@ -346,6 +346,9 @@ extension ModalPresentationModifier: Renderable {
         // modal run. Isolation already covers the page BENEATH; this
         // also covers a sibling elsewhere in the tree.
         context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+        // A claim on Escape made before this, outside the modal, names a key
+        // the modal now holds (`StatusBarState.withdrawEscapeClaim`).
+        context.environment.statusBar?.withdrawEscapeClaim()
         // Content that asked to stop the quit key does, for as long as it
         // is drawn.
         if presentationPreventsTermination(of: modal) {
