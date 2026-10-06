@@ -23,7 +23,9 @@ final class _PickerMenuHandler: PersistedFocusable {
     var itemValues: [AnyHashable]
     var canBeFocused: Bool
 
-    /// Whether the drop-down list is currently expanded.
+    /// Whether the drop-down list is currently expanded — drawn, which is what
+    /// the dispatcher takes it to mean: never left `true` with no options,
+    /// which the render closes (`_PickerMenuCore.resolveHandler`).
     var isOpen: Bool = false
 
     /// The highlighted option while the drop-down is open, and every gesture

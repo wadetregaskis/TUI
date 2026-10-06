@@ -167,9 +167,9 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let menuEntries = dropdownEntries(labels: renderedLabels)
         // The collapsed control is drawn to the width of the menu it opens.
         let innerWidth = DropdownMenu.innerWidth(for: menuEntries, context: context)
-        let optionCount = menuEntries.count { if case .option = $0 { return true } else { return false } }
 
-        let isOpen = handler.isOpen && optionCount > 0
+        // Never open with no options to draw: `resolveHandler` closes it.
+        let isOpen = handler.isOpen
         publishOpenEscapeLabel(context: context, isOpen: isOpen)
         // Return opens the closed drop-down, and picks from the open one.
         FocusRegistration.publishActivationLabel(
@@ -255,7 +255,15 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         handler.canBeFocused = !isDisabled
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
         handler.highlight.adopt(count: itemValues.count)
-        if isDisabled { handler.isOpen = false }
+        // Open means drawn: the dispatcher asks it of a press that opened the
+        // drop-down (`MouseEventDispatcher.pressOpenedPopup`), to know whether
+        // anything is on screen to take the rest of that gesture. With no
+        // options there is no drop-down to draw — a press on an empty picker,
+        // or options that all went while it was open — so it is closed here,
+        // on the frame, rather than left open: to the dispatcher a pop-up on
+        // screen, which sent the drag and release live onto whatever lay
+        // beneath it, and later back open with its options.
+        if isDisabled || itemValues.isEmpty { handler.isOpen = false }
         return handler
     }
 

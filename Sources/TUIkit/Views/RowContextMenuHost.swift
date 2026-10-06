@@ -166,10 +166,15 @@ enum RowContextMenuHost {
     ) -> Bool? {
         if wheel(event) { return true }
         // The drags and the release of a gesture whose press opened a pop-up —
-        // this container's menu or another's — never get here while the
-        // pop-up is not on screen to take them: the dispatcher spends them
+        // this container's menu or another's — never get here. Drawn, the
+        // pop-up's backdrop covers the screen and takes them; not drawn —
+        // before a frame has drawn it, or once its opener says it is closed —
+        // the dispatcher spends them
         // (``MouseEventDispatcher/pressOpenedPopup(_:)``), the quick click and
-        // the slow one alike.
+        // the slow one alike. That leaves no gap only because every opener's
+        // "open" means drawn: a `Picker` with no options was open and drew
+        // nothing, the dispatcher took it for on screen, and its gesture went
+        // live onto these rows.
         guard let menu, isSecondary(event) else { return nil }
         if event.phase == .pressed, menu.contentColumns.contains(event.x),
             menu.contentLines.contains(event.y), menu.open(row(), event.x, event.y)
