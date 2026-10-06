@@ -591,7 +591,8 @@ holds the input both bars are inert — no focus, keys or clicks — except the
 line of key hints, which shows the modal's keys and answers a click as the key;
 an item declared inside a `.dimmed()` subtree is drawn inert likewise. A view
 nobody sees declares nothing: a `NavigationStack`'s root, while a screen is
-pushed over it, has no items in the bars and hides no bar.
+pushed over it, has no items in the bars and hides no bar — and its items keep
+their `@State` meanwhile, as the root does, to come back to.
 
 **In a sheet** (and a full-screen cover, and a popover) the window's bars are
 inert while it holds the input, so a `.toolbar` in its content draws its items

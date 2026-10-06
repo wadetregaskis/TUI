@@ -69,6 +69,66 @@ private struct CoveredRootApp: App {
     }
 }
 
+/// A toolbar item whose own `@State` counts its presses.
+private struct TallyItem: View {
+    @State private var count = 0
+
+    var body: some View {
+        Button("TALLY \(count)") { count += 1 }
+            .keyboardShortcut("c", modifiers: [])
+    }
+}
+
+/// A stack whose root's toolbar holds an item with state of its own, with a
+/// screen pushed over the root when ``ReachProbe/pushed`` says so.
+private struct CoveredRootStateApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            NavigationStack(
+                path: .constant(ReachProbe.shared.pushed ? [1] : [Int]())
+            ) {
+                Text("ROOT")
+                    .toolbar { ToolbarItem(placement: .primaryAction) { TallyItem() } }
+                    .navigationDestination(for: Int.self) { Text("DETAIL \($0)") }
+            }
+        }
+    }
+}
+
+/// A windowed stack whose focused first row is a long way above the next
+/// focusable one, with a row between them — off the screen — that declares a
+/// toolbar button: the rows the focus-reach probe renders to find the next
+/// stop, and the frame never draws.
+private struct ProbedRowsApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<60, id: \.self) { index in
+                        if index == 0 || index == 40 {
+                            Button("ROW \(index)") {}
+                        } else if index == 25 {
+                            Text("ROW 25")
+                                .toolbar {
+                                    ToolbarItem(placement: .primaryAction) {
+                                        Button("LEAK") { ReachProbe.shared.deletes += 1 }
+                                            .keyboardShortcut("d", modifiers: [])
+                                    }
+                                }
+                        } else {
+                            Text("ROW \(index)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// A toolbar button declared inside a `.dimmed()` subtree, beside a live page.
 private struct DimmedDeclarationApp: App {
     init() {}
@@ -181,6 +241,48 @@ struct ToolbarReachTests {
         let covered = settled(CoveredRootApp())
         let rows = covered.screen.map(\.stripped)
         #expect(rows.contains { $0.contains("q quit") }, "the pushed screen has its bottom bar: \(rows)")
+    }
+
+    @Test("A navigation stack's covered root keeps its toolbar items' @State while a screen is pushed over it")
+    func coveredRootKeepsItsItemsState() {
+        ReachProbe.shared.reset()
+        defer { ReachProbe.shared.pushed = false }
+        let app = settled(CoveredRootStateApp())
+        var now: Int64 = 20_000_000
+        func frames(_ count: Int = 2) {
+            for _ in 0..<count {
+                now += 20_000_000
+                app.frame(atNanos: now)
+            }
+        }
+        for _ in 0..<3 {
+            app.send(KeyEvent(key: .character("c")))
+            frames(1)
+        }
+        #expect(app.screen.contains { $0.stripped.contains("TALLY 3") }, "sanity: \(app.screen.map(\.stripped))")
+
+        ReachProbe.shared.pushed = true
+        frames()
+        #expect(app.screen.contains { $0.stripped.contains("DETAIL 1") }, "sanity: pushed")
+        #expect(!app.screen.contains { $0.stripped.contains("TALLY") }, "sanity: the root's item is not drawn")
+
+        ReachProbe.shared.pushed = false
+        frames()
+        let rows = app.screen.map(\.stripped)
+        #expect(rows.contains { $0.contains("TALLY 3") }, "popped, the item has its count: \(rows)")
+    }
+
+    @Test("Rows the focus-reach probe walks past put nothing in the window's bars")
+    func probedRowsDeclareNothing() {
+        ReachProbe.shared.reset()
+        let app = settled(ProbedRowsApp())
+        app.frame(atNanos: 40_000_000)
+        let rows = app.screen.map(\.stripped)
+        #expect(rows.contains { $0.contains("ROW 0") }, "sanity: \(rows)")
+        #expect(!rows.contains { $0.contains("ROW 25") }, "sanity: row 25 is off the screen: \(rows)")
+        #expect(!rows.contains { $0.contains("LEAK") }, "its item is not in a bar: \(rows)")
+        app.send(KeyEvent(key: .character("d")))
+        #expect(ReachProbe.shared.deletes == 0, "nor is its shortcut live")
     }
 
     @Test("An item declared inside .dimmed() is drawn, but nothing reaches it")

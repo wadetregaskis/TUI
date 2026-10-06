@@ -91,8 +91,28 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                         identity: itemIdentity(item, depth: depth, context: context),
                         isFlexibleSpace: item.isFlexibleSpace))
             }
+        } else if !context.isMeasuring, context.environment.windowChrome == nil, let storage = context.stateStorage {
+            retainItems(depth: depth, storage: storage, context: context)
         }
         return TUIkit.renderToBuffer(content, context: contentContext)
+    }
+
+    /// Keeps the `@State` of the items a render with no window declares
+    /// nowhere — a navigation stack's covered root, a row the focus-reach
+    /// probe walks past (`withThrowawayFrameDemand`, `focusRingContinuations`).
+    ///
+    /// Nothing draws them there, and state whose view did not render is
+    /// collected at the end of the pass, so a counter in a stack root's
+    /// toolbar went back to 0 when a screen was pushed over the root and
+    /// popped again, and a search field there was cleared. The view is still
+    /// drawn; so, as far as its state is concerned, are its items — as the
+    /// window does for a bar it hides (`retainUndrawnItems`).
+    private func retainItems(depth: Int, storage: StateStorage, context: RenderContext) {
+        for item in toolbarItems(of: items) {
+            let identity = itemIdentity(item, depth: depth, context: context)
+            storage.markActive(identity)
+            storage.retainSubtree(identity)
+        }
     }
 
     /// The items are drawn by the window's bars, so this measures as `content`
