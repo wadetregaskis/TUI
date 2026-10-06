@@ -5,7 +5,9 @@
 //  the screen's (`.global`), one a view named (`.named(_:)`, declared by
 //  `coordinateSpace(_:)`), and the nearest scroll view's (`.scrollView`). How a
 //  view learns where it sits in one of them while it is still being built is
-//  `GeometryCoordinator`'s business (design study A2).
+//  `GeometryCoordinator`'s business (design study A2): the containers above it
+//  predict it (`RenderContext.placingChild(gradient:x:y:)`), and the space's
+//  owner checks the prediction against where it drew the view.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

@@ -23,9 +23,10 @@ import TUIkitView
 /// reader does not know where it sits while its content is being built — which
 /// is when it asks. It is answered with a prediction: the containers above it
 /// that know where they will place a child before drawing it (the stacks,
-/// `Grid`, a custom `Layout`) carry the reader's origin down, and what the
-/// others add — usually the same every frame — is taken from where the owner
-/// of the space found it last frame. The owner (the named view, the scroll
+/// `Grid`, a custom `Layout`, a scroll view, `.padding`, borders, `.frame`,
+/// overlays, `ZStack`, `.offset`, `.position`) carry the reader's origin down,
+/// and what the others add — usually the same every frame — is taken from
+/// where the owner of the space found it last frame. The owner (the named view, the scroll
 /// view, the scene root) finds it again once it has drawn, and when the answer
 /// was wrong — the first frame, or one on which something the prediction does
 /// not follow moved it — draws its subtree once more with the right answer, in

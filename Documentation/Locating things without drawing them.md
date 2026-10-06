@@ -1456,6 +1456,19 @@ question.
 - **Whole-frame incrementality**: this makes the *ScrollView's subtree*
   incremental. Ancestors still re-render top-down each frame. Genuinely
   incremental whole-frame rendering is a separate, larger problem.
+- **Where a view will be drawn, for the view itself** (`GeometryProxy.frame(in:)`
+  in a named space, `.global` or a scroll view's, anchors, `scrollTransition`):
+  not this design's question, and answered without it (2026-10-05, decisions
+  A2, design study `SwiftUI-API-completion-design-A2-geometry.md`). A view
+  stamps a geometry marker its space's owner reads back out of what it drew
+  (the truth), and the containers that place a child before drawing it carry
+  its origin down (the prediction, `RenderContext.placingChild(gradient:x:y:)`);
+  an owner draws its subtree again only when the prediction missed. The
+  study's G5 is this document's Stage 2 "locate" visitor used as that
+  predictor — pull instead of push, no context field, but every container
+  implementing `placement(at:)` with a real `x`. If Stage 2 lands for its own
+  reasons, the predictor can switch to it and the carried origin's two fields
+  can go.
 
 ---
 

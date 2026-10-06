@@ -588,6 +588,41 @@ benchmark); "A/B" below names the scenarios to run then.
    pull-side future). Behaviour and doc go in the same commit as each step per the
    docs-as-you-go rule; this step only sweeps what is left.
 
+**Built (lane D5G, 2026-10-05).** Steps 1–8 as above, one commit each (two
+pure moves and a field reorder made room first), with these departures, each
+written up in `SwiftUI-API-completion-decisions-D5G.md` (the decisions doc's
+A2 and A7 entries are left for the coordinator to retire):
+
+- the geometry correction of a scroll view is its own drawing, not merged into
+  `coverSnappedViewport` — with rung 2 the content's second and third drawings
+  are predicted at the offsets they are made at, so it only runs when the
+  prediction missed;
+- a reader is held to a space's SIZE only if it asked it (`bounds(of:)`), so a
+  growing list does not correct readers that asked only `frame(in:)`;
+- `.global` and undeclared names are predicted only in the root's frame of
+  reference (`GeometryOwnerScope.startsReference`);
+- not converted: a `List`'s rows and its `.scrollView` (B-D5G-9), the root's
+  centring, `safeAreaInset`, content margins, `TabView`, `NavigationSplitView`,
+  `SplitView` (B-D5G-10); `Table` cells are not located at all (B-D5G-2);
+- `scrollTransition`'s default threshold is unmeasured and taken as `.visible`
+  (B-D5G-8).
+
+The Stress counter's shape (`GeometryCorrectionRateTests`), corrections per
+frame by owner after each rung:
+
+| | G1 (step 3) | rung 1 (step 5) | rung 2 (step 6) | rung 3 (step 7) |
+|---|---|---|---|---|
+| first frame | named 1, scroll view 1, root 1 | scroll view 1, root 1 | scroll view 1, root 1 | scroll view 1, root 1 |
+| at rest | 0 | 0 | 0 | 0 |
+| each scroll step | scroll view 1, named 1 | scroll view 1 | 0 | 0 |
+| an insertion above | named 1 | 0 | 0 | 0 |
+| each step of an `.offset` above a `.global` reader | root 1 | root 1 | root 1 | 0 |
+| anchor highlight following a row | — | layer 0 | layer 0 | layer 0 |
+| residual | 0 | 0 | 0 | 0 |
+
+The first frame's two are the frame before the root has a reader to carry an
+origin for.
+
 ---
 
 ## 11. Risks and things to check while building
