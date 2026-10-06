@@ -59,8 +59,8 @@ extension View {
 ///
 /// Each item is recorded with the environment it was declared in and an
 /// identity under this view's — keyed by its place in the declaration (or its
-/// `id:`), and by how many `.toolbar`s at this identity enclose this one — so
-/// the bar draws it as if it were drawn here.
+/// `id:`), and by how many `.toolbar`s at this identity enclose this one
+/// (``declaring(in:)``) — so the bar draws it as if it were drawn here.
 ///
 /// Declared on the drawn walk only — a measurement declares nothing — except
 /// the first frame's seeding walk, which is a measurement whose whole purpose
@@ -76,6 +76,7 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
         // content (`ToolbarPresentationRows.swift`): the window's bars are
         // inert while the presentation holds the input.
         if context.environment.presentationHostsToolbar { return renderInPresentation(context: context) }
+        let (depth, contentContext) = declaring(in: context)
         if let chrome = context.environment.windowChrome,
             !context.isMeasuring || context.environment.seedsWindowChrome
         {
@@ -83,25 +84,15 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
             // buffer would leave the window with no items: the same refusal
             // `.statusBarItems` makes.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
-            // How many `.toolbar`s at this same identity are declaring around
-            // this one: a modifier renders its content at its own identity, so
-            // `Text("p").toolbar { A }.toolbar { B }` — or the same with a
-            // `.padding()` between — is two declarations at ONE identity, and
-            // their first items took the same slot. The window deduplicates by
-            // slot (a walk may render a view twice), so A was never drawn.
-            let depth = chrome.beginDeclaring(at: context.identity)
-            defer { chrome.endDeclaring(at: context.identity) }
             for item in toolbarItems(of: items) {
-                let key = depth == 0 ? item.slotKey : "\(depth)/\(item.slotKey)"
                 chrome.declare(
                     WindowChromeState.ToolbarEntry(
                         placement: item.placement, view: item.view, environment: context.environment,
-                        identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity,
+                        identity: itemIdentity(item, depth: depth, context: context),
                         isFlexibleSpace: item.isFlexibleSpace))
             }
-            return TUIkit.renderToBuffer(content, context: context)
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkit.renderToBuffer(content, context: contentContext)
     }
 
     /// The items are drawn by the window's bars, so this measures as `content`
@@ -110,12 +101,66 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
         if context.environment.presentationHostsToolbar {
             return sizeInPresentation(proposal: proposal, context: context)
         }
-        return measureChild(content, proposal: proposal, context: context)
+        return measureChild(content, proposal: proposal, context: declaring(in: context).content)
     }
 }
 
 /// The identity step a toolbar item takes under the view that declared it.
 enum _ToolbarItemSlot {}
+
+// MARK: - Nested Declarations
+
+/// A `.toolbar` declaring around a view: the identity it declares at, and how
+/// many `.toolbar`s at that identity enclose it.
+struct _ToolbarDeclaration: Hashable {
+    let identity: ViewIdentity
+    let depth: Int
+}
+
+/// Environment key for the innermost `.toolbar` declaring around a view.
+private struct EnclosingToolbarDeclarationKey: EnvironmentKey {
+    static let defaultValue: _ToolbarDeclaration? = nil
+}
+
+extension EnvironmentValues {
+    /// The innermost `.toolbar` whose content this is: how the next one in
+    /// tells whether it declares at the same identity, and how deep.
+    var enclosingToolbarDeclaration: _ToolbarDeclaration? {
+        get { self[EnclosingToolbarDeclarationKey.self] }
+        set { self[EnclosingToolbarDeclarationKey.self] = newValue }
+    }
+}
+
+extension _ToolbarModifier {
+    /// How many `.toolbar`s at this identity enclose this one, and the context
+    /// its content is measured and drawn in, which says so to the next one in.
+    ///
+    /// A modifier renders its content at its own identity, so
+    /// `Text("p").toolbar { A }.toolbar { B }` — or the same with a
+    /// `.padding()` between — is two declarations at ONE identity, and their
+    /// first items took the same slot: the window deduplicates by slot (a walk
+    /// may render a view twice), so A was never drawn, and in a sheet the two
+    /// shared their `@State` and their focus ID.
+    ///
+    /// Carried down the environment, so it is the same on every walk — the
+    /// window's, a measurement, a navigation stack's covered root, a render
+    /// outside an app — and on a second render of the same view.
+    func declaring(in context: RenderContext) -> (depth: Int, content: RenderContext) {
+        let enclosing = context.environment.enclosingToolbarDeclaration
+        let depth = enclosing.map { $0.identity == context.identity ? $0.depth + 1 : 0 } ?? 0
+        var contentContext = context
+        contentContext.environment.enclosingToolbarDeclaration = _ToolbarDeclaration(
+            identity: context.identity, depth: depth)
+        return (depth, contentContext)
+    }
+
+    /// The identity `item` is drawn at: under this view's, keyed by its place
+    /// in the declaration and by `depth` (``declaring(in:)``).
+    func itemIdentity(_ item: _ToolbarItemSpec, depth: Int, context: RenderContext) -> ViewIdentity {
+        let key = depth == 0 ? item.slotKey : "\(depth)/\(item.slotKey)"
+        return context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity
+    }
+}
 
 // MARK: - Seeing Through the Wrapper (the READ direction)
 

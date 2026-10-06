@@ -69,7 +69,6 @@ extension _ToolbarModifier {
         var top: [WindowChromeState.ToolbarEntry] = []
         var bottom: [WindowChromeState.ToolbarEntry] = []
         for item in toolbarItems(of: items) {
-            let key = depth == 0 ? item.slotKey : "\(depth)/\(item.slotKey)"
             let view: AnyView =
                 switch item.placement.role {
                 case .confirmationAction: AnyView(item.view.keyboardShortcut(.defaultAction))
@@ -78,7 +77,7 @@ extension _ToolbarModifier {
                 }
             let entry = WindowChromeState.ToolbarEntry(
                 placement: item.placement, view: view, environment: context.environment,
-                identity: context.withChildIdentity(erasedType: _ToolbarItemSlot.self, key: key).identity,
+                identity: itemIdentity(item, depth: depth, context: context),
                 isFlexibleSpace: item.isFlexibleSpace)
             if item.placement.isPresentationButtonRow {
                 bottom.append(entry)
@@ -116,15 +115,13 @@ extension _ToolbarModifier {
 
     /// Draws the view with its items in rows above and below it.
     func renderInPresentation(context: RenderContext) -> FrameBuffer {
-        let chrome = context.environment.windowChrome
-        let depth = chrome?.beginDeclaring(at: context.identity) ?? 0
-        defer { chrome?.endDeclaring(at: context.identity) }
-        let (top, bottom) = presentationEntries(depth: depth, context: context)
-        guard !top.isEmpty || !bottom.isEmpty else { return TUIkit.renderToBuffer(content, context: context) }
+        let declaration = declaring(in: context)
+        var contentContext = declaration.content
+        let (top, bottom) = presentationEntries(depth: declaration.depth, context: context)
+        guard !top.isEmpty || !bottom.isEmpty else { return TUIkit.renderToBuffer(content, context: contentContext) }
 
         let topSize = naturalSize(of: top, row: 0, context: context)
         let bottomSize = naturalSize(of: bottom, row: 1, context: context)
-        var contentContext = context
         contentContext.availableHeight = max(0, context.availableHeight - topSize.height - bottomSize.height)
         // The view first, so its controls come first in the focus section.
         let body = TUIkit.renderToBuffer(content, context: contentContext)
@@ -147,12 +144,10 @@ extension _ToolbarModifier {
 
     /// The view's size with its rows.
     func sizeInPresentation(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let chrome = context.environment.windowChrome
-        let depth = chrome?.beginDeclaring(at: context.identity) ?? 0
-        defer { chrome?.endDeclaring(at: context.identity) }
+        let (depth, contentContext) = declaring(in: context)
         let (top, bottom) = presentationEntries(depth: depth, context: context)
         guard !top.isEmpty || !bottom.isEmpty else {
-            return measureChild(content, proposal: proposal, context: context)
+            return measureChild(content, proposal: proposal, context: contentContext)
         }
         let topSize = naturalSize(of: top, row: 0, context: context)
         let bottomSize = naturalSize(of: bottom, row: 1, context: context)
@@ -160,7 +155,7 @@ extension _ToolbarModifier {
         let body = measureChild(
             content,
             proposal: ProposedSize(width: proposal.width, height: proposal.height.map { max(0, $0 - rows) }),
-            context: context)
+            context: contentContext)
         var width = max(body.width, topSize.width, bottomSize.width)
         if let limit = proposal.width { width = min(width, limit) }
         return ViewSize(

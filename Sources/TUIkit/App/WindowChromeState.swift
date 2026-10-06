@@ -229,7 +229,6 @@ final class WindowChromeState: @unchecked Sendable {
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
         appLineHandlerIDs.removeAll(keepingCapacity: true)
-        openDeclarations.removeAll(keepingCapacity: true)
         title = ""
         subtitle = ""
         titleDepth = .max
@@ -248,25 +247,6 @@ final class WindowChromeState: @unchecked Sendable {
     /// Whether this walk hid the bar at `edge`.
     func isHidden(_ edge: Edge) -> Bool {
         declaredVisibility[edge] == .hidden
-    }
-
-    /// The `.toolbar` modifiers declaring at each identity at this moment of
-    /// the walk: how deeply the next one there is nested in the others.
-    private var openDeclarations: [ViewIdentity: Int] = [:]
-
-    /// Opens a `.toolbar` declaration at `identity`, and returns how many are
-    /// open there already — its depth among the modifiers that render their
-    /// content at that one identity. Close it with ``endDeclaring(at:)``.
-    func beginDeclaring(at identity: ViewIdentity) -> Int {
-        let depth = openDeclarations[identity, default: 0]
-        openDeclarations[identity] = depth + 1
-        return depth
-    }
-
-    /// Closes the innermost `.toolbar` declaration open at `identity`.
-    func endDeclaring(at identity: ViewIdentity) {
-        let depth = openDeclarations[identity, default: 1] - 1
-        openDeclarations[identity] = depth > 0 ? depth : nil
     }
 
     /// Records a toolbar item the walk declared — once per identity.

@@ -88,6 +88,35 @@ struct ToolbarIdentityTests {
         #expect(screen.contains { $0.contains("BETA") }, "the outer one's item: \(screen)")
     }
 
+    @Test("In presented content drawn with no window, two .toolbar modifiers on one view keep their items apart")
+    func twoToolbarsApartWithNoWindow() {
+        // A navigation stack's covered root, the focus-reach probe and a render
+        // outside an app all draw with no window chrome; the nesting depth
+        // that keeps the two declarations apart was the window's to count, so
+        // there both items took one identity — one `@State`, one focus ID.
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var environment = EnvironmentValues()
+        environment.focusManager = focusManager
+        environment.applyRuntimeServices(from: tuiContext)
+        environment.presentationHostsToolbar = true
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 10, environment: environment, tuiContext: tuiContext)
+        let view = Text("PAGE")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("ALPHA") {} } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("BETA") {} } }
+        tuiContext.stateStorage.beginRenderPass()
+        focusManager.beginRenderPass()
+        let screen = renderToBuffer(view, context: context).lines.map(\.stripped)
+        focusManager.endRenderPass()
+        tuiContext.stateStorage.endRenderPass()
+        #expect(environment.windowChrome == nil, "sanity: no window")
+        #expect(screen.contains { $0.contains("ALPHA") }, "sanity: the inner one's row: \(screen)")
+        #expect(screen.contains { $0.contains("BETA") }, "sanity: the outer one's row: \(screen)")
+        let ids = focusManager.focusableIDs
+        #expect(ids.count == 2 && Set(ids).count == 2, "one focus ID each: \(ids)")
+    }
+
     @Test("An item keeps its @State when an `if` before it in the declaration turns")
     func stateSurvivesAConditionalItem() {
         ItemSwitch.shared.on = false
