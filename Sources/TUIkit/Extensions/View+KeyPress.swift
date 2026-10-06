@@ -152,13 +152,24 @@ extension View {
     ///   none (only the action says which keys it takes), nor for a set of
     ///   characters, which asks for typed text, not chords. What asks is the
     ///   user's quit key (`Terminal.maskQuitKey(for:)`).
+    ///
+    ///   A key declares a Control chord only where it names one
+    ///   (``KeyEquivalent/namesControlChord``): `onKeyPress("\\")` declares
+    ///   ⌃\\, but `onKeyPress("4")` does not declare ⌃4, though it hears it —
+    ///   a press matches on its key alone, and `KeyPress(⌃4).key` is `"4"`.
+    ///   Declared, a PIN field's digits would mask the user's quit key, whose
+    ///   byte some terminals send for ⌃4, and be offered ⌃\\ again as ⌃4,
+    ///   typing a 4 for it (the coordinator's ruling, 2026-10-06).
     private func onKeyPress(
         phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool, declared: Bool = true,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> FocusPathModifier<Self> {
         let declares: ((KeyEvent) -> Bool)? =
             declared
-            ? { event in phases.hears(event.phase, repeatsReported: false) && KeyPress(event).map(matches) == true }
+            ? { event in
+                phases.hears(event.phase, repeatsReported: false)
+                    && KeyPress(event).map { matches($0) && (!event.ctrl || $0.key.namesControlChord) } == true
+            }
             : nil
         return FocusPathModifier(content: self, stage: .keyPress, declares: declares) { context in
             let repeatsReported = context.environment.keyboardReporting.reportsRepeats

@@ -44,7 +44,11 @@ masked, then let's do that."
   `.keyboardShortcut` (resolved through `.commandKey`; menu items' too),
   `onKeyPress` on keys on the path to the focused view (not on a set of
   characters: it asks for typed text, not chords, and `.decimalDigits` would
-  claim ⌃4 — the coordinator's ruling, round 6),
+  claim ⌃4 — the coordinator's ruling, round 6; and for a Control chord only
+  on a key that names one, `KeyEquivalent.namesControlChord` — `"|"` for ⌃|,
+  never a digit for ⌃4, so a PIN field's `onKeyPress(keys:)` on "0"…"9"
+  neither masks the quit nor takes the retry — the coordinator's ruling,
+  2026-10-06),
   status-bar items and the status bar's quit key, the scene's undo keys.
   Recomputed after every frame; `tcsetattr` only when it changes; the
   user's termios restored on every exit as before.

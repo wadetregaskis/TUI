@@ -154,8 +154,13 @@ struct QuitKeyMaskTests {
     @Test("An onKeyPress on the key masks it while the focus is inside it")
     func onKeyPressOnTheFocusPath() {
         let onKey = MaskHarness()
-        onKey.render(Button("Focused") {}.onKeyPress("4") { .handled })
-        #expect(onKey.masks(), "onKeyPress(\"4\") hears ⌃4")
+        onKey.render(Button("Focused") {}.onKeyPress("\\") { .handled })
+        #expect(onKey.masks(aliasing: false), "onKeyPress(\"\\\\\") hears ⌃\\")
+
+        let bar = MaskHarness()
+        bar.render(Button("Focused") {}.onKeyPress("|") { .handled })
+        #expect(bar.masks(aliasing: true), "onKeyPress(\"|\") hears ⌃|")
+        #expect(!bar.masks(aliasing: false), "…only where ⌃| may be ⌃\\'s byte")
 
         let elsewhere = MaskHarness()
         elsewhere.render(
@@ -267,15 +272,15 @@ struct QuitKeyMaskTests {
         #expect(typed.characters.isEmpty && quits == 1)
     }
 
-    /// And a binding declared for ⌃4 — an `onKeyPress` on the key, on the
+    /// And a binding declared for ⌃| — an `onKeyPress` on the key, on the
     /// focus path — is offered it, and takes it.
-    @Test("A focused view's onKeyPress(\"4\") takes the ⌃\\ the retry offers as ⌃4")
+    @Test("A focused view's onKeyPress(\"|\") takes the ⌃\\ the retry offers as ⌃|")
     func declaredKeyTakesTheRetry() {
         let harness = MaskHarness()
         let typed = Typed()
         harness.render(
-            Button("Focused") {}.onKeyPress("4") {
-                typed.characters.append("4")
+            Button("Focused") {}.onKeyPress("|") {
+                typed.characters.append("|")
                 return .handled
             })
         var quits = 0
@@ -283,7 +288,40 @@ struct QuitKeyMaskTests {
         harness.handler.quitByteAliasing = { true }
         harness.handler.onQuitKey = { quits += 1 }
         #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
-        #expect(typed.characters == ["4"] && quits == 0)
+        #expect(typed.characters == ["|"] && quits == 0)
+    }
+
+    /// A key-specific `onKeyPress` declares a Control chord only on a key
+    /// that names one (`KeyEquivalent.namesControlChord`). It matches on the
+    /// key alone — `KeyPress(⌃4).key` is `"4"` — so a PIN field's digits
+    /// hear ⌃4; counted as declared, they masked the user's quit key, and the
+    /// unclaimed ⌃\\ went round to them as ⌃4 and typed a 4 instead of
+    /// quitting (the coordinator's ruling, 2026-10-06).
+    @Test("A PIN field's onKeyPress on the digit keys neither masks the quit key nor is offered ⌃\\ as ⌃4")
+    func digitKeysDeclareNoChord() {
+        let harness = MaskHarness()
+        let typed = Typed()
+        harness.render(
+            TextField("PIN", text: .constant(""))
+                .onKeyPress(keys: Set("0123456789".map { KeyEquivalent($0) })) { press in
+                    typed.characters.append(press.characters)
+                    return .handled
+                })
+        #expect(!harness.masks(aliasing: true), "a digit names no Control chord")
+
+        var quits = 0
+        harness.handler.quitKey = { 0x1C }
+        harness.handler.quitByteAliasing = { true }
+        harness.handler.onQuitKey = { quits += 1 }
+        #expect(harness.handler.handle(KeyEvent(key: .character("\\"), ctrl: true)))
+        #expect(typed.characters.isEmpty && quits == 1, "the unclaimed ⌃\\ quits, and nothing is typed")
+
+        // The field still hears its digits, and ⌃4 itself where the
+        // terminal sends it apart (the kitty keyboard protocol): matching is
+        // unchanged, only what counts as declared.
+        #expect(harness.handler.handle(KeyEvent(key: .character("4"))))
+        #expect(harness.handler.handle(KeyEvent(key: .character("4"), ctrl: true)))
+        #expect(typed.characters == ["4", "4"])
     }
 
     /// What a handler took.

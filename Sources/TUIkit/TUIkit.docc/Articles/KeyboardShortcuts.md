@@ -452,7 +452,11 @@ Two things to know. A handler that hears every key — `onKeyEvent`,
 not mask the quit, and does not see ⌃\\ while the driver has it. Nor does an
 `onKeyPress` on a set of characters, which asks for typed text, not chords:
 Control is not looked at, so a field's `.decimalDigits` would otherwise
-claim ⌃4, and type a 4 for the user's ⌃\\. And while
+claim ⌃4, and type a 4 for the user's ⌃\\. Nor does an `onKeyPress` on a key
+count for a Control chord the key does not name: `onKeyPress("|")` counts for
+⌃|, but a PIN field's `onKeyPress(keys:)` on "0"…"9" does not count for ⌃4,
+though it hears a ⌃4 the terminal sends apart, since its keys match without
+Control. And while
 such a binding is on screen, a hung app does not quit by ⌃\\: that is the
 backup your binding traded away. `kill -QUIT` from another shell still ends
 it.

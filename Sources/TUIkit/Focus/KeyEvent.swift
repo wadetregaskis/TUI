@@ -177,7 +177,9 @@ extension KeyEventDispatcher {
     /// (`onKeyPress(phases:action:)`) declares nothing: only running it would
     /// say whether it takes the key. Nor does one on a set of characters
     /// (`onKeyPress(characters:phases:action:)`), which asks for typed text,
-    /// not chords. Silenced handlers, as for a dispatch, do not count.
+    /// not chords, nor one on a key for a Control chord the key does not name
+    /// (`KeyEquivalent.namesControlChord`: a digit's for ⌃4). Silenced
+    /// handlers, as for a dispatch, do not count.
     ///
     /// For the user's quit key (`InputHandler.quitKeyBindings(byte:hostAliases:)`).
     ///

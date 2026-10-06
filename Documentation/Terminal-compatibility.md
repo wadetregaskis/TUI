@@ -4312,7 +4312,9 @@ measured yet, 2026-10-06), as an unbound Ctrl-H goes round as Backspace —
 but only to the bindings the app declares for them (those that mask the
 quit, below), not round the whole chain: a handler that hears every key, or
 a field's `.decimalDigits`, hears the byte once, as ⌃\\, and never types a 4
-for it (the coordinator's ruling, round 6). A binding on ⌃\\ wins over one
+for it (the coordinator's ruling, round 6); nor does a field's
+`onKeyPress(keys:)` on the digit keys, which names no Control chord (the
+coordinator's ruling, 2026-10-06). A binding on ⌃\\ wins over one
 on ⌃4: the bytes are the same.
 Where none of the four is taken and 0x1C is the user's quit key, the chain
 raises `SIGQUIT`, as the driver would have.
@@ -4382,7 +4384,10 @@ the quit key's byte could be — ⌃\\ itself (with or without Option, whose ESC
 the driver ignores), and in the legacy encoding ⌃4, ⌃| and ⌃⇧\\ — counting
 what can be read without running the app's code: `.keyboardShortcut`s (menu
 items' too) and framework defaults, `onKeyPress` on keys (not on a set of
-characters, which asks for typed text) on the path to the focused view, the
+characters, which asks for typed text; and for a Control chord only on a key
+that names one — `"|"` for ⌃|, never a digit for ⌃4, so a PIN field's
+`onKeyPress(keys:)` on "0"…"9" masks nothing: the coordinator's ruling,
+2026-10-06) on the path to the focused view, the
 status bar's items and quit key, the scene's undo keys
 (`InputHandler.quitKeyBindings`). While one is, `VQUIT` is `_POSIX_VDISABLE`
 too (`Terminal.maskQuitKey(for:)`), set with `TCSANOW` — no
