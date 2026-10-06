@@ -42,8 +42,9 @@ entry has the options and their prices.
   spellings wait on it (A35 shipped on it, 2026-10-05).
 - **A2 — anchors and named coordinate spaces.** Markers stamped where a reader
   or anchor sits (G1). A7, scroll visibility, builds on the same markers.
-- **A13 — text selection.** TUIkit draws its own, after the batch. A25 waits
-  on it.
+- **A13 — text selection.** Shipped 2026-10-05: drag-select of what is drawn,
+  `textSelection(_:)`, OSC 52 copies, opt-in copy on release. Open: the mouse
+  hand-off key (A13.2; ⌃] declined). A25 waits on it.
 
 **Looks and defaults.**
 
@@ -51,8 +52,6 @@ entry has the options and their prices.
   bordered and unstriped.
 - A40 — a content change dissolves under an animation by default? Keep it
   instant.
-- A43 — `TextEditor` wraps as SwiftUI's does? Yes, with a modifier that keeps
-  the sideways scroll, after the batch.
 - A45 — a plain `List` pins its section headers? Yes, in the plain style.
 - A17 — `preferredColorScheme`? Keep it absent unless light palettes are
   wanted for their own sake.
@@ -268,6 +267,17 @@ They style content passing under a bar, and nothing passes under a bar here
 design; these two modifiers are that question's modifiers.
 
 ### A13. Text selection: draw TUIkit's own, or leave it to the terminal?
+
+**2026-10-05: shipped** (the owner's answers): TUIkit selects what is drawn
+when a drag lands on nothing that uses it (Option-drag for a rectangle),
+`textSelection(_:)` scopes it, ⌘C / the copy chord and a right-click Copy
+copy it by OSC 52 or, only when the user is at this machine, the system
+clipboard; copy on release is opt-in (`Scene.textSelectionCopiesOnRelease`);
+no copy mode. **Still open:** the mouse hand-off key (A13.2) — the owner
+declined ⌃] (a partner of ⌃[ worth keeping); candidates ⌃\\, ⌥M / ⎋ M, an
+F-key, or none by default. Exact per-`Text` selection (A13.5) is remembered,
+not built. The lane's own calls are in
+`SwiftUI-API-completion-decisions-D4X.md`.
 
 *`View.textSelection(_:)`, `TextSelectability`, `EnabledTextSelectability`,
 `DisabledTextSelectability` (`.enabled`, `.disabled`, `allowsSelection`)*
@@ -897,49 +907,6 @@ build it after the batch, with the formatting-definition constraints, if
 rich text in a terminal editor is wanted; otherwise decline the family.
 
 *Wave 6b's entries (A43, B62–B65): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) by driving a SwiftUI `TextField` in an `NSWindow` with key events; the probes are in the session notes, `w06b/probe`.*
-
-### A43. `TextEditor`: wrap long lines as SwiftUI's does, or keep scrolling sideways?
-
-*No symbol: `TextEditor` is already API. This is how it lays its text out.*
-
-SwiftUI's `TextEditor` is an `NSTextView`, which wraps a long line at the
-editor's width. TUIkit's scrolls horizontally to follow the caret instead, as
-many terminal editors do; its documentation calls soft wrapping "a possible
-future option". That was a choice, not a constraint, and it is a parity gap: a
-note-taking view ported from SwiftUI shows one long line per paragraph, cut at
-the right edge, until the caret walks it sideways.
-
-This wave built the half of soft wrapping that is about text rather than about
-an editor — `SoftWrapLayout`, which lays text into rows by the macOS rules and
-maps a caret's offset to a row and a column and back — and the vertical
-`TextField` draws through it (B62). The editor would draw through it too.
-
-**Options:**
-
-1. **Keep scrolling sideways.** Free. The gap stays, documented.
-2. **Wrap by default, as SwiftUI does.** About two and a half days:
-   - the editor's line-and-column caret gains rows: Up, Down, Page Up and
-     Page Down move by row, and Ctrl-A and Ctrl-E stay on the line (the
-     paragraph, as in the field), all measured against an `NSTextView` first;
-   - scrolling, the scroll bar's extent, a click's position and the selection's
-     painting all count rows rather than lines, and horizontal scrolling goes;
-   - tabs: the layout gives a character one width wherever it sits, and an
-     editor's tab reaches the next tab stop, so the layout needs a width that
-     depends on the column a character starts at (the editor already computes
-     one, `TabLayout.advance`);
-   - the caret's affinity at a wrap starts to mean something in the editor;
-   - every editor test that pins horizontal scrolling is rewritten;
-   - cost: the editor already splits its whole document into lines on every
-     frame, and wrapping adds a width walk over it, roughly doubling the
-     per-frame text work on a large document. A per-line wrap memo keyed by
-     the line and the width bounds it; that wants an A/B on the stress
-     harness's two-thousand-line code editor before it lands.
-3. **Option 2, plus a TUIkit modifier that keeps the sideways scroll** for the
-   texts that want it — code, logs, tables in plain text. Half a day more.
-
-**Recommendation:** 3, after the waves. Parity by default is what ported code
-expects, and the sideways scroll is worth keeping as a choice, not as the only
-behaviour.
 
 *Wave 10b's entries (A44–A45, B66–B71), pinned section headers and footers.* What SwiftUI does was measured on macOS 15.8, with offscreen `NSHostingView`s
 in scroll views scrolled through their `NSScrollView`, reading the pixels down
