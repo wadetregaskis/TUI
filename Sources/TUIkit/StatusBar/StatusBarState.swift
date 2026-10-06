@@ -245,13 +245,13 @@ public final class StatusBarState: @unchecked Sendable {
     ///
     /// Setting it is a CLAIM on Escape for the frame, by whatever renders it
     /// — the latest claim stands, and each is a new one, however it is
-    /// labelled (``claimEscape(_:)``). Clearing it (set to nil) withdraws the
+    /// labelled (`claimEscape(_:)`). Clearing it (set to nil) withdraws the
     /// claim and restores the underlying item label.
     ///
     /// Where a live sheet is docked under the page, each pane — the page, the
     /// sheet — has a claim of its own: one is made in the pane rendering it,
     /// and what this reads is the claim of the pane the focus is in
-    /// (``activeEscapeClaim``). A `NavigationStack` in the sheet does not take
+    /// (`activeEscapeClaim`). A `NavigationStack` in the sheet does not take
     /// Escape from the page while the focus is on the page.
     public var escapeLabelOverride: String? {
         get { activeEscapeClaim?.label }
