@@ -29,7 +29,9 @@ import TUIkitView
 /// press does nothing anyone would see — it only claims the gesture. Every
 /// region that files one does exactly that (`ScrollView`'s viewport,
 /// `NavigationSplitView`'s columns). A future region that acted on the press
-/// would see it late, at the release, and must not file a role.
+/// would see it late, at the release, and must not file a role. A
+/// Control-press is the secondary click, never held: a `.background` region
+/// is passed over for it (``MouseEventDispatcher/dispatchLeftPress(_:matching:)``).
 enum PressRole {
     /// A pane's background: a scroll view's viewport, a split view's column.
     case background
@@ -109,7 +111,25 @@ extension MouseEventDispatcher {
     /// press and release together at the release, unless the gesture became a
     /// selection. A press no region takes lands on the page's background,
     /// where it can only select.
+    ///
+    /// A Control-press is none of that: it is the secondary click, which a
+    /// terminal that keeps the right button for itself (iTerm2) leaves to
+    /// Control, and the regions hear it at once, innermost first, as they
+    /// hear a right press. A row's text gives it to its row, which opens the
+    /// row's menu where it has one (as a right-click there does, and as a
+    /// Mac's Control-click does); what declines it goes on outward. It never
+    /// starts a selection, and a pane's background, which acts only on a
+    /// click, is passed over, so a menu around a scroll view is reached.
+    /// (The selection's own Copy menu, on its highlight, was offered it
+    /// first: ``MouseEventDispatcher/dispatch(_:)``.)
     func dispatchLeftPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
+        if event.ctrl {
+            for region in matching {
+                if case .background = pressRoles[region.handlerID] { continue }
+                if offer(event, to: region) != .declined { return true }
+            }
+            return false
+        }
         // The innermost `textSelection(_:)` under the press: `false` turns the
         // selection off here — every region hears its press at once, as before
         // there was one — and `true` keeps it to that scope.

@@ -104,6 +104,18 @@ the row selection untouched — and a press on blank cells is the row's. macOS
 keeps a selection inside one `Text`, so in a multi-column `Table` inside one
 cell; TUIkit keeps it to the row, crossing the columns.
 
+**Menus on such a row** (measured, macOS 15.8.1, a SwiftUI `List` and `Table`
+whose rows carry `Text(…).textSelection(.enabled)` and a `.contextMenu`, the
+D4X `rowdrag.swift` probe): a right-click on the row's text with nothing
+selected opens the row's menu; a right-click on a selection's highlight opens
+the text's own menu (Look Up, Translate, Cut, Copy, Paste…), not the row's.
+TUIkit does both: the highlight's Copy menu is offered the press first. A
+Control-click on the row's text — the owner's call, 2026-10-06 — opens the
+row's menu as a right-click does, and with no menu the row takes it as on its
+blank cells; it no longer starts a selection. (Synthesised Control-clicks
+open no menu on a SwiftUI row in the probe, the plain control list included,
+so macOS's Control-click is read as its right-click, which it is.)
+
 **The fuller version:** the `Table` files its columns' geometry with its rows
 (`PressRole.rows`), and a selection keeps to the cell. About two hours. D2,
 held, would make every `Text` exact.

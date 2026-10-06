@@ -154,6 +154,11 @@ Not every terminal will give you the right button: iTerm2 keeps it for its own
 menu by default, so TUIkit also accepts <kbd>Ctrl</kbd>-click, and
 <kbd>Shift</kbd>+<kbd>F10</kbd> opens the menu of whatever is focused. See
 `Documentation/Terminal-compatibility.md` for what each terminal forwards.
+A <kbd>Ctrl</kbd>-click is the secondary click wherever it lands: it never
+starts a text selection, a scroll view's background passes it on to a menu
+around it, and on a list's or table's row text under `.textSelection(.enabled)`
+it opens the row's menu, as a right-click there does. Where the row has none,
+the row takes it as it takes one on its blank cells.
 
 `onMenuOpen(_:)` reports the opening — of a `contextMenu` or of a ``Menu`` — to
 any view above it, however the menu was opened. It exists for a specific
@@ -266,7 +271,9 @@ TUIkit selects by itself, as a terminal would:
   it is drawn, ahead of everything else, the focused text field included.
   ⌘C itself never reaches the app: the terminal takes it for its own,
   empty, selection. **A right-click on the highlight** (or a Control-click)
-  offers **Copy** in a menu of its own. **Escape** clears the selection, and so
+  offers **Copy** in a menu of its own — ahead of a row's own menu, as a
+  Mac's selected text offers its Cut, Copy and Paste there (measured on
+  macOS 15.8: a SwiftUI `List` row with a `.contextMenu`). **Escape** clears the selection, and so
   does any click, any key a focused text field takes, and a presentation — a
   sheet, an alert or a menu — over the page.
 
