@@ -122,10 +122,17 @@ extension ScrollVisibilityModifier: DrawsContentUnchanged {}
 /// too, but not the registration — the coordinator's walk table is emptied
 /// before every walk — so the registration is a REPLAYABLE effect, recorded
 /// while a memo records and made again on every hit, as a mouse handler's is
-/// (`MouseHandlerRegistrar`). A served row keeps reporting.
+/// (`MouseHandlerRegistrar`). A served row keeps reporting; and a served scroll
+/// view replays what it measured of its observers as well
+/// (`RenderContext.measureScrollVisibility(in:viewport:)`).
 enum ScrollVisibilityRegistrar {
     /// The journal kind of an observer's registration.
     static let kind = EffectJournal.Kind("scrollVisibility")
+
+    /// The journal kind of a scroll view's measures of the observers it drew
+    /// (`RenderContext.measureScrollVisibility(in:viewport:)`), made again
+    /// with the registrations when a memo serves the scroll view.
+    static let measuredKind = EffectJournal.Kind("scrollVisibilityMeasured")
 
     /// Registers the observer into `context`'s coordinator, declares the
     /// registration replayable, and records it while a memo records.

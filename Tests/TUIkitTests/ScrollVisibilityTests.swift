@@ -259,6 +259,41 @@ struct ScrollVisibilityTests {
         // for the first time — hidden.
         #expect(log.take() == ["0-", "5+", "6-"])
     }
+
+    @Test("A scroll view served from a memo keeps what it measured: a row off screen is not reported shown")
+    func servedScrollViewKeepsItsMeasures() {
+        let frames = Frames()
+        let log = Log()
+        let page = { (tick: Int) in
+            VStack(alignment: .leading, spacing: 0) {
+                // Focused first, so the scroll view's registration is one a
+                // memo replays (a focused control's is not).
+                Button("tick \(tick)") {}
+                // A row the `ForEach` memo serves whole, scroll view and all,
+                // while the line above it changes.
+                ForEach(0..<1, id: \.self) { _ in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(0..<10, id: \.self) { index in
+                                Text("row \(index)").onScrollVisibilityChange { log.reports.append((index, $0)) }
+                            }
+                        }
+                    }
+                    .frame(height: 3)
+                }
+            }
+        }
+        frames.render(page(0), height: 8)
+        #expect(log.take() == ["0+", "1+", "2+", "3-", "4-", "5-", "6-", "7-", "8-", "9-"])
+        // The scroll view is served: its observers register again, and what
+        // it measured of them is made again with them — rows 3 to 9 are still
+        // below its viewport, not reported shown for having a marker in the
+        // frame.
+        frames.render(page(1), height: 8)
+        #expect(log.take().isEmpty)
+        frames.render(page(2), height: 8)
+        #expect(log.take().isEmpty)
+    }
 }
 
 /// Renders its content twice into one walk, as a container correcting itself

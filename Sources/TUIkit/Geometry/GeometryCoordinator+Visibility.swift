@@ -40,12 +40,36 @@ extension GeometryCoordinator {
     /// Called by a scroll view on what it drew, once its offset is final:
     /// inner scroll views draw first, so the nearest one measures an observer
     /// and every one further out finds it measured.
-    func measureVisibility(in drawn: FrameBuffer, viewport: CellRect) {
+    ///
+    /// - Parameter noting: Whether to answer each fraction measured, by
+    ///   marker id — for a memo recording the scroll view, which makes the
+    ///   same measures again when it serves it (``applyMeasuredVisibility(_:)``).
+    /// - Returns: The fractions measured when `noting`, and nothing otherwise.
+    @discardableResult
+    func measureVisibility(
+        in drawn: FrameBuffer, viewport: CellRect, noting: Bool = false
+    ) -> [(HitTestRegion.HandlerID, Double)] {
+        var measured: [(HitTestRegion.HandlerID, Double)] = []
         drawn.forEachGeometryMarker { id, x, y in
             guard var observer = observers[id], observer.fraction == nil else { return }
-            observer.fraction = Self.fraction(
+            let fraction = Self.fraction(
                 of: CellRect(x: x, y: y, width: observer.size.width, height: observer.size.height),
                 shownIn: viewport)
+            observer.fraction = fraction
+            observers[id] = observer
+            unmeasuredObservers -= 1
+            if noting { measured.append((id, fraction)) }
+        }
+        return measured
+    }
+
+    /// Makes again the measures a scroll view made when a memo recorded it,
+    /// for the observers its served buffer re-registered: the buffer is the
+    /// one measured, so the fractions are too.
+    func applyMeasuredVisibility(_ measured: [(HitTestRegion.HandlerID, Double)]) {
+        for (id, fraction) in measured {
+            guard var observer = observers[id], observer.fraction == nil else { continue }
+            observer.fraction = fraction
             observers[id] = observer
             unmeasuredObservers -= 1
         }
@@ -127,10 +151,28 @@ extension RenderContext {
     ///
     /// One environment read and a count when no observer is waiting, which is
     /// every frame of an app that has none.
+    ///
+    /// The measures are a REPLAYABLE effect, as the observers' registrations
+    /// are (``ScrollVisibilityRegistrar``): a memo that serves this scroll
+    /// view's buffer replays the registrations, and without the measures each
+    /// observer would come back unmeasured — reported shown, since its marker
+    /// is in the frame, however far off screen it is.
+    @MainActor
     func measureScrollVisibility(in drawn: FrameBuffer, viewport: CellRect) {
         guard !isMeasuring, let geometry = geometryCoordinator,
             geometry.hasUnmeasuredVisibilityObservers
         else { return }
-        geometry.measureVisibility(in: drawn, viewport: viewport)
+        guard let journal = recordingEffectJournal else {
+            geometry.measureVisibility(in: drawn, viewport: viewport)
+            return
+        }
+        let measured = geometry.measureVisibility(in: drawn, viewport: viewport, noting: true)
+        guard !measured.isEmpty else { return }
+        journal.append(
+            EffectJournal.Entry(
+                kind: ScrollVisibilityRegistrar.measuredKind, channelToken: environment.keyChannelToken
+            ) { replay in
+                replay.geometryCoordinator?.applyMeasuredVisibility(measured)
+            })
     }
 }
