@@ -91,6 +91,23 @@ struct TerminalLineDisciplineTests {
         let noSignals = Terminal.rawModeAttributes(from: Self.cooked(signals: false))
         #expect(!Self.has(noSignals, ISIG), "stty -isig")
     }
+
+    /// `_POSIX_VDISABLE` differs by system, not by C library: a BSD's is
+    /// 0xFF, on whichever C library Swift imports there. So it is asked of
+    /// the system (`fpathconf`), and only a system that does not say falls
+    /// back to the platform's own.
+    @Test("The value that turns a control character off is the system's answer, or the platform's own")
+    func disabledCharacterIsAsked() {
+        #expect(Terminal.disabledControlCharacter(answer: 0xFF) == 0xFF, "Darwin's and the BSDs' answer")
+        #expect(Terminal.disabledControlCharacter(answer: 0) == 0, "Linux's answer")
+        #if canImport(Darwin)
+            #expect(Terminal.disabledControlCharacter(answer: -1) == 0xFF, "no answer: Darwin's own")
+        #else
+            #expect(Terminal.disabledControlCharacter(answer: -1) == 0, "no answer: Linux's own")
+        #endif
+        let asked = fpathconf(STDIN_FILENO, Int32(_PC_VDISABLE))
+        if asked >= 0 { #expect(Int(Self.off) == asked, "standard input's own answer") }
+    }
 }
 
 #endif

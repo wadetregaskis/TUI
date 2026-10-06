@@ -22,15 +22,27 @@ import Musl
 
 extension Terminal {
     /// The value that turns a control character off, POSIX's
-    /// `_POSIX_VDISABLE`, which Swift does not import: `0xFF` on Darwin and
-    /// the BSDs, NUL on Linux (glibc and musl alike).
-    nonisolated static let disabledControlCharacter: cc_t = {
+    /// `_POSIX_VDISABLE`, which Swift does not import: asked of the system for
+    /// standard input, the terminal raw mode is set on (`fpathconf` with
+    /// `_PC_VDISABLE`), rather than assumed per platform. Darwin and the BSDs
+    /// answer `0xFF`, Linux NUL (glibc and musl alike), and NUL is an
+    /// ordinary character on a BSD (⌃@): a guess by C library would have
+    /// made it a live signal character there.
+    nonisolated static let disabledControlCharacter: cc_t = disabledControlCharacter(
+        answer: fpathconf(STDIN_FILENO, Int32(_PC_VDISABLE)))
+
+    /// `fpathconf`'s answer for `_PC_VDISABLE` as a control character, or,
+    /// where the system gave none (`-1`: standard input is no terminal, as
+    /// under a test runner), the value of the platforms TUIkit runs on:
+    /// `0xFF` on Darwin, NUL on Linux.
+    nonisolated static func disabledControlCharacter(answer: Int) -> cc_t {
+        if let character = cc_t(exactly: answer) { return character }
         #if canImport(Darwin)
-            0xFF
+            return 0xFF
         #else
-            0
+            return 0
         #endif
-    }()
+    }
 
     /// The line discipline raw mode runs in, made from the user's own,
     /// `original`, which the teardown puts back exactly.

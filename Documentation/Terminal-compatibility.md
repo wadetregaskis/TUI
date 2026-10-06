@@ -4349,8 +4349,9 @@ key, and it has to work when the app has HUNG. So it is the kernel's, not the
 app's. `Terminal.rawModeAttributes(from:)` keeps `ISIG` as the user had it and
 turns every signal character off but `VQUIT`: `VINTR` (⌃C) and `VSUSP` (⌃Z),
 and on Darwin `VDSUSP` (⌃Y, the delayed suspend) and `VSTATUS` (⌃T, `SIGINFO`),
-all set to `_POSIX_VDISABLE` (0xFF on Darwin, NUL on Linux). `VQUIT` is left as
-inherited: ⌃\\ (0x1C) by default, so the driver raises `SIGQUIT` before the app
+all set to `_POSIX_VDISABLE`, asked of the system with `fpathconf` (0xFF on
+Darwin and the BSDs, NUL on Linux; a guess by C library would make NUL a live
+signal character on a BSD). `VQUIT` is left as inherited: ⌃\\ (0x1C) by default, so the driver raises `SIGQUIT` before the app
 reads a byte, and over ssh the remote pseudo-terminal's line discipline does
 the same. A user's `stty quit undef` stays undefined (0x1C then arrives as a
 byte, which `KeyEvent.parse` drops), a moved quit key stays moved, and
