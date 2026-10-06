@@ -348,7 +348,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                     // already spent on opening (the menu may well be placed over
                     // this very control, and must not read the release as a pick).
                     mouseDispatcher.handOffGesture()
-                    mouseDispatcher.pressOpenedPopup()
+                    mouseDispatcher.pressOpenedPopup(closing: { handler.isOpen = false })
                 }
                 return true
             case .released where event.button == .left:

@@ -884,7 +884,7 @@ extension MouseEventDispatcher {
             // held drag had nothing captured and was dropped, so the menu's
             // highlight never followed the pointer.
             handedOffPresses.insert(event.button)
-            pressOpenedPopupMenu = true
+            pressOpenedPopup(closing: { [weak screenSelection] in screenSelection?.closeMenu() })
             return true
         }
         if event.phase == .pressed, event.button == .left {

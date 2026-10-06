@@ -137,11 +137,12 @@ public struct Button: View {
     /// Set with the ``disabled(_:)`` modifier.
     var isDisabled: Bool
 
-    /// Whether this button is a pop-up menu's trigger, and so runs its action on
-    /// the PRESS rather than the release — see ``menuTrigger()``.
+    /// How to close the pop-up menu this button triggers, or `nil` for an
+    /// ordinary button. A trigger runs its action on the PRESS rather than the
+    /// release — see ``menuTrigger(closing:)``.
     ///
     /// Internal: the only thing that wants it is a menu's own collapsed control.
-    var isMenuTrigger = false
+    var closeMenu: (() -> Void)?
 
     /// Creates a button with a localized label and an action.
     ///
@@ -318,7 +319,7 @@ public struct Button: View {
             role: role,
             focusID: focusID,
             isDisabled: isDisabled,
-            isMenuTrigger: isMenuTrigger
+            closeMenu: closeMenu
         )
     }
 }
@@ -337,7 +338,12 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     let role: ButtonRole?
     let focusID: String?
     let isDisabled: Bool
-    var isMenuTrigger = false
+    /// How to close the menu this button triggers, or `nil` for an ordinary
+    /// button — see ``Button/menuTrigger(closing:)``.
+    var closeMenu: (() -> Void)?
+
+    /// Whether this button is a pop-up menu's trigger.
+    private var isMenuTrigger: Bool { closeMenu != nil }
 
     var body: Never {
         fatalError("_ButtonCore renders via Renderable")
@@ -719,7 +725,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     focusManager?.focus(id: captureFocusID)
                     captureAction()
                     mouseDispatcher.handOffGesture()
-                    mouseDispatcher.pressOpenedPopup()
+                    mouseDispatcher.pressOpenedPopup(closing: closeMenu)
                     return true
                 case .released where event.button == .left:
                     // The trigger already fired on the press. This release only
@@ -886,10 +892,14 @@ extension Button {
     /// button keeps firing on release, so you can still slide off one to change
     /// your mind.
     ///
+    /// - Parameter closing: Closes the menu — for a press that opened it and
+    ///   whose gesture ends in a held release before any frame has drawn it,
+    ///   which closes it as the drawn menu's backdrop would have
+    ///   (``MouseEventDispatcher/pressOpenedPopup(closing:)``).
     /// - Returns: A button that opens its menu on the press.
-    func menuTrigger() -> Button {
+    func menuTrigger(closing: @escaping () -> Void) -> Button {
         var copy = self
-        copy.isMenuTrigger = true
+        copy.closeMenu = closing
         return copy
     }
 

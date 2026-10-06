@@ -161,7 +161,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
                 } label: {
                     Text(state.isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret)
                 }
-                .menuTrigger()
+                .menuTrigger(closing: { state.close() })
                 .focusable(false)
             }
         }
@@ -188,7 +188,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
         // menu — click-and-hold, drag down the rows, release on one to choose
         // it, exactly as a Mac pull-down button behaves. A plain click still
         // works: the menu simply stays up until the next click.
-        .menuTrigger()
+        .menuTrigger(closing: { state.close() })
     }
 
     private func triggerContext(_ context: RenderContext) -> RenderContext {

@@ -319,7 +319,7 @@ enum ContextMenuPresentation {
     /// menu answers: press and hold, drag down the rows, release on one to run
     /// it. The press hands the rest of the gesture back to live hit-testing
     /// (``MouseEventDispatcher/handOffGesture()``) so the drag and release reach
-    /// the menu rather than routing back here — see ``Button/menuTrigger()``,
+    /// the menu rather than routing back here — see ``Button/menuTrigger(closing:)``,
     /// which is the same move for a pull-down.
     ///
     /// The region carries the focus stop's id (`ContextMenuModifier`'s keyboard trigger),
@@ -356,7 +356,7 @@ enum ContextMenuPresentation {
                 stateBox.value = state
                 onOpen?()
                 dispatcher.handOffGesture()
-                dispatcher.pressOpenedPopup()
+                dispatcher.pressOpenedPopup(closing: { state.close() })
                 return true
             case .released:
                 // Spent on the press. Only reached when no menu is drawn to

@@ -445,6 +445,6 @@ extension Button {
         self.role = button.role
         self.focusID = button.focusID
         self.isDisabled = button.isDisabled
-        self.isMenuTrigger = button.isMenuTrigger
+        self.closeMenu = button.closeMenu
     }
 }
