@@ -316,6 +316,23 @@ extension MouseEventDispatcher {
         registerInterned(handler, lane: .hoverObserver, in: context)
     }
 
+    /// Registers a WHEEL handler: one that hears the wheel over its region
+    /// and nothing else — no hover, no click — so a region of it in front of
+    /// a view's content takes the wheel first without taking anything else
+    /// from the controls behind it.
+    ///
+    /// For a detented sheet's `.resizes`, which grows the sheet on the wheel
+    /// before its content scrolls. An ordinary region in front of the content
+    /// took the hover from every control in it, and a hover observer would
+    /// take the observer lane from a `.help` inside; a wheel-only region is
+    /// passed over for both (``matchingRegions(at:y:includingWheelOnly:)``).
+    @MainActor
+    func registerWheelHandler(
+        in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
+    ) -> HitTestRegion.HandlerID {
+        registerInterned(handler, lane: .wheel, in: context)
+    }
+
     /// Mints this control's id, files `handler` under it, and — while a value
     /// memo records — records the registration so a hit can make it again.
     ///
@@ -367,6 +384,9 @@ enum MouseHandlerLane {
     /// taking the hover from the control inside it — see
     /// ``MouseEventDispatcher/registerHoverObserver(in:_:)``.
     case hoverObserver
+    /// A handler that hears the wheel and nothing else — see
+    /// ``MouseEventDispatcher/registerWheelHandler(in:_:)``.
+    case wheel
 }
 
 /// The mouse registrations a render walk makes, shared by the live render and
@@ -387,6 +407,7 @@ enum MouseHandlerRegistrar {
         switch lane {
         case .control: break
         case .hoverObserver: dispatcher.noteHoverObserver(id)
+        case .wheel: dispatcher.noteWheelHandler(id)
         }
     }
 

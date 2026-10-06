@@ -165,6 +165,10 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// handler table.
     private var hoverObserverIDs: Set<HitTestRegion.HandlerID> = []
 
+    /// The handlers registered to hear the wheel alone this frame
+    /// (``registerWheelHandler(in:_:)``), cleared with the handler table.
+    private var wheelHandlerIDs: Set<HitTestRegion.HandlerID> = []
+
     /// Where the cursor last reported motion, so a reshaped tree can be
     /// re-resolved against a RESTING cursor.
     private var lastMotionPosition: (x: Int, y: Int)?
@@ -344,6 +348,7 @@ extension MouseEventDispatcher {
         renderedSincePopupOpened = true
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)
+        wheelHandlerIDs.removeAll(keepingCapacity: true)
         gestureRoles.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
         selectionScopes.removeAll(keepingCapacity: true)
@@ -600,6 +605,12 @@ extension MouseEventDispatcher {
     /// control under it — see ``registerHoverObserver(in:_:)``.
     func noteHoverObserver(_ id: HitTestRegion.HandlerID) {
         hoverObserverIDs.insert(id)
+    }
+
+    /// Records that `id`'s handler hears the wheel and nothing else — see
+    /// ``registerWheelHandler(in:_:)``.
+    func noteWheelHandler(_ id: HitTestRegion.HandlerID) {
+        wheelHandlerIDs.insert(id)
     }
 
     /// How many handlers this walk has registered so far.
@@ -887,7 +898,7 @@ extension MouseEventDispatcher {
         // a Button or TextField inside it — those children don't
         // handle wheel events, so the wheel bubbles past them to
         // the surrounding scroller.
-        let matching = matchingRegions(at: event.x, y: event.y)
+        let matching = matchingRegions(at: event.x, y: event.y, includingWheelOnly: event.phase == .scrolled)
         // A left press a pane's background would take for its click is held
         // until it shows whether it is a click — see ``PressRole`` — and one
         // that nothing takes may start a selection. Any left press ends the
@@ -1084,11 +1095,17 @@ extension MouseEventDispatcher {
     /// Returns every region containing the given point, ordered
     /// innermost-first (last-registered first). Used by
     /// ``dispatch`` to implement wheel-event fall-through.
-    func matchingRegions(at x: Int, y: Int) -> [HitTestRegion] {
+    ///
+    /// A wheel handler's region (``registerWheelHandler(in:_:)``) is left out
+    /// unless `includingWheelOnly`, which only a wheel event's dispatch asks
+    /// for: hover, clicks and drop targeting never see it.
+    func matchingRegions(at x: Int, y: Int, includingWheelOnly: Bool = false) -> [HitTestRegion] {
         // A geometry marker has no area, so `contains` already refuses it; the
         // explicit test says so, and keeps a marker inert if one ever grows a
         // size (`HitTestRegion.geometryMarker(_:)`).
-        regions.reversed().filter { !$0.isGeometryMarker && $0.contains(x: x, y: y) }
+        let matching = regions.reversed().filter { !$0.isGeometryMarker && $0.contains(x: x, y: y) }
+        guard !includingWheelOnly, !wheelHandlerIDs.isEmpty else { return matching }
+        return matching.filter { !wheelHandlerIDs.contains($0.handlerID) }
     }
 
     /// The two regions hover resolves against at a point, one per lane: the

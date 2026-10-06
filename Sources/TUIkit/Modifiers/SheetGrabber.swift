@@ -36,7 +36,35 @@ final class _SheetGrabberHandler: PersistedFocusable {
     /// The pointer's gesture, from the sheet's height when it began.
     var drag = DividerDrag<Int>()
 
+    /// When the wheel last moved the sheet, on the dispatcher's clock.
+    var lastWheelStepNanos: UInt64?
+
+    /// The least time between two detents the wheel moves the sheet by: a
+    /// quarter of a second, fifteen frames at sixty a second. One turn of a
+    /// wheel, or one flick of a trackpad, is a burst of ticks a few
+    /// milliseconds apart, and one detent a tick swept through them all.
+    static let wheelStepNanos: UInt64 = 250_000_000
+
     init(focusID: String) { self.focusID = focusID }
+
+    /// Moves the sheet one detent for the wheel — `step` is +1 to grow, -1 to
+    /// shrink — reporting whether the wheel's tick is taken.
+    ///
+    /// A tick the sheet cannot move by is declined, so it reaches what is
+    /// behind it: the content's scroll view, under ``PresentationContentInteraction/resizes``
+    /// at the largest detent. A tick within ``wheelStepNanos`` of the last
+    /// step is taken and moves nothing: the rest of a burst is spent on the
+    /// sheet, not passed to the content to scroll it as well.
+    func wheelStep(by step: Int, nowNanos: UInt64) -> Bool {
+        guard var detents, let index = detents.index, detents.stops.indices.contains(index + step) else {
+            return false
+        }
+        if let last = lastWheelStepNanos, nowNanos >= last, nowNanos - last < Self.wheelStepNanos { return true }
+        lastWheelStepNanos = nowNanos
+        detents.select(index + step)
+        self.detents = detents
+        return true
+    }
 
     /// Up to the next larger detent, Down to the next smaller, Home and End to
     /// the ends, Return and Space to the next, round to the smallest after the
@@ -102,8 +130,8 @@ enum SheetGrabber {
     ///   - handlerIndex: Its index for the grabber's handler.
     ///   - context: The presenter's context.
     static func attach(
-        to sheet: FrameBuffer, detents: PresentedDetents, sectionID: String, focusIDIndex: Int,
-        handlerIndex: Int, context: RenderContext
+        to sheet: FrameBuffer, detents: PresentedDetents, contentInteraction: PresentationContentInteraction,
+        sectionID: String, focusIDIndex: Int, handlerIndex: Int, context: RenderContext
     ) -> FrameBuffer {
         guard !context.isMeasuring, let stateStorage = context.stateStorage else { return sheet }
         var registering = context
@@ -129,7 +157,49 @@ enum SheetGrabber {
             into: &rule, isFocused: isFocused, isHovered: handler.isHovered, environment: context.environment)
         if handler.canBeFocused { registerDrag(handler: handler, focusID: focusID, on: &rule, context: context) }
         rule.appendVertically(sheet)
+        if handler.canBeFocused {
+            registerWheel(handler: handler, interaction: contentInteraction, on: &rule, context: context)
+        }
         return rule
+    }
+
+    /// What the wheel does over the whole sheet, by its content's
+    /// ``PresentationContentInteraction``, through wheel-only regions
+    /// (``MouseEventDispatcher/registerWheelHandler(in:_:)``) that take nothing
+    /// else from the controls in it:
+    ///
+    /// - `.resizes`: a region IN FRONT of the content takes the wheel pulled
+    ///   down first and grows the sheet, declining at the largest detent so
+    ///   the content scrolls from there;
+    /// - `.resizes` and `.scrolls`: a region BEHIND the content takes what the
+    ///   content declines — a scroll view at its end declines the wheel, and
+    ///   content that does not scroll declines all of it — growing the sheet
+    ///   on the wheel pulled down and shrinking it on the wheel pushed up;
+    /// - `.automatic`: neither; the wheel is the content's alone.
+    private static func registerWheel(
+        handler: _SheetGrabberHandler, interaction: PresentationContentInteraction, on sheet: inout FrameBuffer,
+        context: RenderContext
+    ) {
+        guard interaction.kind != .automatic, let dispatcher = context.environment.mouseEventDispatcher else {
+            return
+        }
+        dispatcher.requestFeature(.scrolling, in: context)
+        func region(_ handlerID: HitTestRegion.HandlerID) -> HitTestRegion {
+            HitTestRegion(offsetX: 0, offsetY: 0, width: sheet.width, height: sheet.height, handlerID: handlerID)
+        }
+        let behind = dispatcher.registerWheelHandler(in: context) { event in
+            switch event.button {
+            case .scrollDown: handler.wheelStep(by: 1, nowNanos: dispatcher.nowNanos())
+            case .scrollUp: handler.wheelStep(by: -1, nowNanos: dispatcher.nowNanos())
+            default: false
+            }
+        }
+        sheet.hitTestRegions.insert(region(behind), at: 0)
+        guard interaction.kind == .resizes else { return }
+        let inFront = dispatcher.registerWheelHandler(in: context) { event in
+            event.button == .scrollDown && handler.wheelStep(by: 1, nowNanos: dispatcher.nowNanos())
+        }
+        sheet.hitTestRegions.append(region(inFront))
     }
 
     /// The handle in the middle of the rule, in the grip's glyphs and ink.

@@ -344,9 +344,11 @@ extension ModalPresentationModifier: Renderable {
         // place is the edge. Its grabber is what moves it.
         if let detents, detents.height != nil {
             if isGrabbed {
+                let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
                 modalBuffer = SheetGrabber.attach(
-                    to: modalBuffer, detents: detents, sectionID: sectionID,
-                    focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber, context: context)
+                    to: modalBuffer, detents: detents, contentInteraction: interaction?.contentInteraction ?? .automatic,
+                    sectionID: sectionID, focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber,
+                    context: context)
             }
             baseBuffer.overlays.append(.dockedAtBottom(content: modalBuffer, level: .modal, dimsBackground: true))
             return baseBuffer

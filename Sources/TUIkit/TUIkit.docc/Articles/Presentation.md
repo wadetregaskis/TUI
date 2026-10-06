@@ -131,6 +131,22 @@ its rule, its focus stop and its drag together — and the binding is then the
 only way the sheet changes height. A sheet with one detent has no grabber,
 whatever the indicator says: there is nowhere to drag it.
 
+The wheel over a sheet with a grabber is its content's, as the wheel is
+everywhere else in a terminal app, unless the content asks otherwise with
+``View/presentationContentInteraction(_:)``:
+
+| Content interaction | The wheel over the sheet |
+|---|---|
+| `.automatic` | scrolls the content, and never resizes the sheet |
+| `.scrolls` | scrolls the content; where it can scroll no further that way — or has nothing to scroll — moves the sheet to the next detent |
+| `.resizes` | pulled down, grows the sheet first, and scrolls the content once the sheet is at its largest; pushed up, scrolls the content back first, then shrinks the sheet |
+
+The wheel moves the sheet one detent at a time, at most one every quarter of a
+second, so one turn of a wheel or flick of a trackpad does not sweep through
+every detent; the ticks in between are spent on the sheet, and do not scroll
+the content either. (SwiftUI's `.automatic` on a phone grows a resizable sheet
+before its content scrolls; ask for `.resizes` for that order.)
+
 ## Alerts
 
 Use `alert(_:isPresented:actions:message:)` for a titled alert with an
