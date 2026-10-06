@@ -15,6 +15,13 @@ final class MenuPopupState {
     var isOpen = false
     /// The open menu's highlight and its rows — see ``MenuPopupController``.
     let controller = MenuPopupController()
+
+    /// Closes the menu — chosen from, dismissed, or let go of — dropping its
+    /// highlight. Idempotent.
+    func close() {
+        isOpen = false
+        controller.closed()
+    }
 }
 
 /// The body of ``DefaultMenuStyle``: a collapsed label that opens the items as
@@ -88,10 +95,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
             items: content, over: &buffer, controller: state.controller, sectionID: sectionID,
             itemsIndex: ChildIndex.items,
             anchor: MenuAnchor(x: 0, y: buffer.height, controlHeight: buffer.height),
-            dismiss: {
-                state.isOpen = false
-                state.controller.closed()
-            }, context: context)
+            dismiss: { state.close() }, context: context)
         return buffer
     }
 

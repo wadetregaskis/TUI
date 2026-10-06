@@ -224,7 +224,7 @@ enum RowContextMenuHost {
         stateBox.value = state
         onOpen?()
         dispatcher.handOffGesture()
-        dispatcher.pressOpenedPopup(closing: { close(state) })
+        dispatcher.pressOpenedPopup(closing: { state.menu.close() })
     }
 
     /// Opens the menu from the keyboard: on its first item, anchored under the
@@ -273,7 +273,7 @@ enum RowContextMenuHost {
             }
             return
         }
-        let dismiss = { close(state) }
+        let dismiss = { state.menu.close() }
         guard let menuItems = items(), drawsAnything(menuItems, context: context) else {
             dismiss()
             return
@@ -294,12 +294,6 @@ enum RowContextMenuHost {
             dismiss: dismiss, context: context)
         ContextMenuPresentation.attachKeyboardCloser(
             state: state.menu, sectionID: sectionID, context: context)
-    }
-
-    /// Closes the menu `state` holds — chosen from, dismissed, or let go of.
-    private static func close(_ state: RowMenuState) {
-        state.menu.isOpen = false
-        state.menu.controller.closed()
     }
 
     /// Whether `items` draws anything at all — a menu closure that returned

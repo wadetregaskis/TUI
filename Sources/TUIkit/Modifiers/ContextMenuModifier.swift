@@ -28,6 +28,13 @@ final class ContextMenuState {
     /// Whether a menu was presented since the closed content last rendered, so
     /// the section it activated may be left to tear down.
     var needsSectionTeardown = false
+
+    /// Closes the menu — chosen from, dismissed, or let go of — dropping its
+    /// highlight. Idempotent.
+    func close() {
+        isOpen = false
+        controller.closed()
+    }
 }
 
 // MARK: - Context menu modifier
@@ -256,10 +263,7 @@ enum ContextMenuPresentation {
         presentMenuPopover(
             items: items, over: &baseBuffer, controller: state.controller,
             sectionID: sectionID, itemsIndex: 1, anchor: anchor,
-            dismiss: {
-                state.isOpen = false
-                state.controller.closed()
-            }, context: context)
+            dismiss: { state.close() }, context: context)
         attachKeyboardCloser(state: state, sectionID: sectionID, context: context)
     }
 
@@ -292,8 +296,7 @@ enum ContextMenuPresentation {
         else { return }
         dispatcher.addHandler(sectionID: sectionID) { event in
             guard event.opensContextMenu else { return false }
-            state.isOpen = false
-            state.controller.closed()
+            state.close()
             return true
         }
     }
