@@ -89,6 +89,32 @@ struct EscapeClaimTests {
         #expect(harness.statusBar.escapeLabelOverride == nil)
     }
 
+    /// Before the token, the flag was a stored property: set ahead of the
+    /// label, it made the label's claim lightweight. With the flag on the
+    /// claim, setting it while no claim stood was dropped, and the claim then
+    /// grabbed the input — the focused control's key handlers went deaf, and
+    /// `t` and `a` were grounded.
+    @Test("The lightweight flag set before the label is the label's claim's, and the next claim's no longer")
+    func flagBeforeTheLabel() {
+        let bar = StatusBarState()
+        bar.escapeClaimGrabsInput = false
+        bar.escapeLabelOverride = "clear selection"
+        #expect(!bar.escapeClaimGrabsInput, "the flag set before the label was dropped")
+        bar.escapeLabelOverride = "close menu"
+        #expect(bar.escapeClaimGrabsInput, "the next claim inherited it")
+
+        bar.beginSceneRender()
+        bar.escapeClaimGrabsInput = false
+        bar.withdrawEscapeClaim()
+        bar.escapeLabelOverride = "close menu"
+        #expect(bar.escapeClaimGrabsInput, "a withdrawal left the kept flag for a later claim")
+        bar.beginSceneRender()
+        bar.escapeClaimGrabsInput = false
+        bar.beginSceneRender()
+        bar.escapeLabelOverride = "close menu"
+        #expect(bar.escapeClaimGrabsInput, "the kept flag outlived its frame")
+    }
+
     @Test("A new claim grabs the input, whatever the claim it replaced said")
     func newClaimGrabsInput() {
         let bar = StatusBarState()

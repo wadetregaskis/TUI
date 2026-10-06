@@ -26,6 +26,13 @@ struct EscapeClaim {
     let token: Int
 }
 
+/// ``StatusBarState/escapeClaimGrabsInput`` set while no claim stood in
+/// `pane` (`nil`: on the page), kept for the next claim made there.
+struct PendingEscapeClaimFlag {
+    let pane: String?
+    let grabsInput: Bool
+}
+
 extension StatusBarState {
     /// The claim on Escape that stands where the focus is: the claim made in
     /// the pane the focus is in (`FocusManager.activePaneID`), or the page's
@@ -57,14 +64,26 @@ extension StatusBarState {
     ///
     /// The claim stands until another is made in its pane, or it is withdrawn,
     /// or the next walk begins. A new claim grabs the input unless it says
-    /// otherwise (``escapeClaimGrabsInput``): it does not inherit a lightweight
-    /// claim's flag from the claim it replaced.
+    /// otherwise (``escapeClaimGrabsInput``, set after the label or just
+    /// before it): it does not inherit a lightweight claim's flag from the
+    /// claim it replaced.
     @discardableResult
     func claimEscape(_ label: String) -> Int {
         let token = nextEscapeClaimToken
         nextEscapeClaimToken &+= 1
-        setEscapeClaimHere(EscapeClaim(label: label, token: token))
+        var claim = EscapeClaim(label: label, token: token)
+        if let pending = takePendingEscapeClaimFlag() { claim.grabsInput = pending }
+        setEscapeClaimHere(claim)
         return token
+    }
+
+    /// The flag ``escapeClaimGrabsInput`` was set to before a claim was made
+    /// in the pane rendering now, if it was — taken, so that only the claim
+    /// made next has it.
+    private func takePendingEscapeClaimFlag() -> Bool? {
+        guard let pending = pendingEscapeClaimFlag, pending.pane == focusManager?.currentPaneID else { return nil }
+        pendingEscapeClaimFlag = nil
+        return pending.grabsInput
     }
 
     /// Renames the claim made with `token` — if it is still its pane's claim,
@@ -91,6 +110,7 @@ extension StatusBarState {
     /// nothing at all. Anything inside it renders later, and claims again.
     func withdrawEscapeClaim() {
         setEscapeClaimHere(nil)
+        _ = takePendingEscapeClaimFlag()
     }
 
     /// Replaces the claim of the pane rendering now (the page's, outside

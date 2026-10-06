@@ -267,14 +267,30 @@ public final class StatusBarState: @unchecked Sendable {
     ///
     /// `true` (the default, and every new claim's) preserves that modal
     /// behaviour. A lightweight claim — a multi-selection list offering ESC
-    /// to clear its selection — sets this `false` after the label: only the
-    /// ESC key itself is re-routed, everything else behaves normally.
-    /// Meaningless while ``escapeLabelOverride`` is `nil`, and set then, it is
-    /// dropped.
+    /// to clear its selection — sets this `false`: only the ESC key itself is
+    /// re-routed, everything else behaves normally.
+    ///
+    /// Set after the label, it changes the claim the label made. Set before
+    /// it — while no claim stands where it is set — it is kept for the claim
+    /// made there next this frame, and for that claim only: the claim after
+    /// it grabs the input again unless it says otherwise, and a claim
+    /// withdrawn meanwhile takes the kept flag with it.
     public var escapeClaimGrabsInput: Bool {
         get { activeEscapeClaim?.grabsInput ?? true }
-        set { updateEscapeClaimHere { $0.grabsInput = newValue } }
+        set {
+            if hasEscapeClaimHere {
+                updateEscapeClaimHere { $0.grabsInput = newValue }
+            } else {
+                pendingEscapeClaimFlag = PendingEscapeClaimFlag(
+                    pane: focusManager?.currentPaneID, grabsInput: newValue)
+            }
+        }
     }
+
+    /// ``escapeClaimGrabsInput`` as it was set while no claim stood where it
+    /// was set, for the next claim made there this frame
+    /// (`claimEscape(_:)`).
+    var pendingEscapeClaimFlag: PendingEscapeClaimFlag?
 
     /// The page's claim on Escape this frame — made outside every pane — if
     /// anything has made one: see ``EscapeClaim``.
@@ -656,6 +672,7 @@ extension StatusBarState {
         // lightweight selection claim lowers it each frame it applies).
         escapeClaim = nil
         if !paneEscapeClaims.isEmpty { paneEscapeClaims.removeAll() }
+        pendingEscapeClaimFlag = nil
         itemActionsSuppressed = false
         // Same contract for the Return verb: published by whichever control
         // holds the focus this frame, so its absence has to be the default or a
