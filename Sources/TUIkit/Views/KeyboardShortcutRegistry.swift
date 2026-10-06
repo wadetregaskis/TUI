@@ -32,13 +32,20 @@
 /// (`MouseEventDispatcher`, `KeyEventDispatcher`): touched only from the
 /// main run loop (render pass registration + input dispatch).
 final class KeyboardShortcutRegistry: @unchecked Sendable {
-    /// An app shortcut's action, and whether a held key's repeats run it again.
+    /// An app shortcut's action, whether a held key's repeats run it again,
+    /// and when in the frame it was registered (``registrationCount``).
     private struct Entry {
         let repeats: Bool
         let action: () -> Void
+        let serial: Int
     }
 
     private var actions: [KeyboardShortcut.Trigger: Entry] = [:]
+
+    /// How many app shortcuts this frame has registered so far: a mark a
+    /// presenter takes before its content renders, and hands back to
+    /// ``action(for:registeredAfter:)`` once it has.
+    private(set) var registrationCount = 0
 
     /// A framework default, and whether the view that registered it held the
     /// focus.
@@ -55,6 +62,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     func beginRenderPass() {
         actions.removeAll(keepingCapacity: true)
         defaults.removeAll(keepingCapacity: true)
+        registrationCount = 0
     }
 
     /// Registers `action` for `shortcut`; the last registration in a frame wins.
@@ -66,7 +74,20 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///   nothing else: holding a button's shortcut never falls through to
     ///   whatever the key means further down.
     func register(_ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void) {
-        actions[shortcut.trigger] = Entry(repeats: repeats, action: action)
+        registrationCount += 1
+        actions[shortcut.trigger] = Entry(repeats: repeats, action: action, serial: registrationCount)
+    }
+
+    /// The action `shortcut` runs, if its registration — the last this frame
+    /// on its trigger — came after `mark`, a ``registrationCount`` taken
+    /// earlier in the frame: a shortcut registered by whatever rendered in
+    /// between, and not since overridden.
+    ///
+    /// How a presenter finds its content's cancel button
+    /// (``DismissalGate/cancelAction``).
+    func action(for shortcut: KeyboardShortcut, registeredAfter mark: Int) -> (() -> Void)? {
+        guard let entry = actions[shortcut.trigger], entry.serial > mark else { return nil }
+        return entry.action
     }
 
     /// Registers a framework default for `shortcut`, which fires only when no

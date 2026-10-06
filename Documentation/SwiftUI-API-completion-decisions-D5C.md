@@ -86,15 +86,14 @@ sheet), and hides no row either.
 
 What differs from macOS: the rows hang off the view the modifier is on, so a
 `.toolbar` on an inner view puts its row there rather than at the sheet's
-bottom edge; and the sheet's own Escape still dismisses it first, so Escape
-does not run the cancel button's action unless the sheet disabled its
-interactive dismissal.
+bottom edge. Escape presses the cancel button, as on macOS: the sheet's own
+Escape — and a popover's — runs the cancel button's action in place of
+dismissing (`DismissalGate.escape`), which it did not when this first
+shipped, so a Cancel that discarded a draft was skipped.
 
 **The fuller version** has the sheet host the items itself, at its edges
 wherever they are declared — the window chrome host's P2 reservation applied
-to a sheet, with the sheet's state keeping last frame's rows — lets a
-cancellation item take Escape in place of the sheet's own dismissal (the
-dismissal item stands down while one is declared), and honours
+to a sheet, with the sheet's state keeping last frame's rows — and honours
 `.toolbarVisibility` in a sheet for its rows. About a day; it touches the
 modal presenter, which another lane is changing for `presentationSizing`.
 

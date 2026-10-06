@@ -53,6 +53,70 @@ private struct SheetToolbarApp: App {
     }
 }
 
+/// Whether the cancel-button probes' presentations are up, and what their
+/// cancel buttons did: reachable from an `App`.
+private final class CancelProbe: @unchecked Sendable {
+    static let shared = CancelProbe()
+    var presented = true
+    var discards = 0
+    /// Whether the cancel button dismisses as well as discarding.
+    var cancelDismisses = true
+
+    func reset(cancelDismisses: Bool = true) {
+        presented = true
+        discards = 0
+        self.cancelDismisses = cancelDismisses
+    }
+
+    static var binding: Binding<Bool> {
+        Binding(get: { shared.presented }, set: { shared.presented = $0 })
+    }
+
+    /// The cancel button's action: discards the draft, and dismisses if
+    /// it is the kind that does.
+    static func cancel() {
+        shared.discards += 1
+        if shared.cancelDismisses { shared.presented = false }
+    }
+}
+
+/// A sheet whose content's cancellation item discards a draft.
+private struct SheetCancelApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .sheet(isPresented: CancelProbe.binding) {
+                    Text("DRAFT")
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("CANCEL") { CancelProbe.cancel() }
+                            }
+                            ToolbarItem(placement: .confirmationAction) { Button("SAVE") {} }
+                        }
+                }
+        }
+    }
+}
+
+/// A popover whose content has a cancel button.
+private struct PopoverCancelApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("ANCHOR")
+                .popover(isPresented: CancelProbe.binding) {
+                    VStack {
+                        Text("DRAFT")
+                        Button("CANCEL") { CancelProbe.cancel() }.keyboardShortcut(.cancelAction)
+                    }
+                }
+        }
+    }
+}
+
 /// A popover whose content declares a confirmation item.
 private struct PopoverToolbarApp: App {
     init() {}
@@ -162,6 +226,45 @@ struct ToolbarPresentationTests {
         app.send(MouseEvent(button: .left, phase: .pressed, x: column, y: row))
         app.send(MouseEvent(button: .left, phase: .released, x: column, y: row))
         #expect(SheetItemProbe.shared.saves == 1, "a click on the item fires it")
+    }
+
+    @Test("Escape in a sheet presses its cancellation item, as macOS does, rather than dismissing past it")
+    func escapePressesTheCancelButton() {
+        CancelProbe.shared.reset()
+        let app = HeadlessApp(SheetCancelApp(), width: 60, height: 14)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        #expect(app.screen.contains { $0.stripped.contains("DRAFT") }, "sanity: the sheet is up")
+        app.send(KeyEvent(key: .escape))
+        #expect(CancelProbe.shared.discards == 1, "the cancel button's action ran")
+        #expect(!CancelProbe.shared.presented, "and it dismissed the sheet")
+    }
+
+    @Test("A cancel button that does not dismiss keeps the sheet up on Escape")
+    func escapeIsTheCancelButtonsToDecide() {
+        CancelProbe.shared.reset(cancelDismisses: false)
+        defer { CancelProbe.shared.reset() }
+        let app = HeadlessApp(SheetCancelApp(), width: 60, height: 14)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        app.send(KeyEvent(key: .escape))
+        #expect(CancelProbe.shared.discards == 1)
+        #expect(CancelProbe.shared.presented, "the sheet stays: Escape did what the button does")
+        app.frame(atNanos: 40_000_000)
+        app.send(KeyEvent(key: .escape))
+        #expect(CancelProbe.shared.discards == 2, "and does it again on the next press")
+    }
+
+    @Test("Escape in a popover presses its cancel button too")
+    func escapePressesAPopoversCancelButton() {
+        CancelProbe.shared.reset()
+        let app = HeadlessApp(PopoverCancelApp(), width: 60, height: 14)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        #expect(app.screen.contains { $0.stripped.contains("DRAFT") }, "sanity: the popover is up")
+        app.send(KeyEvent(key: .escape))
+        #expect(CancelProbe.shared.discards == 1, "the cancel button's action ran")
+        #expect(!CancelProbe.shared.presented)
     }
 
     @Test("A sheet's .toolbarVisibility does not take the window's bar, with the key that closes the sheet")

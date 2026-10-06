@@ -166,6 +166,13 @@ final class DismissalGate: Equatable {
     /// yes.
     var interceptor: ((@escaping () -> Void) -> Void)?
 
+    /// The action of the cancel button the content drew last frame — a
+    /// button with `.keyboardShortcut(.cancelAction)`, as a
+    /// `.cancellationAction` toolbar item's is — which the presenter's Escape
+    /// runs in place of its own dismissal (``escape(_:)``). `nil` when the
+    /// content drew none.
+    var cancelAction: (() -> Void)?
+
     /// Dismisses through the interceptor, if one asked to be asked.
     func dismiss(_ proceed: @escaping () -> Void) {
         if let interceptor {
@@ -173,6 +180,38 @@ final class DismissalGate: Equatable {
         } else {
             proceed()
         }
+    }
+
+    /// The presenter's Escape: the content's cancel button, if it drew one,
+    /// as macOS presses a sheet's cancel button on Escape — its action is the
+    /// app's, which dismisses or not as it says — and otherwise the
+    /// presentation's own dismissal, through the interceptor.
+    ///
+    /// The presenter's Escape comes before the cancel button's on the way
+    /// down the key layers (its status-bar item and key handler are layers 1
+    /// and 2, a `.keyboardShortcut` layer 3.5), so it is here the button is
+    /// pressed or not: without it a sheet's
+    /// `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { model.discardDraft(); dismiss() } }`
+    /// was dismissed on Escape with the draft kept.
+    func escape(_ proceed: @escaping () -> Void) {
+        if let cancelAction {
+            cancelAction()
+        } else {
+            dismiss(proceed)
+        }
+    }
+
+    /// Draws the presented content with `render`, and takes the cancel button
+    /// it registered, if any, for ``escape(_:)``. A measurement registers
+    /// nothing, and takes nothing.
+    func drawingContent<Result>(context: RenderContext, _ render: () -> Result) -> Result {
+        guard !context.isMeasuring, let registry = context.environment.keyboardShortcutRegistry else {
+            return render()
+        }
+        let mark = registry.registrationCount
+        let result = render()
+        cancelAction = registry.action(for: .cancelAction, registeredAfter: mark)
+        return result
     }
 
     nonisolated static func == (lhs: DismissalGate, rhs: DismissalGate) -> Bool { lhs === rhs }
@@ -192,14 +231,15 @@ extension EnvironmentValues {
 }
 
 /// The presentation's gate, kept in a manual `StateStorage` box at the
-/// presenter's identity, with last frame's interceptor cleared: the content
-/// renders next and sets it again if it still wants to ask.
+/// presenter's identity, with last frame's interceptor and cancel button
+/// cleared: the content renders next and sets them again if it still has them.
 @MainActor
 func presentationDismissalGate(context: RenderContext, propertyIndex: Int) -> DismissalGate {
     let key = StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex)
     let gate: StateBox<DismissalGate>? = context.stateStorage?.storage(for: key, default: DismissalGate())
     let resolved = gate?.value ?? DismissalGate()
     resolved.interceptor = nil
+    resolved.cancelAction = nil
     return resolved
 }
 

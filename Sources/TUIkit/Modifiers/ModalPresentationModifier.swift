@@ -192,15 +192,17 @@ extension ModalPresentationModifier: Renderable {
             // nothing on the status bar offering a way out that does not work.
             let isPresented = self.isPresented
             // The reader's ways out go through the gate, so content with a
-            // `dismissalConfirmationDialog` can ask first.
-            let interactiveDismiss = { gate.dismiss { isPresented.wrappedValue = false } }
+            // `dismissalConfirmationDialog` can ask first — and Escape is the
+            // content's cancel button where it drew one, as on macOS
+            // (`DismissalGate.escape`).
+            let escape = { gate.escape { isPresented.wrappedValue = false } }
             if !dismissIsDisabled {
                 let dismissItem = StatusBarItem(
                     shortcut: Shortcut.escape,
                     label: LocalizationService.shared.string(
                         for: LocalizationKey.StatusBar.dismiss)
                 ) {
-                    interactiveDismiss()
+                    escape()
                 }
                 context.environment.statusBar?.registerSectionItems(
                     sectionID: sectionID, items: [dismissItem], composition: .merge)
@@ -216,7 +218,7 @@ extension ModalPresentationModifier: Renderable {
                     sectionID: sectionID
                 ) { event in
                     guard event.key == .escape else { return false }
-                    interactiveDismiss()
+                    escape()
                     return true
                 }
             }
@@ -301,8 +303,9 @@ extension ModalPresentationModifier: Renderable {
         modalContext.environment.isPresented = true
         modalContext.environment.dismissalGate = gate
 
-        var modalBuffer = renderModal(
-            context: context, modalContext: modalContext, overlayHeight: overlayHeight)
+        var modalBuffer = gate.drawingContent(context: context) {
+            renderModal(context: context, modalContext: modalContext, overlayHeight: overlayHeight)
+        }
 
         guard !modalBuffer.isEmpty else { return baseBuffer }
 

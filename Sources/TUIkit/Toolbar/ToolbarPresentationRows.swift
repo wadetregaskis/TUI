@@ -52,10 +52,9 @@ extension EnvironmentValues {
 ///
 /// A confirmation item's button is the presentation's default button — Return,
 /// when the focused control lets the key through — and a cancellation item's
-/// its cancel button (`.keyboardShortcut(.defaultAction / .cancelAction)`). A
-/// sheet's own Escape still dismisses it first, as it does with no toolbar; the
-/// cancel button takes Escape where the sheet does not (one that disabled its
-/// interactive dismissal).
+/// its cancel button (`.keyboardShortcut(.defaultAction / .cancelAction)`),
+/// which Escape presses, as on macOS: the presentation's own Escape runs it in
+/// place of dismissing (`DismissalGate.escape`).
 ///
 /// The rows are drawn after the view, so their controls follow its controls in
 /// the presentation's focus section, and the view's first control is the one

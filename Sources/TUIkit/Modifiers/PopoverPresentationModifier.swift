@@ -210,7 +210,9 @@ extension PopoverPresentationModifier: Renderable {
                 LocalizationService.shared.string(for: LocalizationKey.StatusBar.closePopover)
             context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
                 guard event.key == .escape else { return false }
-                dismiss()
+                // The content's cancel button where it drew one, as on macOS
+                // (`DismissalGate.escape`); an outside click still dismisses.
+                gate.escape { isPresented.wrappedValue = false }
                 return true
             }
         }
@@ -237,9 +239,11 @@ extension PopoverPresentationModifier: Renderable {
         }
         popoverContext.environment.dismissalGate = gate
 
-        var panel = renderPresentedDialog(
-            panelView(context: context), context: popoverContext,
-            capHeight: context.environment.overlayContentHeight)
+        var panel = gate.drawingContent(context: context) {
+            renderPresentedDialog(
+                panelView(context: context), context: popoverContext,
+                capHeight: context.environment.overlayContentHeight)
+        }
         guard !panel.isEmpty else { return baseBuffer }
 
         // The same screen-covering backdrop every menu presentation uses: a
