@@ -560,19 +560,22 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // This view's space, open to the readers its content draws while it does.
         let scrollSpace = enterScrollSpace(
             viewport: CellSize(width: contentWidth, height: contentViewportHeight), context: context)
-        var (fullBuffer, contentSlice, seekOffset, contentExtent, drawnLines) = renderedContent(
+        let firstDrawing = renderedContent(
             contentWidth: contentWidth, viewportHeight: contentViewportHeight,
             horizontal: wantsHorizontal, verticalScrollOffset: handler.scrollOffset,
             seek: pendingSeek, edgeInset: chrome.edgeInset,
             handler: handler, context: context, settledExtents: settledExtents)
+        let (seekOffset, contentExtent) = (firstDrawing.seekOffset, firstDrawing.extents)
+        var drawing = ScrollContentDrawing(
+            buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines)
         if !context.isMeasuring { handler.pendingScrollTo = nil }
         // A sliced reply (Stage 6): the buffer holds only the rendered band;
         // the content height comes from the metadata (estimated suffixes and
         // all — the §3 scrollbar trade), and every content-space consumer
         // below rebases by the slice origin. An estimated total is surfaced
         // in the indicators as an approximate count.
-        handler.contentHeight = contentSlice?.totalHeight ?? fullBuffer.height
-        handler.contentHeightIsEstimate = contentSlice?.totalIsEstimate ?? false
+        handler.contentHeight = drawing.slice?.totalHeight ?? drawing.buffer.height
+        handler.contentHeightIsEstimate = drawing.slice?.totalIsEstimate ?? false
         if let seekOffset {
             // The content rendered AT the request's offset; adopt it, dropping
             // any overscroll excursion with it — the slide drawn later would
@@ -591,7 +594,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         }
         syncHorizontalAxis(
             handler: handler, wantsHorizontal: wantsHorizontal,
-            bufferWidth: fullBuffer.width, contentExtentWidth: contentExtent.width,
+            bufferWidth: drawing.buffer.width, contentExtentWidth: contentExtent.width,
             contentWidth: contentWidth, context: context)
         // Re-clamp the offset against the now-known content height — but only on
         // the real render pass. A measure pass may be offered a larger height
@@ -612,9 +615,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // measure-pass gate.
         let pursuitArmed = snapViewportToFocusedControl(
             handler: handler,
-            fullBuffer: fullBuffer,
+            fullBuffer: drawing.buffer,
             viewportHeight: contentViewportHeight,
-            regionOriginY: contentSlice?.originY ?? 0,
+            regionOriginY: drawing.slice?.originY ?? 0,
             // Drawn OVER the content, not merely drawn. Reserved, the pair is
             // outside the viewport this reveal reasons about, and treating the
             // last content line as covered scrolled a control already on screen.
@@ -622,13 +625,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             suppressed: seekOffset != nil,
             context: context)
         coverSnappedViewport(
-            handler: handler, fullBuffer: &fullBuffer, contentSlice: &contentSlice,
-            drawnLines: &drawnLines, contentWidth: contentWidth,
+            handler: handler, drawing: &drawing, contentWidth: contentWidth,
             viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, context: context)
         if wasGluedToBottom, seekOffset == nil {
             reglueToRefinedTail(
-                handler: handler, fullBuffer: &fullBuffer, contentSlice: &contentSlice,
-                drawnLines: &drawnLines, contentWidth: contentWidth,
+                handler: handler, drawing: &drawing, contentWidth: contentWidth,
                 viewportHeight: contentViewportHeight, horizontal: wantsHorizontal, context: context)
         }
         // Settle the pursuit AFTER coverage/re-glue, when the frame's offset
@@ -636,7 +637,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         settleRevealPursuit(armed: pursuitArmed, handler: handler, context: context)
 
         var visibleBuffer = ownedContentWindow(
-            full: fullBuffer, slice: contentSlice, checkpoint: checkpoint, handler: handler, chrome: chrome,
+            drawing: drawing, checkpoint: checkpoint, handler: handler, chrome: chrome,
             viewport: CellSize(width: contentWidth, height: contentViewportHeight),
             horizontal: wantsHorizontal, context: context)
         leaveScrollSpace(scrollSpace, context: context)

@@ -280,16 +280,13 @@ extension _ScrollViewCore {
     /// estimator that never does, and costs nothing on the usual frame, which
     /// stops after one pass because its band already covered the tail.
     func reglueToRefinedTail(
-        handler: ScrollViewHandler, fullBuffer: inout FrameBuffer,
-        contentSlice: inout (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?,
-        drawnLines: inout Range<Int>?, contentWidth: Int, viewportHeight: Int,
-        horizontal: Bool, context: RenderContext
+        handler: ScrollViewHandler, drawing: inout ScrollContentDrawing, contentWidth: Int,
+        viewportHeight: Int, horizontal: Bool, context: RenderContext
     ) {
         for _ in 0..<Self.reglueLimit {
             handler.scrollOffset = handler.maxOffset
             coverSnappedViewport(
-                handler: handler, fullBuffer: &fullBuffer, contentSlice: &contentSlice,
-                drawnLines: &drawnLines, contentWidth: contentWidth,
+                handler: handler, drawing: &drawing, contentWidth: contentWidth,
                 viewportHeight: viewportHeight, horizontal: horizontal, context: context)
             if handler.scrollOffset >= handler.maxOffset { return }
         }
@@ -361,24 +358,20 @@ extension _ScrollViewCore {
     }
 
     func coverSnappedViewport(
-        handler: ScrollViewHandler,
-        fullBuffer: inout FrameBuffer,
-        contentSlice: inout (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?,
-        drawnLines: inout Range<Int>?, contentWidth: Int, viewportHeight: Int, horizontal: Bool,
-        context: RenderContext
+        handler: ScrollViewHandler, drawing: inout ScrollContentDrawing, contentWidth: Int,
+        viewportHeight: Int, horizontal: Bool, context: RenderContext
     ) {
-        guard !context.isMeasuring,
-            let band = contentSlice.map({ $0.originY..<$0.originY + fullBuffer.height }) ?? drawnLines
-        else { return }
+        guard !context.isMeasuring, let band = drawing.band else { return }
         let visibleEnd = min(handler.scrollOffset + viewportHeight, handler.contentHeight)
         guard handler.scrollOffset < band.lowerBound || visibleEnd > band.upperBound else { return }
         let recovered = renderedContent(
             contentWidth: contentWidth, viewportHeight: viewportHeight,
             horizontal: horizontal, verticalScrollOffset: handler.scrollOffset,
             context: context)
-        (fullBuffer, contentSlice, drawnLines) = (recovered.buffer, recovered.slice, recovered.drawnLines)
-        handler.contentHeight = contentSlice?.totalHeight ?? fullBuffer.height
-        handler.contentHeightIsEstimate = contentSlice?.totalIsEstimate ?? false
+        drawing = ScrollContentDrawing(
+            buffer: recovered.buffer, slice: recovered.slice, drawnLines: recovered.drawnLines)
+        handler.contentHeight = drawing.slice?.totalHeight ?? drawing.buffer.height
+        handler.contentHeightIsEstimate = drawing.slice?.totalIsEstimate ?? false
         handler.clampScrollOffset()
     }
 }

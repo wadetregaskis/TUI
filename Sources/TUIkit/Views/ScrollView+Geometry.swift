@@ -58,13 +58,12 @@ extension _ScrollViewCore {
     /// draws the content once more, at the offset the frame settled on — the
     /// walk put back first (`checkpoint`), so nothing in it registers twice.
     func ownedContentWindow(
-        full fullBuffer: FrameBuffer, slice contentSlice: (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?,
-        checkpoint: RenderWalkCheckpoint?, handler: ScrollViewHandler, chrome: ScrollChrome,
-        viewport: CellSize, horizontal: Bool, context: RenderContext
+        drawing: ScrollContentDrawing, checkpoint: RenderWalkCheckpoint?, handler: ScrollViewHandler,
+        chrome: ScrollChrome, viewport: CellSize, horizontal: Bool, context: RenderContext
     ) -> FrameBuffer {
         let (width, height) = (viewport.width, viewport.height)
         var window = drawnViewport(
-            full: fullBuffer, sliceOriginY: contentSlice?.originY ?? 0, handler: handler, chrome: chrome,
+            full: drawing.buffer, sliceOriginY: drawing.slice?.originY ?? 0, handler: handler, chrome: chrome,
             width: width, height: height, horizontal: horizontal, context: context)
         if let checkpoint, ownScrollSpace(in: window, viewport: viewport, context: context) {
             checkpoint.rollBack(context: context)

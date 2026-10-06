@@ -14,6 +14,34 @@ import Foundation
 import TUIkitCore
 import TUIkitView
 
+// MARK: - One Drawing of the Content
+
+/// One drawing of a scroll view's content: what `renderedContent` drew, and
+/// which of its lines are real — what the frame windows, and what a drawing
+/// made again when the frame's offset moved past it replaces whole.
+struct ScrollContentDrawing {
+    /// The content as drawn: the band, when the content drew only a slice of
+    /// itself.
+    var buffer: FrameBuffer
+
+    /// For a sliced reply, where the band starts in the content and how tall
+    /// the whole content is (an estimate past what was drawn, as
+    /// `totalIsEstimate` says); `nil` when ``buffer`` is the whole content.
+    var slice: (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?
+
+    /// The lines of a full-height ``buffer`` that hold real rows, when it holds
+    /// placeholders elsewhere (``ScrollContentReply/drawnLines``); `nil` when
+    /// every line it holds is drawn.
+    var drawnLines: Range<Int>?
+
+    /// The content lines this drawing really drew — the slice's band, or the
+    /// drawn lines of a full-height canvas — or `nil` for eager content, all of
+    /// which is drawn.
+    var band: Range<Int>? {
+        slice.map { $0.originY..<$0.originY + buffer.height } ?? drawnLines
+    }
+}
+
 extension _ScrollViewCore {
     /// The context the content is measured and drawn in, at every site that
     /// asks it anything: under its OWN child identity (see `contentExtents`),
