@@ -150,7 +150,7 @@ extension TerminalClient {
     ///    between tmux and the terminal
     ///    (``screenStandsBeforeTheTerminal(environment:ownChain:tmuxClients:)``):
     ///    a screen run in this tmux pane, or a tmux every one of whose clients
-    ///    showing this pane runs inside screen. Where that cannot be told — a
+    ///    showing this pane runs in a screen window. Where that cannot be told — a
     ///    chain unread, tmux not answering — the answer stays unconfirmed,
     ///    which the status bar reports as sent, not as copied. tmux's own variables are checked
     ///    before the ones below, which inside a pane may be stale leftovers of
@@ -206,20 +206,24 @@ extension TerminalClient {
     /// - A screen run in this pane: `STY` is set, and screen is nearer than
     ///   tmux in `ownChain`, this process's command names from itself up.
     /// - A tmux attached from inside screen: every client in `tmuxClients`
-    ///   that the write goes to (``writeRecipients(of:pane:)``) has screen
-    ///   above it. The pane's own chain cannot say so — tmux's server
-    ///   daemonizes and is reparented to launchd or init, so a pane's chain
-    ///   is the same however its session is attached
-    ///   — and `STY` cannot either: a server started inside screen keeps
-    ///   screen's `STY` whoever attaches, and one attached from inside screen
-    ///   later has none. Such a client's terminal type is screen's, which
-    ///   tmux's default `terminal-features` give no clipboard, and screen
-    ///   drops a bare OSC 52 anyway (as tmux's and screen's sources read;
-    ///   unmeasured on a host).
+    ///   that the write goes to (``writeRecipients(of:pane:)``) runs in a
+    ///   screen window — screen holds its terminal
+    ///   (``ProcessAncestry/terminalHolder(of:)``), not merely stands
+    ///   somewhere above it: a GUI terminal started from a shell inside
+    ///   screen draws the clients run in it itself. The pane's own chain
+    ///   cannot say so — tmux's server daemonizes and is reparented to
+    ///   launchd or init, so a pane's chain is the same however its session
+    ///   is attached — and `STY` cannot either: a server started inside
+    ///   screen keeps screen's `STY` whoever attaches, and one attached from
+    ///   inside screen later has none. Such a client's terminal type is
+    ///   screen's, which tmux's default `terminal-features` give no
+    ///   clipboard, and screen drops a bare OSC 52 anyway (as tmux's and
+    ///   screen's sources read; unmeasured on a host).
     ///
     /// `false` where it cannot be told: no client showing the pane, a
-    /// client's chain or this process's unread, tmux not answering. The write
-    /// is then sent as the maybe it is.
+    /// client's chain or this process's unread, a client attached to no
+    /// terminal, tmux not answering. The write is then sent as the maybe it
+    /// is.
     static func screenStandsBeforeTheTerminal(
         environment: [String: String], ownChain: [String]?, tmuxClients: [ClipboardLocality.AttachedClient]?
     ) -> Bool {
@@ -232,10 +236,10 @@ extension TerminalClient {
         guard let clients = tmuxClients else { return false }
         let recipients = writeRecipients(of: clients, pane: environment["TMUX_PANE"])
         guard !recipients.isEmpty else { return false }
-        // A client's first name is the client itself: a screen above it is
-        // what the client draws in.
+        // What holds the client's terminal is what it draws in.
         return recipients.allSatisfy { client in
-            client.chain?.dropFirst().contains(where: ClipboardLocality.isGNUScreen) == true
+            guard let holder = client.chain.flatMap(ProcessAncestry.terminalHolder(of:)) else { return false }
+            return ClipboardLocality.isGNUScreen(holder.name)
         }
     }
 

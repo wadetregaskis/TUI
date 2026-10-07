@@ -160,7 +160,7 @@ enum ClipboardLocality {
         let environment = ProcessInfo.processInfo.environment
         let inTmux = TerminalHost.isTmux
         let ownChain = ProcessAncestry.ownCommandNames()
-        let clientChains = inTmux && ownChain != nil ? tmuxClients()?.map(\.chain) : nil
+        let clientChains = inTmux && ownChain != nil ? tmuxClients()?.map { $0.chain?.map(\.name) } : nil
         return isLocal(
             environment: environment, ownChain: ownChain, tmuxClientChains: clientChains, inTmux: inTmux)
         #endif
@@ -172,10 +172,10 @@ enum ClipboardLocality {
         /// (``TerminalHost/TmuxClient/sessionPanes``), or `nil` where tmux did
         /// not list them.
         var sessionPanes: [String]?
-        /// The client's command names, its own first
-        /// (``ProcessAncestry/commandNames(from:limit:)``), or `nil` where its
-        /// chain could not be read.
-        var chain: [String]?
+        /// The client's processes up to the root, its own first
+        /// (``ProcessAncestry/links(from:limit:)``), or `nil` where its chain
+        /// could not be read.
+        var chain: [ProcessAncestry.Link]?
     }
 
     /// The clients attached to this process's tmux server, every session's —
@@ -190,7 +190,7 @@ enum ClipboardLocality {
             clients.map { client in
                 AttachedClient(
                     sessionPanes: client.sessionPanes,
-                    chain: client.pid.flatMap { ProcessAncestry.commandNames(from: $0) })
+                    chain: client.pid.flatMap { ProcessAncestry.links(from: $0) })
             }
         }
     }

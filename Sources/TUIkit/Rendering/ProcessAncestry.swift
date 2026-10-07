@@ -28,6 +28,17 @@ import Musl
 /// says so rather than guessing past it.
 enum ProcessAncestry {
 
+    /// A process as a chain reads it: its name, and the terminal it is
+    /// attached to.
+    struct Link: Equatable {
+        /// The kernel's short name for it (``commandName(of:)``).
+        let name: String
+        /// The device number of its controlling terminal — `e_tdev` on
+        /// Darwin, `tty_nr` of `/proc/<pid>/stat` on Linux — or `nil` where it
+        /// has none (`NODEV` on Darwin, `0` on Linux).
+        let terminal: Int32?
+    }
+
     /// The parent of a process, or `nil` if it has exited or is unreadable.
     static func parent(of pid: pid_t) -> pid_t? {
         #if canImport(Darwin)
@@ -52,16 +63,53 @@ enum ProcessAncestry {
     /// matched against it fits.
     static func commandName(of pid: pid_t) -> String? {
         #if canImport(Darwin)
-            guard var info = kernelInfo(of: pid) else { return nil }
-            let name = withUnsafeBytes(of: &info.kp_proc.p_comm) { raw -> String? in
-                String(bytes: raw.prefix { $0 != 0 }, encoding: .utf8)
-            }
-            return name?.isEmpty == false ? name : nil
+            return kernelInfo(of: pid).flatMap(commandName(in:))
         #elseif canImport(Glibc) || canImport(Musl)
             return procStat(of: pid)?.name
         #else
             return nil
         #endif
+    }
+
+    /// The name and controlling terminal of a process, read together, or
+    /// `nil` if it has exited or is unreadable.
+    static func link(of pid: pid_t) -> Link? {
+        #if canImport(Darwin)
+            guard let info = kernelInfo(of: pid), let name = commandName(in: info) else { return nil }
+            // `NODEV`, `(dev_t)-1`: a macro Swift does not import.
+            let terminal = info.kp_eproc.e_tdev
+            return Link(name: name, terminal: terminal == -1 ? nil : terminal)
+        #elseif canImport(Glibc) || canImport(Musl)
+            guard let stat = procStat(of: pid), let terminal = stat.terminalField else { return nil }
+            return Link(name: stat.name, terminal: terminal == 0 ? nil : terminal)
+        #else
+            return nil
+        #endif
+    }
+
+    /// The links from `pid` up to the root (``chain(from:limit:reading:)``),
+    /// `pid`'s own first, or `nil` where one could not be read.
+    static func links(from pid: pid_t, limit: Int = 64) -> [Link]? {
+        chain(from: pid, limit: limit, reading: link(of:))
+    }
+
+    /// The process that holds the terminal `chain`'s first process is
+    /// attached to: the first above it attached to another terminal, or to
+    /// none — the terminal emulator that draws it, or the GNU screen, tmux,
+    /// `sshd` or `mosh-server` that carries it on — or `nil` where that cannot
+    /// be told: the first is attached to no terminal, or no process above it
+    /// is attached to another.
+    ///
+    /// A process's terminal is the pty its shell runs on, and the process
+    /// that opened the pty's other side runs on another one, or on none: GNU
+    /// screen's server runs on none and its windows' processes on the
+    /// window's pty (measured, screen 4.00.03 on macOS 15, 2026-10-07: `ps`
+    /// shows `SCREEN` on `??` and its window's `login` on `ttys005`). What
+    /// stands further up — the shell a GUI terminal was started from, say —
+    /// does not stand between the process and what draws it.
+    static func terminalHolder(of chain: [Link]) -> Link? {
+        guard let own = chain.first?.terminal else { return nil }
+        return chain.dropFirst().first { $0.terminal != own }
     }
 
     /// The command names from `pid` up to the root of the process tree,
@@ -132,11 +180,23 @@ enum ProcessAncestry {
             guard ok, size > 0 else { return nil }
             return info
         }
+
+        /// The short name in a process's kernel record, or `nil` where it is
+        /// empty or not UTF-8.
+        private static func commandName(in info: kinfo_proc) -> String? {
+            var info = info
+            let name = withUnsafeBytes(of: &info.kp_proc.p_comm) { raw -> String? in
+                String(bytes: raw.prefix { $0 != 0 }, encoding: .utf8)
+            }
+            return name?.isEmpty == false ? name : nil
+        }
     #elseif canImport(Glibc) || canImport(Musl)
         /// The fields of `/proc/<pid>/stat` a walk needs.
         private struct ProcStat {
             var name: String
             var parentField: Int32
+            /// `tty_nr`, or `nil` where the line is cut short of it.
+            var terminalField: Int32?
             var parent: pid_t? { parentField > 0 ? parentField : nil }
         }
 
@@ -153,7 +213,9 @@ enum ProcessAncestry {
             let name = String(stat[stat.index(after: open)..<close])
             let fields = stat[stat.index(after: close)...].split(separator: " ")
             guard fields.count >= 2, let parent = Int32(fields[1]) else { return nil }
-            return ProcStat(name: name, parentField: parent)
+            // state, ppid, pgrp, session, tty_nr.
+            let terminal = fields.count >= 5 ? Int32(fields[4]) : nil
+            return ProcStat(name: name, parentField: parent, terminalField: terminal)
         }
     #endif
 }

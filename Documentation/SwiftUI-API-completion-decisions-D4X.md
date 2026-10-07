@@ -254,8 +254,11 @@ inherited environment names, where it used to report "Sent" (iTerm2) or
 `set-clipboard on`, tmux's clients decide — those that see the write, whose
 session holds the app's pane (`TMUX_PANE` among the session's panes that
 `list-clients` prints), not every client of the server: where every one of
-them runs inside screen (screen above it in its chain), nothing is sent and
-the copy is "Not copied"; where one does not, tmux's answer stands ("Sent"); a screen run
+them runs in a screen window (screen holds its terminal: the first process
+above the client attached to another terminal, or to none, is screen's —
+not screen anywhere above it, as a GUI terminal started from a shell inside
+screen draws its clients itself), nothing is sent and the copy is "Not
+copied"; where one does not, tmux's answer stands ("Sent"); a screen run
 in a tmux pane, seen in the app's own chain, sends nothing. Neither `STY` nor
 the pane's chain can tell: a tmux server started inside screen keeps its
 `STY` whoever attaches, and the server daemonizes, so a pane's chain ends at
@@ -264,7 +267,9 @@ saying "Not copied" of such a session attached straight from Ghostty or
 iTerm2; its second, the chain then saying "Sent" of one still attached from
 inside screen, where nothing arrives; the review of that fix, every client of
 the server counted, so that a client of another session, attached from the
-terminal, said "Sent" for the app's own, attached from inside screen). Where
+terminal, said "Sent" for the app's own, attached from inside screen, and
+screen anywhere above a client said "Not copied" of one in a GUI terminal
+started from inside screen). Where
 the clients cannot be read, or none shows the pane, the write goes as a
 maybe, reported "Sent", never "Copied". A paste chord under a keeper,
 as anywhere away from the machine, pastes the app's own last copy and says
@@ -424,7 +429,10 @@ listed — all fixed — these remain:
   sessions "not local" at the desk even when attached straight from the
   terminal (failing safe: tmux's `set-clipboard` carries the copy by OSC 52
   there). Where tmux's clients cannot be read, a tmux under screen sends the
-  copy as a maybe and reports it "Sent", though nothing may arrive.
+  copy as a maybe and reports it "Sent", though nothing may arrive; so it
+  does where a client in a screen window runs behind a pty of its own — a
+  `sudo` with `use_pty`, `script` — which then holds its terminal, not
+  screen (unmeasured).
 - **Paste away from the machine** (B-D4X-14): Ctrl-V pastes the app's own
   last copy, which may be older than the user's — said so now, still pasted.
 - **The screen selection** (B-D4X-15): content moved inside an unchanged
