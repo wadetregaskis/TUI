@@ -115,7 +115,11 @@ the text's own menu (Look Up, Translate, Cut, Copy, Paste…), not the row's.
 TUIkit does both: the highlight's Copy menu is offered the press first. A
 Control-click on the row's text — the owner's call, 2026-10-06 — opens the
 row's menu as a right-click does, and with no menu the row takes it as on its
-blank cells; it no longer starts a selection. (Synthesised Control-clicks
+blank cells; it no longer starts a selection. It is the secondary click for
+what reads it so — rows, `.contextMenu`, a tab — and not for a control that
+acts on a left press: a Control-click on a `Button` in a table cell presses
+it, where a right-click there opens the row's menu (the follow-ups' review
+found the article saying "wherever it lands"; macOS unmeasured there). (Synthesised Control-clicks
 open no menu on a SwiftUI row in the probe, the plain control list included,
 so macOS's Control-click is read as its right-click, which it is.)
 

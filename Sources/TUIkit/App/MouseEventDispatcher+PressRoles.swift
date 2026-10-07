@@ -140,7 +140,9 @@ extension MouseEventDispatcher {
     /// row's menu where it has one (as a right-click there does, and as a
     /// Mac's Control-click does); what declines it goes on outward. It never
     /// starts a selection, and a pane's background, which acts only on a
-    /// click, is passed over, so a menu around a scroll view is reached.
+    /// click, is passed over, so a menu around a scroll view is reached. A
+    /// control that acts on a left press — a button, a field, a toggle — takes
+    /// it as its own click, as it does with no menu around it.
     /// (The selection's own Copy menu, on its highlight, was offered it
     /// first: ``MouseEventDispatcher/dispatch(_:)``.)
     func dispatchLeftPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {

@@ -154,11 +154,14 @@ Not every terminal will give you the right button: iTerm2 keeps it for its own
 menu by default, so TUIkit also accepts <kbd>Ctrl</kbd>-click, and
 <kbd>Shift</kbd>+<kbd>F10</kbd> opens the menu of whatever is focused. See
 `Documentation/Terminal-compatibility.md` for what each terminal forwards.
-A <kbd>Ctrl</kbd>-click is the secondary click wherever it lands: it never
-starts a text selection, a scroll view's background passes it on to a menu
-around it, and on a list's or table's row text under `.textSelection(.enabled)`
-it opens the row's menu, as a right-click there does. Where the row has none,
-the row takes it as it takes one on its blank cells.
+A <kbd>Ctrl</kbd>-click is the secondary click: it never starts a text
+selection, a scroll view's background passes it on to a menu around it, and on
+a list's or table's row text under `.textSelection(.enabled)` it opens the
+row's menu, as a right-click there does. Where the row has none, the row takes
+it as it takes one on its blank cells. A control that acts on a left press — a
+button, a field, a toggle — takes it as its own click, menu or no menu: a
+<kbd>Ctrl</kbd>-click on a button in a table's row presses the button, where a
+right-click there opens the row's menu (what macOS does there is unmeasured).
 
 `onMenuOpen(_:)` reports the opening — of a `contextMenu` or of a ``Menu`` — to
 any view above it, however the menu was opened. It exists for a specific
