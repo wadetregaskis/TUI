@@ -1218,6 +1218,7 @@
    "Image(ext)#Orientation": "TUIkitFoundation",
    "RGBAImage(ext)#oriented(_:)": "TUIkitBitmaps"
   },
+  "Views/Image+Raster.swift": "TUIkitBitmaps",
   "Views/Image+Resizing.swift": {
    "Image(ext)#ResizingMode": "TUIkitFoundation",
    "RGBAImage(ext)#croppedToLeading(fraction:)": "TUIkitBitmaps",
@@ -1269,6 +1270,7 @@
    "View(ext)#breathingForegroundStyle(_:holdingPicturesAt:)": "TUIkitFoundation"
   },
   "Views/ImageNameInitializers.swift": "TUIkitBitmaps",
+  "Views/ImageRaster.swift": "TUIkitFoundation",
   "Views/IndexedIdentifierCollection.swift": "TUIkitLists",
   "Views/Inspector.swift": "TUIkitNavigation",
   "Views/KeyboardShortcut.swift": "TUIkitFoundation",
