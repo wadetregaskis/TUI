@@ -136,6 +136,14 @@ A placement you have reviewed goes into `accepted`, with the reason. The plan's 
 `.modal`, `.listStyle`, and the ones found at 0c. An accepted entry covers the block as it changes: when a public
 member joins an accepted block, re-read the finding with `-v`.
 
+A member that does not belong with the rest of its block, and that a refactor will split out, is a `scheduled` entry:
+`from` matches the block's label, `to` the member's name as the list prints it. The finding is scheduled while a
+flagged block holds the member, and the entry goes stale once none does. It follows the member, not the block: a block
+split out but still placed above its file's module (by the assigner, or by a broad rule such as TUIkitBitmaps'
+`Views/Image.swift::…View\(ext\)`) keeps it open. Members no entry names keep an unaccepted block's finding new, so a
+split scheduled for one member cannot hide the rest. The refined plan's S1 (the layout trio and the cell-aspect option,
+out of the image-option blocks) and S2 (`.focusSection`, out of the `.statusBarItems` block) are recorded this way.
+
 ### `posix`: a POSIX-only API outside TUIkitApp
 
 `TUIkitBase: Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
@@ -228,9 +236,10 @@ not drag declarations down.
   to undo an assigner drift. Where several match one declaration, the **last** wins, so a narrower rule placed after a
   broader one is an exception to it (TUIkitBase's three image layout keys after TUIkitBitmaps' `Image.*Key`).
 - **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
-- **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix` or `lower`) that a refactor will
-  remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for
-  `posix`, `to` matches the API's name, and for `lower`, `Module.Type.name`.
+- **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix`, `lower` or `public-above`) that a
+  refactor will remove. `from` and `to` match labels (the printed label or the base label without its
+  `#discriminator`); for `posix`, `to` matches the API's name, for `lower`, `Module.Type.name`, and for `public-above`,
+  the name of the public member the refactor moves out of the block.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 **Renaming a module.** Module names live in `rules.json` (and the generated `map.json`) and nowhere else in the tool:

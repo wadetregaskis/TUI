@@ -451,6 +451,72 @@ class PublicAboveTests(unittest.TestCase):
         self.assertEqual(M.public_members, {'s:e:V': ['Shown', 'Shown.y()']})
         self.assertIn('s:e:V', M.public)          # the block still counts as holding public API, as before
 
+    @staticmethod
+    def blocks(*members):
+        """Base/V.swift: one `extension View` block per argument, holding those public methods in order."""
+        lines, occ, sym = [], [], {VIEW: ('View', IX.K_PROTOCOL)}
+        for b, ms in enumerate(members):
+            e = f's:e:{b}'
+            occ += [(e, DEF, len(lines) + 1, ''), (VIEW, REF | IX.REL_EXTENDED_BY, len(lines) + 1, e)]
+            lines.append('extension View {')
+            for m in ms:
+                occ.append((f's:{m}', DEF, len(lines) + 1, e)); sym[f's:{m}'] = (f'{m}()', 16)
+                lines.append(f'    public func {m}() {{}}')
+            lines.append('}')
+            sym[e] = ('View', IX.K_EXTENSION)
+        return model({'Base/V.swift': '\n'.join(lines) + '\n'}, {'Base/V.swift': occ}, sym)
+
+    S2 = [{'id': 'S2', 'check': 'public-above', 'from': r'^Base/V\.swift::View\(ext\)', 'to': r'^focus\(\)$', 'why': ''}]
+
+    def report(self, M, R, asg):
+        fs = checks.run_all(M, R, asg, '/nonexistent')
+        return ([(x.key, x.scheduled, x.new) for x in fs if x.check == 'public-above'],
+                [x.key for x in fs if x.check == 'rules'])
+
+    def test_a_split_is_scheduled_while_the_block_holds_the_member_and_stale_once_it_left(self):
+        # Refined plan S2: `.focusSection` rides in the `.statusBarItems` block, accepted in Chrome, until A4 splits it.
+        acc = [{'check': 'public-above', 'key': 'Base/V.swift::View(ext)#status()', 'why': 'chrome'}]
+        M = self.blocks(['status', 'focus'])
+        self.assertEqual(self.report(M, rules(accepted=acc, scheduled=self.S2), {'s:e:0': 'Lists'}),
+                         ([('Base/V.swift::View(ext)#status()', 'S2', False)], []))
+        M = self.blocks(['status'], ['focus'])             # A4's split: focus stays in its file's module
+        self.assertEqual(self.report(M, rules(accepted=acc, scheduled=self.S2), {'s:e:0': 'Lists', 's:e:1': 'Base'}),
+                         ([('Base/V.swift::View(ext)#status()', None, False)], [r'scheduled S2 public-above ^Base/V\.swift::View\(ext\)']))
+        # A split that left the member above its file's module is not done: the entry follows the member.
+        self.assertEqual(self.report(M, rules(accepted=acc, scheduled=self.S2), {'s:e:0': 'Lists', 's:e:1': 'Lists'}),
+                         ([('Base/V.swift::View(ext)#status()', None, False), ('Base/V.swift::View(ext)#focus()', 'S2', False)], []))
+
+    def test_the_summary_counts_a_scheduled_and_accepted_finding_once(self):
+        acc = [{'check': 'public-above', 'key': 'Base/V.swift::View(ext)#status()', 'why': 'chrome'},
+               {'check': 'public-above', 'key': 'Base/V.swift::View(ext)#other()', 'why': 'chrome'}]
+        M = self.blocks(['status', 'focus'], ['other'])
+        fs = checks.run_all(M, rules(accepted=acc, scheduled=self.S2), {'s:e:0': 'Lists', 's:e:1': 'Lists'}, '/nonexistent')
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            modulemap.report(fs, rules(), False, False)
+        self.assertIn('public-above     0 new   (scheduled S2 1; accepted 1)', out.getvalue())
+
+    def test_a_split_scheduled_for_one_member_does_not_hide_the_rest_of_an_unreviewed_block(self):
+        M = self.blocks(['status', 'focus'])
+        self.assertEqual(self.report(M, rules(scheduled=self.S2), {'s:e:0': 'Lists'}),
+                         ([('Base/V.swift::View(ext)#status()', 'S2', True)], []))
+
+    def test_a_split_out_block_a_broad_rule_still_catches_keeps_the_split_open(self):
+        # Refined plan S1: TUIkitBitmaps' rule pins `Views/Image.swift::...View\(ext\)`, every View block of the file, so
+        # a block split out for the layout trio lands in Bitmaps again unless a later, narrower rule places it.
+        s1 = [{'id': 'S1', 'check': 'public-above', 'from': r'^Base/V\.swift::View\(ext\)', 'to': r'^aspect\(\)$', 'why': ''}]
+        broad = {'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': 'image options'}
+        M = self.blocks(['options'], ['aspect'])
+        R = rules(declarations=[broad], scheduled=s1)
+        asg, _ = assigner.assign(M, R)
+        self.assertEqual(self.report(M, R, asg), ([('Base/V.swift::View(ext)#options()', None, False),
+                                                   ('Base/V.swift::View(ext)#aspect()', 'S1', False)], []))
+        narrow = {'module': 'Base', 'match': r'^Base/V\.swift::View\(ext\)#aspect\(\)$', 'why': 'S1 landed'}
+        R = rules(declarations=[broad, narrow], scheduled=s1)
+        asg, _ = assigner.assign(M, R)
+        self.assertEqual(self.report(M, R, asg), ([('Base/V.swift::View(ext)#options()', None, False)],
+                                                  [r'scheduled S1 public-above ^Base/V\.swift::View\(ext\)']))
+
     def test_an_accepted_placement_is_not_new(self):
         M, asg = public_above_model()
         R = rules(accepted=[{'check': 'public-above', 'key': 'Lists/E.swift::ListStyle(ext)#automatic', 'why': 'x'}])

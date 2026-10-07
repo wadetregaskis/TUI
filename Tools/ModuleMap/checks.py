@@ -13,13 +13,14 @@ class Finding:
     def __init__(self, check, key, message, file=None, line=None):
         self.check, self.key, self.message, self.file, self.line = check, key, message, file, line
         self.scheduled = None           # the `scheduled` rule id that covers it (a refactor that has not landed)
-        self.rule = None                # that rule's index in rules.json (several entries may share an id)
+        self.rules = set()              # those entries' indices in rules.json (several entries may share an id)
+        self.unscheduled = 0            # public-above: public members of the block that no `scheduled` entry names
         self.accepted = None            # the `accepted` entry's reason
         self.weight = 1                 # the references it stands for (upward: the edge's count)
 
     @property
     def new(self):
-        return not self.scheduled and not self.accepted
+        return not self.accepted and (not self.scheduled or self.unscheduled > 0)
 
 
 def upward(M, R, asg):
@@ -33,7 +34,7 @@ def upward(M, R, asg):
                         f'{ma} -> {mb}: {M.label(a)} uses {M.label(b)} ({k} reference{"s" if k > 1 else ""})', f, ln)
             x.weight = k
             s = next(filter(None, (R.scheduled_for('upward', la, lb) for la, lb in zip(M.rule_labels(a), M.rule_labels(b)))), None)
-            if s: x.scheduled, x.rule = s['id'], s['index']
+            if s: x.scheduled = s['id']; x.rules.add(s['index'])
             out.append(x)
     return out
 
@@ -110,6 +111,21 @@ def _members(M, n):
     return f' (public: {", ".join(ms)})' if ms else ''
 
 
+def _split(M, R, n, x):
+    """A `scheduled` public-above entry names a public member that a refactor moves out of the block (refined plan S1
+    and S2): the finding is scheduled while the block holds one. Members no entry names keep the finding new unless
+    the block is accepted, so a split scheduled for one member cannot hide the rest of an unreviewed block."""
+    members = M.public_members.get(n, ())
+    hit = {m: [r for r in R.scheduled if r['check'] == 'public-above' and r['to_rx'].search(m)
+               and any(r['from_rx'].search(la) for la in M.rule_labels(n))] for m in members}
+    rs = sorted({r['index']: r for h in hit.values() for r in h}.values(), key=lambda r: r['index'])
+    if not rs: return x
+    x.scheduled = ', '.join(dict.fromkeys(r['id'] for r in rs))
+    x.rules.update(r['index'] for r in rs)
+    x.unscheduled = sum(1 for m in members if not hit[m])
+    return x
+
+
 def public_above(M, R, asg):
     """Public API of a type or protocol declared in a module above the type's own: an app that imports only the
     type's module does not get it. An extension whose header (conformance list or `where` clause) names a
@@ -130,22 +146,22 @@ def public_above(M, R, asg):
             if mn == seed or not R.sees(mn, seed): continue
             rule = R.decl_rule(M.rule_labels(n))
             if rule is None:
-                out.append(Finding('public-above', M.label(n),
-                                   f'public API on {M.name[n]} carried from {seed} up to {mn} by the assigner: '
-                                   f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n]))
+                x = Finding('public-above', M.label(n),
+                            f'public API on {M.name[n]} carried from {seed} up to {mn} by the assigner: '
+                            f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n])
             else:
                 x = Finding('public-above', M.label(n),
                             f'public API on {M.name[n]} placed in {mn} by a declarations rule, above its file\'s {seed}: '
                             f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n])
                 x.accepted = f'declarations rule {rule["match"]}: {rule.get("why") or "no reason given"}'
-                out.append(x)
+            out.append(_split(M, R, n, x))
             continue
         mn, mt = asg[n], asg[t]
         if mn == mt or not R.sees(mn, mt): continue
         if any(asg.get(b) == mn for b in M.header.get(n, ())): continue
-        out.append(Finding('public-above', M.label(n),
-                           f'public API of {M.name[t]} ({mt}) is declared in {mn}: {M.label(n)}{_members(M, n)}',
-                           M.file[n], M.line[n]))
+        out.append(_split(M, R, n, Finding('public-above', M.label(n),
+                                           f'public API of {M.name[t]} ({mt}) is declared in {mn}: '
+                                           f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n])))
     return out
 
 
@@ -167,7 +183,7 @@ def posix(M, R, asg):
         x = Finding('posix', f'{M.label(src)} uses {what}',
                     f'{asg[src]}: {M.label(src)} uses {what}, which only POSIX platforms have', f, ln)
         s = next(filter(None, (R.scheduled_for('posix', l, what) for l in M.rule_labels(src))), None)
-        if s: x.scheduled, x.rule = s['id'], s['index']
+        if s: x.scheduled = s['id']; x.rules.add(s['index'])
         out.append(x)
     imports = set(cfg.get('imports', ()))
     if imports:
@@ -228,7 +244,7 @@ def lower(M, R, asg):
         x = Finding('lower', key, f'{asg[src]}: {M.label(src)} uses {lm}.{name}, and {asg[src]}\'s lower list does '
                                   f'not name {lm}', f, ln)
         s = next(filter(None, (R.scheduled_for('lower', la, f'{lm}.{name}') for la in M.rule_labels(src))), None)
-        if s: x.scheduled, x.rule = s['id'], s['index']
+        if s: x.scheduled = s['id']; x.rules.add(s['index'])
         seen[key] = x; out.append(x)
     return out
 
@@ -236,7 +252,7 @@ def lower(M, R, asg):
 def stale_rules(R, findings):
     """A `scheduled` or `accepted` entry that no longer matches anything: the refactor landed, or the code moved.
     Delete it, so the rules stay a list of open items."""
-    used_sched = {x.rule for x in findings if x.scheduled}       # per entry: K4 and K6 have several
+    used_sched = {i for x in findings for i in x.rules}          # per entry: K4 and K6 have several
     used_acc = {(x.check, x.key) for x in findings if x.accepted}
     out = []
     for r in R.scheduled:

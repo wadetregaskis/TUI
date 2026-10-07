@@ -147,7 +147,7 @@ def report(findings, R, github, verbose):
         sites = collections.Counter()
         for x in xs:
             if x.scheduled: sites[x.scheduled] += x.weight
-        acc = sum(1 for x in xs if x.accepted)
+        acc = sum(1 for x in xs if x.accepted and not x.scheduled)      # each finding counted once, as tagged
         extra = []
         if sched: extra.append('scheduled ' + ', '.join(f'{k} {v} ({sites[k]} refs)' if sites[k] != v else f'{k} {v}'
                                                          for k, v in sorted(sched.items())))
