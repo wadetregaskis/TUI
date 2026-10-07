@@ -223,6 +223,9 @@ struct TextSelectionRowDragTests {
         /// A `.draggable` Text with an `onScrollGesture`, inside
         /// `.textSelection(.enabled)`.
         case draggableTextWithScrollGestureInScope
+        /// A List whose `.draggable` rows hold a TextField, inside
+        /// `.textSelection(.enabled)`.
+        case draggableListRowFieldInScope
     }
 
     struct Page: View {
@@ -339,6 +342,13 @@ struct TextSelectionRowDragTests {
                         Text("name 1 is here").onScrollGesture { _ in }.draggable("dragged")
                     }
                     .textSelection(.enabled))
+            case .draggableListRowFieldInScope:
+                AnyView(
+                    List(TextSelectionRowDragTests.items) { item in
+                        TextField("Name", text: .constant(item.name)).draggable(item.name)
+                    }
+                    .textSelection(.enabled)
+                    .frame(height: 9))
             }
         }
     }
@@ -543,6 +553,16 @@ struct TextSelectionRowDragTests {
         #expect(outcome.dragged)
         #expect(outcome.selected == nil)
         #expect(!outcome.moves.contains("clicked"))
+    }
+
+    /// A field is a control, as a Button is: a draggable row drags from its
+    /// text under a scope, as with none, rather than the field keeping the
+    /// drag for a selection of its own.
+    @Test("Under an enabled scope a draggable List row drags from a TextField's text in it")
+    func draggableListRowFromField() throws {
+        let outcome = try drag(.draggableListRowFieldInScope, onText: true)
+        #expect(outcome.dragged)
+        #expect(outcome.selected == nil)
     }
 
     /// The rows still drag from where there is no selectable text: their

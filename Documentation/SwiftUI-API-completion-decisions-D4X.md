@@ -154,8 +154,11 @@ of draggable text selects as a list of it does). A control's label is not
 selectable text (on macOS a tab's title and a button's label are not): a
 handle in front of a region that would take the press as a control — before
 anything that holds it for a selection — keeps it, as with no scope, and a
-press released there is still the control's click. What takes no plain left
-press is not a control: a scope, a hover observer, a drop zone, a context
+press released there is still the control's click. A field is such a
+control: a drag on a `TextField`'s text in a draggable row moves the row,
+and a click there focuses the field, under a scope as with none (the review
+of the follow-ups' fixes found the rule described of a label only). What
+takes no plain left press is not a control: a scope, a hover observer, a drop zone, a context
 menu's trigger. Nor is an app's `.onMouseEvent` closure (and
 `onScrollGesture`, built on it), which says whether it takes a left press
 only when offered one: the handle stands aside, and the closure is offered
@@ -464,7 +467,11 @@ listed — all fixed — these remain:
   is selectable follows the rows' rule — a drag on its text selects — which
   is unmeasured on macOS for a view outside a list. A draggable view or row
   drags from a control's label in it (a `Button`), and a click there is the
-  control's, as with no scope (unmeasured on macOS). A region of TUIkit's
+  control's, as with no scope (unmeasured on macOS). So it does from a
+  field's text: a drag in a `TextField` in a draggable row moves the row and
+  selects nothing in the field, scope or no scope (macOS unmeasured; a field
+  that kept such a drag for its own selection would change the no-scope
+  case too, so it is a design question, not this rule's). A region of TUIkit's
   that takes no plain left press but is not filed as passive is taken for a
   control, so a handle in front of it keeps a press on text: the passive
   regions are drop zones, spring-loading zones, context menus' triggers and

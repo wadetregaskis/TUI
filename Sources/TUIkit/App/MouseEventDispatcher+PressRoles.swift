@@ -83,8 +83,11 @@ enum PressRole {
     /// region that would take the press as a control, before anything that
     /// holds it for a selection, keeps it, as it does with no scope: a press
     /// released there is still that control's click, forwarded by the
-    /// handle. What takes no plain left press — a scope, a hover observer, a
-    /// drop zone, a context menu's trigger
+    /// handle. A field is a control too: a drag on a `TextField`'s text
+    /// behind the handle moves the view or row rather than selecting in the
+    /// field, and a click there focuses the field, as with no scope. What
+    /// takes no plain left press — a scope, a hover observer, a drop zone, a
+    /// context menu's trigger
     /// (``MouseEventDispatcher/takesNoPlainLeftPress(_:)``) — is not a
     /// control. Nor is the app's own ``View/onMouseEvent(_:)`` closure taken
     /// for one: it says whether it takes a left press only when offered one

@@ -282,7 +282,9 @@ TUIkit selects by itself, as a terminal would:
   being environment-like), in a scroll view as in a list. A control's label
   is not text: a draggable tab drags from its title, and a `.draggable` view
   or row from a button's label in it, as they do with no scope, and a click
-  there is still the button's. An `.onMouseEvent` closure is asked, not
+  there is still the button's. Nor is a field's: a drag on a `TextField`'s
+  text in a `.draggable` view or row moves the view or row, and a click there
+  focuses the field. An `.onMouseEvent` closure is asked, not
   taken for a control: it is offered the press in turn, so one that declines
   a left press leaves the drag to select, and one that takes it has it.
 - **⌘C — Ctrl-C under the default `commandKey`** — copies the selection while
