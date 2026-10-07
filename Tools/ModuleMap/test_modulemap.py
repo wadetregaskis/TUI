@@ -306,7 +306,7 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         self.assertEqual([x.key for x in xs], ['Base/T.swift::f() uses isatty'])
 
     def test_the_shipped_list_has_pid_t(self):
-        # Plan section 4's K6: Windows signatures must not use pid_t. TerminalHost (Base) has ~18 unguarded uses.
+        # Plan section 4's K6: Windows signatures must not use pid_t. TerminalHost (Base) has 13 unguarded uses.
         src = 'struct H {\n    let pid: pid_t?\n}\n'
         M = model({'Base/H.swift': src}, {'Base/H.swift': [('s:H', DEF, 1, ''), ('s:H.pid', DEF, 2, 's:H'),
                                                             ('c:@T@pid_t', REF, 2, 's:H.pid')]},

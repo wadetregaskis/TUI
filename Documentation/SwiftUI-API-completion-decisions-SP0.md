@@ -78,7 +78,7 @@ policy choice, not a cost one.
 The `posix` check's list lacked `pid_t`, although plan §4's K6 says Windows signatures must not use it. With
 `pid_t` in the list, two declarations report it:
 - ProcessAncestry, one of K6's two files. Its K6 entry now names `pid_t` beside `getpid`.
-- TerminalHost (Rendering/TerminalHost.swift, all of it in TUIkitBase), which plan §4 does not list. About 18
+- TerminalHost (Rendering/TerminalHost.swift, all of it in TUIkitBase), which plan §4 does not list. Thirteen
   unguarded uses: the tmux client's `pid` field and the tmux hook and unhook argument builders.
 
 An audit of every C symbol that a declaration outside TUIkitApp references outside a POSIX-only branch found no
