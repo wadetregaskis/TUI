@@ -271,6 +271,14 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// wrapping or rendering its off-screen rows.
     var rowHeight: ((Int) -> Int)?
 
+    /// The section header pinned over the top of the rows when row `i` is the
+    /// first drawn, and its height in lines — or `nil` where nothing pins
+    /// there. Set every frame by a `List` whose style pins its headers
+    /// (decisions A45), `nil` everywhere else. ``ensureFocusedItemVisible()``
+    /// keeps the cursor below the header: the lines it covers are lines the
+    /// cursor's row is not drawn on.
+    var pinnedSectionHeader: ((Int) -> (index: Int, height: Int)?)?
+
     /// How eagerly the viewport follows the focus cursor — synced from the
     /// environment each render (see ``ScrollFollowMargin``). With the default
     /// `.none`, ``ensureFocusedItemVisible()`` scrolls only when the cursor

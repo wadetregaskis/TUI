@@ -145,6 +145,7 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
         allContent: Bool?,
         signature: AnyEquatableBox? = nil,
         editOwners: [ListRowEditOwner] = [],
+        sectionChrome: [(index: Int, isHeader: Bool)] = [],
         typeAt: @escaping (Int) -> ListRowType<SelectionValue>,
         make: @escaping (Int) -> LazyListRowContent
     ) {
@@ -152,9 +153,17 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
         self.knownAllContent = allContent
         self.signature = signature
         self.editOwners = editOwners
+        self.sectionChrome = sectionChrome
         self.typeAt = typeAt
         self.make = make
     }
+
+    /// The section headers and footers among the rows, by index, in order —
+    /// `isHeader` false for a footer. Read off the extraction, where a header's
+    /// or footer's type is always known (only a content row's can be still to
+    /// be asked), so finding the header a row pins under asks no row anything
+    /// (``pinnedHeader(over:)``). Empty for the windowed path, which has none.
+    private let sectionChrome: [(index: Int, isHeader: Bool)]
 
     /// The `ForEach` that produced the row at `index`, or `nil` for a row no
     /// editable one did — a section header, a hand-written row, a row of a
@@ -177,6 +186,7 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
             count: rows.count,
             allContent: rows.allSatisfy(\.isKnown) ? rows.allSatisfy(\.isSelectable) : nil,
             editOwners: editOwners,
+            sectionChrome: rows.indices.compactMap { index in rows[index].sectionChrome.map { (index, $0) } },
             typeAt: { rows[$0].type },
             make: { rows[$0].content })
     }
@@ -240,6 +250,31 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
             if case .content = type { contentRows += 1 }
         }
         return contentRows
+    }
+
+    /// The section header pinned over the top of the rows when the row at
+    /// `index` is the first one drawn (decisions A45): the nearest header above
+    /// it with no footer between them. `nil` for a header itself — it is drawn
+    /// where it is — and for a row above every section or past a section's
+    /// footer, which belongs to no header.
+    ///
+    /// A binary search of ``sectionChrome``: no row is asked its type, so a list
+    /// whose rows' ids are still to be asked pays nothing for it (the cost
+    /// `ListRowSelectionValueCostTests` guards). A section with no header of its
+    /// own is invisible to it, so its rows pin the header of the section before
+    /// it — the rows carry no section boundary but their headers and footers.
+    func pinnedHeader(over index: Int) -> Int? {
+        guard !sectionChrome.isEmpty, index > 0, index < count else { return nil }
+        // The last header or footer at or above `index`.
+        var low = 0
+        var high = sectionChrome.count
+        while low < high {
+            let middle = (low + high) / 2
+            if sectionChrome[middle].index <= index { low = middle + 1 } else { high = middle }
+        }
+        guard low > 0 else { return nil }
+        let nearest = sectionChrome[low - 1]
+        return nearest.isHeader && nearest.index < index ? nearest.index : nil
     }
 
     /// The fully-formed row at `index`, materialising (and memoising) its content
@@ -355,6 +390,18 @@ private struct EagerListRow<SelectionValue: Hashable & Sendable> {
     init(asked id: AskedRowID<SelectionValue>, content: LazyListRowContent) {
         kind = .asked(id)
         self.content = content
+    }
+
+    /// `true` for a section header, `false` for a footer, `nil` for any other
+    /// row — answered without asking anything: a row still to be asked is a
+    /// content row, never chrome.
+    var sectionChrome: Bool? {
+        guard case .known(let type) = kind else { return nil }
+        switch type {
+        case .header: return true
+        case .footer: return false
+        case .content, .unselectable: return nil
+        }
     }
 
     /// Whether ``type`` is answered without asking anything.
@@ -1116,11 +1163,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // reports `.selectionDisabled()` is routed around once it has drawn —
         // not only refused as a commit target.
         handler.selectionDisabledRows = editRestrictions.selectionDisabled
-        visibleRows = decorateForReorder(
-            visibleRows, handler: handler, context: context, palette: palette)
+        // After the viewport sync, which counts DATA rows: the header pinned over
+        // the window's top, ahead of its rows (see `pinningSectionHeader`).
+        visibleRows = pinningSectionHeader(
+            over: decorateForReorder(visibleRows, handler: handler, context: context, palette: palette),
+            source: source, origin: origin.offset, handler: handler, style: style)
 
-        let rowWidth = rowWidth(
-            source: source, visibleRows: visibleRows, style: style, context: context)
+        let rowWidth = rowWidth(source: source, visibleRows: visibleRows, style: style, context: context)
 
         let lines: [String]
         let visibleRowYRanges: [VisibleRowRange]
@@ -1480,6 +1529,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             reorderFeedback: context.environment.rowReorderFeedback,
             keyboardMoveIsLive: false,
             rowHeight: { source.content(at: $0).buffer.height })
+        // The header pinned over a row, and its height: what the reveal keeps the
+        // cursor below (`ItemListHandler.pinnedSectionHeader`). Every frame, nil
+        // included — the handler persists across a style change.
+        handler.pinnedSectionHeader =
+            Self.pinsSectionHeaders(context.environment.listStyle)
+            ? { index in source.pinnedHeader(over: index).map { ($0, source.content(at: $0).buffer.height) } }
+            : nil
         // §1.5: how far past its edges this view may be pushed, re-resolved
         // every frame (a `.viewport`-relative allowance moves with the
         // terminal) and pulling any existing excursion back inside it.
@@ -1669,6 +1725,22 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             } : nil
     }
 
+    /// `rows`, with the header of the section the window opens in ahead of them
+    /// where it pins over their top (decisions A45). The composers draw it
+    /// first and take the lines it drew from the top of the rows below
+    /// (``PinnedHeaderCover``), so it is paired with a range like any row, its
+    /// payloads land where it is drawn, and the lines it covers stop being the
+    /// covered row's to click. Not during a reorder hold, whose slot-aware clip
+    /// owns the lines.
+    private func pinningSectionHeader(
+        over rows: [(index: Int, row: SelectableListRow<SelectionValue>)], source: RowSource<SelectionValue>,
+        origin: Int, handler: ItemListHandler<SelectionValue>, style: any ListStyle
+    ) -> [(index: Int, row: SelectableListRow<SelectionValue>)] {
+        guard handler.reorder == nil, Self.pinsSectionHeaders(style), let header = source.pinnedHeader(over: origin)
+        else { return rows }
+        return [(index: header, row: source.row(at: header))] + rows
+    }
+
     /// Stitches together the row content with top / bottom
     /// scroll indicators and returns both the rendered lines
     /// and the y-ranges each visible row occupies inside that
@@ -1738,20 +1810,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `alwaysShowsVerticalTextIndicators` that is true at the top too, and
         // the count is then legitimately 0 ("0 more rows above").
         if origin.reservesAbove {
+            // At least one whenever anything IS hidden: a top clip hides part of
+            // row 0, so the whole-row count is 0 while a row is genuinely off
+            // screen. Exactly 0 only where nothing is hidden at all, which is the
+            // `always` case.
             topIndicator = renderScrollIndicator(
-                direction: .up,
-                // At least one whenever anything IS hidden: a top clip hides part
-                // of row 0, so the whole-row count is 0 while a row is genuinely
-                // off screen. Exactly 0 only where nothing is hidden at all,
-                // which is the `always` case.
-                count: (origin.offset > 0 || origin.topClip > 0) ? max(1, origin.offset) : 0,
-                unit: .rows,
-                width: rowWidth,
-                palette: palette,
-                cycle: indicatorCycle,
-                over: indicatorSurface,
-                locale: numberLocale
-            )
+                direction: .up, count: (origin.offset > 0 || origin.topClip > 0) ? max(1, origin.offset) : 0,
+                unit: .rows, width: rowWidth, palette: palette, cycle: indicatorCycle, over: indicatorSurface,
+                locale: numberLocale)
         }
 
         // The content area fills EXACTLY, under either granularity: the bottom
@@ -1771,8 +1837,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // reason every other consumer of the origin does. See
         // `RowSource.sectionContentIndex(at:)`.
         var sectionContentIndex = firstSectionContentIndex
+        var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
         for (rowIndex, row) in visibleRows {
-            if case .header = row.type { sectionContentIndex = 0 }
+            // The pinned header is not a section starting: the stripes count on
+            // from the seed.
+            if case .header = row.type, !pin.isPinned(rowIndex) { sectionContentIndex = 0 }
             let isFocused = handler.isCursorRow(rowIndex) && listHasFocus
             let isSelected = handler.isSelected(at: rowIndex)
             let rendered = renderRow(
@@ -1783,6 +1852,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     isReturningHome: handler.returningRows.contains(rowIndex)),
                 rowWidth: rowWidth, sectionContentIndex: sectionContentIndex,
                 style: style, context: context, palette: palette)
+            let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
+            guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip) else {
+                // Wholly under the pinned header: nothing of it is drawn, and it
+                // has no range to be clicked through.
+                if case .content = row.type { sectionContentIndex += 1 }
+                continue
+            }
             if let claims = rendered.contentClaims {
                 contentClaims[rowIndex] = claims
             }
@@ -1803,9 +1879,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 budget = remaining
             }
             let (styledLines, pulseFrames, childRuns, rowRegions) = clipRow(
-                rendered,
-                topClip: rowIndex == origin.offset ? origin.topClip : 0,
-                budget: budget)
+                rendered, topClip: scrollClip + covered, budget: budget)
+            pin.drew(rowIndex, lines: styledLines.count)
             let yStart = rowLines.count
             rowLines.append(contentsOf: styledLines)
             if let pulseFrames, let timing = rendered.pulseTiming {
@@ -1822,7 +1897,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowLinesEmitted += styledLines.count
             ranges.append((
                 rowIndex: rowIndex, yStart: yStart, height: styledLines.count,
-                linesCutAbove: 0, type: row.type))
+                linesCutAbove: covered, type: row.type))
             if case .content = row.type { sectionContentIndex += 1 }
         }
 
@@ -2080,8 +2155,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Seeded, not 0, or the stripes follow the window instead of the rows —
         // see `composeRowLines`.
         var sectionContentIndex = firstSectionContentIndex
+        // A pinned header and the lines it covers — see `composeRowLines`.
+        var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
         for (rowIndex, row) in visibleRows {
-            if case .header = row.type { sectionContentIndex = 0 }
+            if case .header = row.type, !pin.isPinned(rowIndex) { sectionContentIndex = 0 }
             let isFocused = handler.isCursorRow(rowIndex) && listHasFocus
             let isSelected = handler.isSelected(at: rowIndex)
             let rendered = renderRow(
@@ -2096,6 +2173,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 context: context,
                 palette: palette
             )
+            let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
+            guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip) else {
+                if case .content = row.type { sectionContentIndex += 1 }
+                continue
+            }
             if let claims = rendered.contentClaims {
                 contentClaims[rowIndex] = claims
             }
@@ -2112,9 +2194,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 budget = remaining
             }
             let (styledLines, pulseFrames, childRuns, rowRegions) = clipRow(
-                rendered,
-                topClip: rowIndex == origin.offset ? origin.topClip : 0,
-                budget: budget)
+                rendered, topClip: scrollClip + covered, budget: budget)
+            pin.drew(rowIndex, lines: styledLines.count)
             let yStart = lines.count
             // An intrinsically over-wide row must not push the bar cell past
             // the interior (where the container clamp would cut the bar off);
@@ -2150,7 +2231,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             }
             ranges.append((
                 rowIndex: rowIndex, yStart: yStart, height: styledLines.count,
-                linesCutAbove: 0, type: row.type))
+                linesCutAbove: covered, type: row.type))
             if case .content = row.type { sectionContentIndex += 1 }
         }
         // Slot-aware overrun clip for a reorder hold (see composeRowLines).
@@ -4456,6 +4537,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         return .alternatingStripe(palette: palette, over: context.environment.enclosingSurface)
     }
 
+    /// Whether a list in `style` pins its section headers over the top of its
+    /// rows as they scroll (decisions A45): every style but `.sidebar`, as on
+    /// macOS, where the table view under `.automatic`, `.plain`, `.inset` and
+    /// `.bordered` floats its group rows and under `.sidebar` does not
+    /// (measured, macOS 15.8: `NSTableView.floatsGroupRows`; the probe is
+    /// `D6L/probe/pin.swift` in the session notes). Footers pin under none.
+    static func pinsSectionHeaders(_ style: any ListStyle) -> Bool {
+        !(style is SidebarListStyle)
+    }
+
     /// Whether this list stripes its rows: as `.alternatingRowBackgrounds(_:)`
     /// says, and as the style says when that is `.automatic`.
     private func stripesRows(style: any ListStyle, environment: EnvironmentValues) -> Bool {
@@ -4566,6 +4657,57 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     private func terminatedBackground(_ line: String, _ backgroundColor: Color?) -> String {
         guard backgroundColor != nil else { return line }
         return line.withPersistentBackground(backgroundColor) + ANSIRenderer.reset
+    }
+}
+
+// MARK: - Pinned section header
+
+/// A section header pinned over the top of a list's rows (decisions A45), as
+/// the composers meet it: drawn FIRST, ahead of the window — it is the one
+/// entry whose index is below the window's origin — and every line it drew a
+/// line taken off the top of the rows after it, a row it covers wholly drawing
+/// nothing at all. What is left of a covered row says how much went in its
+/// range's `linesCutAbove`, which every payload consumer already adds to the
+/// scroll's own clip, so its controls stay on their lines and the lines under
+/// the header are the header's to click.
+struct PinnedHeaderCover {
+    /// The pinned header's row index, when the first entry drawn is one.
+    let pinned: Int?
+    /// Lines of the rows still under the header.
+    private var remaining = 0
+
+    /// The cover for a frame whose window opens at `origin` and whose first
+    /// entry is `first`: a header with an index above the window's is the
+    /// pinned one. Asked of its TYPE as well as its index — the reorder slot
+    /// is drawn under a sentinel index below every row's.
+    init<SelectionValue: Hashable & Sendable>(origin: Int, first: (Int, SelectableListRow<SelectionValue>)?) {
+        if let first, first.0 < origin, case .header = first.1.type {
+            pinned = first.0
+        } else {
+            pinned = nil
+        }
+    }
+
+    /// Whether the entry at `index` is the pinned header.
+    func isPinned(_ index: Int) -> Bool { index == pinned }
+
+    /// How many of the `lines` a row has left after the scroll's own clip the
+    /// header covers — 0 for the header itself and every row below its lines —
+    /// or `nil` where it covers them all and the row draws nothing.
+    mutating func cover(_ index: Int, lines: Int) -> Int? {
+        guard !isPinned(index), remaining > 0 else { return 0 }
+        guard remaining < lines else {
+            remaining -= max(0, lines)
+            return nil
+        }
+        defer { remaining = 0 }
+        return remaining
+    }
+
+    /// Notes the lines the entry at `index` drew: as many as the pinned header
+    /// drew are taken from the rows after it.
+    mutating func drew(_ index: Int, lines: Int) {
+        if isPinned(index) { remaining = lines }
     }
 }
 

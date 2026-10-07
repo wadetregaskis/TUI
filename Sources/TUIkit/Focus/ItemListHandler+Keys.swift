@@ -664,7 +664,9 @@ extension ItemListHandler {
         // row must be FULLY visible, so any line-granularity top clip
         // on it is cleared too.
         let marginAbove = followMarginRows(from: focusedIndex, step: -1)
-        if focusedIndex - marginAbove < scrollOffset {
+        if revealBelowPinnedHeader(from: max(0, focusedIndex - marginAbove)) {
+            // Settled against the header pinned over the rows.
+        } else if focusedIndex - marginAbove < scrollOffset {
             scrollOffset = max(0, focusedIndex - marginAbove)
             scrollTopClipLines = 0
         } else if focusedIndex == scrollOffset, scrollTopClipLines > 0 {
@@ -751,6 +753,41 @@ extension ItemListHandler {
 
         clampScrollOffset()
         clampTopClip()
+    }
+
+    /// Scrolls up, where it must, so the row at `first` — the focused row, or
+    /// the top of the follow margin above it — sits BELOW the section header
+    /// pinned over the top of a `List`'s rows (``pinnedSectionHeader``): the
+    /// header covers as many lines as it is tall, and a cursor under it is one
+    /// nobody can see.
+    ///
+    /// Walks up from `first` through the rows the header will cover, until
+    /// they make its height or the walk reaches the header itself — which is
+    /// then the first row, drawn where it is with nothing pinned. Whatever the
+    /// walk overshoots by is clipped off the top row, as the reveal below
+    /// clips, so `first` lands on the line under the header exactly.
+    ///
+    /// - Returns: `false` where no header pins over `first`, leaving the plain
+    ///   reveal to it; `true` where this settled the top, scrolling or not.
+    private func revealBelowPinnedHeader(from first: Int) -> Bool {
+        guard let rowHeight, let pin = pinnedSectionHeader?(first), pin.index < first else { return false }
+        if first >= scrollOffset {
+            // Already far enough down: the header covers only rows above it.
+            var linesAbove = -scrollTopClipLines
+            for index in scrollOffset..<first {
+                linesAbove += rowHeight(index)
+                if linesAbove >= pin.height { return true }
+            }
+        }
+        var top = first
+        var covered = 0
+        while top > pin.index, covered < pin.height {
+            covered += max(1, rowHeight(top - 1))
+            top -= 1
+        }
+        scrollOffset = top
+        scrollTopClipLines = top == pin.index ? 0 : covered - pin.height
+        return true
     }
 
     /// How many of ``contentHeight``'s lines the ROWS actually get — the area

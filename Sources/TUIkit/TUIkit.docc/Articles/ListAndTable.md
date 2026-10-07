@@ -310,6 +310,16 @@ section's first row however far the content has scrolled; a list does not.
 inside it: `.enabled` stripes a list too, `.disabled` leaves a table plain. A
 focused or selected row keeps its own highlight.
 
+### Section Headers Stay in View
+
+Scrolled into a section, a list draws that section's header over its first
+line, as a macOS list floats its section headers: the header stays while the
+section's rows scroll under it, and gives way to the next section's when that
+one reaches the top. The keyboard cursor never goes under it — the list
+scrolls a line further instead — and a click on it is the header's, not the
+row's beneath. Every style pins but `.sidebar`, which does not on macOS
+either; a footer never pins.
+
 ### Hovering Over a Row
 
 `.onHover(perform:)` on a row tells its action `true` when the pointer comes
