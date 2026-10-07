@@ -368,8 +368,11 @@ enum SelectableRowClaims {
     /// cell (§27). This is `.foregroundStyle(…).background(…)` in row form.
     ///
     /// The gap cell between the mark and the text is deliberately covered by the FILL
-    /// claim only. It is a bare space with no ink of its own, and an ink claim on such
-    /// a cell lets what is behind it through where the row drew a pad.
+    /// claim only. It is a bare space, which draws no glyph: no ink of its own in a
+    /// `List` row, and in a `Table` row the mark's ink run on across it (`TableRowInk`),
+    /// which a blank does not show and the resolution reads as the cell's field
+    /// (`OpacityBlend.displayedInk(of:defaultForeground:)`). An ink claim on such a
+    /// cell lets what is behind it through where the row drew a pad.
     static func claims(
         line: Int, width: Int, cells: Range<Int>, ink: Color?, mark: Color?, fill: Color?
     ) -> [OpacityRegion] {

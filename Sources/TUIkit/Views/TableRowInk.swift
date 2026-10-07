@@ -61,8 +61,8 @@ struct TableRowInk {
     /// reversal and along a banded row (see the type's comment).
     let shares: Bool
 
-    /// Whether ``close`` is a reset, which ends a cell's own escapes too, so a
-    /// cell need not be scanned for them.
+    /// Whether ``close`` is a reset, which ends a cell's own escapes too: where runs
+    /// do not share, a cell need not be scanned for them.
     private let closeIsReset: Bool
 
     private var inForce = InForce.nothing
@@ -135,7 +135,13 @@ struct TableRowInk {
     /// closed: after every cell where runs do not share, and after a cell whose
     /// text carries escapes of its own wherever they do — with a reset, which a
     /// bold or an underline of the cell's needs, SGR 39 would leave it running into
-    /// the next cell. Asks nothing of the text where ``close`` is a reset already.
+    /// the next cell.
+    ///
+    /// Where runs share, every cell's text is scanned for an escape, whatever
+    /// ``close`` is: only a cell with escapes of its own ends the run, so the scan
+    /// is what tells the two apart — one pass over each cell's bytes, on every
+    /// composed row that shares. Where they do not, the text is scanned only when
+    /// ``close`` is not a reset already, as it always was.
     mutating func close(after text: String, into content: inout String) {
         guard introducer != nil, inForce == .cells else { return }
         if shares {
