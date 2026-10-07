@@ -85,6 +85,18 @@ def find_store(root):
     return max(stores, key=last_written)
 
 
+def newest_units(infos, module, source_prefix):
+    """{main file: (mtime, unit name)}: the newest unit of each main file of `module` under `source_prefix`, from
+    (unit name, module, main file, mtime) for every unit in the store; where a file has several units, the newest wins.
+    `module` may be a set of names and `source_prefix` a tuple of prefixes, as `read` takes them."""
+    modules = {module} if isinstance(module, str) else set(module)
+    newest = {}
+    for u, mod, main, t in infos:
+        if mod in modules and main.startswith(source_prefix) and (main not in newest or t > newest[main][0]):
+            newest[main] = (t, u)
+    return newest
+
+
 def read(store_path, module, source_prefix, lib_path=None):
     """Occurrences of every file of `module` under `source_prefix`, from the newest unit for each file. `module` may be
     a set of module names and `source_prefix` a tuple of prefixes, to read several modules in one pass over the units.
@@ -151,19 +163,16 @@ def read(store_path, module, source_prefix, lib_path=None):
         units.append(_s(name)); return True
     L.indexstore_store_units_apply_f(store, 0, None, unit_cb)
 
-    modules = {module} if isinstance(module, str) else set(module)
-    newest = {}          # main file -> (mtime, unit name)
+    infos = []           # (unit name, module, main file, mtime)
     for u in units:
         ur = L.indexstore_unit_reader_create(store, u.encode(), ctypes.byref(err))
         if not ur: continue
-        mod = _s(L.indexstore_unit_reader_get_module_name(ur))
-        main = _s(L.indexstore_unit_reader_get_main_file(ur))
-        if mod in modules and main.startswith(source_prefix):
-            sec = ctypes.c_int64(); nsec = ctypes.c_int64()
-            L.indexstore_unit_reader_get_modification_time(ur, ctypes.byref(sec), ctypes.byref(nsec))
-            t = sec.value + nsec.value / 1e9
-            if main not in newest or t > newest[main][0]: newest[main] = (t, u)
+        sec = ctypes.c_int64(); nsec = ctypes.c_int64()
+        L.indexstore_unit_reader_get_modification_time(ur, ctypes.byref(sec), ctypes.byref(nsec))
+        infos.append((u, _s(L.indexstore_unit_reader_get_module_name(ur)), _s(L.indexstore_unit_reader_get_main_file(ur)),
+                      sec.value + nsec.value / 1e9))
         L.indexstore_unit_reader_dispose(ur)
+    newest = newest_units(infos, module, source_prefix)
 
     files, symbols = {}, {}
     for main, (t, u) in newest.items():

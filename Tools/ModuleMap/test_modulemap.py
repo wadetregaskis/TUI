@@ -588,6 +588,18 @@ class IndexStoreTests(unittest.TestCase):
             store('x86_64-apple-macosx', made=t - 600, written=t - 500)
             self.assertEqual(IX.find_store(root), old)
 
+    def test_the_newest_unit_of_each_file_of_the_modules_asked_for(self):
+        # The `lower` check reads several modules in one pass: a set of names and a tuple of prefixes.
+        infos = [('u1', 'Core', '/p/Core/A.swift', 10.0), ('u2', 'Core', '/p/Core/A.swift', 20.0),
+                 ('u3', 'View', '/p/View/B.swift', 30.0), ('u4', 'View', '/p/View/B.swift', 5.0),
+                 ('u5', 'Example', '/p/Example/E.swift', 40.0),         # a module not asked for
+                 ('u6', 'Core', '/elsewhere/Core/C.swift', 50.0),       # outside the prefixes
+                 ('u7', 'Core', '/p/View/Odd.swift', 60.0)]             # under another asked-for module's prefix
+        got = IX.newest_units(infos, {'Core', 'View'}, ('/p/Core/', '/p/View/'))
+        self.assertEqual(got, {'/p/Core/A.swift': (20.0, 'u2'), '/p/View/B.swift': (30.0, 'u3'),
+                               '/p/View/Odd.swift': (60.0, 'u7')})
+        self.assertEqual(IX.newest_units(infos, 'Core', '/p/Core/'), {'/p/Core/A.swift': (20.0, 'u2')})
+
     def test_swift_build_s_store_is_found(self):
         # `--build-system swiftbuild` (SwiftPM 6.4's default) writes the store into .build/out.
         with tempfile.TemporaryDirectory() as root:
