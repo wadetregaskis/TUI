@@ -491,7 +491,13 @@ extension ScreenSelection {
 // MARK: - Drawing the highlight
 
 // Field text's selection look, shared with the text inputs (``FieldTextLayout``).
-extension ScreenSelection: FieldTextLayout {
+// The conformance is a block of its own so that it stays with the type and the
+// protocol when the drawing below moves to another module (the module split's
+// owns-neither rule: a conformance in a module that owns neither its type nor
+// its protocol fails at run time).
+extension ScreenSelection: FieldTextLayout {}
+
+extension ScreenSelection {
     /// `buffer` with `selection`'s cells drawn in the selection colours of the
     /// text inputs (``FieldTextLayout/selectionColors(palette:background:ink:)``), reverse video
     /// where the palette leaves the colours to the terminal.
