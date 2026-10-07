@@ -260,7 +260,10 @@ class Clipboard:
             return None
         command = " ".join(self.list_argv)
         try:
-            done = subprocess.run(self.list_argv, capture_output=True, timeout=5)
+            done = subprocess.run(self.list_argv, capture_output=True, timeout=LISTING_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            self.listing_failure = f"`{command}` did not answer within {LISTING_TIMEOUT:g} s"
+            return None
         except Exception as error:
             self.listing_failure = f"`{command}` could not run: {error}"
             return None
@@ -405,6 +408,19 @@ def plain_text_advice():
     return "printf probe | xclip -selection clipboard"
 
 
+# How long a type lister has to answer. A lister that does not answer within
+# it (an X server that accepts the connection and never replies) is reported
+# as such, not as one that could not run.
+LISTING_TIMEOUT = 5
+
+
+def listing_fix():
+    """What stops a lister that is there from listing, on this platform."""
+    if sys.platform == "darwin":
+        return "a session with the pasteboard (not over ssh)"
+    return "a display this session can reach (DISPLAY, WAYLAND_DISPLAY)"
+
+
 def refusal_advice(held, listing_failure=None):
     """What a refused run says to do: copy plain text first, and how — rich
     text copied from an app is refused too, its formatting being what writing
@@ -414,9 +430,7 @@ def refusal_advice(held, listing_failure=None):
     there is none, the helper that lists them does."""
     if held is None and listing_failure is not None:
         return (f"what the clipboard holds could not be listed ({listing_failure})",
-                "fix what stopped the listing — on X11 or Wayland, a display this session can reach "
-                "(DISPLAY, WAYLAND_DISPLAY); on macOS, a session with the pasteboard (not over ssh) — "
-                "or pass --clobber")
+                f"fix what stopped the listing — {listing_fix()} — or pass --clobber")
     if held is None:
         return None, ("install a helper that lists what the clipboard holds (xclip, or wl-clipboard on "
                       "Wayland), or pass --clobber")

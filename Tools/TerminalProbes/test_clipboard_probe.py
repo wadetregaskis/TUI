@@ -10,6 +10,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -155,6 +156,32 @@ class PreservingTests(unittest.TestCase):
             self.assertNotIn("install", refusal)
             self.assertIn("--clobber", refusal)
             self.assertEqual(self.clipboard.contents(), "text")
+
+    def test_a_lister_that_does_not_answer_is_said_to_have_timed_out(self):
+        # The review of the follow-ups' fixes: a lister that timed out was
+        # reported as one that "could not run".
+        self.clipboard = FileClipboard("text", None)
+        board = self.clipboard.board(lister=(["sleep", "5"], str.split, clipboard_probe.XCLIP_EMPTY))
+        with mock.patch.object(clipboard_probe, "LISTING_TIMEOUT", 0.1):
+            done, _, refusal = clipboard_probe.preserving(
+                board, clobber=False, writes=lambda: self.fail("wrote"))
+        self.assertFalse(done)
+        self.assertIn("did not answer within 0.1 s", refusal)
+        self.assertNotIn("could not run", refusal)
+        self.assertEqual(self.clipboard.contents(), "text")
+
+    def test_a_failing_lister_is_told_what_to_fix_on_its_own_platform(self):
+        # The same review: the advice named X11, Wayland and macOS whatever
+        # the platform.
+        for platform, fix, other in [
+            ("darwin", "pasteboard", "DISPLAY"),
+            ("linux", "DISPLAY", "pasteboard"),
+        ]:
+            with mock.patch.object(clipboard_probe.sys, "platform", platform):
+                _, advice = clipboard_probe.refusal_advice(None, "`lister` failed: no")
+            self.assertIn(fix, advice)
+            self.assertNotIn(other, advice)
+            self.assertIn("--clobber", advice)
 
     def test_rich_text_is_refused_with_a_way_to_copy_plain_text(self):
         self.clipboard = FileClipboard("styled", ["«class RTF »", "«class HTML»", "«class utf8»"])
