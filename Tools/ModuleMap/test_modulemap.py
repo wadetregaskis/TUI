@@ -319,6 +319,51 @@ class ConformanceTests(unittest.TestCase):
         self.assertEqual(asg['s:e:Q'], 'Base')
 
 
+def public_above_model():
+    """ListStyle in Base; `.automatic` on it from Lists; style sugar whose `where` clause names a Lists type; and a
+    View modifier in a Base file."""
+    srcs = {'Base/S.swift': 'public protocol ListStyle {}\n',
+            'Lists/D.swift': 'public struct DefaultListStyle: ListStyle {}\n',
+            'Lists/E.swift': 'public extension ListStyle {\n    static var automatic: Int { 0 }\n}\n',
+            'Lists/F.swift': 'public extension ListStyle where Self == DefaultListStyle {\n    static var plain: Int { 0 }\n}\n',
+            'Base/V.swift': 'extension View {\n    public func listStyle() {}\n}\n'}
+    occ = {'Base/S.swift': [('s:LS', DEF, 1, '')],
+           'Lists/D.swift': [('s:DLS', DEF, 1, ''), ('s:LS', REF | IX.REL_BASE_OF, 1, 's:DLS')],
+           'Lists/E.swift': [('s:e:A', DEF, 1, ''), ('s:LS', REF | IX.REL_EXTENDED_BY, 1, 's:e:A'),
+                             ('s:A.automatic', DEF, 2, 's:e:A')],
+           'Lists/F.swift': [('s:e:B', DEF, 1, ''), ('s:LS', REF | IX.REL_EXTENDED_BY, 1, 's:e:B'),
+                             ('s:DLS', REF, 1, 's:e:B'), ('s:B.plain', DEF, 2, 's:e:B')],
+           'Base/V.swift': [('s:e:V', DEF, 1, ''), (VIEW, REF | IX.REL_EXTENDED_BY, 1, 's:e:V'),
+                            ('s:V.listStyle', DEF, 2, 's:e:V')]}
+    sym = {'s:LS': ('ListStyle', IX.K_PROTOCOL), 's:DLS': ('DefaultListStyle', IX.K_STRUCT),
+           's:e:A': ('ListStyle', IX.K_EXTENSION), 's:e:B': ('ListStyle', IX.K_EXTENSION),
+           's:e:V': ('View', IX.K_EXTENSION), 's:A.automatic': ('automatic', IX.K_VARIABLE),
+           's:B.plain': ('plain', IX.K_VARIABLE), 's:V.listStyle': ('listStyle()', 16), VIEW: ('View', IX.K_PROTOCOL)}
+    asg = {'s:LS': 'Base', 's:DLS': 'Lists', 's:e:A': 'Lists', 's:e:B': 'Lists', 's:e:V': 'Lists'}
+    return model(srcs, occ, sym), asg
+
+
+class PublicAboveTests(unittest.TestCase):
+    def test_both_forms_and_what_is_exempt(self):
+        M, asg = public_above_model()
+        keys = [x.key for x in checks.public_above(M, rules(), asg)]
+        # `.automatic` is ListStyle's API declared above it; `.plain` names DefaultListStyle (Lists) in its where
+        # clause, so it is Lists' own; the View modifier was carried from its file's module (Base) up to Lists.
+        self.assertEqual(keys, ['Base/V.swift::View(ext)#listStyle()', 'Lists/E.swift::ListStyle(ext)#automatic'])
+
+    def test_a_declaration_rule_is_a_chosen_placement(self):
+        M, asg = public_above_model()
+        R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': ''}])
+        self.assertEqual([x.key for x in checks.public_above(M, R, asg)], ['Lists/E.swift::ListStyle(ext)#automatic'])
+
+    def test_an_accepted_placement_is_not_new(self):
+        M, asg = public_above_model()
+        R = rules(accepted=[{'check': 'public-above', 'key': 'Lists/E.swift::ListStyle(ext)#automatic', 'why': 'x'}])
+        fs = [x for x in checks.run_all(M, R, asg, '/nonexistent') if x.check == 'public-above']
+        self.assertEqual([(x.key, x.new) for x in fs],
+                         [('Base/V.swift::View(ext)#listStyle()', True), ('Lists/E.swift::ListStyle(ext)#automatic', False)])
+
+
 class PosixAndUmbrellaTests(unittest.TestCase):
     def test_unguarded_posix_outside_the_app_module(self):
         srcs = {'Base/T.swift': 'func f() { isatty(0) }\n#if canImport(Darwin)\nfunc g() { isatty(1) }\n#endif\n',
