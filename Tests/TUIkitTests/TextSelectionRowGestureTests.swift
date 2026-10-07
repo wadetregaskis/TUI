@@ -199,6 +199,10 @@ struct TextSelectionRowDragTests {
         case draggableTable
         /// A List of a ForEach with `.onMove`, its rows' Text selectable.
         case movableList
+        /// Draggable tabs inside `.textSelection(.enabled)`: a title is chrome.
+        case draggableTabInScope(TabInteractionsLook)
+        /// A `.draggable` view holding a Button, inside `.textSelection(.enabled)`.
+        case draggableButtonInScope
     }
 
     struct Page: View {
@@ -242,7 +246,35 @@ struct TextSelectionRowDragTests {
                         .onMove { from, to in moves.value.append("\(Array(from)) -> \(to)") }
                     }
                     .frame(height: 9))
+            case .draggableTabInScope(let look):
+                AnyView(
+                    TextSelectionRowDragTests.tabs(look)
+                        .textSelection(.enabled))
+            case .draggableButtonInScope:
+                AnyView(
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Button("name 1") { moves.value.append("clicked") }
+                            Text("tail")
+                        }
+                        .draggable("dragged")
+                    }
+                    .textSelection(.enabled))
             }
+        }
+    }
+
+    /// Two tabs, the first draggable, in `look`.
+    @ViewBuilder
+    static func tabs(_ look: TabInteractionsLook) -> some View {
+        let view = TabView {
+            Tab("name 1", systemImage: "star") { Text("first") }.draggable("name 1")
+            Tab("Two", systemImage: "star") { Text("second") }
+        }
+        switch look {
+        case .compact: view
+        case .bordered: view.tabViewStyle(.bordered)
+        case .sidebar: view.tabViewStyle(.sidebarAdaptable)
         }
     }
 
@@ -275,7 +307,8 @@ struct TextSelectionRowDragTests {
         frame()
         let y = try #require(app.screen.firstIndex { $0.stripped.contains("name 1") })
         let line = app.screen[y].stripped
-        let start = line.distance(from: line.startIndex, to: try #require(line.range(of: "name 1")).lowerBound)
+        // In cells: a tab's symbol before its title is two.
+        let start = String(line[..<(try #require(line.range(of: "name 1")).lowerBound)]).strippedLength
         let x = onText ? start : start + 25
         var dragged = false
         app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
@@ -321,6 +354,30 @@ struct TextSelectionRowDragTests {
         #expect(outcome.selected?.hasPrefix("name 1") == true)
         #expect(!outcome.dragged)
         #expect(outcome.moves.isEmpty)
+    }
+
+    /// Review round 1 of the follow-ups: under an enabled scope around a
+    /// tab view, a press on a draggable tab's title passed the handle over,
+    /// and the tab strip took it — the tab dragged only from its padding. A
+    /// title is chrome, not text the handle's content made selectable.
+    @Test(
+        "Under an enabled scope a draggable tab still drags from its title",
+        arguments: [TabInteractionsLook.compact, .bordered])
+    func draggableTabTitle(_ look: TabInteractionsLook) throws {
+        let outcome = try drag(.draggableTabInScope(look), onText: true)
+        #expect(outcome.dragged)
+        #expect(outcome.selected == nil)
+    }
+
+    /// The same for a control's label inside a `.draggable` view: the scope
+    /// around them makes neither selectable, and the view drags from the
+    /// label as it does with no scope.
+    @Test("Under an enabled scope a draggable view still drags from a Button's label in it")
+    func draggableViewFromButtonLabel() throws {
+        let outcome = try drag(.draggableButtonInScope, onText: true)
+        #expect(outcome.dragged)
+        #expect(outcome.selected == nil)
+        #expect(!outcome.moves.contains("clicked"))
     }
 
     /// The rows still drag from where there is no selectable text: their

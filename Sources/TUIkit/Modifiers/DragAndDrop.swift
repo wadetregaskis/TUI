@@ -282,10 +282,15 @@ enum _DragHandle {
         scratch.handlerID = id
         // Where text selection is enabled — around this handle, or by a scope
         // already filed this walk (one inside its content, a table's cells) —
-        // a press on selectable text passes the handle over (`PressRole.dragSource`).
-        // One read elsewhere.
+        // a press on text its content made selectable, or on a list's or
+        // table's row text, passes the handle over (`PressRole.dragSource`).
+        // The scopes its content filed are among the content's regions. One
+        // read elsewhere.
         if context.environment.textSelectionAllowed == true || dispatcher.hasEnabledSelectionScope {
-            dispatcher.filePressRole(.dragSource, for: id, in: context)
+            let contentScopes = buffer.hitTestRegions.compactMap { region in
+                dispatcher.selectionScopes[region.handlerID] == true ? region.handlerID : nil
+            }
+            dispatcher.filePressRole(.dragSource(contentScopes: contentScopes), for: id, in: context)
         }
         buffer.hitTestRegions.append(
             HitTestRegion(

@@ -132,7 +132,14 @@ session — so the evidence is that the text, not the row, received the
 press and tracked the drag.) TUIkit matches: a drag handle under selectable
 text gives a press on the text to the selection (`PressRole.dragSource`), and
 the row still drags from its blank cells and from text no `.enabled` made
-selectable. The alternative, the owner's expectation — the row drags, and
+selectable. Selectable means made so by the handle's own content
+(`Text(…).textSelection(.enabled).draggable(…)`, a table row's cells) or a
+list's or table's row text kept for a selection: a scope around a draggable
+view alone leaves its label the handle's, as it is with no scope (the
+follow-ups' review found a draggable tab's title, a gradient stop and a
+`Button` in a `.draggable` view passing the press on under an outer scope, so
+the tab strip or the button took it and nothing dragged; on macOS a tab's
+title and a button's label are not selectable text). The alternative, the owner's expectation — the row drags, and
 selecting its text needs a modifier or a long press — is an hour (the
 handle simply keeps the press), but it is not what a Mac does.
 
