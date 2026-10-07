@@ -179,17 +179,16 @@ extension NavigationCoordinator {
 
 // MARK: - Environment
 
-private struct NavigationCoordinatorKey: EnvironmentKey {
-    static let defaultValue: NavigationCoordinator? = nil
-}
-
 extension EnvironmentValues {
     /// The enclosing ``NavigationStack``'s coordinator: the path the links
     /// inside push onto, and the registry `.navigationDestination(for:)` fills
     /// in. `nil` outside any stack, which is what makes a `NavigationLink`
     /// there inert rather than a crash.
+    ///
+    /// Kept in the substrate's `.navigationCoordinator` slot
+    /// (``FeatureObjectSlot``), which detaching an environment clears.
     var navigationCoordinator: NavigationCoordinator? {
-        get { self[NavigationCoordinatorKey.self] }
-        set { self[NavigationCoordinatorKey.self] = newValue }
+        get { self[featureObject: .navigationCoordinator] as? NavigationCoordinator }
+        set { self[featureObject: .navigationCoordinator] = newValue }
     }
 }

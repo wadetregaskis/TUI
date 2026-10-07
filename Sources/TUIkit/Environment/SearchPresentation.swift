@@ -94,15 +94,14 @@ final class TypedSearchFocusOffer<Value: Hashable>: SearchFocusOffer {
     }
 }
 
-private struct SearchFocusOfferKey: EnvironmentKey {
-    static let defaultValue: SearchFocusOffer? = nil
-}
-
 extension EnvironmentValues {
     /// The `searchFocused` binding for the nearest searchable's field.
+    ///
+    /// Kept in the substrate's `.searchFocusOffer` slot
+    /// (``FeatureObjectSlot``), which detaching an environment clears.
     var searchFocusOffer: SearchFocusOffer? {
-        get { self[SearchFocusOfferKey.self] }
-        set { self[SearchFocusOfferKey.self] = newValue }
+        get { self[featureObject: .searchFocusOffer] as? SearchFocusOffer }
+        set { self[featureObject: .searchFocusOffer] = newValue }
     }
 }
 

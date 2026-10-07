@@ -349,18 +349,20 @@ extension EnvironmentValues {
         detached.scrollToRegistry = nil
         detached.scrollPositionBinding = nil
         detached.scrollObservers = ScrollObservers()
-        detached.navigationCoordinator = nil
         detached.dismissalGate = nil
-        detached.dialogSuppression = nil
         detached.menuRowSink = nil
         detached.assignedFocusID = nil
         detached.assignedKeyboardShortcut = nil
         detached.focusHandoffOffer = nil
         detached.preferredFocusOffer = nil
         detached.listRowEditRestrictions = nil
-        detached.searchDismissal = nil
-        detached.searchFocusOffer = nil
-        detached.searchScopeBar = nil
+        // …and by the features above the substrate, each in a slot this
+        // cannot see the type of (``FeatureObjectSlot``): the navigation
+        // stack's coordinator, a dialog's suppression toggle, a searchable's
+        // dismissal, focus offer and scope bar.
+        for slot in FeatureObjectSlot.allCases {
+            detached[featureObject: slot] = nil
+        }
         return detached
     }
 }

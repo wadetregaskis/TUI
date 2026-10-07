@@ -110,15 +110,14 @@ final class SearchScopeBar: Equatable {
     nonisolated static func == (lhs: SearchScopeBar, rhs: SearchScopeBar) -> Bool { lhs === rhs }
 }
 
-private struct SearchScopeBarKey: EnvironmentKey {
-    static let defaultValue: SearchScopeBar? = nil
-}
-
 extension EnvironmentValues {
     /// The scopes for the nearest searchable's field.
+    ///
+    /// Kept in the substrate's `.searchScopeBar` slot (``FeatureObjectSlot``),
+    /// which detaching an environment clears.
     var searchScopeBar: SearchScopeBar? {
-        get { self[SearchScopeBarKey.self] }
-        set { self[SearchScopeBarKey.self] = newValue }
+        get { self[featureObject: .searchScopeBar] as? SearchScopeBar }
+        set { self[featureObject: .searchScopeBar] = newValue }
     }
 }
 

@@ -114,16 +114,15 @@ final class DialogSuppression: Equatable {
     nonisolated static func == (lhs: DialogSuppression, rhs: DialogSuppression) -> Bool { lhs === rhs }
 }
 
-private struct DialogSuppressionKey: EnvironmentKey {
-    static let defaultValue: DialogSuppression? = nil
-}
-
 extension EnvironmentValues {
     /// The suppression toggle the dialogs presented in this environment show
     /// — set by `dialogSuppressionToggle`.
+    ///
+    /// Kept in the substrate's `.dialogSuppression` slot
+    /// (``FeatureObjectSlot``), which detaching an environment clears.
     var dialogSuppression: DialogSuppression? {
-        get { self[DialogSuppressionKey.self] }
-        set { self[DialogSuppressionKey.self] = newValue }
+        get { self[featureObject: .dialogSuppression] as? DialogSuppression }
+        set { self[featureObject: .dialogSuppression] = newValue }
     }
 }
 

@@ -125,11 +125,9 @@ private struct IsSearchingKey: EnvironmentKey {
     static let defaultValue = false
 }
 
-/// Environment key for ``EnvironmentValues/dismissSearch``: the search it
-/// ends, comparable by identity, rather than the action itself.
-private struct SearchDismissalKey: EnvironmentKey {
-    static let defaultValue: SearchDismissal? = nil
-}
+// ``EnvironmentValues/dismissSearch`` keeps the search it ends, comparable by
+// identity, rather than the action itself — in the substrate's
+// `.searchDismissal` slot (``FeatureObjectSlot``), not a key of its own.
 
 extension EnvironmentValues {
     /// Whether the user is currently searching — SwiftUI's `\.isSearching`.
@@ -161,16 +159,19 @@ extension EnvironmentValues {
     /// `@Environment(\.dismissSearch)` and call it like a function; outside a
     /// searchable subtree it does nothing.
     public internal(set) var dismissSearch: DismissSearchAction {
-        get { DismissSearchAction(self[SearchDismissalKey.self]) }
-        set { self[SearchDismissalKey.self] = newValue.dismissal }
+        get { DismissSearchAction(searchDismissal) }
+        set { searchDismissal = newValue.dismissal }
     }
 
     /// The search ``dismissSearch`` ends, by the key path the searchable
     /// modifier writes it through: an environment write is judged comparable
     /// by the type of the value WRITTEN, so writing the action, which is not
     /// `Equatable` (nor is SwiftUI's), would still turn every memo off.
+    ///
+    /// Kept in the substrate's `.searchDismissal` slot (``FeatureObjectSlot``),
+    /// which detaching an environment clears.
     var searchDismissal: SearchDismissal? {
-        get { self[SearchDismissalKey.self] }
-        set { self[SearchDismissalKey.self] = newValue }
+        get { self[featureObject: .searchDismissal] as? SearchDismissal }
+        set { self[featureObject: .searchDismissal] = newValue }
     }
 }
