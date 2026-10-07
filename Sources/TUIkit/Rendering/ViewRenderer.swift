@@ -74,13 +74,15 @@ final class ViewRenderer {
     /// Creates a new ViewRenderer.
     ///
     /// - Parameters:
-    ///   - terminal: The target terminal (default: new Terminal instance).
+    ///   - terminal: The target terminal. No default: the console `Terminal`
+    ///     is the app layer's, which ``renderOnce(content:)`` passes, and a
+    ///     test passes a capturing one.
     ///   - writer: The advance model to emit through (default: the detected
     ///     host). Injectable for the same reason `terminal` is: `TerminalHost`
     ///     answers once, from the process environment, so a test cannot ask it
     ///     what a different terminal would receive.
-    init(terminal: (any TerminalProtocol)? = nil, writer: FrameDiffWriter = FrameDiffWriter()) {
-        self.terminal = terminal ?? Terminal()
+    init(terminal: any TerminalProtocol, writer: FrameDiffWriter = FrameDiffWriter()) {
+        self.terminal = terminal
         self.writer = writer
         self.context = TUIContext(
             lifecycle: LifecycleManager(firesEffects: false),
