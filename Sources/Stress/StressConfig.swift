@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkit
 
 // MARK: - Run configuration
 
@@ -53,6 +54,28 @@ struct StressConfig {
     /// `--bench --scenario table-api` works without one.
     var variant: String?
 
+    /// The alternating-row behaviour `--bench` draws every scenario under, or
+    /// `nil` for none stated — each table and list then stripes as it does by
+    /// default (a table does, decisions A29).
+    ///
+    /// For pricing the stripe on ONE binary: the same build timed under
+    /// `disabled` and under `automatic` differs by the stripe's own cost and
+    /// nothing else, where two builds also differ by code layout, which has
+    /// moved identical code by several per cent. `TUIKIT_STRESS_STRIPES` is the
+    /// spelling `ab_bench.py` can carry, since it passes its environment to
+    /// both binaries and no flags of its own.
+    var stripes: AlternatingRowBackgroundBehavior?
+
+    /// The behaviour a `--stripes` value names, or `nil` for none it knows.
+    static func stripes(named name: String) -> AlternatingRowBackgroundBehavior? {
+        switch name.lowercased() {
+        case "automatic": .automatic
+        case "enabled": .enabled
+        case "disabled": .disabled
+        default: nil
+        }
+    }
+
     /// Scales a base count by `scale`, clamped to at least 1.
     func sized(_ base: Int) -> Int { max(1, base * scale) }
 
@@ -74,6 +97,7 @@ struct StressConfig {
         if let s = env["TUIKIT_STRESS_AUTOPILOT"] { autopilot = (s == "1" || s.lowercased() == "true") }
         if let s = env["TUIKIT_STRESS_SCENARIO"], !s.isEmpty { initialScenario = s }
         if let s = env["TUIKIT_STRESS_VARIANT"], !s.isEmpty { variant = s }
+        if let s = env["TUIKIT_STRESS_STRIPES"], let behavior = Self.stripes(named: s) { stripes = behavior }
     }
 
     /// The CLI half, which overrides the environment.
@@ -86,6 +110,7 @@ struct StressConfig {
             case "--autopilot": autopilot = true
             case "--scenario": if let value = it.next() { initialScenario = value }
             case "--variant": if let value = it.next() { variant = value }
+            case "--stripes": if let behavior = it.next().flatMap(Self.stripes(named:)) { stripes = behavior }
             default: break  // headless flags are handled in main.swift
             }
         }

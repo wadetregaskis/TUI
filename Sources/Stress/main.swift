@@ -23,6 +23,7 @@
 //    TUIKIT_STRESS_SEED     | --seed <n>         synthetic-data seed
 //    TUIKIT_STRESS_AUTOPILOT| --autopilot        self-drive continuous re-renders
 //    --bench options: --iterations <n> --cols <c> --rows <r> --cold
+//    TUIKIT_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
 //
 //  Sessions (interaction scripts played over time — see Sessions/Session.swift):
 //    --sessions                                  list them
@@ -55,7 +56,7 @@ let usageText = """
 
     Interactive:  Stress
     Self-check:   Stress --selfcheck [--scale N]
-    Benchmark:    Stress --bench --scenario <id> [--variant V] [--iterations N] [--cols C] [--rows R] [--cold]
+    Benchmark:    Stress --bench --scenario <id> [--variant V] [--iterations N] [--cols C] [--rows R] [--cold] [--stripes automatic|enabled|disabled]
     Variants:     Stress --variants
     Sessions:     Stress --sessions
     Session:      Stress --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show] [--show-steps A-B] [--trace] [--census]

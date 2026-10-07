@@ -353,6 +353,14 @@ enum Headless {
                 Double(work.cellValues) / divisor, render.clears, render.subtreeClears, render.clearVisits))
     }
 
+    /// The scenario as `--bench` draws it: under `--stripes`, every table and
+    /// list in it under one alternating-row behaviour — see
+    /// `StressConfig.stripes`.
+    @MainActor
+    private static func benchView(_ scenario: some View, config: StressConfig) -> AnyView {
+        config.stripes.map { AnyView(scenario.alternatingRowBackgrounds($0)) } ?? AnyView(scenario)
+    }
+
     /// Renders one scenario `iterations` times and reports timing + a checksum
     /// (so the optimiser can't elide the loop). With `cold == true` a fresh
     /// state/cache is used each frame (worst-case measure+render); otherwise the
@@ -374,7 +382,7 @@ enum Headless {
         }
         let clock = StressClock()
         let driven = scenario.drive?(config)
-        let view = AnyView((driven?.view ?? scenario.make(config)).environment(clock))
+        let view = benchView((driven?.view ?? scenario.make(config)).environment(clock), config: config)
 
         // Warm up (build lazy state, prime caches) outside the timed region.
         let channels = HeadlessInputChannels()

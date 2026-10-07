@@ -42,6 +42,7 @@ swift run -c release Stress -- --bench --scenario fanout --iterations 2000 --col
 | `TUIKIT_STRESS_SCALE` | `--scale <n>` | size multiplier (1 is already heavy; 10/100 are pathological) |
 | `TUIKIT_STRESS_SEED` | `--seed <n>` | synthetic-data seed |
 | `TUIKIT_STRESS_AUTOPILOT` | `--autopilot` | self-drive continuous re-renders |
+| `TUIKIT_STRESS_STRIPES` | `--stripes <b>` | `--bench` only: draw the scenario under `.alternatingRowBackgrounds(<b>)` — `automatic`, `enabled` or `disabled` — to price the stripe on one binary (see below) |
 
 `--variants` lists every matrix scenario's variants, grouped by the axis each
 one varies. `--bench` also takes `--iterations N`, `--cols C`, `--rows R`, and `--cold`
@@ -51,6 +52,16 @@ plan table: a plan is a fact about a type, not a memo, so the bench keeps one
 table and hands it to every cache it makes, as an app's `TUIContext` keeps one
 for its own — a cold frame misses every memo, and is not also the first sight
 of every type, which an app pays once.
+
+`--stripes` prices the stripe a `Table` draws by default (and a `List` under
+`.alternatingRowBackgrounds()`) on ONE build: runs of the same binary under
+`disabled` and `automatic` differ by the stripe's own work — the background
+each striped line states, its paint — and nothing else, where two builds also
+differ by code layout. `ab_bench.py` passes its environment to both binaries
+and no flags of its own, so `TUIKIT_STRESS_STRIPES=disabled` before it runs
+both binaries unstriped (an older build ignores it); to A/B one build against
+itself, give it two one-line wrapper scripts, each `exec`ing the binary under
+one setting.
 
 Interactive keys: `↑/↓` select · `↩` open · `⎋` back/quit · `+/−` change
 scale live · `a` toggle autopilot.
