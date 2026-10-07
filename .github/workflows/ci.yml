@@ -219,6 +219,9 @@ jobs:
             development: false
             smoke: quick
             experimental: false
+            # The type-check budget at the end of the job runs here only: see
+            # that step.
+            typecheck_guard: true
           - name: "macOS 26 · Xcode 26"
             runner: macos-26
             xcode: "26"
@@ -425,6 +428,32 @@ jobs:
       - name: Profiling driver tests
         if: matrix.smoke == 'full'
         run: python3 -m unittest discover -s Tools/Profiling -p 'test_*.py'
+
+      # A guard against type-check regressions that cannot flake: the library,
+      # and the swift-collections modules it builds on, rebuilt with every
+      # expression's constraint system capped at 2,000 solver scopes. A count,
+      # not a time, so a slow runner cannot fail it — and why it runs on ONE
+      # lane: the count belongs to the compiler. 2,000 sits just above the worst
+      # expressions on this lane's Swift (Xcode 26.3's 6.2.4) on 2026-10-07:
+      # swift-collections' UniqueDeque.swift:240 and TUIkitCore's
+      # Animation.swift:586, both between 1,850 and 1,900 scopes; TUIkit's own
+      # worst was ScrollTransition.swift:218, 1,700–1,800. Set on the command
+      # line only: in Package.swift it would need `unsafeFlags`, which a package
+      # used as a dependency may not use. Last in the job, because it rebuilds
+      # those modules with a different command line.
+      #
+      # Reading a failure: "the compiler is unable to type-check this expression
+      # in reasonable time" at a file and line names an expression that now
+      # needs more than 2,000 scopes. Rewrite it rather than raising the cap:
+      # give closure parameters and results their types, name intermediate
+      # results with explicit types (`let total: Int = xs.reduce(0, +)`), turn a
+      # `&&` chain of `==` into a guard list (the type-check commits of
+      # 2026-10-07 show each). If the lane's Xcode moved to a newer Swift and
+      # unchanged code fails, the compiler's counts moved: find the worst site
+      # again (bisect the cap) and set the cap just above it.
+      - name: Type-check budget (solver scopes)
+        if: matrix.typecheck_guard
+        run: $SWIFT build --target TUIkit -Xswiftc -Xfrontend -Xswiftc -solver-scope-threshold=2000
 
   # ── Linux ──────────────────────────────────────────────────────────────────
   linux:
