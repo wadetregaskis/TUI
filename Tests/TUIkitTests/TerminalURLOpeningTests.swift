@@ -210,4 +210,51 @@ struct URLOpenerBackendTests {
             }
         }
     }
+
+    /// SwiftUI's `systemAction` "asks the system to open the original URL",
+    /// wherever the action came from. One the app made itself and calls
+    /// directly carries no context's opener, so it defers to the running
+    /// app's; with none published — no app running — it launches nothing. An
+    /// action read from an environment still uses its own context's first.
+    @Test("With opening on, an action the app made itself reaches the running app's opener")
+    func handMadeActionReachesTheRunLoopOpener() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                ProcessWideState.setEnvironment("TUIKIT_OPEN_URLS", to: nil)
+                ProcessWideState.urlOpeningSupport = true
+                #expect(TerminalURLOpening.isEnabled)
+
+                let url = URL(string: "https://example.invalid/tuikit-test")!
+                let action = OpenURLAction { _ in .systemAction }
+                var answers: [Bool] = []
+                action(url) { answers.append($0) }
+
+                let running = InMemoryURLOpener()
+                ProcessWideState.runLoopOpener = running
+                action(url) { answers.append($0) }
+                #expect(answers == [false, true], "no app running, then the running app's opener")
+                #expect(running.opened == [url])
+
+                let own = InMemoryURLOpener()
+                var environment = EnvironmentValues()
+                environment.urlOpener = own
+                environment.openURL(url)
+                #expect(own.opened == [url], "a context's opener comes first")
+                #expect(running.opened == [url])
+            }
+        }
+    }
+
+    /// What the run loop publishes is its own context's opener: this
+    /// machine's. The gate stays closed, so nothing is launched.
+    @Test("The app's runner publishes its context's opener")
+    func runnerPublishesItsOpener() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                #expect(TerminalURLOpening.runLoopOpener == nil, "nothing running, nothing published")
+                ProcessWideState.publishURLOpener(of: AppRunner(app: FocusStillApp(), appState: AppState()))
+                #expect(TerminalURLOpening.runLoopOpener is SystemURLOpener)
+            }
+        }
+    }
 }

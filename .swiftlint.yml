@@ -424,7 +424,7 @@ custom_rules:
       - "Tests/.*\\.swift$"
     excluded:
       - "Tests/[^/]+/(TestHelpers/)?ProcessWideState\\.swift$"
-    regex: '\b(TerminalWidthTraits\.current|TerminalColors\.current|ColorDepth\.(current|cap)|TerminalHyperlink\.isSupported|KittyGraphics\.is(Compression)?Supported|TerminalURLOpening\.isEnabled|TerminalClient\.(simulated|simulatedQuirks|hyperlinkSupport|graphicsSupport|graphicsCompressionSupport|urlOpeningSupport))(\.\w+)*\s*=(?!=)|\bTerminalClient\.apply\w+\(|\bTerminalColorRefresher\.publishProcessWide\b|\bStorageDiagnostics\.(report|reset)\(|\bTerminalHost\.(seedDiscoveredHost|identify)\(|\b(set|unset|put)env\('
+    regex: '\b(TerminalWidthTraits\.current|TerminalColors\.current|ColorDepth\.(current|cap)|TerminalHyperlink\.isSupported|KittyGraphics\.is(Compression)?Supported|TerminalURLOpening\.(isEnabled|runLoopOpener)|TerminalClient\.(simulated|simulatedQuirks|hyperlinkSupport|graphicsSupport|graphicsCompressionSupport|urlOpeningSupport))(\.\w+)*\s*=(?!=)|\bTerminalClient\.apply\w+\(|\bTerminalColorRefresher\.publishProcessWide\b|\bStorageDiagnostics\.(report|reset)\(|\bTerminalHost\.(seedDiscoveredHost|identify)\(|\bpublishURLOpener\(\)|\b(set|unset|put)env\('
     match_kinds:
       - identifier
     severity: error

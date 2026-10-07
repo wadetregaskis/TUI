@@ -156,6 +156,17 @@ internal final class AppRunner<A: App> {
 // MARK: - Internal API
 
 extension AppRunner {
+    /// Publishes this runner's URL opener to the actions no environment handed
+    /// one (``TerminalURLOpening/runLoopOpener``): an `OpenURLAction` the app
+    /// made itself and calls directly. ``run()`` calls it at startup and
+    /// withdraws it when the run ends.
+    ///
+    /// Its own method only so a test can check what is published, in an exit
+    /// test: it is the process's.
+    func publishURLOpener() {
+        TerminalURLOpening.runLoopOpener = tuiContext.urlOpener
+    }
+
     /// The five-layer key-dispatch chain over the runner's collaborators.
     private func makeInputHandler() -> InputHandler {
         InputHandler(
@@ -343,6 +354,12 @@ extension AppRunner {
         // to NO and is published for the same reason: activation is not
         // main-actor isolated either. See ``TerminalClient/urlOpeningSupport``.
         TerminalClient.applyURLOpeningSupport()
+        // And the opener that gate guards, for the one caller no environment
+        // reaches: an `OpenURLAction` the app made itself and calls directly.
+        // Withdrawn when the run ends, so nothing outside a running app reaches
+        // this machine's opener. See ``TerminalURLOpening/runLoopOpener``.
+        publishURLOpener()
+        defer { TerminalURLOpening.runLoopOpener = nil }
         // And whether it will draw a real picture. Unlike the two above, this
         // one is ASKED rather than looked up — see ``TerminalGraphicsQuery``,
         // which is also why it comes after identification: the exchange is an

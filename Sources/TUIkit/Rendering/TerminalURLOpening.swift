@@ -21,6 +21,39 @@ enum TerminalURLOpening {
     /// written once at startup, before anything renders, and read from paths
     /// that have no actor.
     nonisolated(unsafe) static var isEnabled = false
+
+    /// The opener of the app this process is running, for an action no
+    /// environment handed one: an ``OpenURLAction`` the app made itself
+    /// (`OpenURLAction { … }`) and calls directly.
+    ///
+    /// SwiftUI's `systemAction` "asks the system to open the original URL",
+    /// with no condition on where the action came from, and before the opener
+    /// was injected such an action did launch one. An action read from an
+    /// environment carries that environment's opener
+    /// (``EnvironmentValues/urlOpener``); a hand-made one has none, and is
+    /// called from wherever the app calls it — a button's action, a `Task`, a
+    /// `DispatchQueue.main` block — so the one thing that reaches all of them
+    /// is the process. Without this it would answer `false` and launch nothing
+    /// in a running app with opening on: a silent no-op.
+    ///
+    /// The app's run loop publishes its context's opener as it starts, beside
+    /// ``isEnabled``, and withdraws it when the run ends (`AppRunner.run()`).
+    /// Nothing else writes it, so outside a running app it is `nil`, and a
+    /// headless run, a snapshot or a test still launches nothing. Not a
+    /// singleton: the framework creates nothing here; the value is the
+    /// running context's own opener, published for the callers no context
+    /// reaches. An action that carries an opener uses that one first.
+    ///
+    /// Behind a lock rather than `nonisolated(unsafe)` like ``isEnabled``: it
+    /// holds a reference and is written twice, and a torn read of a
+    /// reference is a crash rather than a stale answer. Read only when a
+    /// deferral reaches the opener, never per frame.
+    static var runLoopOpener: (any URLOpenerBackend)? {
+        get { runLoopOpenerStore.withLock { $0 } }
+        set { runLoopOpenerStore.withLock { $0 = newValue } }
+    }
+
+    private static let runLoopOpenerStore = Lock<(any URLOpenerBackend)?>(initialState: nil)
 }
 
 // MARK: - This machine's opener

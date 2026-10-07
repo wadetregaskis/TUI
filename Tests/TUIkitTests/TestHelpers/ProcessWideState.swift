@@ -137,6 +137,20 @@ enum ProcessWideState {
         set { if mayWrite("TerminalClient.urlOpeningSupport") { TerminalClient.urlOpeningSupport = newValue } }
     }
 
+    /// `TerminalURLOpening.runLoopOpener`: the opener every `OpenURLAction`
+    /// no environment handed one defers to, in ANY test — where the gate is
+    /// open and it is this machine's, a real browser.
+    static var runLoopOpener: (any URLOpenerBackend)? {
+        get { TerminalURLOpening.runLoopOpener }
+        set { if mayWrite("TerminalURLOpening.runLoopOpener") { TerminalURLOpening.runLoopOpener = newValue } }
+    }
+
+    /// `AppRunner.publishURLOpener()`: publishes that runner's opener, this
+    /// machine's, as ``runLoopOpener``.
+    @MainActor static func publishURLOpener(of runner: AppRunner<some App>) {
+        if mayWrite("AppRunner.publishURLOpener()") { runner.publishURLOpener() }
+    }
+
     /// `StorageDiagnostics.report(_:)`: moves the process's latest failure and
     /// its count, which a test elsewhere may be about to read as its own.
     static func reportStorageFailure(_ failure: StorageFailure) {

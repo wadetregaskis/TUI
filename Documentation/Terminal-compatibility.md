@@ -3195,7 +3195,10 @@ only the framework launching a process on the user's behalf. That launcher is
 injected (`URLOpenerBackend`), and only the app's run loop installs it, into the
 `TUIContext` `AppRunner` creates: a headless run, a `renderOnce` snapshot or a
 test hands a deferred URL to an in-memory opener and launches nothing,
-whatever the setting.
+whatever the setting. The run loop also publishes it for the length of the run
+(`TerminalURLOpening.runLoopOpener`), so an `OpenURLAction` the app made
+itself and calls directly, which no environment handed an opener, reaches it
+too.
 
 **The remedy that already exists** for the escape is identification, not code:
 `TERM_PROGRAM`

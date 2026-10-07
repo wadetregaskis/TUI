@@ -30,8 +30,9 @@ import TUIkitCore
 /// the framework cannot tell which machine it is on (3a96d8fc). A tool that
 /// knows it is local turns it on through ``TerminalClient/urlOpeningSupport``,
 /// and `TUIKIT_OPEN_URLS=1` lets a user answer for their own session. Only a
-/// running app reaches the opener at all: a headless run, a snapshot or a
-/// test launches nothing, whatever the setting. A
+/// running app reaches the opener at all — an action read from its
+/// environment, or one the app makes itself and calls directly: a headless
+/// run, a snapshot or a test launches nothing, whatever the setting. A
 /// ``Link`` shows its destination in a popover either way, and carries an
 /// OSC 8 hyperlink for the terminal — which IS on the user's machine — to
 /// open. Override the action for a scope by putting a custom one in the
@@ -110,7 +111,9 @@ public struct OpenURLAction: Sendable {
     /// the environment this action was read from carries
     /// (``EnvironmentValues/urlOpener``), set by that read. `nil` for an
     /// action read from an environment no context reached, or never read from
-    /// one, which then launches nothing.
+    /// one — an action the app made itself — which defers instead to the
+    /// running app's opener (``TerminalURLOpening/runLoopOpener``), and
+    /// outside a running app launches nothing.
     var systemOpener: (any URLOpenerBackend)?
 
     /// Creates an open-URL action with a custom handler — SwiftUI's spelling.
@@ -191,10 +194,12 @@ public struct OpenURLAction: Sendable {
         handler(url)
     }
 
-    /// Hands `url` to this machine's opener (``systemOpener``), where opening
-    /// URLs is on at all. Returns whether the opener took it: `false` with the
-    /// gate closed, and where no opener came with the action, so nothing
-    /// was launched.
+    /// Hands `url` to this machine's opener, where opening URLs is on at all:
+    /// the one that came with the action (``systemOpener``), else the running
+    /// app's (``TerminalURLOpening/runLoopOpener``). Returns whether the
+    /// opener took it: `false` with the gate closed, and where there is no
+    /// opener — no context's came with the action and no app is running — so
+    /// nothing was launched.
     @discardableResult
     func systemOpen(_ url: URL) -> Bool {
         // Not unless something said this machine is the user's. The opener
@@ -205,8 +210,10 @@ public struct OpenURLAction: Sendable {
         // nothing when absent, and a multiplexer session outlives the hop that
         // started it — so it declines and the destination is shown instead.
         // See ``TerminalClient/urlOpeningSupport`` and ``LinkDisplay``.
-        guard TerminalURLOpening.isEnabled, let systemOpener else { return false }
-        return systemOpener.open(url)
+        guard TerminalURLOpening.isEnabled,
+            let opener = systemOpener ?? TerminalURLOpening.runLoopOpener
+        else { return false }
+        return opener.open(url)
     }
 }
 

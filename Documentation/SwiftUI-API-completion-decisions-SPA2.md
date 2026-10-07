@@ -9,7 +9,9 @@ settle, the safe option shipped and is written up here, in the format of
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):
 A for the owner to decide, B for a basic form shipped with its fuller version
 priced, C for a refusal recorded in `parity-map.json`. None of these changes
-public API; all are internal shape.*
+public API; all are internal shape. One public behaviour changed in K2 and
+was put back in review round 1: an `OpenURLAction` an app makes itself defers
+to the running app's opener again (B-SPA2-6).*
 
 ## B. Shipped the safe option
 
@@ -117,3 +119,43 @@ client probe and hook arguments compiled only where `pid_t` exists, with
 `nil`/empty Windows arms — so that `pid_t` no longer stands between Base and a
 Windows build. About an hour; worth doing when Base becomes an advisory Windows
 step (B3).
+
+### B-SPA2-6. An action no environment handed an opener defers to the running app's
+
+*`TerminalURLOpening.runLoopOpener` (K2, review round 1)*
+
+K2 injects the URL opener per context, and an action gets it by being read
+from an environment: the `openURL` getter attaches that environment's opener.
+But SwiftUI's `OpenURLAction(handler:)` is public, and an app may make an
+action itself and call it directly, from a button's action, a `Task` or a
+`DispatchQueue.main` block, where no environment handed it anything. Before
+K2 such an action, deferring with `.systemAction` while opening was on,
+launched `open`/`xdg-open`. With only the per-context opener it launched
+nothing and answered `false`. That is a silent no-op in a running app, and
+SwiftUI's documentation puts no condition on it: `systemAction` "asks the
+system to open the original URL" (sdoc; what SwiftUI does with a hand-made
+action is unmeasured).
+
+**Shipped:** the app's run loop publishes its context's opener for the length
+of the run (`AppRunner.publishURLOpener()`, at startup beside the opening
+gate, withdrawn when the run ends), and an action that carries no opener
+defers to it. Nothing else publishes one, so a headless run, a snapshot and a
+test still launch nothing, and an action read from an environment still uses
+that context's opener first. It is process-wide, like the `isEnabled` gate it
+sits beside, because the callers it serves are exactly the ones no context
+reaches. The framework creates nothing for it: the value is the running
+context's own opener. It is read only when a deferral reaches the opener,
+never per frame.
+
+**The alternatives:**
+- A task-local bound around the run loop. It needs no process-wide value, but
+  an action called from a `DispatchQueue.main` block (which `App.main()`'s
+  documentation invites) or a detached task sees nothing, so the silent no-op
+  comes back for them.
+- Make this the only route and drop the per-context key
+  (`EnvironmentValues.urlOpener`). That removes the root-environment entry
+  whose cost K2's A/B is measuring, at the price of row K2's "headless runs and
+  tests get an in-memory one" for URLs: a deferral there would answer `false`
+  instead of reaching the context's in-memory opener (B-SPA2-3). It is worth
+  the owner's look only if that A/B prices the entry above noise.
+
