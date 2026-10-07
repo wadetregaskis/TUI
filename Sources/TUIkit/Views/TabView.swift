@@ -877,21 +877,13 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// read as one continuous surface without an accent fill washing out the
     /// content. Follows `appHeaderBackground` when the palette states one, and
     /// otherwise a derived step off the page — never the page colour itself.
+    ///
+    /// ``EnvironmentValues/liftedSurface``: a tab body inside another tab body
+    /// steps off THAT, not off the page. (This view publishes
+    /// `surfaceBackground` for its children, which is what a nested one reads
+    /// there.)
     private func surfaceColor(_ context: RenderContext) -> Color {
-        let palette = context.environment.palette
-        // A tab body inside another tab body steps off THAT, not off the page —
-        // the same rule a field follows (`Palette.fieldBackground(on:)`), at
-        // the plane's step. Asking for "a surface on the page" from inside one
-        // returned the enclosing tab's own colour, so the inner island was
-        // invisible. (This view publishes `surfaceBackground` for its children,
-        // which is what a nested one reads here.)
-        if let inherited = context.environment.surfaceBackground {
-            return palette.lifted(from: inherited).resolve(with: palette)
-        }
-        // `liftedBackground`, not `appHeaderBackground`: the latter defaults to
-        // the page background, so on a palette that never overrode it the strip
-        // painted the colour that was already there and the island vanished.
-        return palette.liftedBackground.resolve(with: palette)
+        context.environment.liftedSurface
     }
 
     /// Whether this core draws its strip: always, except beside the sidebar a
