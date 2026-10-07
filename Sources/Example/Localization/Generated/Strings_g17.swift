@@ -16,6 +16,7 @@
 extension ExampleStrings {
     static let g17: [String: [String: String]] = [
         "en": [
+            "page.list.styles.separators": "Separators between rows (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "Table styles (.tableStyle)",
             "page.table.stylesBody":
                 "The default bordered look beside .surface, a prototype: a surface of its own instead of a border, the header a step stronger. Both stripe every other row, as a macOS table does.",
@@ -26,6 +27,7 @@ extension ExampleStrings {
         ],
 
         "de": [
+            "page.list.styles.separators": "Trennlinien zwischen Zeilen (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "Tabellenstile (.tableStyle)",
             "page.table.stylesBody":
                 "Der standardmäßige Rahmen neben .surface, einem Prototyp: eine eigene Fläche statt eines Rahmens, die Kopfzeile eine Stufe kräftiger. Beide färben jede zweite Zeile ein, wie eine macOS-Tabelle.",
@@ -36,6 +38,7 @@ extension ExampleStrings {
         ],
 
         "fr": [
+            "page.list.styles.separators": "Séparateurs entre les lignes (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "Styles de tableau (.tableStyle)",
             "page.table.stylesBody":
                 "L’aspect encadré par défaut à côté de .surface, un prototype : une surface propre au lieu d’un cadre, l’en-tête d’un cran plus marqué. Les deux colorent une ligne sur deux, comme un tableau macOS.",
@@ -46,6 +49,7 @@ extension ExampleStrings {
         ],
 
         "it": [
+            "page.list.styles.separators": "Separatori tra le righe (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "Stili di tabella (.tableStyle)",
             "page.table.stylesBody":
                 "L’aspetto incorniciato predefinito accanto a .surface, un prototipo: una superficie propria invece di una cornice, l’intestazione un gradino più marcata. Entrambe colorano una riga su due, come una tabella macOS.",
@@ -56,6 +60,7 @@ extension ExampleStrings {
         ],
 
         "es": [
+            "page.list.styles.separators": "Separadores entre filas (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "Estilos de tabla (.tableStyle)",
             "page.table.stylesBody":
                 "El aspecto con borde predeterminado junto a .surface, un prototipo: una superficie propia en lugar de un borde, el encabezado un paso más marcado. Ambas colorean una fila de cada dos, como una tabla de macOS.",
@@ -66,6 +71,7 @@ extension ExampleStrings {
         ],
 
         "zh": [
+            "page.list.styles.separators": "行间分隔线 (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "表格样式 (.tableStyle)",
             "page.table.stylesBody":
                 "默认的带边框外观与原型 .surface 并列：以自己的底色代替边框，表头再深一级。两者都隔行着色，与 macOS 表格一样。",
@@ -76,6 +82,7 @@ extension ExampleStrings {
         ],
 
         "ja": [
+            "page.list.styles.separators": "行の区切り線 (.listRowSeparator, .listSectionSeparator)",
             "page.table.stylesSection": "テーブルスタイル (.tableStyle)",
             "page.table.stylesBody":
                 "既定の枠付きの外観と、プロトタイプの .surface を並べて表示: 枠の代わりに独自の下地、ヘッダーは一段強く。どちらも macOS のテーブルと同じく 1 行おきに色を付けます。",

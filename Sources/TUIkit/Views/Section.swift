@@ -442,6 +442,11 @@ struct SectionInfo {
     /// on screen or not, is drawn, registers what it registers and marks its
     /// identity alive — and dropping it is a behaviour change of its own.
     let contentBuffer: FrameBuffer
+
+    /// The section's separator preference (``View/listSectionSeparator(_:edges:)``
+    /// and its tint): the line under its header is its `.top` edge, the line under
+    /// its last row its `.bottom` edge (decisions A47).
+    var separator = ListSeparatorPreference()
 }
 
 extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
@@ -600,9 +605,16 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
                 // plain cast cannot see through, and its badge was dropped
                 // while the static row beside it kept its own.
                 let badge = extractRowBadgeValue(from: child.wrappedView)
+                // Stamped, as a looped row's thunk stamps its own, so what the
+                // row reports — a separator, a refusal — names THIS list row.
+                let restrictions = context.environment.listRowEditRestrictions
+                let listRow = (restrictions?.rowIndexBase ?? 0) + rows.count
+                restrictions?.currentRowIndex = listRow
                 let buffer = child.render(
                     width: context.availableWidth, height: context.availableHeight,
                     context: context)
+                restrictions?.currentRowIndex = nil
+                reportSeparatorGuides(of: child, size: (buffer.width, buffer.height), row: listRow, context: context)
                 let row = ListRow(askedID: rowID, buffer: buffer, badge: badge)
                 row.content.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
                 rows.append(row)

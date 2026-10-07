@@ -83,6 +83,8 @@ extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtr
         guard !drawnActions.isBlank else { return info }
         var header = info.headerBuffer ?? FrameBuffer()
         header.appendHorizontally(drawnActions, spacing: 1)
-        return SectionInfo(headerBuffer: header, footerBuffer: info.footerBuffer, contentBuffer: info.contentBuffer)
+        return SectionInfo(
+            headerBuffer: header, footerBuffer: info.footerBuffer, contentBuffer: info.contentBuffer,
+            separator: info.separator)
     }
 }

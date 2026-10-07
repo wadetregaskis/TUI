@@ -320,6 +320,28 @@ scrolls a line further instead — and a click on it is the header's, not the
 row's beneath. Every style pins but `.sidebar`, which does not on macOS
 either; a footer never pins.
 
+### Separators
+
+A separator is a faint `─` rule on a line of its own between two rows — a
+terminal row has no hairline thinner than a cell. None are drawn unless asked
+for: `.listRowSeparator(.visible)` on a row draws the line under it,
+`.listSectionSeparator(.visible)` on a `Section` the lines under its header
+and under its last row, and either written on the `List` itself is every
+row's or every section's. A row's own `.hidden` still wins. The list's last
+row never has one. `.listRowSeparatorTint(_:)` and
+`.listSectionSeparatorTint(_:)` colour them, and the
+`.listRowSeparatorLeading` and `.listRowSeparatorTrailing` alignment guides
+move their ends.
+
+```swift
+List {
+    ForEach(items) { item in
+        Text(item.name)
+    }
+}
+.listRowSeparator(.visible)
+```
+
 ### Hovering Over a Row
 
 `.onHover(perform:)` on a row tells its action `true` when the pointer comes

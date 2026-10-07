@@ -4,13 +4,15 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-/// Carries ``View/listRowSeparator(_:edges:)``'s arguments and
-/// renders its content unchanged.
+/// Carries ``View/listRowSeparator(_:edges:)``'s arguments to the list the row
+/// is in, and renders its content unchanged.
 ///
-/// Inert by construction: a TUIkit `List` draws no row separators, so there is
-/// nothing for the visibility to govern. The arguments are stored anyway so
-/// the modifier compares equal only to itself — an `EquatableView` above it
-/// must not treat two differently-configured rows as the same view.
+/// Reported as the row renders, against the list row rendering now — or, written
+/// outside any row, the default of the lists below — through
+/// `renderReportingSeparator(_:change:sections:context:)`, which the tint and the
+/// section modifiers share (`ListSeparators.swift`; decisions A47). The arguments
+/// are stored so the modifier compares equal only to itself — an `EquatableView`
+/// above it must not treat two differently-configured rows as the same view.
 public struct ListRowSeparatorModifier<Content: View>: View {
     /// The content view.
     let content: Content
@@ -104,18 +106,14 @@ extension Visibility: Equatable {}
 
 extension ListRowSeparatorModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // Nothing to draw: see the type's note. Silently, too — a warning
-        // here was removed in 90017af8 for being neither concurrency-safe on
-        // Linux nor useful, and a stub modifier that shouts once per app is
-        // noise wherever it is correct to have written it.
-        TUIkit.renderToBuffer(content, context: context)
+        renderReportingSeparator(content, change: .visibility(visibility, edges), sections: false, context: context)
     }
 }
 
 // MARK: - Layoutable
 
 extension ListRowSeparatorModifier: Layoutable {
-    /// Stub decorator — renders `content` unchanged, so it measures as `content`.
+    /// Draws `content` unchanged, so it measures as `content`.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }

@@ -459,12 +459,17 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                         ? extractBadgeValue(from: content(element)) : nil
                     let buffer = Self.renderMemoizedRow(
                         keyedBy: equatableElement, element: element, build: content, context: rowContext)
+                    Self.reportSeparatorGuides(
+                        build: content, element: element, buffer: buffer, row: listRowIndex, context: rowContext)
                     return (buffer, badge)
                 }
                 // Non-equatable elements cannot memoize, so the view is built for
                 // the render regardless; the badge peek reuses it.
                 let view = content(element)
-                return (TUIkit.renderToBuffer(view, context: rowContext), extractBadgeValue(from: view))
+                let buffer = TUIkit.renderToBuffer(view, context: rowContext)
+                Self.reportSeparatorGuides(
+                    build: { _ in view }, element: element, buffer: buffer, row: listRowIndex, context: rowContext)
+                return (buffer, extractBadgeValue(from: view))
             })
         // The row's type-select text, asked only when the user types to find a
         // row: its stated equivalent, else its first line drawn as a measure,
@@ -588,6 +593,24 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
 }
 
 // MARK: - ForEach's rows among other rows
+
+extension ForEach where Content: View {
+    /// Reports the separator guides the row `build(element)` makes sets
+    /// (``HorizontalAlignment/listRowSeparatorLeading``, `…Trailing`;
+    /// decisions A47) against list row `row` — building the row only where
+    /// `Content`'s type can hold a guide, so every other row is answered by one
+    /// static check.
+    static func reportSeparatorGuides(
+        build: (Data.Element) -> Content, element: Data.Element, buffer: FrameBuffer, row: Int,
+        context: RenderContext
+    ) {
+        guard Content._providesAlignmentGuide, !context.isMeasuring,
+            let reports = context.environment.listRowEditRestrictions,
+            let guides = listRowSeparatorGuides(of: build(element), size: (buffer.width, buffer.height), context: context)
+        else { return }
+        reports.reportSeparatorGuides(row: row, guides)
+    }
+}
 
 extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// This loop's rows, as the flattening emits them: one child per element,

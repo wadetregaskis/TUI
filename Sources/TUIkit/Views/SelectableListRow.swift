@@ -135,6 +135,27 @@ final class LazyListRowContent {
         return padded
     }
 
+    /// The section edge whose separator is the line under this row, where it is
+    /// one — a section's header (its `.top` edge) or its last row (its `.bottom`)
+    /// — with that section's own preference for it (decisions A47). Set by the
+    /// list's extraction; `nil` for every other row, whose line is its own.
+    var sectionSeparator: (edge: VerticalEdge, visibility: Visibility, tint: Color?)?
+
+    /// Decides, once the row has rendered, whether it draws a separator below
+    /// it — the row's own preference is only known then — and how. Installed by
+    /// the list; `nil` where nothing can ask for one.
+    var separatorDecision: ((LazyListRowContent) -> ListRowSeparatorLine?)? {
+        didSet { separatorDecided = false }
+    }
+
+    /// Whether ``separatorDecision`` has been asked about the render in hand.
+    private var separatorDecided = false
+
+    /// The separator this row draws below its content, when it draws one: the
+    /// buffer's last line is its place, so every height the list reads counts
+    /// it, and the list draws the rule there (`_ListCore.renderRow`).
+    private(set) var separatorLine: ListRowSeparatorLine?
+
     /// This row's size without rendering it, when the content can answer —
     /// measured at the width the row would be rendered at, which comes back
     /// beside the size so a flexible row can be read as the render would have
@@ -236,12 +257,19 @@ final class LazyListRowContent {
     /// ``cached``. Separate from the two accessors below so that neither has to
     /// hand back a COPY of the pair to read one half of it.
     private func resolveIfNeeded() {
-        guard cached == nil else { return }
+        guard cached == nil || !separatorDecided && separatorDecision != nil else { return }
         // Kept after the render, for a row whose ``backgroundProminence`` the
         // list raises after something has already rendered it. A box lives for
         // one frame's row source, so what the closure holds goes with it.
-        let rendered = thunk!(gradientRamp?.placement(row: rowIndex), backgroundProminence)
-        cached = (paddedToMinimum(rendered.buffer), rendered.badge)
+        if cached == nil {
+            let rendered = thunk!(gradientRamp?.placement(row: rowIndex), backgroundProminence)
+            cached = (paddedToMinimum(rendered.buffer), rendered.badge)
+            separatorDecided = false
+        }
+        guard !separatorDecided, let decide = separatorDecision else { return }
+        separatorDecided = true
+        separatorLine = decide(self)
+        if separatorLine != nil { cached!.buffer.appendVertically(FrameBuffer(lines: [""])) }
     }
 
     /// The row's rendered buffer, BORROWED rather than returned.
@@ -267,7 +295,8 @@ final class LazyListRowContent {
 
     /// The row's height, rendering it only if there is no other way to ask.
     var heightWithoutRendering: Int {
-        if let cached { return cached.buffer.height }
+        // Through ``buffer``, not `cached`, so a separator not yet decided is.
+        if cached != nil { return buffer.height }
         if let measureSize { return max(minimumHeight, measureSize().size.height) }
         return buffer.height
     }

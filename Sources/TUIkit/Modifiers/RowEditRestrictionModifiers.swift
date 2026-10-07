@@ -73,6 +73,25 @@ final class RowEditRestrictions {
     /// another section may have moved it.
     var rowIndexBase = 0
 
+    /// Each list row's separator preference, as `.listRowSeparator(_:edges:)`
+    /// and `.listRowSeparatorTint(_:edges:)` reported it while the row
+    /// rendered (decisions A47) — the same collector, stamped the same way,
+    /// since a separator is one more thing a row tells its list about itself.
+    private(set) var separators: [Int: ListSeparatorPreference] = [:]
+
+    /// Each list row's own separator guides
+    /// (``HorizontalAlignment/listRowSeparatorLeading`` and `…Trailing`), where
+    /// its view sets either, in cells from its content's leading edge.
+    private(set) var separatorGuides: [Int: (leading: Int?, trailing: Int?)] = [:]
+
+    func reportSeparator(row: Int, _ change: ListSeparatorChange) {
+        change.apply(to: &separators[row, default: ListSeparatorPreference()])
+    }
+
+    func reportSeparatorGuides(row: Int, _ guides: (leading: Int?, trailing: Int?)) {
+        separatorGuides[row] = guides
+    }
+
     func disableDelete(row: Int) { deleteDisabled.insert(row) }
     func disableMove(row: Int) { moveDisabled.insert(row) }
     func disableSelection(row: Int) { selectionDisabled.insert(row) }

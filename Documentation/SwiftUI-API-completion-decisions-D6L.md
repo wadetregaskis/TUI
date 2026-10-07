@@ -64,6 +64,45 @@ the sixteen stated palettes):
 then 2 for tables (whose border reads heaviest), with the 16-colour fallback.
 Lists can follow, or keep the border, by the same test.
 
+### A-D6L-2. Should a list draw separators by default?
+
+*`View.listRowSeparator(_:edges:)` and its family; `ListStyle`'s defaults
+(decisions A47)*
+
+**Shipped:** separators as a rule line between rows, the owner's option 2 —
+every modifier of the family and both guides implemented, a faint `─` line
+of its own under a row, under a section's header and under its last row. A
+row's `.automatic` resolves to **hidden** under every built-in style, so a
+list looks as it always has until something asks for `.visible`; written on
+the `List`, the modifiers are every row's or every section's.
+
+SwiftUI's default is the other way: a macOS list draws a hairline under
+every row, and under every section header, in `.automatic`, `.inset`,
+`.bordered` and `.plain` — not `.sidebar` (measured, w08b's section probes).
+A hairline costs a window nothing; a terminal line doubles a list of
+single-line rows. With them on, the Example's Lists page styles demo shows
+three entries where it showed six (renders: `D6L/renders/lists-*-separators`,
+with the default beside them in `lists-*-surface`). The brief was to take
+SwiftUI's default only if the Example still read well; it reads as a
+different, airier list, and every list in every app would halve its rows, so
+the default is left to the owner.
+
+**Options.**
+
+1. **Off by default** (shipped). Free.
+2. **SwiftUI's default: on under `.automatic`, `.inset`, `.bordered` and
+   `.plain`**, off under `.sidebar` and TUIkit's `.insetGrouped`. Every list
+   doubles in height, every row's click target and page distance with it;
+   tests that read a list's lines need re-baselining (most of a day — lists
+   are everywhere in the suite).
+3. **On for the inset family only** (`.inset`, `.surface`), where the rows
+   have no border to tell them apart — or tied to rows of more than one line,
+   where a separator costs proportionally less.
+
+**Recommendation:** 1 for now; try the Example's toggle (Lists page, Styles
+section, "Separators between rows") and decide with A-D6L-1, since a
+surface-styled list is where separators would most help.
+
 ## B. Shipped the safe option
 
 ### B-D6L-1. A stripe at 256 and 16 colours is the nearest QUIET entry, or none
@@ -97,3 +136,43 @@ the dark palettes draw none.
 beside the row fills in `RowFillTable.swift` (`Tools/RowFillValues/
 generate.py`), so a shipped palette's stripe can be hand-checked like its
 S/F/B — about half a day with the generator's tests.
+
+### B-D6L-2. A row's `.top` separator is the style's to decline
+
+*`View.listRowSeparator(_:edges:)`, `View.listRowSeparatorTint(_:edges:)`
+(decisions A47)*
+
+**Shipped:** the line between two rows is the upper row's `.bottom` edge, and
+only that: a row's `.top` edge is declined, which SwiftUI documents a style
+may do ("The list style might already decide to not display separators for
+some edges, typically the top edge"). Two rules — one per side — would be a
+gap, not a line. So `.listRowSeparator(.hidden, edges: .top)` on a row leaves
+the line above it to the row before it.
+
+**The fuller version:** the line between two rows answers to BOTH sides — drawn
+only where the upper row's `.bottom` and the lower row's `.top` both allow it,
+tinted by whichever states a tint. It needs the next row's preference before
+this row's height is known, so laying out a row would render the row after
+it: about half a day, and a row's render more per window.
+
+### B-D6L-3. Where a separator's preference is read
+
+*`listRowSeparator` and family, the separator guides (decisions A47)*
+
+**Shipped:** a row reports its preference as it renders, on the per-frame
+collector the list already stamps rows on (`RowEditRestrictions`) — so it is
+found anywhere inside the row's content, and a row carrying a separator
+modifier opts out of the row memo, as a `.deleteDisabled(true)` row does.
+Hand-written rows, in a list and in a `Section`, are now stamped too (they
+were not, so `.selectionDisabled()` on one named no row; by the same stamp it now names its own, which this lane reasoned rather than tested).
+A section's preference rides `SectionInfo`. The guides are read from the
+row's view and carried up through stacks, as any explicit guide is.
+
+Not covered, each by construction rather than by choice: a `Section` a
+`ForEach` makes (`ForEach(regions) { Section … }`) draws without its section
+separator (that path reads `SectionParts`, which carries none); a guide
+inside a wrapper that is not a stack — including inside the separator
+modifier itself, since `listRowSeparator` does not forward guides — is not
+seen; a row of several views (decisions B15) reads no guides. A selected or
+cursor row's highlight runs under its own separator line, so the highlight is
+the row's full height. Each is an hour or two where it matters.

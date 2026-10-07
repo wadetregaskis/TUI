@@ -875,6 +875,23 @@ private struct TableColumnShapes: View {
                 .tableStyle(PaddedTableStyle())
             List(people) { Text($0.givenName) }
                 .alternatingRowBackgrounds(.disabled)
+            // Separators (decisions A47): a row's, a section's, and the guides.
+            List {
+                Section("People") {
+                    ForEach(people) { person in
+                        HStack {
+                            Text(person.givenName)
+                            Text(person.familyName)
+                                .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
+                                .alignmentGuide(.listRowSeparatorTrailing) { $0[.trailing] }
+                        }
+                        .listRowSeparator(.visible, edges: .bottom)
+                        .listRowSeparatorTint(.red)
+                    }
+                }
+                .listSectionSeparator(.hidden, edges: .top)
+                .listSectionSeparatorTint(nil, edges: .bottom)
+            }
             Table(people) {
                 Group {
                     TableColumn("Label", value: \Person.email)

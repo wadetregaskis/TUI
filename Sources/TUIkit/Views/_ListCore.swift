@@ -327,9 +327,54 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
     var minimumRowHeight = 1
     var minimumHeaderHeight: Int?
 
-    /// Builds the content box for the row at `index`, placed in this source's
-    /// ramp, and given its least height. A row's type is asked for that only
-    /// when a list has set either height — never on the ordinary path.
+    /// What a row's separator is decided from (decisions A47): the defaults
+    /// written above the list, and the collector its rows report to. `nil`
+    /// draws none, and asks nothing.
+    var separators: (defaults: ListSeparatorDefaults, reports: RowEditRestrictions)?
+
+    /// The separator the row at `index` — drawn as `box` — draws below itself,
+    /// or `nil`. Never below the last row or a footer; a section's header or
+    /// last row by its section's edge, every other row by its own `.bottom`
+    /// over the list-wide default. `.automatic` is hidden: no built-in style
+    /// draws them by default (decisions A47, A-D6L-2).
+    ///
+    /// Asked of every row whose buffer is read — the hug walk's included — so it
+    /// asks no row its TYPE, which for a tagged looped row is a build of the row
+    /// (`ListRowSelectionValueCostTests`): a header or footer is found in
+    /// ``sectionChrome``, which the extraction filled without asking.
+    func separatorLine(at index: Int, of box: LazyListRowContent) -> ListRowSeparatorLine? {
+        guard let separators, index + 1 < count else { return nil }
+        let guides = separators.reports.separatorGuides[index]
+        if let section = box.sectionSeparator {
+            let defaults = separators.defaults.sections
+            let visibility =
+                section.visibility != .automatic
+                ? section.visibility : (section.edge == .top ? defaults.top : defaults.bottom)
+            guard visibility == .visible else { return nil }
+            return ListRowSeparatorLine(
+                tint: section.tint ?? (section.edge == .top ? defaults.topTint : defaults.bottomTint),
+                leading: guides?.leading ?? 0, trailing: guides?.trailing)
+        }
+        let preference =
+            separators.reports.separators[index].map { separators.defaults.rows.overridden(by: $0) }
+            ?? separators.defaults.rows
+        guard preference.bottom == .visible, !isSectionChrome(index) else { return nil }
+        return ListRowSeparatorLine(
+            tint: preference.bottomTint, leading: guides?.leading ?? 0, trailing: guides?.trailing)
+    }
+
+    /// Whether the row at `index` is a section's header or footer, by
+    /// ``sectionChrome`` alone.
+    private func isSectionChrome(_ index: Int) -> Bool {
+        var low = 0
+        var high = sectionChrome.count
+        while low < high {
+            let middle = (low + high) / 2
+            if sectionChrome[middle].index < index { low = middle + 1 } else { high = middle }
+        }
+        return low < sectionChrome.count && sectionChrome[low].index == index
+    }
+
     private func makeContent(at index: Int) -> LazyListRowContent {
         let content = make(index)
         content.gradientRamp = gradientRamp
@@ -340,6 +385,11 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
             case .footer: break
             case .content, .unselectable: content.minimumHeight = minimumRowHeight
             }
+        }
+        if separators != nil {
+            // Weak: the source holds the box, and a strong capture would hold the
+            // source back; a box read after its frame has no list to ask.
+            content.separatorDecision = { [weak self] box in self?.separatorLine(at: index, of: box) }
         }
         return content
     }
@@ -841,8 +891,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let editRestrictions = RowEditRestrictions()
         rowContext.environment.listRowEditRestrictions = editRestrictions
         let source = extractRows(from: content, context: rowContext)
-        source.minimumRowHeight = context.environment.defaultMinListRowHeight
-        source.minimumHeaderHeight = context.environment.defaultMinListHeaderHeight
+        (source.minimumRowHeight, source.minimumHeaderHeight) = (context.environment.defaultMinListRowHeight, context.environment.defaultMinListHeaderHeight)
+        source.separators = (context.environment.listSeparatorDefaults, editRestrictions)
         settleRowRamp(source, context: rowContext)
 
         // Vertical chrome around the scrollable content, as the container that
@@ -3634,9 +3684,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // `Renderable` and so opaque to the plain cast — the same opacity
             // `sectionRow(of:)` above goes through `_ValueMemoWrapping` for.
             let badge = extractRowBadgeValue(from: child.wrappedView)
+            // Stamped, as a looped row's thunk stamps its own, so what the row
+            // reports — a separator, a refusal — names THIS row.
+            let restrictions = context.environment.listRowEditRestrictions
+            restrictions?.currentRowIndex = result.count
             let buffer = child.render(
                 width: context.availableWidth, height: context.availableHeight,
                 context: childContext)
+            restrictions?.currentRowIndex = nil
+            reportSeparatorGuides(of: child, size: (buffer.width, buffer.height), row: result.count, context: childContext)
             // A looped row — a `ForEach`'s, spliced in among other rows — by
             // its own loop's rule, the row's tag or its element's id (see
             // `FlattenedRowIDs`). Any other row as in `extractRows`: its own
@@ -3748,7 +3804,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
         // Header (non-selectable)
         if let headerBuffer = info.headerBuffer {
-            rows.append(EagerListRow(SelectableListRow(type: .header, buffer: headerBuffer)))
+            let header = SelectableListRow<SelectionValue>(type: .header, buffer: headerBuffer)
+            header.content.sectionSeparator = (.top, info.separator.top, info.separator.topTint)
+            rows.append(EagerListRow(header))
         }
 
         // Content rows (selectable), with the actions of the `ForEach` that
@@ -3770,6 +3828,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // and the id too, where the section's walk left it to be asked.
             rows.append(EagerListRow(row))
         }
+        // The line under the section's last row is the section's, not the row's.
+        items.rows.last?.content.sectionSeparator = (.bottom, info.separator.bottom, info.separator.bottomTint)
         // The section's own `ForEach` owns exactly the rows it just
         // produced, and its `.onDelete` / `.onMove` offsets are indices
         // into ITS collection — element 0 is the row at `firstItemRow`.
@@ -3925,6 +3985,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// point of a pulse for the runs that replay it.
         func lines(over backgroundColor: Color?) -> [String] {
             content.lines(over: backgroundColor).enumerated().map { lineIndex, line in
+                // The separator's line: the rule across the content's width.
+                if let separator = row.content.separatorLine, lineIndex == row.buffer.lines.count - 1 {
+                    let rule = separator.drawn(width: max(0, rowWidth - listRowGutter), palette: palette)
+                    return renderPlainLine(line: rule, rowWidth: rowWidth, backgroundColor: backgroundColor, gutter: " ")
+                }
                 if shouldRenderBadge && lineIndex == 0 {
                     return renderLineWithBadge(
                         line: line, badge: badge!, rowWidth: rowWidth,

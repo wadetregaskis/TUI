@@ -81,6 +81,7 @@ struct ListPage: View {
     @State private var reorderFeedback = ReorderFeedbackChoice.live.rawValue
     @State private var borderedStyleSelection: String?
     @State private var surfaceStyleSelection: String?
+    @State private var showsSeparators = false
 
     private static let fruits = [
         "Apple", "Apricot", "Banana", "Blueberry", "Cherry",
@@ -104,6 +105,9 @@ struct ListPage: View {
                     }
                 }
             }
+            // On the list, so every row and section takes it.
+            .listRowSeparator(showsSeparators ? .visible : .automatic)
+            .listSectionSeparator(showsSeparators ? .visible : .automatic)
             .frame(height: 8)
         }
         .frame(maxWidth: .infinity)
@@ -319,6 +323,9 @@ struct ListPage: View {
                     // than it is tall enough for, so it scrolls.
                     Text("page.list.stylesSurfaceBody")
                         .foregroundStyle(.palette.foregroundSecondary)
+                    // Separators as a rule line between rows (decisions A47):
+                    // none by default, as a line of height each is dear.
+                    Toggle("page.list.styles.separators", isOn: $showsSeparators)
                     HStack(alignment: .top, spacing: 2) {
                         sectionedList(".automatic", selection: $borderedStyleSelection)
                             .listStyle(.automatic)
