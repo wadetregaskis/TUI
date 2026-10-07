@@ -430,6 +430,13 @@ class IndexStoreTests(unittest.TestCase):
             store('x86_64-apple-macosx', made=t - 600, written=t - 500)
             self.assertEqual(IX.find_store(root), old)
 
+    def test_swift_build_s_store_is_found(self):
+        # `--build-system swiftbuild` (SwiftPM 6.4's default) writes the store into .build/out.
+        with tempfile.TemporaryDirectory() as root:
+            units = os.path.join(root, '.build', 'out', 'v5', 'units')
+            os.makedirs(units); open(os.path.join(units, 'unit'), 'w').close()
+            self.assertEqual(IX.find_store(root), os.path.join(root, '.build', 'out'))
+
 
 class CommandLineTests(unittest.TestCase):
     def annotations(self, n):

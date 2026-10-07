@@ -22,8 +22,10 @@ python3 -m unittest discover -s Tools/ModuleMap     # the tool's own tests: no b
 
 It needs only Python 3's standard library and the toolchain's `libIndexStore`, which it loads through `ctypes`.
 It finds the library beside the `swift` that `xcrun` or `PATH` resolves to; set `MODULEMAP_LIBINDEXSTORE` to
-override. It reads the newest `.build/*/debug/index/store`, which SwiftPM writes on every macOS debug build; pass
-`--store` to use another. If a source file is newer than its index unit, it warns: rebuild, then check again.
+override. It reads the index store a debug build on macOS wrote last: `.build/<triple>/debug/index/store` from
+SwiftPM's native build system, or `.build/out` from Swift Build (`--build-system swiftbuild`, SwiftPM's default
+from 6.4; 6.2.4's Swift Build wrote no store). Pass `--store` to use another. If a source file is newer than its
+index unit, it warns: rebuild, then check again.
 
 **Cost.** Measured on HEAD 4611730eb, 793 files and 262k index occurrences:
 - reading the store: about 2 s;

@@ -70,11 +70,15 @@ def last_written(store):
 
 
 def find_store(root):
-    """The `.build/<triple>/debug/index/store` under the package root that a build wrote to last."""
+    """The index store under the package root that a build wrote to last. SwiftPM's native build system writes
+    `.build/<triple>/debug/index/store` on a macOS debug build; Swift Build (`--build-system swiftbuild`, SwiftPM's
+    default from 6.4) writes the store into `.build/out` itself (both measured with a scratch package on
+    2026-10-07: 6.2.4 native, 6.4.0's default; 6.2.4 with `--build-system swiftbuild` wrote no store)."""
     stores = glob.glob(os.path.join(root, '.build', '*', 'debug', 'index', 'store'))
+    stores += [d for d in [os.path.join(root, '.build', 'out')] if os.path.isdir(os.path.join(d, 'v5', 'units'))]
     if not stores:
-        raise SystemExit('modulemap: no index store under .build/*/debug/index/store — run `swift build` first '
-                         '(SwiftPM indexes debug builds on macOS by default), or pass --store')
+        raise SystemExit('modulemap: no index store under .build/*/debug/index/store or .build/out — run a debug '
+                         '`swift build` first (SwiftPM indexes debug builds on macOS by default), or pass --store')
     return max(stores, key=last_written)
 
 

@@ -7,7 +7,8 @@
     python3 Tools/ModuleMap/modulemap.py assign --write   # ... and rewrite map.json
     python3 Tools/ModuleMap/modulemap.py explain REGEX    # where matching declarations go, and why
 
-Reads the index store the last debug `swift build` wrote (.build/<triple>/debug/index/store) and the sources.
+Reads the index store a debug `swift build` wrote last (.build/<triple>/debug/index/store, or .build/out under
+Swift Build) and the sources.
 Python 3 standard library only, plus the toolchain's libIndexStore through ctypes. See README.md.
 """
 import argparse
@@ -171,7 +172,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('command', choices=['check', 'assign', 'explain'])
     ap.add_argument('pattern', nargs='?', help='explain: a regular expression over declaration labels')
-    ap.add_argument('--store', help='the index store (default: the newest .build/*/debug/index/store)')
+    ap.add_argument('--store', help='the index store (default: the one a build wrote last, of '
+                    '.build/*/debug/index/store and .build/out)')
     ap.add_argument('--lib', help='libIndexStore (default: beside the toolchain\'s swift)')
     ap.add_argument('--rules', default=RULES)
     ap.add_argument('--map', default=MAP)
