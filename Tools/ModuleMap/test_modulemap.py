@@ -2,8 +2,11 @@
 
     python3 -m unittest discover -s Tools/ModuleMap
 """
+import ctypes
 import os
 import sys
+import tempfile
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -329,6 +332,23 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         M = model(srcs, {'Exports.swift': [('s:x', DEF, 2, '')]}, {'s:x': ('x', 13)})
         xs = checks.umbrella(M, rules(), {'s:x': 'X'})
         self.assertEqual(len(xs), 2)
+
+
+class IndexStoreTests(unittest.TestCase):
+    def test_the_store_a_build_wrote_last_is_read(self):
+        # Two triples: the store made first was written last. Its directory is older; its newest unit is newer.
+        with tempfile.TemporaryDirectory() as root:
+            def store(triple, made, written):
+                units = os.path.join(root, '.build', triple, 'debug', 'index', 'store', 'v5', 'units')
+                os.makedirs(units)
+                u = os.path.join(units, 'unit'); open(u, 'w').close(); os.utime(u, (written, written))
+                for d in (units, os.path.dirname(units), os.path.dirname(os.path.dirname(units))):
+                    os.utime(d, (made, made))
+                return os.path.dirname(os.path.dirname(units))
+            t = time.time()
+            old = store('arm64-apple-macosx', made=t - 3600, written=t - 60)
+            store('x86_64-apple-macosx', made=t - 600, written=t - 500)
+            self.assertEqual(IX.find_store(root), old)
 
 
 if __name__ == '__main__':

@@ -56,13 +56,24 @@ def find_libindexstore():
     raise SystemExit('modulemap: no libIndexStore found; set MODULEMAP_LIBINDEXSTORE')
 
 
+def last_written(store):
+    """When a build last wrote to `store`: its newest unit's mtime. Not the store directory's own mtime, which is
+    when the store was created: a build rewrites units in place."""
+    newest = 0.0
+    for units in glob.glob(os.path.join(store, 'v*', 'units')):
+        with os.scandir(units) as it:
+            for e in it:
+                newest = max(newest, e.stat().st_mtime)
+    return newest
+
+
 def find_store(root):
-    """The newest `.build/<triple>/debug/index/store` under the package root."""
+    """The `.build/<triple>/debug/index/store` under the package root that a build wrote to last."""
     stores = glob.glob(os.path.join(root, '.build', '*', 'debug', 'index', 'store'))
     if not stores:
         raise SystemExit('modulemap: no index store under .build/*/debug/index/store — run `swift build` first '
                          '(SwiftPM indexes debug builds on macOS by default), or pass --store')
-    return max(stores, key=os.path.getmtime)
+    return max(stores, key=last_written)
 
 
 def read(store_path, module, source_prefix, lib_path=None):
