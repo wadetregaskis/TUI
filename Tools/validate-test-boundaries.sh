@@ -27,10 +27,11 @@ cd "$(dirname "$0")/.."
 # This table is a copy of the library targets' `dependencies:` in Package.swift
 # and must be edited with them. TUIkitView has depended on TUIkitStyling since
 # `Color: View` moved into the module that owns `View` (see the comment on that
-# target), so a TUIkitView test may name a `Color`.
+# target), so a TUIkitView test may name a `Color`. TUIkitWidthCorpus is data
+# with no dependencies (the width corpus), so any layer's tests may read it.
 allowed_for() {
     case "$1" in
-        TUIkitCoreTests) echo "TUIkitCore" ;;
+        TUIkitCoreTests) echo "TUIkitCore TUIkitWidthCorpus" ;;
         TUIkitStylingTests) echo "TUIkitStyling" ;;
         TUIkitViewTests) echo "TUIkitView TUIkitCore TUIkitStyling" ;;
         TUIkitImageTests) echo "TUIkitImage TUIkitStyling" ;;

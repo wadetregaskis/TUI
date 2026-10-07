@@ -79,6 +79,13 @@ let package = Package(
         .target(name: "TUIkitCore"),
         .target(name: "TUIkitStyling"),
 
+        // The width corpus (`TerminalWidthCorpus`): the grapheme clusters the
+        // tests and the TerminalClientQuirks app iterate, and nothing a library
+        // module reads. A target of its own so that no library build compiles
+        // it: inside TUIkitCore, whose job starts the chain every release build
+        // waits on, its two tables took 0.39 s of SIL optimisation (2026-10-07).
+        .target(name: "TUIkitWidthCorpus"),
+
         // ── Mid-level ───────────────────────────────────────────────────────────────────────────────────
         // TUIkitStyling came in for `Color: View`, which has to be declared in
         // the module that owns `View`: declared anywhere else, a `Color` in a
@@ -152,7 +159,7 @@ let package = Package(
         // forward (see also the per-target import guard it applies).
         .testTarget(
             name: "TUIkitTests",
-            dependencies: ["TUIkit", "TUIkitAppKit", "CTestSupport"],
+            dependencies: ["TUIkit", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport"],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
             // exclude them from the build rather than declaring them as resources.
@@ -179,7 +186,7 @@ let package = Package(
         // Each links ONLY its module. A unit test that drifts into a sibling or
         // higher layer stops compiling here — that is the point: it keeps every
         // module provably testable in isolation.
-        .testTarget(name: "TUIkitCoreTests", dependencies: ["TUIkitCore"]),
+        .testTarget(name: "TUIkitCoreTests", dependencies: ["TUIkitCore", "TUIkitWidthCorpus"]),
         .testTarget(name: "TUIkitStylingTests", dependencies: ["TUIkitStyling"]),
         .testTarget(name: "TUIkitViewTests", dependencies: ["TUIkitView"]),
         .testTarget(name: "TUIkitImageTests", dependencies: ["TUIkitImage"]),
@@ -198,7 +205,7 @@ let package = Package(
         // profiling instrument (see Sources/Stress/README.md).
         .executableTarget(
             name: "TerminalClientQuirks",
-            dependencies: ["TUIkit"],
+            dependencies: ["TUIkit", "TUIkitWidthCorpus"],
             exclude: ["README.md"]  // documentation, not a bundled resource
         ),
         .executableTarget(

@@ -6,6 +6,7 @@
 
 import TUIkit
 import TUIkitCore
+import TUIkitWidthCorpus
 
 /// One grapheme cluster worth showing, and why it is worth showing.
 ///

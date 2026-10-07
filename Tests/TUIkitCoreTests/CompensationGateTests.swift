@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkitCore
+import TUIkitWidthCorpus
 
 /// Pins the compensation walks' narrow byte gate (`utf8MayNeedCompensation`)
 /// to what the walks actually DO.

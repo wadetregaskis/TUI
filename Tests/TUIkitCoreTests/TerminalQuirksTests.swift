@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkitCore
+import TUIkitWidthCorpus
 
 /// The hand-buildable advance model — what somebody sitting in front of an
 /// unmeasured terminal assembles by trying switches.

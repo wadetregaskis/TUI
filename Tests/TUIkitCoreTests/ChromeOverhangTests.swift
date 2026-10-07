@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkitCore
+import TUIkitWidthCorpus
 
 /// A chrome glyph that paints wider than it advances, per host.
 ///
