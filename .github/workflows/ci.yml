@@ -435,12 +435,17 @@ jobs:
       # not a time, so a slow runner cannot fail it — and why it runs on ONE
       # lane: the count belongs to the compiler. 2,000 sits just above the worst
       # expressions on this lane's Swift (Xcode 26.3's 6.2.4) on 2026-10-07:
-      # swift-collections' UniqueDeque.swift:240 and TUIkitCore's
-      # Animation.swift:586, both between 1,850 and 1,900 scopes; TUIkit's own
-      # worst was ScrollTransition.swift:218, 1,700–1,800. Set on the command
-      # line only: in Package.swift it would need `unsafeFlags`, which a package
-      # used as a dependency may not use. Last in the job, because it rebuilds
-      # those modules with a different command line.
+      # swift-collections' UniqueDeque.swift:240, between 1,850 and 1,900
+      # scopes, and TUIkitCore's Animation.swift:586, between 1,800 and 1,900
+      # (not tried at 1,850); TUIkit's own worst was ScrollTransition.swift:218,
+      # 1,700–1,800. The cap was measured with the debug and the release defines
+      # alike; this step builds debug on macOS, so code compiled only in release
+      # (today one line, SoftTrap.report's `log.report`), only on another
+      # platform, or only under an opt-in define such as
+      # TUIKIT_VALUE_HASH_CENSUS is not counted here. Set on the command line
+      # only: in Package.swift it would need `unsafeFlags`, which a package used
+      # as a dependency may not use. Last in the job, because it rebuilds those
+      # modules with a different command line.
       #
       # Reading a failure: "the compiler is unable to type-check this expression
       # in reasonable time" at a file and line names an expression that now
