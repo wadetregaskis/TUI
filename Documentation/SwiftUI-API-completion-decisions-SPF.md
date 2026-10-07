@@ -69,7 +69,28 @@ cells, or one with a cell of escapes of its own:
 
 A striped table now draws fewer bytes than any table drew before stripes;
 the stripe itself costs `table` +3.0% bytes (one fill statement per striped
-row). Unmeasured in time: the A/B is owed.
+row).
+
+**Measured (2026-10-07, coordinator):** release `Stress` before (`59e04b011`)
+against this change, `ab_bench.py`, 15 reps, CPU time per frame, on a quiet
+machine:
+
+| scenario | warm | cold |
+|---|---|---|
+| `table` | 388.7 → 301.3 µs, −23.0% | −23.2% |
+| `table-churn` | −16.4% | −14.6% |
+| `table-api` | −16.2% | −14.0% |
+| `truncate` | −13.7% | −7.1% |
+| `table-tail` | −10.6% | −10.1% |
+| `table-multiline` | −7.8% | −4.9% |
+| `table-churn-wrapped` | −4.1% | −1.5% |
+| `tables-scroll` | indistinguishable | −11.8% |
+| `tables-vstack` | indistinguishable | −5.4% |
+| `megalist` (a `List`) | indistinguishable | indistinguishable |
+
+A striped `table` now draws in less time than an unstriped one did before
+stripes (378.8 µs a frame at `14d09c6a0`). On one binary, stripes on against
+`--stripes disabled`, the stripe costs +1.2% to +4.6% warm.
 
 **First shipped, before the owner's call — a row under a still fill states
 the fill once.** A table row opened every cell with its ink and closed it with a reset (`ESC[0m`), and a
