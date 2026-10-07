@@ -191,14 +191,21 @@ struct TableReorderDragTests {
     }
 
     /// `.dimmed` draws the row itself, faint, at the slot it would land in — and
-    /// it must be faint ALL the way along. A Table row is several styled runs
-    /// (starting with the one-cell selection gutter) and each carries its own
-    /// reset, so a `dim … reset` wrapper used to die before the first character
-    /// and the row drew at full intensity. Asserting `contains(dim)` cannot see
-    /// that; asserting that no reset is left un-reopened can.
+    /// it must be faint ALL the way along. A Table row can reset inside itself,
+    /// so a `dim … reset` wrapper dies at the first reset it meets: it used to
+    /// die before the first character, when every cell and the selection gutter
+    /// carried its own reset, and the row drew at full intensity. Asserting
+    /// `contains(dim)` cannot see that; asserting that no reset is left
+    /// un-reopened can.
+    ///
+    /// The row has a styled cell (a bold `*`) before the text checked. A row of
+    /// plain cells states its ink once and has no reset before its text any more
+    /// (`TableRowInk`), so without one the check passed whatever wrapped the
+    /// line; a cell with escapes of its own still closes with a reset, which is
+    /// what the dim must outlive.
     @Test("The dimmed slot stays faint past the row's own resets")
-    func dimmedSlotIsFaintThroughout() {
-        let fixture = TableReorderFixture(feedback: .dimmed)
+    func dimmedSlotIsFaintThroughout() throws {
+        let fixture = TableReorderFixture(feedback: .dimmed, styledColumn: true)
         let buffer = fixture.render()
         let ySource = fixture.rowY(buffer, "b")
         let yTarget = fixture.rowY(buffer, "d")
@@ -217,6 +224,12 @@ struct TableReorderDragTests {
         // The state in force AT the row's text — not merely somewhere on the
         // line. Everything before the last reset has been cancelled by it.
         let state = slot.ansiStateBefore(visibleColumn: column)
+        // The line resets before the text — after the bold cell — or this
+        // checks nothing. Read off the raw line: no SGR escape spells a "b".
+        let text = try #require(slot.range(of: "b"))
+        #expect(
+            slot[..<text.lowerBound].contains(ANSIRenderer.reset),
+            "no reset before the text, so this checks nothing: \(slot.debugDescription)")
         let live = state.components(separatedBy: ANSIRenderer.reset).last ?? ""
         // Read as parameters: a striped row (the second row is the first a
         // table stripes, decisions A29) states its faint with its fill, as

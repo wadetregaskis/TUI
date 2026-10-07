@@ -30,6 +30,10 @@ struct TableReorderRow: Identifiable, Sendable {
 final class TableReorderFixture {
     var rows: [String]
     let reorderable: Bool
+    /// Whether a column of styled cells — a bold `*` — comes before the name: a
+    /// cell whose text carries escapes of its own, closed with a reset that the
+    /// row's text after it must survive (`TableRowInk`).
+    let styledColumn: Bool
     /// Rows selected before the gesture. Non-empty switches the table to
     /// multi-selection, which is what makes a drag pick up a block.
     var selection: Set<String> = []
@@ -40,10 +44,11 @@ final class TableReorderFixture {
     init(
         rows: [String] = ["a", "b", "c", "d", "e"], reorderable: Bool = true,
         feedback: RowReorderFeedback = .live,
-        scrollbar: ScrollIndicatorVisibility = .automatic
+        scrollbar: ScrollIndicatorVisibility = .automatic, styledColumn: Bool = false
     ) {
         self.rows = rows
         self.reorderable = reorderable
+        self.styledColumn = styledColumn
         env.focusManager = FocusManager()
         // The "▲/▼ N more" style, spelled out. Since #555 the visibility
         // and the style are separate questions, and the cases below read
@@ -68,9 +73,11 @@ final class TableReorderFixture {
             self.moves += 1
             self.rows.move(fromOffsets: $0, toOffset: $1)
         }
+        let styled = styledColumn
         let table: AnyView
         if selection.isEmpty {
             let base = Table(rows.map(TableReorderRow.init), selection: .constant(String?.none)) {
+                if styled { TableColumn("S") { (_: TableReorderRow) in Text(verbatim: "*").bold() } }
                 TableColumn("Name", value: \.name)
             }
             table = AnyView(reorderable ? AnyView(base.onMove(move)) : AnyView(base))
@@ -79,6 +86,7 @@ final class TableReorderFixture {
                 rows.map(TableReorderRow.init),
                 selection: Binding(get: { self.selection }, set: { self.selection = $0 })
             ) {
+                if styled { TableColumn("S") { (_: TableReorderRow) in Text(verbatim: "*").bold() } }
                 TableColumn("Name", value: \.name)
             }
             table = AnyView(reorderable ? AnyView(base.onMove(move)) : AnyView(base))
