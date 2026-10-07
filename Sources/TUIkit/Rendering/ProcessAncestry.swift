@@ -39,6 +39,43 @@ enum ProcessAncestry {
         let terminal: Int32?
     }
 
+    /// The process that holds the terminal `chain`'s first process is
+    /// attached to: the first above it attached to another terminal, or to
+    /// none — the terminal emulator that draws it, or the GNU screen, tmux,
+    /// `sshd` or `mosh-server` that carries it on — or `nil` where that cannot
+    /// be told: the first is attached to no terminal, or no process above it
+    /// is attached to another.
+    ///
+    /// A process's terminal is the pty its shell runs on, and the process
+    /// that opened the pty's other side runs on another one, or on none: GNU
+    /// screen's server runs on none and its windows' processes on the
+    /// window's pty (measured, screen 4.00.03 on macOS 15, 2026-10-07: `ps`
+    /// shows `SCREEN` on `??` and its window's `login` on `ttys005`). What
+    /// stands further up — the shell a GUI terminal was started from, say —
+    /// does not stand between the process and what draws it.
+    static func terminalHolder(of chain: [Link]) -> Link? {
+        guard let own = chain.first?.terminal else { return nil }
+        return chain.dropFirst().first { $0.terminal != own }
+    }
+
+    /// This process's command names up to the root (``commandNames(from:limit:)``),
+    /// or `nil` where they cannot be read: a WebAssembly guest has no
+    /// processes to walk, and Windows no walk here (see the `pid_t` API below).
+    static func ownCommandNames() -> [String]? {
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+            return commandNames(from: getpid())
+        #else
+            return nil
+        #endif
+    }
+
+    // The walk by process id. `pid_t` is POSIX's, and wasi-libc declares it
+    // too (where every read below answers `nil`: a wasm guest has no
+    // processes). Windows has no walk here, and its C runtime is not where
+    // `pid_t` comes from (it numbers processes with `DWORD`s), so none of this
+    // is compiled there, and nothing above names a `pid_t`.
+    #if canImport(Darwin) || canImport(Glibc) || canImport(Musl) || canImport(WASILibc)
+
     /// The parent of a process, or `nil` if it has exited or is unreadable.
     static func parent(of pid: pid_t) -> pid_t? {
         #if canImport(Darwin)
@@ -93,25 +130,6 @@ enum ProcessAncestry {
         chain(from: pid, limit: limit, reading: link(of:))
     }
 
-    /// The process that holds the terminal `chain`'s first process is
-    /// attached to: the first above it attached to another terminal, or to
-    /// none — the terminal emulator that draws it, or the GNU screen, tmux,
-    /// `sshd` or `mosh-server` that carries it on — or `nil` where that cannot
-    /// be told: the first is attached to no terminal, or no process above it
-    /// is attached to another.
-    ///
-    /// A process's terminal is the pty its shell runs on, and the process
-    /// that opened the pty's other side runs on another one, or on none: GNU
-    /// screen's server runs on none and its windows' processes on the
-    /// window's pty (measured, screen 4.00.03 on macOS 15, 2026-10-07: `ps`
-    /// shows `SCREEN` on `??` and its window's `login` on `ttys005`). What
-    /// stands further up — the shell a GUI terminal was started from, say —
-    /// does not stand between the process and what draws it.
-    static func terminalHolder(of chain: [Link]) -> Link? {
-        guard let own = chain.first?.terminal else { return nil }
-        return chain.dropFirst().first { $0.terminal != own }
-    }
-
     /// The command names from `pid` up to the root of the process tree,
     /// `pid`'s own first — or `nil` when a link could not be read before the
     /// root was reached.
@@ -142,17 +160,6 @@ enum ProcessAncestry {
             current = parent
         }
         return nil
-    }
-
-    /// This process's command names up to the root (``commandNames(from:limit:)``),
-    /// or `nil` where they cannot be read: a WebAssembly guest has no
-    /// processes to walk.
-    static func ownCommandNames() -> [String]? {
-        #if canImport(WASILibc)
-            return nil
-        #else
-            return commandNames(from: getpid())
-        #endif
     }
 
     /// Whether `pid`'s recorded parent is 0, which is the root of the tree
@@ -217,5 +224,7 @@ enum ProcessAncestry {
             let terminal = fields.count >= 5 ? Int32(fields[4]) : nil
             return ProcStat(name: name, parentField: parent, terminalField: terminal)
         }
+    #endif
+
     #endif
 }

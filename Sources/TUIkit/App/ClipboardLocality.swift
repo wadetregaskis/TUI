@@ -152,17 +152,19 @@ enum ClipboardLocality {
     /// it is asked when a copy is made, never per frame. Outside tmux it reads
     /// the kernel only.
     static func isLocal() -> Bool {
-        #if canImport(WASILibc)
-            // A wasm guest has no processes to walk and no helper to run: the
-            // machine it runs on is a browser page's sandbox.
-            return false
-        #else
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
         let environment = ProcessInfo.processInfo.environment
         let inTmux = TerminalHost.isTmux
         let ownChain = ProcessAncestry.ownCommandNames()
         let clientChains = inTmux && ownChain != nil ? tmuxClients()?.map { $0.chain?.map(\.name) } : nil
         return isLocal(
             environment: environment, ownChain: ownChain, tmuxClientChains: clientChains, inTmux: inTmux)
+        #else
+            // No processes to walk, so no positive evidence, so not local: a
+            // wasm guest has none and no helper to run — the machine it runs
+            // on is a browser page's sandbox — and Windows has no ancestry
+            // walk here (``ProcessAncestry/ownCommandNames()``).
+            return false
         #endif
     }
 
@@ -184,14 +186,19 @@ enum ClipboardLocality {
     ///
     /// Asks tmux for its clients (``TerminalHost/probeTmuxClients()``), a
     /// bounded subprocess, and walks each one's parents: asked when a copy is
-    /// made, never per frame.
+    /// made, never per frame. `nil` on Windows, which has no walk by process
+    /// id here (``ProcessAncestry``).
     static func tmuxClients() -> [AttachedClient]? {
-        TerminalHost.probeTmuxClients().map { clients in
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl) || canImport(WASILibc)
+        return TerminalHost.probeTmuxClients().map { clients in
             clients.map { client in
                 AttachedClient(
                     sessionPanes: client.sessionPanes,
                     chain: client.pid.flatMap { ProcessAncestry.links(from: $0) })
             }
         }
+        #else
+            return nil
+        #endif
     }
 }
