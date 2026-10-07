@@ -203,10 +203,16 @@ placed by the rules. Refresh the map whenever a change adds files or moves code 
 ## In CI
 
 CI runs the check on the `macOS 15 · Xcode 26` lane, right after its debug build, so it reads that build's index
-store. It needs no extra build; the step itself takes a few seconds. For now it only warns: it runs with
-`--github --exit-zero`, and every new finding becomes a warning annotation (GitHub keeps 10 per step; past
-that, the tenth says how many more the step's log lists). With `--exit-zero`, a failure of the
-tool itself (no index store, a libIndexStore that will not load, a bug) is one warning annotation too, and the
-step has `continue-on-error` for anything that escapes Python. Once plan steps A2 (the K refactors) and A4 (the
-placement moves) have landed, drop both, so that no new upward reference can arrive during the migration. The
-parity job runs the tool's own unit tests.
+store. It needs no extra build; the step itself takes a few seconds.
+
+The lane's Xcode floats from Swift 6.2 to 6.3, and the index differs a little between them. On HEAD a 6.3.3
+index has 18 more edges than a 6.2.4 one, all of them references to a result builder (`SceneBuilder`,
+`ToolbarContentBuilder` …; why 6.3 records them was not investigated), and 38 more conformance records. The
+check's findings and the assignment are the same from both (measured 2026-10-07).
+
+For now it only warns: it runs with `--github --exit-zero`, and every new finding becomes a warning annotation
+(GitHub keeps 10 per step; past that, the tenth says how many more the step's log lists). With `--exit-zero`, a
+failure of the tool itself (no index store, a libIndexStore that will not load, a bug) is one warning annotation
+too, and the step has `continue-on-error` for anything that escapes Python. Once plan steps A2 (the K refactors)
+and A4 (the placement moves) have landed, drop both, so that no new upward reference can arrive during the
+migration. The parity job runs the tool's own unit tests.
