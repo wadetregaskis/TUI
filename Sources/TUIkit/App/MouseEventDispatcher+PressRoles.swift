@@ -86,7 +86,12 @@ enum PressRole {
     /// handle. What takes no plain left press — a scope, a hover observer, a
     /// drop zone, a context menu's trigger
     /// (``MouseEventDispatcher/takesNoPlainLeftPress(_:)``) — is not a
-    /// control.
+    /// control. Nor is the app's own ``View/onMouseEvent(_:)`` closure taken
+    /// for one: it says whether it takes a left press only when offered one
+    /// (``MouseEventDispatcher/isApplicationHandler(_:)``), so the handle
+    /// stands aside, and the closure is offered the press in turn — one that
+    /// declines it leaves the drag to select the text, and one that takes it
+    /// has it, as with the scope and no handle.
     case dragSource
 }
 
@@ -188,7 +193,12 @@ extension MouseEventDispatcher {
                 case .background, .rows: return true
                 // Another handle stands aside by this same rule.
                 case .dragSource: continue
-                case nil: if !takesNoPlainLeftPress(region.handlerID) { return false }
+                case nil:
+                    // The app's own closure (`.onMouseEvent`) says whether it
+                    // takes the press only when offered it, which it is in
+                    // turn, below: one that declines leaves it to the text.
+                    if isApplicationHandler(region.handlerID) { continue }
+                    if !takesNoPlainLeftPress(region.handlerID) { return false }
                 }
             }
             // The page's background holds it.

@@ -156,7 +156,13 @@ handle in front of a region that would take the press as a control — before
 anything that holds it for a selection — keeps it, as with no scope, and a
 press released there is still the control's click. What takes no plain left
 press is not a control: a scope, a hover observer, a drop zone, a context
-menu's trigger. (The follow-ups' first review found a draggable tab's title,
+menu's trigger. Nor is an app's `.onMouseEvent` closure (and
+`onScrollGesture`, built on it), which says whether it takes a left press
+only when offered one: the handle stands aside, and the closure is offered
+the press in turn, so one that declines it leaves the drag to select, and
+one that takes it has it, as under the scope with no handle (the review of
+the follow-ups' fixes found a closure declining left presses taken for a
+control, so a drag on its text moved the view). (The follow-ups' first review found a draggable tab's title,
 a gradient stop and a `Button` in a `.draggable` view passing the press on
 under an outer scope, so the tab strip or the button took it and nothing
 dragged; its second, that the fix — selectable only under a scope the
@@ -458,12 +464,15 @@ listed — all fixed — these remain:
   is selectable follows the rows' rule — a drag on its text selects — which
   is unmeasured on macOS for a view outside a list. A draggable view or row
   drags from a control's label in it (a `Button`), and a click there is the
-  control's, as with no scope (unmeasured on macOS). A region that takes no
-  plain left press but is not filed as passive is taken for a control, so a
-  handle in front of it keeps a press on text: the passive regions are drop
-  zones, spring-loading zones, context menus' triggers and two containers'
-  inert regions (a tab view's, the 256-colour grid's), besides scopes and
-  hover observers.
+  control's, as with no scope (unmeasured on macOS). A region of TUIkit's
+  that takes no plain left press but is not filed as passive is taken for a
+  control, so a handle in front of it keeps a press on text: the passive
+  regions are drop zones, spring-loading zones, context menus' triggers and
+  two containers' inert regions (a tab view's, the 256-colour grid's),
+  besides scopes and hover observers; an app's `.onMouseEvent` closure is
+  offered the press instead, so one that takes a left press on selectable
+  text inside a `.draggable` view has it, where with no scope the view
+  drags.
 - **Control-click on a control** (B-D4X-7): a control that acts on a left
   press — a `Button` in a table cell, a field — takes a Control-click as its
   click, where a right-click there opens the row's menu. Making every control

@@ -78,7 +78,10 @@ extension OnMouseEventModifier: Renderable {
         } else {
             handler = self.handler
         }
-        let handlerID = dispatcher.register(in: context, handler)
+        // On the app's lane: whether the closure takes a plain left press it
+        // alone says, when offered one, so a drag handle in front of it
+        // stands aside for selectable text and lets it say.
+        let handlerID = dispatcher.registerApplicationHandler(in: context, handler)
         spaceOrigin?.handlerID = handlerID
         buffer.hitTestRegions.append(
             HitTestRegion(

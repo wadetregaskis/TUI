@@ -332,6 +332,23 @@ extension MouseEventDispatcher {
         registerInterned(handler, lane: .passive, in: context)
     }
 
+    /// Registers a handler the app wrote — an ``View/onMouseEvent(_:)``
+    /// closure — for a region that is the control under the pointer, as
+    /// ``register(in:_:)``'s is, but whose answer to a plain left press only
+    /// the closure knows, and gives only by being offered one.
+    ///
+    /// Filed so a drag handle in front of it stands aside for selectable text
+    /// (``PressRole/dragSource``) and lets it be offered the press in turn,
+    /// rather than taking it for a control that would: a closure that
+    /// declines a left press leaves it to the selection, as it does with no
+    /// handle in front of it.
+    @MainActor
+    func registerApplicationHandler(
+        in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
+    ) -> HitTestRegion.HandlerID {
+        registerInterned(handler, lane: .application, in: context)
+    }
+
     /// Registers a WHEEL handler: one that hears the wheel over its region
     /// and nothing else — no hover, no click — so a region of it in front of
     /// a view's content takes the wheel first without taking anything else
@@ -399,6 +416,9 @@ enum MouseHandlerLane {
     /// A control for hover that never takes a plain left press — see
     /// ``MouseEventDispatcher/registerPassive(in:_:)``.
     case passive
+    /// A control whose answer to a plain left press only the app's closure
+    /// knows — see ``MouseEventDispatcher/registerApplicationHandler(in:_:)``.
+    case application
     /// A handler that hears the pointer enter and leave its region without
     /// taking the hover from the control inside it — see
     /// ``MouseEventDispatcher/registerHoverObserver(in:_:)``.
@@ -426,6 +446,7 @@ enum MouseHandlerRegistrar {
         switch lane {
         case .control: break
         case .passive: dispatcher.notePassive(id)
+        case .application: dispatcher.noteApplicationHandler(id)
         case .hoverObserver: dispatcher.noteHoverObserver(id)
         case .wheel: dispatcher.noteWheelHandler(id)
         }

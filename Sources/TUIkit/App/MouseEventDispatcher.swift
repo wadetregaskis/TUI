@@ -169,6 +169,11 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// (``registerPassive(in:_:)``), cleared with the handler table.
     private var passiveIDs: Set<HitTestRegion.HandlerID> = []
 
+    /// The handlers the app wrote, registered this frame
+    /// (``registerApplicationHandler(in:_:)``), cleared with the handler
+    /// table.
+    private var applicationHandlerIDs: Set<HitTestRegion.HandlerID> = []
+
     /// The handlers registered to hear the wheel alone this frame
     /// (``registerWheelHandler(in:_:)``), cleared with the handler table.
     private var wheelHandlerIDs: Set<HitTestRegion.HandlerID> = []
@@ -353,6 +358,7 @@ extension MouseEventDispatcher {
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)
+        applicationHandlerIDs.removeAll(keepingCapacity: true)
         wheelHandlerIDs.removeAll(keepingCapacity: true)
         gestureRoles.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
@@ -618,11 +624,26 @@ extension MouseEventDispatcher {
         passiveIDs.insert(id)
     }
 
+    /// Records that `id`'s handler is the app's own closure — see
+    /// ``registerApplicationHandler(in:_:)``.
+    func noteApplicationHandler(_ id: HitTestRegion.HandlerID) {
+        applicationHandlerIDs.insert(id)
+    }
+
+    /// Whether the region `id` names is the app's own closure, whose answer
+    /// to a plain left press TUIkit learns only by offering it one
+    /// (``registerApplicationHandler(in:_:)``).
+    func isApplicationHandler(_ id: HitTestRegion.HandlerID) -> Bool {
+        applicationHandlerIDs.contains(id)
+    }
+
     /// Whether the region `id` names is known to take no plain left press:
     /// a hover observer (a ``View/textSelection(_:)`` scope, `.onHover`,
     /// `help(_:)`, a gesture's region, which hears the pointer through its
     /// arena), a passive region (``registerPassive(in:_:)``), or one with no
-    /// handler. Anything else may be a control, and is taken for one.
+    /// handler. Anything else may be a control, and is taken for one — but
+    /// the app's own closure (``isApplicationHandler(_:)``), which can be
+    /// asked only by being offered the press.
     func takesNoPlainLeftPress(_ id: HitTestRegion.HandlerID) -> Bool {
         handlers[id] == nil || hoverObserverIDs.contains(id) || passiveIDs.contains(id)
     }

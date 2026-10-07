@@ -217,6 +217,12 @@ struct TextSelectionRowDragTests {
         /// A List whose `.draggable` rows hold a Button, inside
         /// `.textSelection(.enabled)`.
         case draggableListRowButtonInScope
+        /// A `.draggable` Text with an `.onMouseEvent` closure that takes a
+        /// left press or declines it, inside `.textSelection(.enabled)`.
+        case draggableTextWithMouseEventInScope(takesLeftPress: Bool)
+        /// A `.draggable` Text with an `onScrollGesture`, inside
+        /// `.textSelection(.enabled)`.
+        case draggableTextWithScrollGestureInScope
     }
 
     struct Page: View {
@@ -315,6 +321,24 @@ struct TextSelectionRowDragTests {
                     }
                     .textSelection(.enabled)
                     .frame(height: 9))
+            case .draggableTextWithMouseEventInScope(let takesLeftPress):
+                AnyView(
+                    VStack(alignment: .leading) {
+                        Text("name 1 is here")
+                            .onMouseEvent { event in
+                                guard event.button == .left else { return event.button == .right }
+                                if takesLeftPress, event.phase == .pressed { moves.value.append("pressed") }
+                                return takesLeftPress
+                            }
+                            .draggable("dragged")
+                    }
+                    .textSelection(.enabled))
+            case .draggableTextWithScrollGestureInScope:
+                AnyView(
+                    VStack(alignment: .leading) {
+                        Text("name 1 is here").onScrollGesture { _ in }.draggable("dragged")
+                    }
+                    .textSelection(.enabled))
             }
         }
     }
@@ -484,6 +508,31 @@ struct TextSelectionRowDragTests {
         let outcome = try drag(.draggableTextWithMenuAndDropInScope, onText: true)
         #expect(outcome.selected?.hasPrefix("name 1") == true)
         #expect(!outcome.dragged)
+    }
+
+    /// An app's `.onMouseEvent` closure says whether it takes a left press
+    /// only when offered one. The review of the follow-ups' fixes: one that
+    /// declines it (and `onScrollGesture`, built on one) was taken for a
+    /// control, so the handle kept a press on its text and the view moved,
+    /// where it selects as it does with the scope and no handle.
+    @Test(
+        "A drag on draggable selectable text selects it through an app's mouse handler that declines the press",
+        arguments: [Shape.draggableTextWithMouseEventInScope(takesLeftPress: false), .draggableTextWithScrollGestureInScope])
+    func draggableTextThroughDecliningHandler(_ shape: Shape) throws {
+        let outcome = try drag(shape, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+    }
+
+    /// One that takes it has it, as under the scope with no handle: the
+    /// handle stood aside for the text, and the closure was offered the
+    /// press in turn.
+    @Test("An app's mouse handler that takes the left press on draggable selectable text has it")
+    func appHandlerTakesThePress() throws {
+        let outcome = try drag(.draggableTextWithMouseEventInScope(takesLeftPress: true), onText: true)
+        #expect(outcome.moves == ["pressed"])
+        #expect(!outcome.dragged)
+        #expect(outcome.selected == nil)
     }
 
     /// In a List, a draggable row drags from a Button's label in it, as a
