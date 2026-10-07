@@ -154,7 +154,8 @@ extension RenderCache {
     ) {
         guard measureMemoMismatches.count < 20 else { return }
         // One literal, its parts named first: as a `+` chain of interpolations
-        // this was the module's slowest body to type-check (68 ms).
+        // this was the module's slowest body to type-check (68–74 ms over six
+        // runs on Xcode 26.3's Swift 6.2.4; about 8 ms like this).
         let natural = served.isNaturalSize ? " (natural)" : ""
         let proposedWidth = proposal.width.map(String.init) ?? "nil"
         let proposedHeight = proposal.height.map(String.init) ?? "nil"

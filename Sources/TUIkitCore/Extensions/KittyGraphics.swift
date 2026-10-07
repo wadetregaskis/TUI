@@ -263,8 +263,9 @@ public enum KittyGraphics {
     package static func base64(_ bytes: [UInt8], into out: inout [UInt8]) {
         let alphabet = base64Alphabet
         // Typed constants rather than literals: with a literal shift or mask
-        // each `>>` and `&` below has its overload inferred, which made these
-        // the module's slowest lines to type-check (~11 ms each).
+        // each `>>` and `&` below has its overload inferred, which made this
+        // the module's slowest body to type-check (86–92 ms over six runs on
+        // Xcode 26.3's Swift 6.2.4; 44–47 ms like this).
         let shift18: UInt32 = 18, shift12: UInt32 = 12, shift6: UInt32 = 6
         let sixBits: UInt32 = 0x3F
         var index = 0
