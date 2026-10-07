@@ -17,6 +17,7 @@ import os
 import re
 import sys
 import time
+import traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -108,6 +109,11 @@ def write_map(path, files, rules_path):
 
 
 # ── output ────────────────────────────────────────────────────────────────────────────────────────────────
+def annotation(msg):
+    """A message as a GitHub workflow command's data: `%`, CR and LF escaped, or the annotation ends at the line."""
+    return msg.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+
+
 def table(M, R, asg):
     rows = collections.defaultdict(lambda: [0, 0.0, set()])
     for n in M.nodes:
@@ -146,7 +152,7 @@ def report(findings, R, github, verbose):
                 print(f'    {tag}{loc}{x.message}')
             if x.new and github:
                 where = f' file={R.source}/{x.file},line={x.line},' if x.file else ' '
-                print(f'::warning{where}title=ModuleMap {c}::{x.message}')
+                print(f'::warning{where}title=ModuleMap {c}::{annotation(x.message)}')
     return new
 
 
@@ -164,16 +170,26 @@ def main(argv=None):
     ap.add_argument('--exit-zero', action='store_true', help='check: exit 0 even with new findings (warning only)')
     ap.add_argument('-v', '--verbose', action='store_true', help='list scheduled and accepted findings too')
     a = ap.parse_intermixed_args(argv)          # options before or after the pattern
+    try:
+        return run(a)
+    except (Exception, SystemExit) as e:
+        # Warning only means warning only: no store, a libIndexStore that will not load, or a bug in this tool is
+        # one annotation, never a failed step (CI's step also has continue-on-error, for what escapes Python).
+        if not (a.command == 'check' and a.exit_zero): raise
+        if isinstance(e, SystemExit):
+            msg = str(e)
+        else:
+            traceback.print_exc()
+            msg = f'modulemap failed, so nothing was checked: {type(e).__name__}: {e}'
+        print(f'::warning title=ModuleMap::{annotation(msg)}' if a.github else msg)
+        return 0
+
+
+def run(a):
     t0 = time.time()
     R = Rules.load(a.rules)
-    try:
-        store = a.store or indexstore.find_store(ROOT)
-        M = Model.load(ROOT, R.source, store, a.lib)
-    except SystemExit as e:                 # no store, no libIndexStore: a warning, not a failure, while warning-only
-        if a.command == 'check' and a.exit_zero:
-            print(f'::warning title=ModuleMap::{e}' if a.github else str(e))
-            return 0
-        raise
+    store = a.store or indexstore.find_store(ROOT)
+    M = Model.load(ROOT, R.source, store, a.lib)
     t1 = time.time()
     print(f'modulemap: {len(M.files)} files, {len(M.nodes)} declarations, '
           f'{sum(len(v) for v in M.edges.values())} edges from {store} ({t1 - t0:.1f} s)')

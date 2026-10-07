@@ -202,6 +202,8 @@ placed by the rules. Refresh the map whenever a change adds files or moves code 
 
 CI runs the check on the `macOS 15 · Xcode 26` lane, right after its debug build, so it reads that build's index
 store. It needs no extra build; the step itself takes a few seconds. For now it only warns: it runs with
-`--github --exit-zero`, and every new finding becomes a warning annotation. Once plan steps A2 (the K refactors)
-and A4 (the placement moves) have landed, drop `--exit-zero`, so that no new upward reference can arrive during
-the migration. The parity job runs the tool's own unit tests.
+`--github --exit-zero`, and every new finding becomes a warning annotation. With `--exit-zero`, a failure of the
+tool itself (no index store, a libIndexStore that will not load, a bug) is one warning annotation too, and the
+step has `continue-on-error` for anything that escapes Python. Once plan steps A2 (the K refactors) and A4 (the
+placement moves) have landed, drop both, so that no new upward reference can arrive during the migration. The
+parity job runs the tool's own unit tests.

@@ -2,7 +2,9 @@
 
     python3 -m unittest discover -s Tools/ModuleMap
 """
+import contextlib
 import ctypes
+import io
 import os
 import sys
 import tempfile
@@ -382,6 +384,19 @@ class IndexStoreTests(unittest.TestCase):
             old = store('arm64-apple-macosx', made=t - 3600, written=t - 60)
             store('x86_64-apple-macosx', made=t - 600, written=t - 500)
             self.assertEqual(IX.find_store(root), old)
+
+
+class CommandLineTests(unittest.TestCase):
+    def test_warning_only_survives_a_libindexstore_that_will_not_load(self):
+        # CI runs `check --github --exit-zero`: whatever goes wrong is one annotation, not a failed lane.
+        with tempfile.TemporaryDirectory() as store:
+            args = ['check', '--store', store, '--lib', os.path.join(store, 'libIndexStore.dylib')]
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(modulemap.main(args + ['--github', '--exit-zero']), 0)
+            self.assertIn('::warning title=ModuleMap::modulemap failed, so nothing was checked: OSError', out.getvalue())
+            with self.assertRaises(OSError):
+                modulemap.main(args)
 
 
 if __name__ == '__main__':
