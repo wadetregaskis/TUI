@@ -193,14 +193,8 @@ def assign(model, rules):
 
 
 def module_of(M, asg, usr):
-    """The module a symbol is declared in under `asg`: the map's module for a node of this module, the module
-    name in its USR for one of the lower four, None for anything else (the SDK, the standard library)."""
+    """The module a symbol is declared in under `asg`: the map's module for a node of this module, the lower module
+    that defines it (`Model.lower_module`), None for anything else (the SDK, the standard library)."""
     t = M.top(usr)
     if t in asg: return asg[t]
-    for prefix, mod in LOWER:
-        if usr.startswith(prefix) or usr.startswith('s:e:' + prefix): return mod
-    return None
-
-
-LOWER = [('s:10TUIkitCore', 'TUIkitCore'), ('s:10TUIkitView', 'TUIkitView'), ('s:13TUIkitStyling', 'TUIkitStyling'),
-         ('s:11TUIkitImage', 'TUIkitImage')]
+    return M.lower_module(usr)

@@ -69,6 +69,13 @@ def lower_owners(files, dirs):
     return out
 
 
+# The lower modules' USR prefixes (`s:` + the mangled module name): which one defines a symbol when the index's own
+# answer (`lower_owner`) is missing, as in a model built without reading them. A member a lower module adds to an SDK
+# type (`s:Sa10TUIkitViewE…`) has no such prefix; only the index knows it.
+LOWER_PREFIXES = [('s:10TUIkitCore', 'TUIkitCore'), ('s:10TUIkitView', 'TUIkitView'),
+                  ('s:13TUIkitStyling', 'TUIkitStyling'), ('s:11TUIkitImage', 'TUIkitImage')]
+
+
 class Model:
     """Everything the assigner and the checks read. Built by `Model.load` from an index store, or directly from
     plain data (the unit tests do that)."""
@@ -293,6 +300,15 @@ class Model:
         self.conformed = {n: sorted(ps) for n, ps in conformed.items()}
 
     # ── helpers the assigner and the checks share ────────────────────────────────────────────────────────
+    def lower_module(self, usr):
+        """The lower module that defines a symbol (TUIkitCore, TUIkitView …), else None: the index's answer, which
+        sees members a lower module adds to SDK types, else the module named by the USR's prefix."""
+        m = self.lower_owner.get(usr)
+        if m is not None: return m
+        for prefix, mod in LOWER_PREFIXES:
+            if usr.startswith(prefix) or usr.startswith('s:e:' + prefix): return mod
+        return None
+
     def extended_node(self, n):
         """The node of the module type or protocol an extension node extends, else None."""
         u = self.ext_of.get(n)

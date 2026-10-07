@@ -536,6 +536,17 @@ class LowerTests(unittest.TestCase):
         dirs = {'TUIkitCore': '/p/Sources/TUIkitCore/', 'TUIkitView': '/p/Sources/TUIkitView/'}
         self.assertEqual(model_mod.lower_owners(files, dirs), {'s:Lock': 'TUIkitCore', 's:AppState': 'TUIkitView'})
 
+    def test_one_answer_to_which_lower_module_defines_a_symbol(self):
+        # The `lower` check and owns-neither's module_of ask the same question. The index answers it, and sees what a
+        # lower module adds to an SDK type (no TUIkit prefix in its USR); the USR's prefix is the fallback.
+        M, asg = lower_model()
+        M.lower_owner['s:Sa10TUIkitViewE4FlagV'] = 'TUIkitView'
+        self.assertEqual(assigner.module_of(M, asg, 's:Sa10TUIkitViewE4FlagV'), 'TUIkitView')
+        self.assertEqual(assigner.module_of(M, asg, 's:View.AppState'), 'TUIkitView')
+        self.assertEqual(assigner.module_of(M, asg, 's:10TUIkitCore4LockV'), 'TUIkitCore')
+        self.assertEqual(assigner.module_of(M, asg, 's:Foundation.Date'), None)
+        self.assertEqual(assigner.module_of(M, asg, 's:S'), 'Base')
+
     def test_the_lower_modules_are_what_the_sources_import_and_what_that_re_exports(self):
         # Example and Stress import TUIkit and sit beside it too; reading their index cost ~0.6-0.9 s for nothing.
         with tempfile.TemporaryDirectory() as top:

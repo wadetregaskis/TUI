@@ -208,7 +208,7 @@ def lower(M, R, asg):
     for src, usr, f, ln in M.foreign_refs:
         allowed = R.lower.get(asg.get(src))
         if allowed is None: continue
-        lm = M.lower_owner.get(usr)
+        lm = M.lower_module(usr)
         if lm is None or lm in allowed: continue
         name = M.symbols.get(usr, ('?',))[0]
         key = f'{M.label(src)} uses {lm}.{name}'
