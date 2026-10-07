@@ -132,22 +132,9 @@ extension _VisualEffectView: Renderable, Layoutable {
         // and with it what was found for this view.
         let ask = context.makeGeometryAsk(role: .reader)
         let buffer = TUIkit.renderToBuffer(content, context: context)
-        var applied = effect(
-            EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask))
-        // The effect animates as an animatable modifier does: keyed by this
-        // place and this type, substituted with where its picture has got to.
-        // Under reduce motion a change of its offsets alone jumps there and
-        // starts nothing (`PartlySpatialAnimatable`).
-        if let animated = animatedValue(
-            of: _AnimatedEffect(effect: applied), owner: Self.self, context: context,
-            isMeasuring: context.isMeasuring)?.effect
-        {
-            // A change of anything else animates, the colours and opacity
-            // moving and the offsets at their end at once (owner decision
-            // A-D3M-1): one animation runs for the whole chain, and its motion
-            // is read from the target. Asked only while the effect is changing.
-            applied = context.environment.accessibilityReduceMotion ? animated._holdingMotion(at: applied) : animated
-        }
+        let applied = animatedEffect(
+            effect(EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask)),
+            owner: Self.self, context: context, isMeasuring: context.isMeasuring)
         var drawn = applied._applied(to: buffer, context: context)
         // An effect that asked another space stamps where the view is laid out
         // — the drawing's own frame, which no effect moves — for that space's
@@ -165,6 +152,32 @@ extension _VisualEffectView: Renderable, Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
+}
+
+/// `effect` where its animation has got to: the effect animates as an
+/// animatable modifier does, keyed by this place and `owner`, and substituted
+/// with where its picture has got to.
+///
+/// Under reduce motion a change of its offsets alone jumps there and starts
+/// nothing (`PartlySpatialAnimatable`); a change of anything else animates, the
+/// colours and opacity moving and the offsets at their end at once (owner
+/// decision A-D3M-1): one animation runs for the whole chain, and its motion is
+/// read from the target. Asked only while the effect is changing.
+///
+/// - Parameters:
+///   - effect: The effect the view asks for now — the animation's target.
+///   - owner: The type whose place keys the animation.
+///   - context: The context whose transaction animates a change.
+///   - isMeasuring: Whether this is a measure, which reads but never starts one.
+@MainActor
+func animatedEffect<Effect: VisualEffect>(
+    _ effect: Effect, owner: Any.Type, context: RenderContext, isMeasuring: Bool
+) -> Effect {
+    guard
+        let animated = animatedValue(
+            of: _AnimatedEffect(effect: effect), owner: owner, context: context, isMeasuring: isMeasuring)?.effect
+    else { return effect }
+    return context.environment.accessibilityReduceMotion ? animated._holdingMotion(at: effect) : animated
 }
 
 /// An effect chain as the animation store sees it: the chain's data, and the
