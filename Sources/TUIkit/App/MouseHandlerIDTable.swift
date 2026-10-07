@@ -316,6 +316,22 @@ extension MouseEventDispatcher {
         registerInterned(handler, lane: .hoverObserver, in: context)
     }
 
+    /// Registers a handler for a region that is the control under the pointer
+    /// for hover, as ``register(in:_:)``'s is, but never takes a plain left
+    /// press — Control's, the secondary click, it may: a drop zone, a context
+    /// menu's trigger, a container's inert region kept for its geometry.
+    ///
+    /// Filed so the dispatcher can tell such a region from a control without
+    /// offering it a press: a drag handle in front of one still stands aside
+    /// for selectable text (``PressRole/dragSource``), where a control behind
+    /// it would have taken the press.
+    @MainActor
+    func registerPassive(
+        in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
+    ) -> HitTestRegion.HandlerID {
+        registerInterned(handler, lane: .passive, in: context)
+    }
+
     /// Registers a WHEEL handler: one that hears the wheel over its region
     /// and nothing else — no hover, no click — so a region of it in front of
     /// a view's content takes the wheel first without taking anything else
@@ -380,6 +396,9 @@ enum MouseHandlerLane {
     /// A control: the region the pointer is over, for hover and for every
     /// event.
     case control
+    /// A control for hover that never takes a plain left press — see
+    /// ``MouseEventDispatcher/registerPassive(in:_:)``.
+    case passive
     /// A handler that hears the pointer enter and leave its region without
     /// taking the hover from the control inside it — see
     /// ``MouseEventDispatcher/registerHoverObserver(in:_:)``.
@@ -406,6 +425,7 @@ enum MouseHandlerRegistrar {
         _ = dispatcher.register(id: id, handler)
         switch lane {
         case .control: break
+        case .passive: dispatcher.notePassive(id)
         case .hoverObserver: dispatcher.noteHoverObserver(id)
         case .wheel: dispatcher.noteWheelHandler(id)
         }

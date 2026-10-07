@@ -282,15 +282,10 @@ enum _DragHandle {
         scratch.handlerID = id
         // Where text selection is enabled — around this handle, or by a scope
         // already filed this walk (one inside its content, a table's cells) —
-        // a press on text its content made selectable, or on a list's or
-        // table's row text, passes the handle over (`PressRole.dragSource`).
-        // The scopes its content filed are among the content's regions. One
-        // read elsewhere.
+        // a press on selectable text that no control's label is passes the
+        // handle over (`PressRole.dragSource`). One read elsewhere.
         if context.environment.textSelectionAllowed == true || dispatcher.hasEnabledSelectionScope {
-            let contentScopes = buffer.hitTestRegions.compactMap { region in
-                dispatcher.selectionScopes[region.handlerID] == true ? region.handlerID : nil
-            }
-            dispatcher.filePressRole(.dragSource(contentScopes: contentScopes), for: id, in: context)
+            dispatcher.filePressRole(.dragSource, for: id, in: context)
         }
         buffer.hitTestRegions.append(
             HitTestRegion(
@@ -407,7 +402,7 @@ enum DropZone {
         // Picker containers use), while drop TARGETING is unaffected — it
         // matches hit ids against the registered targets and skips
         // non-targets, so the zone is still found at any depth.
-        let id = dispatcher.register(in: context) { _ in false }
+        let id = dispatcher.registerPassive(in: context) { _ in false }
         buffer.hitTestRegions.insert(
             HitTestRegion(
                 offsetX: 0,

@@ -655,7 +655,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         guard !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher
         else { return }
-        let handlerID = dispatcher.register(in: context) { _ in false }
+        let handlerID = dispatcher.registerPassive(in: context) { _ in false }
         buffer.hitTestRegions.insert(
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,

@@ -62,22 +62,32 @@ enum PressRole {
     /// row's `TableRow.draggable`, a draggable tab, a gradient stop — filed
     /// only where text selection is enabled somewhere in the frame. Not a
     /// click-only region: elsewhere it is offered the press as any control
-    /// is, and takes it. But where its press lands on TEXT its own content
-    /// made selectable — under one of `contentScopes`, the enabled
-    /// ``View/textSelection(_:)`` scopes its content filed — or on a row's
-    /// text that a `.rows` region behind it keeps for a selection, it is
-    /// passed over, and the press goes on to what holds it for a selection:
-    /// a drag that starts on the text selects it, and drags no row. Measured
-    /// on macOS 15.8.1 (decisions D4X, B-D4X-7): in a SwiftUI `List` and
-    /// `Table` whose rows are `.onMove`, `.draggable` or `.itemProvider` and
-    /// whose text is selectable, a drag starting on the text selects the
-    /// text; the row is not dragged.
+    /// is, and takes it. But where its press lands on selectable TEXT — under
+    /// an enabled ``View/textSelection(_:)`` scope, or on a row's text that a
+    /// `.rows` region behind it keeps for a selection — it is passed over,
+    /// and the press goes on to what holds it for a selection: a drag that
+    /// starts on the text selects it, and drags no row. Measured on macOS
+    /// 15.8.1 (decisions D4X, B-D4X-7): in a SwiftUI `List` and `Table` whose
+    /// rows are `.onMove`, `.draggable` or `.itemProvider` and whose text is
+    /// selectable, a drag starting on the text selects the text; the row is
+    /// not dragged.
     ///
-    /// An enabled scope AROUND the handle alone does not pass it over: what
-    /// it draws is a control's, not selectable text — a draggable tab's
-    /// title, a gradient stop's glyph, a `Button`'s label in a `.draggable`
-    /// view — and the handle keeps its press, as it does with no scope.
-    case dragSource(contentScopes: [HitTestRegion.HandlerID])
+    /// Which scope is the press's is the innermost under it, filed inside
+    /// the handle's content or around the handle alike: `textSelection` is
+    /// environment-like, so `Text(…).textSelection(.enabled).draggable(…)`
+    /// and `Text(…).draggable(…).textSelection(.enabled)` select alike, and a
+    /// scroll view of draggable text as a list of it does.
+    ///
+    /// A control's label is not selectable text — a `Button`'s, a draggable
+    /// tab's title, a gradient stop's glyph — so a handle in front of a
+    /// region that would take the press as a control, before anything that
+    /// holds it for a selection, keeps it, as it does with no scope: a press
+    /// released there is still that control's click, forwarded by the
+    /// handle. What takes no plain left press — a scope, a hover observer, a
+    /// drop zone, a context menu's trigger
+    /// (``MouseEventDispatcher/takesNoPlainLeftPress(_:)``) — is not a
+    /// control.
+    case dragSource
 }
 
 extension MouseEventDispatcher {
@@ -159,27 +169,37 @@ extension MouseEventDispatcher {
             return false
         }
         let point = ScreenSelection.Point(x: event.x, y: event.y)
-        // Whether a drag handle stands aside for the text under the press:
-        // text under an enabled scope its own content filed, or a row's text
-        // that the rows behind it keep for a selection (enabled around them,
-        // or by a table's cells with no scope under the press). Asked only of
-        // a press that reaches a drag handle.
-        func yieldsToText(_ contentScopes: [HitTestRegion.HandlerID]) -> Bool {
-            if tier == true, let scope, contentScopes.contains(scope.handlerID) {
-                return screenSelection?.isText(at: point) == true
-            }
+        // Whether the drag handle `matching[handle]` stands aside for the text
+        // under the press: text under an enabled scope, or a row's text that
+        // the rows behind it keep for a selection (enabled around them, or by
+        // a table's cells with no scope under the press) — unless a control
+        // behind the handle would take the press before anything holds it for
+        // the selection: that text is the control's label. Asked only of a
+        // press that reaches a drag handle.
+        func yieldsToText(behind handle: Int) -> Bool {
             let rowsKeepText = matching.contains { region in
                 guard case .rows(_, let cellsSelectText) = pressRoles[region.handlerID] else { return false }
                 return tier == true || (tier == nil && cellsSelectText)
             }
-            return rowsKeepText && screenSelection?.isText(at: point) == true
+            guard tier == true || rowsKeepText, screenSelection?.isText(at: point) == true else { return false }
+            for region in matching[(handle + 1)...] {
+                switch pressRoles[region.handlerID] {
+                // What holds the press for the selection.
+                case .background, .rows: return true
+                // Another handle stands aside by this same rule.
+                case .dragSource: continue
+                case nil: if !takesNoPlainLeftPress(region.handlerID) { return false }
+                }
+            }
+            // The page's background holds it.
+            return true
         }
         // The pane a selection keeps to, inside an enabled scope's rectangle.
         func within(_ pane: ScreenSelection.Rect) -> ScreenSelection.Rect {
             guard let scope else { return pane }
             return pane.intersection(Self.rect(of: scope)) ?? pane
         }
-        for region in matching {
+        for (index, region) in matching.enumerated() {
             if let role = pressRoles[region.handlerID], let handler = handler(for: region.handlerID) {
                 switch role {
                 case .background:
@@ -203,10 +223,10 @@ extension MouseEventDispatcher {
                             return true
                         }
                     }
-                case .dragSource(let contentScopes):
+                case .dragSource:
                     // A drag that starts on selectable text selects it, as
                     // macOS's rows do; the regions behind hold it for that.
-                    if yieldsToText(contentScopes) { continue }
+                    if yieldsToText(behind: index) { continue }
                 }
             }
             if offer(event, to: region) != .declined { return true }

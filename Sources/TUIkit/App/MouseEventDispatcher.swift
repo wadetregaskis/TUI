@@ -165,6 +165,10 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// handler table.
     private var hoverObserverIDs: Set<HitTestRegion.HandlerID> = []
 
+    /// The handlers registered as taking no plain left press this frame
+    /// (``registerPassive(in:_:)``), cleared with the handler table.
+    private var passiveIDs: Set<HitTestRegion.HandlerID> = []
+
     /// The handlers registered to hear the wheel alone this frame
     /// (``registerWheelHandler(in:_:)``), cleared with the handler table.
     private var wheelHandlerIDs: Set<HitTestRegion.HandlerID> = []
@@ -348,6 +352,7 @@ extension MouseEventDispatcher {
         renderedSincePopupOpened = true
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)
+        passiveIDs.removeAll(keepingCapacity: true)
         wheelHandlerIDs.removeAll(keepingCapacity: true)
         gestureRoles.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
@@ -605,6 +610,21 @@ extension MouseEventDispatcher {
     /// control under it — see ``registerHoverObserver(in:_:)``.
     func noteHoverObserver(_ id: HitTestRegion.HandlerID) {
         hoverObserverIDs.insert(id)
+    }
+
+    /// Records that `id`'s handler never takes a plain left press — see
+    /// ``registerPassive(in:_:)``.
+    func notePassive(_ id: HitTestRegion.HandlerID) {
+        passiveIDs.insert(id)
+    }
+
+    /// Whether the region `id` names is known to take no plain left press:
+    /// a hover observer (a ``View/textSelection(_:)`` scope, `.onHover`,
+    /// `help(_:)`, a gesture's region, which hears the pointer through its
+    /// arena), a passive region (``registerPassive(in:_:)``), or one with no
+    /// handler. Anything else may be a control, and is taken for one.
+    func takesNoPlainLeftPress(_ id: HitTestRegion.HandlerID) -> Bool {
+        handlers[id] == nil || hoverObserverIDs.contains(id) || passiveIDs.contains(id)
     }
 
     /// Records that `id`'s handler hears the wheel and nothing else — see

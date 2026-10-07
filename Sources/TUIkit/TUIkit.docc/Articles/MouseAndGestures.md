@@ -274,11 +274,14 @@ TUIkit selects by itself, as a terminal would:
   a list's or table's row text that `.textSelection(.enabled)` made
   selectable selects it, even on a row that is `.draggable`, `.itemProvider`
   or `.onMove`, as macOS's rows do (measured on macOS 15.8); such a row drags
-  from its blank cells. So does one on a `.draggable` view's own selectable
-  text (`Text(…).textSelection(.enabled).draggable(…)`). A scope around a
-  draggable view does not make its label text: a draggable tab drags from
-  its title, and a `.draggable` view from a button's label in it, as they do
-  with no scope.
+  from its blank cells. So does one on any `.draggable` view's selectable
+  text, whichever of the two modifiers comes first
+  (`Text(…).textSelection(.enabled).draggable(…)` and
+  `Text(…).draggable(…).textSelection(.enabled)` alike, `textSelection`
+  being environment-like), in a scroll view as in a list. A control's label
+  is not text: a draggable tab drags from its title, and a `.draggable` view
+  or row from a button's label in it, as they do with no scope, and a click
+  there is still the button's.
 - **⌘C — Ctrl-C under the default `commandKey`** — copies the selection while
   it is drawn, ahead of everything else, the focused text field included.
   ⌘C itself never reaches the app: the terminal takes it for its own,

@@ -408,7 +408,7 @@ struct _Color256GridCore: View, Renderable {
         focusID: String, dispatcher: MouseEventDispatcher, context: RenderContext
     ) {
         guard !cells.isEmpty else { return }
-        let inert = dispatcher.register(in: context) { _ in false }
+        let inert = dispatcher.registerPassive(in: context) { _ in false }
         let top = cells.map(\.y).min() ?? 0
         let bottom = cells.map(\.y).max() ?? 0
         let left = cells.map(\.x).min() ?? 0

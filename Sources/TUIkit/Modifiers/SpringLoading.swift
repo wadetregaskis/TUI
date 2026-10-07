@@ -166,7 +166,7 @@ extension _SpringLoadedRegion: Renderable, Layoutable {
         // is: it takes no event, so a click on the content still reaches the
         // content, and spring-load targeting matches ids rather than taking
         // the innermost region, so it finds this one at any depth.
-        let handlerID = dispatcher.register(in: context) { _ in false }
+        let handlerID = dispatcher.registerPassive(in: context) { _ in false }
         buffer.hitTestRegions.insert(
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,

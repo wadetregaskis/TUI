@@ -142,14 +142,22 @@ session — so the evidence is that the text, not the row, received the
 press and tracked the drag.) TUIkit matches: a drag handle under selectable
 text gives a press on the text to the selection (`PressRole.dragSource`), and
 the row still drags from its blank cells and from text no `.enabled` made
-selectable. Selectable means made so by the handle's own content
-(`Text(…).textSelection(.enabled).draggable(…)`, a table row's cells) or a
-list's or table's row text kept for a selection: a scope around a draggable
-view alone leaves its label the handle's, as it is with no scope (the
-follow-ups' review found a draggable tab's title, a gradient stop and a
-`Button` in a `.draggable` view passing the press on under an outer scope, so
-the tab strip or the button took it and nothing dragged; on macOS a tab's
-title and a button's label are not selectable text). A sidebar tab view's
+selectable. Selectable is decided by the innermost scope under the press,
+filed inside the handle or around it alike, so the order of `.textSelection`
+and `.draggable` does not matter, as it does not in SwiftUI, where
+`textSelection` is environment-like; nor does the container (a scroll view
+of draggable text selects as a list of it does). A control's label is not
+selectable text (on macOS a tab's title and a button's label are not): a
+handle in front of a region that would take the press as a control — before
+anything that holds it for a selection — keeps it, as with no scope, and a
+press released there is still the control's click. What takes no plain left
+press is not a control: a scope, a hover observer, a drop zone, a context
+menu's trigger. (The follow-ups' first review found a draggable tab's title,
+a gradient stop and a `Button` in a `.draggable` view passing the press on
+under an outer scope, so the tab strip or the button took it and nothing
+dragged; its second, that the fix — selectable only under a scope the
+handle's own content filed — made the result depend on the modifiers'
+order, and on the container.) A sidebar tab view's
 list of tabs opts out of selection for the same reason: under an enabled
 scope around the tab view it kept a press on a tab's title for a selection,
 as row text is kept, so a click there selected no tab. The alternative, the owner's expectation — the row drags, and
@@ -420,12 +428,16 @@ listed — all fixed — these remain:
   into the next", true only of a container that is one view. Not fixed here.
 - **The wrap cache** (review 2 of f543a9c2d): a frame that asks more than
   eight widths evicts its own first width.
-- **Drag sources** (B-D4X-7): a `.draggable` view outside a list whose own
-  content made its text selectable follows the rows' rule — a drag on its
-  text selects — which is unmeasured on macOS for a view outside a list. In a
-  draggable List row under a scope around the List, a press on a control's
-  label in the row (a `Button`) is the control's, as in a row with no handle,
-  so the row does not drag from it (unmeasured on macOS).
+- **Drag sources** (B-D4X-7): a `.draggable` view outside a list whose text
+  is selectable follows the rows' rule — a drag on its text selects — which
+  is unmeasured on macOS for a view outside a list. A draggable view or row
+  drags from a control's label in it (a `Button`), and a click there is the
+  control's, as with no scope (unmeasured on macOS). A region that takes no
+  plain left press but is not filed as passive is taken for a control, so a
+  handle in front of it keeps a press on text: the passive regions are drop
+  zones, spring-loading zones, context menus' triggers and two containers'
+  inert regions (a tab view's, the 256-colour grid's), besides scopes and
+  hover observers.
 - **Control-click on a control** (B-D4X-7): a control that acts on a left
   press — a `Button` in a table cell, a field — takes a Control-click as its
   click, where a right-click there opens the row's menu. Making every control

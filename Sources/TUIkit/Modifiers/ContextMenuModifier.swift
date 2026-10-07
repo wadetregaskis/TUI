@@ -346,8 +346,10 @@ enum ContextMenuPresentation {
         let state = stateBox.value
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
         let onOpen = context.environment.menuOpenAction
-        // Weak: the dispatcher holds this handler (see `Button`'s).
-        let handlerID = dispatcher.register(in: context) { [weak dispatcher] event in
+        // Weak: the dispatcher holds this handler (see `Button`'s). Passive:
+        // it takes no plain left press, so a drag handle in front of it still
+        // stands aside for selectable text (`PressRole.dragSource`).
+        let handlerID = dispatcher.registerPassive(in: context) { [weak dispatcher] event in
             // Secondary click = right button, or Ctrl + left (the fallback where a
             // terminal claims right-click for itself, e.g. iTerm2 by default).
             let isSecondary =

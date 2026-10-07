@@ -201,8 +201,22 @@ struct TextSelectionRowDragTests {
         case movableList
         /// Draggable tabs inside `.textSelection(.enabled)`: a title is chrome.
         case draggableTabInScope(TabInteractionsLook)
-        /// A `.draggable` view holding a Button, inside `.textSelection(.enabled)`.
-        case draggableButtonInScope
+        /// A `.draggable` view holding a Button, with `.textSelection(.enabled)`
+        /// inside the handle or around it.
+        case draggableButton(scopeInside: Bool)
+        /// A `.draggable` Text with `.textSelection(.enabled)` inside the
+        /// handle or around it.
+        case draggableText(scopeInside: Bool)
+        /// A scroll view of `.draggable` Text inside `.textSelection(.enabled)`.
+        case draggableScrollViewInScope
+        /// A List of `.draggable` Text inside `.textSelection(.enabled)`.
+        case draggableListInScope
+        /// A `.draggable` Text whose content has a context menu and a drop
+        /// destination, inside `.textSelection(.enabled)`.
+        case draggableTextWithMenuAndDropInScope
+        /// A List whose `.draggable` rows hold a Button, inside
+        /// `.textSelection(.enabled)`.
+        case draggableListRowButtonInScope
     }
 
     struct Page: View {
@@ -250,16 +264,57 @@ struct TextSelectionRowDragTests {
                 AnyView(
                     TextSelectionRowDragTests.tabs(look)
                         .textSelection(.enabled))
-            case .draggableButtonInScope:
+            case .draggableButton(let scopeInside):
+                let row = HStack {
+                    Button("name 1") { moves.value.append("clicked") }
+                    Text("tail")
+                }
+                if scopeInside {
+                    AnyView(VStack(alignment: .leading) { row.textSelection(.enabled).draggable("dragged") })
+                } else {
+                    AnyView(VStack(alignment: .leading) { row.draggable("dragged") }.textSelection(.enabled))
+                }
+            case .draggableText(let scopeInside):
+                let text = Text("name 1 is here")
+                if scopeInside {
+                    AnyView(VStack(alignment: .leading) { text.textSelection(.enabled).draggable("dragged") })
+                } else {
+                    AnyView(VStack(alignment: .leading) { text.draggable("dragged").textSelection(.enabled) })
+                }
+            case .draggableScrollViewInScope:
+                AnyView(
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            ForEach(TextSelectionRowDragTests.items) { item in Text(item.name).draggable(item.name) }
+                        }
+                    }
+                    .textSelection(.enabled)
+                    .frame(height: 9))
+            case .draggableListInScope:
+                AnyView(
+                    List(TextSelectionRowDragTests.items) { item in Text(item.name).draggable(item.name) }
+                        .textSelection(.enabled)
+                        .frame(height: 9))
+            case .draggableTextWithMenuAndDropInScope:
                 AnyView(
                     VStack(alignment: .leading) {
-                        HStack {
-                            Button("name 1") { moves.value.append("clicked") }
-                            Text("tail")
-                        }
-                        .draggable("dragged")
+                        Text("name 1 is here")
+                            .contextMenu { Button("Act") {} }
+                            .dropDestination(for: String.self) { _, _ in true }
+                            .draggable("dragged")
                     }
                     .textSelection(.enabled))
+            case .draggableListRowButtonInScope:
+                AnyView(
+                    List(TextSelectionRowDragTests.items) { item in
+                        HStack {
+                            Button(item.name) { moves.value.append("clicked") }
+                            Text("tail")
+                        }
+                        .draggable(item.name)
+                    }
+                    .textSelection(.enabled)
+                    .frame(height: 9))
             }
         }
     }
@@ -390,12 +445,52 @@ struct TextSelectionRowDragTests {
         #expect(app.services.screenSelection.current == nil)
     }
 
-    /// The same for a control's label inside a `.draggable` view: the scope
-    /// around them makes neither selectable, and the view drags from the
-    /// label as it does with no scope.
-    @Test("Under an enabled scope a draggable view still drags from a Button's label in it")
-    func draggableViewFromButtonLabel() throws {
-        let outcome = try drag(.draggableButtonInScope, onText: true)
+    /// The same for a control's label inside a `.draggable` view: a scope
+    /// makes it no selectable text, inside the handle or around it, and the
+    /// view drags from the label as it does with no scope. (Review round 2
+    /// of the follow-ups: with the scope inside, the handle stood aside and
+    /// the Button took the press.)
+    @Test(
+        "Under an enabled scope a draggable view still drags from a Button's label in it",
+        arguments: [false, true])
+    func draggableViewFromButtonLabel(scopeInside: Bool) throws {
+        let outcome = try drag(.draggableButton(scopeInside: scopeInside), onText: true)
+        #expect(outcome.dragged)
+        #expect(outcome.selected == nil)
+        #expect(!outcome.moves.contains("clicked"))
+    }
+
+    /// `textSelection` is environment-like, so in SwiftUI the order of it and
+    /// `.draggable` changes nothing about the Text's selectability; nor does
+    /// the container. Review round 2 of the follow-ups: with the scope around
+    /// the handle, or around a scroll view of draggable text, the drag
+    /// dragged, where under a scope inside it or around a List it selected.
+    @Test(
+        "A drag on draggable selectable text selects it, whatever the modifiers' order or the container",
+        arguments: [
+            Shape.draggableText(scopeInside: true), .draggableText(scopeInside: false), .draggableScrollViewInScope,
+            .draggableListInScope,
+        ])
+    func draggableTextSelectsInAnyOrder(_ shape: Shape) throws {
+        let outcome = try drag(shape, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+    }
+
+    /// A context menu's trigger and a drop zone take no plain left press:
+    /// in front of them, as in front of nothing, the handle stands aside.
+    @Test("A drag on draggable text selects it through a context menu and a drop destination")
+    func draggableTextThroughPassiveRegions() throws {
+        let outcome = try drag(.draggableTextWithMenuAndDropInScope, onText: true)
+        #expect(outcome.selected?.hasPrefix("name 1") == true)
+        #expect(!outcome.dragged)
+    }
+
+    /// In a List, a draggable row drags from a Button's label in it, as a
+    /// draggable view does, rather than the Button taking the press.
+    @Test("Under an enabled scope a draggable List row drags from a Button's label in it")
+    func draggableListRowFromButtonLabel() throws {
+        let outcome = try drag(.draggableListRowButtonInScope, onText: true)
         #expect(outcome.dragged)
         #expect(outcome.selected == nil)
         #expect(!outcome.moves.contains("clicked"))
