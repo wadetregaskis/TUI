@@ -151,7 +151,14 @@ reason (an `if` switched, a `DisclosureGroup` collapsed and opened again) was
 still held; and it asked whether the presenter drew anything all pass, so one
 the discarded walk of a `.global` reader's correction drew and the drawn walk
 left out read as drawn. The verdict is the frame's last walk's, kept for every
-walk of the next frame (`PaneLedger.undrawnUnderTheirDock`).
+walk of the next frame (`PaneLedger.undrawnUnderTheirDock`). Within a walk it
+is the kept drawing's: a scroll view that draws its content again at the
+offset the frame settles on (a bottom-glued log re-glued to the tail the dock
+moved) puts back the docks and the row notes its first drawing made
+(`RenderWalkCheckpoint`), as it puts back the drawing's handler ids — left
+in, a presenter the first drawing alone drew read as drawn, and the docked
+rows stayed blank, the focus in a sheet nothing showed, until some other
+frame.
 
 And for the whole presentation, an `item:` sheet's switches to other items
 included (follow-up FU3): the switch starts the sheet over

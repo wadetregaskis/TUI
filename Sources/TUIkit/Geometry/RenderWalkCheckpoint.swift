@@ -29,7 +29,15 @@ import TUIkitView
 /// - a memo recording around the subtree (`EffectJournal`) would keep what
 ///   both drawings registered, and make the first drawing's registrations
 ///   again on every frame it serves — the handlers of rows the frame never
-///   showed.
+///   showed;
+/// - a live sheet's dock (`PaneLedger.docks`) and a windowing container's
+///   note of the rows it drew (`StateStorage.noteWindowedRows`) are what the
+///   frame's settle asks about the walk drawn
+///   (`FocusManager.settlePresentationDock`). Left in, a presenter the first
+///   drawing alone drew had posted its dock, so a sheet whose presenter the
+///   kept drawing left out read as drawn — the docked rows stayed blank, the
+///   focus in a sheet nothing showed, and no frame was asked for to settle
+///   it — and a row the first drawing alone left out read as left out.
 ///
 /// ``rollBack(context:)`` puts those back. What it cannot put back is what the
 /// first drawing DID: an `onChange` that fired, a task that started. Those
@@ -62,6 +70,12 @@ struct RenderWalkCheckpoint {
     /// How many entries the recording memo's journal held, or `nil` when no
     /// memo records here.
     private let journalCount: Int?
+    /// The docks the walk's live sheets had posted, or `nil` without a focus
+    /// manager. Kept whole: a dictionary has no order to cut back to, and the
+    /// copy is a reference until a drawing posts.
+    private let docks: [String: PaneLedger.PostedDock]?
+    /// How many windowing containers had noted the rows they drew.
+    private let windowedRowsNoted: Int?
 
     /// Notes where the walk stands, before the subtree at `context.identity`
     /// renders.
@@ -74,6 +88,8 @@ struct RenderWalkCheckpoint {
         keyMark = context.environment.keyEventDispatcher?.mark
         preferences = context.environment.preferenceStorage?.current
         journalCount = context.recordingEffectJournal?.count
+        docks = context.environment.focusManager?.panes.docks
+        windowedRowsNoted = context.stateStorage?.windowedRowsNoted
     }
 
     /// Puts the registrations back to where they stood, for the subtree to be
@@ -99,6 +115,9 @@ struct RenderWalkCheckpoint {
         if let keyMark { context.environment.keyEventDispatcher?.rollBack(to: keyMark) }
         if let preferences { context.environment.preferenceStorage?.current = preferences }
         if let journalCount { context.renderCache?.effectJournal.truncate(to: journalCount) }
+        // What the settle asks of the walk is the kept drawing's alone.
+        if let docks { context.environment.focusManager?.panes.docks = docks }
+        if let windowedRowsNoted { context.stateStorage?.rewindWindowedRows(to: windowedRowsNoted) }
         // A value the first drawing saw for the first time, and the second sees
         // differently, appears at the second's: the first is never shown, so
         // there is nothing for it to animate from (`AnimationStore.beginWalk()`).

@@ -197,7 +197,10 @@ extension FocusManager {
     ///
     /// Asked of THIS walk: a frame walked twice draws only its last, so a
     /// presenter an earlier walk drew and the drawn walk left out was left
-    /// out. And asked of the ROW, not of the presenter's ancestry: one below a
+    /// out — and of the drawing the walk kept, where it drew a subtree twice
+    /// (a scroll view's band drawn again at the offset the frame settled on),
+    /// whose first drawing's docks and row notes `RenderWalkCheckpoint` puts
+    /// back. And asked of the ROW, not of the presenter's ancestry: one below a
     /// drawn `List` whose branch was not taken this frame, or whose disclosure
     /// group was collapsed, was not left out of the window, and docking again
     /// would not leave it out.

@@ -143,7 +143,9 @@ public final class StateStorage: @unchecked Sendable {
     /// What this WALK's windowing containers drew of their rows
     /// (``noteWindowedRows(_:)``). Per walk, not per pass: a pass that walks
     /// twice — a `.global` reader's correction — draws only its last walk,
-    /// and a row an earlier walk drew may be one the drawn walk left out.
+    /// and a row an earlier walk drew may be one the drawn walk left out. And
+    /// a subtree drawn twice within the walk keeps its last drawing's notes
+    /// alone (``rewindWindowedRows(to:)``).
     private var windowedRows: [WindowedRows] = []
 
     /// The render cache that state changes should invalidate — the cache of the
@@ -323,6 +325,20 @@ extension StateStorage {
     @MainActor
     package func wasLeftOutOfAWindow(_ identity: ViewIdentity) -> Bool {
         windowedRows.contains { $0.leftOut(identity) }
+    }
+
+    /// How many containers have noted their rows so far this walk
+    /// (``noteWindowedRows(_:)``) — where a view that may draw a subtree again
+    /// in the same walk notes the walk stands (`RenderWalkCheckpoint`).
+    package var windowedRowsNoted: Int { windowedRows.count }
+
+    /// Forgets what containers noted after the first `count` — a subtree's
+    /// first drawing, which the same walk is about to draw again: only the
+    /// drawing kept may say which rows were drawn, or a row the discarded
+    /// drawing left out reads as left out of the walk, and the settle holds a
+    /// sheet off the dock whose presenter the drawn rows include.
+    package func rewindWindowedRows(to count: Int) {
+        if windowedRows.count > count { windowedRows.removeSubrange(count...) }
     }
 
     // MARK: - Conditional Branch Tracking

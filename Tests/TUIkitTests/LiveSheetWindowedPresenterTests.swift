@@ -114,13 +114,21 @@ private enum RowHost {
     case longMixedLazyStack
     /// A `Table` whose cell presents it.
     case table
+    /// A long lazy stack of one-line rows glued to its bottom, presenting
+    /// from a row in the top rows of the viewport: on the frame the dock
+    /// shortens the page, the scroll view draws its content once at the
+    /// offset it had, the presenter among it, and again at the new tail,
+    /// without it (`coverSnappedViewport`), in one walk.
+    case bottomGluedLazyStack
 
     /// The row that presents: row 15 of one-line rows, row 12 where every
-    /// fourth row is two lines tall — line 15 either way.
+    /// fourth row is two lines tall — line 15 either way; line 2 of the 20
+    /// a glued stack shows of its 200.
     var presenter: Int {
         switch self {
         case .uniformLazyStack, .table: 15
         case .mixedLazyStack, .longMixedLazyStack: 12
+        case .bottomGluedLazyStack: 182
         }
     }
 }
@@ -150,6 +158,15 @@ private struct RowHostedApp: App {
                         }
                     }
                 }
+            case .bottomGluedLazyStack:
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(0..<200, id: \.self) { index in
+                            Text("row \(index)").sheet(isPresented: presented(index)) { livePanel() }
+                        }
+                    }
+                }
+                .defaultScrollAnchor(.bottom)
             case .table:
                 Table((0..<30).map { Item(id: $0) }) {
                     TableColumn("Row") { (item: Item) in
@@ -211,7 +228,7 @@ struct LiveSheetWindowedPresenterTests {
     /// the page and the sheet stop alternating.
     @Test(
         "A sheet whose dock pushes its row out of a lazy stack's or a table's window settles as a modal",
-        arguments: [RowHost.uniformLazyStack, .mixedLazyStack, .longMixedLazyStack, .table])
+        arguments: [RowHost.uniformLazyStack, .mixedLazyStack, .longMixedLazyStack, .table, .bottomGluedLazyStack])
     fileprivate func rowHostedSheetDoesNotLoop(host: RowHost) {
         let model = WindowedHoldModel()
         let app = HeadlessApp(RowHostedApp(model: model, host: host), width: 40, height: 20)
