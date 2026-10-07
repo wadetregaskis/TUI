@@ -233,6 +233,16 @@ class AssignerTests(unittest.TestCase):
         self.assertEqual([x.scheduled for x in ups], ['K9'])
         self.assertEqual(checks.stale_rules(R, ups), [])
 
+    def test_each_scheduled_entry_goes_stale_on_its_own(self):
+        # Entries that share an id (K4 has an upward and a posix one; K6 a posix one per file) are separate items.
+        M, files = two_module_model(pin_lists=True)
+        R = rules(files=files, declarations=PIN_A,
+                  scheduled=[{'id': 'K9', 'check': 'upward', 'from': '^Base/A', 'to': '::L$', 'why': ''},
+                             {'id': 'K9', 'check': 'upward', 'from': '^Base/Landed', 'to': '.', 'why': ''}])
+        asg, _ = assigner.assign(M, R)
+        stale = checks.stale_rules(R, checks.upward(M, R, asg))
+        self.assertEqual([x.key for x in stale], ['scheduled K9 upward ^Base/Landed'])
+
     def test_a_scheduled_entry_that_matches_nothing_is_stale(self):
         M, _ = two_module_model()
         R = rules(scheduled=[{'id': 'K9', 'check': 'upward', 'from': '^Nowhere', 'to': '.', 'why': ''}])

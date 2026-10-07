@@ -21,8 +21,8 @@ class Rules:
         self.files = [(r['module'], bool(r.get('pin')), re.compile(r['match'])) for r in data['files']]
         self.decls = [(r['module'], re.compile(r['match'])) for r in data.get('declarations', [])]
         self.unpin = [re.compile(r['match']) for r in data.get('unpin', [])]
-        self.scheduled = [dict(r, from_rx=re.compile(r['from']), to_rx=re.compile(r['to']))
-                          for r in data.get('scheduled', [])]
+        self.scheduled = [dict(r, index=i, from_rx=re.compile(r['from']), to_rx=re.compile(r['to']))
+                          for i, r in enumerate(data.get('scheduled', []))]
         self.accepted = {(r['check'], r['key']): r for r in data.get('accepted', [])}
         for m, _, _ in self.files: self._known(m, 'files')
         for m, _ in self.decls: self._known(m, 'declarations')

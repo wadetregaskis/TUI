@@ -13,6 +13,7 @@ class Finding:
     def __init__(self, check, key, message, file=None, line=None):
         self.check, self.key, self.message, self.file, self.line = check, key, message, file, line
         self.scheduled = None           # the `scheduled` rule id that covers it (a refactor that has not landed)
+        self.rule = None                # that rule's index in rules.json (several entries may share an id)
         self.accepted = None            # the `accepted` entry's reason
         self.weight = 1                 # the references it stands for (upward: the edge's count)
 
@@ -32,7 +33,7 @@ def upward(M, R, asg):
                         f'{ma} -> {mb}: {M.label(a)} uses {M.label(b)} ({k} reference{"s" if k > 1 else ""})', f, ln)
             x.weight = k
             s = R.scheduled_for('upward', M.base_label(a), M.base_label(b))
-            if s: x.scheduled = s['id']
+            if s: x.scheduled, x.rule = s['id'], s['index']
             out.append(x)
     return out
 
@@ -146,7 +147,7 @@ def posix(M, R, asg):
         x = Finding('posix', f'{M.label(src)} uses {what}',
                     f'{asg[src]}: {M.label(src)} uses {what}, which only POSIX platforms have', f, ln)
         s = R.scheduled_for('posix', M.base_label(src), what)
-        if s: x.scheduled = s['id']
+        if s: x.scheduled, x.rule = s['id'], s['index']
         out.append(x)
     imports = '|'.join(map(re.escape, cfg.get('imports', ())))
     if imports:
@@ -185,11 +186,11 @@ def umbrella(M, R, asg):
 def stale_rules(R, findings):
     """A `scheduled` or `accepted` entry that no longer matches anything: the refactor landed, or the code moved.
     Delete it, so the rules stay a list of open items."""
-    used_sched = {(x.check, x.scheduled) for x in findings if x.scheduled}
+    used_sched = {x.rule for x in findings if x.scheduled}       # per entry: K4 and K6 have several
     used_acc = {(x.check, x.key) for x in findings if x.accepted}
     out = []
     for r in R.scheduled:
-        if (r['check'], r['id']) not in used_sched:
+        if r['index'] not in used_sched:
             out.append(Finding('rules', f'scheduled {r["id"]} {r["check"]} {r["from"]}',
                                f'scheduled {r["id"]} ({r["check"]}) matches nothing now: if the refactor landed, '
                                f'delete the entry from rules.json'))
