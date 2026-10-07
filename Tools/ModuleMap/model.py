@@ -28,8 +28,6 @@ _ACCESS = re.compile(r'(?:^|[\s)])(?:package|internal|fileprivate|private)\s+(?=
                      r'|prefix|postfix|infix)\b|@)')
 
 
-
-
 def visible_modules(top, me, lexed):
     """The modules beside `me` under `top` that `me`'s sources (lexed, comments stripped) import, and what those
     re-export (`@_exported import`), transitively: everything `me` can use of them. The package's other modules
