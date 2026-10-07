@@ -325,9 +325,10 @@ extension ProgressView: @preconcurrency Equatable where Label: Equatable, Curren
         // Every stored property: two timers over different intervals draw
         // different bars, and a memo keyed on this answer serves one for the
         // other if the interval is left out.
-        lhs.fraction == rhs.fraction && lhs.flags == rhs.flags && lhs.timerStart == rhs.timerStart
-            && lhs.timerEnd == rhs.timerEnd && lhs.style == rhs.style && lhs.label == rhs.label
-            && lhs.currentValueLabel == rhs.currentValueLabel
+        guard lhs.fraction == rhs.fraction, lhs.flags == rhs.flags, lhs.timerStart == rhs.timerStart,
+            lhs.timerEnd == rhs.timerEnd, lhs.style == rhs.style, lhs.label == rhs.label
+        else { return false }
+        return lhs.currentValueLabel == rhs.currentValueLabel
     }
 }
 
@@ -528,9 +529,11 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
             width: Int, style: IndeterminateStyle, filled: Color, empty: Color, accent: Color,
             gradient: Gradient?, speed: IndicatorAnimationSpeed, pictures: Bool
         ) -> Bool {
-            self.width == width && self.style == style && self.filled == filled
-                && self.empty == empty && self.accent == accent && self.gradient == gradient
-                && self.speed == speed && self.pictures == pictures
+            guard self.width == width, self.style == style, self.filled == filled,
+                self.empty == empty, self.accent == accent, self.gradient == gradient,
+                self.speed == speed
+            else { return false }
+            return self.pictures == pictures
         }
     }
 

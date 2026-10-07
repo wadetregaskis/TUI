@@ -114,9 +114,11 @@ enum TerminalModeQuery {
     /// Whether one complete escape sequence is a DECRPM reply,
     /// `CSI ? Ps ; Pm $ y`, about any mode. No key sends one.
     static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
-        sequence.count >= 4 && sequence.first == 0x1B
-            && sequence[sequence.startIndex + 1] == 0x5B
-            && sequence[sequence.endIndex - 2] == 0x24 && sequence.last == 0x79  // '$' 'y'
+        guard sequence.count >= 4, sequence.first == 0x1B,
+            sequence[sequence.startIndex + 1] == 0x5B,
+            sequence[sequence.endIndex - 2] == 0x24
+        else { return false }
+        return sequence.last == 0x79  // '$' 'y'
     }
 }
 

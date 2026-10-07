@@ -218,12 +218,13 @@ extension ScrollView {
 
 extension ScrollView: @preconcurrency Equatable where Content: Equatable {
     public static func == (lhs: ScrollView<Content>, rhs: ScrollView<Content>) -> Bool {
-        lhs.axes == rhs.axes
-            && lhs.content == rhs.content
-            && lhs.explicitFocusID == rhs.explicitFocusID
-            && lhs.isDisabled == rhs.isDisabled
-            && lhs.isFocusStop == rhs.isFocusStop
-            && lhs.isChrome == rhs.isChrome
+        guard lhs.axes == rhs.axes,
+            lhs.content == rhs.content,
+            lhs.explicitFocusID == rhs.explicitFocusID,
+            lhs.isDisabled == rhs.isDisabled,
+            lhs.isFocusStop == rhs.isFocusStop
+        else { return false }
+        return lhs.isChrome == rhs.isChrome
     }
 }
 

@@ -122,9 +122,10 @@ public struct StyleAttributes: Sendable, Hashable {
 
     /// Whether no attribute is set (every field is `nil`).
     public var isEmpty: Bool {
-        foreground == nil && background == nil && bold == nil && italic == nil
-            && underline == nil && strikethrough == nil && dim == nil && textCase == nil
-            && textScale == nil
+        guard foreground == nil, background == nil, bold == nil, italic == nil,
+            underline == nil, strikethrough == nil, dim == nil, textCase == nil
+        else { return false }
+        return textScale == nil
     }
 
     /// Returns a copy where `self`'s non-`nil` fields win over `base` — the
