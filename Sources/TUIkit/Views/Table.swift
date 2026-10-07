@@ -3119,9 +3119,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // steering this", the dim says "it is not in the list right now",
             // and both are true at once. Substituting one for the other is why
             // a Table stopped dimming as soon as the move came from the
-            // keyboard. Persistent: `renderRow` emits a reset per styled run —
-            // starting with the selection-indicator gutter, so a bare wrapper
-            // died at cell one. The dim goes onto every frame of the pulse for
+            // keyboard. Persistent: `renderRow` resets inside the row — after
+            // every styled run where the row has no still fill, starting with
+            // the selection-indicator gutter, so a bare wrapper died at cell
+            // one; under a stripe or a tint (SGR 39 closes its runs, see
+            // `inkClose(under:)`) after any cell whose text carries escapes
+            // of its own. The dim goes onto every frame of the pulse for
             // the same reason it goes onto the drawn line: a run that replayed
             // the undimmed row would un-dim it on the first tick.
             return (
