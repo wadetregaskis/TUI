@@ -374,11 +374,21 @@ is read from the code; it needs a real stop to test.
 
 ### Still open after the follow-ups
 
+After the follow-ups' own review (round 1), which found the upstream drag
+head read on the row before, drag handles yielding to a tab's title, a
+Control-click going nowhere over a pane with no menu, a stale `STY`
+outranking tmux, `tmux*`-named wrappers taken for tmux, a dead screen
+selection read every frame, and the probe advising a plain-text copy where
+types cannot be listed — all fixed — these remain:
+
 - **Clipboard locality** (B-D4X-13): a session keeper TUIkit does not know
   passes as a plain parent; a nested tmux at the desk is "not local" (its
   outer server is not asked for its clients); under GNU screen nothing is
   copied (no DCS passthrough), and screen 5 is unmeasured; nothing on a host
-  is measured yet (`clipboard_probe.py` is owed its runs).
+  is measured yet (`clipboard_probe.py` is owed its runs). A tmux server
+  started inside screen keeps screen's stale `STY`, which still makes its
+  sessions "not local" at the desk (failing safe: the ladder now lets tmux's
+  `set-clipboard` carry the copy by OSC 52 there).
 - **Paste away from the machine** (B-D4X-14): Ctrl-V pastes the app's own
   last copy, which may be older than the user's — said so now, still pasted.
 - **The screen selection** (B-D4X-15): content moved inside an unchanged
@@ -400,14 +410,23 @@ is read from the code; it needs a real stop to test.
   into the next", true only of a container that is one view. Not fixed here.
 - **The wrap cache** (review 2 of f543a9c2d): a frame that asks more than
   eight widths evicts its own first width.
-- **Drag sources** (B-D4X-7): a `.draggable` view outside a list whose text
-  is `.enabled` follows the rows' rule — a drag on its text selects — which
-  is unmeasured on macOS for a view outside a list.
+- **Drag sources** (B-D4X-7): a `.draggable` view outside a list whose own
+  content made its text selectable follows the rows' rule — a drag on its
+  text selects — which is unmeasured on macOS for a view outside a list. In a
+  draggable List row under a scope around the List, a press on a control's
+  label in the row (a `Button`) is the control's, as in a row with no handle,
+  so the row does not drag from it (unmeasured on macOS).
+- **Control-click on a control** (B-D4X-7): a control that acts on a left
+  press — a `Button` in a table cell, a field — takes a Control-click as its
+  click, where a right-click there opens the row's menu. Making every control
+  decline a Control-press would change every app's buttons; macOS unmeasured.
 - **Table cell readers** (B-D5G-2): located now, but a cell carries no
   origin, so a reader's first frame costs a second walk of the scene.
 - **The probe** (148a07f5d): with no helper to read the clipboard (over ssh
   without `--manual`), the leak check runs only with `--clobber`, since its
-  write cannot be put back.
+  write cannot be put back. Its macOS rich-text type names (`«class rtfd»`
+  and the rest) are unverified on a Mac; they only choose the refusal's
+  wording.
 - **The A/B note on 2b3295280**: the `text-editor*` Stress variants now sit
   in a conditional, so an A/B of f543a9c2d must hold the Stress sources
   fixed across both builds.
