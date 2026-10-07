@@ -121,6 +121,28 @@ struct AlternatingRowBackgroundsTests {
         #expect(!paintsBackground(line("row1", in: automatic)))
     }
 
+    @Test("A kept row that moves to the other parity is repainted, not composed again")
+    func parityMoveRepaints() throws {
+        var rows = Self.rows
+        let context = makeRenderContext(width: 30, height: 10)
+        let cache = try #require(context.renderCache)
+        func frame() -> FrameBuffer {
+            renderToBuffer(Table(rows) { TableColumn("Name", value: \Row.name) }, context: context)
+        }
+        for _ in 0..<3 { _ = frame() }
+        // A newest-first log gaining an entry: every kept row moves one down,
+        // to the other parity.
+        rows.insert(Row(id: 9, name: "new"), at: 0)
+        let before = cache.rowWork.rendered
+        let moved = frame()
+        // The new row and the cursor's (never kept) are composed; the four that
+        // moved are not.
+        #expect(cache.rowWork.rendered - before <= 2, "\(cache.rowWork.rendered - before) rows composed")
+        #expect(!paintsBackground(line("row1", in: moved)))
+        #expect(paintsBackground(line("row2", in: moved)))
+        #expect(!paintsBackground(line("row3", in: moved)))
+    }
+
     @Test("A kept striped row takes the stripe of the surface the table moved onto")
     func memoFollowsTheSurface() throws {
         var context = makeRenderContext(width: 30, height: 10)

@@ -132,27 +132,53 @@ struct TableRowMemoLine {
     let isSelected: Bool
     /// Whether the row drew a stripe (`.alternatingRowBackgrounds()`), which
     /// follows its POSITION: a row that moved to the other parity draws
-    /// another background over the same cells.
-    let isStriped: Bool
+    /// another background over the same cells — repainted from ``bare``, not
+    /// composed again (`Table.renderRow`), so `var`.
+    var isStriped: Bool
     /// Whether the row drew faint, refusing selection
     /// (`.selectionDisabled()`), which its cells do not say.
     let isDimmed: Bool
-    let line: String
-    let claims: [OpacityRegion]
+    var line: String
+    var claims: [OpacityRegion]
+    /// The line as composed before its background, where that background was
+    /// still — or `nil` for one that breathed, which is never kept anyway.
+    ///
+    /// A table stripes by default (decisions A29), and a stripe follows the
+    /// row's POSITION: one row inserted or removed above the window moves every
+    /// row below it to the other parity, a newest-first log on every entry it
+    /// gains. Each of those rows has the cells it had; only its background
+    /// moved. Composing them again — every visible row, whenever the data
+    /// gained a row at the top — is what the memo exists to avoid, so the
+    /// entry keeps what a repaint needs instead.
+    let bare: TableRowBareLine?
 
-    /// Whether this entry answers for a row whose cells are `cells`.
-    func answers(cells other: [String], isSelected: Bool, isStriped: Bool, isDimmed: Bool) -> Bool {
-        self.isSelected == isSelected && self.isStriped == isStriped && self.isDimmed == isDimmed
-            && cells == other
+    /// Whether this entry answers for a row whose cells are `cells`, at either
+    /// parity (see ``bare``).
+    func answers(cells other: [String], isSelected: Bool, isDimmed: Bool) -> Bool {
+        self.isSelected == isSelected && self.isDimmed == isDimmed && cells == other
     }
 
     /// Whether this entry answers for `row` WITHOUT computing its cells — only
     /// for a table whose every column names its value, where the cells are a
-    /// pure function of the row.
-    func answers(row other: AnyEquatableBox, isSelected: Bool, isStriped: Bool, isDimmed: Bool) -> Bool {
-        self.isSelected == isSelected && self.isStriped == isStriped && self.isDimmed == isDimmed
-            && self.row == other
+    /// pure function of the row. At either parity, as the cell test.
+    func answers(row other: AnyEquatableBox, isSelected: Bool, isDimmed: Bool) -> Bool {
+        self.isSelected == isSelected && self.isDimmed == isDimmed && self.row == other
     }
+}
+
+/// A composed table row before its background is painted: what a repaint under
+/// another still background needs, so that a kept row that moved to the other
+/// stripe parity is not composed again (``TableRowMemoLine/bare``).
+struct TableRowBareLine {
+    /// The row's line — mark, cells and spacing, dimmed where it refuses
+    /// selection — unpadded and unpainted.
+    let content: String
+    /// Where its cells end, which is the line's visible width.
+    let cellColumn: Int
+    /// The cells' ink and the gutter mark's colour (`nil` without a gutter),
+    /// for the claims the line owes (``SelectableRowClaims``).
+    let ink: Color
+    let mark: Color?
 }
 
 /// A table's kept row lines, and the frame key they were composed under.

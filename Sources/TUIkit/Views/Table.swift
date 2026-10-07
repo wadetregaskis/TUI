@@ -5104,15 +5104,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
             return (kept.line, nil, nil, kept.claims, payload)
         }
-        func compose(_ cells: [String]) -> DrawnSingleLineRow {
+        /// `kept` at the stripe parity this row has NOW: as kept, or repainted
+        /// from its bare line under the background the other parity gives it —
+        /// `nil` where it has no bare line to repaint. See
+        /// ``TableRowMemoLine/bare``.
+        func atParity(_ kept: TableRowMemoLine, isStriped: Bool) -> TableRowMemoLine? {
+            guard kept.isStriped != isStriped else { return kept }
+            guard let bare = kept.bare,
+                let repainted = Self.repainted(
+                    bare,
+                    under: rowVisualState(
+                        isFocused: false, isSelected: isSelected, isStriped: isStriped, context: context,
+                        palette: palette
+                    ).background,
+                    rowWidth: paint.width, gutter: selectionGutter(context.environment))
+            else { return nil }
+            var moved = kept
+            (moved.isStriped, moved.line, moved.claims) = (isStriped, repainted.line, repainted.claims)
+            handler?.tableRowMemo.keep(moved, for: item.id)
+            return moved
+        }
+        func compose(_ cells: [String]) -> (row: DrawnSingleLineRow, bare: TableRowBareLine?) {
             let row = renderRowUncached(
                 cells: cells, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, isReturningHome: isReturningHome,
                 context: context, palette: palette)
             // A row walking home draws a blank, and a blank has nothing to click.
             return (
-                row.line, row.pulseFrames, row.pulseTiming, row.claims,
-                isReturningHome ? _TableRowPayload() : payload)
+                (row.line, row.pulseFrames, row.pulseTiming, row.claims, isReturningHome ? _TableRowPayload() : payload),
+                row.bare)
         }
         // A ramp colours a row by its ORDINAL, which moves when the table
         // scrolls while the row does not, so a ramped table keeps nothing.
@@ -5131,12 +5151,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let cellContext = isFocused && isSelected ? Self.raised(context) : context
             return compose(
                 rowCells(
-                    for: item, columnWidths: columnWidths, context: cellContext, payload: &payload))
+                    for: item, columnWidths: columnWidths, context: cellContext, payload: &payload)
+            ).row
         }
         let kept = handler.tableRowMemo.entry(for: item.id)
         let rowBox = Self.rowsSignature(of: item)
         // A row that moved to the other parity changes its stripe, which
-        // neither its cells nor its selection say.
+        // neither its cells nor its selection say — and which `atParity`
+        // repaints rather than composing the row again.
         let isStriped = isStriped(row: paint.row, environment: context.environment)
         // And one that came to refuse selection draws faint, which its cells
         // do not say either.
@@ -5148,9 +5170,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // not running the cells: a column that names its value is never a view,
         // so there is no control in the row to register.
         if let kept, let rowBox, handler.tableRowMemo.namesItsValues,
-            kept.answers(row: rowBox, isSelected: isSelected, isStriped: isStriped, isDimmed: isDimmed)
+            kept.answers(row: rowBox, isSelected: isSelected, isDimmed: isDimmed),
+            let atThisParity = atParity(kept, isStriped: isStriped)
         {
-            return serve(kept)
+            return serve(atThisParity)
         }
 
         // Otherwise the closures have to run — that is the app's own cost and
@@ -5159,7 +5182,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let cells = rowCells(
             for: item, columnWidths: columnWidths, context: context, payload: &payload)
         if let kept,
-            kept.answers(cells: cells, isSelected: isSelected, isStriped: isStriped, isDimmed: isDimmed)
+            kept.answers(cells: cells, isSelected: isSelected, isDimmed: isDimmed),
+            let atThisParity = atParity(kept, isStriped: isStriped)
         {
             // Re-point the entry at THIS row, or a row that changed in a way its
             // columns do not show would take this path for ever — see
@@ -5170,12 +5194,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // The kept line, and the payload of the cells that just ran: their
             // controls registered on THIS frame, under ids the line's regions
             // must name.
-            return serve(kept)
+            return serve(atThisParity)
         }
 
         let tracker = context.environment.volatileReadTracker
         let unsafeBefore = tracker?.cacheUnsafeCount ?? 0
-        let result = compose(cells)
+        let (result, bare) = compose(cells)
         // A row that BREATHES is one frame of a cycle, and a row that consulted
         // a per-frame value said so — neither may be kept, by the rule every
         // other memo in the framework states as "never a time-varying subtree".
@@ -5185,7 +5209,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.tableRowMemo.keep(
             TableRowMemoLine(
                 row: rowBox, cells: cells, isSelected: isSelected, isStriped: isStriped,
-                isDimmed: isDimmed, line: result.line, claims: result.claims),
+                isDimmed: isDimmed, line: result.line, claims: result.claims, bare: bare),
             for: item.id)
         return result
     }
@@ -5290,7 +5314,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         palette: any Palette,
     ) -> (
         line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
-        claims: [OpacityRegion]
+        claims: [OpacityRegion], bare: TableRowBareLine?
     ) {
         // Composed from scratch, which for a `Table` is every drawn row of every
         // frame — the asymmetry with `List`, whose rows reach `_MemoizedRow` and
@@ -5302,7 +5326,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // `_ListCore.renderRow`, which does the same for the same reason.
         // Nothing animates: a run would paint over the blank on its next tick.
         guard !isReturningHome else {
-            return (String(repeating: " ", count: max(0, rowWidth)), nil, nil, [])
+            return (String(repeating: " ", count: max(0, rowWidth)), nil, nil, [], nil)
         }
         let visualState = rowVisualState(
             isFocused: isFocused,
@@ -5416,6 +5440,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if selectionDisabledRows.contains(row) {
             content = ANSIRenderer.applyPersistentDim(content)
         }
+        // A row one colour along its length, under a still background, is the
+        // bare line painted — the one way `repainted(_:under:rowWidth:gutter:)`
+        // draws it, for this frame and for the row memo's repaint at the other
+        // stripe parity (``TableRowMemoLine/bare``). Every row but the cursor's
+        // and a ramped one.
+        if !bandsAcrossRow, ramp == nil, visualState.background.framePaints == nil {
+            let bare = TableRowBareLine(
+                content: content, cellColumn: cellColumn, ink: cellInk,
+                mark: gutter > 0 ? visualState.indicatorColor : nil)
+            if let still = Self.repainted(bare, under: visualState.background, rowWidth: rowWidth, gutter: gutter) {
+                return (still.line, nil, nil, still.claims, bare)
+            }
+        }
         guard case .none = visualState.background else {
             // `cellColumn` IS this line's visible width, so nothing rescans it:
             // the loop above walked it from `gutter` through every spacing and
@@ -5428,8 +5465,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // selected or focused row of every frame.
             content.append(contentsOf: asciiSpaces(rowWidth - cellColumn))
             let fill = visualState.background.claimableFill
+            // A ramped row's still background (every other still row was
+            // painted above, through `repainted`).
             guard let paints = visualState.background.framePaints else {
-                return (visualState.background.painting(content), nil, nil, claims(fill: fill))
+                return (visualState.background.painting(content), nil, nil, claims(fill: fill), nil)
             }
             let frames = paints.map { $0.painting(content) }
             // The pulse's own frames need no spelling and earn no fill claim: both
@@ -5439,13 +5478,41 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // `resolvingOpacity` re-blends every frame through it.
             return (
                 frames[visualState.background.stepNow], frames,
-                visualState.background.pulseTiming, claims(fill: nil))
+                visualState.background.pulseTiming, claims(fill: nil), nil)
         }
         // A bare line, not a one-element array: a table renders every visible
         // row every frame, and the allocator is where its time goes (see the
         // one-SGR-introducer notes above). The multi-line and slot paths do
         // produce several lines, and say so with `RenderedRow`.
-        return (content, nil, nil, claims(fill: nil))
+        return (content, nil, nil, claims(fill: nil), nil)
+    }
+
+    /// `bare` under a still `background`: padded to the row's width and painted,
+    /// or left as it is under none — with the claims the line owes either way,
+    /// as ``SelectableRowClaims`` states them for a row one colour along its
+    /// length. `nil` for a background that breathes, which is painted frame by
+    /// frame instead.
+    ///
+    /// What a row's line is under a still background, for the row composed this
+    /// frame and for a kept row repainted at the other stripe parity — so the
+    /// two cannot draw the same row differently.
+    private static func repainted(
+        _ bare: TableRowBareLine, under background: RowBackground, rowWidth: Int, gutter: Int
+    ) -> (line: String, claims: [OpacityRegion])? {
+        func claims(fill: Color?) -> [OpacityRegion] {
+            SelectableRowClaims.claims(
+                line: 0, width: rowWidth, cells: gutter..<bare.cellColumn, ink: bare.ink, mark: bare.mark,
+                fill: fill)
+        }
+        guard case .none = background else {
+            guard background.framePaints == nil else { return nil }
+            // `cellColumn` IS the line's visible width — see the note in
+            // `renderRowUncached` — so nothing rescans it.
+            var padded = bare.content
+            padded.append(contentsOf: asciiSpaces(rowWidth - bare.cellColumn))
+            return (background.painting(padded), claims(fill: background.claimableFill))
+        }
+        return (bare.content, claims(fill: nil))
     }
 
     /// A breathing line and every frame of it, at its position among the lines being
