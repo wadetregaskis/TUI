@@ -23,6 +23,45 @@ enum TerminalURLOpening {
     nonisolated(unsafe) static var isEnabled = false
 }
 
+// MARK: - This machine's opener
+
+/// This machine's URL opener, as ``OpenURLAction`` reaches it when a handler
+/// defers to the system (``OpenURLAction/Result/systemAction``) and
+/// ``TerminalURLOpening/isEnabled`` lets it.
+///
+/// Declared here and implemented above: the app's run loop installs the one
+/// that launches `open` or `xdg-open` (`SystemURLOpener`, a subprocess, which
+/// belongs with the run loop's other POSIX code) into the ``TUIContext`` it
+/// creates, and every other context — a headless run's, a snapshot's, a
+/// test's — gets an ``InMemoryURLOpener``, so nothing but a running app ever
+/// launches a browser. The environment carries the context's opener
+/// (``EnvironmentValues/urlOpener``), and an action read from it carries it
+/// on, so a URL opened from an event handler, long after the render, still
+/// reaches the context that drew the link.
+protocol URLOpenerBackend: Sendable {
+    /// Hands `url` to the opener, answering whether it took it.
+    func open(_ url: URL) -> Bool
+}
+
+/// A URL opener that launches nothing and keeps what it was handed: what a
+/// context gets unless the app's run loop installs this machine's
+/// (``URLOpenerBackend``).
+///
+/// One per context, so two contexts in one process — a test suite — keep
+/// their URLs apart.
+final class InMemoryURLOpener: URLOpenerBackend {
+    private let urls = Lock<[URL]>(initialState: [])
+
+    /// Every URL handed over, oldest first.
+    var opened: [URL] { urls.withLock { $0 } }
+
+    /// Keeps `url`, and answers that it was taken.
+    func open(_ url: URL) -> Bool {
+        urls.withLock { $0.append(url) }
+        return true
+    }
+}
+
 extension TerminalClient {
 
     /// Whether TUIkit may open a URL by launching a browser on **this**

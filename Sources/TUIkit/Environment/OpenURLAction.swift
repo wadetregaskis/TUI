@@ -29,7 +29,9 @@ import TUIkitCore
 /// has been declared local: over ssh it would run on the wrong machine, and
 /// the framework cannot tell which machine it is on (3a96d8fc). A tool that
 /// knows it is local turns it on through ``TerminalClient/urlOpeningSupport``,
-/// and `TUIKIT_OPEN_URLS=1` lets a user answer for their own session. A
+/// and `TUIKIT_OPEN_URLS=1` lets a user answer for their own session. Only a
+/// running app reaches the opener at all: a headless run, a snapshot or a
+/// test launches nothing, whatever the setting. A
 /// ``Link`` shows its destination in a popover either way, and carries an
 /// OSC 8 hyperlink for the terminal — which IS on the user's machine — to
 /// open. Override the action for a scope by putting a custom one in the
@@ -104,6 +106,13 @@ public struct OpenURLAction: Sendable {
 
     private let handler: @Sendable (URL) -> Result
 
+    /// This machine's opener, for a handler that defers to the system: the one
+    /// the environment this action was read from carries
+    /// (``EnvironmentValues/urlOpener``), set by that read. `nil` for an
+    /// action read from an environment no context reached, or never read from
+    /// one, which then launches nothing.
+    var systemOpener: (any URLOpenerBackend)?
+
     /// Creates an open-URL action with a custom handler — SwiftUI's spelling.
     ///
     /// - Parameter handler: A closure invoked with the URL to open, returning
@@ -167,7 +176,7 @@ public struct OpenURLAction: Sendable {
         case .discarded:
             return false
         case .system(let replacement):
-            return Self.systemOpen(replacement ?? url)
+            return systemOpen(replacement ?? url)
         }
     }
 
@@ -182,19 +191,12 @@ public struct OpenURLAction: Sendable {
         handler(url)
     }
 
-    /// Hands `url` to the system opener. Tries `open` (macOS) then `xdg-open`
-    /// (Linux) — whichever exists — passing the URL as a single argument (no
-    /// shell, so nothing in the URL is interpreted). A no-op when neither
-    /// opener is present. Returns whether an opener was started.
-    ///
-    /// The child's output goes to `/dev/null`. It inherits this process's
-    /// descriptors otherwise, and stdout/stderr here are the terminal the app
-    /// is drawing on: `xdg-open`'s "no method available for opening" (or
-    /// `open`'s own complaints) would land in the middle of the frame, at
-    /// whatever cursor position the renderer was using, with nothing to
-    /// repaint over it until the next full redraw.
+    /// Hands `url` to this machine's opener (``systemOpener``), where opening
+    /// URLs is on at all. Returns whether the opener took it: `false` with the
+    /// gate closed, and where no opener came with the action, so nothing
+    /// was launched.
     @discardableResult
-    static func systemOpen(_ url: URL) -> Bool {
+    func systemOpen(_ url: URL) -> Bool {
         // Not unless something said this machine is the user's. The opener
         // runs HERE, and over ssh "here" is the server: either headless, where
         // the launch is a silent no-op, or somebody's desktop, where the URL
@@ -203,27 +205,8 @@ public struct OpenURLAction: Sendable {
         // nothing when absent, and a multiplexer session outlives the hop that
         // started it — so it declines and the destination is shown instead.
         // See ``TerminalClient/urlOpeningSupport`` and ``LinkDisplay``.
-        guard TerminalURLOpening.isEnabled else { return false }
-        // Launching anything is a subprocess, which wasip1 has no way to make.
-        // Nothing is lost that the user can act on: a `Link` under a host that
-        // cannot open URLs shows its destination instead (``LinkDisplay``), and
-        // a terminal that supports OSC 8 — including the one in the browser
-        // demo — turns the text itself into something clickable, opened by the
-        // terminal rather than by us.
-        #if canImport(WASILibc)
-            return false
-        #else
-        for opener in ["/usr/bin/open", "/usr/bin/xdg-open"]
-        where FileManager.default.fileExists(atPath: opener) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: opener)
-            process.arguments = [url.absoluteString]
-            process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
-            return (try? process.run()) != nil
-        }
-        return false
-        #endif
+        guard TerminalURLOpening.isEnabled, let systemOpener else { return false }
+        return systemOpener.open(url)
     }
 }
 
@@ -238,15 +221,37 @@ private struct OpenURLActionKey: EnvironmentKey {
     static let defaultValue = OpenURLAction { _ in .systemAction }
 }
 
+/// Environment key for this machine's URL opener — `nil` where no context's
+/// services reached the environment.
+private struct URLOpenerKey: EnvironmentKey {
+    static let defaultValue: (any URLOpenerBackend)? = nil
+}
+
 extension EnvironmentValues {
     /// An action that opens a URL (see ``OpenURLAction``).
     ///
     /// Read it with `@Environment(\.openURL)` and call it like a function.
     /// The default hands the URL to the system opener (`open` / `xdg-open`),
     /// which is off unless the session is declared local — see
-    /// ``OpenURLAction``.
+    /// ``OpenURLAction`` — and is reached only in a running app: a headless
+    /// run, a snapshot or a test launches nothing.
     public var openURL: OpenURLAction {
-        get { self[OpenURLActionKey.self] }
+        get {
+            // The action, a custom one included, carries this environment's
+            // opener on: it is read here and called later, from an event
+            // handler, where no environment is in reach.
+            var action = self[OpenURLActionKey.self]
+            action.systemOpener = urlOpener
+            return action
+        }
         set { self[OpenURLActionKey.self] = newValue }
+    }
+
+    /// This machine's URL opener (``URLOpenerBackend``), published from the
+    /// context each frame (``applyRuntimeServices(from:)``): this machine's
+    /// `open` or `xdg-open` in a running app, memory everywhere else.
+    var urlOpener: (any URLOpenerBackend)? {
+        get { self[URLOpenerKey.self] }
+        set { self[URLOpenerKey.self] = newValue }
     }
 }

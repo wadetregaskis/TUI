@@ -3151,8 +3151,8 @@ Three things follow, and the first is the one that was wrong before.
 
 ### Which MACHINE opens it — the axis this table was missing
 
-`OpenURLAction` runs `/usr/bin/open` or `/usr/bin/xdg-open` **on the machine
-the application is running on**. So the gesture above decides more than which
+`OpenURLAction` runs `/usr/bin/open` or `/usr/bin/xdg-open` (`SystemURLOpener`)
+**on the machine the application is running on**. So the gesture above decides more than which
 component acts:
 
 | | terminal opens it | application opens it |
@@ -3164,10 +3164,10 @@ Over a hop, the terminal taking the click is the only path that reaches the
 user's own browser. The application path runs on the server, where
 `xdg-open` ships in `xdg-utils` — a **desktop** package, absent from Debian
 and Ubuntu server images, Fedora minimal, Alpine and every distroless image.
-Where it is absent, `systemOpen`'s loop body never executes and **nothing is
+Where it is absent, `SystemURLOpener.open`'s loop body never executes and **nothing is
 spawned at all**: no process, no output, no trace. Where it is present on a
 headless box it exits 3 into a `/dev/null` stderr, which the doc comment on
-`systemOpen` explains — an `xdg-open` complaint would otherwise land mid-frame
+`SystemURLOpener.open` explains — an `xdg-open` complaint would otherwise land mid-frame
 at the renderer's cursor. Both failures are therefore silent by construction,
 and the keyboard route (Enter on a focused link) is *always* the application
 path, so it never reaches the user's browser over ssh at all.
@@ -3191,7 +3191,11 @@ one, and activating it raises a popover with the destination to read and copy
 (`LinkDisplay`). An app that knows it is local sets `urlOpeningSupport = true`;
 a user answers for their own session with `TUIKIT_OPEN_URLS=1`; and an app
 with its own opening handler is not gated at all, because what is gated is
-only the framework launching a process on the user's behalf.
+only the framework launching a process on the user's behalf. That launcher is
+injected (`URLOpenerBackend`), and only the app's run loop installs it, into the
+`TUIContext` `AppRunner` creates: a headless run, a `renderOnce` snapshot or a
+test hands a deferred URL to an in-memory opener and launches nothing,
+whatever the setting.
 
 **The remedy that already exists** for the escape is identification, not code:
 `TERM_PROGRAM`

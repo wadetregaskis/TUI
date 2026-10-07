@@ -146,9 +146,10 @@ internal final class AppRunner<A: App> {
         self.statusBar = StatusBarState(appState: appState)
         self.terminal = Terminal()
         // The one context whose copies reach this machine's clipboard (where
-        // the rule sends them there at all): the app's, which runs the
-        // platform's helpers. Every other context keeps them in memory.
-        self.tuiContext = TUIContext(clipboard: SystemClipboard.Backend())
+        // the rule sends them there at all), and whose links reach its URL
+        // opener (where opening URLs is on): the app's, which runs the
+        // platform's helpers. Every other context keeps both in memory.
+        self.tuiContext = TUIContext(clipboard: SystemClipboard.Backend(), urlOpener: SystemURLOpener())
     }
 }
 

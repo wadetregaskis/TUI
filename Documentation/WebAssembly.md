@@ -66,7 +66,7 @@ an interval. What remained genuinely needed a platform arm:
 | `StdinArrivalNotifier` | `poll` — one call that waits on stdin *and* a timeout, which is exactly what the dispatch-source-plus-`Task.sleep` race was emulating |
 | `Terminal` raw mode | the `termios` calls go; every escape sequence stays, because bracketed paste, mouse tracking and the modifier-key mode are the terminal's business, not the kernel's |
 | `Terminal` size | no `ioctl`, so `COLUMNS`/`LINES` from the environment — the fallback that was already there |
-| `SystemClipboard`, `OpenURLAction`, tmux queries | stubs: all three are subprocesses, and wasip1 cannot start one |
+| `SystemClipboard`, `SystemURLOpener`, tmux queries | stubs: all three are subprocesses, and wasip1 cannot start one |
 | `@AppStorage`'s file backend | writes inline instead of on a queue, and non-atomically — WASI's Foundation refuses `.atomic`, which needs a temporary file |
 
 ## Two bugs the port found in code that was not WebAssembly's

@@ -23,11 +23,13 @@ import Testing
 /// The ladder is asked on its inputs, so those tests set nothing. The one test
 /// about publication sets the override, which republishes the flag the
 /// activation path reads — and while that flag is on, activating a link with
-/// the default action in ANY test hands its URL to the system opener, which
-/// launches a real browser. So it runs in an exit test, whose child process no
-/// other test shares. See `ProcessWideState`. These used to set and restore the
-/// override and `TUIKIT_OPEN_URLS` in the shared process, `.serialized`, which
-/// kept out only this suite's own tests and other main-actor ones.
+/// the default action in ANY test hands its URL to its context's opener, and
+/// reports it opened. (A test's context never has the system's, which only the
+/// app's run loop installs, so no browser is launched either way.) So it runs
+/// in an exit test, whose child process no other test shares. See
+/// `ProcessWideState`. These used to set and restore the override and
+/// `TUIKIT_OPEN_URLS` in the shared process, `.serialized`, which kept out
+/// only this suite's own tests and other main-actor ones.
 @MainActor
 @Suite("Opening a URL is off unless something says this machine is the user's")
 struct TerminalURLOpeningTests {
@@ -132,5 +134,69 @@ struct TerminalURLOpeningTests {
 
     private final class OpenedURL: @unchecked Sendable {
         var url: URL?
+    }
+}
+
+/// The system opener is injected (`URLOpenerBackend`): only the app's run loop
+/// installs the one that launches `open`/`xdg-open`, every other context keeps
+/// what it is handed in memory, and an action carries the opener of the
+/// environment it was read from to wherever it is called.
+@MainActor
+@Suite("Opening a URL: the injected opener")
+struct URLOpenerBackendTests {
+    @Test("A context's opener is in memory unless the app's run loop installs the system's")
+    func contextOpenerDefaultsToMemory() {
+        #expect(TUIContext().urlOpener is InMemoryURLOpener)
+        #expect(TUIContext(urlOpener: SystemURLOpener()).urlOpener is SystemURLOpener)
+    }
+
+    /// The action is read at render and called from an event handler, where no
+    /// environment is in reach — so it must carry the opener itself, a custom
+    /// handler's included, since a custom one may defer to the system.
+    @Test("An action read from an environment carries that environment's opener, a custom one's too")
+    func actionCarriesTheEnvironmentsOpener() {
+        let opener = InMemoryURLOpener()
+        var environment = EnvironmentValues()
+        environment.urlOpener = opener
+        #expect(environment.openURL.systemOpener as? InMemoryURLOpener === opener)
+
+        environment.openURL = OpenURLAction { _ in .systemAction }
+        #expect(environment.openURL.systemOpener as? InMemoryURLOpener === opener)
+
+        #expect(EnvironmentValues().openURL.systemOpener == nil, "no context, no opener")
+    }
+
+    @Test("A context's services publish its opener")
+    func servicesPublishTheOpener() {
+        let tui = TUIContext()
+        var environment = EnvironmentValues()
+        environment.applyRuntimeServices(from: tui)
+        #expect(environment.urlOpener as? InMemoryURLOpener === tui.urlOpener as? InMemoryURLOpener)
+    }
+
+    /// With the gate open — an exit test, because the gate is the process's —
+    /// a deferral reaches the context's opener and nothing else: an action
+    /// read where no context reached launches nothing at all.
+    @Test("With opening on, a deferral reaches the environment's opener, and no opener launches nothing")
+    func gateOpenReachesTheOpener() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                ProcessWideState.setEnvironment("TUIKIT_OPEN_URLS", to: nil)
+                ProcessWideState.urlOpeningSupport = true
+                #expect(TerminalURLOpening.isEnabled)
+
+                let url = URL(string: "https://example.invalid/tuikit-test")!
+                let opener = InMemoryURLOpener()
+                var environment = EnvironmentValues()
+                environment.urlOpener = opener
+                var answers: [Bool] = []
+                environment.openURL(url) { answers.append($0) }
+                #expect(opener.opened == [url])
+
+                EnvironmentValues().openURL(url) { answers.append($0) }
+                #expect(answers == [true, false])
+                #expect(opener.opened == [url], "the bare environment's action reached no opener")
+            }
+        }
     }
 }

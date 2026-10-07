@@ -308,7 +308,7 @@ final class TUIContext: @unchecked Sendable {
     /// ``ClipboardWriter``.
     ///
     /// This machine's clipboard behind it is the one the context was made
-    /// with (``init(clipboard:)``): the app's run loop passes the system's,
+    /// with (``init(clipboard:urlOpener:)``): the app's run loop passes the system's,
     /// and every other context keeps its copies in memory.
     ///
     /// Settable, unlike its neighbours, so a test can hand a context a writer
@@ -324,6 +324,12 @@ final class TUIContext: @unchecked Sendable {
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
     private(set) lazy var clipboardAccess = ClipboardAccess(writer: clipboardWriter)
+
+    /// This machine's URL opener, for an ``OpenURLAction`` that defers to the
+    /// system: the one the context was made with (``init(clipboard:urlOpener:)``).
+    /// The app's run loop passes the system's; every other context's keeps
+    /// what it is handed in memory and launches nothing.
+    let urlOpener: any URLOpenerBackend
 
     /// App-wide drag-and-drop state (active drag + per-frame drop targets).
     let dragAndDropSession: DragAndDropSession
@@ -399,13 +405,21 @@ final class TUIContext: @unchecked Sendable {
     /// context (notably each test's) is fully isolated, which is what keeps
     /// parallel render tests from contaminating one another's cache.
     ///
-    /// - Parameter clipboard: This machine's clipboard, behind the context's
-    ///   ``clipboardWriter``. The app's run loop passes the system's
-    ///   (`SystemClipboard.Backend`); every other context — a headless run's,
-    ///   a test's — keeps its copies in memory, and never touches the user's
-    ///   pasteboard.
-    init(clipboard: any ClipboardBackend = InMemoryClipboard()) {
+    /// - Parameters:
+    ///   - clipboard: This machine's clipboard, behind the context's
+    ///     ``clipboardWriter``. The app's run loop passes the system's
+    ///     (`SystemClipboard.Backend`); every other context — a headless run's,
+    ///     a test's — keeps its copies in memory, and never touches the user's
+    ///     pasteboard.
+    ///   - urlOpener: This machine's URL opener (``urlOpener``). The app's run
+    ///     loop passes the system's (`SystemURLOpener`); every other context
+    ///     keeps what it is handed in memory, and never launches a browser.
+    init(
+        clipboard: any ClipboardBackend = InMemoryClipboard(),
+        urlOpener: any URLOpenerBackend = InMemoryURLOpener()
+    ) {
         self.clipboardWriter = ClipboardWriter(system: clipboard)
+        self.urlOpener = urlOpener
         self.lifecycle = LifecycleManager()
         self.keyEventDispatcher = KeyEventDispatcher()
         self.mouseEventDispatcher = MouseEventDispatcher()
@@ -449,8 +463,10 @@ final class TUIContext: @unchecked Sendable {
         stateStorage: StateStorage = StateStorage(),
         renderCache: RenderCache = RenderCache(valueHashPlans: .tuikit())
     ) {
-        // A snapshot's or a test's: its copies stay in memory (see init()).
+        // A snapshot's or a test's: its copies and URLs stay in memory (see
+        // init(clipboard:urlOpener:)).
         self.clipboardWriter = ClipboardWriter(system: InMemoryClipboard())
+        self.urlOpener = InMemoryURLOpener()
         self.lifecycle = lifecycle
         self.keyEventDispatcher = keyEventDispatcher
         self.mouseEventDispatcher = mouseEventDispatcher
