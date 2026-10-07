@@ -174,8 +174,8 @@ that may use it). A refactor that will remove one is a `scheduled` entry whose `
 
 The check reads which lower module defines each symbol from the same index store, in one more pass over its units:
 about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; reading every module beside
-`Sources/TUIkit`, Example and Stress included, cost 0.6–0.9 s). A `lower` list naming a module the index has no
-definitions of is an error, not a silent pass.
+`Sources/TUIkit`, Example and Stress included, cost 0.6–0.9 s). A `lower` list naming a module that is not one of
+these, or that the index has no definitions of, is an error, not a silent pass.
 
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 

@@ -211,8 +211,8 @@ def run(a):
               f'{", ".join(M.stale[:5])}{" ..." if len(M.stale) > 5 else ""}')
     unknown = sorted({x for ls in R.lower.values() for x in ls or ()} - M.lower_modules)
     if unknown:
-        raise SystemExit(f'rules.json: a lower list names {", ".join(unknown)}, but the index has no definitions of a '
-                         f'module of that name beside {R.source}')
+        raise SystemExit(f'rules.json: a lower list names {", ".join(unknown)}, which is not a module beside '
+                         f'{R.source} that its sources import (or the index has no definitions of it)')
     if a.command == 'assign':
         asg, info = assigner.assign(M, R)
         print(f'assigner: {info} ({time.time() - t1:.1f} s)')
