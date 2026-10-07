@@ -238,12 +238,18 @@ is "Not copied", said so, where none does — and under GNU screen always:
 screen passes an application's OSC 52 on only inside its own DCS passthrough,
 so the ladder answers unsupported inside screen (`STY`) whatever terminal the
 inherited environment names, where it used to report "Sent" (iTerm2) or
-"Copied" (Ghostty) of a write screen dropped. Where `TMUX` is set too, the
-nearer of the two in the process's chain decides: a tmux server started
-inside screen keeps screen's `STY` in its global environment, so a session of
-it attached straight from Ghostty or iTerm2 with `set-clipboard on` was "Not
-copied" (the follow-ups' review); tmux's answer stands there now, and screen's
-where screen runs in a tmux pane or the chain cannot be read. A paste chord under a keeper,
+"Copied" (Ghostty) of a write screen dropped. In a tmux pane under
+`set-clipboard on`, tmux's clients decide: where every attached client runs
+inside screen (screen above it in its chain), nothing is sent and the copy is
+"Not copied"; where one does not, tmux's answer stands ("Sent"); a screen run
+in a tmux pane, seen in the app's own chain, sends nothing. Neither `STY` nor
+the pane's chain can tell: a tmux server started inside screen keeps its
+`STY` whoever attaches, and the server daemonizes, so a pane's chain ends at
+it however the session is attached (the follow-ups' first review found `STY`
+saying "Not copied" of such a session attached straight from Ghostty or
+iTerm2; its second, the chain then saying "Sent" of one still attached from
+inside screen, where nothing arrives). Where the clients cannot be read, the
+write goes as a maybe, reported "Sent", never "Copied". A paste chord under a keeper,
 as anywhere away from the machine, pastes the app's own last copy and says
 so, or says to use the terminal's paste (B-D4X-14).
 
@@ -377,9 +383,11 @@ is read from the code; it needs a real stop to test.
 After the follow-ups' own review (round 1), which found the upstream drag
 head read on the row before, drag handles yielding to a tab's title, a
 Control-click going nowhere over a pane with no menu, a stale `STY`
-outranking tmux, `tmux*`-named wrappers taken for tmux, a dead screen
-selection read every frame, and the probe advising a plain-text copy where
-types cannot be listed — all fixed — these remain:
+outranking tmux (whose fix the second review found moving the error to a
+tmux still attached from inside screen; tmux's clients decide now),
+`tmux*`-named wrappers taken for tmux, a dead screen selection read every
+frame, and the probe advising a plain-text copy where types cannot be
+listed — all fixed — these remain:
 
 - **Clipboard locality** (B-D4X-13): a session keeper TUIkit does not know
   passes as a plain parent; a nested tmux at the desk is "not local" (its
@@ -387,8 +395,10 @@ types cannot be listed — all fixed — these remain:
   copied (no DCS passthrough), and screen 5 is unmeasured; nothing on a host
   is measured yet (`clipboard_probe.py` is owed its runs). A tmux server
   started inside screen keeps screen's stale `STY`, which still makes its
-  sessions "not local" at the desk (failing safe: the ladder now lets tmux's
-  `set-clipboard` carry the copy by OSC 52 there).
+  sessions "not local" at the desk even when attached straight from the
+  terminal (failing safe: tmux's `set-clipboard` carries the copy by OSC 52
+  there). Where tmux's clients cannot be read, a tmux under screen sends the
+  copy as a maybe and reports it "Sent", though nothing may arrive.
 - **Paste away from the machine** (B-D4X-14): Ctrl-V pastes the app's own
   last copy, which may be older than the user's — said so now, still pasted.
 - **The screen selection** (B-D4X-15): content moved inside an unchanged

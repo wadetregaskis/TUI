@@ -100,6 +100,12 @@ enum ClipboardLocality {
         name == "tmux" || name.hasPrefix("tmux: ")
     }
 
+    /// Whether `name` is GNU screen's: `screen` as the kernel keeps it, or
+    /// `SCREEN`, which its server renames itself to in its arguments.
+    static func isGNUScreen(_ name: String) -> Bool {
+        name == "screen" || name == "SCREEN"
+    }
+
     /// The variables rung 4's session keepers set inside a session.
     static let sessionKeeperVariables = [
         "STY", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ABDUCO_SESSION", "SHPOOL_SESSION_NAME",

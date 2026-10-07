@@ -5274,12 +5274,28 @@ and 3 would report a write screen drops ("Copied" in Ghostty, "Sent" in
 iTerm2), and the name itself is inherited from wherever screen was started.
 Under screen every copy is "Not copied", at the desk too (screen is a keeper,
 so rung 2 does not apply). Unmeasured on a host; the passthrough is the
-fuller version (decisions D4X, B-D4X-13). Where `TMUX` is set as well, the
-nearer of the two in the app's chain of parents decides: a tmux server
-started inside screen keeps screen's `STY` in its global environment, stale
-once its session is attached from elsewhere, so there tmux's
-`set-clipboard` answers; a screen run in a tmux pane is the nearer, and
-nothing is sent. An unreadable chain leaves `STY` standing.
+fuller version (decisions D4X, B-D4X-13).
+
+**In a tmux pane, tmux's clients say whether screen is in the way**, not
+`STY` and not the pane's own chain of parents. tmux's server daemonizes
+(`daemon(1, 0)` in its `proc_fork_and_daemon`) and is reparented to launchd,
+init or `systemd --user`, so every pane's chain is `[app, shell, tmux,
+launchd]` however its session is attached; and a server started inside
+screen keeps screen's `STY` whoever attaches, while one attached from inside
+screen later has none. So under `set-clipboard on` TUIkit asks tmux for its
+clients (`list-clients`) and walks each one's parents, as the clipboard's
+locality does: where every client has `screen` (or `SCREEN`) above it,
+nothing is sent and the copy is "Not copied" — such a client's `TERM` is
+`screen*`, which tmux's default `terminal-features` give no clipboard, and
+screen drops a bare OSC 52 besides (both read from the sources; unmeasured
+on a host). Where at least one client is outside screen, tmux's answer
+stands ("Sent"). A screen run inside a tmux pane is told by the app's own
+chain (screen above it before tmux), and nothing is sent. Where it cannot be
+told — tmux not listing its clients, a client's chain unreadable — the write
+goes as the maybe it is, reported "Sent", never "Copied". (The follow-ups'
+reviews: `STY` alone said "Not copied" of a tmux attached straight from the
+terminal; the pane's chain alone then said "Sent" of a tmux still attached
+from inside screen, where nothing arrives.)
 
 The status bar says what became of a copy for three seconds, in place of the
 items of the line of key hints (`StatusBar()`, where the app places it) and

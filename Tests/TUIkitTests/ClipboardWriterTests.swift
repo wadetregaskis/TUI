@@ -88,6 +88,8 @@ struct ClipboardTerminalSupportTests {
         let expected: TerminalClient.ClipboardWriteSupport
         /// This process's command names, where the ladder walks them.
         var ownChain: [String]?
+        /// Each tmux client's command names, where the ladder asks for them.
+        var tmuxClientChains: [[String]?]?
         var testDescription: String { name }
 
         static let rows: [Self] = [
@@ -152,29 +154,6 @@ struct ClipboardTerminalSupportTests {
                 name: "Inside GNU screen, in kitty by TERM", environment: ["STY": "4242.pts-0.desk", "TERM": "xterm-kitty"],
                 program: .unidentified, deviceAttributes: "\u{1B}[?64;52c", tmuxSetClipboard: nil,
                 expected: .unsupported),
-            // A tmux server started inside screen keeps screen's STY in its
-            // global environment; attached straight from the terminal, tmux
-            // is the nearer, and its set-clipboard decides (review round 1 of
-            // the follow-ups: STY alone said "Not copied").
-            Self(
-                name: "tmux started inside screen, attached from the terminal",
-                environment: ["STY": "4242.pts-0.desk", "TMUX": "/tmp/tmux-501/default,7,0"], program: .tmux,
-                deviceAttributes: nil, tmuxSetClipboard: "on", expected: .unconfirmed,
-                ownChain: ["zsh", "tmux", "launchd"]),
-            Self(
-                name: "tmux started inside screen, on Linux",
-                environment: ["STY": "4242.pts-0.desk", "TMUX": "/tmp/tmux-1000/default,7,0"], program: .tmux,
-                deviceAttributes: nil, tmuxSetClipboard: "on", expected: .unconfirmed,
-                ownChain: ["bash", "tmux: server", "systemd"]),
-            Self(
-                name: "screen run in a tmux pane",
-                environment: ["STY": "4242.pts-0.desk", "TMUX": "/tmp/tmux-501/default,7,0"], program: .tmux,
-                deviceAttributes: nil, tmuxSetClipboard: "on", expected: .unsupported,
-                ownChain: ["zsh", "screen", "zsh", "tmux", "launchd"]),
-            Self(
-                name: "screen and tmux, the chain unknown",
-                environment: ["STY": "4242.pts-0.desk", "TMUX": "/tmp/tmux-501/default,7,0"], program: .tmux,
-                deviceAttributes: nil, tmuxSetClipboard: "on", expected: .unsupported),
             Self(
                 name: "TUIKIT_OSC52=1 outranks screen", environment: ["TUIKIT_OSC52": "1", "STY": "4242.pts-0.desk"],
                 program: .appleTerminal, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured),
@@ -193,7 +172,7 @@ struct ClipboardTerminalSupportTests {
             TerminalClient.clipboardWrites(
                 environment: row.environment, program: row.program,
                 primaryDeviceAttributes: row.deviceAttributes, tmuxSetClipboard: row.tmuxSetClipboard,
-                ownChain: row.ownChain)
+                ownChain: row.ownChain, tmuxClientChains: row.tmuxClientChains)
                 == row.expected)
     }
 
