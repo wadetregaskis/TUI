@@ -13,6 +13,7 @@ import Testing
 
 @testable import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitView
 
 @MainActor
 @Suite("List separators")
@@ -144,5 +145,67 @@ struct ListSeparatorTests {
         ).lines.map(\.stripped)
         let shown = drawn.filter { $0.contains("r") && !$0.contains("more") }
         #expect(shown.count <= 3, "\(drawn)")
+    }
+
+    /// Frames of the real loop over one render cache, so a row its memo kept is
+    /// served on the next.
+    @MainActor
+    private final class Loop {
+        let tui = TUIContext()
+
+        func frame(_ view: some View) -> [String] {
+            var environment = EnvironmentValues()
+            environment.applyRuntimeServices(from: tui)
+            environment.installVolatileReadTracker(VolatileReadTracker())
+            let context = RenderContext(availableWidth: 24, availableHeight: 14, environment: environment, tuiContext: tui)
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            let buffer = renderToBuffer(view.listStyle(.plain), context: context)
+            tui.stateStorage.endRenderPass()
+            tui.renderCache.removeInactive()
+            let drawn = buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+            return Array(drawn.prefix { !$0.isEmpty }).map { $0.allSatisfy { $0 == "─" } ? ListSeparatorTests.rule : $0 }
+        }
+
+        /// How many memoized subtrees the next frame of `view` served.
+        func served(_ view: some View) -> Int {
+            let before = tui.renderCache.rowWork.served
+            _ = frame(view)
+            return tui.renderCache.rowWork.served - before
+        }
+    }
+
+    @Test("A row's separator modifier that changes nothing leaves the row to the memo")
+    func inertModifierKeepsTheMemo() {
+        let loop = Loop()
+        let list = List { ForEach(Self.names, id: \.self) { Text($0).listRowSeparator(.hidden) } }
+        _ = loop.frame(list)
+        // A side effect declared for it kept the rows — and every memo around the
+        // list — from being kept at all, so nothing was ever served.
+        #expect(loop.served(list) > 0, "a .hidden that hides nothing stopped the memo")
+    }
+
+    @Test("A kept row still answers to its separator modifier when the list's default changes under it")
+    func keptRowFollowsTheDefault() {
+        let loop = Loop()
+        func list(_ visibility: Visibility) -> some View {
+            List { ForEach(Self.names, id: \.self) { Text($0).listRowSeparator(.hidden) } }
+                .listRowSeparator(visibility)
+        }
+        _ = loop.frame(list(.automatic))
+        _ = loop.frame(list(.automatic))
+        // Now the list draws one under every row — but each row's own `.hidden`
+        // still wins, whether or not the frame before kept the row.
+        #expect(loop.frame(list(.visible)) == ["a", "b", "c"])
+        #expect(loop.frame(list(.visible)) == ["a", "b", "c"])
+    }
+
+    @Test("A row's separator that does change something is drawn frame after frame")
+    func activeModifierEveryFrame() {
+        let loop = Loop()
+        let list = List { ForEach(Self.names, id: \.self) { Text($0).listRowSeparator(.visible) } }
+        for _ in 0..<3 {
+            #expect(loop.frame(list) == ["a", Self.rule, "b", Self.rule, "c"])
+        }
     }
 }

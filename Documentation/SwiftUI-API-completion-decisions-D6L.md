@@ -162,7 +162,10 @@ it: about half a day, and a row's render more per window.
 **Shipped:** a row reports its preference as it renders, on the per-frame
 collector the list already stamps rows on (`RowEditRestrictions`) — so it is
 found anywhere inside the row's content, and a row carrying a separator
-modifier opts out of the row memo, as a `.deleteDisabled(true)` row does.
+modifier that changes what it draws opts out of the row memo, as a
+`.deleteDisabled(true)` row does. One that changes nothing — the ported
+`.listRowSeparator(.hidden)` under a list that draws none — stays memoized
+(`ListSeparatorChange.changesRow(over:)`; the review's round 1).
 Hand-written rows, in a list and in a `Section`, are now stamped too (they
 were not, so `.selectionDisabled()` on one named no row; by the same stamp it now names its own, which this lane reasoned rather than tested).
 A section's preference rides `SectionInfo`. The guides are read from the

@@ -66,6 +66,28 @@ enum ListSeparatorChange: Equatable, Sendable {
     /// `.listRowSeparatorTint(_:edges:)` / `.listSectionSeparatorTint(_:edges:)`.
     case tint(Color?, VerticalEdge.Set)
 
+    /// Whether this statement, made by a list ROW, can make the row draw other
+    /// than the list-wide `defaults` alone would — whether its report must
+    /// reach the list on every frame, or may be lost to a row the memo serves
+    /// without rendering it (``renderReportingSeparator(_:change:sections:context:)``).
+    ///
+    /// A row whose every statement answers no draws what the defaults draw, in
+    /// any order and any number. Its `.top` edge is the style's to decline
+    /// (``ListSeparatorPreference``); `.automatic` defers to the default; a
+    /// visibility the default already has changes nothing; and a tint shows
+    /// only on a rule that is drawn, which only a statement answering yes — or a
+    /// default that draws one — puts there.
+    func changesRow(over defaults: ListSeparatorPreference) -> Bool {
+        switch self {
+        case .visibility(let visibility, let edges):
+            guard edges.contains(.bottom), visibility != .automatic else { return false }
+            return (visibility == .visible) != (defaults.bottom == .visible)
+        case .tint(let tint, let edges):
+            guard edges.contains(.bottom), let tint else { return false }
+            return defaults.bottom == .visible && tint != defaults.bottomTint
+        }
+    }
+
     /// `preference` with this statement applied.
     func apply(to preference: inout ListSeparatorPreference) {
         switch self {
@@ -276,8 +298,16 @@ extension _ListRowSeparatorPreferenceView: SingleContentWrapper {
 ///
 /// The report is `_RowEditRestrictionView`'s mechanism — the list stamps which
 /// row is rendering on its per-frame collector — and declares a render side
-/// effect, so a memoized row cannot skip it and lose its preference. A row
-/// carrying no separator modifier pays nothing. The default is written through
+/// effect where losing it could change what the row draws
+/// (``ListSeparatorChange/changesRow(over:)``), so a memoized row cannot skip
+/// it and lose its preference. A row carrying no separator modifier pays
+/// nothing, and neither does one whose modifiers change nothing — the
+/// ported `.listRowSeparator(.hidden)` under a list that draws none: a side
+/// effect stops the row's memo, and every memo around the list, from keeping
+/// anything, as `_RowEditRestrictionView` refuses to for a row that refuses
+/// nothing. Such a row still reports while it renders: in a row whose other
+/// statements DO change something, it is rendered every frame, and the order
+/// of its statements is what decides. The default is written through
 /// `transformEnvironment`, which notes the write for the render memo: a
 /// memoized list below a default that changed must not serve rows it drew
 /// under the old one.
@@ -287,7 +317,9 @@ func renderReportingSeparator<Content: View>(
 ) -> FrameBuffer {
     if !sections, let reports = context.environment.listRowEditRestrictions, let row = reports.currentRowIndex {
         if !context.isMeasuring {
-            context.environment.volatileReadTracker?.recordRenderSideEffect()
+            if change.changesRow(over: context.environment.listSeparatorDefaults.rows) {
+                context.environment.volatileReadTracker?.recordRenderSideEffect()
+            }
             reports.reportSeparator(row: row, change)
         }
         return TUIkit.renderToBuffer(content, context: context)
