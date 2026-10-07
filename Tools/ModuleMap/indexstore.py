@@ -24,7 +24,10 @@ REL_CONTAINED_BY = 1 << 16
 # indexstore_symbol_kind_t (the ones the map uses)
 K_ENUM, K_STRUCT, K_CLASS, K_PROTOCOL, K_EXTENSION, K_TYPEALIAS = 5, 6, 7, 8, 9, 11
 K_FUNCTION, K_VARIABLE = 12, 13
+K_PARAMETER = 25
 CALLABLE_KINDS = (12, 16, 17, 18, 19, 20, 21, 22)
+# indexstore_symbol_subkind_t: a generic parameter is a K_TYPEALIAS with this subkind
+SK_GENERIC_PARAMETER = 1013
 TYPE_KINDS = (K_ENUM, K_STRUCT, K_CLASS, K_PROTOCOL)
 
 

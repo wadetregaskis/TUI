@@ -23,6 +23,9 @@ _ACCESSOR = re.compile(r'^(getter|setter|_modify|modify|read|willSet|didSet):')
 # `public` or `open` as an access modifier: followed on its line by another modifier, a declaration keyword or an
 # attribute. Not `open` the identifier (`func open()`, `private var open: Bool`, `case open`).
 _PUBLIC = re.compile(r'(?:^|[\s)])(?:public|open)\s+(?=(?:' + SS.MOD + '|' + SS.KW + r'|prefix|postfix|infix)\b|@)')
+# Any other access modifier, in the same position. Not `private(set)`, which leaves the getter's access alone.
+_ACCESS = re.compile(r'(?:^|[\s)])(?:package|internal|fileprivate|private)\s+(?=(?:' + SS.MOD + '|' + SS.KW +
+                     r'|prefix|postfix|infix)\b|@)')
 
 
 def lower_owners(files, dirs):
@@ -61,6 +64,7 @@ class Model:
         self.foreign_refs = []          # (node, usr, rel, line): references to symbols defined outside the module
         self.lower_owner = {}           # usr -> the lower module (beside the source directory) that defines it
         self.lower_modules = set()      # the lower modules whose definitions were read
+        self.public_members = {}        # node -> names of the public API it declares, in source order
         self.stale = []                 # rel paths whose source is newer than its index unit, or have none
         self.first_member = {}          # node -> name of its first member in source order (explicit ones only)
         self.conformed = {}             # node -> sorted names of the protocols it declares conformance to
@@ -195,6 +199,7 @@ class Model:
         # edges, conformances, members, public API, references out of the module
         members = collections.defaultdict(set)
         first = {}
+        public_header, public_defs, bare_defs = set(), collections.defaultdict(list), collections.defaultdict(list)
         for f, occs in occ.items():
             lx = self.lexed.get(f)
             for usr, roles, line, cont in occs:
@@ -205,9 +210,21 @@ class Model:
                     if cont in nodeset and self.symbols.get(usr, ('', 0))[1] in IX.CALLABLE_KINDS:
                         members[cont].add(_ACCESSOR.sub('', self.symbols[usr][0]).split('(')[0])
                     holder = usr if not cont else top(cont)
-                    if holder in nodeset and lx and 0 < line < len(lx.stripped) and \
-                            _PUBLIC.search(lx.stripped[line].split('{')[0]):
-                        self.public.add(holder)
+                    if holder in nodeset and lx and 0 < line < len(lx.stripped):
+                        head = lx.stripped[line].split('{')[0]
+                        # A member worth naming: a member of the declaration or of a type nested in it. Not the
+                        # declaration itself, an accessor, a compiler-made one, nor a parameter, generic parameter or
+                        # local of a function, which the index also records on the function's line.
+                        s = self.symbols.get(usr, ('', 0, 0))
+                        named = usr != holder and not roles & IX.IMPLICIT and not _ACCESSOR.match(s[0]) and \
+                            s[1] != IX.K_PARAMETER and s[1:] != (IX.K_TYPEALIAS, IX.SK_GENERIC_PARAMETER) and \
+                            self.symbols.get(parent.get(usr), ('', 0))[1] in IX.TYPE_KINDS + (IX.K_EXTENSION,)
+                        if _PUBLIC.search(head):
+                            self.public.add(holder)
+                            if usr == holder: public_header.add(holder)
+                            elif named: public_defs[holder].append((line, usr))
+                        elif named and parent.get(usr) == holder and not _ACCESS.search(head):
+                            bare_defs[holder].append((line, usr))     # public when its extension is
                     continue
                 # Everything else is a use: a reference, or an IMPLICIT occurrence (roles implicit + override-of) that
                 # records a conformance taking its witness from a default implementation in an extension. That
@@ -230,6 +247,18 @@ class Model:
                     if (f, line) < e[1]: e[1] = (f, line)      # the first site in path order, whatever the store's
         self.members = {n: members.get(n, set()) for n in self.nodes}
         self.first_member = {n: nm for n, (_, nm) in first.items()}
+        # The public API each declaration holds, member by member: what `public-above` lists for a block it flags,
+        # since a block's label names only its first member. A member with no access modifier of its own is public
+        # in a `public extension`.
+        for n in public_header:
+            if self.kind.get(n) == IX.K_EXTENSION: public_defs[n] += bare_defs.get(n, [])
+        for n, defs in public_defs.items():
+            names = []
+            for _, u in sorted(set(defs)):
+                nm = self.symbols.get(u, ('?',))[0]
+                if parent.get(u) not in (n, None): nm = f'{self.symbols.get(parent[u], ("?",))[0]}.{nm}'
+                if nm not in names: names.append(nm)
+            self.public_members[n] = names
         self.conformances = sorted(set(self.conformances), key=lambda c: (c[3], c[4], c[1]))
         conformed = collections.defaultdict(set)
         for _, pr, decl, _, _ in self.conformances: conformed[decl].add(self.symbols.get(pr, ('?',))[0])

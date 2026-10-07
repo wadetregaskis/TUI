@@ -117,8 +117,16 @@ There are two forms:
 - `public API on View carried from TUIkitBase up to TUIkitPresentation by the assigner: …`. A modifier block on a
   type from below the map, which the assigner lifted away from its file's module for its dependencies.
 
+The key is the block's label, which names only its first member, so each finding ends by listing every public
+member the block declares: `(public: statusBarItems(_:), focusSection(_:))`. A member counts when it is `public` or
+`open`, or has no access modifier of its own in a `public extension`; a nested type's members are named `Type.member`.
+That is what a review reads. Placing a block moves all of its public members, and the refined plan found four that
+had moved module unseen behind another block's first member (`.focusSection`, `.aspectRatio`, `.scaledToFit`,
+`.scaledToFill`). `-v` prints the accepted ones too.
+
 A placement you have reviewed goes into `accepted`, with the reason. The plan's own reviews are recorded there:
-`.modal`, `.listStyle`, and the ones found at 0c.
+`.modal`, `.listStyle`, and the ones found at 0c. An accepted entry covers the block as it changes: when a public
+member joins an accepted block, re-read the finding with `-v`.
 
 ### `posix`: a POSIX-only API outside TUIkitApp
 

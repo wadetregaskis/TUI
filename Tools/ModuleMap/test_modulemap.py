@@ -46,11 +46,11 @@ def rules(**extra):
 
 
 def model(sources, occurrences, symbols):
-    """A Model from {rel: text}, {rel: [(usr, roles, line, container)]} and {usr: (name, kind)}."""
+    """A Model from {rel: text}, {rel: [(usr, roles, line, container)]} and {usr: (name, kind[, subkind])}."""
     M = Model()
     M.files = sorted(sources)
     M.lexed = {f: SS.lex(t) for f, t in sources.items()}
-    M.symbols = {u: (n, k, 0) for u, (n, k) in symbols.items()}
+    M.symbols = {u: (tuple(s) + (0,))[:3] for u, s in symbols.items()}
     M.build(occurrences)
     return M
 
@@ -363,6 +363,53 @@ class PublicAboveTests(unittest.TestCase):
         M, asg = public_above_model()
         R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)#listStyle\(\)$', 'why': ''}])
         self.assertEqual([x.key for x in checks.public_above(M, R, asg)], ['Lists/E.swift::ListStyle(ext)#automatic'])
+
+    def test_every_public_member_of_a_flagged_block_is_listed(self):
+        # A block's label names its first member only; the skeptic of the refined plan found `.focusSection` and
+        # three layout modifiers moving module unseen inside lifted blocks. Each finding now lists them all.
+        lines = ['extension View {',                                          # 1
+                 '    func helper() {}',                                      # 2  internal
+                 '    public func statusBarItems<T>(_ items: T) { let x = 0 }',  # 3  (its parameters and locals are not)
+                 '    public var focus: Int { 0 }',                           # 4  (its getter is not a member)
+                 '    private func hidden() {}',                              # 5
+                 '    public struct Inner {',                                 # 6
+                 '        public init() {}',                                  # 7
+                 '        var x = 0',                                         # 8  internal member of a public type
+                 '    }',                                                     # 9
+                 '    public func focusSection() {}',                         # 10
+                 '}',                                                         # 11
+                 'public extension ListStyle {',                              # 12
+                 '    static func a() {}',                                    # 13 public: the extension is
+                 '    fileprivate static func b() {}',                        # 14
+                 '    package static func c() {}',                            # 15
+                 '    static var d: Int { 0 }',                               # 16
+                 '}']                                                         # 17
+        occ = [('s:e:V', DEF, 1, ''), (VIEW, REF | IX.REL_EXTENDED_BY, 1, 's:e:V'), ('s:V.helper', DEF, 2, 's:e:V'),
+               ('s:V.sbi', DEF, 3, 's:e:V'), ('s:V.sbi.T', DEF, 3, 's:V.sbi'), ('s:V.sbi.t', DEF, 3, 's:V.sbi'),
+               ('s:V.sbi.local', DEF, 3, 's:V.sbi'), ('s:V.focus', DEF, 4, 's:e:V'),
+               ('s:V.focus.get', DEF | IX.IMPLICIT, 4, 's:V.focus'), ('s:V.hidden', DEF, 5, 's:e:V'),
+               ('s:V.Inner', DEF, 6, 's:e:V'), ('s:V.Inner.init', DEF, 7, 's:V.Inner'), ('s:V.Inner.x', DEF, 8, 's:V.Inner'),
+               ('s:V.fs', DEF, 10, 's:e:V'),
+               ('s:e:L', DEF, 12, ''), ('s:LS', REF | IX.REL_EXTENDED_BY, 12, 's:e:L'), ('s:L.a', DEF, 13, 's:e:L'),
+               ('s:L.b', DEF, 14, 's:e:L'), ('s:L.c', DEF, 15, 's:e:L'), ('s:L.d', DEF, 16, 's:e:L'),
+               ('s:L.d.get', DEF, 16, 's:L.d')]
+        sym = {'s:e:V': ('View', IX.K_EXTENSION), VIEW: ('View', IX.K_PROTOCOL), 's:V.helper': ('helper()', 16),
+               's:V.sbi': ('statusBarItems(_:)', 16), 's:V.sbi.T': ('T', IX.K_TYPEALIAS, IX.SK_GENERIC_PARAMETER),
+               's:V.sbi.t': ('items', IX.K_PARAMETER), 's:V.sbi.local': ('x', IX.K_VARIABLE),
+               's:V.focus': ('focus', IX.K_VARIABLE),
+               's:V.focus.get': ('getter:focus', 16), 's:V.hidden': ('hidden()', 16), 's:V.Inner': ('Inner', IX.K_STRUCT),
+               's:V.Inner.init': ('init()', 22), 's:V.Inner.x': ('x', IX.K_VARIABLE), 's:V.fs': ('focusSection()', 16),
+               's:e:L': ('ListStyle', IX.K_EXTENSION), 's:LS': ('ListStyle', IX.K_PROTOCOL), 's:L.a': ('a()', 18),
+               's:L.b': ('b()', 18), 's:L.c': ('c()', 18), 's:L.d': ('d', IX.K_VARIABLE), 's:L.d.get': ('getter:d', 18)}
+        M = model({'Base/V.swift': '\n'.join(lines) + '\n', 'Base/S.swift': 'public protocol ListStyle {}\n'},
+                  {'Base/V.swift': occ, 'Base/S.swift': [('s:LS', DEF, 1, '')]}, sym)
+        self.assertEqual(M.public_members, {'s:e:V': ['statusBarItems(_:)', 'focus', 'Inner', 'Inner.init()', 'focusSection()'],
+                                            's:e:L': ['a()', 'd']})
+        xs = checks.public_above(M, rules(), {'s:e:V': 'Lists', 's:e:L': 'Lists', 's:LS': 'Base'})
+        self.assertEqual([x.message for x in xs], [
+            'public API on View carried from Base up to Lists by the assigner: Base/V.swift::View(ext)#helper() '
+            '(public: statusBarItems(_:), focus, Inner, Inner.init(), focusSection())',
+            'public API of ListStyle (Base) is declared in Lists: Base/V.swift::ListStyle(ext)#a() (public: a(), d)'])
 
     def test_an_accepted_placement_is_not_new(self):
         M, asg = public_above_model()

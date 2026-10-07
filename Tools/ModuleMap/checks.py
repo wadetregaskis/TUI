@@ -102,6 +102,14 @@ def witnesses(M, R, asg, pairs):
     return out
 
 
+def _members(M, n):
+    """Every public member of a block, for its finding: a block's label names only its first member, and four
+    public members once moved module unseen inside lifted blocks (the refined plan's skeptic, split2/refine/challenge).
+    The key stays the label, so an `accepted` entry keeps matching while the block changes."""
+    ms = M.public_members.get(n)
+    return f' (public: {", ".join(ms)})' if ms else ''
+
+
 def public_above(M, R, asg):
     """Public API of a type or protocol declared in a module above the type's own: an app that imports only the
     type's module does not get it. An extension whose header (conformance list or `where` clause) names a
@@ -119,13 +127,14 @@ def public_above(M, R, asg):
             if mn != seed and R.sees(mn, seed) and not any(rx.search(l) for _, rx in R.decls for l in M.rule_labels(n)):
                 out.append(Finding('public-above', M.label(n),
                                    f'public API on {M.name[n]} carried from {seed} up to {mn} by the assigner: '
-                                   f'{M.label(n)}', M.file[n], M.line[n]))
+                                   f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n]))
             continue
         mn, mt = asg[n], asg[t]
         if mn == mt or not R.sees(mn, mt): continue
         if any(asg.get(b) == mn for b in M.header.get(n, ())): continue
         out.append(Finding('public-above', M.label(n),
-                           f'public API of {M.name[t]} ({mt}) is declared in {mn}: {M.label(n)}', M.file[n], M.line[n]))
+                           f'public API of {M.name[t]} ({mt}) is declared in {mn}: {M.label(n)}{_members(M, n)}',
+                           M.file[n], M.line[n]))
     return out
 
 
