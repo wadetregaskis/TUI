@@ -45,7 +45,7 @@ struct AlternatingRowBackgroundsTests {
     // whatever the stripes do, so the rows below it are the ones that tell.
 
     // The phase is macOS's, measured: the second row is the first tinted
-    // (`Table.isStriped(row:environment:)` says where).
+    // (the `stripe` of `Table`'s `RowPaint`, in Table.swift, says where).
 
     @Test("A striped table tints every other row, from the second")
     func tableStripes() {

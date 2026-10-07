@@ -4643,8 +4643,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// full of cursors (``RowBackground/tint(_:)``).
     ///
     /// The second row and every other after it, the first left plain — a macOS
-    /// list's phase, as a table's (``Table``'s `isStriped(row:environment:)`
-    /// says where it was measured).
+    /// list's phase, as a table's (the `stripe` of ``Table``'s `RowPaint`, in
+    /// Table.swift, says where it was measured).
     private func alternatingBackgroundIfAny(
         sectionContentIndex: Int,
         style: any ListStyle,
