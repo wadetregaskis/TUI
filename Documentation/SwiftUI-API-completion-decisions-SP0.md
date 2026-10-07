@@ -34,8 +34,10 @@ stays a scheduled refactor.
 *`Tools/ModuleMap/rules.json`, `accepted`*
 
 The `public-above` check lists public API placed above the module of the type it belongs to. Plan §4 reviewed
-three such placements; at HEAD there are twelve. Each now has its reason in `rules.json`, and the map is unchanged.
-- The plan's two: `.modal` in Presentation, and `.listStyle` with the row-selection modifiers in Lists.
+three such placements. One of them, `.safeAreaInset`, it pinned back to Base with a declaration rule, so the check
+does not report it. At HEAD there are twelve findings. Each now has its reason in `rules.json`, and the map is
+unchanged.
+- The plan's other two: `.modal` in Presentation, and `.listStyle` with the row-selection modifiers in Lists.
 - `TerminalClient`'s graphics-support API (`graphicsSupported` and its kin) goes to TUIkitApp. It reads what App's
   startup handshake records. Every app imports App, so no app loses it.
 - `.automatic` for the List, Picker and NavigationSplitView styles stays in the leaf. It is usable only through
@@ -43,12 +45,12 @@ three such placements; at HEAD there are twelve. Each now has its reason in `rul
 - `ForEach(_:editActions:content:)` and `ForEach(sections:content:)` stay in Lists.
 - The four `SceneStorage` / `AppStorage` inits for tab and table customization stay in Tabs and Tables.
 
-`asAnyView()` shares an extension block with `.modal`, so it rides along into Presentation.
+`asAnyView()` sits in its own `extension View` block in the same file as `.modal`, and stays in Base.
 
 **The fuller version, and its price.** Move the sugar down beside the types it names at step A4. That means
-`.automatic` beside the default styles in Base, `asAnyView()` split out of `.modal`'s block into Base, and the
-graphics-support API split from what reads App's state. It costs:
-- about five more declaration-level file cuts;
+`.automatic` beside the default styles in Base, and the graphics-support API split from what reads App's state.
+It costs:
+- about four more declaration-level placements;
 - for the graphics API, an injected value in place of the static it reads.
 
 It gains nothing for an app that uses the leaf: the sugar only works through the leaf's modifier anyway.

@@ -97,7 +97,7 @@
     {"id": "K6", "check": "posix", "from": "^(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^getpid$", "why": "both files get a Windows arm like their WASI one (A2)"}
   ],
   "accepted": [
-    {"check": "public-above", "key": "Extensions/View+Convenience.swift::View(ext)#modal(content:)", "why": "`.modal` goes to TUIkitPresentation for its dependencies (plan section 4, reviewed). `asAnyView()` shares the extension block and rides along (found at 0c): A4 can split the block if Base should keep it."},
+    {"check": "public-above", "key": "Extensions/View+Convenience.swift::View(ext)#modal(content:)", "why": "`.modal` goes to TUIkitPresentation for its dependencies (plan section 4, reviewed). `asAnyView()`, in its own block of the same file, stays in TUIkitBase."},
     {"check": "public-above", "key": "Extensions/View+Environment.swift::View(ext)#listStyle(_:)", "why": "`.listStyle` and the row-selection modifiers go to TUIkitLists (plan section 4, reviewed; SwiftUI's List topic)."},
     {"check": "public-above", "key": "Rendering/TerminalGraphicsSupport.swift::TerminalClient(ext)#detectedGraphics", "why": "TerminalClient's graphics-support API (graphicsSupported and its kin: A18's run-time detection) reads what TUIkitApp's startup handshake records, so the assigner lifts it into TUIkitApp. Every app imports TUIkitApp, so no app loses it. Plan section 4's review of lifted public API did not list it (found at 0c)."},
     {"check": "public-above", "key": "Styles/ListStyle+Variants.swift::ListStyle(ext)#automatic", "why": "`.automatic` stays with List's other leading-dot styles: it is usable only through `.listStyle(_:)`, which is TUIkitLists'. DefaultListStyle itself comes down with the protocol (SP)."},
