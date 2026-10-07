@@ -22,10 +22,10 @@ struct ImageResizingTests {
 
     /// A solid square, already decoded.
     private func square(_ side: Int = 8) -> Image {
-        var image = Image(.url("tuikit-test://square-\(side)"))
-        image.decoded = _DecodedImage(
-            RGBAImage(width: side, height: side, pixels: Array(repeating: Self.red, count: side * side)))
-        return image
+        Image(
+            .url("tuikit-test://square-\(side)"),
+            decoded: _DecodedImage(
+                RGBAImage(width: side, height: side, pixels: Array(repeating: Self.red, count: side * side))))
     }
 
     /// The box `view` draws in, offered `width` × `height` at a cell aspect of 2.
@@ -119,8 +119,7 @@ struct ImageResizingTests {
 
     @Test("A drawn image in slices differs from the same image stretched whole")
     func slicesDraw() {
-        var image = Image(.url("tuikit-test://framed"))
-        image.decoded = _DecodedImage(framed())
+        let image = Image(.url("tuikit-test://framed"), decoded: _DecodedImage(framed()))
         let harness = InputChainHarness(width: 24, height: 3)
         let whole = harness.frame(image.resizable().imageColorMode(.trueColor).frame(width: 24, height: 3)).lines
         let capped = InputChainHarness(width: 24, height: 3).frame(

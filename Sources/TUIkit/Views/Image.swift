@@ -118,19 +118,27 @@ public struct Image: View {
     /// They share nothing but the name: one is decoded, resampled and converted
     /// to coloured cells, the other is a single character looked up in a table.
     enum Content: Equatable {
-        /// A raster image, loaded from a file or a URL.
-        case raster(ImageSource)
+        /// A raster image: the picture the bitmap path made (``_ImageRaster``)
+        /// from a file, a URL, a bundle or pixels already decoded.
+        case raster(any _ImageRaster)
         /// An SF Symbol, by name — resolved to a glyph at render time so
         /// ``View/symbolVariant(_:)`` above it still chooses the cut.
         case symbol(String)
+
+        /// A picture compares through its own ``_ImageRaster/isEqual(to:)``,
+        /// which leaves out pixels already decoded. Every pair spelled out,
+        /// with no `default`, so a third kind of content has to say how it
+        /// compares.
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            switch (lhs, rhs) {
+            case (.raster(let lhs), .raster(let rhs)): lhs.isEqual(to: rhs)
+            case (.symbol(let lhs), .symbol(let rhs)): lhs == rhs
+            case (.raster, .symbol), (.symbol, .raster): false
+            }
+        }
     }
 
     let content: Content
-
-    /// The source's pixels, already decoded — an ``AsyncImage``'s success phase
-    /// hands its image over with them, so it draws at once rather than
-    /// loading again. Not part of equality: it is what the source decodes to.
-    package var decoded: _DecodedImage?
 
     /// The interpolation quality ``interpolation(_:)`` set, if any.
     var interpolationQuality: Interpolation?
@@ -153,11 +161,13 @@ public struct Image: View {
         return isAntialiased == false ? 1 : nil
     }
 
-    /// Creates an image from the given source.
-    ///
-    /// - Parameter source: The image source (file or URL).
-    public init(_ source: ImageSource) {
-        self.content = .raster(source)
+    /// Creates an image of the picture the bitmap path made: what
+    /// ``init(_:)`` from a file or a URL, the bundle and asset-catalogue
+    /// initialisers and ``AsyncImage`` make their images with. They live
+    /// beside the bitmap path (`Image+Raster.swift`), which `Image` does not
+    /// name — see ``_ImageRaster``.
+    init(raster: any _ImageRaster) {
+        self.content = .raster(raster)
     }
 
     /// Creates an image showing the named SF Symbol.
@@ -182,15 +192,12 @@ public struct Image: View {
     @ViewBuilder
     public var body: some View {
         switch content {
-        case .raster(let source):
-            let core = _ImageCore(
-                source: source, decoded: decoded, isTemplate: templateRenderingMode == .template,
-                resizing: resizing)
-            if let samplingFactor {
-                core.environment(\.imageSupersampling, samplingFactor)
-            } else {
-                core
-            }
+        case .raster(let raster):
+            _ImageRasterHost(
+                raster: raster,
+                options: _ImageRasterOptions(
+                    isTemplate: templateRenderingMode == .template, resizing: resizing,
+                    samplingFactor: samplingFactor))
         case .symbol(let name):
             _SymbolIcon(name: name)
         }
@@ -200,8 +207,9 @@ public struct Image: View {
 // MARK: - Equatable
 
 extension Image: @preconcurrency Equatable {
-    /// Every stored property but `decoded`, which is what the source decodes
-    /// to: an image drawn at another quality, or as a template, is a different
+    /// Every stored property, the content through its picture's own equality,
+    /// which leaves out pixels already decoded (what the source decodes to):
+    /// an image drawn at another quality, or as a template, is a different
     /// image to a memo that compares them.
     public static func == (lhs: Image, rhs: Image) -> Bool {
         guard lhs.content == rhs.content,

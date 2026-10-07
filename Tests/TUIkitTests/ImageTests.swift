@@ -514,13 +514,13 @@ struct ImageViewTests {
     @Test("Image initializes with file source")
     func imageFileInit() {
         let image = Image(.file("/path/to/image.png"))
-        #expect(image.content == .raster(.file("/path/to/image.png")))
+        #expect(image.sourcedRaster?.source == .file("/path/to/image.png"))
     }
 
     @Test("Image initializes with URL source")
     func imageURLInit() {
         let image = Image(.url("https://example.com/image.png"))
-        #expect(image.content == .raster(.url("https://example.com/image.png")))
+        #expect(image.sourcedRaster?.source == .url("https://example.com/image.png"))
     }
 
     // MARK: - SF Symbols

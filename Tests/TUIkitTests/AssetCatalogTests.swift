@@ -160,7 +160,7 @@ struct AssetCatalogTests {
         #expect((file.path as NSString).lastPathComponent == "logo@2x.png")
         #expect(file.scale == 2)
         let image = Image("Logo", bundle: bundle)
-        #expect(image.content == .raster(.file(file.path)))
+        #expect(image.sourcedRaster?.source == .file(file.path))
         #expect(image.decoded?.pointSizing == .scale(2), "the 2x picture would draw twice its size")
         // Drawn out once, and the same object every frame, so a memo sees one picture.
         #expect(Image("Logo", bundle: bundle).decoded === image.decoded)
@@ -175,12 +175,12 @@ struct AssetCatalogTests {
         try made.write("not really a picture", to: "plain.png")
         let bundle = try #require(Bundle(path: made.path))
         let plain = Image("plain", bundle: bundle)
-        guard case .raster(.file(let path)) = plain.content else {
+        guard case .file(let path) = plain.sourcedRaster?.source else {
             Issue.record("not a file image: \(plain.content)")
             return
         }
         #expect((path as NSString).lastPathComponent == "plain.png")
-        #expect(Image("absent", bundle: bundle).content == .raster(.file("absent")))
+        #expect(Image("absent", bundle: bundle).sourcedRaster?.source == .file("absent"))
     }
 
     #if canImport(AppKit)

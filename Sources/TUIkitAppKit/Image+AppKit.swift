@@ -85,9 +85,7 @@
         /// - Parameter nsImage: The AppKit image to wrap.
         public init(nsImage: NSImage) {
             let size = nsImage.size
-            self.init(
-                .url("tuikit-nsimage:\(Self.address(of: nsImage))/\(Double(size.width))x\(Double(size.height))"))
-            self.decoded = _DecodedImage(
+            let decoded = _DecodedImage(
                 owner: nsImage, pointSizing: .points(width: Double(size.width), height: Double(size.height))
             ) {
                 var rect = CGRect(origin: .zero, size: size)  // the size named, not a later one
@@ -96,6 +94,9 @@
                 }
                 return Self.pixels(of: cgImage)
             }
+            self.init(
+                .url("tuikit-nsimage:\(Self.address(of: nsImage))/\(Double(size.width))x\(Double(size.height))"),
+                decoded: decoded)
         }
 
         /// The scale is in the name as well as in the pixels' sizing, so an
@@ -104,10 +105,10 @@
         private init(drawingOutOf cgImage: CGImage, scale: Double, orientation: Orientation) {
             let scale = _DecodedImage.sanitized(scale)
             let name = "tuikit-cgimage:\(Self.address(of: cgImage))/\(orientation.rawValue)"
-            self.init(.url(scale == 1 ? name : "\(name)@\(scale)x"))
-            self.decoded = _DecodedImage(owner: cgImage, pointSizing: .scale(scale)) {
+            let decoded = _DecodedImage(owner: cgImage, pointSizing: .scale(scale)) {
                 Self.pixels(of: cgImage).oriented(orientation)
             }
+            self.init(.url(scale == 1 ? name : "\(name)@\(scale)x"), decoded: decoded)
         }
 
         /// The address that names an image the app handed over — unique for as

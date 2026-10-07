@@ -23,9 +23,9 @@ struct ImageInterpolationTests {
             let on = (index % 32 + index / 32).isMultiple(of: 2)
             return on ? RGBA(r: 255, g: 255, b: 255) : RGBA(r: 0, g: 0, b: 0)
         }
-        var image = Image(.url("tuikit-test://checkerboard"))
-        image.decoded = _DecodedImage(RGBAImage(width: 32, height: 32, pixels: pixels))
-        return image
+        return Image(
+            .url("tuikit-test://checkerboard"),
+            decoded: _DecodedImage(RGBAImage(width: 32, height: 32, pixels: pixels)))
     }
 
     private func lines(_ image: Image) -> [String] {
@@ -48,10 +48,10 @@ struct ImageInterpolationTests {
 
     /// A solid red image, already decoded.
     private func red() -> Image {
-        var image = Image(.url("tuikit-test://red"))
-        image.decoded = _DecodedImage(
-            RGBAImage(width: 8, height: 8, pixels: Array(repeating: RGBA(r: 255, g: 0, b: 0), count: 64)))
-        return image
+        Image(
+            .url("tuikit-test://red"),
+            decoded: _DecodedImage(
+                RGBAImage(width: 8, height: 8, pixels: Array(repeating: RGBA(r: 255, g: 0, b: 0), count: 64))))
     }
 
     private func drawn(_ view: some View) -> String {

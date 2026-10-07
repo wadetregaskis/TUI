@@ -30,11 +30,11 @@ struct ImageNaturalSizeTests {
 
     /// A solid `width` × `height`-pixel picture, already decoded, at `scale`.
     private func picture(_ width: Int, _ height: Int, scale: Double = 1) -> Image {
-        var image = Image(.url("tuikit-test://natural-\(width)x\(height)@\(scale)"))
-        image.decoded = _DecodedImage(
-            RGBAImage(width: width, height: height, pixels: Array(repeating: Self.red, count: width * height)),
-            scale: scale)
-        return image
+        Image(
+            .url("tuikit-test://natural-\(width)x\(height)@\(scale)"),
+            decoded: _DecodedImage(
+                RGBAImage(width: width, height: height, pixels: Array(repeating: Self.red, count: width * height)),
+                scale: scale))
     }
 
     /// The box `view` draws in — or with `measuring`, the size it says it
@@ -76,8 +76,8 @@ struct ImageNaturalSizeTests {
     @Test("Cut to its space, it shows its top-leading part")
     func cutFromTheTopLeading() {
         let pixels = (0..<(140 * 70)).map { index in index % 140 < 70 ? Self.red : RGBA(r: 0, g: 0, b: 255) }
-        var image = Image(.url("tuikit-test://halves"))
-        image.decoded = _DecodedImage(RGBAImage(width: 140, height: 70, pixels: pixels))
+        let image = Image(
+            .url("tuikit-test://halves"), decoded: _DecodedImage(RGBAImage(width: 140, height: 70, pixels: pixels)))
         let tui = TUIContext(
             lifecycle: LifecycleManager(firesEffects: false), keyEventDispatcher: KeyEventDispatcher(),
             preferences: PreferenceStorage(), stateStorage: StateStorage())

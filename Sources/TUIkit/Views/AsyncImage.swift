@@ -39,8 +39,9 @@ public enum AsyncImagePhase: Sendable {
     }
 }
 
-/// Pixels already decoded, carried by an ``Image`` so it draws them rather
-/// than loading its source again. A reference, so an `Image` carrying one
+/// Pixels already decoded, carried by an ``Image``'s picture
+/// (``Image/init(_:decoded:)``) so it draws them rather than loading its
+/// source again. A reference, so an `Image` carrying one
 /// stays cheap to copy.
 ///
 /// Main-actor state in practice — views are built and drawn there — which is
@@ -266,9 +267,7 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
             // The scale in the name as well as in the sizing, so the image at
             // another scale is another image to a memo that compares them.
             let scale = _DecodedImage.sanitized(scale)
-            var image = Image(.url(scale == 1 ? address : "\(address)#@\(scale)x"))
-            image.decoded = pixels.scaled(scale)
-            return .success(image)
+            return .success(Image(.url(scale == 1 ? address : "\(address)#@\(scale)x"), decoded: pixels.scaled(scale)))
         case .failed(let message):
             return .failure(AsyncImageLoadError(description: message))
         }

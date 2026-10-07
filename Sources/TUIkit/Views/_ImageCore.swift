@@ -39,7 +39,7 @@ struct _ImageCore: View, Renderable, Layoutable {
     let source: ImageSource
 
     /// The source's pixels when they are already decoded, so nothing is
-    /// loaded — see ``Image/decoded``.
+    /// loaded — see ``Image/init(_:decoded:)``.
     var decoded: _DecodedImage?
 
     /// Whether the image draws as a template: its pixels' coverage in the

@@ -85,9 +85,7 @@ extension Image {
     package static func bundleResource(named name: String, in bundle: Bundle?) -> Image? {
         let bundle = bundle ?? .main
         if let file = AssetCatalog.imageFile(named: name, in: bundle, for: Color.catalogColorScheme) {
-            var image = Image(.file(file.path))
-            if file.scale != 1 { image.decoded = AssetCatalog.decodedImage(for: file) }
-            return image
+            return Image(.file(file.path), decoded: file.scale != 1 ? AssetCatalog.decodedImage(for: file) : nil)
         }
         return plainResourcePath(named: name, in: bundle).map { Image(.file($0)) }
     }
