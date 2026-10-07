@@ -62,6 +62,19 @@ struct ClipboardBackendTests {
         #expect(access.read() == nil)
     }
 
+    /// The one line that sends a running app's copies to this machine's
+    /// clipboard: the runner builds its context with the system's backend.
+    /// Built with the default instead, every local copy — Ctrl-C in a field, a
+    /// mouse selection — would land in memory and still report `.copied`, and
+    /// nothing else in the suite would notice.
+    @Test("The app's runner gives its context this machine's clipboard")
+    func runnerInstallsTheSystemClipboard() {
+        // `Terminal.init()` only reserves a buffer, so this touches no TTY.
+        let runner = AppRunner(app: FocusStillApp(), appState: AppState())
+        #expect(runner.tuiContext.clipboardWriter.system is SystemClipboard.Backend)
+        #expect(TUIContext().clipboardWriter.system is InMemoryClipboard, "every other context's")
+    }
+
     /// A context's services bring its writer: the environment a render gets
     /// copies through the context, not the default.
     @Test("A context's services hand its controls the context's writer")

@@ -150,6 +150,17 @@ struct URLOpenerBackendTests {
         #expect(TUIContext(urlOpener: SystemURLOpener()).urlOpener is SystemURLOpener)
     }
 
+    /// The one line that lets a running app's links open: the runner builds
+    /// its context with this machine's opener. Built with the default instead,
+    /// every link in every app would hand its URL to memory and launch nothing,
+    /// whatever the setting — and nothing else in the suite would notice.
+    @Test("The app's runner gives its context this machine's URL opener")
+    func runnerInstallsTheSystemOpener() {
+        // `Terminal.init()` only reserves a buffer, so this touches no TTY.
+        let runner = AppRunner(app: FocusStillApp(), appState: AppState())
+        #expect(runner.tuiContext.urlOpener is SystemURLOpener)
+    }
+
     /// The action is read at render and called from an event handler, where no
     /// environment is in reach — so it must carry the opener itself, a custom
     /// handler's included, since a custom one may defer to the system.

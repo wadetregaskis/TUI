@@ -188,7 +188,11 @@ final class ClipboardWriter: @unchecked Sendable {
 
     /// This machine's clipboard (``ClipboardBackend``): its helpers in a
     /// running app, memory everywhere else.
-    private let system: any ClipboardBackend
+    ///
+    /// Internal rather than private so a test can check which one the app's
+    /// runner installed: built with the in-memory default instead, a running
+    /// app's copies would report `.copied` and never reach the pasteboard.
+    let system: any ClipboardBackend
 
     /// Whether ``system`` has a clipboard to write — its
     /// ``ClipboardBackend/isAvailable``, asked once.
