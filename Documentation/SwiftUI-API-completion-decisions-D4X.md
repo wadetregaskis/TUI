@@ -334,10 +334,13 @@ bbbb cccc" at width 6, dragged across "bbbb" from its first cell, selects
 "bbbb"; review 2 found it selecting "bbb" once the caret rule fed the drag).
 A head put there is on the row the pointer put it on, though the same offset
 is the end of the row before to an upstream caret: the editor and a
-`lineLimit` field follow it without scrolling, and Shift+Down extends from it
-to the next row, until a key moves it off (the follow-ups' review found it
-read on the row before: a drag back onto the top row's first cell scrolled
-the view up a row each time, and Shift+Down kept to the head's own row).
+`lineLimit` field follow it without scrolling, and Down goes from it to the
+next row — in a vertical field Shift+Down extends the selection there; the
+editor, which has no keyboard selection, drops it and moves the caret — until
+a key moves it off (the follow-ups' review found it read on the row before:
+a drag back onto the top row's first cell scrolled the view up a row each
+time, and Down kept to the head's own row; its second, that this entry said
+the editor's Shift+Down extended the selection, which it drops).
 The affinity is the view's, one for every caret.
 
 **The fuller version:** an affinity per caret, as the macOS text system keeps
