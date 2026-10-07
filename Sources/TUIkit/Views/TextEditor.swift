@@ -1006,6 +1006,17 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                 placeCursor(at: event, asSelectionEnd: true)
                 return true
             case .released where event.button == .left:
+                // A drag or a Shift-click that ends on its own anchor leaves no
+                // selection, and its head is a caret. Where the head is a
+                // wrapped row's first character (`rowStartHead`, drawn at that
+                // row's first cell while it ended a selection), the caret goes
+                // where a click there puts it, read by the editor's affinity
+                // like every caret, rather than staying drawn where no caret
+                // can be.
+                if handler.selectionRange == nil, handler.rowStartHead == handler.cursor {
+                    placeCursor(at: event)
+                    handler.clearSelection()
+                }
                 return true
             default:
                 return false

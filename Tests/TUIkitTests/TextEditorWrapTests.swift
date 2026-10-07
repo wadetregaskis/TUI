@@ -187,6 +187,31 @@ struct TextEditorWrapTests {
         #expect(handler.selectionRange == nil)
     }
 
+    /// A drag that comes back onto its press leaves no selection, and its
+    /// head is a caret, read by the editor's affinity like every caret:
+    /// upstream, on a wrapped row's first cell, where a click there puts it,
+    /// after the first character. Review round 2 of the follow-ups: it stayed
+    /// at the row's start, drawn at the row's first cell, where no upstream
+    /// caret is, and Up moved from that row.
+    @Test("Upstream, a drag back onto its press on a row's first cell leaves the caret where a click puts it")
+    func upstreamCollapsedDragIsACaret() throws {
+        let (harness, page, handler) = try editor("aa bbbbb ccccc ddddd", width: 6, affinity: .upstream)
+        let rowY = try #require(harness.frame(page).lines.firstIndex { $0.stripped.hasPrefix("ccccc") })
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 0, y: rowY))
+        harness.frame(page)
+        let clicked = caret(handler)
+        try #require(clicked == [0, 10], "a click on the row's first cell is after its first character")
+        for x in [1, 0] {
+            harness.mouse(MouseEvent(button: .left, phase: .dragged, x: x, y: rowY))
+            harness.frame(page)
+        }
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: rowY))
+        harness.frame(page)
+        #expect(handler.selectionRange == nil)
+        #expect(caret(handler) == clicked)
+        #expect(handler.rowStartHead == nil)
+    }
+
     @Test("Up from the first row goes to the start, and Down from the last to the end")
     func pastTheEnds() throws {
         let (harness, page, handler) = try editor()

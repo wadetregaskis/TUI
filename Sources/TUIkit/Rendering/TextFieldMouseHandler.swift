@@ -182,6 +182,15 @@ enum TextFieldMouseHandler {
                 placeHead(at: event)
                 return true
             case .released where event.button == .left:
+                // A drag or a Shift-click that ends on its own anchor leaves no
+                // selection, and its head is a caret: on a wrapped row's first
+                // character (`rowStartHead`), it goes where a click there puts
+                // it, read by the field's affinity like every caret.
+                if !handler.hasSelection, handler.rowStartHead == handler.cursorPosition {
+                    handler.cursorPosition = caretOffset(event)
+                    handler.rowStartHead = nil
+                    handler.clearSelection()
+                }
                 return true
             default:
                 return false

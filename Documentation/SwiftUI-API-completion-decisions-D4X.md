@@ -341,6 +341,12 @@ a key moves it off (the follow-ups' review found it read on the row before:
 a drag back onto the top row's first cell scrolled the view up a row each
 time, and Down kept to the head's own row; its second, that this entry said
 the editor's Shift+Down extended the selection, which it drops).
+A head that ends no selection is a caret: a drag or a Shift-click that comes
+back onto its own anchor there leaves the caret where a click puts it, after
+the row's first character, and a key that ends the selection without moving
+the head (Backspace deleting a backward selection) leaves a caret read as any
+other at that offset (the follow-ups' second review found both still drawn at
+the row's first cell, where no upstream caret is).
 The affinity is the view's, one for every caret.
 
 **The fuller version:** an affinity per caret, as the macOS text system keeps

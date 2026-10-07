@@ -70,10 +70,13 @@ extension TextFieldHandler {
     }
 
     /// Ends ``rowStartHead``'s reading once a key has moved the head off
-    /// the row start the pointer put it on: an offset the keys come back to
-    /// is read by the caret rule.
+    /// the row start the pointer put it on, or left it the end of no
+    /// selection — Backspace deleting a backward selection leaves the caret
+    /// on its head: an offset the keys come back to is read by the caret
+    /// rule, and so is a plain caret, by the field's affinity like every
+    /// other.
     func forgetMovedRowStartHead() {
-        if rowStartHead != cursorPosition { rowStartHead = nil }
+        if rowStartHead != cursorPosition || !hasSelection { rowStartHead = nil }
     }
 
     /// Moves a selection's head — a drag's, a Shift-click's end — to

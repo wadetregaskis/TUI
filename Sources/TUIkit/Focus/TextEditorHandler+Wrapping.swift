@@ -35,10 +35,12 @@ extension TextEditorHandler {
     }
 
     /// Ends ``rowStartHead``'s reading once a key has moved the head off
-    /// the row start the pointer put it on: an offset the keys come back to
-    /// is read by the caret rule.
+    /// the row start the pointer put it on, or left it the end of no
+    /// selection: an offset the keys come back to is read by the caret rule,
+    /// and so is a plain caret, by the editor's affinity like every other.
+    /// (The editor has no keyboard selection, so after any key this ends it.)
     func forgetMovedRowStartHead() {
-        if rowStartHead != cursor { rowStartHead = nil }
+        if rowStartHead != cursor || selectionRange == nil { rowStartHead = nil }
     }
 
     /// The top row on screen, among all of them.

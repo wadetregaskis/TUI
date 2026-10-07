@@ -305,6 +305,47 @@ struct VerticalTextFieldTests {
         #expect(model.text == "aaaa bbbb Xdd")
     }
 
+    /// A selection's head left the end of no selection is a caret, read by
+    /// the field's affinity like every caret. Review round 2 of the
+    /// follow-ups: on a wrapped row's first character under `.upstream` it
+    /// stayed drawn at that row's first cell — after a drag back onto its
+    /// press, and after a key that ends the selection without moving the
+    /// head (Backspace deleting a backward selection: the review named Left,
+    /// which here steps off the head and so already ended it).
+    @Test("Upstream, a selection's head left the end of no selection on a row's first cell is a caret")
+    func upstreamCollapsedHeadIsACaret() throws {
+        let harness = InputChainHarness(width: 7)
+        let model = Model("aaaa bbbb cccc dddd")
+        let view = { field(model).textSelectionAffinity(.upstream) }
+        try #require(rows(harness.frame(view())).map { $0.trimmingTrailingSpaces }.prefix(2) == ["aaaa", "bbbb"])
+        func drag(from: Int, through xs: [Int]) {
+            harness.mouse(MouseEvent(button: .left, phase: .pressed, x: from, y: 1))
+            harness.frame(view())
+            for x in xs {
+                harness.mouse(MouseEvent(button: .left, phase: .dragged, x: x, y: 1))
+                harness.frame(view())
+            }
+            harness.mouse(MouseEvent(button: .left, phase: .released, x: xs.last ?? from, y: 1))
+            harness.frame(view())
+        }
+        // A drag back onto its press on "bbbb"'s first cell: where a click
+        // there puts the caret, after the "b".
+        drag(from: 0, through: [1, 0])
+        let handler = try #require(harness.focusManager.currentFocused as? TextFieldHandler)
+        #expect(!handler.hasSelection)
+        #expect(handler.cursorPosition == 6)
+        #expect(handler.rowStartHead == nil)
+        // A backward drag onto it, then Backspace: the caret stays on the
+        // head, read as any caret at that offset is.
+        drag(from: 2, through: [0])
+        try #require(handler.selectionRange == 5..<7)
+        harness.play([KeyEvent(key: .backspace)], view)
+        #expect(!handler.hasSelection)
+        #expect(handler.cursorPosition == 5)
+        #expect(handler.rowStartHead == nil)
+        #expect(handler.caretAffinity == .upstream)
+    }
+
     /// A press on the `▾` that closes the suggestions is the field's, and so
     /// is a drag from it: it anchors at the caret, as before there was a
     /// press anchor, not at the cell an earlier press landed on.
