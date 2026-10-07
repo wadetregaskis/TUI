@@ -220,7 +220,7 @@ let chromeOverhangUnion: [UInt32] = TerminalWidthTraits.ChromeOverhang.allCases
 /// value it hoists out of its byte loop.
 let chromeOverhangGateMask: UInt64 = TerminalWidthTraits.ChromeOverhang.allCases
     .flatMap(\.codepoints)
-    .reduce(into: 0) { mask, value in
+    .reduce(into: UInt64(0)) { (mask: inout UInt64, value: UInt32) in
         // A U+0800…U+FFFF scalar encodes as `1110xxxx 10xxxxxx 10xxxxxx`, so
         // its SECOND byte is `0x80 | ((value >> 6) & 0x3F)` — the byte the
         // gate can test without decoding anything.

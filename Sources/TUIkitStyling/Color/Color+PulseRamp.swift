@@ -278,7 +278,10 @@ extension Color {
             return red == green && green == blue
         case .ansi(let slot):
             // By which slot it is: black, white and their bright twins.
-            return slot == .black || slot == .white || slot == .brightBlack || slot == .brightWhite
+            switch slot {
+            case .black, .white, .brightBlack, .brightWhite: return true
+            default: return false
+            }
         case .terminalDefault:
             return false
         case .semantic:

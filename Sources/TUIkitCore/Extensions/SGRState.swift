@@ -230,7 +230,8 @@ public struct SGRState: Sendable, Equatable {
         if let colour = Colour(parameters: parameters) {
             foreground = colour
         } else {
-            apply("\u{1B}[" + parameters.joined(separator: ";") + "m")
+            let joined: String = parameters.joined(separator: ";")
+            apply("\u{1B}[" + joined + "m")
         }
     }
 
@@ -245,7 +246,8 @@ public struct SGRState: Sendable, Equatable {
         if let colour = Colour(parameters: parameters) {
             background = colour
         } else {
-            apply("\u{1B}[" + parameters.joined(separator: ";") + "m")
+            let joined: String = parameters.joined(separator: ";")
+            apply("\u{1B}[" + joined + "m")
         }
     }
 

@@ -262,24 +262,29 @@ public enum KittyGraphics {
     /// can pin against known vectors.
     package static func base64(_ bytes: [UInt8], into out: inout [UInt8]) {
         let alphabet = base64Alphabet
+        // Typed constants rather than literals: with a literal shift or mask
+        // each `>>` and `&` below has its overload inferred, which made these
+        // the module's slowest lines to type-check (~11 ms each).
+        let shift18: UInt32 = 18, shift12: UInt32 = 12, shift6: UInt32 = 6
+        let sixBits: UInt32 = 0x3F
         var index = 0
         while index + 2 < bytes.count {
             let triple =
                 (UInt32(bytes[index]) << 16) | (UInt32(bytes[index + 1]) << 8)
                 | UInt32(bytes[index + 2])
-            out.append(alphabet[Int((triple >> 18) & 0x3F)])
-            out.append(alphabet[Int((triple >> 12) & 0x3F)])
-            out.append(alphabet[Int((triple >> 6) & 0x3F)])
-            out.append(alphabet[Int(triple & 0x3F)])
+            out.append(alphabet[Int(truncatingIfNeeded: (triple >> shift18) & sixBits)])
+            out.append(alphabet[Int(truncatingIfNeeded: (triple >> shift12) & sixBits)])
+            out.append(alphabet[Int(truncatingIfNeeded: (triple >> shift6) & sixBits)])
+            out.append(alphabet[Int(truncatingIfNeeded: triple & sixBits)])
             index += 3
         }
         let remaining = bytes.count - index
         guard remaining > 0 else { return }
         let second = remaining > 1 ? UInt32(bytes[index + 1]) : 0
         let triple = (UInt32(bytes[index]) << 16) | (second << 8)
-        out.append(alphabet[Int((triple >> 18) & 0x3F)])
-        out.append(alphabet[Int((triple >> 12) & 0x3F)])
-        out.append(remaining > 1 ? alphabet[Int((triple >> 6) & 0x3F)] : 0x3D)  // =
+        out.append(alphabet[Int((triple >> shift18) & sixBits)])
+        out.append(alphabet[Int((triple >> shift12) & sixBits)])
+        out.append(remaining > 1 ? alphabet[Int((triple >> shift6) & sixBits)] : 0x3D)  // =
         out.append(0x3D)  // =
     }
 }

@@ -118,7 +118,7 @@ extension RowFills.Entry {
                 emphasisBright: .palette256(emphasisBright))
         }
         func colour(_ packed: UInt32) -> Color {
-            .rgb(UInt8(packed >> 16 & 0xFF), UInt8(packed >> 8 & 0xFF), UInt8(packed & 0xFF))
+            .rgb(UInt8(truncatingIfNeeded: packed >> 16), UInt8(truncatingIfNeeded: packed >> 8), UInt8(truncatingIfNeeded: packed))
         }
         let (selection, focusDim, focusBright, emphasisDim, emphasisBright) = truecolour
         return RowFills(
@@ -166,7 +166,7 @@ extension RowFills {
 
     private static func run(_ key: RuleKey) -> RowFills {
         func colour(_ packed: UInt32) -> Color {
-            .rgb(UInt8(packed >> 16 & 0xFF), UInt8(packed >> 8 & 0xFF), UInt8(packed & 0xFF))
+            .rgb(UInt8(truncatingIfNeeded: packed >> 16), UInt8(truncatingIfNeeded: packed >> 8), UInt8(truncatingIfNeeded: packed))
         }
         let rule = RowFillRule(
             page: colour(key.page), text: colour(key.text), secondary: colour(key.secondary),

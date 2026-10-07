@@ -317,18 +317,15 @@ extension RGBAImage {
                             // Int on the way. See the note above the loop.
                             // A fully transparent sample has no colour to keep,
                             // and `0 / 0` would be NaN: it takes zero outright.
-                            let red = coverage > 0
-                                ? (Double(Int(p00.r)) * k00 + Double(Int(p10.r)) * k10
-                                    + Double(Int(p01.r)) * k01 + Double(Int(p11.r)) * k11) / coverage
-                                : 0
-                            let green = coverage > 0
-                                ? (Double(Int(p00.g)) * k00 + Double(Int(p10.g)) * k10
-                                    + Double(Int(p01.g)) * k01 + Double(Int(p11.g)) * k11) / coverage
-                                : 0
-                            let blue = coverage > 0
-                                ? (Double(Int(p00.b)) * k00 + Double(Int(p10.b)) * k10
-                                    + Double(Int(p01.b)) * k01 + Double(Int(p11.b)) * k11) / coverage
-                                : 0
+                            var red = 0.0, green = 0.0, blue = 0.0
+                            if coverage > 0 {
+                                let redNear: Double = Double(Int(p00.r)) * k00 + Double(Int(p10.r)) * k10
+                                red = (redNear + Double(Int(p01.r)) * k01 + Double(Int(p11.r)) * k11) / coverage
+                                let greenNear: Double = Double(Int(p00.g)) * k00 + Double(Int(p10.g)) * k10
+                                green = (greenNear + Double(Int(p01.g)) * k01 + Double(Int(p11.g)) * k11) / coverage
+                                let blueNear: Double = Double(Int(p00.b)) * k00 + Double(Int(p10.b)) * k10
+                                blue = (blueNear + Double(Int(p01.b)) * k01 + Double(Int(p11.b)) * k11) / coverage
+                            }
                             // Alpha is interpolated like every other channel. It
                             // used to be dropped — `RGBA(r:g:b:)` defaults it to
                             // opaque — so this function silently flattened every
