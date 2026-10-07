@@ -210,7 +210,7 @@ def lower(M, R, asg):
         if allowed is None: continue
         lm = M.lower_module(usr)
         if lm is None or lm in allowed: continue
-        name = M.symbols.get(usr, ('?',))[0]
+        name = M.lower_name.get(usr) or M.symbols.get(usr, ('?',))[0]
         key = f'{M.label(src)} uses {lm}.{name}'
         if key in seen:
             seen[key].weight += 1; continue

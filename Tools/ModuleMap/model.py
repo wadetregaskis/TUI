@@ -56,17 +56,31 @@ def visible_modules(top, me, lexed):
     return seen
 
 
-def lower_owners(files, dirs):
-    """{usr: module} for every symbol the lower modules define, from their occurrences ({path: [(usr, roles, line,
-    container)]}, as indexstore.read gives them) and {module: source prefix}. A symbol two of them define (none
-    should) goes to the first by name."""
-    out = {}
+def lower_owners(files, dirs, symbols):
+    """({usr: module}, {usr: qualified name}) for every symbol the lower modules define, from their occurrences
+    ({path: [(usr, roles, line, container)]}) and symbols ({usr: (name, kind, subkind)}), as indexstore.read gives
+    them, and {module: source prefix}. A symbol two of them define (none should) goes to the first by name.
+
+    The qualified name prefixes the name with the types (or extended types) it is nested in, `AppState.shared`, and an
+    accessor with its property's type, `AppState.getter:shared`: a bare name would merge every `shared` and every
+    `init(_:)` of a module into one finding, and one `scheduled` pattern would cover them all."""
+    owner, parent = {}, {}
     for mod, pre in sorted(dirs.items()):
         for p, occs in files.items():
             if not p.startswith(pre): continue
-            for usr, roles, _, _ in occs:
-                if roles & DEF and not roles & REF: out.setdefault(usr, mod)
-    return out
+            for usr, roles, _, cont in occs:
+                if roles & DEF and not roles & REF:
+                    owner.setdefault(usr, mod)
+                    if cont: parent.setdefault(usr, cont)
+    holders = IX.TYPE_KINDS + (IX.K_EXTENSION,)
+
+    def qualified(u):
+        parts, p, k = [symbols.get(u, ('?',))[0]], parent.get(u), 0
+        while p and k < 50:
+            if symbols.get(p, ('', 0))[1] in holders: parts.append(symbols[p][0])
+            p, k = parent.get(p), k + 1
+        return '.'.join(reversed(parts))
+    return owner, {u: qualified(u) for u in owner}
 
 
 # The lower modules' USR prefixes (`s:` + the mangled module name): which one defines a symbol when the index's own
@@ -98,6 +112,7 @@ class Model:
         self.symbols = {}               # usr -> (name, kind, subkind), for every symbol the module references
         self.foreign_refs = []          # (node, usr, rel, line): references to symbols defined outside the module
         self.lower_owner = {}           # usr -> the lower module (beside the source directory) that defines it
+        self.lower_name = {}            # usr -> its name qualified by its types in that module (`AppState.shared`)
         self.lower_modules = set()      # the lower modules whose definitions were read
         self.public_members = {}        # node -> names of the public API it declares, in source order
         self.stale = []                 # rel paths whose source is newer than its index unit, or have none
@@ -167,8 +182,8 @@ class Model:
         top, me = os.path.split(prefix.rstrip('/'))
         dirs = {d: os.path.join(top, d) + '/' for d in sorted(visible_modules(top, me, m.lexed.values()))}
         if dirs:
-            lower, _, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
-            m.lower_owner = lower_owners(lower, dirs)
+            lower, lsyms, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
+            m.lower_owner, m.lower_name = lower_owners(lower, dirs, lsyms)
             m.lower_modules = set(m.lower_owner.values())
         return m
 

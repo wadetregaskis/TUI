@@ -157,7 +157,7 @@ hold only imports.
 
 ### `lower`: a lower module the module's `lower` list does not name
 
-`TUIkitStrings: Localization/Foo.swift::Foo uses TUIkitView.AppState, and TUIkitStrings's lower list does not name TUIkitView`
+`TUIkitStrings: Localization/Foo.swift::Foo uses TUIkitView.AppState.shared, and TUIkitStrings's lower list does not name TUIkitView`
 
 The lower modules are the package's other modules beside `Sources/TUIkit` that its sources import, and what those
 re-export with `@_exported import` (TUIkitCore, TUIkitStyling, TUIkitView, TUIkitImage today). The map does not split
@@ -169,8 +169,10 @@ TUIkitImage stays without it.
 
 There is one finding per declaration and symbol, with its references counted. Fix it as for `upward`: move the user,
 or break the edge (inject the value, or split the code that needs the lower module into an extension in a module
-that may use it). A refactor that will remove one is a `scheduled` entry whose `to` matches `Module.name`
-(`^TUIkitView\.AppState$`).
+that may use it). A refactor that will remove one is a `scheduled` entry whose `to` matches the symbol as the finding
+names it: its module, then the types it is nested in or extends, then its name (`^TUIkitView\.AppState\.shared$`; an
+accessor is `AppState.getter:shared`). A bare name would make every `shared` or `init(_:)` of the module one finding,
+and one pattern would cover them all.
 
 The check reads which lower module defines each symbol from the same index store, in one more pass over its units:
 about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; reading every module beside
@@ -220,7 +222,7 @@ not drag declarations down.
 - **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
 - **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix` or `lower`) that a refactor will
   remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for
-  `posix`, `to` matches the API's name, and for `lower`, `Module.name`.
+  `posix`, `to` matches the API's name, and for `lower`, `Module.Type.name`.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 **Renaming a module.** Module names live in `rules.json` (and the generated `map.json`) and nowhere else in the tool:

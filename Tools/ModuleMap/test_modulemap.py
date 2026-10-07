@@ -534,7 +534,34 @@ class LowerTests(unittest.TestCase):
         files = {'/p/Sources/TUIkitCore/Lock.swift': [('s:Lock', DEF, 1, ''), ('s:Date', REF, 2, 's:Lock')],
                  '/p/Sources/TUIkitView/AppState.swift': [('s:AppState', DEF, 1, ''), ('s:Lock', REF, 3, 's:AppState')]}
         dirs = {'TUIkitCore': '/p/Sources/TUIkitCore/', 'TUIkitView': '/p/Sources/TUIkitView/'}
-        self.assertEqual(model_mod.lower_owners(files, dirs), {'s:Lock': 'TUIkitCore', 's:AppState': 'TUIkitView'})
+        sym = {'s:Lock': ('Lock', IX.K_STRUCT), 's:AppState': ('AppState', IX.K_CLASS), 's:Date': ('Date', IX.K_STRUCT)}
+        self.assertEqual(model_mod.lower_owners(files, dirs, sym),
+                         ({'s:Lock': 'TUIkitCore', 's:AppState': 'TUIkitView'}, {'s:Lock': 'Lock', 's:AppState': 'AppState'}))
+
+    def test_a_lower_symbol_is_named_by_the_types_it_sits_in(self):
+        # Two `shared` in TUIkitView: one on AppState, one added to Theme by an extension. A bare name made them one
+        # finding, and R1's pattern for AppState's covered any other `shared` too.
+        files = {'/p/V/A.swift': [('s:AppState', DEF, 1, ''), ('s:AppState.shared', DEF, 2, 's:AppState'),
+                                  ('s:AppState.shared.get', DEF | IX.IMPLICIT, 2, 's:AppState.shared'),
+                                  ('s:e:Theme', DEF, 4, ''), ('s:Theme.shared', DEF, 5, 's:e:Theme')]}
+        sym = {'s:AppState': ('AppState', IX.K_CLASS), 's:AppState.shared': ('shared', IX.K_VARIABLE),
+               's:AppState.shared.get': ('getter:shared', 19), 's:e:Theme': ('Theme', IX.K_EXTENSION),
+               's:Theme.shared': ('shared', IX.K_VARIABLE)}
+        owner, names = model_mod.lower_owners(files, {'TUIkitView': '/p/V/'}, sym)
+        self.assertEqual(names, {'s:AppState': 'AppState', 's:AppState.shared': 'AppState.shared',
+                                 's:AppState.shared.get': 'AppState.getter:shared', 's:e:Theme': 'Theme',
+                                 's:Theme.shared': 'Theme.shared'})
+        src = 'struct S {\n    func f() { _ = AppState.shared; _ = Theme.shared }\n}\n'
+        M = model({'Base/S.swift': src},
+                  {'Base/S.swift': [('s:S', DEF, 1, ''), ('s:S.f', DEF, 2, 's:S'), ('s:AppState.shared', REF, 2, 's:S.f'),
+                                    ('s:Theme.shared', REF, 2, 's:S.f')]},
+                  {'s:S': ('S', IX.K_STRUCT), 's:S.f': ('f()', 16), **sym})
+        M.lower_owner, M.lower_name = owner, names
+        sched = [{'id': 'R1', 'check': 'lower', 'from': r'^Base/S\.swift::S$', 'to': r'^TUIkitView\.AppState\.shared$',
+                  'why': ''}]
+        xs = checks.lower(M, lower_rules(scheduled=sched), {'s:S': 'Base'})
+        self.assertEqual([(x.key, x.scheduled) for x in xs], [('Base/S.swift::S uses TUIkitView.AppState.shared', 'R1'),
+                                                              ('Base/S.swift::S uses TUIkitView.Theme.shared', None)])
 
     def test_one_answer_to_which_lower_module_defines_a_symbol(self):
         # The `lower` check and owns-neither's module_of ask the same question. The index answers it, and sees what a
