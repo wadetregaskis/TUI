@@ -74,15 +74,22 @@ enum ProcessAncestry {
     /// mid-walk, which would otherwise spin forever; a real chain is a handful
     /// of links.
     static func commandNames(from pid: pid_t, limit: Int = 64) -> [String]? {
-        var names: [String] = []
+        chain(from: pid, limit: limit, reading: commandName(of:))
+    }
+
+    /// What `read` says of each process from `pid` up to the root, `pid`'s
+    /// own first — or `nil` when it said nothing of one, or a link could not
+    /// be read, before the root was reached (``commandNames(from:limit:)``).
+    static func chain<Value>(from pid: pid_t, limit: Int = 64, reading read: (pid_t) -> Value?) -> [Value]? {
+        var values: [Value] = []
         var current = pid
         for _ in 0..<limit {
-            guard let name = commandName(of: current) else { return nil }
-            names.append(name)
+            guard let value = read(current) else { return nil }
+            values.append(value)
             // pid 1 (launchd, init, systemd) roots every chain, and a parent of
             // 0 is the root too: the kernel's own, on Linux.
             guard current > 1, let parent = parent(of: current) else {
-                return current <= 1 || parentIsRoot(current) ? names : nil
+                return current <= 1 || parentIsRoot(current) ? values : nil
             }
             current = parent
         }
