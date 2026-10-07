@@ -1,0 +1,70 @@
+# Completing the SwiftUI API: decisions from lane SP0
+
+*Lane SP0 carried out steps 0b, 0c and A1 of the module-split plan: the owner's decision of 2026-10-07 to split
+TUIkit into à-la-carte modules. The plan is the session notes' `buildtime/split2/plan.md`. A1 added
+`Tools/ModuleMap`, which checks the planned map against today's single module; it changed no public API. This file
+holds the judgement calls the work reached that the plan did not already settle, in the format of
+[`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
+
+- **A-SP0-n — needs your decision.** Nothing has shipped for these.
+- **B-SP0-n — shipped the safe option.** Says what the fuller version would be, and its price.
+- **C-SP0-n — declined.** With the reason.
+
+## B. Shipped the safe option
+
+### B-SP0-1. ViewRenderer stays in TUIkitBase, and K3 stays a refactor to do
+
+*`Tools/ModuleMap/rules.json`, the `declarations` rule for `Rendering/ViewRenderer.swift`*
+
+Plan §1 lists ViewRenderer under Base's rendering infrastructure. K3 then makes it take its terminal, with no
+`Terminal()` default, and moves `renderOnce` to TUIkitApp.
+
+Once `renderOnce` is pinned to App, nothing in Base uses ViewRenderer. The assigner then pushes it up into
+TUIkitApp, and K3's upward reference disappears. ViewRenderer is now pinned to Base, as the plan says, and K3
+stays a scheduled refactor.
+
+**The alternative, and its price.** Let ViewRenderer go to TUIkitApp, and drop K3:
+- It saves K3's refactor: two sites, plus `renderOnce` passing `Terminal()` explicitly.
+- A headless renderer would then live only in the POSIX module. Today that matters for nothing: every app links
+  TUIkitApp, and the test target can import it. It would matter for a future Windows console backend or a
+  WASI host that wants ViewRenderer without App.
+
+### B-SP0-2. Twelve pieces of public API stay above their type's module, recorded rather than moved
+
+*`Tools/ModuleMap/rules.json`, `accepted`*
+
+The `public-above` check lists public API placed above the module of the type it belongs to. Plan §4 reviewed
+three such placements; at HEAD there are twelve. Each now has its reason in `rules.json`, and the map is unchanged.
+- The plan's two: `.modal` in Presentation, and `.listStyle` with the row-selection modifiers in Lists.
+- `TerminalClient`'s graphics-support API (`graphicsSupported` and its kin) goes to TUIkitApp. It reads what App's
+  startup handshake records. Every app imports App, so no app loses it.
+- `.automatic` for the List, Picker and NavigationSplitView styles stays in the leaf. It is usable only through
+  the leaf's own modifier.
+- `ForEach(_:editActions:content:)` and `ForEach(sections:content:)` stay in Lists.
+- The four `SceneStorage` / `AppStorage` inits for tab and table customization stay in Tabs and Tables.
+
+`asAnyView()` shares an extension block with `.modal`, so it rides along into Presentation.
+
+**The fuller version, and its price.** Move the sugar down beside the types it names at step A4. That means
+`.automatic` beside the default styles in Base, `asAnyView()` split out of `.modal`'s block into Base, and the
+graphics-support API split from what reads App's state. It costs:
+- about five more declaration-level file cuts;
+- for the graphics API, an injected value in place of the static it reads.
+
+It gains nothing for an app that uses the leaf: the sugar only works through the leaf's modifier anyway.
+
+### B-SP0-3. The check reads the committed map, so a new reference is a finding, not a silent move
+
+*`Tools/ModuleMap/modulemap.py check` against `map.json`*
+
+The assigner moves declarations to make the map consistent. Say new code in Base starts using a Lists helper: if
+the check re-ran the assigner, the helper would simply come down into Base and nothing would be reported.
+
+Instead, the check reads the committed `map.json`, so that reference is reported as `upward`. Moving the helper
+is then a reviewed edit: `assign`, read the diff, `assign --write`. New files and new declarations are placed by
+the rules until the next `assign --write`.
+
+**The alternative, and its price.** Run the assigner in CI (`check --fresh`) and report only what it cannot
+resolve. There would be fewer findings, but Base would grow silently with every convenience reference, and the
+à-la-carte savings in plan §2 would erode without anyone choosing it. The fresh run costs 0.2 s, so this is a
+policy choice, not a cost one.
