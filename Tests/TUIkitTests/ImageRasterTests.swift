@@ -2,7 +2,7 @@
 //  ImageRasterTests.swift
 //
 //  An `Image`'s picture behind the raster seam (`_ImageRaster`): the identity
-//  it keeps its state at.
+//  it keeps its state at, and what its equality leaves out.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -108,5 +108,29 @@ struct ImageRasterTests {
             #expect(lines == drawn(modify), "\(label): the picture lost its loaded pixels")
             #expect(lines != placeholder, "\(label): the picture drew its placeholder")
         }
+    }
+
+    @Test("Images of one source are equal whatever pixels they carry, decoded or not")
+    func equalityLeavesOutDecodedPixels() {
+        // The pixels are what the source decodes to, so an image compares
+        // equal to itself before and after they arrive. And they come as a
+        // fresh `_DecodedImage` each time an image is made again: a body's
+        // `Image(_:scale:orientation:label:)` of a `CGImage` every render, an
+        // `AsyncImage` whose scale changed since its load
+        // (`_DecodedImage.scaled`). An equality that compared them — by
+        // object or by pixels — would make every memo above such an image
+        // miss, for the same picture.
+        let white = _DecodedImage(
+            RGBAImage(width: 2, height: 2, pixels: Array(repeating: RGBA(r: 255, g: 255, b: 255), count: 4)))
+        let black = _DecodedImage(
+            RGBAImage(width: 4, height: 4, pixels: Array(repeating: RGBA(r: 0, g: 0, b: 0), count: 16)))
+        #expect(Image(Self.source, decoded: white) == Image(Self.source, decoded: black))
+        #expect(Image(Self.source) == Image(Self.source, decoded: white))
+        #expect(Image(Self.source, decoded: white) == Image(Self.source, decoded: _DecodedImage(white.pixels)))
+
+        // And still a different source is a different image, pixels or not.
+        let other = ImageSource.url("tuikit-test://other")
+        #expect(Image(Self.source, decoded: white) != Image(other, decoded: white))
+        #expect(Image(Self.source) != Image(other))
     }
 }
