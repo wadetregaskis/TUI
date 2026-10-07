@@ -45,16 +45,16 @@ enum SwatchPalettes {
     /// The 48 crayons of macOS's "Crayons" colour picker, in its 8×6 arrangement
     /// (six tint→shade colour columns, then the two-wide neutral ramp). Selection
     /// and values match Apple's selector — note it has "Sea Foam", not "Mandarin".
-    static let crayons: [(name: String, color: Color)] = crayonsRaw.map { ($0.0, .hex($0.1)) }
+    static let crayons: [(name: String, color: Color)] = crayonsRaw.map { ($0.0.description, .hex($0.1)) }
 
     // MARK: - Helpers
 
     /// Drops later entries whose colour value already appeared (synonyms).
-    private static func deduplicated(_ raw: [(String, UInt32)]) -> [(name: String, color: Color, hex: UInt32)] {
+    private static func deduplicated(_ raw: [(StaticString, UInt32)]) -> [(name: String, color: Color, hex: UInt32)] {
         var seen = Set<UInt32>()
         var result: [(name: String, color: Color, hex: UInt32)] = []
         for (name, hex) in raw where seen.insert(hex).inserted {
-            result.append((name, .hex(hex), hex))
+            result.append((name.description, .hex(hex), hex))
         }
         return result
     }
@@ -84,10 +84,15 @@ enum SwatchPalettes {
     }
 
     // MARK: - Raw data
+    //
+    // The names are `StaticString`s, made `String`s once, when the sets above
+    // are built. Written as `String`s, each name is a `String` the optimiser
+    // assembles element by element: the two tables took 141 ms of a release
+    // build's SIL optimisation, and take 28 ms like this (2026-10-07).
 
     /// The 148 CSS named colours (name, 0xRRGGBB). Order here is irrelevant —
     /// ``cssNamed`` deduplicates and re-sorts.
-    private static let cssNamedRaw: [(String, UInt32)] = [
+    private static let cssNamedRaw: [(StaticString, UInt32)] = [
         ("aliceblue", 0xF0F8FF), ("antiquewhite", 0xFAEBD7), ("aqua", 0x00FFFF),
         ("aquamarine", 0x7FFFD4), ("azure", 0xF0FFFF), ("beige", 0xF5F5DC),
         ("bisque", 0xFFE4C4), ("black", 0x000000), ("blanchedalmond", 0xFFEBCD),
@@ -143,7 +148,7 @@ enum SwatchPalettes {
     /// macOS Crayons, row-major in the selector's 8×6 grid: columns 1–6 are the
     /// six colour columns (tint at top → shade at bottom), columns 7–8 the
     /// neutral ramp (Licorice→Snow paired down each row).
-    private static let crayonsRaw: [(String, UInt32)] = [
+    private static let crayonsRaw: [(StaticString, UInt32)] = [
         // Row 1
         ("Cantaloupe", 0xFFCC66), ("Honeydew", 0xCCFF66), ("Spindrift", 0x66FFCC),
         ("Sky", 0x66CCFF), ("Lavender", 0xCC66FF), ("Carnation", 0xFF66FF),

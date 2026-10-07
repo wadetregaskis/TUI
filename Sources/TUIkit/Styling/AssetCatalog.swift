@@ -260,19 +260,35 @@ enum AssetCatalog {
 
     /// The system colours a colour set may refer to, as TUIkit spells them;
     /// a reference missing here is one TUIkit has no counterpart for.
-    private static func systemColor(named reference: String) -> Color? {
-        systemColors[reference]
+    private static func systemColor(named reference: String) -> Color? {  // swiftlint:disable:this cyclomatic_complexity
+        // A switch rather than a `[String: Color]` literal, which a release build
+        // assembled element by element: 34 ms of SIL optimisation against the
+        // switch's 15 (2026-10-07). Read once a reference, while a catalogue is
+        // parsed. Its complexity is its length: one case per name.
+        switch reference {
+        case "systemRedColor": .red
+        case "systemOrangeColor": .orange
+        case "systemYellowColor": .yellow
+        case "systemGreenColor": .green
+        case "systemMintColor": .mint
+        case "systemTealColor": .teal
+        case "systemCyanColor": .cyan
+        case "systemBlueColor": .blue
+        case "systemIndigoColor": .indigo
+        case "systemPurpleColor": .purple
+        case "systemPinkColor": .pink
+        case "systemBrownColor": .brown
+        case "systemGrayColor": .gray
+        case "labelColor": .primary
+        case "textColor": .primary
+        case "secondaryLabelColor": .secondary
+        case "controlAccentColor": .accentColor
+        case "blackColor": .black
+        case "whiteColor": .white
+        case "clearColor": .clear
+        default: nil
+        }
     }
-
-    private static let systemColors: [String: Color] = [
-        "systemRedColor": .red, "systemOrangeColor": .orange, "systemYellowColor": .yellow,
-        "systemGreenColor": .green, "systemMintColor": .mint, "systemTealColor": .teal,
-        "systemCyanColor": .cyan, "systemBlueColor": .blue, "systemIndigoColor": .indigo,
-        "systemPurpleColor": .purple, "systemPinkColor": .pink, "systemBrownColor": .brown,
-        "systemGrayColor": .gray, "labelColor": .primary, "textColor": .primary,
-        "secondaryLabelColor": .secondary, "controlAccentColor": .accentColor,
-        "blackColor": .black, "whiteColor": .white, "clearColor": .clear,
-    ]
 
     // MARK: - Image sets
 
