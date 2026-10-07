@@ -184,3 +184,11 @@ map whenever a change adds files or moves code between them.
 - Only `Sources/TUIkit` is mapped. Tests, Example and Stress import the umbrella and are not checked.
 - Line weights, which decide an unpinned group's module by majority, are each declaration's share of its file,
   up to the next declaration.
+
+## In CI
+
+CI runs the check on the `macOS 15 · Xcode 26` lane, right after its debug build, so it reads that build's index
+store. It needs no extra build; the step itself takes a few seconds. For now it only warns: it runs with
+`--github --exit-zero`, and every new finding becomes a warning annotation. Once plan steps A2 (the K refactors)
+and A4 (the placement moves) have landed, drop `--exit-zero`, so that no new upward reference can arrive during
+the migration. The parity job runs the tool's own unit tests.
