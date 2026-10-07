@@ -5867,8 +5867,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// carries escapes of its own (a styled `Text`, a view's line), which a
     /// reset has to end — SGR 39 would leave a bold or an underline of the
     /// cell's running into the next one.
+    ///
+    /// Asked only under a still fill: where `inkClose` is already a reset (no
+    /// fill, a reversal — every unstriped row, every row of a table drawn
+    /// `.alternatingRowBackgrounds(.disabled)`) the answer is a reset whatever
+    /// the text holds, and walking the cell's bytes for an escape would be a
+    /// scan per composed cell that cannot change it.
     private static func close(_ text: String, with inkClose: String) -> String {
-        text.utf8.contains(0x1B) ? ANSIRenderer.reset : inkClose
+        guard inkClose != ANSIRenderer.reset else { return inkClose }
+        return text.utf8.contains(0x1B) ? ANSIRenderer.reset : inkClose
     }
 
     /// The selection mark `glyph` in `colour`, closed by `close` — what
