@@ -132,8 +132,17 @@ extension FocusManager {
     /// asks LAST frame's resolvers, before it lays the page out
     /// (``presentationDock(in:)``) — one walk, at a height known in advance.
     /// The same current-and-previous shape as ``notePresentation(id:dismiss:)``.
-    func notePresentationDock(id: String, resolver: @escaping PresentationDockResolver) {
-        panes.docks[id] = resolver
+    ///
+    /// - Parameters:
+    ///   - id: The sheet's focus section.
+    ///   - presenter: The presenter's identity, for the frame after one that
+    ///     docked it and did not draw it to ask why
+    ///     (``settlePresentationDock(laidOutBy:in:storage:)``).
+    ///   - resolver: The rows the sheet docks, asked before the next walk.
+    func notePresentationDock(
+        id: String, presenter: ViewIdentity, resolver: @escaping PresentationDockResolver
+    ) {
+        panes.docks[id] = PaneLedger.PostedDock(presenter: presenter, resolver: resolver)
     }
 
     /// The rows a content area `contentHeight` rows tall gives up at its
@@ -144,7 +153,7 @@ extension FocusManager {
     /// edge, and the taller decides how much of the page is covered.
     ///
     /// Notes which sheets docked it (``PaneLedger/dockedBeforeTheWalk``), for
-    /// ``settlePresentationDock(laidOutBy:in:)`` to find the ones whose
+    /// ``settlePresentationDock(laidOutBy:in:storage:)`` to find the ones whose
     /// presenters the frame then did not draw.
     @MainActor
     func presentationDock(in contentHeight: Int) -> Int {
@@ -169,25 +178,35 @@ extension FocusManager {
     /// After the walk, whether the next frame must be laid out at another
     /// dock than this one was (`dock`): see ``postedPresentationDock(in:)``.
     ///
-    /// And notes the sheets that docked this frame whose presenters it did
-    /// not draw, for their presenters to find on the next
-    /// (``presenterWentUndrawnUnderItsDock(_:)``).
+    /// And notes the sheets that docked this frame whose presenters it left
+    /// out of a lazy container's window, for their presenters to find on the
+    /// next (``presenterWentUndrawnUnderItsDock(_:)``): a presenter that drew
+    /// nothing this pass (`storage`'s ``StateStorage/isMarkedActive(_:)``,
+    /// which a presented sheet's presenter marks wherever it draws, a
+    /// backdrop included) below a container that windows its rows
+    /// (``StateStorage/windowedSubtrees()``). Built only when a docked
+    /// sheet's presenter posted nothing, which is almost never.
     @MainActor
-    func settlePresentationDock(laidOutBy dock: Int, in contentHeight: Int) -> Bool {
-        panes.noteDocksLeftUndrawn()
+    func settlePresentationDock(laidOutBy dock: Int, in contentHeight: Int, storage: StateStorage?) -> Bool {
+        var windowed: RetainedSubtreeIndex?
+        panes.noteDocksLeftUndrawn { presenter in
+            guard let storage, !storage.isMarkedActive(presenter) else { return false }
+            if windowed == nil { windowed = storage.windowedSubtrees() }
+            return windowed?.retains(presenter) ?? false
+        }
         return postedPresentationDock(in: contentHeight) != dock
     }
 
     /// Whether the sheet presented in section `id` docked the page last
-    /// frame and that frame did not draw its presenter.
+    /// frame and that frame left its presenter out of a lazy container's
+    /// window.
     ///
-    /// A presenter drawn now that was not drawn then went undrawn because of
-    /// the frame it docked — a row of a lazy stack or a list that the page,
-    /// laid out short by the sheet, left out of its window — or came back
-    /// within a frame of leaving. Docked again, the row would leave the window
-    /// again, the sheet with it, and the page would grow back: the two
-    /// alternated every frame, the app never idled, and the sheet lost the
-    /// focus for good.
+    /// A presenter drawn now that was windowed out then was pushed out by the
+    /// frame it docked — a row of a lazy stack or a list that the page, laid
+    /// out short by the sheet, left out of its window. Docked again, the row
+    /// would leave the window again, the sheet with it, and the page would
+    /// grow back: the two alternated every frame, the app never idled, and the
+    /// sheet lost the focus for good.
     func presenterWentUndrawnUnderItsDock(_ id: String) -> Bool {
         panes.undrawnUnderTheirDock.contains(id)
     }
@@ -196,13 +215,13 @@ extension FocusManager {
     /// each section that docks any handed to `docked`.
     @MainActor
     private static func dock(
-        _ resolvers: [String: PresentationDockResolver], in contentHeight: Int, docked: (String) -> Void
+        _ resolvers: [String: PaneLedger.PostedDock], in contentHeight: Int, docked: (String) -> Void
     ) -> Int {
         // The common frame: no live sheet anywhere.
         guard !resolvers.isEmpty, contentHeight > 0 else { return 0 }
         var dock = 0
-        for (id, resolver) in resolvers {
-            guard let rows = resolver(contentHeight) else { continue }
+        for (id, posted) in resolvers {
+            guard let rows = posted.resolver(contentHeight) else { continue }
             dock = max(dock, rows)
             docked(id)
         }

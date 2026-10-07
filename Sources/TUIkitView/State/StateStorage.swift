@@ -133,6 +133,14 @@ public final class StateStorage: @unchecked Sendable {
     /// a deleted row's state lingers until its container dies.
     private var retainedSubtreeRoots: [ViewIdentity] = []
 
+    /// The ``retainedSubtreeRoots`` declared by a container that WINDOWS its
+    /// rows (``retainWindowedSubtree(_:)``) — as against one that keeps a
+    /// subtree it did not draw for another reason: a collapsed disclosure
+    /// group, an overflowed toolbar item, a memo that served it. Asked only
+    /// when a view must know why something went undrawn
+    /// (``windowedSubtrees()``). Cleared with them.
+    private var windowedSubtreeRoots: [ViewIdentity] = []
+
     /// The render cache that state changes should invalidate — the cache of the
     /// `TUIContext` this storage belongs to. Wired by the context at creation;
     /// its link is stamped onto each ``StateBox`` at hydration, so a state
@@ -287,6 +295,31 @@ extension StateStorage {
         RetainedSubtreeIndex(roots: retainedSubtreeRoots)
     }
 
+    /// ``retainSubtree(_:)`` for a container that windows its rows — a lazy
+    /// stack, a `List`, a `Table` — which also says WHY a row below it that
+    /// drew nothing is still in the tree: it is outside the container's
+    /// viewport (``windowedSubtrees()``).
+    ///
+    /// - Parameter root: The windowing container's own identity.
+    public func retainWindowedSubtree(_ root: ViewIdentity) {
+        retainedSubtreeRoots.append(root)
+        windowedSubtreeRoots.append(root)
+    }
+
+    /// The subtrees this pass's windowing containers have declared so far
+    /// (``retainWindowedSubtree(_:)``): whether a view that drew nothing this
+    /// pass was left out of a container's window, rather than out of the tree
+    /// or kept for some other reason.
+    public func windowedSubtrees() -> RetainedSubtreeIndex {
+        RetainedSubtreeIndex(roots: windowedSubtreeRoots)
+    }
+
+    /// Whether `identity` has been marked active this pass (``markActive(_:)``)
+    /// — for a view that marks itself whenever it draws, whether it drew.
+    public func isMarkedActive(_ identity: ViewIdentity) -> Bool {
+        activeIdentities.contains(identity)
+    }
+
     // MARK: - Conditional Branch Tracking
 
     /// Records which branch a `ConditionalView` rendered this frame, and reports
@@ -381,6 +414,7 @@ extension StateStorage {
         departures.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
         retainedSubtreeRoots.removeAll(keepingCapacity: true)
+        windowedSubtreeRoots.removeAll(keepingCapacity: true)
         beginSceneRender()
     }
 

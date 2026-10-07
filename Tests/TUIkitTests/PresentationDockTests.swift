@@ -38,7 +38,7 @@ private struct DockingPage: View, Renderable {
             probe.laidOutHeights.append(height)
             if probe.posts {
                 let probe = self.probe
-                context.environment.focusManager?.notePresentationDock(id: "probe") { _ in probe.rows }
+                context.environment.focusManager?.notePresentationDock(id: "probe", presenter: context.identity) { _ in probe.rows }
             }
         }
         var page = FrameBuffer(lines: (0..<max(0, height)).map { "row \($0)" })

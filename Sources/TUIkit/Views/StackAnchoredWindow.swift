@@ -640,7 +640,7 @@ extension _VStackCore {
         guard !children[0].providesAlignmentGuide else { return nil }
 
         // Off-window rows leave the WINDOW, not the tree (§5h).
-        context.stateStorage?.retainSubtree(context.identity)
+        context.stateStorage?.retainWindowedSubtree(context.identity)
 
         var childContext = context
         childContext.leaveScrollOrigin()

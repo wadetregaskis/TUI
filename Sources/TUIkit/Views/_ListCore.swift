@@ -843,7 +843,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // (see StateStorage.retainSubtree). Render path only, per the
         // measure-side-effect rule.
         if !context.isMeasuring {
-            stateStorage.retainSubtree(context.identity)
+            stateStorage.retainWindowedSubtree(context.identity)
         }
 
         // Two border cells or none, on each axis: top + bottom rows, and left +

@@ -1157,7 +1157,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Rows beyond the viewport are skipped, not gone: retain their state
         // (see StateStorage.retainSubtree). Render path only, per the
         // measure-side-effect rule.
-        if !context.isMeasuring { stateStorage.retainSubtree(context.identity) }
+        if !context.isMeasuring { stateStorage.retainWindowedSubtree(context.identity) }
 
         // Calculate available width inside container (subtract border + padding).
         let gutter = selectionGutter(context.environment)

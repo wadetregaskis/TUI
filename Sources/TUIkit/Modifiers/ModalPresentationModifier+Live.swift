@@ -105,11 +105,11 @@ final class PresentationEntry {
     var hasEntered = false
 
     /// Whether the sheet is a modal, not docked, for as long as it stays
-    /// presented: set when its presenter, drawn now, was not drawn on the
-    /// frame laid out short by the sheet's dock
+    /// presented: set when its presenter, drawn now, was left out of a lazy
+    /// container's window on the frame laid out short by the sheet's dock
     /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`) — a row of a lazy
-    /// stack or a list that the shortened page left out of its window.
-    /// Docked again, the row would leave again, and the sheet with it.
+    /// stack or a list that the shortened page left out. Docked again, the
+    /// row would leave again, and the sheet with it.
     var isKeptOffTheDock = false
 
     /// The rows the live sheet was last drawn in, where that was fewer than
@@ -143,7 +143,12 @@ extension ModalPresentationModifier {
     /// A presented sheet whose presenter its own dock pushed out of the
     /// page's lazy window, drawn again now the page is whole, is kept off the
     /// dock from here on (``PresentationEntry/isKeptOffTheDock``): a modal,
-    /// which leaves the page its height and the presenter its row.
+    /// which leaves the page its height and the presenter its row. Pushed
+    /// out, not merely undrawn: drawn into a backdrop, which posts nothing
+    /// (below), or away for a frame with its tab, it is not held.
+    ///
+    /// Posted with the presenter's identity, which is what the ledger asks
+    /// about (`FocusManager.settlePresentationDock(laidOutBy:in:storage:)`).
     func postDock(_ interaction: PresentationBackgroundInteraction, sectionID: String, context: RenderContext) {
         guard !context.isMeasuring, case .enabled = interaction.kind,
             let focusManager = context.environment.focusManager, !focusManager.isBackdrop
@@ -159,7 +164,7 @@ extension ModalPresentationModifier {
         if let entry, isPresented.wrappedValue, focusManager.presenterWentUndrawnUnderItsDock(sectionID) {
             entry.isKeptOffTheDock = true
         }
-        focusManager.notePresentationDock(id: sectionID) { contentHeight in
+        focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
             guard isPresented.wrappedValue else { return nil }
             let detents = PresentedDetents(of: modal, extent: contentHeight, environment: environment, state: state)
             let rows = LiveSheet.dock(

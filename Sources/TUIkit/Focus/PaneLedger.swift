@@ -15,13 +15,23 @@
 /// One value, rotated and emptied by the focus manager's pass hooks, with the
 /// same current-and-previous shape as `presentationDismissals`.
 struct PaneLedger {
-    /// How many rows each sheet docked live at the bottom of the content area
-    /// takes from the page, by its section: posted this walk.
-    var docks: [String: PresentationDockResolver] = [:]
+    /// What a live sheet's presenter posts each frame: how many rows its sheet
+    /// docked at the bottom of the content area takes from the page, and who
+    /// posted it.
+    struct PostedDock {
+        /// The presenter's identity — to ask, should a frame docked by it not
+        /// draw it, whether its own dock windowed it out
+        /// (``noteDocksLeftUndrawn(windowedOut:)``).
+        let presenter: ViewIdentity
+        let resolver: PresentationDockResolver
+    }
+
+    /// The dock each sheet docked live posts, by its section: posted this walk.
+    var docks: [String: PostedDock] = [:]
 
     /// ``docks`` as the previous frame left them: what the root asks, BEFORE
     /// the walk, how many rows to lay the page out short.
-    private(set) var previousDocks: [String: PresentationDockResolver] = [:]
+    private(set) var previousDocks: [String: PostedDock] = [:]
 
     /// The sections whose sheets docked the page this frame: the resolvers
     /// that answered rows when the root asked, before the walk
@@ -29,8 +39,9 @@ struct PaneLedger {
     var dockedBeforeTheWalk: Set<String> = []
 
     /// The sections whose sheet docked the page LAST frame and whose
-    /// presenter that frame did not draw — noted after its walk
-    /// (``noteDocksLeftUndrawn()``), for the presenters of the next to ask
+    /// presenter that frame left out of a lazy container's window — noted
+    /// after its walk (``noteDocksLeftUndrawn(windowedOut:)``), for the
+    /// presenters of the next to ask
     /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`).
     private(set) var undrawnUnderTheirDock: Set<String> = []
 
@@ -50,10 +61,24 @@ struct PaneLedger {
     }
 
     /// Notes, after the walk, which of the sheets that docked the page this
-    /// frame had no presenter drawn in it: their docks were not posted again.
-    mutating func noteDocksLeftUndrawn() {
+    /// frame had their presenter pushed out by the dock: not drawn, so their
+    /// docks were not posted again, and left out of a lazy container's window
+    /// (`windowedOut`, asked of the presenter's identity) — which the page
+    /// laid out short is what does.
+    ///
+    /// Only that. A presenter can post nothing for other reasons, and none of
+    /// them says that docking again would push it out again: drawn into the
+    /// throwaway backdrop of a `.modal`, a `.contextMenu` or a `.dimmed()`,
+    /// which posts nothing; or not drawn at all for a frame — a tab, a
+    /// navigation destination, a branch switched away and back between two
+    /// frames. Counted, any of them held a live sheet off the dock for the
+    /// rest of its presentation.
+    mutating func noteDocksLeftUndrawn(windowedOut: (ViewIdentity) -> Bool) {
         guard !dockedBeforeTheWalk.isEmpty || !undrawnUnderTheirDock.isEmpty else { return }
-        undrawnUnderTheirDock = dockedBeforeTheWalk.filter { docks[$0] == nil }
+        undrawnUnderTheirDock = dockedBeforeTheWalk.filter { id in
+            guard docks[id] == nil, let posted = previousDocks[id] else { return false }
+            return windowedOut(posted.presenter)
+        }
     }
 
     /// Empties what a walk posts, before the walk re-posts it.
