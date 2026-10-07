@@ -35,11 +35,11 @@ extension RenderCache {
         /// Calls into an app's own cell value closures.
         public var cellValues = 0
         /// Of ``served``, the `Table` rows served at a stripe parity they were
-        /// not kept at, and so repainted there from the kept line before it
-        /// was painted — the one thing a served row still draws. A row that
-        /// has been repainted at a parity is kept there too, so a table whose
-        /// rows keep changing parity (a log tailing into it) repaints each
-        /// row once per parity, not once per frame.
+        /// not kept at, and so drawn again there from the cells kept for them
+        /// — no cell closure runs, and they are not counted as ``rendered``.
+        /// A row drawn at a parity is kept there too, so a table whose rows
+        /// keep changing parity (a log tailing into it) draws each row again
+        /// once per parity, not once per frame.
         public var repainted = 0
 
         public init(

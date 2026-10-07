@@ -5137,37 +5137,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return (kept.line, nil, nil, kept.claims, payload)
         }
         /// `kept` as drawn at the stripe parity this row has NOW: as kept at
-        /// that parity, or repainted from its bare line under the background
-        /// that parity gives it and kept there for the next time — `nil` where
-        /// it has no bare line to repaint. See ``TableRowMemoLine/bare`` and
+        /// that parity, or drawn there again from the cells it kept and kept
+        /// there for the next time — no cell closure runs. `nil` for a line
+        /// that would breathe, which is never kept. See
         /// ``TableRowMemoLine/drawn(striped:)``.
         func atParity(_ kept: TableRowMemoLine, isStriped: Bool) -> TableRowDrawnLine? {
             if let drawn = kept.drawn(striped: isStriped) { return drawn }
-            guard let bare = kept.bare,
-                let repainted = Self.repainted(
-                    bare,
-                    under: rowVisualState(
-                        isFocused: false, isSelected: isSelected, stripe: paint.stripe, context: context,
-                        palette: palette
-                    ).background,
-                    rowWidth: paint.width, gutter: selectionGutter(context.environment))
-            else { return nil }
+            let again = renderRowUncached(
+                cells: kept.cells, item: item, paint: paint, columnWidths: columnWidths,
+                isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
+            guard again.pulseFrames == nil else { return nil }
             context.renderCache?.rowWork.repainted += 1
-            let drawn = TableRowDrawnLine(line: repainted.line, claims: repainted.claims)
+            let drawn = TableRowDrawnLine(line: again.line, claims: again.claims)
             var both = kept
             both.keep(drawn, striped: isStriped)
             handler?.tableRowMemo.keep(both, for: item.id)
             return drawn
         }
-        func compose(_ cells: [String]) -> (row: DrawnSingleLineRow, bare: TableRowBareLine?) {
+        func compose(_ cells: [String]) -> DrawnSingleLineRow {
+            // Composed from scratch, which for a `Table` without a memo is
+            // every drawn row of every frame — the asymmetry with `List`, whose
+            // rows reach `_MemoizedRow` and can be SERVED, in one number. See
+            // ``RenderCache/RowWork``.
+            context.renderCache?.rowWork.rendered += 1
             let row = renderRowUncached(
                 cells: cells, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, isReturningHome: isReturningHome,
                 context: context, palette: palette)
             // A row walking home draws a blank, and a blank has nothing to click.
-            return (
-                (row.line, row.pulseFrames, row.pulseTiming, row.claims, isReturningHome ? _TableRowPayload() : payload),
-                row.bare)
+            return (row.line, row.pulseFrames, row.pulseTiming, row.claims, isReturningHome ? _TableRowPayload() : payload)
         }
         // A ramp colours a row by its ORDINAL, which moves when the table
         // scrolls while the row does not, so a ramped table keeps nothing.
@@ -5186,15 +5184,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let cellContext = isFocused && isSelected ? Self.raised(context) : context
             return compose(
                 rowCells(
-                    for: item, columnWidths: columnWidths, context: cellContext, payload: &payload)
-            ).row
+                    for: item, columnWidths: columnWidths, context: cellContext, payload: &payload))
         }
         let kept = handler.tableRowMemo.entry(for: item.id)
         let rowBox = Self.rowsSignature(of: item)
         // A row that moved to the other parity changes its stripe, which
         // neither its cells nor its selection say — and which `atParity`
-        // serves as kept at that parity, or repaints, rather than composing
-        // the row again.
+        // serves as kept at that parity, or draws there again from the cells
+        // it kept, rather than running its cells again.
         let isStriped = paint.stripe != nil
         // And one that came to refuse selection draws faint, which its cells
         // do not say either.
@@ -5235,7 +5232,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         let tracker = context.environment.volatileReadTracker
         let unsafeBefore = tracker?.cacheUnsafeCount ?? 0
-        let (result, bare) = compose(cells)
+        let result = compose(cells)
         // A row that BREATHES is one frame of a cycle, and a row that consulted
         // a per-frame value said so — neither may be kept, by the rule every
         // other memo in the framework states as "never a time-varying subtree".
@@ -5245,8 +5242,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.tableRowMemo.keep(
             TableRowMemoLine(
                 row: rowBox, cells: cells, isSelected: isSelected, isStriped: isStriped,
-                isDimmed: isDimmed, drawn: TableRowDrawnLine(line: result.line, claims: result.claims),
-                bare: bare),
+                isDimmed: isDimmed, drawn: TableRowDrawnLine(line: result.line, claims: result.claims)),
             for: item.id)
         return result
     }
@@ -5351,19 +5347,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         palette: any Palette,
     ) -> (
         line: String, pulseFrames: [String]?, pulseTiming: IndicatorCycleTiming?,
-        claims: [OpacityRegion], bare: TableRowBareLine?
+        claims: [OpacityRegion]
     ) {
-        // Composed from scratch, which for a `Table` is every drawn row of every
-        // frame — the asymmetry with `List`, whose rows reach `_MemoizedRow` and
-        // can be SERVED, in one number. See ``RenderCache/RowWork``.
-        context.renderCache?.rowWork.rendered += 1
         let (row, ramp, rowWidth) = (paint.row, paint.ramp, paint.width)
         // A row whose picture is still walking back to it keeps its space and
         // draws nothing in it — see ``ItemListHandler/returningRows``, and
         // `_ListCore.renderRow`, which does the same for the same reason.
         // Nothing animates: a run would paint over the blank on its next tick.
         guard !isReturningHome else {
-            return (String(repeating: " ", count: max(0, rowWidth)), nil, nil, [], nil)
+            return (String(repeating: " ", count: max(0, rowWidth)), nil, nil, [])
         }
         let visualState = rowVisualState(
             isFocused: isFocused,
@@ -5477,19 +5469,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if selectionDisabledRows.contains(row) {
             content = ANSIRenderer.applyPersistentDim(content)
         }
-        // A row one colour along its length, under a still background, is the
-        // bare line painted — the one way `repainted(_:under:rowWidth:gutter:)`
-        // draws it, for this frame and for the row memo's repaint at the other
-        // stripe parity (``TableRowMemoLine/bare``). Every row but the cursor's
-        // and a ramped one.
-        if !bandsAcrossRow, ramp == nil, visualState.background.framePaints == nil {
-            let bare = TableRowBareLine(
-                content: content, cellColumn: cellColumn, ink: cellInk,
-                mark: gutter > 0 ? visualState.indicatorColor : nil)
-            if let still = Self.repainted(bare, under: visualState.background, rowWidth: rowWidth, gutter: gutter) {
-                return (still.line, nil, nil, still.claims, bare)
-            }
-        }
         guard case .none = visualState.background else {
             // `cellColumn` IS this line's visible width, so nothing rescans it:
             // the loop above walked it from `gutter` through every spacing and
@@ -5499,14 +5478,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // row's content, which is why it has one). A `strippedLength` here
             // was a second walk of the whole assembled row — escapes and all,
             // so the general path rather than the byte one — for every
-            // selected or focused row of every frame.
-            content.append(contentsOf: asciiSpaces(rowWidth - cellColumn))
+            // selected, striped or focused row of every frame.
             let fill = visualState.background.claimableFill
-            // A ramped row's still background (every other still row was
-            // painted above, through `repainted`).
+            // A still background — a selected row's tint, a stripe — pads the
+            // line inside its paint rather than in a copy of the line first.
             guard let paints = visualState.background.framePaints else {
-                return (visualState.background.painting(content), nil, nil, claims(fill: fill), nil)
+                return (visualState.background.painting(content, padding: rowWidth - cellColumn), nil, nil, claims(fill: fill))
             }
+            content.append(contentsOf: asciiSpaces(rowWidth - cellColumn))
             let frames = paints.map { $0.painting(content) }
             // The pulse's own frames need no spelling and earn no fill claim: both
             // ends of `accentFillPulse` spend a translucent tint's alpha against the
@@ -5515,43 +5494,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // `resolvingOpacity` re-blends every frame through it.
             return (
                 frames[visualState.background.stepNow], frames,
-                visualState.background.pulseTiming, claims(fill: nil), nil)
+                visualState.background.pulseTiming, claims(fill: nil))
         }
         // A bare line, not a one-element array: a table renders every visible
         // row every frame, and the allocator is where its time goes (see the
         // one-SGR-introducer notes above). The multi-line and slot paths do
         // produce several lines, and say so with `RenderedRow`.
-        return (content, nil, nil, claims(fill: nil), nil)
-    }
-
-    /// `bare` under a still `background`: padded to the row's width and painted,
-    /// or left as it is under none — with the claims the line owes either way,
-    /// as ``SelectableRowClaims`` states them for a row one colour along its
-    /// length. `nil` for a background that breathes, which is painted frame by
-    /// frame instead.
-    ///
-    /// What a row's line is under a still background, for the row composed this
-    /// frame and for a kept row repainted at the other stripe parity — so the
-    /// two cannot draw the same row differently.
-    private static func repainted(
-        _ bare: TableRowBareLine, under background: RowBackground, rowWidth: Int, gutter: Int
-    ) -> (line: String, claims: [OpacityRegion])? {
-        func claims(fill: Color?) -> [OpacityRegion] {
-            SelectableRowClaims.claims(
-                line: 0, width: rowWidth, cells: gutter..<bare.cellColumn, ink: bare.ink, mark: bare.mark,
-                fill: fill)
-        }
-        guard case .none = background else {
-            guard background.framePaints == nil else { return nil }
-            // `cellColumn` IS the line's visible width — see the note in
-            // `renderRowUncached` — so nothing rescans it, and the padding is
-            // written inside the paint rather than into a copy of the line.
-            return (
-                background.painting(bare.content, padding: rowWidth - bare.cellColumn),
-                claims(fill: background.claimableFill)
-            )
-        }
-        return (bare.content, claims(fill: nil))
+        return (content, nil, nil, claims(fill: nil))
     }
 
     /// A breathing line and every frame of it, at its position among the lines being
