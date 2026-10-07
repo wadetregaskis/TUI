@@ -2093,7 +2093,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ) -> ClaimingColumn {
         let extentLines: Int
         let offsetLines: Int
-        if visibleRows.allSatisfy({ $0.row.buffer.height == 1 }) {
+        // The WINDOW's rows: every entry at or past the origin. Not the header
+        // pinned over them (decisions A45), drawn ahead of the window under its
+        // own index above the origin — taken for the window's first row, it put
+        // the thumb's offset at the header, so the thumb sat still through a
+        // section and jumped at the next, and the extent walk rendered every
+        // row between the header and the window on every frame. Nor a reorder's
+        // landing slot, whose sentinel index is below every row's.
+        if visibleRows.allSatisfy({ $0.index < origin.offset || $0.row.buffer.height == 1 }) {
             extentLines = source.count
             offsetLines = origin.offset
         } else {
@@ -2104,15 +2111,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // ``ScrollExtentPrecision``. A line-granularity top clip adds its
             // hidden lines to the offset, so the thumb tracks fine wheel steps
             // exactly at the top of the travel.
+            // DATA rows of the window only. A reorder decorates the window with a
+            // landing slot carrying the sentinel index −1, and when that slot is
+            // the last entry the upper bound came out `-1 + 1 == 0` against a
+            // lower bound past it — an inverted Range, which traps. `Table`'s
+            // twin takes its range from the handler for exactly this reason. And
+            // a pinned header's index is above the window's (see above).
+            let dataRows = visibleRows.filter { $0.index >= origin.offset }
             var onScreen: [Int: Int] = [:]
-            onScreen.reserveCapacity(visibleRows.count)
-            for entry in visibleRows { onScreen[entry.index] = entry.row.buffer.height }
-            // DATA rows only. A reorder decorates the window with a landing
-            // slot carrying the sentinel index −1, and when that slot is the
-            // last entry the upper bound came out `-1 + 1 == 0` against a lower
-            // bound past it — an inverted Range, which traps. `Table`'s twin
-            // takes its range from the handler for exactly this reason.
-            let dataRows = visibleRows.filter { $0.index != ItemListHandler<SelectionValue>.reorderSlotRowIndex }
+            onScreen.reserveCapacity(dataRows.count)
+            for entry in dataRows { onScreen[entry.index] = entry.row.buffer.height }
             let visible =
                 (dataRows.first?.index ?? origin.offset)
                 ..< ((dataRows.last?.index).map { $0 + 1 } ?? origin.offset)

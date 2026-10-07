@@ -105,6 +105,44 @@ struct ListPinnedSectionHeaderTests {
         }
     }
 
+    /// Two sections of TWO-line rows, long enough to scroll well inside the
+    /// first: every row taller than a line.
+    private struct Tall: View {
+        let selection: Binding<String?>
+        var body: some View {
+            List(selection: selection) {
+                Section("Fruit") {
+                    ForEach((0..<60).map { "fruit\($0)" }, id: \.self) { Text("\($0)\nmore") }
+                }
+                Section("Veg") {
+                    ForEach((0..<20).map { "veg\($0)" }, id: \.self) { Text("\($0)\nmore") }
+                }
+            }
+            .listStyle(.plain)
+            .scrollIndicators(.visible)
+        }
+    }
+
+    @Test("The scroll bar follows the rows under a pinned header, not the header")
+    func scrollBarIgnoresThePinnedHeader() {
+        let box = Box()
+        let harness = InputChainHarness(width: 30, height: 8)
+        let build = { Tall(selection: Binding(get: { box.selection }, set: { box.selection = $0 })) }
+        /// The bar's column, top to bottom.
+        func bar(_ buffer: FrameBuffer) -> String {
+            buffer.lines.map { String($0.stripped.last ?? " ") }.joined()
+        }
+        let near = down(6, in: harness, build)
+        let nearBar = bar(near)
+        let far = down(30, in: harness, build)
+        // Both scrolled inside Fruit, its header pinned over each.
+        #expect(lines(near).first?.contains("Fruit") == true, "\(lines(near))")
+        #expect(lines(far).first?.contains("Fruit") == true, "\(lines(far))")
+        // Measured from the pinned header's index, the thumb sat at the top of
+        // the track through the whole section.
+        #expect(bar(far) != nearBar, "the thumb did not move: \(nearBar) then \(bar(far))")
+    }
+
     @Test("Moving the cursor up keeps it below the pinned header")
     func cursorStaysBelowTheHeader() {
         let box = Box()
