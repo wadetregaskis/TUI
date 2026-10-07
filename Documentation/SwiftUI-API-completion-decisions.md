@@ -46,11 +46,11 @@ entry has the options and their prices.
 
 **Looks and defaults.**
 
-- A29, A46 — tables and lists borderless and striped as SwiftUI's? Keep
-  bordered and unstriped.
+- A29, A46 — tables and lists borderless as SwiftUI's? Tables stripe by
+  default since 2026-10-07; whether the `.surface` prototype becomes a
+  default is open (A-D6L-1).
 - A40 — a content change dissolves under an animation by default? Keep it
   instant.
-- A45 — a plain `List` pins its section headers? Yes, in the plain style.
 - A17 — `preferredColorScheme`? Keep it absent unless light palettes are
   wanted for their own sake.
 
@@ -65,9 +65,8 @@ entry has the options and their prices.
   `drawingGroup` as `compositingGroup`.
 - A33 — a colour's spoken name: decline.
 - A34 — the blur transition: a scale and a fade.
-- A47, A48, A50 — list separators, swipe actions, tab search: underline a
-  row's last line; a menu from a chord and a horizontal scroll; defer until
-  macOS 26 can be measured.
+- A48, A50 — swipe actions, tab search: a menu from a chord and a
+  horizontal scroll; defer until macOS 26 can be measured.
 - A53 — the drag-session behaviour (callbacks, configurations, containers,
   formations): callbacks and configurations on today's single-item drags.
 
@@ -508,6 +507,15 @@ pays; the border is what tells a table from the text around it when nothing
 else draws a frame. 3 is the one to take if TUIkit apps tend to put tables
 inside their own bordered panels.
 
+**Decided (owner) and shipped 2026-10-07.** Tables stripe by default, as a
+macOS table does, starting on the second row (2a7586ff8), in a stripe colour
+chosen per palette and colour depth to stay legible and quieter than a
+selection; lists stay unstriped. The border stays the default. The distinct
+look the owner asked for — a surface for rows and header instead of a
+border — ships as the opt-in `.tableStyle(.surface)` / `.listStyle(.surface)`
+prototype (b5e9eb18d). Whether it becomes a default is A-D6L-1 in
+`SwiftUI-API-completion-decisions-D6L.md`.
+
 *Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in the session notes, `w11a/probe`. A pass on macOS 26 is owed.*
 
 ### A33. `\(accessibilityName: color)`: a colour's spoken name
@@ -670,7 +678,7 @@ rich text in a terminal editor is wanted; otherwise decline the family.
 
 *Wave 6b's entries (A43, B62–B65): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) by driving a SwiftUI `TextField` in an `NSWindow` with key events; the probes are in the session notes, `w06b/probe`.*
 
-*Wave 10b's entries (A44–A45, B66–B71), pinned section headers and footers.* What SwiftUI does was measured on macOS 15.8, with offscreen `NSHostingView`s
+*Wave 10b's entries (B66–B71; A44 shipped, and A45 on 2026-10-07: a `List` pins its section headers under every style but `.sidebar`), pinned section headers and footers.* What SwiftUI does was measured on macOS 15.8, with offscreen `NSHostingView`s
 in scroll views scrolled through their `NSScrollView`, reading the pixels down
 a column (probes in the session notes, `w10b/probe/`):
 
@@ -698,34 +706,6 @@ a column (probes in the session notes, `w10b/probe/`):
   section's header at the top as the list scrolls; `.sidebar` does not. Read
   from the header's reported frame, which a floating table row may not update,
   so weaker evidence than the pixels above.
-
-### A45. Should a `List` pin its section headers?
-
-*`List`, `Section`, `PlainListStyle`, `InsetGroupedListStyle`*
-
-SwiftUI's `List` has no `pinnedViews:`. On macOS, though, a plain or inset
-list floats its section headers: the first section's header stayed at the
-top as the list scrolled, under `.plain`, `.inset` and the default style, and
-did not under `.sidebar` (measured on macOS 15.8 through the header's reported
-frame, which an AppKit floating row may not update faithfully, so weaker
-evidence than the pixel probes above). Footers did not float in any style.
-TUIkit's `List` draws a section's header as a row, which scrolls away.
-
-**Options.**
-
-1. **No pinning** (today). Honest, and matches iOS's grouped lists; a long
-   section loses its title as it scrolls.
-2. **Pin headers in the plain style** (and whatever inset styles Wave 8b adds),
-   not in a sidebar style: the list's own windowed draw finds the section
-   whose rows are at the top and draws its header over the first visible
-   line, as the scroll pin does for a stack, with the keyboard cursor kept
-   below it (`ensureFocusedItemVisible`) and the covered row's mouse region
-   taken away. About a day with tests — `_ListCore` is its own scroll engine,
-   and anchors, selection and the row memo all touch the first line.
-3. A TUIkit modifier choosing, defaulting to 1.
-
-**Recommendation:** 2, after Wave 8b's list styles land, since which styles
-pin is a question about those styles; it is what a macOS user sees.
 
 *Wave 8b's entries (A46–A51, B72–B80, C11): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) with an offscreen `NSHostingView`; the probes are in the session notes, `w08b/probe`. macOS 26 APIs could not be probed.*
 
@@ -756,40 +736,8 @@ and `.bordered`, `.inset`, `.plain` and `.sidebar` draw as named.
 by side should not disagree about whether they are boxed; whichever answer
 A29 gets, this one takes.
 
-### A47. List separators: draw them, or decline them?
-
-*`View.listRowSeparatorTint(_:edges:)`, `View.listSectionSeparator(_:edges:)`,
-`View.listSectionSeparatorTint(_:edges:)`,
-`HorizontalAlignment.listRowSeparatorLeading`,
-`HorizontalAlignment.listRowSeparatorTrailing`; and the existing
-`listRowSeparator(_:edges:)`, inert since it shipped*
-
-Measured on macOS 15.8 (`w08b/probe/sections-*.png`): an `.automatic`,
-`.inset`, `.bordered` and `.plain` list draws a hairline under every row,
-inset to the row's content, and under every section header; `.sidebar`
-draws none. A hairline is thinner than a cell. TUIkit draws no separators,
-and `.listRowSeparator(_:)` is accepted and does nothing — a silent no-op
-of the kind this effort otherwise refuses.
-
-**Options.**
-
-1. **Underline the row's last line.** The separator becomes an underline
-   (SGR 4) across the row's cells from the separator's leading alignment to
-   its trailing one: no line of height spent, `.hidden` drops it, a tint is
-   the underline colour (SGR 58, whose support per terminal is not yet
-   recorded in `Terminal-compatibility.md`; where it is ignored the line
-   takes the text's colour). A selected or focused row's underline sits
-   inside its highlight. A day: the list's row composition, the alignment
-   guides, the tints, and measuring SGR 58 with the terminal probes.
-2. **A rule line between rows.** A `─` line in the faint ink: doubles every
-   list's height, which no terminal list wants. Half a day; not recommended.
-3. **Decline the family by reason** (a terminal row has no sub-cell rule, and
-   a line of height per row is too dear), and turn `listRowSeparator` into a
-   declined API too, removing it — pre-1.0, no compatibility shim. An hour.
-
-**Recommendation:** 1 if separators are wanted at all — it is the only
-answer that keeps a list's height; else 3, which at least stops
-`listRowSeparator` pretending.
+**Status 2026-10-07:** answered with A29: bordered by default, the opt-in
+`.listStyle(.surface)` prototype shipped, the default question is A-D6L-1.
 
 ### A48. Swipe actions: which keys and which pointer gesture?
 
