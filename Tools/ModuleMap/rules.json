@@ -116,9 +116,6 @@
   ],
   "scheduled": [
     {"id": "K1", "check": "upward", "from": "^Environment/ServiceEnvironment\\.swift::EnvironmentValues", "to": "^(Views/(Navigation|Presentation|Dialog|Search|TabView)|Environment/(Dialog|Search|DismissSearch)|Modifiers/(DismissalConfirmation|RowEditRestriction|SearchableModifier)|Notification/|Tooltip/|Focus/TextFieldHandler)", "why": "detachedFromRuntime() clears objects the leaves own; Base gets opaque slots (A2)"},
-    {"id": "K2", "check": "upward", "from": "^(App/ClipboardWriter|Focus/TextFieldHandler\\+Clipboard|Environment/TUIContext)\\.swift::", "to": "^App/SystemClipboard\\.swift::", "why": "the clipboard backend is injected by TUIkitApp (A2)"},
-    {"id": "K4", "check": "upward", "from": "^Rendering/TerminalIdentityQuery\\.swift::TerminalHost\\(ext\\)", "to": "^Rendering/Terminal\\.swift::Terminal", "why": "identify(using:) and seedDiscoveredHost move to App as their own extension (A2)"},
-    {"id": "K4", "check": "posix", "from": "^Rendering/TerminalIdentityQuery\\.swift::TerminalHost\\(ext\\)", "to": "^setenv$", "why": "seedDiscoveredHost's setenv leaves Base with K4 (A2)"},
     {"id": "K5", "check": "upward", "from": "^App/ScreenSelection(\\+Menu)?\\.swift::", "to": "^(Rendering/TextFieldContentRenderer|Focus/WordBoundary)", "why": "ScreenSelection reads a field-text-layout protocol in Base (A2)"},
     {"id": "K6", "check": "posix", "from": "^(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^(getpid|pid_t)$", "why": "both files get a Windows arm like their WASI one, with no pid_t in its signatures (A2)"},
     {"id": "K6", "check": "posix", "from": "^Rendering/TerminalHost\\.swift::", "to": "^pid_t$", "why": "found at SP0's review, beyond plan section 4's two files: the tmux client's pid and the tmux hook arguments are pid_t. A2's K6 gives them the same Windows treatment (decisions B-SP0-4)."},
