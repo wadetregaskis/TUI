@@ -387,6 +387,20 @@ class IndexStoreTests(unittest.TestCase):
 
 
 class CommandLineTests(unittest.TestCase):
+    def annotations(self, n):
+        fs = [checks.Finding('upward', f'k{i}', f'finding {i}', 'Base/A.swift', i + 1) for i in range(n)]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(len(modulemap.report(fs, rules(), True, False)), n)
+        return [ln for ln in out.getvalue().splitlines() if ln.startswith('::warning')]
+
+    def test_annotations_past_github_s_ten_end_in_a_count(self):
+        self.assertEqual(len(self.annotations(10)), 10)
+        lines = self.annotations(23)
+        self.assertEqual(len(lines), 10)
+        self.assertIn('finding 8', lines[8])
+        self.assertIn('::14 more new findings', lines[9])
+
     def test_warning_only_survives_a_libindexstore_that_will_not_load(self):
         # CI runs `check --github --exit-zero`: whatever goes wrong is one annotation, not a failed lane.
         with tempfile.TemporaryDirectory() as store:

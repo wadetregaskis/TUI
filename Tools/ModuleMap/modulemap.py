@@ -127,10 +127,17 @@ def table(M, R, asg):
     return '\n'.join(out)
 
 
+# GitHub keeps 10 warning annotations per step (its documented limit, as the review of 5110dbc cited it; not
+# measured here) and drops the rest without a word. Past that, the last one says how many more the log lists.
+GITHUB_ANNOTATIONS = 10
+
+
 def report(findings, R, github, verbose):
     by = collections.defaultdict(list)
     for x in findings: by[x.check].append(x)
     new = [x for x in findings if x.new]
+    room = len(new) if len(new) <= GITHUB_ANNOTATIONS else GITHUB_ANNOTATIONS - 1
+    annotated = 0
     order = ['upward', 'owns-neither', 'witness', 'public-above', 'posix', 'umbrella', 'rules']
     for c in order:
         xs = by.get(c, [])
@@ -150,9 +157,13 @@ def report(findings, R, github, verbose):
                 tag = f'[{x.scheduled}] ' if x.scheduled else '[accepted] ' if x.accepted else ''
                 loc = f'{R.source}/{x.file}:{x.line}: ' if x.file else ''
                 print(f'    {tag}{loc}{x.message}')
-            if x.new and github:
+            if x.new and github and annotated < room:
                 where = f' file={R.source}/{x.file},line={x.line},' if x.file else ' '
                 print(f'::warning{where}title=ModuleMap {c}::{annotation(x.message)}')
+                annotated += 1
+    if github and annotated < len(new):
+        print(f'::warning title=ModuleMap::{len(new) - annotated} more new findings than GitHub shows as annotations: '
+              f'this step\'s log lists all {len(new)}')
     return new
 
 
