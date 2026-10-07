@@ -144,7 +144,7 @@ def main(argv=None):
     ap.add_argument('--github', action='store_true', help='check: GitHub Actions warning annotations')
     ap.add_argument('--exit-zero', action='store_true', help='check: exit 0 even with new findings (warning only)')
     ap.add_argument('-v', '--verbose', action='store_true', help='list scheduled and accepted findings too')
-    a = ap.parse_args(argv)
+    a = ap.parse_intermixed_args(argv)          # options before or after the pattern
     t0 = time.time()
     R = Rules.load(a.rules)
     try:
