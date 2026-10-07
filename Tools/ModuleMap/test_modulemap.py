@@ -305,6 +305,15 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         xs = checks.posix(M, R, {'s:f': 'Base', 's:g': 'Base', 's:h': 'App'})
         self.assertEqual([x.key for x in xs], ['Base/T.swift::f() uses isatty'])
 
+    def test_the_shipped_list_has_pid_t(self):
+        # Plan section 4's K6: Windows signatures must not use pid_t. TerminalHost (Base) has ~18 unguarded uses.
+        src = 'struct H {\n    let pid: pid_t?\n}\n'
+        M = model({'Base/H.swift': src}, {'Base/H.swift': [('s:H', DEF, 1, ''), ('s:H.pid', DEF, 2, 's:H'),
+                                                            ('c:@T@pid_t', REF, 2, 's:H.pid')]},
+                  {'s:H': ('H', IX.K_STRUCT), 's:H.pid': ('pid', IX.K_VARIABLE), 'c:@T@pid_t': ('pid_t', IX.K_TYPEALIAS)})
+        R = Rules.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rules.json'))
+        self.assertEqual([x.key for x in checks.posix(M, R, {'s:H': R.default})], ['Base/H.swift::H uses pid_t'])
+
     def test_k6_landed_as_the_plan_says_clears_its_findings(self):
         def findings(cond):
             src = f'func f() {{\n#if {cond}\nreturn\n#else\ngetpid()\n#endif\n}}\n'

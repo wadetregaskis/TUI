@@ -94,7 +94,8 @@
     {"id": "K4", "check": "upward", "from": "^Rendering/TerminalIdentityQuery\\.swift::TerminalHost\\(ext\\)", "to": "^Rendering/Terminal\\.swift::Terminal", "why": "identify(using:) and seedDiscoveredHost move to App as their own extension (A2)"},
     {"id": "K4", "check": "posix", "from": "^Rendering/TerminalIdentityQuery\\.swift::TerminalHost\\(ext\\)", "to": "^setenv$", "why": "seedDiscoveredHost's setenv leaves Base with K4 (A2)"},
     {"id": "K5", "check": "upward", "from": "^App/ScreenSelection(\\+Menu)?\\.swift::", "to": "^(Rendering/TextFieldContentRenderer|Focus/WordBoundary)", "why": "ScreenSelection reads a field-text-layout protocol in Base (A2)"},
-    {"id": "K6", "check": "posix", "from": "^(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^getpid$", "why": "both files get a Windows arm like their WASI one (A2)"}
+    {"id": "K6", "check": "posix", "from": "^(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^(getpid|pid_t)$", "why": "both files get a Windows arm like their WASI one, with no pid_t in its signatures (A2)"},
+    {"id": "K6", "check": "posix", "from": "^Rendering/TerminalHost\\.swift::", "to": "^pid_t$", "why": "found at SP0's review, beyond plan section 4's two files: the tmux client's pid and the tmux hook arguments are pid_t. A2's K6 gives them the same Windows treatment (decisions B-SP0-4)."}
   ],
   "accepted": [
     {"check": "public-above", "key": "Extensions/View+Convenience.swift::View(ext)#modal(content:)", "why": "`.modal` goes to TUIkitPresentation for its dependencies (plan section 4, reviewed). `asAnyView()`, in its own block of the same file, stays in TUIkitBase."},
@@ -111,8 +112,8 @@
     {"check": "public-above", "key": "Views/TableColumnCustomization.swift::AppStorage(ext)#init(wrappedValue:_:)", "why": "init(wrappedValue:) where Value == TableColumnCustomization: usable only with Table's (TUIkitTables)."}
   ],
   "posix": {
-    "why": "POSIX-only APIs that do not compile on Windows: CLAUDE.md confines them to the module that will be TUIkitApp. A use outside it must sit in an #if arm only POSIX platforms compile.",
-    "c_symbols": ["termios", "winsize", "tcgetattr", "tcsetattr", "cfmakeraw", "tcflush", "ioctl", "TIOCGWINSZ", "signal", "sigaction", "sigemptyset", "sigaddset", "sigprocmask", "pthread_sigmask", "kill", "raise", "isatty", "setenv", "unsetenv", "getpid", "getppid", "fork", "execv", "execvp", "execve", "waitpid", "posix_spawn", "posix_spawnp", "pipe", "poll", "select", "fcntl", "dup", "dup2", "sysctl", "proc_pidpath", "gethostname", "uname", "getuid", "geteuid", "getpwuid", "STDIN_FILENO", "SIGWINCH", "SIGINT", "SIGTERM", "SIGHUP", "SIGCONT", "SIGTSTP", "SIGQUIT", "SIGPIPE"],
+    "why": "POSIX-only APIs that do not compile on Windows: CLAUDE.md confines them to the module that will be TUIkitApp. A use outside it must sit in an #if arm only POSIX platforms compile. Types count too: plan section 4 (K6) says Windows signatures must not use pid_t.",
+    "c_symbols": ["pid_t", "termios", "winsize", "tcgetattr", "tcsetattr", "cfmakeraw", "tcflush", "ioctl", "TIOCGWINSZ", "signal", "sigaction", "sigemptyset", "sigaddset", "sigprocmask", "pthread_sigmask", "kill", "raise", "isatty", "setenv", "unsetenv", "getpid", "getppid", "fork", "execv", "execvp", "execve", "waitpid", "posix_spawn", "posix_spawnp", "pipe", "poll", "select", "fcntl", "dup", "dup2", "sysctl", "proc_pidpath", "gethostname", "uname", "getuid", "geteuid", "getpwuid", "STDIN_FILENO", "SIGWINCH", "SIGINT", "SIGTERM", "SIGHUP", "SIGCONT", "SIGTSTP", "SIGQUIT", "SIGPIPE"],
     "swift_symbols": ["makeReadSource(fileDescriptor:queue:)", "makeSignalSource(signal:queue:)"],
     "imports": ["Darwin", "Glibc", "Musl", "Android", "Bionic"]
   },

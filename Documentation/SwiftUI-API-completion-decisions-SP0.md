@@ -70,3 +70,25 @@ the rules until the next `assign --write`.
 resolve. There would be fewer findings, but Base would grow silently with every convenience reference, and the
 à-la-carte savings in plan §2 would erode without anyone choosing it. The fresh run costs 0.2 s, so this is a
 policy choice, not a cost one.
+
+### B-SP0-4. TerminalHost's `pid_t` signatures are scheduled with K6, not left as a new finding
+
+*`Tools/ModuleMap/rules.json`, `scheduled` K6 and `posix.c_symbols`*
+
+The `posix` check's list lacked `pid_t`, although plan §4's K6 says Windows signatures must not use it. With
+`pid_t` in the list, two declarations report it:
+- ProcessAncestry, one of K6's two files. Its K6 entry now names `pid_t` beside `getpid`.
+- TerminalHost (Rendering/TerminalHost.swift, all of it in TUIkitBase), which plan §4 does not list. About 18
+  unguarded uses: the tmux client's `pid` field and the tmux hook and unhook argument builders.
+
+An audit of every C symbol that a declaration outside TUIkitApp references outside a POSIX-only branch found no
+other POSIX-only one; the rest are Foundation, Dispatch and libm. The only POSIX-only ones are `getpid` (K6),
+`setenv` (K4) and `pid_t`.
+
+The TerminalHost uses are now a second `scheduled` K6 entry. A2's K6 gives them the same Windows treatment as the
+other two files. Until then the check reports them as scheduled, not new.
+
+**The alternative, and its price.** Leave them as a new finding. Every CI run would then raise the same warning
+until A2, and `check` would exit 1 on HEAD for everyone. The entry costs nothing to drop if you would rather track
+it elsewhere. Either way, K6 in A2 grows from two files to three: TerminalHost needs Windows arms for its tmux
+helpers, or a platform-neutral process-id type in their signatures.

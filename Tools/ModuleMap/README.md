@@ -130,7 +130,8 @@ surely false or an earlier branch of its chain surely true. So `#if canImport(Da
 canImport(Glibc)` guard, and so does the `#else` of `#if canImport(WASILibc) || os(Windows)`. The `#else` of `#if
 canImport(WASILibc)` does not, because Windows compiles it, and nor does a branch that depends on anything else
 (`arch(x86_64)`, `compiler(…)`, a build flag). The
-`posix` section of `rules.json` lists the APIs: C functions, structs and macros, plus the two Dispatch sources. The
+`posix` section of `rules.json` lists the APIs: C functions, types (`pid_t`), structs and macros, plus the two
+Dispatch sources. The
 check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file with code outside TUIkitApp.
 
 ### `umbrella`: code in the umbrella
