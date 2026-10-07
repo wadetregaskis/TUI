@@ -25,6 +25,53 @@ extension Text {
     }
 }
 
+// MARK: - Changing What the Service Holds
+
+/// The two calls that change what `LocalizationService` reads, each the
+/// service's own half followed by a request for the frame that shows it. Here,
+/// beside the views, and not on the service: the service sits below the views
+/// and the app's render state (`AppState`), and once TUIkit is split into
+/// modules it cannot name them. So the service keeps the change and this asks
+/// for the frame, with no hook or registry between the two.
+extension LocalizationService {
+    /// Changes the active language and persists the preference.
+    ///
+    /// The app draws again, in the new language.
+    ///
+    /// - Parameter language: The new language to activate.
+    public func setLanguage(_ language: Language) {
+        setLanguageWithoutRendering(language)
+        AppState.shared.setNeedsRender()
+    }
+
+    /// Registers additional translations supplied by the host application.
+    ///
+    /// The framework only bundles translations for its own strings; an app uses
+    /// this to localize its own UI through the same service. The outer dictionary
+    /// is keyed by language code (`Language.rawValue` — e.g. `"en"`, `"de"`,
+    /// `"zh"`); the inner dictionary maps dot-notation keys to localized strings.
+    /// Registrations merge across calls and take precedence over the bundled
+    /// framework strings for the same key. A re-render is requested so visible
+    /// strings refresh.
+    ///
+    /// ```swift
+    /// LocalizationService.shared.register(translations: [
+    ///     "en": ["app.title": "Settings"],
+    ///     "de": ["app.title": "Einstellungen"],
+    /// ])
+    /// ```
+    ///
+    /// - Parameter translations: Language-code-keyed translation tables to add.
+    public func register(translations: [String: [String: String]]) {
+        registerWithoutRendering(translations: translations)
+        // With a cache clear: a memoized row's strings are outside its memo
+        // key, so a re-render alone served the pre-registration text for as
+        // long as the row's element compared equal. Asked once the service
+        // has let go of its lock, as `setLanguage(_:)` has always asked.
+        AppState.shared.setNeedsRenderWithCacheClear()
+    }
+}
+
 // MARK: - AppState Language Convenience
 
 extension AppState {

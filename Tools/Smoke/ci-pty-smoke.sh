@@ -159,6 +159,17 @@ if [ "$DEPTH" = "full" ]; then
     "$VENV/bin/python" "$HERE/persistence_probe.py" --binary "$REPO/$BUILD_DIR/Example"
 fi
 
+# The same two-process shape for the language: `setLanguage(_:)` is the
+# localization service's half (change, persist) and an extension beside the
+# views that asks for the frame, put apart by the module split's R1. Switching
+# on the Theme page must redraw the page and TUIkit's own status bar words at
+# once, and the next launch must open in the choice. ~8 s, `full` only, on its
+# own config directory for the persistence probe's reason.
+if [ "$DEPTH" = "full" ]; then
+    echo "── language: a switch redraws at once and is kept ──"
+    "$VENV/bin/python" "$HERE/language_switch_smoke.py" --binary "$REPO/$BUILD_DIR/Example"
+fi
+
 # Last, because it is far and away the most expensive thing here — 7 min 15 s of
 # the 11 min 23 s `full` now measures, against about four for everything above,
 # and everything above gives its signal in seconds.

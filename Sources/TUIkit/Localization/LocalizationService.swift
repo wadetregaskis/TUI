@@ -130,17 +130,24 @@ public final class LocalizationService: @unchecked Sendable {
         lock.unlock()
     }
 
-    /// Changes the active language and persists the preference.
+    /// Changes the active language and persists the preference, and asks for
+    /// nothing to be drawn: this service's half of ``setLanguage(_:)``.
+    ///
+    /// The other half, the re-render, is the app's. This service sits below
+    /// the views and the app's render state, and once TUIkit is split into
+    /// modules it cannot name them; ``setLanguage(_:)`` is an extension beside
+    /// the views (`LocalizationExtensions.swift`) that calls this and then
+    /// asks for the frame. Internal for that one caller: a language changed
+    /// here alone is not on screen until something else draws.
     ///
     /// - Parameter language: The new language to activate.
-    public func setLanguage(_ language: Language) {
+    func setLanguageWithoutRendering(_ language: Language) {
         lock.lock()
         currentLanguage = language
         lookupCodes = Self.lookupCodes(asked: [], language: language)
         lock.unlock()
         // After the lock, deliberately — see `currentLanguage`.
         saveLanguagePreference(language)
-        AppState.shared.setNeedsRender()
     }
 
     /// Runs `body` with this service persisting its language into `directory`
@@ -226,34 +233,18 @@ public final class LocalizationService: @unchecked Sendable {
         lock.withLock { lookupCodes }
     }
 
-    /// Registers additional translations supplied by the host application.
-    ///
-    /// The framework only bundles translations for its own strings; an app uses
-    /// this to localize its own UI through the same service. The outer dictionary
-    /// is keyed by language code (`Language.rawValue` — e.g. `"en"`, `"de"`,
-    /// `"zh"`); the inner dictionary maps dot-notation keys to localized strings.
-    /// Registrations merge across calls and take precedence over the bundled
-    /// framework strings for the same key. A re-render is requested so visible
-    /// strings refresh.
-    ///
-    /// ```swift
-    /// LocalizationService.shared.register(translations: [
-    ///     "en": ["app.title": "Settings"],
-    ///     "de": ["app.title": "Einstellungen"],
-    /// ])
-    /// ```
+    /// Merges an app's translations into this service, and asks for nothing
+    /// to be drawn: this service's half of ``register(translations:)``, which
+    /// is the app's API and asks for the frame (see
+    /// ``setLanguageWithoutRendering(_:)`` for why the halves are apart).
     ///
     /// - Parameter translations: Language-code-keyed translation tables to add.
-    public func register(translations: [String: [String: String]]) {
+    func registerWithoutRendering(translations: [String: [String: String]]) {
         lock.lock()
         defer { lock.unlock() }
         for (code, table) in translations {
             appTranslations[code, default: [:]].merge(table) { _, new in new }
         }
-        // With a cache clear: a memoized row's strings are outside its memo
-        // key, so a re-render alone served the pre-registration text for as
-        // long as the row's element compared equal.
-        AppState.shared.setNeedsRenderWithCacheClear()
     }
 
     /// Resolves a localized string using a dot-notation key, as the app's
