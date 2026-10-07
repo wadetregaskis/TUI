@@ -1,7 +1,8 @@
 # Tools/ModuleMap
 
-TUIkit is to be split into à-la-carte modules: TUIkitStrings, TUIkitBase, TUIkitApp, twelve feature modules and a
-thin `TUIkit` umbrella. Today all of that code is one module, `Sources/TUIkit`. This tool holds:
+TUIkit is to be split into à-la-carte modules: the substrate (TUIkitBase), side modules that compile beside the
+lower ones, feature leaves over the substrate, TUIkitApp and a thin `TUIkit` umbrella. `rules.json` lists them and
+what each holds. Today all of that code is one module, `Sources/TUIkit`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;
@@ -44,9 +45,11 @@ index unit, it warns: rebuild, then check again.
 | `checks.py` | The checks | |
 | `indexstore.py`, `swiftsource.py` | Reading the index store, and just enough of a Swift lexer | |
 
-The design behind the map is in the session notes' `buildtime/split2/plan.md`. This tool is that plan's step A1. The
-assigner is the research assigner (`split2/plan/w/sassign.py` + `finalize.py`) ported. On HEAD 4611730eb it gives
-every one of the 4,127 declarations the same module as the re-indexed research run (`split2/reindex/`).
+The design behind the map is in the session notes' `buildtime/split2/plan.md`; this tool is that plan's step A1. The
+map in `rules.json` is revision 4 of its refinement (`buildtime/split2/refine/plan-refined.md`, after the owner's
+answers of 2026-10-07), committed at its step A1′ with the `lower` lists. The assigner is the research assigner
+(`split2/plan/w/sassign.py` + `finalize.py`) ported. On HEAD 4611730eb it gave every one of the 4,127 declarations the
+same module as the re-indexed research run (`split2/reindex/`).
 
 ## The graph
 
@@ -96,7 +99,7 @@ both live outside `Sources/TUIkit` are skipped: TUIkit owns neither of those tod
 
 ### `witness`: a conformance that cannot see the constrained default it relies on
 
-`T: View is declared in TUIkitBase (…), which cannot see T: Renderable in TUIkitControls (…)`
+`T: View is declared in TUIkitBase (…), which cannot see T: Renderable in TUIkitLists (…)`
 
 `extension View where Self: Renderable` supplies a View requirement. That witness is picked where `T: View` is
 checked. If `T: Renderable` sits in a module that site cannot see, the unconstrained default wins, and nothing
@@ -219,6 +222,9 @@ not drag declarations down.
   remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for
   `posix`, `to` matches the API's name, and for `lower`, `Module.name`.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
+
+**Renaming a module.** Module names live in `rules.json` (and the generated `map.json`) and nowhere else in the tool:
+rename it everywhere in `rules.json`, then `assign --write`. Names are free to change until per-module products ship.
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the
 `explain` output for anything surprising, then `assign --write`, and commit `rules.json` and `map.json` together.
