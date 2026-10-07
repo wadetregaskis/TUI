@@ -181,7 +181,7 @@ extension ModalPresentationModifier {
 
     /// The presented sheet, live: the page it wraps drawn as itself, and the
     /// sheet docked at the bottom of the content area — in the rows the root
-    /// laid the page out short by (`FocusManager.presentationDock(in:)`), or
+    /// laid the page out short by (`FocusManager.presentationDock(in:storage:)`), or
     /// over the page's bottom rows on a frame the dock was learnt late.
     ///
     /// None of what a modal does to hold the page still: no isolation, no

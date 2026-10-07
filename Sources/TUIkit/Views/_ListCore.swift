@@ -843,7 +843,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // (see StateStorage.retainSubtree). Render path only, per the
         // measure-side-effect rule.
         if !context.isMeasuring {
-            stateStorage.retainWindowedSubtree(context.identity)
+            stateStorage.retainSubtree(context.identity)
         }
 
         // Two border cells or none, on each axis: top + bottom rows, and left +
@@ -1185,6 +1185,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // and renders the content box on demand and MEMOISES it, so the rows the
         // walk already touched cost a dictionary hit here.
         var visibleRows = window.range.map { (index: $0, row: source.row(at: $0)) }
+        noteDrawnRows(window.range, of: source, stateStorage: stateStorage, context: context)
         // Sync the viewport to the DATA rows this window covers — BEFORE the
         // reorder decoration rewrites them. The dragged row and the drop slot
         // are drawing, not data: a row in the user's hand is still counted by
@@ -1422,6 +1423,23 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // could not be reached: the furthest the pointer could aim was the
         // second-last line.
         return !sourceRowIsOnScreen(source, session: session, handler: handler)
+    }
+
+    /// Notes which rows this walk draws (`drawn`), for a live sheet docked
+    /// over the page to ask whether its presenter was left out
+    /// (`StateStorage.noteWindowedRows`) — its row found among the rows'
+    /// identities (``LazyListRowContent/rowIdentity``), which a row handed
+    /// over already drawn has none of: it is drawn whatever the window.
+    private func noteDrawnRows(
+        _ drawn: Range<Int>, of source: RowSource<SelectionValue>, stateStorage: StateStorage,
+        context: RenderContext
+    ) {
+        guard !context.isMeasuring, stateStorage.notesWindowedRows else { return }
+        stateStorage.noteWindowedRows(
+            WindowedRows(
+                root: context.identity, count: source.count,
+                identity: { source.content(at: $0).rowIdentity },
+                isDrawn: { drawn.contains($0) }))
     }
 
     /// Whether the row the in-flight drag came from is inside the window this

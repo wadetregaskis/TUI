@@ -863,7 +863,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // Off-window rows leave the WINDOW, not the tree: their @State (and
         // onChange baselines) must survive this frame's prune. Declared per
         // frame; lapses when this stack stops rendering, pruning the subtree.
-        context.stateStorage?.retainWindowedSubtree(context.identity)
+        context.stateStorage?.retainSubtree(context.identity)
 
         // Descendants aren't at the scroll origin, so they must not re-window.
         var childContext = context
@@ -955,6 +955,17 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             {
                 rendersRow[stop] = true
             }
+        }
+
+        // Which rows this walk draws, for a live sheet docked over the page to
+        // ask whether its presenter was left out (`StateStorage.noteWindowedRows`).
+        if !context.isMeasuring, let stateStorage = context.stateStorage, stateStorage.notesWindowedRows {
+            let drawnRows = rendersRow
+            stateStorage.noteWindowedRows(
+                WindowedRows(
+                    root: context.identity,
+                    row: { rowIndex(addressedBy: $0.path, slots: slots, context: childContext) },
+                    isDrawn: { drawnRows[$0] }))
         }
 
         // Explicit guides, resolved from the slot walk's measured sizes so an

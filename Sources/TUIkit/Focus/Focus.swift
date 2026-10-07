@@ -160,7 +160,7 @@ public final class FocusManager: @unchecked Sendable {
     /// What the screen's panes post each frame: the rows each sheet docked
     /// live at the bottom of the content area takes from the page
     /// (``notePresentationDock(id:resolver:)``), this walk's and the last
-    /// frame's (``presentationDock(in:)``).
+    /// frame's (``presentationDock(in:storage:)``).
     var panes = PaneLedger()
 
     /// Which device drove the most recent input event.

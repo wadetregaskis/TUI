@@ -346,6 +346,34 @@ extension _VStackCore {
     }
 }
 
+// MARK: - The rows a band drew
+
+extension _VStackCore {
+    /// Records the rows a band render drew — the uniform and anchored paths,
+    /// on the frames they draw: the span of the band's own, for the width
+    /// record's challenge (``StackWindowState/drawnOrdinals``); and every row
+    /// drawn, focus targets with them (`all`), for a live sheet docked over
+    /// the page to ask whether its presenter was left out
+    /// (`StateStorage.noteWindowedRows`) — its row found as a focus target's
+    /// is (``targetOrdinal(for:children:state:context:)``), by its key. `all`
+    /// is not evaluated on a walk nobody will ask about, which is almost
+    /// every walk.
+    func recordDrawnRows(
+        band: Range<Int>, all ordinals: @autoclosure () -> [Int], of children: ChildViewCollection,
+        state: StackWindowState, context: RenderContext
+    ) {
+        state.drawnOrdinals = band
+        guard !context.isMeasuring, let stateStorage = context.stateStorage, stateStorage.notesWindowedRows
+        else { return }
+        let ordinals = Set(ordinals())
+        stateStorage.noteWindowedRows(
+            WindowedRows(
+                root: context.identity,
+                row: { targetOrdinal(for: $0.path, children: children, state: state, context: context) },
+                isDrawn: { ordinals.contains($0) }))
+    }
+}
+
 // MARK: - Focus-target key extraction
 
 extension _VStackCore {
@@ -388,7 +416,7 @@ extension _VStackCore {
         guard !children[0].providesAlignmentGuide else { return nil }
 
         // Off-window rows leave the WINDOW, not the tree (§5h).
-        context.stateStorage?.retainWindowedSubtree(context.identity)
+        context.stateStorage?.retainSubtree(context.identity)
 
         var childContext = context
         childContext.leaveScrollOrigin()
@@ -490,7 +518,7 @@ extension _VStackCore {
         recordWidths(
             band: rows, grafted: graftRows, children: children, state: state,
             proposal: proposal, context: childContext)
-        state.drawnOrdinals = ordinalSpan(of: candidates.band)
+        recordDrawnRows(band: ordinalSpan(of: candidates.band), all: (rows + graftRows).map(\.ordinal), of: children, state: state, context: context)
 
         // Assemble: exact blank blocks between the rendered rows. With a
         // reply channel (Stage 6), the buffer is just the rendered band —

@@ -135,14 +135,23 @@ sheet; from the next the sheet is a modal and nothing alternates. A presenter
 that stays undrawn (another tab, a page navigated away from) is not affected,
 and docks again when drawn.
 
-Only a presenter its dock WINDOWED out (follow-up FU3): one that drew nothing
-that frame (`StateStorage.isMarkedActive`) under a container that windows its
-rows (`StateStorage.retainWindowedSubtree`, declared by the lazy stacks,
-`List` and `Table`). The first version held a sheet whose presenter merely
-posted nothing, and a presenter drawn into the backdrop of a `.modal`, a
-`.contextMenu` or a `.dimmed()` posts nothing, as does one away for a frame
-with its tab or navigation destination: a one-frame "Saving…" modal turned
-the live sheet into a modal for the rest of its presentation.
+Only a presenter its dock WINDOWED out (follow-up FU3): one whose ROW a
+container that windows its rows — a lazy stack, a `List`, a `Table` — did not
+draw in the walk drawn, the row still among the container's rows
+(`StateStorage.wasLeftOutOfAWindow`, from what each such container notes it
+drew on a walk a sheet docks, `StateStorage.noteWindowedRows`). The first
+version held a sheet whose presenter merely posted nothing, and a presenter
+drawn into the backdrop of a `.modal`, a `.contextMenu` or a `.dimmed()`
+posts nothing, as does one away for a frame with its tab or navigation
+destination: a one-frame "Saving…" modal turned the live sheet into a modal
+for the rest of its presentation. The second asked only the presenter's
+ancestry — drew nothing that pass, below a container that windows — so one
+below a drawn `List` or lazy stack that was away for a frame for another
+reason (an `if` switched, a `DisclosureGroup` collapsed and opened again) was
+still held; and it asked whether the presenter drew anything all pass, so one
+the discarded walk of a `.global` reader's correction drew and the drawn walk
+left out read as drawn. The verdict is the frame's last walk's, kept for every
+walk of the next frame (`PaneLedger.undrawnUnderTheirDock`).
 
 And for the whole presentation, an `item:` sheet's switches to other items
 included (follow-up FU3): the switch starts the sheet over

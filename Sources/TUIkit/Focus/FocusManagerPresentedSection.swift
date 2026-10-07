@@ -130,7 +130,7 @@ extension FocusManager {
     /// walk that learns it was laid out at the wrong height, and has to be
     /// thrown away. So the presenter posts a resolver instead, and the root
     /// asks LAST frame's resolvers, before it lays the page out
-    /// (``presentationDock(in:)``) — one walk, at a height known in advance.
+    /// (``presentationDock(in:storage:)``) — one walk, at a height known in advance.
     /// The same current-and-previous shape as ``notePresentation(id:dismiss:)``.
     ///
     /// - Parameters:
@@ -152,16 +152,25 @@ extension FocusManager {
     /// The most any one sheet asks for: two docked sheets overlap on the bottom
     /// edge, and the taller decides how much of the page is covered.
     ///
+    /// Asked on EVERY walk of a frame, before its content — a `.global`
+    /// reader's correction walks twice — and the same each time: it reads
+    /// last frame's posts, which no walk of this one touches.
+    ///
     /// Notes which sheets docked it (``PaneLedger/dockedBeforeTheWalk``), for
     /// ``settlePresentationDock(laidOutBy:in:storage:)`` to find the ones whose
-    /// presenters the frame then did not draw.
+    /// presenters the frame then did not draw — and, when any did, has the
+    /// walk's windowing containers note which rows they draw (`storage`'s
+    /// ``StateStorage/notesWindowedRows``), for the settle to ask whether a
+    /// presenter it did not draw was left out of a window.
     @MainActor
-    func presentationDock(in contentHeight: Int) -> Int {
-        Self.dock(panes.previousDocks, in: contentHeight) { panes.dockedBeforeTheWalk.insert($0) }
+    func presentationDock(in contentHeight: Int, storage: StateStorage?) -> Int {
+        let dock = Self.dock(panes.previousDocks, in: contentHeight) { panes.dockedBeforeTheWalk.insert($0) }
+        storage?.notesWindowedRows = !panes.dockedBeforeTheWalk.isEmpty
+        return dock
     }
 
     /// The same, by the resolvers posted THIS frame: what the root compares
-    /// with ``presentationDock(in:)`` after the walk.
+    /// with ``presentationDock(in:storage:)`` after the walk.
     ///
     /// Different when the dock was learnt late — a presenter's first drawn
     /// frame, a sheet presented for an item whose content was unknown until
@@ -180,20 +189,21 @@ extension FocusManager {
     ///
     /// And notes the sheets that docked this frame whose presenters it left
     /// out of a lazy container's window, for their presenters to find on the
-    /// next (``presenterWentUndrawnUnderItsDock(_:)``): a presenter that drew
-    /// nothing this pass (`storage`'s ``StateStorage/isMarkedActive(_:)``,
-    /// which a presented sheet's presenter marks wherever it draws, a
-    /// backdrop included) below a container that windows its rows
-    /// (``StateStorage/windowedSubtrees()``). Built only when a docked
-    /// sheet's presenter posted nothing, which is almost never.
+    /// next (``presenterWentUndrawnUnderItsDock(_:)``): a presenter that
+    /// posted nothing in this walk, lying in a row that a container windowing
+    /// its rows did not draw in it (`storage`'s
+    /// ``StateStorage/wasLeftOutOfAWindow(_:)``, which this walk's containers
+    /// noted because a sheet docked it — ``presentationDock(in:storage:)``).
+    ///
+    /// Asked of THIS walk: a frame walked twice draws only its last, so a
+    /// presenter an earlier walk drew and the drawn walk left out was left
+    /// out. And asked of the ROW, not of the presenter's ancestry: one below a
+    /// drawn `List` whose branch was not taken this frame, or whose disclosure
+    /// group was collapsed, was not left out of the window, and docking again
+    /// would not leave it out.
     @MainActor
     func settlePresentationDock(laidOutBy dock: Int, in contentHeight: Int, storage: StateStorage?) -> Bool {
-        var windowed: RetainedSubtreeIndex?
-        panes.noteDocksLeftUndrawn { presenter in
-            guard let storage, !storage.isMarkedActive(presenter) else { return false }
-            if windowed == nil { windowed = storage.windowedSubtrees() }
-            return windowed?.retains(presenter) ?? false
-        }
+        panes.noteDocksLeftUndrawn { presenter in storage?.wasLeftOutOfAWindow(presenter) ?? false }
         return postedPresentationDock(in: contentHeight) != dock
     }
 

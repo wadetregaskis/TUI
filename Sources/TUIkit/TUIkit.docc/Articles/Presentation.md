@@ -228,7 +228,8 @@ List(notes, selection: $selected) { note in Text(note.title) }
   moved. Only a
   presenter its own dock left out of a window: one drawn behind a modal, a
   context menu or a `.dimmed()` for a frame, or away for a frame with its
-  tab, docks again when it is back.
+  tab, its branch or a collapsed disclosure group — inside a `List` or not —
+  docks again when it is back.
 - **The page's pop-ups open over it.** A page's drop-down, menu or tooltip
   opens over the sheet as it opens over anything else on the page.
 

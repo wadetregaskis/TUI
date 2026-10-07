@@ -35,15 +35,25 @@ struct PaneLedger {
 
     /// The sections whose sheets docked the page this frame: the resolvers
     /// that answered rows when the root asked, before the walk
-    /// (`FocusManager.presentationDock(in:)`).
+    /// (`FocusManager.presentationDock(in:storage:)`).
     var dockedBeforeTheWalk: Set<String> = []
 
     /// The sections whose sheet docked the page LAST frame and whose
-    /// presenter that frame left out of a lazy container's window — noted
-    /// after its walk (``noteDocksLeftUndrawn(windowedOut:)``), for the
-    /// presenters of the next to ask
-    /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`).
+    /// presenter that frame left out of a lazy container's window, for the
+    /// presenters of this one to ask
+    /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`): what the last
+    /// frame's last walk noted (``leftOutUnderTheirDock``), kept for every walk
+    /// of this one.
     private(set) var undrawnUnderTheirDock: Set<String> = []
+
+    /// The same, as THIS frame's walks note it after each walk
+    /// (``noteDocksLeftUndrawn(windowedOut:)``) — the last walk's answer being
+    /// the frame's, since it is the walk drawn. Apart from
+    /// ``undrawnUnderTheirDock`` so that a frame walked twice does not answer
+    /// its second walk's presenters with what its first walk noted about
+    /// this frame: the presenter was drawn again in that walk alone, and
+    /// asked too late.
+    private var leftOutUnderTheirDock: Set<String> = []
 
     /// The pane whose content is rendering now, if any — see
     /// `FocusManager.beginPane(id:)`.
@@ -58,6 +68,10 @@ struct PaneLedger {
     mutating func beginFrame() {
         previousDocks = docks
         if !dockedBeforeTheWalk.isEmpty { dockedBeforeTheWalk.removeAll() }
+        if !undrawnUnderTheirDock.isEmpty || !leftOutUnderTheirDock.isEmpty {
+            undrawnUnderTheirDock = leftOutUnderTheirDock
+            leftOutUnderTheirDock.removeAll()
+        }
     }
 
     /// Notes, after the walk, which of the sheets that docked the page this
@@ -71,11 +85,14 @@ struct PaneLedger {
     /// throwaway backdrop of a `.modal`, a `.contextMenu` or a `.dimmed()`,
     /// which posts nothing; or not drawn at all for a frame — a tab, a
     /// navigation destination, a branch switched away and back between two
-    /// frames. Counted, any of them held a live sheet off the dock for the
-    /// rest of its presentation.
+    /// frames, a disclosure group collapsed and opened again — inside a
+    /// `List` or a lazy stack as much as anywhere else, which is why the
+    /// question is about the presenter's ROW, not its ancestry. Counted, any
+    /// of them held a live sheet off the dock for the rest of its
+    /// presentation.
     mutating func noteDocksLeftUndrawn(windowedOut: (ViewIdentity) -> Bool) {
-        guard !dockedBeforeTheWalk.isEmpty || !undrawnUnderTheirDock.isEmpty else { return }
-        undrawnUnderTheirDock = dockedBeforeTheWalk.filter { id in
+        guard !dockedBeforeTheWalk.isEmpty || !leftOutUnderTheirDock.isEmpty else { return }
+        leftOutUnderTheirDock = dockedBeforeTheWalk.filter { id in
             guard docks[id] == nil, let posted = previousDocks[id] else { return false }
             return windowedOut(posted.presenter)
         }

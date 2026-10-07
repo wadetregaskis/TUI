@@ -133,13 +133,18 @@ public final class StateStorage: @unchecked Sendable {
     /// a deleted row's state lingers until its container dies.
     private var retainedSubtreeRoots: [ViewIdentity] = []
 
-    /// The ``retainedSubtreeRoots`` declared by a container that WINDOWS its
-    /// rows (``retainWindowedSubtree(_:)``) — as against one that keeps a
-    /// subtree it did not draw for another reason: a collapsed disclosure
-    /// group, an overflowed toolbar item, a memo that served it. Asked only
-    /// when a view must know why something went undrawn
-    /// (``windowedSubtrees()``). Cleared with them.
-    private var windowedSubtreeRoots: [ViewIdentity] = []
+    /// Whether the containers that window their rows note which they drew
+    /// this walk (``noteWindowedRows(_:)``): set, before the walk's content,
+    /// by whoever will ask about it afterwards (``wasLeftOutOfAWindow(_:)``),
+    /// and cleared when the next walk begins. A walk nobody will ask about —
+    /// every walk but one a live sheet docks — notes nothing.
+    package var notesWindowedRows = false
+
+    /// What this WALK's windowing containers drew of their rows
+    /// (``noteWindowedRows(_:)``). Per walk, not per pass: a pass that walks
+    /// twice — a `.global` reader's correction — draws only its last walk,
+    /// and a row an earlier walk drew may be one the drawn walk left out.
+    private var windowedRows: [WindowedRows] = []
 
     /// The render cache that state changes should invalidate — the cache of the
     /// `TUIContext` this storage belongs to. Wired by the context at creation;
@@ -295,29 +300,29 @@ extension StateStorage {
         RetainedSubtreeIndex(roots: retainedSubtreeRoots)
     }
 
-    /// ``retainSubtree(_:)`` for a container that windows its rows — a lazy
-    /// stack, a `List`, a `Table` — which also says WHY a row below it that
-    /// drew nothing is still in the tree: it is outside the container's
-    /// viewport (``windowedSubtrees()``).
+    /// Notes which of its rows a container that windows them drew this walk,
+    /// when ``notesWindowedRows`` asks for it — built only then: `rows` is not
+    /// evaluated on a walk nobody will ask about. The render path only, and
+    /// after the window is chosen.
     ///
-    /// - Parameter root: The windowing container's own identity.
-    public func retainWindowedSubtree(_ root: ViewIdentity) {
-        retainedSubtreeRoots.append(root)
-        windowedSubtreeRoots.append(root)
+    /// - Parameter rows: The container's rows, and which it drew.
+    @MainActor
+    package func noteWindowedRows(_ rows: @autoclosure () -> WindowedRows) {
+        guard notesWindowedRows else { return }
+        windowedRows.append(rows())
     }
 
-    /// The subtrees this pass's windowing containers have declared so far
-    /// (``retainWindowedSubtree(_:)``): whether a view that drew nothing this
-    /// pass was left out of a container's window, rather than out of the tree
-    /// or kept for some other reason.
-    public func windowedSubtrees() -> RetainedSubtreeIndex {
-        RetainedSubtreeIndex(roots: windowedSubtreeRoots)
-    }
-
-    /// Whether `identity` has been marked active this pass (``markActive(_:)``)
-    /// — for a view that marks itself whenever it draws, whether it drew.
-    public func isMarkedActive(_ identity: ViewIdentity) -> Bool {
-        activeIdentities.contains(identity)
+    /// Whether `identity` lies in a row that a container windowing its rows
+    /// left out of its window in this walk (``noteWindowedRows(_:)``): the
+    /// row is among the container's rows, and the walk did not draw it.
+    ///
+    /// Not merely below such a container: a view below a drawn `List` that
+    /// drew nothing because its branch was not taken, a disclosure group
+    /// around it was collapsed, or its row left the data was not left out of
+    /// any window. `false` on a walk that noted nothing.
+    @MainActor
+    package func wasLeftOutOfAWindow(_ identity: ViewIdentity) -> Bool {
+        windowedRows.contains { $0.leftOut(identity) }
     }
 
     // MARK: - Conditional Branch Tracking
@@ -414,7 +419,6 @@ extension StateStorage {
         departures.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
         retainedSubtreeRoots.removeAll(keepingCapacity: true)
-        windowedSubtreeRoots.removeAll(keepingCapacity: true)
         beginSceneRender()
     }
 
@@ -422,11 +426,12 @@ extension StateStorage {
     /// more than one (the app header's height-discovery and correction
     /// re-renders — see `RenderLoop.beginSceneRender()`).
     ///
-    /// Deliberately narrower than ``beginRenderPass()``: it resets only the
-    /// per-walk onChange counters, which are claimed POSITIONALLY, so a second
-    /// walk that did not restart them would hand every `.onChange` /
-    /// `.onPreferenceChange` a shifted index and read and write the wrong
-    /// slots.
+    /// Deliberately narrower than ``beginRenderPass()``: it resets only what
+    /// belongs to one walk — the onChange counters, which are claimed
+    /// POSITIONALLY, so a second walk that did not restart them would hand
+    /// every `.onChange` / `.onPreferenceChange` a shifted index and read and
+    /// write the wrong slots; and what the walk's windowing containers drew
+    /// (``noteWindowedRows(_:)``), which only the walk drawn may answer.
     ///
     /// It must NOT clear `activeIdentities`. By the time a walk begins, that
     /// set already carries the App's own root identity (marked when the app
@@ -435,6 +440,9 @@ extension StateStorage {
     /// walks the tree twice.
     public func beginSceneRender() {
         onChangeCounters.removeAll(keepingCapacity: true)
+        // What the last walk drew of its windows is that walk's.
+        notesWindowedRows = false
+        if !windowedRows.isEmpty { windowedRows.removeAll() }
         // A value first seen by an earlier walk of this pass, seen differently
         // now, appears rather than animates: that walk's drawing is never shown.
         animations.beginWalk()
@@ -506,6 +514,7 @@ extension StateStorage {
         trackedValues.removeAll()
         onChangeCounters.removeAll()
         activeIdentities.removeAll()
+        windowedRows.removeAll()
         lastConditionalCase.removeAll()
         conditionalRecordsAfterSweep = 0
         animations.removeAll()

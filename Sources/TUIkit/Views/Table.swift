@@ -1157,7 +1157,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Rows beyond the viewport are skipped, not gone: retain their state
         // (see StateStorage.retainSubtree). Render path only, per the
         // measure-side-effect rule.
-        if !context.isMeasuring { stateStorage.retainWindowedSubtree(context.identity) }
+        if !context.isMeasuring { stateStorage.retainSubtree(context.identity) }
 
         // Calculate available width inside container (subtract border + padding).
         let gutter = selectionGutter(context.environment)
@@ -1225,6 +1225,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             contentPayload = result.payload
             renderState = result.state
         }
+
+        if let drawn = renderState?.visibleRange { noteDrawnRows(drawn, stateStorage: stateStorage, context: context) }
 
         // The header, once the rows have said which column the keyboard has
         // picked (``ItemListHandler/columnFocus``), which it draws picked out.
@@ -4570,6 +4572,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             TUIkit.renderToBuffer(
                 text, context: cellContext(column, for: item, width: width, context: context)),
             limit: column.lineLimit)
+    }
+
+    /// Notes which rows this walk drew (`drawn`), for a live sheet docked
+    /// over the page to ask whether its presenter was left out
+    /// (`StateStorage.noteWindowedRows`) — its row found among the rows'
+    /// identities (``rowIdentity(of:context:)``).
+    private func noteDrawnRows(_ drawn: Range<Int>, stateStorage: StateStorage, context: RenderContext) {
+        guard !context.isMeasuring, stateStorage.notesWindowedRows else { return }
+        let data = data
+        stateStorage.noteWindowedRows(
+            WindowedRows(
+                root: context.identity, count: data.count,
+                identity: { rowIdentity(of: data[$0], context: context) },
+                isDrawn: { drawn.contains($0) }))
     }
 
     /// The identity `item`'s row renders at, below this table's (`context`'s):

@@ -52,7 +52,7 @@ extension WindowGroup: SceneRenderable {
 /// 2. Draws the content in what is left, at the content's own identity — this
 ///    view stores nothing of its own, so no `@State` or focus ID moves — less
 ///    the rows a sheet docked live at the bottom takes, which last frame's
-///    presenters said (``FocusManager/presentationDock(in:)``): the page is
+///    presenters said (``FocusManager/presentationDock(in:storage:)``): the page is
 ///    laid out in the rows above it.
 /// 3. Draws each bar's items after the content, so their focus sections follow
 ///    the page's, and composites the content's overlay layers — with the bars'
@@ -92,7 +92,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         // from the page, which is laid out in the rows above it: last frame's
         // answer, asked before the walk (`FocusManager.notePresentationDock`).
         let focusManager = context.environment.focusManager
-        let dock = focusManager?.presentationDock(in: contentHeight) ?? 0
+        let dock = focusManager?.presentationDock(in: contentHeight, storage: context.stateStorage) ?? 0
 
         // Placed below the top bar's rows, which a reader in the content is
         // told (the carried geometry origin, `RenderContext.placingChild`).

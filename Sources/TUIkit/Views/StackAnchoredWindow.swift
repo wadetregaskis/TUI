@@ -640,7 +640,7 @@ extension _VStackCore {
         guard !children[0].providesAlignmentGuide else { return nil }
 
         // Off-window rows leave the WINDOW, not the tree (§5h).
-        context.stateStorage?.retainWindowedSubtree(context.identity)
+        context.stateStorage?.retainSubtree(context.identity)
 
         var childContext = context
         childContext.leaveScrollOrigin()
@@ -783,7 +783,11 @@ extension _VStackCore {
         if buffer != nil, let offset = heldOffset ?? resolvedSeek {
             window.reply?.seekResolvedOffset = offset
         }
-        if buffer != nil { state.drawnOrdinals = drawn }
+        if buffer != nil {
+            recordDrawnRows(
+                band: drawn, all: placed.map(\.ordinal) + grafts.map(\.ordinal), of: children, state: state,
+                context: context)
+        }
         return buffer
     }
 
