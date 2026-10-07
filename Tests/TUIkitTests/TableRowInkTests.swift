@@ -206,7 +206,12 @@ struct TableRowInkTests {
     }
 
     /// A styled cell closes with a reset, which its bold needs, and the cells after
-    /// it state the ink again: twice for a row whose middle column is bold.
+    /// it state the ink again: the size column is drawn in the ink the name
+    /// column is, not in the terminal's own colour the reset left in force.
+    ///
+    /// Read off the painted cells rather than counted in the bytes: the bold
+    /// `Text` states its own foreground, so a count of introducers is met without
+    /// the ink ever being stated again.
     @Test("A cell with escapes of its own is closed with a reset and the ink stated again after it")
     func styledCellClosesWithAReset() throws {
         let table = Table(Self.rows) {
@@ -221,7 +226,11 @@ struct TableRowInkTests {
         let row = line("row2", in: buffer)
         let cells = paintedCells(row)
         let size = try #require(cells.lastIndex { $0.glyph == "0" })
+        let name = try #require(cells.firstIndex { $0.glyph == "r" })
         #expect(!cells[size].state.isBold, "the bold ran into the next cell: \(row.debugDescription)")
-        #expect(count("\u{1B}[38;", in: row) >= 2, "\(row.debugDescription)")
+        #expect(cells[name].ink != nil, "the name is drawn in the cells' ink: \(row.debugDescription)")
+        #expect(
+            cells[size].ink == cells[name].ink,
+            "the ink was not stated again after the bold cell's reset: \(row.debugDescription)")
     }
 }
