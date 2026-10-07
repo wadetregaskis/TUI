@@ -253,6 +253,31 @@ struct TableRowInkTests {
         }
     }
 
+    /// A table drawn inside a `List` row keeps the per-cell closes: the list's
+    /// cursor row may reverse its content where the palette's highlight cannot be
+    /// measured, and reverse video fills the blanks between cells with the ink in
+    /// force (decisions B-SPF2-2). Every `List` row installs
+    /// `\.listRowEditRestrictions`, so that is how the table knows.
+    @Test("A table inside a List row states its cells' ink cell by cell, as before the ink was shared")
+    func tableInsideAListRowDoesNotShare() throws {
+        let table = Table(Self.rows, selection: .constant(Set<Int>())) {
+            TableColumn("Name", value: \Row.name)
+            TableColumn("Kind", value: \Row.kind)
+            TableColumn("Size", value: \Row.size)
+        }
+        var context = makeRenderContext(width: 40, height: 10)
+        context.environment.listRowEditRestrictions = RowEditRestrictions()
+        let buffer = ColorDepth.withCurrent(.truecolor) {
+            renderToBuffer(table.tableStyle(.inset), context: context)
+        }
+        // Cell by cell, as every row was before the ink was shared: the blank
+        // selection mark states its colour and closes, and so does each of the
+        // three cells (a shared row states one introducer and one close).
+        let row = line("row2", in: buffer)
+        #expect(count("\u{1B}[38;", in: row) == 4, "row2 is \(row.debugDescription)")
+        #expect(count("\u{1B}[0m", in: row) == 4, "row2 is \(row.debugDescription)")
+    }
+
     /// A styled cell closes with a reset, which its bold needs, and the cells after
     /// it state the ink again: the size column is drawn in the ink the name
     /// column is, not in the terminal's own colour the reset left in force.

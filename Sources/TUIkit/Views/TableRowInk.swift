@@ -86,9 +86,12 @@ struct TableRowInk {
     }
 
     /// The ink of a row drawn under `background`: closed by SGR 39 under a still
-    /// fill and a reset otherwise, shared everywhere but under a reversal and along
-    /// a row whose ramp bands it.
-    init(introducer: String?, under background: RowBackground, bandsAcrossRow: Bool) {
+    /// fill and a reset otherwise, shared everywhere but under a reversal, along
+    /// a row whose ramp bands it, and in a table drawn inside a `List` row
+    /// (`insideListRow`): a list's cursor row may reverse its content where the
+    /// palette's highlight cannot be measured, and a reversal fills the blanks
+    /// between cells with whatever ink is in force (decisions B-SPF2-2).
+    init(introducer: String?, under background: RowBackground, bandsAcrossRow: Bool, insideListRow: Bool = false) {
         let reverses: Bool
         let close: String
         switch background {
@@ -99,7 +102,7 @@ struct TableRowInk {
         case .none, .pulsing:
             (reverses, close) = (false, ANSIRenderer.reset)
         }
-        self.init(introducer: introducer, close: close, shares: !reverses && !bandsAcrossRow)
+        self.init(introducer: introducer, close: close, shares: !reverses && !bandsAcrossRow && !insideListRow)
     }
 
     /// Writes the selection mark `glyph` in `colour`.

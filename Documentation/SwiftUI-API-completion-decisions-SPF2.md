@@ -79,11 +79,16 @@ Nothing differs without colour, where no ink is stated, or under a breathing
 reversal's reversed frame, which drops every colour of the row's own first
 (`applyReversedPair`).
 
-**Shipped: the shared ink anyway.** The case needs a table inside a list row
-or a table cell, on the cursor's row, under a palette whose highlight cannot be
-measured. With the table's default ink only the mark column differs. There the
-old picture was no more deliberate than the new: a blank mark, which says "not
-selected", drawn as a coloured block.
+**Shipped: a table inside a `List` row keeps the per-cell closes.** Every `List`
+row installs `\.listRowEditRestrictions`, so a table reads it as it builds a row's
+ink (`TableRowInk`'s `insideListRow`) and does not share there: the main case,
+a table nested in a list, draws exactly as it did, and loses only the byte
+saving (`TableRowInkTests.tableInsideAListRowDoesNotShare`). **Left as
+described above:** a table inside another table's view cell, and inside a menu
+item's, drop-down row's or picker segment's highlight, on the highlighted row,
+under a palette whose highlight cannot be measured. With the table's default ink
+only the mark column differs there, and the old picture was no more deliberate
+than the new: a blank mark, which says "not selected", drawn as a coloured block.
 
 **The fuller version, and its price:** tell the nested table it is drawn under
 reverse video, and stop the sharing there. The reversing rows would pass that

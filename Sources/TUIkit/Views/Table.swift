@@ -2430,7 +2430,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var rampSequences: [String?] = []
         // Each line states the ink once per run of plain cells (`TableRowInk`),
         // and starts with none in force.
-        let rowInk = TableRowInk(introducer: cellSequence, under: visual.background, bandsAcrossRow: bandsAcrossRow)
+        let rowInk = TableRowInk(
+            introducer: cellSequence, under: visual.background, bandsAcrossRow: bandsAcrossRow,
+            insideListRow: context.environment.listRowEditRestrictions != nil)
         let cellCount = min(columns.count, columnWidths.count)
         var claims: [OpacityRegion] = []
 
@@ -5395,7 +5397,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
         var ink = TableRowInk(
-            introducer: cellSequence, under: visualState.background, bandsAcrossRow: bandsAcrossRow)
+            introducer: cellSequence, under: visualState.background, bandsAcrossRow: bandsAcrossRow,
+            insideListRow: context.environment.listRowEditRestrictions != nil)
 
         // One buffer for the whole row. The previous form built a `[String]` of
         // styled cells, `joined` them, and concatenated the indicator and the
