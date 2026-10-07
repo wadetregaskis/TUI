@@ -176,8 +176,9 @@ and one pattern would cover them all.
 
 The check reads which lower module defines each symbol from the same index store, in one more pass over its units:
 about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; reading every module beside
-`Sources/TUIkit`, Example and Stress included, cost 0.6–0.9 s). A `lower` list naming a module that is not one of
-these, or that the index has no definitions of, is an error, not a silent pass.
+`Sources/TUIkit`, Example and Stress included, cost 0.6–0.9 s). Two things are errors, not a silent pass: a `lower`
+list naming a module that is not one of these, and an index with no definitions of one of these (even one no list
+names: a list denies what it leaves out, and a module the index lacks would deny nothing).
 
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 

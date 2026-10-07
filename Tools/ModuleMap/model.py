@@ -113,6 +113,7 @@ class Model:
         self.foreign_refs = []          # (node, usr, rel, line): references to symbols defined outside the module
         self.lower_owner = {}           # usr -> the lower module (beside the source directory) that defines it
         self.lower_name = {}            # usr -> its name qualified by its types in that module (`AppState.shared`)
+        self.lower_visible = set()      # the lower modules this module's sources can see (visible_modules)
         self.lower_modules = set()      # the lower modules whose definitions were read
         self.public_members = {}        # node -> names of the public API it declares, in source order
         self.stale = []                 # rel paths whose source is newer than its index unit, or have none
@@ -181,6 +182,7 @@ class Model:
         # which of them defines what a declaration uses.
         top, me = os.path.split(prefix.rstrip('/'))
         dirs = {d: os.path.join(top, d) + '/' for d in sorted(visible_modules(top, me, m.lexed.values()))}
+        m.lower_visible = set(dirs)
         if dirs:
             lower, lsyms, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
             m.lower_owner, m.lower_name = lower_owners(lower, dirs, lsyms)

@@ -488,7 +488,7 @@ def lower_model():
            's:Foundation.Date': ('Date', IX.K_STRUCT)}
     M = model(srcs, occ, sym)
     M.lower_owner = {'s:Core.Lock': 'TUIkitCore', 's:View.AppState': 'TUIkitView'}
-    M.lower_modules = {'TUIkitCore', 'TUIkitView'}
+    M.lower_visible = M.lower_modules = {'TUIkitCore', 'TUIkitView'}
     return M, {'s:S': 'Base', 's:L': 'Lists'}
 
 
@@ -597,6 +597,21 @@ class LowerTests(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaisesRegex(SystemExit, 'TUIkitVeiw'):
                 modulemap.main(['check'])
+
+
+    def test_a_lower_module_the_index_lacks_is_an_error_even_when_no_list_names_it(self):
+        # Base's list leaves TUIkitImage out, which denies it. A store without TUIkitImage's units would let Base's uses
+        # of it through, with no finding and no error.
+        M, asg = lower_model()
+        M.lower_visible = {'TUIkitCore', 'TUIkitView', 'TUIkitImage'}
+        with mock.patch.object(modulemap.Model, 'load', return_value=M), \
+                mock.patch.object(modulemap.Rules, 'load', return_value=lower_rules()), \
+                mock.patch.object(modulemap.indexstore, 'find_store', return_value='/nonexistent'), \
+                contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(SystemExit, 'no definitions of TUIkitImage'):
+                modulemap.main(['check'])
+            M.lower_modules = set(M.lower_visible)
+            self.assertEqual(modulemap.main(['check']), 1)       # read: the check runs (AppState in Base is new)
 
 
 class IndexStoreTests(unittest.TestCase):
