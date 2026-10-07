@@ -78,6 +78,29 @@ struct PressRoleTests {
         #expect(fixture.background.events.isEmpty)
     }
 
+    /// A Control-press selects nothing, so its drag makes nothing; released
+    /// outside the pane it was held for, it is no click. Review round 2 of
+    /// the follow-ups: delivered as the pane's click wherever it was
+    /// released, a Control-drag into another pane focused the scroll view it
+    /// left.
+    @Test("A Control-press dragged out of its pane and released there is no click")
+    func controlDragOutOfThePaneIsNoClick() {
+        let fixture = Fixture()
+        func ctrl(_ phase: MousePhase, _ x: Int, _ y: Int) {
+            fixture.dispatcher.dispatch(MouseEvent(button: .left, phase: phase, x: x, y: y, ctrl: true))
+        }
+        ctrl(.pressed, 12, 6)
+        ctrl(.dragged, 18, 6)
+        ctrl(.dragged, 30, 6)
+        ctrl(.released, 30, 6)
+        #expect(fixture.background.events.isEmpty)
+        // Released inside it, after a drag about it, it still is the pane's.
+        ctrl(.pressed, 12, 6)
+        ctrl(.dragged, 30, 6)
+        ctrl(.released, 13, 7)
+        #expect(fixture.background.phases == [.pressed, .released])
+    }
+
     @Test("A double-click reaches the region with its count")
     func doubleClickKeepsItsCount() {
         let fixture = Fixture()

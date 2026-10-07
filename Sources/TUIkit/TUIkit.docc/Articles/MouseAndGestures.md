@@ -157,7 +157,8 @@ menu by default, so TUIkit also accepts <kbd>Ctrl</kbd>-click, and
 A <kbd>Ctrl</kbd>-click is the secondary click: it never starts a text
 selection, a scroll view's background passes it on to a menu around it — and
 takes it as its click, focusing the scroll view, only where nothing else
-does — and on a list's or table's row text under `.textSelection(.enabled)` it
+does, and only if it is released inside the scroll view — and on a list's or
+table's row text under `.textSelection(.enabled)` it
 opens the row's menu, as a right-click there does. Where the row has none, the row takes
 it as it takes one on its blank cells. A control that acts on a left press — a
 button, a field, a toggle — takes it as its own click, menu or no menu: a

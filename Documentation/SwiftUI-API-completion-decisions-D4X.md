@@ -125,7 +125,11 @@ landed in, as the owner's "falls through the view hierarchy" reads: a scroll
 view's viewport focuses the scroll view, a split view's column activates its
 section, as a Control-click did before it was the secondary click (the
 follow-ups' review found those panes passed over with nothing behind them, so
-a Control-click there did nothing, in apps that use no menu too). (Synthesised Control-clicks
+a Control-click there did nothing, in apps that use no menu too). It is that
+pane's click where it is released inside the pane, a drag about it making
+nothing; dragged out of the pane and released elsewhere, it does nothing, as
+a button let go off it does (its second review found any Control-drag, however
+far, delivered as the pane's click). (Synthesised Control-clicks
 open no menu on a SwiftUI row in the probe, the plain control list included,
 so macOS's Control-click is read as its right-click, which it is.)
 

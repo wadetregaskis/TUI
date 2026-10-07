@@ -246,7 +246,8 @@ extension MouseEventDispatcher {
     /// view's viewport focuses the scroll view, a split view's column
     /// activates its section, as a Control-click did before it was the
     /// secondary click. Held for the release as a background's click always
-    /// is, and selecting nothing.
+    /// is, and selecting nothing; released outside that pane, it is no click
+    /// (``HeldPress``).
     private func dispatchSecondaryPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
         var pane: HitTestRegion?
         for region in matching {
@@ -297,6 +298,10 @@ extension MouseEventDispatcher {
 ///   still hears the click, which for a pane's background is harmless — it
 ///   takes the focus — and keeps a double-click's meaning for anything that
 ///   gives it one.
+/// - With **no selection to make** — a Control-press, which selects nothing —
+///   a drag makes nothing, and the release is the claimer's click where it
+///   lands inside the pane, as a button's is where it lands on the button: a
+///   press dragged out of the pane and released outside it does nothing.
 final class HeldPress {
     /// The region the click belongs to: its handler, captured at the press
     /// (the table is rebuilt every frame, and a gesture spans frames), and its
@@ -335,6 +340,11 @@ final class HeldPress {
             if isSelecting { selection?.extend(to: ScreenSelection.Point(x: event.x, y: event.y)) }
         case .released:
             if isSelecting { selection?.finish() }
+            // With no selection to make, a release outside the pane is a
+            // press slid off and let go: no click (review round 2 of the
+            // follow-ups — a Control-drag into another pane focused the pane
+            // it left).
+            if selection == nil, !pane.contains(ScreenSelection.Point(x: event.x, y: event.y)) { break }
             // A drag is not a click; a multi-click that selected still is one.
             if !isSelecting || press.clickCount >= 2 { deliverClick(ending: event) }
         default:
