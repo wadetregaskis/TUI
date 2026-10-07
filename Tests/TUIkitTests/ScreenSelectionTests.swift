@@ -235,7 +235,7 @@ struct ScreenSelectionGestureTests {
         drag(harness, from: alpha, to: (alpha.x + 4, alpha.y), page: page)
         first.value = "omega beta gamma"
         harness.frame(page)
-        #expect(harness.tui.screenSelection.current?.isHighlighted == false)
+        #expect(harness.tui.screenSelection.current?.isHighlighted != true)
         #expect(harness.tui.screenSelection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) == nil)
         #expect(harness.tui.screenSelection.handleKey(KeyEvent(key: .escape)) == nil)
         harness.press(KeyEvent(key: .character("c"), ctrl: true))
@@ -256,12 +256,35 @@ struct ScreenSelectionGestureTests {
         drag(harness, from: alpha, to: (alpha.x + 4, alpha.y), page: page)
         first.value = "omega beta gamma"
         harness.frame(page)
-        #expect(harness.tui.screenSelection.current?.isHighlighted == false)
+        // Dropped, so no later frame pays to read its cells (the follow-ups'
+        // review: a dead selection read them every frame until a press).
+        #expect(harness.tui.screenSelection.current == nil)
         first.value = "alpha beta gamma"
         harness.frame(page)
-        #expect(harness.tui.screenSelection.current?.isHighlighted == false)
+        #expect(harness.tui.screenSelection.current?.isHighlighted != true)
         #expect(harness.tui.screenSelection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) == nil)
         #expect(log.writes.isEmpty)
+    }
+
+    /// With the selection's own menu open over it, it is kept when its
+    /// cells change, so the menu's Copy copies what was selected.
+    @Test("A selection whose cells change under its open menu keeps its text")
+    func goneUnderItsMenuKeepsItsText() throws {
+        let first = Box("alpha beta gamma")
+        let page = Page(first: first)
+        let harness = harness(page, log: SystemClipboardLog())
+        let alpha = try find("alpha", in: harness, page)
+        drag(harness, from: alpha, to: (alpha.x + 4, alpha.y), page: page)
+        let selection = harness.tui.screenSelection
+        let text = try #require(selection.current?.text)
+        try #require(text.hasPrefix("alph"))
+        try #require(selection.openMenu(at: ScreenSelection.Point(x: alpha.x + 1, y: alpha.y)))
+        first.value = "omega beta gamma"
+        harness.frame(page)
+        #expect(selection.current?.text == text)
+        #expect(selection.current?.isHighlighted == false)
+        harness.frame(page)
+        #expect(selection.current?.text == text)
     }
 
     struct Log: View {

@@ -289,7 +289,10 @@ this follows tmux's buffer and vim's register.
 selected text. When they stop, the selection takes no keys (Ctrl-C and Escape
 are the app's). If the content area is where the highlight was last drawn,
 the cells themselves changed — a log scrolled on, a spinner turned — and the
-highlight is gone for good. If the content area moved — a status-bar
+highlight is gone for good, and the selection with it (unless its own menu is
+open over it, whose Copy still copies it): the follow-ups' review found a dead
+selection kept, reading its cells every frame until a press. If the content
+area moved — a status-bar
 tooltip's row, a copy's line, taking a row from a centred page — the page
 moved under it, and the highlight, its keys and its Copy menu come back when
 the area is back and the cells read the text again. (Review 2: coming back on

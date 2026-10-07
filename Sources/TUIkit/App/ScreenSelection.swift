@@ -294,7 +294,9 @@ extension ScreenSelection {
     ///   scrolled on, a spinner turned — and it is gone for good: a highlight
     ///   that came back whenever they read the text again blinked over a
     ///   cycling line, its keys with it, and an equal line scrolling into
-    ///   place revived a selection long gone. Where the content area moved —
+    ///   place revived a selection long gone. Such a selection is dropped,
+    ///   so no later frame pays to read its cells, unless its own menu is
+    ///   open over it. Where the content area moved —
     ///   a status-bar tooltip's row, a copy's line, taking a row from a
     ///   centred page — the page moved under it, and it comes back, keys and
     ///   all, when the area is back and the cells read the text again.
@@ -319,6 +321,9 @@ extension ScreenSelection {
             clear()
             return buffer
         }
+        // Gone for good, its menu still open over it (below): nothing to
+        // follow, and no cells to read again.
+        guard selection.isMaking || selection.shownIn != nil else { return buffer }
         let drawn = Self.text(of: selection, in: frameLines)
         let area = contentArea
         if selection.isMaking {
@@ -330,8 +335,17 @@ extension ScreenSelection {
                 selection.shownIn = area
             } else {
                 selection.isHighlighted = false
-                // The page did not move: the cells changed under it.
-                if area == shownIn { selection.shownIn = nil }
+                // The page did not move: the cells changed under it. Gone for
+                // good, so dropped, and no later frame reads its cells — unless
+                // its own menu is open over it, whose Copy copies what was
+                // selected; then it is kept, unread, until the menu goes.
+                if area == shownIn {
+                    guard menuAnchor != nil else {
+                        clear()
+                        return buffer
+                    }
+                    selection.shownIn = nil
+                }
             }
         }
         current = selection
