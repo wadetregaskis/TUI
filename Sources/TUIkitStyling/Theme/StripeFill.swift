@@ -134,8 +134,7 @@ private struct StripeKey: Hashable {
 
     /// The entry `rgb` is drawn as at this depth.
     private func shown(_ rgb: UInt32) -> UInt32? {
-        let colour = Color.rgb(UInt8(rgb >> 16 & 0xFF), UInt8(rgb >> 8 & 0xFF), UInt8(rgb & 0xFF))
-        return shown(colour)
+        shown(Self.colour(rgb))
     }
 
     private func shown(_ colour: Color) -> UInt32? {
@@ -181,16 +180,14 @@ private struct StripeKey: Hashable {
         min(4.5, 0.8 * contrast(packed(text), packed(ground)))
     }
 
-    /// The WCAG contrast ratio between two packed colours.
+    /// The WCAG contrast ratio between two packed colours — ``Color/contrastRatio(against:)``'s,
+    /// on the colours they spell.
     static func contrast(_ first: UInt32, _ second: UInt32) -> Double {
-        func luminance(_ packed: UInt32) -> Double {
-            func channel(_ shift: UInt32) -> Double {
-                let value = Double((packed >> shift) & 0xFF) / 255
-                return value <= 0.039_28 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
-            }
-            return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
-        }
-        let (one, two) = (luminance(first), luminance(second))
-        return (max(one, two) + 0.05) / (min(one, two) + 0.05)
+        colour(first).contrastRatio(against: colour(second))
+    }
+
+    /// The colour `packed` spells, as 0xRRGGBB.
+    private static func colour(_ packed: UInt32) -> Color {
+        .rgb(UInt8(packed >> 16 & 0xFF), UInt8(packed >> 8 & 0xFF), UInt8(packed & 0xFF))
     }
 }
