@@ -150,6 +150,54 @@ struct TableRowInkTests {
         }
     }
 
+    /// What an ANCESTOR's reverse video does to a shared row — a `List` row, or a
+    /// table row around a view cell, reversing a table nested in it where its
+    /// palette's highlight cannot be measured. The nested row cannot see that
+    /// reversal, so it shares its ink, and under SGR 7 a blank cell's ink is its
+    /// fill: the spacing between its cells shows their ink and its blank marks the
+    /// reversal's (decisions-SPF2 B-SPF2-2). Pinned: no glyph changes — every
+    /// cell that draws one is in the state it was — only blank cells can differ,
+    /// and they do; and a breathing reversal's reversed frame, which drops every
+    /// colour of the row's own first, draws exactly what it drew.
+    @Test(
+        "Under an ancestor's reverse video only a shared row's blank cells differ",
+        arguments: [ColorDepth.truecolor, .palette256, .basic16, .noColor])
+    func ancestorReversalDiffersOnlyInBlankCells(_ depth: ColorDepth) {
+        ColorDepth.withCurrent(depth) {
+            var random = SeededGenerator(state: 2026_10_08)
+            let introducer = introducer()
+            let (ink, field) = (Color.rgb(220, 220, 220), Color.rgb(20, 20, 30))
+            let exchanging = RowBackground.reversed(ink: ink, field: field)
+            let pairOnly = RowBackground.Paint.reversed(ink: ink, field: field)
+            var blanksDiffering = 0
+            for trial in 0..<200 {
+                let count = Int.random(in: 0...6, using: &random)
+                let cells = (0..<count).map { _ in Self.texts.randomElement(using: &random) ?? "" }
+                let mark = [String?.none, " ", "●"][Int.random(in: 0...2, using: &random)]
+                let perCell = compose(
+                    cells, mark: mark, ink: TableRowInk(introducer: introducer, close: ANSIRenderer.reset, shares: false))
+                let shared = compose(
+                    cells, mark: mark, ink: TableRowInk(introducer: introducer, close: ANSIRenderer.reset, shares: true))
+                let before = seen(exchanging.painting(perCell))
+                let after = seen(exchanging.painting(shared))
+                #expect(before.map(\.glyph) == after.map(\.glyph), "#\(trial)")
+                for (old, new) in zip(before, after) where old != new {
+                    if old.glyph == " " {
+                        blanksDiffering += 1
+                    } else {
+                        Issue.record("#\(trial): \(old.glyph) changed: \(perCell.debugDescription) became \(shared.debugDescription)")
+                    }
+                }
+                #expect(
+                    seen(pairOnly.painting(shared)) == seen(pairOnly.painting(perCell)),
+                    "#\(trial): \(perCell.debugDescription) became \(shared.debugDescription)")
+            }
+            if depth != .noColor {
+                #expect(blanksDiffering > 0, "an ancestor's reversal shows no blank cell's ink: update B-SPF2-2")
+            }
+        }
+    }
+
     @Test("A row's background decides its ink's close and whether its runs share one introducer")
     func closeAndSharingFollowTheBackground() {
         let still = TableRowInk(introducer: "x", under: .fixed(Self.fill), bandsAcrossRow: false)

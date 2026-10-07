@@ -22,12 +22,19 @@ import TUIkitStyling
 /// across the spacing between two cells because a blank cell shows no ink: what
 /// it draws is its FIELD. What this is NOT is a change to what any cell draws:
 /// every glyph is in the ink it was in, every field is the field it was, and only
-/// the SGR state of the blank cells between them differs — which no terminal
-/// shows, and which the opacity resolution reads as the terminal does, a blank
-/// cell's ink being its field (`OpacityBlend.displayedInk(of:defaultForeground:)`),
-/// so a translucent ink's claim over the spacing resolves as it did.
-/// `TableRowInkTests` compares the two spellings cell by cell through the grid
-/// a terminal paints.
+/// the SGR state of the blank cells between them differs — which a blank shows
+/// only under an underline, a strike or reverse video, and which the opacity
+/// resolution reads as the terminal does, a blank cell's ink being its field
+/// (`OpacityBlend.displayedInk(of:defaultForeground:)`), so a translucent ink's
+/// claim over the spacing resolves as it did. `TableRowInkTests` compares the two
+/// spellings cell by cell through the grid a terminal paints.
+///
+/// The row's OWN reversal keeps its closes (below). An ANCESTOR's it cannot see:
+/// a table nested in a `List` row, or in a view cell of another table's row,
+/// that reverses where its palette's highlight cannot be measured shows the
+/// spacing between its cells in their ink and its blank marks in the reversal's,
+/// where it showed the reversal's and the mark's — its glyphs unchanged
+/// (decisions-SPF2 B-SPF2-2).
 ///
 /// It keeps a close per run where the shared ink could show:
 /// - after a cell whose text carries escapes of its own (a styled `Text`, a view

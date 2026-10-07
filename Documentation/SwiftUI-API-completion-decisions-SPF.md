@@ -28,9 +28,12 @@ applied per run of cells, not per row: decisions-SPF2 B-SPF2-1). Two rows keep
 the close around every run, exactly as before: a REVERSAL (under SGR 7 a
 cell's ink is the colour it is filled with, so a blank's ink shows), and a
 row whose ramp varies along it (painted per cell). Only `Table`: a `List`
-row's content is its own views' buffer, with no row-wide ink to state.
+row's content is its own views' buffer, with no row-wide ink to state. An
+ANCESTOR's reversal a row cannot see — a table nested in a `List`'s cursor row
+or another table's view cell, under a palette whose highlight cannot be
+measured — shows the blanks' ink: decisions-SPF2 B-SPF2-2.
 
-What is drawn did not change. `TableRowInkTests` composes 600 random rows
+What is drawn did not change, but for that. `TableRowInkTests` composes 600 random rows
 (plain, empty and escaped cells, a mark or none) both ways at each depth —
 truecolor, 256, 16, mono — under each paint a row is finished with (none, a
 still fill, a breathing fill's frame, a dim, a dim on a fill) and compares
