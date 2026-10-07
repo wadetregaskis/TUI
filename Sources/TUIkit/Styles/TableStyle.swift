@@ -24,6 +24,7 @@
 /// | ``automatic`` | The platform default — **bordered** in TUIkit, the look a table has always had here. |
 /// | ``bordered`` | The table drawn inside a rounded border. |
 /// | ``inset`` | No border: the header and rows inset a cell from the table's edges. |
+/// | ``surface`` | TUIkit's own, a prototype: `.inset` on a surface of its own, the header a step stronger. |
 ///
 /// Stripes are not a style's: every style stripes every other row, as a macOS
 /// `Table` does under each (measured), and `.alternatingRowBackgrounds(_:)`
@@ -86,6 +87,9 @@ enum _TableChrome: Equatable {
     case bordered
     /// No border; the header and rows inset a cell from the edges.
     case inset
+    /// As ``inset``, on a lifted surface, the header on a stronger one
+    /// (``SurfaceTableStyle``).
+    case surface
 }
 
 extension TableStyle {
@@ -95,6 +99,7 @@ extension TableStyle {
         switch self {
         case is AutomaticTableStyle, is BorderedTableStyle: .bordered
         case is InsetTableStyle: .inset
+        case is SurfaceTableStyle: .surface
         default: nil
         }
     }
@@ -159,6 +164,30 @@ public struct BorderedTableStyle: TableStyle, Equatable {
     }
 }
 
+/// TUIkit's own table style, and a PROTOTYPE to try: the table told from the
+/// text around it by a surface of its own rather than by a border. The
+/// header and rows inset a cell from the edges, as under ``InsetTableStyle``,
+/// on the surface a `TabView`'s body is drawn on — one plane's step off what
+/// the table sits on — and the header on a step stronger still, its titles
+/// bold in the primary ink. Every other row stripes over that surface, as
+/// under every style.
+///
+/// SwiftUI has no such style: a macOS table needs none, its window drawing a
+/// table's rows on a field of their own. Whether TUIkit's default should look
+/// like this is the owner's open question (decisions A29, and A-D6L-1 in the
+/// D6L decisions); the name may change, or go, when it is answered.
+///
+/// `Equatable` for the reason given under ``TableStyle``.
+public struct SurfaceTableStyle: TableStyle, Equatable {
+    /// Creates a surface table style.
+    public init() {}
+
+    /// The table, drawn in this style.
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.table.tableStyle(self)
+    }
+}
+
 extension TableStyle where Self == AutomaticTableStyle {
     /// The default table style in the current context: bordered in TUIkit.
     public static var automatic: AutomaticTableStyle { AutomaticTableStyle() }
@@ -175,6 +204,12 @@ extension TableStyle where Self == BorderedTableStyle {
     /// with its content and selection inset from the table edges and
     /// surrounded by a border.
     public static var bordered: BorderedTableStyle { BorderedTableStyle() }
+}
+
+extension TableStyle where Self == SurfaceTableStyle {
+    /// TUIkit's own: an inset table on a surface of its own, the header a step
+    /// stronger — a prototype (see ``SurfaceTableStyle``).
+    public static var surface: SurfaceTableStyle { SurfaceTableStyle() }
 }
 
 // MARK: - Environment

@@ -328,6 +328,13 @@ Table(people) {
 .tableStyle(.inset)
 ```
 
+`.surface`, TUIkit's own and a prototype, tells the table from the text
+around it by a surface of its own instead of a border: `.inset`'s layout on
+the surface a `TabView`'s body is drawn on, the header a step stronger. A
+list takes the same look from `.listStyle(.surface)`, its title and section
+headers on the stronger step. Whether the default should look like this is
+an open question; the name may change.
+
 `.automatic` and `.bordered` both draw the border. Every style stripes;
 `.alternatingRowBackgrounds(.disabled)` turns the stripes off under any of
 them.

@@ -738,8 +738,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     )
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // A section this list draws as one row keeps the list's styling.
-        let context = context.drawingListSectionChrome()
+        // A section this list draws as one row keeps the list's styling; under
+        // `.listStyle(.surface)` everything is drawn on the list's own surface,
+        // and the finished buffer painted with it at the end.
+        let (context, surface) = CollectionSurface.drawing(context.drawingListSectionChrome(), when: context.environment.listStyle is SurfaceListStyle)
         let palette = context.environment.palette
         let style = context.environment.listStyle
         let stateStorage = context.stateStorage!
@@ -877,6 +879,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             footer: footer,
             context: context
         )
+        // Borderless, so a title is the first line; the section headers took
+        // the header tone as rows (`rowBackground`).
+        buffer = surface?.painted(buffer, headerLines: 0..<titleOverhead, context: context) ?? buffer
 
         if let state = renderState {
             // Where content line 0 sits in the finished buffer: below the top
@@ -4376,6 +4381,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         palette: any Palette
     ) -> RowBackground {
         switch rowType {
+        case .header where style is SurfaceListStyle:
+            // A section header under `.listStyle(.surface)` sits on the header
+            // tone, as the list's title does (``CollectionSurface``), which the
+            // list's own context carries.
+            guard let header = context.environment.collectionHeaderSurface else { return .none }
+            return .fixed(header)
         case .header, .footer, .unselectable:
             return .none
 

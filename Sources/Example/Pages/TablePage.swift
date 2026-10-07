@@ -195,6 +195,8 @@ struct TablePage: View {
     @State fileprivate var sortedTracks = Track.playlist
     @State fileprivate var trackSort = [KeyPathComparator(\Track.title, order: .forward)]
     @State private var sortSelection: String?
+    @State private var borderedStyleSelection: String?
+    @State private var surfaceStyleSelection: String?
 
     /// The 300-row notes table, with or without a selection binding — two
     /// different `Table` initializers, so this is a branch rather than an
@@ -349,6 +351,23 @@ struct TablePage: View {
                 }
             }
 
+            // The default look beside TUIkit's prototype `.surface` style, which
+            // tells a table from the text around it by a surface of its own
+            // instead of a border (decisions A29). Both stripe, as every style
+            // does.
+            DemoSection("page.table.stylesSection") {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("page.table.stylesBody")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    HStack(alignment: .top, spacing: 2) {
+                        styledTable(".automatic", selection: $borderedStyleSelection)
+                            .tableStyle(.automatic)
+                        styledTable(".surface", selection: $surfaceStyleSelection)
+                            .tableStyle(.surface)
+                    }
+                }
+            }
+
             // Animated cells: every string below derives from `liveTick`, which
             // a `.task` loop advances four times a second — spinner frames,
             // climbing percentages and a running clock, all in plain cells.
@@ -435,6 +454,22 @@ struct TablePage: View {
             await runLiveTicker()
         }
         .navigationTitle("menu.item.tables")
+    }
+
+    /// One of the styles section's tables, under its style's name: the
+    /// sample files, short enough to fit beside its twin.
+    private func styledTable(_ name: String, selection: Binding<String?>) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: name).dim()
+            Table(FileEntry.sampleFiles, selection: selection) {
+                TableColumn("page.table.column.name", value: \FileEntry.name)
+                    .width(.fit)
+                TableColumn("page.table.column.size", value: \FileEntry.size)
+                    .alignment(.trailing)
+            }
+            .frame(height: 8)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     /// The animated-cells ticker. Cancelled automatically when the page goes

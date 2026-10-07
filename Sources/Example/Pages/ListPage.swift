@@ -79,11 +79,35 @@ struct ListPage: View {
     ]
     @State private var editableSelection: Set<String> = []
     @State private var reorderFeedback = ReorderFeedbackChoice.live.rawValue
+    @State private var borderedStyleSelection: String?
+    @State private var surfaceStyleSelection: String?
 
     private static let fruits = [
         "Apple", "Apricot", "Banana", "Blueberry", "Cherry",
         "Grape", "Lemon", "Mango", "Orange", "Peach",
     ]
+
+    /// One of the styles section's sectioned lists, under its style's name:
+    /// the sample files, the folders and the rest in a section each.
+    private func sectionedList(_ name: String, selection: Binding<String?>) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: name).dim()
+            List(selection: selection) {
+                Section("page.list.styles.folders") {
+                    ForEach(FileItem.sampleFiles.filter { $0.icon == "📁" }) { file in
+                        Text(file.name)
+                    }
+                }
+                Section("page.list.styles.files") {
+                    ForEach(FileItem.sampleFiles.filter { $0.icon != "📁" }) { file in
+                        Text(file.name)
+                    }
+                }
+            }
+            .frame(height: 8)
+        }
+        .frame(maxWidth: .infinity)
+    }
 
     var body: some View {
         // The page is taller than most terminals, so it's wrapped in a
@@ -286,6 +310,20 @@ struct ListPage: View {
                             .frame(height: 5)
                         }
                         .frame(maxWidth: .infinity)
+                    }
+
+                    // The default look beside TUIkit's prototype `.surface`
+                    // style, which tells a list from the text around it by a
+                    // surface of its own instead of a border (decisions A46).
+                    // Sectioned, so the headers' stronger tone shows, and taller
+                    // than it is tall enough for, so it scrolls.
+                    Text("page.list.stylesSurfaceBody")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    HStack(alignment: .top, spacing: 2) {
+                        sectionedList(".automatic", selection: $borderedStyleSelection)
+                            .listStyle(.automatic)
+                        sectionedList(".surface", selection: $surfaceStyleSelection)
+                            .listStyle(.surface)
                     }
                 }
             }

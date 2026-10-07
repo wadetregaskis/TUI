@@ -77,6 +77,29 @@ public struct SidebarListStyle: ListStyle, Equatable {
     public var alternatingRowColors: Bool { false }
 }
 
+// MARK: - Surface
+
+/// TUIkit's own list style, and a PROTOTYPE to try: the list told from the
+/// text around it by a surface of its own rather than by a border. The rows
+/// inset a cell from the edges, as under ``InsetListStyle``, on the surface a
+/// `TabView`'s body is drawn on — one plane's step off what the list sits on —
+/// and its title and section headers on a step stronger still.
+///
+/// SwiftUI has no such style: a macOS list needs none, its window drawing a
+/// list's rows on a field of their own. Whether TUIkit's default should look
+/// like this is the owner's open question (decisions A46, and A-D6L-1 in the
+/// D6L decisions); the name may change, or go, when it is answered.
+///
+/// `Equatable` for the reason given under ``ListStyle``.
+public struct SurfaceListStyle: ListStyle, Equatable {
+    /// Creates a surface list style.
+    public init() {}
+
+    public var showsBorder: Bool { false }
+    public var rowPadding: EdgeInsets { EdgeInsets(top: 0, leading: 1, bottom: 0, trailing: 1) }
+    public var alternatingRowColors: Bool { false }
+}
+
 // MARK: - Leading-dot spellings
 
 extension ListStyle where Self == DefaultListStyle {
@@ -95,6 +118,12 @@ extension ListStyle where Self == InsetListStyle {
     /// The list style that describes the behavior and appearance of an inset
     /// list.
     public static var inset: InsetListStyle { InsetListStyle() }
+}
+
+extension ListStyle where Self == SurfaceListStyle {
+    /// TUIkit's own: an inset list on a surface of its own, its headers a step
+    /// stronger — a prototype (see ``SurfaceListStyle``).
+    public static var surface: SurfaceListStyle { SurfaceListStyle() }
 }
 
 extension ListStyle where Self == SidebarListStyle {

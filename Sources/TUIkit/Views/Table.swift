@@ -753,9 +753,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// The cells the table's border takes on each side: one under a bordered
-    /// style, none under `.inset`.
+    /// style, none under `.inset` or `.surface`.
     private func borderWidth(_ environment: EnvironmentValues) -> Int {
-        environment.tableStyle.builtInChrome == .inset ? 0 : 1
+        switch environment.tableStyle.builtInChrome {
+        case .inset, .surface: 0
+        case .bordered, nil: 1
+        }
+    }
+
+    /// The table's container drawn — and under `.tableStyle(.surface)` painted
+    /// with its tones, where there is no border, so the header (when there is
+    /// one) is line 0.
+    private func render(_ container: some View, on surface: CollectionSurface?, context: RenderContext) -> FrameBuffer {
+        let buffer = TUIkit.renderToBuffer(container, context: context)
+        return surface?.painted(buffer, headerLines: 0..<headerLines(context.environment), context: context) ?? buffer
     }
 
     /// The lines of chrome around the rows: the border's two rules, when it
@@ -1131,6 +1142,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
         }
         if let prepared = prepared(context) { return prepared.renderToBuffer(context: context) }
+        // `.tableStyle(.surface)`: everything below is drawn on the table's own
+        // surface — a field in a cell steps off it, a stripe tints over it — and
+        // the finished buffer is painted with it at the end. Taken AFTER the
+        // prepared table hands over, which renders in this same context and
+        // would otherwise lift its surface off this one's.
+        let (context, surface) = CollectionSurface.drawing(context, when: context.environment.tableStyle.builtInChrome == .surface)
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
         // The enabled selection scopes filed before the cells are drawn: any
@@ -1212,7 +1229,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The header, once the rows have said which column the keyboard has
         // picked (``ItemListHandler/columnFocus``), which it draws picked out.
         let header = renderHeader(
-            columnWidths: columnWidths, gutter: gutter, palette: palette, picking: renderState?.handler)
+            columnWidths: columnWidths, gutter: gutter, palette: palette, picking: renderState?.handler, emphasised: surface != nil)
         var headerLine = header.text
         if wantsScrollbar {
             // Pad the header to the full inner width so it aligns with the rows
@@ -1266,7 +1283,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     payload: contentPayload)
             }
         }
-        var buffer = TUIkit.renderToBuffer(container, context: context)
+        var buffer = render(container, on: surface, context: context)
 
         if let state = renderState {
             // The cells' regions are the only ones the container carries up, and
@@ -4810,10 +4827,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     // MARK: - Header Rendering
 
+    /// - Parameter emphasised: Whether the titles take the primary ink rather
+    ///   than the secondary — under `.tableStyle(.surface)`, whose header is a
+    ///   step stronger.
     private func renderHeader(
         columnWidths: [Int], gutter: Int, palette: any Palette,
-        picking handler: ItemListHandler<Value.ID>? = nil
+        picking handler: ItemListHandler<Value.ID>? = nil, emphasised: Bool = false
     ) -> ClaimingRow {
+        let ink = emphasised ? palette.foreground : palette.foregroundSecondary
         let pickedColumn = handler.flatMap(pickedColumn)
         // Through `ClaimingRow` so the header's own colour states its opaque spelling
         // and sends its alpha up as a region. `foregroundSecondary` is a re-spelling of
@@ -4834,7 +4855,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 truncationMode: column.truncationMode
             )
             guard offset == pickedColumn else {
-                row.append(aligned, cells: width, ink: palette.foregroundSecondary, bold: true)
+                row.append(aligned, cells: width, ink: ink, bold: true)
                 continue
             }
             // The picked column: the still fill a selected row wears, in the

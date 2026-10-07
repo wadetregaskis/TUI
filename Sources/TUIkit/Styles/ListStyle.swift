@@ -19,6 +19,8 @@
 ///   in the list item tint.
 /// - ``InsetGroupedListStyle`` (`.insetGrouped`): bordered, as `.bordered` is
 ///   (iOS's name; SwiftUI does not offer it on macOS).
+/// - ``SurfaceListStyle`` (`.surface`): TUIkit's own, a prototype — `.inset`
+///   on a surface of its own, the title and section headers a step stronger.
 ///
 /// # Usage
 ///
