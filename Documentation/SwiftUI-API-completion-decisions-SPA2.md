@@ -66,10 +66,14 @@ that is now the context's in-memory opener rather than a real browser.
 **Shipped:** it keeps the URL and answers `true`, as an in-memory clipboard
 answers a copy `.copied`: the URL went where that context's URLs go.
 
-**The fuller version** would answer `false`, so a `Link` in such a context
-raises its destination popover as it does with opening off. Nothing reaches
-this but a headless run or a test that turned opening on; a one-line change if
-the popover is the more useful thing to see there.
+**The other answer** is `false`, and all it would change is what the
+completion form, `openURL(url) { accepted in … }`, reports. A `Link` raises its
+destination popover on every activation whatever `open` answers
+(`Link.swift`: `open(destination)`, then `showing.wrappedValue = true`, "raised
+whether or not `open` 'worked'"), so a link looks the same either way. Nothing
+reaches this but a headless run or a test that turned opening on, and the
+change is one line; `true` stays because the URL did go where that context's
+URLs go.
 
 ### B-SPA2-4. FieldTextLayout carries the selection look and no requirements, and WordBoundary moves down by placement
 
