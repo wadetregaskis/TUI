@@ -334,3 +334,19 @@ enum SystemClipboard {
 }
 
 #endif
+
+// MARK: - As the writer reaches it
+
+extension SystemClipboard {
+    /// This machine's clipboard as ``ClipboardWriter`` reaches it — the
+    /// helpers above, behind the substrate's ``ClipboardBackend`` — and what
+    /// the app's run loop installs into the ``TUIContext`` it creates. Nothing
+    /// else does, so no other context runs a helper.
+    struct Backend: ClipboardBackend {
+        var isAvailable: Bool { SystemClipboard.hasHelper }
+
+        func write(_ text: String) -> Bool { SystemClipboard.copy(text) }
+
+        func read() -> String? { SystemClipboard.paste() }
+    }
+}

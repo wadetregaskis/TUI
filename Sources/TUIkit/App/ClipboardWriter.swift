@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitCore
 
 // MARK: - What became of a copy
 
@@ -83,6 +84,55 @@ enum ClipboardRoute: Equatable, Sendable {
     }
 }
 
+// MARK: - This machine's clipboard
+
+/// This machine's clipboard, as ``ClipboardWriter`` reaches it: the route the
+/// rule calls ``ClipboardRoute/system``.
+///
+/// Declared here and implemented above: the app's run loop installs the one
+/// that runs this machine's helpers (`SystemClipboard.Backend`, `pbcopy` or
+/// `xclip` as a subprocess, which belongs with the run loop's other POSIX
+/// code) into the ``TUIContext`` it creates, and every other context — a
+/// headless run's, a snapshot's, a test's — gets an ``InMemoryClipboard``,
+/// so nothing but a running app ever touches the user's pasteboard. The rule
+/// is the same whichever stands behind it: OSC 52 to a terminal that writes it
+/// by default comes first, and this clipboard only where the user is at this
+/// machine.
+protocol ClipboardBackend: Sendable {
+    /// Whether there is a clipboard here to write at all: `false` where this
+    /// machine has no helper to run. Asked once, when a writer is made.
+    var isAvailable: Bool { get }
+
+    /// Puts `text` on the clipboard, answering whether it took it.
+    func write(_ text: String) -> Bool
+
+    /// The clipboard's text, or `nil` where it holds none or cannot be read.
+    func read() -> String?
+}
+
+/// A clipboard held in memory: what a context gets unless the app's run loop
+/// installs this machine's (``ClipboardBackend``).
+///
+/// A copy routed to this machine's clipboard lands here and a paste reads it
+/// back, so a headless run or a test exercises the whole route without a
+/// helper and without writing the developer's pasteboard. One per context, so
+/// two contexts in one process — a test suite — keep their copies apart.
+final class InMemoryClipboard: ClipboardBackend {
+    /// What a paste reads: the latest copy.
+    private let contents = Lock<String?>(initialState: nil)
+
+    var isAvailable: Bool { true }
+
+    func write(_ text: String) -> Bool {
+        contents.withLock { $0 = text }
+        return true
+    }
+
+    func read() -> String? {
+        contents.withLock { $0 }
+    }
+}
+
 // MARK: - OSC 52
 
 /// The OSC 52 write TUIkit sends, spelled as Ghostty's documentation requires
@@ -136,14 +186,13 @@ final class ClipboardWriter: @unchecked Sendable {
     /// A tmux session can be attached from another machine at any moment.
     private let isLocal: @MainActor () -> Bool
 
-    /// Whether this machine has a clipboard helper to run.
+    /// This machine's clipboard (``ClipboardBackend``): its helpers in a
+    /// running app, memory everywhere else.
+    private let system: any ClipboardBackend
+
+    /// Whether ``system`` has a clipboard to write — its
+    /// ``ClipboardBackend/isAvailable``, asked once.
     private let hasSystemHelper: Bool
-
-    /// Writes this machine's clipboard, answering whether it worked.
-    private let systemWrite: @Sendable (String) -> Bool
-
-    /// Reads this machine's clipboard, where that is the user's.
-    private let systemRead: @Sendable () -> String?
 
     /// The run loop's clock, which notes are stamped and aged on.
     private let nowNanos: @Sendable () -> UInt64
@@ -163,33 +212,24 @@ final class ClipboardWriter: @unchecked Sendable {
     /// (``read()``).
     private var lastCopy: String?
 
+    /// A writer over `system`, this machine's clipboard. The other answers
+    /// default to this process's: the terminal it is drawn in, and whether the
+    /// user is at this machine.
     init(
-        terminalSupport: @escaping @MainActor () -> TerminalClient.ClipboardWriteSupport,
-        isLocal: @escaping @MainActor () -> Bool,
-        hasSystemHelper: Bool,
-        systemWrite: @escaping @Sendable (String) -> Bool,
-        systemRead: @escaping @Sendable () -> String?,
+        terminalSupport: @escaping @MainActor () -> TerminalClient.ClipboardWriteSupport = {
+            TerminalClient.clipboardWrites
+        },
+        isLocal: @escaping @MainActor () -> Bool = { ClipboardLocality.isLocal() },
+        system: any ClipboardBackend,
         nowNanos: @escaping @Sendable () -> UInt64 = { MonotonicClock.nowNanoseconds },
         requestFrame: @escaping @Sendable () -> Void = { AppState.shared.setNeedsRender() }
     ) {
         self.terminalSupport = terminalSupport
         self.isLocal = isLocal
-        self.hasSystemHelper = hasSystemHelper
-        self.systemWrite = systemWrite
-        self.systemRead = systemRead
+        self.system = system
+        self.hasSystemHelper = system.isAvailable
         self.nowNanos = nowNanos
         self.requestFrame = requestFrame
-    }
-
-    /// The writer of a running app: the terminal the app is drawn in, this
-    /// machine's helpers, and the rule between them.
-    static func live() -> ClipboardWriter {
-        ClipboardWriter(
-            terminalSupport: { TerminalClient.clipboardWrites },
-            isLocal: { ClipboardLocality.isLocal() },
-            hasSystemHelper: SystemClipboard.hasHelper,
-            systemWrite: { SystemClipboard.copy($0) },
-            systemRead: { SystemClipboard.paste() })
     }
 
     /// Puts `text` on the clipboard by the route the rule picks, and reports
@@ -213,7 +253,7 @@ final class ClipboardWriter: @unchecked Sendable {
                 if let sequence = ClipboardSequence.write(text) { pending.append(sequence) }
                 result = confirmed ? .copied : .sentToTerminal
             case .system:
-                result = systemWrite(text) ? .copied : .failed
+                result = system.write(text) ? .copied : .failed
             case .none:
                 result = .unavailable
             }
@@ -245,7 +285,7 @@ final class ClipboardWriter: @unchecked Sendable {
     /// Never OSC 52's `?`: a read prompts the user on Ghostty, and its reply
     /// would arrive in the input stream.
     @MainActor func read() -> String? {
-        if hasSystemHelper, isLocal() { return systemRead() }
+        if hasSystemHelper, isLocal() { return system.read() }
         if let lastCopy {
             note = (.pastedAppCopy, nowNanos())
             requestFrame()

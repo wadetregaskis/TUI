@@ -307,9 +307,13 @@ final class TUIContext: @unchecked Sendable {
     /// status bar — and the OSC 52 writes owed to the terminal. See
     /// ``ClipboardWriter``.
     ///
+    /// This machine's clipboard behind it is the one the context was made
+    /// with (``init(clipboard:)``): the app's run loop passes the system's,
+    /// and every other context keeps its copies in memory.
+    ///
     /// Settable, unlike its neighbours, so a test can hand a context a writer
     /// with its own answers to where the terminal is.
-    var clipboardWriter = ClipboardWriter.live() {
+    var clipboardWriter: ClipboardWriter {
         didSet { clipboardAccess = ClipboardAccess(writer: clipboardWriter) }
     }
 
@@ -394,7 +398,14 @@ final class TUIContext: @unchecked Sendable {
     /// frames, so its cache still persists frame-to-frame; meanwhile every other
     /// context (notably each test's) is fully isolated, which is what keeps
     /// parallel render tests from contaminating one another's cache.
-    init() {
+    ///
+    /// - Parameter clipboard: This machine's clipboard, behind the context's
+    ///   ``clipboardWriter``. The app's run loop passes the system's
+    ///   (`SystemClipboard.Backend`); every other context — a headless run's,
+    ///   a test's — keeps its copies in memory, and never touches the user's
+    ///   pasteboard.
+    init(clipboard: any ClipboardBackend = InMemoryClipboard()) {
+        self.clipboardWriter = ClipboardWriter(system: clipboard)
         self.lifecycle = LifecycleManager()
         self.keyEventDispatcher = KeyEventDispatcher()
         self.mouseEventDispatcher = MouseEventDispatcher()
@@ -438,6 +449,8 @@ final class TUIContext: @unchecked Sendable {
         stateStorage: StateStorage = StateStorage(),
         renderCache: RenderCache = RenderCache(valueHashPlans: .tuikit())
     ) {
+        // A snapshot's or a test's: its copies stay in memory (see init()).
+        self.clipboardWriter = ClipboardWriter(system: InMemoryClipboard())
         self.lifecycle = lifecycle
         self.keyEventDispatcher = keyEventDispatcher
         self.mouseEventDispatcher = mouseEventDispatcher

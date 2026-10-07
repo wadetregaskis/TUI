@@ -165,24 +165,24 @@ struct ClipboardAccess: Sendable {
         self.typed = typed
     }
 
-    /// The clipboard outside a running app — a control rendered by a test or
-    /// a snapshot: this machine's clipboard when the user is at this machine,
-    /// and never OSC 52, because there is no terminal to send it to. Not the
-    /// main actor's, as the writer is, so it answers from any thread.
-    static let system = Self(
-        put: { text, _ in
-            guard !text.isEmpty else { return .nothingToCopy }
-            let route = ClipboardRoute.choose(
-                terminal: .unsupported, hasSystemHelper: SystemClipboard.hasHelper,
-                isLocal: ClipboardLocality.isLocal)
-            guard route == .system else { return .unavailable }
-            return SystemClipboard.copy(text) ? .copied : .failed
-        },
-        read: { SystemClipboard.hasHelper && ClipboardLocality.isLocal() ? SystemClipboard.paste() : nil })
+    /// The clipboard of an environment no context's services reached — a
+    /// control a test renders without them: none. A copy reports
+    /// ``ClipboardWriteResult/unavailable`` and a paste reads nothing.
+    ///
+    /// Every render a context drives hands its controls the context's writer
+    /// (``EnvironmentValues/applyRuntimeServices(from:)``) — the run loop's,
+    /// a headless run's, a snapshot's — and a test that copies hands its
+    /// subtree a clipboard of its own. So this is met only where nothing could
+    /// be copied to anyway: there is no terminal to send OSC 52 to, and this
+    /// machine's clipboard is the app layer's to reach (``ClipboardBackend``),
+    /// never a stray render's. Stateless, so it answers from any thread.
+    static let unavailable = Self(
+        put: { text, _ in text.isEmpty ? .nothingToCopy : .unavailable },
+        read: { nil })
 }
 
 private struct ClipboardAccessKey: EnvironmentKey {
-    static let defaultValue = ClipboardAccess.system
+    static let defaultValue = ClipboardAccess.unavailable
 }
 
 extension EnvironmentValues {

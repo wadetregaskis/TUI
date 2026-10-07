@@ -17,6 +17,21 @@ final class SystemClipboardLog: @unchecked Sendable {
     var writes: [String] = []
 }
 
+/// This machine's clipboard as a test states it: whether it has a helper,
+/// whether the helper works, and a log of what it was handed.
+struct StatedClipboard: ClipboardBackend {
+    let isAvailable: Bool
+    let helperWorks: Bool
+    let log: SystemClipboardLog
+
+    func write(_ text: String) -> Bool {
+        log.writes.append(text)
+        return helperWorks
+    }
+
+    func read() -> String? { log.writes.last }
+}
+
 extension ClipboardWriter {
     /// A writer whose terminal, locality and helper are the test's.
     static func stated(
@@ -25,12 +40,9 @@ extension ClipboardWriter {
         now: @escaping @Sendable () -> UInt64 = { 0 }
     ) -> ClipboardWriter {
         ClipboardWriter(
-            terminalSupport: { terminal }, isLocal: { isLocal }, hasSystemHelper: hasHelper,
-            systemWrite: { text in
-                log.writes.append(text)
-                return helperWorks
-            },
-            systemRead: { log.writes.last }, nowNanos: now, requestFrame: {})
+            terminalSupport: { terminal }, isLocal: { isLocal },
+            system: StatedClipboard(isAvailable: hasHelper, helperWorks: helperWorks, log: log),
+            nowNanos: now, requestFrame: {})
     }
 }
 
@@ -398,9 +410,9 @@ struct ClipboardWriterTests {
     func requestsAFrame() {
         let frames = SystemClipboardLog()
         let writer = ClipboardWriter(
-            terminalSupport: { .honoured }, isLocal: { false }, hasSystemHelper: false,
-            systemWrite: { _ in false }, systemRead: { nil }, nowNanos: { 0 },
-            requestFrame: { frames.writes.append("frame") })
+            terminalSupport: { .honoured }, isLocal: { false },
+            system: StatedClipboard(isAvailable: false, helperWorks: false, log: SystemClipboardLog()),
+            nowNanos: { 0 }, requestFrame: { frames.writes.append("frame") })
         writer.write("x", announcingSuccess: false)
         #expect(frames.writes == ["frame"])
     }

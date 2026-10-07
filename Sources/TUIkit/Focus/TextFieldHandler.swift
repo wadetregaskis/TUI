@@ -270,12 +270,15 @@ final class TextFieldHandler: PersistedFocusable {
     ///   - text: The binding to the text content.
     ///   - canBeFocused: Whether this element can receive focus. Defaults to `true`.
     ///   - cursorPosition: The initial cursor position. Defaults to end of text.
+    ///   - clipboard: What copies and pastes go through. A field passes its
+    ///     environment's; the default, for a handler made by hand, is
+    ///     ``ClipboardAccess/unavailable``: no clipboard at all.
     init(
         focusID: String,
         text: Binding<String>,
         canBeFocused: Bool = true,
         cursorPosition: Int? = nil,
-        clipboard: ClipboardAccess = .system
+        clipboard: ClipboardAccess = .unavailable
     ) {
         self.focusID = focusID
         self.text = text

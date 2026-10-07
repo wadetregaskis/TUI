@@ -145,7 +145,10 @@ internal final class AppRunner<A: App> {
         // dead code and the footer a box under a ruled header.
         self.statusBar = StatusBarState(appState: appState)
         self.terminal = Terminal()
-        self.tuiContext = TUIContext()
+        // The one context whose copies reach this machine's clipboard (where
+        // the rule sends them there at all): the app's, which runs the
+        // platform's helpers. Every other context keeps them in memory.
+        self.tuiContext = TUIContext(clipboard: SystemClipboard.Backend())
     }
 }
 

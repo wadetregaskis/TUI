@@ -124,7 +124,7 @@ final class TextEditorHandler: PersistedFocusable {
     var departedUndoSteps: DepartedUndoSteps?
 
     init(
-        focusID: String, text: Binding<String>, canBeFocused: Bool = true, clipboard: ClipboardAccess = .system
+        focusID: String, text: Binding<String>, canBeFocused: Bool = true, clipboard: ClipboardAccess = .unavailable
     ) {
         self.focusID = focusID
         self.text = text

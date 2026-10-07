@@ -5267,6 +5267,15 @@ takes ONE route per copy, in this order:
    tmux with `set-clipboard on`, and a terminal whose DA1 lists `52`.
 4. **Nothing**, said so.
 
+Rung 2's clipboard is injected (`ClipboardBackend`), and only the app's run
+loop installs the one that runs the helper (`SystemClipboard.Backend`, into
+the `TUIContext` `AppRunner` creates). Every other context — a headless run,
+a `renderOnce` snapshot, a test — keeps rung 2's copies in memory
+(`InMemoryClipboard`), and a view rendered with no context's services at all
+has no clipboard (`ClipboardAccess.unavailable`), so nothing but a running app
+ever writes the user's pasteboard. The rule and its order are the same
+whichever stands behind it.
+
 **Inside GNU screen (`STY`), no OSC 52 at all**, whatever terminal the
 environment names: screen passes an application's OSC 52 on only inside its
 own DCS passthrough (`ESC P … ESC \`), which TUIkit does not send, so rungs 1
@@ -5607,8 +5616,10 @@ K3).
   (mode 1004)".
 - `ClipboardWriter` + `TerminalClient.clipboardWrites` + `ClipboardLocality` —
   where a copy goes: OSC 52 to a host that writes it, this machine's
-  clipboard helper only when the user is at this machine, and the status
-  bar's line when neither reaches them. See "OSC 52 clipboard writes".
+  clipboard helper only when the user is at this machine (behind
+  `ClipboardBackend`; the helper's is `SystemClipboard.Backend`, installed by
+  `AppRunner` alone), and the status bar's line when neither reaches them.
+  See "OSC 52 clipboard writes".
 - `KeyEvent.normalizingLegacyShiftedFunctionKeys()` +
   `Terminal.finalize` — Apple Terminal's shifted-function-key re-coding
   (F13…F20 read back as Shift+F5…F12), gated on `TerminalHost.isAppleTerminal`.
