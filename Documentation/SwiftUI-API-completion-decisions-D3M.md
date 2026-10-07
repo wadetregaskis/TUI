@@ -138,7 +138,9 @@ a drag-and-drop preview flying back home.
 
 **Shipped:** under reduce motion, an animated change of `.offset`,
 `.position`, padding or a fixed `.frame` (and an offset in a
-`visualEffect`, whose colours and opacity still animate) jumps to its end
+`visualEffect` or an `.animated` `scrollTransition`, whose colours and
+opacity still animate — the scroll transition since follow-up FU3) jumps to
+its end
 value; a drag-and-drop preview does not travel — no lift out of its row,
 no fly-back when a drop is cancelled or refused, no settling morph — and
 the row is back in place at once. Transitions with motion already played

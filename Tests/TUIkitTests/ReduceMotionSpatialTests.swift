@@ -53,6 +53,24 @@ private func indent(_ lines: [String]) -> Int? {
     return nil
 }
 
+/// Where `text` is first drawn in `buffer` — in its lines, or in a layer
+/// floated over them — as a column, and the opacity its line is drawn at.
+private func place(
+    of text: String, in buffer: FrameBuffer, x: Int = 0
+) -> (x: Int, opacity: Double?)? {
+    for (row, line) in buffer.lines.enumerated() {
+        let stripped = line.stripped
+        if let range = stripped.range(of: text) {
+            let opacity = buffer.opacityRegions.first { $0.offsetY <= row && row < $0.offsetY + $0.height }?.opacity
+            return (x + stripped.distance(from: stripped.startIndex, to: range.lowerBound), opacity)
+        }
+    }
+    for layer in buffer.overlays {
+        if let found = place(of: text, in: layer.content, x: x + layer.offsetX) { return found }
+    }
+    return nil
+}
+
 @MainActor
 @Suite("Reduce motion holds geometry still")
 struct ReduceMotionSpatialTests {
@@ -185,5 +203,45 @@ struct ReduceMotionSpatialTests {
         #expect(
             drawn.overlays.first?.content.opacityRegions != faded.overlays.first?.content.opacityRegions,
             "the fade was cut short")
+    }
+
+    /// Geometry's scroll transition animated its effect outside the motion
+    /// hold `visualEffect` has: under reduce motion an `.animated` transition
+    /// still slid its offset in.
+    @Test("A scroll transition's offset jumps where motion is reduced, while its opacity animates")
+    func scrollTransitionHoldsOnlyItsOffset() {
+        func halfway(reducesMotion: Bool, atMillis millis: Int = 500) -> (x: Int, opacity: Double?)? {
+            let screen = Screen(reducesMotion: reducesMotion)
+            var position = ScrollPosition()
+            let binding = Binding(get: { position }, set: { position = $0 })
+            let page = ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<8, id: \.self) { index in
+                        Text("row \(index)")
+                            .scrollTransition(.animated(.linear(duration: 1)).threshold(.visible(1))) { effect, phase in
+                                effect.offset(x: phase.isIdentity ? 0 : 10).opacity(phase.isIdentity ? 1 : 0)
+                            }
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .scrollPosition(binding)
+            .frame(width: 30, height: 4)
+            _ = screen.render(page, atMillis: 0)
+            _ = screen.render(page, atMillis: 0)
+            // Row 4 comes wholly into view: from its edge phase to identity,
+            // on the frame after the scroll lands, which finds it there.
+            position.scrollTo(y: 1)
+            _ = screen.render(page, atMillis: 0)
+            _ = screen.render(page, atMillis: 0)
+            return place(of: "row 4", in: screen.render(page, atMillis: millis))
+        }
+        let reduced = halfway(reducesMotion: true)
+        let moving = halfway(reducesMotion: false)
+        #expect(moving?.x == 5, "it slides")
+        #expect(moving?.opacity == 0.5, "it fades")
+        #expect(reduced?.x == 0, "the offset jumped")
+        #expect(reduced?.opacity == 0.5, "the fade was cut short")
+        #expect(halfway(reducesMotion: true, atMillis: 2000)?.opacity == 1, "the fade does not end")
     }
 }

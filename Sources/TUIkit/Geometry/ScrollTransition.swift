@@ -166,15 +166,12 @@ extension _ScrollTransitionView: Renderable, Layoutable {
         }
         // Moved there by the configuration's animation, when it has one — and
         // otherwise drawn where the scroll put it, whatever transaction the
-        // scroll came in.
+        // scroll came in. As a `visualEffect`'s is: under reduce motion its
+        // offsets jump to the phase's and its opacity and colours still
+        // animate (owner decision A-D3M-1).
         var animating = context
         animating.environment.transaction.animation = configuration.transitionAnimation
-        if let animated = animatedValue(
-            of: effect, owner: Self.self, context: animating, isMeasuring: context.isMeasuring)
-        {
-            effect = animated
-        }
-        return effect
+        return animatedEffect(effect, owner: Self.self, context: animating, isMeasuring: context.isMeasuring)
     }
 
     /// Effects do not change layout: this measures as its content.
