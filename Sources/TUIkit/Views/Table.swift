@@ -5041,6 +5041,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 isFocused: false, isSelected: true, context: context, palette: palette),
             unselectedMark: RowSelectionIndicator.forRow(
                 isFocused: false, isSelected: false, context: context, palette: palette),
+            stripe: Self.stripeFill(context: context, palette: palette),
             alignments: columns.map(\.alignment),
             truncations: columns.map(\.truncationMode),
             lineLimits: columns.map(\.lineLimit),
@@ -5749,11 +5750,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             } else if isStriped {
                 // Every other row, under `.alternatingRowBackgrounds()` — the
                 // tint a striped `List` draws, from the same place.
-                .alternatingStripe(palette: palette, over: context.environment.enclosingSurface)
+                RowBackground(Self.stripeFill(context: context, palette: palette))
             } else {
                 .none
             }
         return (indicator.glyph, indicator.color, background)
+    }
+
+    /// What a striped row paints behind itself here: the stripe over the surface
+    /// the table sits on (``RowBackground/alternatingStripe(palette:over:)``'s
+    /// colour), or `nil` for none. One derivation for the row and for the row
+    /// memo's frame key, which has to change whenever this does.
+    private static func stripeFill(context: RenderContext, palette: any Palette) -> Color? {
+        palette.stripeFill(over: context.environment.enclosingSurface)
     }
 
     /// Whether the row at `row` in `data` draws a stripe: every other row,

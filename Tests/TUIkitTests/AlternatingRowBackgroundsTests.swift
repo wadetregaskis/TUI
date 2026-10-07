@@ -121,6 +121,22 @@ struct AlternatingRowBackgroundsTests {
         #expect(!paintsBackground(line("row1", in: automatic)))
     }
 
+    @Test("A kept striped row takes the stripe of the surface the table moved onto")
+    func memoFollowsTheSurface() throws {
+        var context = makeRenderContext(width: 30, height: 10)
+        let palette = context.environment.palette
+        let surface = context.environment.liftedSurface
+        let overSurface = try #require(palette.stripeFill(over: surface))
+        try #require(overSurface != palette.stripeFill(over: palette.background))
+        func frame() -> FrameBuffer {
+            renderToBuffer(Table(Self.rows) { TableColumn("Name", value: \Row.name) }, context: context)
+        }
+        for _ in 0..<3 { _ = frame() }
+        context.environment.surfaceBackground = surface
+        let striped = line("row1", in: frame())
+        #expect(striped.contains(overSurface.backgroundEscape()), "row1 is \(striped.debugDescription)")
+    }
+
     @Test("A kept row that moves to the other parity redraws its stripe")
     func memoFollowsParity() {
         var rows = Self.rows

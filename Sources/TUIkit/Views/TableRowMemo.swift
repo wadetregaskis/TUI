@@ -84,6 +84,14 @@ struct TableRowFrameKey: Equatable {
     /// hiding the unfocused selection left the marks it had.
     let selectedMark: RowSelectionIndicator
     let unselectedMark: RowSelectionIndicator
+    /// What a striped row paints behind itself (``RowBackground/alternatingStripe(palette:over:)``),
+    /// or `nil` for no stripe. Resolved, as `ink` is, because the accent, the
+    /// depth AND the surface the table sits on all reach it
+    /// (``EnvironmentValues/enclosingSurface``), and the surface reaches nothing
+    /// else this key carries: a table whose surface moved under it — a palette
+    /// that changed only the tone a `TabView` lifts its body onto — went on
+    /// serving every kept striped row in the old surface's stripe.
+    let stripe: Color?
     let alignments: [HorizontalAlignment]
     let truncations: [TruncationMode]
     let lineLimits: [Int]
