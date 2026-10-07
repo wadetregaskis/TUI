@@ -1,4 +1,4 @@
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUIkit — Terminal UI Kit for Swift
 //  GenerateSFSymbols.swift
 //
 //  Created by LAYERED.work
@@ -54,18 +54,9 @@ func cryptonDecryptObfuscatedFontTable(tableTag: UInt32, from: CTFont) -> Data?
 
 // MARK: - Output format
 //
-// The generated file is a plain, readable table: ONE Swift multiline string
-// literal holding one `name<space>HEXCODEPOINT` line per symbol, sorted by name.
-// `SFSymbol` parses it once at first use into a sorted `[(name, Character)]`
-// array and binary-searches that.
-//
-// Why a string literal and not an array literal of tuples: the Swift optimiser
-// chokes on a literal of this size — `[(String, Character)]` with 8466 elements
-// takes ~2 minutes under `-O` (even split into parallel `[String]`/`[UInt32]`
-// arrays it is ~15 s), whereas a single string literal compiles in <0.5 s and
-// the one-time parse into the sorted array is sub-millisecond. Readable and
-// greppable (unlike base64), gated behind `#if canImport(AppKit)` so non-Apple
-// builds carry none of it.
+// See `emitSource(pairs:)` below and README.md: a `StaticString` blob of the
+// names, their byte offsets, and their codepoint offsets packed four to a
+// `UInt64` — compile-time constants all, so a lookup parses nothing.
 
 // MARK: - Locate the SF Symbols app
 
@@ -192,7 +183,12 @@ func wrapElements(_ values: [String]) -> String {
 ///     `nameStarts[i] ..< nameStarts[i+1] - 1` (the `-1` drops the separating
 ///     newline; the sentinel `nameStarts[n]` = blob length + 1 makes the last
 ///     name resolve the same way).
-///   - `codepointOffsets`: `[UInt16]`, each `codepoint - 0x100000`.
+///   - `packedCodepointOffsets`: `[UInt64]`, each name's `codepoint - 0x100000`
+///     packed four to an element, the first in the high 16 bits (so the hex
+///     reads in table order); the last element's unused lanes are zero.
+///     Packed because the optimiser folds an array literal element by element:
+///     the same 16,932 bytes as a `[UInt16]` of 8466 cost a clean release build
+///     four times the SIL optimisation (see README.md, "Why this shape").
 func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     // The representation relies on ASCII names (so raw-byte order equals Swift
     // `String` order — what makes the binary search correct) and PUA codepoints
@@ -216,11 +212,19 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     starts.append(offset)  // sentinel = blob length + 1
 
     let offsets = pairs.map { UInt16($0.codepoint - 0x10_0000) }
+    var packed: [String] = []
+    for groupStart in stride(from: 0, to: offsets.count, by: 4) {
+        let group = offsets[groupStart..<min(groupStart + 4, offsets.count)]
+        let lanes = group.map { String($0, radix: 16, uppercase: true) }
+            .map { String(repeating: "0", count: 4 - $0.count) + $0 }
+        let padding = Array(repeating: "0000", count: 4 - lanes.count)
+        packed.append("0x" + (lanes + padding).joined(separator: "_"))
+    }
     let startsLiteral = wrapElements(starts.map { String($0) })
-    let offsetsLiteral = wrapElements(offsets.map { String($0) })
+    let offsetsLiteral = wrapElements(packed)
 
     return """
-    //  🖥️ TUIKit — Terminal UI Kit for Swift
+    //  🖥️ TUIkit — Terminal UI Kit for Swift
     //  SFSymbolTable.generated.swift
     //
     //  Created by LAYERED.work
@@ -257,8 +261,10 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
         ]
 
         /// Codepoint of name `i` as `codepoint - 0x100000` (reconstruct with
-        /// `0x100000 + offset`). Aligned with `nameStarts`.
-        static let codepointOffsets: [UInt16] = [
+        /// `0x100000 + offset`), packed four to an element: name `i`'s is the
+        /// 16 bits of element `i / 4` that lane `i % 4` names, lane 0 the
+        /// highest. Read through `codepointOffset(at:)`.
+        static let packedCodepointOffsets: [UInt64] = [
     \(offsetsLiteral)
         ]
     }

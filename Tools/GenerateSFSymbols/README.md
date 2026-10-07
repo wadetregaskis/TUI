@@ -63,8 +63,11 @@ parsing, and no `String` in the stored table:
   `nameBlob[nameStarts[i] ..< nameStarts[i+1] - 1]` (the `-1` drops the
   separating newline; the sentinel `nameStarts[n]` = blob length + 1 makes the
   last name resolve the same way).
-- **`codepointOffsets: [UInt16]`** — each `codepoint - 0x100000` (reconstruct
-  with `0x100000 + offset`).
+- **`packedCodepointOffsets: [UInt64]`** — each name's `codepoint - 0x100000`
+  (reconstruct with `0x100000 + offset`), packed four to an element, the first
+  in the high 16 bits, so the hex reads in table order; the last element's
+  unused lanes are zero. `SFSymbol.codepointOffset(at:)` reads one: a shift,
+  once per lookup, outside the binary search.
 
 `SFSymbol` binary-searches `nameBlob` *directly* through `nameStarts`, comparing
 raw UTF-8 bytes — which equals Swift `String` ordering because the names are
@@ -90,6 +93,15 @@ In brief:
   constants), and the **smallest** binary of the greppable options.
 - `InlineArray` (Swift 6.2) for the numeric columns was rejected: it is gated to
   **macOS 26**, so it won't run on the macOS 15 + Linux deployment floor.
+
+The codepoints were a `[UInt16]` of 8466 elements until 2026-10-07. The
+optimiser folds an array literal element by element, and a clean release build
+spent 314 ms of SIL optimisation on that one (Xcode 26.3's Swift 6.2.4, the
+initialiser's pass time, min of 3); packed, the same 16,932 bytes are 2117
+elements and take 74 ms. `nameStarts` (8467 `UInt32`s) costs the same 0.3 s, and
+stays as it is: it is read twice per step of the binary search, where packing
+would add a shift and a mask — see `B-BT1-1` in
+`Documentation/SwiftUI-API-completion-decisions-BT1.md`.
 
 The generator asserts at emit time that every name is ASCII (the invariant the
 byte-order binary search relies on) and that every codepoint fits the `UInt16`

@@ -81,6 +81,21 @@ struct SFSymbolTests {
     #endif
 
     #if canImport(AppKit)
+    @Test("Each of the four codepoints packed into one element reads back in table order, and the last name too")
+    func packedCodepointLanes() {
+        // The table's first four names share its first `UInt64`, one per 16-bit
+        // lane, highest first; `zzz` is the last name, in an element whose two
+        // low lanes are padding. Values from the SF Symbols app's own table.
+        #expect(SFSymbol.glyph(named: "0.circle") == String(Unicode.Scalar(0x10_0038)!))
+        #expect(SFSymbol.glyph(named: "0.circle.ar") == String(Unicode.Scalar(0x10_1867)!))
+        #expect(SFSymbol.glyph(named: "0.circle.fill") == String(Unicode.Scalar(0x10_0039)!))
+        #expect(SFSymbol.glyph(named: "0.circle.fill.ar") == String(Unicode.Scalar(0x10_1868)!))
+        #expect(SFSymbol.glyph(named: "zzz") == String(Unicode.Scalar(0x10_0583)!))
+        #expect(SFSymbol.all.count == SFSymbol.bakedCount)
+    }
+    #endif
+
+    #if canImport(AppKit)
     @Test("The baked table is well-formed: PUA glyphs, sorted, unique names")
     func tableWellFormed() {
         let all = SFSymbol.all

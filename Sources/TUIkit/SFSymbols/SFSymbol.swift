@@ -142,6 +142,13 @@ public enum SFSymbol {
     /// The Plane-16 Private Use Area base every codepoint offset is measured from.
     private static let puaBase: UInt32 = 0x10_0000
 
+    /// Name `index`'s `codepoint - 0x100000`: the generated table packs four
+    /// to a `UInt64`, the first in the high 16 bits.
+    private static func codepointOffset(at index: Int) -> UInt16 {
+        let shift = UInt64(truncatingIfNeeded: (3 - index % 4) * 16)
+        return UInt16(truncatingIfNeeded: packedCodepointOffsets[index / 4] &>> shift)
+    }
+
     /// The glyph scalar for `name`, or `nil`. Binary-searches the baked
     /// `nameBlob` comparing raw UTF-8 bytes — for the ASCII symbol names that is
     /// identical to Swift `String` ordering, so the search touches no `String`
@@ -168,7 +175,7 @@ public enum SFSymbol {
                 }
             }
             guard low < bakedCount, compare(blob, name: low, to: query) == 0 else { return nil }
-            return Unicode.Scalar(puaBase + UInt32(codepointOffsets[low]))
+            return Unicode.Scalar(puaBase + UInt32(codepointOffset(at: low)))
         }
     }
 
@@ -206,7 +213,7 @@ public enum SFSymbol {
                     for offset in 0..<length { buffer[offset] = blob[start + offset] }
                     return length
                 }
-                let scalar = Unicode.Scalar(puaBase + UInt32(codepointOffsets[index]))!
+                let scalar = Unicode.Scalar(puaBase + UInt32(codepointOffset(at: index)))!
                 result.append(Entry(name: name, glyph: String(scalar)))
             }
         }

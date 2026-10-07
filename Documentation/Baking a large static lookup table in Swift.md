@@ -125,7 +125,9 @@ zzz
 static let nameStarts: [UInt32] = [ 0, 9, 21, … ]
 
 // codepoint - 0x100000 (fits UInt16). Reconstruct with 0x100000 + offset.
-static let codepointOffsets: [UInt16] = [ 56, … ]
+// Packed four to a UInt64, the first in the high 16 bits (since 2026-10-07;
+// see "What the integer arrays cost a release build" below).
+static let packedCodepointOffsets: [UInt64] = [ 0x0038_1867_0039_1868, … ]
 ```
 
 The lookup is a lower-bound binary search that, for each probe, compares the
@@ -152,13 +154,35 @@ already-full value.
 
 ---
 
+## What the integer arrays cost a release build (2026-10-07)
+
+The compile times above are whole-file `swiftc -O` times. Inside TUIkit's clean
+release build the two integer arrays turned out to be its most expensive
+initialisers: the optimiser folds an array literal into static data element by
+element, and each array's one-time initialiser took about 0.31 s of SIL
+optimisation (Xcode 26.3's Swift 6.2.4, the pass timers'
+`-sil-print-pass-time` sum for the initialiser, min of 3 runs of the module).
+The cost follows the element count, not the bytes, so the codepoints are now
+packed four to a `UInt64`: 2117 elements instead of 8466, 74 ms instead of
+314 ms, the same 16,932 bytes of static data, and still nothing to parse. The
+lookup reads its codepoint with one shift, once, after the search.
+
+`nameStarts` was left as it is. It is read twice per step of the binary search,
+so packing it would put a shift and a mask into the loop; deriving it from the
+blob at first use would remove it, at the price of runtime parsing. Both are
+open (`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`).
+
+---
+
 ## Takeaways for any large static Swift table
 
 1. **Do not use a literal array of tuples/structs of references** (`[(String, …)]`)
    — ~114 s under `-O` at this scale.
 2. **The `[String]` literal is the cost.** Integer (`[UInt8]`-excepted) array
    literals of the same length are cheap (~0.5 s). Store names as bytes, values
-   as integers.
+   as integers. Cheap is relative: in a release build each 8,000-element integer
+   literal still cost ~0.3 s of SIL optimisation, by element count, so pack
+   small values into wide elements where the reads allow it.
 3. **Prefer one `StaticString` blob + parallel POD offset arrays**, and *index*
    into the blob — never parse/split it at runtime. This is fast to compile,
    truly static (near-zero first access), holds no `String`, and stays greppable.
