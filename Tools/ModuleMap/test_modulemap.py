@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import assigner  # noqa: E402
 import checks  # noqa: E402
+import modulemap  # noqa: E402
 import indexstore as IX  # noqa: E402
 import swiftsource as SS  # noqa: E402
 from model import Model  # noqa: E402
@@ -117,6 +118,54 @@ class SpanAttributionTests(unittest.TestCase):
         self.assertIn('s:Conf', M.edges['s:P'])
 
 
+VIEW = 's:10TUIkitView4ViewP'
+
+
+def view_extensions(firsts):
+    """Lists/V.swift: one `extension View` block per entry of `firsts`, each opening with that member, in order."""
+    lines, occ, sym = [], [], {VIEW: ('View', IX.K_PROTOCOL)}
+    for i, first in enumerate(firsts):
+        e, mem = f's:e:{first}', f's:{first}'
+        lines += ['extension View {', f'    public func {first}() {{}}', '}']
+        occ += [(e, DEF, 3 * i + 1, ''), (VIEW, REF | IX.REL_EXTENDED_BY, 3 * i + 1, e), (mem, DEF, 3 * i + 2, e)]
+        sym[e] = ('View', IX.K_EXTENSION); sym[mem] = (f'{first}()', 16)
+    return model({'Lists/V.swift': '\n'.join(lines) + '\n'}, {'Lists/V.swift': occ}, sym)
+
+
+class LabelTests(unittest.TestCase):
+    """map.json names a split file's declarations by label, so a label must come from the declaration's own text:
+    with positional labels (`View(ext)#2`), an extension added above another took over its entry."""
+
+    def test_an_extension_is_named_by_its_first_member(self):
+        M = view_extensions(['modal', 'listStyle'])
+        self.assertEqual([M.short_label(n) for n in M.nodes], ['View(ext)#modal()', 'View(ext)#listStyle()'])
+
+    def test_a_member_less_extension_is_named_by_its_conformances(self):
+        M = conformance_model()
+        self.assertEqual(M.label('s:e:R'), 'Lists/R.swift::T(ext)#Renderable')
+
+    def test_an_extension_added_above_keeps_its_neighbours_entries(self):
+        before = view_extensions(['modal', 'listStyle'])
+        files = {'Lists/V.swift': {'View(ext)#modal()': 'Base', 'View(ext)#listStyle()': 'Lists'}}
+        after = view_extensions(['modal', 'added', 'listStyle'])
+        asg, unmapped, kept = modulemap.resolve(after, rules(), files)
+        self.assertEqual([asg[n] for n in before.nodes], ['Base', 'Lists'])
+        self.assertEqual((asg['s:e:listStyle'], asg['s:e:modal']), ('Lists', 'Base'))
+        self.assertEqual((unmapped, kept), (['s:e:added'], 0))
+
+    def test_an_edited_extension_keeps_its_entry(self):
+        # Its first member renamed (or one added above it): the one entry nothing claims is its own.
+        files = {'Lists/V.swift': {'View(ext)#modal()': 'Base', 'View(ext)#listStyle()': 'Lists'}}
+        asg, unmapped, kept = modulemap.resolve(view_extensions(['modal', 'listStyles']), rules(), files)
+        self.assertEqual((asg['s:e:listStyles'], kept), ('Lists', 1))
+
+    def test_an_edit_beside_an_addition_is_ambiguous_and_left_to_the_rules(self):
+        files = {'Lists/V.swift': {'View(ext)#modal()': 'Lists', 'View(ext)#listStyle()': 'Lists',
+                                   'View(ext)#gone()': 'Base'}}
+        asg, _, kept = modulemap.resolve(view_extensions(['modal', 'listStyle', 'new1', 'new2']), rules(), files)
+        self.assertEqual((asg['s:e:new1'], asg['s:e:new2'], kept), ('Lists', 'Lists', 0))
+
+
 def two_module_model(pin_lists=False):
     """Base/A.swift uses Lists/L.swift's L, which only a Lists file declares."""
     srcs = {'Base/A.swift': 'struct A {\n    func f() { _ = L() }\n}\n', 'Lists/L.swift': 'struct L {}\n',
@@ -202,7 +251,7 @@ class ConformanceTests(unittest.TestCase):
     def test_a_conformance_in_a_module_owning_neither(self):
         own = checks.owns_neither(self.M, self.R, self.asg)
         self.assertEqual([x.key for x in own],
-                         ['T: Q @ Lists/Q.swift::T(ext)', 'T: Renderable @ Lists/R.swift::T(ext)'])
+                         ['T: Q @ Lists/Q.swift::T(ext)#Q', 'T: Renderable @ Lists/R.swift::T(ext)#Renderable'])
         own = checks.owns_neither(self.M, self.R, dict(self.asg, **{'s:e:R': 'Base', 's:e:Q': 'Base'}))
         self.assertEqual(own, [])
 

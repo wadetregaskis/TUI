@@ -14,6 +14,7 @@ import subprocess
 DECLARATION = 1 << 0
 DEFINITION = 1 << 1
 REFERENCE = 1 << 2
+IMPLICIT = 1 << 8
 REL_CHILD_OF = 1 << 9
 REL_BASE_OF = 1 << 10
 REL_CALLED_BY = 1 << 13

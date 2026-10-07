@@ -196,7 +196,9 @@ def stale_rules(R, findings):
     for (check, key), r in R.accepted.items():
         if (check, key) not in used_acc:
             out.append(Finding('rules', f'accepted {check} {key}',
-                               f'accepted {check} "{key}" matches nothing now: delete the entry from rules.json'))
+                               f'accepted {check} "{key}" matches nothing now: if the declaration was renamed or now '
+                               f'opens with another member, give the entry the key `check` prints for it; if the '
+                               f'finding is gone, delete the entry from rules.json'))
     return out
 
 

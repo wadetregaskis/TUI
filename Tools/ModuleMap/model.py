@@ -45,6 +45,8 @@ class Model:
         self.symbols = {}               # usr -> (name, kind, subkind), for every symbol the module references
         self.foreign_refs = []          # (node, usr, rel, line): references to symbols defined outside the module
         self.stale = []                 # rel paths whose source is newer than its index unit, or have none
+        self.first_member = {}          # node -> name of its first member in source order (explicit ones only)
+        self.conformed = {}             # node -> sorted names of the protocols it declares conformance to
         self.top = lambda u: u          # usr -> the node holding it (set by build)
         self._labels = None
 
@@ -52,17 +54,28 @@ class Model:
     def base_label(self, n):
         return f'{self.file[n]}::{self.name[n]}' + ('(ext)' if self.kind[n] == IX.K_EXTENSION else '')
 
+    def discriminator(self, n):
+        """What tells an extension apart from the file's other extensions of its type, from its own text: the name
+        of its first member (`listStyle(_:)`), else the protocols it conforms to (`Equatable&Sendable`). Not its
+        position: an extension added above it must not take over its entry in map.json."""
+        if self.kind[n] != IX.K_EXTENSION: return ''
+        return self.first_member.get(n) or '&'.join(self.conformed.get(n, ()))
+
     def label(self, n):
-        """`path::Name`, `(ext)` for an extension, `#k` for the k-th node of that label in its file (k >= 2)."""
+        """`path::Name` for a type, function or variable; `path::Name(ext)#first` for an extension, with its
+        discriminator (see `discriminator`). Labels that are still equal in one file (constrained extensions
+        opening with the same initializer) get `#2`, `#3` … in source order."""
         if self._labels is None:
             seen = collections.Counter(); self._labels = {}
             for m in self.nodes:
-                b = self.base_label(m); seen[b] += 1
+                d = self.discriminator(m)
+                b = self.base_label(m) + (f'#{d}' if d else '')
+                seen[b] += 1
                 self._labels[m] = b if seen[b] == 1 else f'{b}#{seen[b]}'
         return self._labels[n]
 
     def short_label(self, n):
-        """The label inside its file: `Name`, `Name(ext)`, `Name(ext)#2`."""
+        """The label inside its file: `Name`, `Name(ext)#listStyle(_:)`, `Name(ext)#init(_:)#2`."""
         return self.label(n).split('::', 1)[1]
 
     # ── loading ───────────────────────────────────────────────────────────────────────────────────────────
@@ -149,10 +162,14 @@ class Model:
                     self.ext_of[cont] = usr
         # edges, conformances, members, public API, references out of the module
         members = collections.defaultdict(set)
+        first = {}
         for f, occs in occ.items():
             lx = self.lexed.get(f)
             for usr, roles, line, cont in occs:
                 if roles & DEF and not roles & REF:
+                    if cont in nodeset and parent.get(usr) == cont and not roles & IX.IMPLICIT:
+                        k = (line, self.symbols.get(usr, ('?',))[0])
+                        if cont not in first or k < first[cont]: first[cont] = k
                     if cont in nodeset and self.symbols.get(usr, ('', 0))[1] in IX.CALLABLE_KINDS:
                         members[cont].add(_ACCESSOR.sub('', self.symbols[usr][0]).split('(')[0])
                     holder = usr if not cont else top(cont)
@@ -180,7 +197,11 @@ class Model:
                     e[0] += 1
                     if (f, line) < e[1]: e[1] = (f, line)      # the first site in path order, whatever the store's
         self.members = {n: members.get(n, set()) for n in self.nodes}
+        self.first_member = {n: nm for n, (_, nm) in first.items()}
         self.conformances = sorted(set(self.conformances), key=lambda c: (c[3], c[4], c[1]))
+        conformed = collections.defaultdict(set)
+        for _, pr, decl, _, _ in self.conformances: conformed[decl].add(self.symbols.get(pr, ('?',))[0])
+        self.conformed = {n: sorted(ps) for n, ps in conformed.items()}
 
     # ── helpers the assigner and the checks share ────────────────────────────────────────────────────────
     def extended_node(self, n):

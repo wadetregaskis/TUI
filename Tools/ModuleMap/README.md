@@ -59,8 +59,11 @@ every one of the 4,127 declarations the same module as the re-indexed research r
   included) holds the line. Typealias right-hand sides, inheritance and `where` clauses are the usual cases.
   - The research graph charged such a reference to the next declaration within three lines. That hid two cycles
     (plan §4, X1 and X2).
-- **Labels.** A declaration is named `path::Name`. An extension gets `(ext)` after its name, and `#2`, `#3` … tell
-  apart declarations that share a label in one file.
+- **Labels.** A declaration is named `path::Name`. An extension is `path::Name(ext)#first`: `first` is its first
+  member (`View(ext)#listStyle(_:)`), or for an extension with no members the protocols it conforms to
+  (`T(ext)#Equatable&Sendable`). A label comes from the declaration's own text, not its position, so an extension
+  added above another does not take over its entry in `map.json`. Labels still equal in one file (constrained
+  extensions that open with the same initializer) get `#2`, `#3` … in source order.
 
 ## The checks
 
@@ -132,7 +135,9 @@ hold only imports.
 
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 
-The refactor landed, or the code moved. Delete the entry, so the rules stay a list of open items.
+The refactor landed, or the code moved. Delete the entry, so the rules stay a list of open items. If the finding
+is still there under another key (its declaration was renamed, or an extension now opens with another member),
+give the entry the key the report now prints instead.
 
 ## The assigner
 
@@ -174,8 +179,10 @@ After editing, run `assign`. It prints the module table and how many declaration
 `explain` output for anything surprising, then `assign --write`, and commit `rules.json` and `map.json` together.
 
 **When code changes.** New files and new declarations are placed by the rules until the next `assign --write`;
-`check` says how many there are. A renamed declaration in a split file loses its entry the same way. Refresh the
-map whenever a change adds files or moves code between them.
+`check` says how many there are. An edited declaration in a split file keeps its entry: when its label changes (a
+member added above its first one, or that member renamed) and exactly one entry of the same name (`View(ext)`)
+no longer matches anything, that entry is taken to be its. With two such edits to one name in one file, both are
+placed by the rules. Refresh the map whenever a change adds files or moves code between them.
 
 ## Limits
 
