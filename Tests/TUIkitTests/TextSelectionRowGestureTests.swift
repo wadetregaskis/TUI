@@ -362,11 +362,32 @@ struct TextSelectionRowDragTests {
     /// title is chrome, not text the handle's content made selectable.
     @Test(
         "Under an enabled scope a draggable tab still drags from its title",
-        arguments: [TabInteractionsLook.compact, .bordered])
+        arguments: TabInteractionsLook.allCases)
     func draggableTabTitle(_ look: TabInteractionsLook) throws {
         let outcome = try drag(.draggableTabInScope(look), onText: true)
         #expect(outcome.dragged)
         #expect(outcome.selected == nil)
+    }
+
+    /// A sidebar's tab titles are chrome too: under an enabled scope around
+    /// the tab view its list kept them for a selection, so a click on one
+    /// selected no tab.
+    @Test("Under an enabled scope a click on a sidebar tab's title selects the tab")
+    func sidebarTabTitleClick() throws {
+        let page = Page(shape: .draggableTabInScope(.sidebar), moves: .init([]))
+        let app = HeadlessApp(PageApp(page: page), width: 40, height: 14)
+        app.frame(atNanos: 16_666_667)
+        app.frame(atNanos: 33_333_334)
+        try #require(app.screen.contains { $0.stripped.contains("first") })
+        let y = try #require(app.screen.firstIndex { $0.stripped.contains("Two") })
+        let line = app.screen[y].stripped
+        let x = String(line[..<(try #require(line.range(of: "Two")).lowerBound)]).strippedLength
+        app.send(MouseEvent(button: .left, phase: .pressed, x: x + 1, y: y))
+        app.frame(atNanos: 50_000_001)
+        app.send(MouseEvent(button: .left, phase: .released, x: x + 1, y: y))
+        app.frame(atNanos: 66_666_668)
+        #expect(app.screen.contains { $0.stripped.contains("second") })
+        #expect(app.services.screenSelection.current == nil)
     }
 
     /// The same for a control's label inside a `.draggable` view: the scope

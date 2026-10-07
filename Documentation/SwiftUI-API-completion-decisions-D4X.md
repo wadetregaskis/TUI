@@ -139,7 +139,10 @@ view alone leaves its label the handle's, as it is with no scope (the
 follow-ups' review found a draggable tab's title, a gradient stop and a
 `Button` in a `.draggable` view passing the press on under an outer scope, so
 the tab strip or the button took it and nothing dragged; on macOS a tab's
-title and a button's label are not selectable text). The alternative, the owner's expectation — the row drags, and
+title and a button's label are not selectable text). A sidebar tab view's
+list of tabs opts out of selection for the same reason: under an enabled
+scope around the tab view it kept a press on a tab's title for a selection,
+as row text is kept, so a click there selected no tab. The alternative, the owner's expectation — the row drags, and
 selecting its text needs a modifier or a long press — is an hour (the
 handle simply keeps the press), but it is not what a Mac does.
 

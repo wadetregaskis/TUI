@@ -120,6 +120,12 @@ private struct _TabSidebarList: View {
         // A sidebar list: no border, and a `Label` tab label's icon in the
         // list item tint, as a macOS sidebar draws it.
         .listStyle(.sidebar)
+        // A tab's title is chrome, not text to select. Under an enabled scope
+        // around the tab view, the list kept a press on one for a selection
+        // (`PressRole.rows`): a click selected no tab, and a draggable tab
+        // could not be dragged by its title. Here a press is the list's, as
+        // a press on a strip's chip is the strip's.
+        .textSelection(.disabled)
     }
 
     /// One tab's row: its label — a label view of the app's own drawn as
