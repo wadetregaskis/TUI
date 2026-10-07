@@ -236,9 +236,10 @@ struct TextFieldContentRenderer: FieldTextLayout {
         /// exchanged — change.
         ///
         /// - Parameter reversed: Whether the pair is stated beside an SGR 7, which a
-        ///   selection whose highlight cannot be measured is (``SelectionStyle``). Part
-        ///   of a run's identity, not a decoration on it: a reversed cell and a plain
-        ///   one in the same two colours paint opposite pictures.
+        ///   selection whose highlight cannot be measured is
+        ///   (``FieldSelectionStyle``). Part of a run's identity, not a decoration on
+        ///   it: a reversed cell and a plain one in the same two colours paint
+        ///   opposite pictures.
         mutating func append(
             _ piece: Character, ink: Color, field: Color?, reversed: Bool = false,
             atColumn column: Int
@@ -643,8 +644,8 @@ struct TextFieldContentRenderer: FieldTextLayout {
         let selectionBackground: Color
 
         /// Whether a selected cell's pair is stated beside an SGR 7
-        /// (``TextFieldContentRenderer/SelectionStyle/isReversed``). A block caret has
-        /// to know: it reverses the cell it sits on, and two reversals read as none.
+        /// (``FieldSelectionStyle/isReversed``). A block caret has to know: it
+        /// reverses the cell it sits on, and two reversals read as none.
         let selectionIsReversed: Bool
 
         /// Whether a block caret reverses the cell under it instead of painting its own
