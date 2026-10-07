@@ -290,6 +290,12 @@ selection's ends are not carets: a drag that starts or ends on a wrapped
 row's first cell, and a Shift-click there, take that character in ("aaaa
 bbbb cccc" at width 6, dragged across "bbbb" from its first cell, selects
 "bbbb"; review 2 found it selecting "bbb" once the caret rule fed the drag).
+A head put there is on the row the pointer put it on, though the same offset
+is the end of the row before to an upstream caret: the editor and a
+`lineLimit` field follow it without scrolling, and Shift+Down extends from it
+to the next row, until a key moves it off (the follow-ups' review found it
+read on the row before: a drag back onto the top row's first cell scrolled
+the view up a row each time, and Shift+Down kept to the head's own row).
 The affinity is the view's, one for every caret.
 
 **The fuller version:** an affinity per caret, as the macOS text system keeps

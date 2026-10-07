@@ -38,6 +38,15 @@ final class TextEditorHandler: PersistedFocusable {
     /// under `.upstream`. `nil` anchors a drag at the caret.
     var pressAnchor: TextEditorPosition?
 
+    /// A selection's head that a drag or a Shift-click put on a wrapped row's
+    /// first character under `.upstream`, while the head is still there; `nil`
+    /// otherwise. The caret rule reads that offset on the row before, whose
+    /// end it is, but the head is on the row the pointer put it on, and is read
+    /// there (``caretAffinity``): read on the row before, it scrolled the
+    /// editor up a row under the pointer, and Shift+Down from it stayed on
+    /// its own row.
+    var rowStartHead: TextEditorPosition?
+
     /// The app's selection binding — `TextField(…selection:)`,
     /// `TextEditor(text:selection:)` — or `nil` for none. See
     /// ``_TextSelectionChannel``.
@@ -219,6 +228,7 @@ final class TextEditorHandler: PersistedFocusable {
 
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
+        defer { forgetMovedRowStartHead() }
         normalizeStaleState()
         // Before anything writes: a history of text the app has since
         // replaced is forgotten, so undo never brings that text back.

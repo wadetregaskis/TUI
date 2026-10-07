@@ -82,10 +82,12 @@ enum TextFieldMouseHandler {
     ///     toggles the suggestions menu instead of moving the caret.
     ///   - caretOffset: The character offset a press or drag at the event's
     ///     buffer-local cell puts the caret at.
-    ///   - selectionOffset: The offset the event's cell is as a selection's
-    ///     end — a drag's start and head, a Shift-click's end — where that
-    ///     differs from the caret's: a vertical field's wrapped row's first
-    ///     character under `.upstream`, where no caret is drawn. `nil` for a
+    ///   - selectionEnd: The offset the event's cell is as a selection's
+    ///     end — a drag's start and head, a Shift-click's end — and the row it
+    ///     is on, where that differs from the caret's: a vertical field's
+    ///     wrapped row's first character under `.upstream`, where no caret is
+    ///     drawn, and which a head there is read on
+    ///     (``TextFieldHandler/placeSelectionHead(at:onRow:)``). `nil` for a
     ///     field on one line, whose two are the same.
     @MainActor
     static func register(
@@ -96,7 +98,7 @@ enum TextFieldMouseHandler {
         hoverBox: StateBox<Bool>,
         isDisclosure: @escaping (MouseEvent) -> Bool,
         caretOffset: @escaping (MouseEvent) -> Int,
-        selectionOffset: ((MouseEvent) -> Int)? = nil
+        selectionEnd: ((MouseEvent) -> (offset: Int, row: Int))? = nil
     ) {
         guard !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
@@ -110,6 +112,17 @@ enum TextFieldMouseHandler {
         let focusManager = context.environment.focusManager
         let captureFocusID = persistedFocusID
         let captureHoverBox = hoverBox
+
+        // A selection's head goes where the event's cell is as a selection's
+        // end, read on the row it was found on; on one line, to the caret's.
+        func placeHead(at event: MouseEvent) {
+            guard let selectionEnd else {
+                handler.cursorPosition = caretOffset(event)
+                return
+            }
+            let end = selectionEnd(event)
+            handler.placeSelectionHead(at: end.offset, onRow: end.row)
+        }
 
         // Weak: the dispatcher holds this handler (see `Button`'s).
         let mouseHandlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { [weak mouseDispatcher] event in
@@ -145,7 +158,7 @@ enum TextFieldMouseHandler {
                     // Shift-click: keep the anchor, extend to the clicked column.
                     handler.pressAnchor = nil
                     handler.startOrExtendSelection()
-                    handler.cursorPosition = (selectionOffset ?? caretOffset)(event)
+                    placeHead(at: event)
                 } else {
                     // Plain click: caret to the column and drop any selection.
                     // Don't anchor here — a drag anchors on its first .dragged
@@ -154,15 +167,16 @@ enum TextFieldMouseHandler {
                     // selection. The drag anchors where the press landed as a
                     // selection's end, where that is not the caret's place.
                     handler.cursorPosition = caretOffset(event)
+                    handler.rowStartHead = nil
                     handler.clearSelection()
-                    handler.pressAnchor = selectionOffset?(event)
+                    handler.pressAnchor = selectionEnd?(event).offset
                 }
                 return true
             case .dragged:
                 // The press was claimed, so this drag is bound to us: extend the
                 // selection to the dragged column, anchored at the press.
                 handler.startOrExtendSelection(from: handler.pressAnchor)
-                handler.cursorPosition = (selectionOffset ?? caretOffset)(event)
+                placeHead(at: event)
                 return true
             case .released where event.button == .left:
                 return true

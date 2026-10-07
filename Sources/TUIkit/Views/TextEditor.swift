@@ -946,13 +946,13 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         // under `.upstream`, where a caret cannot be.
         func placeCursor(at event: MouseEvent, asSelectionEnd: Bool = false) {
             let row = max(0, min(event.y, height - 1))
+            handler.rowStartHead = nil
             // Wrapping, a click lands in a ROW: on the character whose cells
             // hold it, or past the row's text on its last caret position.
             if let rows = handler.wrappedRows() {
                 let column = max(0, min(event.x, contentWidth - 1))
                 if asSelectionEnd {
-                    let position = handler.selectionPosition(atScreenRow: row, column: column, in: rows)
-                    handler.moveCursor(toLine: position.line, column: position.column)
+                    handler.placeSelectionHead(atScreenRow: row, column: column, in: rows)
                 } else {
                     let position = handler.position(atScreenRow: row, column: column, in: rows)
                     handler.moveCursor(toLine: position.line, column: position.column)

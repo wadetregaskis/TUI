@@ -77,7 +77,7 @@ extension _TextFieldCore {
         handler: TextFieldHandler, layout: SoftWrapLayout, rowCount: Int, follows: Bool
     ) -> Int {
         guard follows else { return 0 }
-        let caretRow = layout.row(of: handler.cursorPosition, affinity: handler.selectionAffinity)
+        let caretRow = layout.row(of: handler.cursorPosition, affinity: handler.caretAffinity)
         var first = handler.scrollRow
         if caretRow < first {
             first = caretRow
@@ -141,7 +141,7 @@ extension _TextFieldCore {
             TextFieldContentRenderer.Rows(
                 layout: layout, characters: source.characters, isPrompt: source.isPrompt,
                 caret: handler.cursorPosition, selection: handler.selectionRange,
-                affinity: handler.selectionAffinity, firstRow: firstRow, count: rowCount),
+                affinity: handler.caretAffinity, firstRow: firstRow, count: rowCount),
             isFocused: isFocused, palette: palette, cursorStyle: context.environment.textCursorStyle,
             cursorTimer: context.environment.cursorTimer, cursorTiming: context.environment.indicatorCycleTiming)
 
@@ -213,19 +213,21 @@ extension _TextFieldCore {
         // The live text, laid out as the field's keys lay it out: the event may
         // arrive frames after this render. A selection's end may be a wrapped
         // row's first character, where an upstream caret is not drawn.
-        func offset(at event: MouseEvent, asSelectionEnd: Bool) -> Int {
-            guard let layout = handler.softWrapLayout() else { return handler.cursorPosition }
+        func offset(at event: MouseEvent, asSelectionEnd: Bool) -> (offset: Int, row: Int) {
+            guard let layout = handler.softWrapLayout() else { return (handler.cursorPosition, 0) }
             let row = min(firstRow + max(0, min(event.y, rowCount - 1)), layout.rows.count - 1)
             let column = max(0, min(event.x - leading, layout.width - 1))
-            return asSelectionEnd
+            let offset =
+                asSelectionEnd
                 ? layout.selectionOffset(inRow: row, atColumn: column, affinity: handler.selectionAffinity)
                 : layout.offset(inRow: row, atColumn: column, affinity: handler.selectionAffinity)
+            return (offset, row)
         }
         TextFieldMouseHandler.register(
             buffer: &buffer, context: context, handler: handler, persistedFocusID: persistedFocusID,
             hoverBox: hoverBox,
             isDisclosure: { event in event.y == 0 && (disclosure?.contains(event.x) ?? false) },
-            caretOffset: { event in offset(at: event, asSelectionEnd: false) },
-            selectionOffset: { event in offset(at: event, asSelectionEnd: true) })
+            caretOffset: { event in offset(at: event, asSelectionEnd: false).offset },
+            selectionEnd: { event in offset(at: event, asSelectionEnd: true) })
     }
 }

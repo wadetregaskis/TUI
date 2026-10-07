@@ -59,7 +59,35 @@ extension TextFieldHandler {
     /// Whether the caret is on the field's last row — always, on one line.
     var isCaretOnLastRow: Bool {
         guard let layout = softWrapLayout() else { return true }
-        return layout.row(of: cursorPosition, affinity: selectionAffinity) == layout.rows.count - 1
+        return layout.row(of: cursorPosition, affinity: caretAffinity) == layout.rows.count - 1
+    }
+
+    /// The affinity the caret's row is read by: the field's, except for a
+    /// selection's head the pointer put on a wrapped row's first character
+    /// (``rowStartHead``), which is read on that row.
+    var caretAffinity: TextSelectionAffinity {
+        rowStartHead == cursorPosition ? .downstream : selectionAffinity
+    }
+
+    /// Ends ``rowStartHead``'s reading once a key has moved the head off
+    /// the row start the pointer put it on: an offset the keys come back to
+    /// is read by the caret rule.
+    func forgetMovedRowStartHead() {
+        if rowStartHead != cursorPosition { rowStartHead = nil }
+    }
+
+    /// Moves a selection's head — a drag's, a Shift-click's end — to
+    /// `offset`, which the pointer found on `row`, and reads it on that row.
+    /// Under `.upstream` that can be a wrapped row's first character, which
+    /// the caret rule reads on the row before: the head is kept as
+    /// ``rowStartHead`` while it stays there.
+    func placeSelectionHead(at offset: Int, onRow row: Int) {
+        cursorPosition = offset
+        rowStartHead = nil
+        guard let layout = softWrapLayout(), layout.row(of: offset, affinity: selectionAffinity) != row,
+            layout.row(of: offset, affinity: .downstream) == row
+        else { return }
+        rowStartHead = offset
     }
 
     /// `text` with every line break — CRLF, a lone CR or LF — as one newline.
@@ -115,7 +143,7 @@ extension TextFieldHandler {
     /// to its end, as macOS's does.
     func moveRow(by delta: Int, extending: Bool, in layout: SoftWrapLayout) {
         if extending { startOrExtendSelection() } else { clearSelection() }
-        let row = layout.row(of: cursorPosition, affinity: selectionAffinity)
+        let row = layout.row(of: cursorPosition, affinity: caretAffinity)
         let column =
             verticalAnchor.flatMap { $0.caret == cursorPosition ? $0.column : nil }
             ?? layout.column(of: cursorPosition, inRow: row)

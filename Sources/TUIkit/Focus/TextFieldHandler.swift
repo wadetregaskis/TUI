@@ -155,6 +155,15 @@ final class TextFieldHandler: PersistedFocusable {
     /// on under `.upstream`. `nil` anchors a drag at the caret.
     var pressAnchor: Int?
 
+    /// A selection's head that a drag or a Shift-click put on a vertical
+    /// field's wrapped row's first character under `.upstream`, while the
+    /// head is still there; `nil` otherwise. The caret rule reads that offset
+    /// on the row before, whose end it is, but the head is on the row the
+    /// pointer put it on, and is read there (``caretAffinity``): read on the
+    /// row before, it scrolled a `lineLimit` field up a row under the pointer,
+    /// and Shift+Down from it stayed on its own row.
+    var rowStartHead: Int?
+
     /// The app's selection binding — `TextField(…selection:)`,
     /// `TextEditor(text:selection:)` — or `nil` for none. See
     /// ``_TextSelectionChannel``.
@@ -484,6 +493,7 @@ extension TextFieldHandler {
 extension TextFieldHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
+        defer { forgetMovedRowStartHead() }
         normalizeStaleState()
         if let handled = handleSuggestionKeyEvent(event) {
             return handled

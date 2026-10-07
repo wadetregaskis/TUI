@@ -285,6 +285,26 @@ struct VerticalTextFieldTests {
         #expect(model.text == "aaaa X cccc")
     }
 
+    /// A drag's head on a wrapped row's first character is on that row, not
+    /// the row before (whose end the same offset is to an upstream caret):
+    /// read there, a field at its line limit scrolled up a row under the
+    /// pointer.
+    @Test("Upstream, a drag head on the top row's first cell scrolls nothing")
+    func upstreamHeadOnTopRowStart() {
+        let harness = InputChainHarness(width: 7)
+        let model = Model("aaaa bbbb cccc dddd")
+        let view = { field(model).lineLimit(2).textSelectionAffinity(.upstream) }
+        harness.play([KeyEvent(key: .end)], view)
+        #expect(rows(harness.frame(view())).map { $0.trimmingTrailingSpaces } == ["cccc", "dddd"])
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 1))
+        harness.frame(view())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 0, y: 0))
+        #expect(rows(harness.frame(view())).map { $0.trimmingTrailingSpaces } == ["cccc", "dddd"])
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
+        harness.play([key("X")]) { view() }
+        #expect(model.text == "aaaa bbbb Xdd")
+    }
+
     @Test("With suggestions, Down moves a row until the caret is on the last, and opens them there")
     func suggestionsOpenFromTheLastRow() {
         let harness = InputChainHarness(width: 20)

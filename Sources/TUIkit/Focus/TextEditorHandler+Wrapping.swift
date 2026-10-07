@@ -18,13 +18,27 @@ extension TextEditorHandler {
 
     /// The row the caret is drawn on, among all of them, by its affinity.
     func caretRow(in rows: WrappedRows) -> Int {
-        rows.row(ofLine: cursorLine, column: cursorColumn, affinity: selectionAffinity)
+        rows.row(ofLine: cursorLine, column: cursorColumn, affinity: caretAffinity)
+    }
+
+    /// The affinity the caret's row is read by: the editor's, except for a
+    /// selection's head the pointer put on a wrapped row's first character
+    /// (``rowStartHead``), which is read on that row.
+    var caretAffinity: TextSelectionAffinity {
+        rowStartHead == cursor ? .downstream : selectionAffinity
     }
 
     /// The caret's column in its row: what Up and Down keep.
     func caretColumnInRow(in rows: WrappedRows) -> Int {
         let (line, rowInLine) = rows.location(ofRow: caretRow(in: rows))
         return rows.lines[line].column(of: cursorColumn, inRow: rowInLine)
+    }
+
+    /// Ends ``rowStartHead``'s reading once a key has moved the head off
+    /// the row start the pointer put it on: an offset the keys come back to
+    /// is read by the caret rule.
+    func forgetMovedRowStartHead() {
+        if rowStartHead != cursor { rowStartHead = nil }
     }
 
     /// The top row on screen, among all of them.
@@ -107,5 +121,22 @@ extension TextEditorHandler {
         let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
         let offset = rows.lines[line].selectionOffset(inRow: rowInLine, atColumn: column, affinity: selectionAffinity)
         return TextEditorPosition(line: line, column: offset)
+    }
+
+    /// Moves a selection's head — a drag's, a Shift-click's end — to
+    /// ``selectionPosition(atScreenRow:column:in:)``, and reads it on the row
+    /// the pointer put it on. Under `.upstream` that can be a wrapped row's
+    /// first character, which the caret rule reads on the row before: the
+    /// head is kept as ``rowStartHead`` while it stays there.
+    func placeSelectionHead(atScreenRow row: Int, column: Int, in rows: WrappedRows) {
+        let position = selectionPosition(atScreenRow: row, column: column, in: rows)
+        rowStartHead = nil
+        moveCursor(toLine: position.line, column: position.column)
+        let onScreen = topRow(in: rows) + row
+        guard rows.row(ofLine: cursorLine, column: cursorColumn, affinity: selectionAffinity) != onScreen,
+            rows.row(ofLine: cursorLine, column: cursorColumn, affinity: .downstream) == onScreen
+        else { return }
+        rowStartHead = cursor
+        syncDesiredColumn()
     }
 }

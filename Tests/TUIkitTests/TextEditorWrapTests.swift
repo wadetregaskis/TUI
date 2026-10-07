@@ -135,6 +135,54 @@ struct TextEditorWrapTests {
         #expect(caret(handler) == [0, 6])
     }
 
+    /// A drag's head on a wrapped row's first character is on that row, not
+    /// the row before (whose end the same offset is to an upstream caret):
+    /// read there, the editor scrolled up a row under the pointer each time
+    /// the drag came back to the top row's first cell.
+    @Test("Upstream, a drag head on the top row's first cell scrolls nothing")
+    func upstreamHeadOnTopRowStart() throws {
+        let (harness, page, handler) = try editor("aaaa bbbb cccc dddd eeee", width: 6, height: 3, affinity: .upstream)
+        handler.moveCursor(toLine: 0, column: 24)
+        let rows = harness.frame(page).lines.map(\.stripped)
+        try #require(zip(rows, ["cccc", "dddd", "eeee"]).allSatisfy { $0.hasPrefix($1) })
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 1))
+        harness.frame(page)
+        for x in [0, 1, 0] {
+            harness.mouse(MouseEvent(button: .left, phase: .dragged, x: x, y: 0))
+            #expect(harness.frame(page).lines.first?.stripped.hasPrefix("cccc") == true)
+        }
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
+        #expect(harness.frame(page).lines.first?.stripped.hasPrefix("cccc") == true)
+        #expect(handler.selectedText(try #require(handler.selectionRange)) == "cccc dd")
+        // A Shift-click there is a selection's end too.
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 2))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 2, y: 2))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 0, y: 0, shift: true))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: 0, shift: true))
+        #expect(harness.frame(page).lines.first?.stripped.hasPrefix("cccc") == true)
+        #expect(handler.selectedText(try #require(handler.selectionRange)) == "cccc dddd ee")
+    }
+
+    /// Shift+Down from a drag's head on a wrapped row's first character
+    /// extends to the next row, as from any head on that row.
+    @Test("Upstream, Shift+Down from a drag head on a row's first cell extends a row")
+    func upstreamShiftDownFromRowStartHead() throws {
+        let (harness, page, handler) = try editor("aa bbbbb ccccc ddddd", width: 6, affinity: .upstream)
+        let rowY = try #require(harness.frame(page).lines.firstIndex { $0.stripped.hasPrefix("ccccc") })
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 3, y: rowY))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 0, y: rowY))
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: rowY))
+        harness.frame(page)
+        try #require(caret(handler) == [0, 9])
+        press(harness, page, KeyEvent(key: .down, shift: true))
+        let rows = try #require(handler.wrappedRows())
+        #expect(handler.caretRow(in: rows) == 3)
+        #expect(caret(handler) == [0, 16])
+    }
+
     @Test("Up from the first row goes to the start, and Down from the last to the end")
     func pastTheEnds() throws {
         let (harness, page, handler) = try editor()
