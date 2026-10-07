@@ -99,8 +99,9 @@ extension TerminalClient {
     /// OSC 52 write.
     ///
     /// In order: ``clipboardWriteSupport``; then `TUIKIT_OSC52`; then, inside
-    /// GNU screen (`STY`), unsupported, as screen drops an application's
-    /// OSC 52; then, in a tmux pane, tmux's `set-clipboard` (`on` is
+    /// GNU screen (`STY`, unless a tmux inside screen is nearer), unsupported,
+    /// as screen drops an application's OSC 52; then, in a tmux pane, tmux's
+    /// `set-clipboard` (`on` is
     /// ``ClipboardWriteSupport/unconfirmed``, anything else unsupported); then
     /// the table at ``honoursClipboardWrites(_:)``, with kitty, WezTerm and
     /// foot recognised by their variables. Last, a terminal the environment
@@ -109,7 +110,8 @@ extension TerminalClient {
     /// lowers one, because a terminal that writes by default need not say so.
     ///
     /// Asks tmux for its `set-clipboard` option when running in a tmux pane,
-    /// which is a bounded subprocess: read it when a copy is made, not per
+    /// which is a bounded subprocess, and walks this process's parents where
+    /// both tmux and screen are named: read it when a copy is made, not per
     /// frame.
     ///
     /// Reads the DETECTED program, never ``simulated``, unlike
@@ -123,10 +125,12 @@ extension TerminalClient {
         let environment = ProcessInfo.processInfo.environment
         if let override = clipboardWriteSupport { return override ? .honoured : .unsupported }
         let program = current.program
+        let screenAndTmux = program == .tmux && environment["STY"]?.isEmpty == false
         return clipboardWrites(
             environment: environment, program: program,
             primaryDeviceAttributes: TerminalHost.startupIdentity?.primaryAttributes,
-            tmuxSetClipboard: program == .tmux ? TerminalHost.tmuxOption("set-clipboard") : nil)
+            tmuxSetClipboard: program == .tmux ? TerminalHost.tmuxOption("set-clipboard") : nil,
+            ownChain: screenAndTmux ? ProcessAncestry.ownCommandNames() : nil)
     }
 
     /// The ladder behind ``clipboardWrites``, posed on its inputs so it can be
@@ -134,7 +138,14 @@ extension TerminalClient {
     ///
     /// 1. `TUIKIT_OSC52`: `1` honoured, `0` unsupported.
     /// 2. GNU screen (`STY` set, the session is somewhere inside one):
-    ///    unsupported. screen does not pass an application's OSC 52 on unless
+    ///    unsupported — unless tmux is named too and is the nearer of the two
+    ///    in `ownChain`, this process's command names from itself up. A tmux
+    ///    server started inside screen keeps screen's `STY` in its global
+    ///    environment, stale once its session is attached from elsewhere, and
+    ///    `STY` alone outranked `set-clipboard on` there. Where the chain is
+    ///    unknown, or screen is the nearer (a screen run in a tmux pane
+    ///    inherits `TMUX`), `STY` stands. screen does not pass an
+    ///    application's OSC 52 on unless
     ///    it is wrapped in screen's own DCS passthrough, which TUIkit does not
     ///    send, so the terminal's name — inherited from wherever screen was
     ///    started, and stale once it is attached from elsewhere — says
@@ -159,14 +170,16 @@ extension TerminalClient {
     ///    rung that reaches an unknown terminal over ssh.
     static func clipboardWrites(
         environment: [String: String], program: Program, primaryDeviceAttributes: String?,
-        tmuxSetClipboard: String?
+        tmuxSetClipboard: String?, ownChain: [String]? = nil
     ) -> ClipboardWriteSupport {
         switch environment["TUIKIT_OSC52"] {
         case "1": return .honoured
         case "0": return .unsupported
         default: break
         }
-        if environment["STY"]?.isEmpty == false { return .unsupported }
+        if environment["STY"]?.isEmpty == false, !(program == .tmux && tmuxIsNearerThanScreen(in: ownChain)) {
+            return .unsupported
+        }
         if program == .tmux {
             return tmuxSetClipboard == "on" ? .unconfirmed : .unsupported
         }
@@ -180,6 +193,17 @@ extension TerminalClient {
             support = .unconfirmed
         }
         return support
+    }
+
+    /// Whether tmux, not GNU screen, is the nearer of the two above this
+    /// process: the first of them in `chain`, its command names from itself
+    /// up. `false` where neither is in it, or the chain is unknown.
+    static func tmuxIsNearerThanScreen(in chain: [String]?) -> Bool {
+        for name in chain ?? [] {
+            if ClipboardLocality.isTmux(name) { return true }
+            if name == "screen" || name == "SCREEN" { return false }
+        }
+        return false
     }
 
     /// Whether the environment names kitty, WezTerm or foot — terminals that

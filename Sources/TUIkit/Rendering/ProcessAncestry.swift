@@ -89,6 +89,17 @@ enum ProcessAncestry {
         return nil
     }
 
+    /// This process's command names up to the root (``commandNames(from:limit:)``),
+    /// or `nil` where they cannot be read: a WebAssembly guest has no
+    /// processes to walk.
+    static func ownCommandNames() -> [String]? {
+        #if canImport(WASILibc)
+            return nil
+        #else
+            return commandNames(from: getpid())
+        #endif
+    }
+
     /// Whether `pid`'s recorded parent is 0, which is the root of the tree
     /// rather than an unreadable link.
     private static func parentIsRoot(_ pid: pid_t) -> Bool {

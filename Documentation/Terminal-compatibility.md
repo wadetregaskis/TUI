@@ -5274,7 +5274,12 @@ and 3 would report a write screen drops ("Copied" in Ghostty, "Sent" in
 iTerm2), and the name itself is inherited from wherever screen was started.
 Under screen every copy is "Not copied", at the desk too (screen is a keeper,
 so rung 2 does not apply). Unmeasured on a host; the passthrough is the
-fuller version (decisions D4X, B-D4X-13).
+fuller version (decisions D4X, B-D4X-13). Where `TMUX` is set as well, the
+nearer of the two in the app's chain of parents decides: a tmux server
+started inside screen keeps screen's `STY` in its global environment, stale
+once its session is attached from elsewhere, so there tmux's
+`set-clipboard` answers; a screen run in a tmux pane is the nearer, and
+nothing is sent. An unreadable chain leaves `STY` standing.
 
 The status bar says what became of a copy for three seconds, in place of the
 items of the line of key hints (`StatusBar()`, where the app places it) and

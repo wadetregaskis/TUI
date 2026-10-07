@@ -218,7 +218,12 @@ is "Not copied", said so, where none does — and under GNU screen always:
 screen passes an application's OSC 52 on only inside its own DCS passthrough,
 so the ladder answers unsupported inside screen (`STY`) whatever terminal the
 inherited environment names, where it used to report "Sent" (iTerm2) or
-"Copied" (Ghostty) of a write screen dropped. A paste chord under a keeper,
+"Copied" (Ghostty) of a write screen dropped. Where `TMUX` is set too, the
+nearer of the two in the process's chain decides: a tmux server started
+inside screen keeps screen's `STY` in its global environment, so a session of
+it attached straight from Ghostty or iTerm2 with `set-clipboard on` was "Not
+copied" (the follow-ups' review); tmux's answer stands there now, and screen's
+where screen runs in a tmux pane or the chain cannot be read. A paste chord under a keeper,
 as anywhere away from the machine, pastes the app's own last copy and says
 so, or says to use the terminal's paste (B-D4X-14).
 
