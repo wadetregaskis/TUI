@@ -472,6 +472,24 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         xs = checks.umbrella(M, rules(), {'s:x': 'X'})
         self.assertEqual(len(xs), 2)
 
+    def test_every_form_of_an_import_is_one(self):
+        # One reading of an import line for the three checks that look at imports. The `import Darwin` check missed
+        # an access-level import and a second attribute; the umbrella took `@_exported public import` for code.
+        srcs = {'Base/A.swift': 'internal import Darwin\nfunc f() {}\n',
+                'Base/B.swift': '@preconcurrency @_implementationOnly import Darwin\nfunc g() {}\n',
+                'Base/C.swift': '@_spi(Unsafe) import struct Darwin.timeval\nfunc h() {}\n',
+                'Base/D.swift': 'import DarwinExtras\nfunc k() {}\n',
+                'Exports.swift': '@_exported public import Base\n@_exported import struct Base.S\n'}
+        occ = {f'Base/{c}.swift': [(f's:{c}', DEF, 2, '')] for c in 'ABCD'}
+        M = model(srcs, occ, {f's:{c}': (f'{c.lower()}()', 12) for c in 'ABCD'})
+        xs = checks.posix(M, rules(), {f's:{c}': 'Base' for c in 'ABCD'})
+        self.assertEqual([x.key for x in xs], ['Base/A.swift imports Darwin', 'Base/B.swift imports Darwin',
+                                               'Base/C.swift imports Darwin'])
+        self.assertEqual(checks.umbrella(M, rules(), {f's:{c}': 'Base' for c in 'ABCD'}), [])
+        self.assertEqual(SS.import_of('@preconcurrency @_exported import Core'), ('Core', True, ''))
+        self.assertEqual(SS.import_of('import Core; let x = 1'), ('Core', False, '; let x = 1'))
+        self.assertEqual(SS.import_of('let imported = 1'), None)
+
 
 def lower_model():
     """Base/S.swift's S uses TUIkitCore's Lock twice and TUIkitView's AppState once; Lists/L.swift's L uses AppState;
@@ -586,6 +604,11 @@ class LowerTests(unittest.TestCase):
             lexed = [SS.lex(files['X/A.swift'])]
             # View's plain import of Styling is View's own business: X cannot see Styling through it.
             self.assertEqual(model_mod.visible_modules(top, 'X', lexed), {'View', 'Core'})
+            # Attributes with arguments, and `@_exported` after another attribute, are imports too.
+            lexed = [SS.lex('@_spi(Internals) import View\n')]
+            with open(os.path.join(top, 'View/V.swift'), 'w') as fh:
+                fh.write('@preconcurrency @_exported import Core\n@_spi(X) @_exported public import Styling\n')
+            self.assertEqual(model_mod.visible_modules(top, 'X', lexed), {'View', 'Core', 'Styling'})
 
     def test_a_lower_list_naming_no_module_the_index_knows_is_an_error(self):
         M, asg = lower_model()

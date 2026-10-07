@@ -14,6 +14,19 @@ KW = (r'(?:struct|class|enum|extension|protocol|func|var|let|typealias|actor|pre
       r'|(?:infix|prefix|postfix)\s+operator|macro|init|subscript)')
 ATTR = r'@[\w.]+(?:\((?:[^()]|\([^()]*\))*\))?'
 DECL = re.compile(r'^\s*(?:' + ATTR + r'\s*)*(?:' + MOD + r'(?:\((?:set)\))?\s+)*' + KW + r'\b')
+# An import declaration, in all its forms: attributes in any order and with arguments (`@_spi(Name)`, `@preconcurrency
+# @_exported`), an access modifier (`internal import`), an import kind (`import struct M.T`).
+_IMPORT = re.compile(r'^\s*((?:' + ATTR + r'\s*)*)(?:(?:public|package|internal|fileprivate|private)\s+)?import\s+'
+                     r'(?:(?:struct|class|enum|protocol|func|var|let|typealias)\s+)?(\w+)(?:\.\w+)*')
+
+
+def import_of(line):
+    """(module, re-exported, what follows the declaration on its line) when the line is an import, else None. The
+    one reading of an import line the module map has: the `lower` check's module list, `posix`'s `import Darwin`, and
+    `umbrella`'s only-imports rule all take it."""
+    m = _IMPORT.match(line)
+    if not m: return None
+    return m.group(2), re.search(r'@_exported\b', m.group(1)) is not None, line[m.end():].strip()
 
 
 class Lexed:

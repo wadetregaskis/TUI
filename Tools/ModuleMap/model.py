@@ -28,8 +28,6 @@ _ACCESS = re.compile(r'(?:^|[\s)])(?:package|internal|fileprivate|private)\s+(?=
                      r'|prefix|postfix|infix)\b|@)')
 
 
-_IMPORT = re.compile(r'^\s*(@_exported\s+)?(?:@\w+\s+)*(?:(?:public|package|internal|fileprivate|private)\s+)?import\s+'
-                     r'(?:(?:struct|class|enum|protocol|func|var|let|typealias)\s+)?(\w+)')
 
 
 def visible_modules(top, me, lexed):
@@ -40,8 +38,8 @@ def visible_modules(top, me, lexed):
     seen, todo = set(), set()
     for lx in lexed:
         for s in lx.stripped:
-            x = _IMPORT.match(s)
-            if x and x.group(2) in here: todo.add(x.group(2))
+            x = SS.import_of(s)
+            if x and x[0] in here: todo.add(x[0])
     while todo:
         d = todo.pop()
         if d in seen: continue
@@ -51,8 +49,8 @@ def visible_modules(top, me, lexed):
                 if not f.endswith('.swift'): continue
                 with open(os.path.join(dp, f), encoding='utf-8', errors='replace') as fh:
                     for s in fh:
-                        x = _IMPORT.match(s)
-                        if x and x.group(1) and x.group(2) in here: todo.add(x.group(2))
+                        x = SS.import_of(s)
+                        if x and x[1] and x[0] in here: todo.add(x[0])
     return seen
 
 

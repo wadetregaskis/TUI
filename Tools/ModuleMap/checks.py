@@ -158,18 +158,17 @@ def posix(M, R, asg):
         s = next(filter(None, (R.scheduled_for('posix', l, what) for l in M.rule_labels(src))), None)
         if s: x.scheduled, x.rule = s['id'], s['index']
         out.append(x)
-    imports = '|'.join(map(re.escape, cfg.get('imports', ())))
+    imports = set(cfg.get('imports', ()))
     if imports:
-        rx = re.compile(r'^\s*(?:@[\w]+\s+)?import\s+(' + imports + r')\b')
         outside = {M.file[n] for n in M.nodes if asg[n] != R.app}
         for f in M.files:
             if f not in outside: continue
             lx = M.lexed[f]
             for i in range(1, len(lx.lines) + 1):
-                m = rx.match(lx.stripped[i])
-                if m and not SS.posix_guarded(lx.conds[i]):
-                    out.append(Finding('posix', f'{f} imports {m.group(1)}',
-                                       f'{f} imports {m.group(1)} outside a POSIX-only #if arm', f, i))
+                m = SS.import_of(lx.stripped[i])
+                if m and m[0] in imports and not SS.posix_guarded(lx.conds[i]):
+                    out.append(Finding('posix', f'{f} imports {m[0]}',
+                                       f'{f} imports {m[0]} outside a POSIX-only #if arm', f, i))
     # one finding per (declaration, API): the first site
     seen = set(); uniq = []
     for x in out:
@@ -192,7 +191,8 @@ def umbrella(M, R, asg):
         lx = M.lexed[f]
         for i in range(1, len(lx.lines) + 1):
             s = lx.stripped[i].strip()
-            if s and not re.match(r'^(@_exported\s+)?import\s+\w+$', s) and not s.startswith('#'):
+            imp = SS.import_of(s)
+            if s and not (imp and not imp[2]) and not s.startswith('#'):
                 out.append(Finding('umbrella', f'{f}:{s[:40]}', f'{f} holds code, not only imports: {s[:60]}', f, i))
                 break
     return out
