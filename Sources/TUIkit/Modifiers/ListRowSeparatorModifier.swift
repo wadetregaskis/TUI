@@ -121,12 +121,31 @@ extension ListRowSeparatorModifier: Layoutable {
 
 // MARK: - Seeing Through the Wrapper (the READ direction)
 
-/// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// Names its content so a container asking for a z-index can look through
+/// this wrapper instead of stopping at it. Read-only: it does NOT conform to
+/// ``ContentRewrapping``, so nothing about it is distributed to the members of
+/// multi-view content.
 extension ListRowSeparatorModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
+}
+
+// MARK: - Seeing Through the Wrapper (alignment guides)
+
+/// Answers for the guides its content sets, which it draws unchanged at its own
+/// identity — the separator guides above all: Apple's documented row writes
+/// `.listRowSeparatorLeading` on a view INSIDE the one this modifier is
+/// written on, and a wrapper that does not say it can hold a guide hides every
+/// guide below it.
+extension ListRowSeparatorModifier {
+    /// Its content's answer: it draws its content unchanged, so a guide inside
+    /// is its own.
+    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension ListRowSeparatorModifier: AlignmentGuideQuerying {
+    func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
+        TUIkit.explicitGuide(of: content, query, in: dimensions, context: context)
+    }
 }
 
 // MARK: - Removal Transitions

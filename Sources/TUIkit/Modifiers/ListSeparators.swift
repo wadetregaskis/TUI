@@ -285,9 +285,24 @@ extension _ListRowSeparatorPreferenceView: Renderable, Layoutable {
     }
 }
 
-/// Names its content, so a guide or a z-index inside is still found.
+/// Names its content, so a z-index inside is still found.
 extension _ListRowSeparatorPreferenceView: SingleContentWrapper {
     var wrappedContent: Content { content }
+}
+
+/// Answers for the guides its content sets, which it draws unchanged at its own
+/// identity — the separator guides above all: Apple's documented row writes
+/// `.listRowSeparatorLeading` on a view INSIDE the one the separator modifiers
+/// are written on.
+extension _ListRowSeparatorPreferenceView {
+    /// See ``ListRowSeparatorModifier/_providesAlignmentGuide``.
+    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension _ListRowSeparatorPreferenceView: AlignmentGuideQuerying {
+    func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
+        TUIkit.explicitGuide(of: content, query, in: dimensions, context: context)
+    }
 }
 
 /// `content` drawn after reporting `change` against the list row rendering now

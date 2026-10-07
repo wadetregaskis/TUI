@@ -335,7 +335,8 @@ row's or every section's. A row's own `.hidden` still wins. The list's last
 row never has one. `.listRowSeparatorTint(_:)` and
 `.listSectionSeparatorTint(_:)` colour them, and the
 `.listRowSeparatorLeading` and `.listRowSeparatorTrailing` alignment guides
-move their ends.
+move their ends — set on the row's view or on one inside its stacks, with the
+separator modifiers written around it or not.
 
 ```swift
 List {

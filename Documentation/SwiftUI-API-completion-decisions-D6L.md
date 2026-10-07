@@ -174,11 +174,15 @@ row's view and carried up through stacks, as any explicit guide is.
 Not covered, each by construction rather than by choice: a `Section` a
 `ForEach` makes (`ForEach(regions) { Section … }`) draws without its section
 separator (that path reads `SectionParts`, which carries none); a guide
-inside a wrapper that is not a stack — including inside the separator
-modifier itself, since `listRowSeparator` does not forward guides — is not
-seen; a row of several views (decisions B15) reads no guides. A selected or
+inside a wrapper that is neither a stack nor a separator modifier (the two
+separator modifiers forward their content's guides, so Apple's documented
+row — the guide inside an `HStack`, `.listRowSeparator` on the stack — draws
+from the guide; `.onTapGesture`, `.tint` and the other modifiers that draw
+their content unchanged do not forward guides yet, a framework-wide gap
+older than this lane) is not seen; a row of several views (decisions B15)
+reads no guides. Each is an hour or two where it matters. A selected or
 cursor row's highlight runs under its own separator line, so the highlight is
-the row's full height. Each is an hour or two where it matters.
+the row's full height.
 
 ### B-D6L-4. Stripes restart at each section; macOS counts on across them
 

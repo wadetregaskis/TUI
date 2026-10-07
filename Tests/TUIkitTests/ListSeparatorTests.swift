@@ -147,6 +147,43 @@ struct ListSeparatorTests {
         #expect(shown.count <= 3, "\(drawn)")
     }
 
+    @Test("The guide is found through the separator modifiers written around the view that sets it")
+    func leadingGuideThroughTheModifiers() {
+        func column(_ list: some View) -> Int? {
+            guard let line = buffer(list).lines.map(\.stripped).first(where: { $0.contains("─") }),
+                let index = line.firstIndex(of: "─")
+            else { return nil }
+            return line.distance(from: line.startIndex, to: index)
+        }
+        let plain = column(List { ForEach(Self.names, id: \.self) { Text($0) } }.listRowSeparator(.visible))
+        // Apple's documented row: the guide on a view inside the stack, the
+        // separator modifier on the stack.
+        let visible = column(
+            List {
+                ForEach(Self.names, id: \.self) { name in
+                    HStack(spacing: 1) {
+                        Text("•")
+                        Text(name).alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
+                    }
+                    .listRowSeparator(.visible)
+                }
+            })
+        let tinted = column(
+            List {
+                ForEach(Self.names, id: \.self) { name in
+                    HStack(spacing: 1) {
+                        Text("•")
+                        Text(name).alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
+                    }
+                    .listRowSeparatorTint(.red)
+                }
+            }
+            .listRowSeparator(.visible))
+        #expect(plain != nil)
+        #expect(visible.map { $0 - (plain ?? 0) } == 2, "under .listRowSeparator: \(String(describing: visible))")
+        #expect(tinted.map { $0 - (plain ?? 0) } == 2, "under .listRowSeparatorTint: \(String(describing: tinted))")
+    }
+
     /// Frames of the real loop over one render cache, so a row its memo kept is
     /// served on the next.
     @MainActor
