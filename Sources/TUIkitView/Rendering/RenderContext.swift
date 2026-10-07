@@ -357,7 +357,7 @@ public struct RenderContext {
     /// this context's own: two keys sixty-four apart share one, which is the
     /// stale serve ``invalidatingMeasureMemo()`` leaves everywhere it is not
     /// called, and no worse.
-    public func invalidatingMeasureMemo(keyedBy key: Int) -> Self {
+    package func invalidatingMeasureMemo(keyedBy key: Int) -> Self {
         invalidatingMeasureMemo(by: UInt8(truncatingIfNeeded: 1 + (key & 0x3F)))
     }
 
