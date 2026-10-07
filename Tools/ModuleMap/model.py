@@ -56,6 +56,12 @@ class Model:
     def base_label(self, n):
         return f'{self.file[n]}::{self.name[n]}' + ('(ext)' if self.kind[n] == IX.K_EXTENSION else '')
 
+    def rule_labels(self, n):
+        """What a rule's pattern is matched against: the printed label (`path::Name(ext)#first`, as `explain` and the
+        findings show it, so a copied label pins exactly that declaration) and the base label (`path::Name(ext)`, so a
+        pattern written for the base pins every extension of the type in the file)."""
+        return (self.label(n), self.base_label(n))
+
     def discriminator(self, n):
         """What tells an extension apart from the file's other extensions of its type, from its own text: the name
         of its first member (`listStyle(_:)`), else the protocols it conforms to (`Equatable&Sendable`). Not its

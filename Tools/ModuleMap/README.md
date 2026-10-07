@@ -125,8 +125,11 @@ A placement you have reviewed goes into `accepted`, with the reason. The plan's 
 `TUIkitBase: Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
 
 CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources out of the modules that must build on Windows.
-TUIkitApp is the one POSIX module. A use elsewhere must sit in an `#if` branch that neither Windows nor WASI
-compiles. The check evaluates each enclosing branch's condition on those two platforms (`os(…)`, `canImport(…)` of
+The plan puts the console layer in TUIkitApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
+(CLAUDE.md, 2026-10-07: POSIX-only code may live in any module, isolated, never in a module that builds on Windows
+today), `rules.json`'s `posix.informational` marks such a finding accepted — information, not a new finding — unless
+a `scheduled` refactor covers it. A use counts as isolated when it sits in an `#if` branch that neither Windows nor
+WASI compiles. The check evaluates each enclosing branch's condition on those two platforms (`os(…)`, `canImport(…)` of
 a libc or an Apple-only framework, `arch(wasm32)`, `!`, `&&`, `||`); a branch is ruled out where its condition is
 surely false or an earlier branch of its chain surely true. So `#if canImport(Darwin)` and its `#elseif
 canImport(Glibc)` guard, and so does the `#else` of `#if canImport(WASILibc) || os(Windows)`. The `#else` of `#if
@@ -176,11 +179,13 @@ not drag declarations down.
 - **`files`**: `{module, pin, match, why}`. The first rule whose `match` regex hits the path (relative to
   `Sources/TUIkit`) seeds the file. A pinned file stays put. An unpinned one is a starting point that the
   fixpoint may move.
-- **`declarations`**: `{module, match, why}` over labels. These pin single declarations. Use them for a placement
+- **`declarations`**: `{module, match, why}` over labels: a pattern is tried on the printed label
+  (`path::Name(ext)#first`, as `explain` shows it) and on the base label (`path::Name(ext)`), so a copied label pins that
+  one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single declarations. Use them for a placement
   decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or to undo an assigner drift.
 - **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
 - **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward` or `posix`) that a refactor will
-  remove. `from` and `to` match labels; for `posix`, `to` matches the API's name.
+  remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for `posix`, `to` matches the API's name.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the

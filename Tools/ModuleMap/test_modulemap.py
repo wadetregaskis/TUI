@@ -356,6 +356,12 @@ class PublicAboveTests(unittest.TestCase):
         R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': ''}])
         self.assertEqual([x.key for x in checks.public_above(M, R, asg)], ['Lists/E.swift::ListStyle(ext)#automatic'])
 
+    def test_a_copied_label_pins_that_declaration_alone(self):
+        # The label `explain` and the findings print (with its `#first-member` discriminator), copied into a rule.
+        M, asg = public_above_model()
+        R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)#listStyle\(\)$', 'why': ''}])
+        self.assertEqual([x.key for x in checks.public_above(M, R, asg)], ['Lists/E.swift::ListStyle(ext)#automatic'])
+
     def test_an_accepted_placement_is_not_new(self):
         M, asg = public_above_model()
         R = rules(accepted=[{'check': 'public-above', 'key': 'Lists/E.swift::ListStyle(ext)#automatic', 'why': 'x'}])
@@ -376,6 +382,21 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         R = rules()
         xs = checks.posix(M, R, {'s:f': 'Base', 's:g': 'Base', 's:h': 'App'})
         self.assertEqual([x.key for x in xs], ['Base/T.swift::f() uses isatty'])
+
+    def test_informational_posix_is_reported_but_not_new(self):
+        # The owner relaxed the Windows rule (2026-10-07): with `informational`, a POSIX use outside the app module is
+        # still listed, accepted with that reason; a scheduled refactor stays scheduled.
+        srcs = {'Base/T.swift': 'func f() { isatty(0) }\nfunc g() { getpid() }\n'}
+        occ = {'Base/T.swift': [('s:f', DEF, 1, ''), ('c:@F@isatty', REF, 1, 's:f'), ('s:g', DEF, 2, ''),
+                                ('c:@F@getpid', REF, 2, 's:g')]}
+        sym = {'s:f': ('f()', 12), 's:g': ('g()', 12), 'c:@F@isatty': ('isatty(_:)', 12), 'c:@F@getpid': ('getpid()', 12)}
+        M = model(srcs, occ, sym)
+        R = rules(posix={'c_symbols': ['isatty', 'getpid'], 'swift_symbols': [], 'imports': [], 'informational': 'relaxed'},
+                  scheduled=[{'id': 'K6', 'check': 'posix', 'from': r'^Base/T\.swift::g', 'to': '^getpid$', 'why': ''}])
+        xs = {x.key: x for x in checks.posix(M, R, {'s:f': 'Base', 's:g': 'Base'})}
+        self.assertEqual(sorted(xs), ['Base/T.swift::f() uses isatty', 'Base/T.swift::g() uses getpid'])
+        self.assertEqual((xs['Base/T.swift::f() uses isatty'].new, xs['Base/T.swift::f() uses isatty'].accepted), (False, 'relaxed'))
+        self.assertEqual((xs['Base/T.swift::g() uses getpid'].scheduled, xs['Base/T.swift::g() uses getpid'].accepted), ('K6', None))
 
     def test_the_shipped_list_has_pid_t(self):
         # Plan section 4's K6: Windows signatures must not use pid_t. TerminalHost (Base) has 13 unguarded uses.

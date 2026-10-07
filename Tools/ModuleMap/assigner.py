@@ -53,14 +53,14 @@ def assign(model, rules):
     for n in nodes:
         m, pin = seed_node(n)
         asg[n] = m
-        if pin and not any(rx.search(M.base_label(n)) for rx in R.unpin): pinned.add(n)
+        if pin and not any(rx.search(l) for rx in R.unpin for l in M.rule_labels(n)): pinned.add(n)
     for m, rx in R.decls:
         for n in nodes:
-            if rx.search(M.base_label(n)): asg[n] = m; pinned.add(n)
+            if any(rx.search(l) for l in M.rule_labels(n)): asg[n] = m; pinned.add(n)
     cut = set()
     for a in nodes:
         for b in OUT[a]:
-            if R.scheduled_for('upward', M.base_label(a), M.base_label(b)): cut.add((a, b))
+            if any(R.scheduled_for('upward', la, lb) for la, lb in zip(M.rule_labels(a), M.rule_labels(b))): cut.add((a, b))
 
     # ── atomic groups ──────────────────────────────────────────────────────────────────────────────────
     par = {n: n for n in nodes}

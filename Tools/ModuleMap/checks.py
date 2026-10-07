@@ -32,7 +32,7 @@ def upward(M, R, asg):
             x = Finding('upward', f'{M.label(a)} -> {M.label(b)}',
                         f'{ma} -> {mb}: {M.label(a)} uses {M.label(b)} ({k} reference{"s" if k > 1 else ""})', f, ln)
             x.weight = k
-            s = R.scheduled_for('upward', M.base_label(a), M.base_label(b))
+            s = next(filter(None, (R.scheduled_for('upward', la, lb) for la, lb in zip(M.rule_labels(a), M.rule_labels(b)))), None)
             if s: x.scheduled, x.rule = s['id'], s['index']
             out.append(x)
     return out
@@ -116,7 +116,7 @@ def public_above(M, R, asg):
             # the feature it configures. One the ASSIGNER carried somewhere else, for its dependencies, is a
             # placement nobody chose (plan section 4: `.modal`, `.listStyle` and `.safeAreaInset` were reviewed).
             mn, seed = asg[n], R.seed(M.file[n])[0]
-            if mn != seed and R.sees(mn, seed) and not any(rx.search(M.base_label(n)) for _, rx in R.decls):
+            if mn != seed and R.sees(mn, seed) and not any(rx.search(l) for _, rx in R.decls for l in M.rule_labels(n)):
                 out.append(Finding('public-above', M.label(n),
                                    f'public API on {M.name[n]} carried from {seed} up to {mn} by the assigner: '
                                    f'{M.label(n)}', M.file[n], M.line[n]))
@@ -146,7 +146,7 @@ def posix(M, R, asg):
         if lx and SS.posix_guarded(lx.conds[ln]): continue
         x = Finding('posix', f'{M.label(src)} uses {what}',
                     f'{asg[src]}: {M.label(src)} uses {what}, which only POSIX platforms have', f, ln)
-        s = R.scheduled_for('posix', M.base_label(src), what)
+        s = next(filter(None, (R.scheduled_for('posix', l, what) for l in M.rule_labels(src))), None)
         if s: x.scheduled, x.rule = s['id'], s['index']
         out.append(x)
     imports = '|'.join(map(re.escape, cfg.get('imports', ())))
@@ -165,6 +165,12 @@ def posix(M, R, asg):
     seen = set(); uniq = []
     for x in out:
         if x.key not in seen: seen.add(x.key); uniq.append(x)
+    # The owner relaxed the Windows rule (CLAUDE.md, 2026-10-07): POSIX-only code may live in any module, isolated, and
+    # only the four lower modules (outside this map) must keep building on Windows. So with `informational` set, a
+    # POSIX use outside the app module is reported but is not a new finding; a scheduled refactor stays scheduled.
+    if cfg.get('informational'):
+        for x in uniq:
+            if not x.scheduled: x.accepted = cfg['informational']
     return uniq
 
 

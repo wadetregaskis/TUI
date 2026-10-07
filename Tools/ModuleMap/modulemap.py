@@ -67,7 +67,7 @@ def resolve(M, R, files):
         if m is None:
             unmapped.append(n)
             for mod, rx in R.decls:
-                if rx.search(M.base_label(n)): m = mod; break
+                if any(rx.search(l) for l in M.rule_labels(n)): m = mod; break
         asg[n] = m
     kept = 0
     by_file = collections.defaultdict(list)
