@@ -129,4 +129,28 @@ struct PressRoleTests {
         #expect(harness.focusManager.currentFocusedID != before)
         #expect(harness.focusManager.currentFocusedID?.hasPrefix("scrollview") == true)
     }
+
+    /// A Control-click is the secondary click, which passes a scroll view's
+    /// background over for a menu around it. With none, the follow-ups'
+    /// review found it went nowhere: it falls through to the viewport's
+    /// click again, focusing the scroll view, and selects nothing.
+    @Test("A Control-click on a scroll view with no menu around it still focuses it")
+    func scrollViewControlClickFocuses() throws {
+        let harness = InputChainHarness(width: 30, height: 10)
+        let page = ScrollPage()
+        harness.frame(page)
+        let lines = harness.frame(page).lines.map(\.stripped)
+        let row = try #require(lines.firstIndex { $0.contains("Line 1") })
+        let column = try #require(lines[row].range(of: "Line 1")).lowerBound.utf16Offset(in: lines[row])
+        let before = harness.focusManager.currentFocusedID
+        let dispatcher = harness.tui.mouseEventDispatcher
+        dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: column, y: row, ctrl: true))
+        dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: column + 3, y: row, ctrl: true))
+        dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: column, y: row, ctrl: true))
+        dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: column, y: row, ctrl: true))
+        harness.frame(page)
+        #expect(harness.focusManager.currentFocusedID != before)
+        #expect(harness.focusManager.currentFocusedID?.hasPrefix("scrollview") == true)
+        #expect(harness.tui.screenSelection.current == nil)
+    }
 }

@@ -30,8 +30,9 @@ import TUIkitView
 /// region that files one does exactly that (`ScrollView`'s viewport,
 /// `NavigationSplitView`'s columns). A future region that acted on the press
 /// would see it late, at the release, and must not file a role. A
-/// Control-press is the secondary click, never held: a `.background` region
-/// is passed over for it (``MouseEventDispatcher/dispatchLeftPress(_:matching:)``).
+/// Control-press is the secondary click: a `.background` region is passed
+/// over for it, and held for only where nothing else took it
+/// (``MouseEventDispatcher/dispatchLeftPress(_:matching:)``).
 enum PressRole {
     /// A pane's background: a scroll view's viewport, a split view's column.
     case background
@@ -140,7 +141,8 @@ extension MouseEventDispatcher {
     /// row's menu where it has one (as a right-click there does, and as a
     /// Mac's Control-click does); what declines it goes on outward. It never
     /// starts a selection, and a pane's background, which acts only on a
-    /// click, is passed over, so a menu around a scroll view is reached. A
+    /// click, is passed over, so a menu around a scroll view is reached; only
+    /// where nothing took it does it fall through to that pane's click. A
     /// control that acts on a left press — a button, a field, a toggle — takes
     /// it as its own click, as it does with no menu around it.
     /// (The selection's own Copy menu, on its highlight, was offered it
@@ -217,12 +219,26 @@ extension MouseEventDispatcher {
     /// A Control-press, the secondary click: offered to the regions at once,
     /// innermost first, passing over a pane's background, which acts only on
     /// a click (``dispatchLeftPress(_:matching:)``).
+    ///
+    /// Where nothing takes it as a secondary click — no menu around, no row
+    /// — it falls through to the innermost pane it landed in, as the owner
+    /// put it (2026-10-06), which takes it as the click it acts on: a scroll
+    /// view's viewport focuses the scroll view, a split view's column
+    /// activates its section, as a Control-click did before it was the
+    /// secondary click. Held for the release as a background's click always
+    /// is, and selecting nothing.
     private func dispatchSecondaryPress(_ event: MouseEvent, matching: [HitTestRegion]) -> Bool {
+        var pane: HitTestRegion?
         for region in matching {
-            if case .background = pressRoles[region.handlerID] { continue }
+            if case .background = pressRoles[region.handlerID] {
+                if pane == nil { pane = region }
+                continue
+            }
             if offer(event, to: region) != .declined { return true }
         }
-        return false
+        guard let pane, let handler = handler(for: pane.handlerID) else { return false }
+        hold(event, for: (handler, pane.localOriginX, pane.localOriginY), pane: Self.rect(of: pane), selects: false)
+        return true
     }
 
     /// The cells a region covers on screen.
@@ -231,9 +247,12 @@ extension MouseEventDispatcher {
     }
 
     /// Captures the left button for a held press whose click, if it is one,
-    /// belongs to `claimer`, and whose drag selects within `pane`.
-    private func hold(_ press: MouseEvent, for claimer: HeldPress.Claimer?, pane: ScreenSelection.Rect) {
-        let held = HeldPress(press: press, claimer: claimer, pane: pane, selection: screenSelection)
+    /// belongs to `claimer`, and whose drag selects within `pane` — or
+    /// selects nothing, where `selects` is `false`.
+    private func hold(
+        _ press: MouseEvent, for claimer: HeldPress.Claimer?, pane: ScreenSelection.Rect, selects: Bool = true
+    ) {
+        let held = HeldPress(press: press, claimer: claimer, pane: pane, selection: selects ? screenSelection : nil)
         pressedHandlers[.left] = PressCapture(
             handler: { [held] event in held.receive(event) }, regionOffsetX: 0, regionOffsetY: 0)
     }

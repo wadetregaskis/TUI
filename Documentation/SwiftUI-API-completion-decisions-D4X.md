@@ -119,7 +119,13 @@ blank cells; it no longer starts a selection. It is the secondary click for
 what reads it so — rows, `.contextMenu`, a tab — and not for a control that
 acts on a left press: a Control-click on a `Button` in a table cell presses
 it, where a right-click there opens the row's menu (the follow-ups' review
-found the article saying "wherever it lands"; macOS unmeasured there). (Synthesised Control-clicks
+found the article saying "wherever it lands"; macOS unmeasured there).
+Where nothing takes it as a secondary click, it falls through to the pane it
+landed in, as the owner's "falls through the view hierarchy" reads: a scroll
+view's viewport focuses the scroll view, a split view's column activates its
+section, as a Control-click did before it was the secondary click (the
+follow-ups' review found those panes passed over with nothing behind them, so
+a Control-click there did nothing, in apps that use no menu too). (Synthesised Control-clicks
 open no menu on a SwiftUI row in the probe, the plain control list included,
 so macOS's Control-click is read as its right-click, which it is.)
 
