@@ -303,8 +303,17 @@ class Model:
         for n in public_header:
             if self.kind.get(n) == IX.K_EXTENSION: public_defs[n] += bare_defs.get(n, [])
         for n, defs in public_defs.items():
-            names = []
+            listed, names = {u for _, u in defs}, []
+
+            def reachable(u):
+                """A public member of a nested type is public API only when every type it sits in is."""
+                p, k = parent.get(u), 0
+                while p is not None and p != n and k < 50:
+                    if p not in listed: return False
+                    p, k = parent.get(p), k + 1
+                return True
             for _, u in sorted(set(defs)):
+                if not reachable(u): continue
                 nm = self.symbols.get(u, ('?',))[0]
                 if parent.get(u) not in (n, None): nm = f'{self.symbols.get(parent[u], ("?",))[0]}.{nm}'
                 if nm not in names: names.append(nm)

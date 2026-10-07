@@ -423,6 +423,26 @@ class PublicAboveTests(unittest.TestCase):
             '(public: statusBarItems(_:), focus, Inner, Inner.init(), focusSection())',
             'public API of ListStyle (Base) is declared in Lists: Base/V.swift::ListStyle(ext)#a() (public: a(), d)'])
 
+    def test_a_public_member_of_an_internal_nested_type_is_not_listed(self):
+        lines = ['extension View {',                          # 1
+                 '    struct Hidden {',                       # 2  internal
+                 '        public func x() {}',                # 3  so x is not public API
+                 '    }',                                     # 4
+                 '    public struct Shown {',                 # 5
+                 '        public func y() {}',                # 6
+                 '        struct Deeper { public func z() {} }',  # 7  internal inside a public type
+                 '    }',                                     # 8
+                 '}']                                         # 9
+        occ = [('s:e:V', DEF, 1, ''), (VIEW, REF | IX.REL_EXTENDED_BY, 1, 's:e:V'), ('s:H', DEF, 2, 's:e:V'),
+               ('s:H.x', DEF, 3, 's:H'), ('s:S', DEF, 5, 's:e:V'), ('s:S.y', DEF, 6, 's:S'), ('s:D', DEF, 7, 's:S'),
+               ('s:D.z', DEF, 7, 's:D')]
+        sym = {'s:e:V': ('View', IX.K_EXTENSION), VIEW: ('View', IX.K_PROTOCOL), 's:H': ('Hidden', IX.K_STRUCT),
+               's:H.x': ('x()', 16), 's:S': ('Shown', IX.K_STRUCT), 's:S.y': ('y()', 16), 's:D': ('Deeper', IX.K_STRUCT),
+               's:D.z': ('z()', 16)}
+        M = model({'Base/V.swift': '\n'.join(lines) + '\n'}, {'Base/V.swift': occ}, sym)
+        self.assertEqual(M.public_members, {'s:e:V': ['Shown', 'Shown.y()']})
+        self.assertIn('s:e:V', M.public)          # the block still counts as holding public API, as before
+
     def test_an_accepted_placement_is_not_new(self):
         M, asg = public_above_model()
         R = rules(accepted=[{'check': 'public-above', 'key': 'Lists/E.swift::ListStyle(ext)#automatic', 'why': 'x'}])
