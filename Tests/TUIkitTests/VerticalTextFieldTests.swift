@@ -305,6 +305,34 @@ struct VerticalTextFieldTests {
         #expect(model.text == "aaaa bbbb Xdd")
     }
 
+    /// A press on the `▾` that closes the suggestions is the field's, and so
+    /// is a drag from it: it anchors at the caret, as before there was a
+    /// press anchor, not at the cell an earlier press landed on.
+    @Test("A drag from the ▾ that closed the suggestions anchors at the caret")
+    func dragFromClosingDisclosureAnchorsAtTheCaret() throws {
+        let harness = InputChainHarness(width: 12)
+        let model = Model("aaaa bbbb cccc")
+        let view = { field(model).textInputSuggestions { Text("one") } }
+        harness.frame(view())
+        let first = rows(harness.frame(view()))[0]
+        let arrow = try #require(first.firstIndex(of: "▾")).utf16Offset(in: first)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 1))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 1, y: 1))
+        harness.play([KeyEvent(key: .end)], view)
+        let caret = try #require(harness.focusManager.currentFocused as? TextFieldHandler).cursorPosition
+        try #require(caret > 6, "precondition: the caret is past the first press's cell")
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: arrow, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: arrow, y: 0))
+        try #require(!harness.frame(view()).overlays.isEmpty, "precondition: the ▾ opened the suggestions")
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: arrow, y: 0))
+        harness.frame(view())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 0, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
+        try #require(harness.frame(view()).overlays.isEmpty, "precondition: the ▾ closed them")
+        harness.play([key("X")]) { view() }
+        #expect(model.text == "X" + "aaaa bbbb cccc".dropFirst(caret))
+    }
+
     @Test("With suggestions, Down moves a row until the caret is on the last, and opens them there")
     func suggestionsOpenFromTheLastRow() {
         let harness = InputChainHarness(width: 20)

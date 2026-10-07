@@ -130,6 +130,10 @@ enum TextFieldMouseHandler {
             switch event.phase {
             case .pressed where event.button == .left:
                 focusManager?.focus(id: captureFocusID)
+                // Every press starts afresh: a drag after one that sets no
+                // anchor of its own — on the `▾`, a Shift-click — anchors at
+                // the caret, never at an earlier press's cell.
+                handler.pressAnchor = nil
                 if isDisclosure(event) {
                     // The `▾` disclosure: toggle the suggestions menu; the
                     // caret stays where it was.
@@ -156,7 +160,6 @@ enum TextFieldMouseHandler {
                 }
                 if event.shift {
                     // Shift-click: keep the anchor, extend to the clicked column.
-                    handler.pressAnchor = nil
                     handler.startOrExtendSelection()
                     placeHead(at: event)
                 } else {
