@@ -481,11 +481,13 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         let accent = palette.accent
 
         // Border glyphs per cell of the 3×(inner+2) box.
-        var glyphs: [[Character]] = [
-            ["╭"] + Array(repeating: "─", count: inner) + ["╮"],
-            ["│"] + Array(repeating: " ", count: inner) + ["│"],
-            ["╰"] + Array(repeating: "─", count: inner) + ["╯"],
-        ]
+        func edge(_ leading: Character, _ fill: Character, _ trailing: Character) -> [Character] {
+            var row = [leading]
+            row += repeatElement(fill, count: inner)
+            row.append(trailing)
+            return row
+        }
+        var glyphs: [[Character]] = [edge("╭", "─", "╮"), edge("│", " ", "│"), edge("╰", "─", "╯")]
         // A centred break at the bottom edge shows where the ring starts and
         // ends. It is one cell when the ring's width (inner + 2) is odd and two
         // when it is even; since inner + 2 shares inner's parity, that is:

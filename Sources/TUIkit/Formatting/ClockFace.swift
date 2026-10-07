@@ -113,9 +113,11 @@ struct ClockFace: Sendable {
             var ladder = [widest]
             ladder.append(TimeSpan.unitList(fields, width: .condensedAbbreviated, locale: locale, calendar: calendar))
             if fields.count > 1 {
-                ladder.append(
-                    ([String(fields[0].value)] + fields.dropFirst().map { $0.value < 10 ? "0\($0.value)" : "\($0.value)" })
-                        .joined(separator: ":"))
+                var parts = [String(fields[0].value)]
+                parts += fields.dropFirst().map { (field: TimeSpanField) -> String in
+                    field.value < 10 ? "0\(field.value)" : String(field.value)
+                }
+                ladder.append(parts.joined(separator: ":"))
             }
             return ladder
         case .face:

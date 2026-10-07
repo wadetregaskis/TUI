@@ -918,22 +918,15 @@ private struct _StatusBarCore: View, Renderable {
                 color: borderColor)
         }
 
-        var buffer = FrameBuffer(
-            lines: [
-                BorderRenderer.standardTopBorder(
-                    style: border, innerWidth: innerWidth, color: borderColor)
-            ]
-                + tooltipRows.map(contentLine)
-                + (drawsItemRow
-                    ? [
-                        BorderRenderer.standardContentLine(
-                            content: content, innerWidth: innerWidth, style: border,
-                            color: borderColor)
-                    ] : [])
-                + [
-                    BorderRenderer.standardBottomBorder(
-                        style: border, innerWidth: innerWidth, color: borderColor)
-                ])
+        var lines = [BorderRenderer.standardTopBorder(style: border, innerWidth: innerWidth, color: borderColor)]
+        lines += tooltipRows.map(contentLine)
+        if drawsItemRow {
+            lines.append(
+                BorderRenderer.standardContentLine(
+                    content: content, innerWidth: innerWidth, style: border, color: borderColor))
+        }
+        lines.append(BorderRenderer.standardBottomBorder(style: border, innerWidth: innerWidth, color: borderColor))
+        var buffer = FrameBuffer(lines: lines)
         // The chrome's own cells, when the theme's `border` is faded. The items
         // between the walls are coloured by their own styling, which makes its own
         // claims and travels in `aligned.line`.

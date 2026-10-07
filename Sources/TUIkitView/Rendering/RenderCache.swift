@@ -1515,16 +1515,20 @@ extension RenderCache {
             frame.lookups > 0
             ? String(format: "%.0f%%", frame.hitRate * 100)
             : "n/a"
+        // One literal rather than a `+` chain of interpolations, which cost
+        // this body most of its type-checking time.
         logDebug(
-            "FRAME — hits: \(frame.hits), misses: \(frame.misses), "
-                + "stores: \(frame.stores), clears: \(frame.clears), "
-                + "subtreeClears: \(frame.subtreeClears), "
-                + "entries: \(entries.count), hit rate: \(rate) | "
-                + "MEASURE hits: \(measureHits) misses: \(measureMisses) "
-                + "entries: \(measureEntries.count) | "
-                + "PRUNE render: \(lastPrune.renderEntries) sizes: \(lastPrune.sizeEntries) "
-                + "retainedChecks: \(lastPrune.retainedChecks) "
-                + "dropped: \(lastPrune.prunedRender)+\(lastPrune.prunedSizes)"
+            """
+            FRAME — hits: \(frame.hits), misses: \(frame.misses), \
+            stores: \(frame.stores), clears: \(frame.clears), \
+            subtreeClears: \(frame.subtreeClears), \
+            entries: \(entries.count), hit rate: \(rate) | \
+            MEASURE hits: \(measureHits) misses: \(measureMisses) \
+            entries: \(measureEntries.count) | \
+            PRUNE render: \(lastPrune.renderEntries) sizes: \(lastPrune.sizeEntries) \
+            retainedChecks: \(lastPrune.retainedChecks) \
+            dropped: \(lastPrune.prunedRender)+\(lastPrune.prunedSizes)
+            """
         )
     }
 }

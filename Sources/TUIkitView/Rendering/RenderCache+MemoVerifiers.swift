@@ -153,13 +153,18 @@ extension RenderCache {
         availableWidth: Int, availableHeight: Int, identity: String = ""
     ) {
         guard measureMemoMismatches.count < 20 else { return }
+        // One literal, its parts named first: as a `+` chain of interpolations
+        // this was the module's slowest body to type-check (68 ms).
+        let natural = served.isNaturalSize ? " (natural)" : ""
+        let proposedWidth = proposal.width.map(String.init) ?? "nil"
+        let proposedHeight = proposal.height.map(String.init) ?? "nil"
+        let place = identity.isEmpty ? "" : " at \(identity)"
         measureMemoMismatches.append(
-            "\(viewType): served \(served.width)x\(served.height)"
-                + "\(served.isNaturalSize ? " (natural)" : "")"
-                + " but a fresh measure at proposal "
-                + "(\(proposal.width.map(String.init) ?? "nil"), \(proposal.height.map(String.init) ?? "nil"))"
-                + " in \(availableWidth)x\(availableHeight) says \(fresh.width)x\(fresh.height)"
-                + (identity.isEmpty ? "" : " at \(identity)"))
+            """
+            \(viewType): served \(served.width)x\(served.height)\(natural) but a fresh measure at proposal \
+            (\(proposedWidth), \(proposedHeight)) in \(availableWidth)x\(availableHeight) says \
+            \(fresh.width)x\(fresh.height)\(place)
+            """)
         if let path = Self.measureMemoMismatchLog, let last = measureMemoMismatches.last,
             let data = (last + "\n").data(using: .utf8)
         {
