@@ -219,6 +219,7 @@ struct AnyViewMembersTests {
         let borderedRows = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<200, id: \.self) { i in
+                    // swiftlint:disable:next redundant_discardable_let
                     let _ = built.count()
                     Text("a\(i)")
                     Text("b\(i)").border()
@@ -229,6 +230,7 @@ struct AnyViewMembersTests {
         let plainRows = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<200, id: \.self) { i in
+                    // swiftlint:disable:next redundant_discardable_let
                     let _ = built.count()
                     Text("a\(i)")
                     Text("b\(i)")
@@ -236,11 +238,30 @@ struct AnyViewMembersTests {
             }
         }
         .frame(height: 6)
+        // The same rows with the bordered view padded to the rings' cells
+        // instead: as tall, nothing erased.
+        let paddedRows = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<200, id: \.self) { i in
+                    // swiftlint:disable:next redundant_discardable_let
+                    let _ = built.count()
+                    Text("a\(i)")
+                    Text("b\(i)").padding(1)
+                }
+            }
+        }
+        .frame(height: 6)
         let bordering = secondFrameRowsBuilt(borderedRows, counting: built)
         let plain = secondFrameRowsBuilt(plainRows, counting: built)
+        let padded = secondFrameRowsBuilt(paddedRows, counting: built)
         // Counted as varying, every row was built three times a frame (600).
-        // Its window's rows are built now — more often than a plain row's (40
-        // against 10 when this was written; why is not established here).
+        // Its window's rows are built now — more often than the plain rows',
+        // and exactly as often as the same rows' with the rings' cells padded
+        // instead, nothing erased: what costs the extra builds is the rows'
+        // heights, views one and three lines tall in turn, not the erasure.
+        // (Which window path that sends the stack down is not established
+        // here.)
+        #expect(bordering == padded, "a frame built \(bordering) of 200 bordered rows, \(padded) padded")
         #expect(bordering < 200 / 4, "a frame built \(bordering) of 200 bordered rows (\(plain) plain)")
         #expect(plain < 200 / 4, "precondition: \(plain) of 200 plain rows")
     }
