@@ -190,9 +190,10 @@ extension ASCIIPalette {
                         // opaque picture's buckets exactly as they were. See "Opacity as
                         // composition" §72.1.
                         for pixel in pixels where pixel.a != 0 {
-                            let cell = (Int(channelBucket[Int(pixel.r)]) << (2 * bits))
-                                | (Int(channelBucket[Int(pixel.g)]) << bits)
-                                | Int(channelBucket[Int(pixel.b)])
+                            let red = Int(channelBucket[Int(pixel.r)])
+                            let green = Int(channelBucket[Int(pixel.g)])
+                            let blue = Int(channelBucket[Int(pixel.b)])
+                            let cell = (red << (2 * bits)) | (green << bits) | blue
                             totals[cell].weight += 1
                             totals[cell].red += Int(pixel.r)
                             totals[cell].green += Int(pixel.g)

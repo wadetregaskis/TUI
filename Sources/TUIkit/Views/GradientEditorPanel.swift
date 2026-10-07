@@ -586,7 +586,8 @@ extension GradientEditorPanel {
         let flipped = list.indices.map { position -> Gradient.Stop in
             let mirror = list[last - position]
             let own = list[position].location
-            let location = own + mirror.location == 1 ? own : 1 - mirror.location
+            let sum: Double = own + mirror.location
+            let location = sum == 1 ? own : 1 - mirror.location
             return Gradient.Stop(color: mirror.color, location: location)
         }
         let selected = list.indices.contains(index) ? last - index : 0

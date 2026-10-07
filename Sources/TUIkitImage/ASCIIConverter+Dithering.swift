@@ -448,10 +448,8 @@ struct PixelQuantiser {
         trusted: UnsafeBufferPointer<Bool>
     ) -> Int {
         guard !answers.isEmpty else { return palette.nearestIndex(to: pixel) }
-        let cell =
-            (Int(bucket[Int(pixel.r)]) << (2 * ASCIIPalette.quantisationBits))
-            | (Int(bucket[Int(pixel.g)]) << ASCIIPalette.quantisationBits)
-            | Int(bucket[Int(pixel.b)])
+        let red = Int(bucket[Int(pixel.r)]), green = Int(bucket[Int(pixel.g)]), blue = Int(bucket[Int(pixel.b)])
+        let cell = (red << (2 * ASCIIPalette.quantisationBits)) | (green << ASCIIPalette.quantisationBits) | blue
         return trusted[cell] ? Int(answers[cell]) : palette.nearestIndex(to: pixel)
     }
 

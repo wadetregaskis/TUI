@@ -102,7 +102,9 @@ struct _FindBar: View {
     /// Moves to the next (`delta` 1) or previous (-1) match, wrapping.
     private func step(by delta: Int, in matches: [Range<Int>]) {
         guard !matches.isEmpty else { return }
-        current = ((min(current, matches.count - 1) + delta) % matches.count + matches.count) % matches.count
+        let count = matches.count
+        let stepped: Int = min(current, count - 1) + delta
+        current = (stepped % count + count) % count  // `delta` may be negative
         select(matches[current])
     }
 

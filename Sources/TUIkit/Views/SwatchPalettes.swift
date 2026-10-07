@@ -11,8 +11,9 @@ import TUIkitStyling
 /// sets are `[(name, Color)]` so a picker can show the colour's name.
 enum SwatchPalettes {
     /// A 32-step black→white greyscale ramp, evenly spaced across 0…255.
-    static let greyscale: [Color] = (0..<32).map { step in
-        let value = UInt8((Double(step) * 255 / 31).rounded())
+    static let greyscale: [Color] = (0..<32).map { (step: Int) -> Color in
+        let level: Double = Double(step) * 255 / 31
+        let value = UInt8(level.rounded())
         return .rgb(value, value, value)
     }
 

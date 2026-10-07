@@ -35,7 +35,8 @@ extension TimeSpan {
         guard names.count > 1 else { return names.first ?? "" }
         let separators = unitSeparators(width: width, locale: locale)
         guard names.count > 2 else { return names[0] + separators.pair + names[1] }
-        return names.dropLast().joined(separator: separators.start) + separators.end + names[names.count - 1]
+        let leading: String = names.dropLast().joined(separator: separators.start)
+        return leading + separators.end + names[names.count - 1]
     }
 
     /// A year or month field's words, from the translation tables: the

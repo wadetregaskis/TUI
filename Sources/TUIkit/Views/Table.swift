@@ -5686,16 +5686,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             cursor += widths[index] + Self.previewColumnSpacing
         }
 
-        return (0..<steps).map { step in
+        return (0..<steps).map { (step: Int) -> String in
             // A single step IS the hand layout — that is how `previewRow` asks
             // for the steady picture.
-            let phase = steps > 1 ? Double(step) / Double(steps - 1) : 1
+            let phase: Double = steps > 1 ? Double(step) / Double(steps - 1) : 1
             var line = pad
             var column = gutter
             for index in 0..<count {
-                let target =
-                    gridX[index]
-                    + Int((Double(handX[index] - gridX[index]) * phase).rounded())
+                let travel: Double = Double(handX[index] - gridX[index]) * phase
+                let target = gridX[index] + Int(travel.rounded())
                 let start = max(column, target)
                 line += String(repeating: " ", count: start - column)
                 line += ANSIRenderer.colorize(clipped[index], foreground: foregroundColor)

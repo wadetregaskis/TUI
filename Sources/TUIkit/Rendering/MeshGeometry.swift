@@ -109,7 +109,8 @@ struct MeshVertices {
     ) -> (before: SIMD2<Double>, after: SIMD2<Double>) {
         func third(toward neighbour: SIMD2<Double>?) -> SIMD2<Double> {
             guard let neighbour else { return point }
-            return point + (neighbour - point) / 3
+            let toward: SIMD2<Double> = neighbour - point
+            return point + toward / 3
         }
         guard let before, let after else {
             return (third(toward: before), third(toward: after))

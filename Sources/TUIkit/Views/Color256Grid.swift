@@ -92,11 +92,13 @@ enum Palette256Layout {
         /// A run of swatches wrapped at `perRow`, with the standard/bright gap
         /// kept when the system 16 fits on one line.
         func strip(_ values: [Int], perRow: Int, gapAfter: Int? = nil) -> [[Int?]] {
-            stride(from: 0, to: values.count, by: perRow).map { start in
-                let slice = Array(values[start..<min(start + perRow, values.count)])
-                guard let gapAfter, slice.count > gapAfter else { return slice.map { Int?($0) } }
-                return slice[..<gapAfter].map { Int?($0) } + [nil]
-                    + slice[gapAfter...].map { Int?($0) }
+            stride(from: 0, to: values.count, by: perRow).map { (start: Int) -> [Int?] in
+                let slice = values[start..<min(start + perRow, values.count)].map { Int?($0) }
+                guard let gapAfter, slice.count > gapAfter else { return slice }
+                var row = Array(slice[..<gapAfter])
+                row.append(nil)
+                row += slice[gapAfter...]
+                return row
             }
         }
 

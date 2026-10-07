@@ -1409,7 +1409,8 @@ extension ItemListHandler {
     /// somewhere" while the row vanished. `List` and `Table` asked this
     /// identically before their drops; it belongs beside the drop.
     func reorderLandsNowhere(atContentY contentY: Int?) -> Bool {
-        (contentY.flatMap { dropTarget(atContentY: $0) } ?? reorderPlaceholder?.slot) == nil
+        let slot: Int? = contentY.flatMap { dropTarget(atContentY: $0) } ?? reorderPlaceholder?.slot
+        return slot == nil
     }
 
     /// Drops any in-flight reorder without moving anything.

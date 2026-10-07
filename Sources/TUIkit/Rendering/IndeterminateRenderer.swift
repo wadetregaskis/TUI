@@ -481,7 +481,8 @@ enum IndeterminateRenderer {
     private static func segment(
         of configuration: IndeterminateConfiguration, across width: Int
     ) -> Int {
-        max(1, Int(Double(width) * max(0, configuration.extent)))
+        let cells: Double = Double(width) * max(0, configuration.extent)
+        return max(1, Int(cells))
     }
 
     /// A ramp, from the dim end to the bright end. Fewer than two usable

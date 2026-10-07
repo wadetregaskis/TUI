@@ -347,9 +347,10 @@ extension ANSIRenderer {
         // most styled lines: found without copying the bytes first.
         let scanned: Bool? =
             string.utf8.withContiguousStorageIfAvailable { (buffer: UnsafeBufferPointer<UInt8>) -> Bool in
+                let escapeByte: UInt8 = 0x1B, bracketByte: UInt8 = 0x5B, zeroByte: UInt8 = 0x30
                 var index = 0
                 while index + 2 < buffer.count {
-                    if buffer[index] == 0x1B, buffer[index + 1] == 0x5B, buffer[index + 2] == 0x30 {
+                    if buffer[index] == escapeByte, buffer[index + 1] == bracketByte, buffer[index + 2] == zeroByte {
                         return true
                     }
                     index += 1

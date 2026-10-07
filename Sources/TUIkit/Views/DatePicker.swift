@@ -86,8 +86,8 @@ public struct DatePicker<Label: View>: View {
             selection: selection,
             // A one-sided range is stored with the far past or future at its
             // open end, which a configuration reports as no bound at all.
-            minimumDate: range.map(\.lowerBound).flatMap { $0 == .distantPast ? nil : $0 },
-            maximumDate: range.map(\.upperBound).flatMap { $0 == .distantFuture ? nil : $0 },
+            minimumDate: range.map(\.lowerBound).flatMap { (date: Date) -> Date? in date == .distantPast ? nil : date },
+            maximumDate: range.map(\.upperBound).flatMap { (date: Date) -> Date? in date == .distantFuture ? nil : date },
             displayedComponents: displayedComponents)
         // A built-in style is drawn here, with this picker's focus id and
         // disabled state, which a configuration does not carry; a custom style

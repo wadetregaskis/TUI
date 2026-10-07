@@ -48,11 +48,12 @@ extension ASCIIPalette {
     /// the disagreement collapses. See `PaletteTableFidelityTests` for the
     /// measured numbers on both.
     static let quantisationBucket: [UInt8] = {
+        let bucketCount: Int = 1 << quantisationBits
         var buckets = [UInt8](repeating: 0, count: 256)
         for value in 0...255 {
-            let perceptual = cbrt(Color.linearChannel(UInt8(value)))
-            let bucket = Int(perceptual * Double(1 << quantisationBits))
-            buckets[value] = UInt8(min((1 << quantisationBits) - 1, max(0, bucket)))
+            let perceptual: Double = cbrt(Color.linearChannel(UInt8(value)))
+            let bucket = Int(perceptual * Double(bucketCount))
+            buckets[value] = UInt8(min(bucketCount - 1, max(0, bucket)))
         }
         return buckets
     }()
@@ -67,9 +68,10 @@ extension ASCIIPalette {
             if first[bucket] < 0 { first[bucket] = value }
             last[bucket] = value
         }
-        return (0..<(1 << quantisationBits)).map { bucket in
-            guard first[bucket] >= 0 else { return UInt8(0) }
-            return UInt8((first[bucket] + last[bucket]) / 2)
+        return (0..<(1 << quantisationBits)).map { (bucket: Int) -> UInt8 in
+            guard first[bucket] >= 0 else { return 0 }
+            let middle: Int = (first[bucket] + last[bucket]) / 2
+            return UInt8(middle)
         }
     }()
 

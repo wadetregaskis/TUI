@@ -316,10 +316,10 @@ extension TrackRenderer {
         // drawn INTO the boundary cell, so a two-cell ramp glyph over a
         // one-cell fill made the track a cell longer whenever a boundary cell
         // was drawn — and the bar's length then followed its value.
-        let quantum = max(
-            fillChars.map(\.terminalWidth).max() ?? 1,
-            emptyChars.map(\.terminalWidth).max() ?? 1,
-            config.leadingEdge?.map(\.terminalWidth).max() ?? 1)
+        let fillQuantum: Int = fillChars.map(\.terminalWidth).max() ?? 1
+        let emptyQuantum: Int = emptyChars.map(\.terminalWidth).max() ?? 1
+        let edgeQuantum: Int = config.leadingEdge?.map(\.terminalWidth).max() ?? 1
+        let quantum = max(fillQuantum, emptyQuantum, edgeQuantum)
         if quantum > 1 {
             return renderCoarsePattern(
                 fraction: fraction, width: width, quantum: quantum,
@@ -810,10 +810,11 @@ extension TrackRenderer {
             row.append(String(showsHead ? headChar : filledChar), cells: 1, ink: showsHead ? headColor : fillColor)
             return row
         }
-        let position = Int((fraction * Double(width - 1)).rounded())
+        let span = Double(width - 1)
+        let position = Int((fraction * span).rounded())
         // The fill runs from the neutral cell (the first, without one) to the
         // head, on whichever side of it the head is.
-        let neutralPosition = neutral.map { Int(($0 * Double(width - 1)).rounded()) } ?? 0
+        let neutralPosition = neutral.map { Int(($0 * span).rounded()) } ?? 0
         let fill = position >= neutralPosition
             ? neutralPosition..<position : (position + 1)..<(neutralPosition + 1)
 
