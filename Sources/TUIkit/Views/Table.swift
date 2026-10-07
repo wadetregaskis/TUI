@@ -1490,16 +1490,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // One sampler for the frame, not one per row: building it quantises the
         // ramp, which is an array a row must not allocate.
         let rowRamp = cellRamp(rowWidth: contentInnerWidth, context: context)
+        let rowStripe = Self.frameStripe(context: context, palette: palette)
         beginRowMemo(
             handler: handler, columnWidths: columnWidths,
             gutter: selectionGutter(context.environment), rowWidth: contentInnerWidth,
-            context: context, palette: palette)
+            stripe: rowStripe, context: context, palette: palette)
         for entry in drawn {
             switch entry {
             case .row(let rowIndex):
                 let row = renderRow(
                     item: data[rowIndex],
-                    paint: RowPaint(row: rowIndex, ramp: rowRamp, width: contentInnerWidth),
+                    paint: RowPaint(row: rowIndex, ramp: rowRamp, stripe: rowStripe, width: contentInnerWidth),
                     columnWidths: columnWidths,
                     isFocused: handler.isCursorRow(rowIndex) && tableHasFocus,
                     isSelected: handler.drawsSelected(at: rowIndex),
@@ -2296,10 +2297,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// The rows' cell payloads, at their position among `slidableRows`.
         var rowPayload = _TableRowPayload()
         let rowRamp = cellRamp(rowWidth: contentWidth, context: context)
+        let rowStripe = Self.frameStripe(context: context, palette: palette)
         for rowIndex in window.range {
             let rendered = renderMultiLineRow(
                 layout: rows.layout(rowIndex),
-                paint: RowPaint(row: rowIndex, ramp: rowRamp, width: contentWidth),
+                paint: RowPaint(row: rowIndex, ramp: rowRamp, stripe: rowStripe, width: contentWidth),
                 isFocused: handler.isFocused(at: rowIndex) && tableHasFocus,
                 isSelected: handler.drawsSelected(at: rowIndex),
                 columnWidths: rows.columnWidths, context: context, palette: palette)
@@ -2408,7 +2410,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let spacing = asciiSpaces(columnSpacing)
         let visual = rowVisualState(
             isFocused: isFocused, isSelected: isSelected,
-            isStriped: isStriped(row: row, environment: context.environment),
+            stripe: paint.stripe,
             context: context, palette: palette)
         let styledIndicator = ANSIRenderer.colorize(
             visual.indicator, foreground: visual.indicatorColor.opaqueSpelling)
@@ -2956,16 +2958,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var rowPayload = _TableRowPayload()
         // One sampler for the frame — see the twin in the single-line path.
         let rowRamp = cellRamp(rowWidth: contentWidth, context: context)
+        let rowStripe = Self.frameStripe(context: context, palette: palette)
         beginRowMemo(
             handler: handler, columnWidths: columnWidths,
             gutter: selectionGutter(context.environment), rowWidth: contentWidth,
-            context: context, palette: palette)
+            stripe: rowStripe, context: context, palette: palette)
         for entry in drawn {
             switch entry {
             case .row(let rowIndex):
                 let row = renderRow(
                     item: data[rowIndex],
-                    paint: RowPaint(row: rowIndex, ramp: rowRamp, width: contentWidth),
+                    paint: RowPaint(row: rowIndex, ramp: rowRamp, stripe: rowStripe, width: contentWidth),
                     columnWidths: columnWidths,
                     isFocused: handler.isCursorRow(rowIndex) && tableHasFocus,
                     isSelected: handler.drawsSelected(at: rowIndex),
@@ -3089,10 +3092,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // and for every mouse drag: see `reorderPrimaryHeldRow`.
         let primary = handler.reorderPrimaryHeldRow
         let rowRamp = cellRamp(rowWidth: rowWidth, context: context)
+        let rowStripe = Self.frameStripe(context: context, palette: palette)
         let rendered = sources.map { source -> (line: String, frames: [String]?, timing: IndicatorCycleTiming?, claims: [OpacityRegion]) in
             let row = renderRow(
                 item: data[source],
-                paint: RowPaint(row: source, ramp: rowRamp, width: rowWidth),
+                paint: RowPaint(row: source, ramp: rowRamp, stripe: rowStripe, width: rowWidth),
                 columnWidths: columnWidths,
                 isFocused: held, isSelected: held, context: context, palette: palette)
             let line = row.line
@@ -5042,7 +5046,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// The half of a row's key that the FRAME settles — see `TableRowMemo.swift`.
     private func rowFrameKey(
-        columnWidths: [Int], gutter: Int, rowWidth: Int, context: RenderContext,
+        columnWidths: [Int], gutter: Int, rowWidth: Int, stripe: Color?, context: RenderContext,
         palette: any Palette
     ) -> TableRowFrameKey {
         TableRowFrameKey(
@@ -5055,7 +5059,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 isFocused: false, isSelected: true, context: context, palette: palette),
             unselectedMark: RowSelectionIndicator.forRow(
                 isFocused: false, isSelected: false, context: context, palette: palette),
-            stripe: Self.stripeFill(context: context, palette: palette),
+            stripe: stripe,
             alignments: columns.map(\.alignment),
             truncations: columns.map(\.truncationMode),
             lineLimits: columns.map(\.lineLimit),
@@ -5078,9 +5082,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// Opens the row store for a frame, or empties it if this table may not keep
     /// rows at all. Called once per frame by each row-composing path.
+    ///
+    /// - Parameter stripe: What this frame's striped rows wear
+    ///   (`frameStripe(context:palette:)`), which the key carries.
     private func beginRowMemo(
         handler: ItemListHandler<Value.ID>, columnWidths: [Int], gutter: Int, rowWidth: Int,
-        context: RenderContext, palette: any Palette
+        stripe: Color?, context: RenderContext, palette: any Palette
     ) {
         guard !context.isMeasuring else {
             handler.tableRowMemo.removeAll()
@@ -5088,7 +5095,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         handler.tableRowMemo.begin(
             frame: rowFrameKey(
-                columnWidths: columnWidths, gutter: gutter, rowWidth: rowWidth,
+                columnWidths: columnWidths, gutter: gutter, rowWidth: rowWidth, stripe: stripe,
                 context: context, palette: palette),
             viewportHeight: handler.viewportHeight,
             namesItsValues: columnsNameTheirValues)
@@ -5128,7 +5135,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 let repainted = Self.repainted(
                     bare,
                     under: rowVisualState(
-                        isFocused: false, isSelected: isSelected, isStriped: isStriped, context: context,
+                        isFocused: false, isSelected: isSelected, stripe: paint.stripe, context: context,
                         palette: palette
                     ).background,
                     rowWidth: paint.width, gutter: selectionGutter(context.environment))
@@ -5173,7 +5180,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // A row that moved to the other parity changes its stripe, which
         // neither its cells nor its selection say — and which `atParity`
         // repaints rather than composing the row again.
-        let isStriped = isStriped(row: paint.row, environment: context.environment)
+        let isStriped = paint.stripe != nil
         // And one that came to refuse selection draws faint, which its cells
         // do not say either.
         let isDimmed = selectionDisabledRows.contains(paint.row)
@@ -5345,7 +5352,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let visualState = rowVisualState(
             isFocused: isFocused,
             isSelected: isSelected,
-            isStriped: isStriped(row: row, environment: context.environment),
+            stripe: paint.stripe,
             context: context,
             palette: palette
         )
@@ -5733,6 +5740,27 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         /// The row's full width in cells — what the ramp was measured across.
         let width: Int
+
+        /// The stripe this row wears, or `nil` for none: the frame's stripe
+        /// (`frameStripe(context:palette:)`) on every other row, counting from
+        /// the first however far the table has scrolled, so the stripes stay on
+        /// their rows.
+        ///
+        /// The SECOND row and every other after it, the first left plain — the
+        /// phase a macOS table draws (measured on macOS 15.8 by sampling each
+        /// row's background in an offscreen `NSHostingView`, under `.automatic`,
+        /// `.inset` and `.bordered` alike: rows 1, 3 and 5 tinted, 0, 2 and 4 the
+        /// base; `D6L/probe/phase/phase.swift` in the session notes).
+        let stripe: Color?
+
+        /// - Parameter frameStripe: What this frame's striped rows wear, or `nil`
+        ///   where nothing stripes — see `frameStripe(context:palette:)`.
+        init(row: Int, ramp: RampSampler?, stripe frameStripe: Color?, width: Int) {
+            self.row = row
+            self.ramp = ramp
+            self.width = width
+            self.stripe = row.isMultiple(of: 2) ? nil : frameStripe
+        }
     }
 
     /// The laid-out cells of the rows a multi-line render is about to draw, and the
@@ -5795,7 +5823,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func rowVisualState(
         isFocused: Bool,
         isSelected: Bool,
-        isStriped: Bool,
+        stripe: Color?,
         context: RenderContext,
         palette: any Palette
     ) -> (indicator: String, indicatorColor: Color, background: RowBackground) {
@@ -5827,37 +5855,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // at all. `unfocusedSelectionVisibility(.hidden)` suppresses it, as it
                 // does the List's.
                 .tint(palette.selectedRowFill())
-            } else if isStriped {
+            } else if let stripe {
                 // Every other row, under `.alternatingRowBackgrounds()` — the
-                // tint a striped `List` draws, from the same place.
-                RowBackground(Self.stripeFill(context: context, palette: palette))
+                // tint a striped `List` draws, from the same place
+                // (``RowPaint/stripe``).
+                .fixed(stripe)
             } else {
                 .none
             }
         return (indicator.glyph, indicator.color, background)
     }
 
-    /// What a striped row paints behind itself here: the stripe over the surface
-    /// the table sits on (``RowBackground/alternatingStripe(palette:over:)``'s
-    /// colour), or `nil` for none. One derivation for the row and for the row
-    /// memo's frame key, which has to change whenever this does.
-    private static func stripeFill(context: RenderContext, palette: any Palette) -> Color? {
-        palette.stripeFill(over: context.environment.enclosingSurface)
-    }
-
-    /// Whether the row at `row` in `data` draws a stripe: every other row,
-    /// counting from the first however far the table has scrolled, so the
-    /// stripes stay on their rows. A table stripes by default, as a macOS
-    /// `Table` does under every style (measured; decisions A29), and
-    /// `.alternatingRowBackgrounds(.disabled)` turns them off.
+    /// What this frame's striped rows paint behind themselves: the stripe over
+    /// the surface the table sits on (``RowBackground/alternatingStripe(palette:over:)``'s
+    /// colour), or `nil` where no row stripes — under
+    /// `.alternatingRowBackgrounds(.disabled)`, or at a depth that draws none. A
+    /// table stripes by default, as a macOS `Table` does under every style
+    /// (measured; decisions A29).
     ///
-    /// The SECOND row and every other after it, the first left plain — the
-    /// phase a macOS table draws (measured on macOS 15.8 by sampling each row's
-    /// background in an offscreen `NSHostingView`, under `.automatic`, `.inset`
-    /// and `.bordered` alike: rows 1, 3 and 5 tinted, 0, 2 and 4 the base;
-    /// `D6L/probe/phase/phase.swift` in the session notes).
-    private func isStriped(row: Int, environment: EnvironmentValues) -> Bool {
-        !row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: true)
+    /// Derived ONCE per frame, by each path that composes rows, and handed to
+    /// every row in its ``RowPaint`` and to the row memo's frame key — one
+    /// derivation for both, which the key needs, since it has to change
+    /// whenever this does. Not per striped row: the derivation reads the
+    /// environment and the palette and weighs the stripe's contrast, the same
+    /// answer for every row of the frame, and asking it per row was 18 calls a
+    /// frame where 1 does on a 35-row table drawn cold. Not at all where
+    /// nothing stripes.
+    private static func frameStripe(context: RenderContext, palette: any Palette) -> Color? {
+        guard context.environment.alternatingRowBackgrounds.stripes(byDefault: true) else { return nil }
+        return palette.stripeFill(over: context.environment.enclosingSurface)
     }
 
     // MARK: - Text Alignment
