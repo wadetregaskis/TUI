@@ -130,16 +130,25 @@ struct TableRowMemoLine {
     /// row of a focused table is never kept (see `Table.renderRow`), so every
     /// entry is a row the cursor was not on.
     let isSelected: Bool
-    /// Whether the row drew a stripe (`.alternatingRowBackgrounds()`), which
-    /// follows its POSITION: a row that moved to the other parity draws
-    /// another background over the same cells — repainted from ``bare``, not
-    /// composed again (`Table.renderRow`), so `var`.
-    var isStriped: Bool
     /// Whether the row drew faint, refusing selection
     /// (`.selectionDisabled()`), which its cells do not say.
     let isDimmed: Bool
-    var line: String
-    var claims: [OpacityRegion]
+    /// The row as drawn without a stripe and with one, each kept once the row
+    /// has been drawn at that parity — composed there, or repainted there from
+    /// ``bare`` (`Table.renderRow`).
+    ///
+    /// A stripe follows the row's POSITION (`.alternatingRowBackgrounds()`),
+    /// so a row that moves to the other parity draws another background over
+    /// the same cells — and a row that keeps moving goes back and forth: every
+    /// row of a table tailing a log moves up one line, and so changes parity,
+    /// on every entry the log gains. Kept at one parity, as it was, each of
+    /// those rows was repainted on every frame — 35 repaints a frame on
+    /// `table-tail`, every visible row, where the table before stripes served
+    /// them all. Kept at both, a row is repainted once per parity it reaches
+    /// and served thereafter, for the price of one more line per kept row
+    /// that has worn both.
+    private var plain: TableRowDrawnLine?
+    private var striped: TableRowDrawnLine?
     /// The line as composed before its background, where that background was
     /// still — or `nil` for one that breathed, which is never kept anyway.
     ///
@@ -151,6 +160,33 @@ struct TableRowMemoLine {
     /// gained a row at the top — is what the memo exists to avoid, so the
     /// entry keeps what a repaint needs instead.
     let bare: TableRowBareLine?
+
+    /// - Parameters:
+    ///   - isStriped: Whether `drawn` wears the stripe — which of the two
+    ///     parities it is kept as.
+    ///   - drawn: The row as composed.
+    init(
+        row: AnyEquatableBox?, cells: [String], isSelected: Bool, isStriped: Bool, isDimmed: Bool,
+        drawn: TableRowDrawnLine, bare: TableRowBareLine?
+    ) {
+        self.row = row
+        self.cells = cells
+        self.isSelected = isSelected
+        self.isDimmed = isDimmed
+        self.bare = bare
+        if isStriped { striped = drawn } else { plain = drawn }
+    }
+
+    /// The row as kept at this parity, or `nil` where it has not been drawn
+    /// there yet.
+    func drawn(striped isStriped: Bool) -> TableRowDrawnLine? {
+        isStriped ? striped : plain
+    }
+
+    /// Keeps `drawn` as the row at this parity too.
+    mutating func keep(_ drawn: TableRowDrawnLine, striped isStriped: Bool) {
+        if isStriped { striped = drawn } else { plain = drawn }
+    }
 
     /// Whether this entry answers for a row whose cells are `cells`, at either
     /// parity (see ``bare``).
@@ -164,6 +200,13 @@ struct TableRowMemoLine {
     func answers(row other: AnyEquatableBox, isSelected: Bool, isDimmed: Bool) -> Bool {
         self.isSelected == isSelected && self.isDimmed == isDimmed && self.row == other
     }
+}
+
+/// One parity's drawing of a kept table row: the line, and the claims it owes
+/// (``SelectableRowClaims``). See ``TableRowMemoLine``.
+struct TableRowDrawnLine {
+    let line: String
+    let claims: [OpacityRegion]
 }
 
 /// A composed table row before its background is painted: what a repaint under

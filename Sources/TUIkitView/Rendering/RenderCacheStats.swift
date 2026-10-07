@@ -34,12 +34,22 @@ extension RenderCache {
         public var servedDrawing = 0
         /// Calls into an app's own cell value closures.
         public var cellValues = 0
+        /// Of ``served``, the `Table` rows served at a stripe parity they were
+        /// not kept at, and so repainted there from the kept line before it
+        /// was painted — the one thing a served row still draws. A row that
+        /// has been repainted at a parity is kept there too, so a table whose
+        /// rows keep changing parity (a log tailing into it) repaints each
+        /// row once per parity, not once per frame.
+        public var repainted = 0
 
-        public init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0) {
+        public init(
+            rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0
+        ) {
             self.rendered = rendered
             self.served = served
             self.servedDrawing = servedDrawing
             self.cellValues = cellValues
+            self.repainted = repainted
         }
 
         /// This minus `earlier`, for a per-frame reading rather than a total.
@@ -47,7 +57,7 @@ extension RenderCache {
             Self(
                 rendered: rendered - earlier.rendered, served: served - earlier.served,
                 servedDrawing: servedDrawing - earlier.servedDrawing,
-                cellValues: cellValues - earlier.cellValues)
+                cellValues: cellValues - earlier.cellValues, repainted: repainted - earlier.repainted)
         }
     }
 

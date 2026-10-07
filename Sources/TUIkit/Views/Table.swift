@@ -5129,19 +5129,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// Hands back a kept row, counted and — under the verifier — checked,
         /// with the payload its cells produced on THIS frame, never a kept one:
         /// see ``_TableRowPayload``.
-        func serve(_ kept: TableRowMemoLine) -> DrawnSingleLineRow {
+        func serve(_ kept: TableRowDrawnLine) -> DrawnSingleLineRow {
             context.renderCache?.rowWork.served += 1
             verifyRowServe(
                 kept.line, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
             return (kept.line, nil, nil, kept.claims, payload)
         }
-        /// `kept` at the stripe parity this row has NOW: as kept, or repainted
-        /// from its bare line under the background the other parity gives it —
-        /// `nil` where it has no bare line to repaint. See
-        /// ``TableRowMemoLine/bare``.
-        func atParity(_ kept: TableRowMemoLine, isStriped: Bool) -> TableRowMemoLine? {
-            guard kept.isStriped != isStriped else { return kept }
+        /// `kept` as drawn at the stripe parity this row has NOW: as kept at
+        /// that parity, or repainted from its bare line under the background
+        /// that parity gives it and kept there for the next time — `nil` where
+        /// it has no bare line to repaint. See ``TableRowMemoLine/bare`` and
+        /// ``TableRowMemoLine/drawn(striped:)``.
+        func atParity(_ kept: TableRowMemoLine, isStriped: Bool) -> TableRowDrawnLine? {
+            if let drawn = kept.drawn(striped: isStriped) { return drawn }
             guard let bare = kept.bare,
                 let repainted = Self.repainted(
                     bare,
@@ -5151,10 +5152,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     ).background,
                     rowWidth: paint.width, gutter: selectionGutter(context.environment))
             else { return nil }
-            var moved = kept
-            (moved.isStriped, moved.line, moved.claims) = (isStriped, repainted.line, repainted.claims)
-            handler?.tableRowMemo.keep(moved, for: item.id)
-            return moved
+            context.renderCache?.rowWork.repainted += 1
+            let drawn = TableRowDrawnLine(line: repainted.line, claims: repainted.claims)
+            var both = kept
+            both.keep(drawn, striped: isStriped)
+            handler?.tableRowMemo.keep(both, for: item.id)
+            return drawn
         }
         func compose(_ cells: [String]) -> (row: DrawnSingleLineRow, bare: TableRowBareLine?) {
             let row = renderRowUncached(
@@ -5190,7 +5193,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let rowBox = Self.rowsSignature(of: item)
         // A row that moved to the other parity changes its stripe, which
         // neither its cells nor its selection say — and which `atParity`
-        // repaints rather than composing the row again.
+        // serves as kept at that parity, or repaints, rather than composing
+        // the row again.
         let isStriped = paint.stripe != nil
         // And one that came to refuse selection draws faint, which its cells
         // do not say either.
@@ -5241,7 +5245,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.tableRowMemo.keep(
             TableRowMemoLine(
                 row: rowBox, cells: cells, isSelected: isSelected, isStriped: isStriped,
-                isDimmed: isDimmed, line: result.line, claims: result.claims, bare: bare),
+                isDimmed: isDimmed, drawn: TableRowDrawnLine(line: result.line, claims: result.claims),
+                bare: bare),
             for: item.id)
         return result
     }

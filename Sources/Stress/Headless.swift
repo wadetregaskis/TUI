@@ -344,11 +344,12 @@ enum Headless {
         let divisor = Double(max(1, frames))
         print(
             String(
-                format: "  rows/frame: %.1f composed, %.1f served (%.0f%%); "
+                format: "  rows/frame: %.1f composed, %.1f served (%.0f%%), %.1f of them repainted; "
                     + "cell values/frame: %.1f; clears: %d whole, %d subtree (%d entries visited)",
                 Double(work.rendered) / divisor, Double(work.served) / divisor,
                 work.rendered + work.served > 0
                     ? Double(work.served) / Double(work.rendered + work.served) * 100 : 0,
+                Double(work.repainted) / divisor,
                 Double(work.cellValues) / divisor, render.clears, render.subtreeClears, render.clearVisits))
     }
 

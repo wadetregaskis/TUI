@@ -143,6 +143,33 @@ struct AlternatingRowBackgroundsTests {
         #expect(!paintsBackground(line("row3", in: moved)))
     }
 
+    @Test("A kept row that moves back to a parity it was drawn at is served as kept there, not repainted again")
+    func parityMoveBackServes() throws {
+        var rows = Self.rows
+        let context = makeRenderContext(width: 30, height: 10)
+        let cache = try #require(context.renderCache)
+        func frame() -> FrameBuffer {
+            renderToBuffer(Table(rows) { TableColumn("Name", value: \Row.name) }, context: context)
+        }
+        for _ in 0..<3 { _ = frame() }
+        let unmoved = frame()
+        // A log tailing into the table: the rows move to the other parity and
+        // back again, entry after entry.
+        rows.insert(Row(id: 9, name: "new"), at: 0)
+        var before = cache.rowWork.repainted
+        _ = frame()
+        #expect(cache.rowWork.repainted - before >= 3, "the moved rows are repainted at their new parity")
+        rows.removeFirst()
+        before = cache.rowWork.repainted
+        let back = frame()
+        #expect(cache.rowWork.repainted - before == 0, "\(cache.rowWork.repainted - before) rows repainted on the way back")
+        #expect(back.lines == unmoved.lines)
+        rows.insert(Row(id: 9, name: "new"), at: 0)
+        before = cache.rowWork.repainted
+        _ = frame()
+        #expect(cache.rowWork.repainted - before == 0, "\(cache.rowWork.repainted - before) rows repainted at a parity they wore")
+    }
+
     @Test("A kept striped row takes the stripe of the surface the table moved onto")
     func memoFollowsTheSurface() throws {
         var context = makeRenderContext(width: 30, height: 10)
