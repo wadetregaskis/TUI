@@ -223,7 +223,9 @@ List(notes, selection: $selected) { note in Text(note.title) }
   from a row of a `List` or a lazy stack that the shortened page leaves out
   of its window: docked, it would go with its row, and the page would grow
   back and bring both again, frame after frame. Shown for a frame and gone,
-  it comes back as a modal, for as long as it stays presented. Only a
+  it comes back as a modal, for as long as it stays presented — a
+  `sheet(item:)` switched to another item included, since its row has not
+  moved. Only a
   presenter its own dock left out of a window: one drawn behind a modal, a
   context menu or a `.dimmed()` for a frame, or away for a frame with its
   tab, docks again when it is back.

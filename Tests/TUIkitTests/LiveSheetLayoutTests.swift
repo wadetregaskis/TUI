@@ -138,6 +138,8 @@ private struct RowSheetApp: App {
 @MainActor
 private final class RowItemModel {
     var note: LiveNote?
+    /// How many times the sheet's content has appeared.
+    var appearances = 0
     var binding: Binding<LiveNote?> { Binding(get: { self.note }, set: { self.note = $0 }) }
 }
 
@@ -155,6 +157,7 @@ private struct RowItemSheetApp: App {
                 Text("row \(index)")
                     .sheet(item: index == 15 ? model.binding : .constant(nil)) { note in
                         Panel("Note \(note.id)") { Text("x") }
+                            .onAppear { model.appearances += 1 }
                             .presentationDetents([.height(8), .large])
                             .presentationDragIndicator(.hidden)
                             .presentationBackgroundInteraction(.enabled)
@@ -327,6 +330,41 @@ struct LiveSheetLayoutTests {
         }
         #expect(drawn.allSatisfy { $0 }, "the second item's sheet went round the dock again: \(drawn)")
         #expect(app.nextWake(after: now) == nil)
+    }
+
+    /// The hold is about where the presenter's row sits, which another item
+    /// does not move; started over with the rest of the sheet's state on every
+    /// switch, it docked each new item's sheet, whose dock took the row away
+    /// again: drawn, gone, a modal again, and an appearance more each time.
+    @Test("A row-hosted live sheet held off the dock stays held across item switches")
+    func itemSwitchesKeepTheHold() {
+        let model = RowItemModel()
+        let app = HeadlessApp(RowItemSheetApp(model: model), width: 40, height: 20)
+        var now: Int64 = 0
+        func run(_ frames: Int) -> [Bool] {
+            var drawn: [Bool] = []
+            for _ in 0..<frames {
+                now += Self.frameNanos
+                app.frame(atNanos: now)
+                drawn.append(rows(app).contains { $0.contains("Note") })
+            }
+            return drawn
+        }
+        app.frame(atNanos: now)
+        model.note = LiveNote(id: 1)
+        // Drawn docked, gone with its row, then a modal for good.
+        _ = run(5)
+        #expect(rows(app).contains { $0.contains("Note 1") }, "precondition: settled as a modal: \(rows(app))")
+        #expect(app.nextWake(after: now) == nil, "precondition: idle")
+        for id in [2, 3] {
+            let appearances = model.appearances
+            model.note = LiveNote(id: id)
+            let drawn = run(4)
+            #expect(drawn.allSatisfy { $0 }, "switch to \(id): the sheet left its row again: \(drawn)")
+            #expect(rows(app).contains { $0.contains("Note \(id)") }, "\(rows(app))")
+            #expect(model.appearances - appearances <= 1, "switch to \(id): appeared \(model.appearances - appearances) times")
+            #expect(app.nextWake(after: now) == nil, "switch to \(id): not idle")
+        }
     }
 
     @Test("A terminal too short to leave the page three rows presents the sheet as a modal")

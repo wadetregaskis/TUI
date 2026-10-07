@@ -110,6 +110,10 @@ final class PresentationEntry {
     /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`) — a row of a lazy
     /// stack or a list that the shortened page left out. Docked again, the
     /// row would leave again, and the sheet with it.
+    ///
+    /// Kept when an `item:` sheet is switched to another item
+    /// (`startOver(forItem:context:)`), which does not move the row; cleared
+    /// only on a frame the sheet is closed.
     var isKeptOffTheDock = false
 
     /// The rows the live sheet was last drawn in, where that was fewer than

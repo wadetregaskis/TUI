@@ -53,10 +53,19 @@ extension ModalPresentationModifier {
     /// never closed — its binding stays non-`nil` — but the item's id is the
     /// sheet's identity, so another item is another sheet, as SwiftUI
     /// presents it.
+    ///
+    /// All but the hold off the dock (`PresentationEntry.isKeptOffTheDock`),
+    /// which is about where the PRESENTER's row sits, and another item does
+    /// not move it. Cleared here, every switch docked the next item's sheet,
+    /// whose dock pushed the row out again: drawn, gone with the focus on the
+    /// page, a modal again — two frames of flicker, and an appearance and a
+    /// disappearance more, on every switch.
     func startOver(forItem itemKey: String, context: RenderContext) {
         let entry = presentationEntry(context: context)
         guard entry.itemKey != itemKey else { return }
+        let isKeptOffTheDock = entry.isKeptOffTheDock
         startOver(context: context)
+        entry.isKeptOffTheDock = isKeptOffTheDock
         entry.itemKey = itemKey
     }
 }

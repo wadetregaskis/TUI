@@ -144,6 +144,13 @@ posted nothing, and a presenter drawn into the backdrop of a `.modal`, a
 with its tab or navigation destination: a one-frame "Saving…" modal turned
 the live sheet into a modal for the rest of its presentation.
 
+And for the whole presentation, an `item:` sheet's switches to other items
+included (follow-up FU3): the switch starts the sheet over
+(`startOver(forItem:context:)`) but keeps the hold, which is about where the
+presenter's row sits. Cleared with the rest, every switch docked the next
+item's sheet, the dock took the row away again, and the sheet came back as a
+modal two frames later, appearing twice.
+
 **The fuller version, and its price:** keep the row in the window instead —
 the page's lazy container told, through the ledger, to scroll so that the
 presenting row stays above the dock (as it reveals the focused row), and the
