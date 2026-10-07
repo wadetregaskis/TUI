@@ -490,9 +490,10 @@ extension ScreenSelection {
 
 // MARK: - Drawing the highlight
 
-extension ScreenSelection {
+// Field text's selection look, shared with the text inputs (``FieldTextLayout``).
+extension ScreenSelection: FieldTextLayout {
     /// `buffer` with `selection`'s cells drawn in the selection colours of the
-    /// text inputs (`TextFieldContentRenderer.selectionColors`), reverse video
+    /// text inputs (``FieldTextLayout/selectionColors(palette:background:ink:)``), reverse video
     /// where the palette leaves the colours to the terminal.
     ///
     /// Composited as a painted layer over the page, so the cells
@@ -502,7 +503,7 @@ extension ScreenSelection {
     static func highlighting(_ selection: Selection, in buffer: FrameBuffer, palette: any Palette)
         -> FrameBuffer
     {
-        let colors = TextFieldContentRenderer.selectionColors(palette: palette, background: nil)
+        let colors = Self.selectionColors(palette: palette, background: nil)
             .resolved(with: palette)
         var style = TextStyle()
         style.foregroundColor = colors.isReversed ? colors.background : colors.foreground

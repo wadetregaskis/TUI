@@ -15,8 +15,10 @@
 ///
 /// This renderer extracts that shared logic. The caller provides a
 /// `displayCharacter` closure that maps text indices to display characters.
+/// Its selection colours are the substrate's (``FieldTextLayout``), which the
+/// screen's own selection draws in too.
 @MainActor
-struct TextFieldContentRenderer {
+struct TextFieldContentRenderer: FieldTextLayout {
 
     /// The prompt view shown when the field is empty and unfocused.
     let prompt: Text?
@@ -392,65 +394,6 @@ struct TextFieldContentRenderer {
         return (widths, scrollStart, scrollStart + width)
     }
 
-    /// What a selected cell paints: the highlight's own pair, or — where that
-    /// highlight cannot be measured — the cell's pair, exchanged by reverse video.
-    struct SelectionStyle {
-        /// The colour the selected cells are filled with. Reversed, the colour the
-        /// terminal exchanges INTO them, which is the field the cell already had.
-        let background: Color
-
-        /// The colour the selected text is drawn in. Reversed, the cell's own ink.
-        let foreground: Color
-
-        /// Whether the pair is stated beside an SGR 7 rather than painted directly.
-        let isReversed: Bool
-
-        /// Every colour resolved against `palette`. A custom palette may state a role
-        /// semantically, and ``RunAccumulator`` hands its colours to ``ANSIRenderer``
-        /// as they are, which traps on `.semantic`.
-        func resolved(with palette: any Palette) -> Self {
-            Self(
-                background: background.resolve(with: palette),
-                foreground: foreground.resolve(with: palette), isReversed: isReversed)
-        }
-    }
-
-    /// The selection highlight's background and the text colour that reads on
-    /// it.
-    ///
-    /// A blend needs something concrete to blend TOWARD, and a `.plain` field
-    /// has no surface to name — so the palette's background stands in. The
-    /// selection is an opaque highlight either way; this only decides its
-    /// exact tint.
-    ///
-    /// Where the accent or that ground has no RGB there is no tint to draw at all:
-    /// every share of such a blend is one end or the other, so 60% of the accent is
-    /// either a solid accent under text nobody can check for contrast or the ground
-    /// itself, which shows nothing (`Documentation/Opacity as composition.md` §75,
-    /// §87). The cell's own pair is exchanged instead — reverse video is the one
-    /// highlight a terminal paints legibly whatever colours it keeps — and, since it is
-    /// the CELL that is reversed, the ink is the field's own, a `.textFieldTextStyle`
-    /// override included, rather than the palette's. Both sides are stated opaque, as
-    /// every reversal is, so a reversed cell claims nothing.
-    ///
-    /// - Parameter ink: What the field draws its text in, for the reversed case.
-    ///   Defaults to the palette's foreground, for a caller with no cell in hand.
-    static func selectionColors(
-        palette: any Palette, background: Color?, ink: Color? = nil
-    ) -> SelectionStyle {
-        let ground = background ?? palette.background
-        let selection = palette.accent.opacity(ViewConstants.selectionIndicator, over: ground)
-        guard palette.highlightFill(selection, over: ground, tint: palette.accent).isReversed
-        else {
-            return SelectionStyle(
-                background: selection, foreground: palette.readableText(on: selection),
-                isReversed: false)
-        }
-        return SelectionStyle(
-            background: ground.opaqueSpelling,
-            foreground: (ink ?? palette.foreground).opaqueSpelling, isReversed: true)
-    }
-
     /// A focused field's content: the text, its selection, and the caret at
     /// `cursorPosition` — or no caret, where `cursorPosition` is `nil`, for a
     /// row of a vertical field that the caret is not on. Without a caret the
@@ -631,7 +574,7 @@ struct TextFieldContentRenderer {
     /// which both callers already hold separately.
     static func caretSetup(  // swiftlint:disable:this function_parameter_count
         palette: any Palette, background: Color?, textForeground: Color,
-        selection: SelectionStyle,
+        selection: FieldSelectionStyle,
         cursorStyle: TextCursorStyle, speed: IndicatorAnimationSpeed, cursorTimer: CursorTimer?,
         timing: IndicatorCycleTiming?, appearsActive: Bool
     ) -> (cycle: CursorCycle, colors: CaretColors) {

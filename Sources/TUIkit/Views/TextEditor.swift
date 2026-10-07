@@ -753,7 +753,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     private struct RowStyling {
         let background: Color?
         let text: Color
-        let selection: TextFieldContentRenderer.SelectionStyle
+        let selection: FieldSelectionStyle
 
         @MainActor
         init(palette: any Palette, isDisabled: Bool, background: Color?) {
