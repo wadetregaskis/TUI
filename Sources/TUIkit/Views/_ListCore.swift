@@ -4442,7 +4442,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         guard stripesRows(style: style, environment: context.environment),
             sectionContentIndex.isMultiple(of: 2)
         else { return .none }
-        return .alternatingStripe(palette: palette)
+        return .alternatingStripe(palette: palette, over: context.environment.enclosingSurface)
     }
 
     /// Whether this list stripes its rows: as `.alternatingRowBackgrounds(_:)`

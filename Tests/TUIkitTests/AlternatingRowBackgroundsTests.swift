@@ -75,6 +75,21 @@ struct AlternatingRowBackgroundsTests {
         }
     }
 
+    @Test("A table on a surface stripes over the surface, not over the page")
+    func stripesOverTheSurfaceItSitsOn() throws {
+        var context = makeRenderContext(width: 30, height: 10)
+        let palette = context.environment.palette
+        // What a `TabView`'s body publishes for its content.
+        let surface = context.environment.liftedSurface
+        let expected = try #require(palette.stripeFill(over: surface))
+        let overPage = try #require(palette.stripeFill(over: palette.background))
+        try #require(expected != overPage, "the test palette cannot tell the two grounds apart")
+        context.environment.surfaceBackground = surface
+        let buffer = renderToBuffer(Table(Self.rows) { TableColumn("Name", value: \Row.name) }, context: context)
+        let striped = line("row2", in: buffer)
+        #expect(striped.contains(expected.backgroundEscape()), "row2 is \(striped.debugDescription)")
+    }
+
     @Test("A table told not to stripe draws no stripes")
     func tableUnstripedWhenDisabled() {
         let buffer = table(.disabled)

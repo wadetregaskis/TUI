@@ -5728,7 +5728,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             } else if isStriped {
                 // Every other row, under `.alternatingRowBackgrounds()` — the
                 // tint a striped `List` draws, from the same place.
-                .alternatingStripe(palette: palette)
+                .alternatingStripe(palette: palette, over: context.environment.enclosingSurface)
             } else {
                 .none
             }
