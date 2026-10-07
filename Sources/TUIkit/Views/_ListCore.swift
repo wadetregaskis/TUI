@@ -4590,6 +4590,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// Nothing, too, where the tint cannot be measured: a band of
     /// reverse video down every other row would read as a screen
     /// full of cursors (``RowBackground/tint(_:)``).
+    ///
+    /// The second row and every other after it, the first left plain — a macOS
+    /// list's phase, as a table's (``Table``'s `isStriped(row:environment:)`
+    /// says where it was measured).
     private func alternatingBackgroundIfAny(
         sectionContentIndex: Int,
         style: any ListStyle,
@@ -4597,7 +4601,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         palette: any Palette
     ) -> RowBackground {
         guard stripesRows(style: style, environment: context.environment),
-            sectionContentIndex.isMultiple(of: 2)
+            !sectionContentIndex.isMultiple(of: 2)
         else { return .none }
         return .alternatingStripe(palette: palette, over: context.environment.enclosingSurface)
     }

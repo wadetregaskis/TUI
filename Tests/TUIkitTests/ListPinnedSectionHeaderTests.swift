@@ -151,9 +151,9 @@ struct ListPinnedSectionHeaderTests {
         for line in buffer.lines {
             let text = line.stripped
             guard let match = text.firstMatch(of: /fruit(\d+)/), let index = Int(match.output.1) else { continue }
-            // Row `fruitN` is the section's Nth row: even ones stripe — unless it is
+            // Row `fruitN` is the section's Nth row: odd ones stripe — unless it is
             // the cursor's, which wears the focus wash instead.
-            if index.isMultiple(of: 2), !line.contains("●") {
+            if !index.isMultiple(of: 2), !line.contains("●") {
                 #expect(line.contains("\u{1B}[48;"), "fruit\(index) lost its stripe")
             }
         }

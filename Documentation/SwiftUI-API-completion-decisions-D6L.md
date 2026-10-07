@@ -176,3 +176,26 @@ modifier itself, since `listRowSeparator` does not forward guides — is not
 seen; a row of several views (decisions B15) reads no guides. A selected or
 cursor row's highlight runs under its own separator line, so the highlight is
 the row's full height. Each is an hour or two where it matters.
+
+### B-D6L-4. Stripes restart at each section; macOS counts on across them
+
+*`alternatingRowBackgrounds` on a sectioned `List` (decisions A29/A46)*
+
+**Measured (macOS 15.8, offscreen `NSHostingView`, each row's background
+sampled; `D6L/probe/phase/phase.swift` in the session notes):** a list's
+stripes tint the second content row and every other after it — the phase
+TUIkit now draws, for tables and lists alike — and in a sectioned list they
+count the content rows across the sections, headers not counted: three rows
+under A then three under B tint A's second and B's first and third.
+
+**Shipped:** TUIkit's count restarts at each section's first row, as it always
+has (`ListStyle.alternatingRowColors`), so B's first row is plain. Unmeasured
+for a sectioned `Table` (decisions A31), which counts its own way.
+
+**The fuller version:** one count across the list. The composers seed the
+count from the rows above the window (`RowSource.sectionContentIndex(at:)`),
+which today walks back only to the section's header; across sections it walks
+to the list's top, asking every row above the window its type — O(rows above)
+a frame on a long list whose types are still to be asked. A prefix count of
+the content rows, kept per source beside its section chrome, makes it a binary
+search again: about two hours.

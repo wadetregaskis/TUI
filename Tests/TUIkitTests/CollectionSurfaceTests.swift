@@ -63,9 +63,10 @@ struct CollectionSurfaceTests {
         let text = buffer.lines.map(\.stripped).joined()
         #expect(!text.contains("╭") && !text.contains("│"), "a surface table draws a border")
         let header = buffer.lines.first { $0.stripped.contains("Name") } ?? ""
-        let plainRow = buffer.lines.first { $0.stripped.contains("row1") } ?? ""
+        // Row 2 is unstriped: the second row is the first a table stripes.
+        let plainRow = buffer.lines.first { $0.stripped.contains("row2") } ?? ""
         let headerField = field(in: header, at: "Name")
-        let rowField = field(in: plainRow, at: "row1")
+        let rowField = field(in: plainRow, at: "row2")
         #expect(headerField != nil, "the header paints no field")
         #expect(rowField != nil, "an unstriped row paints no field: it is not on the surface")
         #expect(headerField != rowField, "the header and the rows share one tone")
@@ -85,7 +86,7 @@ struct CollectionSurfaceTests {
     @Test("A bordered or inset table paints no surface")
     func otherStylesPaintNone() {
         for buffer in [table(.automatic), table(.inset)] {
-            let plainRow = buffer.lines.first { $0.stripped.contains("row1") } ?? ""
+            let plainRow = buffer.lines.first { $0.stripped.contains("row2") } ?? ""
             #expect(firstField(plainRow) == nil)
         }
     }
@@ -101,8 +102,8 @@ struct CollectionSurfaceTests {
         context.environment.palette = palette
         let buffer = renderToBuffer(
             Table(Self.rows) { TableColumn("Name", value: \Row.name) }.tableStyle(.surface), context: context)
-        let striped = buffer.lines.first { $0.stripped.contains("row2") } ?? ""
-        #expect(striped.contains(expected.backgroundEscape()), "row2 is \(striped.debugDescription)")
+        let striped = buffer.lines.first { $0.stripped.contains("row1") } ?? ""
+        #expect(striped.contains(expected.backgroundEscape()), "row1 is \(striped.debugDescription)")
     }
 
     @Test("A surface list draws no border, its section headers on a tone of their own")

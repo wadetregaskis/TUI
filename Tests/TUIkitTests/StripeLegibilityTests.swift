@@ -134,7 +134,7 @@ struct StripeLegibilityTests {
             context.environment.palette = palette
             return renderToBuffer(Table(rows) { TableColumn("Name", value: \Row.name) }, context: context)
         }
-        let row2 = buffer.lines.first { $0.stripped.contains("row2") } ?? ""
-        #expect(row2.contains("48;5;\(index)m") || row2.contains("48;5;\(index);"), "row2 is \(row2.debugDescription)")
+        let row1 = buffer.lines.first { $0.stripped.contains("row1") } ?? ""
+        #expect(row1.contains("48;5;\(index)m") || row1.contains("48;5;\(index);"), "row1 is \(row1.debugDescription)")
     }
 }

@@ -44,12 +44,15 @@ struct AlternatingRowBackgroundsTests {
     // Row 0 is the cursor row of a focused table, which wears the focus wash
     // whatever the stripes do, so the rows below it are the ones that tell.
 
-    @Test("A striped table tints every other row, from the first")
+    // The phase is macOS's, measured: the second row is the first tinted
+    // (`Table.isStriped(row:environment:)` says where).
+
+    @Test("A striped table tints every other row, from the second")
     func tableStripes() {
         let buffer = table(.enabled)
-        #expect(!paintsBackground(line("row1", in: buffer)))
-        #expect(paintsBackground(line("row2", in: buffer)))
-        #expect(!paintsBackground(line("row3", in: buffer)))
+        #expect(paintsBackground(line("row1", in: buffer)))
+        #expect(!paintsBackground(line("row2", in: buffer)))
+        #expect(paintsBackground(line("row3", in: buffer)))
     }
 
     @Test("A table stripes by default, as a macOS table does (decisions A29)", arguments: [
@@ -57,9 +60,9 @@ struct AlternatingRowBackgroundsTests {
     ])
     func tableStripesByDefault(_ behavior: AlternatingRowBackgroundBehavior?) {
         let buffer = table(behavior)
-        #expect(!paintsBackground(line("row1", in: buffer)))
-        #expect(paintsBackground(line("row2", in: buffer)))
-        #expect(!paintsBackground(line("row3", in: buffer)))
+        #expect(paintsBackground(line("row1", in: buffer)))
+        #expect(!paintsBackground(line("row2", in: buffer)))
+        #expect(paintsBackground(line("row3", in: buffer)))
     }
 
     @Test("A table stripes under every built-in style")
@@ -70,8 +73,8 @@ struct AlternatingRowBackgroundsTests {
             renderToBuffer(base.tableStyle(.inset), context: context),
             renderToBuffer(base.tableStyle(.bordered), context: context),
         ] {
-            #expect(paintsBackground(line("row2", in: buffer)))
-            #expect(!paintsBackground(line("row3", in: buffer)))
+            #expect(paintsBackground(line("row1", in: buffer)))
+            #expect(!paintsBackground(line("row2", in: buffer)))
         }
     }
 
@@ -86,8 +89,8 @@ struct AlternatingRowBackgroundsTests {
         try #require(expected != overPage, "the test palette cannot tell the two grounds apart")
         context.environment.surfaceBackground = surface
         let buffer = renderToBuffer(Table(Self.rows) { TableColumn("Name", value: \Row.name) }, context: context)
-        let striped = line("row2", in: buffer)
-        #expect(striped.contains(expected.backgroundEscape()), "row2 is \(striped.debugDescription)")
+        let striped = line("row1", in: buffer)
+        #expect(striped.contains(expected.backgroundEscape()), "row1 is \(striped.debugDescription)")
     }
 
     @Test("A table told not to stripe draws no stripes")
@@ -101,7 +104,7 @@ struct AlternatingRowBackgroundsTests {
         let buffer = renderToBuffer(
             Table(Self.rows) { TableColumn("Name", value: \Row.name) }.alternatingRowBackgrounds(),
             context: makeRenderContext(width: 30, height: 10))
-        #expect(paintsBackground(line("row2", in: buffer)))
+        #expect(paintsBackground(line("row1", in: buffer)))
     }
 
     @Test("A striped list tints every other row as a striped table does")
@@ -109,13 +112,13 @@ struct AlternatingRowBackgroundsTests {
         let list = List(Self.rows) { row in Text(row.name) }
         let context = makeRenderContext(width: 30, height: 10)
         let striped = renderToBuffer(list.alternatingRowBackgrounds(), context: context)
-        #expect(paintsBackground(line("row2", in: striped)))
-        #expect(!paintsBackground(line("row1", in: striped)))
+        #expect(paintsBackground(line("row1", in: striped)))
+        #expect(!paintsBackground(line("row2", in: striped)))
         // A list keeps macOS's answer: no stripes unless asked (decisions A46).
         let plain = renderToBuffer(list, context: context)
-        #expect(!paintsBackground(line("row2", in: plain)))
+        #expect(!paintsBackground(line("row1", in: plain)))
         let automatic = renderToBuffer(list.alternatingRowBackgrounds(.automatic), context: context)
-        #expect(!paintsBackground(line("row2", in: automatic)))
+        #expect(!paintsBackground(line("row1", in: automatic)))
     }
 
     @Test("A kept row that moves to the other parity redraws its stripe")
@@ -131,11 +134,11 @@ struct AlternatingRowBackgroundsTests {
         _ = frame()
         _ = frame()
         let before = frame()
-        #expect(paintsBackground(line("row2", in: before)))
-        #expect(!paintsBackground(line("row3", in: before)))
+        #expect(paintsBackground(line("row1", in: before)))
+        #expect(!paintsBackground(line("row2", in: before)))
         rows.insert(Row(id: 9, name: "new"), at: 0)
         let moved = frame()
-        #expect(!paintsBackground(line("row2", in: moved)))
-        #expect(paintsBackground(line("row3", in: moved)))
+        #expect(!paintsBackground(line("row1", in: moved)))
+        #expect(paintsBackground(line("row2", in: moved)))
     }
 }

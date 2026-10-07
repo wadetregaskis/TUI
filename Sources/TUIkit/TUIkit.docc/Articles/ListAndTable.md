@@ -304,8 +304,9 @@ Table(of: Item.self, selection: $selection) {
 
 ### Striped Rows
 
-A table tints every other row, as a macOS table does, counting from each
-section's first row however far the content has scrolled; a list does not.
+A table tints every other row, as a macOS table does — the second, the
+fourth and so on, the first left plain — counting from each section's first
+row however far the content has scrolled; a list does not.
 `.alternatingRowBackgrounds(_:)` says otherwise for the tables and lists
 inside it: `.enabled` stripes a list too, `.disabled` leaves a table plain. A
 focused or selected row keeps its own highlight.

@@ -5761,8 +5761,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// stripes stay on their rows. A table stripes by default, as a macOS
     /// `Table` does under every style (measured; decisions A29), and
     /// `.alternatingRowBackgrounds(.disabled)` turns them off.
+    ///
+    /// The SECOND row and every other after it, the first left plain — the
+    /// phase a macOS table draws (measured on macOS 15.8 by sampling each row's
+    /// background in an offscreen `NSHostingView`, under `.automatic`, `.inset`
+    /// and `.bordered` alike: rows 1, 3 and 5 tinted, 0, 2 and 4 the base;
+    /// `D6L/probe/phase/phase.swift` in the session notes).
     private func isStriped(row: Int, environment: EnvironmentValues) -> Bool {
-        row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: true)
+        !row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: true)
     }
 
     // MARK: - Text Alignment

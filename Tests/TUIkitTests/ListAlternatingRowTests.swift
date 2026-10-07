@@ -1,8 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ListAlternatingRowTests.swift
 //
-//  `ListStyle.alternatingRowColors` tints "every even-indexed row within a
-//  section". Both of `_ListCore`'s composers counted that index from the first
+//  `ListStyle.alternatingRowColors` tints every other row within a section —
+//  the odd-indexed ones, macOS's phase. Both of `_ListCore`'s composers counted that index from the first
 //  row they DREW, which is the row's own index only while the list sits at the
 //  top: scrolled to an odd row, every stripe moved onto the row beside it, and
 //  each wheel tick moved them all again. The only render test rendered three
@@ -95,7 +95,7 @@ struct ListAlternatingRowTests {
         return rows
     }
 
-    /// Every drawn row that breaks "tinted exactly when its index is even", and
+    /// Every drawn row that breaks "tinted exactly when its index is odd", and
     /// whether any frame put an odd row at the top of the window. That is the case
     /// the bug needs, so a run that never reached one proves nothing.
     private func stripeOffenders(zebra: [[String]], flat: [[String]]) -> (offenders: [String], oddTop: Bool) {
@@ -106,14 +106,14 @@ struct ListAlternatingRowTests {
             if let top = rows.first, !top.index.isMultiple(of: 2) { oddTop = true }
             // The cursor starts on r0 and the wheel leaves it there. Its focus
             // highlight replaces the stripe in BOTH renders, so r0 says nothing.
-            for row in rows where row.index != 0 && row.tinted != row.index.isMultiple(of: 2) {
+            for row in rows where row.index != 0 && row.tinted == row.index.isMultiple(of: 2) {
                 offenders.append("frame \(frame): r\(row.index) \(row.tinted ? "tinted" : "plain")")
             }
         }
         return (offenders, oddTop)
     }
 
-    @Test("A scrolled flat List keeps its stripes on its even rows", arguments: ScrollIndicatorStyle.allCases)
+    @Test("A scrolled flat List keeps its stripes on its odd rows", arguments: ScrollIndicatorStyle.allCases)
     func flatListStripesStayOnTheirRows(style: ScrollIndicatorStyle) {
         let result = stripeOffenders(
             zebra: wheeledFrames(flatList(zebra: true), style: style),
@@ -126,7 +126,7 @@ struct ListAlternatingRowTests {
     /// taken from the row index alone would be off by one here, which is why the
     /// eager path walks back to the header.
     @Test(
-        "A scrolled Section keeps its stripes on its even rows once the header is gone",
+        "A scrolled Section keeps its stripes on its odd rows once the header is gone",
         arguments: ScrollIndicatorStyle.allCases)
     func sectionStripesStayOnTheirRows(style: ScrollIndicatorStyle) {
         let result = stripeOffenders(

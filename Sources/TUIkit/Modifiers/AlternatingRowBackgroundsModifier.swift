@@ -67,9 +67,10 @@ extension View {
     ///
     /// A striped row is tinted with the palette's accent at low opacity — the
     /// tint a `ListStyle` that asks for stripes has always drawn — under every
-    /// other row, counting from each section's first row however far the
-    /// content has scrolled, so the stripes stay on their rows. A focused or
-    /// selected row keeps its own highlight.
+    /// other row: the second, the fourth and so on, counting from each
+    /// section's first row however far the content has scrolled, so the
+    /// stripes stay on their rows. A focused or selected row keeps its own
+    /// highlight.
     ///
     /// ```swift
     /// Table(people) {
