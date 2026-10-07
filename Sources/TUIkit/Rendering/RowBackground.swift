@@ -239,10 +239,11 @@ enum RowBackground {
     /// ``String/withPersistentBackground(_:)`` leaves it; a reversal closes itself with
     /// a reset. Both re-state themselves after every reset inside the line, because a
     /// row may reset inside itself before its plain padding: a list row closes every
-    /// styled run with one, as a table row does under a reversal or no fill; under a
-    /// still fill a table row closes its runs with SGR 39, which leaves the fill in
-    /// force, and resets only after a cell whose text carries escapes of its own
-    /// (`TableRowInk`). For the reversal the restating is the whole
+    /// styled run with one, as a table row does under a reversal; elsewhere a table
+    /// row states its ink once per run of plain cells and resets after a cell whose
+    /// text carries escapes of its own, and at the end of its ink where it has no
+    /// still fill — under one it closes its ink with SGR 39, which leaves the fill in
+    /// force (`TableRowInk`). For the reversal the restating is the whole
     /// point: the 7 exchanges the colours IN FORCE, so without the palette's
     /// ink and field restated beside it the padding would fill with the terminal's own
     /// foreground (`ANSIRenderer.applyPersistentReverse(_:ink:field:)`).

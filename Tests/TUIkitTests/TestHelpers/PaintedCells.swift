@@ -28,6 +28,18 @@ struct PaintedCell {
     /// glyph is drawn in. Only a glyph shows it — a blank cell's ink is
     /// invisible unless an underline or a strike draws it.
     var ink: SGRState.Colour? { state.foregroundColour }
+
+    /// The state as far as it can be SEEN: ``state``, less what a blank cell does
+    /// not show — its ink, and the weight, faintness and slant of a glyph it does
+    /// not draw — unless an underline or a strike draws the ink there, or reverse
+    /// video makes the ink the cell's fill. Two spellings of a line that agree on
+    /// this for every column paint the same picture.
+    var visibleState: SGRState {
+        guard glyph == " ", !state.paintsInkOnBlankCell, !state.reversesVideo else { return state }
+        var shown = state
+        shown.apply("\u{1B}[22;23;39m")
+        return shown
+    }
 }
 
 /// `line` as the columns it paints, left to right.

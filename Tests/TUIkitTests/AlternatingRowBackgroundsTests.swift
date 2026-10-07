@@ -170,7 +170,7 @@ struct AlternatingRowBackgroundsTests {
         #expect(cache.rowWork.repainted - before == 0, "\(cache.rowWork.repainted - before) rows repainted at a parity they wore")
     }
 
-    /// A striped row closes its cells with SGR 39 rather than a reset, so the
+    /// A striped row closes its ink with SGR 39 rather than a reset, so the
     /// stripe stays in force and is stated once (`TableRowInk`).
     /// Every cell must be what the persistent paint drew before: the unstriped
     /// row's cell with the stripe under it, inside the row, and the unstriped

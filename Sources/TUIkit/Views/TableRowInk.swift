@@ -1,7 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  TableRowInk.swift
 //
-//  How a `Table` row states the ink its cells are drawn in, and closes it.
+//  How a `Table` row states the ink its cells are drawn in: once for every run
+//  of cells whose text carries no escapes of its own, not once per cell.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -9,12 +10,41 @@
 import TUIkitStyling
 
 /// Writes one line of a table row's ink: the selection mark in its colour, then
-/// each cell in the cells' ink, each run of ink stated before it and closed after
-/// it.
+/// each cell in the cells' ink, stated ONCE for every run of cells whose text
+/// carries no escapes of its own and closed once at the run's end (decisions
+/// A-SPF-1).
 ///
-/// One type for the single-line and the multi-line row, which spelled the same
-/// rule twice (`_TableCore.renderRowUncached` and `renderMultiLineRow`).
+/// A row opened every cell with the ink and closed it again — a reset, or SGR 39
+/// under a still fill — so an eight-column row spent about 207 bytes of escapes
+/// at truecolor on what one introducer and one close say, striped or not, and
+/// every one of those bytes was carried up through every container, copied and
+/// scanned for width on every frame the table was drawn. The ink may run on
+/// across the spacing between two cells because a blank cell shows no ink: what
+/// it draws is its FIELD. What this is NOT is a change to what any cell draws:
+/// every glyph is in the ink it was in, every field is the field it was, and only
+/// the SGR state of the blank cells between them differs — which no terminal
+/// shows, and which the opacity resolution reads as the terminal does, a blank
+/// cell's ink being its field (`OpacityBlend.displayedInk(of:defaultForeground:)`),
+/// so a translucent ink's claim over the spacing resolves as it did.
+/// `TableRowInkTests` compares the two spellings cell by cell through the grid
+/// a terminal paints.
+///
+/// It keeps a close per run where the shared ink could show:
+/// - after a cell whose text carries escapes of its own (a styled `Text`, a view
+///   cell's line) a reset ends the cell's bold or underline before the next one,
+///   and the ink is stated again for the cell after it;
+/// - under a REVERSAL (``RowBackground/reversed(ink:field:)``, a reversing
+///   breath) after every run, the mark's included, as before: under SGR 7 a
+///   cell's ink is the colour it is FILLED with, so a blank cell's ink shows, and
+///   the spacing must stay in the reversal's own restated pair;
+/// - and in a row whose ramp varies along it, which paints cell by cell
+///   (`PaintRenderer.band`) and asks this type for nothing but its mark.
 struct TableRowInk {
+    /// Whose ink is in force at the end of what has been written.
+    private enum InForce {
+        case nothing, mark, cells
+    }
+
     /// The cells' ink introducer, or `nil` where the row states none: no colour at
     /// this depth, or a ramp that paints the cells itself.
     let introducer: String?
@@ -27,33 +57,56 @@ struct TableRowInk {
     /// 39 under SGR 7 would change the colour a cell is filled with.
     let close: String
 
+    /// Whether a run of plain cells shares one introducer: everywhere but under a
+    /// reversal and along a banded row (see the type's comment).
+    let shares: Bool
+
     /// Whether ``close`` is a reset, which ends a cell's own escapes too, so a
     /// cell need not be scanned for them.
     private let closeIsReset: Bool
 
+    private var inForce = InForce.nothing
+
     /// - Parameters:
     ///   - introducer: The cells' ink introducer, `nil` where there is none.
     ///   - close: What ends a run of the row's ink.
-    init(introducer: String?, close: String) {
+    ///   - shares: Whether runs of plain cells share one introducer.
+    init(introducer: String?, close: String, shares: Bool) {
         self.introducer = introducer
         self.close = close
+        self.shares = shares
         closeIsReset = close == ANSIRenderer.reset
     }
 
     /// The ink of a row drawn under `background`: closed by SGR 39 under a still
-    /// fill and a reset otherwise.
-    init(introducer: String?, under background: RowBackground) {
-        guard case .fixed = background else {
-            self.init(introducer: introducer, close: ANSIRenderer.reset)
-            return
+    /// fill and a reset otherwise, shared everywhere but under a reversal and along
+    /// a row whose ramp bands it.
+    init(introducer: String?, under background: RowBackground, bandsAcrossRow: Bool) {
+        let reverses: Bool
+        let close: String
+        switch background {
+        case .fixed:
+            (reverses, close) = (false, ANSIRenderer.defaultForeground)
+        case .reversed, .pulsingReversal:
+            (reverses, close) = (true, ANSIRenderer.reset)
+        case .none, .pulsing:
+            (reverses, close) = (false, ANSIRenderer.reset)
         }
-        self.init(introducer: introducer, close: ANSIRenderer.defaultForeground)
+        self.init(introducer: introducer, close: close, shares: !reverses && !bandsAcrossRow)
     }
 
-    /// Writes the selection mark `glyph` in `colour`, closed by ``close`` —
+    /// Writes the selection mark `glyph` in `colour`.
+    ///
+    /// A blank mark — every unselected row's, in a table with a selection — states
+    /// no colour where runs share: a blank shows none. Where they do not (a
+    /// reversal, a banded row) it is spelled and closed as it always was:
     /// `ANSIRenderer.colorize(glyph, foreground: colour)`, byte for byte, when
     /// ``close`` is a reset.
     mutating func appendMark(_ glyph: String, in colour: Color, into content: inout String) {
+        if shares, glyph == " " {
+            content += glyph
+            return
+        }
         var style = TextStyle()
         style.foregroundColor = colour
         guard let sequence = ANSIRenderer.styleSequence(for: style) else {
@@ -62,27 +115,43 @@ struct TableRowInk {
         }
         content += sequence
         content += glyph
-        content += close
+        if shares {
+            inForce = .mark
+        } else {
+            content += close
+        }
     }
 
-    /// States the cells' ink before a cell whose text is `text`.
+    /// States the cells' ink before a cell whose text is `text`, unless it is in
+    /// force already. Where runs share, an empty cell — a wrapped row's line past a
+    /// shorter cell's last — states none: its spaces show none.
     mutating func open(before text: String, into content: inout String) {
-        guard let introducer else { return }
+        guard let introducer, inForce != .cells, !shares || !text.isEmpty else { return }
         content += introducer
+        inForce = .cells
     }
 
-    /// Closes the cell just written, whose text is `text`: with ``close``, unless
-    /// the text carries escapes of its own (a styled `Text`, a view's line), which a
-    /// reset has to end — SGR 39 would leave a bold or an underline of the cell's
-    /// running into the next one. Asks nothing of the text where ``close`` is a
-    /// reset already: the answer is a reset whatever the text holds, and walking
-    /// its bytes would be a scan per composed cell that cannot change it.
+    /// Closes the cell just written, whose text is `text`, where it has to be
+    /// closed: after every cell where runs do not share, and after a cell whose
+    /// text carries escapes of its own wherever they do — with a reset, which a
+    /// bold or an underline of the cell's needs, SGR 39 would leave it running into
+    /// the next cell. Asks nothing of the text where ``close`` is a reset already.
     mutating func close(after text: String, into content: inout String) {
-        guard introducer != nil else { return }
-        content += closeIsReset || !text.utf8.contains(0x1B) ? close : ANSIRenderer.reset
+        guard introducer != nil, inForce == .cells else { return }
+        if shares {
+            guard text.utf8.contains(0x1B) else { return }
+            content += ANSIRenderer.reset
+        } else {
+            content += closeIsReset || !text.utf8.contains(0x1B) ? close : ANSIRenderer.reset
+        }
+        inForce = .nothing
     }
 
-    /// Ends the line. Every run of ink is closed where it ends, so nothing is left
-    /// in force for what is drawn after the row — a scroll bar, a border.
-    mutating func finish(into content: inout String) {}
+    /// Ends the line: closes whatever ink is still in force, so nothing drawn after
+    /// the row — a scroll bar, a border — draws in it.
+    mutating func finish(into content: inout String) {
+        guard inForce != .nothing else { return }
+        content += close
+        inForce = .nothing
+    }
 }

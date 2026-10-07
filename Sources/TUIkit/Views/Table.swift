@@ -2428,8 +2428,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellStyle.foregroundColor = foreground.opaqueSpelling
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
-        // Each line states the ink around each cell (`TableRowInk`).
-        let rowInk = TableRowInk(introducer: cellSequence, under: visual.background)
+        // Each line states the ink once per run of plain cells (`TableRowInk`),
+        // and starts with none in force.
+        let rowInk = TableRowInk(introducer: cellSequence, under: visual.background, bandsAcrossRow: bandsAcrossRow)
         let cellCount = min(columns.count, columnWidths.count)
         var claims: [OpacityRegion] = []
 
@@ -3119,14 +3120,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // steering this", the dim says "it is not in the list right now",
             // and both are true at once. Substituting one for the other is why
             // a Table stopped dimming as soon as the move came from the
-            // keyboard. Persistent: `renderRow` resets inside the row — after
-            // every styled run where the row has no still fill, starting with
-            // the selection-indicator gutter, so a bare wrapper died at cell
-            // one; under a stripe or a tint (SGR 39 closes its runs, see
-            // `TableRowInk`) after any cell whose text carries escapes
-            // of its own. The dim goes onto every frame of the pulse for
-            // the same reason it goes onto the drawn line: a run that replayed
-            // the undimmed row would un-dim it on the first tick.
+            // keyboard. Persistent: `renderRow` can reset inside the row —
+            // after any cell whose text carries escapes of its own, at the end
+            // of its ink where the row has no still fill, and under a reversal
+            // after every styled run, starting with the selection mark (see
+            // `TableRowInk`) — and a bare wrapper dies at the first reset it
+            // meets, as one did at cell one. The dim goes onto every frame of
+            // the pulse for the same reason it goes onto the drawn line: a run
+            // that replayed the undimmed row would un-dim it on the first tick.
             return (
                 ANSIRenderer.applyPersistentDim(line),
                 frames.map { $0.map(ANSIRenderer.applyPersistentDim) },
@@ -5375,8 +5376,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Every cell of every row is coloured the same, so derive its SGR
         // introducer ONCE rather than rebuilding an identical `TextStyle` and
         // re-joining its codes per cell (`ANSIRenderer.render` was 18.1%
-        // inclusive of a `tables-scroll` frame, `buildStyleCodes` 6.8%).
-        // `sequence + text + reset` is byte-for-byte what `colorize` produces.
+        // inclusive of a `tables-scroll` frame, `buildStyleCodes` 6.8%) — and
+        // state it once per run of plain cells, not per cell (`TableRowInk`).
         // A ramp that varies ALONG the row cannot have one introducer for the
         // whole row, so that case paints cell by cell instead — through the
         // same walk `Text` uses, so the two cannot disagree about where a
@@ -5393,7 +5394,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellStyle.foregroundColor = cellInk.opaqueSpelling
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
-        var ink = TableRowInk(introducer: cellSequence, under: visualState.background)
+        var ink = TableRowInk(
+            introducer: cellSequence, under: visualState.background, bandsAcrossRow: bandsAcrossRow)
 
         // One buffer for the whole row. The previous form built a `[String]` of
         // styled cells, `joined` them, and concatenated the indicator and the
