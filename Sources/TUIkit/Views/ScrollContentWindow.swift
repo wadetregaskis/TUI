@@ -23,11 +23,12 @@ struct ScrollContentWindow: Sendable, Hashable {
     /// viewport, whose content it addresses — not by which mailbox happens to
     /// be attached for the reply to travel back through.
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.offset == rhs.offset && lhs.viewportHeight == rhs.viewportHeight
-            && lhs.contentIdentity == rhs.contentIdentity && lhs.edgeInset == rhs.edgeInset
-            && lhs.reportsIDAt == rhs.reportsIDAt && lhs.seek == rhs.seek
-            && lhs.linesAbove == rhs.linesAbove && lhs.linesBelow == rhs.linesBelow
-            && lhs.reportsTargetLayout == rhs.reportsTargetLayout
+        guard lhs.offset == rhs.offset, lhs.viewportHeight == rhs.viewportHeight,
+            lhs.contentIdentity == rhs.contentIdentity, lhs.edgeInset == rhs.edgeInset,
+            lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek,
+            lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow
+        else { return false }
+        return lhs.reportsTargetLayout == rhs.reportsTargetLayout
     }
 
     func hash(into hasher: inout Hasher) {

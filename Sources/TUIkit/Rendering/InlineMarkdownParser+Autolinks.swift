@@ -106,7 +106,7 @@ extension InlineMarkdownParser {
         // The scheme's letters are already in the text node being built.
         guard rewind > 0, let last = nodes.indices.last, nodes[last].kind == .text, !nodes[last].removed,
             nodes[last].atoms.count >= rewind,
-            Array(nodes[last].atoms.suffix(rewind)) == Array(source[(position - rewind)..<position])
+            nodes[last].atoms.suffix(rewind).elementsEqual(source[(position - rewind)..<position])
         else { return false }
         let domain = checkDomain(from: position + 3, allowShort: true)
         guard domain > 0 else { return false }

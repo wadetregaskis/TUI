@@ -82,7 +82,7 @@ enum TerminalTextAreaQuery {
         let prefix = Array("\u{1B}[4;".utf8)
         var index = 0
         while index + prefix.count < bytes.count {
-            guard Array(bytes[index..<(index + prefix.count)]) == prefix else {
+            guard bytes[index..<(index + prefix.count)].elementsEqual(prefix) else {
                 index += 1
                 continue
             }
@@ -111,8 +111,9 @@ enum TerminalTextAreaQuery {
     /// Whether one complete escape sequence is a window report,
     /// `CSI … t`. No key sends one.
     static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
-        sequence.count >= 3 && sequence.first == 0x1B
-            && sequence[sequence.startIndex + 1] == 0x5B && sequence.last == 0x74  // 't'
+        guard sequence.count >= 3, sequence.first == 0x1B, sequence[sequence.startIndex + 1] == 0x5B
+        else { return false }
+        return sequence.last == 0x74  // 't'
     }
 }
 

@@ -279,8 +279,10 @@ struct ImagePlaceholderSpinner: Sendable, Equatable {
         // `SpinnerStyle` carries a custom-frames case and is not `Equatable`, so
         // compare what is drawn, as `RefreshIndicator` does. The interval as well as
         // the frames: `.custom` with `.line`'s frames still steps at 7 ticks, not 8.
-        lhs.isShown == rhs.isShown && lhs.style.frames == rhs.style.frames
-            && lhs.style.interval == rhs.style.interval && lhs.color == rhs.color
+        guard lhs.isShown == rhs.isShown, lhs.style.frames == rhs.style.frames,
+            lhs.style.interval == rhs.style.interval
+        else { return false }
+        return lhs.color == rhs.color
     }
 }
 

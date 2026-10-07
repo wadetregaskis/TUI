@@ -27,10 +27,11 @@ struct FindNavigatorState: Equatable {
     var isReplaceDisabled = false
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.isPresented?.wrappedValue == rhs.isPresented?.wrappedValue
-            && (lhs.isPresented == nil) == (rhs.isPresented == nil)
-            && lhs.isFindDisabled == rhs.isFindDisabled
-            && lhs.isReplaceDisabled == rhs.isReplaceDisabled
+        guard lhs.isPresented?.wrappedValue == rhs.isPresented?.wrappedValue,
+            (lhs.isPresented == nil) == (rhs.isPresented == nil),
+            lhs.isFindDisabled == rhs.isFindDisabled
+        else { return false }
+        return lhs.isReplaceDisabled == rhs.isReplaceDisabled
     }
 }
 

@@ -85,7 +85,7 @@ enum TerminalModeQuery {
         let prefix = Array("\u{1B}[?\(mode);".utf8)
         var index = 0
         while index + prefix.count < bytes.count {
-            guard Array(bytes[index..<(index + prefix.count)]) == prefix else {
+            guard bytes[index..<(index + prefix.count)].elementsEqual(prefix) else {
                 index += 1
                 continue
             }

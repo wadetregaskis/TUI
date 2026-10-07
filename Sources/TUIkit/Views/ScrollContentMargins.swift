@@ -57,7 +57,10 @@ struct ContentMargins: Equatable, Sendable {
         var bottom: Int?
         var trailing: Int?
 
-        var isEmpty: Bool { top == nil && leading == nil && bottom == nil && trailing == nil }
+        var isEmpty: Bool {
+            guard top == nil, leading == nil, bottom == nil else { return false }
+            return trailing == nil
+        }
 
         mutating func state(_ edges: Edge.Set, _ insets: EdgeInsets) {
             if edges.contains(.top) { top = insets.top }

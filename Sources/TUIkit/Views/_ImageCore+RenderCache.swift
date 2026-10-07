@@ -81,27 +81,28 @@ struct ImageRenderCache: Equatable {
         templateInk: RGBA?,
         resizing: _ImageResizing?
     ) -> Bool {
-        self.rawImageWidth == rawImageWidth
-            && self.rawImageHeight == rawImageHeight
-            && self.width == width
-            && self.height == height
-            && self.characterSet == characterSet
-            && self.shapeAware == shapeAware
-            && self.colorMode == colorMode
-            && self.dithering == dithering
-            && self.toneCurve == toneCurve
-            && self.supersampling == supersampling
-            && self.edgeThreshold == edgeThreshold
-            && self.edgeContrast == edgeContrast
-            && self.contentMode == contentMode
-            && self.aspectRatioOverride == aspectRatioOverride
-            && self.cellAspect == cellAspect
-            && self.terminalColors == terminalColors
-            && self.templateInk == templateInk
-            && self.resizing == resizing
-            // Last: the scalar comparisons above reject the frequent miss — a
-            // resize — before this one runs. It is the field that decides
-            // correctness, not the one that usually decides the answer.
-            && self.source == source
+        guard self.rawImageWidth == rawImageWidth,
+            self.rawImageHeight == rawImageHeight,
+            self.width == width,
+            self.height == height,
+            self.characterSet == characterSet,
+            self.shapeAware == shapeAware,
+            self.colorMode == colorMode,
+            self.dithering == dithering,
+            self.toneCurve == toneCurve,
+            self.supersampling == supersampling,
+            self.edgeThreshold == edgeThreshold,
+            self.edgeContrast == edgeContrast,
+            self.contentMode == contentMode,
+            self.aspectRatioOverride == aspectRatioOverride,
+            self.cellAspect == cellAspect,
+            self.terminalColors == terminalColors,
+            self.templateInk == templateInk,
+            self.resizing == resizing
+        else { return false }
+        // Last: the scalar comparisons above reject the frequent miss — a
+        // resize — before this one runs. It is the field that decides
+        // correctness, not the one that usually decides the answer.
+        return self.source == source
     }
 }

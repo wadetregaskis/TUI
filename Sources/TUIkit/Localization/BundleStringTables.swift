@@ -199,7 +199,9 @@ final class BundleStringTables {
     /// either written out (`tableName: "Localizable"`, `bundle: .main`), which
     /// SwiftUI reads as the same call.
     func isDefaultTable(_ tableName: String?, in bundle: Bundle?) -> Bool {
-        (tableName == nil || tableName == Self.defaultTableName) && (bundle == nil || bundle === defaultBundle)
+        let isDefaultName = tableName == nil || tableName == Self.defaultTableName
+        let isDefaultBundle = bundle == nil || bundle === defaultBundle
+        return isDefaultName && isDefaultBundle
     }
 
     /// How many answers the tables keep, in all — for the tests of the bound.

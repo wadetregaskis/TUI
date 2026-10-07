@@ -476,8 +476,10 @@ extension _ContainerViewCore {
 
 extension ContainerView: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
     static func == (lhs: ContainerView<Content, Footer>, rhs: ContainerView<Content, Footer>) -> Bool {
-        lhs.title == rhs.title && lhs.titleColor == rhs.titleColor && lhs.content == rhs.content && lhs.footer == rhs.footer
-            && lhs.style == rhs.style && lhs.padding == rhs.padding
+        guard lhs.title == rhs.title, lhs.titleColor == rhs.titleColor, lhs.content == rhs.content,
+            lhs.footer == rhs.footer, lhs.style == rhs.style
+        else { return false }
+        return lhs.padding == rhs.padding
     }
 }
 

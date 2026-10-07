@@ -177,9 +177,10 @@ enum TerminalGraphicsQuery {
     /// Whether one complete escape sequence is a Kitty graphics reply,
     /// `ESC _ G … ST`, whichever id it names. No key sends one.
     static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
-        sequence.count >= 3 && sequence.first == 0x1B
-            && sequence[sequence.startIndex + 1] == 0x5F  // '_'
-            && sequence[sequence.startIndex + 2] == 0x47  // 'G'
+        guard sequence.count >= 3, sequence.first == 0x1B,
+            sequence[sequence.startIndex + 1] == 0x5F  // '_'
+        else { return false }
+        return sequence[sequence.startIndex + 2] == 0x47  // 'G'
     }
 }
 
