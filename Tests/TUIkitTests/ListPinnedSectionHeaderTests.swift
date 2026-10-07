@@ -93,16 +93,34 @@ struct ListPinnedSectionHeaderTests {
         #expect(!drawn.contains { $0.contains("Fruit") }, "\(drawn)")
     }
 
+    /// Two long sections, so the window can open deep in the second.
+    private struct TwoLong: View {
+        let selection: Binding<String?>
+        var body: some View {
+            List(selection: selection) {
+                Section("Fruit") {
+                    ForEach((0..<20).map { "fruit\($0)" }, id: \.self) { Text($0) }
+                }
+                Section("Veg") {
+                    ForEach((0..<20).map { "veg\($0)" }, id: \.self) { Text($0) }
+                }
+            }
+            .listStyle(.plain)
+            .scrollIndicators(.visible)
+        }
+    }
+
     @Test("The header that pins is the section's the window opens in")
     func pinsTheRightSection() {
         let box = Box()
         let harness = InputChainHarness(width: 30, height: 8)
-        // Past the first section's last row and into the second's rows.
-        let drawn = lines(down(23, in: harness) { view(box, style: .plain) })
-        #expect(drawn.contains { $0.contains("veg2") }, "\(drawn)")
-        if drawn.first?.contains("veg") == true || drawn.first?.contains("Veg") == true {
-            #expect(!drawn.contains { $0.contains("Fruit") }, "Fruit pinned over Veg's rows: \(drawn)")
-        }
+        // Through the first section and deep into the second's rows: the
+        // window opens among Veg's rows, its header scrolled away.
+        let drawn = lines(
+            down(34, in: harness) { TwoLong(selection: Binding(get: { box.selection }, set: { box.selection = $0 })) })
+        #expect(!drawn.contains { $0.contains("veg0") }, "the window still opens at Veg's start: \(drawn)")
+        #expect(drawn.first?.contains("Veg") == true, "Veg's header is not pinned: \(drawn)")
+        #expect(!drawn.contains { $0.contains("Fruit") }, "Fruit pinned over Veg's rows: \(drawn)")
     }
 
     /// Two sections of TWO-line rows, long enough to scroll well inside the
