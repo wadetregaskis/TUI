@@ -9,43 +9,46 @@ decision, B = basic shipped, C = declined.*
 
 ## A. For the owner
 
-### A-SPF-1. A striped row's bytes: state the background once, not after every cell
+### A-SPF-1. A table row's bytes: one ink introducer per row, not one per cell
 
-*`Table`'s single-line rows — performance only, no API*
+*`Table`'s rows — performance only, no API*
 
-**Shipped: no change to how a row is spelled.** What is left of the stripe's
-cost once its overhead is gone is its bytes. A table row closes every cell
-with a reset (`ESC[0m`) and opens the next with its ink, and a persistent
-background has to be stated again after each reset, so a striped row carries
-its background once per cell plus once for the selection mark: at truecolor,
-`ESC[48;2;r;g;bm` (up to 19 bytes) nine times on an eight-column row.
-Counted on `Stress --bench`, the same build with `--stripes disabled` and
-without (deterministic counts, not timings):
+**Shipped: a row under a still fill states the fill once.** A table row opens
+every cell with its ink and closed it with a reset (`ESC[0m`), and a
+persistent background has to be stated again after every reset, so a striped
+row of eight columns stated its stripe nine times: +160 bytes a row at
+truecolor, +17.5% bytes in a static table's frame, carried up through every
+container, copied and scanned for width on every frame the table is drawn. A
+row under a still fill (a stripe, a selected row's tint) now closes its runs
+with SGR 39 — the terminal's ink again, the fill left in force — so the paint
+states the fill once (`Table.inkClose(under:)`). Every cell is the cell it was
+(`stripeStatedOnce` compares every cell's SGR state with the unstriped row's
+under the stripe); a cell whose text carries escapes of its own keeps its
+reset, and the stripe is stated again after it. Rows with no fill are
+unchanged, byte for byte: under `--stripes disabled` the frames of six table
+scenarios match the build before stripes.
 
-| `table`, warm, per frame | stripes off | stripes on |
+Counted on `Stress --bench`, one build, `--stripes disabled` against stripes on
+(deterministic counts, not timings), bytes in the frame's lines, warm:
+
+| scenario | before | after |
 |---|---|---|
-| bytes in the frame's lines | 15,567 | 18,287 (+17.5%) |
-| bytes scanned for width (`strippedLength`) | 37,400 | 45,560 (+21.8%) |
-| bytes allocated | — | +13 KB (the lines copied up the tree) |
-| allocations, rows composed or painted | equal | equal (every row served) |
+| `table` | +17.5% (15,567 → 18,287) | +2.7% (→ 15,992) |
+| `truncate` | +18.9% | +8.3% (a styled column restates) |
+| `table-churn` | +17.0% | +6.4% |
+| `table-tail` | +15.5% | +7.2% |
+| `table-multiline` | +12.7% | +3.0% |
+| `tables-scroll` | +12.2% | +2.4% |
 
-That is +160 bytes per striped row and the whole of the stripe's remaining
-work on a warm static table: its rows are served, nothing is composed or
-painted. What it costs in time is the coordinator's to measure (the same
-binary under `TUIKIT_STRESS_STRIPES=disabled` and without it).
-
-**The fuller option:** compose a row with ONE ink introducer and no reset
-between cells wherever no cell carries escapes of its own (every column but a
-view column draws plain text): the spacing between cells is then drawn in the
-ink, which a space does not show, and the row ends with one reset. A stripe
-is then its one background sequence at the start of the line, about +20 bytes
-a row rather than +160, and every row, striped or not, sheds about 150 bytes
-of escapes (207 → about 45 on an eight-column row at truecolor) — fewer bytes
-than a table drew before stripes.
+**The fuller option:** every row, striped or not, opens with ONE ink
+introducer and closes once at its end, wherever no cell carries escapes of its
+own (every column but a view or a styled `Text` draws plain text): the spacing
+between cells is then drawn in the ink, which a space does not show. An
+eight-column row sheds about 150 bytes of escapes (207 → about 45 at
+truecolor), striped or not — fewer bytes than any table drew before stripes.
 
 **Its price:** every table row's bytes change — not what is drawn: the same
 glyphs in the same colours on the same fields — so every test and golden that
-pins a row's escapes is rewritten, and the multi-line rows want the same
-treatment to stay consistent; a cell whose text carries its own escapes keeps
-today's spelling (its own reset would otherwise end the row's ink), so the
-composer gains a branch per cell. Unmeasured in time.
+pins a plain row's escapes is rewritten, and the spacing cells' SGR state
+carries the ink, which a cell-by-cell comparison sees though the screen does
+not. Unmeasured in time.

@@ -20,6 +20,11 @@ enum ANSIRenderer {
     /// Reset code that clears all formatting.
     static let reset = "\(csi)0m"
 
+    /// SGR 39: the terminal's own foreground again, everything else left in
+    /// force — what closes a run of ink without ending the background it is
+    /// drawn over, as a ``reset`` would.
+    static let defaultForeground = "\(csi)39m"
+
     /// Dim/faint text style code.
     static let dim = "\(csi)2m"
 

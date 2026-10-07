@@ -170,6 +170,54 @@ struct AlternatingRowBackgroundsTests {
         #expect(cache.rowWork.repainted - before == 0, "\(cache.rowWork.repainted - before) rows repainted at a parity they wore")
     }
 
+    /// A striped row closes its cells with SGR 39 rather than a reset, so the
+    /// stripe stays in force and is stated once (`Table.inkClose(under:)`).
+    /// Every cell must be what the persistent paint drew before: the unstriped
+    /// row's cell with the stripe under it, inside the row, and the unstriped
+    /// cell outside it (the border and the container's padding) — and a cell
+    /// carrying escapes of its own keeps its reset, after which the stripe is
+    /// stated again.
+    @Test("A striped row states its stripe once and draws every cell the persistent paint drew")
+    func stripeStatedOnce() throws {
+        let plainColumns = Table(Self.rows) {
+            TableColumn("Name", value: \Row.name)
+            TableColumn("ID") { (row: Row) in Text(verbatim: "\(row.id)") }
+        }
+        let styledColumn = Table(Self.rows) {
+            TableColumn("Name", value: \Row.name)
+            TableColumn("Loud") { (row: Row) in Text(verbatim: row.name).bold() }
+        }
+        for (table, statesOnce) in [(AnyView(plainColumns), true), (AnyView(styledColumn), false)] {
+            let striped = renderToBuffer(table.alternatingRowBackgrounds(.enabled), context: makeRenderContext(width: 40, height: 10))
+            let plain = renderToBuffer(table.alternatingRowBackgrounds(.disabled), context: makeRenderContext(width: 40, height: 10))
+            for name in ["row1", "row3"] {
+                let new = line(name, in: striped)
+                let cells = paintedCells(new)
+                let unstriped = paintedCells(line(name, in: plain))
+                try #require(unstriped.count == cells.count)
+                let stripe = try #require(cells.map(\.background).first { !$0.isEmpty })
+                // The stripe runs unbroken across the row, from its first cell
+                // to its last, and nowhere else.
+                let covered = cells.indices.filter { cells[$0].background == stripe }
+                let row = try #require(covered.first)...(try #require(covered.last))
+                #expect(covered.count == row.count, "\(name): the stripe is broken")
+                #expect(row.count > Self.rows[0].name.count * 2, "\(name): the stripe covers \(row.count) cells")
+                for column in cells.indices {
+                    var expected = unstriped[column].state
+                    if row.contains(column) { expected.apply(stripe) }
+                    #expect(cells[column].state == expected, "\(name) column \(column)")
+                    #expect(cells[column].glyph == unstriped[column].glyph, "\(name) column \(column)")
+                }
+                let statements = new.components(separatedBy: stripe).count - 1
+                if statesOnce {
+                    #expect(statements == 1, "\(name): the stripe stated \(statements) times")
+                } else {
+                    #expect(statements > 1, "\(name): a styled cell's own reset ends the stripe, which is stated again")
+                }
+            }
+        }
+    }
+
     @Test("A kept striped row takes the stripe of the surface the table moved onto")
     func memoFollowsTheSurface() throws {
         var context = makeRenderContext(width: 30, height: 10)
