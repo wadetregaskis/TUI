@@ -25,8 +25,9 @@
 /// | ``bordered`` | The table drawn inside a rounded border. |
 /// | ``inset`` | No border: the header and rows inset a cell from the table's edges. |
 ///
-/// Stripes are not a style's: `.alternatingRowBackgrounds()` asks for them
-/// under any style, as in SwiftUI.
+/// Stripes are not a style's: every style stripes every other row, as a macOS
+/// `Table` does under each (measured), and `.alternatingRowBackgrounds(_:)`
+/// turns them off or on under any style, as in SwiftUI.
 ///
 /// ## Custom styles
 ///

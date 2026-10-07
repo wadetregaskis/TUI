@@ -481,16 +481,15 @@ struct RowSelectionIndicator: Equatable {
 
 extension RowBackground {
     /// What a striped row draws: the palette's accent at low opacity over its
-    /// page — and nothing where that tint cannot be measured, since a band of
-    /// reverse video down every other row would read as a screen full of
-    /// cursors (``tint(_:)``).
+    /// page, as a 256- or 16-colour terminal can draw it quietly
+    /// (``Palette/stripeFill(over:at:)``) — and nothing where no colour can
+    /// be, since a band of reverse video down every other row would read as a
+    /// screen full of cursors, and one in a selected row's colour as a screen
+    /// of selections.
     ///
     /// One answer for `_ListCore` and `Table`, which stripe the same rows the
     /// same way.
     static func alternatingStripe(palette: any Palette) -> RowBackground {
-        .tint(
-            palette.highlightFill(
-                palette.accent.opacity(ViewConstants.alternatingRowBackground, over: palette.background),
-                tint: palette.accent))
+        palette.stripeFill(over: palette.background).map(Self.fixed) ?? .none
     }
 }

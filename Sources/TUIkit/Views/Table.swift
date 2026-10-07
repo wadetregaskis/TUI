@@ -5737,10 +5737,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// Whether the row at `row` in `data` draws a stripe: every other row,
     /// counting from the first however far the table has scrolled, so the
-    /// stripes stay on their rows — under `.alternatingRowBackgrounds()`. A
-    /// table does not stripe by default (decisions A29).
+    /// stripes stay on their rows. A table stripes by default, as a macOS
+    /// `Table` does under every style (measured; decisions A29), and
+    /// `.alternatingRowBackgrounds(.disabled)` turns them off.
     private func isStriped(row: Int, environment: EnvironmentValues) -> Bool {
-        row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: false)
+        row.isMultiple(of: 2) && environment.alternatingRowBackgrounds.stripes(byDefault: true)
     }
 
     // MARK: - Text Alignment

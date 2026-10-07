@@ -22,10 +22,10 @@ public struct AlternatingRowBackgroundBehavior: Hashable, Sendable {
 
     /// The automatic alternating row background behavior.
     ///
-    /// This defers to the component: a `List` stripes when its style asks
-    /// (`ListStyle.alternatingRowColors`), and a `Table` does not. SwiftUI's
-    /// `Table` on macOS does by default — measured; TUIkit's keeps the look
-    /// it has always had (see decisions A29).
+    /// This defers to the component, as on macOS (measured): a `Table`
+    /// stripes under every style, and a `List` stripes only when its style
+    /// asks (`ListStyle.alternatingRowColors`), which none of the built-in
+    /// ones does.
     public static let automatic = Self(kind: .automatic)
 
     /// Alternating row backgrounds will be enabled.

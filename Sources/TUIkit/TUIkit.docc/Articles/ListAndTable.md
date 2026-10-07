@@ -304,9 +304,11 @@ Table(of: Item.self, selection: $selection) {
 
 ### Striped Rows
 
-`.alternatingRowBackgrounds()` tints every other row of the tables and lists
-inside it, counting from each section's first row however far the content has
-scrolled. A focused or selected row keeps its own highlight.
+A table tints every other row, as a macOS table does, counting from each
+section's first row however far the content has scrolled; a list does not.
+`.alternatingRowBackgrounds(_:)` says otherwise for the tables and lists
+inside it: `.enabled` stripes a list too, `.disabled` leaves a table plain. A
+focused or selected row keeps its own highlight.
 
 ### Hovering Over a Row
 
@@ -326,8 +328,9 @@ Table(people) {
 .tableStyle(.inset)
 ```
 
-`.automatic` and `.bordered` both draw the border. Stripes are a separate
-choice under any style: `.alternatingRowBackgrounds()`.
+`.automatic` and `.bordered` both draw the border. Every style stripes;
+`.alternatingRowBackgrounds(.disabled)` turns the stripes off under any of
+them.
 
 ### Hiding the Column Headers
 
