@@ -215,7 +215,7 @@ def run(a):
         raise SystemExit(f'rules.json: a lower list names {", ".join(unknown)}, which is not a module beside '
                          f'{R.source} that its sources import')
     # Every lower module the sources see must be in the index, not only the ones a list names: a list denies the
-    # ones it leaves out (TUIkitBase leaves out TUIkitImage), and a module the index lacks would deny nothing.
+    # ones it leaves out (TUIkitFoundation leaves out TUIkitImage), and a module the index lacks would deny nothing.
     unread = sorted(M.lower_visible - M.lower_modules)
     if unread and any(ls is not None for ls in R.lower.values()):
         raise SystemExit(f'modulemap: the index has no definitions of {", ".join(unread)}, which {R.source} imports, '

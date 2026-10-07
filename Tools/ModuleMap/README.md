@@ -1,6 +1,6 @@
 # Tools/ModuleMap
 
-TUIkit is to be split into à-la-carte modules: the substrate (TUIkitBase), side modules that compile beside the
+TUIkit is to be split into à-la-carte modules: the substrate (TUIkitFoundation), side modules that compile beside the
 lower ones, feature leaves over the substrate, TUIkitApp and a thin `TUIkit` umbrella. `rules.json` lists them and
 what each holds. Today all of that code is one module, `Sources/TUIkit`. This tool holds:
 
@@ -77,7 +77,7 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 
 ### `upward`: a reference its module cannot see
 
-`TUIkitBase -> TUIkitLists: Views/Foo.swift::Foo uses Views/List.swift::ListThing (3 references)`
+`TUIkitFoundation -> TUIkitLists: Views/Foo.swift::Foo uses Views/List.swift::ListThing (3 references)`
 
 Once split, this is a compile error, or a cycle. Fix it in one of these ways:
 - Move the user up. If it is a whole file, add or adjust a `files` rule; for one declaration, a `declarations`
@@ -99,7 +99,7 @@ both live outside `Sources/TUIkit` are skipped: TUIkit owns neither of those tod
 
 ### `witness`: a conformance that cannot see the constrained default it relies on
 
-`T: View is declared in TUIkitBase (…), which cannot see T: Renderable in TUIkitLists (…)`
+`T: View is declared in TUIkitFoundation (…), which cannot see T: Renderable in TUIkitLists (…)`
 
 `extension View where Self: Renderable` supplies a View requirement. That witness is picked where `T: View` is
 checked. If `T: Renderable` sits in a module that site cannot see, the unconstrained default wins, and nothing
@@ -112,14 +112,14 @@ the second one lower.
 ### `public-above`: public API placed above the type it belongs to
 
 There are two forms:
-- `public API of ListStyle (TUIkitBase) is declared in TUIkitLists: …`. An app that imports only the type's module
+- `public API of ListStyle (TUIkitFoundation) is declared in TUIkitLists: …`. An app that imports only the type's module
   does not get this API.
   - Not reported when the extension's header (conformance list or `where` clause) names a declaration of its own
     module. Such API only works with that module's types: `extension PickerStyle where Self == MenuPickerStyle`,
     or `extension ForEach: TableRowContent`.
-- `public API on View carried from TUIkitBase up to TUIkitPresentation by the assigner: …`. A modifier block on a
+- `public API on View carried from TUIkitFoundation up to TUIkitPresentation by the assigner: …`. A modifier block on a
   type from below the map, which the assigner lifted away from its file's module for its dependencies.
-  - `public API on View placed in TUIkitBitmaps by a declarations rule, above its file's TUIkitBase: …`. The same
+  - `public API on View placed in TUIkitBitmaps by a declarations rule, above its file's TUIkitFoundation: …`. The same
     move made by a `declarations` rule: a placement someone chose, so it is reported **accepted**, with the rule's
     reason, never new. It is reported at all so that `-v` lists the block's public members: a rule is written for the
     members its author had in mind, and the block may hold others.
@@ -146,7 +146,7 @@ out of the image-option blocks) and S2 (`.focusSection`, out of the `.statusBarI
 
 ### `posix`: a POSIX-only API outside TUIkitApp
 
-`TUIkitBase: Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
+`TUIkitFoundation: Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
 
 CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources out of the modules that must build on Windows.
 The plan puts the console layer in TUIkitApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
@@ -202,7 +202,7 @@ give the entry the key the report now prints instead.
 ## The assigner
 
 1. **Seed.** Each declaration starts in the module its file's first matching `files` rule names, else in the
-   default (TUIkitBase). An extension in a default-module file goes where the type it extends is seeded.
+   default (TUIkitFoundation). An extension in a default-module file goes where the type it extends is seeded.
    - Fixed: pinned file rules, and `declarations` rules (minus `unpin`).
 2. **Atomic groups**, which move as one:
    - an overload set (the same member name on one type, in files seeded to one module);
@@ -234,7 +234,7 @@ not drag declarations down.
   one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single
   declarations. Use them for a placement decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or
   to undo an assigner drift. Where several match one declaration, the **last** wins, so a narrower rule placed after a
-  broader one is an exception to it (TUIkitBase's three image layout keys after TUIkitBitmaps' `Image.*Key`).
+  broader one is an exception to it (TUIkitFoundation's three image layout keys after TUIkitBitmaps' `Image.*Key`).
 - **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
 - **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix`, `lower` or `public-above`) that a
   refactor will remove. `from` and `to` match labels (the printed label or the base label without its

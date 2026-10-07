@@ -78,7 +78,7 @@ class Rules:
     def decl_rule(self, labels):
         """The `declarations` rule that places a declaration with these labels (`Model.rule_labels`), else None. The
         LAST that matches wins, so a narrower rule after a broader one is an exception to it: the r4 rules pin
-        `Image.*Key` to TUIkitBitmaps, then three of those keys to TUIkitBase. The assigner, `map.json`'s reader and
+        `Image.*Key` to TUIkitBitmaps, then three of those keys to TUIkitFoundation. The assigner, `map.json`'s reader and
         `public-above` all ask here, so they cannot disagree."""
         hit = None
         for r in self.decls:
