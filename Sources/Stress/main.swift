@@ -24,6 +24,7 @@
 //    TUIKIT_STRESS_AUTOPILOT| --autopilot        self-drive continuous re-renders
 //    --bench options: --iterations <n> --cols <c> --rows <r> --cold
 //    TUIKIT_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
+//                                                (a scenario only: any other run, or another value, stops)
 //
 //  Sessions (interaction scripts played over time — see Sessions/Session.swift):
 //    --sessions                                  list them
@@ -48,6 +49,17 @@ func flagValue(_ name: String) -> String? {
     return rawArgs[i + 1]
 }
 
+/// Stops a run that states `--stripes` (or `TUIKIT_STRESS_STRIPES`) in a mode
+/// that would draw nothing under it — `mode` draws pages of its own — rather
+/// than let an A/B meant to price the stripe time the striped build under a
+/// setting that says otherwise. Only `--bench` of a scenario draws under it
+/// (`Headless.benchView`); a session builds its own app around its own page.
+func refuseStripes(in mode: String) {
+    guard config.stripes != nil else { return }
+    print("\(mode): --stripes / TUIKIT_STRESS_STRIPES applies to --bench of a scenario only, and this run would ignore it")
+    exit(1)
+}
+
 // From the registry, not a literal: the literal listed twelve of twenty ids
 // and said the interactive menu shows the rest, which shows titles only.
 let scenarioIDs = await MainActor.run { Scenarios.all.map(\.id).joined(separator: ", ") }
@@ -65,6 +77,13 @@ let usageText = """
     Scenario ids (the interactive menu shows titles, not ids):
     \(scenarioIDs)
     """
+
+// A stripes value that names no behaviour stops every run, as an unknown
+// scenario stops a bench: `--stripes disable` must not time the default stripe.
+if let name = config.unknownStripes {
+    print("stripes: '\(name)' names no behaviour; give automatic, enabled or disabled")
+    exit(1)
+}
 
 if rawArgs.contains("--help") || rawArgs.contains("-h") {
     print(usageText)
@@ -106,6 +125,7 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
         }
     }
 } else if let id = flagValue("--session") {
+    refuseStripes(in: "session")
     var options = SessionRunner.Options()
     options.steps = flagValue("--steps").flatMap(Int.init) ?? options.steps
     options.width = flagValue("--cols").flatMap(Int.init) ?? options.width
@@ -129,6 +149,7 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
     }
     exit(code)
 } else if rawArgs.contains("--selfcheck") {
+    refuseStripes(in: "selfcheck")
     let failures = await MainActor.run { Headless.selfcheck(config) }
     exit(failures == 0 ? 0 : 1)
 } else if rawArgs.contains("--bench") {
@@ -143,6 +164,7 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
         // step per iteration; `--cold` has no meaning for a session, whose
         // oracle is `--verify`.
         if id.hasPrefix(Sessions.scenarioPrefix) {
+            refuseStripes(in: "bench")
             let sessionID = String(id.dropFirst(Sessions.scenarioPrefix.count))
             guard let descriptor = Sessions.byID(sessionID) else {
                 print("bench: unknown session '\(sessionID)'. Known: \(Sessions.all.map(\.id).joined(separator: ", "))")
@@ -163,5 +185,6 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
     }
     exit(Int32(code))
 } else {
+    refuseStripes(in: "interactive")
     await StressApp.main()
 }

@@ -64,7 +64,18 @@ struct StressConfig {
     /// moved identical code by several per cent. `TUIKIT_STRESS_STRIPES` is the
     /// spelling `ab_bench.py` can carry, since it passes its environment to
     /// both binaries and no flags of its own.
+    ///
+    /// Only `--bench` of a scenario draws under it; `main.swift` stops any
+    /// other run that states it (`--selfcheck`, a session, the interactive app
+    /// each draw pages of their own), and any run whose value names no
+    /// behaviour (``unknownStripes``) — an A/B meant to price the stripe must
+    /// never time the striped build under a setting that says otherwise.
     var stripes: AlternatingRowBackgroundBehavior?
+
+    /// A stated `--stripes` / `TUIKIT_STRESS_STRIPES` value that names no
+    /// behaviour (`--stripes disable`; empty after a trailing `--stripes`),
+    /// kept so `main.swift` can refuse the run rather than drop it silently.
+    var unknownStripes: String?
 
     /// The behaviour a `--stripes` value names, or `nil` for none it knows.
     static func stripes(named name: String) -> AlternatingRowBackgroundBehavior? {
@@ -73,6 +84,17 @@ struct StressConfig {
         case "enabled": .enabled
         case "disabled": .disabled
         default: nil
+        }
+    }
+
+    /// States the behaviour `name` names, or records `name` as unknown — the
+    /// later statement wins either way, so a flag overrides the environment.
+    private mutating func stateStripes(named name: String) {
+        if let behavior = Self.stripes(named: name) {
+            stripes = behavior
+            unknownStripes = nil
+        } else {
+            unknownStripes = name
         }
     }
 
@@ -97,7 +119,7 @@ struct StressConfig {
         if let s = env["TUIKIT_STRESS_AUTOPILOT"] { autopilot = (s == "1" || s.lowercased() == "true") }
         if let s = env["TUIKIT_STRESS_SCENARIO"], !s.isEmpty { initialScenario = s }
         if let s = env["TUIKIT_STRESS_VARIANT"], !s.isEmpty { variant = s }
-        if let s = env["TUIKIT_STRESS_STRIPES"], let behavior = Self.stripes(named: s) { stripes = behavior }
+        if let s = env["TUIKIT_STRESS_STRIPES"], !s.isEmpty { stateStripes(named: s) }
     }
 
     /// The CLI half, which overrides the environment.
@@ -110,7 +132,7 @@ struct StressConfig {
             case "--autopilot": autopilot = true
             case "--scenario": if let value = it.next() { initialScenario = value }
             case "--variant": if let value = it.next() { variant = value }
-            case "--stripes": if let behavior = it.next().flatMap(Self.stripes(named:)) { stripes = behavior }
+            case "--stripes": stateStripes(named: it.next() ?? "")
             default: break  // headless flags are handled in main.swift
             }
         }

@@ -42,7 +42,7 @@ swift run -c release Stress -- --bench --scenario fanout --iterations 2000 --col
 | `TUIKIT_STRESS_SCALE` | `--scale <n>` | size multiplier (1 is already heavy; 10/100 are pathological) |
 | `TUIKIT_STRESS_SEED` | `--seed <n>` | synthetic-data seed |
 | `TUIKIT_STRESS_AUTOPILOT` | `--autopilot` | self-drive continuous re-renders |
-| `TUIKIT_STRESS_STRIPES` | `--stripes <b>` | `--bench` only: draw the scenario under `.alternatingRowBackgrounds(<b>)` — `automatic`, `enabled` or `disabled` — to price the stripe on one binary (see below) |
+| `TUIKIT_STRESS_STRIPES` | `--stripes <b>` | `--bench` of a scenario only: draw it under `.alternatingRowBackgrounds(<b>)` — `automatic`, `enabled` or `disabled` — to price the stripe on one binary (see below); any other run that states it, or any other value, stops |
 
 `--variants` lists every matrix scenario's variants, grouped by the axis each
 one varies. `--bench` also takes `--iterations N`, `--cols C`, `--rows R`, and `--cold`
@@ -62,6 +62,13 @@ and no flags of its own, so `TUIKIT_STRESS_STRIPES=disabled` before it runs
 both binaries unstriped (an older build ignores it); to A/B one build against
 itself, give it two one-line wrapper scripts, each `exec`ing the binary under
 one setting.
+
+It reaches only a scenario's `--bench`. A session (`--session`, and
+`--bench --scenario session/<id>`) builds its own app around its own page,
+and `--selfcheck` and the interactive app draw theirs, so a run of any of them
+that states `--stripes` stops with an error rather than drawing the default
+stripe under a setting that says otherwise; so does a value that names no
+behaviour (`--stripes disable`).
 
 Interactive keys: `↑/↓` select · `↩` open · `⎋` back/quit · `+/−` change
 scale live · `a` toggle autopilot.
