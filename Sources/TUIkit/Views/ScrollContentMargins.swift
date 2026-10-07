@@ -346,7 +346,8 @@ extension _ScrollViewCore {
     ///
     /// A measure of the content, paid only by a text-style view under a
     /// behaviour (the free one, the default, asks nothing), in a measure
-    /// generation of its own (``RenderContext/invalidatingMeasureMemo()``).
+    /// generation of its own for each height of the container it publishes
+    /// (``RenderContext/invalidatingMeasureMemo(keyedBy:)``).
     /// The render then measures the content again at the same proposal, and
     /// where it reserves, against a container two lines shorter — a different
     /// question that the measure memos' keys cannot tell apart, since they
@@ -356,13 +357,20 @@ extension _ScrollViewCore {
     /// eight, and the canvas was ten lines too tall. Apart, the probe's answers
     /// still serve the probe, frame after frame; the price is that a view
     /// reserving nothing is no longer served the probe's measure for its own.
+    ///
+    /// And apart from the probe's own answers at another height: neither memo
+    /// key carries the container either, so a parent that measured the scroll
+    /// view at one height and drew it at another — a title above it in a
+    /// stack — served the draw's probe the measure's pages, a window's worth
+    /// too tall, and one page that fits reserved the pair.
     func contentOverflowsWindow(viewport: CellSize, context: RenderContext) -> Bool {
         let (bar, barMargin) = knownHorizontalBar(context)
         let barRows = bar ? 1 + barMargin : 0
         let container = unreservedContainerSize(viewport: viewport, context: context)
+        let probeHeight = max(0, container.height - barRows)
         let probe = context.publishingContainerSize(
-            CellSize(width: container.width, height: max(0, container.height - barRows)), noting: false
-        ).invalidatingMeasureMemo()
+            CellSize(width: container.width, height: probeHeight), noting: false
+        ).invalidatingMeasureMemo(keyedBy: probeHeight)
         let width = max(1, viewport.width)
         let window = max(0, viewport.height - barRows)
         guard axes.contains(.horizontal) else {

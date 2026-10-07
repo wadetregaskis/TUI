@@ -344,11 +344,30 @@ public struct RenderContext {
     /// reused normally; what is put out of reach is only the answers from
     /// before the environment changed.
     public func invalidatingMeasureMemo() -> Self {
+        invalidatingMeasureMemo(by: 1)
+    }
+
+    /// ``invalidatingMeasureMemo()`` for a subtree its caller measures under
+    /// one of several environments it can tell apart by a number — the height
+    /// of the container it publishes — with a generation of its own for each:
+    /// asks under different `key`s never serve each other's answers, and asks
+    /// under the same one share theirs, from walk to walk and frame to frame.
+    ///
+    /// Sixty-four generations, `key` taken modulo 64, all of them apart from
+    /// this context's own: two keys sixty-four apart share one, which is the
+    /// stale serve ``invalidatingMeasureMemo()`` leaves everywhere it is not
+    /// called, and no worse.
+    public func invalidatingMeasureMemo(keyedBy key: Int) -> Self {
+        invalidatingMeasureMemo(by: UInt8(truncatingIfNeeded: 1 + (key & 0x3F)))
+    }
+
+    /// This context with its generation moved on by `step`.
+    private func invalidatingMeasureMemo(by step: UInt8) -> Self {
         var copy = self
         // The low seven bits only: bit 7 is the ideal-width mark, which a bump
         // must neither set nor clear.
         copy.measureGeneration =
-            (copy.measureGeneration & 0x80) | ((copy.measureGeneration &+ 1) & 0x7F)
+            (copy.measureGeneration & 0x80) | ((copy.measureGeneration &+ step) & 0x7F)
         return copy
     }
 

@@ -144,6 +144,37 @@ struct ScrollTextIndicatorReservationTests {
         #expect(lines.contains { $0.contains("end 4") }, "\(lines)")
     }
 
+    /// The review's input: a stack measures the scroll view at the whole
+    /// height and draws it a row shorter, under its title, so the overflow
+    /// probe asks at two viewports. Its generation was the same at both and
+    /// neither memo key carries the container, so the draw's probe was served
+    /// the measure's page — a row taller than the window it was drawn in.
+    @Test("The overflow probe at one viewport is not served its answers at another")
+    func probeAtAnotherViewportIsNotServedTheFirst() {
+        let frames = ScrollTargetFrames(width: 30, height: 10, memoisesMeasures: true)
+        let view = VStack(spacing: 0) {
+            Text("Title")
+            ScrollView {
+                VStack(spacing: 0) {
+                    Text("top")
+                    Spacer(minLength: 0)
+                    Text("end")
+                }
+                .containerRelativeFrame(.vertical)
+            }
+            .scrollIndicators(.automatic)
+            .scrollIndicatorStyle(.text)
+            .scrollTargetBehavior(.paging)
+        }
+        frames.render(view)
+        frames.render(view)
+        let lines = frames.last.lines.map(\.stripped)
+        // One page as tall as the nine-row window fits it: nothing reserved.
+        #expect(frames.scrollView?.contentHeight == 9, "\(lines)")
+        #expect(lines[1].contains("top"), "\(lines)")
+        #expect(lines[9].contains("end"), "\(lines)")
+    }
+
     /// A horizontal bar that is always drawn takes its row off the window, so
     /// content as tall as the viewport overflows the window by that row. The
     /// decision was asked of the whole viewport, so it reserved nothing, and
