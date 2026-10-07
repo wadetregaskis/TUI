@@ -180,9 +180,18 @@ row — the guide inside an `HStack`, `.listRowSeparator` on the stack — draws
 from the guide; `.onTapGesture`, `.tint` and the other modifiers that draw
 their content unchanged do not forward guides yet, a framework-wide gap
 older than this lane) is not seen; a row of several views (decisions B15)
-reads no guides. Each is an hour or two where it matters. A selected or
-cursor row's highlight runs under its own separator line, so the highlight is
-the row's full height.
+reads no guides. Each is an hour or two where it matters.
+
+The rule line is the row's own bottom line, as a separator is the row's
+`.bottom` edge in SwiftUI's API: a selected or cursor row's highlight runs
+under its own rule, so the highlight is the row's full height, and a click on
+the rule selects the row above it. (Whether macOS paints a selected row's
+highlight over its separator is unmeasured.) A row lifted out of the list —
+a drag's floating copy — leaves its rule behind; the landing slot keeps the
+rule's line, so the rows below do not jump while the drag is held. **The
+fuller version:** the rule drawn outside the row's fill and click band, as a
+line between rows that belongs to neither — its own claims and its own
+`AnimatedCellRun` exclusion for the cursor row's breath, about half a day.
 
 ### B-D6L-4. Stripes restart at each section; macOS counts on across them
 

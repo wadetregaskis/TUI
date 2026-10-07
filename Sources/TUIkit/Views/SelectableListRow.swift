@@ -309,6 +309,16 @@ final class LazyListRowContent {
         return cached!.badge
     }
 
+    /// The row's buffer without the line its separator is drawn on: the row
+    /// lifted out of the list — a drag's floating copy — where there is no row
+    /// below it to separate it from, and a blank line under each row of a
+    /// carried block read as a gap in it.
+    var bufferWithoutSeparator: FrameBuffer {
+        var drawn = buffer
+        if separatorLine != nil, !drawn.lines.isEmpty { drawn.lines.removeLast() }
+        return drawn
+    }
+
     /// The row's height, rendering it only if there is no other way to ask.
     var heightWithoutRendering: Int {
         // Through ``buffer``, not `cached`, so a separator not yet decided is.

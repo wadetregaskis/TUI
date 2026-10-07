@@ -3373,8 +3373,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     let current = dragSession?.reorderHandler ?? captureHandler
                     let floating = current.reorderFloatingRows
                     if let dragSession, !floating.isEmpty {
+                        // Without their separators' lines: a floating copy has no
+                        // row below it to be separated from.
                         let carried = floating.compactMap { index in
-                            capturedRows.first { $0.index == index }?.row.buffer
+                            capturedRows.first { $0.index == index }?.row.content.bufferWithoutSeparator
                         }
                         if !wasActive, !carried.isEmpty {
                             // Hand the rows' own buffers to the session, which
@@ -3396,7 +3398,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                             // row the pointer took hold of — otherwise a block
                             // grabbed by its last row hangs from its first.
                             let above = current.reorderHeldRowsAboveGrab.reduce(0) { sum, index in
-                                sum + (capturedRows.first { $0.index == index }?.row.buffer.height ?? 1)
+                                sum + (capturedRows.first { $0.index == index }?.row.content.bufferWithoutSeparator.height ?? 1)
                             }
                             // `begin` trims the preview's padding and clamps
                             // the grab point into what survives, so a press

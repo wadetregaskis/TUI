@@ -245,4 +245,23 @@ struct ListSeparatorTests {
             #expect(loop.frame(list) == ["a", Self.rule, "b", Self.rule, "c"])
         }
     }
+
+    @Test("A dragged row floats without its separator's line")
+    func dragFloatsWithoutTheRule() {
+        let fixture = ListReorderFixture(feedback: .cursor)
+        fixture.env.listSeparatorDefaults.rows.bottom = .visible
+        fixture.selection = ["a", "b"]
+        let buffer = fixture.render()
+        let session = fixture.tui.dragAndDropSession
+        fixture.dispatcher.dispatch(
+            MouseEvent(button: .left, phase: .pressed, x: 2, y: fixture.rowY(buffer, "b")))
+        fixture.render()
+        fixture.dispatcher.dispatch(
+            MouseEvent(button: .left, phase: .dragged, x: 2, y: fixture.rowY(buffer, "d")))
+        fixture.render()
+        let floating = (session.active?.preview.lines ?? []).map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        #expect(floating == ["a", "b"], "\(floating)")
+        // Grabbed by its second row, which hangs one line — a's own — below the top.
+        #expect(session.active?.grabY == 1)
+    }
 }
