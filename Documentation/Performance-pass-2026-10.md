@@ -335,5 +335,18 @@ once environment reads were cheap); deferring the status bar's Return verb.
   to link, because a dependent still references the old field-offset symbol.
   Build those steps clean.
 
-The full sweep against base, after this pass, is still to run; its numbers
-will be added here.
+**The sweep against base.** `f62b3cc9d` against base on all 28 scenarios,
+release builds, 15 reps, CPU time, run on 2026-10-06 with no builds or
+tests running:
+
+| | Faster | Same | Slower | Largest changes |
+|---|---|---|---|---|
+| warm | 26 | 2 (app-shapes, customlayout) | 0 | modifiers −49.8%, scrolleager −30.0%, scrollfollow −22.5%, churn −16.9%, alpharamp −12.4%, preferences −10.4% |
+| cold | 27 | 0 | 1 (truncate +2.9%) | scrolleager −26.9%, scrollfollow −21.2%, churn −16.0%, keyrows −15.9%, textwall −15.3%, preferences −14.4%, anyview −13.5% |
+
+Most other scenarios are 3–9% faster than base. The batch's cost is gone
+everywhere except cold `truncate`, which is +2.9% (95% CI +2.2..+3.5%).
+Resident memory is 0.6–1.9 MB higher per warm scenario; that was not
+investigated. During the warm run XProtect was scanning (load 4.4). CPU time
+leaves out preemption but not cache contention. The cold run had a quiet
+machine.
