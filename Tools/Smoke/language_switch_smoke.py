@@ -12,9 +12,9 @@ TUIkit's alike, and that the choice is there on the next launch.
 The subject is the Example's Theme page, whose Language picker calls
 `setLanguage(_:)`. Three runs, all on one fresh config directory:
 
-  1. launch — the page reads in English (the precondition: `LANG` and the
-     config directory are this probe's own); click "Deutsch", and the page and
-     the status bar read in German;
+  1. launch — the page reads in English (the precondition: the locale
+     variables and the config directory are this probe's own); click
+     "Deutsch", and the page and the status bar read in German;
   2. relaunch on the SAME directory — it opens in German, so the choice was
      stored;
   3. click "English" — it reads in English again.
@@ -67,10 +67,13 @@ class App:
             os.environ["TUIKIT_CONFIG_DIR"] = config_dir
             os.environ["TERM"] = "xterm-256color"
             # The language the environment asks for, so run 1 starts in English
-            # whatever this machine's own is.
+            # whatever this machine's own is. Every variable the service reads
+            # ahead of LANG goes too — LANGUAGE first, which German Linux
+            # desktops set — or it, not LANG, decides
+            # (LocalizationService+Detection.swift, `posixLanguageCodes`).
             os.environ["LANG"] = "en_US.UTF-8"
-            os.environ.pop("LC_ALL", None)
-            os.environ.pop("LC_MESSAGES", None)
+            for name in ("LANGUAGE", "LC_ALL", "LC_MESSAGES"):
+                os.environ.pop(name, None)
             os.execv(binary, [binary, "--page", "theme"])
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
 
