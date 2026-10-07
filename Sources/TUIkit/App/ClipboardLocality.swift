@@ -80,14 +80,24 @@ enum ClipboardLocality {
     /// not in a tmux pane.
     ///
     /// GNU screen's server renames itself `SCREEN` in its arguments while the
-    /// kernel keeps `screen`, so both are matched; tmux's server is
-    /// `tmux: server` on Linux, so tmux is matched by prefix. The kernel cuts
-    /// a name to 16 bytes on Darwin and 15 on Linux, so `wezterm-mux-server`
-    /// reads `wezterm-mux-serv` or `wezterm-mux-ser`: matched by the 15.
+    /// kernel keeps `screen`, so both are matched; tmux is matched by
+    /// ``isTmux(_:)``. The kernel cuts a name to 16 bytes on Darwin and 15 on
+    /// Linux, so `wezterm-mux-server` reads `wezterm-mux-serv` or
+    /// `wezterm-mux-ser`: matched by the 15.
     static func isSessionKeeper(_ name: String, inTmux: Bool) -> Bool {
-        if !inTmux, name.hasPrefix("tmux") { return true }
+        if !inTmux, isTmux(name) { return true }
         if name.hasPrefix("wezterm-mux-ser") { return true }
         return ["screen", "SCREEN", "zellij", "dtach", "abduco", "shpool", "tmate"].contains(name)
+    }
+
+    /// Whether `name` is tmux's own, its server's or a client's: `tmux` as
+    /// Darwin keeps it, and `tmux: server` or `tmux: client` on Linux, where
+    /// tmux renames itself through `prctl` (tmux's `proc_start`; read from its
+    /// source, unmeasured on a host). Not every name starting "tmux": a
+    /// wrapper script run by its shebang, `tmux-sessionizer` say, is named
+    /// after itself, and above a client it is a plain parent.
+    static func isTmux(_ name: String) -> Bool {
+        name == "tmux" || name.hasPrefix("tmux: ")
     }
 
     /// The variables rung 4's session keepers set inside a session.

@@ -96,6 +96,24 @@ struct ClipboardLocalityTests {
         #expect(!local(["tmux", "zsh", "tmux: server", "systemd"]))
         // A client at the desk is still local: only its own name is tmux.
         #expect(local(["tmux", "zsh", "login", "Terminal", "launchd"]))
+        #expect(local(["tmux: client", "zsh", "login", "Terminal", "launchd"]))
+    }
+
+    /// Review round 1 of the follow-ups: every name starting "tmux" counted
+    /// as a tmux, so a wrapper run by its shebang above a desk client — its
+    /// process named after the script — made the desk session "not local".
+    @Test("A process above a tmux client whose name only starts with tmux is a plain parent")
+    func tmuxNamedWrapper() {
+        let pane = ["zsh", "tmux", "launchd"]
+        for wrapper in ["tmux-sessionizer", "tmuxp", "tmuxinator"] {
+            #expect(
+                ClipboardLocality.isLocal(
+                    environment: [:], ownChain: pane,
+                    tmuxClientChains: [["tmux", wrapper, "zsh", "login", "Terminal", "launchd"]], inTmux: true),
+                "\(wrapper)")
+        }
+        #expect(ClipboardLocality.isLocal(environment: [:], ownChain: ["tmuxp", "zsh"] + Self.deskChain,
+            tmuxClientChains: nil, inTmux: false))
     }
 
     @Test("A chain that could not be read is not evidence")
