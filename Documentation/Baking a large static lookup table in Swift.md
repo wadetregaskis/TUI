@@ -164,8 +164,9 @@ optimisation (Xcode 26.3's Swift 6.2.4, the pass timers'
 `-sil-print-pass-time` sum for the initialiser, min of 3 runs of the module).
 The cost follows the element count, not the bytes, so the codepoints are now
 packed four to a `UInt64`: 2117 elements instead of 8466, 74 ms instead of
-314 ms, the same 16,932 bytes of static data, and still nothing to parse. The
-lookup reads its codepoint with one shift, once, after the search.
+314 ms, 16,936 bytes of static data instead of 16,932 (the last element's two
+unused lanes), and still nothing to parse. The lookup reads its codepoint with
+one shift, once, after the search.
 
 `nameStarts` was left as it is. It is read twice per step of the binary search,
 so packing it would put a shift and a mask into the loop; deriving it from the

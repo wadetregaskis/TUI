@@ -187,7 +187,8 @@ func wrapElements(_ values: [String]) -> String {
 ///     packed four to an element, the first in the high 16 bits (so the hex
 ///     reads in table order); the last element's unused lanes are zero.
 ///     Packed because the optimiser folds an array literal element by element:
-///     the same 16,932 bytes as a `[UInt16]` of 8466 cost a clean release build
+///     the same offsets as a `[UInt16]` of 8466 (16,932 bytes; packed, 16,936
+///     with the last element's two unused lanes) cost a clean release build
 ///     four times the SIL optimisation (see README.md, "Why this shape").
 func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     // The representation relies on ASCII names (so raw-byte order equals Swift

@@ -97,10 +97,11 @@ In brief:
 The codepoints were a `[UInt16]` of 8466 elements until 2026-10-07. The
 optimiser folds an array literal element by element, and a clean release build
 spent 314 ms of SIL optimisation on that one (Xcode 26.3's Swift 6.2.4, the
-initialiser's pass time, min of 3); packed, the same 16,932 bytes are 2117
-elements and take 74 ms. `nameStarts` (8467 `UInt32`s) costs the same 0.3 s, and
-stays as it is: it is read twice per step of the binary search, where packing
-would add a shift and a mask — see `B-BT1-1` in
+initialiser's pass time, min of 3); packed, the same 8466 offsets are 2117
+elements (16,936 bytes, the last element's two unused lanes included) and take
+74 ms. `nameStarts` (8467 `UInt32`s) costs the same 0.3 s, and stays as it is:
+it is read twice per step of the binary search, where packing would add a shift
+and a mask — see `B-BT1-1` in
 `Documentation/SwiftUI-API-completion-decisions-BT1.md`.
 
 The generator asserts at emit time that every name is ASCII (the invariant the
