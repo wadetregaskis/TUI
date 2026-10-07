@@ -45,9 +45,10 @@ index unit, it warns: rebuild, then check again.
 | `checks.py` | The checks | |
 | `indexstore.py`, `swiftsource.py` | Reading the index store, and just enough of a Swift lexer | |
 
-The design behind the map is in the session notes' `buildtime/split2/plan.md`; this tool is that plan's step A1. The
-map in `rules.json` is revision 4 of its refinement (`buildtime/split2/refine/plan-refined.md`, after the owner's
-answers of 2026-10-07), committed at its step A1′ with the `lower` lists. The assigner is the research assigner
+The design behind the map is `Documentation/Historical/Module split plan, revision 4 (2026-10-07).md` (the refined
+plan, after the owner's answers of 2026-10-07; why it exists is in `Compile time and binary size analysis
+(2026-10-07).md` beside it). This tool is the plan's step A1; `rules.json` is revision 4's map, committed at step A1′
+with the `lower` lists, and its base module is named TUIkitFoundation (the owner's choice, after the plan was written). The assigner is the research assigner
 (`split2/plan/w/sassign.py` + `finalize.py`) ported. On HEAD 4611730eb it gave every one of the 4,127 declarations the
 same module as the re-indexed research run (`split2/reindex/`).
 
