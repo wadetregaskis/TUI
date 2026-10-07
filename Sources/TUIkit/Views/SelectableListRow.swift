@@ -75,6 +75,16 @@ final class ListRowRamp {
     }
 }
 
+/// What decides a list row's separator once the row has rendered (decisions
+/// A47): the list's row source, which knows the defaults written above the list
+/// and what the row reported (``LazyListRowContent/separatorDecider``).
+@MainActor
+protocol ListRowSeparatorDeciding: AnyObject {
+    /// The separator the row at `index`, drawn as `box`, draws below itself,
+    /// or `nil`.
+    func separatorLine(at index: Int, of box: LazyListRowContent) -> ListRowSeparatorLine?
+}
+
 /// A row's rendered buffer and badge, produced on demand and then memoised.
 ///
 /// `List` extraction builds one of these per row but renders *none* up front:
@@ -142,13 +152,19 @@ final class LazyListRowContent {
     var sectionSeparator: (edge: VerticalEdge, visibility: Visibility, tint: Color?)?
 
     /// Decides, once the row has rendered, whether it draws a separator below
-    /// it — the row's own preference is only known then — and how. Installed by
-    /// the list; `nil` where nothing can ask for one.
-    var separatorDecision: ((LazyListRowContent) -> ListRowSeparatorLine?)? {
+    /// it — the row's own preference is only known then — and how, asked of
+    /// this row's ``rowIndex``. Installed by the list; `nil` where nothing can
+    /// ask for one.
+    ///
+    /// A reference, not a closure: every row box the list materialises takes
+    /// one every frame, and a closure capturing the index was an allocation per
+    /// box per frame. Weak, as the source holds the box: a box read after its
+    /// frame has no list to ask.
+    weak var separatorDecider: (any ListRowSeparatorDeciding)? {
         didSet { separatorDecided = false }
     }
 
-    /// Whether ``separatorDecision`` has been asked about the render in hand.
+    /// Whether ``separatorDecider`` has been asked about the render in hand.
     private var separatorDecided = false
 
     /// The separator this row draws below its content, when it draws one: the
@@ -257,7 +273,7 @@ final class LazyListRowContent {
     /// ``cached``. Separate from the two accessors below so that neither has to
     /// hand back a COPY of the pair to read one half of it.
     private func resolveIfNeeded() {
-        guard cached == nil || !separatorDecided && separatorDecision != nil else { return }
+        guard cached == nil || !separatorDecided && separatorDecider != nil else { return }
         // Kept after the render, for a row whose ``backgroundProminence`` the
         // list raises after something has already rendered it. A box lives for
         // one frame's row source, so what the closure holds goes with it.
@@ -266,9 +282,9 @@ final class LazyListRowContent {
             cached = (paddedToMinimum(rendered.buffer), rendered.badge)
             separatorDecided = false
         }
-        guard !separatorDecided, let decide = separatorDecision else { return }
+        guard !separatorDecided, let decider = separatorDecider else { return }
         separatorDecided = true
-        separatorLine = decide(self)
+        separatorLine = decider.separatorLine(at: rowIndex, of: self)
         if separatorLine != nil { cached!.buffer.appendVertically(FrameBuffer(lines: [""])) }
     }
 

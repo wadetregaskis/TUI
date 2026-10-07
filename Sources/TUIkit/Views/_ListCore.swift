@@ -39,7 +39,7 @@ private let listRowGutter = 2
 /// build of the row, and a frame that never asks — the hug measure, which
 /// wants widths — pays nothing for it.
 @MainActor
-private final class RowSource<SelectionValue: Hashable & Sendable> {
+private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeciding {
     /// The number of rows. Known cheaply — O(1) for the windowed path
     /// (`ForEach.listRowCount`); the array length for the eager paths.
     let count: Int
@@ -386,11 +386,7 @@ private final class RowSource<SelectionValue: Hashable & Sendable> {
             case .content, .unselectable: content.minimumHeight = minimumRowHeight
             }
         }
-        if separators != nil {
-            // Weak: the source holds the box, and a strong capture would hold the
-            // source back; a box read after its frame has no list to ask.
-            content.separatorDecision = { [weak self] box in self?.separatorLine(at: index, of: box) }
-        }
+        if separators != nil { content.separatorDecider = self }
         return content
     }
 }
