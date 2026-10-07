@@ -2520,6 +2520,14 @@ private struct TextSelectabilityShapes: View {
             .textSelection(.enabled)
             Button("button.ok") {}.textSelection(.disabled)
             selectable(.disabled)
+            // Environment-like: either order with `.draggable`, and around a
+            // scroll view of draggable text as around a list of it.
+            Text("drag me").textSelection(.enabled).draggable("drag me")
+            Text("drag me").draggable("drag me").textSelection(.enabled)
+            ScrollView {
+                ForEach(recipients) { recipient in Text(recipient.name).draggable(recipient.name) }
+            }
+            .textSelection(.enabled)
             if EnabledTextSelectability.allowsSelection, !DisabledTextSelectability.allowsSelection {
                 Text("both")
             }
