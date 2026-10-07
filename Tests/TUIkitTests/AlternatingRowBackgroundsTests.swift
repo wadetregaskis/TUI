@@ -171,7 +171,7 @@ struct AlternatingRowBackgroundsTests {
     }
 
     /// A striped row closes its cells with SGR 39 rather than a reset, so the
-    /// stripe stays in force and is stated once (`Table.inkClose(under:)`).
+    /// stripe stays in force and is stated once (`TableRowInk`).
     /// Every cell must be what the persistent paint drew before: the unstriped
     /// row's cell with the stripe under it, inside the row, and the unstriped
     /// cell outside it (the border and the container's padding) — and a cell

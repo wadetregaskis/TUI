@@ -2412,10 +2412,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             isFocused: isFocused, isSelected: isSelected,
             stripe: paint.stripe,
             context: context, palette: palette)
-        let inkClose = Self.inkClose(under: visual.background)
-        // Only drawn into a gutter, so only spelled where there is one.
-        let styledIndicator =
-            gutter > 0 ? Self.mark(visual.indicator, in: visual.indicatorColor.opaqueSpelling, closedBy: inkClose) : ""
         // See `renderRow`: one step of the ramp per ROW, so every line of a
         // wrapped row shares its colour, and a ramp that varies along the row
         // paints cell by cell instead.
@@ -2432,6 +2428,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellStyle.foregroundColor = foreground.opaqueSpelling
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
+        // Each line states the ink around each cell (`TableRowInk`).
+        let rowInk = TableRowInk(introducer: cellSequence, under: visual.background)
         let cellCount = min(columns.count, columnWidths.count)
         var claims: [OpacityRegion] = []
 
@@ -2450,10 +2448,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // The indicator shows only on the first line; continuation lines keep
             // the same gutter so the columns line up beneath it. A table with
             // nothing to mark has no gutter at all, and both are empty.
-            var content =
-                gutter == 0
-                ? "" : (lineIndex == 0 ? styledIndicator + " " : String(repeating: " ", count: gutter))
+            var content = ""
             content.reserveCapacity(rowWidth * 2)
+            var ink = rowInk
+            if gutter > 0, lineIndex == 0 {
+                ink.appendMark(visual.indicator, in: visual.indicatorColor.opaqueSpelling, into: &content)
+                content += " "
+            } else if gutter > 0 {
+                content.append(contentsOf: asciiSpaces(gutter))
+            }
 
             var cellColumn = gutter
             for index in 0..<cellCount {
@@ -2473,19 +2476,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                             truncationMode: column.truncationMode),
                         column: &walked, row: row, style: cellStyle,
                         sampler: ramp, sequences: &rampSequences, into: &content)
-                } else if let cellSequence {
-                    content += cellSequence
-                    appendAligned(
-                        text, width: cellWidth, alignment: column.alignment,
-                        truncationMode: column.truncationMode, into: &content)
-                    content += Self.close(text, with: inkClose)
                 } else {
+                    ink.open(before: text, into: &content)
                     appendAligned(
                         text, width: cellWidth, alignment: column.alignment,
                         truncationMode: column.truncationMode, into: &content)
+                    ink.close(after: text, into: &content)
                 }
                 cellColumn += cellWidth
             }
+            ink.finish(into: &content)
 
             // Row-local, and per LINE: the mark is on the first line only, as the
             // badge is — a tall row is one entry in the list, and one entry earns one
@@ -3123,7 +3123,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // every styled run where the row has no still fill, starting with
             // the selection-indicator gutter, so a bare wrapper died at cell
             // one; under a stripe or a tint (SGR 39 closes its runs, see
-            // `inkClose(under:)`) after any cell whose text carries escapes
+            // `TableRowInk`) after any cell whose text carries escapes
             // of its own. The dim goes onto every frame of the pulse for
             // the same reason it goes onto the drawn line: a run that replayed
             // the undimmed row would un-dim it on the first tick.
@@ -5371,14 +5371,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         )
 
         let gutter = selectionGutter(context.environment)
-        let inkClose = Self.inkClose(under: visualState.background)
-        // Only drawn into a gutter, so only spelled where there is one: a
-        // table without a selection, or whose marks are hidden, has none
-        // (`selectionGutter`), and spelling its mark anyway was an allocation
-        // per composed row.
-        let styledIndicator =
-            gutter > 0
-            ? Self.mark(visualState.indicator, in: visualState.indicatorColor.opaqueSpelling, closedBy: inkClose) : ""
 
         // Every cell of every row is coloured the same, so derive its SGR
         // introducer ONCE rather than rebuilding an identical `TextStyle` and
@@ -5401,6 +5393,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellStyle.foregroundColor = cellInk.opaqueSpelling
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
+        var ink = TableRowInk(introducer: cellSequence, under: visualState.background)
 
         // One buffer for the whole row. The previous form built a `[String]` of
         // styled cells, `joined` them, and concatenated the indicator and the
@@ -5410,9 +5403,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // are the bulk of it. Spacing and padding come from the shared
         // `asciiSpaces` run, so neither allocates either.
         let spacing = asciiSpaces(columnSpacing)
-        var content = gutter == 0 ? "" : styledIndicator
+        var content = ""
         content.reserveCapacity(rowWidth * 2)
-        if gutter > 0 { content += " " }
+        // The mark is only drawn into a gutter, so only spelled where there is
+        // one: a table without a selection, or whose marks are hidden, has none
+        // (`selectionGutter`).
+        if gutter > 0 {
+            ink.appendMark(visualState.indicator, in: visualState.indicatorColor.opaqueSpelling, into: &content)
+            content += " "
+        }
 
         let cellCount = min(columns.count, columnWidths.count)
         // Where the cells start, for a ramp that varies along the row: the
@@ -5437,19 +5436,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                         truncationMode: column.truncationMode),
                     column: &walked, row: row, style: cellStyle,
                     sampler: ramp, sequences: &rampSequences, into: &content)
-            } else if let cellSequence {
-                content += cellSequence
-                appendAligned(
-                    cellText, width: cellWidth, alignment: column.alignment,
-                    truncationMode: column.truncationMode, into: &content)
-                content += Self.close(cellText, with: inkClose)
             } else {
+                ink.open(before: cellText, into: &content)
                 appendAligned(
                     cellText, width: cellWidth, alignment: column.alignment,
                     truncationMode: column.truncationMode, into: &content)
+                ink.close(after: cellText, into: &content)
             }
             cellColumn += cellWidth
         }
+        ink.finish(into: &content)
 
         // The background is applied to the FINISHED line, so a pulse is one
         // recolouring of it per step rather than one render of the row per step
@@ -5840,52 +5836,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 .none
             }
         return (indicator.glyph, indicator.color, background)
-    }
-
-    /// What closes a run of a row's own ink — the selection mark, each cell —
-    /// under `background`: SGR 39 under a still fill (a stripe, a selected
-    /// row's tint), a reset under anything else.
-    ///
-    /// A still fill is painted over the finished line as a PERSISTENT
-    /// background, which has to be stated again after every reset in the line
-    /// (`ANSIRenderer.restating`), and a row closed every run with one: a
-    /// striped row of eight columns stated its stripe nine times, +160 bytes a
-    /// row at truecolor and +17.5% bytes in a static table's frame, all of it
-    /// carried up through every container, scanned and copied, on every frame
-    /// the table is drawn (decisions A-SPF-1). Closed by SGR 39 the fill stays
-    /// in force, so the paint states it once. Every cell is the same either
-    /// way: a run's own ink, then the terminal's ink over the fill — a reset
-    /// followed by the fill, or the ink reverted with the fill still in force,
-    /// when the ink was all the run set. A reversal keeps the reset: SGR 39
-    /// under SGR 7 would change the colour the cell is FILLED with.
-    private static func inkClose(under background: RowBackground) -> String {
-        guard case .fixed = background else { return ANSIRenderer.reset }
-        return ANSIRenderer.defaultForeground
-    }
-
-    /// What closes a cell whose text is `text`: `inkClose`, unless the text
-    /// carries escapes of its own (a styled `Text`, a view's line), which a
-    /// reset has to end — SGR 39 would leave a bold or an underline of the
-    /// cell's running into the next one.
-    ///
-    /// Asked only under a still fill: where `inkClose` is already a reset (no
-    /// fill, a reversal — every unstriped row, every row of a table drawn
-    /// `.alternatingRowBackgrounds(.disabled)`) the answer is a reset whatever
-    /// the text holds, and walking the cell's bytes for an escape would be a
-    /// scan per composed cell that cannot change it.
-    private static func close(_ text: String, with inkClose: String) -> String {
-        guard inkClose != ANSIRenderer.reset else { return inkClose }
-        return text.utf8.contains(0x1B) ? ANSIRenderer.reset : inkClose
-    }
-
-    /// The selection mark `glyph` in `colour`, closed by `close` — what
-    /// `ANSIRenderer.colorize(glyph, foreground: colour)` draws, byte for
-    /// byte, when `close` is a reset (see `inkClose(under:)`).
-    private static func mark(_ glyph: String, in colour: Color, closedBy close: String) -> String {
-        var style = TextStyle()
-        style.foregroundColor = colour
-        guard let sequence = ANSIRenderer.styleSequence(for: style) else { return glyph }
-        return "\(sequence)\(glyph)\(close)"
     }
 
     /// What this frame's striped rows paint behind themselves: the stripe over

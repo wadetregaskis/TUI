@@ -242,7 +242,7 @@ enum RowBackground {
     /// styled run with one, as a table row does under a reversal or no fill; under a
     /// still fill a table row closes its runs with SGR 39, which leaves the fill in
     /// force, and resets only after a cell whose text carries escapes of its own
-    /// (`_TableCore.inkClose(under:)`). For the reversal the restating is the whole
+    /// (`TableRowInk`). For the reversal the restating is the whole
     /// point: the 7 exchanges the colours IN FORCE, so without the palette's
     /// ink and field restated beside it the padding would fill with the terminal's own
     /// foreground (`ANSIRenderer.applyPersistentReverse(_:ink:field:)`).
