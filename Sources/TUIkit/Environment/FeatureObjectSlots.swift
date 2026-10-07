@@ -13,7 +13,8 @@
 /// A place in the environment for one object that a feature above the
 /// substrate hands down to the views it draws: a navigation stack's
 /// coordinator, a dialog's suppression toggle, a searchable's dismissal, focus
-/// offer and scope bar.
+/// offer and scope bar, and the app's notification service, which the window
+/// chrome's notification host draws.
 ///
 /// ``EnvironmentValues/detachedFromRuntime()`` has to clear these objects, as
 /// it clears the substrate's own, and it cannot name their types: each belongs
@@ -42,6 +43,9 @@ enum FeatureObjectSlot: CaseIterable {
     case searchFocusOffer
     /// The scopes for the nearest searchable's field.
     case searchScopeBar
+    /// The app's `NotificationService`, which the run loop publishes every
+    /// frame for the window chrome's notification host to draw.
+    case notificationService
 }
 
 // MARK: - Storage
@@ -70,6 +74,10 @@ private enum FeatureObjectSlotKey {
     struct SearchScopeBarSlot: EnvironmentKey {
         static var defaultValue: AnyObject? { nil }
     }
+
+    struct NotificationServiceSlot: EnvironmentKey {
+        static var defaultValue: AnyObject? { nil }
+    }
 }
 
 extension EnvironmentValues {
@@ -86,6 +94,7 @@ extension EnvironmentValues {
             case .searchDismissal: self[FeatureObjectSlotKey.SearchDismissalSlot.self]
             case .searchFocusOffer: self[FeatureObjectSlotKey.SearchFocusOfferSlot.self]
             case .searchScopeBar: self[FeatureObjectSlotKey.SearchScopeBarSlot.self]
+            case .notificationService: self[FeatureObjectSlotKey.NotificationServiceSlot.self]
             }
         }
         set {
@@ -95,6 +104,7 @@ extension EnvironmentValues {
             case .searchDismissal: self[FeatureObjectSlotKey.SearchDismissalSlot.self] = newValue
             case .searchFocusOffer: self[FeatureObjectSlotKey.SearchFocusOfferSlot.self] = newValue
             case .searchScopeBar: self[FeatureObjectSlotKey.SearchScopeBarSlot.self] = newValue
+            case .notificationService: self[FeatureObjectSlotKey.NotificationServiceSlot.self] = newValue
             }
         }
     }

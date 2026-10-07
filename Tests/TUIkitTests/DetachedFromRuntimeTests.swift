@@ -157,4 +157,22 @@ struct DetachedFromRuntimeTests {
         environment[featureObject: .navigationCoordinator] = SearchScopeBar()
         #expect(environment.navigationCoordinator == nil)
     }
+
+    /// The notification service is the window chrome's, so its public
+    /// accessor is a typed view of the `.notificationService` slot — what lets
+    /// detaching clear it without the substrate naming the chrome's type. An
+    /// accessor that went back to a key of its own would still round-trip, and
+    /// would only leak once nothing cleared that key by name; this catches it
+    /// at once.
+    @Test("The notification service's accessor reads and writes the substrate's slot")
+    func notificationServiceIsSlotted() {
+        var environment = EnvironmentValues()
+        let service = NotificationService()
+        environment.notificationService = service
+        #expect(environment.notificationService === service)
+        #expect(environment[featureObject: .notificationService] === service)
+
+        environment[featureObject: .notificationService] = SearchScopeBar()
+        #expect(environment.notificationService == nil)
+    }
 }

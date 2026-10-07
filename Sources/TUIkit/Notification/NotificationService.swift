@@ -201,12 +201,7 @@ extension NotificationService {
     }
 }
 
-// MARK: - Environment Key
-
-/// Environment key for the notification service.
-private struct NotificationServiceKey: EnvironmentKey {
-    static let defaultValue: NotificationService? = nil
-}
+// MARK: - Environment
 
 extension EnvironmentValues {
     /// The notification service for posting and managing notifications.
@@ -228,7 +223,11 @@ extension EnvironmentValues {
     /// `keyEventDispatcher` already follow — a runtime service is Optional, and
     /// absent means absent.
     public var notificationService: NotificationService? {
-        get { self[NotificationServiceKey.self] }
-        set { self[NotificationServiceKey.self] = newValue }
+        // Kept in the substrate's `.notificationService` slot
+        // (`FeatureObjectSlot`), which detaching an environment clears: the
+        // service belongs to the window chrome, above the substrate, so the
+        // substrate clears the slot without naming this type.
+        get { self[featureObject: .notificationService] as? NotificationService }
+        set { self[featureObject: .notificationService] = newValue }
     }
 }

@@ -341,7 +341,6 @@ extension EnvironmentValues {
         detached.focusManager = nil
         detached.paletteManager = nil
         detached.appearanceManager = nil
-        detached.notificationService = nil
         detached.cursorTimer = nil
         detached.animationScheduler = nil
         detached.volatileReadTracker = nil
@@ -360,7 +359,8 @@ extension EnvironmentValues {
         // …and by the features above the substrate, each in a slot this
         // cannot see the type of (``FeatureObjectSlot``): the navigation
         // stack's coordinator, a dialog's suppression toggle, a searchable's
-        // dismissal, focus offer and scope bar.
+        // dismissal, focus offer and scope bar, and the notification service
+        // the render loop publishes for the window chrome.
         for slot in FeatureObjectSlot.allCases {
             detached[featureObject: slot] = nil
         }
