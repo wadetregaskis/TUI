@@ -119,13 +119,18 @@ There are two forms:
     or `extension ForEach: TableRowContent`.
 - `public API on View carried from TUIkitBase up to TUIkitPresentation by the assigner: …`. A modifier block on a
   type from below the map, which the assigner lifted away from its file's module for its dependencies.
+  - `public API on View placed in TUIkitBitmaps by a declarations rule, above its file's TUIkitBase: …`. The same
+    move made by a `declarations` rule: a placement someone chose, so it is reported **accepted**, with the rule's
+    reason, never new. It is reported at all so that `-v` lists the block's public members: a rule is written for the
+    members its author had in mind, and the block may hold others.
 
 The key is the block's label, which names only its first member, so each finding ends by listing every public
 member the block declares: `(public: statusBarItems(_:), focusSection(_:))`. A member counts when it is `public` or
 `open`, or has no access modifier of its own in a `public extension`; a nested type's members are named `Type.member`.
 That is what a review reads. Placing a block moves all of its public members, and the refined plan found four that
 had moved module unseen behind another block's first member (`.focusSection`, `.aspectRatio`, `.scaledToFit`,
-`.scaledToFill`). `-v` prints the accepted ones too.
+`.scaledToFill`); the last three sit in a block a rule places, which is why rule-placed blocks are reported too. `-v`
+prints the accepted ones.
 
 A placement you have reviewed goes into `accepted`, with the reason. The plan's own reviews are recorded there:
 `.modal`, `.listStyle`, and the ones found at 0c. An accepted entry covers the block as it changes: when a public

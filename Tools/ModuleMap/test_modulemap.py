@@ -365,16 +365,24 @@ class PublicAboveTests(unittest.TestCase):
         # clause, so it is Lists' own; the View modifier was carried from its file's module (Base) up to Lists.
         self.assertEqual(keys, ['Base/V.swift::View(ext)#listStyle()', 'Lists/E.swift::ListStyle(ext)#automatic'])
 
-    def test_a_declaration_rule_is_a_chosen_placement(self):
+    def test_a_declaration_rule_is_a_chosen_placement_and_lists_its_members(self):
+        # Chosen, so not new; but reported, accepted with the rule's reason, so `-v` lists every public member of the
+        # block. Exempting it outright hid the layout trio inside the block the r4 rules pin to TUIkitBitmaps.
         M, asg = public_above_model()
-        R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': ''}])
-        self.assertEqual([x.key for x in checks.public_above(M, R, asg)], ['Lists/E.swift::ListStyle(ext)#automatic'])
+        R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': 'list styling'}])
+        xs = checks.public_above(M, R, asg)
+        self.assertEqual([(x.key, x.new) for x in xs], [('Base/V.swift::View(ext)#listStyle()', False),
+                                                        ('Lists/E.swift::ListStyle(ext)#automatic', True)])
+        self.assertEqual(xs[0].message, 'public API on View placed in Lists by a declarations rule, above its file\'s '
+                                        'Base: Base/V.swift::View(ext)#listStyle() (public: listStyle())')
+        self.assertEqual(xs[0].accepted, r'declarations rule ^Base/V\.swift::View\(ext\)$: list styling')
 
     def test_a_copied_label_pins_that_declaration_alone(self):
         # The label `explain` and the findings print (with its `#first-member` discriminator), copied into a rule.
         M, asg = public_above_model()
         R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)#listStyle\(\)$', 'why': ''}])
-        self.assertEqual([x.key for x in checks.public_above(M, R, asg)], ['Lists/E.swift::ListStyle(ext)#automatic'])
+        self.assertEqual([(x.key, x.new) for x in checks.public_above(M, R, asg)],
+                         [('Base/V.swift::View(ext)#listStyle()', False), ('Lists/E.swift::ListStyle(ext)#automatic', True)])
 
     def test_every_public_member_of_a_flagged_block_is_listed(self):
         # A block's label names its first member only; the skeptic of the refined plan found `.focusSection` and

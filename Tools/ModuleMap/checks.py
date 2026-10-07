@@ -123,11 +123,22 @@ def public_above(M, R, asg):
             # A modifier on a type from below the map (`extension View`) sits where its file's rule puts it, beside
             # the feature it configures. One the ASSIGNER carried somewhere else, for its dependencies, is a
             # placement nobody chose (plan section 4: `.modal`, `.listStyle` and `.safeAreaInset` were reviewed).
+            # One a `declarations` rule put there was chosen, for the members its rule had in mind: it is reported
+            # accepted with the rule's reason, so `-v` lists all its public members (the refined plan found the layout
+            # trio inside the block a rule pins to TUIkitBitmaps), and a `scheduled` split can name the others.
             mn, seed = asg[n], R.seed(M.file[n])[0]
-            if mn != seed and R.sees(mn, seed) and not R.decl_rule(M.rule_labels(n)):
+            if mn == seed or not R.sees(mn, seed): continue
+            rule = R.decl_rule(M.rule_labels(n))
+            if rule is None:
                 out.append(Finding('public-above', M.label(n),
                                    f'public API on {M.name[n]} carried from {seed} up to {mn} by the assigner: '
                                    f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n]))
+            else:
+                x = Finding('public-above', M.label(n),
+                            f'public API on {M.name[n]} placed in {mn} by a declarations rule, above its file\'s {seed}: '
+                            f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n])
+                x.accepted = f'declarations rule {rule["match"]}: {rule.get("why") or "no reason given"}'
+                out.append(x)
             continue
         mn, mt = asg[n], asg[t]
         if mn == mt or not R.sees(mn, mt): continue
