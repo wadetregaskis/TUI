@@ -95,7 +95,13 @@ identity it always had, when it erases one view. As a `ForEach`'s ROW it stays
 one child (`AnyView.staticRowMemberCount`), so the probe's loop is two children
 here: the row type cannot say how many views it erases, and counting them
 means building every row on every walk — the `anyview` scenario's loop would
-lose its row memo, and a lazy stack of erased rows its window.
+lose its row memo, and a lazy stack of erased rows its window. So does one in
+an arm of an `if`/`else` that is the row, or under an `if` that is
+(`ConditionalView.staticRowMemberCount`, `Optional.staticRowMemberCount`):
+`.border()` is `if width <= 0 { self } else { AnyView(rings) }`, and counted as
+spliced every bordered row was built and taken apart on every walk, its row
+memo never consulted (`modifiers`, 2026-10-06: 1,611 measures a frame to
+22,412, no row served).
 
 **The fuller version.** B-D1S-5's: a loop whose rows vary counted without
 building every row on every walk (an element-to-first-child index kept across
@@ -124,7 +130,10 @@ cannot see into too, where the placement `KeyedRowTiling` replaced gave the
 row to the second.
 An `if` without `else` around ONE view that is the row's only view stays one
 child, empty when false, as before, where SwiftUI counts none: no stack draws
-or spaces an empty child, and a `Layout` counts it. Counting it as it is
+or spaces an empty child, and a `Layout` counts it. So does one in an arm of
+the row's `if`/`else`, an `if` around what a loop places whole as one — an
+`AnyView`, a bordered view (B-D1S-3) — and an `if`/`else` whose arms are each
+such a row. Counting it as it is
 spliced would build every row of a loop that filters its elements with an
 `if` — a common shape — to learn which are there.
 

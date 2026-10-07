@@ -53,7 +53,8 @@ extension Group {
     /// SwiftUI, from how this framework resolves children everywhere: such a
     /// view under a modifier, or whose body is an `if`/`else`, an `AnyView` or
     /// a modifier on several views, is one subview, not several, and so is an
-    /// `AnyView` that is a `ForEach`'s row (decisions D1S).
+    /// `AnyView` that is a `ForEach`'s row, or an arm of the `if`/`else` or the
+    /// view of the `if` that is one (decisions D1S).
     ///
     /// Like any `Group`, the result is transparent: inside a stack, the views
     /// `transform` builds are the stack's children.

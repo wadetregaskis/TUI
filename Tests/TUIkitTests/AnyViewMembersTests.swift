@@ -141,6 +141,58 @@ struct AnyViewMembersTests {
         #expect(Array(drawn.prefix(2)) == ["a b r0 r1", "    s0 s1"], "\(drawn)")
     }
 
+    /// What the second of two frames of `view` composed and served, under the
+    /// live loop's per-pass lifecycle over one render cache.
+    private func secondFrameRowWork(_ view: some View) -> RenderCache.RowWork {
+        let tui = TUIContext()
+        func frame() {
+            var environment = EnvironmentValues()
+            environment.applyRuntimeServices(from: tui)
+            environment.installVolatileReadTracker(VolatileReadTracker())
+            let context = RenderContext(
+                availableWidth: 30, availableHeight: 40, environment: environment, tuiContext: tui)
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            _ = renderToBuffer(view, context: context)
+            tui.stateStorage.endRenderPass()
+            tui.renderCache.removeInactive()
+        }
+        frame()
+        let before = tui.renderCache.rowWork
+        frame()
+        return tui.renderCache.rowWork.delta(since: before)
+    }
+
+    @Test("A loop of bordered rows, or of rows erased in an if/else arm or under an if, is one child a row and serves its rows from the memo on the next frame")
+    func erasedArmRowsKeepTheRowMemo() {
+        // `.border()` is `if width <= 0 { self } else { AnyView(rings) }`: an
+        // `AnyView` in an arm. Counted as spliced, its rows' count was unknown,
+        // and the loop built and took apart every row on every walk, its row
+        // memo never consulted — the `modifiers` scenario's 400 rows went from
+        // all served to none.
+        let bordered = ForEach(0..<6, id: \.self) { i in Text("r\(i)").padding(1).border() }
+        let filtered = ForEach(0..<6, id: \.self) { i in if i >= 0 { Text("f\(i)").border() } }
+        let erased = ForEach(0..<6, id: \.self) { i in
+            if i.isMultiple(of: 2) { AnyView(Text("e\(i)")) } else { Text("t\(i)").border() }
+        }
+        #expect(bordered.rowShape(sectionWholeness: .apart) == .single)
+        #expect(filtered.rowShape(sectionWholeness: .apart) == .single)
+        #expect(erased.rowShape(sectionWholeness: .apart) == .single)
+        // Arms that differ as rows still leave the count to the row.
+        let differing = ForEach(0..<2, id: \.self) { i in
+            if i > 0 { Group { Text("a"); Text("b") } } else { AnyView(Text("c")) }
+        }
+        #expect(differing.rowShape(sectionWholeness: .apart) == .varying)
+
+        for work in [
+            secondFrameRowWork(VStack(spacing: 0) { bordered }),
+            secondFrameRowWork(VStack(spacing: 0) { filtered }),
+            secondFrameRowWork(VStack(spacing: 0) { erased }),
+        ] {
+            #expect(work.rendered == 0 && work.served >= 6, "\(work)")
+        }
+    }
+
     @Test("An AnyView around one view costs a lazy stack no section scope, as a plain view costs it none")
     func oneViewCostsNoSectionScope() {
         #expect(AnyView.erasesOneView(AnyView(Text("a"))))
