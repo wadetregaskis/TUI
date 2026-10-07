@@ -20,7 +20,9 @@ import swiftsource as SS
 DEF = IX.DECLARATION | IX.DEFINITION
 REF = IX.REFERENCE
 _ACCESSOR = re.compile(r'^(getter|setter|_modify|modify|read|willSet|didSet):')
-_PUBLIC = re.compile(r'\b(public|open)\b')
+# `public` or `open` as an access modifier: followed on its line by another modifier, a declaration keyword or an
+# attribute. Not `open` the identifier (`func open()`, `private var open: Bool`, `case open`).
+_PUBLIC = re.compile(r'(?:^|[\s)])(?:public|open)\s+(?=(?:' + SS.MOD + '|' + SS.KW + r'|prefix|postfix|infix)\b|@)')
 
 
 class Model:

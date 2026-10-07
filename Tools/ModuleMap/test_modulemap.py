@@ -189,6 +189,28 @@ class LabelTests(unittest.TestCase):
         self.assertEqual((asg['s:e:new1'], asg['s:e:new2'], kept), ('Lists', 'Lists', 0))
 
 
+class PublicTests(unittest.TestCase):
+    """Whether a declaration is or holds public API decides whether the assigner may lift it, and what public-above
+    reports. `open` is also an identifier."""
+
+    def test_public_and_open_count_only_as_modifiers(self):
+        lines = ['struct Host {', '    private var open = false', '    func open() {}', '}',          # 1-4
+                 'enum Phase {', '    case open', '}',                                              # 5-7
+                 'open class Base {}',                                                              # 8
+                 '@MainActor public final class Pub {}',                                            # 9
+                 'struct Sets {', '    public private(set) var x = 0', '}',                         # 10-12
+                 'struct Op {', '    public static prefix func - (a: Op) -> Op { a }', '}']         # 13-15
+        decls = {1: 's:Host', 5: 's:Phase', 8: 's:Base', 9: 's:Pub', 10: 's:Sets', 13: 's:Op'}
+        occ = [(u, DEF, ln, '') for ln, u in decls.items()]
+        occ += [('s:Host.open', DEF, 2, 's:Host'), ('s:Host.open()', DEF, 3, 's:Host'), ('s:Phase.open', DEF, 6, 's:Phase'),
+                ('s:Sets.x', DEF, 11, 's:Sets'), ('s:Op.-', DEF, 14, 's:Op')]
+        sym = {u: (u[2:], IX.K_STRUCT) for u in decls.values()}
+        sym.update({'s:Host.open': ('open', IX.K_VARIABLE), 's:Host.open()': ('open()', 16),
+                    's:Phase.open': ('open', 13), 's:Sets.x': ('x', IX.K_VARIABLE), 's:Op.-': ('-(_:)', 17)})
+        M = model({'Base/P.swift': '\n'.join(lines) + '\n'}, {'Base/P.swift': occ}, sym)
+        self.assertEqual(sorted(M.public), ['s:Base', 's:Op', 's:Pub', 's:Sets'])
+
+
 def two_module_model(pin_lists=False):
     """Base/A.swift uses Lists/L.swift's L, which only a Lists file declares."""
     srcs = {'Base/A.swift': 'struct A {\n    func f() { _ = L() }\n}\n', 'Lists/L.swift': 'struct L {}\n',
