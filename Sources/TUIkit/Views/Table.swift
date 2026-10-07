@@ -4572,6 +4572,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             limit: column.lineLimit)
     }
 
+    /// The identity `item`'s row renders at, below this table's (`context`'s):
+    /// every view cell of the row renders below it (``cellContext(_:for:width:context:)``).
+    private func rowIdentity(of item: Value, context: RenderContext) -> ViewIdentity {
+        rowContext(of: item, context: context).identity
+    }
+
+    /// `context` one identity step in, at `item`'s row.
+    private func rowContext(of item: Value, context: RenderContext) -> RenderContext {
+        context.withChildIdentity(erasedType: _TableColumnSpec<Value>.self, key: identityKey(item.id))
+    }
+
     /// The context a view cell renders under: its own identity — the row's,
     /// then the column's — so a view with `@State` in a cell keeps it per row
     /// and per column; the cell's rectangle as the space on offer; and the
@@ -4591,8 +4602,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> RenderContext {
         var cellContext =
-            context
-            .withChildIdentity(erasedType: _TableColumnSpec<Value>.self, key: identityKey(item.id))
+            rowContext(of: item, context: context)
             .withChildIdentity(
                 erasedType: _TableColumnSpec<Value>.self, index: column.declarationIndex)
             .withAvailableSize(width: max(1, width), height: column.lineLimit)
@@ -4621,11 +4631,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             tableHasFocus && index < data.count && handler.isCursorRow(index)
                 && handler.isSelected(at: index)
             ? index : nil
-        let identity = raised.map {
-            context.withChildIdentity(
-                erasedType: _TableColumnSpec<Value>.self, key: identityKey(data[$0].id)
-            ).identity
-        }
+        let identity = raised.map { rowIdentity(of: data[$0], context: context) }
         guard !context.isMeasuring, identity != handler.raisedProminenceRow else { return raised }
         if let cache = context.renderCache {
             for row in [handler.raisedProminenceRow, identity].compactMap(\.self) {
