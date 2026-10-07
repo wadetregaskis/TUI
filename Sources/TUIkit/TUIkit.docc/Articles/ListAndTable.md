@@ -316,10 +316,13 @@ focused or selected row keeps its own highlight.
 Scrolled into a section, a list draws that section's header over its first
 line, as a macOS list floats its section headers: the header stays while the
 section's rows scroll under it, and gives way to the next section's when that
-one reaches the top. The keyboard cursor never goes under it — the list
-scrolls a line further instead — and a click on it is the header's, not the
-row's beneath. Every style pins but `.sidebar`, which does not on macOS
-either; a footer never pins.
+one reaches the top. Moving the cursor with the keys keeps it below the
+header — the list scrolls a line further instead — while a wheel or the
+scroll bar moves the rows and not the cursor, so it can carry the cursor's
+row under the header as it can carry it off screen. A click on the header is
+the header's, not the row's beneath. Every style pins but `.sidebar`, which
+does not on macOS either; a footer never pins, and nor does a header that
+would take every line the rows have.
 
 ### Separators
 

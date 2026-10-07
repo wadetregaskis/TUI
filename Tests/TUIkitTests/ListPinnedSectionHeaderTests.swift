@@ -220,4 +220,81 @@ struct ListPinnedSectionHeaderTests {
         _ = harness.frame(build())
         #expect(pressed.first?.contains("Fruit") == true, "the press unpinned the header: \(pressed)")
     }
+
+    /// A three-line header over the first section, a one-line one over the second.
+    private struct TallHeader: View {
+        let selection: Binding<String?>
+        var body: some View {
+            List(selection: selection) {
+                Section {
+                    ForEach((0..<20).map { "fruit\($0)" }, id: \.self) { Text($0) }
+                } header: {
+                    Text("Fruit\nlong\nheader")
+                }
+                Section("Veg") {
+                    ForEach((0..<20).map { "veg\($0)" }, id: \.self) { Text($0) }
+                }
+            }
+            .listStyle(.plain)
+            .scrollIndicators(.visible)
+        }
+    }
+
+    @Test("The cursor clears the header pinned over the window, an earlier section's taller one included")
+    func cursorClearsTheHeaderThatCoversIt() throws {
+        let box = Box()
+        let harness = InputChainHarness(width: 30, height: 10)
+        let build = { TallHeader(selection: Binding(get: { box.selection }, set: { box.selection = $0 })) }
+        // The cursor onto veg1: the first Down lands on fruit0, then on through
+        // Fruit's twenty rows and over Veg's header.
+        _ = down(22, in: harness, build)
+        _ = harness.press(KeyEvent(key: .space))
+        _ = harness.frame(build())
+        try #require(box.selection == "veg1", "\(String(describing: box.selection))")
+        // Then the window opened at fruit19 (row 20, Fruit's header being row 0),
+        // as a wheel can leave it: Fruit's three lines cover fruit19, Veg's
+        // header and veg0, and veg1 is the first row seen.
+        let list = try #require(harness.focusManager.currentFocused as? ItemListHandler<String>)
+        list.scrollOffset = 20
+        list.scrollTopClipLines = 0
+        let drawn = lines(harness.frame(build()))
+        try #require(drawn.first?.contains("Fruit") == true && drawn.count > 3 && drawn[3].contains("veg1"), "\(drawn)")
+        // Up onto veg0, under Fruit's header: Veg's one-line header is not the one
+        // covering it.
+        _ = harness.press(KeyEvent(key: .up))
+        _ = harness.press(KeyEvent(key: .space))
+        let after = lines(harness.frame(build()))
+        #expect(box.selection == "veg0", "\(String(describing: box.selection))")
+        #expect(after.contains { $0.contains("veg0") }, "the cursor's row is under Fruit's header: \(after)")
+    }
+
+    @Test("A centred cursor stays below the pinned header")
+    func centredCursorClearsTheHeader() {
+        let box = Box()
+        let harness = InputChainHarness(width: 30, height: 2)
+        let build = { view(box, style: .plain).scrollFollowMargin(.centered) }
+        _ = harness.frame(build())
+        for step in 1...8 {
+            _ = harness.press(KeyEvent(key: .down))
+            _ = harness.press(KeyEvent(key: .space))
+            let drawn = lines(harness.frame(build()))
+            let selected = box.selection ?? ""
+            #expect(drawn.contains { $0.contains(selected) && !selected.isEmpty }, "step \(step): \(selected) is hidden: \(drawn)")
+        }
+    }
+
+    @Test("A header that would take every line the rows have does not pin")
+    func headerTallerThanTheRowsDoesNotPin() {
+        let box = Box()
+        let harness = InputChainHarness(width: 30, height: 1)
+        let build = { view(box, style: .plain) }
+        _ = harness.frame(build())
+        for step in 1...6 {
+            _ = harness.press(KeyEvent(key: .down))
+            _ = harness.press(KeyEvent(key: .space))
+            let drawn = lines(harness.frame(build()))
+            let selected = box.selection ?? ""
+            #expect(drawn.contains { $0.contains(selected) && !selected.isEmpty }, "step \(step): \(selected) is hidden: \(drawn)")
+        }
+    }
 }

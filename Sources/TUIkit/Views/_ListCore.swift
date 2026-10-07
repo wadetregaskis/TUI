@@ -1805,7 +1805,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// - during a reorder HOLD, whose slot-aware clip owns the lines — a hold,
     ///   not a press: every press on a row of a reorderable list arms a
     ///   reorder that stays inactive until the pointer moves, and unpinning on
-    ///   that unpinned the header for every click.
+    ///   that unpinned the header for every click;
+    /// - where the header would take every line the rows get, leaving nothing
+    ///   of them — the cursor's row included — to see.
     private static func pinnedHeader(
         over origin: Int, source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>,
         style: any ListStyle
@@ -1813,7 +1815,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         guard pinsSectionHeaders(style), handler.reorder?.active != true,
             let header = source.pinnedHeader(over: origin)
         else { return nil }
-        return (header, source.content(at: header).buffer.height)
+        let height = source.content(at: header).buffer.height
+        return height < handler.rowLineBudget ? (header, height) : nil
     }
 
     /// Stitches together the row content with top / bottom

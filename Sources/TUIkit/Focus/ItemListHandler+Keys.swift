@@ -767,17 +767,34 @@ extension ItemListHandler {
     /// walk overshoots by is clipped off the top row, as the reveal below
     /// clips, so `first` lands on the line under the header exactly.
     ///
-    /// - Returns: `false` where no header pins over `first`, leaving the plain
+    /// Where `first` is already in the window, the header that covers it is
+    /// the one pinned over the window AS IT STANDS — an earlier section's, and
+    /// perhaps a taller one, while the window still opens in that section — so
+    /// that is the header it must clear; the walk then settles the window in
+    /// `first`'s own section, under `first`'s own header, which may scroll DOWN
+    /// to it.
+    ///
+    /// - Returns: `false` where no header covers `first`, leaving the plain
     ///   reveal to it; `true` where this settled the top, scrolling or not.
+    @discardableResult
     private func revealBelowPinnedHeader(from first: Int) -> Bool {
-        guard let rowHeight, let pin = pinnedSectionHeader?(first), pin.index < first else { return false }
+        guard let rowHeight, let pinnedOver = pinnedSectionHeader else { return false }
         if first >= scrollOffset {
-            // Already far enough down: the header covers only rows above it.
+            guard let covering = pinnedOver(scrollOffset) else { return false }
+            // Far enough down already: the header covers only rows above it.
             var linesAbove = -scrollTopClipLines
             for index in scrollOffset..<first {
                 linesAbove += rowHeight(index)
-                if linesAbove >= pin.height { return true }
+                if linesAbove >= covering.height { return true }
             }
+        }
+        guard let pin = pinnedOver(first), pin.index < first else {
+            // Nothing pins over `first` itself — a header, or a row above every
+            // section — so with it at the top nothing covers it.
+            guard first >= scrollOffset else { return false }
+            scrollOffset = first
+            scrollTopClipLines = 0
+            return true
         }
         var top = first
         var covered = 0
@@ -883,6 +900,9 @@ extension ItemListHandler {
             scrollOffset = top
             scrollTopClipLines = clip
         }
+        // A centre too near the top for the header pinned there — a short
+        // viewport, a tall header — would leave the cursor under it.
+        revealBelowPinnedHeader(from: focusedIndex)
 
         clampScrollOffset()
         clampTopClip()
