@@ -241,7 +241,10 @@ placed by the rules. Refresh the map whenever a change adds files or moves code 
 ## Limits
 
 - The index records only the code macOS compiles. A reference inside a `#if os(Linux)` or `#if os(Windows)` arm is
-  invisible to `upward`. The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7).
+  invisible to every check that reads references: `upward`, `lower` (a Linux-only use of a lower module a list leaves
+  out), `posix`, `owns-neither` and `witness`. The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7).
+  The refined plan's correction 2 was this class (a Linux-only call the index never saw), so every carve also runs its
+  inactive-arm scan and the Linux cross-compile before landing.
 - Only `Sources/TUIkit` is mapped. Tests, Example and Stress import the umbrella and are not checked.
 - Line weights, which decide an unpinned group's module by majority, are each declaration's share of its file,
   up to the next declaration.
