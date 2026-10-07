@@ -1580,11 +1580,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             keyboardMoveIsLive: false,
             rowHeight: { source.content(at: $0).buffer.height })
         // The header pinned over a row, and its height: what the reveal keeps the
-        // cursor below (`ItemListHandler.pinnedSectionHeader`). Every frame, nil
-        // included — the handler persists across a style change.
+        // cursor below (`ItemListHandler.pinnedSectionHeader`) — by the rule the
+        // draw pins by, asked when the key arrives. Every frame, nil included —
+        // the handler persists across a style change. Weak, as the handler holds
+        // the closure.
+        let pinStyle = context.environment.listStyle
         handler.pinnedSectionHeader =
-            Self.pinsSectionHeaders(context.environment.listStyle)
-            ? { index in source.pinnedHeader(over: index).map { ($0, source.content(at: $0).buffer.height) } }
+            Self.pinsSectionHeaders(pinStyle)
+            ? { [weak handler] index in
+                handler.flatMap { Self.pinnedHeader(over: index, source: source, handler: $0, style: pinStyle) }
+            }
             : nil
         // §1.5: how far past its edges this view may be pushed, re-resolved
         // every frame (a `.viewport`-relative allowance moves with the
@@ -1780,15 +1785,35 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// first and take the lines it drew from the top of the rows below
     /// (``PinnedHeaderCover``), so it is paired with a range like any row, its
     /// payloads land where it is drawn, and the lines it covers stop being the
-    /// covered row's to click. Not during a reorder hold, whose slot-aware clip
-    /// owns the lines.
+    /// covered row's to click. Where it pins is ``pinnedHeader(over:source:handler:style:)``'s
+    /// to say, which the reveal asks too.
     private func pinningSectionHeader(
         over rows: [(index: Int, row: SelectableListRow<SelectionValue>)], source: RowSource<SelectionValue>,
         origin: Int, handler: ItemListHandler<SelectionValue>, style: any ListStyle
     ) -> [(index: Int, row: SelectableListRow<SelectionValue>)] {
-        guard handler.reorder == nil, Self.pinsSectionHeaders(style), let header = source.pinnedHeader(over: origin)
+        guard let header = Self.pinnedHeader(over: origin, source: source, handler: handler, style: style)
         else { return rows }
-        return [(index: header, row: source.row(at: header))] + rows
+        return [(index: header.index, row: source.row(at: header.index))] + rows
+    }
+
+    /// The header pinned over the rows when the window opens at `origin`, and
+    /// its height in lines (decisions A45) — what the draw puts ahead of the
+    /// window and what the keyboard reveal keeps the cursor below, one rule for
+    /// both. `nil` where none pins:
+    ///
+    /// - under `.sidebar` (``pinsSectionHeaders(_:)``);
+    /// - during a reorder HOLD, whose slot-aware clip owns the lines — a hold,
+    ///   not a press: every press on a row of a reorderable list arms a
+    ///   reorder that stays inactive until the pointer moves, and unpinning on
+    ///   that unpinned the header for every click.
+    private static func pinnedHeader(
+        over origin: Int, source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>,
+        style: any ListStyle
+    ) -> (index: Int, height: Int)? {
+        guard pinsSectionHeaders(style), handler.reorder?.active != true,
+            let header = source.pinnedHeader(over: origin)
+        else { return nil }
+        return (header, source.content(at: header).buffer.height)
     }
 
     /// Stitches together the row content with top / bottom

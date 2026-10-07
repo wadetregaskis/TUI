@@ -196,4 +196,28 @@ struct ListPinnedSectionHeaderTests {
             }
         }
     }
+
+    @Test("A press on a row of a reorderable list leaves the header pinned")
+    func pressKeepsThePin() throws {
+        let box = Box()
+        let harness = InputChainHarness(width: 30, height: 8)
+        let build = {
+            List(selection: Binding(get: { box.selection }, set: { box.selection = $0 })) {
+                Section("Fruit") {
+                    ForEach((0..<20).map { "fruit\($0)" }, id: \.self) { Text($0) }.onMove { _, _ in }
+                }
+            }
+            .listStyle(.plain)
+            .scrollIndicators(.visible)
+        }
+        let before = lines(down(12, in: harness, build))
+        try #require(before.first?.contains("Fruit") == true, "\(before)")
+        // Every press on a row of an `.onMove` list arms a reorder, inactive
+        // until the pointer moves: a click, not yet a drag.
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 4, y: 3))
+        let pressed = lines(harness.frame(build()))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 4, y: 3))
+        _ = harness.frame(build())
+        #expect(pressed.first?.contains("Fruit") == true, "the press unpinned the header: \(pressed)")
+    }
 }
