@@ -135,7 +135,7 @@ extension TerminalClient {
             primaryDeviceAttributes: TerminalHost.startupIdentity?.primaryAttributes,
             tmuxSetClipboard: setClipboard,
             ownChain: passesOn && screenNamed ? ProcessAncestry.ownCommandNames() : nil,
-            tmuxClientChains: passesOn ? ClipboardLocality.tmuxClientChains() : nil)
+            tmuxClients: passesOn ? ClipboardLocality.tmuxClients() : nil)
     }
 
     /// The ladder behind ``clipboardWrites``, posed on its inputs so it can be
@@ -148,11 +148,11 @@ extension TerminalClient {
     ///    included, is unsupported, because tmux then ignores an application's
     ///    write. Under `on`, unsupported where GNU screen is known to stand
     ///    between tmux and the terminal
-    ///    (``screenStandsBeforeTheTerminal(environment:ownChain:tmuxClientChains:)``):
+    ///    (``screenStandsBeforeTheTerminal(environment:ownChain:tmuxClients:)``):
     ///    a screen run in this tmux pane, or a tmux every one of whose clients
-    ///    runs inside screen. Where that cannot be told — a chain unread, tmux
-    ///    not answering — the answer stays unconfirmed, which the status bar
-    ///    reports as sent, not as copied. tmux's own variables are checked
+    ///    showing this pane runs inside screen. Where that cannot be told — a
+    ///    chain unread, tmux not answering — the answer stays unconfirmed,
+    ///    which the status bar reports as sent, not as copied. tmux's own variables are checked
     ///    before the ones below, which inside a pane may be stale leftovers of
     ///    whichever terminal, or screen, started the server.
     /// 3. GNU screen (`STY` set, the session is somewhere inside one):
@@ -174,7 +174,7 @@ extension TerminalClient {
     ///    rung that reaches an unknown terminal over ssh.
     static func clipboardWrites(
         environment: [String: String], program: Program, primaryDeviceAttributes: String?,
-        tmuxSetClipboard: String?, ownChain: [String]? = nil, tmuxClientChains: [[String]?]? = nil
+        tmuxSetClipboard: String?, ownChain: [String]? = nil, tmuxClients: [ClipboardLocality.AttachedClient]? = nil
     ) -> ClipboardWriteSupport {
         switch environment["TUIKIT_OSC52"] {
         case "1": return .honoured
@@ -184,7 +184,7 @@ extension TerminalClient {
         if program == .tmux {
             guard tmuxSetClipboard == "on" else { return .unsupported }
             let screenStands = screenStandsBeforeTheTerminal(
-                environment: environment, ownChain: ownChain, tmuxClientChains: tmuxClientChains)
+                environment: environment, ownChain: ownChain, tmuxClients: tmuxClients)
             return screenStands ? .unsupported : .unconfirmed
         }
         if environment["STY"]?.isEmpty == false { return .unsupported }
@@ -205,10 +205,11 @@ extension TerminalClient {
     ///
     /// - A screen run in this pane: `STY` is set, and screen is nearer than
     ///   tmux in `ownChain`, this process's command names from itself up.
-    /// - A tmux attached from inside screen: every client in
-    ///   `tmuxClientChains` has screen above it. The pane's own chain cannot
-    ///   say so — tmux's server daemonizes and is reparented to launchd or
-    ///   init, so a pane's chain is the same however its session is attached
+    /// - A tmux attached from inside screen: every client in `tmuxClients`
+    ///   that the write goes to (``writeRecipients(of:pane:)``) has screen
+    ///   above it. The pane's own chain cannot say so — tmux's server
+    ///   daemonizes and is reparented to launchd or init, so a pane's chain
+    ///   is the same however its session is attached
     ///   — and `STY` cannot either: a server started inside screen keeps
     ///   screen's `STY` whoever attaches, and one attached from inside screen
     ///   later has none. Such a client's terminal type is screen's, which
@@ -216,11 +217,11 @@ extension TerminalClient {
     ///   drops a bare OSC 52 anyway (as tmux's and screen's sources read;
     ///   unmeasured on a host).
     ///
-    /// `false` where it cannot be told: no client attached, a client's chain
-    /// or this process's unread, tmux not answering. The write is then sent
-    /// as the maybe it is.
+    /// `false` where it cannot be told: no client showing the pane, a
+    /// client's chain or this process's unread, tmux not answering. The write
+    /// is then sent as the maybe it is.
     static func screenStandsBeforeTheTerminal(
-        environment: [String: String], ownChain: [String]?, tmuxClientChains: [[String]?]?
+        environment: [String: String], ownChain: [String]?, tmuxClients: [ClipboardLocality.AttachedClient]?
     ) -> Bool {
         if environment["STY"]?.isEmpty == false, let ownChain,
             let screen = ownChain.firstIndex(where: ClipboardLocality.isGNUScreen),
@@ -228,12 +229,29 @@ extension TerminalClient {
         {
             return true
         }
-        guard let clients = tmuxClientChains, !clients.isEmpty else { return false }
+        guard let clients = tmuxClients else { return false }
+        let recipients = writeRecipients(of: clients, pane: environment["TMUX_PANE"])
+        guard !recipients.isEmpty else { return false }
         // A client's first name is the client itself: a screen above it is
         // what the client draws in.
-        return clients.allSatisfy { chain in
-            chain?.dropFirst().contains(where: ClipboardLocality.isGNUScreen) == true
+        return recipients.allSatisfy { client in
+            client.chain?.dropFirst().contains(where: ClipboardLocality.isGNUScreen) == true
         }
+    }
+
+    /// The clients tmux passes an OSC 52 write from `pane` (`TMUX_PANE`, as
+    /// `%3`) on to: those whose session holds the pane's window (tmux's
+    /// `session_has`), which are those whose session's panes include it. A
+    /// client attached to another session does not see the write, so it
+    /// cannot make up for one that sees it from inside screen.
+    ///
+    /// A client whose panes tmux did not list, or every client where the
+    /// pane is unknown, may be one, and is kept.
+    static func writeRecipients(
+        of clients: [ClipboardLocality.AttachedClient], pane: String?
+    ) -> [ClipboardLocality.AttachedClient] {
+        guard let pane, !pane.isEmpty else { return clients }
+        return clients.filter { client in client.sessionPanes?.contains(pane) ?? true }
     }
 
     /// Whether the environment names kitty, WezTerm or foot — terminals that

@@ -88,8 +88,8 @@ struct ClipboardTerminalSupportTests {
         let expected: TerminalClient.ClipboardWriteSupport
         /// This process's command names, where the ladder walks them.
         var ownChain: [String]?
-        /// Each tmux client's command names, where the ladder asks for them.
-        var tmuxClientChains: [[String]?]?
+        /// tmux's clients, where the ladder asks for them.
+        var tmuxClients: [ClipboardLocality.AttachedClient]?
         var testDescription: String { name }
 
         static let rows: [Self] = [
@@ -172,7 +172,7 @@ struct ClipboardTerminalSupportTests {
             TerminalClient.clipboardWrites(
                 environment: row.environment, program: row.program,
                 primaryDeviceAttributes: row.deviceAttributes, tmuxSetClipboard: row.tmuxSetClipboard,
-                ownChain: row.ownChain, tmuxClientChains: row.tmuxClientChains)
+                ownChain: row.ownChain, tmuxClients: row.tmuxClients)
                 == row.expected)
     }
 

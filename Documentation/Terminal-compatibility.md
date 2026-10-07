@@ -5289,13 +5289,28 @@ nothing is sent and the copy is "Not copied" — such a client's `TERM` is
 `screen*`, which tmux's default `terminal-features` give no clipboard, and
 screen drops a bare OSC 52 besides (both read from the sources; unmeasured
 on a host). Where at least one client is outside screen, tmux's answer
-stands ("Sent"). A screen run inside a tmux pane is told by the app's own
-chain (screen above it before tmux), and nothing is sent. Where it cannot be
-told — tmux not listing its clients, a client's chain unreadable — the write
-goes as the maybe it is, reported "Sent", never "Copied". (The follow-ups'
-reviews: `STY` alone said "Not copied" of a tmux attached straight from the
-terminal; the pane's chain alone then said "Sent" of a tmux still attached
-from inside screen, where nothing arrives.)
+stands ("Sent"). Only the clients that see the write count: tmux passes a
+pane's write on to the clients whose session holds the pane's window
+(`session_has` in `screen_write_set_client_cb`, read from its source), so
+`list-clients` also prints each client's session's panes
+(`#{W:#{P:#{pane_id}}}`, the ids run together as `%0%1%2`; a loop given a
+comma takes what follows it as the active pane's format, which printed
+nothing for it) and the ladder keeps the clients whose list names the app's
+`TMUX_PANE`. Measured, tmux 3.7c, 2026-10-07, on a private server with
+three clients attached through ptys: a two-window, three-pane session
+`A` listed `%0%1%2`, a session `B` `%3`, and a session grouped with `A`
+`%0%1%2` too. A client on another session neither receives the write nor
+makes up for one that receives it inside screen. A screen run inside a tmux
+pane is told by the app's own chain (screen above it before tmux), and
+nothing is sent. Where it cannot be told — tmux not listing its clients or
+their panes (a tmux too old for the loops; unmeasured), a client's chain
+unreadable, no client showing the pane — the write goes as the maybe it is,
+reported "Sent", never "Copied". (The follow-ups' reviews: `STY` alone said
+"Not copied" of a tmux attached straight from the terminal; the pane's chain
+alone then said "Sent" of a tmux still attached from inside screen, where
+nothing arrives; and counting every client of the server said "Sent" of the
+app's session attached from inside screen while another session was
+attached from the terminal.)
 
 The status bar says what became of a copy for three seconds, in place of the
 items of the line of key hints (`StatusBar()`, where the app places it) and

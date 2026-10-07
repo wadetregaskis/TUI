@@ -497,26 +497,33 @@ struct TmuxCompatibilityTests {
     @Test(
         "list-clients output parses to one client per line, pid first",
         arguments: [
-            // tmux emits "#{client_pid} #{client_termtype}" per client,
-            // newline-terminated. The termtype takes the rest of the line
-            // because it contains spaces; the pid never does.
-            ("32465 iTerm2 3.6.11\n", [(32465 as pid_t?, "iTerm2 3.6.11")]),
+            // tmux emits "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termtype}"
+            // per client, newline-terminated. The termtype takes the rest of
+            // the line because it contains spaces; the pid never does, nor the
+            // pane ids, which run together, each from its `%`.
+            ("32465 %0 iTerm2 3.6.11\n", [(32465 as pid_t?, ["%0"] as [String]?, "iTerm2 3.6.11")]),
             // Apple Terminal: a real client, pid present, termtype empty. This
             // is the line that used to be written off as unknown.
-            ("32465 \n", [(32465 as pid_t?, "")]),
+            ("32465 %0 \n", [(32465 as pid_t?, ["%0"], "")]),
             (
-                "1 iTerm2 3.6.11\n2 ghostty 1.3.1\n",
-                [(1 as pid_t?, "iTerm2 3.6.11"), (2 as pid_t?, "ghostty 1.3.1")]
+                "1 %0%1%2 iTerm2 3.6.11\n2 %3 ghostty 1.3.1\n",
+                [(1 as pid_t?, ["%0", "%1", "%2"], "iTerm2 3.6.11"), (2 as pid_t?, ["%3"], "ghostty 1.3.1")]
             ),
-            ("1 \n2 ghostty 1.3.1\n", [(1 as pid_t?, ""), (2 as pid_t?, "ghostty 1.3.1")]),
+            ("1 %0 \n2 %12 ghostty 1.3.1\n", [(1 as pid_t?, ["%0"], ""), (2 as pid_t?, ["%12"], "ghostty 1.3.1")]),
             ("", []),
-            ("32465 iTerm2 3.6.11", [(32465 as pid_t?, "iTerm2 3.6.11")]),  // no trailing newline
+            ("32465 %0 iTerm2 3.6.11", [(32465 as pid_t?, ["%0"], "iTerm2 3.6.11")]),  // no trailing newline
             // A tmux too old to know `client_pid` leaves it empty rather than
             // wrong, and identification falls back to the termtype alone.
-            (" iTerm2 3.6.11\n", [(nil as pid_t?, "iTerm2 3.6.11")]),
-        ] as [(String, [(pid_t?, String)])])
-    func clientListParsing(output: String, expected: [(pid_t?, String)]) {
+            (" %0 iTerm2 3.6.11\n", [(nil as pid_t?, ["%0"], "iTerm2 3.6.11")]),
+            // One too old for the loops leaves the panes empty: not listed,
+            // which is not "no panes" (a session always holds one).
+            ("32465  iTerm2 3.6.11\n", [(32465 as pid_t?, nil, "iTerm2 3.6.11")]),
+            ("32465 %0%x iTerm2\n", [(32465 as pid_t?, nil, "iTerm2")]),
+            ("32465 %0% iTerm2\n", [(32465 as pid_t?, nil, "iTerm2")]),
+        ] as [(String, [(pid_t?, [String]?, String)])])
+    func clientListParsing(output: String, expected: [(pid_t?, [String]?, String)]) {
         let parsed = TerminalHost.parseTmuxClients(output)
-        #expect(parsed == expected.map { TerminalHost.TmuxClient(termtype: $0.1, pid: $0.0) })
+        #expect(
+            parsed == expected.map { TerminalHost.TmuxClient(termtype: $0.2, pid: $0.0, sessionPanes: $0.1) })
     }
 }

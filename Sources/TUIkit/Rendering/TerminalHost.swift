@@ -261,6 +261,18 @@ enum TerminalHost {
         /// login shell to the terminal application that owns the window — which
         /// is how a silent client is identified. `nil` if tmux did not report it.
         let pid: pid_t?
+
+        /// tmux's ids (`%3`) of every pane in every window of the client's
+        /// session, or `nil` where tmux did not list them (a tmux too old for
+        /// the format's `W:` and `P:` loops).
+        ///
+        /// tmux passes a pane's OSC 52 write on only to the clients whose
+        /// session holds the pane's window (`session_has` in
+        /// `screen_write_set_client_cb`, read from its source), which are the
+        /// clients whose list names the pane: a session grouped with the
+        /// pane's shares its windows, so its clients' lists name it too
+        /// (measured, tmux 3.7c).
+        var sessionPanes: [String]?
     }
 
     /// Whether the terminals currently attached to a tmux session all draw the
@@ -564,9 +576,11 @@ enum TerminalHost {
     static func probeTmuxClients() -> [TmuxClient]? {
         guard isTmux else { return nil }
         // One line per attached client. The pid comes first because it is always
-        // digits: the termtype takes the rest of the line, spaces and all.
+        // digits, then the session's pane ids run together (`%0%1%2`: each
+        // starts with its `%`, and a loop's comma would name the active pane's
+        // format), and the termtype takes the rest of the line, spaces and all.
         guard
-            let output = runTmux(["list-clients", "-F", "#{client_pid} #{client_termtype}"])
+            let output = runTmux(["list-clients", "-F", "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termtype}"])
         else { return nil }
         return parseTmuxClients(output)
     }
@@ -642,14 +656,27 @@ enum TerminalHost {
         let lines = output.split(separator: "\n", omittingEmptySubsequences: false)
         let withoutTrailingNewlineArtefact = output.hasSuffix("\n") ? lines.dropLast() : lines[...]
         return withoutTrailingNewlineArtefact.map { line in
-            let fields = line.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
+            let fields = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: false)
             // A tmux too old to know `client_pid` substitutes nothing for it, so
             // the pid is absent rather than wrong: identification falls back to
             // the termtype alone, which is exactly the old behaviour.
             let pid = fields.first.flatMap { pid_t($0) }
-            let termtype = fields.count > 1 ? String(fields[1]) : ""
-            return TmuxClient(termtype: termtype, pid: pid)
+            let panes = fields.count > 1 ? parseTmuxPaneIDs(fields[1]) : nil
+            let termtype = fields.count > 2 ? String(fields[2]) : ""
+            return TmuxClient(termtype: termtype, pid: pid, sessionPanes: panes)
         }
+    }
+
+    /// Pane ids run together as tmux's loops print them — `%0%1%2` — or `nil`
+    /// for anything else: nothing at all (a tmux whose formats have no loops
+    /// substitutes nothing, and a session always holds a pane), or a field
+    /// that is not ids.
+    static func parseTmuxPaneIDs(_ field: Substring) -> [String]? {
+        guard field.first == "%" else { return nil }
+        let numbers = field.dropFirst().split(separator: "%", omittingEmptySubsequences: false)
+        let isNumber = { (digits: Substring) in !digits.isEmpty && digits.allSatisfy { ("0"..."9").contains($0) } }
+        guard numbers.allSatisfy(isNumber) else { return nil }
+        return numbers.map { "%\($0)" }
     }
 
     // MARK: - tmux client-change hooks (push, not poll)

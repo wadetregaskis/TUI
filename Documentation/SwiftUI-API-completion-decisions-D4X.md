@@ -251,17 +251,22 @@ screen passes an application's OSC 52 on only inside its own DCS passthrough,
 so the ladder answers unsupported inside screen (`STY`) whatever terminal the
 inherited environment names, where it used to report "Sent" (iTerm2) or
 "Copied" (Ghostty) of a write screen dropped. In a tmux pane under
-`set-clipboard on`, tmux's clients decide: where every attached client runs
-inside screen (screen above it in its chain), nothing is sent and the copy is
-"Not copied"; where one does not, tmux's answer stands ("Sent"); a screen run
+`set-clipboard on`, tmux's clients decide — those that see the write, whose
+session holds the app's pane (`TMUX_PANE` among the session's panes that
+`list-clients` prints), not every client of the server: where every one of
+them runs inside screen (screen above it in its chain), nothing is sent and
+the copy is "Not copied"; where one does not, tmux's answer stands ("Sent"); a screen run
 in a tmux pane, seen in the app's own chain, sends nothing. Neither `STY` nor
 the pane's chain can tell: a tmux server started inside screen keeps its
 `STY` whoever attaches, and the server daemonizes, so a pane's chain ends at
 it however the session is attached (the follow-ups' first review found `STY`
 saying "Not copied" of such a session attached straight from Ghostty or
 iTerm2; its second, the chain then saying "Sent" of one still attached from
-inside screen, where nothing arrives). Where the clients cannot be read, the
-write goes as a maybe, reported "Sent", never "Copied". A paste chord under a keeper,
+inside screen, where nothing arrives; the review of that fix, every client of
+the server counted, so that a client of another session, attached from the
+terminal, said "Sent" for the app's own, attached from inside screen). Where
+the clients cannot be read, or none shows the pane, the write goes as a
+maybe, reported "Sent", never "Copied". A paste chord under a keeper,
 as anywhere away from the machine, pastes the app's own last copy and says
 so, or says to use the terminal's paste (B-D4X-14).
 

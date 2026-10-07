@@ -160,22 +160,38 @@ enum ClipboardLocality {
         let environment = ProcessInfo.processInfo.environment
         let inTmux = TerminalHost.isTmux
         let ownChain = ProcessAncestry.ownCommandNames()
-        let clientChains = inTmux && ownChain != nil ? tmuxClientChains() : nil
+        let clientChains = inTmux && ownChain != nil ? tmuxClients()?.map(\.chain) : nil
         return isLocal(
             environment: environment, ownChain: ownChain, tmuxClientChains: clientChains, inTmux: inTmux)
         #endif
     }
 
-    /// Each attached tmux client's command names, its own first
-    /// (``ProcessAncestry/commandNames(from:limit:)``) — an element `nil`
-    /// where a client's chain could not be read — or `nil` where tmux could
-    /// not be asked, or this process is in no tmux pane.
+    /// One client attached to this process's tmux server, as a copy reads it.
+    struct AttachedClient: Equatable {
+        /// The panes of the client's session
+        /// (``TerminalHost/TmuxClient/sessionPanes``), or `nil` where tmux did
+        /// not list them.
+        var sessionPanes: [String]?
+        /// The client's command names, its own first
+        /// (``ProcessAncestry/commandNames(from:limit:)``), or `nil` where its
+        /// chain could not be read.
+        var chain: [String]?
+    }
+
+    /// The clients attached to this process's tmux server, every session's —
+    /// or `nil` where tmux could not be asked, or this process is in no tmux
+    /// pane.
     ///
     /// Asks tmux for its clients (``TerminalHost/probeTmuxClients()``), a
-    /// bounded subprocess: asked when a copy is made, never per frame.
-    static func tmuxClientChains() -> [[String]?]? {
+    /// bounded subprocess, and walks each one's parents: asked when a copy is
+    /// made, never per frame.
+    static func tmuxClients() -> [AttachedClient]? {
         TerminalHost.probeTmuxClients().map { clients in
-            clients.map { client in client.pid.flatMap { ProcessAncestry.commandNames(from: $0) } }
+            clients.map { client in
+                AttachedClient(
+                    sessionPanes: client.sessionPanes,
+                    chain: client.pid.flatMap { ProcessAncestry.commandNames(from: $0) })
+            }
         }
     }
 }
