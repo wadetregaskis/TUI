@@ -1201,24 +1201,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // nothing. Same fix as `_ListCore`'s.
             renderState = emptyRenderState(
                 context: context, stateStorage: stateStorage, contentHeight: rowArea)
-        } else if wantsScrollbar, !isMultiLine {
-            let result = buildScrollbarContent(
-                context: context, stateStorage: stateStorage, palette: palette,
-                columnWidths: columnWidths, contentInnerWidth: contentInnerWidth)
-            contentLines = result.lines
-            contentRuns = result.runs
-            contentClaims = result.claims
-            contentPayload = result.payload
-            renderState = result.state
         } else {
-            let result = buildPopulatedContent(
-                context: context,
-                stateStorage: stateStorage,
-                palette: palette,
-                columnWidths: columnWidths,
-                showsScrollbar: wantsScrollbar,
-                innerWidth: innerWidth
-            )
+            let result =
+                wantsScrollbar && !isMultiLine
+                ? buildScrollbarContent(
+                    context: context, stateStorage: stateStorage, palette: palette,
+                    columnWidths: columnWidths, contentInnerWidth: contentInnerWidth)
+                : buildPopulatedContent(
+                    context: context, stateStorage: stateStorage, palette: palette,
+                    columnWidths: columnWidths, showsScrollbar: wantsScrollbar, innerWidth: innerWidth)
             contentLines = result.lines
             contentRuns = result.runs
             contentClaims = result.claims

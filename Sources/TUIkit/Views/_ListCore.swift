@@ -1179,8 +1179,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // raw one puts every row a line off its band (exactly how the `Table`
         // broke before it did the same).
         let origin: WindowOrigin = (
-            window.range.lowerBound, window.topClip, window.reservesAbove,
-            window.reservesBelow)
+            window.range.lowerBound, window.topClip, window.reservesAbove, window.reservesBelow)
         // Materialised from the range the rule settled. `source.row(at:)` builds
         // and renders the content box on demand and MEMOISES it, so the rows the
         // walk already touched cost a dictionary hit here.
