@@ -116,6 +116,13 @@ renderOnce {
 }
 ```
 
+## Build Time
+
+A clean release build of TUIkit takes minutes (measured 2026-10-07, Swift 6.2.4, a 12-core arm64 Mac VM):
+
+- If `swift --version` prints `Build config: +assertions`, your compiler is an assertions build, as swift.org's 6.2.4 for macOS is (swiftly's included). Xcode's own Swift of the same version compiled TUIkit in about 26% less time (86.4 s against 116.7 s to the end of TUIkit's compile). To build with it: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build -c release`. Setting `DEVELOPER_DIR` alone does not redirect swiftly's `swift`.
+- A release build compiles each module as one whole-module job, in a chain (TUIkitCore, then TUIkitView, then TUIkit), and most of each job runs on one thread, so more cores help little.
+
 ## Next Steps
 
 - Learn about the framework's <doc:Architecture>

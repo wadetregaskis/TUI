@@ -193,6 +193,19 @@ Then add it to your target:
 
 > **Tip:** `import TUIkit` re-exports all sub-modules. For finer control you can import individual modules: `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, or `TUIkitImage`.
 
+### Build time
+
+A clean release build of TUIkit takes minutes, not seconds. Two things decide most of it (measured 2026-10-07 on a 12-core arm64 Mac VM, Swift 6.2.4):
+
+- **Which compiler you have.** Run `swift --version`. If it prints `Build config: +assertions`, the compiler is an assertions build — swift.org's 6.2.4 for macOS is one, whether installed by hand or by swiftly (its 6.3.3 and 6.4.0 are not) — and Xcode's own Swift of the same version compiles TUIkit in about 26% less time: 86.4 s against 116.7 s to the end of TUIkit's compile, paired on one machine. (Part of the gap is the swift.org toolchain rebuilding SDK module interfaces that Xcode ships prebuilt.) With Xcode installed, build with its toolchain:
+
+  ```bash
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build -c release
+  ```
+
+  Both halves are needed. `DEVELOPER_DIR` alone does not change which compiler swiftly's `swift` runs, and `xcrun --toolchain XcodeDefault` without it runs the Command Line Tools' `swift` whenever `xcode-select` points at them.
+- **Why more cores help little.** A release build compiles each module as one whole-module job, and the modules build in a chain: TUIkitCore, then TUIkitView, then TUIkit. Inside a job, type checking and the SIL optimiser — about three quarters of TUIkit's job — run on one thread; only LLVM's code generation spreads across cores. The whole build averaged about 1.7 cores busy.
+
 ## Theming
 
 TUIkit ships two families of built-in palettes, both conforming to the `Palette` protocol and applied at the scene (or view) level with `.palette(_:)`.

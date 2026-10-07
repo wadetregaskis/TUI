@@ -184,8 +184,12 @@ swift build
 # two differ by more than version: Apple's SDKs build the standard library from
 # its PUBLIC interface, so an `@_spi` import of `Swift` sees nothing there, and
 # the macOS CI lanes use Xcode's. A separate scratch path keeps the two builds
-# from invalidating each other.
-xcrun --toolchain XcodeDefault swift build --build-tests --scratch-path .build/xcode
+# from invalidating each other. `xcrun --toolchain XcodeDefault` is not enough
+# on its own: while `xcode-select` points at the Command Line Tools it runs
+# THEIR `swift` (6.1.2 here, 2026-10-07). Xcode's also takes ~26% less time
+# over a clean release build than swiftly's 6.2.4, an assertions build — see
+# the README's "Build time".
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build --build-tests --scratch-path .build/xcode
 
 # Run all tests (7,591 tests in 1,082 suites, Swift Testing framework)
 swift test
