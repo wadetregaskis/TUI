@@ -153,15 +153,23 @@ enum ClipboardLocality {
         #else
         let environment = ProcessInfo.processInfo.environment
         let inTmux = TerminalHost.isTmux
-        let ownChain = ProcessAncestry.commandNames(from: getpid())
-        var clientChains: [[String]?]?
-        if inTmux, ownChain != nil {
-            clientChains = TerminalHost.probeTmuxClients().map { clients in
-                clients.map { client in client.pid.flatMap { ProcessAncestry.commandNames(from: $0) } }
-            }
-        }
+        let ownChain = ProcessAncestry.ownCommandNames()
+        let clientChains = inTmux && ownChain != nil ? tmuxClientChains() : nil
         return isLocal(
             environment: environment, ownChain: ownChain, tmuxClientChains: clientChains, inTmux: inTmux)
         #endif
+    }
+
+    /// Each attached tmux client's command names, its own first
+    /// (``ProcessAncestry/commandNames(from:limit:)``) — an element `nil`
+    /// where a client's chain could not be read — or `nil` where tmux could
+    /// not be asked, or this process is in no tmux pane.
+    ///
+    /// Asks tmux for its clients (``TerminalHost/probeTmuxClients()``), a
+    /// bounded subprocess: asked when a copy is made, never per frame.
+    static func tmuxClientChains() -> [[String]?]? {
+        TerminalHost.probeTmuxClients().map { clients in
+            clients.map { client in client.pid.flatMap { ProcessAncestry.commandNames(from: $0) } }
+        }
     }
 }
