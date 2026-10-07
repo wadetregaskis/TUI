@@ -124,7 +124,7 @@ def public_above(M, R, asg):
             # the feature it configures. One the ASSIGNER carried somewhere else, for its dependencies, is a
             # placement nobody chose (plan section 4: `.modal`, `.listStyle` and `.safeAreaInset` were reviewed).
             mn, seed = asg[n], R.seed(M.file[n])[0]
-            if mn != seed and R.sees(mn, seed) and not any(rx.search(l) for _, rx in R.decls for l in M.rule_labels(n)):
+            if mn != seed and R.sees(mn, seed) and not R.decl_rule(M.rule_labels(n)):
                 out.append(Finding('public-above', M.label(n),
                                    f'public API on {M.name[n]} carried from {seed} up to {mn} by the assigner: '
                                    f'{M.label(n)}{_members(M, n)}', M.file[n], M.line[n]))

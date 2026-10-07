@@ -54,9 +54,9 @@ def assign(model, rules):
         m, pin = seed_node(n)
         asg[n] = m
         if pin and not any(rx.search(l) for rx in R.unpin for l in M.rule_labels(n)): pinned.add(n)
-    for m, rx in R.decls:
-        for n in nodes:
-            if any(rx.search(l) for l in M.rule_labels(n)): asg[n] = m; pinned.add(n)
+    for n in nodes:
+        r = R.decl_rule(M.rule_labels(n))
+        if r: asg[n] = r['module']; pinned.add(n)
     cut = set()
     for a in nodes:
         for b in OUT[a]:

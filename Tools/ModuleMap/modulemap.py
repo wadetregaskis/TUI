@@ -66,8 +66,8 @@ def resolve(M, R, files):
         m = e.get(M.short_label(n)) if isinstance(e, dict) else None
         if m is None:
             unmapped.append(n)
-            for mod, rx in R.decls:
-                if any(rx.search(l) for l in M.rule_labels(n)): m = mod; break
+            r = R.decl_rule(M.rule_labels(n))
+            if r: m = r['module']
         asg[n] = m
     kept = 0
     by_file = collections.defaultdict(list)

@@ -26,13 +26,13 @@ class Rules:
         for m in self.order:
             if m in self._closure(m): raise SystemExit(f'rules.json: {m} depends on itself')
         self.files = [(r['module'], bool(r.get('pin')), re.compile(r['match'])) for r in data['files']]
-        self.decls = [(r['module'], re.compile(r['match'])) for r in data.get('declarations', [])]
+        self.decls = [dict(r, rx=re.compile(r['match'])) for r in data.get('declarations', [])]
         self.unpin = [re.compile(r['match']) for r in data.get('unpin', [])]
         self.scheduled = [dict(r, index=i, from_rx=re.compile(r['from']), to_rx=re.compile(r['to']))
                           for i, r in enumerate(data.get('scheduled', []))]
         self.accepted = {(r['check'], r['key']): r for r in data.get('accepted', [])}
         for m, _, _ in self.files: self._known(m, 'files')
-        for m, _ in self.decls: self._known(m, 'declarations')
+        for r in self.decls: self._known(r['module'], 'declarations')
         self.posix = data.get('posix', {})
         self.witness_pairs = {p: set(qs) for p, qs in data.get('witness_pairs', {}).items() if p != 'why'}
 
@@ -74,6 +74,16 @@ class Rules:
         for m, pin, rx in self.files:
             if rx.search(rel): return m, pin
         return self.default, False
+
+    def decl_rule(self, labels):
+        """The `declarations` rule that places a declaration with these labels (`Model.rule_labels`), else None. The
+        LAST that matches wins, so a narrower rule after a broader one is an exception to it: the r4 rules pin
+        `Image.*Key` to TUIkitBitmaps, then three of those keys to TUIkitBase. The assigner, `map.json`'s reader and
+        `public-above` all ask here, so they cannot disagree."""
+        hit = None
+        for r in self.decls:
+            if any(r['rx'].search(l) for l in labels): hit = r
+        return hit
 
     def scheduled_for(self, check, src_label, dst_label):
         for r in self.scheduled:

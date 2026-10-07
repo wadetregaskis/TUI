@@ -253,6 +253,18 @@ class AssignerTests(unittest.TestCase):
         ups = checks.upward(M, R, asg)
         self.assertEqual([(x.key, x.new) for x in ups], [('Base/A.swift::A -> Lists/L.swift::L', True)])
 
+    def test_the_last_matching_declaration_rule_wins_for_the_assigner_and_the_map_reader_alike(self):
+        # The r4 rules pin `Image.*Key` to Bitmaps and then three of those keys to Base. The assigner took the last
+        # rule; map.json's reader, for a declaration the map does not name yet, took the first.
+        src = 'struct ImageContentModeKey {}\nstruct ImageZoomKey {}\n'
+        M = model({'Base/K.swift': src}, {'Base/K.swift': [('s:CM', DEF, 1, ''), ('s:Z', DEF, 2, '')]},
+                  {'s:CM': ('ImageContentModeKey', IX.K_STRUCT), 's:Z': ('ImageZoomKey', IX.K_STRUCT)})
+        R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/K\.swift::Image.*Key$', 'why': ''},
+                                {'module': 'Base', 'match': r'^Base/K\.swift::ImageContentModeKey$', 'why': ''}])
+        asg, _ = assigner.assign(M, R)
+        self.assertEqual(asg, {'s:CM': 'Base', 's:Z': 'Lists'})
+        self.assertEqual(modulemap.resolve(M, R, {})[0], asg)
+
     def test_a_scheduled_refactor_is_reported_as_scheduled(self):
         M, files = two_module_model(pin_lists=True)
         R = rules(files=files, declarations=PIN_A,

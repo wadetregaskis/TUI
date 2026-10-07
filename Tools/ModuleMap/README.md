@@ -218,8 +218,10 @@ not drag declarations down.
   fixpoint may move.
 - **`declarations`**: `{module, match, why}` over labels: a pattern is tried on the printed label
   (`path::Name(ext)#first`, as `explain` shows it) and on the base label (`path::Name(ext)`), so a copied label pins that
-  one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single declarations. Use them for a placement
-  decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or to undo an assigner drift.
+  one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single
+  declarations. Use them for a placement decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or
+  to undo an assigner drift. Where several match one declaration, the **last** wins, so a narrower rule placed after a
+  broader one is an exception to it (TUIkitBase's three image layout keys after TUIkitBitmaps' `Image.*Key`).
 - **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
 - **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix` or `lower`) that a refactor will
   remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for
