@@ -954,11 +954,9 @@ extension _ImageCore {
         let cell = context.environment.imageCellPixels
         let wantedWidth = target.width * cell.width
         let wantedHeight = target.height * cell.height
-        let shrink = min(
-            1.0,
-            min(
-                Double(rawImage.width) / Double(max(1, wantedWidth)),
-                Double(rawImage.height) / Double(max(1, wantedHeight))))
+        let widthShrink: Double = Double(rawImage.width) / Double(max(1, wantedWidth))
+        let heightShrink: Double = Double(rawImage.height) / Double(max(1, wantedHeight))
+        let shrink = min(1.0, min(widthShrink, heightShrink))
         let pixelWidth = max(1, Int((Double(wantedWidth) * shrink).rounded()))
         let pixelHeight = max(1, Int((Double(wantedHeight) * shrink).rounded()))
 

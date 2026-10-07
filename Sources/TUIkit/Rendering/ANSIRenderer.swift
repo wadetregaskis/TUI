@@ -345,8 +345,8 @@ extension ANSIRenderer {
         guard !restore.isEmpty else { return string }
         // A line with no `ESC [ 0` in it has nothing to restore after, and is
         // most styled lines: found without copying the bytes first.
-        let hasResetIntroducer =
-            string.utf8.withContiguousStorageIfAvailable { buffer -> Bool in
+        let scanned: Bool? =
+            string.utf8.withContiguousStorageIfAvailable { (buffer: UnsafeBufferPointer<UInt8>) -> Bool in
                 var index = 0
                 while index + 2 < buffer.count {
                     if buffer[index] == 0x1B, buffer[index + 1] == 0x5B, buffer[index + 2] == 0x30 {
@@ -355,8 +355,8 @@ extension ANSIRenderer {
                     index += 1
                 }
                 return false
-            } ?? true
-        guard hasResetIntroducer else { return string }
+            }
+        guard scanned ?? true else { return string }
         let bytes = Array(string.utf8)
         let restoreBytes = Array(restore.utf8)
         var out: [UInt8] = []

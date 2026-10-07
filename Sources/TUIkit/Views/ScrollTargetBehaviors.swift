@@ -238,9 +238,14 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
     ) -> TargetLayoutSpans.Span? {
         guard !spans.isEmpty, container > 0 else { return nil }
         let reach = (min(original, proposed) - 2 * container)...(max(original, proposed) + 2 * container)
-        let landings = spans.spans(overlapping: reach)
-            .map { (landing: $0.origin + Int((unit * Double($0.length - container)).rounded(.down)), span: $0) }
-            .sorted { $0.landing < $1.landing }
+        // Typed, and sorted in place: inferred as one `map`-then-`sorted`
+        // chain, this needed over 3,000 solver scopes to type-check.
+        typealias Landing = (landing: Int, span: TargetLayoutSpans.Span)
+        var landings: [Landing] = spans.spans(overlapping: reach).map { (span: TargetLayoutSpans.Span) -> Landing in
+            let offset: Double = unit * Double(span.length - container)
+            return (landing: span.origin + Int(offset.rounded(.down)), span: span)
+        }
+        landings.sort { (a: Landing, b: Landing) -> Bool in a.landing < b.landing }
         guard !landings.isEmpty else { return nil }
         if proposed == original {
             let nearest = landings.min { abs($0.landing - proposed) < abs($1.landing - proposed) }

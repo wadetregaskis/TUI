@@ -53,9 +53,9 @@ extension FrameBuffer {
         let spokenRuns = animatedCells.filter { $0.alpha?.isTranslucent == true }
         guard !opacityRegions.isEmpty || !spokenRuns.isEmpty else { return (self, [], []) }
         // As far as a claim, or a run it may cut, reaches.
-        let reach = max(
-            opacityRegions.map { $0.offsetX + $0.width }.max() ?? 0,
-            animatedCells.map { $0.offsetX + $0.width }.max() ?? 0)
+        let regionReach: Int = opacityRegions.map { $0.offsetX + $0.width }.max() ?? 0
+        let runReach: Int = animatedCells.map { $0.offsetX + $0.width }.max() ?? 0
+        let reach = max(regionReach, runReach)
         // What the base shows nothing at, under each row of the layer, read once a row.
         var masks: [Int: [Bool]] = [:]
         func nothing(_ row: Int, _ column: Int) -> Bool {

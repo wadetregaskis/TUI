@@ -138,8 +138,8 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
         guard !tracks.isEmpty, !subviews.isEmpty else { return ViewSize(width: 0, height: 0) }
 
         let breadths = lineBreadths(subviews, tracks: tracks)
-        let along =
-            breadths.reduce(0, +) + max(0, breadths.count - 1) * spacing
+        let total: Int = breadths.reduce(0, +)
+        let along = total + max(0, breadths.count - 1) * spacing
         // A partly-filled last line still claims the full track extent: a grid
         // that narrowed itself to its final row's content would jitter as items
         // are added, and would not line up with the rows above it.

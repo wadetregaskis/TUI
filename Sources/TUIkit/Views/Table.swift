@@ -1962,7 +1962,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// The width a section header is drawn across: the cells', from the first
     /// column's leading edge to the last's trailing one.
     private func sectionHeaderWidth(_ columnWidths: [Int]) -> Int {
-        max(1, columnWidths.reduce(0, +) + columnSpacing * max(0, columnWidths.count - 1))
+        let total: Int = columnWidths.reduce(0, +)
+        return max(1, total + columnSpacing * max(0, columnWidths.count - 1))
     }
 
     /// The context section header `index` is measured or drawn under: its own

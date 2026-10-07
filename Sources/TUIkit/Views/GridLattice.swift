@@ -150,7 +150,8 @@ struct GridLattice {
 
     /// The grid's total width.
     var totalWidth: Int {
-        columns.reduce(0, +) + max(0, columns.count - 1) * horizontalSpacing
+        let total: Int = columns.reduce(0, +)
+        return total + max(0, columns.count - 1) * horizontalSpacing
     }
 
     /// Each column's x origin, accumulated rather than divided — the integer

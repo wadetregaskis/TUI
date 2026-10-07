@@ -352,7 +352,7 @@ enum IndeterminateRenderer {
             return index
         }
         for length in 1..<count where count.isMultiple(of: length) {
-            if (length..<count).allSatisfy({ names[$0] == names[$0 - length] }) { return length }
+            if (length..<count).allSatisfy({ (i: Int) -> Bool in names[i] == names[i - length] }) { return length }
         }
         return count
     }

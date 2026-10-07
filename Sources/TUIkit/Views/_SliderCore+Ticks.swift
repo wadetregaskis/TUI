@@ -54,7 +54,8 @@ extension _SliderCore {
     /// The column, within the track as drawn, a tick at `value` sits on — the
     /// head's own quantisation, so a tick and the head on its value line up.
     private func tickColumn(_ value: Double, drawnTrackWidth: Int) -> Int {
-        Self.trackLeft + Int((fraction(of: value) * Double(max(0, drawnTrackWidth - 1))).rounded())
+        let span = Double(max(0, drawnTrackWidth - 1))
+        return Self.trackLeft + Int((fraction(of: value) * span).rounded())
     }
 
     /// The rows under the track: a `╵` under each tick, and each label centred
