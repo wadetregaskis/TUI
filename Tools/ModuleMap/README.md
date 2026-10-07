@@ -156,8 +156,9 @@ hold only imports.
 
 `TUIkitStrings: Localization/Foo.swift::Foo uses TUIkitView.AppState, and TUIkitStrings's lower list does not name TUIkitView`
 
-The lower modules are the package's other modules beside `Sources/TUIkit` (TUIkitCore, TUIkitStyling, TUIkitView,
-TUIkitImage …), which the map does not split. A module's `lower` list in `rules.json` names the ones it may use; a
+The lower modules are the package's other modules beside `Sources/TUIkit` that its sources import, and what those
+re-export with `@_exported import` (TUIkitCore, TUIkitStyling, TUIkitView, TUIkitImage today). The map does not split
+them. A module's `lower` list in `rules.json` names the ones it may use; a
 module without a list may use them all. Once split, the module would not depend on the one it uses, so this is a
 compile error. The lists also keep a module off the critical path it was placed to avoid: a side module compiles
 beside TUIkitView only for as long as nothing in it uses TUIkitView, and a module that must build without
@@ -168,8 +169,10 @@ or break the edge (inject the value, or split the code that needs the lower modu
 that may use it). A refactor that will remove one is a `scheduled` entry whose `to` matches `Module.name`
 (`^TUIkitView\.AppState$`).
 
-The check reads which lower module defines each symbol from the same index store, in one more pass over its units.
-A `lower` list naming a module the index has no definitions of is an error, not a silent pass.
+The check reads which lower module defines each symbol from the same index store, in one more pass over its units:
+about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; reading every module beside
+`Sources/TUIkit`, Example and Stress included, cost 0.6–0.9 s). A `lower` list naming a module the index has no
+definitions of is an error, not a silent pass.
 
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 

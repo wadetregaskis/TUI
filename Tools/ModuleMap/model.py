@@ -28,6 +28,34 @@ _ACCESS = re.compile(r'(?:^|[\s)])(?:package|internal|fileprivate|private)\s+(?=
                      r'|prefix|postfix|infix)\b|@)')
 
 
+_IMPORT = re.compile(r'^\s*(@_exported\s+)?(?:@\w+\s+)*(?:(?:public|package|internal|fileprivate|private)\s+)?import\s+'
+                     r'(?:(?:struct|class|enum|protocol|func|var|let|typealias)\s+)?(\w+)')
+
+
+def visible_modules(top, me, lexed):
+    """The modules beside `me` under `top` that `me`'s sources (lexed, comments stripped) import, and what those
+    re-export (`@_exported import`), transitively: everything `me` can use of them. The package's other modules
+    (Example, Stress, the ones that import `me`) are left out, so the `lower` check does not read their index."""
+    here = {d for d in os.listdir(top) if d != me and os.path.isdir(os.path.join(top, d))}
+    seen, todo = set(), set()
+    for lx in lexed:
+        for s in lx.stripped:
+            x = _IMPORT.match(s)
+            if x and x.group(2) in here: todo.add(x.group(2))
+    while todo:
+        d = todo.pop()
+        if d in seen: continue
+        seen.add(d)
+        for dp, _, fs in os.walk(os.path.join(top, d)):
+            for f in fs:
+                if not f.endswith('.swift'): continue
+                with open(os.path.join(dp, f), encoding='utf-8', errors='replace') as fh:
+                    for s in fh:
+                        x = _IMPORT.match(s)
+                        if x and x.group(1) and x.group(2) in here: todo.add(x.group(2))
+    return seen
+
+
 def lower_owners(files, dirs):
     """{usr: module} for every symbol the lower modules define, from their occurrences ({path: [(usr, roles, line,
     container)]}, as indexstore.read gives them) and {module: source prefix}. A symbol two of them define (none
@@ -126,11 +154,11 @@ class Model:
             t = mtimes.get(prefix + f)
             if t is None or os.path.getmtime(p) > t + 1: m.stale.append(f)
         m.build({f: o for f, o in occ.items() if f in m.lexed})
-        # The lower modules: every other module whose sources sit beside this one's (Sources/TUIkitCore …), read in
-        # one more pass over the store's units. The `lower` check asks which of them defines what a declaration uses.
+        # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUIkitCore …)
+        # and that this module's sources can see, read in one more pass over the store's units. The `lower` check asks
+        # which of them defines what a declaration uses.
         top, me = os.path.split(prefix.rstrip('/'))
-        dirs = {d: os.path.join(top, d) + '/' for d in sorted(os.listdir(top))
-                if d != me and os.path.isdir(os.path.join(top, d))}
+        dirs = {d: os.path.join(top, d) + '/' for d in sorted(visible_modules(top, me, m.lexed.values()))}
         if dirs:
             lower, _, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
             m.lower_owner = lower_owners(lower, dirs)

@@ -536,6 +536,19 @@ class LowerTests(unittest.TestCase):
         dirs = {'TUIkitCore': '/p/Sources/TUIkitCore/', 'TUIkitView': '/p/Sources/TUIkitView/'}
         self.assertEqual(model_mod.lower_owners(files, dirs), {'s:Lock': 'TUIkitCore', 's:AppState': 'TUIkitView'})
 
+    def test_the_lower_modules_are_what_the_sources_import_and_what_that_re_exports(self):
+        # Example and Stress import TUIkit and sit beside it too; reading their index cost ~0.6-0.9 s for nothing.
+        with tempfile.TemporaryDirectory() as top:
+            files = {'X/A.swift': '// import Commented\nimport Foundation\n@preconcurrency import View\n',
+                     'View/V.swift': '@_exported import Core\nimport Styling\n', 'Core/C.swift': 'struct C {}\n',
+                     'Styling/S.swift': 'struct S {}\n', 'Example/E.swift': 'import X\n', 'Commented/K.swift': ''}
+            for rel, text in files.items():
+                os.makedirs(os.path.join(top, os.path.dirname(rel)), exist_ok=True)
+                with open(os.path.join(top, rel), 'w') as fh: fh.write(text)
+            lexed = [SS.lex(files['X/A.swift'])]
+            # View's plain import of Styling is View's own business: X cannot see Styling through it.
+            self.assertEqual(model_mod.visible_modules(top, 'X', lexed), {'View', 'Core'})
+
     def test_a_lower_list_naming_no_module_the_index_knows_is_an_error(self):
         M, asg = lower_model()
         R = lower_rules()
