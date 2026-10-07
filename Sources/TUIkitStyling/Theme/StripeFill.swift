@@ -166,7 +166,9 @@ private struct StripeKey: Hashable {
     private static func distance(_ first: UInt32, _ second: UInt32) -> Int {
         var total = 0
         for shift: UInt32 in [0, 8, 16] {
-            let delta = Int((first >> shift) & 0xFF) - Int((second >> shift) & 0xFF)
+            let firstChannel: UInt32 = (first >> shift) & 0xFF
+            let secondChannel: UInt32 = (second >> shift) & 0xFF
+            let delta = Int(firstChannel) - Int(secondChannel)
             total += delta * delta
         }
         return total
