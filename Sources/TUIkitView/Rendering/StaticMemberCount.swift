@@ -75,8 +75,9 @@ package func staticMemberCount<V: View>(_ type: V.Type) -> Int? {
 /// SwiftUI counts none for the `if` and what it erases for the `AnyView`
 /// (decisions D1S, B-D1S-3, B-D1S-5): counting it as it is spliced would build
 /// every row of a loop that filters its elements with an `if`, or erases its
-/// rows, to learn how many views each is. `.border()` erases its rings in an
-/// `if`/`else` arm, so that is a bordered row.
+/// rows, to learn how many views each is. `.border()` erased its rings in an
+/// `if`/`else` arm until it handed them over as a type that counts one
+/// (`_BorderRings`), so that was a bordered row.
 @MainActor
 package func staticRowMemberCount<V: View>(_ type: V.Type) -> Int? {
     if let counting = type as? any StaticMemberCounting.Type { return counting.staticRowMemberCount }
@@ -185,10 +186,12 @@ extension ConditionalView: StaticMemberCounting {
     /// The arms' counts as a loop's whole row, when they agree: the row is
     /// whichever arm is live, and the loop places it as it would that arm
     /// alone — an `AnyView` arm whole, as an `AnyView` row. Not the arms'
-    /// spliced counts: `.border()` is `if width <= 0 { self } else {
+    /// spliced counts: `.border()` was `if width <= 0 { self } else {
     /// AnyView(rings) }`, an `AnyView` counts no number spliced, and a loop of
     /// bordered rows was built and taken apart on every walk, its row memo
-    /// never consulted (`modifiers`: 1,611 measures a frame to 22,412).
+    /// never consulted (`modifiers`: 1,611 measures a frame to 22,412). Its
+    /// rings count one now (`_BorderRings`); an app's own erased arm still
+    /// needs this.
     package static var staticRowMemberCount: Int? {
         let whenTrue = TUIkitView.staticRowMemberCount(TrueContent.self)
         return whenTrue == TUIkitView.staticRowMemberCount(FalseContent.self) ? whenTrue : nil

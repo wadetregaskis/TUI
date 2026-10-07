@@ -112,16 +112,22 @@ extension View {
     /// `width` nests rather than thickens: each ring is another
     /// `ContainerView` around the last, which is exactly what a two-cell
     /// border looks like on a grid that has no half-cells.
+    ///
+    /// The rings are erased (an `AnyView` per ring), which is faster than
+    /// their nested type spelt out, and handed over as ``_BorderRings``, whose
+    /// type says they are one view — so a bordered view counts as one child
+    /// from its type, as the view it borders does.
     @ViewBuilder
     func bordered(style: BorderStyle?, colour: AnimatedColor?, width: Int) -> some View {
         if width <= 0 {
             self
         } else {
-            (1..<max(1, width)).reduce(
-                AnyView(ring(style: style, colour: colour))
-            ) { inner, _ in
-                AnyView(inner.ring(style: style, colour: colour))
-            }
+            _BorderRings(
+                rings: (1..<max(1, width)).reduce(
+                    AnyView(ring(style: style, colour: colour))
+                ) { inner, _ in
+                    AnyView(inner.ring(style: style, colour: colour))
+                })
         }
     }
 
@@ -137,6 +143,38 @@ extension View {
         ) {
             self
         }
+    }
+}
+
+// MARK: - Border rings
+
+/// A border's rings, erased, under a type that says they are ONE view.
+///
+/// An `AnyView`'s type cannot say how many views it holds, so it counts as
+/// none known (`staticMemberCount` is `nil`): the rings alone were one child
+/// of their container at run time — a `ContainerView` — and unknown from
+/// their type. `.border()` is an `if`/`else` of the view it borders and its
+/// rings, so a row of several views with one of them bordered —
+/// `Text("a"); Text("b").border()` — counted as varying where it counted two
+/// before an `AnyView` was a provider (a7e0b83e3), and a `ForEach` of such
+/// rows built and counted every row on every walk: no row memo, and a lazy
+/// stack without its window.
+///
+/// Not a provider of children, so its type counts one; drawn and measured as
+/// the `AnyView` it holds, at the same identity — the rings stay erased,
+/// which is faster than their nested type spelt out (an un-erased ring
+/// measured +20.5% on the `anyview` scenario).
+struct _BorderRings: View, Renderable, Layoutable {
+    let rings: AnyView
+
+    var body: Never { fatalError("_BorderRings renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        rings.renderToBuffer(context: context)
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        rings.sizeThatFits(proposal: proposal, context: context)
     }
 }
 

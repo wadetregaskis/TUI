@@ -101,7 +101,12 @@ an arm of an `if`/`else` that is the row, or under an `if` that is
 `.border()` is `if width <= 0 { self } else { AnyView(rings) }`, and counted as
 spliced every bordered row was built and taken apart on every walk, its row
 memo never consulted (`modifiers`, 2026-10-06: 1,611 measures a frame to
-22,412, no row served).
+22,412, no row served). Spliced, a bordered view counted as unknown too, so a
+row of several views with one bordered — `Text(a); Text(b).border()` — was
+`.varying` where it counted two before (a lazy stack of such rows lost its
+window); the rings are handed over as `_BorderRings` now (follow-up FU3), an
+`AnyView` under a type that counts one, so a bordered view counts as one
+wherever it is spliced, and the rings stay erased.
 
 **The fuller version.** B-D1S-5's: a loop whose rows vary counted without
 building every row on every walk (an element-to-first-child index kept across

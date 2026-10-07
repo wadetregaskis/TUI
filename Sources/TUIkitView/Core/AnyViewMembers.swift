@@ -27,8 +27,9 @@
 /// what was kept there when the erased type changes.
 ///
 /// As a `ForEach`'s row an `AnyView` stays one child (``StaticMemberCounting``),
-/// and so does one in an arm of the row's `if`/`else` or under its `if` — a
-/// bordered row's: its type cannot say how many views it holds, and building
+/// and so does one in an arm of the row's `if`/`else` or under its `if` — as a
+/// bordered row's was, before `.border()` handed its erased rings over as a
+/// type that counts one: its type cannot say how many views it holds, and building
 /// every row to count them would cost a loop of erased rows its row memo and a
 /// lazy stack its window.
 extension AnyView: ChildViewProvider {

@@ -33,6 +33,13 @@ private struct Counting: Layout {
     }
 }
 
+/// How many rows a loop's closure has built.
+@MainActor
+private final class Built {
+    var rows = 0
+    func count() { rows += 1 }
+}
+
 /// Records the identity path it is drawn at.
 @MainActor
 private final class Paths {
@@ -191,6 +198,72 @@ struct AnyViewMembersTests {
         ] {
             #expect(work.rendered == 0 && work.served >= 6, "\(work)")
         }
+    }
+
+    /// `.border()` erases its rings, and an `AnyView`'s type says nothing of
+    /// how many views it holds: a row of several views with one bordered
+    /// counted as varying, and its loop built and counted every row on every
+    /// walk — in a lazy stack, every row of the collection, not the window's.
+    @Test("A row of several views with one bordered counts them from its type, and a lazy stack of them builds its window")
+    func rowWithOneBorderedViewCounts() {
+        let bordered = ForEach(0..<6, id: \.self) { i in
+            Text("a\(i)")
+            Text("b\(i)").border()
+        }
+        #expect(bordered.rowShape(sectionWholeness: .apart) == .fixed(2))
+        #expect(resolveChildViews(from: bordered, context: makeRenderContext(width: 10, height: 4)).count == 12)
+
+        // Rows built on the second of two frames of a lazy stack of 200 such
+        // rows, six lines tall — against the same rows with nothing bordered.
+        let built = Built()
+        let borderedRows = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<200, id: \.self) { i in
+                    let _ = built.count()
+                    Text("a\(i)")
+                    Text("b\(i)").border()
+                }
+            }
+        }
+        .frame(height: 6)
+        let plainRows = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<200, id: \.self) { i in
+                    let _ = built.count()
+                    Text("a\(i)")
+                    Text("b\(i)")
+                }
+            }
+        }
+        .frame(height: 6)
+        let bordering = secondFrameRowsBuilt(borderedRows, counting: built)
+        let plain = secondFrameRowsBuilt(plainRows, counting: built)
+        // Counted as varying, every row was built three times a frame (600).
+        // Its window's rows are built now — more often than a plain row's (40
+        // against 10 when this was written; why is not established here).
+        #expect(bordering < 200 / 4, "a frame built \(bordering) of 200 bordered rows (\(plain) plain)")
+        #expect(plain < 200 / 4, "precondition: \(plain) of 200 plain rows")
+    }
+
+    /// How many rows `built` counted on the second of two frames of `view`.
+    private func secondFrameRowsBuilt(_ view: some View, counting built: Built) -> Int {
+        let tui = TUIContext()
+        func frame() {
+            var environment = EnvironmentValues()
+            environment.applyRuntimeServices(from: tui)
+            environment.installVolatileReadTracker(VolatileReadTracker())
+            let context = RenderContext(
+                availableWidth: 30, availableHeight: 40, environment: environment, tuiContext: tui)
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            _ = renderToBuffer(view, context: context)
+            tui.stateStorage.endRenderPass()
+            tui.renderCache.removeInactive()
+        }
+        frame()
+        built.rows = 0
+        frame()
+        return built.rows
     }
 
     @Test("An AnyView around one view costs a lazy stack no section scope, as a plain view costs it none")
