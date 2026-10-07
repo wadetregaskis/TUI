@@ -15,6 +15,13 @@ class Rules:
         for m, ds in self.deps.items():
             for d in ds:
                 if d not in self.deps: raise SystemExit(f'rules.json: {m} depends on unknown module {d}')
+        # The lower modules (outside the map: TUIkitCore, TUIkitView …) each module may use; None, when a module has no
+        # `lower` list, is all of them. Which names are real modules is the index's to say (modulemap.py checks it).
+        self.lower = {m['name']: (set(m['lower']) if 'lower' in m else None) for m in data['modules']}
+        for m, ls in self.lower.items():
+            for x in sorted(ls or ()):
+                if x in self.deps: raise SystemExit(f'rules.json: {m}\'s lower list names {x}, a module of the map: '
+                                                     f'name it in deps')
         self.sees_set = {m: self._closure(m) | {m} for m in self.order}
         for m in self.order:
             if m in self._closure(m): raise SystemExit(f'rules.json: {m} depends on itself')

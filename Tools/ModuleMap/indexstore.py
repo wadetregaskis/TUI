@@ -83,7 +83,8 @@ def find_store(root):
 
 
 def read(store_path, module, source_prefix, lib_path=None):
-    """Occurrences of every file of `module` under `source_prefix`, from the newest unit for each file.
+    """Occurrences of every file of `module` under `source_prefix`, from the newest unit for each file. `module` may be
+    a set of module names and `source_prefix` a tuple of prefixes, to read several modules in one pass over the units.
 
     Returns (files, symbols, unit_mtimes):
       files        {path: [(usr, roles, line, container_usr)]}; the container is the symbol the occurrence's
@@ -147,13 +148,14 @@ def read(store_path, module, source_prefix, lib_path=None):
         units.append(_s(name)); return True
     L.indexstore_store_units_apply_f(store, 0, None, unit_cb)
 
+    modules = {module} if isinstance(module, str) else set(module)
     newest = {}          # main file -> (mtime, unit name)
     for u in units:
         ur = L.indexstore_unit_reader_create(store, u.encode(), ctypes.byref(err))
         if not ur: continue
         mod = _s(L.indexstore_unit_reader_get_module_name(ur))
         main = _s(L.indexstore_unit_reader_get_main_file(ur))
-        if mod == module and main.startswith(source_prefix):
+        if mod in modules and main.startswith(source_prefix):
             sec = ctypes.c_int64(); nsec = ctypes.c_int64()
             L.indexstore_unit_reader_get_modification_time(ur, ctypes.byref(sec), ctypes.byref(nsec))
             t = sec.value + nsec.value / 1e9

@@ -144,6 +144,25 @@ check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file w
 The `TUIkit` umbrella re-exports and holds nothing else. No declaration may be assigned to it, and its files may
 hold only imports.
 
+### `lower`: a lower module the module's `lower` list does not name
+
+`TUIkitStrings: Localization/Foo.swift::Foo uses TUIkitView.AppState, and TUIkitStrings's lower list does not name TUIkitView`
+
+The lower modules are the package's other modules beside `Sources/TUIkit` (TUIkitCore, TUIkitStyling, TUIkitView,
+TUIkitImage …), which the map does not split. A module's `lower` list in `rules.json` names the ones it may use; a
+module without a list may use them all. Once split, the module would not depend on the one it uses, so this is a
+compile error. The lists also keep a module off the critical path it was placed to avoid: a side module compiles
+beside TUIkitView only for as long as nothing in it uses TUIkitView, and a module that must build without
+TUIkitImage stays without it.
+
+There is one finding per declaration and symbol, with its references counted. Fix it as for `upward`: move the user,
+or break the edge (inject the value, or split the code that needs the lower module into an extension in a module
+that may use it). A refactor that will remove one is a `scheduled` entry whose `to` matches `Module.name`
+(`^TUIkitView\.AppState$`).
+
+The check reads which lower module defines each symbol from the same index store, in one more pass over its units.
+A `lower` list naming a module the index has no definitions of is an error, not a silent pass.
+
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 
 The refactor landed, or the code moved. Delete the entry, so the rules stay a list of open items. If the finding
@@ -174,8 +193,9 @@ not drag declarations down.
 
 ## Editing the rules
 
-- **`modules`**: names, dependencies, and a one-line description of what belongs there. Dependencies form a DAG;
-  the loader rejects a cycle.
+- **`modules`**: names, dependencies, optionally a `lower` list (the lower modules it may use; without one, all of
+  them), and a one-line description of what belongs there. Dependencies form a DAG; the loader rejects a cycle, and
+  a `lower` list naming a module of the map.
 - **`files`**: `{module, pin, match, why}`. The first rule whose `match` regex hits the path (relative to
   `Sources/TUIkit`) seeds the file. A pinned file stays put. An unpinned one is a starting point that the
   fixpoint may move.
@@ -184,8 +204,9 @@ not drag declarations down.
   one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single declarations. Use them for a placement
   decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or to undo an assigner drift.
 - **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
-- **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward` or `posix`) that a refactor will
-  remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for `posix`, `to` matches the API's name.
+- **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix` or `lower`) that a refactor will
+  remove. `from` and `to` match labels (the printed label or the base label without its `#discriminator`); for
+  `posix`, `to` matches the API's name, and for `lower`, `Module.name`.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the

@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,6 +18,7 @@ import assigner  # noqa: E402
 import checks  # noqa: E402
 import modulemap  # noqa: E402
 import indexstore as IX  # noqa: E402
+import model as model_mod  # noqa: E402
 import swiftsource as SS  # noqa: E402
 from model import Model  # noqa: E402
 from rules import Rules  # noqa: E402
@@ -422,6 +424,81 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         M = model(srcs, {'Exports.swift': [('s:x', DEF, 2, '')]}, {'s:x': ('x', 13)})
         xs = checks.umbrella(M, rules(), {'s:x': 'X'})
         self.assertEqual(len(xs), 2)
+
+
+def lower_model():
+    """Base/S.swift's S uses TUIkitCore's Lock twice and TUIkitView's AppState once; Lists/L.swift's L uses AppState;
+    both use Foundation's Date, which no lower module defines."""
+    srcs = {'Base/S.swift': 'struct S {\n    let l = Lock()\n    func f() { _ = Lock(); _ = AppState.shared; _ = Date() }\n}\n',
+            'Lists/L.swift': 'struct L {\n    func g() { _ = AppState.shared; _ = Date() }\n}\n'}
+    occ = {'Base/S.swift': [('s:S', DEF, 1, ''), ('s:S.l', DEF, 2, 's:S'), ('s:Core.Lock', REF, 2, 's:S.l'),
+                            ('s:S.f', DEF, 3, 's:S'), ('s:Core.Lock', REF, 3, 's:S.f'),
+                            ('s:View.AppState', REF, 3, 's:S.f'), ('s:Foundation.Date', REF, 3, 's:S.f')],
+           'Lists/L.swift': [('s:L', DEF, 1, ''), ('s:L.g', DEF, 2, 's:L'), ('s:View.AppState', REF, 2, 's:L.g'),
+                             ('s:Foundation.Date', REF, 2, 's:L.g')]}
+    sym = {'s:S': ('S', IX.K_STRUCT), 's:S.l': ('l', IX.K_VARIABLE), 's:S.f': ('f()', 16), 's:L': ('L', IX.K_STRUCT),
+           's:L.g': ('g()', 16), 's:Core.Lock': ('Lock', IX.K_STRUCT), 's:View.AppState': ('AppState', IX.K_CLASS),
+           's:Foundation.Date': ('Date', IX.K_STRUCT)}
+    M = model(srcs, occ, sym)
+    M.lower_owner = {'s:Core.Lock': 'TUIkitCore', 's:View.AppState': 'TUIkitView'}
+    M.lower_modules = {'TUIkitCore', 'TUIkitView'}
+    return M, {'s:S': 'Base', 's:L': 'Lists'}
+
+
+def lower_rules(**extra):
+    R = rules(**extra)
+    data = dict(R.data)
+    data['modules'] = [dict(m, lower=['TUIkitCore']) if m['name'] == 'Base' else m for m in data['modules']]
+    return Rules(data)
+
+
+class LowerTests(unittest.TestCase):
+    """A module may use only the lower modules its `lower` list names: a side module compiles beside TUIkitView,
+    so it must not start using it (refined plan, step A1')."""
+
+    def test_a_lower_module_the_list_does_not_name(self):
+        M, asg = lower_model()
+        xs = checks.lower(M, lower_rules(), asg)
+        # Base names TUIkitCore only: Lock is allowed, AppState is not. Lists has no list, so it may use every
+        # lower module. Date is defined by no lower module (the SDK), so it is not this check's business.
+        self.assertEqual([(x.key, x.weight, x.line) for x in xs], [('Base/S.swift::S uses TUIkitView.AppState', 1, 3)])
+        self.assertIn("Base's lower list does not name TUIkitView", xs[0].message)
+
+    def test_one_finding_per_declaration_and_symbol_weighed_by_its_references(self):
+        M, asg = lower_model()
+        R = lower_rules()
+        R.lower['Base'] = {'TUIkitView'}
+        self.assertEqual([(x.key, x.weight) for x in checks.lower(M, R, asg)], [('Base/S.swift::S uses TUIkitCore.Lock', 2)])
+
+    def test_a_scheduled_refactor_and_its_stale_entry(self):
+        M, asg = lower_model()
+        sched = [{'id': 'R1', 'check': 'lower', 'from': r'^Base/S\.swift::S$', 'to': r'^TUIkitView\.AppState$', 'why': ''}]
+        fs = checks.run_all(M, lower_rules(scheduled=sched), asg, '/nonexistent')
+        self.assertEqual([(x.check, x.scheduled, x.new) for x in fs if x.check in ('lower', 'rules')], [('lower', 'R1', False)])
+        M.lower_owner = {}                  # R1 landed: Base no longer uses AppState
+        fs = checks.run_all(M, lower_rules(scheduled=sched), asg, '/nonexistent')
+        self.assertEqual([x.key for x in fs if x.check == 'rules'], [r'scheduled R1 lower ^Base/S\.swift::S$'])
+
+    def test_a_lower_list_may_not_name_a_module_of_the_map(self):
+        with self.assertRaises(SystemExit):
+            rules(modules=[{'name': 'Base', 'deps': [], 'lower': ['Lists']}, {'name': 'Lists', 'deps': ['Base']}])
+
+    def test_owners_are_the_lower_modules_definitions(self):
+        files = {'/p/Sources/TUIkitCore/Lock.swift': [('s:Lock', DEF, 1, ''), ('s:Date', REF, 2, 's:Lock')],
+                 '/p/Sources/TUIkitView/AppState.swift': [('s:AppState', DEF, 1, ''), ('s:Lock', REF, 3, 's:AppState')]}
+        dirs = {'TUIkitCore': '/p/Sources/TUIkitCore/', 'TUIkitView': '/p/Sources/TUIkitView/'}
+        self.assertEqual(model_mod.lower_owners(files, dirs), {'s:Lock': 'TUIkitCore', 's:AppState': 'TUIkitView'})
+
+    def test_a_lower_list_naming_no_module_the_index_knows_is_an_error(self):
+        M, asg = lower_model()
+        R = lower_rules()
+        R.lower['Base'] = {'TUIkitCore', 'TUIkitVeiw'}
+        with mock.patch.object(modulemap.Model, 'load', return_value=M), \
+                mock.patch.object(modulemap.Rules, 'load', return_value=R), \
+                mock.patch.object(modulemap.indexstore, 'find_store', return_value='/nonexistent'), \
+                contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(SystemExit, 'TUIkitVeiw'):
+                modulemap.main(['check'])
 
 
 class IndexStoreTests(unittest.TestCase):

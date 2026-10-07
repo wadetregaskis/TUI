@@ -189,6 +189,30 @@ def umbrella(M, R, asg):
     return out
 
 
+def lower(M, R, asg):
+    """A reference to a lower module (TUIkitCore, TUIkitView …: a module outside the map) that its declaration's
+    module may not use: one its `lower` list in rules.json does not name. A module with no list may use them all.
+    Once split, the module would not import it, so this is a compile error; for a side module that compiles beside
+    TUIkitView, a dependency on it would also put the side module back on the critical path. One finding per
+    declaration and symbol, weighed by its references."""
+    out, seen = [], {}
+    for src, usr, f, ln in M.foreign_refs:
+        allowed = R.lower.get(asg.get(src))
+        if allowed is None: continue
+        lm = M.lower_owner.get(usr)
+        if lm is None or lm in allowed: continue
+        name = M.symbols.get(usr, ('?',))[0]
+        key = f'{M.label(src)} uses {lm}.{name}'
+        if key in seen:
+            seen[key].weight += 1; continue
+        x = Finding('lower', key, f'{asg[src]}: {M.label(src)} uses {lm}.{name}, and {asg[src]}\'s lower list does '
+                                  f'not name {lm}', f, ln)
+        s = next(filter(None, (R.scheduled_for('lower', la, f'{lm}.{name}') for la in M.rule_labels(src))), None)
+        if s: x.scheduled, x.rule = s['id'], s['index']
+        seen[key] = x; out.append(x)
+    return out
+
+
 def stale_rules(R, findings):
     """A `scheduled` or `accepted` entry that no longer matches anything: the refactor landed, or the code moved.
     Delete it, so the rules stay a list of open items."""
@@ -214,7 +238,7 @@ def run_all(M, R, asg, root):
     for p, qs in R.witness_pairs.items(): pairs[p] |= qs
     for p, qs in derived_witness_pairs(root).items(): pairs[p] |= qs
     findings = (upward(M, R, asg) + owns_neither(M, R, asg) + witnesses(M, R, asg, pairs) + public_above(M, R, asg)
-                + posix(M, R, asg) + umbrella(M, R, asg))
+                + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg))
     for x in findings:
         a = R.accepted.get((x.check, x.key))
         if a: x.accepted = a.get('why', 'accepted')

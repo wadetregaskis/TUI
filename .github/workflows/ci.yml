@@ -370,9 +370,10 @@ jobs:
       # module boundary upward, or fall into the split's silent traps (a
       # conformance in a module owning neither side, a constrained default
       # out of sight, public API above its type, POSIX API outside TUIkitApp,
-      # code in the umbrella), were TUIkit split as mapped today. It reads the
-      # index store the Build step above wrote, so it costs no build: a few
-      # seconds on one lane, because the map is the same on every Swift.
+      # code in the umbrella, a lower module its `lower` list does not name),
+      # were TUIkit split as mapped today. It reads the index store the Build
+      # step above wrote, so it costs no build: a few seconds on one lane,
+      # because the map is the same on every Swift.
       # Warning only (`--exit-zero`, which also turns a failure of the tool
       # itself into an annotation, and `continue-on-error` for anything that
       # escapes it) until the plan's refactors and placement moves (steps A2,

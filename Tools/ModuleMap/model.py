@@ -25,6 +25,19 @@ _ACCESSOR = re.compile(r'^(getter|setter|_modify|modify|read|willSet|didSet):')
 _PUBLIC = re.compile(r'(?:^|[\s)])(?:public|open)\s+(?=(?:' + SS.MOD + '|' + SS.KW + r'|prefix|postfix|infix)\b|@)')
 
 
+def lower_owners(files, dirs):
+    """{usr: module} for every symbol the lower modules define, from their occurrences ({path: [(usr, roles, line,
+    container)]}, as indexstore.read gives them) and {module: source prefix}. A symbol two of them define (none
+    should) goes to the first by name."""
+    out = {}
+    for mod, pre in sorted(dirs.items()):
+        for p, occs in files.items():
+            if not p.startswith(pre): continue
+            for usr, roles, _, _ in occs:
+                if roles & DEF and not roles & REF: out.setdefault(usr, mod)
+    return out
+
+
 class Model:
     """Everything the assigner and the checks read. Built by `Model.load` from an index store, or directly from
     plain data (the unit tests do that)."""
@@ -46,6 +59,8 @@ class Model:
         self.conformances = []          # (type usr, protocol usr, declaring node, rel, line)
         self.symbols = {}               # usr -> (name, kind, subkind), for every symbol the module references
         self.foreign_refs = []          # (node, usr, rel, line): references to symbols defined outside the module
+        self.lower_owner = {}           # usr -> the lower module (beside the source directory) that defines it
+        self.lower_modules = set()      # the lower modules whose definitions were read
         self.stale = []                 # rel paths whose source is newer than its index unit, or have none
         self.first_member = {}          # node -> name of its first member in source order (explicit ones only)
         self.conformed = {}             # node -> sorted names of the protocols it declares conformance to
@@ -107,6 +122,15 @@ class Model:
             t = mtimes.get(prefix + f)
             if t is None or os.path.getmtime(p) > t + 1: m.stale.append(f)
         m.build({f: o for f, o in occ.items() if f in m.lexed})
+        # The lower modules: every other module whose sources sit beside this one's (Sources/TUIkitCore …), read in
+        # one more pass over the store's units. The `lower` check asks which of them defines what a declaration uses.
+        top, me = os.path.split(prefix.rstrip('/'))
+        dirs = {d: os.path.join(top, d) + '/' for d in sorted(os.listdir(top))
+                if d != me and os.path.isdir(os.path.join(top, d))}
+        if dirs:
+            lower, _, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
+            m.lower_owner = lower_owners(lower, dirs)
+            m.lower_modules = set(m.lower_owner.values())
         return m
 
     def build(self, occ):
