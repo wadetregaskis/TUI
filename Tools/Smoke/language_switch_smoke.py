@@ -21,7 +21,8 @@ The subject is the Example's Theme page, whose Language picker calls
 
 What this cannot tell apart: the click is an input event a control consumed,
 and the run loop asks for a frame after every such event, so a `setLanguage`
-that forgot its own request would still pass here. What it does catch is the
+that forgot its own request would still pass here — LocalizationServiceTests'
+`changingTheLanguageAsksForAFrame` pins that request. What this does catch is the
 rest of the chain going quiet — strings that do not re-resolve, a memo that
 serves the old words, a choice that is not stored.
 

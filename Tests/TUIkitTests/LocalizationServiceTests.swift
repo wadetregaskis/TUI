@@ -37,6 +37,17 @@ final class LocalizationServiceTests {
         #expect(AppState.shared.consumeNeedsCacheClear())
     }
 
+    @Test("Changing the language asks for the frame that shows it")
+    func changingTheLanguageAsksForAFrame() {
+        // The one thing that makes a language change from a timer or a task
+        // reach the screen: nothing else asks for a frame then. A click on a
+        // language picker asks for one of its own, so a smoke that clicks
+        // cannot tell whether this did.
+        AppState.shared.didRender()
+        sut.setLanguage(.german)
+        #expect(AppState.shared.needsRender)
+    }
+
     deinit {
         try? FileManager.default.removeItem(atPath: configDir)
     }
