@@ -127,7 +127,13 @@ extension ANSIRenderer {
     /// - Parameter color: The background color.
     /// - Returns: The ANSI escape sequence.
     static func backgroundCode(for color: Color) -> String {
-        color.backgroundEscape()
+        // Through the writer rather than `Color.backgroundEscape()`, which spells
+        // the same bytes by building an array of codes, joining it and
+        // concatenating twice: one allocation where that took four, and this
+        // runs once per painted line.
+        var writer = SGRWriter()
+        writer.add(color.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
+        return writer.finish() ?? ""
     }
 
     /// Applies foreground color to a string using `TextStyle` + `render()`.
@@ -178,10 +184,12 @@ extension ANSIRenderer {
     /// - Parameters:
     ///   - string: The text to wrap.
     ///   - color: The background color.
+    ///   - padding: Spaces to append inside the background — what wrapping
+    ///     `string` padded by that many spaces draws, without the padded copy.
     /// - Returns: The string with persistent background applied.
-    static func applyPersistentBackground(_ string: String, color: Color) -> String {
+    static func applyPersistentBackground(_ string: String, color: Color, padding: Int = 0) -> String {
         let bgCode = backgroundCode(for: color)
-        return bgCode + restating(bgCode, afterResetsIn: string)
+        return wrapping(string, restoring: bgCode, opening: bgCode, padding: padding, closing: "") ?? string
     }
 
     /// Wraps a string in faint (SGR 2) that persists across ANSI resets.
@@ -196,7 +204,7 @@ extension ANSIRenderer {
     /// - Parameter string: The text to draw faint.
     /// - Returns: The string with persistent dim applied.
     static func applyPersistentDim(_ string: String) -> String {
-        dim + restating(dim, afterResetsIn: string) + reset
+        wrapping(string, restoring: dim, opening: dim, padding: 0, closing: reset) ?? string
     }
 
     /// Wraps a string in reverse video (SGR 7) over a stated pair, restated after
@@ -223,8 +231,13 @@ extension ANSIRenderer {
     ///     as the cell.
     ///   - field: The colour the cell would be filled with, which reverse video
     ///     draws the glyph in.
+    ///   - padding: Spaces to append inside the reversal, before its closing
+    ///     reset — what reversing `string` padded by that many spaces draws,
+    ///     without the padded copy.
     /// - Returns: The string with persistent reverse video applied.
-    static func applyPersistentReverse(_ string: String, ink: Color, field: Color, bold: Bool = false) -> String {
+    static func applyPersistentReverse(
+        _ string: String, ink: Color, field: Color, bold: Bool = false, padding: Int = 0
+    ) -> String {
         var style = TextStyle()
         style.isInverted = true
         style.isBold = bold
@@ -232,7 +245,7 @@ extension ANSIRenderer {
         style.backgroundColor = field
         // Never nil: the 7 alone is a code, whatever the depth makes of the colours.
         let opening = styleSequence(for: style) ?? "\(csi)\(StyleCode.inverse)m"
-        return opening + restating(opening, afterResetsIn: string) + reset
+        return wrapping(string, restoring: opening, opening: opening, padding: padding, closing: reset) ?? string
     }
 
     /// `string` in reverse video over the palette's pair and nothing else: every
@@ -343,61 +356,136 @@ extension ANSIRenderer {
     ///     a dim) — appended verbatim.
     static func restating(_ restore: String, afterResetsIn string: String) -> String {
         guard !restore.isEmpty else { return string }
-        // A line with no `ESC [ 0` in it has nothing to restore after, and is
-        // most styled lines: found without copying the bytes first.
-        let scanned: Bool? =
-            string.utf8.withContiguousStorageIfAvailable { (buffer: UnsafeBufferPointer<UInt8>) -> Bool in
-                let escapeByte: UInt8 = 0x1B, bracketByte: UInt8 = 0x5B, zeroByte: UInt8 = 0x30
-                var index = 0
-                while index + 2 < buffer.count {
-                    if buffer[index] == escapeByte, buffer[index + 1] == bracketByte, buffer[index + 2] == zeroByte {
-                        return true
+        return wrapping(string, restoring: restore, opening: "", padding: 0, closing: "") ?? string
+    }
+
+    /// `opening`, then `string` with `restore` re-stated after every reset in
+    /// it — ``restating(_:afterResetsIn:)``'s rule, byte for byte — then
+    /// `padding` spaces, then `closing`: written into ONE buffer of exactly
+    /// that length.
+    ///
+    /// What every persistent wrapper is (a background, a dim, a reversal), and
+    /// those wrap a whole line of a row painted every frame — a selected row,
+    /// and, since tables stripe by default (decisions A29), every other row of
+    /// a table. Assembled in pieces, as it was, one painted line cost a copy of
+    /// the line into a byte array, another of the sequence, an output array
+    /// that regrew past four resets, a decode back into a `String` and a
+    /// concatenation per piece: nine allocations per striped row of a table
+    /// composed cold, by a `malloc_logger` count. Now one, plus the sequence.
+    ///
+    /// - Parameters:
+    ///   - string: A styled line or fragment.
+    ///   - restore: What to re-state after each reset; empty re-states nothing
+    ///     and leaves a collapsed `ESC[0;…m` whole, as `restating` does.
+    ///   - opening: What goes first.
+    ///   - padding: How many spaces follow the restated string.
+    ///   - closing: What goes last.
+    /// - Returns: `nil` when the result would be `string` itself — nothing to
+    ///   open, pad or close with, and no reset to restate after — so the
+    ///   caller hands back the string it already has, uncopied.
+    static func wrapping(
+        _ string: String, restoring restore: String, opening: String, padding: Int, closing: String
+    ) -> String? {
+        var string = string
+        var restore = restore
+        var opening = opening
+        var closing = closing
+        let padding = max(0, padding)
+        return string.withUTF8 { input in
+            restore.withUTF8 { restoreBytes -> String? in
+                let body = restoreBytes.isEmpty ? input.count : restated(input, restoring: restoreBytes, into: nil)
+                guard body != input.count || !opening.isEmpty || padding > 0 || !closing.isEmpty else { return nil }
+                return opening.withUTF8 { openingBytes in
+                    closing.withUTF8 { closingBytes in
+                        let length = openingBytes.count + body + padding + closingBytes.count
+                        return String(unsafeUninitializedCapacity: length) { buffer in
+                            guard let base = buffer.baseAddress else { return 0 }
+                            var cursor = base
+                            func put(_ bytes: UnsafeBufferPointer<UInt8>) {
+                                guard let from = bytes.baseAddress, !bytes.isEmpty else { return }
+                                cursor.initialize(from: from, count: bytes.count)
+                                cursor += bytes.count
+                            }
+                            put(openingBytes)
+                            if restoreBytes.isEmpty {
+                                put(input)
+                            } else {
+                                cursor += restated(input, restoring: restoreBytes, into: cursor)
+                            }
+                            cursor.initialize(repeating: 0x20, count: padding)
+                            cursor += padding
+                            put(closingBytes)
+                            return length
+                        }
                     }
-                    index += 1
-                }
-                return false
-            }
-        guard scanned ?? true else { return string }
-        let bytes = Array(string.utf8)
-        let restoreBytes = Array(restore.utf8)
-        var out: [UInt8] = []
-        out.reserveCapacity(bytes.count + restoreBytes.count * 4)
-        let resetBytes: [UInt8] = [0x1B, 0x5B, 0x30, 0x6D]  // ESC [ 0 m
-        var index = 0
-        while index < bytes.count {
-            if bytes[index] == 0x1B, index + 3 < bytes.count, bytes[index + 1] == 0x5B, bytes[index + 2] == 0x30 {
-                if bytes[index + 3] == 0x6D {  // ESC[0m — a reset: restore after it
-                    out.append(contentsOf: resetBytes)
-                    out.append(contentsOf: restoreBytes)
-                    index += 4
-                    continue
-                }
-                if bytes[index + 3] == 0x3B {  // ESC[0; — split into a reset and the rest
-                    out.append(contentsOf: resetBytes)
-                    out.append(contentsOf: restoreBytes)
-                    out.append(0x1B)
-                    out.append(0x5B)
-                    index += 4
-                    // The `ESC[` just written plus a following `0m` is an
-                    // `ESC[0m` the second step would have matched; a following
-                    // `0;` is a split the first step would NOT have (it does not
-                    // re-scan what it wrote).
-                    if index + 1 < bytes.count, bytes[index] == 0x30, bytes[index + 1] == 0x6D {
-                        out.append(0x30)
-                        out.append(0x6D)
-                        out.append(contentsOf: restoreBytes)
-                        index += 2
-                    }
-                    continue
                 }
             }
-            out.append(bytes[index])
-            index += 1
         }
-        // The bytes are the input's own UTF-8 plus ASCII escapes, so the
-        // decode cannot fail; the lint rule is about `Data`, and there is none.
-        // swiftlint:disable:next optional_data_string_conversion
-        return String(decoding: out, as: UTF8.self)
+    }
+
+    /// `input` with `restore` written after every reset it contains — the walk
+    /// both halves of ``wrapping(_:restoring:opening:padding:closing:)`` share,
+    /// so the length it sizes the buffer with and the bytes it writes cannot
+    /// disagree: with no `output` it only counts.
+    ///
+    /// The two-step form's exact behaviour, edges included — see
+    /// ``restating(_:afterResetsIn:)``: an `ESC[0m` restores after itself; an
+    /// `ESC[0;` becomes `ESC[0m`, the restoration and a fresh `ESC[` for the
+    /// rest, and a `0m` straight after it is a reset of its own, restored
+    /// after too; a `0;` there is not split again.
+    ///
+    /// - Returns: How many bytes the result takes — written to `output` when
+    ///   there is one.
+    private static func restated(
+        _ input: UnsafeBufferPointer<UInt8>, restoring restore: UnsafeBufferPointer<UInt8>,
+        into output: UnsafeMutablePointer<UInt8>?
+    ) -> Int {
+        var written = 0
+        func put(_ bytes: UnsafeBufferPointer<UInt8>) {
+            if let output, let from = bytes.baseAddress, !bytes.isEmpty {
+                (output + written).initialize(from: from, count: bytes.count)
+            }
+            written += bytes.count
+        }
+        func put(_ first: UInt8, _ second: UInt8) {
+            if let output {
+                output[written] = first
+                output[written + 1] = second
+            }
+            written += 2
+        }
+        let count = input.count
+        var index = 0
+        var runStart = 0
+        // A reset is four bytes, `ESC [ 0 m`, or the collapsed `ESC [ 0 ;` that
+        // opens one; anything shorter at the end is copied as it is.
+        while index + 3 < count {
+            guard input[index] == 0x1B, input[index + 1] == 0x5B, input[index + 2] == 0x30,
+                input[index + 3] == 0x6D || input[index + 3] == 0x3B
+            else {
+                index += 1
+                continue
+            }
+            let collapsed = input[index + 3] == 0x3B
+            put(UnsafeBufferPointer(rebasing: input[runStart..<index]))
+            put(0x1B, 0x5B)  // ESC [
+            put(0x30, 0x6D)  // 0 m
+            put(restore)
+            index += 4
+            if collapsed {
+                // The rest of the collapsed sequence, in a sequence of its own.
+                put(0x1B, 0x5B)
+                // `ESC[0;0m`: the `0m` just opened is a reset too.
+                if index + 1 < count, input[index] == 0x30, input[index + 1] == 0x6D {
+                    put(0x30, 0x6D)
+                    put(restore)
+                    index += 2
+                }
+            }
+            runStart = index
+        }
+        put(UnsafeBufferPointer(rebasing: input[runStart..<count]))
+        return written
     }
 
     /// Moves the cursor to the specified position.

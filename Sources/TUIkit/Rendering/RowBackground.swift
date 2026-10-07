@@ -227,8 +227,13 @@ enum RowBackground {
         return paints[stepNow % paints.count]
     }
 
-    /// `line` — a row's finished line, already padded to its width — drawn over this
-    /// background as the frame being rendered now shows it.
+    /// `line` — a row's finished line, padded to its width by `padding` spaces — drawn
+    /// over this background as the frame being rendered now shows it.
+    ///
+    /// `padding` is what `painting(line + padding spaces)` draws, byte for byte, written
+    /// inside the paint rather than into a padded copy of the line first: a still fill or
+    /// reversal costs the one allocation of the painted line (see
+    /// `ANSIRenderer.wrapping(_:restoring:opening:padding:closing:)`).
     ///
     /// A fill is left in force at the end of the line, as
     /// ``String/withPersistentBackground(_:)`` leaves it; a reversal closes itself with
@@ -242,13 +247,18 @@ enum RowBackground {
     /// (``claimableFill``) and resolved against what is behind the row, and the emitter
     /// is never handed a colour that still states one.
     @MainActor
-    func painting(_ line: String) -> String {
-        if case .pulsingReversal = self, let paint = paintNow { return paint.painting(line) }
+    func painting(_ line: String, padding: Int = 0) -> String {
+        if case .pulsingReversal = self, let paint = paintNow {
+            return paint.painting(padding > 0 ? line + asciiSpaces(padding) : line)
+        }
         guard case .reversed(let ink, let field) = self else {
-            return line.withPersistentBackground(claimableFill?.opaqueSpelling ?? colorNow)
+            guard let fill = claimableFill?.opaqueSpelling ?? colorNow else {
+                return padding > 0 ? line + asciiSpaces(padding) : line
+            }
+            return ANSIRenderer.applyPersistentBackground(line, color: fill, padding: padding)
         }
         return ANSIRenderer.applyPersistentReverse(
-            line, ink: ink.opaqueSpelling, field: field.opaqueSpelling)
+            line, ink: ink.opaqueSpelling, field: field.opaqueSpelling, padding: padding)
     }
 
     /// A row's still lines, from a renderer that draws them over a colour.

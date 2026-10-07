@@ -51,4 +51,57 @@ struct RestatingAfterResetsTests {
             }
         }
     }
+
+    /// The persistent wrappers write their opening, the restated line, the
+    /// padding and the closing into one buffer
+    /// (`ANSIRenderer.wrapping(_:restoring:opening:padding:closing:)`); this pins
+    /// that to the pieces concatenated — the form they had — and the padding to
+    /// wrapping a line already padded, on the same randomised lines.
+    @Test("A persistent background, dim or reversal, padded or not, is its pieces concatenated")
+    func wrappersArePieces() {
+        var state: UInt64 = 0xBEEF
+        func next() -> Int {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return Int(truncatingIfNeeded: state >> 33)
+        }
+        let alphabet = ["\u{1B}[0m", "\u{1B}[0;", "\u{1B}[31m", "\u{1B}[0;44m", "0m", ";", "text", " ", "\u{1B}[", "\u{1B}", "m", "0", "\u{1F600}"]
+        let reset = ANSIRenderer.reset
+        let ink = Color.rgb(200, 210, 220)
+        let field = Color.rgb(10, 20, 30)
+        let opening = String(ANSIRenderer.applyPersistentReverse("", ink: ink, field: field).dropLast(reset.count))
+        for _ in 0..<2000 {
+            let line = (0..<(next() % 9)).map { _ in alphabet[next() % alphabet.count] }.joined()
+            let padding = next() % 4
+            let padded = line + String(repeating: " ", count: padding)
+            for fill in [Color.rgb(40, 50, 60), .palette256(236), .ansi(.blue)] {
+                let code = fill.backgroundEscape()
+                #expect(ANSIRenderer.applyPersistentBackground(line, color: fill) == code + Self.twoStep(code, in: line), "\(line.debugDescription)")
+                #expect(
+                    ANSIRenderer.applyPersistentBackground(line, color: fill, padding: padding)
+                        == ANSIRenderer.applyPersistentBackground(padded, color: fill), "\(line.debugDescription)")
+            }
+            #expect(ANSIRenderer.applyPersistentDim(line) == ANSIRenderer.dim + Self.twoStep(ANSIRenderer.dim, in: line) + reset, "\(line.debugDescription)")
+            #expect(
+                ANSIRenderer.applyPersistentReverse(line, ink: ink, field: field)
+                    == opening + Self.twoStep(opening, in: line) + reset, "\(line.debugDescription)")
+            #expect(
+                ANSIRenderer.applyPersistentReverse(line, ink: ink, field: field, padding: padding)
+                    == ANSIRenderer.applyPersistentReverse(padded, ink: ink, field: field), "\(line.debugDescription)")
+        }
+    }
+
+    /// `ANSIRenderer.backgroundCode(for:)` spells the sequence through its own
+    /// writer rather than `Color.backgroundEscape()`; the two must not differ at
+    /// any depth.
+    @Test("A background code is the colour's own background escape, at every depth")
+    func backgroundCodeIsTheEscape() {
+        let colours: [Color] = [.rgb(1, 2, 3), .rgb(255, 255, 255), .palette256(17), .ansi(.red), .ansi(.brightWhite), .default]
+        for depth in [ColorDepth.truecolor, .palette256, .basic16, .noColor] {
+            ColorDepth.withCurrent(depth) {
+                for colour in colours {
+                    #expect(ANSIRenderer.backgroundCode(for: colour) == colour.backgroundEscape(), "\(colour) at \(depth)")
+                }
+            }
+        }
+    }
 }

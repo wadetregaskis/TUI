@@ -2505,9 +2505,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // background it wears — as a `List` row does.
             if isDimmed { content = ANSIRenderer.applyPersistentDim(content) }
             guard case .none = visual.background else {
-                content.append(contentsOf: asciiSpaces(rowWidth - content.strippedLength))
-                if framePaints != nil { bareLines.append(content) }
-                lines.append(visual.background.painting(content))
+                // `cellColumn` IS this line's visible width, as on the single-line
+                // path (`renderRowUncached`): the cells loop walked it from the
+                // gutter through every spacing and column. Not rescanned — a still
+                // background is every other row of a table that stripes — and the
+                // padding goes inside the paint, not into a copy of the line.
+                assert(cellColumn == content.strippedLength, "a multi-line row's cells drew \(content.strippedLength) cells, not \(cellColumn)")
+                let padding = rowWidth - cellColumn
+                guard framePaints == nil else {
+                    content.append(contentsOf: asciiSpaces(padding))
+                    bareLines.append(content)
+                    lines.append(visual.background.painting(content))
+                    continue
+                }
+                lines.append(visual.background.painting(content, padding: padding))
                 continue
             }
             lines.append(content)
@@ -5528,10 +5539,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard case .none = background else {
             guard background.framePaints == nil else { return nil }
             // `cellColumn` IS the line's visible width — see the note in
-            // `renderRowUncached` — so nothing rescans it.
-            var padded = bare.content
-            padded.append(contentsOf: asciiSpaces(rowWidth - bare.cellColumn))
-            return (background.painting(padded), claims(fill: background.claimableFill))
+            // `renderRowUncached` — so nothing rescans it, and the padding is
+            // written inside the paint rather than into a copy of the line.
+            return (
+                background.painting(bare.content, padding: rowWidth - bare.cellColumn),
+                claims(fill: background.claimableFill)
+            )
         }
         return (bare.content, claims(fill: nil))
     }
