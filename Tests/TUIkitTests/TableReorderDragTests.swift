@@ -169,6 +169,27 @@ struct TableReorderDragTests {
         #expect(fixture.rows == ["a", "b", "c", "d", "e"], "back where it started")
     }
 
+    /// Whether `sequences` leave SGR 2 (faint) in force, read parameter by
+    /// parameter — skipping an extended colour's own arguments (`48;2;r;g;b`,
+    /// `38;5;n`), whose 2s are not it.
+    private static func statesFaint(_ sequences: String) -> Bool {
+        var faint = false
+        for match in sequences.matches(of: /\x1B\[([0-9;]*)m/) {
+            var parameters = match.output.1.split(separator: ";", omittingEmptySubsequences: false)
+                .map { Int($0) ?? 0 }[...]
+            while let parameter = parameters.popFirst() {
+                switch parameter {
+                case 38, 48, 58:
+                    parameters = parameters.popFirst() == 5 ? parameters.dropFirst() : parameters.dropFirst(3)
+                case 0, 22: faint = false
+                case 2: faint = true
+                default: break
+                }
+            }
+        }
+        return faint
+    }
+
     /// `.dimmed` draws the row itself, faint, at the slot it would land in — and
     /// it must be faint ALL the way along. A Table row is several styled runs
     /// (starting with the one-cell selection gutter) and each carries its own
@@ -197,8 +218,11 @@ struct TableReorderDragTests {
         // line. Everything before the last reset has been cancelled by it.
         let state = slot.ansiStateBefore(visibleColumn: column)
         let live = state.components(separatedBy: ANSIRenderer.reset).last ?? ""
+        // Read as parameters: a striped row (the second row is the first a
+        // table stripes, decisions A29) states its faint with its fill, as
+        // `ESC[2;48;…m`, which says it as surely as a bare `ESC[2m`.
         #expect(
-            live.contains(ANSIRenderer.dim),
+            Self.statesFaint(live),
             "the dim was cancelled before the text: \(state.debugDescription)")
 
         fixture.dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 2, y: yTarget))
