@@ -111,12 +111,12 @@ struct StripeLegibilityTests {
         }
     }
 
-    @Test("A 256-colour terminal still stripes nearly every palette")
+    @Test("A 256-colour terminal still stripes every palette")
     func stripesSurviveTheCube() {
-        let striped = Self.statedPalettes.filter { palette in
-            Self.measure(palette, over: palette.background, at: .palette256) != nil
+        let unstriped = Self.statedPalettes.filter { palette in
+            Self.measure(palette, over: palette.background, at: .palette256) == nil
         }
-        #expect(striped.count >= 14, "only \(striped.map(\.name)) stripe at 256 colours")
+        #expect(unstriped.isEmpty, "\(unstriped.map(\.name)) draw no stripe at 256 colours")
     }
 
     @Test("A table draws the stripe the rule chose, on the cube")
