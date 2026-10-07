@@ -138,6 +138,24 @@ class PreservingTests(unittest.TestCase):
         board = self.clipboard.board(lister=(failing, str.split, clipboard_probe.XCLIP_EMPTY))
         self.assertIsNone(board.types())
 
+    def test_a_lister_that_fails_is_advised_to_be_fixed_not_installed(self):
+        # The follow-ups' review: a failing lister (xclip with no X server, an
+        # osascript over ssh) was told to install the lister it already has.
+        self.clipboard = FileClipboard("text", None)
+        for lister, said in [
+            (["sh", "-c", "echo \"Error: Can't open display: :0\" >&2; exit 1"], "Can't open display"),
+            (["/nonexistent/clipboard-lister"], "could not run"),
+        ]:
+            board = self.clipboard.board(lister=(lister, str.split, clipboard_probe.XCLIP_EMPTY))
+            done, _, refusal = clipboard_probe.preserving(
+                board, clobber=False, writes=lambda: self.fail("wrote"))
+            self.assertFalse(done)
+            self.assertIn(said, refusal)
+            self.assertIn("could not be listed", refusal)
+            self.assertNotIn("install", refusal)
+            self.assertIn("--clobber", refusal)
+            self.assertEqual(self.clipboard.contents(), "text")
+
     def test_rich_text_is_refused_with_a_way_to_copy_plain_text(self):
         self.clipboard = FileClipboard("styled", ["«class RTF »", "«class HTML»", "«class utf8»"])
         done, _, refusal = clipboard_probe.preserving(

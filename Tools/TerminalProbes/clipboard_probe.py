@@ -39,8 +39,11 @@ rich text too: copy plain text first (`printf probe | pbcopy`, `wl-copy`,
 `xclip -selection clipboard`), which the run then puts back whole. Where the
 types cannot be listed (`xsel`) the run stops whatever is copied, plain text
 included: install a helper that lists them (`xclip`, or `wl-clipboard` on
-Wayland), or pass `--clobber`. An empty X11 or Wayland clipboard, whose lister
-says nothing is copied, is listed as empty.
+Wayland), or pass `--clobber`. Where the lister is there but fails — no X
+server at `DISPLAY`, `osascript` with no pasteboard to reach over ssh — the
+run stops the same way and says what failed, which is what to fix. An empty
+X11 or Wayland clipboard, whose lister says nothing is copied, is listed as
+empty.
 
 1. **Leak.** The cursor column (DSR 6) before and after an OSC 52 write, as
    `hyperlink_probe.py` asks it of OSC 8. A column that moved means the host
@@ -213,6 +216,9 @@ class Clipboard:
         self.list_argv, self.parse_types, self.empty_error = (tuple(listing) + (None,))[:3]
         self.saved = None
         self.held = None
+        # Why the last listing failed where a lister ran — its command and
+        # its error — or None: no listing failed, or there is no lister.
+        self.listing_failure = None
 
     @property
     def readable(self):
@@ -246,17 +252,26 @@ class Clipboard:
         return text.rstrip("\r\n")
 
     def types(self):
-        """The type names the clipboard holds, or None where they cannot be listed."""
+        """The type names the clipboard holds, or None where they cannot be
+        listed: there is no lister, or it failed, which ``listing_failure``
+        then says."""
+        self.listing_failure = None
         if self.list_argv is None:
             return None
+        command = " ".join(self.list_argv)
         try:
             done = subprocess.run(self.list_argv, capture_output=True, timeout=5)
-        except Exception:
+        except Exception as error:
+            self.listing_failure = f"`{command}` could not run: {error}"
             return None
         if done.returncode != 0:
             # An empty X11 or Wayland clipboard fails its listing, saying so.
             error = done.stderr.decode("utf-8", "replace")
-            return [] if self.empty_error is not None and self.empty_error.search(error) else None
+            if self.empty_error is not None and self.empty_error.search(error):
+                return []
+            said = error.strip().splitlines()[0] if error.strip() else f"exit status {done.returncode}"
+            self.listing_failure = f"`{command}` failed: {said}"
+            return None
         return self.parse_types(done.stdout.decode("utf-8", "replace"))
 
     def save(self):
@@ -390,11 +405,18 @@ def plain_text_advice():
     return "printf probe | xclip -selection clipboard"
 
 
-def refusal_advice(held):
+def refusal_advice(held, listing_failure=None):
     """What a refused run says to do: copy plain text first, and how — rich
     text copied from an app is refused too, its formatting being what writing
     its text back would lose. Where the types cannot be listed (`held` is
-    None), no copy helps: the helper that lists them does."""
+    None), no copy helps: where a lister ran and failed (`listing_failure`
+    says how), what stops it does — a lister is already there — and where
+    there is none, the helper that lists them does."""
+    if held is None and listing_failure is not None:
+        return (f"what the clipboard holds could not be listed ({listing_failure})",
+                "fix what stopped the listing — on X11 or Wayland, a display this session can reach "
+                "(DISPLAY, WAYLAND_DISPLAY); on macOS, a session with the pasteboard (not over ssh) — "
+                "or pass --clobber")
     if held is None:
         return None, ("install a helper that lists what the clipboard holds (xclip, or wl-clipboard on "
                       "Wayland), or pass --clobber")
@@ -412,7 +434,7 @@ def preserving(board, clobber, writes):
     `clobber`, and `refusal` says what it holds."""
     if not board.manual and not board.save() and not clobber:
         held = ", ".join(board.held) if board.held is not None else "types that cannot be listed"
-        lead, advice = refusal_advice(board.held)
+        lead, advice = refusal_advice(board.held, board.listing_failure)
         lead = lead or f"the clipboard holds {held}, which writing its text back would lose"
         return False, False, f"{lead}: {advice}"
     try:
