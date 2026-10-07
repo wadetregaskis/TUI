@@ -123,8 +123,13 @@ A placement you have reviewed goes into `accepted`, with the reason. The plan's 
 `TUIkitBase: Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
 
 CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources out of the modules that must build on Windows.
-TUIkitApp is the one POSIX module. A use elsewhere must sit in an `#if canImport(Darwin)` / `Glibc` / `Musl` /
-`os(macOS)` … arm. An `#else` arm is what the other platforms compile, so it never counts as guarded. The
+TUIkitApp is the one POSIX module. A use elsewhere must sit in an `#if` branch that neither Windows nor WASI
+compiles. The check evaluates each enclosing branch's condition on those two platforms (`os(…)`, `canImport(…)` of
+a libc or an Apple-only framework, `arch(wasm32)`, `!`, `&&`, `||`); a branch is ruled out where its condition is
+surely false or an earlier branch of its chain surely true. So `#if canImport(Darwin)` and its `#elseif
+canImport(Glibc)` guard, and so does the `#else` of `#if canImport(WASILibc) || os(Windows)`. The `#else` of `#if
+canImport(WASILibc)` does not, because Windows compiles it, and nor does a branch that depends on anything else
+(`arch(x86_64)`, `compiler(…)`, a build flag). The
 `posix` section of `rules.json` lists the APIs: C functions, structs and macros, plus the two Dispatch sources. The
 check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file with code outside TUIkitApp.
 

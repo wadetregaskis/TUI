@@ -23,7 +23,8 @@ class Lexed:
     dstart   bracket depth ({[( in code) at the start of the line
     dend     bracket depth at its end
     code     the line starts in code (not inside a string or a block comment)
-    conds    the `#if`/`#elseif`/`#else` branches enclosing the line, outermost first, as (directive, condition)
+    conds    the `#if`/`#elseif`/`#else` branches enclosing the line, outermost first, as (directive, condition,
+             the conditions of the branches before it in its chain); an `#else` has the condition ''
     stripped the line with comments and string contents replaced by spaces (interpolations kept as code)
     """
 
@@ -49,10 +50,10 @@ def lex(text):
             m = re.match(r'#(if|elseif|else|endif)\b\s*(.*?)\s*(?://.*)?$', s)
             if m:
                 kind, cond = m.group(1), m.group(2)
-                if kind == 'if': conds.append(('if', cond))
+                if kind == 'if': conds.append(('if', cond, ()))
                 elif kind in ('elseif', 'else') and conds:
-                    prior = conds[-1][1] if conds[-1][0] != 'else' else ''
-                    conds[-1] = (kind, cond if kind == 'elseif' else prior)
+                    _, c0, p0 = conds[-1]
+                    conds[-1] = (kind, cond if kind == 'elseif' else '', p0 + ((c0,) if c0 else ()))
                 elif kind == 'endif' and conds: conds.pop()
         L.conds[li] = tuple(conds)
         out = []
@@ -171,15 +172,81 @@ def chunks(L):
     return [tuple(c) for c in merged]
 
 
-POSIX_COND = re.compile(r'(?<![!\w])(?:canImport\((?:Darwin|Glibc|Musl|Android|Bionic)\)|'
-                        r'os\((?:macOS|Linux|iOS|tvOS|watchOS|visionOS|FreeBSD|OpenBSD|Android)\))')
+# What a `#if` condition's atoms are on the two non-POSIX targets: True, False, or None when it cannot be told
+# from the platform alone (`arch(arm64)` on Windows, `compiler(>=6.3)`, a build flag).
+_LIBC = {'Darwin', 'Glibc', 'Musl', 'Android', 'Bionic', 'WASILibc', 'WinSDK', 'ucrt'}
+_APPLE_ONLY = {'AppKit', 'UIKit', 'CoreText', 'CoreGraphics', 'ObjectiveC', 'Combine', 'SwiftUI', 'Symbols',
+               'UniformTypeIdentifiers', 'Security', 'IOKit', 'CoreServices'}
+_PLATFORMS = {'Windows': ({'WinSDK', 'ucrt'}, None), 'WASI': ({'WASILibc'}, 'wasm32')}
+
+
+def _atom(platform, name, arg):
+    libc, arch = _PLATFORMS[platform]
+    if name == 'os': return arg == platform
+    if name == 'canImport':
+        if arg in libc: return True
+        if arg in _LIBC or arg in _APPLE_ONLY: return False
+        return None
+    if name == 'arch' and arch: return arg == arch
+    if name is None and arg in ('true', 'false'): return arg == 'true'
+    return None
+
+
+def evaluate(cond, platform):
+    """A `#if` condition on `platform` ('Windows' or 'WASI'): True, False, or None when the platform alone does
+    not decide it (or the condition does not parse)."""
+    toks = re.findall(r'\|\||&&|!|\(|\)|[\w.]+\s*\([^()]*\)|[\w.]+', cond)
+    if re.sub(r'\s+', '', ''.join(toks)) != re.sub(r'\s+', '', cond): return None
+    pos = [0]
+
+    def peek(): return toks[pos[0]] if pos[0] < len(toks) else None
+
+    def take(): pos[0] += 1; return toks[pos[0] - 1]
+
+    def orexp():
+        v = andexp()
+        while peek() == '||':
+            take(); w = andexp()
+            v = True if v is True or w is True else (False if v is False and w is False else None)
+        return v
+
+    def andexp():
+        v = unary()
+        while peek() == '&&':
+            take(); w = unary()
+            v = False if v is False or w is False else (True if v is True and w is True else None)
+        return v
+
+    def unary():
+        t = take()
+        if t == '!':
+            v = unary(); return None if v is None else not v
+        if t == '(':
+            v = orexp()
+            if take() != ')': raise ValueError
+            return v
+        if t is None or t in ('||', '&&', ')'): raise ValueError
+        m = re.match(r'([\w.]+)\s*\(\s*([^()]*?)\s*\)$', t)
+        return _atom(platform, m.group(1), m.group(2)) if m else _atom(platform, None, t)
+    try:
+        v = orexp()
+        return v if pos[0] == len(toks) else None
+    except (ValueError, IndexError):
+        return None
+
+
+def _reachable(level, platform):
+    """Whether a branch can be compiled on `platform`: no earlier branch of its chain is surely taken there, and
+    its own condition is not surely false."""
+    kind, cond, priors = level
+    if any(evaluate(c, platform) is True for c in priors): return False
+    return kind == 'else' or evaluate(cond, platform) is not False
 
 
 def posix_guarded(conds):
-    """Whether an `#if` branch that only POSIX platforms compile encloses a line: a positive `canImport(Darwin)`,
-    `canImport(Glibc)`, `canImport(Musl)`, `os(macOS)`, `os(Linux)`… in an `#if` or `#elseif` (an `#else` arm is
-    what the OTHER platforms compile, so it never guards), with no Windows or WASI alternative in the same condition."""
-    for kind, cond in conds:
-        if kind in ('if', 'elseif') and POSIX_COND.search(cond) and not re.search(r'os\(Windows\)|WinSDK|WASI', cond):
-            return True
-    return False
+    """Whether only POSIX platforms compile a line: the `#if` branches enclosing it rule out both Windows and WASI.
+    `#if canImport(Darwin)` and its `#elseif canImport(Glibc)` do; so does the `#else` of `#if canImport(WASILibc) ||
+    os(Windows)`, and `#if !os(Windows) && !os(WASI)`. The `#else` of `#if canImport(WASILibc)` does not (Windows
+    compiles it), and nor does a branch the platform alone cannot decide (`#if os(Windows) && arch(x86_64)`'s
+    `#else`)."""
+    return all(any(not _reachable(level, p) for level in conds) for p in _PLATFORMS)

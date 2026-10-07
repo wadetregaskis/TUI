@@ -89,6 +89,26 @@ class LexerTests(unittest.TestCase):
         self.assertFalse(SS.posix_guarded(SS.lex('#if !canImport(Darwin)\nx\n#endif').conds[2]))
         self.assertFalse(SS.posix_guarded(SS.lex('#if !os(WASI)\nx\n#endif').conds[2]))
 
+    def guarded(self, text):
+        L = SS.lex(text)
+        return SS.posix_guarded(L.conds[text.split('\n').index('x') + 1])
+
+    def test_an_else_arm_is_guarded_when_its_chain_rules_out_windows_and_wasi(self):
+        # Plan section 4's K6: the WASI arm gains Windows, and the getpid left in the #else is POSIX-only.
+        self.assertTrue(self.guarded('#if canImport(WASILibc) || os(Windows)\nw\n#else\nx\n#endif'))
+        self.assertTrue(self.guarded('#if os(Windows)\nw\n#elseif canImport(WASILibc)\nv\n#else\nx\n#endif'))
+        self.assertTrue(self.guarded('#if os(Windows)\nw\n#elseif canImport(Glibc)\nx\n#endif'))
+        self.assertFalse(self.guarded('#if canImport(WASILibc)\nw\n#else\nx\n#endif'))         # Windows compiles it
+        self.assertFalse(self.guarded('#if os(Windows) && arch(x86_64)\nw\n#elseif os(WASI)\nv\n#else\nx\n#endif'))
+
+    def test_a_condition_is_evaluated_not_matched(self):
+        self.assertTrue(self.guarded('#if !os(Windows) && !os(WASI)\nx\n#endif'))
+        self.assertTrue(self.guarded('#if !os(Windows)\n#if !canImport(WASILibc)\nx\n#endif\n#endif'))
+        self.assertTrue(self.guarded('#if canImport(AppKit)\nx\n#endif'))
+        self.assertFalse(self.guarded('#if canImport(Darwin) || canImport(WASILibc)\nx\n#endif'))
+        self.assertFalse(self.guarded('#if canImport(Darwin) || compiler(>=6.3)\nx\n#endif'))
+        self.assertFalse(self.guarded('#if canImport(Darwin) ||\nx\n#endif'))                # does not parse
+
 
 class RulesTests(unittest.TestCase):
     def test_visibility(self):
@@ -274,6 +294,16 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         R = rules()
         xs = checks.posix(M, R, {'s:f': 'Base', 's:g': 'Base', 's:h': 'App'})
         self.assertEqual([x.key for x in xs], ['Base/T.swift::f() uses isatty'])
+
+    def test_k6_landed_as_the_plan_says_clears_its_findings(self):
+        def findings(cond):
+            src = f'func f() {{\n#if {cond}\nreturn\n#else\ngetpid()\n#endif\n}}\n'
+            M = model({'Base/T.swift': src}, {'Base/T.swift': [('s:f', DEF, 1, ''), ('c:@F@getpid', REF, 5, 's:f')]},
+                      {'s:f': ('f()', 12), 'c:@F@getpid': ('getpid()', 12)})
+            R = rules(posix={'c_symbols': ['getpid'], 'swift_symbols': [], 'imports': []})
+            return [x.key for x in checks.posix(M, R, {'s:f': 'Base'})]
+        self.assertEqual(findings('canImport(WASILibc)'), ['Base/T.swift::f() uses getpid'])
+        self.assertEqual(findings('canImport(WASILibc) || os(Windows)'), [])
 
     def test_the_umbrella_holds_only_imports(self):
         srcs = {'Exports.swift': '@_exported import Base\nlet x = 1\n'}
