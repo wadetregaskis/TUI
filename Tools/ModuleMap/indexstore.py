@@ -29,7 +29,9 @@ TYPE_KINDS = (K_ENUM, K_STRUCT, K_CLASS, K_PROTOCOL)
 
 
 class _SR(ctypes.Structure):
-    _fields_ = [('data', ctypes.c_char_p), ('length', ctypes.c_size_t)]
+    """indexstore_string_ref_t: a pointer and a length, NOT a NUL-terminated string. As `c_char_p`, ctypes would
+    read every `data` up to the next NUL and hand back that copy."""
+    _fields_ = [('data', ctypes.c_void_p), ('length', ctypes.c_size_t)]
 
 
 def _s(r):

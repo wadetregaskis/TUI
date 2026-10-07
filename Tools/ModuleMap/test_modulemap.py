@@ -335,6 +335,17 @@ class PosixAndUmbrellaTests(unittest.TestCase):
 
 
 class IndexStoreTests(unittest.TestCase):
+    def test_a_string_ref_is_read_by_its_length(self):
+        # libIndexStore's strings point into its buffers with a length and no NUL; `ab` here is followed by a NUL
+        # and more bytes inside the length, so a read up to the NUL loses them.
+        buf = ctypes.create_string_buffer(b'ab\x00cd', 5)
+        r = IX._SR()
+        ctypes.c_void_p.from_address(ctypes.addressof(r)).value = ctypes.addressof(buf)
+        r.length = 5
+        self.assertEqual(IX._s(r), 'ab\x00cd')
+        r.length = 2
+        self.assertEqual(IX._s(r), 'ab')
+
     def test_the_store_a_build_wrote_last_is_read(self):
         # Two triples: the store made first was written last. Its directory is older; its newest unit is newer.
         with tempfile.TemporaryDirectory() as root:
