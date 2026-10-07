@@ -112,6 +112,10 @@ class PreservingTests(unittest.TestCase):
             self.clipboard.board(), clobber=False, writes=lambda: self.fail("wrote"))
         self.assertFalse(done)
         self.assertIn("cannot be listed", refusal)
+        # No copy makes them listable: the advice is the helper, or --clobber.
+        self.assertNotIn("copy plain text", refusal)
+        self.assertIn("xclip", refusal)
+        self.assertIn("--clobber", refusal)
 
     def test_an_empty_x11_or_wayland_clipboard_is_empty_not_unlistable(self):
         self.clipboard = FileClipboard("", None)

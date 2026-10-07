@@ -37,8 +37,10 @@ text: `osascript`'s `clipboard info`, `wl-paste --list-types` or xclip's
 `--clobber` says it may be lost. Text copied from Safari, Notes or TextEdit is
 rich text too: copy plain text first (`printf probe | pbcopy`, `wl-copy`,
 `xclip -selection clipboard`), which the run then puts back whole. Where the
-types cannot be listed (`xsel`) the run stops the same way; an empty X11 or
-Wayland clipboard, whose lister says nothing is copied, is listed as empty.
+types cannot be listed (`xsel`) the run stops whatever is copied, plain text
+included: install a helper that lists them (`xclip`, or `wl-clipboard` on
+Wayland), or pass `--clobber`. An empty X11 or Wayland clipboard, whose lister
+says nothing is copied, is listed as empty.
 
 1. **Leak.** The cursor column (DSR 6) before and after an OSC 52 write, as
    `hyperlink_probe.py` asks it of OSC 8. A column that moved means the host
@@ -391,8 +393,12 @@ def plain_text_advice():
 def refusal_advice(held):
     """What a refused run says to do: copy plain text first, and how — rich
     text copied from an app is refused too, its formatting being what writing
-    its text back would lose."""
-    rich = held is not None and any(name in RICH_TEXT_TYPES for name in held)
+    its text back would lose. Where the types cannot be listed (`held` is
+    None), no copy helps: the helper that lists them does."""
+    if held is None:
+        return None, ("install a helper that lists what the clipboard holds (xclip, or wl-clipboard on "
+                      "Wayland), or pass --clobber")
+    rich = any(name in RICH_TEXT_TYPES for name in held)
     what = "rich text, whose formatting writing its text back would lose" if rich else None
     lead = f"the clipboard holds {what}" if what else None
     return lead, f"copy plain text first ({plain_text_advice()}), or pass --clobber"
