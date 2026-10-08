@@ -104,7 +104,7 @@ extension SystemFormatStyle {
 
         /// Whether `input` refers to the date relatively: the unit the relative
         /// form would count in is no larger than the threshold.
-        private func isRelative(_ input: Date) -> Bool {
+        func isRelative(_ input: Date) -> Bool {
             guard let difference = firstDifference(rounded(input)) else { return true }
             // The relative form counts in the difference's own unit, or the
             // largest finer one it may use, or failing both its finest.
@@ -128,7 +128,7 @@ extension SystemFormatStyle {
         }
 
         /// The relative form, `now` where Foundation would say "this minute".
-        private func relative(_ input: Date, units: Date.RelativeFormatStyle.UnitsStyle = .wide) -> String {
+        func relative(_ input: Date, units: Date.RelativeFormatStyle.UnitsStyle = .wide) -> String {
             let relativeStyle = relativeStyle(units: units)
             // Counting seconds, Foundation says "now" itself; counting days
             // at finest, "today" stays.
@@ -151,7 +151,7 @@ extension SystemFormatStyle {
         /// (`Friday, May 8` → `Fri, May 8`, `June 2025` → `Jun 2025`), and 2
         /// spells the date in digits with no weekday and the hour with no day
         /// period (`5/8`, `6/25`, `5/8, 11`).
-        private func absolute(_ input: Date, rung: Int = 0) -> String {
+        func absolute(_ input: Date, rung: Int = 0) -> String {
             let fields: [TimeSpanUnit] = [.year, .month, .day, .hour, .minute]
             let first = fields.firstIndex(of: firstDifference(rounded(input)) ?? .minute) ?? fields.count - 1
             let shown = fields[first..<min(fields.count, first + max(1, maxFieldCount))]
@@ -273,21 +273,5 @@ extension FormatStyle where Self == SystemFormatStyle.DateReference {
     ) -> SystemFormatStyle.DateReference {
         SystemFormatStyle.DateReference(
             to: date, allowedFields: allowedFields, maxFieldCount: maxFieldCount, thresholdField: thresholdField)
-    }
-}
-
-@available(macOS 15, *)
-extension SystemFormatStyle.DateReference: DateSizeVariantFormatStyle {
-    /// Relative, `2 minutes ago` → `2 min. ago` → `2m ago` (a named day,
-    /// `yesterday`, has no narrower one); absolute, the three rungs of
-    /// `absolute(_:rung:)`. Measured on macOS 15.
-    func sizeVariants(of input: Date, locale: Locale) -> [String] {
-        let styled = self.locale(locale)
-        if styled.isRelative(input) {
-            return [Date.RelativeFormatStyle.UnitsStyle.wide, .abbreviated, .narrow].map {
-                styled.relative(input, units: $0)
-            }
-        }
-        return (0...2).map { styled.absolute(input, rung: $0) }
     }
 }

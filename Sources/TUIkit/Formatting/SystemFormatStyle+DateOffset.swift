@@ -71,15 +71,15 @@ extension SystemFormatStyle {
         }
 
         /// Whether the offset is on a clock face: only minutes and seconds.
-        private var isClockFace: Bool { units == [.minute, .second] }
+        var isClockFace: Bool { units == [.minute, .second] }
 
-        private var spelling: TimeSpanSpelling {
+        var spelling: TimeSpanSpelling {
             TimeSpanSpelling(units: units, maxFieldCount: isClockFace ? 2 : maxFieldCount)
         }
 
         /// The fields the offset of `input` is counted in. On the clock face
         /// both are counted, a leading zero minute too.
-        private func counted(_ input: Date) -> [TimeSpanField] {
+        func counted(_ input: Date) -> [TimeSpanField] {
             let earlier = min(input, anchor)
             let later = max(input, anchor)
             guard isClockFace else { return spelling.counted(from: earlier, to: later, calendar: calendar) }
@@ -91,7 +91,7 @@ extension SystemFormatStyle {
         }
 
         /// The sign in front of the offset of `input`.
-        private func signPrefix(_ input: Date) -> String {
+        func signPrefix(_ input: Date) -> String {
             let offset = input.timeIntervalSince(anchor)
             if sign == .never { return "" }
             if offset < 0 { return "\u{2212}" }
@@ -175,20 +175,5 @@ extension FormatStyle where Self == SystemFormatStyle.DateOffset {
         maxFieldCount: Int = 2, sign: NumberFormatStyleConfiguration.SignDisplayStrategy = .automatic
     ) -> SystemFormatStyle.DateOffset {
         SystemFormatStyle.DateOffset(to: anchor, allowedFields: allowedFields, maxFieldCount: maxFieldCount, sign: sign)
-    }
-}
-
-@available(macOS 15, *)
-extension SystemFormatStyle.DateOffset: DateSizeVariantFormatStyle {
-    /// `1 hour, 2 minutes` → `1 hr, 2 min` → `1h 2m` (measured on macOS 15),
-    /// signed as the widest is; a clock face (`2:05`) has no narrower one.
-    func sizeVariants(of input: Date, locale: Locale) -> [String] {
-        let styled = self.locale(locale)
-        guard !styled.isClockFace else { return [String(styled.format(input).characters)] }
-        let shown = styled.spelling.shown(styled.counted(input))
-        let sign = styled.signPrefix(input)
-        return [TimeSpanWidth.wide, .abbreviated, .narrow].map {
-            sign + TimeSpan.unitList(shown, width: $0, locale: locale, calendar: calendar)
-        }
     }
 }

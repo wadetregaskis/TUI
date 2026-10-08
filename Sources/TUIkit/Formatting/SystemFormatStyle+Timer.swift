@@ -83,7 +83,7 @@ extension SystemFormatStyle {
             self.maxPrecision = maxPrecision
         }
 
-        private var face: ClockFace {
+        var face: ClockFace {
             ClockFace(
                 showsHours: showsHours, maxFieldCount: maxFieldCount, precision: maxPrecision, padsLeading: false)
         }
@@ -92,7 +92,7 @@ extension SystemFormatStyle {
         private var length: Double { max(0, interval.upperBound.timeIntervalSince(interval.lowerBound)) }
 
         /// The seconds the timer reads at `input`, before rounding.
-        private func value(at input: Date) -> Double {
+        func value(at input: Date) -> Double {
             let gone = min(length, max(0, input.timeIntervalSince(interval.lowerBound)))
             return countsDown ? length - gone : gone
         }
@@ -175,12 +175,5 @@ extension FormatStyle where Self == SystemFormatStyle.Timer {
     ) -> SystemFormatStyle.Timer {
         SystemFormatStyle.Timer(
             countingUpIn: interval, showsHours: showsHours, maxFieldCount: maxFieldCount, maxPrecision: maxPrecision)
-    }
-}
-
-@available(macOS 15, *)
-extension SystemFormatStyle.Timer: DateSizeVariantFormatStyle {
-    func sizeVariants(of input: Date, locale: Locale) -> [String] {
-        face.sizeVariants(for: value(at: input), roundsUp: countsDown, locale: locale)
     }
 }
