@@ -153,7 +153,8 @@ prints the accepted ones.
 
 A placement you have reviewed goes into `accepted`, with the reason. The plan's own reviews are recorded there: the
 ones found at 0c, and `.modal`, `.listStyle` and `.statusBarItems` until A4 gave each a file of its module (no longer
-a finding, so their reasons moved to those files' rules). An accepted entry covers the block as it changes: when a public
+a finding; their reasons went to those files' `files` rules, which A5 replaced by the directories, so they are in
+`rules.json` as it was before A5). An accepted entry covers the block as it changes: when a public
 member joins an accepted block, re-read the finding with `-v`.
 
 A member that does not belong with the rest of its block, and that a refactor will split out, is a `scheduled` entry:

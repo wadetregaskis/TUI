@@ -321,10 +321,12 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
 - No singletons
 - Built-in views draw with the palette's roles, never a literal colour, unless
   the colour is content (an image, a swatch, a user's gradient). SwiftLint's
-  `framework_colour_literal` rule flags a new literal in every `Sources/TUIkit…`
-  directory but the lower modules other than `Sources/TUIkitView`; see "What
-  built-in controls draw with" in the Theming
-  Guide article
+  `framework_colour_literal` rule flags a new literal in `Sources/TUIkitView`
+  and in every directory of the module split (`Sources/TUIkit`,
+  `Sources/TUIkitFoundation` and the others Tools/ModuleMap/rules.json
+  lists), not in the other targets (TUIkitCore, TUIkitStyling, TUIkitImage,
+  TUIkitAppKit, the macros, the width corpus); see "What built-in controls
+  draw with" in the Theming Guide article
 - Search the codebase for similar patterns before implementing anything new
 - Consolidate and reuse before adding new functions or types
 
