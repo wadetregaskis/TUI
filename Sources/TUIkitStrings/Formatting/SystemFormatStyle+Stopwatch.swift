@@ -59,12 +59,12 @@ extension SystemFormatStyle {
             self.maxPrecision = maxPrecision
         }
 
-        var face: ClockFace {
+        package var face: ClockFace {
             ClockFace(showsHours: showsHours, maxFieldCount: maxFieldCount, precision: maxPrecision, padsLeading: true)
         }
 
         /// The seconds since the start at `input`, none before it.
-        func value(at input: Date) -> Double {
+        package func value(at input: Date) -> Double {
             max(0, input.timeIntervalSince(startDate))
         }
 

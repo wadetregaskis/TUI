@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTerminalHost
 
 /// A split view under one of the shared palettes, as a whole app, for the run loop.
 private struct ReversedSplitDividerApp: App {

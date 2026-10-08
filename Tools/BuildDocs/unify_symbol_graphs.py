@@ -4,8 +4,8 @@
 TUIkit is split into library modules for layering, test isolation and build
 time (TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage; TUIkitFoundation,
 which compiles every module of the planned split not yet carved into a target
-of its own; and the TUIkit umbrella that `@_exported import`s them and
-declares nothing). That split is OUR business, not the reader's: `import
+of its own, and the ones carved so far, TUIkitStrings and TUIkitTerminalHost;
+and the TUIkit umbrella that `@_exported import`s them and declares nothing). That split is OUR business, not the reader's: `import
 TUIkit` is one API, so the documentation has to be one API reference.
 
 DocC builds from symbol graphs, one module at a time, and an `@_exported`
@@ -48,7 +48,10 @@ import sys
 # example apps, the AppKit bridges (a product of their own, imported beside
 # TUIkit) and the C image-decoder target are deliberately excluded. A module
 # carved out of TUIkitFoundation joins this set when it is carved.
-MODULES = {"TUIkit", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage"}
+MODULES = {
+    "TUIkit", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost",
+    "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
+}
 UMBRELLA = "TUIkit"
 
 

@@ -51,8 +51,16 @@
 /// that will name itself milliseconds later. A silent client the process walk
 /// also can't identify is therefore worth a few bounded re-asks before the
 /// safe answer is allowed to stand.
-internal struct ClientCapabilities: Equatable, Sendable {
-    let emojiChrome: Bool
-    let skinTonesSafe: Bool
-    let mayImproveShortly: Bool
+package struct ClientCapabilities: Equatable, Sendable {
+    package let emojiChrome: Bool
+    package let skinTonesSafe: Bool
+    package let mayImproveShortly: Bool
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and the run loop (TUIkitFoundation) makes these values.
+    package init(emojiChrome: Bool, skinTonesSafe: Bool, mayImproveShortly: Bool) {
+        self.emojiChrome = emojiChrome
+        self.skinTonesSafe = skinTonesSafe
+        self.mayImproveShortly = mayImproveShortly
+    }
 }

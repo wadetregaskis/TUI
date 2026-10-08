@@ -104,7 +104,7 @@ extension SystemFormatStyle {
 
         /// Whether `input` refers to the date relatively: the unit the relative
         /// form would count in is no larger than the threshold.
-        func isRelative(_ input: Date) -> Bool {
+        package func isRelative(_ input: Date) -> Bool {
             guard let difference = firstDifference(rounded(input)) else { return true }
             // The relative form counts in the difference's own unit, or the
             // largest finer one it may use, or failing both its finest.
@@ -128,7 +128,7 @@ extension SystemFormatStyle {
         }
 
         /// The relative form, `now` where Foundation would say "this minute".
-        func relative(_ input: Date, units: Date.RelativeFormatStyle.UnitsStyle = .wide) -> String {
+        package func relative(_ input: Date, units: Date.RelativeFormatStyle.UnitsStyle = .wide) -> String {
             let relativeStyle = relativeStyle(units: units)
             // Counting seconds, Foundation says "now" itself; counting days
             // at finest, "today" stays.
@@ -151,7 +151,7 @@ extension SystemFormatStyle {
         /// (`Friday, May 8` → `Fri, May 8`, `June 2025` → `Jun 2025`), and 2
         /// spells the date in digits with no weekday and the hour with no day
         /// period (`5/8`, `6/25`, `5/8, 11`).
-        func absolute(_ input: Date, rung: Int = 0) -> String {
+        package func absolute(_ input: Date, rung: Int = 0) -> String {
             let fields: [TimeSpanUnit] = [.year, .month, .day, .hour, .minute]
             let first = fields.firstIndex(of: firstDifference(rounded(input)) ?? .minute) ?? fields.count - 1
             let shown = fields[first..<min(fields.count, first + max(1, maxFieldCount))]

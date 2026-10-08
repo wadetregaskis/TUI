@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 
 /// `LocalizedStringKey` — SwiftUI's "a string literal is a lookup key" rule.
 ///

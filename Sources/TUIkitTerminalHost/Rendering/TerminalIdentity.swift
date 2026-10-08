@@ -14,31 +14,48 @@ import Foundation
 /// mechanical and testable, the verdict is a judgement about measured terminal
 /// behaviour, and keeping them apart means the judgement can be argued with
 /// (and unit-tested) without a terminal in the room.
-struct TerminalIdentity: Equatable {
+package struct TerminalIdentity: Equatable {
     /// The Primary Device Attributes reply (`ESC[?…c`), verbatim, or `nil` if
     /// the terminal did not answer.
-    var primaryAttributes: String?
+    package var primaryAttributes: String?
 
     /// The Secondary Device Attributes reply (`ESC[>…c`), verbatim, or `nil`.
-    var secondaryAttributes: String?
+    package var secondaryAttributes: String?
 
     /// Whether the terminal answered XTVERSION at all. The *content* is not
     /// needed here — under ``TerminalHost/hostProgram(environment:)`` a
     /// terminal that answers XTVERSION either named itself in the environment
     /// or is one tmux's client identification already handles; what matters to
     /// the fingerprint below is that Apple Terminal answers **nothing**.
-    var answeredVersion: Bool = false
+    package var answeredVersion: Bool = false
 
     /// Whether the status fence's reply, `CSI 0 n`, was seen. The exchange is
     /// complete once it has been: every terminal answers DSR, and it is sent
     /// last, so its arrival means every earlier query has either answered or
     /// declined to.
-    var sawFence: Bool = false
+    package var sawFence: Bool = false
 
     /// Bytes that arrived during the exchange and are not replies to it —
     /// keystrokes typed while the app was starting. They belong to the input
     /// parser, and dropping them would silently eat a keypress.
-    var unconsumed: [UInt8] = []
+    package var unconsumed: [UInt8] = []
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and the identity exchange (TUIkitFoundation) starts from an
+    /// empty identity: every parameter defaults as its property does.
+    package init(
+        primaryAttributes: String? = nil,
+        secondaryAttributes: String? = nil,
+        answeredVersion: Bool = false,
+        sawFence: Bool = false,
+        unconsumed: [UInt8] = []
+    ) {
+        self.primaryAttributes = primaryAttributes
+        self.secondaryAttributes = secondaryAttributes
+        self.answeredVersion = answeredVersion
+        self.sawFence = sawFence
+        self.unconsumed = unconsumed
+    }
 }
 
 // MARK: - The verdict
@@ -90,7 +107,7 @@ extension TerminalHost {
     /// which is precisely the failure this whole path exists to end. The
     /// identifying fields are the terminal type (`1`) and the ROM cartridge
     /// (`0`).
-    static func nameFromDeviceAttributes(_ identity: TerminalIdentity) -> String? {
+    package static func nameFromDeviceAttributes(_ identity: TerminalIdentity) -> String? {
         guard !identity.answeredVersion,
             identity.primaryAttributes == "\u{1B}[?1;2c",
             let secondary = identity.secondaryAttributes,
@@ -115,5 +132,5 @@ extension TerminalHost {
     ///
     /// Written once, by the app's startup (`identify(using:)`, beside its
     /// only caller in App.swift), before anything reads it.
-    @MainActor static var startupIdentity: TerminalIdentity?
+    @MainActor package static var startupIdentity: TerminalIdentity?
 }

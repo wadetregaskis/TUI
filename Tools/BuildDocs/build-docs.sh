@@ -159,9 +159,12 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # re-exports (it declares nothing itself), and their absence is the exact
 # failure this script exists to prevent. Cheap to check, and it fails loudly
 # the day someone documents just one target again. `text` and `list` are
-# TUIkitFoundation's, the rest the lower modules'.
+# TUIkitFoundation's, `localizationservice` TUIkitStrings', `terminalclient`
+# TUIkitTerminalHost's (the modules step B2 carved out of it), the rest the
+# lower modules'.
 MISSING=()
-for symbol in view color binding state environmentvalues framebuffer palette text list; do
+for symbol in view color binding state environmentvalues framebuffer palette text list \
+    localizationservice terminalclient; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then

@@ -22,6 +22,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 
 @MainActor
 @Suite("A translated UI still renders translated", .rendersEnglishUI)

@@ -332,12 +332,14 @@ Sources/
 ├── TUIkit/               The umbrella: Exports.swift (re-exports, no code), and TUIkit.docc/ (DocC)
 │
 │   The framework's sources, one directory per module of the planned split
-│   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Today
-│   they all compile into one module, TUIkitFoundation, which the umbrella re-exports;
-│   each becomes a module of its own when it is carved out. Inside each: App/, Views/,
-│   Modifiers/, Focus/, ...
+│   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
+│   becomes a module of its own when it is carved out: TUIkitStrings and
+│   TUIkitTerminalHost are (step B2), the rest still compile into one module,
+│   TUIkitFoundation, which re-exports those two and which the umbrella re-exports.
+│   Inside each: App/, Views/, Modifiers/, Focus/, ...
 ├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
-│                         localization (translations in 7 languages) and VERSION
+│                         localization (translations in 7 languages) and VERSION,
+│                         in the resource bundle TUIkit_TUIkitStrings
 ├── TUIkitTerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
 ├── TUIkitFoundation/     The base: everything the modules below share — layout,
 │                         stacks, Text, Button, Toggle, focus, state, rendering, ...

@@ -32,7 +32,7 @@ extension SystemFormatStyle {
         public typealias FormatOutput = AttributedString
 
         let interval: Range<Date>
-        let countsDown: Bool
+        package let countsDown: Bool
         let showsHours: Bool
         let maxFieldCount: Int
         let maxPrecision: Duration
@@ -83,7 +83,7 @@ extension SystemFormatStyle {
             self.maxPrecision = maxPrecision
         }
 
-        var face: ClockFace {
+        package var face: ClockFace {
             ClockFace(
                 showsHours: showsHours, maxFieldCount: maxFieldCount, precision: maxPrecision, padsLeading: false)
         }
@@ -92,7 +92,7 @@ extension SystemFormatStyle {
         private var length: Double { max(0, interval.upperBound.timeIntervalSince(interval.lowerBound)) }
 
         /// The seconds the timer reads at `input`, before rounding.
-        func value(at input: Date) -> Double {
+        package func value(at input: Date) -> Double {
             let gone = min(length, max(0, input.timeIntervalSince(interval.lowerBound)))
             return countsDown ? length - gone : gone
         }

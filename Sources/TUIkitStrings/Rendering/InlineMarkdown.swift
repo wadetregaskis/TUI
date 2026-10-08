@@ -45,38 +45,40 @@
 /// `Text("**\(name)**")` is bold whatever `name` holds, and a `*` inside it is
 /// drawn, not parsed), so a value is a letter to the delimiter rules and never
 /// part of the syntax.
-enum InlineMarkdown {
+package enum InlineMarkdown {
     /// The styles a span carries. Code is kept apart from plain text although a
     /// terminal draws both alike, because what a code span contains is never
     /// autolinked.
-    struct Traits: OptionSet, Hashable, Sendable {
-        let rawValue: UInt8
+    package struct Traits: OptionSet, Hashable, Sendable {
+        package let rawValue: UInt8
 
-        static let emphasized = Self(rawValue: 1 << 0)
-        static let strong = Self(rawValue: 1 << 1)
+        package init(rawValue: UInt8) { self.rawValue = rawValue }
+
+        package static let emphasized = Self(rawValue: 1 << 0)
+        package static let strong = Self(rawValue: 1 << 1)
         static let code = Self(rawValue: 1 << 2)
-        static let strikethrough = Self(rawValue: 1 << 3)
+        package static let strikethrough = Self(rawValue: 1 << 3)
     }
 
     /// One element of the source: a character, or the slot an interpolated
     /// argument fills.
-    enum Atom: Hashable, Sendable {
+    package enum Atom: Hashable, Sendable {
         case scalar(Unicode.Scalar)
         case argument(Int)
     }
 
     /// A run of the parsed text with one set of traits and at most one link.
-    struct Span: Equatable, Sendable {
+    package struct Span: Equatable, Sendable {
         /// The span's text, arguments in their slots.
-        var atoms: [Atom]
+        package var atoms: [Atom]
         /// Its emphasis.
-        var traits: Traits
+        package var traits: Traits
         /// Where it links, arguments in their slots; `nil` for no link.
-        var link: [Atom]?
+        package var link: [Atom]?
     }
 
     /// The spans `source` parses to, adjacent spans of equal style merged.
-    static func parse(_ source: [Atom]) -> [Span] {
+    package static func parse(_ source: [Atom]) -> [Span] {
         var parser = InlineMarkdownParser(source: source)
         return parser.run()
     }
@@ -93,7 +95,7 @@ enum InlineMarkdown {
     /// parser knows starts with one of these bytes, or is an autolink, which
     /// needs a `://`, a `www.` or an `@` with an address's local part before
     /// it.
-    static func mightContainMarkup(_ template: String) -> Bool {
+    package static func mightContainMarkup(_ template: String) -> Bool {
         // The three bytes before this one, in locals: this runs for every key a
         // `Text` is built from, every frame, so it allocates nothing.
         var last: UInt8 = 0

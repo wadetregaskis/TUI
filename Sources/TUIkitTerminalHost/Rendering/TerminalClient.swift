@@ -258,7 +258,7 @@ public struct TerminalClient: Sendable, Equatable {
     /// brightens, Apple Terminal, Ghostty and Warp thicken, and tmux passes it
     /// through to whichever of them it is drawn in). An unidentified terminal
     /// may be anything down to one that ignores SGR 1, so it is not assumed to.
-    @MainActor static var drawsBold: Bool {
+    @MainActor package static var drawsBold: Bool {
         drawsBoldPin ?? (effective.program != .unidentified)
     }
 

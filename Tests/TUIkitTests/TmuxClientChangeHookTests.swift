@@ -21,6 +21,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTerminalHost
 
 @Suite("tmux client-change hooks")
 struct TmuxClientChangeHookTests {

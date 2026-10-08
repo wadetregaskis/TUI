@@ -14,7 +14,7 @@ import Foundation
 // MARK: - Units and fields
 
 /// A unit a span of time is spelt in, most significant first.
-enum TimeSpanUnit: Int, Comparable, CaseIterable, Sendable {
+package enum TimeSpanUnit: Int, Comparable, CaseIterable, Sendable {
     case year
     case month
     case week
@@ -23,7 +23,7 @@ enum TimeSpanUnit: Int, Comparable, CaseIterable, Sendable {
     case minute
     case second
 
-    static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+    package static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
 
     /// The calendar component that counts this unit between two dates.
     var component: Calendar.Component {
@@ -67,7 +67,7 @@ enum TimeSpanUnit: Int, Comparable, CaseIterable, Sendable {
 /// How wide a unit's name is spelt: "1 hour, 2 minutes", "1 hr, 2 min",
 /// "1 hr 2 min" or "1h 2m" — `Duration.UnitsFormatStyle`'s widths, and the
 /// rungs a `.sizeDependent` text steps down (decisions A32).
-enum TimeSpanWidth: Sendable {
+package enum TimeSpanWidth: Sendable {
     case wide
     case abbreviated
     case condensedAbbreviated
@@ -85,7 +85,7 @@ enum TimeSpanWidth: Sendable {
 }
 
 /// One field of a spelt span: a unit and how many whole ones.
-struct TimeSpanField: Equatable, Sendable {
+package struct TimeSpanField: Equatable, Sendable {
     let unit: TimeSpanUnit
     let value: Int
 }
@@ -103,14 +103,14 @@ struct TimeSpanField: Equatable, Sendable {
 ///   shown — "1 minute, 0 seconds", "1 hr, 0 min". From a day up it is left out
 ///   — "1 day", not "1 day, 0 hours". A span of nothing is "0" of the finest
 ///   unit: "0 seconds".
-struct TimeSpanSpelling: Equatable, Sendable {
+package struct TimeSpanSpelling: Equatable, Sendable {
     /// The units the span may be counted in, most significant first.
     let units: [TimeSpanUnit]
 
     /// How many consecutive units are shown at most.
     let maxFieldCount: Int
 
-    init(units: some Collection<TimeSpanUnit>, maxFieldCount: Int) {
+    package init(units: some Collection<TimeSpanUnit>, maxFieldCount: Int) {
         self.units = units.sorted()
         self.maxFieldCount = max(1, maxFieldCount)
     }
@@ -119,7 +119,7 @@ struct TimeSpanSpelling: Equatable, Sendable {
     /// any zero is dropped: the first non-zero unit and the units after it, up
     /// to ``maxFieldCount``. The finest of them is what the spelling changes
     /// with, which is why a zero that will not be shown still counts here.
-    func counted(from earlier: Date, to later: Date, calendar: Calendar) -> [TimeSpanField] {
+    package func counted(from earlier: Date, to later: Date, calendar: Calendar) -> [TimeSpanField] {
         guard let finest = units.last else { return [] }
         let components = calendar.dateComponents(Set(units.map(\.component)), from: earlier, to: later)
         let values = units.map { abs(components.value(for: $0.component) ?? 0) }
@@ -132,7 +132,7 @@ struct TimeSpanSpelling: Equatable, Sendable {
 
     /// The fields that are shown, from those ``counted(from:to:calendar:)``
     /// returned: every one under a day, the non-zero ones from a day up.
-    func shown(_ counted: [TimeSpanField]) -> [TimeSpanField] {
+    package func shown(_ counted: [TimeSpanField]) -> [TimeSpanField] {
         guard let first = counted.first, first.unit < .hour else { return counted }
         let nonZero = counted.filter { $0.value != 0 }
         return nonZero.isEmpty ? [first] : nonZero
@@ -141,7 +141,7 @@ struct TimeSpanSpelling: Equatable, Sendable {
 
 // MARK: - Spelling fields
 
-enum TimeSpan {
+package enum TimeSpan {
     /// `fields` spelt as a list of units in `locale`: "1 hour, 2 minutes",
     /// "1 Std., 2 Min.".
     ///
@@ -151,7 +151,7 @@ enum TimeSpan {
     /// `Date.ComponentsFormatStyle`, and the open-source Foundation, which
     /// declares that type without a way to build one, with the framework's
     /// own tables (``tableUnitList(_:width:locale:)``).
-    static func unitList(
+    package static func unitList(
         _ fields: [TimeSpanField], width: TimeSpanWidth, locale: Locale, calendar: Calendar
     ) -> String {
         guard !fields.isEmpty else { return "" }
@@ -245,7 +245,7 @@ enum TimeSpan {
     ///
     /// - Parameter padsLeading: Whether the leading field takes two digits, as
     ///   a stopwatch's does (`00:05`, `01:02:05`) and a timer's does not.
-    static func clock(seconds: Int, showsHours: Bool, padsLeading: Bool = false) -> String {
+    package static func clock(seconds: Int, showsHours: Bool, padsLeading: Bool = false) -> String {
         let total = max(0, seconds)
         let hours = showsHours ? total / 3_600 : 0
         let minutes = showsHours ? total / 60 % 60 : total / 60
@@ -271,7 +271,7 @@ enum TimeSpan {
     /// Calendar arithmetic does not always invert (31 January plus a month is
     /// 28 February), so a boundary that lands at or before `now` is replaced by
     /// a second from now: a spare frame rather than a text that never moves.
-    static func nextChange(
+    package static func nextChange(
         counted: [TimeSpanField], from date: Date, now: Date, calendar: Calendar, signFlips: Bool
     ) -> Date {
         guard let finest = counted.last else { return now.addingTimeInterval(1) }

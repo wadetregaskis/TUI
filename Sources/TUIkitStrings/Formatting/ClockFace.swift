@@ -23,7 +23,7 @@ import Foundation
 ///   precision is coarser than a second, without its seconds: `0 minutes`.
 /// - On the face, a countdown rounds up to its precision and everything else
 ///   rounds down.
-struct ClockFace: Sendable {
+package struct ClockFace: Sendable {
     let showsHours: Bool
     let maxFieldCount: Int
     /// The precision, in seconds.
@@ -103,7 +103,7 @@ struct ClockFace: Sendable {
     ///   each dropping what the last kept: the fraction and the padding, the
     ///   seconds, then all but the leading field, in its narrowest unit;
     /// - a timer's face, `1:02:05`, has no narrower spelling.
-    func sizeVariants(for value: Double, roundsUp: Bool, locale: Locale) -> [String] {
+    package func sizeVariants(for value: Double, roundsUp: Bool, locale: Locale) -> [String] {
         let widest = text(for: value, roundsUp: roundsUp, locale: locale)
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = locale

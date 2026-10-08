@@ -12,7 +12,14 @@
 // most of its files use `FrameBuffer`, `RenderContext` or `Color` without
 // naming the module that declares them. The umbrella, Sources/TUIkit, re-exports
 // this module in turn.
+//
+// TUIkitStrings and TUIkitTerminalHost were compiled here until step B2 carved
+// them out. No app imports either (plan §4: "Base re-exports them"), so
+// `LocalizationService`, `TerminalClient` and the rest reach an app, and every
+// file of this module, through these two lines.
 @_exported import TUIkitCore
 @_exported import TUIkitImage
+@_exported import TUIkitStrings
 @_exported import TUIkitStyling
+@_exported import TUIkitTerminalHost
 @_exported import TUIkitView

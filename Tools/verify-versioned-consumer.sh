@@ -121,8 +121,8 @@ if tuiKitVersion == "unknown" || tuiKitVersion.isEmpty {
         """
         tuiKitVersion is "\(tuiKitVersion)".
         The VERSION resource did not resolve through Bundle.module when TUIkit was
-        built as a dependency. Check the `resources:` entry for the TUIkitFoundation
-        target, whose bundle (TUIkit_TUIkitFoundation) holds it.
+        built as a dependency. Check the `resources:` entry for the TUIkitStrings
+        target, whose bundle (TUIkit_TUIkitStrings) holds it.
         """)
 }
 

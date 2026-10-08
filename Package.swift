@@ -104,6 +104,32 @@ let package = Package(
         .target(name: "TUIkitView", dependencies: ["TUIkitCore", "TUIkitStyling"]),
         .target(name: "TUIkitImage", dependencies: ["CSTBImage", "TUIkitStyling"]),
 
+        // ── The split's carved modules ──────────────────────────────────────────────────────────────────
+        // Modules of the planned split (Documentation/Historical/Module split plan, revision 4) that a step
+        // of Phase B has carved out of TUIkitFoundation into targets of their own. TUIkitFoundation depends
+        // on each and re-exports it (Sources/TUIkitFoundation/Exports.swift), so `import TUIkit` gives an
+        // app what it gave before. Tools/ModuleMap's `lower` lists (rules.json) say which lower modules
+        // each may use; its `lower` check fails CI on any other.
+        //
+        // Step B2's two side modules need TUIkitCore alone, so they compile beside TUIkitView, not after
+        // it. TUIkitStrings is the SF Symbols name table, the inline-Markdown parser, the format styles and
+        // localization, and it holds the framework's resources: the translation tables and VERSION, read
+        // through its `moduleResourceURL`, in the bundle `TUIkit_TUIkitStrings`
+        // (Tools/verify-versioned-consumer.sh runs a consumer that reads both). TUIkitTerminalHost is the
+        // terminal's facts as values: the host, its identity, quirks and capabilities.
+        // MemberImportVisibility as on TUIkitFoundation, which compiled their files until B2.
+        .target(
+            name: "TUIkitStrings",
+            dependencies: ["TUIkitCore"],
+            resources: [.copy("Localization/translations"), .copy("VERSION")],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+        .target(
+            name: "TUIkitTerminalHost",
+            dependencies: ["TUIkitCore"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s TUIkitFoundation and the lower
         // four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app
@@ -124,7 +150,7 @@ let package = Package(
         .target(
             name: "TUIkitFoundation",
             dependencies: [
-                "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView", "TUIkitStrings", "TUIkitTerminalHost",
                 .product(name: "DequeModule", package: "swift-collections"),
             ],
             path: "Sources",
@@ -133,35 +159,19 @@ let package = Package(
             // quietly.
             exclude: [
                 "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitAppKit",
-                "TUIkitCore", "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitStyling", "TUIkitView",
-                "TUIkitWidthCorpus",
+                "TUIkitCore", "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitStrings", "TUIkitStyling",
+                "TUIkitTerminalHost", "TUIkitView", "TUIkitWidthCorpus",
             ],
-            // The planned modules, in rules.json's order. TUIkitStrings is listed below its directory, at
-            // the level of its resources, because SwiftPM treats every file under a declared source path as a
-            // compile input (measured, SwiftPM 6.2.4 to 6.4.0, native and Swift Build), and a resource under
-            // one is "duplicate rule found for file". Until step B2 carves TUIkitStrings, which then declares
-            // them as this target does today, at the same paths inside its directory.
-            // A Swift file no entry covers is reported as unhandled, like a stray directory above, but only
-            // as a warning, which CI does not fail on: Tools/ModuleMap's `uncompiled` check, which gates CI,
-            // fails on a file of a module's directory that the build did not compile.
+            // The planned modules not yet carved, in rules.json's order. A Swift file no entry covers is
+            // reported as unhandled, like a stray directory above, but only as a warning, which CI does not
+            // fail on: Tools/ModuleMap's `uncompiled` check, which gates CI, fails on a file of a module's
+            // directory that the build did not compile.
             sources: [
-                "TUIkitStrings/Formatting",
-                "TUIkitStrings/Localization/BundleStringTables.swift",
-                "TUIkitStrings/Localization/LocalizationKeys.swift",
-                "TUIkitStrings/Localization/LocalizationService+Detection.swift",
-                "TUIkitStrings/Localization/LocalizationService+Files.swift",
-                "TUIkitStrings/Localization/LocalizationService+Language.swift",
-                "TUIkitStrings/Localization/LocalizationService.swift",
-                "TUIkitStrings/ModuleResource.swift",
-                "TUIkitStrings/Rendering",
-                "TUIkitStrings/SFSymbols",
-                "TUIkitStrings/State",
-                "TUIkitTerminalHost", "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps",
-                "TUIkitMenus", "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitLists",
-                "TUIkitGrid", "TUIkitNavigation", "TUIkitPresentation", "TUIkitForms", "TUIkitSearch",
-                "TUIkitTables", "TUIkitTabs", "TUIkitColorPicker", "TUIkitApp",
+                "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps", "TUIkitMenus",
+                "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitLists", "TUIkitGrid",
+                "TUIkitNavigation", "TUIkitPresentation", "TUIkitForms", "TUIkitSearch", "TUIkitTables", "TUIkitTabs",
+                "TUIkitColorPicker", "TUIkitApp",
             ],
-            resources: [.copy("TUIkitStrings/Localization/translations"), .copy("TUIkitStrings/VERSION")],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
             // every module LOADED is in scope — and on macOS that included
@@ -210,10 +220,14 @@ let package = Package(
         // unchanged. Tools/validate-test-boundaries.sh enforces this going
         // forward (see also the per-target import guard it applies). A test
         // imports TUIkit, as an app does, and `@testable import`s
-        // TUIkitFoundation where it reaches the framework's internals.
+        // TUIkitFoundation where it reaches the framework's internals, or the
+        // carved module that declares them (TUIkitStrings, TUIkitTerminalHost).
         .testTarget(
             name: "TUIkitTests",
-            dependencies: ["TUIkit", "TUIkitFoundation", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport"],
+            dependencies: [
+                "TUIkit", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitAppKit",
+                "TUIkitWidthCorpus", "CTestSupport",
+            ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
             // exclude them from the build rather than declaring them as resources.

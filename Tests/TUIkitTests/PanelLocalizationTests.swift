@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 
 /// The framework's own words on its panels and empty containers go through
 /// the translation tables. A `String`-typed name can only ever bind the

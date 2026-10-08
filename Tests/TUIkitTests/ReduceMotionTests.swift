@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTerminalHost
 
 /// A view that comes and goes, in a slot that survives it — two cells of
 /// content in a slot six wide, so a picture moved inside the slot shows.

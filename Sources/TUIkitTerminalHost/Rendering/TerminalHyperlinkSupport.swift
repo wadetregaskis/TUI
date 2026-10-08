@@ -33,7 +33,7 @@ extension TerminalClient {
     /// render path's first link, and the plain system call answers from the
     /// kernel. Read here, above the lower modules, because `TerminalHyperlink`
     /// lives in one (TUIkitCore) that also builds where there is no POSIX.
-    static var localHostName: String? { localHostNamePin ?? processLocalHostName }
+    package static var localHostName: String? { localHostNamePin ?? processLocalHostName }
 
     /// A task-local answer for ``localHostName`` — for tests, whose expected
     /// output must not depend on what the machine running them is called:

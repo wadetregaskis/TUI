@@ -30,7 +30,7 @@ import Foundation
 ///   - subdirectory: A directory within the bundle, or `nil` for its root.
 /// - Returns: A URL that may or may not exist — the caller reads it and handles
 ///   failure, as it would have to with any bundle lookup.
-func moduleResourceURL(
+package func moduleResourceURL(
     named name: String,
     extension fileExtension: String?,
     subdirectory: String? = nil

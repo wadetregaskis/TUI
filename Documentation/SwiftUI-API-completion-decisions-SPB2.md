@@ -41,3 +41,32 @@ keeps the POSIX type's name at the cost of four `#if` arms and a TmuxClient
 whose stored layout differs by platform, for a probe that never runs on
 Windows (`isTmux` reads `TMUX`, which no Windows terminal sets). About an hour,
 if the name is wanted back.
+
+### B-SPB2-2. The carved modules' tests stay in TUIkitTests, which `@testable import`s them
+
+*Test layout — no API*
+
+The lower four modules each have a test target that links only that module
+(`TUIkitCoreTests` and the rest), so a unit test that leans on a higher layer
+does not compile. B2 made TUIkitStrings and TUIkitTerminalHost modules of the
+same kind, and their tests live in `TUIkitTests` beside everything else.
+
+**Shipped: the tests stay where they are.** The 35 test files that reach
+either module's internals gained `@testable import TUIkitStrings` (17) or
+`@testable import TUIkitTerminalHost` (18), next to their
+`@testable import TUIkitFoundation`, and `TUIkitTests` names both modules as
+dependencies. What the framework itself now reaches across the new boundary is
+`package` instead; a test reaching an internal member (an initializer such as
+`LocalizationService(configDirectoryPath:)`, a `@TaskLocal` pin such as
+`TerminalClient.$drawsBoldPin`) does so through `@testable`, so no declaration
+was widened for a test alone.
+
+**The other version:** `TUIkitStringsTests` and `TUIkitTerminalHostTests`,
+each linking only its module and TUIkitCore, with a row each in
+`Tools/validate-test-boundaries.sh` and an advisory Windows build like the
+lower modules' test targets. **Price:** sorting the 35 files, and more where a
+suite also renders (`RendersEnglishUI` and the localized-render suites use the
+umbrella's render helpers, so they would stay); how many of the 35 use only
+their module was not counted. Two more test bundles to build and link. Worth
+doing with the per-module products (step C9b), or when a Windows test build of
+these modules is wanted.

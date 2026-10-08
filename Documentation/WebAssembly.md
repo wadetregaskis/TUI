@@ -45,8 +45,8 @@ standard library to find.
 ## What had to change in the framework
 
 Very little in the four lower modules, which is the dividend of the rule that
-keeps POSIX above them (in TUIkitFoundation since module split step B1; the
-TUIkit module, then): `TUIkitCore` built for wasm unchanged, and
+keeps POSIX above them (in TUIkitFoundation since module split step B1, and
+TUIkitTerminalHost since step B2; the TUIkit module, then): `TUIkitCore` built for wasm unchanged, and
 `TUIkitStyling`, `TUIkitView` and `TUIkitImage` needed one fix each.
 
 | Where | What | Why |

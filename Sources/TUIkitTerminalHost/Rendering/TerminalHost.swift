@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitCore
 
 /// Identity of the terminal emulator hosting the process, detected once from
 /// the environment.
@@ -15,7 +16,7 @@ import Foundation
 /// conversely draws emoji-repertoire glyphs like ⬛︎ as single seamless
 /// multi-cell glyphs where adjacent FULL BLOCK cells show seams (see
 /// ``ToggleCharacterSet/automatic``).
-enum TerminalHost {
+package enum TerminalHost {
     /// Whether the host terminal is macOS Terminal.app, detected once from the
     /// process environment.
     ///
@@ -29,22 +30,22 @@ enum TerminalHost {
     /// would have made the whole ssh identification path — the environment
     /// signals and the Device Attributes query alike — do its work and throw
     /// the answer away on exactly the systems people ssh into most.
-    static let isAppleTerminal: Bool =
+    package static let isAppleTerminal: Bool =
         detectAppleTerminal(environment: ProcessInfo.processInfo.environment)
 
     /// Whether the host terminal is iTerm2, detected once from the process
     /// environment.
-    static let isITerm2: Bool =
+    package static let isITerm2: Bool =
         detectITerm2(environment: ProcessInfo.processInfo.environment)
 
     /// Whether the host terminal is Ghostty, detected once from the process
     /// environment.
-    static let isGhostty: Bool =
+    package static let isGhostty: Bool =
         detectGhostty(environment: ProcessInfo.processInfo.environment)
 
     /// Whether the host terminal is Warp, detected once from the process
     /// environment.
-    static let isWarp: Bool =
+    package static let isWarp: Bool =
         detectWarp(environment: ProcessInfo.processInfo.environment)
 
     /// Whether TUIkit is running inside tmux, detected once from the process
@@ -58,7 +59,7 @@ enum TerminalHost {
     /// win. In practice they cannot: tmux overwrites `TERM_PROGRAM` with its own
     /// name rather than forwarding the outer terminal's (measured, 3.7b), so
     /// running under tmux inside iTerm2 reports `tmux`, not `iTerm.app`.
-    static let isTmux: Bool =
+    package static let isTmux: Bool =
         detectTmux(environment: ProcessInfo.processInfo.environment)
 
     /// Whether the host draws the emoji-repertoire chrome glyphs (⬛︎ / ⬜︎
@@ -73,7 +74,7 @@ enum TerminalHost {
     /// fixes it up: Ghostty PAINTS ⬛︎ two cells but advances the cursor by
     /// one, so uncompensated the label collides with the glyph (`■On`). Warp
     /// advances these correctly with no help.
-    static var supportsEmojiChrome: Bool { isAppleTerminal || isITerm2 || isGhostty || isWarp }
+    package static var supportsEmojiChrome: Bool { isAppleTerminal || isITerm2 || isGhostty || isWarp }
 
     /// The `TERM_PROGRAM`-style name of the host terminal, from whichever
     /// signal in the environment carries it.
@@ -138,7 +139,7 @@ enum TerminalHost {
     ///
     /// `false` is the ssh case, and the cue to ask the terminal itself rather
     /// than give up on it — see ``Terminal/queryIdentity(timeout:)``.
-    static var hostIsNamedByEnvironment: Bool {
+    package static var hostIsNamedByEnvironment: Bool {
         hostProgram(environment: ProcessInfo.processInfo.environment) != nil
     }
 
@@ -192,7 +193,7 @@ enum TerminalHost {
     /// (``detectITerm2(environment:)`` and friends) — so tests exercise both
     /// answers deterministically regardless of which terminal, or platform,
     /// runs them.
-    static func detectAppleTerminal(environment: [String: String]) -> Bool {
+    package static func detectAppleTerminal(environment: [String: String]) -> Bool {
         hostProgram(environment: environment) == "Apple_Terminal"
     }
 
@@ -241,7 +242,7 @@ enum TerminalHost {
     /// `screen-256color` depending on the user's `default-terminal`, and
     /// `screen*` is also what GNU screen sets — a different compositor with a
     /// different width table that this model does not describe.
-    static func detectTmux(environment: [String: String]) -> Bool {
+    package static func detectTmux(environment: [String: String]) -> Bool {
         if let socket = environment["TMUX"], !socket.isEmpty { return true }
         return hostProgram(environment: environment) == "tmux"
     }
@@ -250,7 +251,7 @@ enum TerminalHost {
 
     /// One terminal attached to a tmux session — what tmux will tell us about
     /// it, and the handle that lets us find out the rest ourselves.
-    struct TmuxClient: Equatable {
+    package struct TmuxClient: Equatable {
         /// The client's XTVERSION reply as `#{client_termtype}` reports it —
         /// "iTerm2 3.6.11", "ghostty 1.3.1", "Warp(v0.2026…)" — or `""` for a
         /// terminal that answered none (Terminal.app, and anything older than
@@ -318,7 +319,7 @@ enum TerminalHost {
     /// terminal whose reply is milliseconds away — worth re-asking briefly —
     /// or a genuinely unknown terminal, in which case the bounded retries burn
     /// out and the safe answer stands.
-    static func clientCapabilities(tmuxClients clients: [TmuxClient]) -> ClientCapabilities {
+    package static func clientCapabilities(tmuxClients clients: [TmuxClient]) -> ClientCapabilities {
         guard !clients.isEmpty else {
             // No clients: nothing to please. No emoji chrome (nobody has earned
             // it), but skin tones stay — tmux's own grid joins them correctly,
@@ -581,7 +582,7 @@ enum TerminalHost {
     /// load — could otherwise block the render loop forever on the unbounded
     /// `readDataToEndOfFile`/`waitUntilExit` this used to call. Past the deadline
     /// the child is killed and the probe fails closed.
-    static func probeTmuxClients() -> [TmuxClient]? {
+    package static func probeTmuxClients() -> [TmuxClient]? {
         guard isTmux else { return nil }
         // One line per attached client. The pid comes first because it is always
         // digits, then the session's pane ids run together (`%0%1%2`: each
@@ -863,13 +864,13 @@ enum TerminalHost {
     /// too old for ``tmuxThemeChangeHooks`` would otherwise lose the
     /// client-change hooks with them. Each half fails on its own and is
     /// tolerated on its own.
-    static func installTmuxHooks() {
+    package static func installTmuxHooks() {
         installTmuxClientChangeHooks()
         installTmuxThemeChangeHooks()
     }
 
     /// Removes everything ``installTmuxHooks()`` registered, ours and only ours.
-    static func removeTmuxHooks() {
+    package static func removeTmuxHooks() {
         removeTmuxClientChangeHooks()
         removeTmuxThemeChangeHooks()
     }

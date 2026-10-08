@@ -141,7 +141,7 @@ public final class LocalizationService: @unchecked Sendable {
     /// here alone is not on screen until something else draws.
     ///
     /// - Parameter language: The new language to activate.
-    func setLanguageWithoutRendering(_ language: Language) {
+    package func setLanguageWithoutRendering(_ language: Language) {
         lock.lock()
         currentLanguage = language
         lookupCodes = Self.lookupCodes(asked: [], language: language)
@@ -239,7 +239,7 @@ public final class LocalizationService: @unchecked Sendable {
     /// ``setLanguageWithoutRendering(_:)`` for why the halves are apart).
     ///
     /// - Parameter translations: Language-code-keyed translation tables to add.
-    func registerWithoutRendering(translations: [String: [String: String]]) {
+    package func registerWithoutRendering(translations: [String: [String: String]]) {
         lock.lock()
         defer { lock.unlock() }
         for (code, table) in translations {
@@ -279,7 +279,7 @@ public final class LocalizationService: @unchecked Sendable {
     /// this goes on to the app's other strings and TUIkit's. The default
     /// table written out — `tableName: "Localizable"`, `bundle: .main` — is
     /// not "named": it reads exactly as leaving them off does, as in SwiftUI.
-    func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
+    package func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
         lock.lock()
         defer { lock.unlock() }
 
@@ -329,7 +329,7 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// - Parameter key: One of TUIkit's keys (`LocalizationKey`'s raw values).
     /// - Returns: The localized string, or the key if not found.
-    func frameworkString(for key: String) -> String {
+    package func frameworkString(for key: String) -> String {
         lock.lock()
         defer { lock.unlock() }
         for code in lookupCodes {

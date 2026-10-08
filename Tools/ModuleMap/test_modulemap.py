@@ -840,8 +840,8 @@ class IndexStoreTests(unittest.TestCase):
 
 
 class UncompiledTests(unittest.TestCase):
-    """Since A5 TUIkitFoundation's `sources:` names directories, and TUIkitStrings below its own, so a file can sit
-    in a module's directory and be compiled by no target. SwiftPM only warns about it, and CI does not fail on that
+    """Since A5 TUIkitFoundation's `sources:` names directories (and until B2 TUIkitStrings' files below its own), so
+    a file can sit in a module's directory and be compiled by no target. SwiftPM only warns about it, and CI does not fail on that
     warning; the module map, which reads what the build compiled, does."""
 
     def test_a_source_the_last_build_passed_over_is_uncompiled_and_one_newer_than_it_is_stale(self):

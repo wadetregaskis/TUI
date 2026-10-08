@@ -58,7 +58,7 @@ import Musl
 /// "not local". A wrong "not local" costs a copy the user can redo with the
 /// terminal's own selection; a wrong "local" puts their text on a machine they
 /// are not at.
-enum ClipboardLocality {
+package enum ClipboardLocality {
 
     /// The command names (as ``ProcessAncestry/commandName(of:)`` reads them)
     /// of programs that carry a terminal session in from another machine.
@@ -151,7 +151,7 @@ enum ClipboardLocality {
     /// Inside tmux this asks tmux for its clients — a bounded subprocess — so
     /// it is asked when a copy is made, never per frame. Outside tmux it reads
     /// the kernel only.
-    static func isLocal() -> Bool {
+    package static func isLocal() -> Bool {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
         let environment = ProcessInfo.processInfo.environment
         let inTmux = TerminalHost.isTmux

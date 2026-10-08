@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTerminalHost
 
 /// One focused menu row under one of the shared palettes, as a whole app, for the run
 /// loop — the only way to ask what the loop is woken for.

@@ -5,7 +5,8 @@ lower ones, feature leaves over the substrate, TUIkitApp and a thin `TUIkit` umb
 what each holds. Since step A5 each module's files sit in a directory of their own, `Sources/<module>`
 (`Sources/TUIkitFoundation`, `Sources/TUIkitLists` …), where the module will live once a step of Phase B carves it
 out; until then the one `TUIkitFoundation` target compiles them all (since step B1; `TUIkit` is the umbrella, which
-only re-exports). **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
+only re-exports). Carved so far: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their own that
+TUIkitFoundation depends on and re-exports. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;
@@ -84,11 +85,11 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 `TUIkitStrings: TUIkitStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
 
 Since step A5 the one target that compiles them (`TUIkitFoundation` since step B1) names the module directories in
-its `sources:` (Package.swift), and
-TUIkitStrings below its own, one entry per subdirectory and per `Localization/*.swift` file: a resource may not sit
-under a declared source path. So a new file of `TUIkitStrings/` or `TUIkitStrings/Localization/`, or a module
-directory added to `rules.json` and not to `sources:`, is compiled by no target, and its declarations, public API
-included, are simply missing. SwiftPM says so only as a warning ("found N file(s) which are unhandled"), and CI does not
+its `sources:` (Package.swift). So a module directory added to `rules.json` and not to `sources:` (nor carved into a
+target of its own) is compiled by no target, and its declarations, public API included, are simply missing. Until
+step B2 carved it, TUIkitStrings was listed below its own directory, one entry per subdirectory and per
+`Localization/*.swift` file, because a resource may not sit under a declared source path, so a new file there was
+the same case; its own target takes every file in its directory now. SwiftPM says so only as a warning ("found N file(s) which are unhandled"), and CI does not
 fail on warnings; this check does. It reads the index: a file with no unit, older than the newest unit the store
 holds, was there when the last build compiled the others, and that build did not compile it. Name it in
 Package.swift (`TUIkitFoundation`'s `sources:`, or its module's own target once carved). A file with no unit that is

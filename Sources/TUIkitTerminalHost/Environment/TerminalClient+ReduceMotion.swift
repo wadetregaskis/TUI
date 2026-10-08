@@ -6,7 +6,6 @@
 
 import Foundation
 import TUIkitCore
-import TUIkitView
 
 // MARK: - The user's setting
 

@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 
 @MainActor
 @Suite("TUIkit's own words and the app's keys")

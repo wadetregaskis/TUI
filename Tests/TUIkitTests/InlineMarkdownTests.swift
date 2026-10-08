@@ -21,6 +21,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 
 @Suite("Inline Markdown")
 struct InlineMarkdownTests {

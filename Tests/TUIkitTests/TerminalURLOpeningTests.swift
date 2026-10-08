@@ -20,6 +20,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTerminalHost
 
 /// The ladder is asked on its inputs, so those tests set nothing. The one test
 /// about publication sets the override, which republishes the flag the

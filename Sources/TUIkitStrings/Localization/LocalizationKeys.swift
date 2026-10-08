@@ -282,7 +282,7 @@ public enum LocalizationKey {
     /// `KeySymbols`): only the space bar, the one key macOS names in a menu
     /// rather than drawing a symbol for, in the words macOS uses. Internal: an
     /// app names a key through ``KeyboardShortcut/displayString``.
-    enum KeyName: String, CaseIterable {
+    package enum KeyName: String, CaseIterable {
         case space = "key.space"
     }
 

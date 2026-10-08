@@ -10,6 +10,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 
 /// A value whose encoding always fails, for exercising the encode path.
 private struct Unencodable: Codable {

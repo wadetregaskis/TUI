@@ -25,6 +25,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTerminalHost
 
 /// A dark page whose focus wash is translucent, as the Example's faded palette makes
 /// every wash (`TUIKIT_EXAMPLE_PALETTE_ALPHA`).

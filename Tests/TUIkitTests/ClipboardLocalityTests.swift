@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTerminalHost
 
 @Suite("Clipboard: whether the user is at this machine")
 struct ClipboardLocalityTests {

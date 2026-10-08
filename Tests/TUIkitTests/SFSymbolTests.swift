@@ -9,6 +9,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 @testable import TUIkitView
 
 /// Coverage for SF Symbol support: the Plane-16 PUA width/advance classification

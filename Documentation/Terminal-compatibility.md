@@ -3326,8 +3326,8 @@ Both are read, not measured here; the card is `hyperlink_probe.py` with
   and any explicit host are left alone; so is a `file:` URI when the host name
   is unknown or is not a plain DNS name. The name is `gethostname()`, read once
   above the lower modules (`TerminalClient.localHostName`, in
-  Sources/TUIkitTerminalHost, which TUIkitFoundation compiles until it is
-  carved out) and handed to
+  TUIkitTerminalHost, a module of its own since module split step B2) and
+  handed to
   `TerminalHyperlink` — the lower module never calls POSIX — rather than
   `ProcessInfo.hostName`, which may wait on a DNS lookup on macOS (a
   hypothesis; nothing here measured it).

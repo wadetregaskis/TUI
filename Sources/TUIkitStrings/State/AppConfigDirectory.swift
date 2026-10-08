@@ -19,7 +19,12 @@ import Foundation
 ///
 /// - Parameter name: The raw process name.
 /// - Returns: A sanitized string safe for use as a directory name.
-func sanitizedProcessName(_ name: String) -> String {
+///
+/// `package` for `UserDefaultsStorage`'s Linux arm (TUIkitFoundation), the
+/// one caller outside this module: a macOS build never compiles that arm, so
+/// neither its index nor its access errors show the call (module split plan,
+/// revision 4, correction 2).
+package func sanitizedProcessName(_ name: String) -> String {
     var sanitized =
         name
         .replacingOccurrences(of: "/", with: "")
@@ -42,7 +47,7 @@ func sanitizedProcessName(_ name: String) -> String {
 /// Shared by `@AppStorage`'s file backend (`JSONFileStorage`) and
 /// `LocalizationService`, so all of an app's persisted configuration lives in
 /// one place rather than scattered across directories.
-func appConfigDirectory() -> URL {
+package func appConfigDirectory() -> URL {
     let appName = sanitizedProcessName(ProcessInfo.processInfo.processName)
 
     // Explicit override — the isolation hook for anything driving a TUIkit

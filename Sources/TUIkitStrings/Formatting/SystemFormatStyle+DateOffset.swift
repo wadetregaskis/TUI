@@ -39,7 +39,7 @@ extension SystemFormatStyle {
         let maxFieldCount: Int
         let sign: NumberFormatStyleConfiguration.SignDisplayStrategy
         var locale: Locale = .autoupdatingCurrent
-        var calendar: Calendar = .autoupdatingCurrent
+        package var calendar: Calendar = .autoupdatingCurrent
 
         /// Create a format style to display the offset to a certain date.
         ///
@@ -71,15 +71,15 @@ extension SystemFormatStyle {
         }
 
         /// Whether the offset is on a clock face: only minutes and seconds.
-        var isClockFace: Bool { units == [.minute, .second] }
+        package var isClockFace: Bool { units == [.minute, .second] }
 
-        var spelling: TimeSpanSpelling {
+        package var spelling: TimeSpanSpelling {
             TimeSpanSpelling(units: units, maxFieldCount: isClockFace ? 2 : maxFieldCount)
         }
 
         /// The fields the offset of `input` is counted in. On the clock face
         /// both are counted, a leading zero minute too.
-        func counted(_ input: Date) -> [TimeSpanField] {
+        package func counted(_ input: Date) -> [TimeSpanField] {
             let earlier = min(input, anchor)
             let later = max(input, anchor)
             guard isClockFace else { return spelling.counted(from: earlier, to: later, calendar: calendar) }
@@ -91,7 +91,7 @@ extension SystemFormatStyle {
         }
 
         /// The sign in front of the offset of `input`.
-        func signPrefix(_ input: Date) -> String {
+        package func signPrefix(_ input: Date) -> String {
             let offset = input.timeIntervalSince(anchor)
             if sign == .never { return "" }
             if offset < 0 { return "\u{2212}" }

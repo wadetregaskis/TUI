@@ -31,7 +31,9 @@ cd "$(dirname "$0")/.."
 # with no dependencies (the width corpus), so any layer's tests may read it.
 # TUIkitFoundation (the modules of the split not yet carved out, under the
 # TUIkit umbrella) has no row: it has no test target of its own, and its tests
-# are TUIkitTests', which this script leaves unrestricted. A module that gets a
+# are TUIkitTests', which this script leaves unrestricted. Nor have the modules
+# carved out of it so far, TUIkitStrings and TUIkitTerminalHost: their tests
+# stayed in TUIkitTests, which `@testable import`s them. A module that gets a
 # test target of its own gets a row here, and joins the loop below.
 allowed_for() {
     case "$1" in

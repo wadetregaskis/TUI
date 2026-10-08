@@ -14,13 +14,13 @@ import TUIkitCore
 /// The render path and the activation path are not main-actor isolated and
 /// cannot go asking a terminal anything, so the answer is published here and
 /// read from there — the same shape as ``TerminalHyperlink/isSupported``.
-enum TerminalURLOpening {
+package enum TerminalURLOpening {
     /// `false` unless something turned it on. See ``TerminalClient/urlOpeningSupport``.
     ///
     /// `nonisolated(unsafe)` for the reason `TerminalHyperlink.isSupported` is:
     /// written once at startup, before anything renders, and read from paths
     /// that have no actor.
-    nonisolated(unsafe) static var isEnabled = false
+    package nonisolated(unsafe) static var isEnabled = false
 
     /// The opener of the app this process is running, for an action no
     /// environment handed one: an ``OpenURLAction`` the app made itself
@@ -48,7 +48,7 @@ enum TerminalURLOpening {
     /// holds a reference and is written twice, and a torn read of a
     /// reference is a crash rather than a stale answer. Read only when a
     /// deferral reaches the opener, never per frame.
-    static var runLoopOpener: (any URLOpenerBackend)? {
+    package static var runLoopOpener: (any URLOpenerBackend)? {
         get { runLoopOpenerStore.withLock { $0 } }
         set { runLoopOpenerStore.withLock { $0 = newValue } }
     }
@@ -71,7 +71,7 @@ enum TerminalURLOpening {
 /// (``EnvironmentValues/urlOpener``), and an action read from it carries it
 /// on, so a URL opened from an event handler, long after the render, still
 /// reaches the context that drew the link.
-protocol URLOpenerBackend: Sendable {
+package protocol URLOpenerBackend: Sendable {
     /// Hands `url` to the opener, answering whether it took it.
     func open(_ url: URL) -> Bool
 }
@@ -82,14 +82,19 @@ protocol URLOpenerBackend: Sendable {
 ///
 /// One per context, so two contexts in one process — a test suite — keep
 /// their URLs apart.
-final class InMemoryURLOpener: URLOpenerBackend {
+package final class InMemoryURLOpener: URLOpenerBackend {
     private let urls = Lock<[URL]>(initialState: [])
+
+    /// An opener that has been handed nothing. Spelled out because the
+    /// implicit initializer is internal, and every context TUIkitFoundation
+    /// makes holds one.
+    package init() {}
 
     /// Every URL handed over, oldest first.
     var opened: [URL] { urls.withLock { $0 } }
 
     /// Keeps `url`, and answers that it was taken.
-    func open(_ url: URL) -> Bool {
+    package func open(_ url: URL) -> Bool {
         urls.withLock { $0.append(url) }
         return true
     }
