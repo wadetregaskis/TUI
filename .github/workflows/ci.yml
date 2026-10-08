@@ -202,6 +202,15 @@ jobs:
       - name: Row fill table and rule goldens are generated from their sources
         run: python3 Tools/RowFillValues/generate.py --check
 
+      # The same free ride, for a failure GitHub hides: a Markdown table row
+      # with more cells than its header, which GitHub renders without the
+      # extra cells, so two rows run together on one line show as one. Its
+      # self-test first, so a broken check fails as itself, not as a pass.
+      - name: Markdown table rows keep every cell on GitHub
+        run: |
+          python3 Tools/validate-markdown-tables.py --self-test
+          python3 Tools/validate-markdown-tables.py
+
   # ── macOS ──────────────────────────────────────────────────────────────────
   macos:
     name: ${{ matrix.name }}
