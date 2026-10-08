@@ -98,6 +98,21 @@ struct KeySymbolsTests {
         #expect(KeyEvent(key: .space).displayString == space)
     }
 
+    /// For a caller that keeps a name (the status bar's undo hints): only
+    /// the space bar's name changes with the language.
+    @Test("Only a name on the space bar is localized")
+    func nameIsLocalized() {
+        #expect(KeySymbols.nameIsLocalized(KeyboardShortcut(.space, modifiers: .option)))
+        #expect(KeySymbols.nameIsLocalized(KeyboardShortcut(" ", modifiers: [])))
+        #expect(KeySymbols.nameIsLocalized(KeyboardShortcut(.space, modifiers: [.control, .shift])))
+        #expect(!KeySymbols.nameIsLocalized(KeyboardShortcut("z", modifiers: .control)))
+        #expect(!KeySymbols.nameIsLocalized(KeyboardShortcut(.home, modifiers: [])))
+        #expect(!KeySymbols.nameIsLocalized(KeyboardShortcut(.tab, modifiers: .shift)))
+        // The semantic roles have no name.
+        #expect(!KeySymbols.nameIsLocalized(.defaultAction))
+        #expect(!KeySymbols.nameIsLocalized(.cancelAction))
+    }
+
     @Test("macOS's words for the space bar, in each of TUIkit's languages")
     func spaceBarTranslations() {
         // AppKit's own, read under each language: the Japanese menu keeps the

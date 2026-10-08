@@ -118,8 +118,21 @@ enum KeySymbols {
 
     /// The space bar's name in the app's language, as macOS names it in a
     /// menu.
+    ///
+    /// The one word of a key's name that is localized: a key given another
+    /// joins ``nameIsLocalized(_:)``.
     static var spaceBar: String {
         LocalizationService.shared.string(for: LocalizationKey.KeyName.space.rawValue)
+    }
+
+    /// Whether `shortcut`'s name, as a menu draws it or as the status bar
+    /// does (``statusBarName(of:)``), has a word in the app's language in it
+    /// (``spaceBar``) — so whether the name can change while the shortcut
+    /// does not. For a caller that keeps a name: the status bar's undo and
+    /// redo hints (`AppUndoKeys.hint(for:)`).
+    static func nameIsLocalized(_ shortcut: KeyboardShortcut) -> Bool {
+        guard case .key(let equivalent, _) = shortcut.trigger else { return false }
+        return Key(equivalent) == .space
     }
 
     /// `shortcut` as the status bar names a key the framework puts in it (the
