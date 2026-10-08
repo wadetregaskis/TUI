@@ -10,6 +10,13 @@
 //  test, so a carve that broke one would stop it compiling. It imports only
 //  `TUIkit`, as an app does: no `@testable`, no lower module.
 //
+//  t14 measured one re-export. Since step B2 a type of TUIkitStrings or
+//  TUIkitTerminalHost is two away: the umbrella re-exports TUIkitFoundation,
+//  which re-exports those modules (the umbrella names neither). The second
+//  test spells such types through the umbrella, so it is the measurement of
+//  that case, and a carve that dropped a re-export below the umbrella would
+//  stop it compiling too.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -26,6 +33,17 @@ private enum Client {
     @MainActor
     static func both() -> (Label, TUIkit.Label<TUIkit.Text, TUIkit.Text>) {
         (Label(name: "mine"), TUIkit.Label { TUIkit.Text(verbatim: "t14 title") } icon: { TUIkit.Text(verbatim: "*") })
+    }
+
+    /// An app's own `TerminalClient`, beside TUIkitTerminalHost's.
+    struct TerminalClient {
+        let name: String
+    }
+
+    /// Both clients: the app's by its plain name, and a program of TUIkit's
+    /// by the umbrella's spelling, two re-exports down.
+    static func bothClients() -> (TerminalClient, TUIkit.TerminalClient.Program) {
+        (TerminalClient(name: "mine"), TUIkit.TerminalClient.Program.ghostty)
     }
 }
 
@@ -45,6 +63,12 @@ extension TUIkit.Label where Title == TUIkit.Text, Icon == TUIkit.Text {
     fileprivate var t14Marker: Int { 14 }
 }
 
+extension TUIkit.LocalizationService.Language {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitStrings, which reaches the umbrella through TUIkitFoundation.
+    fileprivate var b2Marker: String { "b2-\(rawValue)" }
+}
+
 @MainActor
 @Suite("TUIkit.X in an app's source")
 struct UmbrellaQualifiedNameTests {
@@ -61,6 +85,23 @@ struct UmbrellaQualifiedNameTests {
         let lines = buffer.lines.map(\.stripped)
         #expect(lines.first?.contains("[t14 title]") == true, "\(lines)")
         #expect(lines.last?.contains("made") == true, "\(lines)")
+    }
+
+    @Test("A qualified name reaches a module that TUIkitFoundation re-exports in turn")
+    func qualifiedNamesResolveThroughTwoReExports() {
+        // TUIkitTerminalHost's types: beside an app's own `TerminalClient`,
+        // and a static function as a value.
+        let (mine, program) = Client.bothClients()
+        #expect(mine.name == "mine")
+        #expect(program == .ghostty)
+        let advance: (Character, TUIkit.TerminalClient.Program) -> Int =
+            TUIkit.TerminalClient.cursorAdvance(of:on:)
+        #expect(advance("a", program) == 1)
+        // TUIkitStrings' types: a nested type through a class, and a member an
+        // app's extension adds to it.
+        let language: TUIkit.LocalizationService.Language = .german
+        #expect(language.b2Marker == "b2-de")
+        #expect(TUIkit.LocalizationService.Language.allCases.contains(language))
     }
 
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
