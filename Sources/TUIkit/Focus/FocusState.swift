@@ -40,8 +40,8 @@ import TUIkitView
 /// the render path, which is main-actor isolated — the same rationale as
 /// ``VolatileReadTracker``.
 ///
-/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
-/// reaches it (module split step A3).
+/// `@usableFromInline`: the type of `EnvironmentValues.assignedFocusID`, which the
+/// `@inlinable` `FocusRegistration.register(context:handler:focusID:)` reads (module split step A3).
 @usableFromInline
 final class AssignedFocusID: @unchecked Sendable {
     /// The id `.focused(_:equals:)` forces on its target.
@@ -63,9 +63,10 @@ final class AssignedFocusID: @unchecked Sendable {
     /// id from the control that is actually drawn), and a measuring control
     /// resolves its persisted id anyway — which IS this id, for the claimant.
     ///
-    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
-    /// reaches it (module split step A3).
-    @usableFromInline
+    /// Not `@usableFromInline`, though its type is (module split step A3): the
+    /// `@inlinable` `FocusRegistration.register(context:handler:focusID:)` only
+    /// asks whether an id is on offer. The claim is made out of line, by
+    /// `FocusRegistration.persistFocusID(context:explicitFocusID:defaultPrefix:propertyIndex:)`.
     func claim(_ identity: ViewIdentity) -> String? {
         guard let claimant else {
             claimant = identity
