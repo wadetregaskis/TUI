@@ -57,7 +57,7 @@ package struct ClientCapabilities: Equatable, Sendable {
     package let mayImproveShortly: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and the run loop (TUIkitFoundation) makes these values.
+    /// internal and the run loop (TUIkitApp, since step B3) makes these values.
     package init(emojiChrome: Bool, skinTonesSafe: Bool, mayImproveShortly: Bool) {
         self.emojiChrome = emojiChrome
         self.skinTonesSafe = skinTonesSafe
