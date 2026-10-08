@@ -189,6 +189,9 @@ struct ResolvedScrollIndicators: Sendable {
 extension EnvironmentValues {
     /// The vertical indicator this subtree's scrolling views draw.
     ///
+    /// `@inlinable` (module split step A3): menus, lists and tables ask it, in
+    /// modules that leave the substrate from B5b.
+    ///
     /// - Parameter overflowing: Whether the content exceeds its viewport.
     ///   An autoclosure for the reason ``ScrollIndicatorVisibility/showsIndicator(overflowing:)``
     ///   takes one: only ``ScrollIndicatorVisibility/automatic`` has to know,
@@ -218,6 +221,9 @@ extension EnvironmentValues {
     /// Only the text form has anything to answer here. A scrollbar spends a
     /// column for its whole height whatever is hidden, so it is already always
     /// there, and hidden indicators are always absent.
+    ///
+    /// `@inlinable` (module split step A3): `List` and `Table` read it, in the
+    /// Lists group, which leaves the substrate at B6.
     @inlinable
     var alwaysShowsVerticalTextIndicators: Bool {
         verticalScrollIndicatorVisibility == .visible && scrollIndicatorStyle == .text

@@ -13,13 +13,17 @@ changes public API or behaviour.*
 *The complete record of what A3 annotated is `A3-annotated.json`, beside the tiers: 62 `@inlinable` and 130
 `@usableFromInline`, with each declaration and its file:line (the session notes' `SPA3/annotated.py BASE HEAD`
 regenerates it). In the source, a comment saying why, with the tag "module split step A3" on one line, sits on
-every type, environment key and helper function that A3 made usable from inline code. The tag is not repeated
-where such a comment already covers a declaration: the members and witnesses of a tagged type (a key's
-`defaultValue`, an `==`, `ClaimingRow`'s members), an environment accessor whose key carries it, or a sibling the
-comment names (`register(in:reportingChangesTo:_:)`, `ANSIRenderer.colorize`). Public declarations carry no tag in
-their doc comments, which ship in DocC; `Text.init<S>` explains itself in a `//` comment in its body. So a grep
-for the tag finds every comment that explains an annotation (86 of the 192 declarations carry one directly), and
-the JSON lists every annotation.*
+every type, environment key and helper function that A3 made usable from inline code. That includes the four
+environment helpers that derive a value rather than read a key (`verticalScrollIndicators(overflowing:)`,
+`alwaysShowsVerticalTextIndicators`, `overscrollAllowances(overflowing:)`, `declaredAnchorModes`), and the stored
+properties of public types (`SelectionEmphasisClock.environment`). The tag is not repeated where such a comment
+already covers a declaration: the members and witnesses of a tagged type (a key's `defaultValue`, an `==`,
+`ClaimingRow`'s members), an environment accessor that reads a key carrying it (15 of them), or a sibling the
+comment names (`register(in:reportingChangesTo:_:)`, `ANSIRenderer.colorize`, `ForEach.directID`). Public
+declarations carry no tag in their doc comments, which ship in DocC; `Text.init<S>` explains itself in a `//`
+comment in its body. So a grep for the tag finds every comment that explains an annotation (91 of the 192
+declarations carry one directly), and the JSON lists every annotation. The session notes' `SPA3/r2/tagcover.py`
+checks each of these rules against the source, and fails on an annotation that none of them covers.*
 
 ## B. Shipped the safe option
 
@@ -162,3 +166,8 @@ calls until tier 2. That saves nothing measurable: their bodies are 4 and 3 stat
   calls it: it only asks whether an id is on offer. The attribute is gone. The focus count in B-SPA3-1 is 20,
   where the first version of this file said 21: `claim(_:)` and `PersistedFocusable` left it, and
   `repointPersistedHandler(_:to:)` joined it.
+- The commit that first wrote the tag paragraph above says 19 of the untagged annotations are "environment
+  accessors whose key carries it". Four of the 19 read no key: `verticalScrollIndicators(overflowing:)`,
+  `alwaysShowsVerticalTextIndicators`, `overscrollAllowances(overflowing:)` and `declaredAnchorModes`. Nothing
+  tagged said why `alwaysShowsVerticalTextIndicators` is `@inlinable`, or why `SelectionEmphasisClock.environment`
+  is `@usableFromInline`, so a grep for the tag never explained them. All five carry the tag now.

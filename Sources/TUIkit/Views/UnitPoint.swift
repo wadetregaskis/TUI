@@ -202,6 +202,10 @@ extension EnvironmentValues {
     /// `opening` is always stated here. It is optional because the handlers
     /// that capture it keep the third state "nobody said", which defers to the
     /// standing mode, for a caller that sets only the standing one.
+    ///
+    /// `@inlinable` (module split step A3): `ItemListHandler` captures both
+    /// with its frame inputs, in the Lists group, which leaves the substrate
+    /// at B6.
     @inlinable
     var declaredAnchorModes: (standing: ScrollAnchorMode, opening: ScrollAnchorMode?) {
         (

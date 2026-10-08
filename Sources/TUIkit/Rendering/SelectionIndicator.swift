@@ -301,6 +301,8 @@ public struct SelectionEmphasis: Equatable, Sendable {
 /// appear active, it holds still half-way between its ends, whatever the style
 /// (``SelectionEmphasis/isHeld``).
 public struct SelectionEmphasisClock {
+    /// `@usableFromInline`: the `@inlinable` ``init(environment:)`` stores it
+    /// (module split step A3).
     @usableFromInline let environment: EnvironmentValues
 
     /// Spelled out, and `@inlinable`, for the `@inlinable`

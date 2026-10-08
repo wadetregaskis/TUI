@@ -90,6 +90,10 @@ extension EnvironmentValues {
     /// The overscroll allowances (``View/scrollOverscroll(top:bottom:)``) a
     /// scrollable is given this frame, after its vertical bounce behaviour:
     /// none under ``ScrollBounceBehavior/basedOnSize`` while its content fits.
+    ///
+    /// `@inlinable` (module split step A3): `ItemListHandler` asks it as it
+    /// settles its overscroll, in the Lists group, which leaves the substrate
+    /// at B6.
     @inlinable
     func overscrollAllowances(overflowing: Bool) -> (top: ScrollOverscroll, bottom: ScrollOverscroll) {
         verticalScrollBounceBehavior.allowsOverscroll(overflowing: overflowing)
