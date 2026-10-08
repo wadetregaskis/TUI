@@ -613,7 +613,8 @@ jobs:
   # split step B3: POSIX by design, so it has no step of its own, and the
   # umbrella's step covers it. TUIkitFoundation, which held the console layer
   # until then, has a step of its own since B3 (see "Build TUIkitFoundation"),
-  # and so has TUIkitColorPicker, the leaf step B4 carved out of it.
+  # and so have TUIkitNavigation and TUIkitColorPicker, the leaves steps B5 and
+  # B4 carved out of it.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -735,13 +736,21 @@ jobs:
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFoundation"
 
       # ── The leaves carved out above TUIkitFoundation ──
-      # Module split step B4's leaf, built on TUIkitFoundation and TUIkitImage.
-      # It imports no Darwin, Glibc or Musl and calls no termios, ioctl, signal
-      # or DispatchSource API (checked by grep, 2026-10-08), so it is meant to
-      # build on Windows, but it cannot until TUIkitFoundation does: advisory
-      # until CI has seen it green, then binding like the four above. TUIkitApp,
-      # the other leaf, is POSIX by design and has no step (the umbrella's
-      # covers it).
+      # Module split step B5's leaf, TUIkitNavigation, built on TUIkitFoundation:
+      # the navigation containers, and the presentations, whose directory it
+      # compiles too until step C1. Step B4's leaf, TUIkitColorPicker, built on
+      # TUIkitFoundation, TUIkitImage and TUIkitNavigation, so it comes second.
+      # Neither imports Darwin, Glibc or Musl, calls a termios, ioctl, signal or
+      # DispatchSource API, or has an `#if` (checked by grep, 2026-10-08), so
+      # they are meant to build on Windows, but neither can until
+      # TUIkitFoundation does: advisory until CI has seen them green, then
+      # binding like the four above. TUIkitApp, the other leaf, is POSIX by
+      # design and has no step (the umbrella's covers it).
+      - name: "Build TUIkitNavigation"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitNavigation"
+
       - name: "Build TUIkitColorPicker"
         continue-on-error: true
         timeout-minutes: 30
@@ -864,6 +873,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitFoundation
+      - name: "Build TUIkitNavigation"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitNavigation
       - name: "Build TUIkitColorPicker"
         continue-on-error: true
         timeout-minutes: 30
