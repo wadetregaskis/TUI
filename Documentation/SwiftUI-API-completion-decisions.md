@@ -3086,7 +3086,7 @@ So the only difference is for a custom style that colours its output.
 *`View.gesture(_:including:)`, `View.highPriorityGesture(_:including:)`,
 `View.simultaneousGesture(_:including:)` (all forms), `GestureMask`*
 
-The arena (`Sources/TUIkit/App/GestureArena.swift`) ranks every region under
+The arena (`Sources/TUIkitFoundation/App/GestureArena.swift`) ranks every region under
 a press: gestures, and the ordinary controls' regions — a `Button`'s press is
 one of the view's own gestures and ranks as one, as measured. A gesture is a
 recognizer: it sees every event, is held back while anything ahead of it is
