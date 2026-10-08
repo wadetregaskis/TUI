@@ -121,7 +121,10 @@ So it resolves ~2% and up. Anything smaller, or anything you are about to
 commit, gets the full sweep.
 
 `--cold` resets the state store and render cache before every frame, so nothing
-is ever served from a cache. The default (warm) run measures the steady state an
+is ever served from a cache. (Before 2026-10-08 it replaced them without
+emptying the old ones, which kept each frame's whole render alive — see
+`Sources/Stress/README.md` — so cold numbers from before then are not
+comparable with later ones.) The default (warm) run measures the steady state an
 app spends its life in; `--cold` measures the other end — the first frame of a
 page, and, more to the point, **the honest check on any change that trades a
 cheaper cache hit for a dearer miss.** Run it whenever the change touched what

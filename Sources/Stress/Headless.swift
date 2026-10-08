@@ -128,6 +128,27 @@ enum Headless {
             identity: ViewIdentity(rootType: BenchRoot.self))
     }
 
+    /// Ends a context ``makeContext(cols:rows:channels:valueHashPlans:)`` made,
+    /// as an app ends its own on the way out (`TUIContext.reset()`): empties
+    /// its state storage, render cache and preference storage.
+    ///
+    /// Letting go of the context does not free them. Each keeps closures that
+    /// captured a `RenderContext` — a `List`'s handler answers row heights
+    /// from the frame's rows, each row's box holds the context it was built
+    /// under, a memo's effect journal holds a `Button`'s registration — and a
+    /// context's environment holds the storage and the cache themselves. So
+    /// each is in a cycle with what it keeps, and a context dropped without
+    /// this stayed alive, whole. An app has one context, which lives as long
+    /// as it runs; `--cold` makes one a frame, and kept every one of them.
+    /// (The input channels the contexts share need nothing: the frame loop
+    /// empties them before every walk.)
+    @MainActor
+    private static func discard(_ context: RenderContext) {
+        context.environment.stateStorage?.reset()
+        context.environment.renderCache?.reset()
+        context.environment.preferenceStorage?.reset()
+    }
+
     /// Stamps the frame's one wall-clock date on `context`'s render cache, as
     /// `RenderLoop` and `ViewRenderer` stamp theirs, so a `TimelineView` in a
     /// scenario resolves its schedule once a walk, not once a read: left
@@ -247,6 +268,7 @@ enum Headless {
             print("  \(ok ? "ok  " : "FAIL") \(id) \(buffer.width)x\(buffer.height)"
                 + "  \(scenario.title)\(why)")
             for line in staleServes.prefix(3) { print("      \(line)") }
+            discard(context)
         }
         // Every session, played a short way with its cache-cleared twin and
         // the terminal resized under it: the one check here that a UI IN USE
@@ -450,6 +472,10 @@ enum Headless {
         for iteration in 0..<iterations {
             if iteration.isMultiple(of: 64) { memory.sample() }
             if cold {
+                // Outside the timed region, as making its successor is: a cold
+                // frame is one with nothing kept, and freeing what the last
+                // one kept is not part of drawing this one.
+                discard(warm)
                 warm = makeContext(cols: cols, rows: rows, channels: channels, valueHashPlans: valueHashPlans)
             }
             clock.tick &+= 1

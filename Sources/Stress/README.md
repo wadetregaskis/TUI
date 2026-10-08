@@ -51,7 +51,12 @@ cache-warm steady state). What `--cold` does NOT make afresh is the value hash's
 plan table: a plan is a fact about a type, not a memo, so the bench keeps one
 table and hands it to every cache it makes, as an app's `TUIContext` keeps one
 for its own — a cold frame misses every memo, and is not also the first sight
-of every type, which an app pays once.
+of every type, which an app pays once. The context a cold frame lets go of is
+emptied first, outside the timed region, as an app empties its own when it
+quits (`TUIContext.reset()`): what a context keeps holds closures over it, so
+a context merely dropped kept itself alive. Until 2026-10-08 every cold frame's
+did — about 180 KB a frame on `framedcolumns` and 4.4 MB on `kitchensink` — so a
+cold run before then timed a process that grew by that much every frame.
 
 `--stripes` prices the stripe a `Table` draws by default (and a `List` under
 `.alternatingRowBackgrounds()`) on ONE build: runs of the same binary under
