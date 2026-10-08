@@ -82,7 +82,7 @@ struct TerminalDefinedContrastFloorTests {
     /// Every ink the terminal decides: the sixteen by name and by index, 39, and the
     /// terminal's foreground and page.
     private static let terminalInks: [Color] =
-        ANSIColor.allCases.map(Color.ansi) + (0..<16).map { Color.palette256(UInt8($0)) }
+        ANSIColor.allCases.map(Color.ansi) + (0..<16).map { (index: Int) -> Color in Color.palette256(UInt8(index)) }
         + [.default, .terminalForeground, .terminalBackground]
 
     /// The ratio `ink` reads at on `page`, as the terminal paints it: 39 as the foreground

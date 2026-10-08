@@ -276,14 +276,17 @@ struct TableColumnContentTests {
 
     @Test("A column list of ten builds ten columns")
     func tenColumns() {
+        // The column's type named once: ten bare `TableColumn(_:value:)` calls in one
+        // block made the type checker weigh every initializer of each against the rest.
+        func column(_ titleKey: LocalizedStringKey) -> TableColumn<Row, Never, Text, Text> {
+            TableColumn(titleKey, value: \Row.name)
+        }
         let columns = tableColumns(
             of: TableColumnBuilder<Row, Never>.buildBlock(
-                TableColumn("1", value: \Row.name), TableColumn("2", value: \Row.name),
-                TableColumn("3", value: \Row.name), TableColumn("4", value: \Row.name),
-                TableColumn("5", value: \Row.name), TableColumn("6", value: \Row.name),
-                TableColumn("7", value: \Row.name), TableColumn("8", value: \Row.name),
-                TableColumn("9", value: \Row.name), TableColumn("10", value: \Row.name)))
-        #expect(columns.map(\.title) == (1...10).map(String.init))
+                column("1"), column("2"), column("3"), column("4"), column("5"),
+                column("6"), column("7"), column("8"), column("9"), column("10")))
+        let titles: [String] = (1...10).map { String($0) }
+        #expect(columns.map(\.title) == titles)
     }
 
     @Test("An optional column contributes only when present")

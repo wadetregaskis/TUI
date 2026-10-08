@@ -90,7 +90,7 @@ struct BarberPoleScrollTests {
             let before = cells(shown(cycle, atTick: 9 * step))
             let after = cells(shown(cycle, atTick: 9 * (step + 1)))
             try #require(before.count == width && after.count == width)
-            let moved = (0..<(width - 1)).allSatisfy { after[$0] == before[$0 + 1] }
+            let moved = (0..<(width - 1)).allSatisfy { (column: Int) -> Bool in after[column] == before[column + 1] }
             #expect(moved, "\(width) cells: step \(step) to \(step + 1) is not a one-cell shift left")
         }
     }

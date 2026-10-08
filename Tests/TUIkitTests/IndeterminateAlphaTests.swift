@@ -74,11 +74,12 @@ struct IndeterminateAlphaTests {
             IndeterminateRenderer.isOpaqueThroughout(
                 style: .sweep, fillColor: .red, backgroundColor: .blue, accentColor: .green,
                 palette: opaque))
-        for (name, colours) in [
+        let translucent: [(String, (Color, Color, Color))] = [
             ("filled", (Color.red.opacity(0.5), Color.blue, Color.green)),
             ("empty", (Color.red, Color.blue.opacity(0.5), Color.green)),
             ("accent", (Color.red, Color.blue, Color.green.opacity(0.5))),
-        ] {
+        ]
+        for (name, colours) in translucent {
             #expect(
                 !IndeterminateRenderer.isOpaqueThroughout(
                     style: .sweep, fillColor: colours.0, backgroundColor: colours.1,

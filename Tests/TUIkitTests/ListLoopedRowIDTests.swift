@@ -539,8 +539,9 @@ struct ListLoopedRowIDTests {
             List(selection: .constant(Int?.none)) {
                 Text("Inbox")
                 ForEach(0..<2) { group in
+                    let items: [Int] = [100 + 10 * group, 101 + 10 * group]
                     Section("G\(group)") {
-                        ForEach([100 + 10 * group, 101 + 10 * group], id: \.self) { Text("item \($0)") }
+                        ForEach(items, id: \.self) { Text("item \($0)") }
                     }
                 }
             }
@@ -560,8 +561,9 @@ struct ListLoopedRowIDTests {
                 Text("Inbox")
                 ForEach([5, 6], id: \.self) { Text("pinned \($0)") }
                 ForEach(0..<2) { group in
+                    let items: [Int] = [100 + 10 * group]
                     Section("G\(group)") {
-                        ForEach([100 + 10 * group], id: \.self) { Text("item \($0)") }
+                        ForEach(items, id: \.self) { Text("item \($0)") }
                     }
                 }
             }

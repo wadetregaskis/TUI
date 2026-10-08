@@ -28,9 +28,10 @@ struct ImageMonoInkTests {
     private func ramp(width: Int, height: Int) -> RGBAImage {
         var pixels: [RGBA] = []
         pixels.reserveCapacity(width * height)
+        let span: Int = max(1, width - 1)
         for _ in 0..<height {
             for x in 0..<width {
-                let level = UInt8((x * 255) / max(1, width - 1))
+                let level = UInt8((x * 255) / span)
                 pixels.append(RGBA(r: level, g: level, b: level))
             }
         }

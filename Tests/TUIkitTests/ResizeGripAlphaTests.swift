@@ -49,8 +49,8 @@ struct ResizeGripAlphaTests {
             drawn = render(box.userResizable(), palette: palette, focused: focused)
             plain = render(box, palette: palette, focused: focused)
         }
-        let cells = zip(drawn.lines, plain.lines).enumerated().flatMap { row, pair in
-            zip(Array(pair.0.stripped), Array(pair.1.stripped)).enumerated().compactMap { column, glyphs in
+        let cells: [(column: Int, row: Int)] = zip(drawn.lines, plain.lines).enumerated().flatMap { (row: Int, pair: (String, String)) in
+            zip(Array(pair.0.stripped), Array(pair.1.stripped)).enumerated().compactMap { (column: Int, glyphs: (Character, Character)) in
                 glyphs.0 == glyphs.1 ? nil : (column: column, row: row)
             }
         }

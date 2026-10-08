@@ -141,7 +141,9 @@ struct CollectionSurfaceTests {
         case .basic16:
             guard case .ansi(let slot) = colour.downsampledToANSI16().value else { return nil }
             let packed = RowFills.reportedTable()[Int(slot.rawValue)]
-            return .rgb(UInt8(packed >> 16 & 0xFF), UInt8(packed >> 8 & 0xFF), UInt8(packed & 0xFF))
+            return .rgb(
+                UInt8(truncatingIfNeeded: packed >> 16), UInt8(truncatingIfNeeded: packed >> 8),
+                UInt8(truncatingIfNeeded: packed))
         default:
             return colour.rgbComponents.map { Color.rgb($0.red, $0.green, $0.blue) }
         }

@@ -174,8 +174,9 @@ struct GradientBandingTests {
         let steps = IndeterminateRenderer.samplesPerCell * width
         let ramp = IndeterminateRenderer.cyclic(Gradient(colors: stops), palette: SystemPalette.green)
         let samples = Color.quantisedRamp(ramp, count: steps + 1, depth: .palette256)
-        let expected = (0..<width).map { column -> UInt8? in
-            let index = min(steps, Int((Double(column) / Double(width) * Double(steps)).rounded()))
+        let expected = (0..<width).map { (column: Int) -> UInt8? in
+            let position: Double = Double(column) / Double(width) * Double(steps)
+            let index = min(steps, Int(position.rounded()))
             if case .palette256(let entry) = samples[index].value { return entry }
             return nil
         }

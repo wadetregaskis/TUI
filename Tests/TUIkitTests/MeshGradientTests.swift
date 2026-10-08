@@ -27,8 +27,10 @@ private func srgb(_ red: Double, _ green: Double, _ blue: Double, _ opacity: Dou
 
 /// The vertices of a `width` × `height` grid spread evenly over the unit square.
 private func regular(_ width: Int, _ height: Int) -> [SIMD2<Float>] {
-    (0..<height).flatMap { row in
-        (0..<width).map { column in SIMD2(Float(column) / Float(width - 1), Float(row) / Float(height - 1)) }
+    (0..<height).flatMap { (row: Int) -> [SIMD2<Float>] in
+        (0..<width).map { (column: Int) -> SIMD2<Float> in
+            SIMD2(Float(column) / Float(width - 1), Float(row) / Float(height - 1))
+        }
     }
 }
 

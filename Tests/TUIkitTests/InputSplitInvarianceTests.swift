@@ -135,8 +135,9 @@ struct InputSplitInvarianceTests {
     @Test("Every SS3 key spelling decodes to its key, split at every byte")
     func ss3SplitInvariance() {
         let keypadBytes = Array("pqrstuvwxyjklmnoXMI ".utf8)
-        let keypadKeys: [Key] = (0...9).map { .character(Character(String($0))) }
-            + ["*", "+", ",", "-", ".", "/", "="].map { .character($0) } + [.enter, .tab, .space]
+        let digitKeys: [Key] = (0...9).map { (digit: Int) -> Key in .character(Character(String(digit))) }
+        let symbolKeys: [Key] = ["*", "+", ",", "-", ".", "/", "="].map { (symbol: Character) -> Key in .character(symbol) }
+        let keypadKeys: [Key] = digitKeys + symbolKeys + [.enter, .tab, .space]
         var cases: [(String, [UInt8], [TerminalInput])] = zip(keypadBytes, keypadKeys).map { byte, key in
             ("keypad-\(Character(UnicodeScalar(byte)))", [0x1B, 0x4F, byte], [.key(KeyEvent(key: key, numericPad: true))])
         }
