@@ -125,19 +125,6 @@ func scrollIndicatorBreath(palette: any Palette, over surface: Color) -> (dim: C
         bright: palette.accent.spendingAlpha(over: surface))
 }
 
-/// The width an indicator line draws, without drawing it — for `Table`'s measure,
-/// which used to render the whole line to read its `strippedLength`: a colour
-/// chosen, and spelled for the emitter, in a pass that draws nothing.
-func scrollIndicatorWidth(
-    direction: ScrollIndicatorDirection, count: Int, unit: ScrollIndicatorUnit,
-    width: Int, approximate: Bool = false, locale: Locale = .current
-) -> Int {
-    scrollIndicatorParts(
-        direction: direction, count: count, unit: unit, width: width,
-        approximate: approximate, locale: locale
-    ).width
-}
-
 /// Renders a centred scroll indicator line: an arrow, a count, and its unit.
 ///
 /// Used by `_ListCore`, `Table` and `ScrollView` to show "N more above" / "N more
@@ -225,7 +212,7 @@ func renderScrollIndicator(
 /// An indicator's text and geometry, before any colour is chosen — so the still
 /// line and every frame of the breathing one are laid out by the same arithmetic,
 /// and cannot drift apart.
-private struct ScrollIndicatorParts {
+struct ScrollIndicatorParts {
     let arrow: String
     let label: String
     let padding: Int
@@ -256,7 +243,7 @@ private struct ScrollIndicatorParts {
     }
 }
 
-private func scrollIndicatorParts(
+func scrollIndicatorParts(
     direction: ScrollIndicatorDirection,
     count: Int,
     unit: ScrollIndicatorUnit,
