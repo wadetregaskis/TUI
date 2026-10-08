@@ -589,7 +589,9 @@ defaults a shell expects, so none is restored on exit.
      asks of utilities. Over ssh this names the remote host, which correctly
      stops the terminal opening a same-named local file.
    - Leave `localhost` and explicit hosts alone.
-   - Take the hostname from `gethostname()` once, in the TUIkit module.
+   - Take the hostname from `gethostname()` once, above the lower modules
+     (TUIkitTerminalHost's `TerminalClient.localHostName`, compiled by
+     TUIkitFoundation since module split step B1).
      TUIkitCore, where `TerminalHyperlink` lives, must keep building on
      Windows, so it is handed the name and never calls POSIX itself.
      **Hypothesis:** `ProcessInfo.hostName` can block on DNS on macOS, which

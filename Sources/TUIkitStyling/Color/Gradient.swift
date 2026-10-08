@@ -114,7 +114,7 @@ public struct Gradient: Sendable, Hashable {
     /// refuses an `AnyGradient`. A terminal's gradients are overwhelmingly
     /// directional, so the knob has to reach them, and the storage is here.
     ///
-    /// `colorSpace(_:)` — the SwiftUI spelling, which the umbrella module adds
+    /// `colorSpace(_:)` — the SwiftUI spelling, which TUIkitFoundation adds
     /// because `AnyGradient` is its — still returns one, and sets this on the
     /// way. (Inline code rather than a doc link: both live a module up.)
     public var colorSpace: ColorSpace = .device

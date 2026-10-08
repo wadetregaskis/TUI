@@ -45,7 +45,8 @@ standard library to find.
 ## What had to change in the framework
 
 Very little in the four lower modules, which is the dividend of the rule that
-keeps POSIX in the umbrella: `TUIkitCore` built for wasm unchanged, and
+keeps POSIX above them (in TUIkitFoundation since module split step B1; the
+TUIkit module, then): `TUIkitCore` built for wasm unchanged, and
 `TUIkitStyling`, `TUIkitView` and `TUIkitImage` needed one fix each.
 
 | Where | What | Why |
@@ -54,7 +55,7 @@ keeps POSIX in the umbrella: `TUIkitCore` built for wasm unchanged, and
 | `BodyMutationDiagnostic` | `Thread.current` → a token | Foundation has no `Thread` where the platform has no threads |
 | `ImageLoader` | the remote-image path is gated | `URLSession` is in neither Foundation nor FoundationNetworking on WASI, and wasip1 has no sockets to use it with |
 
-The umbrella is where the work was. `Dispatch` does not exist on wasip1, and it
+The module above them is where the work was. `Dispatch` does not exist on wasip1, and it
 was imported into six files — mostly to read a clock. `MonotonicClock` (in
 `TUIkitCore`) replaced `DispatchTime.now().uptimeNanoseconds` at a dozen call
 sites, which removed the dependency from every file that only wanted to measure

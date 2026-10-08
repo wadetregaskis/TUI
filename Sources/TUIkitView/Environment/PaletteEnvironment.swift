@@ -299,7 +299,7 @@ extension EnvironmentValues {
     /// directly, so the derivation stays in one place.
     ///
     /// `package` rather than `internal` since this moved down a module: the
-    /// controls that read it are the umbrella module's.
+    /// controls that read it are TUIkitFoundation's.
     ///
     /// A control deriving a well of its own reads it through
     /// ``Palette/fieldBackground(on:)``, so that derivation stays in one place.

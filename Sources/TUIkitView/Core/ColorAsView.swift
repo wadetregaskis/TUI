@@ -34,7 +34,7 @@ public struct _StyleFillBlock: View {
     ///
     /// The flat case exists because ``Color``'s conformance has to be declared
     /// HERE — see the note on `extension Color: View` below — and
-    /// `.background(_:)` is the umbrella module's.
+    /// `.background(_:)` is TUIkitFoundation's.
     public let colour: Color?
 
     /// Creates a fill block.
@@ -116,10 +116,11 @@ extension _StyleFillBlock: Renderable, Layoutable {
 /// ## Why this conformance is HERE and not beside `.background(_:)`
 ///
 /// `Color` belongs to `TUIkitStyling` and `View` to this module, so the
-/// natural home for this would be the umbrella module that can see both — and
-/// that is where it was written first. It segfaults: a `Color` in a
-/// `@ViewBuilder` pack beside a *generic* view kills the **debug** runtime
-/// while instantiating the pack's metadata, before any framework code runs.
+/// natural home for this would be a module above both, TUIkitFoundation (the
+/// single TUIkit module, then) — and that is where it was written first. It
+/// segfaults: a `Color` in a `@ViewBuilder` pack beside a *generic* view
+/// kills the **debug** runtime while instantiating the pack's metadata,
+/// before any framework code runs.
 ///
 /// It is a toolchain bug, not a design fault. It needs a parameter pack (the
 /// same two views in an ordinary generic struct are fine) AND a conformance

@@ -358,10 +358,11 @@ Four facts, from mapping `_OpacityView.cycling` → `AnimatedBufferCycle.runs` �
 Two consequences for the implementation:
 
 - **The bake must move to composite time, and it can**, because every one of
-  the eight `composited` callers lives in the umbrella module where `Color` is
-  visible. The bake costs the same as it does today — N phases × rows of string
-  rewriting — it simply happens against a real destination instead of an
-  assumed one. It is only *repeated* when the destination changes.
+  the eight `composited` callers lives above the lower modules, in
+  TUIkitFoundation, where `Color` is visible. The bake costs the same as it
+  does today — N phases × rows of string rewriting — it simply happens
+  against a real destination instead of an assumed one. It is only
+  *repeated* when the destination changes.
 - **The replay needs nothing new.** `patchingAnimatedCells` already reads the
   destination's background at the run's column and re-states it around the
   frame; that a destination read exists there at all is what makes the

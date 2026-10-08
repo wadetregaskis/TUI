@@ -263,7 +263,9 @@ images to cells:
 Declaring `CGAffineTransform` under `#if !canImport(CoreGraphics)` is what
 swift-corelibs-foundation itself did for `CGRect`. The lower modules must stay
 Windows-clean, so put shapes in the `TUIkit` umbrella module or confine the
-rasterizer to `TUIkitImage`, which is pure math.
+rasterizer to `TUIkitImage`, which is pure math. *(2026-10-08: since module
+split step B1 the umbrella holds only re-exports; that module is
+`TUIkitFoundation`.)*
 
 **Owner sub-decision: the unit of `path(in:)`.** See §O0. Recommendation:
 square units, x in columns and y in half-rows.

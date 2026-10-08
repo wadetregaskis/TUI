@@ -83,8 +83,9 @@ public struct TerminalHyperlink: Sendable, Equatable {
     ///
     /// A parameter rather than something this type looks up, because looking
     /// it up is `gethostname`, and this module also builds where there is no
-    /// POSIX. The umbrella module reads it once and passes it in
-    /// (`TerminalClient.localHostName`).
+    /// POSIX. The terminal host above it reads it once and passes it in
+    /// (`TerminalClient.localHostName`, in TUIkitTerminalHost, which
+    /// TUIkitFoundation compiles until that module is carved out).
     public let localHostName: String?
 
     /// Creates a hyperlink.
@@ -320,7 +321,7 @@ extension TerminalHyperlink {
     /// `TerminalClient.applyHyperlinkSupport()`.
     ///
     /// The same shape as ``TerminalWidthTraits/current``, and for the same
-    /// reason: the question is answered once, up in the umbrella module where
+    /// reason: the question is answered once, up in TUIkitFoundation where
     /// the host is identified, and READ from a render path that is not
     /// main-actor isolated and cannot ask. Splitting the two keeps the
     /// measured table and its overrides in one place while leaving this a

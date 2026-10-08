@@ -599,7 +599,8 @@ jobs:
   #
   # Steps are deliberately separate so the job reads as a porting scoreboard:
   # the four lower modules already compile without POSIX and must stay green,
-  # while the umbrella module is expected to fail until the console layer lands.
+  # while TUIkitFoundation, and so the umbrella that re-exports it, is expected
+  # to fail until the console layer lands.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint

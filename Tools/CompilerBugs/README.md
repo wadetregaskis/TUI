@@ -60,7 +60,8 @@ is not about associated types, `Never` conformances, actor isolation, result
 builders or anything else the SwiftUI-shaped original suggested.
 
 **Where TUIkit hit it:** `Color: View`. `Color` is `TUIkitStyling`'s, `View` is
-`TUIkitView`'s, and the conformance was written in the umbrella module —
+`TUIkitView`'s, and the conformance was written in the module above both
+(the single TUIkit module, then; TUIkitFoundation since module split step B1) —
 ingredient 2. `TupleView` is ingredient 1, and every `@ViewBuilder` block
 containing `Color.red` beside something like `Text("hi").frame(width: 4)` (whose
 return type is opaque) is ingredient 3. **Workaround:** the conformance now

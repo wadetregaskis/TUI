@@ -31,8 +31,8 @@ extension TerminalClient {
     /// `gethostname` rather than `ProcessInfo.hostName`, which may wait on a
     /// DNS lookup on macOS (a hypothesis, not measured): this is read on the
     /// render path's first link, and the plain system call answers from the
-    /// kernel. Read here, in the umbrella module, because `TerminalHyperlink`
-    /// lives in a module that also builds where there is no POSIX.
+    /// kernel. Read here, above the lower modules, because `TerminalHyperlink`
+    /// lives in one (TUIkitCore) that also builds where there is no POSIX.
     static var localHostName: String? { localHostNamePin ?? processLocalHostName }
 
     /// A task-local answer for ``localHostName`` — for tests, whose expected

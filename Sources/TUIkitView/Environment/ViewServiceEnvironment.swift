@@ -50,7 +50,7 @@ extension EnvironmentValues {
     ///
     /// Here rather than beside the dispatcher because the value memos in this
     /// module compare it and cannot see the dispatcher's type. Written only by
-    /// the TUIkit module's `keyEventDispatcher` setter, so the two cannot
+    /// TUIkitFoundation's `keyEventDispatcher` setter, so the two cannot
     /// disagree. One token stands for the shortcut registry and the status bar
     /// as well: `withThrowawayKeyChannels()` swaps all three together.
     package var keyChannelToken: ObjectIdentifier? {
