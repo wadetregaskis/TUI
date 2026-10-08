@@ -603,7 +603,8 @@ jobs:
   # the console layer is ported. The console layer is TUIkitApp since module
   # split step B3: POSIX by design, so it has no step of its own, and the
   # umbrella's step covers it. TUIkitFoundation, which held the console layer
-  # until then, has a step of its own since B3 (see "Build TUIkitFoundation").
+  # until then, has a step of its own since B3 (see "Build TUIkitFoundation"),
+  # and so has TUIkitColorPicker, the leaf step B4 carved out of it.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -724,6 +725,19 @@ jobs:
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFoundation"
 
+      # ── The leaves carved out above TUIkitFoundation ──
+      # Module split step B4's leaf, built on TUIkitFoundation and TUIkitImage.
+      # It imports no Darwin, Glibc or Musl and calls no termios, ioctl, signal
+      # or DispatchSource API (checked by grep, 2026-10-08), so it is meant to
+      # build on Windows, but it cannot until TUIkitFoundation does: advisory
+      # until CI has seen it green, then binding like the four above. TUIkitApp,
+      # the other leaf, is POSIX by design and has no step (the umbrella's
+      # covers it).
+      - name: "Build TUIkitColorPicker"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitColorPicker"
+
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they go green, then binding
@@ -841,6 +855,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitFoundation
+      - name: "Build TUIkitColorPicker"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitColorPicker
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.
