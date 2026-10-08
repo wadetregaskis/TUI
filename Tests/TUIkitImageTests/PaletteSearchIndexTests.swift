@@ -284,7 +284,7 @@ struct PaletteSearchIndexTests {
     func oversizePaletteDeclinesAnIndex() {
         // 300 distinct colours: past the bound, and no two alike, so the walk
         // has a single unambiguous answer to agree with.
-        let huge = ASCIIPalette((0..<300).map { .rgb(UInt8($0 % 256), UInt8($0 / 256), 0) })
+        let huge = ASCIIPalette((0..<300).map { (index: Int) -> Color in .rgb(UInt8(index % 256), UInt8(index / 256), 0) })
         #expect(huge.entries.count > ASCIIPalette.indexableEntryLimit)
         #expect(huge.searchIndex == nil, "it must decline rather than truncate an index")
         // The point of declining: the answers are still right. Before the

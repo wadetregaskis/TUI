@@ -22,9 +22,10 @@ struct GlyphRampQuantisationTests {
     /// A full black → white horizontal gradient, one row per output line.
     private func gradient(width: Int, height: Int) -> RGBAImage {
         var pixels: [RGBA] = []
+        let span: Int = max(1, width - 1)
         for _ in 0..<height {
             for x in 0..<width {
-                let v = UInt8(min(255, x * 255 / max(1, width - 1)))
+                let v = UInt8(min(255, x * 255 / span))
                 pixels.append(RGBA(r: v, g: v, b: v))
             }
         }

@@ -31,10 +31,11 @@ struct ASCIIRendererPerformanceTests {
     private func makeSyntheticImage(width: Int, height: Int) -> RGBAImage {
         var pixels = [RGBA]()
         pixels.reserveCapacity(width * height)
+        let span: Int = max(1, width - 1)
         for y in 0..<height {
             let band = (y / 8) % 3
             for x in 0..<width {
-                let intensity = UInt8((x * 255) / max(1, width - 1))
+                let intensity = UInt8((x * 255) / span)
                 let r: UInt8
                 let g: UInt8
                 let b: UInt8

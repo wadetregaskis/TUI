@@ -68,9 +68,8 @@ struct GreyRampBandTests {
             // `l(8)` is precisely twice `l(1)` — and which of two entries an
             // exact tie lands on is decided by the last bit of a `cbrt`, not by
             // anything this test has an opinion about.
-            #expect(
-                abs((chosen?.lightness ?? .infinity) - lightness) - nearest < 1e-12,
-                "\(value) → \(code), \(nearest) away at best")
+            let distance: Double = abs((chosen?.lightness ?? .infinity) - lightness)
+            #expect(distance - nearest < 1e-12, "\(value) → \(code), \(nearest) away at best")
         }
     }
 
@@ -146,7 +145,7 @@ struct GreyRampBandTests {
             width: 16, height: 16,
             pixels: (0..<256).map { RGBA(r: UInt8($0), g: UInt8($0), b: UInt8($0)) })
         let drawn = ASCIIConverter(colorMode: .grayscale).recoloured(ramp, width: 16, height: 16)
-        let steps = Set((0..<24).map { UInt8(8 + 10 * $0) })
+        let steps = Set((0..<24).map { (step: Int) -> UInt8 in UInt8(8 + 10 * step) })
         let levels = Set(drawn.pixels.map(\.r))
         #expect(levels.isSubset(of: steps), "not the terminal's ramp: \(levels.sorted())")
         #expect(!levels.contains(0), "the ramp's darkest is #080808, not black")
