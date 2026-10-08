@@ -499,7 +499,7 @@ public struct RenderContext {
 
     /// This context as seen by a child the container places at `(x, y)`: the
     /// gradient `frame` anchored on the child, and the carried geometry origin
-    /// (``geometryOriginX``) moved onto it.
+    /// (`geometryOriginX`) moved onto it.
     ///
     /// Both carriers want the same number — where the child will sit, worked
     /// out before it renders — so a container places a child for both in one
@@ -528,7 +528,7 @@ public struct RenderContext {
 
     /// Whether a container must work out where its children sit before it
     /// renders them: a `.gradientExtent(.subtree)` ramp spans it, or a
-    /// geometry owner above carries an origin (``geometryOriginX``).
+    /// geometry owner above carries an origin (`geometryOriginX`).
     public var placesChildren: Bool { gradientFrame != nil || carriesGeometryOrigin }
 
     /// Creates a new RenderContext.

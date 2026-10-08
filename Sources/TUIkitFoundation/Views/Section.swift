@@ -256,7 +256,7 @@ extension Section where Parent: View, Content: View, Footer: View, Footer == Emp
     /// shown.
     ///
     /// The header carries a disclosure triangle and toggles the content from
-    /// the keyboard and the pointer, as ``init(_:isExpanded:content:)-(LocalizedStringKey,_,_)``'s does.
+    /// the keyboard and the pointer, as ``init(_:isExpanded:content:)-9cag8``'s does.
     ///
     /// - Parameters:
     ///   - isExpanded: A binding to whether the section's content is shown.

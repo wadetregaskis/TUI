@@ -233,7 +233,7 @@ extension ForEach: ChildViewProvider where Content: View {
     /// with its element.
     ///
     /// A row of several views hands over each of them, as SwiftUI's does
-    /// (``rowMembers(of:context:)``, decisions B15); a row of one view —
+    /// (`rowMembers(of:context:)`, decisions B15); a row of one view —
     /// nearly every row — is one child, built as it always was.
     public func childViews(context: RenderContext) -> [ChildView] {
         let data = data(in: context)

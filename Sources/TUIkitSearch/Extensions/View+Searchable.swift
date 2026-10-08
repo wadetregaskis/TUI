@@ -130,7 +130,7 @@ extension View {
     /// ```
     ///
     /// A suggestion is a `Text` (its string is what the field is filled with),
-    /// any view carrying a ``View/searchCompletion(_:)``, or a ``Divider``
+    /// any view carrying a ``View/searchCompletion(_:)-(String)``, or a ``Divider``
     /// between groups — the same vocabulary
     /// ``View/textInputSuggestions(_:)`` accepts, because it is the same menu
     /// underneath. The builder is re-evaluated every render, so filtering the

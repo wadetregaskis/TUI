@@ -101,7 +101,7 @@ extension ScrollTargetBehavior where Self == PagingScrollTargetBehavior {
 /// least to the next one, so a wheel tick over three-line rows moves a whole
 /// row. A gesture with no direction — a released scrollbar thumb, a resize, a
 /// step along the other axis — rests on the nearest view, or on the content's
-/// end when that is nearer, since the scroll stops there. The ``anchor`` says
+/// end when that is nearer, since the scroll stops there. The `anchor` says
 /// which point of the view meets which point of the visible area: the top edge
 /// by default, the centre for `.center`.
 ///

@@ -79,7 +79,7 @@ extension Scene {
     ///
     /// Applying `.palette(_:)` to the root *view* inside the `WindowGroup`
     /// remains equivalent and is honoured identically (see `WindowGroup`'s
-    /// ``ConfiguringScene`` conformance).
+    /// `ConfiguringScene` conformance).
     ///
     /// - Parameter palette: The palette to apply.
     /// - Returns: A scene that applies the palette.

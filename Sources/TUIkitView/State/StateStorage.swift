@@ -447,7 +447,7 @@ extension StateStorage {
     /// POSITIONALLY, so a second walk that did not restart them would hand
     /// every `.onChange` / `.onPreferenceChange` a shifted index and read and
     /// write the wrong slots; and what the walk's windowing containers drew
-    /// (``noteWindowedRows(_:)``), which only the walk drawn may answer.
+    /// (`noteWindowedRows(_:)`), which only the walk drawn may answer.
     ///
     /// It must NOT clear `activeIdentities`. By the time a walk begins, that
     /// set already carries the App's own root identity (marked when the app

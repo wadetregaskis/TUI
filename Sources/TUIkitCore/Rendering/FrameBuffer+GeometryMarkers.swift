@@ -23,10 +23,10 @@ extension FrameBuffer {
     ///   tooltip is drawn over the page, not in it, and SwiftUI's named spaces
     ///   do not reach across a presentation into its content. The screen root
     ///   finds those after it composites them, where they finally are.
-    /// - a pinned section header's COPY (``OverlayLayer/scrollPin``): what it
+    /// - a pinned section header's COPY (`OverlayLayer.scrollPin`): what it
     ///   holds is already in the flow, at its own place; read here, a marker
     ///   in the header would answer for the pinned copy instead.
-    /// - a scroll view's overflow (``OverlayLayer/isScrollOverflow``): it is the
+    /// - a scroll view's overflow (`OverlayLayer.isScrollOverflow`): it is the
     ///   content past the viewport, whose markers the window already carries
     ///   (a clip keeps a marker whole), so it would only answer twice.
     ///
