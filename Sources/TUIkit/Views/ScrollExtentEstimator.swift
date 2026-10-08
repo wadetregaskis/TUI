@@ -4,46 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-// MARK: - ScrollExtentPrecision
+// MARK: - ScrollExtentProfile
 
-/// How precisely a scrollable measures the rows it is *not* showing.
-///
-/// A ``List`` or ``Table`` whose rows span multiple lines only knows a row's
-/// height by wrapping its text into the column widths. The rows on screen have
-/// to be wrapped anyway — they are about to be drawn — but the ones above and
-/// below the viewport are needed for exactly one thing: the scroll indicator.
-/// Either the scrollbar's thumb (where it sits in the track and how large it
-/// is) or the count in "▲ N more above". Wrapping thousands of off-screen rows
-/// every frame to place a thumb a cell or two more accurately is a poor trade,
-/// so by default the off-screen rows are sampled rather than measured.
-///
-/// - ``approximate``: the visible rows are exact; the rest are estimated from a
-///   fixed, evenly-spaced sample. O(1) in the row count. The default.
-/// - ``exact``: every row is measured. O(rows) per frame, and every row's text
-///   is wrapped. Opt into it when a thumb that is proportionally exact to the
-///   line matters more than the cost.
-///
-/// Both ends are pinned in either mode: scrolled fully to the top the thumb is
-/// at the top of its track, and at the furthest scroll it is at the bottom.
-/// Only the middle of the travel can drift, and only when rows differ wildly in
-/// height.
-///
-/// Below ``exactRowLimit`` rows every row is measured rather than sampled — a
-/// table small enough to measure outright is simply measured — but the answer is
-/// then KEPT while the layout that produced it holds (see
-/// ``ScrollExtentProfile``), so editing the rows' content without changing their
-/// number or their columns leaves the middle of the travel as approximate as
-/// ``approximate`` would. That is the trade ``approximate`` already makes, taken
-/// on a path where exactness was never asked for; ``exact`` itself is never
-/// cached, and re-measures every row every frame as its own documentation says.
-///
-/// Single-line rows are unaffected: there the line count *is* the row count, so
-/// the extent is already exact at no cost.
-///
-/// ```swift
-/// Table(logEntries) { ... }
-///     .scrollExtentPrecision(.exact)
-/// ```
 /// What a previous ``ScrollExtentEstimator/lineMetrics(visible:count:topClip:precision:cached:height:)``
 /// worked out about a set of rows' heights, for a caller whose key still holds.
 ///
