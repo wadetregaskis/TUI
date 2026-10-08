@@ -60,6 +60,12 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# Swift Package Index publishes the docs its own way, one archive per target
+# .spi.yml lists, and the umbrella's archive holds no API. Checked first, as it
+# costs nothing: a module missing from that list is missing from the published
+# reference, which nothing else here would notice. See check_spi_targets.py.
+python3 Tools/BuildDocs/check_spi_targets.py
+
 DOCC="${DOCC:-$(xcrun --find docc 2>/dev/null || command -v docc)}"
 if [ -z "$DOCC" ]; then
     echo "error: docc not found — install a Swift toolchain or set \$DOCC" >&2

@@ -11,8 +11,11 @@ TUIkit` is one API, so the documentation has to be one API reference.
 DocC builds from symbol graphs, one module at a time, and an `@_exported`
 re-export does not put the re-exported symbols into the importing module's
 graph. Pointing DocC at the TUIkit target therefore produces an archive with
-no page at all for `View`, `Color`, `Binding`, `State`, `FrameBuffer` — the
-most basic types in the framework — and every catalog link to them dangles.
+no symbol page at all — not `View`, `Color`, `Binding` or `Text`, since the
+umbrella declares nothing — and every catalog link to one dangles. (Swift
+Package Index builds the docs that way, a target at a time; .spi.yml lists
+every module in MODULES so it documents them all, and check_spi_targets.py
+holds it to that.)
 
 So: take the graphs for all of these modules and rewrite the module identity to
 `TUIkit` before handing them to `docc convert`. Three things need changing,

@@ -45,3 +45,44 @@ and `import TUIkitFoundation` alone would no longer give an importer the
 lower modules, which no app can do today anyway (TUIkitFoundation is not a
 product). Nothing user-visible changes either way, so it can be revisited at
 step C9b, with the per-module products.
+
+### B-SPB1-2. Swift Package Index documents each library module on its own
+
+*Documentation hosting — no API*
+
+Swift Package Index (SPI) hosts the documentation the project template links
+to (`swiftpackageindex.com/wadetregaskis/TUIkit/main/documentation/tuikit`,
+in `project-template/tuikit` and `project-template/README.md`). It does not
+run `Tools/BuildDocs/build-docs.sh`: it runs `generate-documentation` for each
+target `.spi.yml`'s `documentation_targets` names, one archive per target,
+behind a selector whose first entry is the landing page (SPIManifest's
+"Common use cases" page, read 2026-10-08). The list named only `TUIkit`. That
+archive already lacked the lower modules' types (`View`, `Color`, `Binding`);
+since B1 the umbrella declares nothing, so it would hold the catalog's
+articles and no API at all.
+
+**Shipped: `.spi.yml` lists `TUIkit` first, then `TUIkitFoundation`,
+`TUIkitView`, `TUIkitStyling`, `TUIkitCore` and `TUIkitImage`,** every module
+of `unify_symbol_graphs.py`'s `MODULES`. The landing page and the template's
+link stay the umbrella's (its articles; its links to symbols render as plain
+text, as the links to the lower modules' types already did), and every public
+symbol is documented, under the module that declares it. A new
+`Tools/BuildDocs/check_spi_targets.py`, run first by `build-docs.sh` (so by
+CI's docs job), fails when the list lacks a module of `MODULES` or does not
+start with the umbrella. Unmeasured: SPI's build of the new list (it runs only
+on SPI, after a push); the selector and the per-target archives are SPI's
+documented behaviour.
+
+**Price:** the reader sees the module structure the unified build hides
+(`Tools/BuildDocs/README.md`: "leaks exactly the structure we want hidden"),
+and must know which module declares a type to find its page there; each carve
+adds a module to the list and to the selector.
+
+**The other version:** one reference, as `build-docs.sh` builds it. SPI
+cannot build that archive, but `.spi.yml` can point at one hosted elsewhere
+(`external_links: documentation: <url>`, in place of the builder's
+`documentation_targets`): the CI docs job already builds it with
+`--static-hosting`, and would gain a publish step (GitHub Pages, say).
+**Price:** a publish step to write and the hosting to switch on, which is the
+owner's to do; the template's link would change to that host (or SPI's page
+would link through to it).

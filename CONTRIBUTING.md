@@ -216,6 +216,9 @@ Tools/BuildDocs/build-docs.sh            # add --analyze for every diagnostic
 > The latter documents only what the umbrella module itself declares, which
 > is nothing: `View`, `Color`, `Binding`, `Text` and everything else are
 > declared in the modules it re-exports — see [`Tools/BuildDocs/README.md`](Tools/BuildDocs/README.md).
+> Swift Package Index does build that way, a target at a time, which is why
+> `.spi.yml` lists every library module, the umbrella first; the docs build
+> fails if one is missing.
 
 ## Running the suite in parallel
 

@@ -48,9 +48,9 @@ The obvious command —
 swift package generate-documentation --target TUIkit     # ← produces a BROKEN site
 ```
 
-— builds an archive with **no page for `View`, `Color`, `Binding`, `State`,
-`EnvironmentValues`, `FrameBuffer` or `Palette`**, and every catalog link to
-them dangling.
+— builds an archive with **no symbol page at all**: not `View`, `Color`,
+`Binding`, `Text` or `List`, since the umbrella declares nothing (since module
+split step B1), and every catalog link to a symbol dangling.
 
 TUIkit is several library modules — `TUIkitCore`, `TUIkitStyling`,
 `TUIkitView`, `TUIkitImage`, `TUIkitFoundation` (which compiles every module
@@ -76,6 +76,26 @@ every `View` modifier from the docs.
 Symbol identity is the USR, which already encodes the defining module and is
 left untouched, so relationships and cross-references still resolve. Nothing
 about the built product changes; this is purely how the docs are assembled.
+
+## Swift Package Index
+
+Swift Package Index (SPI) hosts the docs the project template links to
+(`/documentation/tuikit`), and it does not run this script: it runs
+`generate-documentation` once per target `.spi.yml` lists, and serves the
+archives behind a selector, the first as the landing page. So `.spi.yml` lists
+the umbrella first (its archive is the catalog's articles, with no API, and
+keeps the template's link) and then every other module in
+`unify_symbol_graphs.py`'s `MODULES`, each its own archive. That shows readers
+the module structure the unified build hides, and the landing page's links to
+symbols dangle; the other way, one reference, needs the archive this script
+builds hosted somewhere and `.spi.yml`'s `external_links` pointed at it
+(decisions file `SwiftUI-API-completion-decisions-SPB1.md`, B-SPB1-2).
+
+`check_spi_targets.py` fails the build (it runs first, and costs nothing) when
+the list lacks a module of `MODULES` or does not start with the umbrella: when
+the umbrella stopped declaring anything, at step B1, a list naming only it
+would have published an empty reference. A module carved out of
+`TUIkitFoundation` joins `MODULES`, and then the list.
 
 ## The regression guard
 
