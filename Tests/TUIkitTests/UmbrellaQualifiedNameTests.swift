@@ -68,8 +68,14 @@ struct UmbrellaQualifiedNameTests {
         // So `String(reflecting:)`, `dump` and the debugger say
         // `TUIkitFoundation.Text`: the umbrella declares nothing. (`Text`
         // stays in TUIkitFoundation as the split goes on; a type that is
-        // carved into another module takes that module's name.)
+        // carved into another module takes that module's name.) Both
+        // expectations read `TUIkit.` before step B1, when `Label` and `Text`
+        // were the TUIkit module's.
         #expect(String(reflecting: TUIkit.Text.self) == "TUIkitFoundation.Text")
-        #expect(!String(reflecting: TUIkit.Color.self).hasPrefix("TUIkit."))
+        // A generic type names each argument's module as well: TUIkitStyling's
+        // `Color` was never the TUIkit module's, so only the other two moved.
+        #expect(
+            String(reflecting: TUIkit.Label<TUIkit.Text, TUIkit.Color>.self)
+                == "TUIkitFoundation.Label<TUIkitFoundation.Text, TUIkitStyling.Color>")
     }
 }
