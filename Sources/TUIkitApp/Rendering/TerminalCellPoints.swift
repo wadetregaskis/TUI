@@ -222,8 +222,8 @@ extension TerminalClient {
     /// set `TERM_PROGRAM`, which ssh does not forward, and no ssh session is
     /// in the environment.
     static func isLocalSession(_ environment: [String: String]) -> Bool {
-        environment["TERM_PROGRAM"] != nil && environment["SSH_CONNECTION"] == nil
-            && environment["SSH_TTY"] == nil
+        guard environment["TERM_PROGRAM"] != nil, environment["SSH_CONNECTION"] == nil else { return false }
+        return environment["SSH_TTY"] == nil
     }
 
     /// The main display's scale — device pixels per point — or `nil` where
