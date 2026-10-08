@@ -5,14 +5,32 @@
 §5), 2026-10-08: the carve of TUIkitColorPicker, the second module built on
 TUIkitFoundation rather than under it, after TUIkitApp. It changed no public
 API: the umbrella re-exports TUIkitColorPicker beside TUIkitApp and
-TUIkitFoundation, so `import TUIkit` gives an app what it gave before. This
-file holds the judgement calls the step reached that the plan did not already
-settle, in the format of
+TUIkitFoundation, so `import TUIkit` gives an app what it gave before, and an
+app's `TUIkit.X` reaches its types through one re-export
+(`UmbrellaQualifiedNameTests`). What an app can still see is listed under
+[What an app can see](#what-an-app-can-see). This file holds the judgement
+calls the step reached that the plan did not already settle, in the format of
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
 
 - **A-SPB4-n — needs your decision.** Nothing has shipped for these.
 - **B-SPB4-n — shipped the safe option.** Says what the other version would be, and its price.
 - **C-SPB4-n — declined.** With the reason.
+
+## What an app can see
+
+Not judgement calls: the plan (§5, row C9a) lists these for the release notes,
+and C9a writes them. They are recorded here because this step made them. Each
+name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
+
+- **Reflected names.** `String(reflecting:)`, `dump` and the debugger name a
+  moved type's new module: `TUIkitColorPicker.ColorPicker`,
+  `TUIkitColorPicker.ColorPickerPanel`, `TUIkitColorPicker.ToneCurveEditorPanel`.
+  `UmbrellaQualifiedNameTests` pins all three.
+- **The bundle and saved paths are unchanged.** TUIkitColorPicker holds no
+  resources (its labels come from TUIkitStrings' tables, through
+  `LocalizationService`), so the bundle is still `TUIkit_TUIkitStrings`
+  (decisions SPB2); and it declares no `Codable` type, public or not, so no
+  saved `NavigationPath.CodableRepresentation` changes.
 
 ## B. Shipped
 

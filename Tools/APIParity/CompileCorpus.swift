@@ -2799,6 +2799,26 @@ private func scrollTransitionConfigurations() -> [ScrollTransitionConfiguration]
     ]
 }
 
+// MARK: - ColorPicker, from a module of its own
+
+/// SwiftUI's own `ColorPicker` example, and its other `Color` initializers.
+/// Since module split step B4 the type is TUIkitColorPicker's, which only the
+/// umbrella re-exports, so this is SwiftUI source reaching it as an app does.
+@MainActor
+private struct FormattingControls: View {
+    @State private var bgColor =
+        Color(.sRGB, red: 0.98, green: 0.9, blue: 0.2)
+
+    var body: some View {
+        VStack {
+            ColorPicker("Alignment Guides", selection: $bgColor)
+            ColorPicker("Opaque", selection: $bgColor, supportsOpacity: false)
+            ColorPicker(String("Computed"), selection: $bgColor)
+            ColorPicker(selection: $bgColor) { Text("Built") }
+        }
+    }
+}
+
 /// SwiftUI's own `VisualEffect` example: an offset following the view's global
 /// position, which draws its offset now that the proxy answers `.global`.
 @MainActor

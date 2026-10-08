@@ -23,6 +23,13 @@
 //  umbrella, so a carve that left TUIkitApp out of the umbrella's re-exports
 //  would stop this file compiling as well.
 //
+//  Step B4 carved TUIkitColorPicker out the same way, so the umbrella
+//  re-exports a second module beside TUIkitFoundation. The fourth test spells
+//  its types through the umbrella: an app's own `ColorPicker` beside it is the
+//  case an app meets (a colour picker of its own, written before it adopted
+//  TUIkit), and a carve that left the module out of the umbrella's re-exports
+//  stops this file compiling.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -63,6 +70,17 @@ private enum Client {
     static func bothScenes() -> (Scene, some TUIkit.Scene) {
         (Scene(name: "mine"), TUIkit.WindowGroup { TUIkit.Text(verbatim: "b3") })
     }
+
+    /// An app's own `ColorPicker`, beside TUIkitColorPicker's view.
+    struct ColorPicker {
+        let name: String
+    }
+
+    /// Both pickers: the app's by its plain name, TUIkit's by the umbrella's.
+    @MainActor
+    static func bothPickers(selection: TUIkit.Binding<TUIkit.Color>) -> (ColorPicker, TUIkit.ColorPicker) {
+        (ColorPicker(name: "mine"), TUIkit.ColorPicker("b4", selection: selection))
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -91,6 +109,12 @@ extension TUIkit.WindowGroup {
     /// A member an app adds, through the umbrella's name, to a type of
     /// TUIkitApp, which the umbrella re-exports itself.
     fileprivate var b3Marker: Int { 3 }
+}
+
+extension TUIkit.ColorPicker {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitColorPicker, which the umbrella re-exports itself.
+    fileprivate var b4Marker: Int { 4 }
 }
 
 @MainActor
@@ -144,6 +168,24 @@ struct UmbrellaQualifiedNameTests {
         _ = draw
     }
 
+    @Test("A qualified name reaches TUIkitColorPicker, which the umbrella re-exports beside TUIkitApp")
+    func qualifiedNamesReachTheColorPicker() {
+        // TUIkitColorPicker's view beside an app's own `ColorPicker`, a member
+        // an app's extension adds to it, and the view drawn: its label and
+        // the swatch's selection come out of the render.
+        let (mine, picker) = Client.bothPickers(selection: .constant(TUIkit.Color.red))
+        #expect(mine.name == "mine")
+        #expect(picker.b4Marker == 4)
+        let lines = TUIkit.renderToBuffer(picker, context: makeRenderContext(width: 60, height: 3)).lines
+            .map(\.stripped)
+        #expect(lines.first?.contains("b4") == true, "\(lines)")
+        // A curve editor, whose initializer takes a TUIkitImage type, spelled
+        // through the umbrella too.
+        let panel = TUIkit.ToneCurveEditorPanel(
+            stops: .constant([TUIkit.ASCIIToneCurve.Stop]()), isPresented: .constant(true))
+        #expect(String(reflecting: type(of: panel)) == "TUIkitColorPicker.ToneCurveEditorPanel")
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -176,5 +218,9 @@ struct UmbrellaQualifiedNameTests {
             String(reflecting: TUIkit.WindowGroup<TUIkit.Text>.self)
                 == "TUIkitApp.WindowGroup<TUIkitFoundation.Text>")
         #expect(String(reflecting: TUIkit.DefaultWindowToolbarStyle.self) == "TUIkitApp.DefaultWindowToolbarStyle")
+        // Step B4 carved these out (decisions SPB4, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B4.
+        #expect(String(reflecting: TUIkit.ColorPicker.self) == "TUIkitColorPicker.ColorPicker")
+        #expect(String(reflecting: TUIkit.ColorPickerPanel.self) == "TUIkitColorPicker.ColorPickerPanel")
     }
 }
