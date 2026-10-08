@@ -26,32 +26,3 @@ protocol TextInputFocusHandler: AnyObject {
     /// the one fact about itself it depends on.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool
 }
-
-extension TextFieldHandler: TextInputFocusHandler {
-    /// A field's Home and End go to the ends of its one line, so Ctrl-A and
-    /// Ctrl-E give way here along with the rest. A vertical field's go to the
-    /// ends of its text, as the editor's do, and there Ctrl-A and Ctrl-E are
-    /// the only keys for the ends of a line, so they keep the key.
-    func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool {
-        editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: !isVertical)
-            ?? false
-    }
-}
-
-extension TextEditorHandler: TextInputFocusHandler {
-    /// The editor's Home and End go to the ends of the document, so Ctrl-A and
-    /// Ctrl-E are its only keys for the ends of a line, and they keep the key.
-    func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool {
-        editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: false)
-            ?? false
-    }
-}
-
-// Typed digits are the date picker's CONTENT (`typeDigit`); a lettered or
-// digit-bound status item stole them the same way it stole an editor's
-// letters. Everything the handler declines — letters, Tab, Escape — still
-// falls through to the ordinary layers, so only its digits are protected.
-extension DatePickerHandler: TextInputFocusHandler {
-    /// Never: the date picker binds no editing chord.
-    func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool { false }
-}

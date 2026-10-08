@@ -124,14 +124,6 @@ struct DrawnScrollPosition: Equatable {
     }
 }
 
-extension ItemListHandler {
-    /// This list's or table's ``DrawnScrollPosition``, the lines scrolled off
-    /// its top row included.
-    var drawnPosition: DrawnScrollPosition {
-        DrawnScrollPosition(self, subRowLines: scrollTopClipLines)
-    }
-}
-
 extension ScrollViewHandler {
     /// This scroll view's ``DrawnScrollPosition`` on each axis, vertical first.
     var drawnPositions: [DrawnScrollPosition] {
