@@ -19,14 +19,14 @@ across renders while adding optional persistence.
 >   persistence — `StateStorage` is **in-memory only** (it keeps
 >   `@State` stable across render passes; values die on exit).
 > - What **does** exist, and partly overlaps the goal:
->   - `@AppStorage` (`Sources/TUIkit/State/AppStorage.swift`) — a
+>   - `@AppStorage` (`Sources/TUIkitFoundation/State/AppStorage.swift`) — a
 >     `Codable` property wrapper for **explicit** persistent
 >     preferences, backed by a `StorageBackend` protocol with a
 >     `JSONFileStorage` default (`~/.config/<app>/settings.json`, or
 >     `XDG_CONFIG_HOME`) and a `UserDefaultsStorage` variant
 >     (`UserDefaultsStorage.swift`; UserDefaults on Apple, JSON-file
 >     emulation on Linux). Writes are debounced via a detached task.
->   - Signal handling (`Sources/TUIkit/App/SignalManager.swift`,
+>   - Signal handling (`Sources/TUIkitApp/App/SignalManager.swift`,
 >     SIGINT/SIGWINCH) plus terminal raw-mode restore on exit — i.e.
 >     the graceful-shutdown half of the story is in place, but it does
 >     **not** flush `@State` to disk (there's nothing to flush yet).

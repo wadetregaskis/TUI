@@ -329,24 +329,34 @@ Sources/
 │                         Image(nsImage:) — the ONE module that imports AppKit, so that
 │                         SwiftUICore (which AppKit imports) never reaches an app that
 │                         imports only TUIkit. Empty off Apple platforms.
-├── TUIkit/               Umbrella module: App, Views, Modifiers, Focus, StatusBar, ...
-│   ├── App/              App, Scene, WindowGroup, the window's chrome host
-│   ├── Environment/      Environment keys, service configuration
-│   ├── Extensions/       View modifiers and convenience APIs
-│   ├── Focus/            Focus system and keyboard navigation
-│   ├── Input/            Drag-and-drop session tracking
-│   ├── Localization/     i18n service, type-safe keys, translations (7 languages)
-│   ├── Modifiers/        Border, Frame, Padding, Overlay, Lifecycle, KeyPress, Mouse, ...
-│   ├── Notification/     Toast-style notification system
-│   ├── Rendering/        Terminal, ANSIRenderer, ViewRenderer
-│   ├── SFSymbols/        SF Symbols name → codepoint table and resolver
-│   ├── State/            @State / @AppStorage / binding storage
-│   ├── StatusBar/        Status bar model, shortcuts, system items
-│   ├── Toolbar/          .toolbar, ToolbarItem and its placements, the bars' frame
-│   ├── Styles/, Styling/ Control and visual styles
-│   ├── Utility/          Misc helpers
-│   ├── TUIkit.docc/      DocC documentation catalog
-│   └── Views/            Text, Stacks, Button, TextField, Slider, List, Table, Image, ...
+├── TUIkit/               The umbrella's own files: Exports.swift, and TUIkit.docc/ (DocC)
+│
+│   The TUIkit module's sources, one directory per module of the planned split
+│   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Today
+│   they all compile into the one TUIkit module; each becomes a module of its own
+│   when it is carved out. Inside each: App/, Views/, Modifiers/, Focus/, ...
+├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
+│                         localization (translations in 7 languages) and VERSION
+├── TUIkitTerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
+├── TUIkitFoundation/     The base: everything the modules below share — layout,
+│                         stacks, Text, Button, Toggle, focus, state, rendering, ...
+├── TUIkitChrome/         Status bar view, toolbars, notifications, tooltips, help
+├── TUIkitEffects/        Transitions, symbol, visual and colour effects
+├── TUIkitBitmaps/        Image from files and URLs, AsyncImage, the image options
+├── TUIkitMenus/          Menu, ControlGroup, .contextMenu, menu styles
+├── TUIkitNumericControls/ Slider, Stepper, Gauge, ProgressView
+├── TUIkitTextInput/      TextField, SecureField, TextEditor
+├── TUIkitPickers/        Picker, DatePicker, RadioButtonGroup
+├── TUIkitLists/          List, OutlineGroup, list styles, row editing
+├── TUIkitGrid/           Grid, LazyVGrid, LazyHGrid
+├── TUIkitNavigation/     NavigationStack, NavigationSplitView, Inspector
+├── TUIkitPresentation/   alert, confirmationDialog, sheet, presentation modifiers
+├── TUIkitForms/          Form, LabeledContent, GroupBox, Card, Panel
+├── TUIkitSearch/         .searchable, search tokens and scopes
+├── TUIkitTables/         Table, columns, rows, table styles
+├── TUIkitTabs/           TabView, Tab, tab styles
+├── TUIkitColorPicker/    ColorPicker and the colour editors
+├── TUIkitApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
 ├── Example/        Example app (executable target)
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
 

@@ -56,7 +56,7 @@ all. Whatever else is wrong with the idea, this part is not.
 ### 1.1 …but it FITS and CENTRES, it does not FILL
 
 The verb matters, and this codebase had it wrong.
-`Sources/TUIkit/Views/Image+TerminalGraphics.swift` said "the terminal scales
+`Sources/TUIkitBitmaps/Views/Image+TerminalGraphics.swift` said "the terminal scales
 the picture to **fill** them". It does not: it preserves the source aspect
 ratio and centres the result, leaving bars on one axis when the box's aspect
 differs from the picture's.

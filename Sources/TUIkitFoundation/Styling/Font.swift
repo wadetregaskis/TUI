@@ -239,7 +239,7 @@ public struct Font: Sendable, Hashable {
     /// Returns this font monospaced — mirrors SwiftUI's `Font/monospaced()`.
     ///
     /// Already true of every cell in the grid; see
-    /// `Sources/TUIkit/Modifiers/MediumGuaranteedModifiers.swift` for the
+    /// `Sources/TUIkitFoundation/Modifiers/MediumGuaranteedModifiers.swift` for the
     /// guarantee and the tests that pin it. Returns the font unchanged.
     public func monospaced() -> Self {
         self

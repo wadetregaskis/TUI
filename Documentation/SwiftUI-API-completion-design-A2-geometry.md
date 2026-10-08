@@ -80,7 +80,7 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
 ## 2. Existing machinery (file:line at `f56c419d`)
 
 **Proxies and readers**
-- `GeometryProxy` — `Sources/TUIkit/Views/GeometryReader.swift:25`; `globalOrigin`
+- `GeometryProxy` — `Sources/TUIkitFoundation/Views/GeometryReader.swift:25`; `globalOrigin`
   `:30` is never set by any caller; `frame(in:)` `:49–58` falls back to local;
   `hasGlobalPosition` `:70`.
 - `_GeometryReaderCore` `:203`: greedy (`sizeThatFits` `:213` never builds the
@@ -88,10 +88,10 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
   — the property that lets one correction converge. `contentContext(noting:in:)`
   `:266` notes the size and `clearAffected` `:274` below on change: the pattern
   a resolved origin must follow.
-- `OnGeometryChangeModifier` — `Sources/TUIkit/Modifiers/OnGeometryChangeModifier.swift:88`;
+- `OnGeometryChangeModifier` — `Sources/TUIkitFoundation/Modifiers/OnGeometryChangeModifier.swift:88`;
   compares at render and records a render side effect `:103` (declines every
   ancestor memo); proxy built from the rendered size `:125`.
-- `_VisualEffectView.renderToBuffer` — `Sources/TUIkit/Modifiers/VisualEffect.swift:108`:
+- `_VisualEffectView.renderToBuffer` — `Sources/TUIkitEffects/Modifiers/VisualEffect.swift:108`:
   renders content, THEN builds the proxy from the buffer and applies
   `_applied(to:context:)` (`:44`) — an effect is already a post-render buffer
   transform.
@@ -104,9 +104,9 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
   `leftClip` and `localOriginY/X` (`:118`, `:122`) keep the UNCLIPPED origin through
   a scroll view; `clipped(toColumns:rows:)` `:182` drops a region with no
   surviving area; `HandlerID` is a `UInt64` `:208` (room for a reserved range).
-- `MouseEventDispatcher.regionOffset(for:)` — `Sources/TUIkit/App/MouseEventDispatcher.swift:973`:
+- `MouseEventDispatcher.regionOffset(for:)` — `Sources/TUIkitFoundation/App/MouseEventDispatcher.swift:973`:
   the absolute, unclipped origin of any region after the frame.
-  **`RegionOrigin` (`Sources/TUIkit/Modifiers/OnHoverModifier.swift:124`) already
+  **`RegionOrigin` (`Sources/TUIkitFoundation/Modifiers/OnHoverModifier.swift:124`) already
   answers `.global` for pointer events this way** — observed up, looked up
   lazily. Hover observers are skipped for claiming (`hoverObserverIDs`,
   `MouseEventDispatcher.swift:151, 913–916`): precedent for a region that
@@ -154,7 +154,7 @@ the stride moving to 112). No test pins the stride today.
   the content band in the same call when the reveal moved past it.
 
 **Owners/storage**
-- `PreferenceLayerModifier.renderToBuffer` — `Sources/TUIkit/Modifiers/PreferenceLayerModifier.swift:33`:
+- `PreferenceLayerModifier.renderToBuffer` — `Sources/TUIkitFoundation/Modifiers/PreferenceLayerModifier.swift:33`:
   push, render base, pop, build layer, composite (`compositeLayer`,
   `LayerComposite.swift:152/196`). The anchor table belongs between `pop()` and
   `transform`.

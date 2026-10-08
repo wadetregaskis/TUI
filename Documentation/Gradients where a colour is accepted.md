@@ -202,7 +202,7 @@ reaches a `Paint` through its own `resolve(in:)`, exactly as SwiftUI's does.
 ## 3. The type family
 
 `UnitPoint` already exists in TUIkit with all ten SwiftUI constants
-([UnitPoint.swift](Sources/TUIkit/Views/UnitPoint.swift)), so most of this is
+([UnitPoint.swift](Sources/TUIkitFoundation/Views/UnitPoint.swift)), so most of this is
 source-**identical**.
 
 | SwiftUI | TUIkit | note |
@@ -231,7 +231,7 @@ error. It does not: `startRadius: 5, endRadius: 200` — the overwhelmingly comm
 spelling — compiles unchanged under `Int` and silently means 200 *cells*. `Int`
 only rejects the rare fractional literal. The honest argument for `Int` is
 **consistency**: every other dimension in TUIkit is `Int` cells
-([frame(width:height:)](Sources/TUIkit/Extensions/View+Layout.swift:232)), and a
+([frame(width:height:)](Sources/TUIkitFoundation/Extensions/View+Layout.swift:232)), and a
 `CGFloat` here would be the sole exception. That is a weaker argument than
 revision 2 made, and it is the true one. Whichever is chosen, the spec hole must
 be closed: **a radius is measured along the horizontal axis in cells, and the
@@ -277,7 +277,7 @@ emitted no foreground SGR — in a walk over the assembled buffer. **That premis
 is false and the walk is too expensive.**
 
 *False:* no leaf emits ink with the foreground unset.
-[Text.swift:717](Sources/TUIkit/Views/Text.swift:717) fills
+[Text.swift:717](Sources/TUIkitFoundation/Views/Text.swift:717) fills
 `cascaded.foreground ?? environment.foregroundStyle ?? palette.foreground` and
 `ANSIRenderer` emits codes whenever `foregroundColor != nil`. Counted across the
 framework: **152 styled-emission sites in 41 files**, 31 of them reading
@@ -293,7 +293,7 @@ costs **~330 µs**, one `splicing` per line **~350 µs**, `ansiSGRStateAt` per l
 the frame, every frame, and loses to the manual N-modifier version (40 nodes ×
 1.5–5 µs ≈ 60–200 µs) by 2–5×. That fails requirement (b) outright.
 
-**The walk is avoidable.** [VStack.swift:265](Sources/TUIkit/Views/VStack.swift:265):
+**The walk is avoidable.** [VStack.swift:265](Sources/TUIkitFoundation/Views/VStack.swift:265):
 
 ```
 // === PASS 1: Measure every child's natural size ===
@@ -365,7 +365,7 @@ gradient there would collapse at each of them, differently.
 **A one-cell view is not this case in principle but is in practice.** A `Toggle`'s
 indicator has a position, so it *could* sample. But its colour is state-derived
 (`palette.accent` when on, `foreground` when off, hovered variants —
-[_ToggleCore.swift:144](Sources/TUIkit/Views/_ToggleCore.swift:144)), and a
+[_ToggleCore.swift:144](Sources/TUIkitFoundation/Views/_ToggleCore.swift:144)), and a
 derived colour must stay stated or the control loses its signalling. Under
 `.subtree` such controls therefore keep their own colours and do **not**
 participate. Revision 2 claimed the opposite; it was wrong, and the honest rule
@@ -458,7 +458,7 @@ measure pass must skip gradient work entirely (`context.isMeasuring`) or
 
 A leaf resolves its own ramp. The one real subtlety is that
 `TextRunAttribution` splits on **source-run membership walking `Character`s**
-([Text+Concatenation.swift:133](Sources/TUIkit/Views/Text+Concatenation.swift:133)),
+([Text+Concatenation.swift:133](Sources/TUIkitFoundation/Views/Text+Concatenation.swift:133)),
 while a gradient needs **display-cell-indexed** bands — character index ≠ cell
 index for CJK and emoji, and a band boundary must not split a two-cell glyph.
 Plus §1's finding that the extent is the whole text block: `t` comes from the
@@ -627,7 +627,7 @@ The survey first, because it changed the mechanism. A container knows a child's
 offset **along its own axis** before it renders it — `VStack` distributes
 heights in PASS 1, `HStack` widths — and its **cross-axis** offset only
 afterwards, because alignment needs the rendered sizes
-([VStack.swift:297](../Sources/TUIkit/Views/VStack.swift:297) renders every
+([VStack.swift:297](../Sources/TUIkitFoundation/Views/VStack.swift:297) renders every
 child before PASS 3 computes `alignmentWidth`). So the cross-axis offset is
 predicted from the child's MEASURED size, which is exact wherever measure and
 render agree and shifts a colour rather than a cell when they do not.

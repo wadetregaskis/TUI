@@ -59,7 +59,7 @@ args = parser.parse_args()
 
 def nominal_intervals():
     """`SpinnerStyle.interval`, in ms, by case name — parsed from the source."""
-    source = pathlib.Path(__file__).resolve().parents[2] / "Sources/TUIkit/Views/Spinner.swift"
+    source = pathlib.Path(__file__).resolve().parents[2] / "Sources/TUIkitFoundation/Views/Spinner.swift"
     try:
         text = source.read_text()
     except OSError:

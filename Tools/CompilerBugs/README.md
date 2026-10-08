@@ -360,7 +360,7 @@ in a method of `_NavigationStackCore<Root>`, where `crumbView` returns
 context generic, and `crumbView`'s result is the opaque type. It was the next
 thing swift.org's 6.2.4 stopped on once section 3 was worked around.
 **Workaround:** `{ pair in crumbView(pair.element, …) }`, one closure parameter
-and so no conversion. See `Sources/TUIkit/Views/NavigationStack.swift`. The
+and so no conversion. See `Sources/TUIkitNavigation/Views/NavigationStack.swift`. The
 workaround is needed for as long as swift.org's 6.2 builds are supported.
 
 ---
@@ -694,7 +694,7 @@ including 6.4, so there is nothing to wait for.
 only `import Foundation`.
 
 **Where TUIkit hit it:** `_TableCore.rowsSignature(of:)`
-(`Sources/TUIkit/Views/Table.swift`), which asks whether a table's rows can be
+(`Sources/TUIkitTables/Views/Table.swift`), which asks whether a table's rows can be
 compared so that a `.fit` column's width can be kept across frames. Written
 against the concrete `[Value]` — or against `[Row]` in a generic helper — it
 drew the warning, and the zero-warnings rule made it a build failure in

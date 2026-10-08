@@ -4,7 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-//  Regenerates `Sources/TUIkit/SFSymbols/SFSymbolTable.generated.swift` — the
+//  Regenerates `Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift` — the
 //  baked SF Symbol name → Plane-16 PUA codepoint table that backs
 //  `SFSymbol` / `Label(_:systemImage:)`.
 //
@@ -313,7 +313,7 @@ guard !pairs.isEmpty else {
 
 let source = emitSource(pairs: pairs)
 
-let outputPath = "Sources/TUIkit/SFSymbols/SFSymbolTable.generated.swift"
+let outputPath = "Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift"
 do {
     try source.write(toFile: outputPath, atomically: true, encoding: .utf8)
     FileHandle.standardError.write(

@@ -27,7 +27,7 @@ struct VersionResourceTests {
         .deletingLastPathComponent()  // TUIkitTests/
         .deletingLastPathComponent()  // Tests/
         .deletingLastPathComponent()  // repository root
-        .appendingPathComponent("Sources/TUIkit/VERSION")
+        .appendingPathComponent("Sources/TUIkitStrings/VERSION")
 
     @Test("The resource resolves, so the version is not the silent fallback")
     func resourceResolves() {

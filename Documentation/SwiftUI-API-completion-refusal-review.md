@@ -76,11 +76,11 @@ today, whatever the verdict.
   `NavigationTransition`, `MatchedTransitionSourceConfiguration`,
   `SymbolEffectTransition`, `Namespace`. `AnyTransition`, `TransitionModifier`,
   `DepartureStore` and `withAnimation` all ship
-  (`Sources/TUIkit/Animation/AnyTransition.swift`).
+  (`Sources/TUIkitEffects/Animation/AnyTransition.swift`).
 - **"TUIkit has no Font type"** — `ToolbarTitleDisplayMode`. `Font` ships
-  (`Sources/TUIkit/Styling/Font.swift`).
+  (`Sources/TUIkitFoundation/Styling/Font.swift`).
 - **"There are no shapes, no ShapeStyle"** — `ImagePaint`. `ShapeStyle`,
-  `AnyShapeStyle` and four gradient styles ship (`Sources/TUIkit/Styling/`).
+  `AnyShapeStyle` and four gradient styles ship (`Sources/TUIkitFoundation/Styling/`).
 - **"Never composites colour"** — `ColorRenderingMode`. Opacity is real
   compositing in encoded sRGB (`Documentation/Opacity as composition.md`), and
   until 2026-09-04 it was done in linear light.
@@ -97,7 +97,7 @@ today, whatever the verdict.
   placeholders where the terminal supports them (compat doc §2.4).
 - **`VisualEffect.brightness/contrast/grayscale/hueRotation/saturation` under
   "per-pixel shading"** — the same five effects ship as `View` modifiers that
-  rewrite cell colours (`Sources/TUIkit/Modifiers/ColorEffectModifiers.swift`).
+  rewrite cell colours (`Sources/TUIkitEffects/Modifiers/ColorEffectModifiers.swift`).
 
 ### X3. The map's reasons are truncated
 

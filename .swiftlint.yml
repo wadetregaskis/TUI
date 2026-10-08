@@ -463,10 +463,14 @@ custom_rules:
   # - `included` and `excluded` are regexes matched against the file's path,
   #   not globs; a brace glob such as `Sources/TUIkit/{Views,Styles}` matches
   #   nothing and silently switches the rule off.
-  # - All of Sources/TUIkit, not a list of its directories, so a new directory
-  #   is covered without anyone remembering to add it. Sources/TUIkitView too.
-  #   TUIkitStyling is not covered: it is the colour vocabulary and the palettes
-  #   themselves.
+  # - Every Sources/TUIkit… directory, less the ones `excluded` names, not a
+  #   list of the framework's: so a new directory, or a new module of the
+  #   split (each sits in Sources/<module>), is covered without anyone
+  #   remembering to add it. That is the umbrella, every planned module and
+  #   TUIkitView. The other lower modules are not covered: TUIkitStyling is the
+  #   colour vocabulary and the palettes themselves, and TUIkitCore,
+  #   TUIkitImage, the AppKit bridges, the macros and the width corpus draw no
+  #   view.
   # - `match_kinds: [identifier]` keeps it out of comments and string
   #   literals, where the framework's docs spell `.rgb(` freely.
   # - Whole files are excluded only where colours are content (the colour
@@ -489,14 +493,15 @@ custom_rules:
       "What built-in controls draw with" in ThemingGuide.md; if the colour is
       content or arithmetic, not ink, disable this rule on that line and say why.
     included:
-      - "Sources/TUIkit/.*\\.swift$"
-      - "Sources/TUIkitView/.*\\.swift$"
+      - "Sources/TUIkit[A-Za-z]*/.*\\.swift$"
     excluded:
-      - "Sources/TUIkit/Views/(SwatchPalettes|ColorPickerPanel|ColorPicker|ToneCurveEditorPanel|GradientEditorPanel|ChannelCurveEditorPanel)\\.swift$"
-      - "Sources/TUIkit/Rendering/(OpacityBlend|TerminalColorQuery)\\.swift$"
-      - "Sources/TUIkit/Modifiers/(OpacityModifier|ColorEffectModifiers)\\.swift$"
-      - "Sources/TUIkit/Modifiers/OpacityFade\\.swift$"
-      - "Sources/TUIkit/Styling/AnyGradient\\.swift$"
+      - "Sources/TUIkit(Core|Styling|Image|AppKit|Macros|MacrosPlugin|WidthCorpus)/"
+      - "Sources/TUIkitColorPicker/Views/(SwatchPalettes|ColorPickerPanel|ColorPicker|ToneCurveEditorPanel|GradientEditorPanel|ChannelCurveEditorPanel)\\.swift$"
+      - "Sources/TUIkitFoundation/Rendering/OpacityBlend\\.swift$"
+      - "Sources/TUIkitApp/Rendering/TerminalColorQuery\\.swift$"
+      - "Sources/TUIkitFoundation/Modifiers/OpacityModifier\\.swift$"
+      - "Sources/TUIkitEffects/Modifiers/(ColorEffectModifiers|OpacityFade)\\.swift$"
+      - "Sources/TUIkitFoundation/Styling/AnyGradient\\.swift$"
       - "Sources/TUIkitView/Animation/ColorAnimation\\.swift$"
     regex: '(\bColor)?\.(rgb|hex|hsl|hsb|cmyk|ansi)\(|\bColor\.(black|white|red|green|yellow|blue|magenta|cyan|gray|orange|pink|purple|brown|mint|teal|indigo|bright\w+)\b|\.bright(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)\b'
     match_kinds:

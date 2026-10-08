@@ -39,7 +39,7 @@ final class LocalizationKeyConsistencyTests {
         if url == nil {
             let projectPath = FileManager.default.currentDirectoryPath
             let sourcePath = (projectPath as NSString).appendingPathComponent(
-                "Sources/TUIkit/Localization/translations/en.json"
+                "Sources/TUIkitStrings/Localization/translations/en.json"
             )
             if FileManager.default.fileExists(atPath: sourcePath) {
                 url = URL(fileURLWithPath: sourcePath)
@@ -69,7 +69,7 @@ final class LocalizationKeyConsistencyTests {
             forResource: code, withExtension: "json", subdirectory: "translations")
         if url == nil {
             let sourcePath = (FileManager.default.currentDirectoryPath as NSString)
-                .appendingPathComponent("Sources/TUIkit/Localization/translations/\(code).json")
+                .appendingPathComponent("Sources/TUIkitStrings/Localization/translations/\(code).json")
             if FileManager.default.fileExists(atPath: sourcePath) {
                 url = URL(fileURLWithPath: sourcePath)
             }

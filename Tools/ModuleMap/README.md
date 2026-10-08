@@ -2,7 +2,10 @@
 
 TUIkit is to be split into à-la-carte modules: the substrate (TUIkitFoundation), side modules that compile beside the
 lower ones, feature leaves over the substrate, TUIkitApp and a thin `TUIkit` umbrella. `rules.json` lists them and
-what each holds. Today all of that code is one module, `Sources/TUIkit`. This tool holds:
+what each holds. Since step A5 each module's files sit in a directory of their own, `Sources/<module>`
+(`Sources/TUIkitFoundation`, `Sources/TUIkitLists` …), where the module will live once a step of Phase B carves it
+out; until then the one `TUIkit` target compiles them all. **A file's directory is its module**: moving a file to
+another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;
@@ -37,8 +40,8 @@ index unit, it warns: rebuild, then check again.
 
 | File | What it is | Who edits it |
 |---|---|---|
-| `rules.json` | The modules and what each depends on. The contents rules: which files and declarations go where. The scheduled refactors, the accepted findings, the POSIX API list, and the witness pairs. | You, by hand |
-| `map.json` | The assignment: a module for each file. A split file names a module for each of its declarations. | `assign --write` only |
+| `rules.json` | The modules and what each depends on. The declaration placements. The scheduled refactors, the accepted findings, the POSIX API list, and the witness pairs. | You, by hand |
+| `map.json` | The assignment: a module for each file, since A5 the file's directory. A split file names a module for each of its declarations. | `assign --write` only |
 | `modulemap.py` | The command line, plus reading and writing `map.json` | |
 | `model.py` | The declaration graph, from the index and the sources | |
 | `assigner.py` | rules + graph → assignment | |
@@ -78,13 +81,12 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 
 ### `upward`: a reference its module cannot see
 
-`TUIkitFoundation -> TUIkitLists: Views/Foo.swift::Foo uses Views/List.swift::ListThing (3 references)`
+`TUIkitFoundation -> TUIkitLists: TUIkitFoundation/Views/Foo.swift::Foo uses TUIkitLists/Views/List.swift::ListThing (3 references)`
 
 Once split, this is a compile error, or a cycle. Fix it in one of these ways:
-- Move the user up. If it is a whole file, add or adjust a `files` rule; for one declaration, a `declarations`
-  rule.
-- Move the used declaration down, with a rule for its file or for the declaration. Or drop the pin that keeps it
-  up, and the assigner pulls it down by itself.
+- Move the user up: `git mv` its file into the higher module's directory, or move the one declaration into a file
+  there.
+- Move the used declaration down, the same way, into a lower module's directory.
 - Break the edge with a protocol, an injected value or an opaque slot, as plan §4's K1–K5 do.
 
 Then run `assign` to see what else moves, and `assign --write` to record it.
@@ -96,7 +98,7 @@ entry matches nothing any more, and the `rules` check asks you to delete it.
 
 That is the debug-runtime crash class: Package.swift's note on `Color: View`, and M3's "failed to demangle witness
 … TabsPage: View". Move the conformance next to the type or the protocol. Conformances whose type and protocol
-both live outside `Sources/TUIkit` are skipped: TUIkit owns neither of those today either.
+both live outside the map's directories are skipped: TUIkit owns neither of those today either.
 
 ### `witness`: a conformance that cannot see the constrained default it relies on
 
@@ -150,7 +152,7 @@ until step A4 landed them.
 
 ### `posix`: a POSIX-only API outside TUIkitApp
 
-`TUIkitFoundation: Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
+`TUIkitFoundation: TUIkitFoundation/Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
 
 CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources out of the modules that must build on Windows.
 The plan puts the console layer in TUIkitApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
@@ -174,9 +176,10 @@ hold only imports.
 
 ### `lower`: a lower module the module's `lower` list does not name
 
-`TUIkitStrings: Localization/Foo.swift::Foo uses TUIkitView.AppState.shared, and TUIkitStrings's lower list does not name TUIkitView`
+`TUIkitStrings: TUIkitStrings/Localization/Foo.swift::Foo uses TUIkitView.AppState.shared, and TUIkitStrings's lower list does not name TUIkitView`
 
-The lower modules are the package's other modules beside `Sources/TUIkit` that its sources import, and what those
+The lower modules are the package's other modules in `Sources`, beside the map's directories, that its sources
+import, and what those
 re-export with `@_exported import` (TUIkitCore, TUIkitStyling, TUIkitView, TUIkitImage today). The map does not split
 them. A module's `lower` list in `rules.json` names the ones it may use; a
 module without a list may use them all. Once split, the module would not depend on the one it uses, so this is a
@@ -192,8 +195,8 @@ accessor is `AppState.getter:shared`). A bare name would make every `shared` or 
 and one pattern would cover them all.
 
 The check reads which lower module defines each symbol from the same index store, in one more pass over its units:
-about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; reading every module beside
-`Sources/TUIkit`, Example and Stress included, cost 0.6–0.9 s). Two things are errors, not a silent pass: a `lower`
+about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; reading every other module in
+`Sources`, Example and Stress included, cost 0.6–0.9 s). Two things are errors, not a silent pass: a `lower`
 list naming a module that is not one of these, and an index with no definitions of one of these (even one no list
 names: a list denies what it leaves out, and a module the index lacks would deny nothing).
 
@@ -204,6 +207,10 @@ is still there under another key (its declaration was renamed, or an extension n
 give the entry the key the report now prints instead.
 
 ## The assigner
+
+Since step A5 `rules.json` has no `files` list: each declaration is seeded in its file's directory, and every file is
+pinned, so the assigner moves nothing and `map.json` mirrors the directories. What follows is the research mode, with
+a `files` list, which computed the map and which the unit tests still exercise.
 
 1. **Seed.** Each declaration starts in the module its file's first matching `files` rule names, else in the
    default (TUIkitFoundation). An extension in a default-module file goes where the type it extends is seeded.
@@ -230,9 +237,11 @@ not drag declarations down.
 - **`modules`**: names, dependencies, optionally a `lower` list (the lower modules it may use; without one, all of
   them), and a one-line description of what belongs there. Dependencies form a DAG; the loader rejects a cycle, and
   a `lower` list naming a module of the map.
-- **`files`**: `{module, pin, match, why}`. The first rule whose `match` regex hits the path (relative to
-  `Sources/TUIkit`) seeds the file. A pinned file stays put. An unpinned one is a starting point that the
-  fixpoint may move.
+- **The directories**: a file's path, relative to `Sources` (`source`), starts with its module's directory, and
+  that is its module. Only the directories of the modules listed here are read.
+- **`files`** (removed at step A5, when the directories took over; the research mode still reads it): `{module, pin,
+  match, why}`. The first rule whose `match` regex hits the path seeds the file. A pinned file stays put. An unpinned
+  one is a starting point that the fixpoint may move. The reasons the r4 rules gave are in `git log` before A5.
 - **`declarations`**: `{module, match, why}` over labels: a pattern is tried on the printed label
   (`path::Name(ext)#first`, as `explain` shows it) and on the base label (`path::Name(ext)`), so a copied label pins that
   one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single
@@ -249,22 +258,24 @@ not drag declarations down.
   the name of the public member the refactor moves out of the block.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
-**Renaming a module.** Module names live in `rules.json` (and the generated `map.json`) and nowhere else in the tool:
-rename it everywhere in `rules.json`, then `assign --write`. Names are free to change until per-module products ship.
+**Renaming a module.** Module names live in `rules.json`, the generated `map.json` and the directory names: rename
+it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: the umbrella target's `sources:`, or
+the module's own target once carved), then `assign --write`. Names are free to change until per-module products
+ship.
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the
 `explain` output for anything surprising, then `assign --write`, and commit `rules.json` and `map.json` together.
 
-**When code changes.** New files and new declarations are placed by the rules until the next `assign --write`;
-`check` says how many there are. An edited declaration in a split file keeps its entry: when its label changes (a
+**When code changes.** New files and new declarations are placed by the rules (a new file by its directory) until
+the next `assign --write`; `check` says how many there are. An edited declaration in a split file keeps its entry: when its label changes (a
 member added above its first one, or that member renamed) and exactly one entry of the same name (`View(ext)`)
 no longer matches anything, that entry is taken to be its. With two such edits to one name in one file, both are
 placed by the rules. Refresh the map whenever a change adds files or moves code between them.
 
-**Every file is in one module.** Since step A4 no file holds declarations of two modules: `map.json` names one module
-per file, and a file rule places each (the declaration pins on the files A4 cut became file rules), so step A5 can
-move whole files into per-module directories. When `assign` shows a split entry again, a change has put a declaration
-of one module into a file of another: move it to a file of its own module, or start one, rather than keep the split.
+**Every file is in one module.** Since step A4 no file holds declarations of two modules, so step A5 moved whole
+files into per-module directories, and a file's directory now places it. When `assign` shows a split entry again, a
+`declarations` rule has put a declaration of one module into a file of another's directory: move it to a file of its
+own module, or start one, rather than keep the split (a carve could not compile it).
 
 ## Limits
 
@@ -273,7 +284,8 @@ of one module into a file of another: move it to a file of its own module, or st
   out), `posix`, `owns-neither` and `witness`. The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7).
   The refined plan's correction 2 was this class (a Linux-only call the index never saw), so every carve also runs its
   inactive-arm scan and the Linux cross-compile before landing.
-- Only `Sources/TUIkit` is mapped. Tests, Example and Stress import the umbrella and are not checked.
+- Only the map's directories (`Sources/<module>` for each module in `rules.json`) are mapped. Tests, Example and
+  Stress import the umbrella and are not checked.
 - Line weights, which decide an unpinned group's module by majority, are each declaration's share of its file,
   up to the next declaration.
 

@@ -363,7 +363,7 @@ struct RenderCacheStyleContractTests: RenderCacheHarness {
         // this repo already writes". Example writes EIGHT of the nine key paths
         // this clause has been fixed on, and only `.labelStyle(_:)` goes
         // unwritten. Two of them are in the same position as this one — no
-        // framework-internal injection anywhere in `Sources/TUIkit`, so the
+        // framework-internal injection anywhere in `Sources/TUIkit*`, so the
         // refusal fires only where the app itself writes the modifier — and both
         // were fixed BEFORE it: `.listStyle(_:)` (ListPage.swift:269 and :284,
         // `d76f8d15`) and `.toggleStyle(_:)` (TogglePage.swift:90-92 and

@@ -43,7 +43,7 @@ struct LocalizedTitleTests {
     /// Swift Testing builds a fresh instance for every test case, so doing this
     /// in `init()` ran it once per case — and `register` ends by calling
     /// `AppState.shared.setNeedsRenderWithCacheClear()`
-    /// (`Sources/TUIkit/Localization/LocalizationService.swift`), which empties
+    /// (`Sources/TUIkitStrings/Localization/LocalizationService.swift`), which empties
     /// the GLOBAL render memo. Those clears landed in the middle of the run,
     /// throwing away what every other suite rendering at the same time had just
     /// built. Registrations merge and nothing ever removes one, so once is all

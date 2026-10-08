@@ -13,7 +13,7 @@ The duplication called out in the original task description
 clamp logic" — is gone. Commit `22b3982c` extracted the
 shared arithmetic into a single protocol,
 ``ScrollableOffsetState``, in
-`Sources/TUIkit/Focus/`. Both ``ScrollViewHandler`` and
+`Sources/TUIkitFoundation/Focus/`. Both ``ScrollViewHandler`` and
 ``ItemListHandler`` conform; the protocol's extension supplies
 every formula and predicate they previously open-coded:
 

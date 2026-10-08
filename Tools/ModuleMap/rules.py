@@ -25,7 +25,11 @@ class Rules:
         self.sees_set = {m: self._closure(m) | {m} for m in self.order}
         for m in self.order:
             if m in self._closure(m): raise SystemExit(f'rules.json: {m} depends on itself')
-        self.files = [(r['module'], bool(r.get('pin')), re.compile(r['match'])) for r in data['files']]
+        # Without a `files` list (rules.json since step A5), every module's files sit in a directory of their own,
+        # Sources/<module>, and a file's directory is its module. With one (the research layout, and the unit tests'
+        # small maps), the contents rules below seed each file of the one source directory.
+        self.by_directory = 'files' not in data
+        self.files = [(r['module'], bool(r.get('pin')), re.compile(r['match'])) for r in data.get('files', [])]
         self.decls = [dict(r, rx=re.compile(r['match'])) for r in data.get('declarations', [])]
         self.unpin = [re.compile(r['match']) for r in data.get('unpin', [])]
         self.scheduled = [dict(r, index=i, from_rx=re.compile(r['from']), to_rx=re.compile(r['to']))
@@ -70,7 +74,11 @@ class Rules:
         return max(self.sees_set[a] & self.sees_set[b], key=self.rank)
 
     def seed(self, rel):
-        """(module, pinned) the contents rules give a file: the first rule that matches, else the default."""
+        """(module, pinned) the contents rules give a file: by directory, the module its path starts with, pinned
+        (moving a file is a `git mv`); else the first rule that matches, else the default."""
+        if self.by_directory:
+            top = rel.split('/', 1)[0]
+            return (top, True) if top in self.deps else (self.default, False)
         for m, pin, rx in self.files:
             if rx.search(rel): return m, pin
         return self.default, False

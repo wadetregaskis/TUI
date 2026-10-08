@@ -31,8 +31,10 @@ _ACCESS = re.compile(r'(?:^|[\s)])(?:package|internal|fileprivate|private)\s+(?=
 def visible_modules(top, me, lexed):
     """The modules beside `me` under `top` that `me`'s sources (lexed, comments stripped) import, and what those
     re-export (`@_exported import`), transitively: everything `me` can use of them. The package's other modules
-    (Example, Stress, the ones that import `me`) are left out, so the `lower` check does not read their index."""
-    here = {d for d in os.listdir(top) if d != me and os.path.isdir(os.path.join(top, d))}
+    (Example, Stress, the ones that import `me`) are left out, so the `lower` check does not read their index.
+    `me` is a directory name, or a set of them: the map's own modules, each in a directory of its own."""
+    mine = {me} if isinstance(me, str) else set(me)
+    here = {d for d in os.listdir(top) if d not in mine and os.path.isdir(os.path.join(top, d))}
     seen, todo = set(), set()
     for lx in lexed:
         for s in lx.stripped:
@@ -154,18 +156,26 @@ class Model:
 
     # ── loading ───────────────────────────────────────────────────────────────────────────────────────────
     @classmethod
-    def load(cls, root, source_dir, store, lib=None, module='TUIkit'):
+    def load(cls, root, source_dir, store, lib=None, module='TUIkit', modules=None):
+        """The model of `source_dir`'s sources. With `modules` (the map's module names), only its directories
+        `source_dir/<module>` are read, and a file's label starts with its directory: `TUIkitLists/Views/List.swift`.
+        Their index units may name any of those modules, or `module` (all of them, until each is carved out)."""
+        mine = [d for d in modules if os.path.isdir(os.path.join(root, source_dir, d))] if modules else ['']
+        names = {module} | set(modules or ())
+
+        def prefixes(base):
+            return tuple(os.path.join(base, source_dir, d).rstrip('/') + '/' for d in mine)
         prefix = os.path.join(os.path.realpath(root), source_dir) + '/'
-        files, symbols, mtimes = IX.read(store, module, prefix, lib)
+        files, symbols, mtimes = IX.read(store, names, prefixes(os.path.realpath(root)), lib)
         if not files:                    # the store may have recorded the unresolved path
             prefix = os.path.join(root, source_dir) + '/'
-            files, symbols, mtimes = IX.read(store, module, prefix, lib)
+            files, symbols, mtimes = IX.read(store, names, prefixes(root), lib)
         occ = {p[len(prefix):]: o for p, o in files.items()}
         m = cls()
         m.symbols = symbols
         src = os.path.join(root, source_dir)
-        m.files = sorted(os.path.relpath(os.path.join(d, f), src) for d, _, fs in os.walk(src) for f in fs
-                         if f.endswith('.swift'))
+        m.files = sorted(os.path.relpath(os.path.join(d, f), src) for top in mine
+                         for d, _, fs in os.walk(os.path.join(src, top)) for f in fs if f.endswith('.swift'))
         for f in m.files:
             p = os.path.join(src, f)
             with open(p, encoding='utf-8', errors='replace') as fh:
@@ -175,8 +185,11 @@ class Model:
         m.build({f: o for f, o in occ.items() if f in m.lexed})
         # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUIkitCore …)
         # and that this module's sources can see, read in one more pass over the store's units. The `lower` check asks
-        # which of them defines what a declaration uses.
-        top, me = os.path.split(prefix.rstrip('/'))
+        # which of them defines what a declaration uses. Beside the map's own directories, when it has several.
+        if modules:
+            top, me = prefix.rstrip('/'), set(modules)
+        else:
+            top, me = os.path.split(prefix.rstrip('/'))
         dirs = {d: os.path.join(top, d) + '/' for d in sorted(visible_modules(top, me, m.lexed.values()))}
         m.lower_visible = set(dirs)
         if dirs:

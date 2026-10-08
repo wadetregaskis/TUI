@@ -43,7 +43,7 @@ extension View {
     /// VStack {
     ///     ForEach(paths, id: \.self) { Text($0) }
     /// }
-    /// .truncationMode(.head)      // "…/Sources/TUIkit/Views/Text.swift"
+    /// .truncationMode(.head)      // "…/Sources/TUIkitFoundation/Views/Text.swift"
     /// ```
     ///
     /// Text is truncated whenever it cannot fit — a line limit, a frame too

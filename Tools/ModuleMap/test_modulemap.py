@@ -131,6 +131,19 @@ class RulesTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             rules(modules=[{'name': 'Base', 'deps': ['Lists']}, {'name': 'Lists', 'deps': ['Base']}])
 
+    def test_without_contents_rules_a_files_directory_is_its_module(self):
+        # Since A5 every module's files sit in Sources/<module>: the directory says where a file goes, and nothing
+        # moves it but a `git mv`. The contents rules would otherwise seed by path, and let an unpinned file move.
+        data = dict(rules().data)
+        del data['files']
+        R = Rules(data)
+        self.assertTrue(R.by_directory)
+        self.assertEqual(R.seed('Lists/Views/A.swift'), ('Lists', True))
+        self.assertEqual(R.seed('X/Exports.swift'), ('X', True))
+        self.assertEqual(R.seed('Elsewhere/B.swift'), ('Base', False))       # no module of the map: never read
+        self.assertFalse(rules().by_directory)
+        self.assertEqual(rules().seed('Lists/Views/A.swift'), ('Lists', False))
+
 
 class SpanAttributionTests(unittest.TestCase):
     """A reference with no container (a typealias's right-hand side) is charged to the declaration whose text holds
@@ -715,6 +728,41 @@ class LowerTests(unittest.TestCase):
             with open(os.path.join(top, 'View/V.swift'), 'w') as fh:
                 fh.write('@preconcurrency @_exported import Core\n@_spi(X) @_exported public import Styling\n')
             self.assertEqual(model_mod.visible_modules(top, 'X', lexed), {'View', 'Core', 'Styling'})
+
+    def test_by_directory_the_maps_own_modules_are_not_lower_ones(self):
+        # Since A5 the map's modules sit beside the lower ones (Sources/TUIkitLists beside Sources/TUIkitView): an
+        # import of one of its own, once carved, must not make it a lower module of the map.
+        with tempfile.TemporaryDirectory() as top:
+            files = {'Base/A.swift': 'import View\n', 'Lists/L.swift': 'import Base\nimport Core\n',
+                     'View/V.swift': '', 'Core/C.swift': '', 'Example/E.swift': 'import X\n'}
+            for rel, text in files.items():
+                os.makedirs(os.path.join(top, os.path.dirname(rel)), exist_ok=True)
+                with open(os.path.join(top, rel), 'w') as fh: fh.write(text)
+            lexed = [SS.lex(files['Base/A.swift']), SS.lex(files['Lists/L.swift'])]
+            self.assertEqual(model_mod.visible_modules(top, {'Base', 'Lists', 'X'}, lexed), {'View', 'Core'})
+
+    def test_by_directory_only_the_maps_directories_are_read_and_labelled_by_them(self):
+        with tempfile.TemporaryDirectory() as root:
+            files = {'Sources/Base/Views/A.swift': 'struct A {}\n', 'Sources/Lists/Views/L.swift': 'struct L {}\n',
+                     'Sources/X/Exports.swift': '@_exported import Core\n', 'Sources/Core/C.swift': 'struct C {}\n',
+                     'Sources/Example/E.swift': 'import X\n'}
+            for rel, text in files.items():
+                os.makedirs(os.path.join(root, os.path.dirname(rel)), exist_ok=True)
+                with open(os.path.join(root, rel), 'w') as fh: fh.write(text)
+            calls = []
+
+            def read(store, modules, prefixes, lib=None):
+                calls.append((modules, prefixes))
+                return {}, {}, {}
+            with mock.patch.object(model_mod.IX, 'read', side_effect=read):
+                M = Model.load(root, 'Sources', '/store', modules=['Base', 'Lists', 'Tables', 'App', 'X'])
+            self.assertEqual(M.files, ['Base/Views/A.swift', 'Lists/Views/L.swift', 'X/Exports.swift'])
+            # Every unit of the map's directories, whichever module compiled it: TUIkit, before a carve.
+            modules, prefixes = calls[0]
+            self.assertEqual(modules, {'TUIkit', 'Base', 'Lists', 'Tables', 'App', 'X'})
+            self.assertEqual(sorted(p[len(os.path.realpath(root)):] for p in prefixes),
+                             ['/Sources/Base/', '/Sources/Lists/', '/Sources/X/'])
+            self.assertEqual(M.lower_visible, {'Core'})
 
     def test_a_lower_list_naming_no_module_the_index_knows_is_an_error(self):
         M, asg = lower_model()

@@ -105,13 +105,56 @@ let package = Package(
         .target(name: "TUIkitImage", dependencies: ["CSTBImage", "TUIkitStyling"]),
 
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
+        // One target, many directories. The module split (Documentation/Historical/Module split plan,
+        // revision 4) puts each planned module's files in Sources/<module>, where the module will live
+        // once a step of Phase B carves it into a target of its own; until then this one target compiles
+        // them all. A carve adds `.target(name: "TUIkitX", …)` at its default path and moves "TUIkitX"
+        // from `sources:` to `exclude:` below. When the last module has left, this target loses `path:`,
+        // `exclude:` and `sources:` and is Sources/TUIkit again. Tools/ModuleMap checks the map: a file's
+        // directory is its module.
         .target(
             name: "TUIkit",
             dependencies: [
                 "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
                 .product(name: "DequeModule", package: "swift-collections"),
             ],
-            resources: [.copy("Localization/translations"), .copy("VERSION")],
+            path: "Sources",
+            // Every other target's directory under Sources. One left out, or a new one, is reported by
+            // SwiftPM as "found N file(s) which are unhandled" (a warning), so the list cannot go stale
+            // quietly.
+            exclude: [
+                "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkitAppKit", "TUIkitCore",
+                "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitStyling", "TUIkitView",
+                "TUIkitWidthCorpus",
+            ],
+            // The planned modules, in rules.json's order. Two are listed below their directories, because
+            // SwiftPM treats every file under a declared source path as a compile input (measured, SwiftPM
+            // 6.2.4 to 6.4.0, native and Swift Build):
+            // - TUIkit (the umbrella) by its one file: its TUIkit.docc catalog would be an "unexpected
+            //   input file". Left out, the catalog is found by the automatic rules, as before.
+            // - TUIkitStrings below the level of its resources: a resource under a declared source path is
+            //   "duplicate rule found for file". Until step B2 carves TUIkitStrings, which then declares
+            //   them as this target does today, at the same paths inside its directory.
+            // A Swift file no entry covers is reported as unhandled, like a stray directory above.
+            sources: [
+                "TUIkitStrings/Formatting",
+                "TUIkitStrings/Localization/BundleStringTables.swift",
+                "TUIkitStrings/Localization/LocalizationKeys.swift",
+                "TUIkitStrings/Localization/LocalizationService+Detection.swift",
+                "TUIkitStrings/Localization/LocalizationService+Files.swift",
+                "TUIkitStrings/Localization/LocalizationService+Language.swift",
+                "TUIkitStrings/Localization/LocalizationService.swift",
+                "TUIkitStrings/ModuleResource.swift",
+                "TUIkitStrings/Rendering",
+                "TUIkitStrings/SFSymbols",
+                "TUIkitStrings/State",
+                "TUIkitTerminalHost", "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps",
+                "TUIkitMenus", "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitLists",
+                "TUIkitGrid", "TUIkitNavigation", "TUIkitPresentation", "TUIkitForms", "TUIkitSearch",
+                "TUIkitTables", "TUIkitTabs", "TUIkitColorPicker", "TUIkitApp",
+                "TUIkit/Exports.swift",
+            ],
+            resources: [.copy("TUIkitStrings/Localization/translations"), .copy("TUIkitStrings/VERSION")],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
             // every module LOADED is in scope — and on macOS that included

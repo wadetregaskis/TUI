@@ -38,7 +38,7 @@ get used": `.monospaced()` and `.autocorrectionDisabled()` ignore their argument
 and are correct, because the grid *already guarantees* what they ask for (and
 `.compositingGroup()` returns the view, because a container's children are
 already composited into one picture before an opacity above them applies)
-(`Sources/TUIkit/Modifiers/MediumGuaranteedModifiers.swift`). A guarantee the
+(`Sources/TUIkitFoundation/Modifiers/MediumGuaranteedModifiers.swift`). A guarantee the
 medium keeps for free is honoured; a request it silently discards is not.
 
 ---
@@ -483,7 +483,7 @@ same way as VS-16 emoji. See `SFSymbol` for the full rules.
 **The `systemImage:` shorthand now reaches the controls**, not just `Label`:
 `Button(_:systemImage:action:)` and `Button(_:systemImage:role:action:)`,
 `Toggle(_:systemImage:isOn:)`, `Picker(_:systemImage:selection:content:)` and
-`ContentUnavailableView(_:systemImage:description:)` (Sources/TUIkit/SFSymbols/
+`ContentUnavailableView(_:systemImage:description:)` (Sources/TUIkitFoundation/SFSymbols/
 `ControlSymbolInitializers.swift`). Each builds the `Label` the long spelling
 would have built, so each inherits the fallback above whole — an unresolvable
 name renders the plain control, byte for byte, which is what the tests pin

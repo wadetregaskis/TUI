@@ -53,7 +53,7 @@ internal func debugFocusLog(_ message: @autoclosure () -> String) {
 
 /// The current version of TUIkit.
 ///
-/// Read from `Sources/TUIkit/VERSION` (bundled as a resource).
+/// Read from `Sources/TUIkitStrings/VERSION` (bundled as a resource).
 /// Update the `VERSION` file to change the version number.
 public let tuiKitVersion: String = {
     guard let url = moduleResourceURL(named: "VERSION", extension: nil),

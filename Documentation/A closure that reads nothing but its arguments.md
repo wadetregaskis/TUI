@@ -297,7 +297,7 @@ its own evidence that the feature was enabled.
 
 ### For TUIkit readers
 
-The memo this is about is `Sources/TUIkit/Views/TableRowMemo.swift`, the two
+The memo this is about is `Sources/TUIkitLists/Views/TableRowMemo.swift`, the two
 tiers are `TableRowMemoStore.namesItsValues` and the cell comparison in
 `Table.renderRow`, and the flag that decides them is
 `TableColumn.namesAProperty`. If Swift ever grows the effect described here,

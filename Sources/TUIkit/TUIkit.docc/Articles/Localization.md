@@ -389,7 +389,7 @@ To add new localized strings to the framework:
 
 ### 1. Update LocalizationKey Enum
 
-Edit `Sources/TUIkit/Localization/LocalizationKeys.swift`:
+Edit `Sources/TUIkitStrings/Localization/LocalizationKeys.swift`:
 
 ```swift
 public enum LocalizationKey {
@@ -483,7 +483,7 @@ To add support for a new language:
 
 ### 1. Update Language Enum
 
-Edit `Sources/TUIkit/Localization/LocalizationService.swift`:
+Edit `Sources/TUIkitStrings/Localization/LocalizationService.swift`:
 
 ```swift
 public enum Language: String, Codable {
@@ -509,7 +509,7 @@ public enum Language: String, Codable {
 
 ### 2. Create Translation File
 
-Create `Sources/TUIkit/Localization/translations/pt.json` with **all** keys from other language files:
+Create `Sources/TUIkitStrings/Localization/translations/pt.json` with **all** keys from other language files:
 
 ```json
 {

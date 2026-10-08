@@ -6,7 +6,7 @@ binary so that **all the work happens at compile time** — no runtime parsing, 
 
 The concrete case is TUIkit's SF Symbol table: **8466** symbol names mapped to
 their Plane-16 Private-Use codepoints, backing `SFSymbol.glyph(named:)` and
-`Label(_:systemImage:)` (see `Sources/TUIkit/SFSymbols/` and the generator in
+`Label(_:systemImage:)` (see `Sources/TUIkitStrings/SFSymbols/` and the generator in
 `Tools/GenerateSFSymbols/`). The names are pure ASCII (`[a-z0-9.]`); the
 codepoints all lie in `U+100000…U+1037D1`, so `codepoint − 0x100000` fits a
 `UInt16`. The lookup is a binary search by name. Everything below generalizes to
@@ -195,6 +195,6 @@ open (`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`).
    names, `UInt16`-range codepoints) so a bad regeneration fails loudly rather
    than shipping a subtly wrong table.
 
-Reference implementation: `Sources/TUIkit/SFSymbols/SFSymbol.swift` (lookup) and
+Reference implementation: `Sources/TUIkitStrings/SFSymbols/SFSymbol.swift` (lookup) and
 `SFSymbolTable.generated.swift` (the baked literals), produced by
 `Tools/GenerateSFSymbols/`.

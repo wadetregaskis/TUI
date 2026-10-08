@@ -6,7 +6,7 @@
 #  Created by LAYERED.work
 #  License: MIT
 #
-#  Regenerates Sources/TUIkit/SFSymbols/SFSymbolTable.generated.swift from the
+#  Regenerates Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift from the
 #  installed SF Symbols app. macOS only; requires the SF Symbols app (Beta or
 #  release) in /Applications. See README.md and GenerateSFSymbols.swift.
 #

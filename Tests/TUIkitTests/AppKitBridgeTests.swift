@@ -51,13 +51,27 @@ struct AppKitBridgeTests {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources")
+        // Every Sources/TUIkit… directory but the bridges themselves and the
+        // two no library module depends on: read from the tree, not listed,
+        // because the module split gives each planned module a directory of
+        // its own (Sources/TUIkitFoundation, Sources/TUIkitLists …), and a
+        // list would miss the next one. They may import each other.
+        let notBuiltFrom: Set<String> = ["TUIkitAppKit", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitWidthCorpus"]
+        let modules = try FileManager.default.contentsOfDirectory(atPath: sources.path)
+            .filter { $0.hasPrefix("TUIkit") && !notBuiltFrom.contains($0) }
+            .sorted()
+        #expect(
+            ["TUIkit", "TUIkitCore", "TUIkitFoundation", "TUIkitImage", "TUIkitStyling", "TUIkitView"]
+                .allSatisfy(modules.contains),
+            "the scan finds the framework's directories: \(modules)")
         var offenders: [String] = []
-        for module in ["TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage"] {
+        for module in modules {
             let directory = sources.appendingPathComponent(module)
             let walker = try #require(FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil))
             for case let file as URL in walker where file.pathExtension == "swift" {
                 let text = try String(contentsOf: file, encoding: .utf8)
-                for imported in ImportScan.importedModules(in: text) where !ImportScan.allowed.contains(imported) {
+                for imported in ImportScan.importedModules(in: text)
+                where !ImportScan.allowed.contains(imported) && !modules.contains(imported) {
                     offenders.append("\(module)/\(file.lastPathComponent): \(imported)")
                 }
             }
@@ -119,7 +133,9 @@ struct AppKitBridgeTests {
 /// import declaration — for the guard above, which must not be fooled by a
 /// spelling it did not think of, nor by a comment.
 private enum ImportScan {
-    /// The modules TUIkit's own may import: each other, the standard
+    /// The modules TUIkit's own may import: each other (the guard also allows
+    /// every module directory it scans, so the split's modules need no entry
+    /// here), the standard
     /// libraries of the platforms it builds on, and the Apple frameworks
     /// checked not to bring AppKit (and with it SwiftUICore) in. Anything
     /// else — AppKit, Cocoa, SwiftUI, SwiftUICore, or a framework that

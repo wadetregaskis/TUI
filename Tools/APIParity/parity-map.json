@@ -116,7 +116,7 @@
         "View.fontWidth(_:)",
         "Text.fontWidth(_:)"
       ],
-      "why": "The typeface axes: naming a family, asking for a point size, scaling one, or widening it. A terminal emulator draws every cell in the one font at the one size its user configured, and no escape sequence asks it for another — so each of these could only be accepted and ignored. TUIkit's Font (Sources/TUIkit/Styling/Font.swift) carries the axes that DO survive: the semantic style, weight and italic."
+      "why": "The typeface axes: naming a family, asking for a point size, scaling one, or widening it. A terminal emulator draws every cell in the one font at the one size its user configured, and no escape sequence asks it for another — so each of these could only be accepted and ignored. TUIkit's Font (Sources/TUIkitFoundation/Styling/Font.swift) carries the axes that DO survive: the semantic style, weight and italic."
     },
     {
       "match": [
@@ -132,7 +132,7 @@
         "EnvironmentValues.searchSuggestionsPlacement",
         "View.searchSuggestions(_:for:)"
       ],
-      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUIkit has one place: the field's drop-down (Sources/TUIkit/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/Parity-decisions-pending.md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
+      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUIkit has one place: the field's drop-down (Sources/TUIkitTextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/Parity-decisions-pending.md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
     },
     {
       "match": [
@@ -143,7 +143,7 @@
         "Menu.init(_:image:*",
         "Tab.init(_:image:*"
       ],
-      "why": "The `image:` spelling of these initializers names an `ImageResource` — a symbol the Xcode build generates from an asset catalogue, whose value is a raster bitmap at one of several scale factors. A terminal app has neither: no asset catalogue in the build (SwiftPM resources are files, not named image constants), and no way to place a bitmap in a cell. The `systemImage:` spelling of every one of these IS implemented (Sources/TUIkit/SFSymbols/ControlSymbolInitializers.swift, and PickerSymbolInitializers.swift beside it), because an SF Symbol is a character: it resolves to a Private-Use scalar the terminal font may carry, and falls back to the title alone when it does not. `Label(_:image:)` and `ContentUnavailableView(_:image:description:)` with an image NAME (a String) ship, the name found as `Image(_:bundle:)` finds a resource file (refusal review P12); their `ImageResource` forms share the parity key and stay declined by this rule."
+      "why": "The `image:` spelling of these initializers names an `ImageResource` — a symbol the Xcode build generates from an asset catalogue, whose value is a raster bitmap at one of several scale factors. A terminal app has neither: no asset catalogue in the build (SwiftPM resources are files, not named image constants), and no way to place a bitmap in a cell. The `systemImage:` spelling of every one of these IS implemented (Sources/TUIkitFoundation/SFSymbols/ControlSymbolInitializers.swift, and PickerSymbolInitializers.swift beside it), because an SF Symbol is a character: it resolves to a Private-Use scalar the terminal font may carry, and falls back to the title alone when it does not. `Label(_:image:)` and `ContentUnavailableView(_:image:description:)` with an image NAME (a String) ship, the name found as `Image(_:bundle:)` finds a resource file (refusal review P12); their `ImageResource` forms share the parity key and stay declined by this rule."
     },
     {
       "match": [
@@ -152,7 +152,7 @@
         "Text.init(_:formatter:)",
         "*.appendInterpolation(_:formatter:)"
       ],
-      "why": "The `formatter:` spelling is the pre-`FormatStyle` class API. It parses through an untyped out-parameter — `Formatter.getObjectValue(_:for:errorDescription:)` yields `AnyObject` — so binding it to a `Binding<Int>` is a downcast the compiler cannot check, and SwiftUI's `Text`/interpolation overloads narrow it further to `NSObject` and `ReferenceConvertible`, which are Objective-C bridging protocols rather than Swift ones. The same capability IS implemented in its typed form, where `Strategy.ParseOutput == FormatInput` makes the round-trip a static guarantee: `TextField(_:value:format:)` and its two siblings (Sources/TUIkit/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIkit/Views/Text.swift:111) and `\\(value, format:)` in a LocalizedStringKey interpolation. Adding the class spelling beside them would be the same feature with the type safety taken out."
+      "why": "The `formatter:` spelling is the pre-`FormatStyle` class API. It parses through an untyped out-parameter — `Formatter.getObjectValue(_:for:errorDescription:)` yields `AnyObject` — so binding it to a `Binding<Int>` is a downcast the compiler cannot check, and SwiftUI's `Text`/interpolation overloads narrow it further to `NSObject` and `ReferenceConvertible`, which are Objective-C bridging protocols rather than Swift ones. The same capability IS implemented in its typed form, where `Strategy.ParseOutput == FormatInput` makes the round-trip a static guarantee: `TextField(_:value:format:)` and its two siblings (Sources/TUIkitTextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIkitFoundation/Views/Text.swift:111) and `\\(value, format:)` in a LocalizedStringKey interpolation. Adding the class spelling beside them would be the same feature with the type safety taken out."
     },
     {
       "match": [
@@ -364,7 +364,7 @@
         "Image.init(_:variableValue:bundle:*",
         "Image.init(decorative:variableValue:bundle:)"
       ],
-      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIkit/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (Symbols)."
+      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (Symbols)."
     },
     {
       "match": [
@@ -552,7 +552,7 @@
   "renamed": {
     "Font.Weight": {
       "tuikit": "FontWeight",
-      "why": "Sources/TUIkit/Styling/StyleAttributes.swift:24 — the enum is spelled `FontWeight` at the top level, and `Font.Weight` is a typealias to it (Sources/TUIkit/Styling/Font.swift), so SwiftUI's spelling and every case (`Font.Weight.bold`, `.light`, …) compile verbatim. The audit reads declarations rather than resolving typealiases, so it sees the members only under the top-level name."
+      "why": "Sources/TUIkitFoundation/Styling/StyleAttributes.swift:24 — the enum is spelled `FontWeight` at the top level, and `Font.Weight` is a typealias to it (Sources/TUIkitFoundation/Styling/Font.swift), so SwiftUI's spelling and every case (`Font.Weight.bold`, `.light`, …) compile verbatim. The audit reads declarations rather than resolving typealiases, so it sees the members only under the top-level name."
     },
     "GlobalCoordinateSpace": {
       "tuikit": "CoordinateSpace.global",
@@ -564,7 +564,7 @@
     },
     "LocalCoordinateSpace": {
       "tuikit": "CoordinateSpace.local",
-      "why": "Sources/TUIkit/Views/GeometryReader.swift:99-100 — `case local`, \"Relative to the GeometryReader itself, whose origin is (0, 0)\", consumed by `frame(in:)` at :49-58 where it is documented as \"always exact\". SwiftUI's struct is just the protocol-based spelling of the same case."
+      "why": "Sources/TUIkitFoundation/Views/GeometryReader.swift:99-100 — `case local`, \"Relative to the GeometryReader itself, whose origin is (0, 0)\", consumed by `frame(in:)` at :49-58 where it is documented as \"always exact\". SwiftUI's struct is just the protocol-based spelling of the same case."
     },
     "ProposedViewSize": {
       "tuikit": "ProposedSize",
@@ -576,7 +576,7 @@
       "why": "Conformance requires AXChartDescriptor from Apple's Accessibility framework, which does not exist on Linux — a hard blocker for a package that must build there (.claude/CLAUDE.md) — and its purpose is VoiceOver's audio graph, for which a pty has no channel."
     },
     "AccessibilityActionCategory": {
-      "why": "It categorises custom AX actions (.default/.edit) inside the AX actions menu, a VoiceOver UI. TUIkit surfaces extra actions as drawn menus instead (Sources/TUIkit/Modifiers/ContextMenuPresentation.swift), which need no AX category because they are ordinary visible items."
+      "why": "It categorises custom AX actions (.default/.edit) inside the AX actions menu, a VoiceOver UI. TUIkit surfaces extra actions as drawn menus instead (Sources/TUIkitFoundation/Modifiers/ContextMenuPresentation.swift), which need no AX category because they are ordinary visible items."
     },
     "AccessibilityAdjustmentDirection": {
       "why": "It exists only as the argument of `accessibilityAdjustableAction`'s callback, which an assistive technology invokes, and a terminal app has none to invoke it. The adjustment a person makes arrives as ordinary key input instead: the arrow keys, through `onKeyPress`."
@@ -594,10 +594,10 @@
       "why": "Its options (requiresActivation, silentOnTouch) configure VoiceOver's direct-touch pass-through on a touch screen. A terminal has no digitizer — input is key bytes and cell-granular SGR mouse reports — so there is nothing to configure."
     },
     "AccessibilityHeadingLevel": {
-      "why": "h1…h6 exist for rotor navigation over an AX tree. TUIkit draws headings (Sources/TUIkit/Views/Section.swift:47) but a level number that is never rendered has no consumer in a terminal, where the only 'reader' sees the finished characters."
+      "why": "h1…h6 exist for rotor navigation over an AX tree. TUIkit draws headings (Sources/TUIkitFoundation/Views/Section.swift:47) but a level number that is never rendered has no consumer in a terminal, where the only 'reader' sees the finished characters."
     },
     "AccessibilityLabeledPairRole": {
-      "why": "The .label/.content roles only mean something to accessibilityLabeledPair's AX association. The visible pairing a terminal can express already exists as Sources/TUIkit/Views/LabeledContent.swift:25."
+      "why": "The .label/.content roles only mean something to accessibilityLabeledPair's AX association. The visible pairing a terminal can express already exists as Sources/TUIkitForms/Views/LabeledContent.swift:25."
     },
     "AccessibilityRotorContent": {
       "why": "It is the content protocol for rotor entry lists, consumed by VoiceOver's rotor. No assistive technology can attach to a process whose interface is a byte stream on a pty."
@@ -621,10 +621,10 @@
       "why": "The trait option set (isButton, isSelected, isHeader, allowsDirectInteraction, causesPageTurn…) is AX-tree metadata. TUIkit publishes no AX tree; a terminal app conveys role only by what it draws (button caps, selection highlight, Section headers)."
     },
     "AccessibilityZoomGestureAction": {
-      "why": "It describes a VoiceOver pinch/zoom gesture (direction, location, point). SGR mouse reporting has no pinch and no sub-cell location, and there is no assistive technology to originate the gesture. TUIkit's real zoom is `.imageZoom(_:)` in Sources/TUIkit/Views/Image+RenderingOptionModifiers.swift."
+      "why": "It describes a VoiceOver pinch/zoom gesture (direction, location, point). SGR mouse reporting has no pinch and no sub-cell location, and there is no assistive technology to originate the gesture. TUIkit's real zoom is `.imageZoom(_:)` in Sources/TUIkitBitmaps/Views/Image+RenderingOptionModifiers.swift."
     },
     "AnyShape": {
-      "why": "Type erasure over a Shape protocol that does not and cannot exist here (see Shape). TUIkit's erasure story is AnyView / AnyLayout (Sources/TUIkit/Views/AnyLayout.swift) — there is nothing shape-shaped to erase."
+      "why": "Type erasure over a Shape protocol that does not and cannot exist here (see Shape). TUIkit's erasure story is AnyView / AnyLayout (Sources/TUIkitFoundation/Views/AnyLayout.swift) — there is nothing shape-shaped to erase."
     },
     "AssistiveAccess": {
       "why": "A Scene that supplies an alternate interface for iOS's Assistive Access mode. A terminal app has no iOS lifecycle and no system mode to supply one for."
@@ -633,22 +633,22 @@
       "why": "There is no blend function for it to name. A composite copies each cell over what it covers; the one blend TUIkit performs, `opacity`, resolves at the composite against whatever is behind (Documentation/Opacity as composition.md). The modes multiply, screen and so on per pixel sample, which a cell does not have: see the per-pixel shading family."
     },
     "ButtonBorderShape": {
-      "why": "Capsule/circle/roundedRectangle radii are vector paths; a cell-grid button can only pick bracket glyphs (Sources/TUIkit/Views/Button.swift:55) or box corner glyphs (BorderStyle.rounded, Sources/TUIkitStyling/Styles/BorderStyle.swift:109). No radius exists to name."
+      "why": "Capsule/circle/roundedRectangle radii are vector paths; a cell-grid button can only pick bracket glyphs (Sources/TUIkitFoundation/Views/Button.swift:55) or box corner glyphs (BorderStyle.rounded, Sources/TUIkitStyling/Styles/BorderStyle.swift:109). No radius exists to name."
     },
     "Capsule": {
       "why": "A capsule is two semicircular end caps; the terminal's cap vocabulary is two half-block characters, TerminalSymbols.openCap (▐) and closeCap (▌) at Sources/TUIkitCore/Rendering/TerminalSymbols.swift:18-21 — a fixed pair of glyphs, not a parameterised curve."
     },
     "CGPoint.AnimatableData": {
-      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkit/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
+      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
     },
     "CGPoint.applying(_:)": {
       "why": "Applies a ProjectionTransform, a 3-D perspective matrix (declined under its own entry): a cell grid has no projection to apply a point through."
     },
     "CGRect.AnimatableData": {
-      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkit/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
+      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
     },
     "CGSize.AnimatableData": {
-      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkit/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
+      "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
     },
     "Circle": {
       "why": "A curve needs sub-cell coverage, and cells are roughly twice as tall as they are wide, so even a circle approximated in glyphs comes out distorted (`View.imageCellAspect(_:)` exists for exactly that). Where a round affordance is wanted TUIkit draws a glyph (`●`, `○`). Shapes as a whole wait on O0 of the refusal review."
@@ -699,7 +699,7 @@
       "why": "The environment half of minimumScaleFactor(_:); absent for the same reason — glyph size belongs to the terminal emulator, not to the app."
     },
     "FillShapeView": {
-      "why": "The View produced by Shape.fill(_:); no Shape exists. Filling a rectangular area with a colour is BackgroundModifier (Sources/TUIkit/Modifiers/BackgroundModifier.swift:15-42)."
+      "why": "The View produced by Shape.fill(_:); no Shape exists. Filling a rectangular area with a colour is BackgroundModifier (Sources/TUIkitFoundation/Modifiers/BackgroundModifier.swift:15-42)."
     },
     "FillStyle": {
       "why": "eoFill and isAntialiased only mean something to a path rasterizer resolving self-intersection and edge coverage; there is no path and no partial cell coverage (see Shape)."
@@ -711,10 +711,10 @@
       "why": "A serif face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another; macOS's serif also widens text (31 → 34 pt, measured), which a cell cannot. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI-API-completion-refusal-review.md P1)."
     },
     "Font.Leading": {
-      "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUIkit spells `View.lineSpacing(_:)` (Sources/TUIkit/Modifiers/LineSpacingModifier.swift) — a different unit and a different meaning, so it is not this API under another name."
+      "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUIkit spells `View.lineSpacing(_:)` (Sources/TUIkitFoundation/Environment/LineSpacing.swift) — a different unit and a different meaning, so it is not this API under another name."
     },
     "Font.leading(_:)": {
-      "why": "Leading is fractional-point spacing between baselines; a terminal's baselines are exactly one cell apart. The nearest expressible thing is a WHOLE blank row between wrapped lines — `View.lineSpacing(_:)` (Sources/TUIkit/Modifiers/LineSpacingModifier.swift) — a different unit and a different granularity, so it is not this API renamed. See also the `Font.Leading` entry."
+      "why": "Leading is fractional-point spacing between baselines; a terminal's baselines are exactly one cell apart. The nearest expressible thing is a WHOLE blank row between wrapped lines — `View.lineSpacing(_:)` (Sources/TUIkitFoundation/Environment/LineSpacing.swift) — a different unit and a different granularity, so it is not this API renamed. See also the `Font.Leading` entry."
     },
     "Font.Resolved.ctFont": {
       "why": "A CoreText font, absent on Linux and Windows, and a terminal draws in the one face the user configured: there is no font object to hand out. Font.Resolved ships the flags a cell can vary (refusal review P2)."
@@ -747,7 +747,7 @@
       "why": "The type of Image's transferRepresentation; see that entry."
     },
     "Image.Scale": {
-      "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkit/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI-compatibility.md:452 records the same constraint for Font generally."
+      "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI-compatibility.md:452 records the same constraint for Font generally."
     },
     "Image.transferRepresentation": {
       "why": "Image's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUIkit's copyable/draggable payloads need no Transferable conformance, so there is no representation for an image to declare."
@@ -765,16 +765,16 @@
       "why": "Configures a zoom transition's source: its corner shape and background. It waits with `matchedTransitionSource` on O4 of the refusal review (decisions A23)."
     },
     "MaterialActiveAppearance": {
-      "why": "Names the active/inactive/automatic appearance of a Material; there is no Material (no blur, no translucency) and no window-activation state — the terminal emulator owns window focus, and TUIkit's own focus model is per-control (Sources/TUIkit/Focus/FocusManager)."
+      "why": "Names the active/inactive/automatic appearance of a Material; there is no Material (no blur, no translucency) and no window-activation state — the terminal emulator owns window focus, and TUIkit's own focus model is per-control (Sources/TUIkitFoundation/Focus/Focus.swift, FocusManager)."
     },
     "OffsetShape": {
-      "why": "A Shape adapter (Shape.offset(x:y:)); no Shape protocol exists. Whole-cell offsetting of a VIEW does exist as View.offset(x:y:) (Sources/TUIkit/Modifiers/OffsetModifier.swift:71)."
+      "why": "A Shape adapter (Shape.offset(x:y:)); no Shape protocol exists. Whole-cell offsetting of a VIEW does exist as View.offset(x:y:) (Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift:71)."
     },
     "OutlineSubgroupChildren": {
-      "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkit/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
+      "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkitLists/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
     },
     "Path": {
-      "why": "Bezier control points are fractional; the coordinate space here is integer cells only (CellRect, Sources/TUIkit/Views/GeometryReader.swift:77-95). 0 occurrences of a SwiftUI-like Path under Sources (the three \\bPath\\b hits are a navigation-path comment and a localisation string)."
+      "why": "Bezier control points are fractional; the coordinate space here is integer cells only (CellRect, Sources/TUIkitFoundation/Views/GeometryReader.swift:77-95). 0 occurrences of a SwiftUI-like Path under Sources (the three \\bPath\\b hits are a navigation-path comment and a localisation string)."
     },
     "PreviewContext": {
       "why": "The canvas-supplied context protocol; no canvas can host a terminal view (see PreviewProvider)."
@@ -783,7 +783,7 @@
       "why": "Key protocol for PreviewContext, which has no host (see PreviewProvider)."
     },
     "PreviewDevice": {
-      "why": "Names a simulator device for the canvas. A TUIkit app's only \"device\" is the attached terminal, whose size is read live (`\\.terminalWidth`/`\\.terminalHeight`, Sources/TUIkit/Environment/ViewEnvironmentKeys.swift:75) and whose glyph repertoire is detected at runtime (TerminalHost)"
+      "why": "Names a simulator device for the canvas. A TUIkit app's only \"device\" is the attached terminal, whose size is read live (`\\.terminalWidth`/`\\.terminalHeight`, Sources/TUIkitFoundation/Environment/ViewEnvironmentKeys.swift:75) and whose glyph repertoire is detected at runtime (TerminalHost)"
     },
     "PreviewModifier": {
       "why": "Supplies shared context to canvas previews; with no canvas able to host a FrameBuffer-rendering view (see PreviewProvider) there is no preview to modify."
@@ -840,13 +840,13 @@
       "why": "The results collection of SectionedFetchRequest; same Core Data dependency, excluded by the cross-platform requirement in .claude/CLAUDE.md (Linux and Windows builds have no CoreData)."
     },
     "ShadowStyle": {
-      "why": "It parameterises drop/inner shadows by radius and fractional offset, both sub-cell quantities on a grid whose smallest unit is one whole cell (CellRect is Int-only, Sources/TUIkit/Views/GeometryReader.swift:77-95). See `shadow`."
+      "why": "It parameterises drop/inner shadows by radius and fractional offset, both sub-cell quantities on a grid whose smallest unit is one whole cell (CellRect is Int-only, Sources/TUIkitFoundation/Views/GeometryReader.swift:77-95). See `shadow`."
     },
     "Shape": {
       "why": "A Shape is `path(in:) -> Path` over continuous coordinates, rasterised with antialiasing, and a cell has no partial coverage. TUIkit draws its one shape, the rectangle, from box-drawing characters through `BorderStyle`. Shapes as a whole wait on O0 of the refusal review, which fixes their unit."
     },
     "ShapeRole": {
-      "why": "It tells a ShapeStyle whether it is filling, stroking, or drawing a separator, so the style can adapt; there is no Shape and no ShapeStyle. The separator role does have a colour home — Palette.border, which Divider defaults to (Sources/TUIkit/Views/Spacer.swift:138)."
+      "why": "It tells a ShapeStyle whether it is filling, stroking, or drawing a separator, so the style can adapt; there is no Shape and no ShapeStyle. The separator role does have a colour home — Palette.border, which Divider defaults to (Sources/TUIkitFoundation/Views/Spacer.swift:138)."
     },
     "ShapeView": {
       "why": "The protocol that makes a filled/stroked Shape a View; with no Shape and no fill/stroke rasterization there is nothing to conform. TUIkit's equivalent leaf-drawing hook is Renderable (Sources/TUIkitView/Rendering/Renderable.swift:53)."
@@ -855,7 +855,7 @@
       "why": "The View produced by InsettableShape.strokeBorder; its whole reason for existing is insetting by half a fractional line width, which cannot arise when the line is one indivisible cell."
     },
     "StrokeShapeView": {
-      "why": "The View produced by Shape.stroke(_:style:); with no Shape and a fixed one-cell stroke there is nothing to construct. Rectangle stroking is View.border(...) (Sources/TUIkit/Extensions/View+Layout.swift:36)."
+      "why": "The View produced by Shape.stroke(_:style:); with no Shape and a fixed one-cell stroke there is nothing to construct. Rectangle stroking is View.border(...) (Sources/TUIkitFoundation/Extensions/View+Layout.swift:36)."
     },
     "StrokeStyle": {
       "why": "Line width, dash, cap, join and miter limit are all sub-cell quantities. A terminal stroke is one cell wide and its style is which character repeats: `BorderStyle`'s line, double line, heavy and rounded, the closest thing TUIkit has. Shapes wait on O0 of the refusal review."
@@ -864,7 +864,7 @@
       "why": "It names an on-screen keyboard's Return key ('Go', 'Send', 'Search'), and a terminal has no on-screen keyboard. It shipped once as a value stored in the environment that nothing read, which is worse than absence — the call compiled and the developer never learned the affordance does not exist — so it was removed (c5f31f85) and `.submitLabel(.send)` now fails to compile. `.onSubmit`, the behaviour rather than the legend, is fully implemented.\n\nThe obvious substitute WAS evaluated and declined 2026-08-17: a status-bar hint ('⏎ Send') while the field holds focus, using the per-focus-section registration StatusBarState already has. Four reasons. (1) It would fight the app for the Return slot: a StatusBarItem's identity IS its shortcut (StatusBarItem.swift — the hover state machine compares it across renders) and `resolvedSectionItems` drops any global item sharing one, so focusing a field would evict an app's own '⏎ select' item and restore it on blur. (2) It could lie: Return only submits when a submit action exists — `combinedSubmitAction` returns nil otherwise, deliberately, so Return falls through to a dialog's default button — so a field with `.submitLabel(.send)` and no `.onSubmit` would advertise 'Send' while Return fired 'Cancel'. Suppressing the hint in that case diverges from SwiftUI, which shows the label regardless. (3) Chrome churn: items joining and leaving on every Tab shift the bar, and at narrow widths can flip it into renderCompact, changing the other items too. (4) `\\.statusBar` is Optional, so it would be inert in an app that does not use the bar — the honesty guarantee would not be unconditional.\n\nIf revisited, the shape to build is opt-in app/scene-level chrome (a TUI-specific `.submitLabelHint(_:)`, default off) so `.submitLabel` is data the app chooses to render, the Return slot is only contended when asked for, and (2) becomes the app's explicit choice. Trigger to reconsider: a real app wanting it."
     },
     "SymbolColorRenderingMode": {
-      "why": "gradient vs flat colouring inside one symbol needs sub-glyph colour addressing; the smallest colourable unit is the whole cell (one SGR foreground per run — Sources/TUIkit/Rendering/ANSIRenderer.swift)."
+      "why": "gradient vs flat colouring inside one symbol needs sub-glyph colour addressing; the smallest colourable unit is the whole cell (one SGR foreground per run — Sources/TUIkitFoundation/Rendering/ANSIRenderer.swift)."
     },
     "SymbolRenderingMode": {
       "why": "Names monochrome, hierarchical, palette and multicolour symbol rendering. Only monochrome survives a cell grid: a symbol is one code point drawn in the cell's single foreground colour, so a type distinguishing four modes would have exactly one that changes anything."
@@ -897,7 +897,7 @@
       "why": "Exists only to feed `toolbarTitleDisplayMode(_:)`; a cell grid has a single glyph size (TUIkit has no Font type), so `.large`/`.inline`/`.inlineLarge` collapse to one representation."
     },
     "TransformedShape": {
-      "why": "A Shape adapter carrying a CGAffineTransform; the grid supports only integer translation (View.offset, Sources/TUIkit/Modifiers/OffsetModifier.swift:71) and there is no Shape to transform."
+      "why": "A Shape adapter carrying a CGAffineTransform; the grid supports only integer translation (View.offset, Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift:71) and there is no Shape to transform."
     },
     "UnevenRoundedRectangle": {
       "why": "Per-corner radii presuppose a radius at all; BorderStyle names four corner CHARACTERS (topLeft/topRight/bottomLeft/bottomRight, Sources/TUIkitStyling/Styles/BorderStyle.swift:13-22), which is the terminal's whole corner vocabulary."
@@ -918,16 +918,16 @@
       "why": "A wiggle is one of the symbol effects TUIkit does not draw (decisions A35: a symbol is one glyph in one cell, which can fade but not move along an angle), so the angle form of it would only add API that changes nothing. `.wiggle` itself compiles, being the Symbols framework's own type, and is documented as not drawn."
     },
     "WindowManagerRole": {
-      "why": "It tells the macOS window manager how to place/associate a window. A TUIkit app has exactly one surface — the terminal's alternate screen buffer — and no window manager to negotiate with; `WindowGroup` exists purely as the scene-shaped entry point (Sources/TUIkit/App/Scene.swift)"
+      "why": "It tells the macOS window manager how to place/associate a window. A TUIkit app has exactly one surface — the terminal's alternate screen buffer — and no window manager to negotiate with; `WindowGroup` exists purely as the scene-shaped entry point (Sources/TUIkitApp/App/Scene.swift)"
     },
     "WindowToolbarFullScreenVisibility": {
-      "why": "Exists only to feed `windowToolbarFullScreenVisibility(_:)`; TUIkit has no window and no window toolbar — the host terminal owns both, and TUIkit only ever knows a rows×columns grid (Sources/TUIkit/App/RenderLoop.swift)."
+      "why": "Exists only to feed `windowToolbarFullScreenVisibility(_:)`; TUIkit has no window and no window toolbar — the host terminal owns both, and TUIkit only ever knows a rows×columns grid (Sources/TUIkitApp/App/RenderLoop.swift)."
     },
     "ToolbarDefaultItemKind.title": {
-      "why": "Removes the default title item SwiftUI puts in a window's toolbar. TUIkit draws no default title to remove: there is no toolbar, the terminal owns the window title, and the in-grid `.appHeader` is content the app writes itself. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkit/Modifiers/ToolbarRemovalModifier.swift)."
+      "why": "Removes the default title item SwiftUI puts in a window's toolbar. TUIkit draws no default title to remove: there is no toolbar, the terminal owns the window title, and the in-grid `.appHeader` is content the app writes itself. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkitNavigation/Modifiers/ToolbarRemovalModifier.swift)."
     },
     "ToolbarDefaultItemKind.search": {
-      "why": "Removes the search field SwiftUI places in a window's toolbar by default. TUIkit has no toolbar for a search item to sit in: `.searchable` draws its field at the top of the searchable subtree, where the app put the modifier (Sources/TUIkit/Extensions/View+Searchable.swift), so there is no framework-placed item to take away. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkit/Modifiers/ToolbarRemovalModifier.swift)."
+      "why": "Removes the search field SwiftUI places in a window's toolbar by default. TUIkit has no toolbar for a search item to sit in: `.searchable` draws its field at the top of the searchable subtree, where the app put the modifier (Sources/TUIkitSearch/Extensions/View+Searchable.swift), so there is no framework-placed item to take away. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkitNavigation/Modifiers/ToolbarRemovalModifier.swift)."
     },
     "KeyEquivalent.clear": {
       "why": "The keypad Clear key (U+F739). No terminal encoding TUIkit parses gives it a sequence of its own (it sits in Num Lock's position), so a shortcut or onKeyPress on it could never fire. Reopen if a terminal is found to send it, most likely under the kitty keyboard protocol (decisions A4). See decisions C4."
@@ -949,7 +949,7 @@
     },
     "AccessibilityFocusState": {
       "how": "FocusState / @FocusState",
-      "why": "SwiftUI needs a second focus-state wrapper because VoiceOver's cursor moves independently of keyboard focus. A terminal has one focus, which `@FocusState` with `focused(_:)` and `focused(_:equals:)` binds (`Sources/TUIkit/Focus/FocusState.swift`)."
+      "why": "SwiftUI needs a second focus-state wrapper because VoiceOver's cursor moves independently of keyboard focus. A terminal has one focus, which `@FocusState` with `focused(_:)` and `focused(_:equals:)` binds (`Sources/TUIkitFoundation/Focus/FocusState.swift`)."
     },
     "Canvas": {
       "how": "Renderable + FrameBuffer",
@@ -957,15 +957,15 @@
     },
     "DefaultPickerStyle": {
       "how": "PickerStyle.automatic / AutomaticPickerStyle",
-      "why": "Sources/TUIkit/Styles/PickerStyle+Variants.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
+      "why": "Sources/TUIkitPickers/Styles/PickerStyle+Variants.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
     },
     "DefaultToolbarItem": {
       "how": "SystemStatusBarItem.quit / .appearance / .theme",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/StatusBar/SystemStatusBarItem.swift:22,35,48 — the concrete system-provided items, plus `SystemStatusBarItem.items(onQuit:onAppearance:onTheme:)` at :73 for re-binding their actions."
+      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitFoundation/StatusBar/SystemStatusBarItem.swift:22,35,48 — the concrete system-provided items, plus `SystemStatusBarItem.items(onQuit:onAppearance:onTheme:)` at :73 for re-binding their actions."
     },
     "DynamicViewContent": {
       "how": "DynamicViewContentActions (internal protocol) on ForEach",
-      "why": "`DynamicViewContentActions` (`Sources/TUIkit/Views/DynamicViewContent.swift`) is the internal seam behind SwiftUI's protocol, whose `onMove` and `onDelete` it mirrors. It behaves the same for ForEach; the cost of its being internal is that a custom row container cannot take part."
+      "why": "`DynamicViewContentActions` (`Sources/TUIkitFoundation/Views/DynamicViewContent.swift`) is the internal seam behind SwiftUI's protocol, whose `onMove` and `onDelete` it mirrors. It behaves the same for ForEach; the cost of its being internal is that a custom row container cannot take part."
     },
     "EditableCollectionContent": {
       "how": "DynamicViewContentActions (internal) + concrete ForEach editing methods",
@@ -981,7 +981,7 @@
     },
     "FocusedObject": {
       "how": "@FocusedValue(Model.self) with an @Observable model",
-      "why": "SwiftUI's @FocusedObject reads an ObservableObject, the Combine-based family TUIkit does not support (Documentation/SwiftUI-compatibility.md §2.3). The same reading of an @Observable model is `@FocusedValue(Model.self)` (Sources/TUIkit/Focus/FocusedValue.swift), which SwiftUI also offers and which tracks the properties the body reads, as the ObservableObject wrapper did through objectWillChange."
+      "why": "SwiftUI's @FocusedObject reads an ObservableObject, the Combine-based family TUIkit does not support (Documentation/SwiftUI-compatibility.md §2.3). The same reading of an @Observable model is `@FocusedValue(Model.self)` (Sources/TUIkitFoundation/Focus/FocusedValue.swift), which SwiftUI also offers and which tracks the properties the body reads, as the ObservableObject wrapper did through objectWillChange."
     },
     "ForEach.Body": {
       "how": "ForEach.body: Never",
@@ -993,7 +993,7 @@
     },
     "List.Body": {
       "how": "List.body: some View",
-      "why": "Sources/TUIkit/Views/List.swift:96 `public var body: some View`, the same shape as SwiftUI's `typealias Body = some View`. The typealias is inferred in TUIkit's source and written in the SDK interface, so the gap is a symbolgraph artifact."
+      "why": "Sources/TUIkitLists/Views/List.swift:96 `public var body: some View`, the same shape as SwiftUI's `typealias Body = some View`. The typealias is inferred in TUIkit's source and written in the SDK interface, so the gap is a symbolgraph artifact."
     },
     "Material": {
       "how": "View.dimmed() / Palette.overlayBackground",
@@ -1005,19 +1005,19 @@
     },
     "ScrollInputBehavior": {
       "how": "\\.isScrollEnabled (Bool) via View.scrollDisabled(_:)",
-      "why": "Sources/TUIkit/Views/ScrollDisabled.swift:66. SwiftUI's automatic/enabled/disabled triple collapses to the Bool environment value; the non-additive nesting semantics match (ScrollDisabled.swift:60-63)."
+      "why": "Sources/TUIkitFoundation/Views/ScrollDisabled.swift:66. SwiftUI's automatic/enabled/disabled triple collapses to the Bool environment value; the non-additive nesting semantics match (ScrollDisabled.swift:60-63)."
     },
     "ScrollView.Body": {
       "how": "ScrollView.body: some View",
-      "why": "Sources/TUIkit/Views/ScrollView.swift:118 `public var body: some View`. axes and content are public (:79, :82), so Body is the only listed gap and it is an inferred-typealias extraction artifact."
+      "why": "Sources/TUIkitFoundation/Views/ScrollView.swift:118 `public var body: some View`. axes and content are public (:79, :82), so Body is the only listed gap and it is an inferred-typealias extraction artifact."
     },
     "ScrollViewReader.Body": {
       "how": "ScrollViewReader.body: some View",
-      "why": "Sources/TUIkit/Views/ScrollViewReader.swift:83 `public var body: some View`; same inferred-typealias artifact."
+      "why": "Sources/TUIkitFoundation/Views/ScrollViewReader.swift:83 `public var body: some View`; same inferred-typealias artifact."
     },
     "SearchUnavailableContent": {
       "how": "ContentUnavailableView.search / .search(text:)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkit/Views/ContentUnavailableView.swift:126 and :140 — the same two entry points SwiftUI exposes through SearchUnavailableContent, spelled as statics on the shared ContentUnavailableView type."
+      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitFoundation/Views/ContentUnavailableView.swift:126 and :140 — the same two entry points SwiftUI exposes through SearchUnavailableContent, spelled as statics on the shared ContentUnavailableView type."
     },
     "Section.Body": {
       "how": "Section.body: some View",
@@ -1041,11 +1041,11 @@
     },
     "View.focusedObject(_:)": {
       "how": ".focusedValue(_:) with an @Observable object",
-      "why": "Publishes an ObservableObject (§2.3: no Combine-based family). `.focusedValue(_ object:)` publishes an @Observable object under its type, read back with `@FocusedValue(Model.self)` (Sources/TUIkit/Modifiers/FocusedValueModifier.swift)."
+      "why": "Publishes an ObservableObject (§2.3: no Combine-based family). `.focusedValue(_ object:)` publishes an @Observable object under its type, read back with `@FocusedValue(Model.self)` (Sources/TUIkitFoundation/Modifiers/FocusedValueModifier.swift)."
     },
     "View.focusedSceneObject(_:)": {
       "how": ".focusedSceneValue(_:) with an @Observable object",
-      "why": "Publishes an ObservableObject for the scene (§2.3: no Combine-based family). `.focusedSceneValue(_ object:)` publishes an @Observable object under its type, seen wherever the focus is (Sources/TUIkit/Modifiers/FocusedValueModifier.swift)."
+      "why": "Publishes an ObservableObject for the scene (§2.3: no Combine-based family). `.focusedSceneValue(_ object:)` publishes an @Observable object under its type, seen wherever the focus is (Sources/TUIkitFoundation/Modifiers/FocusedValueModifier.swift)."
     }
   }
 }

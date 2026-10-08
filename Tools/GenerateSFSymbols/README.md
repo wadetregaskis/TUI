@@ -1,8 +1,8 @@
 # SF Symbols table generator
 
-Regenerates [`Sources/TUIkit/SFSymbols/SFSymbolTable.generated.swift`](../../Sources/TUIkit/SFSymbols/SFSymbolTable.generated.swift)
+Regenerates [`Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift`](../../Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift)
 — the baked SF Symbol *name → Unicode codepoint* table that backs
-[`SFSymbol`](../../Sources/TUIkit/SFSymbols/SFSymbol.swift) and
+[`SFSymbol`](../../Sources/TUIkitStrings/SFSymbols/SFSymbol.swift) and
 `Label(_:systemImage:)`.
 
 This is **developer tooling**, not part of the package build. End users never

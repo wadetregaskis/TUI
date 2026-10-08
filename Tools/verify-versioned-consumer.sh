@@ -11,7 +11,7 @@
 # The consumer here does not merely compile — it RUNS, and checks two things
 # that only exist at runtime:
 #
-#   tuiKitVersion                  reads Sources/TUIkit/VERSION via
+#   tuiKitVersion                  reads Sources/TUIkitStrings/VERSION via
 #                                  Bundle.module, and answers "unknown" if the
 #                                  bundle cannot be found. A compile-only check
 #                                  would sail straight past that.
@@ -115,7 +115,7 @@ import TUIkit
 
 var failures: [String] = []
 
-// Resolves Sources/TUIkit/VERSION through Bundle.module, or answers "unknown".
+// Resolves Sources/TUIkitStrings/VERSION through Bundle.module, or answers "unknown".
 if tuiKitVersion == "unknown" || tuiKitVersion.isEmpty {
     failures.append(
         """

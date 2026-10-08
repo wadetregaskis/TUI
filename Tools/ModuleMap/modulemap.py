@@ -209,7 +209,7 @@ def run(a):
     t0 = time.time()
     R = Rules.load(a.rules)
     store = a.store or indexstore.find_store(ROOT)
-    M = Model.load(ROOT, R.source, store, a.lib)
+    M = Model.load(ROOT, R.source, store, a.lib, modules=R.order if R.by_directory else None)
     t1 = time.time()
     print(f'modulemap: {len(M.files)} files, {len(M.nodes)} declarations, '
           f'{sum(len(v) for v in M.edges.values())} edges from {store} ({t1 - t0:.1f} s)')
