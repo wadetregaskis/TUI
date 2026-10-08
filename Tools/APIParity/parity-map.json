@@ -621,7 +621,7 @@
       "why": "The trait option set (isButton, isSelected, isHeader, allowsDirectInteraction, causesPageTurn…) is AX-tree metadata. TUIkit publishes no AX tree; a terminal app conveys role only by what it draws (button caps, selection highlight, Section headers)."
     },
     "AccessibilityZoomGestureAction": {
-      "why": "It describes a VoiceOver pinch/zoom gesture (direction, location, point). SGR mouse reporting has no pinch and no sub-cell location, and there is no assistive technology to originate the gesture. TUIkit's real zoom is `.imageZoom(_:)` at Sources/TUIkit/Views/Image.swift:453."
+      "why": "It describes a VoiceOver pinch/zoom gesture (direction, location, point). SGR mouse reporting has no pinch and no sub-cell location, and there is no assistive technology to originate the gesture. TUIkit's real zoom is `.imageZoom(_:)` in Sources/TUIkit/Views/Image+RenderingOptionModifiers.swift."
     },
     "AnyShape": {
       "why": "Type erasure over a Shape protocol that does not and cannot exist here (see Shape). TUIkit's erasure story is AnyView / AnyLayout (Sources/TUIkit/Views/AnyLayout.swift) — there is nothing shape-shaped to erase."

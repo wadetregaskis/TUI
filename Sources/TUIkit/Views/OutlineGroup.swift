@@ -711,3 +711,11 @@ extension OutlineGroup {
         self.content = content
     }
 }
+
+extension _OutlineRow: OutlineRowMarking {}
+
+extension OutlineGroup: KeyedRowProvider where Leaf: View {
+    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+        runs.append(.outline)
+    }
+}

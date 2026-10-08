@@ -43,25 +43,6 @@ extension Section: ChildViewProvider where Parent: View, Content: View, Footer: 
     }
 }
 
-/// A section with actions is its section's parts in a container — the actions
-/// belong to a `List`, which keeps the section whole, as do the section APIs,
-/// which hand them to a custom container.
-extension _SectionActionsView: ChildViewProvider where Content: ChildViewProvider {
-    func childViews(context: RenderContext) -> [ChildView] {
-        guard !staysWhole(in: context) else { return [ChildView(self)] }
-        // A step inside this view, where drawing it through its `body` puts
-        // the section.
-        let sectionScope = context.withChildIdentity(type: Content.self)
-        return resolveChildViews(from: content, context: sectionScope).map {
-            $0.pinningIdentity(to: sectionScope.identity)
-        }
-    }
-
-    func staysWhole(in context: RenderContext) -> Bool {
-        content.staysWhole(in: context)
-    }
-}
-
 /// The children one part of a section contributes: the part's own members,
 /// resolved under a step of their own below the section — the scope
 /// ``SectionParts/scopedParts(in:)`` gives the section APIs, so a header's

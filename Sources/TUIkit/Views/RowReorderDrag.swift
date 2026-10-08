@@ -2,35 +2,15 @@
 //  RowReorderDrag.swift
 //
 //  The vocabulary a drag-to-reorder gesture needs outside the state machine in
-//  `ItemListHandler+Reorder`: the gesture's own state, the protocol
-//  `DragAndDropSession` resolves it through, and two small helper types. `List`
-//  and `Table` both run that machine, so these live here rather than privately
-//  in either one.
+//  `ItemListHandler+Reorder`: the gesture's own state and the protocol
+//  `DragAndDropSession` resolves it through (the two small types it carries are
+//  in `RowReorderPayload.swift`). `List` and `Table` both run that machine, so
+//  these live here rather than privately in either one.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-
-/// Where inside the grabbed row a reorder drag was pressed, in the row's own
-/// cells — the cell a ``RowReorderFeedback/cursor`` drag keeps under the pointer.
-///
-/// A class because the press-captured mouse closure fills it in on the press and
-/// reads it back on the drags that follow: the closure IS the gesture, and it
-/// outlives the render that made it.
-@MainActor
-final class RowReorderGrabPoint {
-    var x = 0
-    var y = 0
-}
-
-/// The payload a ``RowReorderFeedback/cursor`` drag carries.
-///
-/// Internal and empty on purpose: it exists only to satisfy
-/// ``DragAndDropSession``, and no client's `dropDestination` can name — and
-/// therefore accept — it, so floating a row over the app can never be mistaken
-/// for a drop. The row is placed by the control it belongs to, on release.
-struct RowReorderPayload {}
 
 /// One in-flight row-reorder drag: which rows are in hand, and where they are.
 ///

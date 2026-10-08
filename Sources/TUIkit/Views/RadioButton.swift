@@ -1049,3 +1049,5 @@ extension View {
         style(.control(.radioButton), build)
     }
 }
+
+extension RadioButtonGroup: FormControlRow {}

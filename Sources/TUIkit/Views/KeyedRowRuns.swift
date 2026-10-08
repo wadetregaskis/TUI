@@ -178,12 +178,6 @@ extension Optional: KeyedRowProvider where Wrapped: View {
     }
 }
 
-extension OutlineGroup: KeyedRowProvider where Leaf: View {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
-        runs.append(.outline)
-    }
-}
-
 /// A section is its parts' children to a walk that takes it apart, so its
 /// parts' loops are runs of the container's; kept whole, it is one positional
 /// child and makes none. A collapsed section's content makes none either.

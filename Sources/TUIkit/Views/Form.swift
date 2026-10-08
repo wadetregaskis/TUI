@@ -131,18 +131,8 @@ enum _FormElement {
     case group([Self], branch: String?)
 }
 
-// MARK: - Row-kind markers
-
-/// A self-labelled control that a ``Form`` places in the control column with its
-/// own clickable label (a checkbox/radio), rather than pulling a label to the
-/// pillar. Conformed by ``Toggle`` and ``RadioButtonGroup``.
-protocol FormControlRow {}
-
 /// A control a ``Form`` right-aligns (a push button). Conformed by ``Button``.
 protocol FormButtonRow {}
-
-extension Toggle: FormControlRow {}
-extension RadioButtonGroup: FormControlRow {}
 extension Button: FormButtonRow {}
 
 // MARK: - Per-row alignment override

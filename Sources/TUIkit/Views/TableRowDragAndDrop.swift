@@ -16,17 +16,6 @@ import TUIkitView
     import UniformTypeIdentifiers
 #endif
 
-// MARK: - What a row carries
-
-/// A drop a row takes onto itself, from a `.dropDestination(for:action:)` on
-/// row content.
-struct _TableRowDrop {
-    /// Whether a drag carrying this payload can land on the row.
-    let accepts: (Any) -> Bool
-    /// Performs the drop with the payloads it accepts.
-    let perform: ([Any]) -> Void
-}
-
 /// A loop of rows that takes payloads in between its rows, from
 /// `.dropDestination(for:action:)` or `.onInsert(of:perform:)` on a `ForEach`
 /// of rows.

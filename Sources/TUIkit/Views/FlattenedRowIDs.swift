@@ -466,6 +466,4 @@ struct AskedRowID<ID: Hashable> {
 
 /// What an `OutlineGroup`'s flattened row is, whatever it outlines.
 @MainActor
-private protocol OutlineRowMarking {}
-
-extension _OutlineRow: OutlineRowMarking {}
+protocol OutlineRowMarking {}

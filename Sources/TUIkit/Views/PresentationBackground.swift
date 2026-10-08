@@ -55,15 +55,6 @@ extension View {
     }
 }
 
-// MARK: - The trait
-
-/// Content that has named its presentation's background.
-@MainActor
-protocol PresentationBackgroundProviding {
-    /// `view`, with the background behind it.
-    func presentationBackground<V: View>(behind view: V) -> AnyView
-}
-
 /// The wrapper the two modifiers produce. Renders and measures as its content;
 /// the presenter, which knows how big the presentation is, draws the fill.
 struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundProviding {
@@ -117,11 +108,3 @@ extension _PresentationBackgroundView: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _PresentationBackgroundView: DrawsContentUnchanged {}
-
-/// `view` with the background `content` named for its presentation, if it
-/// named one.
-@MainActor
-func withPresentationBackground<V: View>(_ view: V, from content: any View) -> AnyView? {
-    presentationTrait(PresentationBackgroundProviding.self, of: content)?
-        .presentationBackground(behind: view)
-}
