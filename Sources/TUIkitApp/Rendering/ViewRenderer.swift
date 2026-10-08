@@ -34,6 +34,19 @@
 /// The render cache is private to this renderer, so a snapshot never
 /// disturbs the shared cache a live app may be using.
 ///
+/// Once the frame is written, the renderer empties what the walk left in its
+/// services — the `@State`, the render cache, the preferences, and what was
+/// registered with the focus manager, the key and mouse dispatchers, the
+/// shortcut registry and the drag session — because those registrations hold
+/// closures over the walk's `RenderContext`, whose environment holds the
+/// services themselves: left filled, they kept the renderer and its whole
+/// render alive after it was let go of. That is not a teardown pass either.
+/// No view's code runs in it: nothing disappears, and the control the
+/// snapshot focused is not told its focus ended, so a `TextField` reports
+/// `onEditingChanged(true)` and never `false`. What the context keeps beyond
+/// that (`TUIContext.reset()` lists it), the images sent to the terminal
+/// among it, is left as it is, and goes with the renderer.
+///
 /// What a snapshot does NOT skip is the root composite. `.offset`,
 /// `.position`, `.popover`, `.sheet` and `.alert` leave their drawing in
 /// `overlays` rather than in the lines, and `.opacity` leaves a blend still
@@ -102,8 +115,11 @@ extension ViewRenderer {
     /// Renders a view to the terminal.
     ///
     /// Queries the terminal size, renders the view into a ``FrameBuffer``,
-    /// and writes the result line-by-line to the terminal. Keeps nothing
-    /// afterwards: the next render starts from empty state and an empty cache.
+    /// and writes the result line-by-line to the terminal. Then empties what
+    /// the walk left in the renderer's services, without running any view's
+    /// code (see the type's documentation), so a second render on the same
+    /// renderer starts from empty `@State` and an empty render cache, and
+    /// nothing the walk registered keeps the renderer alive.
     ///
     /// - Parameters:
     ///   - view: The view to render.
@@ -163,17 +179,24 @@ extension ViewRenderer {
         // buffer comes back byte-identical.
         let composited = buffer.compositingOverlays(maxWidth: size.width, maxHeight: size.height, palette: environment.palette)
         flush(composited, atRow: row, column: column)
-        // Then nothing is kept, as `App` keeps nothing once it quits: the focus
-        // manager cleared, then the context reset, in `App.cleanup`'s order.
-        // Letting go of them is not enough. What the walk left in them holds
-        // closures over its `RenderContext` — a `List`'s handler answers row
-        // heights from the rows it drew, each row's box holds the context it
-        // was built under, the mouse dispatcher holds the row's hit-test
-        // handler — and that context's environment holds the state storage,
-        // the cache, the focus manager and the dispatcher themselves. So each
-        // was in a cycle with what it kept, and every snapshot of a list
-        // stayed alive, whole, for the life of the process.
-        focusManager.clear()
+        // Then what the walk left is emptied, as `App.cleanup` empties its own
+        // at quit: the focus manager, then the context, in that order. Letting
+        // go of them is not enough. What the walk left in them holds closures
+        // over its `RenderContext` — a `List`'s handler answers row heights
+        // from the rows it drew, each row's box holds the context it was built
+        // under, the mouse dispatcher holds the row's hit-test handler — and
+        // that context's environment holds the state storage, the cache, the
+        // focus manager and the dispatcher themselves. So each was in a cycle
+        // with what it kept, and every snapshot of a list stayed alive, whole,
+        // for the life of the process.
+        //
+        // The focus manager WITHOUT `clear()`'s first step, which tells the
+        // focused control it lost the focus. At quit that is the focused
+        // field's commit; here it ran the control's callbacks after the frame
+        // was on the terminal — the field the snapshot auto-focused reported
+        // `onEditingChanged(false)` — and a snapshot runs no view's code once
+        // it has drawn.
+        focusManager.clearWithoutNotifying()
         context.reset()
     }
 }

@@ -188,6 +188,57 @@ struct ViewRendererTests {
         #expect(focus == nil, "the snapshot's focus manager outlived it")
     }
 
+    /// The same oracle over every kind of registration a walk makes with the
+    /// context's services, not only a list's: a hit-test handler, a shortcut,
+    /// a focusable, a presentation, a drop target, a status-bar item, a help
+    /// candidate. Any one of them left holding a closure over the walk's
+    /// `RenderContext` keeps the whole snapshot alive.
+    @Test("A snapshot goes with its renderer whatever it registered", arguments: SnapshotSubject.allCases)
+    func snapshotOfAnySubjectKeepsNothing(_ subject: SnapshotSubject) {
+        weak var storage: StateStorage?
+        weak var cache: RenderCache?
+        weak var focus: FocusManager?
+        do {
+            let mock = MockTerminal()
+            mock.size = (40, 12)
+            let renderer = ViewRenderer(terminal: mock)
+            renderer.render(subject.view)
+            storage = renderer.context.stateStorage
+            cache = renderer.context.renderCache
+            focus = renderer.focusManager
+            #expect(!visibleWrites(mock).isEmpty, "nothing was drawn")
+        }
+        #expect(storage == nil, "\(subject): the snapshot's state storage outlived it")
+        #expect(cache == nil, "\(subject): the snapshot's render cache outlived it")
+        #expect(focus == nil, "\(subject): the snapshot's focus manager outlived it")
+    }
+
+    /// A snapshot's teardown runs none of the views' code. Its focus manager
+    /// has to be emptied, or what it keeps keeps the snapshot alive (above),
+    /// but `FocusManager.clear()` empties it by telling the focused control it
+    /// lost the focus, which is `App.cleanup`'s commit point at quit. Here it
+    /// told a text field the snapshot had auto-focused that its editing had
+    /// ended: `onEditingChanged(false)`, after the frame was on the terminal.
+    /// A snapshot has no teardown pass (see the type's documentation) and runs
+    /// no effects.
+    @Test("A snapshot's teardown tells no control it lost the focus")
+    func snapshotTeardownIsSilent() {
+        final class Log {
+            var editing: [Bool] = []
+        }
+        let log = Log()
+        let mock = MockTerminal()
+        mock.size = (30, 4)
+
+        ViewRenderer(terminal: mock).render(
+            TextField("Name", text: .constant("x")).onEditingChanged { log.editing.append($0) })
+
+        #expect(visibleWrites(mock).contains { $0.contains("x") }, "the field was not drawn")
+        // The arrival is the snapshot's auto-focus, as before the teardown
+        // existed; it is the departure that must not come.
+        #expect(log.editing == [true], "the snapshot's teardown reported an edit's end: \(log.editing)")
+    }
+
     /// A snapshot is a second screen root, and the root is where a displaced
     /// drawing lands: `.offset` paints NOTHING at its natural position and puts
     /// the glyphs in an `OverlayLayer`, so a flush that walked only
@@ -238,6 +289,74 @@ struct ViewRendererTests {
             let fadedRow = try #require(faded.writtenOutput.first { $0.contains("faint") })
             let plainRow = try #require(plain.writtenOutput.first { $0.contains("faint") })
             #expect(fadedRow != plainRow, "the region was never resolved: \(fadedRow.debugDescription)")
+        }
+    }
+}
+
+/// What `ViewRendererTests.snapshotOfAnySubjectKeepsNothing` snapshots: one
+/// view per kind of registration a walk makes with the context's services.
+enum SnapshotSubject: String, CaseIterable, Sendable {
+    case list, table, shortcutButton, textField, slider, stepper, toggle, picker, menu
+    case scrollView, hoverAndHelp, tapGesture, keyPress, contextMenu, sheet, alert
+    case dropDestination, statusBarItems, navigationStack, tabView
+
+    private struct Row: Identifiable {
+        let id: Int
+        var name: String { "row \(id)" }
+    }
+
+    @MainActor var view: AnyView {
+        switch self {
+        case .list:
+            AnyView(List(selection: .constant(String?.none)) {
+                ForEach(["one", "two"], id: \.self) { Text($0) }
+            })
+        case .table:
+            AnyView(Table([Row(id: 0), Row(id: 1)], selection: .constant(Int?.none)) {
+                TableColumn("Name", value: \Row.name)
+            })
+        case .shortcutButton:
+            AnyView(Button("Go") {}.keyboardShortcut(.defaultAction))
+        case .textField:
+            AnyView(TextField("Name", text: .constant("x")))
+        case .slider:
+            AnyView(Slider(value: .constant(0.5)))
+        case .stepper:
+            AnyView(Stepper("Count", value: .constant(1)))
+        case .toggle:
+            AnyView(Toggle("On", isOn: .constant(true)))
+        case .picker:
+            AnyView(Picker("Pick", selection: .constant(1)) {
+                Text("one").tag(1)
+                Text("two").tag(2)
+            })
+        case .menu:
+            AnyView(Menu("Menu") { Button("A") {} })
+        case .scrollView:
+            AnyView(ScrollView { ForEach(0..<30, id: \.self) { Text("line \($0)") } })
+        case .hoverAndHelp:
+            AnyView(Text("hover").onHover { _ in }.help("tip"))
+        case .tapGesture:
+            AnyView(Text("tap").onTapGesture {})
+        case .keyPress:
+            AnyView(Button("Key") {}.onKeyPress("k") { .handled })
+        case .contextMenu:
+            AnyView(Text("context").contextMenu { Button("A") {} })
+        case .sheet:
+            AnyView(Text("under").sheet(isPresented: .constant(true)) { Text("sheet") })
+        case .alert:
+            AnyView(Text("under").alert("Title", isPresented: .constant(true)) { Button("OK") {} })
+        case .dropDestination:
+            AnyView(Text("drop").dropDestination(for: String.self) { _, _ in true })
+        case .statusBarItems:
+            AnyView(Text("status").statusBarItems([StatusBarItem(shortcut: "n", label: "new") {}]))
+        case .navigationStack:
+            AnyView(NavigationStack { Text("root") })
+        case .tabView:
+            AnyView(TabView {
+                Tab("Alpha", systemImage: "a.circle") { Text("ALPHA") }
+                Tab("Beta", systemImage: "b.circle") { Text("BETA") }
+            })
         }
     }
 }
