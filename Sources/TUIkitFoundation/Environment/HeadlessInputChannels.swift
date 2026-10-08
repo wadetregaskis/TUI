@@ -102,8 +102,9 @@ package final class HeadlessInputChannels {
     }
 
     /// Ends a context these channels were installed into, as an app ends its
-    /// own on the way out (`TUIContext.reset()`): empties its state storage,
-    /// render cache and preference storage.
+    /// own on the way out (`TUIContext.reset()`): empties what its last walk
+    /// registered with the channels, and its state storage, render cache and
+    /// preference storage.
     ///
     /// Letting go of the context does not free them. Each keeps closures that
     /// captured a `RenderContext` — a `List`'s handler answers row heights
@@ -113,12 +114,19 @@ package final class HeadlessInputChannels {
     /// each is in a cycle with what it keeps, and a context dropped without
     /// this stayed alive, whole. An app has one context, which lives as long
     /// as it runs; the Stress bench's `--cold` makes one a frame, and kept
-    /// every one of them. (The channels themselves need nothing: the frame
-    /// loop empties them before every walk.)
+    /// every one of them.
+    ///
+    /// The channels first, as ``beginWalk()`` empties them. They outlive the
+    /// context, and what its walk registered with them — a `List` row's
+    /// hit-test handler holds the list's handler and the walk's
+    /// `RenderContext` — keeps the context's storage and cache alive through
+    /// them. Left to the next walk's ``beginWalk()``, a cold bench freed the
+    /// last frame's render inside the next frame's timed region.
     ///
     /// - Parameter context: The context to end.
     @MainActor
     package func discard(_ context: RenderContext) {
+        beginWalk()
         context.environment.stateStorage?.reset()
         context.environment.renderCache?.reset()
         context.environment.preferenceStorage?.reset()
