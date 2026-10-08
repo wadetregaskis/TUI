@@ -283,8 +283,10 @@ public enum KittyGraphics {
         guard remaining > 0 else { return }
         let second = remaining > 1 ? UInt32(bytes[index + 1]) : 0
         let triple = (UInt32(bytes[index]) << 16) | (second << 8)
-        out.append(alphabet[Int((triple >> shift18) & sixBits)])
-        out.append(alphabet[Int((triple >> shift12) & sixBits)])
+        let firstSextet: UInt32 = (triple >> shift18) & sixBits
+        out.append(alphabet[Int(firstSextet)])
+        let secondSextet: UInt32 = (triple >> shift12) & sixBits
+        out.append(alphabet[Int(secondSextet)])
         out.append(remaining > 1 ? alphabet[Int((triple >> shift6) & sixBits)] : 0x3D)  // =
         out.append(0x3D)  // =
     }
