@@ -191,10 +191,20 @@ canImport(WASILibc)` does not, because Windows compiles it, and nor does a branc
 Dispatch sources. The
 check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file with code outside TUIkitApp.
 
-### `umbrella`: code in the umbrella
+### `umbrella`: code in the umbrella, or a module it does not re-export
+
+`TUIkit does not re-export TUIkitNavigation`
 
 The `TUIkit` umbrella re-exports and holds nothing else. No declaration may be assigned to it, and its files may
-hold only imports.
+hold only imports. And it re-exports, by name, every module carved out above `TUIkitFoundation` (the `default` in
+`rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
+TUIkitColorPicker, TUIkitNavigation since step B5). TUIkitFoundation cannot re-export a module built on it, so
+`import TUIkit` has it only through the umbrella. Reaching it through a sibling instead compiles the same:
+TUIkitColorPicker re-exports TUIkitNavigation until step C1, so an umbrella without TUIkitNavigation's line still
+gives an app `TUIkit.NavigationStack`, until a peel moves ColorPicker's dependency off TUIkitNavigation (step C1,
+to TUIkitPresentation). No build notices the missing line before then; this check does. A module TUIkitFoundation still compiles re-exports nothing
+and is not asked for, and nor is a module below TUIkitFoundation (TUIkitStrings), which TUIkitFoundation
+re-exports. Fix it by adding `@_exported import` of the module to `Sources/TUIkit/Exports.swift`.
 
 ### `lower`: a lower module the module's `lower` list does not name
 

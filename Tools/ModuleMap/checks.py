@@ -218,11 +218,12 @@ def uncompiled(M, R, asg):
 
 
 def umbrella(M, R, asg):
-    """The umbrella holds no code: no declaration is assigned to it, and its files hold only imports."""
+    """The umbrella holds no code: no declaration is assigned to it, and its files hold only imports. And it
+    re-exports, by name, every module carved out above the default module (see `built_on_default`)."""
     out = [Finding('umbrella', M.label(n), f'{M.label(n)} would sit in the umbrella {R.umbrella}', M.file[n], M.line[n])
            for n in M.nodes if asg[n] == R.umbrella]
-    for f in M.files:
-        if R.seed(f)[0] != R.umbrella: continue
+    mine = [f for f in M.files if R.seed(f)[0] == R.umbrella]
+    for f in mine:
         lx = M.lexed[f]
         for i in range(1, len(lx.lines) + 1):
             s = lx.stripped[i].strip()
@@ -230,7 +231,39 @@ def umbrella(M, R, asg):
             if s and not (imp and not imp[2]) and not s.startswith('#'):
                 out.append(Finding('umbrella', f'{f}:{s[:40]}', f'{f} holds code, not only imports: {s[:60]}', f, i))
                 break
+    reexports = re_exports(M, R)
+    for m in sorted(built_on_default(R, reexports) - reexports[R.umbrella]):
+        out.append(Finding('umbrella', f'{R.umbrella} does not re-export {m}',
+                           f'{m} is built on {R.default}, so {R.default} cannot re-export it, and {R.umbrella} does '
+                           f'not: `import {R.umbrella}` reaches it only through another module\'s re-export, if at '
+                           f'all, and loses it when that module\'s dependencies change. Add `@_exported import {m}` '
+                           f'to the umbrella\'s Exports.swift', mine[0] if mine else None, 1 if mine else None))
     return out
+
+
+def re_exports(M, R):
+    """{module: the modules its files `@_exported import`}, a file's module being the one its directory seeds."""
+    out = collections.defaultdict(set)
+    for f in M.files:
+        for s in M.lexed[f].stripped:
+            imp = SS.import_of(s.strip())
+            if imp and imp[1]: out[R.seed(f)[0]].add(imp[0])
+    return out
+
+
+def built_on_default(R, reexports):
+    """The modules carved out ABOVE the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation …): those
+    whose files re-export it, or re-export a module that does. A carved module re-exports the modules it is built on
+    (plan §4); one that TUIkitFoundation still compiles has no re-exports, nor a module below it (TUIkitStrings),
+    which TUIkitFoundation re-exports. TUIkitFoundation cannot re-export a module built on it, so the umbrella must,
+    by name: reaching one only through a sibling's re-export (TUIkitNavigation through TUIkitColorPicker's, until
+    step C1) compiles the same, and silently stops compiling when that sibling's dependencies change."""
+    above = set()
+    while True:
+        more = {m for m, xs in reexports.items()
+                if m not in above and m not in (R.default, R.umbrella) and xs & (above | {R.default})}
+        if not more: return above
+        above |= more
 
 
 def lower(M, R, asg):
