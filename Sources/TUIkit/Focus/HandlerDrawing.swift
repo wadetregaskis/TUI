@@ -57,8 +57,11 @@ import TUIkitView
 /// ``reportingChanges(to:around:)``: the `@inlinable`
 /// `MouseEventDispatcher.register(in:reportingChangesTo:_:)` builds one and
 /// calls that, with its own generic arguments (module split step A3).
+///
+/// `Sendable` stated, as it was inferred while the type was not usable from
+/// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-struct HandlerDrawing {
+struct HandlerDrawing: Sendable {
     private let link: RenderCache.Link?
     private let identity: ViewIdentity
 

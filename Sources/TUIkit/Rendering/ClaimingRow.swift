@@ -43,8 +43,13 @@ import TUIkitStyling
 /// `@usableFromInline` where stored (module split step A3). Tracks, tabs,
 /// pickers and table rows assemble their cells through here, once per run per
 /// row, from modules that leave the substrate at B5–B7.
+///
+/// `Sendable` stated, as it was inferred while the type was not usable from
+/// inline code: the compiler infers it only for types that are not. It
+/// matters beyond the row: a type that stores one, such as
+/// ``ScrollIndicatorLine``, is inferred `Sendable` only if this is.
 @usableFromInline
-struct ClaimingRow {
+struct ClaimingRow: Sendable {
     /// The finished ANSI row.
     @usableFromInline var text = ""
 

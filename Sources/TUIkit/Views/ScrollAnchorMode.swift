@@ -28,8 +28,11 @@ import TUIkitCore
 ///
 /// `@usableFromInline`: the type of the `@inlinable` `EnvironmentValues.declaredAnchorModes`
 /// (module split step A3).
+///
+/// `Sendable` stated, as it was inferred while the type was not usable from
+/// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-enum ScrollAnchorMode: Equatable {
+enum ScrollAnchorMode: Equatable, Sendable {
     case top
     case bottom
     case row

@@ -422,8 +422,11 @@ extension MouseEventDispatcher {
 ///
 /// `@usableFromInline`: the `@inlinable` ``MouseEventDispatcher/register(in:_:)``
 /// names ``control`` (module split step A3).
+///
+/// `Sendable` stated, as it was inferred while the type was not usable from
+/// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-enum MouseHandlerLane {
+enum MouseHandlerLane: Sendable {
     /// A control: the region the pointer is over, for hover and for every
     /// event.
     case control
