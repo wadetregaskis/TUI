@@ -2801,9 +2801,11 @@ private func scrollTransitionConfigurations() -> [ScrollTransitionConfiguration]
 
 // MARK: - ColorPicker, from a module of its own
 
-/// SwiftUI's own `ColorPicker` example, and its other `Color` initializers.
-/// Since module split step B4 the type is TUIkitColorPicker's, which only the
-/// umbrella re-exports, so this is SwiftUI source reaching it as an app does.
+/// SwiftUI's own `ColorPicker` example, once more with `supportsOpacity`
+/// spelled out, and the two other initializers TUIkit has for a `Color`
+/// selection: a `String` title and a label view. Since module split step B4
+/// the type is TUIkitColorPicker's, which only the umbrella re-exports, so
+/// this is SwiftUI source reaching it as an app does.
 @MainActor
 private struct FormattingControls: View {
     @State private var bgColor =

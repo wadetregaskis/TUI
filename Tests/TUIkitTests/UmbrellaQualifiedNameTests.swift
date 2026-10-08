@@ -171,8 +171,8 @@ struct UmbrellaQualifiedNameTests {
     @Test("A qualified name reaches TUIkitColorPicker, which the umbrella re-exports beside TUIkitApp")
     func qualifiedNamesReachTheColorPicker() {
         // TUIkitColorPicker's view beside an app's own `ColorPicker`, a member
-        // an app's extension adds to it, and the view drawn: its label and
-        // the swatch's selection come out of the render.
+        // an app's extension adds to it, and the view drawn: its label comes
+        // out of the render.
         let (mine, picker) = Client.bothPickers(selection: .constant(TUIkit.Color.red))
         #expect(mine.name == "mine")
         #expect(picker.b4Marker == 4)
