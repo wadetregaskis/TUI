@@ -126,16 +126,3 @@ extension GeometryCoordinator {
     /// are pointers and reporters, which never read a prediction.
     var declarationsCarryOrigin: Bool { keepsReaders || kept.isEmpty }
 }
-
-// MARK: - The Root
-
-extension RenderContext {
-    /// This context as the scene root hands it to the scene: carrying a
-    /// geometry origin at `(0, 0)` — the global space's — when the frame's
-    /// coordinator has readers to predict for, and unchanged otherwise, so a
-    /// tree that asks nothing pays nothing (`RenderContext.geometryOriginX`).
-    package func carryingGeometryRootOrigin() -> Self {
-        guard let geometry = geometryCoordinator, geometry.hasReaders else { return self }
-        return carryingGeometryOrigin()
-    }
-}
