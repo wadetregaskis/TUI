@@ -599,10 +599,11 @@ jobs:
   #
   # Steps are deliberately separate so the job reads as a porting scoreboard:
   # the four lower modules already compile without POSIX and must stay green,
-  # while TUIkitFoundation, and so the umbrella that re-exports it, is expected
-  # to fail until the console layer lands. The console layer itself is
-  # TUIkitApp since module split step B3: POSIX by design, so it has no step of
-  # its own, and the umbrella's step covers it.
+  # while the umbrella, which re-exports TUIkitApp, is expected to fail until
+  # the console layer is ported. The console layer is TUIkitApp since module
+  # split step B3: POSIX by design, so it has no step of its own, and the
+  # umbrella's step covers it. TUIkitFoundation, which held the console layer
+  # until then, has a step of its own since B3 (see "Build TUIkitFoundation").
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -707,6 +708,21 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTerminalHost"
+
+      # ── The module the console layer left ──
+      # TUIkitFoundation held the console layer until module split step B3
+      # carved it out as TUIkitApp, so until then the umbrella's step stood for
+      # it. Since B3 its directories import no Darwin, Glibc or Musl and call
+      # no termios, ioctl or signal API (checked by grep, 2026-10-08); whether
+      # anything else stops it on Windows is unmeasured, since no Windows build
+      # of it without the console layer has been seen. Advisory until CI has
+      # seen it green, then binding like the four above. It builds the two
+      # side modules above first, so a red step here after green ones there is
+      # TUIkitFoundation's own.
+      - name: "Build TUIkitFoundation"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFoundation"
 
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
@@ -821,6 +837,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitTerminalHost
+      - name: "Build TUIkitFoundation"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitFoundation
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.
