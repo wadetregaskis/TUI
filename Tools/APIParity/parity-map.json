@@ -576,7 +576,7 @@
       "why": "Conformance requires AXChartDescriptor from Apple's Accessibility framework, which does not exist on Linux — a hard blocker for a package that must build there (.claude/CLAUDE.md) — and its purpose is VoiceOver's audio graph, for which a pty has no channel."
     },
     "AccessibilityActionCategory": {
-      "why": "It categorises custom AX actions (.default/.edit) inside the AX actions menu, a VoiceOver UI. TUIkit surfaces extra actions as drawn menus instead (Sources/TUIkit/Modifiers/ContextMenuModifier.swift:332), which need no AX category because they are ordinary visible items."
+      "why": "It categorises custom AX actions (.default/.edit) inside the AX actions menu, a VoiceOver UI. TUIkit surfaces extra actions as drawn menus instead (Sources/TUIkit/Modifiers/ContextMenuPresentation.swift), which need no AX category because they are ordinary visible items."
     },
     "AccessibilityAdjustmentDirection": {
       "why": "It exists only as the argument of `accessibilityAdjustableAction`'s callback, which an assistive technology invokes, and a terminal app has none to invoke it. The adjustment a person makes arrives as ordinary key input instead: the arrow keys, through `onKeyPress`."
