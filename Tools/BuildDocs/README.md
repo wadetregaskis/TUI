@@ -88,9 +88,17 @@ the umbrella first (its archive is the catalog's articles, with no API, and
 keeps the template's link) and then every other module in
 `unify_symbol_graphs.py`'s `MODULES`, each its own archive. That shows readers
 the module structure the unified build hides, and the landing page's links to
-symbols dangle; the other way, one reference, needs the archive this script
-builds hosted somewhere and `.spi.yml`'s `external_links` pointed at it
-(decisions file `SwiftUI-API-completion-decisions-SPB1.md`, B-SPB1-2).
+symbols dangle. So do a module's links to symbols of modules it does not
+depend on: `docc convert --analyze` on TUIkitCore's symbol graph alone
+(2026-10-08) warns "doesn't exist" 15 times, for symbols of TUIkitView,
+TUIkitStyling, TUIkitImage and TUIkitFoundation (`View` and `Text` among
+them), and since step B3 TUIkitFoundation's links to `Scene`, its modifiers
+and `WindowGroup` (eight source lines) are more. (Links to a dependency's
+symbols are unmeasured: TUIkitCore has no dependency.) All of them resolve in
+the unified build, which is the one `--strict` checks. The other way, one
+reference, needs the archive this script builds hosted somewhere and
+`.spi.yml`'s `external_links` pointed at it (decisions file
+`SwiftUI-API-completion-decisions-SPB1.md`, B-SPB1-2).
 
 `check_spi_targets.py` fails the build (it runs first, and costs nothing) when
 the list lacks a module of `MODULES` or does not start with the umbrella: when
