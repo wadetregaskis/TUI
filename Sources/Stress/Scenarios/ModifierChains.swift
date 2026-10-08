@@ -25,11 +25,11 @@ import TUIkit
 /// costs (the colour effects leave the base module, and each effect hands the
 /// rewrite a closure per line).
 enum ModifierChainsScenario {
-    static let scenarioID = "modifiers"
-
     @MainActor
     static let descriptor = Scenario(
-        id: scenarioID,
+        // A literal, not `scenarioID`: StressLocalizationParityTests reads the
+        // catalogue's ids from these `id: "…",` lines of the source.
+        id: "modifiers",
         title: "Modifier Chains",
         blurb: "N rows, each wrapped in a long modifier chain.",
         stresses: "ModifiedView/environment-modifier layering · per-node measure overhead",
@@ -39,15 +39,27 @@ enum ModifierChainsScenario {
         }
     )
 
+    /// The registry's key: the descriptor's own id, so the two cannot drift.
+    @MainActor
+    static var scenarioID: String { descriptor.id }
+
+    /// A variant of the matrix. Positional, as ControlRows' are: an `id:` label
+    /// at the start of a line would read as a scenario id to
+    /// StressLocalizationParityTests.
+    private static func variant(
+        _ id: String, _ summary: String, _ make: @escaping @MainActor (StressConfig) -> AnyView
+    ) -> ScenarioVariant {
+        ScenarioVariant(id: id, summary: summary, axis: "chain", make: make)
+    }
+
     @MainActor
     static let variants: [ScenarioVariant] = [
-        ScenarioVariant(
-            id: "chains", summary: "padding, border, foregroundStyle and frame, twice over, on every row",
-            axis: "chain", make: { AnyView(ModifierChainsView(config: $0)) }),
-        ScenarioVariant(
-            id: "color-effects",
-            summary: "all seven colour effects on every coloured row, their amounts moving with the tick",
-            axis: "chain", make: { AnyView(ColorEffectChainsView(config: $0)) }),
+        variant("chains", "padding, border, foregroundStyle and frame, twice over, on every row") { config in
+            AnyView(ModifierChainsView(config: config))
+        },
+        variant("color-effects", "all seven colour effects on coloured rows, their amounts moving with the tick") { config in
+            AnyView(ColorEffectChainsView(config: config))
+        },
     ]
 }
 
