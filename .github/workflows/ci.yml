@@ -378,10 +378,10 @@ jobs:
       # have landed, so the map has no new finding (what it still reports is
       # scheduled or accepted), and a new upward reference arriving during
       # the migration would be a compile error, or a cycle, once the modules
-      # are real. A new finding fails the step with
-      # an error annotation saying which reference or declaration, and why,
-      # and so does a failure of the tool itself (no index store, a
-      # libIndexStore that will not load): nothing was checked.
+      # are real. A new finding fails the step with an error annotation
+      # saying which reference or declaration, and why. So does a failure of
+      # the tool itself (no index store, a libIndexStore that will not load),
+      # and its annotation says that nothing was checked.
       # Tools/ModuleMap/README.md says how to read a finding and what to do.
       - name: Module map
         if: matrix.module_map

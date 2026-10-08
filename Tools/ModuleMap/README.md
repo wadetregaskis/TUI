@@ -286,8 +286,9 @@ check's findings and the assignment are the same from both (measured 2026-10-07)
 
 **It gates.** Plan steps A2 (the K refactors) and A4 (the file splits and placement moves) have landed, so the map
 has no new finding (what it still reports is `scheduled` or `accepted`), and the step runs `check --github`: a new
-finding fails it, so that no new upward reference can arrive during the migration. Each new finding is an error annotation (GitHub keeps 10 per step; past
-that, the tenth says how many more the step's log lists). A failure of the tool itself (no index store, a
-libIndexStore that will not load, a bug) fails the step too: nothing was checked. `--exit-zero` is still there for a
-local run that should only report: with it, new findings and a failure of the tool are warning annotations and the
-exit status is 0. The parity job runs the tool's own unit tests.
+finding fails it, so that no new upward reference can arrive during the migration. Each new finding is an error
+annotation (GitHub keeps 10 per step; past that, the tenth says how many more the step's log lists). A failure of the
+tool itself (no index store, a libIndexStore that will not load, a bug) fails the step too, with one error annotation
+saying that nothing was checked. `--exit-zero` is still there for a local run that should only report: with it, new
+findings and a failure of the tool are warning annotations and the exit status is 0. The parity job runs the tool's
+own unit tests.

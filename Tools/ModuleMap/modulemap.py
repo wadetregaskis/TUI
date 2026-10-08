@@ -189,16 +189,20 @@ def main(argv=None):
     try:
         return run(a)
     except (Exception, SystemExit) as e:
-        # Warning only means warning only: no store, a libIndexStore that will not load, or a bug in this tool is
-        # one annotation, never a failed step (CI's step also has continue-on-error, for what escapes Python).
-        if not (a.command == 'check' and a.exit_zero): raise
+        # A failure of the tool itself (no store, a libIndexStore that will not load, a bug in this tool) means nothing
+        # was checked. A `check` reports it as one annotation at the check's own level. Under --exit-zero it is a
+        # warning and status 0, because warning only means warning only. When the check gates, as CI's does, it is an
+        # error and status 1, so the failed step says why. A gating run without --github re-raises, for the traceback.
+        if not (a.command == 'check' and (a.exit_zero or a.github)): raise
         if isinstance(e, SystemExit):
+            if e.code in (None, 0): raise
             msg = str(e)
         else:
             traceback.print_exc()
             msg = f'modulemap failed, so nothing was checked: {type(e).__name__}: {e}'
-        print(f'::warning title=ModuleMap::{annotation(msg)}' if a.github else msg)
-        return 0
+        level = 'warning' if a.exit_zero else 'error'
+        print(f'::{level} title=ModuleMap::{annotation(msg)}' if a.github else msg)
+        return 0 if a.exit_zero else 1
 
 
 def run(a):

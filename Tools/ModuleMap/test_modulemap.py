@@ -812,14 +812,38 @@ class CommandLineTests(unittest.TestCase):
         self.assertTrue(all(ln.startswith('::warning file=') for ln in self.annotations(3)))
         self.assertTrue(self.annotations(12, 'error')[-1].startswith('::error title=ModuleMap::3 more new findings'))
 
-    def test_warning_only_survives_a_libindexstore_that_will_not_load(self):
-        # CI runs `check --github --exit-zero`: whatever goes wrong is one annotation, not a failed lane.
+    def check_with_one_new_finding(self, *flags):
+        """`check` through main() and run(), over a model whose checks report one new finding: (status, annotations)."""
+        M, files = two_module_model()
+        finding = checks.Finding('upward', 'k', 'a new finding', 'Base/A.swift', 2)
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as store, \
+                mock.patch.object(modulemap.Rules, 'load', return_value=rules(files=files, declarations=PIN_A)), \
+                mock.patch.object(modulemap.Model, 'load', return_value=M), \
+                mock.patch.object(modulemap.checks, 'run_all', return_value=[finding]), \
+                contextlib.redirect_stdout(out):
+            status = modulemap.main(['check', '--store', store, '--map', os.path.join(store, 'none.json'), *flags])
+        return status, [ln for ln in out.getvalue().splitlines() if ln.startswith('::')]
+
+    def test_a_new_finding_fails_a_gating_check_and_only_warns_under_exit_zero(self):
+        # run() picks the level and the status from --exit-zero; report() only prints the level it is given.
+        self.assertEqual(self.check_with_one_new_finding('--github'), (1, ['::error file=Sources/X/Base/A.swift,line=2,'
+                                                                           'title=ModuleMap upward::a new finding']))
+        status, lines = self.check_with_one_new_finding('--github', '--exit-zero')
+        self.assertEqual((status, [ln.split(' ', 1)[0] for ln in lines]), (0, ['::warning']))
+
+    def test_a_failure_of_the_tool_is_one_annotation_at_the_check_s_level(self):
+        # A libIndexStore that will not load: nothing was checked. Under --exit-zero (a local run that only reports)
+        # that is a warning and status 0; when the check gates, as CI's does, an error and status 1, so the failed step
+        # says why. A gating run without --github raises, for the traceback.
         with tempfile.TemporaryDirectory() as store:
             args = ['check', '--store', store, '--lib', os.path.join(store, 'libIndexStore.dylib')]
-            out = io.StringIO()
-            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
-                self.assertEqual(modulemap.main(args + ['--github', '--exit-zero']), 0)
-            self.assertIn('::warning title=ModuleMap::modulemap failed, so nothing was checked: OSError', out.getvalue())
+            for flags, status, level in ((['--github', '--exit-zero'], 0, 'warning'), (['--github'], 1, 'error')):
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(modulemap.main(args + flags), status)
+                self.assertIn(f'::{level} title=ModuleMap::modulemap failed, so nothing was checked: OSError',
+                              out.getvalue())
             with self.assertRaises(OSError):
                 modulemap.main(args)
 
