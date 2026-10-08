@@ -348,7 +348,8 @@ extension DepartureStore {
     /// exists only for one that will — an unanimated removal snaps, and its
     /// slot must close up on the same frame.
     private func willPlay(_ entry: Entry, frameAnimation: Animation?) -> Bool {
-        entry.animation ?? entry.departure.explicitAnimation ?? frameAnimation != nil
+        let animation: Animation? = entry.animation ?? entry.departure.explicitAnimation ?? frameAnimation
+        return animation != nil
     }
 
     /// Whether `entry`'s removal has played out. An entry that has not started

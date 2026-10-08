@@ -366,8 +366,9 @@ public struct RenderContext {
         var copy = self
         // The low seven bits only: bit 7 is the ideal-width mark, which a bump
         // must neither set nor clear.
+        let idealWidthMark: UInt8 = 0x80, generationBits: UInt8 = 0x7F
         copy.measureGeneration =
-            (copy.measureGeneration & 0x80) | ((copy.measureGeneration &+ step) & 0x7F)
+            (copy.measureGeneration & idealWidthMark) | ((copy.measureGeneration &+ step) & generationBits)
         return copy
     }
 
