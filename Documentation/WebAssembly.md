@@ -45,8 +45,7 @@ standard library to find.
 ## What had to change in the framework
 
 Very little in the four lower modules, which is the dividend of the rule that
-keeps POSIX above them (in TUIkitFoundation since module split step B1, and
-TUIkitTerminalHost since step B2; the TUIkit module, then): `TUIkitCore` built for wasm unchanged, and
+keeps POSIX above them: `TUIkitCore` built for wasm unchanged, and
 `TUIkitStyling`, `TUIkitView` and `TUIkitImage` needed one fix each.
 
 | Where | What | Why |
@@ -55,11 +54,14 @@ TUIkitTerminalHost since step B2; the TUIkit module, then): `TUIkitCore` built f
 | `BodyMutationDiagnostic` | `Thread.current` → a token | Foundation has no `Thread` where the platform has no threads |
 | `ImageLoader` | the remote-image path is gated | `URLSession` is in neither Foundation nor FoundationNetworking on WASI, and wasip1 has no sockets to use it with |
 
-The module above them is where the work was. `Dispatch` does not exist on wasip1, and it
-was imported into six files — mostly to read a clock. `MonotonicClock` (in
-`TUIkitCore`) replaced `DispatchTime.now().uptimeNanoseconds` at a dozen call
-sites, which removed the dependency from every file that only wanted to measure
-an interval. What remained genuinely needed a platform arm:
+The work was above them, in what was then one module, TUIkit. Its files are
+TUIkitFoundation's since module split step B1, except the tmux queries below,
+which are TUIkitTerminalHost's since step B2. `Dispatch` does not exist on
+wasip1, and it was imported into six files — mostly to read a clock.
+`MonotonicClock` (in `TUIkitCore`) replaced
+`DispatchTime.now().uptimeNanoseconds` at a dozen call sites, which removed the
+dependency from every file that only wanted to measure an interval. What
+remained genuinely needed a platform arm:
 
 | Subsystem | On WASI |
 |---|---|

@@ -693,9 +693,9 @@ jobs:
       # ── The modules carved out of TUIkitFoundation ──
       # Module split step B2's two side modules, which need TUIkitCore alone.
       # Their POSIX code sits in POSIX-only `#if` arms (CLAUDE.md), and
-      # TerminalHost.swift names no `pid_t` (decisions B-SPB2-1), but no
-      # Windows toolchain has built them yet: advisory until CI has seen them
-      # green, then binding like the four above.
+      # TerminalHost.swift names `pid_t` only inside its Darwin arms (decisions
+      # B-SPB2-1), but no Windows toolchain has built them yet: advisory until
+      # CI has seen them green, then binding like the four above.
       - name: "Build TUIkitStrings"
         continue-on-error: true
         timeout-minutes: 30

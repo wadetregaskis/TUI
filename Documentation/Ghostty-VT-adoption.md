@@ -590,8 +590,8 @@ defaults a shell expects, so none is restored on exit.
      stops the terminal opening a same-named local file.
    - Leave `localhost` and explicit hosts alone.
    - Take the hostname from `gethostname()` once, above the lower modules
-     (TUIkitTerminalHost's `TerminalClient.localHostName`, compiled by
-     TUIkitFoundation since module split step B1).
+     (TUIkitTerminalHost's `TerminalClient.localHostName`, a module of its
+     own since module split step B2).
      TUIkitCore, where `TerminalHyperlink` lives, must keep building on
      Windows, so it is handed the name and never calls POSIX itself.
      **Hypothesis:** `ProcessInfo.hostName` can block on DNS on macOS, which

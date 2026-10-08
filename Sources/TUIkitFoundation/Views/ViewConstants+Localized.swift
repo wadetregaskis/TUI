@@ -11,9 +11,10 @@ extension ViewConstants {
     /// language — `label.noItems`, translated in every bundled table.
     ///
     /// Here rather than beside ``emptyListPlaceholder`` because the
-    /// localization service lives in this module and not in `TUIkitStyling`;
-    /// that constant is the English fallback and was, until now, what every
-    /// empty list and table showed whatever the language.
+    /// localization service is TUIkitStrings', which this module sees and
+    /// `TUIkitStyling` does not; that constant is the English fallback and
+    /// was, until now, what every empty list and table showed whatever the
+    /// language.
     public static var localizedEmptyListPlaceholder: String {
         LocalizationService.shared.string(for: LocalizationKey.Label.noItems)
     }
