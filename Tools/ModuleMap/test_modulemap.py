@@ -838,6 +838,37 @@ class IndexStoreTests(unittest.TestCase):
             self.assertEqual(IX.find_store(root), os.path.join(root, '.build', 'out'))
 
 
+class UncompiledTests(unittest.TestCase):
+    """Since A5 the umbrella target's `sources:` names directories, and TUIkitStrings below its own, so a file can sit
+    in a module's directory and be compiled by no target. SwiftPM only warns about it, and CI does not fail on that
+    warning; the module map, which reads what the build compiled, does."""
+
+    def test_a_source_the_last_build_passed_over_is_uncompiled_and_one_newer_than_it_is_stale(self):
+        src = {'Base/A.swift': 100.0, 'Base/Edited.swift': 300.0, 'Base/Left.swift': 100.0, 'Base/New.swift': 300.0}
+        units = {'Base/A.swift': 200.0, 'Base/Edited.swift': 200.0}
+        self.assertEqual(model_mod.unit_freshness(sorted(src), src, units, 200.0),
+                         (['Base/Edited.swift', 'Base/New.swift'], ['Base/Left.swift']))
+        # A file written in the second the build started is not held against it; an empty store, against nothing.
+        self.assertEqual(model_mod.unit_freshness(['Base/A.swift'], {'Base/A.swift': 199.5}, {}, 200.0),
+                         (['Base/A.swift'], []))
+        self.assertEqual(model_mod.unit_freshness(['Base/A.swift'], {'Base/A.swift': 1.0}, {}, None),
+                         (['Base/A.swift'], []))
+
+    def test_an_uncompiled_source_is_a_new_finding_that_a_gating_check_annotates(self):
+        M, files = two_module_model()
+        M.uncompiled = ['Lists/Left.swift']
+        R = rules(files=files, declarations=PIN_A)
+        asg, _ = assigner.assign(M, R)
+        with tempfile.TemporaryDirectory() as root:
+            xs = [x for x in checks.run_all(M, R, asg, root) if x.check == 'uncompiled']
+        self.assertEqual([(x.key, x.file, x.new) for x in xs], [('Lists/Left.swift', 'Lists/Left.swift', True)])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(len(modulemap.report(xs, R, True, False, 'error')), 1)
+        self.assertIn('::error file=Sources/X/Lists/Left.swift,line=1,title=ModuleMap uncompiled::Lists/Left.swift is '
+                      'compiled by no target', out.getvalue())
+
+
 class CommandLineTests(unittest.TestCase):
     def annotations(self, n, level='warning'):
         fs = [checks.Finding('upward', f'k{i}', f'finding {i}', 'Base/A.swift', i + 1) for i in range(n)]

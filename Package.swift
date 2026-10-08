@@ -135,7 +135,9 @@ let package = Package(
             // - TUIkitStrings below the level of its resources: a resource under a declared source path is
             //   "duplicate rule found for file". Until step B2 carves TUIkitStrings, which then declares
             //   them as this target does today, at the same paths inside its directory.
-            // A Swift file no entry covers is reported as unhandled, like a stray directory above.
+            // A Swift file no entry covers is reported as unhandled, like a stray directory above, but only
+            // as a warning, which CI does not fail on: Tools/ModuleMap's `uncompiled` check, which gates CI,
+            // fails on a file of a module's directory that the build did not compile.
             sources: [
                 "TUIkitStrings/Formatting",
                 "TUIkitStrings/Localization/BundleStringTables.swift",

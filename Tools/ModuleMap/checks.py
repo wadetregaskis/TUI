@@ -209,6 +209,14 @@ def posix(M, R, asg):
     return uniq
 
 
+def uncompiled(M, R, asg):
+    """A source in a module's directory that no target compiles (model.unit_freshness): its declarations are missing
+    from the build, public API included, and nothing else need notice."""
+    return [Finding('uncompiled', f, f'{f} is compiled by no target, though the last build ran after it was written: '
+                                     f'name it in Package.swift (the umbrella target\'s `sources:`, or its module\'s '
+                                     f'own target once carved)', f, 1) for f in M.uncompiled]
+
+
 def umbrella(M, R, asg):
     """The umbrella holds no code: no declaration is assigned to it, and its files hold only imports."""
     out = [Finding('umbrella', M.label(n), f'{M.label(n)} would sit in the umbrella {R.umbrella}', M.file[n], M.line[n])
@@ -273,8 +281,8 @@ def run_all(M, R, asg, root):
     pairs = collections.defaultdict(set)
     for p, qs in R.witness_pairs.items(): pairs[p] |= qs
     for p, qs in derived_witness_pairs(root).items(): pairs[p] |= qs
-    findings = (upward(M, R, asg) + owns_neither(M, R, asg) + witnesses(M, R, asg, pairs) + public_above(M, R, asg)
-                + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg))
+    findings = (uncompiled(M, R, asg) + upward(M, R, asg) + owns_neither(M, R, asg) + witnesses(M, R, asg, pairs)
+                + public_above(M, R, asg) + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg))
     for x in findings:
         a = R.accepted.get((x.check, x.key))
         if a: x.accepted = a.get('why', 'accepted')

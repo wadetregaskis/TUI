@@ -79,6 +79,21 @@ same module as the re-indexed research run (`split2/reindex/`).
 Every finding has a key. A finding listed under `scheduled` or `accepted` in `rules.json` is reported but does
 not count as new. Only new findings fail `check`, or raise an annotation in CI.
 
+### `uncompiled`: a file in a module's directory that no target compiles
+
+`TUIkitStrings: TUIkitStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
+
+Since step A5 the one `TUIkit` target names the module directories in its `sources:` (Package.swift), and
+TUIkitStrings below its own, one entry per subdirectory and per `Localization/*.swift` file: a resource may not sit
+under a declared source path. So a new file of `TUIkitStrings/` or `TUIkitStrings/Localization/`, or a module
+directory added to `rules.json` and not to `sources:`, is compiled by no target, and its declarations, public API
+included, are simply missing. SwiftPM says so only as a warning ("found N file(s) which are unhandled"), and CI does not
+fail on warnings; this check does. It reads the index: a file with no unit, older than the newest unit the store
+holds, was there when the last build compiled the others, and that build did not compile it. Name it in
+Package.swift (the umbrella's `sources:`, or its module's own target once carved). A file with no unit that is
+NEWER than the last build is only new, and is reported as stale (rebuild, then check); so is one whose build failed
+before reaching it.
+
 ### `upward`: a reference its module cannot see
 
 `TUIkitFoundation -> TUIkitLists: TUIkitFoundation/Views/Foo.swift::Foo uses TUIkitLists/Views/List.swift::ListThing (3 references)`

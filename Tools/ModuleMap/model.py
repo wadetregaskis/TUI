@@ -81,6 +81,26 @@ def lower_owners(files, dirs, symbols):
     return owner, {u: qualified(u) for u in owner}
 
 
+def unit_freshness(files, source_mtime, unit_mtime, newest):
+    """(stale, uncompiled): the `files` (rel paths) the index does not describe as they are, from each one's source
+    mtime, its index unit's mtime (absent: no unit) and the newest unit the store holds for the map's modules.
+
+    STALE: the source is newer than its unit, or it has none and is newer than the last build. Rebuild, then check.
+    UNCOMPILED: it has no unit although the last build wrote one after the source was written. That build compiled
+    other files once this one existed and did not compile it, so no target does: Package.swift leaves it out. Until a
+    module is carved, the umbrella target's `sources:` names the module directories, and TUIkitStrings below them (its
+    resources may not sit under a source path), so a new file of TUIkitStrings/ or TUIkitStrings/Localization/ is
+    compiled only once it is listed there; a new module directory, only once named. SwiftPM reports such a file as
+    unhandled, but only as a warning, which does not fail CI: this finding does. (A build that failed before reaching
+    a file also leaves it without a unit: build again, and the finding goes.)"""
+    stale, uncompiled = [], []
+    for f in files:
+        s, t = source_mtime[f], unit_mtime.get(f)
+        if t is None and newest is not None and s + 1 < newest: uncompiled.append(f)
+        elif t is None or s > t + 1: stale.append(f)
+    return stale, uncompiled
+
+
 # The lower modules' USR prefixes (`s:` + the mangled module name): which one defines a symbol when the index's own
 # answer (`lower_owner`) is missing, as in a model built without reading them. A member a lower module adds to an SDK
 # type (`s:Sa10TUIkitViewE…`) has no such prefix; only the index knows it.
@@ -114,7 +134,8 @@ class Model:
         self.lower_visible = set()      # the lower modules this module's sources can see (visible_modules)
         self.lower_modules = set()      # the lower modules whose definitions were read
         self.public_members = {}        # node -> names of the public API it declares, in source order
-        self.stale = []                 # rel paths whose source is newer than its index unit, or have none
+        self.stale = []                 # rel paths whose source is newer than its index unit, or than the build
+        self.uncompiled = []            # rel paths no target compiles (unit_freshness)
         self.first_member = {}          # node -> name of its first member in source order (explicit ones only)
         self.conformed = {}             # node -> sorted names of the protocols it declares conformance to
         self.top = lambda u: u          # usr -> the node holding it (set by build)
@@ -177,11 +198,11 @@ class Model:
         m.files = sorted(os.path.relpath(os.path.join(d, f), src) for top in mine
                          for d, _, fs in os.walk(os.path.join(src, top)) for f in fs if f.endswith('.swift'))
         for f in m.files:
-            p = os.path.join(src, f)
-            with open(p, encoding='utf-8', errors='replace') as fh:
+            with open(os.path.join(src, f), encoding='utf-8', errors='replace') as fh:
                 m.lexed[f] = SS.lex(fh.read())
-            t = mtimes.get(prefix + f)
-            if t is None or os.path.getmtime(p) > t + 1: m.stale.append(f)
+        m.stale, m.uncompiled = unit_freshness(
+            m.files, {f: os.path.getmtime(os.path.join(src, f)) for f in m.files},
+            {f: mtimes[prefix + f] for f in m.files if prefix + f in mtimes}, max(mtimes.values(), default=None))
         m.build({f: o for f, o in occ.items() if f in m.lexed})
         # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUIkitCore …)
         # and that this module's sources can see, read in one more pass over the store's units. The `lower` check asks
