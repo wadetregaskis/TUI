@@ -18,9 +18,10 @@
 // until step C1 peels them into TUIkitPresentation; since step B5) and
 // TUIkitLists (lists, and tables, tabs and grids until steps C2 to C4 peel
 // them; since step B6). Each by name, though TUIkitColorPicker re-exports
-// TUIkitNavigation until C1 and TUIkitLists until C3: the `umbrella` check
-// asks for every module built on TUIkitFoundation, because no build notices
-// one this file leaves out while a sibling's re-export still reaches it. A
+// TUIkitNavigation until C1, and TUIkitLists for good (directly until C3,
+// then through TUIkitTabs, which depends on it): the `umbrella` check asks
+// for every module built on TUIkitFoundation, because no build notices one
+// this file leaves out while a sibling's re-export still reaches it. A
 // qualified name in an app, `TUIkit.Label`, still resolves through these
 // re-exports.
 @_exported import TUIkitApp

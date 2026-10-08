@@ -203,12 +203,14 @@ hold only imports. And it re-exports, by name, every module carved out above `TU
 `rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
 TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6). TUIkitFoundation cannot re-export a
 module built on it, so `import TUIkit` has it only through the umbrella. Reaching it through a sibling instead
-compiles the same: TUIkitColorPicker re-exports TUIkitNavigation until step C1 and TUIkitLists until step C3, so an
-umbrella without TUIkitNavigation's line still gives an app `TUIkit.NavigationStack`, and one without TUIkitLists'
-line `TUIkit.List`, until a peel moves ColorPicker's dependency off the group (step C1, to TUIkitPresentation; step
-C3, to TUIkitTabs). No build notices the missing line before then; this check does. A module TUIkitFoundation still compiles re-exports nothing
-and is not asked for, and nor is a module below TUIkitFoundation (TUIkitStrings), which TUIkitFoundation
-re-exports. Fix it by adding `@_exported import` of the module to `Sources/TUIkit/Exports.swift`.
+compiles the same. TUIkitColorPicker re-exports TUIkitNavigation until step C1, which moves its dependency to
+TUIkitPresentation, a module that does not depend on TUIkitNavigation. It re-exports TUIkitLists for good: directly
+until step C3, then through TUIkitTabs, which depends on TUIkitLists and re-exports it (plan §4). So an umbrella
+without TUIkitNavigation's line still gives an app `TUIkit.NavigationStack` until C1, and one without TUIkitLists'
+line gives it `TUIkit.List` after C3 too. No build notices the missing line; this check does. A module
+TUIkitFoundation still compiles re-exports nothing and is not asked for, and nor is a module below TUIkitFoundation
+(TUIkitStrings), which TUIkitFoundation re-exports. Fix it by adding `@_exported import` of the module to
+`Sources/TUIkit/Exports.swift`.
 
 ### `lower`: a lower module the module's `lower` list does not name
 

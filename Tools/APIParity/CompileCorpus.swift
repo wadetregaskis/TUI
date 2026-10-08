@@ -2914,10 +2914,11 @@ private struct ConfirmEraseItems: View {
 /// `NavigationStack` where the documentation's has the deprecated
 /// `NavigationView`, and the header as a view builder. Since module split step
 /// B6 `List`, `Table`, `TabView` and `Grid` are TUIkitLists', which the
-/// umbrella re-exports (and, until step C3, TUIkitColorPicker, which the
-/// umbrella re-exports too), so this, the grid below, and the `Table`,
-/// `OutlineGroup`, `LazyVGrid` and `TabView` snippets earlier in this file are
-/// SwiftUI source reaching that module as an app does: through `import TUIkit`.
+/// umbrella re-exports (and so does TUIkitColorPicker, which the umbrella
+/// re-exports too: directly until step C3, then through TUIkitTabs), so this,
+/// the grid below, and the `Table`, `OutlineGroup`, `LazyVGrid` and `TabView`
+/// snippets earlier in this file are SwiftUI source reaching that module as an
+/// app does: through `import TUIkit`.
 @MainActor
 private struct OceanRegionsList: View {
     struct Sea: Hashable, Identifiable {

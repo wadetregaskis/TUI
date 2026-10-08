@@ -54,10 +54,11 @@
 //  directory through the umbrella and draws it, the table beside an app's own
 //  `Table` (the case an app meets: a database table model of its own). It
 //  leaves the same two holes to the same two guards: TUIkitColorPicker
-//  re-exports TUIkitLists until C3 (its panel is a `TabView`), so the
-//  umbrella's own line is the `umbrella` check's; and a directory left in
-//  TUIkitFoundation would still compile, so the reflected names, one per
-//  directory, catch it at run time.
+//  re-exports TUIkitLists (its panel is a `TabView`): directly until C3,
+//  and after it through TUIkitTabs, which depends on TUIkitLists. So the
+//  umbrella's own line is the `umbrella` check's for good; and a directory
+//  left in TUIkitFoundation would still compile, so the reflected names, one
+//  per directory, catch it at run time.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -190,7 +191,8 @@ extension TUIkit.NavigationPath {
 extension TUIkit.TabViewCustomization {
     /// A member an app adds, through the umbrella's name, to a type of
     /// TUIkitLists (Sources/TUIkitTabs), which the umbrella re-exports itself
-    /// (and, until step C3, through TUIkitColorPicker as well).
+    /// (and through TUIkitColorPicker as well: directly until step C3, then
+    /// through TUIkitTabs, which depends on TUIkitLists).
     fileprivate var b6Marker: Int { self == TUIkit.TabViewCustomization() ? 6 : -6 }
 }
 

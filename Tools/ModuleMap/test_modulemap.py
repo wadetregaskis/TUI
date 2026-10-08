@@ -608,6 +608,17 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         self.assertEqual(keys('@_exported import App\n@_exported import Lists\n@_exported import Tables\n'), [])
         # A module the default still compiles re-exports nothing, and is not asked for; nor is the default itself.
         self.assertEqual(keys('@_exported import App\n@_exported import Tables\n', lists='func l() {}\n'), [])
+        # Step C3's shape, which lasts: App re-exports Tables, and Tables only Lists, its own dependency (as
+        # TUIkitColorPicker will re-export TUIkitTabs, which re-exports TUIkitLists). Two hops from Base, both are
+        # still carved above it, and an umbrella without Lists hears of it from this check alone.
+        def keys_c3(umbrella):
+            srcs = {'Exports.swift': umbrella, 'Lists/Exports.swift': '@_exported import Base\n',
+                    'Tables/Exports.swift': '@_exported import Lists\n',
+                    'App/Exports.swift': '@_exported import Tables\n', 'Base/B.swift': 'func b() {}\n'}
+            return [x.key for x in checks.umbrella(model(srcs, {}, {}), rules(), {})]
+        self.assertEqual(keys_c3('@_exported import App\n@_exported import Tables\n'), ['X does not re-export Lists'])
+        self.assertEqual(keys_c3('@_exported import App\n'),
+                         ['X does not re-export Lists', 'X does not re-export Tables'])
 
     def test_every_form_of_an_import_is_one(self):
         # One reading of an import line for the three checks that look at imports. The `import Darwin` check missed
