@@ -367,9 +367,7 @@ public final class FocusManager: @unchecked Sendable {
     }
 
     /// All registered section IDs in render order.
-    var sectionIDs: [String] {
-        sections.map(\.id)
-    }
+    var sectionIDs: [String] { sections.map(\.id) }
 
     /// Every registered focusable's id, in render order across all sections —
     /// the ring as it actually stands this frame. Used by tests that assert
@@ -418,9 +416,7 @@ public final class FocusManager: @unchecked Sendable {
     }
 
     /// The ID of the currently focused element, if any.
-    public var currentFocusedID: String? {
-        focusedID
-    }
+    public var currentFocusedID: String? { focusedID }
 
     /// Where the focused control last rendered, if anything holds the focus:
     /// what SwiftUI's `onKeyPress` asks to decide whether the focus is inside
@@ -636,6 +632,17 @@ extension FocusManager {
         // `.synchronize()` that flushes late writes, and a focused field's
         // commit is one of those.
         notifyFocusLost()
+        clearWithoutNotifying()
+    }
+
+    /// ``clear()`` without its first step: the focused element is NOT told it
+    /// lost the focus, so no view's code runs.
+    ///
+    /// For a manager let go of together with the views it holds, where telling
+    /// one of them its focus ended would run that view's callbacks after the
+    /// fact for nothing — not for an app at quit, whose focused field still
+    /// owes its commit (that is ``clear()``).
+    package func clearWithoutNotifying() {
         sections.removeAll()
         activeSectionID = nil
         focusedID = nil
