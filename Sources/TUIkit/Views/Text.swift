@@ -185,9 +185,7 @@ public struct Text: View, Equatable {
     ///   initializer the same way, for the same reason.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ content: S) {
-        self.content = String(content)
-        self.style = TextStyle()
-        self.runs = nil
+        self.init(verbatim: String(content))
     }
 
     /// Creates a text view with a verbatim string.

@@ -252,7 +252,7 @@ extension TextField where Label == Text {
     ///   - titleKey: The key for the field's title, describing its purpose.
     ///   - text: The text to display and edit.
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>) {
-        self.init(titleKey.localized, text: text)
+        self.init(verbatimTitle: titleKey.localized, text: text, prompt: nil)
     }
 
     /// Creates a text field with a localized label and a prompt.
@@ -262,7 +262,7 @@ extension TextField where Label == Text {
     ///   - text: The text to display and edit.
     ///   - prompt: A `Text` providing guidance on what to type into the field.
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?) {
-        self.init(titleKey.localized, text: text, prompt: prompt)
+        self.init(verbatimTitle: titleKey.localized, text: text, prompt: prompt)
     }
 
     /// Creates a text field with a text label generated from a title string.
@@ -276,15 +276,7 @@ extension TextField where Label == Text {
     ///   - text: The text to display and edit.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, text: Binding<String>) {
-        self.label = Text(title)
-        self.text = text
-        self.prompt = nil
-        // Auto-generated focusID from view identity (collision-free)
-        self.focusID = nil
-        self.isDisabled = false
-        self.onSubmitAction = nil
-        self.onEditingChangedAction = nil
-        self.formatting = nil
+        self.init(verbatimTitle: String(title), text: text, prompt: nil)
     }
 
     /// Creates a text field with a prompt.
@@ -300,7 +292,18 @@ extension TextField where Label == Text {
     ///     guidance on what to type into the text field.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, text: Binding<String>, prompt: Text?) {
-        self.label = Text(title)
+        self.init(verbatimTitle: String(title), text: text, prompt: prompt)
+    }
+
+    /// The text field every `Text`-labelled initializer above makes: `title`
+    /// drawn as it is, never looked up (the key initializers look it up first).
+    ///
+    /// Concrete, so a generic or key initializer that ends here builds the
+    /// same field whatever string type it was given. The two key initializers
+    /// used to go through the generic ones, and the generic ones each spelled
+    /// the fields out.
+    init(verbatimTitle title: String, text: Binding<String>, prompt: Text?) {
+        self.label = Text(verbatim: title)
         self.text = text
         self.prompt = prompt
         // Auto-generated focusID from view identity (collision-free)
