@@ -25,7 +25,9 @@ import TUIkitView
 /// has never rendered — so a `.selectionDisabled()` row is only skipped by
 /// navigation once a frame has drawn it and reported it here; see
 /// ``ItemListHandler/selectionDisabledRows``.
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @MainActor
+@usableFromInline
 final class RowEditRestrictions {
     /// LIST ROWS that refused deletion this frame.
     private(set) var deleteDisabled: Set<Int> = []
@@ -100,14 +102,18 @@ final class RowEditRestrictions {
 extension EnvironmentValues {
     /// Where a row states the edits (and selection) it refuses. Installed by
     /// `_ListCore`.
+    @inlinable
     var listRowEditRestrictions: RowEditRestrictions? {
         get { self[RowEditRestrictionsKey.self] }
         set { self[RowEditRestrictionsKey.self] = newValue }
     }
 }
 
-private struct RowEditRestrictionsKey: EnvironmentKey {
-    static let defaultValue: RowEditRestrictions? = nil
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct RowEditRestrictionsKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: RowEditRestrictions? = nil
 }
 
 // MARK: - Modifiers

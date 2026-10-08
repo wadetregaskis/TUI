@@ -14,14 +14,19 @@ import TUIkitView
 /// `.disabled(true)` flips it to `false` for a whole subtree; controls combine
 /// it with their own disabled state. It is **additive** — a descendant cannot
 /// re-enable what an ancestor disabled.
-private struct IsEnabledKey: EnvironmentKey {
-    static let defaultValue = true
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct IsEnabledKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = true
 }
 
 extension EnvironmentValues {
     /// Whether interactive controls in this subtree are enabled. Set via
     /// ``View/disabled(_:)`` on a container; read by each control, which
     /// combines it with its own `disabled` state.
+    @inlinable
     public var isEnabled: Bool {
         get { self[IsEnabledKey.self] }
         set { self[IsEnabledKey.self] = newValue }

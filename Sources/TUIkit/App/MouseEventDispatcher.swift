@@ -34,6 +34,8 @@ public enum MouseFeature: Sendable {
 /// `.dragged` and `.released` events to that same handler regardless of
 /// where the cursor ended up — exactly the way GUI toolkits treat a
 /// drag once it has captured a control.
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+@usableFromInline
 final class MouseEventDispatcher: @unchecked Sendable {
     /// The app's drag-and-drop session, when one is wired (see
     /// ``TUIContext``). The dispatcher stamps it with every press / drag /

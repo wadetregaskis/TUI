@@ -13,18 +13,24 @@ import TUIkitCore
 ///
 /// `@unchecked Sendable` on the same terms as every other action closure here:
 /// it is created and invoked only on the render loop's single thread.
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+@usableFromInline
 struct MenuOpenAction: @unchecked Sendable {
     let action: () -> Void
     func callAsFunction() { action() }
 }
 
-private struct MenuOpenKey: EnvironmentKey {
-    static let defaultValue: MenuOpenAction? = nil
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct MenuOpenKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: MenuOpenAction? = nil
 }
 
 extension EnvironmentValues {
     /// What to run when a pop-up menu in this subtree opens. `nil` — do
     /// nothing — everywhere it has not been set.
+    @inlinable
     var menuOpenAction: MenuOpenAction? {
         get { self[MenuOpenKey.self] }
         set { self[MenuOpenKey.self] = newValue }

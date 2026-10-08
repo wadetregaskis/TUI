@@ -8,11 +8,14 @@ import TUIkitCore
 
 // MARK: - Environment key
 
-private struct ShiftStepMultiplierKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ShiftStepMultiplierKey: EnvironmentKey {
     // 5× by default: holding Shift while pressing an arrow (or a Stepper's ±)
     // takes five base steps at once. The base step stays one unit, so existing
     // un-Shifted behaviour is unchanged.
-    static let defaultValue = 5
+    @usableFromInline static let defaultValue = 5
 }
 
 extension EnvironmentValues {
@@ -23,6 +26,7 @@ extension EnvironmentValues {
     /// Shift multiplies it by this. Defaults to `5`, and is clamped to at least 1.
     ///
     /// Set it for a whole subtree with ``View/shiftStepMultiplier(_:)``.
+    @inlinable
     public var shiftStepMultiplier: Int {
         get { self[ShiftStepMultiplierKey.self] }
         set { self[ShiftStepMultiplierKey.self] = max(1, newValue) }

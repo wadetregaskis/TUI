@@ -301,7 +301,15 @@ public struct SelectionEmphasis: Equatable, Sendable {
 /// appear active, it holds still half-way between its ends, whatever the style
 /// (``SelectionEmphasis/isHeld``).
 public struct SelectionEmphasisClock {
-    let environment: EnvironmentValues
+    @usableFromInline let environment: EnvironmentValues
+
+    /// Spelled out, and `@inlinable`, for the `@inlinable`
+    /// ``EnvironmentValues/selectionEmphasis`` (module split step A3): an
+    /// implicit memberwise initializer cannot be.
+    @inlinable
+    init(environment: EnvironmentValues) {
+        self.environment = environment
+    }
 
     /// The emphasis for an element that is (or isn't) focused right now.
     @MainActor
@@ -596,6 +604,7 @@ extension EnvironmentValues {
     /// ``View/selectionIndicatorStyle(_:)`` and the
     /// speed set for ``IndicatorAnimations/focusEmphasis`` for free. TUI-specific:
     /// SwiftUI has no equivalent, because it has no shared terminal-wide pulse.
+    @inlinable
     public var selectionEmphasis: SelectionEmphasisClock {
         SelectionEmphasisClock(environment: self)
     }

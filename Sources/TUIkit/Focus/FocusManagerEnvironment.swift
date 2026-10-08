@@ -12,7 +12,11 @@
 // MARK: - Focus Manager Environment Key
 
 /// Environment key for the focus manager.
-private struct FocusManagerKey: EnvironmentKey {
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct FocusManagerKey: EnvironmentKey {
     // No shared default instance — consistent with the other runtime services
     // (lifecycle, keyEventDispatcher, mouseEventDispatcher are all nil-default
     // Optionals). A single shared default would let every context that doesn't
@@ -21,7 +25,7 @@ private struct FocusManagerKey: EnvironmentKey {
     // The real app installs one via `RenderLoop.makeRenderContext`; a nil manager
     // means "no focus system", so controls render unfocused and nothing
     // auto-focuses.
-    static let defaultValue: FocusManager? = nil
+    @usableFromInline static let defaultValue: FocusManager? = nil
 }
 
 extension EnvironmentValues {
@@ -30,6 +34,7 @@ extension EnvironmentValues {
     /// test that doesn't exercise focus). The live app always installs one.
     ///
     /// Access via `context.environment.focusManager` in `renderToBuffer(context:)`.
+    @inlinable
     public var focusManager: FocusManager? {
         get { self[FocusManagerKey.self] }
         set { self[FocusManagerKey.self] = newValue }

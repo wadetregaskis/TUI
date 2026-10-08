@@ -15,6 +15,7 @@ extension View {
     ///   - keyPath: The key path to the environment value.
     ///   - value: The value to set.
     /// - Returns: A view with the modified environment.
+    @inlinable
     public func environment<V>(
         _ keyPath: WritableKeyPath<EnvironmentValues, V>,
         _ value: V

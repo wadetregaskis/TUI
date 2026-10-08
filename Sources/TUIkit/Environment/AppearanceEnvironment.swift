@@ -9,8 +9,12 @@ import TUIkitStyling
 // MARK: - Appearance Environment Key
 
 /// Environment key for the current appearance.
-private struct AppearanceKey: EnvironmentKey {
-    static let defaultValue: Appearance = .default
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct AppearanceKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: Appearance = .default
 }
 
 extension EnvironmentValues {
@@ -31,6 +35,7 @@ extension EnvironmentValues {
     /// let appearance = context.environment.appearance
     /// let borderStyle = appearance.borderStyle
     /// ```
+    @inlinable
     public var appearance: Appearance {
         get { self[AppearanceKey.self] }
         set { self[AppearanceKey.self] = newValue }

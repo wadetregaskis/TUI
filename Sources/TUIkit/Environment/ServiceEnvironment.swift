@@ -21,15 +21,23 @@ private struct LifecycleKey: EnvironmentKey {
 // MARK: - Key Event Dispatcher
 
 /// EnvironmentKey for key event handler registration and dispatch.
-private struct KeyEventDispatcherKey: EnvironmentKey {
-    static let defaultValue: KeyEventDispatcher? = nil
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct KeyEventDispatcherKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: KeyEventDispatcher? = nil
 }
 
 // MARK: - Mouse Event Dispatcher
 
 /// EnvironmentKey for mouse event handler registration and dispatch.
-private struct MouseEventDispatcherKey: EnvironmentKey {
-    static let defaultValue: MouseEventDispatcher? = nil
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct MouseEventDispatcherKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: MouseEventDispatcher? = nil
 }
 
 // MARK: - Animation Scheduler
@@ -64,8 +72,12 @@ private struct SynthesizeKeyEventKey: EnvironmentKey {
 // MARK: - Preference Storage
 
 /// EnvironmentKey for preference value collection during rendering.
-private struct PreferenceStorageKey: EnvironmentKey {
-    static let defaultValue: PreferenceStorage? = nil
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct PreferenceStorageKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: PreferenceStorage? = nil
 }
 
 // MARK: - Pulse Phase
@@ -92,8 +104,12 @@ private struct FocusIndicatorKey: EnvironmentKey {
 }
 
 /// EnvironmentKey for the drag-and-drop session.
-private struct DragAndDropSessionKey: EnvironmentKey {
-    static let defaultValue: DragAndDropSession? = nil
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct DragAndDropSessionKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: DragAndDropSession? = nil
 }
 
 private struct TypedClipboardKey: EnvironmentKey {
@@ -137,8 +153,12 @@ extension EnvironmentValues {
     /// Setting it also sets `keyChannelToken`, which the value memos compare to
     /// tell a subtree's registrations into these channels from ones made into
     /// throwaways swapped in below.
+    ///
+    /// Only the getter is `@inlinable` (module split step A3): the setter also
+    /// writes `keyChannelToken`, which it would have to export to save one call.
+    @usableFromInline
     var keyEventDispatcher: KeyEventDispatcher? {
-        get { self[KeyEventDispatcherKey.self] }
+        @inlinable get { self[KeyEventDispatcherKey.self] }
         set {
             self[KeyEventDispatcherKey.self] = newValue
             keyChannelToken = newValue.map(ObjectIdentifier.init)
@@ -154,6 +174,7 @@ extension EnvironmentValues {
     }
 
     /// Mouse event handler registration and dispatch.
+    @inlinable
     var mouseEventDispatcher: MouseEventDispatcher? {
         get { self[MouseEventDispatcherKey.self] }
         set { self[MouseEventDispatcherKey.self] = newValue }
@@ -184,6 +205,7 @@ extension EnvironmentValues {
     }
 
     /// The app-wide drag-and-drop session, or `nil` outside a live app.
+    @inlinable
     var dragAndDropSession: DragAndDropSession? {
         get { self[DragAndDropSessionKey.self] }
         set { self[DragAndDropSessionKey.self] = newValue }
@@ -202,6 +224,7 @@ extension EnvironmentValues {
     /// preference force-unwrap this, so a tree containing `.preference` cannot
     /// be rendered at all without it — which is what the `preferences` stress
     /// scenario ran into.
+    @inlinable
     public var preferenceStorage: PreferenceStorage? {
         get { self[PreferenceStorageKey.self] }
         set { self[PreferenceStorageKey.self] = newValue }

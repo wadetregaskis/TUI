@@ -32,8 +32,12 @@ private struct TerminalHeightKey: EnvironmentKey {
 }
 
 /// Environment key for the terminal's total width in columns.
-private struct TerminalWidthKey: EnvironmentKey {
-    static let defaultValue: Int = 80
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct TerminalWidthKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: Int = 80
 }
 
 /// Environment key for the height of the content area available to overlays —
@@ -72,6 +76,7 @@ extension EnvironmentValues {
     /// them otherwise. It is published once per frame at the render root, so it
     /// is identical across a view's measure and render passes (branching on it
     /// never oscillates, unlike a context's `availableWidth`).
+    @inlinable
     public var terminalWidth: Int {
         get { self[TerminalWidthKey.self] }
         set { self[TerminalWidthKey.self] = newValue }
@@ -96,8 +101,12 @@ extension EnvironmentValues {
 // MARK: - List Style Environment Key
 
 /// Environment key for list styles.
-private struct ListStyleKey: EnvironmentKey {
-    static let defaultValue: any ListStyle = DefaultListStyle()
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ListStyleKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: any ListStyle = DefaultListStyle()
 }
 
 extension EnvironmentValues {
@@ -111,6 +120,7 @@ extension EnvironmentValues {
     /// The render cache compares this value between frames to decide whether
     /// what it memoized below is still good, so a style that is not `Equatable`
     /// turns memoization off in its subtree — see ``ListStyle``.
+    @inlinable
     var listStyle: any ListStyle {
         get { self[ListStyleKey.self] }
         set { self[ListStyleKey.self] = newValue }

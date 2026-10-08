@@ -12,6 +12,8 @@ import TUIkitCore
 ///
 /// Views can register handlers that are called when keys are pressed.
 /// Handlers are processed in reverse order (most recent first).
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+@usableFromInline
 final class KeyEventDispatcher: @unchecked Sendable {
     /// One registration: the handler and the focus section it rendered in.
     private struct Entry {

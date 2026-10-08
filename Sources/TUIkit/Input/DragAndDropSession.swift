@@ -95,6 +95,8 @@ final class DropPayload: @unchecked Sendable, Equatable {
 /// session is only ever touched from the main run loop (render pass + input
 /// dispatch), but it is created by the nonisolated ``TUIContext``
 /// initializer, so it cannot be formally actor-isolated.
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+@usableFromInline
 final class DragAndDropSession: @unchecked Sendable {
     /// One frame's registration of a drop destination.
     struct Target {

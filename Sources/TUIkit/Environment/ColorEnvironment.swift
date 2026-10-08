@@ -13,8 +13,12 @@ import TUIkitStyling
 /// When set via `.foregroundStyle(_:)` on any View, this value propagates
 /// down through the view hierarchy. Child views can read it from the
 /// render context to apply the color.
-private struct ForegroundStyleKey: EnvironmentKey {
-    static let defaultValue: Paint? = nil
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ForegroundStyleKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: Paint? = nil
 }
 
 extension EnvironmentValues {
@@ -30,6 +34,7 @@ extension EnvironmentValues {
     /// needs one colour — and most chrome does — asks for
     /// ``Paint/representative``, which makes each collapse visible where it
     /// happens.
+    @inlinable
     public var foregroundStyle: Paint? {
         get { self[ForegroundStyleKey.self] }
         set { self[ForegroundStyleKey.self] = newValue }

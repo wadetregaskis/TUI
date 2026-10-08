@@ -731,8 +731,12 @@ extension StatusBarState {
 // MARK: - StatusBar Environment Key
 
 /// Environment key for accessing the status bar state.
-private struct StatusBarKey: EnvironmentKey {
-    static let defaultValue: StatusBarState? = nil
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct StatusBarKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: StatusBarState? = nil
 }
 
 /// Environment key for the app's own status bar state, which isolation never
@@ -761,6 +765,7 @@ extension EnvironmentValues {
     /// back. The convention here is the one `focusManager` and
     /// `keyEventDispatcher` already follow — a runtime service is Optional, and
     /// absent means absent.
+    @inlinable
     public var statusBar: StatusBarState? {
         get { self[StatusBarKey.self] }
         set { self[StatusBarKey.self] = newValue }
