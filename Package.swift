@@ -3,6 +3,41 @@
 import CompilerPluginSupport
 import PackageDescription
 
+// ── Sources' directories ────────────────────────────────────────────────────────────────────────────────
+// Every directory under Sources, once. A target that compiles more than one of them (TUIkitFoundation, and each
+// coarse group of the module split) takes `path: "Sources"`, so it sees every file under Sources, and SwiftPM
+// reports each one it does not compile as unhandled ("found N file(s) which are unhandled", a warning). Such a
+// target is declared with `directories:` (below), which excludes every directory of this list it does not name.
+// So a new directory under Sources is added here and nowhere else; one left out is reported as unhandled by
+// each such target, which the zero-warnings gate catches.
+let sourcesDirectories = [
+    "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit", "TUIkitBitmaps",
+    "TUIkitChrome", "TUIkitColorPicker", "TUIkitCore", "TUIkitEffects", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid",
+    "TUIkitImage", "TUIkitLists", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitMenus", "TUIkitNavigation",
+    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings", "TUIkitStyling",
+    "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitView", "TUIkitWidthCorpus",
+]
+
+extension Target {
+    /// A target that compiles the directories under Sources that `directories` names: `path: "Sources"`, those
+    /// directories as its `sources:`, and every other one of `sourcesDirectories` as its `exclude:`.
+    static func target(
+        name: String,
+        dependencies: [Dependency],
+        directories: [String],
+        swiftSettings: [SwiftSetting]
+    ) -> Target {
+        .target(
+            name: name,
+            dependencies: dependencies,
+            path: "Sources",
+            exclude: sourcesDirectories.filter { !directories.contains($0) },
+            sources: directories,
+            swiftSettings: swiftSettings
+        )
+    }
+}
+
 let package = Package(
     name: "TUIkit",
     // Minimum deployment targets for Apple platforms
@@ -166,9 +201,9 @@ let package = Package(
         // `NavigationPath`, `NavigationLink`, the split views and the inspector; Sources/TUIkitPresentation holds
         // `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover` and `modal`, and the presentation
         // modifiers. Step C1 peels TUIkitPresentation into a target of its own; until then its files compile into
-        // this module. So the target takes `path: "Sources"` and names its two directories in `sources:`, as
-        // TUIkitFoundation does its own, and excludes every other directory under Sources, which SwiftPM would
-        // otherwise report as unhandled. The map's edge from Presentation to TUIkitChrome stays inside
+        // this module. So the target names its two directories in `directories:`, as TUIkitFoundation does its
+        // own, which excludes every other directory under Sources (`sourcesDirectories`, at the top of this
+        // file). The map's edge from Presentation to TUIkitChrome stays inside
         // TUIkitFoundation until step B5b, so of the map's modules it depends on TUIkitFoundation alone. Nothing in
         // TUIkitFoundation may use it (Tools/ModuleMap's upward check, which still checks the two directories as the
         // two modules the map plans), so the umbrella re-exports it, and so does TUIkitColorPicker. It re-exports
@@ -176,16 +211,7 @@ let package = Package(
         .target(
             name: "TUIkitNavigation",
             dependencies: ["TUIkitFoundation"],
-            path: "Sources",
-            exclude: [
-                "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit",
-                "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCore", "TUIkitEffects", "TUIkitForms",
-                "TUIkitFoundation", "TUIkitGrid", "TUIkitImage", "TUIkitLists", "TUIkitMacros", "TUIkitMacrosPlugin",
-                "TUIkitMenus", "TUIkitNumericControls", "TUIkitPickers", "TUIkitSearch", "TUIkitStrings",
-                "TUIkitStyling", "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitView",
-                "TUIkitWidthCorpus",
-            ],
-            sources: ["TUIkitNavigation", "TUIkitPresentation"],
+            directories: ["TUIkitNavigation", "TUIkitPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -207,31 +233,22 @@ let package = Package(
         // revision 4) puts each planned module's files in Sources/<module>, where the module will live
         // once a step of Phase B carves it into a target of its own; until then this one target compiles
         // them all, as the module TUIkitFoundation (step B1). A carve adds `.target(name: "TUIkitX", …)`
-        // at its default path and moves "TUIkitX" from `sources:` to `exclude:` below; a coarse group's carve
-        // adds one target over its modules' directories (`path: "Sources"`, as TUIkitNavigation, step B5)
-        // and moves each of them. When the last module has left, this target loses `path:`, `exclude:` and
-        // `sources:` and is Sources/TUIkitFoundation.
+        // at its default path and takes "TUIkitX" out of `directories:` below; a coarse group's carve adds
+        // one target over its modules' directories (`directories:`, as TUIkitNavigation, step B5) and takes
+        // each of them out. When the last module has left, this target is an ordinary one at
+        // Sources/TUIkitFoundation.
         // Tools/ModuleMap checks the map: a file's directory is its module.
         .target(
             name: "TUIkitFoundation",
             dependencies: [
                 "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView", "TUIkitStrings", "TUIkitTerminalHost",
             ],
-            path: "Sources",
-            // Every other target's directory under Sources. One left out, or a new one, is reported by
-            // SwiftPM as "found N file(s) which are unhandled" (a warning), so the list cannot go stale
-            // quietly.
-            exclude: [
-                "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit",
-                "TUIkitColorPicker", "TUIkitCore", "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin",
-                "TUIkitNavigation", "TUIkitPresentation", "TUIkitStrings", "TUIkitStyling", "TUIkitTerminalHost",
-                "TUIkitView", "TUIkitWidthCorpus",
-            ],
-            // The planned modules not yet carved, in rules.json's order. A Swift file no entry covers is
-            // reported as unhandled, like a stray directory above, but only as a warning, which CI does not
-            // fail on: Tools/ModuleMap's `uncompiled` check, which gates CI, fails on a file of a module's
-            // directory that the build did not compile.
-            sources: [
+            // The planned modules not yet carved, in rules.json's order; every other directory under Sources
+            // is excluded (`sourcesDirectories`, at the top of this file). A Swift file no entry covers is
+            // reported as unhandled, but only as a warning, which CI does not fail on: Tools/ModuleMap's
+            // `uncompiled` check, which gates CI, fails on a file of a module's directory that the build did
+            // not compile.
+            directories: [
                 "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps", "TUIkitMenus",
                 "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitLists", "TUIkitGrid",
                 "TUIkitForms", "TUIkitSearch", "TUIkitTables", "TUIkitTabs",
