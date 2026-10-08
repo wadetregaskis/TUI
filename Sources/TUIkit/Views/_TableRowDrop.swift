@@ -9,11 +9,6 @@
 import TUIkitCore
 import TUIkitView
 
-#if canImport(UniformTypeIdentifiers)
-    import Foundation
-    import UniformTypeIdentifiers
-#endif
-
 // MARK: - What a row carries
 
 /// A drop a row takes onto itself, from a `.dropDestination(for:action:)` on

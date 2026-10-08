@@ -4,8 +4,6 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-import Observation
-
 // MARK: - List Style
 
 extension View {
