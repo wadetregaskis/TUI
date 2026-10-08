@@ -101,6 +101,29 @@ package final class HeadlessInputChannels {
         mouseEventDispatcher.geometry.endFrame(frame: frame, retainedBy: stateStorage)
     }
 
+    /// Ends a context these channels were installed into, as an app ends its
+    /// own on the way out (`TUIContext.reset()`): empties its state storage,
+    /// render cache and preference storage.
+    ///
+    /// Letting go of the context does not free them. Each keeps closures that
+    /// captured a `RenderContext` — a `List`'s handler answers row heights
+    /// from the frame's rows, each row's box holds the context it was built
+    /// under, a memo's effect journal holds a `Button`'s registration — and a
+    /// context's environment holds the storage and the cache themselves. So
+    /// each is in a cycle with what it keeps, and a context dropped without
+    /// this stayed alive, whole. An app has one context, which lives as long
+    /// as it runs; the Stress bench's `--cold` makes one a frame, and kept
+    /// every one of them. (The channels themselves need nothing: the frame
+    /// loop empties them before every walk.)
+    ///
+    /// - Parameter context: The context to end.
+    @MainActor
+    package func discard(_ context: RenderContext) {
+        context.environment.stateStorage?.reset()
+        context.environment.renderCache?.reset()
+        context.environment.preferenceStorage?.reset()
+    }
+
     /// How many key handlers the last walk left registered.
     package var keyHandlerCount: Int { keyEventDispatcher.handlerCount }
 
