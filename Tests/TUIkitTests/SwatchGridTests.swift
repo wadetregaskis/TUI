@@ -184,8 +184,8 @@ struct SwatchGridRenderTests {
         #expect(pulsing.animatedCells.count == 1, "the focused mark left no run")
         let run = pulsing.animatedCells[0]
         #expect(run.isAnimating, "pulse: the focused mark animates")
-        #expect(
-            Set(run.frames.map(\.stripped)).count == 1, "the pulse moved the mark's glyphs")
+        let pictures: Set<String> = Set(run.frames.map(\.stripped))
+        #expect(pictures.count == 1, "the pulse moved the mark's glyphs")
         // And it sits on the swatch it was drawn from.
         let replayed = pulsing.composited(
             with: FrameBuffer(lines: [run.frame(atIndex: 0)]), at: (x: run.offsetX, y: run.offsetY))
@@ -256,7 +256,10 @@ struct CuratedPaletteTests {
             return levels.contains(rgb.red) && levels.contains(rgb.green) && levels.contains(rgb.blue)
         }, "every channel is one of 00/33/66/99/CC/FF")
         // Every combination appears exactly once.
-        #expect(Set(web.map { $0.rgbComponents.map { [$0.red, $0.green, $0.blue] } ?? [] }).count == 216)
+        let combinations: Set<[UInt8]> = Set(web.map { (colour: Color) -> [UInt8] in
+            colour.rgbComponents.map { [$0.red, $0.green, $0.blue] } ?? []
+        })
+        #expect(combinations.count == 216)
     }
 
     @Test("CSS named colours are the 148 keywords, synonyms collapsed")

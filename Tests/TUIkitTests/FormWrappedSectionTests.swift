@@ -237,7 +237,8 @@ struct FormWrappedSectionTests {
                 Toggle("Wi-Fi", isOn: .constant(true))
             }.formStyle(.columns)
         ).map(\.stripped)
-        #expect(after.filter { $0.contains("Wi-Fi") } == on.filter { $0.contains("Wi-Fi") }, "\(after)")
+        let wifiAfter = after.filter { $0.contains("Wi-Fi") }, wifiOn = on.filter { $0.contains("Wi-Fi") }
+        #expect(wifiAfter == wifiOn, "\(after)")
     }
 
     @Test("A view of the app's own nested in itself deeper than the stack holds is read as far as the stack allows")

@@ -44,7 +44,8 @@ struct ListRowAlignmentTests {
         fixture.env.scrollIndicatorStyle = style
         let held = heldBlockMovedToTheEnd(fixture)
 
-        #expect(fixture.handler?.reorder?.held.count == 3, "the whole block is in hand")
+        let heldCount: Int? = fixture.handler?.reorder?.held.count
+        #expect(heldCount == 3, "the whole block is in hand")
         #expect(fixture.handler?.showsScrollbar == (style == .scrollbar), "drawn by the \(style) composer")
         expectInkOnLabelsOnly(held)
     }
@@ -460,7 +461,8 @@ struct ListRowAlignmentTests {
 
         let screen = held.lines.map(\.stripped)
         let handler = ctx.environment.focusManager?.currentFocused as? ItemListHandler<Int>
-        #expect(handler?.reorder?.held.count == 3, "the whole block is in hand")
+        let heldCount: Int? = handler?.reorder?.held.count
+        #expect(heldCount == 3, "the whole block is in hand")
         let answers = labelsAnsweringAClick(held, tapped, context: ctx)
         let top = try #require(
             answers.first, "no row line is drawn:\n\(screen.joined(separator: "\n"))")

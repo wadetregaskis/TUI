@@ -195,9 +195,8 @@ struct ListLoopedRowIDTests {
                 }
             }
             .frame(height: 10))
-        #expect(
-            fixture.rowIDs == [nil, nil] + planets.map(\.id),
-            "the header and the untagged row name nothing; each planet is its id")
+        let expectedIDs: [UUID?] = [nil, nil] + planets.map(\.id)
+        #expect(fixture.rowIDs == expectedIDs, "the header and the untagged row name nothing; each planet is its id")
         guard let handler = fixture.handler else {
             Issue.record("the list took focus")
             return
@@ -568,8 +567,7 @@ struct ListLoopedRowIDTests {
                 }
             }
             .frame(height: 12))
-        #expect(
-            Array(mixed.rowIDs.prefix(3)) == [0, 5, 6],
-            "Inbox keeps 0 beside rows that answer 5 and 6: \(mixed.rowIDs)")
+        let firstThree: [Int?] = Array(mixed.rowIDs.prefix(3))
+        #expect(firstThree == [0, 5, 6], "Inbox keeps 0 beside rows that answer 5 and 6: \(mixed.rowIDs)")
     }
 }

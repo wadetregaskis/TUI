@@ -29,7 +29,8 @@ struct GradientRasterTests {
         let size = try #require(GradientRaster.resolution(columns: 40, rows: 1, cellPixels: cell))
         #expect(size.factor == 2, "34 shares only the 2 with a multiple of 16")
         #expect(size.width == 320 && size.height == 17)
-        #expect(size.width * 34 == size.height * 640, "the aspect is the box's, exactly")
+        let across: Int = size.width * 34, down: Int = size.height * 640
+        #expect(across == down, "the aspect is the box's, exactly")
         // A box the gcd would flatten to one pixel keeps its ramp.
         let tall = try #require(GradientRaster.resolution(columns: 17, rows: 8, cellPixels: cell))
         #expect(tall.width >= 17 * GradientRaster.minimumPixelsPerCell)
@@ -58,7 +59,9 @@ struct GradientRasterTests {
         #expect(first[0] > 200 && first[2] < 60, "starts red: \(first)")
         #expect(last[2] > 200 && last[0] < 60, "ends blue: \(last)")
         for row in 1..<picture.height {
-            #expect(Array(picture.bytes[(row * stride)..<((row + 1) * stride)]) == Array(picture.bytes[0..<stride]))
+            let rowStart: Int = row * stride
+            let rowBytes: [UInt8] = Array(picture.bytes[rowStart..<(rowStart + stride)])
+            #expect(rowBytes == Array(picture.bytes[0..<stride]))
         }
     }
 
@@ -70,7 +73,8 @@ struct GradientRasterTests {
                 .linear(from: .top, to: .bottom)))
         let picture = try #require(raster(paint, columns: 4, rows: 4))
         let stride = picture.width * 3
-        #expect(Array(picture.bytes[0..<3]) == Array(picture.bytes[(stride - 3)..<stride]), "one colour along a row")
+        let lastCell: [UInt8] = Array(picture.bytes[(stride - 3)..<stride])
+        #expect(Array(picture.bytes[0..<3]) == lastCell, "one colour along a row")
         let top = picture.bytes[0]
         let bottom = picture.bytes[(picture.height - 1) * stride]
         #expect(top > 200 && bottom < 60, "red at the top, blue at the bottom")

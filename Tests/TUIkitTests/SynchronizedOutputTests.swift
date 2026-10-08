@@ -194,14 +194,16 @@ struct SynchronizedOutputTests {
         frame.withUnsafeBufferPointer { buffer in
             Terminal.writeFrame(buffer, omitting: nil, holdsDisplay: true, through: output.write)
         }
-        #expect(output.taken == Array(frame.prefix(12)) + Array(Self.end.utf8))
+        let expected: [UInt8] = Array(frame.prefix(12)) + Array(Self.end.utf8)
+        #expect(output.taken == expected)
 
         let unheld = Array("\u{1B}[1;1Hx".utf8)
         let quiet = FlakyOutput(firstWrite: 3)
         unheld.withUnsafeBufferPointer { buffer in
             Terminal.writeFrame(buffer, omitting: nil, holdsDisplay: false, through: quiet.write)
         }
-        #expect(quiet.taken == Array(unheld.prefix(3)), "a frame that held nothing owes nothing")
+        let firstWrite: [UInt8] = Array(unheld.prefix(3))
+        #expect(quiet.taken == firstWrite, "a frame that held nothing owes nothing")
     }
 
     @Test("A rendered frame's hold begins after its image transmissions and before its first cell")

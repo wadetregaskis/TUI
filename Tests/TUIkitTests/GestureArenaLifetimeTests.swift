@@ -408,7 +408,8 @@ struct GestureArenaLifetimeTests {
             #expect(log.entries == ["hide"] + ran, "framed: \(framed)")
             harness.now = 3_000 * gestureMillisecond
             clickUnframed(harness, 7, 0)
-            #expect(log.entries == ["hide"] + ran + ["outer"], "framed: \(framed)")
+            let expected: [String] = ["hide"] + ran + ["outer"]
+            #expect(log.entries == expected, "framed: \(framed)")
         }
     }
 

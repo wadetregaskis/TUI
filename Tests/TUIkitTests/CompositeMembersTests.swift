@@ -176,7 +176,8 @@ struct CompositeMembersTests {
         #expect(loop.rowShape(sectionWholeness: .apart) == .fixed(2))
         let drawn = lines(
             ScrollView { LazyVStack(alignment: .leading, spacing: 0) { loop } }.frame(height: 4), height: 4)
-        #expect(Array(drawn.prefix(3)).map { String($0.prefix(2)) } == ["0a", "0b", "1a"], "\(drawn)")
+        let heads: [String] = drawn.prefix(3).map { String($0.prefix(2)) }
+        #expect(heads == ["0a", "0b", "1a"], "\(drawn)")
     }
 
     @Test("Beside another section in a List, a section of the app's own is a section: its header drawn, its rows selected by element and deletable")

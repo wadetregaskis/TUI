@@ -209,7 +209,8 @@ struct QuitKeyMaskTests {
         }
         let first = QuitKeyChords.of(0x1C)
         let second = QuitKeyChords.of(0x1C)
-        #expect(first?.own.count == 2 && first?.aliases(on: .all).count == 6, "⌃\\ and ⌃⌥\\; ⌃4, ⌃| and ⌃⇧\\, with and without ⌥")
+        let own: Int? = first?.own.count, aliases: Int? = first?.aliases(on: .all).count
+        #expect(own == 2 && aliases == 6, "⌃\\ and ⌃⌥\\; ⌃4, ⌃| and ⌃⇧\\, with and without ⌥")
         #expect(storage(first?.own) == storage(second?.own) && storage(first?.aliases(on: .all)) == storage(second?.aliases(on: .all)))
         #expect(QuitKeyChords.of(0x18)?.own.first == KeyEvent(key: .character("x"), ctrl: true))
         #expect(QuitKeyChords.of(0x18)?.aliases(on: .all).isEmpty == true, "only ⌃\\'s byte is sent for other chords")

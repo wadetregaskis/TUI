@@ -326,7 +326,8 @@ struct CompositeGestureTests {
         harness.now = 1_200 * gestureMillisecond
         harness.frame(view())
         harness.click(7, 0, view)
-        #expect(log.entries == ["tap", "outer", "tap", "outer"] + (around ? ["outer"] : []))
+        let expected: [String] = ["tap", "outer", "tap", "outer"] + (around ? ["outer"] : [])
+        #expect(log.entries == expected)
     }
 
     /// Measured on macOS 15.8: a drag before a tap ends at the drag's

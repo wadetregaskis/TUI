@@ -58,7 +58,8 @@ struct ListStyleVariantTests {
         #expect(!inset.joined().contains("│"), "\(inset)")
         let plainRow = plain.first { $0.contains("Inbox") } ?? ""
         let insetRow = inset.first { $0.contains("Inbox") } ?? ""
-        #expect(insetRow == " " + plainRow.dropLast(2) + " ", "'\(insetRow)' against '\(plainRow)'")
+        let expected: String = " " + plainRow.dropLast(2) + " "
+        #expect(insetRow == expected, "'\(insetRow)' against '\(plainRow)'")
     }
 
     @Test(".sidebar draws no border and its rows' label icons in the accent")

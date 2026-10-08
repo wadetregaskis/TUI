@@ -92,7 +92,8 @@ struct PresentationVariantsTests {
         #expect(below?.offsetY == 2)
         // Flipped, it goes above the rectangle, not above the view.
         #expect(below?.anchorHeight == 1)
-        #expect(overlay(.rect(source), .top)?.offsetY == 1 - (below?.content.height ?? 0))
+        let aboveTheRectangle: Int = 1 - (below?.content.height ?? 0)
+        #expect(overlay(.rect(source), .top)?.offsetY == aboveTheRectangle)
         #expect(overlay(.rect(source), .leading)?.offsetX == -5)
         let trailing = overlay(.rect(source), .trailing)
         #expect(trailing?.offsetX == 11)

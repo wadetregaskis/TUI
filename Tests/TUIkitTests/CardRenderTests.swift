@@ -63,7 +63,8 @@ struct CardRenderTests {
         #expect(bottom.hasPrefix("╰"))
         #expect(bottom.hasSuffix("╯"))
         // The horizontal runs between corners are the same length.
-        #expect(top.dropFirst().dropLast() == bottom.dropFirst().dropLast())
+        let topRun = top.dropFirst().dropLast(), bottomRun = bottom.dropFirst().dropLast()
+        #expect(topRun == bottomRun)
     }
 
     // MARK: Title

@@ -72,8 +72,9 @@ struct LabeledContentStyleTests {
         let form = Form {
             LabeledContent("Name", value: "Ada")
         }
-        #expect(lines(form.labeledContentStyle(Stacked())).filter { !$0.isEmpty }.prefix(2)
-            .map { $0.trimmingCharacters(in: .whitespaces) } == ["Name", "Ada"])
+        let firstTwo: [String] = lines(form.labeledContentStyle(Stacked())).filter { !$0.isEmpty }.prefix(2)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        #expect(firstTwo == ["Name", "Ada"])
     }
 
     @Test("LabeledContent(configuration) draws the content as the style outside would")

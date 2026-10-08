@@ -24,6 +24,14 @@ import TUIkit
 @Suite("SF Symbols")
 struct SFSymbolTests {
 
+    /// The Private Use Area glyph at `codepoint`. A typed helper rather than
+    /// `String(Unicode.Scalar(…)!)` inline: inside `#expect`, that spelling took
+    /// the type checker 41-43 ms a line to choose among `String.init`s (lane
+    /// TC1's primary-file measurement, min of 3 runs).
+    private func pua(_ codepoint: UInt32) -> String {
+        String(Unicode.Scalar(codepoint)!)
+    }
+
     // MARK: - Layer 1: width + Terminal.app cursor advance (cross-platform)
 
     @Test("An SF Symbol PUA scalar is a width-2, advance-1 under-advancer")
@@ -44,7 +52,7 @@ struct SFSymbolTests {
 
     @Test("A line carrying a symbol glyph gets a CUF(1) Terminal.app compensation")
     func compensationInjectsCUF() {
-        let line = "x" + String(Unicode.Scalar(0x10_02C3)!) + "y"
+        let line = "x" + pua(0x10_02C3) + "y"
         // The glyph claims 2 cells but advances 1, so a CUF(1) is injected to
         // push the cursor to the glyph's visual end (same path as VS-16 emoji).
         #expect(line.withTerminalAppCursorCompensation().contains("\u{1B}[1C"))
@@ -55,8 +63,8 @@ struct SFSymbolTests {
     @Test("glyph(named:) resolves a known symbol to its PUA glyph (Apple), nil elsewhere")
     func resolverKnownSymbol() {
         #if canImport(AppKit)
-        #expect(SFSymbol.glyph(named: "star.fill") == String(Unicode.Scalar(0x10_02C3)!))
-        #expect(SFSymbol.glyph(named: "checkmark") == String(Unicode.Scalar(0x10_0185)!))
+        #expect(SFSymbol.glyph(named: "star.fill") == pua(0x10_02C3))
+        #expect(SFSymbol.glyph(named: "checkmark") == pua(0x10_0185))
         #expect(!SFSymbol.all.isEmpty)
         #else
         #expect(SFSymbol.glyph(named: "star.fill") == nil)
@@ -74,8 +82,8 @@ struct SFSymbolTests {
     func resolverPrefixBoundary() {
         // `star` is a prefix of `star.fill`, `star.circle`, … — the binary
         // search must return star's own glyph (U+1002C2), not a neighbour's.
-        #expect(SFSymbol.glyph(named: "star") == String(Unicode.Scalar(0x10_02C2)!))
-        #expect(SFSymbol.glyph(named: "star.fill") == String(Unicode.Scalar(0x10_02C3)!))
+        #expect(SFSymbol.glyph(named: "star") == pua(0x10_02C2))
+        #expect(SFSymbol.glyph(named: "star.fill") == pua(0x10_02C3))
         #expect(SFSymbol.glyph(named: "star") != SFSymbol.glyph(named: "star.fill"))
         // An almost-match that isn't a real name still misses.
         #expect(SFSymbol.glyph(named: "star.fil") == nil)
@@ -88,11 +96,11 @@ struct SFSymbolTests {
         // The table's first four names share its first `UInt64`, one per 16-bit
         // lane, highest first; `zzz` is the last name, in an element whose two
         // low lanes are padding. Values from the SF Symbols app's own table.
-        #expect(SFSymbol.glyph(named: "0.circle") == String(Unicode.Scalar(0x10_0038)!))
-        #expect(SFSymbol.glyph(named: "0.circle.ar") == String(Unicode.Scalar(0x10_1867)!))
-        #expect(SFSymbol.glyph(named: "0.circle.fill") == String(Unicode.Scalar(0x10_0039)!))
-        #expect(SFSymbol.glyph(named: "0.circle.fill.ar") == String(Unicode.Scalar(0x10_1868)!))
-        #expect(SFSymbol.glyph(named: "zzz") == String(Unicode.Scalar(0x10_0583)!))
+        #expect(SFSymbol.glyph(named: "0.circle") == pua(0x10_0038))
+        #expect(SFSymbol.glyph(named: "0.circle.ar") == pua(0x10_1867))
+        #expect(SFSymbol.glyph(named: "0.circle.fill") == pua(0x10_0039))
+        #expect(SFSymbol.glyph(named: "0.circle.fill.ar") == pua(0x10_1868))
+        #expect(SFSymbol.glyph(named: "zzz") == pua(0x10_0583))
         #expect(SFSymbol.all.count == SFSymbol.bakedCount)
     }
     #endif
@@ -131,7 +139,7 @@ struct SFSymbolTests {
         let text = renderToBuffer(
             Label("Star", systemImage: "star.fill"), context: makeBareRenderContext()
         ).lines.map { $0.stripped }.joined()
-        let glyph = String(Unicode.Scalar(0x10_02C3)!)
+        let glyph = pua(0x10_02C3)
         if SFSymbol.isFontAvailable {
             // The SF Symbols font is installed here — the glyph renders.
             #expect(text.contains(glyph))

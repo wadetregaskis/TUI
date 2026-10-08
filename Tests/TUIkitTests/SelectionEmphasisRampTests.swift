@@ -103,7 +103,8 @@ struct SelectionEmphasisRampTests {
         #expect((0..<shades).map { step in steps.count { $0 == step } } == expected, "steps by frame: \(steps)")
         // Symmetric about the dim frame, and frame 0 is the bright end.
         #expect(steps[0] == shades - 1)
-        #expect((1..<16).allSatisfy { steps[$0] == steps[16 - $0] }, "steps by frame: \(steps)")
+        let symmetric = (1..<16).allSatisfy { (frame: Int) -> Bool in steps[frame] == steps[16 - frame] }
+        #expect(symmetric, "steps by frame: \(steps)")
     }
 
     // MARK: - The shapes that draw a whole cycle

@@ -149,9 +149,8 @@ struct SiblingIdentityStabilityTests {
         let three = rowPaths(3)
         let four = rowPaths(4)
         #expect(three[0] == "/Text[0#0]", "a keyed row sits directly under the stack: \(three[0])")
-        #expect(
-            Array(four.prefix(3)) == Array(three.prefix(3)),
-            "the rows moved when the collection grew")
+        let fourHead = Array(four.prefix(3)), threeHead = Array(three.prefix(3))
+        #expect(fourHead == threeHead, "the rows moved when the collection grew")
         #expect(
             three.last == four.last,
             "the sibling after the loop moved: \(three.last ?? "") vs \(four.last ?? "")")

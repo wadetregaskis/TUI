@@ -169,7 +169,8 @@ struct SectionPartsTests {
             context: makeRenderContext(width: 10, height: 4))
         let identities = parts.compactMap(\.pinnedIdentity)
         #expect(identities.count == 2)
-        #expect(Set(identities.map(\.path)).count == 2)
+        let paths = Set(identities.map(\.path))
+        #expect(paths.count == 2)
     }
 
     @Test("A pinned stack lays its own sections out as its children, and pins the header over the gaps too")

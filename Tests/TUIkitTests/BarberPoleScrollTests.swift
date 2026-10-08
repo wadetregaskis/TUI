@@ -85,7 +85,8 @@ struct BarberPoleScrollTests {
         #expect(cycle.frames.count * cycle.frameTicks == 36, "the 0.6 s pass")
         let held = (0..<4).map { step in Set((9 * step..<9 * step + 9).map { shown(cycle, atTick: $0) }).count }
         #expect(held == [1, 1, 1, 1], "pictures shown in each 9-tick step: \(held)")
-        #expect(Set((0..<4).map { shown(cycle, atTick: 9 * $0) }).count == 4, "four different pictures")
+        let pictures: Set<String> = Set((0..<4).map { (step: Int) -> String in shown(cycle, atTick: 9 * step) })
+        #expect(pictures.count == 4, "four different pictures")
         for step in 0..<4 {
             let before = cells(shown(cycle, atTick: 9 * step))
             let after = cells(shown(cycle, atTick: 9 * (step + 1)))

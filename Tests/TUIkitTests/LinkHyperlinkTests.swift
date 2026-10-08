@@ -297,6 +297,7 @@ struct LinkHyperlinkTests {
         // is the point: the link and the styling are separate sequences and
         // neither has displaced the other.
         #expect(joined.contains("\u{1B}[4;") || joined.contains("\u{1B}[4m"), "still underlined")
-        #expect(joined.strippedLength == styled.lines.map(\.strippedLength).reduce(0, +))
+        let lineLengths: Int = styled.lines.map(\.strippedLength).reduce(0, +)
+        #expect(joined.strippedLength == lineLengths)
     }
 }

@@ -58,7 +58,8 @@ struct ProgressViewStyleProtocolTests {
         let shaded = ProgressView(value: 0.5).trackStyle(.shade)
         let bracketed = lines(shaded.progressViewStyle(BracketedStyle()), width: 20).first ?? ""
         let plain = lines(shaded.frame(width: 10), width: 20).first ?? ""
-        #expect(bracketed.stripped == "[" + plain.stripped.prefix(10) + "]", "\(bracketed.stripped) vs \(plain.stripped)")
+        let expected: String = "[" + plain.stripped.prefix(10) + "]"
+        #expect(bracketed.stripped == expected, "\(bracketed.stripped) vs \(plain.stripped)")
     }
 
     @Test("The circular style is a ring while determinate and a spinner while not")

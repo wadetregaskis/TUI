@@ -145,9 +145,8 @@ struct BodyMutationDiagnosticTests {
         }
 
         #expect(diagnostic.reports.count == 3, "saw \(diagnostic.reports)")
-        #expect(
-            Set(diagnostic.reports.map(\.frame)).count == 3,
-            "each report belongs to its own frame: \(diagnostic.reports.map(\.frame))")
+        let frames = Set(diagnostic.reports.map(\.frame))
+        #expect(frames.count == 3, "each report belongs to its own frame: \(diagnostic.reports.map(\.frame))")
     }
 
     /// Two walks of one frame — which happens on the first frame and on a

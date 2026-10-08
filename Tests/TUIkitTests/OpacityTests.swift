@@ -319,7 +319,8 @@ struct OpacityTests {
         // is the heavier side from one half, and the surface below.
         #expect(faded.hasSuffix("\u{1B}[49my"), "49 at 0.5: \(faded.debugDescription)")
         let below = OpacityFade.fading("\u{1B}[49my", by: 0.4, over: surface, defaultForeground: foreground)
-        #expect(below == "\u{1B}[" + surface.backgroundCodes().joined(separator: ";") + "my")
+        let surfaceCodes: String = surface.backgroundCodes().joined(separator: ";")
+        #expect(below == "\u{1B}[" + surfaceCodes + "my")
     }
 
     @Test("Escape sequences that are not SGR pass through untouched")

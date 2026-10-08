@@ -119,7 +119,8 @@ struct GeometryMarkerTests {
         #expect(first.allSatisfy { $0.id.isGeometryMarker })
         #expect(first.map(\.id) == second.map(\.id))
         // Two probes are two markers, not one.
-        #expect(Set(first.map(\.id)).count == 2)
+        let ids = Set(first.map(\.id))
+        #expect(ids.count == 2)
     }
 
     @Test("A marker has no area, so it contains no point")

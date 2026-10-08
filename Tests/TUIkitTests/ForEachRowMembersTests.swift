@@ -129,7 +129,8 @@ struct ForEachRowMembersTests {
         }
         .frame(height: 6)
         let drawn = render(view, height: 6)
-        #expect(drawn.prefix(4).map { String($0.prefix(2)) } == ["a0", "b0", "a1", "b1"])
+        let heads: [String] = drawn.prefix(4).map { String($0.prefix(2)) }
+        #expect(heads == ["a0", "b0", "a1", "b1"])
         #expect(seen.built < 1_000, "built \(seen.built) rows")
     }
 

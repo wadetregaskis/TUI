@@ -70,7 +70,8 @@ struct PickerSourcesTests {
         let harness = InputChainHarness(width: 40, height: 6)
         // Open the menu, move to the second option, choose it.
         harness.play([KeyEvent(key: .enter), KeyEvent(key: .down), KeyEvent(key: .enter)]) { picker(store) }
-        #expect(Set(store.shapes.map(\.size)).count == 1, "\(store.shapes)")
+        let sizes = Set(store.shapes.map(\.size))
+        #expect(sizes.count == 1, "\(store.shapes)")
     }
 
     @Test("Over no sources the picker draws its label and an empty control")

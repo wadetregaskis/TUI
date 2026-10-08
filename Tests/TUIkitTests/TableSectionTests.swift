@@ -190,7 +190,8 @@ struct TableSectionTests {
         #expect(vegetables == (harness.line(of: "fruit4") ?? -1) + 1)
         #expect(veg == vegetables + 1)
         // A section with no rows at the end still draws its header.
-        #expect(harness.line(of: "Last") == (harness.line(of: "veg12") ?? -1) + 1, "\(harness.screen)")
+        let belowVeg12: Int = (harness.line(of: "veg12") ?? -1) + 1
+        #expect(harness.line(of: "Last") == belowVeg12, "\(harness.screen)")
         #expect(harness.column(of: "Fruits", on: fruits) == harness.column(of: "fruit1", on: first))
         // A header row draws no cells.
         #expect(!harness.lines[fruits].contains("#"))
@@ -291,7 +292,8 @@ struct TableSectionTests {
         let vegetables = try #require(harness.line(of: "Vegetables"), "\(harness.screen)")
         let veg = try #require(harness.line(of: "veg11"), "the header pushed its rows away:\n\(harness.screen)")
         #expect(veg - vegetables <= 2, "\(harness.screen)")
-        #expect(harness.line(of: "Last") == (harness.line(of: "veg12") ?? -1) + 1, "\(harness.screen)")
+        let belowVeg12: Int = (harness.line(of: "veg12") ?? -1) + 1
+        #expect(harness.line(of: "Last") == belowVeg12, "\(harness.screen)")
         // A click lands on the row it is drawn on: the bands count the header
         // as many lines as it draws.
         harness.click(x: 6, y: veg + 1)

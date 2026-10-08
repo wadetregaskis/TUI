@@ -53,7 +53,8 @@ struct ReorderSlotClaimsTests {
             KeyEvent(key: .character("r"), ctrl: true))
         let held = fixture.render()
 
-        #expect(fixture.handler?.reorder?.held.count == 3, "the whole block is in hand")
+        let heldCount: Int? = fixture.handler?.reorder?.held.count
+        #expect(heldCount == 3, "the whole block is in hand")
         #expect(showsFaintCopy(of: "row1", in: held), "the slot holds the block's faint copies")
         expectInkOnLabelsOnly(held)
     }

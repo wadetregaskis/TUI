@@ -121,7 +121,8 @@ struct ANSISlotSGRStateTests {
                     let expected = slot.color.opacity(0.5, over: black)
                     let expectedCodes = isBackground
                         ? expected.backgroundCodes(depth: .truecolor) : expected.foregroundCodes(depth: .truecolor)
-                    #expect(faded == "\u{1B}[" + expectedCodes.joined(separator: ";") + "m", "\(slot.name) \(code)")
+                    let joinedCodes: String = expectedCodes.joined(separator: ";")
+                    #expect(faded == "\u{1B}[" + joinedCodes + "m", "\(slot.name) \(code)")
 
                     var reported: [(slot: SGRColorRewrite.ColorSlot, colour: Color?)] = []
                     SGRColorRewrite.readingColors(sequence) { reported.append(($0, $1)) }

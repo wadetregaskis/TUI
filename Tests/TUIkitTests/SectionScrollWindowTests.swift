@@ -498,9 +498,8 @@ struct SectionScrollWindowTests {
         #expect(bare.id == count - 1, "precondition: \(bare.screen)")
         // The same screen moved up a line for the footer's: the indicator, the
         // rows from the second on, and the blank footer below the last.
-        #expect(
-            Array(blank.screen) == [bare.screen[0]] + bare.screen.dropFirst(2) + [""],
-            "\(blank.screen) where no footer draws \(bare.screen)")
+        let movedUp: [String] = [bare.screen[0]] + bare.screen.dropFirst(2) + [""]
+        #expect(Array(blank.screen) == movedUp, "\(blank.screen) where no footer draws \(bare.screen)")
         #expect(blank.id == count - 1, "\(blank.screen)")
     }
 

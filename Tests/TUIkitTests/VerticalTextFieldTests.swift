@@ -318,7 +318,8 @@ struct VerticalTextFieldTests {
         let harness = InputChainHarness(width: 7)
         let model = Model("aaaa bbbb cccc dddd")
         let view = { field(model).textSelectionAffinity(.upstream) }
-        try #require(rows(harness.frame(view())).map { $0.trimmingTrailingSpaces }.prefix(2) == ["aaaa", "bbbb"])
+        let firstTwo: [String] = Array(rows(harness.frame(view())).map { $0.trimmingTrailingSpaces }.prefix(2))
+        try #require(firstTwo == ["aaaa", "bbbb"])
         func drag(from: Int, through xs: [Int]) {
             harness.mouse(MouseEvent(button: .left, phase: .pressed, x: from, y: 1))
             harness.frame(view())
@@ -372,7 +373,8 @@ struct VerticalTextFieldTests {
         harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
         try #require(harness.frame(view()).overlays.isEmpty, "precondition: the ▾ closed them")
         harness.play([key("X")]) { view() }
-        #expect(model.text == "X" + "aaaa bbbb cccc".dropFirst(caret))
+        let expected: String = "X" + "aaaa bbbb cccc".dropFirst(caret)
+        #expect(model.text == expected)
     }
 
     @Test("With suggestions, Down moves a row until the caret is on the last, and opens them there")

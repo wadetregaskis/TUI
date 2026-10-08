@@ -417,9 +417,8 @@ struct DatePickerTests {
         #expect(buffer.animatedCells.count == 1, "the active component left no run")
         let run = buffer.animatedCells[0]
         #expect(run.isAnimating, "the run is a still picture")
-        #expect(
-            Set(run.frames.map(\.stripped)).count == 1,
-            "the pulse is colour-only (no glyph change)")
+        let pictures: Set<String> = Set(run.frames.map(\.stripped))
+        #expect(pictures.count == 1, "the pulse is colour-only (no glyph change)")
         // The run has to sit on the cells that were drawn — replaying the step
         // it was rendered at must change nothing.
         let replayed = buffer.composited(

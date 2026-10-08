@@ -247,7 +247,8 @@ struct MenuTests {
         .menuStyle(.inline)
 
         let buffer = renderArmed(view, tui: tui, context: context)
-        #expect(Set(buffer.lines.map(\.strippedLength)).count == 1)
+        let widths = Set(buffer.lines.map(\.strippedLength))
+        #expect(widths.count == 1)
     }
 
     @Test("Items render as menu rows, not as buttons")

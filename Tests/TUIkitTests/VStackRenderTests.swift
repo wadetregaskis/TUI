@@ -234,7 +234,8 @@ struct VStackRenderTests {
         #expect(sizes.dropFirst(3).allSatisfy { $0 == 0 })
         // Placed sizes + the gaps between them never exceed the available extent.
         let placed = sizes.filter { $0 > 0 }.count
-        #expect(sizes.reduce(0, +) + max(0, placed - 1) * 1 <= 5)
+        let extent: Int = sizes.reduce(0, +) + max(0, placed - 1) * 1
+        #expect(extent <= 5)
     }
 
     @Test("distributeLinearSpace leaves the fitting case unchanged")

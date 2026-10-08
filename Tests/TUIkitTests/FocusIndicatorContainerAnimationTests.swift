@@ -106,7 +106,8 @@ struct FocusIndicatorContainerAnimationTests {
         #expect(run.offsetY == 1)
         #expect(run.offsetX == 1)
         // A background pulse recolours the row without moving a glyph.
-        #expect(Set(run.frames.map(\.stripped)).count == 1, "the pulse changed the row's text")
+        let pictures: Set<String> = Set(run.frames.map(\.stripped))
+        #expect(pictures.count == 1, "the pulse changed the row's text")
         #expect(run.frames.allSatisfy { $0.strippedLength == run.width })
     }
 
@@ -191,7 +192,8 @@ struct FocusIndicatorContainerAnimationTests {
         // and the container's one cell of horizontal padding across.
         #expect(run.offsetY == 2)
         #expect(run.offsetX == 2)
-        #expect(Set(run.frames.map(\.stripped)).count == 1, "the pulse changed the row's text")
+        let pictures: Set<String> = Set(run.frames.map(\.stripped))
+        #expect(pictures.count == 1, "the pulse changed the row's text")
     }
 
     @Test("The table's run survives the scrollbar path")

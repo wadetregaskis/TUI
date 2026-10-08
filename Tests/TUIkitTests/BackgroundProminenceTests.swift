@@ -120,11 +120,11 @@ struct BackgroundProminenceTests {
         var environment = EnvironmentValues()
         environment.foregroundStyle = .color(.red)
         let palette = environment.palette
-        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) != .color(palette.foregroundSecondary))
+        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) != Paint.color(palette.foregroundSecondary))
         environment.backgroundProminence = .increased
-        #expect(HierarchicalShapeStyle.primary.paint(in: environment) == .color(palette.foreground))
-        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == .color(palette.foregroundSecondary))
-        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == .color(palette.foregroundTertiary))
+        #expect(HierarchicalShapeStyle.primary.paint(in: environment) == Paint.color(palette.foreground))
+        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == Paint.color(palette.foregroundSecondary))
+        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == Paint.color(palette.foregroundTertiary))
     }
 
     @Test("The environment value defaults to .standard")

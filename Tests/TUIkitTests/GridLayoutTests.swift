@@ -103,7 +103,8 @@ struct GridLayoutTests {
         for name in ["0a", "0b", "1a", "1b"] {
             #expect(log.paths[name]?.count == 1, "\(name) drew at \(log.paths[name] ?? [])")
         }
-        #expect(Set(log.paths.values.flatMap { $0 }).count == 4)
+        let paths = Set(log.paths.values.flatMap { $0 })
+        #expect(paths.count == 4)
     }
 
     @Test("Under the stack layout the same cells stack")

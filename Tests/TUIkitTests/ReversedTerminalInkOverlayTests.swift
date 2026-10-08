@@ -151,11 +151,9 @@ struct ReversedTerminalInkOverlayTests {
             let base = HStack(spacing: 0) { Text("abc").inverted(); Text("def").background(Self.blue) }
             let over = try written(ZStack(alignment: .leading) { base; Text("uvwxyz").foregroundStyle(Self.red) }).row
             #expect(String(over.prefix(6).map(\.glyph)) == "uvwxyz")
-            #expect(
-                over.prefix(6).map(\.shownField)
-                    == [.terminalForeground, .terminalForeground, .terminalForeground]
-                    + Array(repeating: .colour(.rgb(0, 0, 200)), count: 3),
-                "the label is on \(over.prefix(6).map(\.shownField))")
+            let expected: [ShownColour] = [.terminalForeground, .terminalForeground, .terminalForeground]
+                + Array(repeating: .colour(.rgb(0, 0, 200)), count: 3)
+            #expect(over.prefix(6).map(\.shownField) == expected, "the label is on \(over.prefix(6).map(\.shownField))")
             #expect(over.prefix(6).allSatisfy { $0.shownInk == .colour(.rgb(200, 40, 40)) })
         }
     }

@@ -41,19 +41,19 @@ struct SemanticShapeStyleTests {
     func paletteTiers() {
         let environment = environment()
         let palette = environment.palette
-        #expect(HierarchicalShapeStyle.primary.paint(in: environment) == .color(palette.foreground))
-        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == .color(palette.foregroundSecondary))
-        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == .color(palette.foregroundTertiary))
-        #expect(HierarchicalShapeStyle.quaternary.paint(in: environment) == .color(palette.foregroundQuaternary))
+        #expect(HierarchicalShapeStyle.primary.paint(in: environment) == Paint.color(palette.foreground))
+        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == Paint.color(palette.foregroundSecondary))
+        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == Paint.color(palette.foregroundTertiary))
+        #expect(HierarchicalShapeStyle.quaternary.paint(in: environment) == Paint.color(palette.foregroundQuaternary))
     }
 
     @Test("Under a foreground style, the levels are it at falling opacity")
     func levelsOfTheForeground() {
         var environment = environment()
         environment.foregroundStyle = .color(.red)
-        #expect(HierarchicalShapeStyle.primary.paint(in: environment) == .color(.red))
-        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == .color(Color.red.opacity(0.5)))
-        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == .color(Color.red.opacity(0.26)))
+        #expect(HierarchicalShapeStyle.primary.paint(in: environment) == Paint.color(.red))
+        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == Paint.color(Color.red.opacity(0.5)))
+        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == Paint.color(Color.red.opacity(0.26)))
     }
 
     @Test("A named level answers for itself and fades for the ones past it")
@@ -61,15 +61,15 @@ struct SemanticShapeStyleTests {
         var environment = environment()
         environment.foregroundStyle = .color(.red)
         environment.secondaryForegroundStyle = .color(.blue)
-        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == .color(.blue))
-        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == .color(Color.blue.opacity(0.5)))
+        #expect(HierarchicalShapeStyle.secondary.paint(in: environment) == Paint.color(.blue))
+        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == Paint.color(Color.blue.opacity(0.5)))
         environment.tertiaryForegroundStyle = .color(.green)
-        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == .color(.green))
+        #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == Paint.color(.green))
     }
 
     @Test("A style's own levels fade it: .red.secondary is red at half strength")
     func levelsOfAStyle() {
-        #expect(Color.red.secondary.paint(in: environment()) == .color(Color.red.opacity(0.5)))
+        #expect(Color.red.secondary.paint(in: environment()) == Paint.color(Color.red.opacity(0.5)))
     }
 
     @Test("foregroundStyle(_:_:) names the secondary level below it")
@@ -97,17 +97,17 @@ struct SemanticShapeStyleTests {
     func roles() {
         var environment = environment()
         let palette = environment.palette
-        #expect(ForegroundStyle().paint(in: environment) == .color(palette.foreground))
-        #expect(SeparatorShapeStyle().paint(in: environment) == .color(palette.border))
-        #expect(FillShapeStyle().paint(in: environment) == .color(palette.fieldBackground))
-        #expect(PlaceholderTextShapeStyle().paint(in: environment) == .color(palette.foregroundTertiary))
-        #expect(WindowBackgroundShapeStyle().paint(in: environment) == .color(palette.background))
-        #expect(TintShapeStyle().paint(in: environment) == .color(palette.accent))
+        #expect(ForegroundStyle().paint(in: environment) == Paint.color(palette.foreground))
+        #expect(SeparatorShapeStyle().paint(in: environment) == Paint.color(palette.border))
+        #expect(FillShapeStyle().paint(in: environment) == Paint.color(palette.fieldBackground))
+        #expect(PlaceholderTextShapeStyle().paint(in: environment) == Paint.color(palette.foregroundTertiary))
+        #expect(WindowBackgroundShapeStyle().paint(in: environment) == Paint.color(palette.background))
+        #expect(TintShapeStyle().paint(in: environment) == Paint.color(palette.accent))
         environment.tint = .rgb(1, 2, 3)
         environment.foregroundStyle = .color(.red)
-        #expect(TintShapeStyle().paint(in: environment) == .color(.rgb(1, 2, 3)))
-        #expect(SelectionShapeStyle().paint(in: environment) == .color(.rgb(1, 2, 3)))
-        #expect(ForegroundStyle().paint(in: environment) == .color(.red))
+        #expect(TintShapeStyle().paint(in: environment) == Paint.color(.rgb(1, 2, 3)))
+        #expect(SelectionShapeStyle().paint(in: environment) == Paint.color(.rgb(1, 2, 3)))
+        #expect(ForegroundStyle().paint(in: environment) == Paint.color(.red))
     }
 
     @Test("The named colours are reachable as shape styles")

@@ -52,7 +52,8 @@ struct LazyGridTests {
         // with a cell dropped on the floor.
         let tracks = GridItem.resolve(
             Array(repeating: GridItem(.flexible()), count: 3), available: 33)
-        #expect(tracks.map(\.extent).reduce(0, +) == 31)
+        let total: Int = tracks.map(\.extent).reduce(0, +)
+        #expect(total == 31)
         #expect(tracks.map(\.extent).max()! - tracks.map(\.extent).min()! <= 1)
     }
 

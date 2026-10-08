@@ -60,9 +60,8 @@ struct TimelineScheduleTests {
     @Test("A past anchor starts at the lattice point at or before the instant asked about")
     func periodicPastAnchor() {
         let schedule = PeriodicTimelineSchedule(from: base.addingTimeInterval(-13), by: 5)
-        #expect(
-            firstEntries(schedule, from: base, count: 4).map { $0 - 800_000_037.25 }
-                == [-3, 2, 7, 12])
+        let offsets: [Double] = firstEntries(schedule, from: base, count: 4).map { $0 - 800_000_037.25 }
+        #expect(offsets == [-3, 2, 7, 12])
     }
 
     @Test("A future anchor starts one interval below it, not at the lattice point below now")
@@ -71,16 +70,15 @@ struct TimelineScheduleTests {
         // interval, asked from `base`, the sequence starts at base + 2 — not at
         // base − 3, which is where a floor would put it.
         let schedule = PeriodicTimelineSchedule(from: base.addingTimeInterval(7), by: 5)
-        #expect(
-            firstEntries(schedule, from: base, count: 4).map { $0 - 800_000_037.25 }
-                == [2, 7, 12, 17])
+        let offsets: [Double] = firstEntries(schedule, from: base, count: 4).map { $0 - 800_000_037.25 }
+        #expect(offsets == [2, 7, 12, 17])
     }
 
     @Test("Asking from the anchor itself starts at the anchor")
     func periodicFromTheAnchor() {
         let schedule = PeriodicTimelineSchedule(from: base, by: 1)
-        #expect(
-            firstEntries(schedule, from: base, count: 3).map { $0 - 800_000_037.25 } == [0, 1, 2])
+        let offsets: [Double] = firstEntries(schedule, from: base, count: 3).map { $0 - 800_000_037.25 }
+        #expect(offsets == [0, 1, 2])
     }
 
     @Test("periodic ignores the mode")
@@ -97,9 +95,8 @@ struct TimelineScheduleTests {
     func explicitIsUnfiltered() {
         let dates = [-10.0, -3, 2, 9].map { base.addingTimeInterval($0) }
         let schedule = ExplicitTimelineSchedule(dates)
-        #expect(
-            firstEntries(schedule, from: base, count: 6).map { $0 - 800_000_037.25 }
-                == [-10, -3, 2, 9])
+        let offsets: [Double] = firstEntries(schedule, from: base, count: 6).map { $0 - 800_000_037.25 }
+        #expect(offsets == [-10, -3, 2, 9])
     }
 
     @Test("explicit ignores the instant it is asked about")
@@ -120,9 +117,9 @@ struct TimelineScheduleTests {
 
     @Test("animation starts at the instant asked about and steps by its interval")
     func animationSteps() {
-        #expect(
-            firstEntries(AnimationTimelineSchedule(minimumInterval: 0.5), from: base, count: 4)
-                .map { $0 - 800_000_037.25 } == [0, 0.5, 1.0, 1.5])
+        let offsets: [Double] = firstEntries(AnimationTimelineSchedule(minimumInterval: 0.5), from: base, count: 4)
+            .map { $0 - 800_000_037.25 }
+        #expect(offsets == [0, 0.5, 1.0, 1.5])
     }
 
     @Test("A paused animation schedule supplies nothing")

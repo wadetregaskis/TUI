@@ -292,9 +292,8 @@ struct NestedProviderIdentityTests {
         let three = childPaths(TwoLoopsInAGroup(first: 3).content)
         #expect(two.count == 5)
         #expect(Set(two).count == 5, "rows share an identity: \(two)")
-        #expect(
-            Array(two.suffix(2)) == Array(three.suffix(2)),
-            "the second loop's rows moved when the first grew: \(two) vs \(three)")
+        let twoTail = Array(two.suffix(2)), threeTail = Array(three.suffix(2))
+        #expect(twoTail == threeTail, "the second loop's rows moved when the first grew: \(two) vs \(three)")
     }
 
     @Test("Two conditionals in a spliced Group keep their own @State")

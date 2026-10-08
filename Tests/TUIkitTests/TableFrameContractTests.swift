@@ -490,6 +490,7 @@ struct TableFrameContractTests {
 
         // And it is still drawing the right thing.
         let drawn = TableMatrixHarness.drawnRowIDs(in: harness.frame())
-        #expect(Array(drawn.prefix(2)) == [0, 1], "the touched row is no longer second, got \(drawn.prefix(2))")
+        let firstTwo: [Int] = Array(drawn.prefix(2))
+        #expect(firstTwo == [0, 1], "the touched row is no longer second, got \(drawn.prefix(2))")
     }
 }

@@ -219,7 +219,9 @@ struct AppUndoTests {
         let undo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌃-" })
         undo.execute()
         #expect(model.value == 0)
-        #expect(labels(statusBar) == labels(statusBar).filter { $0 != "⌃-" })
+        let shown = labels(statusBar)
+        let withoutUndo: [String] = shown.filter { $0 != "⌃-" }
+        #expect(shown == withoutUndo)
 
         let redo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌥_" })
         redo.execute()
@@ -368,7 +370,8 @@ struct AppUndoTests {
         manager.undo()
         let items = statusBar.currentSystemItems.filter { $0.order == .undo || $0.order == .redo }
         #expect(items.map(\.shortcut) == ["", ""])
-        #expect(Set(items.map(\.id)).count == 2, "each its own hover")
+        let ids = Set(items.map(\.id))
+        #expect(ids.count == 2, "each its own hover")
     }
 
     @Test("What a terminal can deliver as itself")

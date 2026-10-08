@@ -61,8 +61,10 @@ struct BackgroundLayerTests {
         let red = cells(Text("....").background(Color.red))
         let bare = cells(Text("...."))
         #expect(partial.count == 4)
-        #expect(Array(partial.prefix(2)) == Array(red.prefix(2)), "the first two cells carry the red field")
-        #expect(Array(partial.suffix(2)) == Array(bare.suffix(2)), "and the last two do not")
+        let partialHead: [Cell] = Array(partial.prefix(2)), redHead: [Cell] = Array(red.prefix(2))
+        #expect(partialHead == redHead, "the first two cells carry the red field")
+        let partialTail: [Cell] = Array(partial.suffix(2)), bareTail: [Cell] = Array(bare.suffix(2))
+        #expect(partialTail == bareTail, "and the last two do not")
     }
 
     @Test("With nothing in the base the background is what is drawn, as under .overlay")

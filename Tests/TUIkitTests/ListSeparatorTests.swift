@@ -136,7 +136,8 @@ struct ListSeparatorTests {
         let from = column(plain)
         let to = column(guided)
         #expect(from != nil && to != nil)
-        #expect((to ?? 0) - (from ?? 0) == 2, "plain \(String(describing: plain)), guided \(String(describing: guided))")
+        let gap: Int = (to ?? 0) - (from ?? 0)
+        #expect(gap == 2, "plain \(String(describing: plain)), guided \(String(describing: guided))")
     }
 
     @Test("A separator is a line of the row's height: the window holds fewer rows")

@@ -223,7 +223,8 @@ struct RampAlphaShapeTests {
         // Every row of the block, and every claim translucent — an opaque run would
         // have been dropped by `claim`'s nil contract, which is right here because
         // these rectangles are a set and not a sequence.
-        #expect(Set(drawn.opacityRegions.map(\.offsetY)).count == 3, "\(drawn.opacityRegions)")
+        let rows = Set(drawn.opacityRegions.map(\.offsetY))
+        #expect(rows.count == 3, "\(drawn.opacityRegions)")
         #expect(drawn.opacityRegions.allSatisfy { $0.inkOpacity < 1 })
         // And the two directions really do disagree, or this is `perColumn` in disguise.
         let byRow = Dictionary(grouping: drawn.opacityRegions, by: \.offsetY)

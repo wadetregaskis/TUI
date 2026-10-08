@@ -54,7 +54,8 @@ struct ScrollExtentPrecisionTests {
             height: heights.height)
 
         #expect(metrics.extent == heights.total)
-        #expect(metrics.offset == heights.values[0..<400].reduce(0, +))
+        let first400: Int = heights.values[0..<400].reduce(0, +)
+        #expect(metrics.offset == first400)
         #expect(heights.asked.count == 1000, "exact must measure every row")
     }
 
