@@ -27,8 +27,9 @@ import TUIkit
 enum ModifierChainsScenario {
     @MainActor
     static let descriptor = Scenario(
-        // A literal, not `scenarioID`: StressLocalizationParityTests reads the
-        // catalogue's ids from these `id: "…",` lines of the source.
+        // A literal: StressLocalizationParityTests reads the id from the source,
+        // and `scenarioID` below is computed from it, not a `static let` string
+        // the test could follow.
         id: "modifiers",
         title: "Modifier Chains",
         blurb: "N rows, each wrapped in a long modifier chain.",
@@ -43,9 +44,7 @@ enum ModifierChainsScenario {
     @MainActor
     static var scenarioID: String { descriptor.id }
 
-    /// A variant of the matrix. Positional, as ControlRows' are: an `id:` label
-    /// at the start of a line would read as a scenario id to
-    /// StressLocalizationParityTests.
+    /// A variant of the matrix, positional as ControlRows' are.
     private static func variant(
         _ id: String, _ summary: String, _ make: @escaping @MainActor (StressConfig) -> AnyView
     ) -> ScenarioVariant {
