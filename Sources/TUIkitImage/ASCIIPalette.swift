@@ -181,7 +181,8 @@ public struct ASCIIPalette: Sendable, Equatable {
     public func asToneRamp() -> Self { Self(colors, mapping: .toneRamp, adaptive: adaptive) }
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.colors == rhs.colors && lhs.mapping == rhs.mapping && lhs.adaptive == rhs.adaptive
+        guard lhs.colors == rhs.colors, lhs.mapping == rhs.mapping else { return false }
+        return lhs.adaptive == rhs.adaptive
     }
 
     /// `count` greys from black to white, evenly spaced in PERCEIVED
