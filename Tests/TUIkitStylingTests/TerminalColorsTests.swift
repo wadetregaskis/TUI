@@ -21,7 +21,9 @@ struct TerminalColorsTests {
     }
 
     /// Sixteen different colours, so a slot read from the wrong offset shows.
-    private static let sixteen = (0..<16).map { rgb(UInt8($0), UInt8($0 * 3), UInt8(255 - $0)) }
+    private static let sixteen: [TerminalColors.RGB] = (0..<16).map { (index: Int) -> TerminalColors.RGB in
+        rgb(UInt8(index), UInt8(index * 3), UInt8(255 - index))
+    }
 
     @Test("Unknown says nothing at all")
     func unknownIsEmpty() {
