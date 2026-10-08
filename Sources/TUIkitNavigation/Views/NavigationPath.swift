@@ -173,8 +173,10 @@ extension NavigationPath {
     /// that declares the type: a type that moves to another module no longer
     /// decodes from a representation saved before the move. TUIkit's own
     /// types are moving between modules while the framework is split up
-    /// (they were `TUIkit`'s, and are now `TUIkitFoundation`'s), so a path
-    /// holding one of them is best not kept across TUIkit versions.
+    /// (they were all `TUIkit`'s; most are now `TUIkitFoundation`'s, and
+    /// `LocalizationService.Language` and the `SystemFormatStyle`s are
+    /// `TUIkitStrings`'), so a path holding one of them is best not kept
+    /// across TUIkit versions.
     public var codable: CodableRepresentation? {
         var entries: [CodableRepresentation.Entry] = []
         for element in elements {

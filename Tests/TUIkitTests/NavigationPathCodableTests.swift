@@ -72,6 +72,21 @@ struct NavigationPathCodableTests {
         #expect(first.codable != other.codable)
     }
 
+    @Test("A saved path names the module that declares each value's type")
+    func representationNamesTheDeclaringModule() throws {
+        // Why a type that moves between modules stops decoding from a path
+        // saved before the move (documented on `codable`). A path holding
+        // `LocalizationService.Language` names TUIkitStrings since step B2
+        // carved it out; it named TUIkitFoundation after step B1 and TUIkit
+        // before, and a path saved under either no longer decodes.
+        let path = NavigationPath([LocalizationService.Language.german])
+        let data = try JSONEncoder().encode(try #require(path.codable))
+        let saved = try #require(String(bytes: data, encoding: .utf8))
+        #expect(saved.contains("TUIkitStrings"), "\(saved)")
+        #expect(!saved.contains("TUIkitFoundation"), "\(saved)")
+        #expect(try roundTrip(path) == path)
+    }
+
     @Test("A type name this process does not know fails to decode, rather than dropping a screen")
     func unknownTypeThrows() throws {
         let data = Data(#"["NoSuchModule.NoSuchType", "{}"]"#.utf8)

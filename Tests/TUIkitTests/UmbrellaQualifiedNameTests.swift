@@ -118,5 +118,16 @@ struct UmbrellaQualifiedNameTests {
         #expect(
             String(reflecting: TUIkit.Label<TUIkit.Text, TUIkit.Color>.self)
                 == "TUIkitFoundation.Label<TUIkitFoundation.Text, TUIkitStyling.Color>")
+        // Step B2 carved these out of TUIkitFoundation, and each read
+        // `TUIkitFoundation.` between B1 and B2: a carve renames what an app
+        // sees of every type it moves (decisions SPB2, "What an app can see").
+        #expect(String(reflecting: TUIkit.TerminalClient.self) == "TUIkitTerminalHost.TerminalClient")
+        #expect(
+            String(reflecting: TUIkit.LocalizationService.Language.self)
+                == "TUIkitStrings.LocalizationService.Language")
+        if #available(macOS 15, *) {
+            #expect(
+                String(reflecting: TUIkit.SystemFormatStyle.Timer.self) == "TUIkitStrings.SystemFormatStyle.Timer")
+        }
     }
 }

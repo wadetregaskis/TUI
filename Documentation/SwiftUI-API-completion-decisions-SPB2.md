@@ -5,13 +5,43 @@
 §5), 2026-10-08: the first carve, in which TUIkitStrings and TUIkitTerminalHost
 leave TUIkitFoundation for targets of their own. It changed no public API:
 TUIkitFoundation re-exports both, so `import TUIkit` gives an app what it gave
-before. This file holds the judgement calls the step reached that the plan did
-not already settle, in the format of
+before, and an app's `TUIkit.X` reaches their types through two re-exports
+(`UmbrellaQualifiedNameTests`). An app can still see three things, which every
+carve changes; they are listed under [What an app can
+see](#what-an-app-can-see). This file holds the judgement calls the step
+reached that the plan did not already settle, in the format of
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
 
 - **A-SPB2-n — needs your decision.** Nothing has shipped for these.
 - **B-SPB2-n — shipped the safe option.** Says what the other version would be, and its price.
 - **C-SPB2-n — declined.** With the reason.
+
+## What an app can see
+
+These are not judgement calls: the plan (§5, row C9a) lists all three for the
+release notes, and C9a writes them. They are recorded here because this step
+made them. Each name below was `TUIkitFoundation`'s after step B1, and
+`TUIkit`'s in v0.6.0.
+
+- **Reflected names.** `String(reflecting:)`, `dump` and the debugger name a
+  moved type's new module: `TUIkitStrings.LocalizationService.Language`,
+  `TUIkitStrings.SystemFormatStyle.Timer`, `TUIkitTerminalHost.TerminalClient`.
+  `UmbrellaQualifiedNameTests` pins these three.
+- **The resource bundle** is `TUIkit_TUIkitStrings.bundle`. An app run from
+  its build directory finds it there, as before. An app shipped with the bundle
+  copied beside its executable must copy it under the new name. SwiftPM's
+  generated `Bundle.module` looks beside the main bundle, then in the build
+  directory, and stops the process (`fatalError`) if neither holds the bundle.
+  That happens at the first translation the framework looks up, or the first
+  read of `tuiKitVersion`. (Read in the generated
+  `resource_bundle_accessor.swift`, macOS, debug build.)
+- **A saved `NavigationPath.CodableRepresentation`** stores each value's type
+  by its mangled name, which names the declaring module. So a saved path
+  holding `LocalizationService.Language` or one of the four `SystemFormatStyle`s
+  (`Timer`, `Stopwatch`, `DateReference`, `DateOffset`) no longer decodes: it
+  throws `DecodingError`, as `codable`'s documentation says. These are the only
+  `Codable` public types that moved; TUIkitTerminalHost declares none.
+  `NavigationPathCodableTests` pins the module name a saved path now holds.
 
 ## B. Shipped
 
