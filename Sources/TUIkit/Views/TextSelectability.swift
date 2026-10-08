@@ -165,13 +165,17 @@ extension _TextSelectionScope: DrawsContentUnchanged {}
 
 // MARK: - Environment
 
-private struct TextSelectionAllowedKey: EnvironmentKey {
-    static let defaultValue: Bool? = nil
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct TextSelectionAllowedKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: Bool? = nil
 }
 
 extension EnvironmentValues {
     /// The innermost ``View/textSelection(_:)`` around this view: `true`
     /// enabled, `false` disabled, `nil` none — TUIkit's default.
+    @inlinable
     var textSelectionAllowed: Bool? {
         get { self[TextSelectionAllowedKey.self] }
         set { self[TextSelectionAllowedKey.self] = newValue }

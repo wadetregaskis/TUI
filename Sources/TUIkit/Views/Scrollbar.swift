@@ -103,6 +103,10 @@ extension ScrollIndicatorVisibility {
     ///   An autoclosure because deciding that can mean measuring the whole
     ///   content, and the fixed cases (``hidden``, ``visible``, ``never``)
     ///   never need to know.
+    ///
+    /// `@usableFromInline`: the `@inlinable`
+    /// `EnvironmentValues.verticalScrollIndicators(overflowing:)` calls it (module split step A3).
+    @usableFromInline
     func showsIndicator(overflowing: @autoclosure () -> Bool) -> Bool {
         switch self {
         case .visible: true
@@ -119,17 +123,33 @@ extension ScrollIndicatorVisibility {
 /// them separately — a bar narrows the content by a column for its whole
 /// height, text steals a row at an edge — and because "neither" is
 /// a real answer (``ScrollIndicatorVisibility/hidden``).
-struct ResolvedScrollIndicators {
+///
+/// `@usableFromInline`: the type of the `@inlinable`
+/// `EnvironmentValues.verticalScrollIndicators(overflowing:)` (module split step A3).
+///
+/// `Sendable` stated, as it was inferred while the type was not usable from
+/// inline code: the compiler infers it only for types that are not.
+@usableFromInline
+struct ResolvedScrollIndicators: Sendable {
     /// A scrollbar is reserved down the trailing edge.
-    let bar: Bool
+    @usableFromInline let bar: Bool
     /// "N more above / below" lines are reserved — at the overflowing edges, or
     /// at BOTH edges at every offset under
     /// ``ScrollIndicatorVisibility/visible`` (`d1c54212`). Which of the two this
     /// is, the flag does not say: each of the three views works it out per frame.
-    let text: Bool
+    @usableFromInline let text: Bool
 
     /// Nothing is drawn: the content scrolls silently.
-    static let none = Self(bar: false, text: false)
+    @usableFromInline static let none = Self(bar: false, text: false)
+
+    /// Spelled out, and `@inlinable`, for the `@inlinable`
+    /// `EnvironmentValues.verticalScrollIndicators(overflowing:)` (module split
+    /// step A3): an implicit memberwise initializer cannot be.
+    @inlinable
+    init(bar: Bool, text: Bool) {
+        self.bar = bar
+        self.text = text
+    }
 
     /// The shortest content area the "▲/▼ N more" lines can be drawn into:
     /// both may show at once, and at least one line of content has to survive
@@ -173,6 +193,7 @@ extension EnvironmentValues {
     ///   An autoclosure for the reason ``ScrollIndicatorVisibility/showsIndicator(overflowing:)``
     ///   takes one: only ``ScrollIndicatorVisibility/automatic`` has to know,
     ///   and finding out can mean measuring the whole content.
+    @inlinable
     func verticalScrollIndicators(
         overflowing: @autoclosure () -> Bool
     ) -> ResolvedScrollIndicators {
@@ -197,6 +218,7 @@ extension EnvironmentValues {
     /// Only the text form has anything to answer here. A scrollbar spends a
     /// column for its whole height whatever is hidden, so it is already always
     /// there, and hidden indicators are always absent.
+    @inlinable
     var alwaysShowsVerticalTextIndicators: Bool {
         verticalScrollIndicatorVisibility == .visible && scrollIndicatorStyle == .text
     }
@@ -247,12 +269,18 @@ private struct ScrollIndicatorStyleKey: EnvironmentKey {
     static let defaultValue: ScrollIndicatorStyle = .scrollbar
 }
 
-private struct ScrollbarArrowsKey: EnvironmentKey {
-    static let defaultValue: ScrollbarArrows = .single
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollbarArrowsKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: ScrollbarArrows = .single
 }
 
-private struct ScrollbarProportionalKey: EnvironmentKey {
-    static let defaultValue = true
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollbarProportionalKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = true
 }
 
 extension EnvironmentValues {
@@ -290,6 +318,7 @@ extension EnvironmentValues {
 
     /// The end-arrow style for scrollbars in this subtree. Defaults to
     /// ``ScrollbarArrows/single``.
+    @inlinable
     public var scrollbarArrows: ScrollbarArrows {
         get { self[ScrollbarArrowsKey.self] }
         set { self[ScrollbarArrowsKey.self] = newValue }
@@ -297,6 +326,7 @@ extension EnvironmentValues {
 
     /// Whether a scrollbar's thumb is sized to the visible/total ratio (`true`,
     /// the default) or a fixed one cell (`false`).
+    @inlinable
     public var scrollbarProportionalThumb: Bool {
         get { self[ScrollbarProportionalKey.self] }
         set { self[ScrollbarProportionalKey.self] = newValue }

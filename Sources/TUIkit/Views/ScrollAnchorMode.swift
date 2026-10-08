@@ -25,6 +25,10 @@ import TUIkitCore
 /// *not* declarable: ``resolved(defaultScrollAnchor:)`` maps a `UnitPoint` and
 /// can only yield ``top``, ``bottom`` or ``window``, since a declaration has no
 /// way to name which row it means.
+///
+/// `@usableFromInline`: the type of the `@inlinable` `EnvironmentValues.declaredAnchorModes`
+/// (module split step A3).
+@usableFromInline
 enum ScrollAnchorMode: Equatable {
     case top
     case bottom
@@ -53,6 +57,10 @@ enum ScrollAnchorMode: Equatable {
     /// anything mid-content has no edge meaning and stays ``window``. The
     /// 0.75 threshold matches the bottom-affinity test the scroll view
     /// already applies, so the two cannot drift apart.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `EnvironmentValues.declaredAnchorModes` calls it
+    /// (module split step A3).
+    @usableFromInline
     static func resolved(defaultScrollAnchor anchor: UnitPoint?) -> Self {
         guard let y = anchor?.y else { return .window }
         if y >= 0.75 { return .bottom }

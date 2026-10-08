@@ -66,27 +66,41 @@ final class SelectionContextMenu {
 /// What the environment carries: the menu by identity, and whether it has a
 /// primary action — which changes what Return does, and what the status bar
 /// says it does, so it is compared too.
-struct SelectionContextMenuReference: Equatable {
+///
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+///
+/// `Sendable` stated, as it was inferred while the type was not usable from
+/// inline code: the compiler infers it only for types that are not.
+@usableFromInline
+struct SelectionContextMenuReference: Equatable, Sendable {
     let menu: SelectionContextMenu
     let hasPrimaryAction: Bool
 
+    @usableFromInline
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.menu === rhs.menu && lhs.hasPrimaryAction == rhs.hasPrimaryAction
     }
 }
 
-private struct SelectionContextMenuKey: EnvironmentKey {
-    static let defaultValue: SelectionContextMenuReference? = nil
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct SelectionContextMenuKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: SelectionContextMenuReference? = nil
 }
 
-private struct RowsYieldSecondaryClickKey: EnvironmentKey {
-    static let defaultValue = false
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct RowsYieldSecondaryClickKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = false
 }
 
 extension EnvironmentValues {
     /// The selection menu a `List` or `Table` beneath this point takes as its
     /// own. The container clears it for its rows, so a list inside a row does
     /// not take its parent's.
+    @inlinable
     var selectionContextMenu: SelectionContextMenuReference? {
         get { self[SelectionContextMenuKey.self] }
         set { self[SelectionContextMenuKey.self] = newValue }
@@ -98,6 +112,7 @@ extension EnvironmentValues {
     /// no menu of its own. Measured on macOS: with a selection menu on a list
     /// or table, a right-click on a row whose view has its own `.contextMenu`,
     /// or on a `TableRow` with one, shows the selection menu.
+    @inlinable
     var rowsYieldSecondaryClick: Bool {
         get { self[RowsYieldSecondaryClickKey.self] }
         set { self[RowsYieldSecondaryClickKey.self] = newValue }

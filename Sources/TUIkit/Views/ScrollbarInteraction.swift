@@ -17,13 +17,17 @@ public enum ScrollbarClickBehavior: Sendable, Hashable, CaseIterable {
     case jump
 }
 
-private struct ScrollbarClickBehaviorKey: EnvironmentKey {
-    static let defaultValue: ScrollbarClickBehavior = .page
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollbarClickBehaviorKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: ScrollbarClickBehavior = .page
 }
 
 extension EnvironmentValues {
     /// How a click on a scrollbar's track behaves. Defaults to
     /// ``ScrollbarClickBehavior/page``.
+    @inlinable
     public var scrollbarClickBehavior: ScrollbarClickBehavior {
         get { self[ScrollbarClickBehaviorKey.self] }
         set { self[ScrollbarClickBehaviorKey.self] = newValue }

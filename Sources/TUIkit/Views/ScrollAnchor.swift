@@ -68,6 +68,9 @@ extension ErasedScrollAnchor {
 ///
 /// Readers still read the LIVE value (``wrappedValue``), and the handlers keep
 /// the ``binding`` to write a user's scroll back through.
+///
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+@usableFromInline
 struct AnchorPositionBinding: Equatable {
     let binding: Binding<ErasedScrollAnchor?>
     let snapshot: ErasedScrollAnchor?
@@ -80,19 +83,24 @@ struct AnchorPositionBinding: Equatable {
     /// The anchor the binding holds now.
     var wrappedValue: ErasedScrollAnchor? { binding.wrappedValue }
 
+    @usableFromInline
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.snapshot == rhs.snapshot }
 }
 
-private struct AnchorPositionKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct AnchorPositionKey: EnvironmentKey {
     // `Binding` is not `Sendable`, so the immutable `nil` default needs
     // `nonisolated(unsafe)` — the value never mutates, so it is genuinely safe
     // (the same treatment `\.editMode` gets).
-    nonisolated(unsafe) static let defaultValue: AnchorPositionBinding? = nil
+    @usableFromInline nonisolated(unsafe) static let defaultValue: AnchorPositionBinding? = nil
 }
 
 extension EnvironmentValues {
     /// The bound anchor override for scrollables in this subtree, or `nil` when
     /// none was supplied. See ``TUIkit/View/anchorPosition(_:)``.
+    @inlinable
     var anchorPosition: AnchorPositionBinding? {
         get { self[AnchorPositionKey.self] }
         set { self[AnchorPositionKey.self] = newValue }

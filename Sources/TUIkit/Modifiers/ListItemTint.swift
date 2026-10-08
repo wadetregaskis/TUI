@@ -56,25 +56,34 @@ public struct ListItemTint: Equatable, Sendable {
     }
 }
 
-private struct ListItemTintKey: EnvironmentKey {
-    static let defaultValue: ListItemTint? = nil
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ListItemTintKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: ListItemTint? = nil
 }
 
 /// Whether a view is in a row of a ``SidebarListStyle`` list, which draws its
 /// `Label` icons in the list item tint. Set by the list for its rows.
-private struct SidebarListRowKey: EnvironmentKey {
-    static let defaultValue = false
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct SidebarListRowKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = false
 }
 
 extension EnvironmentValues {
     /// The list item tint in force (``View/listItemTint(_:)-(ListItemTint?)``),
     /// or `nil` for the accent.
+    @inlinable
     var listItemTint: ListItemTint? {
         get { self[ListItemTintKey.self] }
         set { self[ListItemTintKey.self] = newValue }
     }
 
     /// Whether this is a row of a sidebar-style list (``SidebarListStyle``).
+    @inlinable
     var isSidebarListRow: Bool {
         get { self[SidebarListRowKey.self] }
         set { self[SidebarListRowKey.self] = newValue }

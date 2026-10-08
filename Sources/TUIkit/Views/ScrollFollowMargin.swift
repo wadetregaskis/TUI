@@ -145,13 +145,17 @@ public struct ScrollFollowMargin: Sendable, Hashable {
 
 // MARK: - Environment
 
-private struct ScrollFollowMarginKey: EnvironmentKey {
-    static let defaultValue: ScrollFollowMargin = .none
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollFollowMarginKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: ScrollFollowMargin = .none
 }
 
 extension EnvironmentValues {
     /// How eagerly scrolling views follow their selection — see
     /// ``ScrollFollowMargin``. Defaults to ``ScrollFollowMargin/none``.
+    @inlinable
     public var scrollFollowMargin: ScrollFollowMargin {
         get { self[ScrollFollowMarginKey.self] }
         set { self[ScrollFollowMarginKey.self] = newValue }

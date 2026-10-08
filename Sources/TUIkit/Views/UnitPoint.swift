@@ -187,6 +187,10 @@ extension EnvironmentValues {
 
     /// The anchor in force for `role`: the one stated for it, or else the
     /// unlabelled one.
+    ///
+    /// `@usableFromInline`: the `@inlinable` ``declaredAnchorModes`` calls it (module split step
+    /// A3).
+    @usableFromInline
     func scrollAnchor(for role: ScrollAnchorRole) -> UnitPoint? {
         scrollAnchorRoles[role] ?? defaultScrollAnchor
     }
@@ -198,6 +202,7 @@ extension EnvironmentValues {
     /// `opening` is always stated here. It is optional because the handlers
     /// that capture it keep the third state "nobody said", which defers to the
     /// standing mode, for a caller that sets only the standing one.
+    @inlinable
     var declaredAnchorModes: (standing: ScrollAnchorMode, opening: ScrollAnchorMode?) {
         (
             ScrollAnchorMode.resolved(defaultScrollAnchor: scrollAnchor(for: .sizeChanges)),

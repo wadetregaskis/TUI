@@ -50,6 +50,10 @@ public struct ScrollBounceBehavior: Hashable, Sendable {
 
     /// Whether a view whose content does or does not overflow may be pushed
     /// into its allowance.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `EnvironmentValues.overscrollAllowances(overflowing:)`
+    /// calls it (module split step A3).
+    @usableFromInline
     func allowsOverscroll(overflowing: Bool) -> Bool {
         kind != .basedOnSize || overflowing
     }
@@ -86,6 +90,7 @@ extension EnvironmentValues {
     /// The overscroll allowances (``View/scrollOverscroll(top:bottom:)``) a
     /// scrollable is given this frame, after its vertical bounce behaviour:
     /// none under ``ScrollBounceBehavior/basedOnSize`` while its content fits.
+    @inlinable
     func overscrollAllowances(overflowing: Bool) -> (top: ScrollOverscroll, bottom: ScrollOverscroll) {
         verticalScrollBounceBehavior.allowsOverscroll(overflowing: overflowing)
             ? (scrollOverscrollTop, scrollOverscrollBottom) : (.none, .none)

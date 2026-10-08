@@ -16,13 +16,18 @@ import TUIkitView
 /// are otherwise width-greedy — currently `List`, which then sizes to the widest
 /// of *all* its rows instead of filling its container. The view that honours it
 /// clears it for its own children so the request does not leak down the subtree.
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
 struct FixedSizeWidthKey: EnvironmentKey {
-    static let defaultValue: Bool = false
+    @usableFromInline static let defaultValue: Bool = false
 }
 
 extension EnvironmentValues {
     /// Whether the enclosing view should hug its content width (see
     /// ``FixedSizeWidthKey``).
+    @inlinable
     var fixedSizeWidth: Bool {
         get { self[FixedSizeWidthKey.self] }
         set { self[FixedSizeWidthKey.self] = newValue }

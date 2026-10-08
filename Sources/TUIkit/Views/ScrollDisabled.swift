@@ -6,8 +6,11 @@
 
 // MARK: - Scroll adjustability
 
-private struct ScrollEnabledKey: EnvironmentKey {
-    static let defaultValue = true
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollEnabledKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = true
 }
 
 extension EnvironmentValues {
@@ -19,6 +22,7 @@ extension EnvironmentValues {
     /// scrollbar drag) can consult it when the environment is out of reach.
     ///
     /// Programmatic movement ignores this entirely — see the modifier.
+    @inlinable
     public var isScrollEnabled: Bool {
         get { self[ScrollEnabledKey.self] }
         set { self[ScrollEnabledKey.self] = newValue }

@@ -122,8 +122,11 @@ private struct HorizontalSizeClassKey: EnvironmentKey {
     static let defaultValue: UserInterfaceSizeClass? = .regular
 }
 
-private struct VerticalSizeClassKey: EnvironmentKey {
-    static let defaultValue: UserInterfaceSizeClass? = .regular
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct VerticalSizeClassKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: UserInterfaceSizeClass? = .regular
 }
 
 private struct LuminanceReducedKey: EnvironmentKey {
@@ -178,6 +181,7 @@ extension EnvironmentValues {
 
     /// The vertical size class, ``UserInterfaceSizeClass/regular`` unless
     /// something sets it — macOS's answer for any window.
+    @inlinable
     public var verticalSizeClass: UserInterfaceSizeClass? {
         get { self[VerticalSizeClassKey.self] }
         set { self[VerticalSizeClassKey.self] = newValue }

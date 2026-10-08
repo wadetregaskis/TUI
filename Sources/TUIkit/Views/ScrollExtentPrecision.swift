@@ -94,14 +94,18 @@ public enum ScrollExtentPrecision: Sendable, Hashable, CaseIterable {
 
 // MARK: - Environment
 
-private struct ScrollExtentPrecisionKey: EnvironmentKey {
-    static let defaultValue: ScrollExtentPrecision = .approximate
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollExtentPrecisionKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: ScrollExtentPrecision = .approximate
 }
 
 extension EnvironmentValues {
     /// How precisely scrollables in this subtree measure their off-screen rows
     /// — see ``ScrollExtentPrecision``. Defaults to
     /// ``ScrollExtentPrecision/approximate``.
+    @inlinable
     public var scrollExtentPrecision: ScrollExtentPrecision {
         get { self[ScrollExtentPrecisionKey.self] }
         set { self[ScrollExtentPrecisionKey.self] = newValue }

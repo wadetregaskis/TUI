@@ -868,25 +868,32 @@ extension ScrollableOffsetState {
 
 // MARK: - Environment
 
-private struct ScrollChainingDelayKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollChainingDelayKey: EnvironmentKey {
     // Two seconds. 500 ms let blocked ticks spill to the enclosing scroller too
     // soon in use: a scroll that reached a nested list's edge went on to move the
     // page. The window is counted from the first blocked tick; a tick that moves
     // the content re-arms it. `WheelEdgeHold.delayNanos` starts from this value.
-    static let defaultValue: Duration = .seconds(2)
+    @usableFromInline static let defaultValue: Duration = .seconds(2)
 }
 
-private struct DragAutoScrollDelayKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct DragAutoScrollDelayKey: EnvironmentKey {
     // One second. 300 ms read as trigger-happy in use: crossing the edge region
     // on the way to a drop target that is already visible would start scrolling
     // before the user arrived, so the target moved out from under them. Dwell is
     // a deliberate gesture — it should take deliberately long.
-    static let defaultValue: Duration = .seconds(1)
+    @usableFromInline static let defaultValue: Duration = .seconds(1)
 }
 
 extension EnvironmentValues {
     /// How long a nested scroller holds blocked wheel ticks at its edge
     /// before they chain to the enclosing scroller.
+    @inlinable
     public var scrollChainingDelay: Duration {
         get { self[ScrollChainingDelayKey.self] }
         set { self[ScrollChainingDelayKey.self] = newValue }
@@ -894,6 +901,7 @@ extension EnvironmentValues {
 
     /// How long the drag cursor must dwell near a scrollable's edge before it
     /// starts auto-scrolling toward an off-screen drop target.
+    @inlinable
     public var dragAutoScrollDelay: Duration {
         get { self[DragAutoScrollDelayKey.self] }
         set { self[DragAutoScrollDelayKey.self] = newValue }

@@ -57,8 +57,12 @@ public struct BackgroundProminence: Hashable, Sendable {
 }
 
 /// Environment key for ``EnvironmentValues/backgroundProminence``.
-private struct BackgroundProminenceKey: EnvironmentKey {
-    static let defaultValue: BackgroundProminence = .standard
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct BackgroundProminenceKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: BackgroundProminence = .standard
 }
 
 extension EnvironmentValues {
@@ -70,6 +74,7 @@ extension EnvironmentValues {
     /// focus, when that row is also in the selection. The system content
     /// styles (`.primary`, `.secondary`, …) resolve to the palette's text tiers
     /// there. Set it yourself above a custom background that needs the same.
+    @inlinable
     public var backgroundProminence: BackgroundProminence {
         get { self[BackgroundProminenceKey.self] }
         set { self[BackgroundProminenceKey.self] = newValue }

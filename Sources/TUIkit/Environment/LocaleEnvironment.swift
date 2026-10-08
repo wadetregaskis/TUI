@@ -15,8 +15,12 @@ import Foundation
 //  to be able to say all three.
 
 /// EnvironmentKey for the current locale.
-private struct LocaleKey: EnvironmentKey {
-    static let defaultValue = Locale.autoupdatingCurrent
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct LocaleKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = Locale.autoupdatingCurrent
 }
 
 /// EnvironmentKey for the current calendar.
@@ -40,6 +44,7 @@ extension EnvironmentValues {
     ///
     /// `Table`, `List`, and `ScrollView`'s number chrome read it, so an override
     /// re-locales their formatted output.
+    @inlinable
     public var locale: Locale {
         get { self[LocaleKey.self] }
         set { self[LocaleKey.self] = newValue }

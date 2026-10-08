@@ -257,11 +257,14 @@ struct _FreeScrollTargetBehavior: ScrollTargetBehavior, Equatable {
     func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {}
 }
 
-private struct ScrollTargetBehaviorKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ScrollTargetBehaviorKey: EnvironmentKey {
     // A behaviour is not `Sendable` (SwiftUI's protocol is not), so the
     // immutable default needs `nonisolated(unsafe)`: it never mutates, so it is
     // genuinely safe — the treatment `\.anchorPosition`'s default gets.
-    nonisolated(unsafe) static let defaultValue: any ScrollTargetBehavior = _FreeScrollTargetBehavior()
+    @usableFromInline nonisolated(unsafe) static let defaultValue: any ScrollTargetBehavior = _FreeScrollTargetBehavior()
 }
 
 extension EnvironmentValues {
@@ -273,6 +276,7 @@ extension EnvironmentValues {
     /// `==` when it has one (both built-in behaviours do) and declines to
     /// keep anything when it has not, which is the safe direction for a
     /// behaviour of an app's own.
+    @inlinable
     var scrollTargetBehavior: any ScrollTargetBehavior {
         get { self[ScrollTargetBehaviorKey.self] }
         set { self[ScrollTargetBehaviorKey.self] = newValue }

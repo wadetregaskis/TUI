@@ -320,8 +320,11 @@ func sectionBufferIsBlank(_ buffer: FrameBuffer) -> Bool {
 
 // MARK: - A List's Section Styling
 
-private struct ListSectionChromeKey: EnvironmentKey {
-    static let defaultValue = false
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct ListSectionChromeKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = false
 }
 
 extension EnvironmentValues {
@@ -335,6 +338,7 @@ extension EnvironmentValues {
     /// content — it draws as one row, and that row's section keeps the list's
     /// styling through this, as SwiftUI styles every section of a list.
     /// Anywhere else a section is drawn as written (decisions B16).
+    @inlinable
     var drawsListSectionChrome: Bool {
         get { self[ListSectionChromeKey.self] }
         set { self[ListSectionChromeKey.self] = newValue }

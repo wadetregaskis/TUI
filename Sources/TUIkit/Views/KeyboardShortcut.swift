@@ -446,13 +446,17 @@ public enum CommandKeyBinding: Sendable, Hashable {
     case unavailable
 }
 
-private struct CommandKeyBindingKey: EnvironmentKey {
-    static let defaultValue = CommandKeyBinding.control
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct CommandKeyBindingKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = CommandKeyBinding.control
 }
 
 extension EnvironmentValues {
     /// Which terminal modifier stands in for Command — see
     /// ``CommandKeyBinding``. Defaults to ``CommandKeyBinding/control``.
+    @inlinable
     public var commandKey: CommandKeyBinding {
         get { self[CommandKeyBindingKey.self] }
         set { self[CommandKeyBindingKey.self] = newValue }

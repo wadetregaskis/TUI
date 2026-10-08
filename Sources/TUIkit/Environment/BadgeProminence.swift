@@ -64,8 +64,12 @@ public struct BadgeProminence: Hashable, Sendable {
 }
 
 /// Environment key for ``View/badgeProminence(_:)``.
-private struct BadgeProminenceKey: EnvironmentKey {
-    static let defaultValue: BadgeProminence = .standard
+///
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct BadgeProminenceKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: BadgeProminence = .standard
 }
 
 extension EnvironmentValues {
@@ -74,6 +78,7 @@ extension EnvironmentValues {
     /// Read by a `List` for the badges on its rows: the value in the list's
     /// own environment, so `.badgeProminence(_:)` applies to a list from the
     /// list or from anything containing it.
+    @inlinable
     public var badgeProminence: BadgeProminence {
         get { self[BadgeProminenceKey.self] }
         set { self[BadgeProminenceKey.self] = newValue }
