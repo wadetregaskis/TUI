@@ -63,6 +63,10 @@ extension EnvironmentValues {
     /// Declared in this module, not beside the focus manager, so the value
     /// memos can compare the section a subtree's recorded registrations were
     /// made in with the one in force where it is served.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// in TUIkit reads it (module split step A3).
+    @usableFromInline
     package var activeFocusSectionID: String? {
         get { self[ActiveFocusSectionKey.self] }
         set { self[ActiveFocusSectionKey.self] = newValue }

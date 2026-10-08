@@ -74,6 +74,10 @@ extension Focusable {
 ///
 /// Handlers rebuilt every frame (``ActionHandler``) already agree with the
 /// declaration by construction, and deliberately do not conform.
+///
+/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+/// reaches it (module split step A3).
+@usableFromInline
 protocol PersistedFocusable: Focusable {
     var focusID: String { get set }
 }

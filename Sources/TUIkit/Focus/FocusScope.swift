@@ -133,6 +133,10 @@ extension EnvironmentValues {
 
 /// The focus scopes and default-focus preferences a pass declared, and which
 /// of them have had their one initial say.
+///
+/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+/// reaches it (module split step A3).
+@usableFromInline
 final class FocusScopeRegistry {
     /// Where each scope rendered, this walk.
     private var scopes: [Namespace.ID: ViewIdentity] = [:]
@@ -184,6 +188,9 @@ final class FocusScopeRegistry {
         offered.insert(namespace)
     }
 
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     func declarePreference(_ namespace: Namespace.ID, focusID: String) {
         guard preferences[namespace] == nil else { return }
         preferences[namespace] = focusID
@@ -271,6 +278,10 @@ extension FocusManager {
 /// control below it, which claims it through `FocusRegistration` — the same
 /// shape as `FocusHandoffOffer`, for the same reason: the preferred control's
 /// focus id is its own, and only it knows it.
+///
+/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+/// reaches it (module split step A3).
+@usableFromInline
 final class PreferredFocusOffer: @unchecked Sendable {
     let namespace: Namespace.ID
 
@@ -283,6 +294,10 @@ final class PreferredFocusOffer: @unchecked Sendable {
 
     /// The namespace if `identity` may claim the preference — because nothing
     /// has yet, or because this identity already did. Render pass only.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     func claim(_ identity: ViewIdentity) -> Namespace.ID? {
         if let claimant, claimant != identity { return nil }
         claimant = identity
@@ -297,6 +312,10 @@ private struct PreferredFocusOfferKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The default-focus preference offered to the first focusable in the
     /// subtree, set by `.prefersDefaultFocus(_:in:)`.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     var preferredFocusOffer: PreferredFocusOffer? {
         get { self[PreferredFocusOfferKey.self] }
         set { self[PreferredFocusOfferKey.self] = newValue }

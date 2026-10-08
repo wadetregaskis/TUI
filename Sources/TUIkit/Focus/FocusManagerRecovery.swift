@@ -111,6 +111,10 @@ extension FocusManager {
     /// Called by `FocusRegistration.register` for a control under
     /// `.focusHandoff(_:_:)`, on the render pass only and only where the control
     /// itself registered, so a control that stops registering stops declaring.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     func registerFocusHandoff(from focusID: String, store: String, value: AnyHashable) {
         focusHandoffs[focusID] = FocusHandoff(store: store, value: value, generation: focusRenderGeneration)
     }

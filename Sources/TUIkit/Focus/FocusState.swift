@@ -39,6 +39,10 @@ import TUIkitView
 /// Unchecked because it lives in the environment and is only ever touched on
 /// the render path, which is main-actor isolated — the same rationale as
 /// ``VolatileReadTracker``.
+///
+/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+/// reaches it (module split step A3).
+@usableFromInline
 final class AssignedFocusID: @unchecked Sendable {
     /// The id `.focused(_:equals:)` forces on its target.
     let id: String
@@ -58,6 +62,10 @@ final class AssignedFocusID: @unchecked Sendable {
     /// presence (a candidate the layout later discards would otherwise take the
     /// id from the control that is actually drawn), and a measuring control
     /// resolves its persisted id anyway — which IS this id, for the claimant.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     func claim(_ identity: ViewIdentity) -> String? {
         guard let claimant else {
             claimant = identity
@@ -76,6 +84,10 @@ extension EnvironmentValues {
     /// `.focused(_:equals:)` and claimed through ``FocusRegistration`` so the
     /// `@FocusState`-bound control — and only it — adopts the id the binding
     /// expects.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     var assignedFocusID: AssignedFocusID? {
         get { self[AssignedFocusIDKey.self] }
         set { self[AssignedFocusIDKey.self] = newValue }

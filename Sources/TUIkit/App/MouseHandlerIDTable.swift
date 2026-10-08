@@ -211,7 +211,12 @@ extension MouseEventDispatcher {
     /// registration in the effect journal while a memo is recording; every hit
     /// files the same closure under the same id, at the point in the walk where
     /// the control would have rendered. See ``MouseHandlerRegistrar``.
+    ///
+    /// `@inlinable` (module split step A3), as is
+    /// ``register(in:reportingChangesTo:_:)``: every control that takes the
+    /// pointer, in every module, registers through here once per render.
     @MainActor
+    @inlinable
     func register(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
@@ -270,6 +275,7 @@ extension MouseEventDispatcher {
     /// handler bare: each wheel tick that moved it walked the whole cache for
     /// buffers that could not exist.
     @MainActor
+    @inlinable
     func register<Drawn: Equatable>(
         in context: RenderContext, reportingChangesTo drawn: @escaping () -> Drawn,
         _ handler: @escaping (MouseEvent) -> Bool
@@ -377,8 +383,12 @@ extension MouseEventDispatcher {
     /// `@MainActor`, as every `Renderable.renderToBuffer` that calls it already
     /// is: the recorded closure holds the handler, which is not `Sendable`, so
     /// it can only be built where the render walk runs.
+    ///
+    /// `@usableFromInline`, so internal rather than `private`: the `@inlinable`
+    /// ``register(in:_:)`` calls it (module split step A3).
     @MainActor
-    private func registerInterned(
+    @usableFromInline
+    func registerInterned(
         _ handler: @escaping (MouseEvent) -> Bool, lane: MouseHandlerLane,
         in context: RenderContext
     ) -> HitTestRegion.HandlerID {
@@ -409,6 +419,10 @@ extension MouseEventDispatcher {
 // MARK: - Registration
 
 /// Which of the dispatcher's lanes a handler is filed on.
+///
+/// `@usableFromInline`: the `@inlinable` ``MouseEventDispatcher/register(in:_:)``
+/// names ``control`` (module split step A3).
+@usableFromInline
 enum MouseHandlerLane {
     /// A control: the region the pointer is over, for hover and for every
     /// event.

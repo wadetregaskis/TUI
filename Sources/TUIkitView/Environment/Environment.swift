@@ -318,6 +318,10 @@ extension EnvironmentValues {
     /// two — individual controls consult it, SECTIONS ignore it — which is the
     /// distinction "hidden" needs and "inert" (`View.dimmed()`) deliberately
     /// does not.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// in TUIkit reads it (module split step A3).
+    @usableFromInline
     package var isFocusSuppressed: Bool {
         get { self[FocusSuppressedKey.self] }
         set { self[FocusSuppressedKey.self] = newValue }

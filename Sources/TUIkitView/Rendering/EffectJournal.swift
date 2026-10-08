@@ -52,6 +52,10 @@ import TUIkitCore
 /// against its own context's channels, which that context keeps alive for the
 /// whole render, so no entry appended then can carry a reused address equal to
 /// it.
+///
+/// `@usableFromInline`: the type of the `@usableFromInline`
+/// `RenderContext.recordingEffectJournal` (module split step A3).
+@usableFromInline
 package final class EffectJournal {
 
     /// What kind of registration an entry makes.
@@ -156,6 +160,10 @@ extension RenderContext {
     /// The render cache's effect journal while a value memo is recording, and
     /// `nil` otherwise — so a registrar builds its replay closure only when
     /// something will keep it.
+    ///
+    /// `@usableFromInline`: `@inlinable` registrations in TUIkit read it
+    /// (module split step A3).
+    @usableFromInline
     package var recordingEffectJournal: EffectJournal? {
         guard let journal = renderCache?.effectJournal, journal.isRecording else { return nil }
         return journal

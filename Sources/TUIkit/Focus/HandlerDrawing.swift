@@ -52,17 +52,25 @@ import TUIkitView
 /// the rest of its life, through the runtime's slow path — 20,111 a frame on
 /// the `app-shapes` sidebar, where nothing else referenced it weakly
 /// (counted 2026-09-27).
+///
+/// `@usableFromInline`, with ``init(_:)``, ``changed()`` and an `@inlinable`
+/// ``reportingChanges(to:around:)``: the `@inlinable`
+/// `MouseEventDispatcher.register(in:reportingChangesTo:_:)` builds one and
+/// calls that, with its own generic arguments (module split step A3).
+@usableFromInline
 struct HandlerDrawing {
     private let link: RenderCache.Link?
     private let identity: ViewIdentity
 
     /// The pictures of the control `context` is rendering.
+    @usableFromInline
     init(_ context: RenderContext) {
         link = context.renderCache?.link
         identity = context.identity
     }
 
     /// Drops the control's own cached buffers and those containing it.
+    @usableFromInline
     func changed() {
         link?.cache?.clearAffected(by: identity, keepingSizes: true, includingDescendants: false)
     }
@@ -74,6 +82,7 @@ struct HandlerDrawing {
     /// that reach here mostly move nothing: a drag hovering a list crosses a
     /// row boundary a few times in the dozens of reports it makes, and each
     /// report is a walk of the whole cache.
+    @inlinable
     func reportingChanges<State: Equatable, Result>(
         to state: () -> State, around body: () -> Result
     ) -> Result {

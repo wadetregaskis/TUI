@@ -34,6 +34,10 @@
 /// An `enum` rather than a `struct` because nothing is ever an instance of it:
 /// it had two stored properties that existed only to be a `resolve` return
 /// value, and every caller went the three-step way above instead.
+///
+/// `@usableFromInline`: ``register(context:handler:focusID:)`` is `@inlinable`
+/// (module split step A3).
+@usableFromInline
 enum FocusRegistration {
 
     /// Persists the focusID in StateStorage and returns it, without registering a handler.
@@ -116,7 +120,11 @@ enum FocusRegistration {
     /// is: a registration that can be replayed has to hand the render cache a
     /// closure holding this `Focusable`, and a handler is not `Sendable`, so
     /// building that closure anywhere else would be sending an isolated value.
+    ///
+    /// `@inlinable` (module split step A3): every focusable control in every
+    /// module calls it once per render.
     @MainActor
+    @inlinable
     static func register(context: RenderContext, handler: Focusable, focusID: String) {
         guard !context.isMeasuring else { return }
         // A persisted handler was built once, from the id in force on the frame
@@ -213,8 +221,12 @@ enum FocusRegistration {
     /// channels are the throwaways) and replays them into the next backdrop's,
     /// and a memo above it filters them out on the token, which loses nothing
     /// from the live ring, since they were never in it.
+    ///
+    /// `@usableFromInline`, so internal rather than `private`: the `@inlinable`
+    /// ``register(context:handler:focusID:)`` calls it (module split step A3).
     @MainActor
-    private static func declareRegistration(
+    @usableFromInline
+    static func declareRegistration(
         context: RenderContext, handler: Focusable, focusID: String, sectionID: String?,
         carriesOfferedDeclaration: Bool
     ) {
@@ -265,6 +277,10 @@ enum FocusRegistration {
     /// ``register(context:handler:focusID:)``, so it has to ask for this itself.
     /// It is the only such site; anything else hung off `register` reaches every
     /// focusable in the framework.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     static func publishHelpText(context: RenderContext, focusID: String) {
         let trigger = context.environment.tooltipTrigger
         guard let text = context.environment.helpText,
@@ -380,6 +396,10 @@ enum FocusRegistration {
 
 /// The one focus registration every interactive control makes, shared by the
 /// live render and by a value memo replaying it — see `EffectJournal`.
+///
+/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+/// reaches it (module split step A3).
+@usableFromInline
 enum FocusRegistrar {
     /// The journal kind of a focus registration.
     static let kind = EffectJournal.Kind("focusRegistration")
@@ -391,6 +411,10 @@ enum FocusRegistrar {
     /// that serves it. `identity` is passed instead, because it is the
     /// CONTROL's, and the context a replay runs against is the memo's — whose
     /// identity is the memo root, not the control.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     @MainActor
     static func register(
         identity: ViewIdentity, handler: Focusable, focusID: String, sectionID: String?,

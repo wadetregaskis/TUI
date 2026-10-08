@@ -89,6 +89,10 @@ extension View {
 ///
 /// Unchecked because it lives in the environment and is only touched on the render
 /// path, which is main-actor isolated — the same rationale as ``AssignedFocusID``.
+///
+/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+/// reaches it (module split step A3).
+@usableFromInline
 final class FocusHandoffOffer: @unchecked Sendable {
     /// The store's id, read when claimed.
     private let storeID: () -> String
@@ -110,6 +114,10 @@ final class FocusHandoffOffer: @unchecked Sendable {
     ///
     /// Render pass only, like ``AssignedFocusID/claim(_:)``: its one caller,
     /// `FocusRegistration.register`, returns on a measure pass first.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     func claim(_ identity: ViewIdentity) -> (store: String, value: AnyHashable)? {
         if let claimant, claimant != identity { return nil }
         claimant = identity
@@ -124,6 +132,10 @@ private struct FocusHandoffOfferKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The handoff offered to the first focusable in the subtree, set by
     /// `.focusHandoff(_:_:)` and claimed through ``FocusRegistration``.
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline
     var focusHandoffOffer: FocusHandoffOffer? {
         get { self[FocusHandoffOfferKey.self] }
         set { self[FocusHandoffOfferKey.self] = newValue }

@@ -330,7 +330,10 @@ public final class FocusManager: @unchecked Sendable {
 
     /// The focus scopes and default-focus preferences on screen — see
     /// `FocusScope.swift`.
-    let focusScopes = FocusScopeRegistry()
+    ///
+    /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
+    /// reaches it (module split step A3).
+    @usableFromInline let focusScopes = FocusScopeRegistry()
 
     /// Creates a new focus manager instance.
     public init() {}
