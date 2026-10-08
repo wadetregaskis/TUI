@@ -405,8 +405,8 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard hasSections(context) else { return TUIkit.renderToBuffer(flat, context: context) }
-        return TUIkit.renderToBuffer(sectioned, context: sectionedContext(context))
+        guard hasSections(context) else { return TUIkitView.renderToBuffer(flat, context: context) }
+        return TUIkitView.renderToBuffer(sectioned, context: sectionedContext(context))
     }
 }
 

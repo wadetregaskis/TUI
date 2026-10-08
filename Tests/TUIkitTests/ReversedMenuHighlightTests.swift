@@ -16,8 +16,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// One focused menu row under one of the shared palettes, as a whole app, for the run

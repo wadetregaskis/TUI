@@ -26,7 +26,7 @@ struct _TypeSelectEquivalentModifier<Content: View>: View, Renderable, Layoutabl
     var body: Never { fatalError("_TypeSelectEquivalentModifier renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

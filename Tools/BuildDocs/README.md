@@ -52,17 +52,19 @@ swift package generate-documentation --target TUIkit     # ← produces a BROKEN
 `EnvironmentValues`, `FrameBuffer` or `Palette`**, and every catalog link to
 them dangling.
 
-TUIkit is five library modules — `TUIkitCore`, `TUIkitStyling`, `TUIkitView`,
-`TUIkitImage`, and the `TUIkit` umbrella that `@_exported import`s the rest.
-That split buys layering and per-module test isolation, and it is *ours*: a
-reader writing `import TUIkit` sees one API and should never have to learn
-which module happens to declare `Color`.
+TUIkit is several library modules — `TUIkitCore`, `TUIkitStyling`,
+`TUIkitView`, `TUIkitImage`, `TUIkitFoundation` (which compiles every module
+of the planned split not yet carved into a target of its own), and the
+`TUIkit` umbrella that `@_exported import`s the rest and declares nothing.
+That split buys layering, per-module test isolation and build time, and it is
+*ours*: a reader writing `import TUIkit` sees one API and should never have to
+learn which module happens to declare `Color`.
 
 DocC, though, builds from symbol graphs one module at a time, and an
 `@_exported` re-export does **not** copy the re-exported symbols into the
 importing module's graph. Point it at `TUIkit` and you document only what
-`TUIkit` itself declares. Point it at all five and you get five separate
-module trees — which leaks exactly the structure we want hidden.
+`TUIkit` itself declares, which is nothing. Point it at each module and you
+get separate module trees — which leaks exactly the structure we want hidden.
 
 So this script emits the symbol graphs, rewrites their module identity to
 `TUIkit`, and hands the result to `docc convert` as one module. The three
@@ -89,3 +91,12 @@ per-symbol doc-comment hygiene — undocumented parameters, links to internal
 types that have no page — not structural. Fix them at the source comment; a
 link to something internal should be single-backtick code, not a
 ``doc-link``.
+
+A link to one of several overloads names it by a disambiguator. Prefer the
+parameter types (``init(_:content:)-(LocalizedStringKey,_)``) to DocC's hash
+(``buttonStyle(_:)-5m1ib``): the hash is taken over the symbol's USR, which
+names the module that declares it, so it changes whenever the symbol moves
+module: the module split's step B1, which renamed the module of everything
+above the lower four, broke all five hash links to those symbols. Only where
+the types cannot tell the overloads apart (two generic `S` constrained
+differently) is the hash the way.

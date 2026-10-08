@@ -29,8 +29,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// One of everything that leaves a run: the focusable controls breathe when the

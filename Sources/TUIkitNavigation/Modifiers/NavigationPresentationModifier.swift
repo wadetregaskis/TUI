@@ -119,7 +119,7 @@ extension NavigationPresentationModifier: Renderable {
         {
             reconcile(coordinator: coordinator, stateStorage: stateStorage, context: context)
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 
     /// Brings the path and the binding into agreement, in whichever direction

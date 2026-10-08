@@ -93,7 +93,7 @@ extension AnchorPreferenceModifier: Renderable {
         // effect a cached buffer cannot reproduce — both as
         // `PreferenceModifier` has it.
         guard !context.isMeasuring, let preferences = context.environment.preferenceStorage else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         // Claimed before the content renders, as every marker slot is. With no
@@ -107,10 +107,10 @@ extension AnchorPreferenceModifier: Renderable {
         switch publish {
         case .value(let set):
             set(anchor, preferences)
-            buffer = TUIkit.renderToBuffer(content, context: context)
+            buffer = TUIkitView.renderToBuffer(content, context: context)
         case .transform(let transform):
             preferences.push()
-            buffer = TUIkit.renderToBuffer(content, context: context)
+            buffer = TUIkitView.renderToBuffer(content, context: context)
             preferences.pop { transform(anchor, &$0) }
         }
         if let site {

@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The current form, under a heading.
 private struct Headed: FormStyle {

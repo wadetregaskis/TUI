@@ -8,7 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// What a scripted terminal was sent, one entry per write.
 @MainActor

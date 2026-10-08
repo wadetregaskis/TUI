@@ -17,8 +17,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 private final class DragStormLog {
     var stringDrops: [String] = []

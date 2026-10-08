@@ -16,8 +16,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// A two-cell run whose frames are the shapes a field comes in: a field of its

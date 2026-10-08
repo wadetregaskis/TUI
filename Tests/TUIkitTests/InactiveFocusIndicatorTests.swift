@@ -18,8 +18,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// The Example's main menu in miniature: an inline `Menu` of `Button`s, whose rows

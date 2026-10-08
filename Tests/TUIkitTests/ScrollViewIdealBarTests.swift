@@ -14,8 +14,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Counts its own measures: a row whose `sizeThatFits` says how many times the

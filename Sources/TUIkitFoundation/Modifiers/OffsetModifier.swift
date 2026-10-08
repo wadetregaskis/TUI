@@ -39,7 +39,7 @@ extension OffsetView: Renderable, Layoutable {
         // moved with it: a view under an offset is where it is drawn (as in
         // SwiftUI, whose offset moves a view's frame in every space). The ramp
         // a gradient spans stays where the layout put it.
-        let rendered = TUIkit.renderToBuffer(
+        let rendered = TUIkitView.renderToBuffer(
             content, context: context.isMeasuring ? context : context.placingChild(gradient: nil, x: x, y: y))
         guard !context.isMeasuring else { return rendered }
 

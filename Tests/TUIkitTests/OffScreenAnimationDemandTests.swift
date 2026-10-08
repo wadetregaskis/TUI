@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A view that builds its appearance from the pulse phase WHILE rendering, so

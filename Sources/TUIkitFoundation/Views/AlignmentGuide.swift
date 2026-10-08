@@ -296,7 +296,7 @@ extension ChildView {
         childContext.availableWidth = dimensions.width
         childContext.availableHeight = dimensions.height
         childContext.isMeasuring = true
-        return TUIkit.explicitGuide(of: wrappedView, query, in: dimensions, context: childContext)
+        return TUIkitFoundation.explicitGuide(of: wrappedView, query, in: dimensions, context: childContext)
     }
 }
 
@@ -327,7 +327,7 @@ extension _AlignmentGuideView: AlignmentGuideQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         if query.key == key { return computeValue(dimensions) }
-        return TUIkit.explicitGuide(
+        return TUIkitFoundation.explicitGuide(
             of: content, query, in: dimensions,
             context: context.withChildIdentity(type: Body.self))
     }

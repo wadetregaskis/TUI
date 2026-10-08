@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// The guard on the per-pass measure memo: a frame drawn with it must be

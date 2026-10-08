@@ -15,7 +15,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// What fired, in order.
 private final class FireLog: @unchecked Sendable {

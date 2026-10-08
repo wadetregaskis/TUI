@@ -15,8 +15,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A mono picture in a breathing link")
@@ -38,7 +39,7 @@ struct LinkMonoPictureBreathTests {
                 for: StateStorage.StateKey(identity: context.identity, propertyIndex: 0),
                 default: .loading)
             if case .loading = phase.value { phase.value = .success(image) }
-            return TUIkit.renderToBuffer(_ImageCore(source: .file(path)), context: context)
+            return TUIkitView.renderToBuffer(_ImageCore(source: .file(path)), context: context)
         }
     }
 

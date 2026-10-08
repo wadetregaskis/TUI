@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 private enum Arrow: Hashable { case left, right }

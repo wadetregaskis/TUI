@@ -11,7 +11,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Label above content, as SwiftUI's documentation sketches a custom style.
 private struct Stacked: LabeledContentStyle {

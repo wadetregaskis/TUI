@@ -29,7 +29,8 @@ import Foundation
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Emits a buffer carrying one ``OpacityRegion`` — the payload under test,
 /// with nothing else attached to it.

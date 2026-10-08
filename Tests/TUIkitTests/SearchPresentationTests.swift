@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// What the page holds, by reference so the bindings a frame built reach it.
 private final class Probe {

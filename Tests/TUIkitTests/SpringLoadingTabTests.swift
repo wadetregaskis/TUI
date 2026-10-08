@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// The tab view's selection.
 private final class Selected: @unchecked Sendable {

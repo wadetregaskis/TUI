@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 // MARK: - Item List Handler Navigation Tests
 

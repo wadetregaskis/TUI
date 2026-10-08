@@ -13,8 +13,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A page of one line of text with the line of key hints in its bottom bar, so
 /// the rows the tests read are the bar's.

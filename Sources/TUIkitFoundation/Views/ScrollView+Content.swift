@@ -379,7 +379,7 @@ extension _ScrollViewCore {
         // stays put — it spans the content, not the viewport.
         let placement = CellPoint(x: horizontal ? -horizontalScrollOffset : 0, y: -verticalScrollOffset - slide)
         measureContext = measureContext.placingChild(gradient: nil, x: placement.x, y: placement.y)
-        let buffer = TUIkit.renderToBuffer(content, context: measureContext)
+        let buffer = TUIkitView.renderToBuffer(content, context: measureContext)
         if contentReply.measureWentStale, !remeasured, !context.isMeasuring {
             // The canvas was the height of a measure this render refuted, so
             // the lines past it were cut, and a seek resolved among them would

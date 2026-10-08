@@ -12,7 +12,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A lazy vertical grid lays out its sections")

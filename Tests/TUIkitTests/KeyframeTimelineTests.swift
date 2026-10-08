@@ -9,7 +9,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 private struct Values {
     var a = 0.0

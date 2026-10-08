@@ -15,8 +15,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 private struct DocumentsApp: App {
     let lazy: Bool

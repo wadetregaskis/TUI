@@ -7,8 +7,9 @@
 import CTestSupport
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 // MARK: - Shapes

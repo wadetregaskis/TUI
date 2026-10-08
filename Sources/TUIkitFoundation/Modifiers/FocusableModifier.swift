@@ -124,7 +124,7 @@ extension FocusableModifier: Renderable {
         let isFocused = focusID.map { FocusRegistration.isFocused(context: context, focusID: $0) }
         FocusRegistration.publishIsFocused(isFocused, context: context, into: &contentContext)
 
-        var buffer = TUIkit.renderToBuffer(content, context: contentContext)
+        var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
 
         // `.activate` → click anywhere in the content to focus it. Not while an
         // ancestor suppresses focus: `registerFocusStop` still hands back an id

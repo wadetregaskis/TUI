@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Regression guard (and diagnostic) for the measure-pass correctness work.
 ///

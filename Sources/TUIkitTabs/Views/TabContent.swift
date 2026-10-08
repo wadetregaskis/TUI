@@ -240,7 +240,7 @@ extension Optional: TabContent where Wrapped: TabContent {
 extension Optional: _TabContentPrimitive where Wrapped: TabContent {
     func appendTabs(to tabs: inout _TabList) {
         guard let self else { return }
-        TUIkit.appendTabs(self, to: &tabs)
+        TUIkitFoundation.appendTabs(self, to: &tabs)
     }
 }
 
@@ -265,7 +265,7 @@ extension Group: TabContent where Content: TabContent {
 
 extension Group: _TabContentPrimitive where Content: TabContent {
     func appendTabs(to tabs: inout _TabList) {
-        TUIkit.appendTabs(content, to: &tabs)
+        TUIkitFoundation.appendTabs(content, to: &tabs)
     }
 }
 
@@ -286,8 +286,8 @@ extension _ConditionalContent: _TabContentPrimitive
 where TrueContent: TabContent, FalseContent: TabContent, TrueContent.TabValue == FalseContent.TabValue {
     func appendTabs(to tabs: inout _TabList) {
         switch self {
-        case .trueContent(let content): TUIkit.appendTabs(content, to: &tabs)
-        case .falseContent(let content): TUIkit.appendTabs(content, to: &tabs)
+        case .trueContent(let content): TUIkitFoundation.appendTabs(content, to: &tabs)
+        case .falseContent(let content): TUIkitFoundation.appendTabs(content, to: &tabs)
         }
     }
 }
@@ -346,7 +346,7 @@ extension ForEach: TabContent where Content: TabContent {
 extension ForEach: _TabContentPrimitive where Content: TabContent {
     func appendTabs(to tabs: inout _TabList) {
         for element in data {
-            TUIkit.appendTabs(content(element), to: &tabs)
+            TUIkitFoundation.appendTabs(content(element), to: &tabs)
         }
     }
 }
@@ -371,7 +371,7 @@ public struct AnyTabContent<SelectionValue: Hashable>: TabContent {
     ///
     /// - Parameter tabContent: The tab content to erase.
     public init<T: TabContent>(_ tabContent: T) where SelectionValue == T.TabValue {
-        appendErased = { TUIkit.appendTabs(tabContent, to: &$0) }
+        appendErased = { TUIkitFoundation.appendTabs(tabContent, to: &$0) }
     }
 
     /// Erased content is primitive: it hands its tabs over itself.

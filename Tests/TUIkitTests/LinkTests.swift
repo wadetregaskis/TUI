@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Captures the URL an ``OpenURLAction`` was asked to open. A reference type so

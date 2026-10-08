@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A child spliced out of a provider that is ITSELF spliced — a `Group` or an

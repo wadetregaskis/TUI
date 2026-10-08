@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Under `.scrollIndicators(.visible)` + `.scrollIndicatorStyle(.text)` a

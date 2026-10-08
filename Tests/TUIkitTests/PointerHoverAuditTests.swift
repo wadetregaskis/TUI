@@ -13,7 +13,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Pointer hover audit")

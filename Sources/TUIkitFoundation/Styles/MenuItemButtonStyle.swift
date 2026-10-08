@@ -92,7 +92,7 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let row = row(in: context)
-        var buffer = TUIkit.renderToBuffer(row, context: context)
+        var buffer = TUIkitView.renderToBuffer(row, context: context)
         guard configuration.isFocused else { return buffer }
 
         let palette = context.environment.palette

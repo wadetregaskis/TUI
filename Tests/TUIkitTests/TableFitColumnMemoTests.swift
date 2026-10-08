@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A `.fit` column fits the widest of its header and EVERY cell value — all

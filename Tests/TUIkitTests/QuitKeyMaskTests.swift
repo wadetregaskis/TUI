@@ -24,7 +24,8 @@ import Musl
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// Renders a page the way the run loop brackets a frame, and asks a real

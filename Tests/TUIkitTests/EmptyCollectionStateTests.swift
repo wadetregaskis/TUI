@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A collection that empties leaves nothing behind")

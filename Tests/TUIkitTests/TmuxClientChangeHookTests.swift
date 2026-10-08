@@ -19,7 +19,8 @@
 import Foundation  // pid_t
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("tmux client-change hooks")
 struct TmuxClientChangeHookTests {

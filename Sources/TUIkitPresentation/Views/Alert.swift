@@ -321,7 +321,7 @@ struct AlertButtonRow: View, Renderable {
         var buttonBuffers: [FrameBuffer] = []
         for (index, button) in sortedButtons.enumerated() {
             let childContext = context.withChildIdentity(type: Button.self, index: index)
-            let buffer = TUIkit.renderToBuffer(button, context: childContext)
+            let buffer = TUIkitView.renderToBuffer(button, context: childContext)
             buttonBuffers.append(buffer)
         }
 
@@ -446,7 +446,7 @@ struct AlertButtonColumn: View, Renderable {
         // order the focus ring walks, so Tab runs top to bottom.
         for (index, button) in sortedButtons.enumerated() {
             let childContext = context.withChildIdentity(type: Button.self, index: index)
-            let buffer = TUIkit.renderToBuffer(button, context: childContext)
+            let buffer = TUIkitView.renderToBuffer(button, context: childContext)
             let leftPadding = max(0, (width - buffer.width) / 2)
             let pad = String(repeating: " ", count: leftPadding)
             let startY = lines.count

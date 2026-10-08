@@ -137,7 +137,7 @@ extension ModalPresentationModifier: Renderable {
                 // Presented again, it is a new sheet.
                 startOver(context: context)
             }
-            return TUIkit.renderToBuffer(content, context: contentContext)
+            return TUIkitView.renderToBuffer(content, context: contentContext)
         }
 
         // Whether the content forbade interactive dismissal. Read BEFORE the
@@ -226,7 +226,7 @@ extension ModalPresentationModifier: Renderable {
         // and (via throwaway state) preserves the page's scroll/@State. The root
         // compositor dims this buffer for the backdrop; mouse is isolated by that
         // dimmed backdrop dropping the page's hit-test regions.
-        var baseBuffer = TUIkit.renderToBuffer(
+        var baseBuffer = TUIkitView.renderToBuffer(
             content, context: contentContext.isolatedForBackground())
 
         // The page beneath is inert, and that has to be SAID rather than

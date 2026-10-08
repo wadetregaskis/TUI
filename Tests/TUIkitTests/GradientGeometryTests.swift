@@ -14,7 +14,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("Gradient geometry")
 struct GradientGeometryTests {

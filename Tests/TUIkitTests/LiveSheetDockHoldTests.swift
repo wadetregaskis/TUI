@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the pages below switch for a frame and back, by reference so the
 /// binding a frame built reaches it.

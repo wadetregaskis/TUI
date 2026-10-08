@@ -21,7 +21,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// A palette as the Theming guide writes one: no `Equatable`, an id of its own.

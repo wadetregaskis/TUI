@@ -73,7 +73,7 @@ struct _ToolbarVisibilityModifier<Content: View>: View, Renderable, Layoutable {
                 chrome.declare(visibility, for: bar.edge == .bottom ? .bottom : .top)
             }
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 
     /// The statement is the window's, so this measures as `content`.

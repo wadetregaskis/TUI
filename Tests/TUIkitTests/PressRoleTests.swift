@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What a region's handler heard, in order.
 final class HeardEvents: @unchecked Sendable {

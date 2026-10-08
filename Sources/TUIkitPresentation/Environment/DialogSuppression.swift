@@ -171,11 +171,11 @@ struct _AlertFooter: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let buttonsBuffer = TUIkit.renderToBuffer(
+        let buttonsBuffer = TUIkitView.renderToBuffer(
             buttonsView,
             context: context.withChildIdentity(type: _AlertButtons.self, index: ChildIndex.buttons))
         guard let suppression else { return buttonsBuffer }
-        var result = TUIkit.renderToBuffer(
+        var result = TUIkitView.renderToBuffer(
             suppression.toggle,
             context: context.withChildIdentity(type: DialogSuppression.self, index: ChildIndex.toggle))
         result.appendVertically(buttonsBuffer)

@@ -13,8 +13,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// The page and ink the terminal decides, stated as roles, with RGB elsewhere.

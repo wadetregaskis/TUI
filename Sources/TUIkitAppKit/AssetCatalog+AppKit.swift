@@ -10,7 +10,7 @@
 
 #if canImport(AppKit)
     import AppKit
-    import TUIkit
+    import TUIkitFoundation
 
     // Each initializer here is TUIkit's of the same name with one more place
     // to look. TUIkit declares its own `@_disfavoredOverload`, so these win in

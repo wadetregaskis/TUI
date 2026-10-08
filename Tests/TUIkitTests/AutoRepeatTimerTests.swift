@@ -16,7 +16,8 @@
 import Dispatch
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 /// `.serialized` because the whole point of one of these is to occupy the

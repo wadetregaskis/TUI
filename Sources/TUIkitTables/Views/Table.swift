@@ -765,7 +765,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// with its tones, where there is no border, so the header (when there is
     /// one) is line 0.
     private func render(_ container: some View, on surface: CollectionSurface?, context: RenderContext) -> FrameBuffer {
-        let buffer = TUIkit.renderToBuffer(container, context: context)
+        let buffer = TUIkitView.renderToBuffer(container, context: context)
         return surface?.painted(buffer, headerLines: 0..<headerLines(context.environment), context: context) ?? buffer
     }
 
@@ -2074,7 +2074,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var payload = _TableRowPayload()
         for index in indices {
             let height = heights.indices.contains(index) ? heights[index] : 1
-            let buffer = TUIkit.renderToBuffer(
+            let buffer = TUIkitView.renderToBuffer(
                 sectionHeaders[index].view,
                 context: sectionHeaderContext(index, width: width, height: height, context: context))
             var placed = _TableRowPayload()
@@ -4583,7 +4583,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         context: RenderContext
     ) -> String {
         Self.cellLines(
-            TUIkit.renderToBuffer(
+            TUIkitView.renderToBuffer(
                 text, context: cellContext(column, for: item, width: width, context: context)),
             limit: column.lineLimit)
     }

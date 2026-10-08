@@ -16,8 +16,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("The text scroll indicators owe what they painted")

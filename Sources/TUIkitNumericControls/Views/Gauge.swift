@@ -390,7 +390,7 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         guard let view, !(view is EmptyView) else { return "" }
         let slotContext = context.withChildIdentity(
             erasedType: type(of: view), index: slot.rawValue)
-        return TUIkit.renderToBuffer(view, context: slotContext).lines.first ?? ""
+        return TUIkitView.renderToBuffer(view, context: slotContext).lines.first ?? ""
     }
 
     /// The label line (label left, current-value right) if it has visible

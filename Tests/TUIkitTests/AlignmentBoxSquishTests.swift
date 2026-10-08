@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 private func renderRow(width: Int) -> (lines: [String], height: Int) {

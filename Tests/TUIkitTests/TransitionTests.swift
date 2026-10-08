@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A view that comes and goes, in a slot that survives it.
 private struct Host: View {

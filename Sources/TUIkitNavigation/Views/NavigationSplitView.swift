@@ -566,11 +566,11 @@ extension _NavigationSplitViewCore {
         }
         switch column {
         case .sidebar:
-            return TUIkit.renderToBuffer(sidebar, context: columnContext(sidebar))
+            return TUIkitView.renderToBuffer(sidebar, context: columnContext(sidebar))
         case .content:
-            return TUIkit.renderToBuffer(content, context: columnContext(content))
+            return TUIkitView.renderToBuffer(content, context: columnContext(content))
         case .detail:
-            return TUIkit.renderToBuffer(detail, context: columnContext(detail))
+            return TUIkitView.renderToBuffer(detail, context: columnContext(detail))
         default:
             return FrameBuffer()
         }

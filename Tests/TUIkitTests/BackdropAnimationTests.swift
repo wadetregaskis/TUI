@@ -12,7 +12,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A page whose top row animates, and whose bottom row animates in glyphs the
 /// backdrop flattens away.

@@ -11,7 +11,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The SwiftUI-tutorial shape: decorate the label view.
 private struct Bracketing: ButtonStyle {

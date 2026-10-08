@@ -420,7 +420,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
             return context.environment.formStyle.makeBuffer(
                 configuration: FormStyleConfiguration(content: AnyView(content)), context: bodyContext)
         }
-        return TUIkit.renderToBuffer(composed, context: context)
+        return TUIkitView.renderToBuffer(composed, context: context)
     }
 
     /// The column this form is, for whichever built-in style is in force, or

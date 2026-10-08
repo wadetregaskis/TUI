@@ -14,7 +14,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Clamping trims the opacity region with its cells")

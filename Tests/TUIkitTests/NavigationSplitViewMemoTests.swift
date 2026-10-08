@@ -18,7 +18,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 private final class VisibilityBox {
     var visibility = NavigationSplitViewVisibility.all

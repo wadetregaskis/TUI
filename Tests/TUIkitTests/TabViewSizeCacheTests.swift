@@ -16,8 +16,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A TabView's per-tab size cache tracks the space it measured in")

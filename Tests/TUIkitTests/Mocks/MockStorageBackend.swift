@@ -6,7 +6,8 @@
 
 import Foundation
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// An in-memory ``StorageBackend`` for tests.
 ///

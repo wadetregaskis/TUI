@@ -15,8 +15,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// An RGB page and ink whose accent is a terminal slot, which has no RGB until the

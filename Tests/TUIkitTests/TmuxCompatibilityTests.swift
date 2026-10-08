@@ -17,8 +17,9 @@
 import Foundation  // pid_t
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @Suite("tmux compatibility")
 struct TmuxCompatibilityTests {

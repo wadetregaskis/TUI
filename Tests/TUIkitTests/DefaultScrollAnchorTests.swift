@@ -13,8 +13,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// How a ``TailApp`` stacks its lines — each shape reaches a different path.

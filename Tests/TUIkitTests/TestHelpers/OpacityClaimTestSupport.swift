@@ -12,8 +12,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// The factor a colour's alpha becomes in a claim — what a cell painted in it owes.

@@ -11,7 +11,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A counter kept in the state of whatever view declares it.
 @propertyWrapper

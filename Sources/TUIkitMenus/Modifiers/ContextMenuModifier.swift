@@ -48,7 +48,7 @@ extension ContextMenuModifier: Renderable {
         guard let stateStorage = context.stateStorage,
             !context.environment.rowsYieldSecondaryClick
         else {
-            return TUIkit.renderToBuffer(content, context: contentContext)
+            return TUIkitView.renderToBuffer(content, context: contentContext)
         }
         let stateBox: StateBox<ContextMenuState> = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.state),
@@ -91,7 +91,7 @@ extension ContextMenuModifier: Renderable {
             // the content sees the change; the bare assignment this replaced
             // served the unfocused frame after Tab arrived.
             FocusRegistration.publishIsFocused(isFocused, context: context, into: &contentContext)
-            var buffer = TUIkit.renderToBuffer(content, context: contentContext)
+            var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
             if !context.isMeasuring {
                 ContextMenuPresentation.attachTrigger(
                     to: &buffer, stateBox: stateBox, focusID: focusID, context: context)
@@ -109,7 +109,7 @@ extension ContextMenuModifier: Renderable {
         // stop takes the focus back, a change nothing would clear.
         var backdropContext = contentContext
         FocusRegistration.publishIsFocused(nil, context: context, into: &backdropContext)
-        var baseBuffer = TUIkit.renderToBuffer(
+        var baseBuffer = TUIkitView.renderToBuffer(
             content, context: backdropContext.isolatedForBackground())
         ContextMenuPresentation.present(
             menuItems, over: &baseBuffer, stateBox: stateBox, sectionID: sectionID, context: context)

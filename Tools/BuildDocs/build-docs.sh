@@ -149,11 +149,13 @@ set -e
 PAGES=$(find "$ARCHIVE/data/documentation" -name '*.json' | wc -l | tr -d ' ')
 echo "==> $ARCHIVE ($PAGES pages)"
 
-# A regression guard with teeth: these types live in the sibling modules, and
-# their absence is the exact failure this script exists to prevent. Cheap to
-# check, and it fails loudly the day someone documents just one target again.
+# A regression guard with teeth: these types live in the modules the umbrella
+# re-exports (it declares nothing itself), and their absence is the exact
+# failure this script exists to prevent. Cheap to check, and it fails loudly
+# the day someone documents just one target again. `text` and `list` are
+# TUIkitFoundation's, the rest the lower modules'.
 MISSING=()
-for symbol in view color binding state environmentvalues framebuffer palette; do
+for symbol in view color binding state environmentvalues framebuffer palette text list; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then

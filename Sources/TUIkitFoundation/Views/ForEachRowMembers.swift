@@ -228,7 +228,7 @@ private protocol SectionRowBranches {
 extension Optional: SectionRowBranches where Wrapped: View {
     /// A section or nothing, when what it holds may be a section.
     fileprivate static func sectionRowKind(depth: Int) -> SectionRowKind {
-        TUIkit.sectionRowKind(Wrapped.self, depth: depth) == .other ? .other : .sectionOrLess
+        TUIkitFoundation.sectionRowKind(Wrapped.self, depth: depth) == .other ? .other : .sectionOrLess
     }
 }
 
@@ -236,8 +236,8 @@ extension ConditionalView: SectionRowBranches {
     /// A section when both arms always are; a section or less when one may be
     /// and the other is too, or is nothing or one view.
     fileprivate static func sectionRowKind(depth: Int) -> SectionRowKind {
-        let whenTrue = TUIkit.sectionRowKind(TrueContent.self, depth: depth)
-        let whenFalse = TUIkit.sectionRowKind(FalseContent.self, depth: depth)
+        let whenTrue = TUIkitFoundation.sectionRowKind(TrueContent.self, depth: depth)
+        let whenFalse = TUIkitFoundation.sectionRowKind(FalseContent.self, depth: depth)
         if whenTrue == .section, whenFalse == .section { return .section }
         guard whenTrue != .other || whenFalse != .other else { return .other }
         let trueFits = whenTrue != .other || armIsAtMostOneView(TrueContent.self)

@@ -18,7 +18,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The ladder is asked on its inputs, so those tests set nothing. The one test
 /// about publication sets the override, which republishes the flag the

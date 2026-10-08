@@ -11,7 +11,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 private struct Fruit: Identifiable, Hashable {
     let id: String

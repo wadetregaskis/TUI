@@ -22,7 +22,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// What the destinations were handed, kept outside the memo's key so nothing

@@ -9,7 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Records what a text control hands the clipboard, and answers reads from the
 /// same store. One per control under test, so tests run in parallel with

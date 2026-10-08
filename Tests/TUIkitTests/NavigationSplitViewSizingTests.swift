@@ -9,7 +9,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("NavigationSplitView size-to-fit sizing")

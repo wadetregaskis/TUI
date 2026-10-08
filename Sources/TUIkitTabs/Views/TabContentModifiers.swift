@@ -26,7 +26,7 @@ struct _TabTraitContent<Content: TabContent>: TabContent, _TabContentPrimitive {
     }
 
     func appendTabs(to tabs: inout _TabList) {
-        tabs.modifying(apply) { TUIkit.appendTabs(content, to: &$0) }
+        tabs.modifying(apply) { TUIkitFoundation.appendTabs(content, to: &$0) }
     }
 }
 

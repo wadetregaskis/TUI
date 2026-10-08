@@ -14,7 +14,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("List height distribution in stacks (issue #6)")

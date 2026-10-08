@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the probe posts, and the heights the page was laid out at.
 @MainActor

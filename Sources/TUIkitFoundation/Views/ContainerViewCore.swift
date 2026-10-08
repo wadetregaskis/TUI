@@ -333,7 +333,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             ? scrollableBody(
                 availableHeight: bodyAvailableHeight, innerWidth: innerContext.availableWidth,
                 context: bodyContext)
-            : TUIkit.renderToBuffer(content.padding(padding), context: bodyContext)
+            : TUIkitView.renderToBuffer(content.padding(padding), context: bodyContext)
                 .clamped(toWidth: innerContext.availableWidth, height: bodyAvailableHeight)
 
         // A sheet's detent names a height for the box, so a body that does not
@@ -374,7 +374,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             var footerContext = footerInner
             footerContext.availableWidth = max(0, innerWidth - footerPadding.leading - footerPadding.trailing)
             footerContext.availableHeight = innerAvailableHeight
-            let rendered = TUIkit.renderToBuffer(footerView.padding(footerPadding), context: footerContext)
+            let rendered = TUIkitView.renderToBuffer(footerView.padding(footerPadding), context: footerContext)
                 .clamped(toWidth: innerWidth, height: innerAvailableHeight)
             // Place the (narrower-than-the-box) footer per the configured
             // alignment. A no-op for `.leading`; `.center`/`.trailing` shift the
@@ -572,7 +572,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             .frame(
                 width: naturalWidth,
                 height: overflows ? height : max(natural.height, 0))
-        return TUIkit.renderToBuffer(scrolled, context: context)
+        return TUIkitView.renderToBuffer(scrolled, context: context)
             .clamped(toWidth: innerWidth, height: availableHeight)
     }
 

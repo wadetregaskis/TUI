@@ -14,8 +14,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// The terminal's page and ink, stated as roles, with an RGB accent and tertiary tier.

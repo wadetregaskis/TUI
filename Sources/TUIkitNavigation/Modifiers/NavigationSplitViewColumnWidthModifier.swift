@@ -94,7 +94,7 @@ extension NavigationSplitViewColumnWidthView {
 extension NavigationSplitViewColumnWidthView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         publishColumnWidth(context: context)
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

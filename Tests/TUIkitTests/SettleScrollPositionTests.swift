@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// `settleScrollPosition` is the once-per-frame sequence `List` and both of
 /// `Table`'s paths run over their scroll offset: clamp, clamp the top clip, snap

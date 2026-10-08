@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The colour query's requests, its reply parsers, and the pure resolution of
 /// what a terminal said.

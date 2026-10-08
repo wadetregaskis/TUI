@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A frame that writes more than one row holds the terminal's display while
 /// it is drawn (DEC mode 2026), and nothing else does. Step V2 of the Ghostty

@@ -230,7 +230,7 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
         guard !context.isMeasuring, context.environment.isEnabled, let storage = context.stateStorage else {
-            return TUIkit.renderToBuffer(presented, context: contentContext)
+            return TUIkitView.renderToBuffer(presented, context: contentContext)
         }
         // Nothing declared here: what the host registers a memo makes again
         // (the regions and drop target, its journals; the menu's opener, the
@@ -238,7 +238,7 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
         // down the section a closed menu left — declares itself on the one
         // frame it happens, as `.contextMenu`'s does (740df15af). So a row
         // carrying a tab's menu, drag or drops can be served from its memo.
-        var buffer = TUIkit.renderToBuffer(presented, context: contentContext)
+        var buffer = TUIkitView.renderToBuffer(presented, context: contentContext)
         // The drag handle first: it takes the regions already there as the
         // content's own, forwarding an unmoved click to them — and a click
         // nothing in the content wants falls through to the tab behind. The
@@ -418,7 +418,7 @@ extension _TabViewCore {
                     }
                 })
             let hostContext = context.withChildIdentity(erasedType: _RawTab.self, key: "\(tab.value)")
-            let hosted = TUIkit.renderToBuffer(host, context: hostContext)
+            let hosted = TUIkitView.renderToBuffer(host, context: hostContext)
             buffer.hitTestRegions += hosted.shiftedHitTestRegions(byX: region.x, y: region.y)
             buffer.overlays += hosted.shiftedOverlays(byX: region.x, y: region.y)
             let lift = dispatcher.register(in: hostContext) { event in

@@ -121,7 +121,7 @@ extension TupleView: ChildKindsKnowing {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         var found = false
         func check<T: View>(_: T.Type) {
-            if !found, TUIkit.mayHandOver(kind, T.self, visited: &visited) { found = true }
+            if !found, TUIkitFoundation.mayHandOver(kind, T.self, visited: &visited) { found = true }
         }
         repeat check((each V).self)
         return found
@@ -130,26 +130,26 @@ extension TupleView: ChildKindsKnowing {
 
 extension ConditionalView: ChildKindsKnowing {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        TUIkit.mayHandOver(kind, TrueContent.self, visited: &visited)
-            || TUIkit.mayHandOver(kind, FalseContent.self, visited: &visited)
+        TUIkitFoundation.mayHandOver(kind, TrueContent.self, visited: &visited)
+            || TUIkitFoundation.mayHandOver(kind, FalseContent.self, visited: &visited)
     }
 }
 
 extension Optional: ChildKindsKnowing where Wrapped: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        TUIkit.mayHandOver(kind, Wrapped.self, visited: &visited)
+        TUIkitFoundation.mayHandOver(kind, Wrapped.self, visited: &visited)
     }
 }
 
 extension ModifiedView: ChildKindsKnowing where Content: ChildViewProvider {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        TUIkit.mayHandOver(kind, Content.self, visited: &visited)
+        TUIkitFoundation.mayHandOver(kind, Content.self, visited: &visited)
     }
 }
 
 extension Group: ChildKindsKnowing where Content: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        TUIkit.mayHandOver(kind, Content.self, visited: &visited)
+        TUIkitFoundation.mayHandOver(kind, Content.self, visited: &visited)
     }
 }
 
@@ -160,9 +160,9 @@ extension Group: ChildKindsKnowing where Content: View {
 extension Section: ChildKindsKnowing where Parent: View, Content: View, Footer: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         if kind == .keyedRow(sectionsWhole: true) { return false }
-        return TUIkit.mayHandOver(kind, Parent.self, visited: &visited)
-            || TUIkit.mayHandOver(kind, Content.self, visited: &visited)
-            || TUIkit.mayHandOver(kind, Footer.self, visited: &visited)
+        return TUIkitFoundation.mayHandOver(kind, Parent.self, visited: &visited)
+            || TUIkitFoundation.mayHandOver(kind, Content.self, visited: &visited)
+            || TUIkitFoundation.mayHandOver(kind, Footer.self, visited: &visited)
     }
 }
 
@@ -179,6 +179,6 @@ extension ForEach: ChildKindsKnowing where Content: View {
         if kind == .section, Content.self is any ChildViewProvider.Type, staticRowMemberCount(Content.self) == 1 {
             return false
         }
-        return TUIkit.mayHandOver(kind, Content.self, visited: &visited)
+        return TUIkitFoundation.mayHandOver(kind, Content.self, visited: &visited)
     }
 }

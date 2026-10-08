@@ -85,7 +85,7 @@ extension _WindowChromeHost {
             barContext.environment.activeFocusSectionID = sectionID
             let (title, subtitle) = titleSlot(edge, chrome: chrome)
             row.appendVertically(
-                TUIkit.renderToBuffer(
+                TUIkitView.renderToBuffer(
                     _ToolbarBarRow(entries: entries, title: title, subtitle: subtitle), context: barContext
                 )
                 .fittedAsChrome(toRows: itemRows, width: style.barContentWidth(width), background: "")
@@ -133,7 +133,7 @@ extension _WindowChromeHost {
 
     /// The tooltip's rows, styled as the line of key hints styles them.
     private func tooltipRows(_ lines: [String], width: Int, context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(
+        TUIkitView.renderToBuffer(
             StatusBar(style: .compact, tooltipLines: lines),
             context: RenderContext(availableWidth: width, availableHeight: lines.count, environment: context.environment))
     }
@@ -176,7 +176,7 @@ extension _WindowChromeHost {
         let frameContext = RenderContext(
             availableWidth: width, availableHeight: style.barHeight(contentRows: row.height),
             environment: context.environment)
-        return TUIkit.renderToBuffer(
+        return TUIkitView.renderToBuffer(
             _ChromeBarFrame(contentBuffer: padded, style: style, ruleAbove: ruleAbove), context: frameContext)
     }
 }

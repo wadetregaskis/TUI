@@ -15,8 +15,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// A two-cell run in the overlay whose frames draw a glyph in an ink of its own,

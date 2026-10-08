@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// `Grid` is the container a terminal wants most and had none of: cells that
 /// line up in columns without anyone being told a width.

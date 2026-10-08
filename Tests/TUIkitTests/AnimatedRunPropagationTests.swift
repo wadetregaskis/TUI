@@ -17,8 +17,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A leaf that draws two cells and declares them animated — the shape of every
@@ -45,7 +46,7 @@ struct AnimatedRunPropagationTests {
     private func runs<V: View>(of view: V, width: Int = 40, height: Int = 12)
         -> [AnimatedCellRun]
     {
-        TUIkit.renderToBuffer(view, context: makeRenderContext(width: width, height: height))
+        TUIkitView.renderToBuffer(view, context: makeRenderContext(width: width, height: height))
             .animatedCells
     }
 

@@ -131,7 +131,7 @@ struct _InspectorColumnWidthView<Content: View>: View, InspectorColumnWidthProvi
 
 extension _InspectorColumnWidthView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

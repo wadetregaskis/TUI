@@ -14,8 +14,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Draws an environment value that nothing tracks, so a stale serve is visible.

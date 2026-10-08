@@ -15,8 +15,9 @@ import Foundation
 import Testing
 import TUIkitImage
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 @MainActor

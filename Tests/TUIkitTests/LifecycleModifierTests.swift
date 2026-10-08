@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 // MARK: - Lifecycle Modifier Identity Tests
 

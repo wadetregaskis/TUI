@@ -110,7 +110,7 @@ extension ModifiedView: AlignmentGuideQuerying where Modifier == PaddingModifier
         contentContext.availableHeight = max(0, dimensions.height - insets.top - insets.bottom)
         let contentDimensions = ViewDimensions(
             width: contentContext.availableWidth, height: contentContext.availableHeight)
-        return TUIkit.explicitGuide(
+        return TUIkitFoundation.explicitGuide(
             of: content, query, in: contentDimensions, context: contentContext
         ).map { query.translated($0, by: (x: insets.leading, y: insets.top)) }
     }

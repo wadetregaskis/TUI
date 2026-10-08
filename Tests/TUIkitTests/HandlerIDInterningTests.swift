@@ -16,7 +16,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 // MARK: - The tree
 
@@ -47,7 +48,7 @@ private struct TwoHandlerLeaf: View, Renderable {
     var body: Never { fatalError("TwoHandlerLeaf renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(Text("xx"), context: context)
+        var buffer = TUIkitView.renderToBuffer(Text("xx"), context: context)
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher
         else { return buffer }
         let outer = dispatcher.register(in: context) { _ in false }

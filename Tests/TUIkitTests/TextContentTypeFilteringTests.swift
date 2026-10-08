@@ -13,7 +13,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("Text content type filtering, from the view down")
 struct TextContentTypeFilteringTests {

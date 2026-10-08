@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A view nested inside itself to a configurable depth — the same shape as the
 /// `deep` stress scenario, minimised. Each level wraps the next in a container

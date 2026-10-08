@@ -13,7 +13,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A view with one continuous thing about it, drawn coarsely enough that the
 /// assertions read as pictures.

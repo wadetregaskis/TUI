@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// `TextWrapping`'s wrap and fit memos are keyed on the text and the budget,
 /// and the answer also depends on the host's width CLAIM, which

@@ -7,7 +7,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Everything a bar's content emitted survives the bar's frame.
 ///

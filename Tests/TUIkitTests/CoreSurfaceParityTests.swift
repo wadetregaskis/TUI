@@ -12,7 +12,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// An `@Observable` model with an identity, for `Bindable`.
 @Observable

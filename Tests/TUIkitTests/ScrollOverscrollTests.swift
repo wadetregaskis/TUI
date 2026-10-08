@@ -15,8 +15,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A scrollable can be pushed past its edges")

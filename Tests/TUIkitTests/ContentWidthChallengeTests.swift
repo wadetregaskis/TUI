@@ -17,8 +17,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Row 200 of `aMovingRowIsNotMarkedChecked`: `.onRenderPass` stands in for an

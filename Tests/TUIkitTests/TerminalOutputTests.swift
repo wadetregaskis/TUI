@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The bytes a `Terminal` sends, read back through a scripted terminal
 /// (`ScriptedTerminalOutput`) rather than printed to the console the tests run

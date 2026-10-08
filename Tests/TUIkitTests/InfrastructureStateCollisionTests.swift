@@ -7,7 +7,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A composite view's `@State` binds by declaration order from index 0 at its
 /// identity — and a `Renderable` wrapper that persists its own boxes at the

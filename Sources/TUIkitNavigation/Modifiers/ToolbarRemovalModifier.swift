@@ -95,7 +95,7 @@ struct SidebarToggleRemovalView<Content: View>: View {
 extension SidebarToggleRemovalView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         publish(context: context)
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

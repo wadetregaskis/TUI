@@ -168,6 +168,13 @@ extension NavigationPath {
     /// not matter which `append` put it there — SwiftUI decides by the
     /// overload, and answers `nil` for a `Codable` value appended through
     /// generic code that only knew it was `Hashable`.
+    ///
+    /// Each value's type is stored by its mangled name, which names the module
+    /// that declares the type: a type that moves to another module no longer
+    /// decodes from a representation saved before the move. TUIkit's own
+    /// types are moving between modules while the framework is split up
+    /// (they were `TUIkit`'s, and are now `TUIkitFoundation`'s), so a path
+    /// holding one of them is best not kept across TUIkit versions.
     public var codable: CodableRepresentation? {
         var entries: [CodableRepresentation.Entry] = []
         for element in elements {

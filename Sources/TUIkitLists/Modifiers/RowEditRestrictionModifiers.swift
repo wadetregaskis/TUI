@@ -73,7 +73,7 @@ public struct _RowEditRestrictionView<Content: View>: View {
 extension _RowEditRestrictionView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         report(context)
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 
     /// Tells the list this row refuses the edit — and declares a render side

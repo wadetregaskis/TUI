@@ -13,7 +13,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// How many times the rows were measured or drawn: work a memo would have saved.

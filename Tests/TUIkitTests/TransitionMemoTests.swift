@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// One row's data. `Equatable`, so `ForEach` memoizes the row it builds.
 private struct Item: Identifiable, Equatable {

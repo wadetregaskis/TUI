@@ -7,7 +7,8 @@
 import Testing
 
 @testable import Example
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// What the panel says, as the page draws it: the key's English text when the
 /// Example's strings are registered, and the key itself when — as in this

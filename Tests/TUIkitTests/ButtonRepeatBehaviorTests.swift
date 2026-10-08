@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Counts presses of the button under test.
 private final class PressCount: @unchecked Sendable {

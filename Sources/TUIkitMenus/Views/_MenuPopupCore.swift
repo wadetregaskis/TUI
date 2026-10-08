@@ -87,7 +87,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
         // Keep the box alive across the run loop's per-frame StateStorage GC.
         if !context.isMeasuring { context.stateStorage?.markActive(context.identity) }
 
-        var buffer = TUIkit.renderToBuffer(
+        var buffer = TUIkitView.renderToBuffer(
             trigger(
                 state, focusManager: context.environment.focusManager,
                 onOpen: context.environment.menuOpenAction,

@@ -197,7 +197,7 @@ internal func renderContainer<Content: View, Footer: View>(
     footer: Footer?,
     context: RenderContext
 ) -> FrameBuffer {
-    TUIkit.renderToBuffer(
+    TUIkitView.renderToBuffer(
         makeContainer(title: title, config: config, content: content, footer: footer), context: context)
 }
 
@@ -402,7 +402,7 @@ extension _ContainerViewCore {
             var measureContext = footerContext
             measureContext.isMeasuring = true
             measureContext.availableHeight = innerAvailableHeight
-            measuredFooter = TUIkit.renderToBuffer(footerView.padding(footerPadding), context: measureContext)
+            measuredFooter = TUIkitView.renderToBuffer(footerView.padding(footerPadding), context: measureContext)
                 .clamped(toWidth: innerWidth, height: innerAvailableHeight)
         }
         let bodyAvailableHeight = RenderContext.extent(

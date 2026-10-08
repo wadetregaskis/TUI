@@ -7,7 +7,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// "Cancel means the edit never happened" — the rule the four live-editing
 /// panels share, tested here because there is now one copy of it to test.

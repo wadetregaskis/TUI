@@ -18,8 +18,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Deliberately NOT Equatable: keeps `ForEach` off the row-memo path so the

@@ -9,7 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 extension ScrollStepUnit {
     /// The scroll target behaviour a list steps in this unit under:

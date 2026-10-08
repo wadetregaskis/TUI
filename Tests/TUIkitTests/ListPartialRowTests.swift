@@ -18,7 +18,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("Partial rows at both ends")
 @MainActor

@@ -55,7 +55,7 @@ extension Label where Title == Text, Icon == _ImageIcon {
 }
 
 extension ContentUnavailableView
-where Label == TUIkit.Label<Text, _ImageIcon>, Description == Text?, Actions == EmptyView {
+where Label == TUIkitFoundation.Label<Text, _ImageIcon>, Description == Text?, Actions == EmptyView {
     /// Creates an empty-state view with an image resource beside a localized
     /// title — mirrors SwiftUI's `init(_:image:description:)` with a resource
     /// name.
@@ -79,7 +79,7 @@ where Label == TUIkit.Label<Text, _ImageIcon>, Description == Text?, Actions == 
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, image name: String, description: Text? = nil) {
         self.init(
-            label: { TUIkit.Label(title, image: name) },
+            label: { TUIkitFoundation.Label(title, image: name) },
             description: { description },
             actions: { EmptyView() })
     }

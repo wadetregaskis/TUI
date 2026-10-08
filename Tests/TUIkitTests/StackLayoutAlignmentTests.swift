@@ -12,7 +12,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A guide a quarter of the way across, which no named case can reach.
 private struct QuarterH: AlignmentID {

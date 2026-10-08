@@ -21,7 +21,8 @@ import Testing
 import TUIkitCore
 import TUIkitStyling
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 @MainActor

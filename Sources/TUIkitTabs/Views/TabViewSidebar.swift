@@ -214,7 +214,7 @@ struct _TabViewSidebarAccessoryModifier<Content: View>: View, Renderable, Layout
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: accessorized(context))
+        TUIkitView.renderToBuffer(content, context: accessorized(context))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

@@ -14,8 +14,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// A list whose rows are badged, a spinner on each first line — the focus on a

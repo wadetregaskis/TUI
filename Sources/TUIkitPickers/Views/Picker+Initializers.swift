@@ -79,7 +79,7 @@ extension Picker where Label == Text {
 // The forms without a current-value label are with the SF Symbol initialisers
 // of `PickerSymbolInitializers.swift`, beside the other controls' in
 // `ControlSymbolInitializers.swift`.
-extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
+extension Picker where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
     /// Creates a picker whose label is a localized title and an SF Symbol, and
     /// a view the collapsed control shows as its current value.
     ///
@@ -98,7 +98,7 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     ) {
         self.init(
             selection: selection, content: content,
-            label: { TUIkit.Label(titleKey, systemImage: systemImage) },
+            label: { TUIkitFoundation.Label(titleKey, systemImage: systemImage) },
             currentValueLabel: currentValueLabel)
     }
 
@@ -121,7 +121,7 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     ) {
         self.init(
             selection: selection, content: content,
-            label: { TUIkit.Label(title, systemImage: systemImage) },
+            label: { TUIkitFoundation.Label(title, systemImage: systemImage) },
             currentValueLabel: currentValueLabel)
     }
 }
@@ -272,7 +272,7 @@ extension Picker where Label == Text {
     }
 }
 
-extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
+extension Picker where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
     /// Creates a picker that selects for a collection of values, labelled with
     /// a localized title and an SF Symbol.
     ///
@@ -288,7 +288,7 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     ) {
         self.init(
             sources: sources, selection: selection, content: content,
-            label: { TUIkit.Label(titleKey, systemImage: systemImage) })
+            label: { TUIkitFoundation.Label(titleKey, systemImage: systemImage) })
     }
 
     /// Creates a picker that selects for a collection of values, labelled with
@@ -309,7 +309,7 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     ) {
         self.init(
             sources: sources, selection: selection, content: content,
-            label: { TUIkit.Label(titleKey, systemImage: systemImage) }, currentValueLabel: currentValueLabel)
+            label: { TUIkitFoundation.Label(titleKey, systemImage: systemImage) }, currentValueLabel: currentValueLabel)
     }
 
     /// Creates a picker that selects for a collection of values, labelled with
@@ -328,7 +328,7 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     ) {
         self.init(
             sources: sources, selection: selection, content: content,
-            label: { TUIkit.Label(title, systemImage: systemImage) })
+            label: { TUIkitFoundation.Label(title, systemImage: systemImage) })
     }
 
     /// Creates a picker that selects for a collection of values, labelled with
@@ -350,6 +350,6 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     ) {
         self.init(
             sources: sources, selection: selection, content: content,
-            label: { TUIkit.Label(title, systemImage: systemImage) }, currentValueLabel: currentValueLabel)
+            label: { TUIkitFoundation.Label(title, systemImage: systemImage) }, currentValueLabel: currentValueLabel)
     }
 }

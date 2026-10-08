@@ -12,8 +12,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 @Suite("The sixteen slots and the default through SGRState and the colour rewrite")

@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Tests for the `.onScrollGesture(_:)` modifier, built on
 /// `.onMouseEvent`: it fires its action with a `ScrollDirection` for

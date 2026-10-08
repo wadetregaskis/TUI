@@ -14,7 +14,8 @@ import Testing
     import Darwin
 #endif
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Tests for `StdinArrivalNotifier` — the main-loop "wait for stdin OR a
 /// timeout" race.

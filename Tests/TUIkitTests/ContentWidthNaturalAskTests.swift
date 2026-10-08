@@ -15,8 +15,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Row `filler` fills whatever it is offered (`.frame(maxWidth: .infinity)`,

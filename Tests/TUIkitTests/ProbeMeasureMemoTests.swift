@@ -14,8 +14,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A navigation row's label: a title at the leading edge, a number at the
@@ -48,7 +49,7 @@ private struct Prober<Content: View>: View, Renderable, Layoutable {
     var body: Never { fatalError("Prober renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context.withChildIdentity(type: Content.self))
+        TUIkitView.renderToBuffer(content, context: context.withChildIdentity(type: Content.self))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

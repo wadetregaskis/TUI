@@ -131,7 +131,7 @@ extension _VisualEffectView: Renderable, Layoutable {
         // own one frame and not the next would move a claim made after it —
         // and with it what was found for this view.
         let ask = context.makeGeometryAsk(role: .reader)
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
         let applied = animatedEffect(
             effect(EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask)),
             owner: Self.self, context: context, isMeasuring: context.isMeasuring)
@@ -205,7 +205,7 @@ private struct _AnimatedEffect<Effect: VisualEffect>: PartlySpatialAnimatable {
 private func drawEffect<V: View>(_ view: V, owner: Any.Type, context: RenderContext) -> FrameBuffer {
     var quiet = context.withChildIdentity(erasedType: owner, index: 0)
     quiet.environment.transaction.disablesAnimations = true
-    return TUIkit.renderToBuffer(view, context: quiet)
+    return TUIkitView.renderToBuffer(view, context: quiet)
 }
 
 // MARK: - The effects

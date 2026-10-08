@@ -438,7 +438,7 @@ struct _ScrollContentMargins<Content: View>: View, Renderable, Layoutable {
         // which has to be moved below the top margin first.
         let relay = ScrollWindowRelay(
             context: context, linesAbove: insets.top, linesBelow: { insets.bottom })
-        let buffer = TUIkit.renderToBuffer(content, context: relay?.contentContext(inner) ?? inner)
+        let buffer = TUIkitView.renderToBuffer(content, context: relay?.contentContext(inner) ?? inner)
         // A band that starts below the content's top leaves the top margin out
         // of the buffer, and one that stops above its end the bottom margin.
         let placement =

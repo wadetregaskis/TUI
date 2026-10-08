@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A non-interactive view that reads the per-frame-volatile pulse phase. It
 /// emits no hit-test region, so the buffer gate cannot see it — only the

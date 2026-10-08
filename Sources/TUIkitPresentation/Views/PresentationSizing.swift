@@ -251,7 +251,7 @@ struct _PresentationSizingView<Content: View>: View, PresentationSizingProviding
 
 extension _PresentationSizingView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

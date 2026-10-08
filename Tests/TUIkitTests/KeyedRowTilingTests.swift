@@ -13,7 +13,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("A slot's keyed children are tiled by the runs that made them")
 struct KeyedRowTilingTests {

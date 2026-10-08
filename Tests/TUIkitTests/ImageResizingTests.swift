@@ -11,7 +11,8 @@
 import Testing
 import TUIkitImage
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Resizable images")

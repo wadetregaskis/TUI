@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The line a decimal point sits on — the Layout page's own custom alignment,
 /// reproduced here because a `ForEach` over it is what regressed.

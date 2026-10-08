@@ -8,7 +8,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Puts the label in front of the current group.
 private struct Prefixed: ControlGroupStyle {

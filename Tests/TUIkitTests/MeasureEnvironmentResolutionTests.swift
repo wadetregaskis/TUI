@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A composite view whose *shape* depends on an `@Environment` value, so a
 /// measure that resolved the environment differently from the render would

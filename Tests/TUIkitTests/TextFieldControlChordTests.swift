@@ -19,7 +19,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The string the control under test is bound to, read back after the keys.
 @MainActor

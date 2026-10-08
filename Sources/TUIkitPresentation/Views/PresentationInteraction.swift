@@ -213,7 +213,7 @@ struct _PresentationContentInteractionView<Content: View>: View, PresentationCon
 
 extension _PresentationContentInteractionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 
@@ -261,7 +261,7 @@ struct _PresentationBackgroundInteractionView<Content: View>: View, Presentation
 
 extension _PresentationBackgroundInteractionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

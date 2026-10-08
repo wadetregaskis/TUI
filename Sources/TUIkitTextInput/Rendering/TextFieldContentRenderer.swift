@@ -294,7 +294,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// The prompt's plain text, or `""` when there is no prompt.
     func promptString() -> String {
         guard let prompt else { return "" }
-        let buffer = TUIkit.renderToBuffer(prompt, context: RenderContext(availableWidth: 100, availableHeight: 1))
+        let buffer = TUIkitView.renderToBuffer(prompt, context: RenderContext(availableWidth: 100, availableHeight: 1))
         return buffer.lines.first?.stripped ?? ""
     }
 

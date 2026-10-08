@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A page that says the height it was laid out at, under a live sheet — in
 /// a box, or with none (`boxed`).

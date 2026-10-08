@@ -12,7 +12,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 // MARK: - Stub palettes with semantic references in their slots
 

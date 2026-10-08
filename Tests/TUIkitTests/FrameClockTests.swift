@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// `render(frameNowNanos:)` once defaulted its absolute clock reading to 0,
 /// so the frames that took the default anchored drag flights and the

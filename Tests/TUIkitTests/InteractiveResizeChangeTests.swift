@@ -11,8 +11,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the action was told, in order.
 @MainActor

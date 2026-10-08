@@ -386,7 +386,7 @@ public struct DefaultTabLabel: View {
 
     public var body: some View {
         if let systemImage, let title {
-            TUIkit.Label(title, systemImage: systemImage)
+            TUIkitFoundation.Label(title, systemImage: systemImage)
         } else {
             Text(verbatim: title ?? "")
         }

@@ -12,7 +12,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("Edges, directions and axes")
 struct DirectionsTests {

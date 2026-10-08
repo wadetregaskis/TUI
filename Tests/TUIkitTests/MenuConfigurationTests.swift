@@ -9,7 +9,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Draws the menu as it would otherwise look, in square brackets.
 private struct BracketedMenuStyle: MenuStyle {

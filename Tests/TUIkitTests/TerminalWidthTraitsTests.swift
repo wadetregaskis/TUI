@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// The claim follows the host now, so that a cluster the host draws wide is
 /// ALLOCATED wide rather than cut down to fit — see ``TerminalWidthTraits``.

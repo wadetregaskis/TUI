@@ -24,8 +24,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("focusEffectDisabled suppresses every control's focus indication; an inactive window keeps it, still")

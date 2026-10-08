@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Reports what a tab's content reads about where the tabs are.
 private struct PlacementProbe: View {

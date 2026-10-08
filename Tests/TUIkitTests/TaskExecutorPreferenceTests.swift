@@ -10,7 +10,8 @@
 import Synchronization
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// An executor that counts the jobs it is given, and runs each at once.
 @available(macOS 15, *)

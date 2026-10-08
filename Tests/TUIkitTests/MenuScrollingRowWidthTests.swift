@@ -7,7 +7,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A menu that scrolls draws its rows into one cell less than a menu that hugs:
 /// the `ScrollView` the scrolled arm inserts reserves a trailing column for its

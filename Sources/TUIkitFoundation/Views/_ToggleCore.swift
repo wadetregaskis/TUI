@@ -540,7 +540,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
 
         // Single-view label: flatten the whole label next to the indicator.
         guard parts.count >= 2 else {
-            let labelText = TUIkit.renderToBuffer(label, context: labelContext)
+            let labelText = TUIkitView.renderToBuffer(label, context: labelContext)
                 .lines.joined(separator: " ")
             let buffer = FrameBuffer(lines: [indicator + " " + labelText])
             return (buffer, buffer.width, buffer.height)

@@ -12,8 +12,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 private struct Note: Identifiable, Sendable {
     let id: Int

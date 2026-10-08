@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Declares that a suite's assertions read the framework's OWN words back out
 /// of a rendered buffer — "No items", "dismiss", "Done", "No Results" — and so

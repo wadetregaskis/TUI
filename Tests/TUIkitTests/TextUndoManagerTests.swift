@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// `TextField` and `TextEditor` register their edits with the app's undo
 /// manager (decisions A1), so undo means something by default: Ctrl-minus and

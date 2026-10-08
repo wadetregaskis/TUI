@@ -10,8 +10,9 @@
 import Testing
 import TUIkitImage
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("An image's picture behind the raster seam")

@@ -516,7 +516,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let resolved = tabs.map { tab -> _RawTab in
             guard let label = tab.customLabel else { return tab }
             var tab = tab
-            let text = TUIkit.renderToBuffer(
+            let text = TUIkitView.renderToBuffer(
                 label, context: labelContext.withBranchIdentity("tab-label-\(tab.value)")
             ).lines.first?.stripped ?? ""
             tab.title = String(text.reversed().drop { $0 == " " }.reversed())
@@ -758,7 +758,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             insets: insets, available: avail, panelWidth: interior,
             drawnHeight: contentCtx.availableHeight, context: context)
         contentCtx.availableWidth = widths.render
-        let full = TUIkit.renderToBuffer(
+        let full = TUIkitView.renderToBuffer(
             tabs[selectedIndex].content.padding(insets).background(surface), context: contentCtx)
         let content = full.clamped(toWidth: widths.natural, height: full.height)
 
@@ -1045,7 +1045,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             insets: insets, available: context.availableWidth, panelWidth: panelWidth,
             drawnHeight: contentCtx.availableHeight, context: context)
         contentCtx.availableWidth = widths.render
-        let full = TUIkit.renderToBuffer(
+        let full = TUIkitView.renderToBuffer(
             tabs[selectedIndex].content.padding(insets).background(surface), context: contentCtx)
         let content = full.clamped(toWidth: widths.natural, height: full.height)
 

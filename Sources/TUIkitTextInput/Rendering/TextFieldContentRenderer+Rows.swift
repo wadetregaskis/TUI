@@ -44,7 +44,7 @@ extension TextFieldContentRenderer {
     /// several rows — or `""` for none.
     static func promptParagraphs(_ prompt: Text?) -> String {
         guard let prompt else { return "" }
-        let buffer = TUIkit.renderToBuffer(
+        let buffer = TUIkitView.renderToBuffer(
             prompt, context: RenderContext(availableWidth: 4096, availableHeight: 4096))
         return buffer.lines.map(\.stripped).joined(separator: "\n")
     }

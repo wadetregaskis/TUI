@@ -17,8 +17,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// The frame lengths a key press steps a `.line` spinner through, in ticks.
 private let frameLengths = [8, 5, 13, 3, 8]

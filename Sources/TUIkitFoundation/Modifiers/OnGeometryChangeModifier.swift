@@ -97,7 +97,7 @@ extension OnGeometryChangeModifier: Renderable {
         // and they are asking a question, not laying anything out. Same rule
         // (and the same reason) as `OnChangeModifier`.
         guard !context.isMeasuring, let storage = context.stateStorage else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
 
         // Declared as a render side effect for the reason `onChange` declares
@@ -126,7 +126,7 @@ extension OnGeometryChangeModifier: Renderable {
         // marker's slot is an ordinal at this identity.
         let ask = context.makeGeometryAsk(role: .reporter)
 
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         // Manual tracked values are pruned unless the identity is marked — see
         // the same call in `OnChangeModifier`.
         storage.markActive(context.identity)

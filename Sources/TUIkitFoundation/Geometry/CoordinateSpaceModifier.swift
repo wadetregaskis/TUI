@@ -58,7 +58,7 @@ struct CoordinateSpaceModifier<Content: View>: View {
 extension CoordinateSpaceModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !context.isMeasuring, let geometry = context.geometryCoordinator else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         // Noted before the content renders, so a correction can put the walk
         // back to here and draw the content again as if for the first time.
@@ -73,7 +73,7 @@ extension CoordinateSpaceModifier: Renderable {
         let owner = geometry.enterOwner(
             of: [space], from: context, in: contentContext,
             size: CellSize(width: context.availableWidth, height: context.availableHeight))
-        var drawn = TUIkit.renderToBuffer(content, context: contentContext)
+        var drawn = TUIkitView.renderToBuffer(content, context: contentContext)
         geometry.leaveOwner(owner)
         var placed = contentPlacement(of: drawn, context: context)
         guard geometry.resolve([space], in: drawn, size: placed.size, shift: placed.shift) else { return drawn }
@@ -85,7 +85,7 @@ extension CoordinateSpaceModifier: Renderable {
         geometry.noteCorrection(.named)
         checkpoint.rollBack(context: context)
         geometry.reenterOwner(owner)
-        drawn = TUIkit.renderToBuffer(content, context: contentContext)
+        drawn = TUIkitView.renderToBuffer(content, context: contentContext)
         geometry.leaveOwner(owner)
         placed = contentPlacement(of: drawn, context: context)
         if geometry.resolve([space], in: drawn, size: placed.size, shift: placed.shift) { geometry.noteResidual() }

@@ -46,7 +46,7 @@ extension OverlayModifier: Renderable {
     /// frame and composited over it — `compositeLayer(_:over:alignment:context:modifierType:)`.
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         compositeLayer(
-            overlay, over: TUIkit.renderToBuffer(base, context: context), alignment: alignment,
+            overlay, over: TUIkitView.renderToBuffer(base, context: context), alignment: alignment,
             context: context, modifierType: Self.self)
     }
 }

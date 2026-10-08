@@ -3631,7 +3631,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     width: context.availableWidth, height: max(1, measured.height)),
                 x: 0, y: 0)
         }
-        let buffer = TUIkit.renderToBuffer(content, context: rowRenderContext)
+        let buffer = TUIkitView.renderToBuffer(content, context: rowRenderContext)
         // An `EmptyView` is not a row. This used to fall out of the id cast
         // failing, which meant it depended on the SELECTION type: a list of
         // `EmptyView` was empty with a `String?` selection and a blank row

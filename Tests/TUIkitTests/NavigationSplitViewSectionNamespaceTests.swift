@@ -12,7 +12,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Two split views on one screen keep their column focus sections apart")

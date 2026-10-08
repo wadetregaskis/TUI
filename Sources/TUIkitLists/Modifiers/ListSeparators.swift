@@ -109,7 +109,7 @@ extension _ListRowSeparatorPreferenceView {
 
 extension _ListRowSeparatorPreferenceView: AlignmentGuideQuerying {
     func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
-        TUIkit.explicitGuide(of: content, query, in: dimensions, context: context)
+        TUIkitFoundation.explicitGuide(of: content, query, in: dimensions, context: context)
     }
 }
 
@@ -145,9 +145,9 @@ func renderReportingSeparator<Content: View>(
             }
             reports.reportSeparator(row: row, change)
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
-    return TUIkit.renderToBuffer(
+    return TUIkitView.renderToBuffer(
         content.transformEnvironment(\.listSeparatorDefaults) { defaults in
             if sections { change.apply(to: &defaults.sections) } else { change.apply(to: &defaults.rows) }
         },

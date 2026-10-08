@@ -4,8 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// One frame of `view`, 30 columns by `height` lines, as the render loop

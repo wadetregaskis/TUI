@@ -101,7 +101,7 @@ extension SafeAreaInsetModifier: Renderable {
         var baseContext = context
         baseContext.availableWidth = baseProposal.width ?? context.availableWidth
         baseContext.availableHeight = baseProposal.height ?? context.availableHeight
-        let baseBuffer = TUIkit.renderToBuffer(base, context: baseContext)
+        let baseBuffer = TUIkitView.renderToBuffer(base, context: baseContext)
 
         var insetContext = layerContext(context, modifierType: Self.self)
         if stacksVertically {
@@ -109,7 +109,7 @@ extension SafeAreaInsetModifier: Renderable {
         } else {
             insetContext.availableWidth = insetSize.width
         }
-        let insetBuffer = TUIkit.renderToBuffer(inset, context: insetContext)
+        let insetBuffer = TUIkitView.renderToBuffer(inset, context: insetContext)
 
         // Laid out along the stacking axis, bar first or last; across it the
         // bar by `alignment` and the view centred, as SwiftUI centres it.

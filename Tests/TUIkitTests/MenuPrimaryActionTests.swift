@@ -9,8 +9,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the menus under test did.
 private final class ExportLog: @unchecked Sendable {

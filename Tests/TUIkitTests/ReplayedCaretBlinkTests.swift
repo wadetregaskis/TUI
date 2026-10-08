@@ -17,8 +17,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A button, then a `.plain` field with a blinking block caret, on `ground`. The

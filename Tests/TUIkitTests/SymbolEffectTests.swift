@@ -14,7 +14,8 @@
     import Symbols
     import Testing
 
-    @testable import TUIkit
+    import TUIkit
+    @testable import TUIkitFoundation
 
     /// What the glyphs below saw, frame by frame.
     @MainActor

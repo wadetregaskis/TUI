@@ -17,7 +17,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Where a probe last rendered.
 private final class PathSink {

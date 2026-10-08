@@ -47,7 +47,7 @@ extension OnRenderPassModifier: Renderable, Layoutable {
         // A measuring render is still only sizing — the content isn't being
         // drawn to the screen buffer.
         action(context.isMeasuring ? .measure : .render)
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

@@ -78,7 +78,7 @@ extension ScrollVisibilityModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure asks a size, and is not a frame anything is shown in.
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         // Claimed BEFORE the content renders, for the reason
         // `OnGeometryChangeModifier` claims its slot first: the id is the
@@ -86,7 +86,7 @@ extension ScrollVisibilityModifier: Renderable {
         // the same identity (an `if`, an `AnyView`) would move one claimed
         // afterwards from frame to frame.
         let id = dispatcher.geometryMarkerID(in: context)
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         buffer.hitTestRegions.append(.geometryMarker(id))
         ScrollVisibilityRegistrar.register(
             id: id, identity: context.identity,

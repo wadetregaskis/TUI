@@ -304,7 +304,7 @@
         }
 
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            var buffer = TUIkit.renderToBuffer(content, context: context)
+            var buffer = TUIkitView.renderToBuffer(content, context: context)
             guard !context.isMeasuring else { return buffer }
             install(context, &buffer)
             return buffer

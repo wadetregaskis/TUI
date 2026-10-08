@@ -12,7 +12,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Alternating rows, so a list paints a still fill of its own under a row that is
 /// neither selected nor under the cursor.

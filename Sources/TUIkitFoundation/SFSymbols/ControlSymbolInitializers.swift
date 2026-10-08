@@ -112,7 +112,7 @@ extension Button {
 
 // MARK: - Toggle
 
-extension Toggle where Label == TUIkit.Label<Text, _SymbolIcon> {
+extension Toggle where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
     /// Creates a toggle with an SF Symbol beside a localized label.
     ///
     /// - Parameters:
@@ -140,7 +140,7 @@ extension Toggle where Label == TUIkit.Label<Text, _SymbolIcon> {
         isOn: Binding<Bool>
     ) {
         self.init(isOn: isOn) {
-            TUIkit.Label(title, systemImage: systemImage)
+            TUIkitFoundation.Label(title, systemImage: systemImage)
         }
     }
 }
@@ -148,7 +148,7 @@ extension Toggle where Label == TUIkit.Label<Text, _SymbolIcon> {
 // MARK: - ContentUnavailableView
 
 extension ContentUnavailableView
-where Label == TUIkit.Label<Text, _SymbolIcon>, Description == Text?, Actions == EmptyView {
+where Label == TUIkitFoundation.Label<Text, _SymbolIcon>, Description == Text?, Actions == EmptyView {
     /// Creates an empty-state view with an SF Symbol beside a localized title.
     ///
     /// - Parameters:
@@ -179,7 +179,7 @@ where Label == TUIkit.Label<Text, _SymbolIcon>, Description == Text?, Actions ==
         description: Text? = nil
     ) {
         self.init(
-            label: { TUIkit.Label(title, systemImage: systemImage) },
+            label: { TUIkitFoundation.Label(title, systemImage: systemImage) },
             description: { description },
             actions: { EmptyView() })
     }

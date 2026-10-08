@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// The one place a test may change what every test in the process reads — and
 /// only from inside an exit test.

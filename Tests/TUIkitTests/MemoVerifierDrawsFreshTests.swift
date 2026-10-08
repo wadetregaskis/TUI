@@ -12,8 +12,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A card whose `==` ignores the text it draws — the lie the cache cannot see.

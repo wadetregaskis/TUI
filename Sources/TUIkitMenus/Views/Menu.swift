@@ -189,7 +189,7 @@ extension Menu where Label == Text {
 
 // MARK: - A title and an SF Symbol
 
-extension Menu where Label == TUIkit.Label<Text, _SymbolIcon> {
+extension Menu where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
     /// Creates a menu whose label is a localized title and an SF Symbol.
     ///
     /// - Parameters:
@@ -197,7 +197,7 @@ extension Menu where Label == TUIkit.Label<Text, _SymbolIcon> {
     ///   - systemImage: The SF Symbol name for the label's icon.
     ///   - content: The menu's items.
     public init(_ titleKey: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> Content) {
-        self.init(content: content) { TUIkit.Label(titleKey, systemImage: systemImage) }
+        self.init(content: content) { TUIkitFoundation.Label(titleKey, systemImage: systemImage) }
     }
 
     /// Creates a menu whose label is a title, shown as written, and an SF
@@ -209,7 +209,7 @@ extension Menu where Label == TUIkit.Label<Text, _SymbolIcon> {
     ///   - content: The menu's items.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, systemImage: String, @ViewBuilder content: () -> Content) {
-        self.init(content: content) { TUIkit.Label(title, systemImage: systemImage) }
+        self.init(content: content) { TUIkitFoundation.Label(title, systemImage: systemImage) }
     }
 
     /// Creates a menu whose label is a localized title and an SF Symbol, with a
@@ -225,7 +225,7 @@ extension Menu where Label == TUIkit.Label<Text, _SymbolIcon> {
         primaryAction: @escaping () -> Void
     ) {
         self.init(
-            content: content, label: { TUIkit.Label(titleKey, systemImage: systemImage) },
+            content: content, label: { TUIkitFoundation.Label(titleKey, systemImage: systemImage) },
             primaryAction: primaryAction)
     }
 }

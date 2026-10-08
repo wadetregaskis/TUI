@@ -12,7 +12,7 @@ import TUIkitView
 
 // MARK: - Picker
 
-extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
+extension Picker where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
     /// Creates a picker with an SF Symbol beside a localized label.
     ///
     /// - Parameters:
@@ -46,7 +46,7 @@ extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
         @ViewBuilder content: () -> Content
     ) {
         self.init(selection: selection, content: content) {
-            TUIkit.Label(title, systemImage: systemImage)
+            TUIkitFoundation.Label(title, systemImage: systemImage)
         }
     }
 }

@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Two trailing items with a spacer of `sizing` between them, or none.
 private struct SpacedApp: App {

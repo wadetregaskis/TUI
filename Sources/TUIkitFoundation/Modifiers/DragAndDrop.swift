@@ -78,7 +78,7 @@ extension DraggableModifier: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
 
         guard !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher,
@@ -115,7 +115,7 @@ extension DraggableModifier: Renderable, Layoutable {
         // preview is purely visual).
         var previewBuffer: FrameBuffer
         if let preview {
-            previewBuffer = TUIkit.renderToBuffer(preview, context: context)
+            previewBuffer = TUIkitView.renderToBuffer(preview, context: context)
         } else {
             previewBuffer = buffer
         }
@@ -341,7 +341,7 @@ extension DropDestinationModifier: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, isEnabled else { return buffer }
         let action = self.action
         DropZone.install(

@@ -20,7 +20,7 @@ struct _InteractiveDismissView<Content: View>: View, InteractiveDismissDisabling
 
 extension _InteractiveDismissView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

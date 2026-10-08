@@ -7,7 +7,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The shared jump-navigation maths behind Home/End/Page/Shift-accelerated
 /// movement in the flat option lists (radio group, Picker drop-down, Menu).

@@ -88,7 +88,7 @@ extension PositionView: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let rendered = TUIkit.renderToBuffer(content, context: placedContent(context))
+        let rendered = TUIkitView.renderToBuffer(content, context: placedContent(context))
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         guard !context.isMeasuring else { return rendered }

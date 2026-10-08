@@ -13,8 +13,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the gesture under test reported, in order.
 private final class GestureLog: @unchecked Sendable {

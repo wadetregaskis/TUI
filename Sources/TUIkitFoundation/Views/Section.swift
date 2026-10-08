@@ -256,7 +256,7 @@ extension Section where Parent: View, Content: View, Footer: View, Footer == Emp
     /// shown.
     ///
     /// The header carries a disclosure triangle and toggles the content from
-    /// the keyboard and the pointer, as ``init(_:isExpanded:content:)-9cag8``'s does.
+    /// the keyboard and the pointer, as ``init(_:isExpanded:content:)-(LocalizedStringKey,_,()->Content)``'s does.
     ///
     /// - Parameters:
     ///   - isExpanded: A binding to whether the section's content is shown.
@@ -456,14 +456,14 @@ extension Section: SectionRowExtractor where Parent: View, Content: View, Footer
         // and unshifted, so overlays and hit-test regions carry through.
         func renderedChrome(_ view: some View, _ role: ChromeRole, isEmptyView: Bool) -> FrameBuffer? {
             guard !isEmptyView else { return nil }
-            let buffer = TUIkit.renderToBuffer(view, context: sectionChromeContext(context, role))
+            let buffer = TUIkitView.renderToBuffer(view, context: sectionChromeContext(context, role))
             // A blank header/footer is dropped (nil), not shown as an empty row.
             return sectionBufferIsBlank(buffer) ? nil : buffer
         }
         let headerBuffer = renderedChrome(drawnHeader, .sectionHeader, isEmptyView: !hasHeader)
         let footerBuffer = renderedChrome(footer, .sectionFooter, isEmptyView: footer is EmptyView)
 
-        let contentBuffer = showsContent ? TUIkit.renderToBuffer(content, context: context) : FrameBuffer()
+        let contentBuffer = showsContent ? TUIkitView.renderToBuffer(content, context: context) : FrameBuffer()
 
         return SectionInfo(
             headerBuffer: headerBuffer,
@@ -478,7 +478,7 @@ extension Section: SectionRowExtractor where Parent: View, Content: View, Footer
 extension Section: ChildInfoProvider where Parent: View, Content: View, Footer: View {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         // For stack layouts, render Section as a single unit
-        let buffer = TUIkit.renderToBuffer(self, context: context)
+        let buffer = TUIkitView.renderToBuffer(self, context: context)
         return [ChildInfo(buffer: buffer, isSpacer: false, spacerMinLength: nil, size: nil)]
     }
 }
@@ -617,7 +617,7 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
 
         // Fallback: render content as a single row, carrying its badge.
         let badge = extractBadgeValue(from: content)
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !buffer.lines.isEmpty else { return ([], nil) }
         return (
             [

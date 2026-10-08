@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the destination under test was handed.
 private final class Dropped: @unchecked Sendable {

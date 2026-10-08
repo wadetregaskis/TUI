@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// `.listRowInsets(_:)` and `.listRowBackground(_:)` — the two list-row
 /// modifiers a grid of character cells can actually honour.

@@ -16,7 +16,8 @@ import Testing
     import TUIkitAppKit
 #endif
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Bridges to AppKit")

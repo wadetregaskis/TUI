@@ -329,12 +329,13 @@ Sources/
 │                         Image(nsImage:) — the ONE module that imports AppKit, so that
 │                         SwiftUICore (which AppKit imports) never reaches an app that
 │                         imports only TUIkit. Empty off Apple platforms.
-├── TUIkit/               The umbrella's own files: Exports.swift, and TUIkit.docc/ (DocC)
+├── TUIkit/               The umbrella: Exports.swift (re-exports, no code), and TUIkit.docc/ (DocC)
 │
-│   The TUIkit module's sources, one directory per module of the planned split
+│   The framework's sources, one directory per module of the planned split
 │   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Today
-│   they all compile into the one TUIkit module; each becomes a module of its own
-│   when it is carved out. Inside each: App/, Views/, Modifiers/, Focus/, ...
+│   they all compile into one module, TUIkitFoundation, which the umbrella re-exports;
+│   each becomes a module of its own when it is carved out. Inside each: App/, Views/,
+│   Modifiers/, Focus/, ...
 ├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION
 ├── TUIkitTerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
@@ -361,7 +362,7 @@ Sources/
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
 
 Tests/                    ~6,300 tests across ~900 suites in ~680 files
-├── TUIkitTests/          The umbrella module's suite (incl. i18n consistency,
+├── TUIkitTests/          The framework's suite (incl. i18n consistency,
 │                         localization & golden-snapshot tests)
 ├── TUIkitCoreTests/      One suite per library module, so a module's tests
 ├── TUIkitStylingTests/   cannot lean on the umbrella's API — the boundary is
@@ -392,7 +393,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-The package also vends each library as an individual product. `import TUIkit` re-exports `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the sub-modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views, modifiers and run loop; not a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

@@ -107,10 +107,10 @@ public struct RenameButton<Label: View>: View {
     }
 }
 
-extension RenameButton where Label == TUIkit.Label<Text, Image> {
+extension RenameButton where Label == TUIkitFoundation.Label<Text, Image> {
     /// Creates a rename button, titled "Rename" in the current language.
     public init() {
-        self.label = TUIkit.Label {
+        self.label = TUIkitFoundation.Label {
             Text(LocalizationService.shared.string(for: .rename))
         } icon: {
             Image(systemName: "pencil")

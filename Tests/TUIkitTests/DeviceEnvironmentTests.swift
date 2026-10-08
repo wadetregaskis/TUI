@@ -11,7 +11,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Draws one environment value, so a test can read what a subtree sees.
 private struct Reads<Value>: View {
@@ -76,8 +77,10 @@ struct DeviceEnvironmentTests {
 
     @Test("Size classes, the display scale and reduced luminance are channels a subtree can set")
     func settableChannels() {
-        #expect(shown(Reads(keyPath: \.horizontalSizeClass)
-            .environment(\.horizontalSizeClass, .compact)) == "Optional(TUIkit.UserInterfaceSizeClass.compact)")
+        // The value's description names the module that declares its type,
+        // which the module split moves (TUIkitFoundation now, not TUIkit).
+        #expect(shown(Reads(keyPath: \.horizontalSizeClass).environment(\.horizontalSizeClass, .compact))
+            == String(describing: UserInterfaceSizeClass?.some(.compact)))
         #expect(shown(Reads(keyPath: \.displayScale).environment(\.displayScale, 2)) == "2.0")
         #expect(shown(Reads(keyPath: \.isLuminanceReduced).environment(\.isLuminanceReduced, true))
             == "true")
@@ -99,7 +102,9 @@ struct DeviceEnvironmentTests {
     @Test("The textCase environment value is the transform, both to read and to write")
     func textCaseEnvironment() {
         // The reading is itself a Text under the transform, so it shouts too.
-        #expect(shown(Reads(keyPath: \.textCase).textCase(.uppercase)) == "OPTIONAL(TUIKIT.TEXTCASE.UPPERCASE)")
+        // (Its description names the module declaring `Text.Case`, as above.)
+        #expect(shown(Reads(keyPath: \.textCase).textCase(.uppercase))
+            == String(describing: Text.Case?.some(.uppercase)).uppercased())
         #expect(shown(Text("shout").environment(\.textCase, .uppercase)) == "SHOUT")
         #expect(shown(Text("quiet").environment(\.textCase, nil).textCase(.uppercase)) == "quiet",
                 "a nil written inside clears the transform set outside")

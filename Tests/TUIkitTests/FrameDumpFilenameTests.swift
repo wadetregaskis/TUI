@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The debug frame dump's filename carried a locale-formatted date, and in
 /// European Portuguese (and a handful of others) that date has `/` in it —

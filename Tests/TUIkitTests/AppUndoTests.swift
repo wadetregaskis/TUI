@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// The app's undo manager (decisions A1): in the environment, undone and
 /// redone by the keys the owner chose, and offered in the status bar.

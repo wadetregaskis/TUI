@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// A palette whose every role is stated and can be re-spelled, one role at a time.

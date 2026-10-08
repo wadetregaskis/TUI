@@ -23,7 +23,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A row that counts how often it has appeared, in its own `@State`.
 private struct AppearanceCounter: View {

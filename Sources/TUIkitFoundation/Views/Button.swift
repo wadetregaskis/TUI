@@ -76,7 +76,7 @@ public struct DefaultButtonLabel: View {
 /// ## Styling
 ///
 /// A button's appearance is controlled by its ``ButtonStyle``, applied with
-/// the ``View/buttonStyle(_:)-1qf1r`` modifier rather than an initializer argument —
+/// the ``View/buttonStyle(_:)-5m1ib`` modifier rather than an initializer argument —
 /// mirroring SwiftUI:
 ///
 /// ```swift

@@ -78,7 +78,7 @@ extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtr
     /// as it was.
     func extractSectionInfo(context: RenderContext) -> SectionInfo {
         let info = content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
-        let drawnActions = TUIkit.renderToBuffer(
+        let drawnActions = TUIkitView.renderToBuffer(
             actions, context: context.withChildIdentity(erasedType: Actions.self, key: "sectionActions"))
         guard !drawnActions.isBlank else { return info }
         var header = info.headerBuffer ?? FrameBuffer()

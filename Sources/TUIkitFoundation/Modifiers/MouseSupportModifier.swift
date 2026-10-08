@@ -68,7 +68,7 @@ extension MouseSupportModifier: Renderable {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             dispatcher.setConfigOverride(support)
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

@@ -14,7 +14,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A value whose encoding always fails, so the write path's `catch` runs.
 private struct UnencodableSetting: Codable {

@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A titled page under a sheet whose content is titled too.
 private struct SheetTitleApp: App {

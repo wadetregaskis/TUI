@@ -19,7 +19,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitStyling
 
 /// A terminal whose byte source hands over whatever the test has staged, as

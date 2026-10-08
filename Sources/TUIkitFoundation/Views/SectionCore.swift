@@ -61,8 +61,8 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         let headerContext = chromeContext(context, .sectionHeader)
         let buffer =
             context.environment.drawsListSectionChrome
-            ? TUIkit.renderToBuffer(listHeader, context: headerContext)
-            : TUIkit.renderToBuffer(header, context: headerContext)
+            ? TUIkitView.renderToBuffer(listHeader, context: headerContext)
+            : TUIkitView.renderToBuffer(header, context: headerContext)
         return drawnChrome(buffer, context)
     }
 
@@ -179,14 +179,14 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             linesBelow: { footerLinesBelowScrollContent(context: context) })
         let contentBuffer =
             showsContent
-            ? TUIkit.renderToBuffer(content, context: relay?.contentContext(context) ?? context)
+            ? TUIkitView.renderToBuffer(content, context: relay?.contentContext(context) ?? context)
             : FrameBuffer()
 
         let footerBuffer: FrameBuffer? =
             footer is EmptyView
             ? nil
             : drawnChrome(
-                TUIkit.renderToBuffer(footer, context: chromeContext(context, .sectionFooter)), context)
+                TUIkitView.renderToBuffer(footer, context: chromeContext(context, .sectionFooter)), context)
 
         let placement =
             relay?.answer(contentBuffer: contentBuffer, linesBelow: footerBuffer?.height ?? 0)
@@ -232,7 +232,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     /// one) has none.
     private func footerLinesBelowScrollContent(context: RenderContext) -> Int {
         guard !(footer is EmptyView) else { return 0 }
-        let drawn = TUIkit.renderToBuffer(
+        let drawn = TUIkitView.renderToBuffer(
             footer,
             context: fixedMeasureContext(
                 proposal: ProposedSize(width: context.availableWidth, height: nil),

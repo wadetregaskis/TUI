@@ -96,7 +96,7 @@ def unit_freshness(files, source_mtime, unit_mtime, newest):
     STALE: the source is newer than its unit, or it has none and is newer than the last build. Rebuild, then check.
     UNCOMPILED: it has no unit although the last build wrote one after the source was written. That build compiled
     other files once this one existed and did not compile it, so no target does: Package.swift leaves it out. Until a
-    module is carved, the umbrella target's `sources:` names the module directories, and TUIkitStrings below them (its
+    module is carved, TUIkitFoundation's `sources:` names the module directories, and TUIkitStrings below them (its
     resources may not sit under a source path), so a new file of TUIkitStrings/ or TUIkitStrings/Localization/ is
     compiled only once it is listed there; a new module directory, only once named. SwiftPM reports such a file as
     unhandled, but only as a warning, which does not fail CI: this finding does. (A build that failed before reaching
@@ -188,7 +188,8 @@ class Model:
     def load(cls, root, source_dir, store, lib=None, module='TUIkit', modules=None):
         """The model of `source_dir`'s sources. With `modules` (the map's module names), only its directories
         `source_dir/<module>` are read, and a file's label starts with its directory: `TUIkitLists/Views/List.swift`.
-        Their index units may name any of those modules, or `module` (all of them, until each is carved out)."""
+        Their index units may name any of those modules (TUIkitFoundation's units cover all of them until each is
+        carved out), or `module`."""
         mine = [d for d in modules if os.path.isdir(os.path.join(root, source_dir, d))] if modules else ['']
         names = {module} | set(modules or ())
 

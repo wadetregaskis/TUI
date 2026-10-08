@@ -16,7 +16,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Where a role's anchor is written beside the unlabelled one — see
 /// `ScrollAnchorRoleTests.swiftUIPrecedence`.

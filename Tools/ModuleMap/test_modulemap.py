@@ -839,7 +839,7 @@ class IndexStoreTests(unittest.TestCase):
 
 
 class UncompiledTests(unittest.TestCase):
-    """Since A5 the umbrella target's `sources:` names directories, and TUIkitStrings below its own, so a file can sit
+    """Since A5 TUIkitFoundation's `sources:` names directories, and TUIkitStrings below its own, so a file can sit
     in a module's directory and be compiled by no target. SwiftPM only warns about it, and CI does not fail on that
     warning; the module map, which reads what the build compiled, does."""
 

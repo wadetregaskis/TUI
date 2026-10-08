@@ -6,7 +6,8 @@
 
 import Foundation
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Runs `body` with `ColorDepth.current` pinned to `depth` for the current
 /// task only.

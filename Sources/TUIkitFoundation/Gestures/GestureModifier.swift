@@ -263,7 +263,7 @@ extension GestureAttachment: Renderable {
             let dispatcher = context.environment.mouseEventDispatcher,
             let storage = context.stateStorage
         else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         storage.markActive(context.identity)
         let box: StateBox<GestureParticipants> = storage.storage(
@@ -276,7 +276,7 @@ extension GestureAttachment: Renderable {
         // it; claimed before the content renders, as every marker slot is.
         let pointerSpaces = PointerSpaceOrigin(
             named: namedPointerSpaces(of: gesture), global: false, context: context)
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         pointerSpaces?.stamp(into: &buffer, context: context)
         participant.pointerSpaces = pointerSpaces
 

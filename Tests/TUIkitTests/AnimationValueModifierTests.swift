@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A bar whose width is its one continuous property. See `AnimatableViewTests`.
 private struct Bar: View, Animatable {

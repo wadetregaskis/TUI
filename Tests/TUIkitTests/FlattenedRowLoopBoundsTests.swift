@@ -16,7 +16,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A loop placed by its keys stops at its own loop's end")

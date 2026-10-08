@@ -27,7 +27,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A focus stop with no chrome and no hit-test region: it registers through

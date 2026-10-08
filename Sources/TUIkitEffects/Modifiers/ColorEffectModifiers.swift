@@ -183,7 +183,7 @@ extension _ColorEffectView: Animatable {
 
 extension _ColorEffectView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
         // `isEmpty` asks about the LINES, and a subtree can draw nothing in flow
         // while drawing plenty in an overlay: `.offset`, `.position` and a moving
         // transition's slot return a placeholder of empty lines and put the drawing

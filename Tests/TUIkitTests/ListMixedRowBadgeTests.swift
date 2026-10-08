@@ -45,7 +45,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 private func listContext(width: Int = 30, height: Int = 10) -> RenderContext {

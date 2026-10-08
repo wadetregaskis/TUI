@@ -268,7 +268,7 @@ struct _DismissalConfirmationRegistrar<Content: View>: View, Renderable, Layouta
                 }
             }
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A summing key whose default is not the sum's identity.
 private struct OffsetSumKey: PreferenceKey {

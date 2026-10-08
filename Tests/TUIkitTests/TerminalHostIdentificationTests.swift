@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Whether the host terminal is *identified* — which every other compensation
 /// test takes as given, by injecting `isAppleTerminal:` directly into

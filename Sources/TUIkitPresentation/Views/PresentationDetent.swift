@@ -338,7 +338,7 @@ struct _PresentationDetentsView<Content: View>: View, PresentationDetentsProvidi
 
 extension _PresentationDetentsView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

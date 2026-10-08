@@ -22,8 +22,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// What the app does between frames: which tab is showing, where the list is

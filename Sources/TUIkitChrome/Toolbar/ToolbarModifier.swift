@@ -94,7 +94,7 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
         } else if !context.isMeasuring, context.environment.windowChrome == nil, let storage = context.stateStorage {
             retainItems(depth: depth, storage: storage, context: context)
         }
-        return TUIkit.renderToBuffer(content, context: contentContext)
+        return TUIkitView.renderToBuffer(content, context: contentContext)
     }
 
     /// Keeps the `@State` of the items a render with no window declares

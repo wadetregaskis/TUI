@@ -233,7 +233,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         if let ink = labelInk(for: segment, isMarked: isMarked, face: face, context: context) {
             labelContext.environment.foregroundStyle = .color(ink)
         }
-        let rendered = TUIkit.renderToBuffer(label.bold(isMarked), context: labelContext)
+        let rendered = TUIkitView.renderToBuffer(label.bold(isMarked), context: labelContext)
         let text = " " + (rendered.lines.first ?? "") + " "
         let width = text.strippedLength
         let column = row.cells

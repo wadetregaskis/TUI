@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Coverage for ``DateFieldModel`` — the pure calendar math behind
 /// ``DatePicker``: component layout, zero-padded formatting, in-field wrapping

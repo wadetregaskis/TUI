@@ -237,7 +237,7 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
                 height: Swift.min(size.height, entry.proposal.height ?? size.height)
             )
         }
-        return TUIkit.mergedExplicitGuide(query, of: placedChildren, frames: frames, context: context)
+        return TUIkitFoundation.mergedExplicitGuide(query, of: placedChildren, frames: frames, context: context)
     }
 
     /// The layout direction inherited by the container view — always

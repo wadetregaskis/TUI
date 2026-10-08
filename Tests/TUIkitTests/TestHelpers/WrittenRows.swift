@@ -10,8 +10,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// `buffer`'s rows as the terminal is sent them, on the page `palette` paints,
 /// read back column by column. In a written row `""` is the terminal's own field

@@ -7,7 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 extension Image {
     /// The picture this image holds, as the bitmap path made it from a source

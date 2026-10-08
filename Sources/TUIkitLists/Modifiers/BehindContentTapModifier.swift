@@ -30,7 +30,7 @@ struct _BehindContentTapModifier<Content: View>: View {
 
 extension _BehindContentTapModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         // A measure sees no events, and a disabled view takes none — the rule
         // `Button` applies to itself.
         guard !context.isMeasuring, context.environment.isEnabled,

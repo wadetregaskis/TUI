@@ -43,7 +43,7 @@ struct NotificationHostModifier<Content: View>: View {
 
 extension NotificationHostModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let baseBuffer = TUIkit.renderToBuffer(content, context: context)
+        let baseBuffer = TUIkitView.renderToBuffer(content, context: context)
         // Without an app there is no service, so there is nothing to show
         // over the content.
         guard let service = context.environment.notificationService else {
@@ -111,7 +111,7 @@ extension NotificationHostModifier: Renderable {
             let boxView = Box(lines: contentLines, color: fadedBorderColor)
             var boxContext = context
             boxContext.availableWidth = width
-            let entryBuffer = TUIkit.renderToBuffer(boxView, context: boxContext)
+            let entryBuffer = TUIkitView.renderToBuffer(boxView, context: boxContext)
 
             stackedBuffer.appendVertically(entryBuffer)
         }

@@ -95,13 +95,13 @@ extension AlertPresentationModifier: Renderable {
                 // Recentre next time it opens.
                 DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
             }
-            return TUIkit.renderToBuffer(content, context: contentContext)
+            return TUIkitView.renderToBuffer(content, context: contentContext)
         }
 
         // Render message content to string if provided
         let messageString: String
         if let message {
-            let messageBuffer = TUIkit.renderToBuffer(
+            let messageBuffer = TUIkitView.renderToBuffer(
                 message, context: context.withChildIdentity(type: Message.self, index: 2))
             messageString = messageBuffer.lines.joined(separator: "\n").stripped
         } else {
@@ -227,7 +227,7 @@ extension AlertPresentationModifier: Renderable {
         // and (via throwaway state) preserves the page's scroll/@State. The root
         // compositor dims this buffer for the backdrop; mouse is isolated by that
         // dimmed backdrop dropping the page's hit-test regions.
-        var baseBuffer = TUIkit.renderToBuffer(
+        var baseBuffer = TUIkitView.renderToBuffer(
             content, context: contentContext.isolatedForBackground())
 
         // The page beneath is inert, and that has to be SAID rather than

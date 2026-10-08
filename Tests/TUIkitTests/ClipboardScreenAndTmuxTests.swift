@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The clipboard ladder's rows for GNU screen and tmux together, where
 /// neither `STY` nor the pane's own process chain can say whether screen

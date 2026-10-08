@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Reports the transaction its subtree renders under, so a test can see what
 /// reached it rather than what was set.

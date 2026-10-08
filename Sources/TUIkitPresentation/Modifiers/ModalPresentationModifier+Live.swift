@@ -170,7 +170,7 @@ extension ModalPresentationModifier {
     func renderLive(_ presented: LiveSheet.Presented, contentContext: RenderContext, context: RenderContext)
         -> FrameBuffer
     {
-        var baseBuffer = TUIkit.renderToBuffer(content, context: contentContext)
+        var baseBuffer = TUIkitView.renderToBuffer(content, context: contentContext)
         // The sheet's section after the page's, so it is last in the Tab ring.
         let escapeItemRegistration = context.isMeasuring ? nil : joinThePage(presented, context: context)
         // The presenter's manual boxes — see the modal branch.

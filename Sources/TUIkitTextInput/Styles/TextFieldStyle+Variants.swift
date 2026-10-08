@@ -135,12 +135,12 @@ struct _StyledFieldFrame<Content: View & Renderable & Layoutable>: View, Rendera
         guard let border = context.environment.textFieldStyle.fieldBorder else {
             // An Animatable core needs the substitution the generic render makes;
             // the test is static, so it folds away for the two cores there are.
-            if Content._isAnimatable { return TUIkit.renderToBuffer(content, context: context) }
+            if Content._isAnimatable { return TUIkitView.renderToBuffer(content, context: context) }
             // In place, at this frame's identity: the generic render minus a clamp
             // the render that reached this frame applies to the same context.
             return content.renderToBuffer(context: context)
         }
-        return TUIkit.renderToBuffer(content.border(style: border), context: context.withBranchIdentity("bordered"))
+        return TUIkitView.renderToBuffer(content.border(style: border), context: context.withBranchIdentity("bordered"))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

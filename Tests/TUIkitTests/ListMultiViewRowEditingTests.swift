@@ -16,7 +16,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// What the loop's actions were handed.
 @MainActor

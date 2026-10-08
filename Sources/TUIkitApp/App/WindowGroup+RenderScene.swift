@@ -15,6 +15,6 @@
 /// vertically within the space the chrome leaves it.
 extension WindowGroup: SceneRenderable {
     func renderScene(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(_WindowChromeHost(content: content), context: context)
+        TUIkitView.renderToBuffer(_WindowChromeHost(content: content), context: context)
     }
 }

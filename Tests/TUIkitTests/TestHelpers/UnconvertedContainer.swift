@@ -7,8 +7,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Draws its content `rows` rows down, without saying so before the content
@@ -31,7 +32,7 @@ struct UnconvertedContainer<Content: View>: View, Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var shifted = context
         shifted.availableHeight = max(0, context.availableHeight - rows)
-        let drawn = TUIkit.renderToBuffer(content, context: shifted)
+        let drawn = TUIkitView.renderToBuffer(content, context: shifted)
         var result = FrameBuffer(emptyWithHeight: rows)
         result.appendVertically(drawn, spacing: 0)
         return result

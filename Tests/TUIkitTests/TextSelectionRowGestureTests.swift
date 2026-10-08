@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What a press other than a plain one does on a row's selectable text: a
 /// Control-click, the secondary click where a terminal keeps the right button.

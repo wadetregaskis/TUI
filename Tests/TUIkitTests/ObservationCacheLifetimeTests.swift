@@ -7,8 +7,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A body evaluated under observation arms a registration on each property it

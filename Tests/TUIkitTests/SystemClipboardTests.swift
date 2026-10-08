@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Drives ``SystemClipboard``'s bounded child I/O against scripted stand-ins
 /// for the real helpers, because the failure modes it exists to survive can't

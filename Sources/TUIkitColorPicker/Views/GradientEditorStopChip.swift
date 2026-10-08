@@ -45,7 +45,7 @@ extension _StopChipDragHandle: Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher
         else { return buffer }

@@ -39,7 +39,7 @@ extension KeyEventModifier: Renderable {
         //   registration again on every hit, at the row's own position. Every
         //   gate that does not replay still counts it and declines.
         guard !context.isMeasuring else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         context.environment.volatileReadTracker?.recordReplayableEffect()
 
@@ -59,7 +59,7 @@ extension KeyEventModifier: Renderable {
                 })
         }
 
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

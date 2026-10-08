@@ -279,7 +279,7 @@ struct _TabCustomizationIDContent<Content: TabContent>: TabContent, _TabContentP
     }
 
     func appendTabs(to tabs: inout _TabList) {
-        tabs.identifying(id) { TUIkit.appendTabs(content, to: &$0) }
+        tabs.identifying(id) { TUIkitFoundation.appendTabs(content, to: &$0) }
     }
 }
 

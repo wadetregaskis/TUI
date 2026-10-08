@@ -16,8 +16,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A hovered scrollbar cell keeps its lift while the bar pulses")

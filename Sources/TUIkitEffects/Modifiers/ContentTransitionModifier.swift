@@ -197,7 +197,7 @@ struct _ContentTransitionView<Content: View>: View {
 
 extension _ContentTransitionView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let buffer = TUIkit.renderToBuffer(content, context: withTransition(context))
+        let buffer = TUIkitView.renderToBuffer(content, context: withTransition(context))
         guard transition.dissolves, !context.isMeasuring, let storage = context.stateStorage else {
             return buffer
         }
@@ -249,7 +249,7 @@ extension _ContentTransitionView: Renderable, Layoutable {
         // shows through at 1 − presence.
         var quiet = context.withChildIdentity(erasedType: Self.self, index: 0)
         quiet.environment.transaction.disablesAnimations = true
-        let dissolved = TUIkit.renderToBuffer(
+        let dissolved = TUIkitView.renderToBuffer(
             ZStack(alignment: .topLeading) {
                 BufferView(buffer: outgoing)
                 BufferView(buffer: buffer).opacity(presence)

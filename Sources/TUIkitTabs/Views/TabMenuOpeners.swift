@@ -89,7 +89,7 @@ struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)
         guard hasMenus, !context.isMeasuring, let storage = context.stateStorage else {
-            return TUIkit.renderToBuffer(content, context: contentContext)
+            return TUIkitView.renderToBuffer(content, context: contentContext)
         }
         // A manual box, which nothing else hydrates: marked, or the end of
         // the pass would hand the next frame a new, empty one.
@@ -107,7 +107,7 @@ struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
                 return openers.open(selection.wrappedValue)
             }
         }
-        return TUIkit.renderToBuffer(keyed, context: contentContext)
+        return TUIkitView.renderToBuffer(keyed, context: contentContext)
     }
 }
 

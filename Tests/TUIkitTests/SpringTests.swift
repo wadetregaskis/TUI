@@ -9,7 +9,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Whether `value` is SwiftUI's printed `expected`, to its six places.
 private func near(_ value: Double, _ expected: Double, within tolerance: Double = 2e-6) -> Bool {

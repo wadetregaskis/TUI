@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Custom environment key for testing.
 private struct TestStringKey: EnvironmentKey {

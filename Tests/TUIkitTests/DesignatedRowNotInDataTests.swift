@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Which path the stack takes: one-line rows (the uniform window), or rows of
 /// one to three lines, 40 of them (the exact walk) or 400 (the anchored window).

@@ -84,7 +84,7 @@ struct _AppTerminationView<Content: View>: View, AppTerminationPreventing {
 
 extension _AppTerminationView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

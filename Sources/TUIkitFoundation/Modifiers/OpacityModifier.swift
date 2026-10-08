@@ -102,7 +102,7 @@ extension _OpacityView: Animatable {
 
 extension _OpacityView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         // `isEmpty` asks about the LINES, and a subtree can draw nothing in
         // flow while drawing plenty in an overlay: `.offset` and `.position`
         // return a placeholder of zero-width lines and put the content in a

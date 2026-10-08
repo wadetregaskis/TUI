@@ -466,7 +466,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 // Non-equatable elements cannot memoize, so the view is built for
                 // the render regardless; the badge peek reuses it.
                 let view = content(element)
-                let buffer = TUIkit.renderToBuffer(view, context: rowContext)
+                let buffer = TUIkitView.renderToBuffer(view, context: rowContext)
                 Self.reportSeparatorGuides(
                     build: { _ in view }, element: element, buffer: buffer, row: listRowIndex, context: rowContext)
                 return (buffer, extractBadgeValue(from: view))
@@ -479,7 +479,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
             if let stated = statedTypeSelectEquivalent(of: view), let stated { return stated }
             var probe = rowContext
             probe.isMeasuring = true
-            return TUIkit.renderToBuffer(view, context: probe).lines.first.map {
+            return TUIkitView.renderToBuffer(view, context: probe).lines.first.map {
                 $0.stripped.trimmingCharacters(in: .whitespaces)
             }
         }
@@ -502,7 +502,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
         keyedBy rowKey: RowKey, element: Data.Element, build: @escaping (Data.Element) -> Content,
         context: RenderContext
     ) -> FrameBuffer {
-        TUIkit.renderToBuffer(_MemoizedRow(element: rowKey, source: element, build: build), context: context)
+        TUIkitView.renderToBuffer(_MemoizedRow(element: rowKey, source: element, build: build), context: context)
     }
 
     /// The element at a 0-based offset (O(1) — `Data` is `RandomAccessCollection`).

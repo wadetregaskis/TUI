@@ -16,8 +16,9 @@
     import Testing
     import UniformTypeIdentifiers
 
-    @testable import TUIkit
+    import TUIkit
     @testable import TUIkitCore
+    @testable import TUIkitFoundation
 
     /// What the destination under test was told, in order.
     private final class DropLog: @unchecked Sendable {

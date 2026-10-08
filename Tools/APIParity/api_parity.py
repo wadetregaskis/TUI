@@ -54,7 +54,11 @@ BASELINE_PATH = os.path.join(HERE, "baseline.json")
 LIST_LIMIT = 30
 
 SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
-TUIKIT_MODULES = ["TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitAppKit"]
+# Each module's graph holds only what that module declares (an `@_exported`
+# re-export is not copied into it), so the umbrella's own graph is empty and
+# the public API is the union of the modules it re-exports. A module carved out
+# of TUIkitFoundation joins this list when it is carved.
+TUIKIT_MODULES = ["TUIkit", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitAppKit"]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are
 # artefacts of how a type is spelled rather than API anyone writes.

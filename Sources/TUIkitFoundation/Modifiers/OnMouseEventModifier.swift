@@ -42,7 +42,7 @@ extension OnMouseEventModifier: Renderable {
         // Render first so the buffer dimensions are known; the
         // hit-test region we emit afterwards has to match the rendered
         // bounds exactly.
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
 
         // No dispatcher (e.g. measure pass) — skip registration. The
         // measure path renders content for sizing but never sees a

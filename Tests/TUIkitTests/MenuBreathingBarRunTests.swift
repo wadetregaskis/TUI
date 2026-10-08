@@ -15,8 +15,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// An inline menu whose first row — the one the focus lands on — has a spinner in

@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// SwiftUI's documented `Toggle(_:)` example: the current toggle, bordered.
 private struct RedBorderToggleStyle: ToggleStyle {

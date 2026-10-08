@@ -14,7 +14,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// What the handlers under test saw, in the order they ran.
 private final class KeyLog: @unchecked Sendable {

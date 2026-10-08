@@ -8,8 +8,9 @@ import Foundation
 import Testing
 import TUIkitImage
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Changing an `Image`'s source has to change what it draws.
 ///

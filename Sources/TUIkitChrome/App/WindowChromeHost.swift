@@ -259,7 +259,7 @@ struct _WindowChromeHost<Content: View>: View, Renderable {
         let preferences = context.environment.preferenceStorage
         preferences?.push()
         // The content area is the window's `containerRelativeFrame` container.
-        let buffer = TUIkit.renderToBuffer(
+        let buffer = TUIkitView.renderToBuffer(
             content,
             context: context.publishingContainerSize(
                 CellSize(width: max(0, context.availableWidth), height: max(0, context.availableHeight))))

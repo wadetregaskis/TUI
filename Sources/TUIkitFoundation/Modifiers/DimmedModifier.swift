@@ -76,7 +76,7 @@ extension DimmedModifier: Renderable {
         // The same helper the presentation modifiers use for the page beneath
         // a modal, and for the same reason. State storage stays shared, so a
         // dimmed subtree keeps its `@State` and its scroll position.
-        let contentBuffer = TUIkit.renderToBuffer(
+        let contentBuffer = TUIkitView.renderToBuffer(
             content, context: context.isolatedForBackground())
         let palette = context.environment.palette
         return contentBuffer.dimmedAsBackdrop(

@@ -56,7 +56,7 @@ extension StatusBarItemsModifier: Renderable {
         // No status bar (a headless render, a test): nothing to register
         // into, and the content still draws.
         guard renderContext.environment.statusBar != nil else {
-            return TUIkit.renderToBuffer(content, context: renderContext)
+            return TUIkitView.renderToBuffer(content, context: renderContext)
         }
 
         // Declared to any value-memoizing ancestor. The status bar's items are
@@ -88,7 +88,7 @@ extension StatusBarItemsModifier: Renderable {
                 })
         }
 
-        return TUIkit.renderToBuffer(content, context: renderContext)
+        return TUIkitView.renderToBuffer(content, context: renderContext)
     }
 }
 

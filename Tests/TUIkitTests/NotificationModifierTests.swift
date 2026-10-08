@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A clock a test sets by hand, for a `NotificationService` to read.
 private final class ManualClock: @unchecked Sendable {

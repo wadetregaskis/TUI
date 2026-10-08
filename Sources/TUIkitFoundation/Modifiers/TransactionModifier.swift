@@ -93,7 +93,7 @@ public struct _ValueScopedTransactionView<Content: View, V: Equatable>: View {
 
 extension _ValueScopedTransactionView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: transformedContext(context) ?? context)
+        TUIkitView.renderToBuffer(content, context: transformedContext(context) ?? context)
     }
 
     /// The context with the transform applied — on the frames `value` moved —

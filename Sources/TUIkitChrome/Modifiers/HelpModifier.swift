@@ -43,7 +43,7 @@ extension HelpModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var childContext = context
         childContext.environment.helpText = text
-        var buffer = TUIkit.renderToBuffer(content, context: childContext)
+        var buffer = TUIkitView.renderToBuffer(content, context: childContext)
 
         // `isEnabled` is NOT checked, unlike `.onHover`'s SwiftUI-parity gate:
         // SwiftUI shows a disabled control's help, and explaining why a control

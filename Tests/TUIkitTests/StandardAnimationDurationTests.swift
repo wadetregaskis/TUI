@@ -14,7 +14,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// One duration the framework picks on its own, by the name the spec tracks it by.
 struct StandardAnimationDuration: Sendable, CustomTestStringConvertible {

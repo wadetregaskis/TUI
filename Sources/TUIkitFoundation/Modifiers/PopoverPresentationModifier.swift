@@ -152,11 +152,11 @@ extension PopoverPresentationModifier: Renderable {
 
         guard isPresented.wrappedValue else {
             if !context.isMeasuring { tearDownIfPresented(context: context) }
-            return TUIkit.renderToBuffer(content, context: contentContext)
+            return TUIkitView.renderToBuffer(content, context: contentContext)
         }
         let sectionID = Self.sectionID(context)
 
-        var baseBuffer = TUIkit.renderToBuffer(content, context: contentContext)
+        var baseBuffer = TUIkitView.renderToBuffer(content, context: contentContext)
         guard !context.isMeasuring, context.environment.mouseEventDispatcher != nil else {
             return baseBuffer
         }

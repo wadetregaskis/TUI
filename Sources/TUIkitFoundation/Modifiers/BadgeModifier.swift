@@ -161,7 +161,7 @@ extension BadgeModifier: Renderable {
         let modifiedContext = context.withEnvironment(modifiedEnvironment)
 
         // Render content with the badge in environment.
-        return TUIkit.renderToBuffer(content, context: modifiedContext)
+        return TUIkitView.renderToBuffer(content, context: modifiedContext)
     }
 }
 

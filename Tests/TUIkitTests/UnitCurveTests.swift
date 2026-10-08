@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Whether `values` match SwiftUI's, which the probe printed to six places.
 /// Within 1e-5 rather than equal: both solve a Bézier's `x(t) = x` to a

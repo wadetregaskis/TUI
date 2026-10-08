@@ -413,7 +413,7 @@ struct _ButtonStyleBody: View, Renderable {
                 ) { colour in
                     // A picture in the label keeps the bright end while the
                     // glyphs breathe. See ``PictureInkHold``.
-                    TUIkit.renderToBuffer(
+                    TUIkitView.renderToBuffer(
                         labelView.breathingForegroundStyle(colour, holdingPicturesAt: ends.bright),
                         context: plainLabelContext(labelView, context: context))
                 }
@@ -426,7 +426,7 @@ struct _ButtonStyleBody: View, Renderable {
             let prefixes = cycle.colors(dim: ends.dim, bright: ends.bright).map {
                 BorderRenderer.focusIndicatorPrefix(isFocused: indicating, color: $0)
             }
-            let body = TUIkit.renderToBuffer(
+            let body = TUIkitView.renderToBuffer(
                 labelView.foregroundStyle(labelFg),
                 context: plainLabelContext(labelView, context: context))
             var buffer = FrameBuffer(
@@ -484,7 +484,7 @@ struct _ButtonStyleBody: View, Renderable {
     private func drawStandardRow<Row: View>(
         _ row: Row, caps: ButtonCapCycle, context: RenderContext
     ) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(row, context: context)
+        var buffer = TUIkitView.renderToBuffer(row, context: context)
         guard !context.isMeasuring, caps.isAnimating else { return buffer }
 
         // A run has to name the row it sits on, and these caps are single-line

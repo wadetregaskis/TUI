@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// `@AppStorage` and `@SceneStorage` are `Sendable` exactly when their value is.
 ///

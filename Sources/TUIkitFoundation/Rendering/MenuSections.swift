@@ -133,7 +133,7 @@ private struct _MenuSectionHeader: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(header, context: sectionChromeContext(context, .sectionHeader))
+        TUIkitView.renderToBuffer(header, context: sectionChromeContext(context, .sectionHeader))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

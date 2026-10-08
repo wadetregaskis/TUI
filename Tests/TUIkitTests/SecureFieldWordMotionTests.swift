@@ -16,7 +16,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The string a field is bound to.
 private final class TextBox: @unchecked Sendable {

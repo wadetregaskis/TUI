@@ -13,8 +13,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A programmatic request a bound `ScrollPosition` can make over forty one-line

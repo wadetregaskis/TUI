@@ -242,7 +242,7 @@ private struct _ContentUnavailableViewCore<Label: View, Description: View, Actio
         // 778699f5 closed and 6ab904e7 carried to ProgressView's two labels;
         // these three sites were missed instances. The index (not the type)
         // is what separates them: two slots can hold the same view type.
-        let labelBuffer = TUIkit.renderToBuffer(
+        let labelBuffer = TUIkitView.renderToBuffer(
             label, context: context.withChildIdentity(erasedType: type(of: label), index: 0))
 
         // Render description with secondary foreground color
@@ -251,10 +251,10 @@ private struct _ContentUnavailableViewCore<Label: View, Description: View, Actio
         if descContext.environment.foregroundStyle == nil {
             descContext.environment.foregroundStyle = .color(palette.foregroundSecondary)
         }
-        let descBuffer = TUIkit.renderToBuffer(description, context: descContext)
+        let descBuffer = TUIkitView.renderToBuffer(description, context: descContext)
 
         // Render actions
-        let actionsBuffer = TUIkit.renderToBuffer(
+        let actionsBuffer = TUIkitView.renderToBuffer(
             actions, context: context.withChildIdentity(erasedType: type(of: actions), index: 2))
 
         // Combine vertically with spacing

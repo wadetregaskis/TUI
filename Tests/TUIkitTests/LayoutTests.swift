@@ -7,7 +7,8 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Observable
 private class LayoutTestModel {

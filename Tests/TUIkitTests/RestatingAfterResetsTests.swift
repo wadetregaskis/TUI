@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// `ANSIRenderer.restating(_:afterResetsIn:)` replaces a two-step
 /// `splittingCollapsedResets(…).replacing(reset, with: reset + restore)`;

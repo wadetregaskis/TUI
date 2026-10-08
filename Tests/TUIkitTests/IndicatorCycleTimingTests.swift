@@ -13,8 +13,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A site that builds focus-emphasis or caret runs, by what draws through it.
 enum CycleRunProducer: String, CaseIterable, Sendable, CustomTestStringConvertible {

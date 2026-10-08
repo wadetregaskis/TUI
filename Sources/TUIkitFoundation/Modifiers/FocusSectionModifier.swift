@@ -118,7 +118,7 @@ extension FocusSectionModifier: Renderable {
         context.publishSectionIndicator(
             isActive: focusManager?.isActiveSection(sectionID) ?? false, into: &sectionContext)
 
-        return TUIkit.renderToBuffer(content, context: sectionContext)
+        return TUIkitView.renderToBuffer(content, context: sectionContext)
     }
 }
 

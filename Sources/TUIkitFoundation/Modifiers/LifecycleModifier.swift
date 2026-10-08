@@ -82,7 +82,7 @@ extension OnAppearModifier: Renderable {
             let token = lifecycleToken("appear", lifecycleIdentity(Self.self, context))
             _ = context.environment.lifecycle!.recordAppear(token: token, action: action)
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 
@@ -114,7 +114,7 @@ extension OnDisappearModifier: Renderable {
             // (firing the callback) once it is actually removed from the tree.
             _ = context.environment.lifecycle!.recordAppear(token: token, action: {})
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 
@@ -191,7 +191,7 @@ extension TaskModifier: Renderable {
                 lifecycle.cancelTask(token: token)
             }
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 
     /// A counter that advances every time `id` stops being `==` to the value

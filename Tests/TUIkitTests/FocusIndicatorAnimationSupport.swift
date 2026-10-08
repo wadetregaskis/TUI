@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Renders `view` against a context whose fresh `FocusManager` auto-focuses
 /// the first focusable — i.e. the control under test.

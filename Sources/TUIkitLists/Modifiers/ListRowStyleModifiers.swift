@@ -86,8 +86,8 @@ struct _ListRowInsetsView<Content: View>: View {
 
 extension _ListRowInsetsView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard let insets else { return TUIkit.renderToBuffer(content, context: context) }
-        return TUIkit.renderToBuffer(content.padding(insets), context: context)
+        guard let insets else { return TUIkitView.renderToBuffer(content, context: context) }
+        return TUIkitView.renderToBuffer(content.padding(insets), context: context)
     }
 }
 
@@ -152,7 +152,7 @@ struct _ListRowColorView<Content: View>: View {
 
 extension _ListRowColorView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let foreground = TUIkit.renderToBuffer(content, context: context)
+        let foreground = TUIkitView.renderToBuffer(content, context: context)
         guard let color, !foreground.isEmpty else { return foreground }
         // The fill spans the ROW — the full width offered, not the width the
         // text happens to take. A fill that stopped at the last character
@@ -226,7 +226,7 @@ struct _ListRowBackgroundView<Content: View, Background: View>: View {
 
 extension _ListRowBackgroundView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let foreground = TUIkit.renderToBuffer(content, context: context)
+        let foreground = TUIkitView.renderToBuffer(content, context: context)
         guard let background, !foreground.isEmpty else { return foreground }
 
         // The background is offered the ROW: the full width available, and the
@@ -234,7 +234,7 @@ extension _ListRowBackgroundView: Renderable {
         // instead would stop the fill at the end of the text, which is the one
         // thing a row background is for.
         let width = max(foreground.width, context.availableWidth)
-        let backdrop = TUIkit.renderToBuffer(
+        let backdrop = TUIkitView.renderToBuffer(
             background,
             context: context
                 .withChildIdentity(type: Background.self, index: 1)

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Stage every library module's symbol graph as if it were one module.
 
-TUIkit is split into five library modules for layering and test isolation
-(TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage, plus the TUIkit
-umbrella that `@_exported import`s them). That split is OUR business, not the
-reader's: `import TUIkit` is one API, so the documentation has to be one API
-reference.
+TUIkit is split into library modules for layering, test isolation and build
+time (TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage; TUIkitFoundation,
+which compiles every module of the planned split not yet carved into a target
+of its own; and the TUIkit umbrella that `@_exported import`s them and
+declares nothing). That split is OUR business, not the reader's: `import
+TUIkit` is one API, so the documentation has to be one API reference.
 
 DocC builds from symbol graphs, one module at a time, and an `@_exported`
 re-export does not put the re-exported symbols into the importing module's
@@ -13,7 +14,7 @@ graph. Pointing DocC at the TUIkit target therefore produces an archive with
 no page at all for `View`, `Color`, `Binding`, `State`, `FrameBuffer` — the
 most basic types in the framework — and every catalog link to them dangles.
 
-So: take the graphs for all five modules and rewrite the module identity to
+So: take the graphs for all of these modules and rewrite the module identity to
 `TUIkit` before handing them to `docc convert`. Three things need changing,
 and all three matter:
 
@@ -22,7 +23,7 @@ and all three matter:
   2. `swiftExtension.extendedModule` on every symbol — DocC treats an
      extension whose extended module differs from the current one as an
      extension to an *external* type and does not give its members pages.
-     `extension View { … }` declared in TUIkit is exactly that shape, so
+     `extension View { … }` declared in TUIkitFoundation is exactly that shape, so
      leaving it alone costs you every `View` modifier.
   3. The FILE NAME — DocC decides "is this a primary graph or an extension
      graph" from the `A@B.symbols.json` convention, before it reads the JSON.
@@ -41,8 +42,10 @@ import shutil
 import sys
 
 # The library modules that make up the public API surface. Test targets, the
-# example apps, and the C image-decoder target are deliberately excluded.
-MODULES = {"TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage"}
+# example apps, the AppKit bridges (a product of their own, imported beside
+# TUIkit) and the C image-decoder target are deliberately excluded. A module
+# carved out of TUIkitFoundation joins this set when it is carved.
+MODULES = {"TUIkit", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage"}
 UMBRELLA = "TUIkit"
 
 

@@ -267,7 +267,7 @@ struct _StyledProgressView<Label: View, CurrentValueLabel: View>: View, Renderab
             // one applies to the same context anyway, and a clamp is idempotent.
             return core.renderToBuffer(context: context)
         }
-        return TUIkit.renderToBuffer(styledBody(styles), context: context.withBranchIdentity("styled"))
+        return TUIkitView.renderToBuffer(styledBody(styles), context: context.withBranchIdentity("styled"))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

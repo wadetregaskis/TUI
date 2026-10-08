@@ -80,7 +80,7 @@ extension NavigationDestinationModifier: Renderable {
             let build = destination
             coordinator.register(dataType) { AnyView(build($0)) }
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

@@ -32,7 +32,7 @@ struct BackgroundLayerModifier<Base: View, Background: View>: View {
 extension BackgroundLayerModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         compositeLayer(
-            background, under: TUIkit.renderToBuffer(base, context: context), alignment: alignment,
+            background, under: TUIkitView.renderToBuffer(base, context: context), alignment: alignment,
             context: context, modifierType: Self.self)
     }
 }

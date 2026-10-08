@@ -699,7 +699,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         // 778699f5 closed; these two sites were missed instances.
         if let labelView = label, !(labelView is EmptyView),
             !context.environment.controlLabelsAreHidden {
-            labelBuffer = TUIkit.renderToBuffer(
+            labelBuffer = TUIkitView.renderToBuffer(
                 labelView,
                 context: context.withChildIdentity(erasedType: type(of: labelView), index: 0))
         } else {
@@ -708,7 +708,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
 
         let valueBuffer: FrameBuffer
         if let valueView = currentValueLabel, !(valueView is EmptyView) {
-            valueBuffer = TUIkit.renderToBuffer(
+            valueBuffer = TUIkitView.renderToBuffer(
                 valueView,
                 context: context.withChildIdentity(erasedType: type(of: valueView), index: 1))
         } else {

@@ -8,7 +8,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The current box, preceded by a marker.
 private struct Marked: GroupBoxStyle {

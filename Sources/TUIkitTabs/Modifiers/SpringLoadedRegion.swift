@@ -37,7 +37,7 @@ extension _SpringLoadedRegion: Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         guard isEnabled, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession

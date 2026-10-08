@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A meta-sending terminal sends Option-_ as `ESC _` — byte for byte the
 /// introducer of an APC reply, which the parser swallows until its

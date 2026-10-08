@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Pins `FlexibleFrameView`'s analytic `sizeThatFits` to the real layout
 /// contract: the measured size must equal what the frame actually renders at

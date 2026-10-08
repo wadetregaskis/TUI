@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The expected values here were measured against real SwiftUI on macOS 26
 /// (`Tools/`-less one-off probe: build each schedule, print the first four

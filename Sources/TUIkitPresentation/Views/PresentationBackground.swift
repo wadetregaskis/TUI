@@ -84,7 +84,7 @@ struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundP
 
 extension _PresentationBackgroundView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

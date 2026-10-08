@@ -79,7 +79,7 @@ struct KeyboardShortcutModifier<Content: View>: View {
 
 extension KeyboardShortcutModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: planting(into: context))
+        TUIkitView.renderToBuffer(content, context: planting(into: context))
     }
 }
 

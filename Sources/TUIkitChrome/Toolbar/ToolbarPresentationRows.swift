@@ -87,19 +87,19 @@ extension _ToolbarModifier {
         let declaration = declaring(in: context)
         var contentContext = declaration.content
         let (top, bottom) = presentationEntries(depth: declaration.depth, context: context)
-        guard !top.isEmpty || !bottom.isEmpty else { return TUIkit.renderToBuffer(content, context: contentContext) }
+        guard !top.isEmpty || !bottom.isEmpty else { return TUIkitView.renderToBuffer(content, context: contentContext) }
 
         let topSize = naturalSize(of: top, row: 0, context: context)
         let bottomSize = naturalSize(of: bottom, row: 1, context: context)
         contentContext.availableHeight = max(0, context.availableHeight - topSize.height - bottomSize.height)
         // The view first, so its controls come first in the focus section.
-        let body = TUIkit.renderToBuffer(content, context: contentContext)
+        let body = TUIkitView.renderToBuffer(content, context: contentContext)
         let width = min(max(0, context.availableWidth), max(body.width, topSize.width, bottomSize.width))
 
         func row(_ entries: [WindowChromeState.ToolbarEntry], _ index: Int, height: Int) -> FrameBuffer {
             var rowContext = rowContext(index, width: width, context: context)
             rowContext.availableHeight = height
-            return TUIkit.renderToBuffer(
+            return TUIkitView.renderToBuffer(
                 _ToolbarBarRow(entries: entries, title: "", subtitle: "", isPresentation: true),
                 context: rowContext)
         }

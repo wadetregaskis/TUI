@@ -4,7 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A mock terminal for testing that captures output and simulates input.
 ///

@@ -16,7 +16,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Whether the sheet is up. A plain box: every `frame` renders, so nothing has

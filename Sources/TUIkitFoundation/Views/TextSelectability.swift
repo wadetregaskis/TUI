@@ -106,7 +106,7 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
     var body: Never { fatalError("_TextSelectionScope renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(
+        var buffer = TUIkitView.renderToBuffer(
             content.environment(\.textSelectionAllowed, allowsSelection), context: context)
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher
         else { return buffer }

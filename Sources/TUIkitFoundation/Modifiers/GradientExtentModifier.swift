@@ -115,7 +115,7 @@ extension GradientExtentModifier: Renderable {
                 height: max(1, context.availableHeight),
                 isProvisional: true)
         }
-        return TUIkit.renderToBuffer(content, context: childContext)
+        return TUIkitView.renderToBuffer(content, context: childContext)
     }
 }
 

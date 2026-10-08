@@ -136,7 +136,7 @@ extension TupleView: KeyedRowProvider {
         var slot = 0
         for child in repeat each children {
             if outermost { runs.slot = slot }
-            TUIkit.appendKeyedRowRuns(of: child, to: &runs, sectionsWhole: sectionsWhole)
+            TUIkitFoundation.appendKeyedRowRuns(of: child, to: &runs, sectionsWhole: sectionsWhole)
             slot += 1
         }
         if outermost { runs.slot = nil }
@@ -145,7 +145,7 @@ extension TupleView: KeyedRowProvider {
 
 extension Group: KeyedRowProvider where Content: View {
     func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
-        TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
+        TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
@@ -153,9 +153,9 @@ extension ConditionalView: KeyedRowProvider {
     func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         switch self {
         case .trueContent(let content):
-            TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
+            TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
         case .falseContent(let content):
-            TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
+            TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
         }
     }
 }
@@ -164,7 +164,7 @@ extension ConditionalView: KeyedRowProvider {
 /// several views, so the loops in it are runs of the container's.
 extension AnyView: KeyedRowProvider {
     func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
-        TUIkit.appendKeyedRowRuns(of: erasedView, to: &runs, sectionsWhole: sectionsWhole)
+        TUIkitFoundation.appendKeyedRowRuns(of: erasedView, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
@@ -173,7 +173,7 @@ extension Optional: KeyedRowProvider where Wrapped: View {
         // A `nil` still leaving keeps a slot in its container (see
         // `Optional.childViews`), but a positional one: no keyed row.
         if case .some(let wrapped) = self {
-            TUIkit.appendKeyedRowRuns(of: wrapped, to: &runs, sectionsWhole: sectionsWhole)
+            TUIkitFoundation.appendKeyedRowRuns(of: wrapped, to: &runs, sectionsWhole: sectionsWhole)
         }
     }
 }
@@ -184,8 +184,8 @@ extension Optional: KeyedRowProvider where Wrapped: View {
 extension Section: KeyedRowProvider where Parent: View, Content: View, Footer: View {
     func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         guard !sectionsWhole else { return }
-        TUIkit.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)
-        if showsContent { TUIkit.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: false) }
-        TUIkit.appendKeyedRowRuns(of: footer, to: &runs, sectionsWhole: false)
+        TUIkitFoundation.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)
+        if showsContent { TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: false) }
+        TUIkitFoundation.appendKeyedRowRuns(of: footer, to: &runs, sectionsWhole: false)
     }
 }

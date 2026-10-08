@@ -10,7 +10,7 @@
 
 #if canImport(AppKit)
     import AppKit
-    import TUIkit
+    import TUIkitFoundation
 
     extension Image {
         /// Creates a labeled image based on a Core Graphics image instance —

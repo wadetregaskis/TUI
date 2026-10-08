@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The sidebar's `@State`, handed back by its body so a test can flip it
 /// between frames — a "show sidebar" toggle.

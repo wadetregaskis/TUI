@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A reader on the page, one in the top bar and one in the bottom bar, each
 /// drawing the row it is told it is on.

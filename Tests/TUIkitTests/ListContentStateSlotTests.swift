@@ -15,7 +15,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A List's own slots and its content's @State", .rendersEnglishUI)

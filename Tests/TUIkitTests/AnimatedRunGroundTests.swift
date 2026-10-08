@@ -18,8 +18,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A two-cell run whose frames are `ab` on a field of its own (frame 0, a caret

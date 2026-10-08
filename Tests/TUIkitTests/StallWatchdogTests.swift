@@ -22,7 +22,8 @@ import Musl
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A watchdog over two pipes: one it watches as the terminal's input, one it
 /// writes its pop to.

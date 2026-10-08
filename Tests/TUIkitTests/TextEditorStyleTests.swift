@@ -9,8 +9,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 private struct NoteStyle: TextEditorStyle {
     func makeBody(configuration: Configuration) -> some View {

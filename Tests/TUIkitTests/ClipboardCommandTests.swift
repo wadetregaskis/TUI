@@ -15,8 +15,9 @@
     import Testing
     import UniformTypeIdentifiers
 
-    @testable import TUIkit
+    import TUIkit
     @testable import TUIkitCore
+    @testable import TUIkitFoundation
 
     /// What the actions under test saw, in the order they ran.
     private final class ActionLog: @unchecked Sendable {

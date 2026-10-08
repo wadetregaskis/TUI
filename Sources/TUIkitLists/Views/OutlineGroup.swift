@@ -467,7 +467,7 @@ extension OutlineGroup: ListRowExtractor where Leaf: View {
                             if prominence != .standard {
                                 rowContext.environment.backgroundProminence = prominence
                             }
-                            return (TUIkit.renderToBuffer(view, context: rowContext), nil)
+                            return (TUIkitView.renderToBuffer(view, context: rowContext), nil)
                         })))
         }
         let index = OutlineSubtreeIndex(

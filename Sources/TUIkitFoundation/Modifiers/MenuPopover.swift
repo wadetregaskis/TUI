@@ -94,7 +94,7 @@ func renderMenuPopup(
             proposal: ProposedSize(width: rowWidth, height: nil), context: sized,
             startingBudget: naturalExtentStartingBudget(forVisible: context.availableHeight)
         ).height))
-    let column = TUIkit.renderToBuffer(rowsOnly, context: sized)
+    let column = TUIkitView.renderToBuffer(rowsOnly, context: sized)
     controller.adoptRenderedRows()
 
     // Which lines belong to which row, from the regions the rows themselves

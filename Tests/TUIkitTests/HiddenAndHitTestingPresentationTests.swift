@@ -11,7 +11,8 @@
 import Testing
 import TUIkitCore
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Hidden and non-hit-testable subtrees, and what they host")

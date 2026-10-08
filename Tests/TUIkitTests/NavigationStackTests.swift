@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Push/pop navigation: the stack shows its root until something is pushed,
 /// then the matching destination under a back bar.

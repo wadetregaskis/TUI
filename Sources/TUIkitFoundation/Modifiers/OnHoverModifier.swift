@@ -48,7 +48,7 @@ public struct OnHoverModifier<Content: View>: View {
 
 extension OnHoverModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
 
         // SwiftUI parity (verified empirically on macOS 15): a hover callback
         // registered INSIDE a `.disabled(true)` scope never fires, while one

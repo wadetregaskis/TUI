@@ -18,7 +18,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// Draws whether it holds the focus as a MARK beside its title, the same width

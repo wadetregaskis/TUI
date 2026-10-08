@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// SwiftUI's `onModifierKeysChanged(mask:initial:_:)`, fed by the modifier-key
 /// reports a terminal speaking the kitty keyboard protocol sends.

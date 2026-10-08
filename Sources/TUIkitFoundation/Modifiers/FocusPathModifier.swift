@@ -69,7 +69,7 @@ extension FocusPathModifier: Renderable {
         // so the focus can never be inside it. Not registering at all says the
         // same thing without leaving it to the focus ring.
         guard !context.isMeasuring, context.environment.isEnabled else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         context.environment.volatileReadTracker?.recordReplayableEffect()
 
@@ -94,7 +94,7 @@ extension FocusPathModifier: Renderable {
                 })
         }
 
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

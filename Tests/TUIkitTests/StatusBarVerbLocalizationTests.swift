@@ -16,7 +16,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @Suite("Status bar verb localization")
 struct StatusBarVerbLocalizationTests {

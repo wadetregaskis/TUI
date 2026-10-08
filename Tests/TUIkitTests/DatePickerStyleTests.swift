@@ -10,7 +10,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Shows what the configuration carries.
 private struct ReportingStyle: DatePickerStyle {

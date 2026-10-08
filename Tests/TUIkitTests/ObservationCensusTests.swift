@@ -7,8 +7,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// The census counts every observation registration a body arms, every one

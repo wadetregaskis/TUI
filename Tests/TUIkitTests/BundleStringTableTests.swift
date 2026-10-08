@@ -13,7 +13,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A bundle of `.lproj` folders in a temporary directory, removed with it.
 final class TableBundle {

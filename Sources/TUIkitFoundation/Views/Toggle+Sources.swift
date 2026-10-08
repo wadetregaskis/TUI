@@ -84,7 +84,7 @@ extension Toggle where Label == Text {
     }
 }
 
-extension Toggle where Label == TUIkit.Label<Text, _SymbolIcon> {
+extension Toggle where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
     /// Creates a toggle representing a collection of values, labelled with a
     /// localized title and an SF Symbol.
     ///
@@ -97,7 +97,7 @@ extension Toggle where Label == TUIkit.Label<Text, _SymbolIcon> {
         _ titleKey: LocalizedStringKey, systemImage: String, sources: C,
         isOn: KeyPath<C.Element, Binding<Bool>>
     ) {
-        self.init(sources: sources, isOn: isOn) { TUIkit.Label(titleKey, systemImage: systemImage) }
+        self.init(sources: sources, isOn: isOn) { TUIkitFoundation.Label(titleKey, systemImage: systemImage) }
     }
 
     /// Creates a toggle representing a collection of values, labelled with a
@@ -112,6 +112,6 @@ extension Toggle where Label == TUIkit.Label<Text, _SymbolIcon> {
     public init<S: StringProtocol, C: RandomAccessCollection>(
         _ title: S, systemImage: String, sources: C, isOn: KeyPath<C.Element, Binding<Bool>>
     ) {
-        self.init(sources: sources, isOn: isOn) { TUIkit.Label(title, systemImage: systemImage) }
+        self.init(sources: sources, isOn: isOn) { TUIkitFoundation.Label(title, systemImage: systemImage) }
     }
 }

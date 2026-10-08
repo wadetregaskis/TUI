@@ -81,7 +81,7 @@ struct _PresentationDragIndicatorView<Content: View>: View, PresentationDragIndi
 
 extension _PresentationDragIndicatorView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(content, context: context)
+        TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

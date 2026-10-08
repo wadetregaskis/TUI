@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Coverage for the scene-level `.appearance(_:)` override and the app-header
 /// divider honouring the active appearance — the two halves that let a custom

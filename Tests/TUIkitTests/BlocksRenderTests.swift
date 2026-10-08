@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 // `.blocks` renders one image pixel per cell as a space whose *background* is
 // the pixel colour. Because it draws no glyph, it can't show the inter-row

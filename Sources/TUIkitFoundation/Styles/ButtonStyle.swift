@@ -115,7 +115,7 @@ public struct ButtonStyleConfiguration {
 /// hierarchy.
 ///
 /// To configure the button style for a view, apply the
-/// ``View/buttonStyle(_:)-1qf1r`` modifier:
+/// ``View/buttonStyle(_:)-5m1ib`` modifier:
 ///
 /// ```swift
 /// Button("Save") { save() }
@@ -160,7 +160,7 @@ public struct ButtonStyleConfiguration {
 ///
 /// ## Styles and the render cache
 ///
-/// ``View/buttonStyle(_:)-1qf1r`` puts the style into the environment, and the render
+/// ``View/buttonStyle(_:)-5m1ib`` puts the style into the environment, and the render
 /// cache keeps memoized subtrees honest by comparing each injected value with
 /// the one applied there last frame. A value it cannot compare may have changed
 /// under a buffer it is about to serve with nothing able to notice, so every
@@ -708,7 +708,7 @@ extension EnvironmentValues {
     /// The button style for this environment.
     ///
     /// Controls how ``Button`` views render. Set via the
-    /// ``View/buttonStyle(_:)-1qf1r`` modifier — directly by a ``ButtonStyle``, or to
+    /// ``View/buttonStyle(_:)-5m1ib`` modifier — directly by a ``ButtonStyle``, or to
     /// the appearance a built-in ``PrimitiveButtonStyle`` stands for. Default:
     /// the ``DefaultButtonStyle`` appearance. A custom primitive style, while it
     /// is in force, takes precedence over this.

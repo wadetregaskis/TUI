@@ -214,8 +214,8 @@ Tools/BuildDocs/build-docs.sh            # add --analyze for every diagnostic
 
 > Use the script, not `swift package generate-documentation --target TUIkit`.
 > The latter documents only what the umbrella module itself declares, which
-> silently omits `View`, `Color`, `Binding` and everything else the sibling
-> modules define — see [`Tools/BuildDocs/README.md`](Tools/BuildDocs/README.md).
+> is nothing: `View`, `Color`, `Binding`, `Text` and everything else are
+> declared in the modules it re-exports — see [`Tools/BuildDocs/README.md`](Tools/BuildDocs/README.md).
 
 ## Running the suite in parallel
 
@@ -378,7 +378,10 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   `TUIkitStylingTests`, `TUIkitViewTests`, `TUIkitImageTests`) that links **only
   that module**, so a module test cannot reach across a layer boundary. Put a
   test in the module target it belongs to; `Tests/TUIkitTests` is for
-  integration tests and everything in the umbrella module.
+  integration tests and everything in `TUIkitFoundation` (the modules of the
+  split not yet carved into targets of their own). A test there imports
+  `TUIkit`, as an app does, and adds `@testable import TUIkitFoundation` when
+  it reaches the framework's internals.
   `Tools/validate-test-boundaries.sh` checks this and runs in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views
   (`@testable import Example`), for when a test must drive what the app

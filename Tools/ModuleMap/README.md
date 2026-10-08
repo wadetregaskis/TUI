@@ -4,8 +4,8 @@ TUIkit is to be split into à-la-carte modules: the substrate (TUIkitFoundation)
 lower ones, feature leaves over the substrate, TUIkitApp and a thin `TUIkit` umbrella. `rules.json` lists them and
 what each holds. Since step A5 each module's files sit in a directory of their own, `Sources/<module>`
 (`Sources/TUIkitFoundation`, `Sources/TUIkitLists` …), where the module will live once a step of Phase B carves it
-out; until then the one `TUIkit` target compiles them all. **A file's directory is its module**: moving a file to
-another module is a `git mv`. This tool holds:
+out; until then the one `TUIkitFoundation` target compiles them all (since step B1; `TUIkit` is the umbrella, which
+only re-exports). **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;
@@ -83,14 +83,15 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 
 `TUIkitStrings: TUIkitStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
 
-Since step A5 the one `TUIkit` target names the module directories in its `sources:` (Package.swift), and
+Since step A5 the one target that compiles them (`TUIkitFoundation` since step B1) names the module directories in
+its `sources:` (Package.swift), and
 TUIkitStrings below its own, one entry per subdirectory and per `Localization/*.swift` file: a resource may not sit
 under a declared source path. So a new file of `TUIkitStrings/` or `TUIkitStrings/Localization/`, or a module
 directory added to `rules.json` and not to `sources:`, is compiled by no target, and its declarations, public API
 included, are simply missing. SwiftPM says so only as a warning ("found N file(s) which are unhandled"), and CI does not
 fail on warnings; this check does. It reads the index: a file with no unit, older than the newest unit the store
 holds, was there when the last build compiled the others, and that build did not compile it. Name it in
-Package.swift (the umbrella's `sources:`, or its module's own target once carved). A file with no unit that is
+Package.swift (`TUIkitFoundation`'s `sources:`, or its module's own target once carved). A file with no unit that is
 NEWER than the last build is only new, and is reported as stale (rebuild, then check); so is one whose build failed
 before reaching it.
 
@@ -275,7 +276,7 @@ not drag declarations down.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 **Renaming a module.** Module names live in `rules.json`, the generated `map.json` and the directory names: rename
-it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: the umbrella target's `sources:`, or
+it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: `TUIkitFoundation`'s `sources:`, or
 the module's own target once carved), then `assign --write`. Names are free to change until per-module products
 ship.
 

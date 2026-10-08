@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// A blink is on for as long as it is off, every time, at every speed, and a breath
 /// lasts exactly its cycle. Measured in wall-clock time, on the runs the loop

@@ -110,7 +110,7 @@ struct _ToolbarItemRun: View, Renderable, ChildViewProvider {
 
     /// Outside a stack — where the row never puts it — the items side by side.
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkit.renderToBuffer(HStack(spacing: 1) { self }, context: context)
+        TUIkitView.renderToBuffer(HStack(spacing: 1) { self }, context: context)
     }
 }
 
@@ -156,7 +156,7 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         // change to its `@State` would invalidate nothing the bar's memo is
         // keyed under, and the memo would go on serving the old picture.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
-        var buffer = TUIkit.renderToBuffer(entry.view, context: entryContext(context))
+        var buffer = TUIkitView.renderToBuffer(entry.view, context: entryContext(context))
         if isInert(in: context), !buffer.hitTestRegions.isEmpty {
             let live = context.environment.windowChrome?.appLineHandlerIDs ?? []
             // The targets, not the geometry markers: an inert item is still

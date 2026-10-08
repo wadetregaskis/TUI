@@ -11,7 +11,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Renders `content` as pane `id`: its own focus section, rendered through
 /// `renderingPane`, as a live sheet's presenter renders its content.
@@ -31,7 +32,7 @@ private struct PaneHost<Content: View>: View, Renderable {
         paneContext.environment.activeFocusSectionID = id
         return renderingPane(id, context: context) {
             if !context.isMeasuring { context.environment.focusManager?.registerSection(id: id) }
-            return TUIkit.renderToBuffer(content, context: paneContext)
+            return TUIkitView.renderToBuffer(content, context: paneContext)
         }
     }
 }

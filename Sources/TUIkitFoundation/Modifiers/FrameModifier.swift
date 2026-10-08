@@ -257,7 +257,7 @@ extension FlexibleFrameView: Renderable {
         }
 
         // Render content
-        let buffer = TUIkit.renderToBuffer(content, context: contentContext)
+        let buffer = TUIkitView.renderToBuffer(content, context: contentContext)
 
         // Apply minimum constraints
         var finalWidth = buffer.width

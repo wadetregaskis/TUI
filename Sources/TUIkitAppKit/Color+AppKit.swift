@@ -14,7 +14,7 @@
     import CoreGraphics
 #endif
 
-import TUIkit
+import TUIkitFoundation
 
 #if canImport(CoreGraphics)
     extension Color.Resolved {

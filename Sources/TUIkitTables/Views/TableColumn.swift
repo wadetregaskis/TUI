@@ -207,14 +207,14 @@ extension _TableCellSource {
             // own. An integer compare, so a cell of an ordinary table pays
             // nothing for it.
             guard context.availableHeight >= _TableCellSizing.naturalLines else {
-                return TUIkit.renderToBuffer(view, context: context)
+                return TUIkitView.renderToBuffer(view, context: context)
             }
             var measuring = context
             measuring.isMeasuring = true
             let natural = measureChild(
                 view, proposal: ProposedSize(width: context.availableWidth, height: nil),
                 context: measuring)
-            return TUIkit.renderToBuffer(
+            return TUIkitView.renderToBuffer(
                 view, context: context.withAvailableHeight(max(1, min(natural.height, context.availableHeight))))
         }
     }

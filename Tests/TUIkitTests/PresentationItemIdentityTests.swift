@@ -14,7 +14,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// The thing a presentation is about.
 private struct Row: Identifiable, Equatable {

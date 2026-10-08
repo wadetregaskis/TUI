@@ -78,7 +78,7 @@ struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
         // cannot come to disagree about what hidden means.
         guard !context.environment.controlLabelsAreHidden else { return FrameBuffer() }
         guard let label, !(label is EmptyView) else { return FrameBuffer() }
-        let buffer = TUIkit.renderToBuffer(
+        let buffer = TUIkitView.renderToBuffer(
             _ControlLabel.dimmingWhenDisabled(
                 label, context: context, controlDisabled: controlDisabled),
             context: context)

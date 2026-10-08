@@ -6,8 +6,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// `\.scenePhase` — one source of truth, republished each frame from the run
 /// loop, exactly as `\.locale` is.

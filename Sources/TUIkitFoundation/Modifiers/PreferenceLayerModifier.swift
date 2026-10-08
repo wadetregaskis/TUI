@@ -35,7 +35,7 @@ extension PreferenceLayerModifier: Renderable {
         // A measure collects no preferences, so there is no value to build the
         // layer from — and the layer cannot move the size, which is the base's.
         guard !context.isMeasuring else {
-            return TUIkit.renderToBuffer(base, context: context)
+            return TUIkitView.renderToBuffer(base, context: context)
         }
 
         // The base's subtree in a scope of its own, so this reads what IT
@@ -49,7 +49,7 @@ extension PreferenceLayerModifier: Renderable {
         // the key's default on every frame, which a cached buffer reproduces.
         let prefs = context.environment.preferenceStorage!
         prefs.push()
-        let baseBuffer = TUIkit.renderToBuffer(base, context: context)
+        let baseBuffer = TUIkitView.renderToBuffer(base, context: context)
         let value = prefs.pop()[K.self]
 
         // The base's size on every axis, which is what the measure promised:

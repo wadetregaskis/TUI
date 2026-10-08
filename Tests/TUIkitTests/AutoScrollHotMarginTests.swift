@@ -13,8 +13,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("Auto-scroll hot margins never swallow the whole viewport")

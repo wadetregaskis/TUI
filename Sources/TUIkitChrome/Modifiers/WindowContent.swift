@@ -19,7 +19,7 @@ func windowContent(
 ) -> FrameBuffer {
     let width = max(0, context.availableWidth)
     let height = max(0, context.availableHeight)
-    let backgroundBuffer = TUIkit.renderToBuffer(
+    let backgroundBuffer = TUIkitView.renderToBuffer(
         background.view,
         context: context.withChildIdentity(type: ContainerBackgroundPlacement.self, index: 1))
 

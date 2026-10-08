@@ -4,7 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// An `AnyView` of a stack holding an `AnyView` of a stack …, `depth` levels
 /// over a leaf, and every level of it: `levels[0]` is the leaf, `levels.last`

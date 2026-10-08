@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// Whether the conditional item is declared: reachable from an `App`.
 private final class ItemSwitch: @unchecked Sendable {

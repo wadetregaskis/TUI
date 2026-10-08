@@ -56,7 +56,7 @@ extension SelectionDisabledModifier: @preconcurrency Equatable where Content: Eq
 extension SelectionDisabledModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         report(context)
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard isDisabled else { return buffer }
         // The doc's "dimmed foreground" promise — the same persistent-faint
         // primitive the List's own held-row preview uses, which restates

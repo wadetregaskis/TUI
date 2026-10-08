@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A row that says which prominence its content was rendered under.
 private struct ProminenceProbe: View {

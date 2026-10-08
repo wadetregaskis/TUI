@@ -104,7 +104,7 @@ struct _ToolbarItemCollector {
     @MainActor
     mutating func step<Content: ToolbarContent>(_ index: Int, _ content: Content) {
         path.append(index)
-        TUIkit.appendToolbarItems(content, to: &self)
+        TUIkitFoundation.appendToolbarItems(content, to: &self)
         path.removeLast()
     }
 }
@@ -162,7 +162,7 @@ struct _HiddenToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarC
 
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard !isHidden else { return }
-        TUIkit.appendToolbarItems(content, to: &items)
+        TUIkitFoundation.appendToolbarItems(content, to: &items)
     }
 }
 
@@ -176,7 +176,7 @@ extension Optional: ToolbarContent where Wrapped: ToolbarContent {
 extension Optional: _ToolbarContentPrimitive where Wrapped: ToolbarContent {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard let self else { return }
-        TUIkit.appendToolbarItems(self, to: &items)
+        TUIkitFoundation.appendToolbarItems(self, to: &items)
     }
 }
 

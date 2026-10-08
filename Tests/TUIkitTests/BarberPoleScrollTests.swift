@@ -9,8 +9,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @Suite("barberPole scrolls its stripes")
 struct BarberPoleScrollTests {

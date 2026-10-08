@@ -12,8 +12,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// What a reader's closure saw, the last time it ran: the drawing that
@@ -688,7 +689,7 @@ private struct DroppingMarkers<Content: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkit.renderToBuffer(content, context: context)
+        var buffer = TUIkitView.renderToBuffer(content, context: context)
         buffer.hitTestRegions.removeAll(where: \.isGeometryMarker)
         return buffer
     }
@@ -729,6 +730,6 @@ private struct RefutingMeasure<Content: View>: View, Renderable, Layoutable {
                 context.environment.scrollContentWindow?.reply?.measureWentStale = true
             }
         }
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }

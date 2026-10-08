@@ -15,8 +15,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// The pop-ups a press opens, one per opener that hands its gesture off.
 enum PopupSurface: CaseIterable, Sendable {

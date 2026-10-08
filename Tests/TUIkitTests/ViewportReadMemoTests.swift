@@ -13,8 +13,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// A 120-cell line, which makes the canvas wider than any viewport here, and a

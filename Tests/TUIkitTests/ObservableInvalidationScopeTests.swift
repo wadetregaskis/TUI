@@ -7,8 +7,9 @@
 import Observation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 /// An `@Observable` change used to clear the WHOLE render cache. A model that

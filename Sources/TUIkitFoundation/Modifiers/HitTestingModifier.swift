@@ -131,7 +131,7 @@ private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
         // and ignored by SECTIONS, which is exactly the split "hidden" needs —
         // and deliberately not what `.dimmed()` does, that one being inert on
         // purpose.
-        let drawn = TUIkit.renderToBuffer(
+        let drawn = TUIkitView.renderToBuffer(
             content,
             context: context.withEnvironment(
                 context.environment.setting(\.isFocusSuppressed, to: true)))
@@ -172,7 +172,7 @@ private struct _HitTestingView<Content: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var drawn = TUIkit.renderToBuffer(content, context: context)
+        var drawn = TUIkitView.renderToBuffer(content, context: context)
         guard !enabled else { return drawn }
         // The regions of any ANCHORED overlay the subtree floated have to go
         // too — a pop-up menu is carried in `overlays` rather than in the

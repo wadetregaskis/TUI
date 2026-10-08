@@ -256,7 +256,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         }
 
         guard let top = elements.last else {
-            return TUIkit.renderToBuffer(
+            return TUIkitView.renderToBuffer(
                 root, context: base.withChildIdentity(type: type(of: root)))
         }
 
@@ -290,7 +290,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             preferences?.push()
             _ = backdrop.withThrowawayFrameDemand { hidden in
-                TUIkit.renderToBuffer(root, context: hidden.withChildIdentity(type: type(of: root)))
+                TUIkitView.renderToBuffer(root, context: hidden.withChildIdentity(type: type(of: root)))
             }
             coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: 0)
         }
@@ -380,7 +380,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         preferences?.push()
         var content =
             coordinator.destination(for: top).map {
-                TUIkit.renderToBuffer(
+                TUIkitView.renderToBuffer(
                     $0, context: screenContext.withChildIdentity(type: NavigationScreen.self))
             } ?? FrameBuffer()
         let published = preferences?.pop()
@@ -507,7 +507,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
                     titles: coordinator.titles(upTo: coordinator.depth), fittingWidth: width),
             coordinator: coordinator)
 
-        let rendered = TUIkit.renderToBuffer(
+        let rendered = TUIkitView.renderToBuffer(
             titled, context: barContext.withChildIdentity(type: NavigationBarID.self))
         return padded(rendered, toWidth: width, height: Self.barHeight)
     }

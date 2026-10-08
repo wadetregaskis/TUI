@@ -19,8 +19,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 @Suite("Reveal target: whole control vs the part that moved")
 struct RevealTargetTests {

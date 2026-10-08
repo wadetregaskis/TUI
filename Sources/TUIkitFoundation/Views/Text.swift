@@ -35,7 +35,7 @@ public struct Text: View, Equatable {
     ///
     /// The same type as the top-level ``TruncationMode``, under SwiftUI's
     /// spelling.
-    public typealias TruncationMode = TUIkit.TruncationMode
+    public typealias TruncationMode = TUIkitFoundation.TruncationMode
 
     /// A scale to apply to text — mirrors SwiftUI's `Text.Scale`.
     ///

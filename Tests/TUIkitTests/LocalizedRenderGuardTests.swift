@@ -20,7 +20,8 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 @MainActor
 @Suite("A translated UI still renders translated", .rendersEnglishUI)

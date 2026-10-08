@@ -11,8 +11,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 @testable import TUIkitView
 
 @MainActor
@@ -341,8 +342,8 @@ private struct DrawnTwice<Content: View>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var narrow = context
         narrow.availableWidth = 3
-        _ = TUIkit.renderToBuffer(content, context: narrow)
-        return TUIkit.renderToBuffer(content, context: context)
+        _ = TUIkitView.renderToBuffer(content, context: narrow)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 

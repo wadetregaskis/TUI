@@ -8,7 +8,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// Reported by the owner: in a split view, Left and Right should move focus between the
 /// columns. A column's content that uses those keys itself still gets them first; one

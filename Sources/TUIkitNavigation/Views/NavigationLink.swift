@@ -158,7 +158,7 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let button = button(context: context, registerViewDestination: !context.isMeasuring)
-        return TUIkit.renderToBuffer(button, context: context.withChildIdentity(type: type(of: button)))
+        return TUIkitView.renderToBuffer(button, context: context.withChildIdentity(type: type(of: button)))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

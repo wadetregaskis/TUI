@@ -6,7 +6,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 private struct DistinctBackgroundPalette: Palette {
     let id = "distinct-bg"

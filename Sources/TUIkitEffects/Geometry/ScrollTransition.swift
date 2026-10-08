@@ -112,7 +112,7 @@ extension _ScrollTransitionView: Renderable, Layoutable {
         // the view — no effect changes that — and must not claim the marker
         // the render will.
         let ask = context.makeGeometryAsk(role: .reader)
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring else { return buffer }
         guard let ask else {
             // Nowhere to ask where the view is: the identity phase.

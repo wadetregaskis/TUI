@@ -10,8 +10,9 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitFoundation
 
 /// What the probes' actions did, reachable from an `App`.
 private final class ReachProbe: @unchecked Sendable {

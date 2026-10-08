@@ -7,8 +7,9 @@
 import Foundation
 import Testing
 
-@testable import TUIkit
+import TUIkit
 @testable import TUIkitCore  // `isOverhangingChromeGlyph` — internal to the width layer
+@testable import TUIkitFoundation
 
 /// The framework's own chrome, against what four terminals actually did with it.
 ///

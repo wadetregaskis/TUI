@@ -239,7 +239,7 @@ private struct _AppStatusBarCore: View, Renderable {
         // — and writes the hover back to it.
         var lineContext = context
         lineContext.environment.statusBar = state
-        let line = TUIkit.renderToBuffer(
+        let line = TUIkitView.renderToBuffer(
             _StatusBarCore(
                 userItems: note ? [] : state.currentUserItems,
                 systemItems: note ? [] : state.currentSystemItems,

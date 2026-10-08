@@ -46,7 +46,7 @@ extension PreferenceModifier: Renderable {
         }
 
         // Render content
-        return TUIkit.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 
@@ -117,7 +117,7 @@ extension OnPreferenceChangeModifier: Renderable {
         // invoking the action are render side effects (the action would fire
         // with a partial mid-measure collection).
         guard !context.isMeasuring else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         let prefs = context.environment.preferenceStorage!
 
@@ -139,7 +139,7 @@ extension OnPreferenceChangeModifier: Renderable {
         prefs.push()
 
         // Render content
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
 
         // Pop and get collected preferences
         let preferences = prefs.pop()
@@ -197,13 +197,13 @@ extension TransformPreferenceModifier: Renderable {
         // and the write below is a render-pass side effect that a cached
         // buffer cannot reproduce — both as `PreferenceModifier` has it.
         guard !context.isMeasuring else {
-            return TUIkit.renderToBuffer(content, context: context)
+            return TUIkitView.renderToBuffer(content, context: context)
         }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         let prefs = context.environment.preferenceStorage!
 
         prefs.push()
-        let buffer = TUIkit.renderToBuffer(content, context: context)
+        let buffer = TUIkitView.renderToBuffer(content, context: context)
         // Measured in SwiftUI: the transform runs on the subtree's REDUCED
         // value — on the default when no child set one, whose result is then
         // set — and the result is what the parent receives.

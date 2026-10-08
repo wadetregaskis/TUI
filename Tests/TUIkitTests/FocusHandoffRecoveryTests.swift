@@ -10,7 +10,8 @@
 
 import Testing
 
-@testable import TUIkit
+import TUIkit
+@testable import TUIkitFoundation
 
 /// A handoff names its target by `@FocusState` value. These drive the manager
 /// directly: every control is bound in one store under its own id as the value, so

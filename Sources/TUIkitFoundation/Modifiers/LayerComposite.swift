@@ -61,7 +61,7 @@ private func placeLayer<Layer: View>(
     // layers and regions and lifts the other's, shifted into place, and it
     // already special-cases a line-empty overlay for exactly this reason.
     if baseBuffer.isEmpty, baseBuffer.overlays.isEmpty, baseBuffer.hitTestRegions.isEmpty {
-        return .alone(TUIkit.renderToBuffer(layer, context: overlayContext))
+        return .alone(TUIkitView.renderToBuffer(layer, context: overlayContext))
     }
 
     // The overlay is laid out IN the base's frame, so it is offered the
@@ -91,7 +91,7 @@ private func placeLayer<Layer: View>(
             x: alignment.horizontal.childOffset(childWidth: measured.width, in: baseBuffer.width),
             y: alignment.vertical.childOffset(childHeight: measured.height, in: baseBuffer.height))
     }
-    let overlayBuffer = TUIkit.renderToBuffer(layer, context: framedContext)
+    let overlayBuffer = TUIkitView.renderToBuffer(layer, context: framedContext)
 
     if overlayBuffer.isEmpty, overlayBuffer.overlays.isEmpty,
         overlayBuffer.hitTestRegions.isEmpty
