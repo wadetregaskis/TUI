@@ -33,7 +33,8 @@ name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
   `TUIkitLists.GridItem`, `TUIkitLists.GridItem.Size`. Those names change
   again at each peel, to `TUIkitTables.`, `TUIkitTabs.` and `TUIkitGrid.`, so
   the release notes should give the peeled name for a type if its peel ships
-  in the same release.
+  in the same release. `UmbrellaQualifiedNameTests` pins at least one from
+  each directory.
 - **Saved state is unaffected.** The four directories declare two public
   `Codable` types, `TableColumnCustomization` and `TabViewCustomization`. Each
   encodes its data under coding keys of its own, with no type name, so a

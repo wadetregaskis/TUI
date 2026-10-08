@@ -47,6 +47,18 @@
 //  the test's reflected name, `TUIkitNavigation.Alert`, catches it at run time,
 //  not the compiler.
 //
+//  Step B6 carved the Lists group the same way: one module, TUIkitLists, that
+//  compiles four directories of the planned split, Sources/TUIkitLists,
+//  TUIkitTables, TUIkitTabs and TUIkitGrid, until steps C2 to C4 peel the last
+//  three into modules of their own. The sixth test spells a type from each
+//  directory through the umbrella and draws it, the table beside an app's own
+//  `Table` (the case an app meets: a database table model of its own). It
+//  leaves the same two holes to the same two guards: TUIkitColorPicker
+//  re-exports TUIkitLists until C3 (its panel is a `TabView`), so the
+//  umbrella's own line is the `umbrella` check's; and a directory left in
+//  TUIkitFoundation would still compile, so the reflected names, one per
+//  directory, catch it at run time.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -113,6 +125,25 @@ private enum Client {
             TUIkit.Button(action: {}, label: { TUIkit.Text(verbatim: "b5 ok") })
         })
     }
+
+    /// An app's own `Table`, beside the table view TUIkitLists compiles from
+    /// Sources/TUIkitTables.
+    struct Table {
+        let name: String
+    }
+
+    /// A row of TUIkit's table.
+    struct Row: Identifiable {
+        let id: Int
+        let name: String
+    }
+
+    /// Both tables: the app's by its plain name, TUIkit's by the umbrella's,
+    /// with a column spelled the same way.
+    @MainActor
+    static func bothTables(rows: [Row]) -> (Table, TUIkit.Table<Row>) {
+        (Table(name: "mine"), TUIkit.Table(rows) { TUIkit.TableColumn("b6 name", value: \Row.name) })
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -154,6 +185,13 @@ extension TUIkit.NavigationPath {
     /// TUIkitNavigation, which the umbrella re-exports itself (and, until step
     /// C1, through TUIkitColorPicker as well).
     fileprivate var b5Marker: Int { 5 + count }
+}
+
+extension TUIkit.TabViewCustomization {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitLists (Sources/TUIkitTabs), which the umbrella re-exports itself
+    /// (and, until step C3, through TUIkitColorPicker as well).
+    fileprivate var b6Marker: Int { self == TUIkit.TabViewCustomization() ? 6 : -6 }
 }
 
 @MainActor
@@ -244,6 +282,40 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: type(of: alert)) == "TUIkitNavigation.Alert<TUIkitFoundation.Button>")
     }
 
+    @Test("A qualified name reaches TUIkitLists, all four of whose directories the umbrella re-exports through it")
+    func qualifiedNamesReachTheListsGroup() {
+        func drawn(_ view: some TUIkit.View, height: Int) -> String {
+            TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
+                .map(\.stripped).joined(separator: "\n")
+        }
+        // From Sources/TUIkitLists: a list, drawn.
+        let list = TUIkit.List { TUIkit.Text(verbatim: "b6 row") }
+        #expect(drawn(list, height: 4).contains("b6 row"))
+        // From Sources/TUIkitTables, which compiles into the same module until
+        // step C2: a table beside an app's own `Table`, drawn.
+        let (mine, table) = Client.bothTables(rows: [Client.Row(id: 1, name: "b6 cell")])
+        #expect(mine.name == "mine")
+        let tableLines = drawn(table, height: 6)
+        #expect(tableLines.contains("b6 name") && tableLines.contains("b6 cell"), "\(tableLines)")
+        // From Sources/TUIkitTabs (until step C3): a tab view, drawn, and a
+        // member an app's extension adds to its customization.
+        let tabs = TUIkit.TabView {
+            TUIkit.Tab("b6 tab", systemImage: "list.bullet") { TUIkit.Text(verbatim: "b6 body") }
+        }
+        #expect(drawn(tabs, height: 6).contains("b6 body"))
+        #expect(TUIkit.TabViewCustomization().b6Marker == 6)
+        // From Sources/TUIkitGrid (until step C4): a grid, drawn.
+        let grid = TUIkit.Grid { TUIkit.GridRow { TUIkit.Text(verbatim: "b6 a"); TUIkit.Text(verbatim: "b6 b") } }
+        #expect(drawn(grid, height: 2).contains("b6 a"))
+        // One reflected name from each directory: a directory left compiling
+        // in TUIkitFoundation would still build, and read
+        // `TUIkitFoundation.` here.
+        #expect(String(reflecting: type(of: table)).hasPrefix("TUIkitLists.Table<"))
+        #expect(String(reflecting: TUIkit.EditMode.self) == "TUIkitLists.EditMode")
+        #expect(String(reflecting: TUIkit.TabViewCustomization.self) == "TUIkitLists.TabViewCustomization")
+        #expect(String(reflecting: TUIkit.GridItem.self) == "TUIkitLists.GridItem")
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -289,5 +361,15 @@ struct UmbrellaQualifiedNameTests {
             String(reflecting: TUIkit.NavigationSplitViewVisibility.self)
                 == "TUIkitNavigation.NavigationSplitViewVisibility")
         #expect(String(reflecting: TUIkit.PresentationDetent.self) == "TUIkitNavigation.PresentationDetent")
+        // Step B6 carved these out (decisions SPB6, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B6. A type from
+        // Sources/TUIkitTables, TUIkitTabs or TUIkitGrid names TUIkitLists,
+        // the module that compiles it, until steps C2 to C4 give it a module
+        // of its own.
+        #expect(String(reflecting: TUIkit.SidebarListStyle.self) == "TUIkitLists.SidebarListStyle")
+        #expect(String(reflecting: TUIkit.TableColumnCustomizationBehavior.self)
+            == "TUIkitLists.TableColumnCustomizationBehavior")
+        #expect(String(reflecting: TUIkit.TabBarPlacement.self) == "TUIkitLists.TabBarPlacement")
+        #expect(String(reflecting: TUIkit.GridItem.Size.self) == "TUIkitLists.GridItem.Size")
     }
 }

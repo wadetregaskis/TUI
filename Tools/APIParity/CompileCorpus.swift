@@ -2908,6 +2908,73 @@ private struct ConfirmEraseItems: View {
     }
 }
 
+// MARK: - Lists, tables, tabs and grids, from a module of their own
+
+/// SwiftUI's own sectioned `List` example, with single selection, under a
+/// `NavigationStack` where the documentation's has the deprecated
+/// `NavigationView`, and the header as a view builder. Since module split step
+/// B6 `List`, `Table`, `TabView` and `Grid` are TUIkitLists', which the
+/// umbrella re-exports (and, until step C3, TUIkitColorPicker, which the
+/// umbrella re-exports too), so this, the grid below, and the `Table`,
+/// `OutlineGroup`, `LazyVGrid` and `TabView` snippets earlier in this file are
+/// SwiftUI source reaching that module as an app does: through `import TUIkit`.
+@MainActor
+private struct OceanRegionsList: View {
+    struct Sea: Hashable, Identifiable {
+        let name: String
+        let id = UUID()
+    }
+
+    struct OceanRegion: Identifiable {
+        let name: String
+        let seas: [Sea]
+        let id = UUID()
+    }
+
+    private let oceanRegions: [OceanRegion] = [
+        OceanRegion(name: "Pacific", seas: [Sea(name: "Coral"), Sea(name: "South China")]),
+        OceanRegion(name: "Arctic", seas: [Sea(name: "Greenland")]),
+    ]
+
+    @State private var singleSelection: UUID?
+
+    var body: some View {
+        NavigationStack {
+            List(selection: $singleSelection) {
+                ForEach(oceanRegions) { region in
+                    Section {
+                        ForEach(region.seas) { sea in
+                            Text(sea.name)
+                        }
+                    } header: {
+                        Text("Major \(region.name) Ocean Seas")
+                    }
+                }
+            }
+            .navigationTitle("Oceans and Seas")
+        }
+    }
+}
+
+/// SwiftUI's own `Grid` example, with the `Divider` between its rows that the
+/// documentation's second example adds, from the same module.
+@MainActor
+private struct HelloWorldGrid: View {
+    var body: some View {
+        Grid {
+            GridRow {
+                Text("Hello")
+                Image(systemName: "globe")
+            }
+            Divider()
+            GridRow {
+                Image(systemName: "hand.wave")
+                Text("World")
+            }
+        }
+    }
+}
+
 /// SwiftUI's own `VisualEffect` example: an offset following the view's global
 /// position, which draws its offset now that the proxy answers `.global`.
 @MainActor
