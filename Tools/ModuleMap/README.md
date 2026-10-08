@@ -91,17 +91,19 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 
 Since step A5 the one target that compiles them (`TUIkitFoundation` since step B1) names the module directories in
 its `sources:` (Package.swift; its `directories:` since step B6, which the manifest passes to SwiftPM as `sources:`,
-with every other directory of its `sourcesDirectories` as `exclude:`). So a module directory added to `rules.json`
-and not to `directories:` (nor carved into a target of its own) is compiled by no target, and its declarations,
-public API included, are simply missing. Until
-step B2 carved it, TUIkitStrings was listed below its own directory, one entry per subdirectory and per
-`Localization/*.swift` file, because a resource may not sit under a declared source path, so a new file there was
-the same case; its own target takes every file in its directory now. SwiftPM says so only as a warning ("found N file(s) which are unhandled"), and CI does not
-fail on warnings; this check does. It reads the index: a file with no unit, older than the newest unit the store
-holds, was there when the last build compiled the others, and that build did not compile it. Name it in
-Package.swift (`TUIkitFoundation`'s `directories:`, or its module's own target once carved). A file with no unit that is
-NEWER than the last build is only new, and is reported as stale (rebuild, then check); so is one whose build failed
-before reaching it.
+with every other directory of the manifest's `sourcesDirectories` list as `exclude:`). So a module directory added
+to `rules.json` and not to `directories:` (nor carved into a target of its own) is compiled by no target, and its
+declarations, public API included, are simply missing. Until step B2 carved it, TUIkitStrings was listed below its
+own directory, one entry per subdirectory and per `Localization/*.swift` file, because a resource may not sit under
+a declared source path, so a new file there was the same case; its own target takes every file in its directory now.
+SwiftPM says nothing about such a directory once it is in `sourcesDirectories`, as the manifest asks of every
+directory under Sources: each target over several directories then excludes it. Left out of that list, it is
+reported, but only as a warning ("found N file(s) which are unhandled"), and CI does not fail on warnings. This
+check fails either way, and in the first case it is the only signal. It reads the index: a file with no unit, older
+than the newest unit the store holds, was there when the last build compiled the others, and that build did not
+compile it. Name it in Package.swift (`TUIkitFoundation`'s or a coarse group's `directories:`, or its module's own
+target once carved). A file with no unit that is NEWER than the last build is only new, and is reported as stale
+(rebuild, then check); so is one whose build failed before reaching it.
 
 ### `upward`: a reference its module cannot see
 
