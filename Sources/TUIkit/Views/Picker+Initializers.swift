@@ -76,8 +76,9 @@ extension Picker where Label == Text {
 
 // MARK: - A title and an SF Symbol
 
-// The forms without a current-value label are with the other controls' SF
-// Symbol initialisers, in `ControlSymbolInitializers.swift`.
+// The forms without a current-value label are with the SF Symbol initialisers
+// of `PickerSymbolInitializers.swift`, beside the other controls' in
+// `ControlSymbolInitializers.swift`.
 extension Picker where Label == TUIkit.Label<Text, _SymbolIcon> {
     /// Creates a picker whose label is a localized title and an SF Symbol, and
     /// a view the collapsed control shows as its current value.
