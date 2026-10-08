@@ -299,24 +299,6 @@ private struct ImagePlaceholderSpinnerKey: EnvironmentKey {
     static let defaultValue = ImagePlaceholderSpinner()
 }
 
-/// Environment key for the image content mode.
-private struct ImageContentModeKey: EnvironmentKey {
-    static let defaultValue: ContentMode? = nil
-}
-
-/// Environment key for an explicit aspect ratio override.
-private struct ImageAspectRatioKey: EnvironmentKey {
-    static let defaultValue: Double? = nil
-}
-
-/// Environment key for the terminal cell's height:width ratio (see
-/// ``View/imageCellAspect(_:)``). Defaults to `2.0` — Apple Terminal's typical
-/// cell — and is republished at the render root from the terminal's reported
-/// pixel size when available.
-private struct ImageCellAspectKey: EnvironmentKey {
-    static let defaultValue: Double = 2.0
-}
-
 /// Environment key for the maximum allowed image pixel count.
 private struct ImageMaxPixelCountKey: EnvironmentKey {
     static let defaultValue: Int? = nil
@@ -449,28 +431,6 @@ extension EnvironmentValues {
         set { self[ImagePlaceholderSpinnerKey.self] = newValue }
     }
 
-    /// The content mode for image scaling: the one
-    /// ``View/aspectRatio(_:contentMode:)`` set, or `.fit`.
-    var imageContentMode: ContentMode {
-        get { self[ImageContentModeKey.self] ?? .fit }
-        set { self[ImageContentModeKey.self] = newValue }
-    }
-
-    /// The content mode a modifier set, or `nil` where none did: a resizable
-    /// image stretches to its frame unless one did — see
-    /// ``Image/resizable(capInsets:resizingMode:)``.
-    var imageExplicitContentMode: ContentMode? {
-        self[ImageContentModeKey.self]
-    }
-
-    /// An explicit aspect ratio override for images (width/height).
-    ///
-    /// When `nil`, the source image's natural aspect ratio is used.
-    var imageAspectRatio: Double? {
-        get { self[ImageAspectRatioKey.self] }
-        set { self[ImageAspectRatioKey.self] = newValue }
-    }
-
     /// The maximum allowed total pixel count for loaded images.
     ///
     /// Images exceeding this limit will fail with `ImageLoadError.imageTooLarge`.
@@ -505,24 +465,11 @@ extension EnvironmentValues {
         get { self[ImageZoomKey.self] }
         set { self[ImageZoomKey.self] = ImageZoomKey.sanitized(newValue) }
     }
-
-    /// The terminal cell's height:width ratio, used to size an image so it isn't
-    /// distorted. See ``View/imageCellAspect(_:)``.
-    ///
-    /// Sanitised on the way in, by the same rule `ASCIIConverter.targetSize`
-    /// applies to its own argument (TUIkitStyling's `sanitizedCellAspect(_:)`,
-    /// which the converter forwards to), so the environment and the converter
-    /// cannot disagree about what a usable ratio is.
-    public var imageCellAspect: Double {
-        get { self[ImageCellAspectKey.self] }
-        set { self[ImageCellAspectKey.self] = sanitizedCellAspect(newValue) }
-    }
 }
 
 // MARK: - View Modifiers
 
 extension View {
-
     /// Sets the glyph charset for image rendering — the fundamental
     /// repertoire (``ASCIICharacterSet/ascii(glyphs:)`` /
     /// ``ASCIICharacterSet/unicode(glyphs:)`` /
@@ -762,68 +709,6 @@ extension View {
             \.imagePlaceholderSpinner, ImagePlaceholderSpinner(isShown: true, style: style, color: color))
     }
 
-    /// Sets the aspect ratio and content mode for image rendering.
-    ///
-    /// Use this modifier to control how images are scaled within their
-    /// available space.
-    ///
-    /// ```swift
-    /// // Use natural aspect ratio, fit within bounds
-    /// Image(.file("photo.png"))
-    ///     .aspectRatio(contentMode: .fit)
-    ///
-    /// // Force 16:9 ratio, fill bounds
-    /// Image(.url("https://example.com/banner.png"))
-    ///     .aspectRatio(16.0/9.0, contentMode: .fill)
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - aspectRatio: The ratio of width to height to use for the
-    ///     resulting view. Use `nil` to maintain the source image's
-    ///     natural aspect ratio.
-    ///   - contentMode: A flag that indicates whether this view fits or
-    ///     fills the parent context.
-    /// - Returns: A view that constrains this view's dimensions to the
-    ///   given aspect ratio and content mode.
-    public func aspectRatio(_ aspectRatio: Double? = nil, contentMode: ContentMode) -> some View {
-        environment(\.imageContentMode, contentMode)
-            .environment(\.imageAspectRatio, aspectRatio)
-    }
-
-    /// Scales this view to fit within the parent while maintaining the
-    /// aspect ratio.
-    ///
-    /// Equivalent to `.aspectRatio(contentMode: .fit)`.
-    ///
-    /// - Returns: A view that scales to fit.
-    public func scaledToFit() -> some View {
-        // This IS the modern spelling SwiftLint's rule points callers to; it is
-        // defined in terms of the general modifier, so the rule's advice does
-        // not apply to its own definition. The rule autocorrects, too: without
-        // the disable below, `swiftlint --fix` rewrites the body into a call to
-        // `scaledToFit()` itself, which does not compile — an opaque return
-        // type with nothing to infer it from.
-        // swiftlint:disable:next legacy_swiftui_aspect_ratio
-        aspectRatio(contentMode: .fit)
-    }
-
-    /// Scales this view to fill the parent while maintaining the
-    /// aspect ratio.
-    ///
-    /// Equivalent to `.aspectRatio(contentMode: .fill)`.
-    ///
-    /// - Returns: A view that scales to fill.
-    public func scaledToFill() -> some View {
-        // This IS the modern spelling SwiftLint's rule points callers to; it is
-        // defined in terms of the general modifier, so the rule's advice does
-        // not apply to its own definition. The rule autocorrects, too: without
-        // the disable below, `swiftlint --fix` rewrites the body into a call to
-        // `scaledToFill()` itself, which does not compile — an opaque return
-        // type with nothing to infer it from.
-        // swiftlint:disable:next legacy_swiftui_aspect_ratio
-        aspectRatio(contentMode: .fill)
-    }
-
     /// Sets the reference box this image scales to fit.
     ///
     /// `.fit`/`.fill` (via ``aspectRatio(_:contentMode:)``) decides *how* an image
@@ -861,31 +746,6 @@ extension View {
     /// - Returns: A modified view.
     public func imageZoom(_ factor: Double) -> some View {
         environment(\.imageZoom, factor)
-    }
-
-    /// Sets the terminal cell's height-to-width ratio for image sizing.
-    ///
-    /// A terminal cell is taller than it is wide, so an image needs more columns
-    /// than rows to look undistorted. This ratio governs by how much: `2.0` (the
-    /// default, ~Apple Terminal) means cells are twice as tall as wide, so a
-    /// square image is laid out roughly 2 columns per row. The real ratio depends
-    /// on the terminal, font, and line spacing — iTerm2's differs from Apple
-    /// Terminal's, which is why an image tuned for one looks horizontally
-    /// squished or stretched on the other.
-    ///
-    /// TUIkit auto-detects the ratio from the terminal's reported pixel cell size
-    /// where available; set this explicitly to override it (e.g. to match a
-    /// custom font or a terminal that doesn't report its cell size).
-    ///
-    /// - Parameter ratio: Cell height ÷ cell width. NaN, infinities and values
-    ///   ≤ 0 are ignored (the default `2.0` applies); values outside
-    ///   `ASCIIConverter.cellAspectRange` (`0.1…10`) are clamped to it.
-    /// - Returns: A modified view.
-    public func imageCellAspect(_ ratio: Double) -> some View {
-        // No `ratio > 0 ? ratio : 2.0` here any more: the environment's setter
-        // applies the converter's own rule, and a second copy of it was how
-        // this one came to admit `.infinity`.
-        environment(\.imageCellAspect, ratio)
     }
 
     /// Sets the maximum allowed pixel count for image loading.
